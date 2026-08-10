@@ -23,7 +23,7 @@ import { useSidebarStore } from '@/src/viewmodels/stores/sidebarStore';
 import {
   LayoutDashboard, Sparkles, Briefcase, Users, Calendar, Wallet,
   Tag, CreditCard, GraduationCap, Home, User, ExternalLink, LogOut,
-  CalendarCheck, FileText, BookOpen, ChevronDown, ChevronRight, Zap,
+  CalendarCheck, FileText, BookOpen, ChevronDown, ChevronRight, Zap, Ticket,
 } from './iconShims';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -51,6 +51,7 @@ export const NAV: Array<{ id: StudentNavId; label: string; Icon: any; spark?: bo
   { id: 'internships',     label: 'Internships & Jobs', Icon: Briefcase },
   { id: 'network',         label: 'Network',            Icon: Users },
   { id: 'my-bookings',     label: 'My Bookings',        Icon: CalendarCheck },
+  { id: 'my-tickets',      label: 'My Tickets',         Icon: Ticket },
   { id: 'events',          label: 'Events',             Icon: Calendar },
   { id: 'my-workshops',    label: 'My Workshops',       Icon: BookOpen },
   { id: 'courses',         label: 'Courses',            Icon: BookOpen },

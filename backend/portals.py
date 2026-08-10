@@ -197,6 +197,14 @@ def _parse_datetime(val: Any) -> datetime | None:
     return None
 
 
+def _fmt_date(val: Any) -> str:
+    """Format a datetime/ISO string as 'Mon DD, YYYY' (or '—')."""
+    dt = _parse_datetime(val)
+    if not dt:
+        return "—"
+    return dt.strftime("%b %d, %Y")
+
+
 # ─── 1. MENTOR DASHBOARD ─────────────────────────────────────────
 @router.get("/mentor/dashboard")
 async def mentor_dashboard(mentor_email: Optional[str] = None, user: dict = Depends(require_role('mentor'))):
@@ -1470,12 +1478,116 @@ async def delete_super_event(event_id: str, user: dict = Depends(require_role('a
 
 @router.get("/admin/super/payments")
 async def super_payments(user: dict = Depends(require_role('admin'))):
-    """Stripe-style ledger from bookings + wallet. Uses live Stripe data when credentials are installed."""
+    """Real payments ledger + revenue from ECHO registrations, bookings and wallet.
+
+    KPIs and ledger are computed from actual transaction records rather than
+    hardcoded placeholders.
+    """
+    # 1) ECHO event registrations (the main paid surface)
+    echo_cur = _db.echo_registrations.find({}).sort("created_at", -1).limit(500)
+    echo_revenue = 0.0
+    echo_pending_amt = 0.0
+    echo_ledger = []
+    echo_paid_cnt = 0
+    echo_pending_cnt = 0
+    async for r in echo_cur:
+        p = r.get("payment") or {}
+        if p.get("status") == "paid":
+            amt = float(r.get("fee") or 0)
+            echo_revenue += amt
+            echo_paid_cnt += 1
+            echo_ledger.append({
+                "id": p.get("payment_id") or f"pay_{str(r.get('_id', ''))[-8:]}",
+                "date": _fmt_date(r.get("registered_at") or r.get("created_at")),
+                "desc": f"ECHO registration — {r.get('showcase_title', 'Event')}",
+                "type": "income",
+                "amount": amt,
+                "by": r.get("full_name") or "Attendee",
+                "status": "success",
+            })
+        elif p.get("status") == "pending":
+            amt = float(r.get("fee") or 0)
+            echo_pending_cnt += 1
+            echo_pending_amt += amt
+            echo_ledger.append({
+                "id": f"pend_{str(r.get('_id', ''))[-8:]}",
+                "date": _fmt_date(r.get("registered_at") or r.get("created_at")),
+                "desc": f"ECHO registration (pending) — {r.get('showcase_title', 'Event')}",
+                "type": "income",
+                "amount": amt,
+                "by": r.get("full_name") or "Attendee",
+                "status": "pending",
+            })
+
+    # 2) Mentor session bookings
     bookings_cnt = await _db.bookings.count_documents({})
-    gross = bookings_cnt * 999
-    payouts = gross * 0.6
-    pending = gross * 0.015
-    net = gross - payouts - pending
+    bookings_cur = _db.bookings.find().sort("created_at", -1).limit(50)
+    bookings_revenue = 0.0
+    bookings_ledger = []
+    async for b in bookings_cur:
+        amt = float(b.get("amount") or 0)
+        bstatus = b.get("payment_status") or "pending"
+        if bstatus in ("paid", "success", "confirmed"):
+            bookings_revenue += amt
+        sid = b.get("student_id")
+        sname = "Student"
+        if sid:
+            try:
+                s = await _db.users.find_one({"_id": ObjectId(sid)})
+                if s:
+                    sname = s.get("full_name", "Student")
+            except Exception:
+                pass
+        bookings_ledger.append({
+            "id": f"pi_{str(b.get('_id', ''))[-10:]}",
+            "date": _fmt_date(b.get("created_at")),
+            "desc": f"Mentor session — {b.get('topic', 'Career')}",
+            "type": "income",
+            "amount": amt,
+            "by": sname,
+            "status": bstatus if bstatus in ("success", "pending", "refunded") else "success",
+        })
+
+    # 3) Wallet transactions (credits/debits)
+    wallet_cur = _db.wallet_transactions.find({}).sort("created_at", -1).limit(100)
+    wallet_revenue = 0.0
+    wallet_ledger = []
+    async for w in wallet_cur:
+        amt = abs(float(w.get("amount") or 0))
+        kind = w.get("kind", "credit")
+        wallet_revenue += amt if kind == "credit" else -amt
+        wallet_ledger.append({
+            "id": f"wt_{str(w.get('_id', ''))[-10:]}",
+            "date": _fmt_date(w.get("created_at")),
+            "desc": w.get("desc", "Wallet transaction"),
+            "type": kind,
+            "amount": amt,
+            "by": w.get("user_email") or "User",
+            "status": "settled",
+        })
+
+    gross = echo_revenue + bookings_revenue
+    net = gross - (gross * 0.1)
+
+    # 4) Per-event revenue (ECHO)
+    events_out = []
+    pipeline = [
+        {"$match": {"payment.status": "paid"}},
+        {"$group": {
+            "_id": "$slug",
+            "title": {"$first": "$showcase_title"},
+            "count": {"$sum": 1},
+            "revenue": {"$sum": "$fee"},
+        }},
+        {"$sort": {"revenue": -1}},
+    ]
+    for row in await _db.echo_registrations.aggregate(pipeline).to_list(100):
+        events_out.append({
+            "slug": row["_id"],
+            "title": row.get("title") or row["_id"],
+            "count": row["count"],
+            "revenue": round(float(row.get("revenue") or 0), 2),
+        })
 
     # Try live Stripe balance if credentials are installed
     stripe_balance = None
@@ -1498,40 +1610,9 @@ async def super_payments(user: dict = Depends(require_role('admin'))):
             except Exception:
                 pass
 
-    # Recent ledger entries from bookings
-    cur = _db.bookings.find().sort("created_at", -1).limit(8)
-    ledger = []
-    async for b in cur:
-        sid = b.get("student_id")
-        s = None
-        try:
-            s = await _db.users.find_one({"_id": ObjectId(sid)})
-        except Exception:
-            s = None
-        sname = (s or {}).get("full_name") or "Student"
-        amt = 999
-        ledger.append({
-            "id": f"pi_{str(b.get('_id', ''))[-10:]}",
-            "date": (b.get("created_at") or datetime.utcnow()).strftime("%b %d") if isinstance(b.get("created_at"), datetime) else "—",
-            "desc": f"Mentor session — {b.get('topic', 'Career')}",
-            "type": "income",
-            "amount": amt,
-            "by": sname,
-            "status": "success",
-        })
-
-    # Payout entries
-    mentors_cur = _db.users.find({"role": "mentor", "mentor_status": "approved"}).limit(3)
-    async for m in mentors_cur:
-        ledger.append({
-            "id": f"po_{str(m.get('_id', ''))[-10:]}",
-            "date": "May 1",
-            "desc": f"Mentor payout — {m.get('full_name', 'Mentor')}",
-            "type": "payout",
-            "amount": 14400,
-            "by": m.get("full_name", "Mentor"),
-            "status": "success",
-        })
+    ledger = (echo_ledger + bookings_ledger + wallet_ledger)
+    ledger.sort(key=lambda t: t.get("date") or "", reverse=True)
+    ledger = ledger[:12]
 
     # Read payout tiers from DB, fall back to defaults
     db_tiers = []
@@ -1539,8 +1620,8 @@ async def super_payments(user: dict = Depends(require_role('admin'))):
     async for t in tcur:
         db_tiers.append(t)
 
+    mentor_count = await _db.users.count_documents({"role": "mentor", "mentor_status": "approved"})
     if db_tiers:
-        mentor_count = await _db.users.count_documents({"role": "mentor", "mentor_status": "approved"})
         tiers_out = []
         for t in db_tiers:
             tiers_out.append({
@@ -1551,23 +1632,30 @@ async def super_payments(user: dict = Depends(require_role('admin'))):
             })
     else:
         tiers_out = [
-            {"tier": "Platinum mentor", "cut": "70%", "count": await _db.users.count_documents({"role": "mentor", "mentor_status": "approved"}) // 3, "color": "#A78BFA"},
-            {"tier": "Gold mentor",     "cut": "60%", "count": await _db.users.count_documents({"role": "mentor", "mentor_status": "approved"}) // 2, "color": "#F5C842"},
-            {"tier": "Silver mentor",   "cut": "50%", "count": await _db.users.count_documents({"role": "mentor", "mentor_status": "approved"}), "color": "#C0C0C0"},
-            {"tier": "College MoU",     "cut": "30%", "count": len(await _db.users.distinct("school_info.institution_name", {"role": "student"})), "color": "#3B82F6"},
+            {"tier": "Platinum mentor", "cut": "70%", "count": max(mentor_count // 3, 0), "color": "#A78BFA"},
+            {"tier": "Gold mentor",     "cut": "60%", "count": max(mentor_count // 2, 0), "color": "#F5C842"},
+            {"tier": "Silver mentor",   "cut": "50%", "count": mentor_count, "color": "#C0C0C0"},
         ]
 
     return {
         "kpi": {
             "gross":   _money(gross),
-            "payouts": _money(payouts),
-            "pending": _money(pending),
+            "payouts": _money(gross * 0.1),
+            "pending": _money(echo_pending_amt),
             "net":     _money(net),
         },
         "ledger": ledger,
-        "stripe_balance": stripe_balance or _money(net * 0.6),
+        "stripe_balance": stripe_balance or _money(0),
         "has_live_stripe": stripe_balance is not None,
         "tiers": tiers_out,
+        "echo": {
+            "paid_count": echo_paid_cnt,
+            "pending_count": echo_pending_cnt,
+            "revenue": echo_revenue,
+            "events": events_out,
+        },
+        "bookings_count": bookings_cnt,
+        "wallet_revenue": wallet_revenue,
     }
 
 
@@ -1617,6 +1705,21 @@ async def export_payments_csv(user: dict = Depends(require_role('admin'))):
     import csv, io
 
     rows = []
+
+    # ECHO registrations
+    echo_cur = _db.echo_registrations.find().sort("created_at", -1).limit(1000)
+    async for r in echo_cur:
+        p = r.get("payment") or {}
+        rows.append({
+            "ID": f"echo_{r.get('_id', '')}",
+            "Date": _fmt_date(r.get("registered_at") or r.get("created_at")),
+            "Description": f"ECHO — {r.get('showcase_title', 'Event')}",
+            "Type": "income",
+            "Amount": float(r.get("fee") or 0),
+            "By": r.get("full_name") or "Attendee",
+            "Status": p.get("status") or "free",
+        })
+
     cur = _db.bookings.find().sort("created_at", -1).limit(1000)
     async for b in cur:
         sid = b.get("student_id")
@@ -1632,9 +1735,9 @@ async def export_payments_csv(user: dict = Depends(require_role('admin'))):
             "Date": (b.get("created_at") or datetime.utcnow()).strftime("%Y-%m-%d %H:%M") if isinstance(b.get("created_at"), datetime) else "",
             "Description": b.get("topic", "Session"),
             "Type": "income",
-            "Amount": 999,
+            "Amount": float(b.get("amount") or 0),
             "By": sname,
-            "Status": "success",
+            "Status": b.get("payment_status") or "success",
         })
 
     wcur = _db.wallet_transactions.find().sort("created_at", -1).limit(500)

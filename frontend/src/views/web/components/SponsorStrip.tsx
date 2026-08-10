@@ -15,7 +15,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Image, Pressable, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 
-import { request } from '@/src/models/services/api';
+import { request, resolveImageUrl } from '@/src/models/services/api';
 import { GlassCard, Kicker } from '@/src/views/web/portals/student/glass';
 import { PALETTE, TYPO } from '@/src/views/web/portals/student/tokens';
 
@@ -168,7 +168,7 @@ function LogoTile({ partner, h = 44, dark = false }: { partner: Partner; h?: num
   return (
     <View style={[s.logoTile, dark && { paddingHorizontal: 10, paddingVertical: 6 }]}>
       <Image
-        source={{ uri: src }}
+        source={{ uri: resolveImageUrl(src) }}
         style={[
           { height: h, width: h * 2.6, resizeMode: 'contain' },
           needsInvert ? ({ filter: 'brightness(0) invert(1)' } as any) : undefined,

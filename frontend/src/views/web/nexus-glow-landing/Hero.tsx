@@ -2,12 +2,23 @@ import { motion } from "framer-motion";
 import { ArrowUpRight, Sparkles } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { AgentK3D } from "./AgentK3D";
+import { useBreakpoint } from "@/src/theme/breakpoints";
 
 export function Hero() {
   const router = useRouter();
+  const { atLeast } = useBreakpoint();
+  const isLargeScreen = atLeast("lg");
+  const isMediumScreen = atLeast("md");
+
+  const paddingTop = isLargeScreen ? 160 : isMediumScreen ? 140 : 120;
+  const paddingBottom = isLargeScreen ? 120 : isMediumScreen ? 100 : 80;
 
   return (
-    <section id="hero" className="relative overflow-hidden pt-36 pb-20 md:pt-48 md:pb-32 flex flex-col items-center justify-center">
+    <section
+      id="hero"
+      className="relative overflow-hidden flex flex-col items-center justify-center"
+      style={{ paddingTop, paddingBottom }}
+    >
       <div className="mx-auto max-w-7xl px-6 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-8 items-center relative z-10 w-full">
 
         {/* Left Side: Headline, Subheading & CTAs */}

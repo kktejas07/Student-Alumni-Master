@@ -4,7 +4,7 @@
  *
  * Two-column layout on wide screens:
  *   left  — poster image placeholder(s) (single or multiple, from CMS `poster_images`)
- *   right — registration form + payment (fee panel + external payment link or mock gateway)
+ *   right — registration form + payment (fee panel + Razorpay checkout)
  *
  * Everything (fee, currency, posters, payment link) is configured in the
  * superadmin CMS (Registration tab). On submit it registers the user in BOTH
@@ -21,7 +21,7 @@ import {
   ArrowLeft, Calendar, MapPin, Clock, Ticket, CreditCard,
   Check, ShieldCheck, Users, ChevronLeft, ChevronRight, ExternalLink,
 } from 'lucide-react-native';
-import { api } from '@/src/models/services/api';
+import { api, resolveImageUrl } from '@/src/models/services/api';
 import { PALETTE, FONTS, TYPO } from '@/src/views/web/portals/student/tokens';
 import { GRAD } from '@/src/views/web/portals/student/portalkit';
 import { EchoHeader, EchoFooter, ECHO_TOP_PADDING } from '@/src/views/web/components/EchoChrome';
@@ -37,11 +37,92 @@ export default function EchoRegisterPage() {
   const [loading, setLoading] = useState(true);
   const [existing, setExisting] = useState<any>(null);
 
-  const [form, setForm] = useState({ full_name: '', email: '', phone: '', branch: '', year: '', college: '' });
+  const [form, setForm] = useState({ full_name: '', email: '', phone: '', dob: '', branch: '', year: '', college: '' });
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [posterIdx, setPosterIdx] = useState(0);
+
+  const loadRazorpay = () =>
+    new Promise<boolean>((resolve) => {
+      if (typeof window === 'undefined') return resolve(false);
+      const w = window as any;
+      if (w.Razorpay) return resolve(true);
+      const s = document.createElement('script');
+      s.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      s.async = true;
+      s.onload = () => resolve(true);
+      s.onerror = () => resolve(false);
+      document.head.appendChild(s);
+    });
+
+  const openInvoice = async (invoiceNo?: string) => {
+    if (!invoiceNo || typeof window === 'undefined') return;
+    try {
+      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const { tokenStore } = await import('@/src/models/services/api');
+      const token = await tokenStore.getAccess();
+      const resp = await fetch(`${base}/api/echo/invoices/${invoiceNo}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!resp.ok) throw new Error('Invoice not available');
+      const data = await resp.json();
+      const w = window.open('', '_blank');
+      if (w) {
+        w.document.open();
+        w.document.write(data.html);
+        w.document.close();
+        w.focus();
+        w.print();
+      }
+    } catch {
+      setError('Could not open the invoice. Check your email for a copy.');
+    }
+  };
+
+  const openTicket = async (regId?: string) => {
+    if (!regId || typeof window === 'undefined') return;
+    try {
+      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const { tokenStore } = await import('@/src/models/services/api');
+      const token = await tokenStore.getAccess();
+      const resp = await fetch(`${base}/api/echo/tickets/${regId}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!resp.ok) throw new Error('Ticket not available');
+      const data = await resp.json();
+      const w = window.open('', '_blank');
+      if (w) {
+        w.document.open();
+        w.document.write(data.html);
+        w.document.close();
+        w.focus();
+        w.print();
+      }
+    } catch {
+      setError('Could not open the ticket. Check your email for a copy.');
+    }
+  };
+
+  const shareTicket = async (regId?: string) => {
+    if (!regId || typeof window === 'undefined') return;
+    const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+    const url = `${base}/api/echo/tickets/${regId}`;
+    const text = `My entry pass for ${showcase?.title || 'the event'}: ${url}`;
+    try {
+      const nav = (navigator as any);
+      if (nav.share) {
+        await nav.share({ title: `Entry Pass — ${showcase?.title || 'Event'}`, text, url });
+        return;
+      }
+    } catch { /* user cancelled share sheet — fall through to copy */ }
+    try {
+      await navigator.clipboard.writeText(url);
+      setError('Ticket link copied to clipboard — share it anywhere!');
+    } catch {
+      setError('Could not share the ticket. Long-press the link to copy it.');
+    }
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -89,16 +170,66 @@ export default function EchoRegisterPage() {
     }
     setSubmitting(true);
     setError(null);
+    let keepLoading = true;
     try {
-      // Payment gateway: if an external payment_url is configured, the attendee
-      // pays there; the mock gateway below simulates that step for the demo.
-      await new Promise((r) => setTimeout(r, 900));
-      const res = await api.registerEchoShowcase(canonicalSlug, { ...form, payment_method: paymentUrl ? 'external' : 'mock' });
-      setDone(res);
-    } catch (e: any) {
-      setError(e?.message || 'Registration failed. Please try again.');
+      const contact = { ...form, email: form.email.trim().toLowerCase() };
+      const regPayload = { ...contact, payment_method: fee > 0 ? 'online' : 'free' };
+
+      // Free event → register directly.
+      if (fee <= 0) {
+        const res = await api.registerEchoShowcase(canonicalSlug, regPayload);
+        setDone(res);
+        return;
+      }
+
+      // Paid event → create a payment order, then redirect to the gateway.
+      const order = await api.createEchoPaymentOrder(canonicalSlug, contact);
+
+      // Already paid → show the existing registration + invoice.
+      if (order?.already) {
+        setDone(order.registration);
+        return;
+      }
+
+      const w = window as any;
+      if (!w.Razorpay) {
+        const ok = await loadRazorpay();
+        if (!ok) throw new Error('Payment gateway could not be loaded. Please try again.');
+      }
+
+      const checkout = new w.Razorpay({
+        key: order.key_id,
+        order_id: order.order_id,
+        name: 'Student Alumni',
+        description: `ECHO registration — ${showcase.title}`,
+        amount: Math.round(order.amount * 100),
+        currency: order.currency,
+        prefill: { name: form.full_name, email: form.email, contact: form.phone || '' },
+        theme: { color: '#7C3AED' },
+        handler: async (res: any) => {
+          try {
+            const verified = await api.verifyEchoPayment(canonicalSlug, {
+              ...contact,
+              razorpay_payment_id: res.razorpay_payment_id,
+              razorpay_order_id: res.razorpay_order_id,
+              razorpay_signature: res.razorpay_signature,
+            });
+            setDone(verified.registration || verified);
+          } catch (err: any) {
+            setError(err?.message || 'Payment verification failed. Please contact support.');
+            setSubmitting(false);
+          }
+        },
+        modal: {
+          ondismiss: () => setSubmitting(false),
+        },
+      });
+      checkout.open();
+      keepLoading = false; // keep button loading until the checkout modal closes
+    } catch (err: any) {
+      setError(err?.message || 'Registration failed. Please try again.');
     } finally {
-      setSubmitting(false);
+      if (keepLoading) setSubmitting(false);
     }
   };
 
@@ -139,10 +270,16 @@ export default function EchoRegisterPage() {
     );
   }
 
-  // Success screen with QR + payment confirmation
-  if (done?.id || existing?.id) {
+  // Success screen with QR + payment confirmation. Only shows for a
+  // CONFIRMED registration (paid or free both carry payment.status "paid");
+  // a `pending` payment means money wasn't captured, so keep the form up
+  // and let the user resume payment.
+  const confirmedReg =
+    (done?.payment?.status === 'paid') || (existing?.payment?.status === 'paid');
+  if (confirmedReg) {
     const reg = done || existing;
     const payment = reg.payment || {};
+    const invoiceNo = reg.invoice?.invoice_no || done?.invoice?.invoice_no;
     return (
       <View style={s.root}>
         <EchoHeader current="echo" />
@@ -190,6 +327,31 @@ export default function EchoRegisterPage() {
         <Pressable onPress={() => router.push(`/echo/${canonicalSlug}`)} style={s.doneBtn}>
           <Text style={s.doneBtnText}>Done</Text>
         </Pressable>
+
+        <Pressable onPress={() => router.push(`/echo/${canonicalSlug}/coupons`)} style={[s.invBtn, { borderColor: 'rgba(167,139,250,0.3)' }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
+            <Ticket size={14} color="#A78BFA" />
+            <Text style={[s.invBtnText, { color: '#C4B5FD' }]}>View My Coupons</Text>
+          </View>
+        </Pressable>
+
+        {invoiceNo ? (
+          <Pressable onPress={() => openInvoice(invoiceNo)} style={s.invBtn}>
+            <Text style={s.invBtnText}>Download Invoice</Text>
+          </Pressable>
+        ) : null}
+
+        <View style={{ flexDirection: 'row', gap: 10, marginBottom: 14 }}>
+          <Pressable onPress={() => openTicket(reg.id)} style={[s.doneBtn, { flex: 1 }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
+              <Ticket size={16} color="#fff" />
+              <Text style={s.doneBtnText}>Download Ticket</Text>
+            </View>
+          </Pressable>
+          <Pressable onPress={() => shareTicket(reg.id)} style={[s.invBtn, { flex: 1, marginBottom: 0 }]}>
+            <Text style={s.invBtnText}>Share Ticket</Text>
+          </Pressable>
+        </View>
         <EchoFooter />
         </ScrollView>
       </View>
@@ -222,7 +384,7 @@ export default function EchoRegisterPage() {
         <View style={[s.posterCol, !isWide && s.posterColStack]}>
           <View style={s.posterWrap}>
             {activePoster ? (
-              <Image source={{ uri: activePoster }} style={s.poster} resizeMode="cover" />
+              <Image source={{ uri: resolveImageUrl(activePoster) }} style={s.poster} resizeMode="cover" />
             ) : (
               <LinearGradient colors={['rgba(123,61,191,0.35)', 'rgba(95,37,159,0.55)', 'rgba(30,10,80,0.85)']} style={s.poster}>
                 <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1, gap: 10, padding: 20 }}>
@@ -278,7 +440,7 @@ export default function EchoRegisterPage() {
                   {paymentUrl ? (
                     <View style={s.secureBadge}><ExternalLink size={12} color="#34D399" /><Text style={s.secureText}>Secure payment</Text></View>
                   ) : fee > 0 ? (
-                    <View style={s.secureBadge}><ShieldCheck size={12} color="#34D399" /><Text style={s.secureText}>Secure mock payment</Text></View>
+                    <View style={s.secureBadge}><ShieldCheck size={12} color="#34D399" /><Text style={s.secureText}>Secure payment</Text></View>
                   ) : null}
                 </View>
                 {regCfg.max_seats ? (
@@ -299,6 +461,9 @@ export default function EchoRegisterPage() {
 
                 <Text style={s.label}>Phone</Text>
                 <TextInput style={s.input} value={form.phone} onChangeText={(v) => set('phone', v)} placeholder="+91 …" placeholderTextColor={PALETTE.dim} keyboardType="phone-pad" />
+
+                <Text style={s.label}>Date of Birth</Text>
+                <TextInput style={s.input} value={form.dob} onChangeText={(v) => set('dob', v)} placeholder="YYYY-MM-DD" placeholderTextColor={PALETTE.dim} autoCapitalize="none" />
 
                 <View style={{ flexDirection: 'row', gap: 10 }}>
                   <View style={{ flex: 1 }}>
@@ -344,17 +509,25 @@ export default function EchoRegisterPage() {
                           <>
                             <CreditCard size={16} color="#fff" />
                             <Text style={s.payBtnText}>
-                              {fee > 0 ? `Pay ${currency} ${fee} & Register` : 'Register Free'}
+                              {fee > 0 ? `Pay ${currency} ${fee} via Razorpay` : 'Register Free'}
                             </Text>
                           </>
                         )}
                       </Pressable>
                     </LinearGradient>
                     <Text style={s.disclaimer}>
-                      By registering you agree to receive event updates. This is a demo payment flow — no real charge is made.
+                      By registering you agree to receive event updates. Payment is processed securely via Razorpay.
                     </Text>
                   </>
                 )}
+                <View style={s.accountNote}>
+                  <ShieldCheck size={13} color="#A78BFA" />
+                  <Text style={s.accountNoteText}>
+                    A <Text style={{ color: '#C4B5FD', fontFamily: FONTS.semi }}>free Student Alumni account</Text> will be
+                    created with this email — your login credentials will be emailed to you so you can
+                    view your tickets anytime under <Text style={{ color: '#C4B5FD', fontFamily: FONTS.semi }}>My Tickets</Text>.
+                  </Text>
+                </View>
               </View>
             </>
           )}
@@ -450,6 +623,12 @@ const s = StyleSheet.create({
   },
   payBtnText: { color: '#fff', fontFamily: TYPO.display700, fontSize: 15 },
   disclaimer: { color: PALETTE.dim, fontFamily: FONTS.med, fontSize: 11, lineHeight: 16, textAlign: 'center', marginTop: 10 },
+  accountNote: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 12,
+    backgroundColor: 'rgba(124,58,237,0.10)', borderColor: 'rgba(167,139,250,0.25)',
+    borderWidth: 1, borderRadius: 10, padding: 12,
+  },
+  accountNoteText: { color: PALETTE.muted, fontFamily: FONTS.med, fontSize: 11, lineHeight: 16, flex: 1 },
 
   successHero: { borderRadius: 18, padding: 28, alignItems: 'center', gap: 8, marginBottom: 16 },
   successIcon: { width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
@@ -472,6 +651,13 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   doneBtnText: { color: '#fff', fontFamily: TYPO.display700, fontSize: 14 },
+
+  invBtn: {
+    backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12, paddingVertical: 13, alignItems: 'center',
+    borderWidth: 1, borderColor: 'rgba(52,211,153,0.4)', marginBottom: 14,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  invBtnText: { color: '#34D399', fontFamily: TYPO.display700, fontSize: 13.5 },
 
   closedCard: {
     backgroundColor: 'rgba(245,158,11,0.08)', borderRadius: 14, borderWidth: 1,

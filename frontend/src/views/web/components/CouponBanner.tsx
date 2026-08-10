@@ -15,10 +15,12 @@
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  View, Text, Pressable, StyleSheet, Platform, Image, Modal, Linking, ScrollView, TextInput,
+  View, Text, Pressable, StyleSheet, Platform, Image, Modal, Linking, ScrollView, TextInput, NativeSyntheticEvent, NativeScrollEvent,
 } from 'react-native';
-import { Ticket, ExternalLink, X, Copy, Check, Tag, Plus, Pencil, Trash2, Save, Upload } from 'lucide-react-native';
+import { Ticket, ExternalLink, X, Copy, Check, Tag, Plus, Pencil, Trash2, Save, Upload, AlertTriangle, Lock } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
+import { uploadImage } from '@/src/lib/image';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 export type Coupon = {
   id: string;
@@ -35,6 +37,7 @@ export type Coupon = {
   instructions?: string;
   audience?: string[];
   active?: boolean;
+  locked?: boolean;
 };
 
 function discountLabel(c: Coupon): string {
@@ -81,7 +84,7 @@ function CouponModal({ coupon, onClose }: { coupon: Coupon | null; onClose: () =
           {/* Header image */}
           <View style={m.heroWrap}>
             {coupon.image_url ? (
-              <Image source={{ uri: coupon.image_url }} style={m.hero} resizeMode="cover" />
+              <Image source={{ uri: coupon.image_url }} style={m.hero} resizeMode="contain" />
             ) : (
               <View style={[m.hero, m.heroFallback]}>
                 <Ticket size={44} color="#A78BFA" />
@@ -175,11 +178,12 @@ const AUDIENCE_OPTIONS = [
 ];
 
 function CouponEditor({
-  coupon, onClose, onSaved,
+  coupon, onClose, onSaved, onError,
 }: {
   coupon: Coupon | null;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (created?: Coupon | null) => void;
+  onError: (msg: string) => void;
 }) {
   const [code, setCode] = useState('');
   const [description, setDescription] = useState('');
@@ -197,18 +201,18 @@ function CouponEditor({
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<any>(null);
 
-  const handleFileSelect = (e: any) => {
+  const handleFileSelect = async (e: any) => {
     const file = e.target?.files?.[0];
     if (!file) return;
     setUploading(true);
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const dataUrl = ev.target?.result as string;
-      if (dataUrl) setImageUrl(dataUrl);
+    try {
+      const url = await uploadImage(file, 'coupons');
+      setImageUrl(url);
+    } catch {
+      // upload failed silently
+    } finally {
       setUploading(false);
-    };
-    reader.onerror = () => setUploading(false);
-    reader.readAsDataURL(file);
+    }
   };
 
   useEffect(() => {
@@ -254,12 +258,15 @@ function CouponEditor({
     try {
       if (coupon) {
         await request(`/admin/coupons/${coupon.id}`, { method: 'PATCH', body: payload });
+        onSaved(null);
       } else {
-        await request('/admin/coupons', { method: 'POST', body: { code: code.toUpperCase(), ...payload } });
+        const res = await request<{ coupon?: Coupon }>('/admin/coupons', { method: 'POST', body: { code: code.toUpperCase(), ...payload } });
+        onSaved(res?.coupon || null);
       }
-      onSaved();
       onClose();
-    } catch { /* surface via onSaved? */ } finally {
+    } catch (e: any) {
+      onError(e?.message || 'Failed to save coupon');
+    } finally {
       setSaving(false);
     }
   };
@@ -343,7 +350,7 @@ function CouponEditor({
             </View>
             {imageUrl ? (
               <View style={{ marginTop: 8, borderRadius: 10, overflow: 'hidden' }}>
-                <Image source={{ uri: imageUrl }} style={{ width: '100%', height: 90 }} resizeMode="cover" />
+                <Image source={{ uri: imageUrl }} style={{ width: '100%', height: 90, backgroundColor: '#070b19' }} resizeMode="contain" />
               </View>
             ) : null}
 
@@ -393,32 +400,94 @@ function CouponEditor({
   );
 }
 
+const CARDS_PER_PAGE = 4;
+const CARD_GAP = 16;
+const CARD_WIDTH = 270;
+// Offset between the start of one 4-card page and the next: 4 cards + 4 gaps.
+const PAGE_STRIDE = CARDS_PER_PAGE * (CARD_WIDTH + CARD_GAP);
+
 export function CouponBanner({ portal, editable }: { portal: string; editable?: boolean }) {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [selected, setSelected] = useState<Coupon | null>(null);
   const [editor, setEditor] = useState<Coupon | null | 'new'>(null);
+  const [toast, setToast] = useState<{ text: string; kind: 'success' | 'error' } | null>(null);
+  const [currentPage, setCurrentPage] = useState(0);
+  const scrollRef = useRef<ScrollView>(null);
+  const toastTimer = useRef<any>(null);
+  const user = useAuthStore((s) => s.user);
+
+  const flash = useCallback((text: string, kind: 'success' | 'error' = 'success') => {
+    setToast({ text, kind });
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 2200);
+  }, []);
 
   const loadCoupons = useCallback(async () => {
+    if (!user) { setCoupons([]); return; }
     try {
       const r = await request<{ coupons: Coupon[] }>(editable ? '/admin/coupons' : '/coupons/active');
       setCoupons(r.coupons || []);
     } catch {
       setCoupons([]);
     }
-  }, [editable]);
+  }, [editable, user]);
 
   useEffect(() => {
     loadCoupons();
+    return () => { if (toastTimer.current) clearTimeout(toastTimer.current); };
   }, [loadCoupons, portal]);
 
   const deleteCoupon = async (c: Coupon) => {
     try {
       await request(`/admin/coupons/${c.id}`, { method: 'DELETE' });
-      loadCoupons();
-    } catch { /* ignore */ }
+      setCoupons((prev) => prev.filter((x) => x.id !== c.id));
+      flash('Coupon deleted');
+    } catch (e: any) {
+      flash(e?.message || 'Failed to delete coupon', 'error');
+    }
   };
 
+  const toggleCouponLock = async (c: Coupon) => {
+    try {
+      const newLocked = !c.locked;
+      await request(`/admin/coupons/${c.id}`, { method: 'PATCH', body: { locked: newLocked } });
+      setCoupons((prev) => prev.map((x) => x.id === c.id ? { ...x, locked: newLocked } : x));
+      flash(newLocked ? 'Coupon locked' : 'Coupon unlocked');
+    } catch (e: any) {
+      flash(e?.message || 'Failed to update lock', 'error');
+    }
+  };
+
+  const handleSaved = useCallback((created?: Coupon | null) => {
+    if (created) {
+      setCoupons((prev) => [created, ...prev.filter((c) => c.id !== created.id)]);
+      flash('Coupon created');
+    } else {
+      loadCoupons();
+      flash('Coupon updated');
+    }
+  }, [flash, loadCoupons]);
+
   if (!editable && !coupons.length) return null;
+
+  const totalPages = Math.ceil(coupons.length / CARDS_PER_PAGE);
+
+  const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const contentWidth = e.nativeEvent.contentSize.width;
+    const containerWidth = e.nativeEvent.layoutMeasurement.width;
+    const scrollX = e.nativeEvent.contentOffset.x;
+    if (contentWidth <= containerWidth) {
+      setCurrentPage(0);
+      return;
+    }
+    const page = Math.round(scrollX / PAGE_STRIDE);
+    setCurrentPage(Math.min(page, totalPages - 1));
+  };
+
+  const scrollToPage = (page: number) => {
+    if (!scrollRef.current) return;
+    scrollRef.current.scrollTo({ x: page * PAGE_STRIDE, animated: true });
+  };
 
   return (
     <View style={s.wrap}>
@@ -437,42 +506,69 @@ export function CouponBanner({ portal, editable }: { portal: string; editable?: 
       </View>
 
       {coupons.length > 0 ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.row}>
-          {coupons.map((c) => (
-            <Pressable key={c.id} onPress={() => setSelected(c)} style={[s.card, editable && !c.active && s.cardInactive]}>
-              <View style={s.cardImgWrap}>
-                {c.image_url ? (
-                  <Image source={{ uri: c.image_url }} style={s.cardImg} resizeMode="cover" />
-                ) : (
-                  <View style={[s.cardImg, s.cardImgFallback]}>
-                    <Ticket size={22} color="#A78BFA" />
-                  </View>
-                )}
-                {editable && (
-                  <View style={s.cardAdmin}>
-                    <Pressable onPress={() => setEditor(c)} style={s.cardAdminBtn} hitSlop={6}>
-                      <Pencil size={11} color="#fff" />
-                    </Pressable>
-                    <Pressable onPress={() => deleteCoupon(c)} style={s.cardAdminBtn} hitSlop={6}>
-                      <Trash2 size={11} color="#F87171" />
-                    </Pressable>
-                  </View>
-                )}
-              </View>
-              <View style={s.cardBody}>
-                <Text style={s.cardPartner} numberOfLines={1}>
-                  {c.partner_name || 'Partner Offer'}
-                </Text>
-                <Text style={s.cardTitle} numberOfLines={1}>
-                  {c.discount_pct ? discountLabel(c) : c.description || 'Coupon'}
-                </Text>
-                <View style={s.cardCode}>
-                  <Text style={s.cardCodeText}>{c.code}</Text>
+        <>
+          <ScrollView
+            ref={scrollRef}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={s.row}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+            snapToInterval={PAGE_STRIDE}
+            decelerationRate="fast"
+          >
+            {coupons.map((c) => (
+              <Pressable key={c.id} onPress={() => setSelected(c)} style={[s.card, editable && !c.active && s.cardInactive, c.locked && { borderColor: 'rgba(245,158,11,0.4)' }]}>
+                <View style={s.cardImgWrap}>
+                  {c.image_url ? (
+                    <Image source={{ uri: c.image_url }} style={s.cardImg} resizeMode="contain" />
+                  ) : (
+                    <View style={[s.cardImg, s.cardImgFallback]}>
+                      {c.locked ? <Lock size={22} color="#F59E0B" /> : <Ticket size={22} color="#A78BFA" />}
+                    </View>
+                  )}
+                  {editable && (
+                    <View style={s.cardAdmin}>
+                      <Pressable onPress={() => setEditor(c)} style={s.cardAdminBtn} hitSlop={6}>
+                        <Pencil size={11} color="#fff" />
+                      </Pressable>
+                      <Pressable onPress={() => deleteCoupon(c)} style={s.cardAdminBtn} hitSlop={6}>
+                        <Trash2 size={11} color="#F87171" />
+                      </Pressable>
+                      <Pressable onPress={() => toggleCouponLock(c)} style={[s.cardAdminBtn, { backgroundColor: c.locked ? 'rgba(245,158,11,0.3)' : 'rgba(255,255,255,0.15)' }]} hitSlop={6}>
+                        <Lock size={11} color={c.locked ? '#F59E0B' : '#fff'} />
+                      </Pressable>
+                    </View>
+                  )}
                 </View>
-              </View>
-            </Pressable>
-          ))}
-        </ScrollView>
+                <View style={s.cardBody}>
+                  <Text style={s.cardPartner} numberOfLines={1}>
+                    {c.locked ? 'Available soon' : (c.partner_name || 'Partner Offer')}
+                  </Text>
+                  <Text style={s.cardTitle} numberOfLines={1}>
+                    {c.locked ? 'Session locked' : (c.discount_pct ? discountLabel(c) : c.description || 'Coupon')}
+                  </Text>
+                  <View style={[s.cardCode, c.locked && { backgroundColor: 'rgba(245,158,11,0.15)' }]}>
+                    <Text style={[s.cardCodeText, c.locked && { color: '#F59E0B' }]}>
+                      {c.locked ? '🔒 Locked' : c.code}
+                    </Text>
+                  </View>
+                </View>
+              </Pressable>
+            ))}
+          </ScrollView>
+          {totalPages > 1 && (
+            <View style={s.dotsRow}>
+              {Array.from({ length: totalPages }).map((_, i) => (
+                <Pressable
+                  key={i}
+                  onPress={() => scrollToPage(i)}
+                  style={[s.dot, i === currentPage && s.dotActive]}
+                />
+              ))}
+            </View>
+          )}
+        </>
       ) : editable ? (
         <Text style={s.emptyText}>No coupons created yet. Click "Add Coupon" to create one.</Text>
       ) : null}
@@ -482,8 +578,18 @@ export function CouponBanner({ portal, editable }: { portal: string; editable?: 
         <CouponEditor
           coupon={editor === 'new' ? null : editor}
           onClose={() => setEditor(null)}
-          onSaved={loadCoupons}
+          onSaved={handleSaved}
+          onError={(msg) => flash(msg, 'error')}
         />
+      )}
+
+      {toast && (
+        <View pointerEvents="none" style={[cbToast.wrap, toast.kind === 'error' && cbToast.error]}>
+          {toast.kind === 'error'
+            ? <AlertTriangle size={12} color="#F87171" />
+            : <Check size={12} color="#34D399" />}
+          <Text style={cbToast.text}>{toast.text}</Text>
+        </View>
       )}
     </View>
   );
@@ -498,7 +604,7 @@ const m = StyleSheet.create({
     ...(Platform.OS === 'web' ? { boxShadow: '0 24px 80px rgba(0,0,0,0.60)' } as any : {}),
   },
   heroWrap: { position: 'relative' },
-  hero: { width: '100%', aspectRatio: 21 / 9 },
+  hero: { width: '100%', aspectRatio: 21 / 9, backgroundColor: '#070b19' },
   heroFallback: {
     backgroundColor: '#141a33', alignItems: 'center', justifyContent: 'center', gap: 8,
   },
@@ -614,49 +720,69 @@ const m = StyleSheet.create({
 });
 
 const s = StyleSheet.create({
-  wrap: { marginBottom: 14, gap: 8 },
-  headRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  headText: { fontFamily: 'DMSans_700Bold', fontSize: 11.5, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 0.8 },
+  wrap: { marginBottom: 18, gap: 10 },
+  headRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  headText: { fontFamily: 'DMSans_700Bold', fontSize: 12, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 0.8 },
   addBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 7, backgroundColor: '#7C3AED',
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 14, paddingVertical: 7, borderRadius: 8, backgroundColor: '#7C3AED',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}),
   },
-  addBtnText: { fontFamily: 'DMSans_700Bold', fontSize: 11, color: '#fff' },
+  addBtnText: { fontFamily: 'DMSans_700Bold', fontSize: 12, color: '#fff' },
   emptyText: { fontFamily: 'DMSans_500Medium', fontSize: 12, color: 'rgba(255,255,255,0.45)' },
-  row: { gap: 12, paddingBottom: 2 },
+  row: { gap: CARD_GAP, paddingBottom: 4 },
   card: {
-    width: 230, borderRadius: 14, overflow: 'hidden',
-    backgroundColor: 'rgba(15,20,38,0.85)',
-    borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)',
+    width: CARD_WIDTH, borderRadius: 16, overflow: 'hidden',
+    backgroundColor: 'rgba(15,20,38,0.9)',
+    borderWidth: 1, borderColor: 'rgba(167,139,250,0.2)',
     ...(Platform.OS === 'web' ? ({
       cursor: 'pointer',
-      transitionDuration: '160ms',
-      ':hover': { transform: 'translateY(-2px)', borderColor: 'rgba(167,139,250,0.6)' },
+      transitionDuration: '200ms',
+      ':hover': { transform: 'translateY(-3px)', borderColor: 'rgba(167,139,250,0.55)', boxShadow: '0 8px 24px rgba(124,58,237,0.15)' },
     } as any) : {}),
   },
   cardInactive: { opacity: 0.5 },
   cardImgWrap: { position: 'relative' },
-  cardImg: { width: '100%', aspectRatio: 21 / 9 },
+  cardImg: { width: '100%', aspectRatio: 16 / 9, backgroundColor: '#070b19' },
   cardImgFallback: {
-    backgroundColor: 'rgba(124,58,237,0.15)', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(124,58,237,0.12)', alignItems: 'center', justifyContent: 'center',
   },
   cardAdmin: {
-    position: 'absolute', top: 6, right: 6, flexDirection: 'row', gap: 6,
+    position: 'absolute', top: 8, right: 8, flexDirection: 'row', gap: 6,
   },
   cardAdminBtn: {
-    width: 24, height: 24, borderRadius: 12,
-    backgroundColor: 'rgba(0,0,0,0.65)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+    width: 26, height: 26, borderRadius: 13,
+    backgroundColor: 'rgba(0,0,0,0.6)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center', justifyContent: 'center',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  cardBody: { padding: 12, gap: 4 },
-  cardPartner: { fontFamily: 'DMSans_700Bold', fontSize: 11, color: '#A78BFA' },
-  cardTitle: { fontFamily: 'DMSans_800ExtraBold', fontSize: 13.5, color: '#fff' },
+  cardBody: { padding: 14, gap: 6 },
+  cardPartner: { fontFamily: 'DMSans_700Bold', fontSize: 11.5, color: '#A78BFA' },
+  cardTitle: { fontFamily: 'DMSans_800ExtraBold', fontSize: 14.5, color: '#fff' },
   cardCode: {
-    alignSelf: 'flex-start', backgroundColor: 'rgba(124,58,237,0.2)',
-    borderWidth: 1, borderColor: 'rgba(167,139,250,0.35)',
-    borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, marginTop: 3,
+    alignSelf: 'flex-start', backgroundColor: 'rgba(124,58,237,0.18)',
+    borderWidth: 1, borderColor: 'rgba(167,139,250,0.3)',
+    borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4, marginTop: 4,
   },
-  cardCodeText: { fontFamily: 'DMSans_700Bold', fontSize: 11, color: '#C4B5FD', letterSpacing: 1 },
+  cardCodeText: { fontFamily: 'DMSans_700Bold', fontSize: 11.5, color: '#C4B5FD', letterSpacing: 1.2 },
+  dotsRow: {
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 14,
+  },
+  dot: {
+    width: 8, height: 8, borderRadius: 4, backgroundColor: 'rgba(167,139,250,0.2)',
+    ...(Platform.OS === 'web' ? { cursor: 'pointer', transitionDuration: '200ms' } as any : {}),
+  },
+  dotActive: { backgroundColor: '#A78BFA', width: 22 },
+});
+
+const cbToast = StyleSheet.create({
+  wrap: {
+    position: 'absolute', top: 84, right: 24, zIndex: 9999,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: '#0d1326', borderColor: 'rgba(52,211,153,0.45)', borderWidth: 1,
+    borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10,
+    ...(Platform.OS === 'web' ? ({ position: 'fixed', boxShadow: '0 12px 32px rgba(0,0,0,0.5)' } as any) : {}),
+  },
+  error: { borderColor: 'rgba(248,113,113,0.45)' },
+  text: { fontFamily: 'DMSans_700Bold', fontSize: 12, color: '#fff' },
 });

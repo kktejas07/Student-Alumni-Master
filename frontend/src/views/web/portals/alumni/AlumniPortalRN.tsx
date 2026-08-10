@@ -25,6 +25,7 @@ import { ProfileSettingsView } from '../student/views/ProfileSettingsView';
 import { MyBookingsView } from './views/MyBookingsView';
 import { MyApplicationsView } from './views/MyApplicationsView';
 import { MyWorkshopsView } from './views/MyWorkshopsView';
+import { MyTicketsView } from '../student/views/MyTicketsView';
 import { CareerAIView } from '../student/views/CareerAIView';
 
 import { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
@@ -103,6 +104,7 @@ export function AlumniPortalRN() {
             {active === 'my-applications' && <MyApplicationsView />}
             {active === 'network'         && <NetworkView />}
             {active === 'my-bookings'     && <MyBookingsView />}
+            {active === 'my-tickets'      && <MyTicketsView />}
             {active === 'events'          && <EventsView />}
             {active === 'my-workshops'    && <MyWorkshopsView />}
             {active === 'courses'         && <CoursesPage />}
