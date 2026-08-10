@@ -96,7 +96,7 @@ export function Dashboard() {
                   {[
                     { label: "Active Applications", val: "12", trend: "+3 this week", color: "text-white" },
                     { label: "Mentor Hours", val: "8.5h", trend: "+2h vs last mo", color: "text-white" },
-                    { label: "K-Credits", val: "2,450", trend: "Unlock Premium", color: "text-primary" },
+                    { label: "Skill Badges", val: "2,450", trend: "Unlock Premium", color: "text-primary" },
                   ].map((s, i) => (
                     <div key={s.label} className="rounded-xl border border-white/5 bg-[#121214] p-5 hover:bg-[#18181B] hover:border-white/10 transition-colors">
                       <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">{s.label}</div>
@@ -131,7 +131,7 @@ export function Dashboard() {
                     {[
                       { text: "Refine your resume for the Google SWE referral drop.", type: "urgent" },
                       { text: "Prep 3 questions for tomorrow's mentor call with Sarah.", type: "task" },
-                      { text: "Apply to 2 matched internships closing this Friday.", type: "task" },
+                      { text: "Apply to 2 matched career opportunities closing this Friday.", type: "task" },
                     ].map((t, idx) => (
                       <div key={idx} className="flex items-start gap-3 rounded-lg bg-[#121214] border border-white/5 p-4 hover:border-white/10 transition-colors cursor-pointer">
                         <CheckCircle2 className={`h-5 w-5 mt-0.5 ${t.type === 'urgent' ? 'text-primary' : 'text-gray-500'}`} />
@@ -161,7 +161,7 @@ export function Dashboard() {
                   
                   <div className="mt-4 flex justify-between text-[10px] font-bold text-gray-500 uppercase tracking-wider">
                     <span>Foundations</span>
-                    <span className="text-primary">Internships</span>
+                    <span className="text-primary">Opportunities</span>
                     <span>Full-time</span>
                   </div>
                 </div>

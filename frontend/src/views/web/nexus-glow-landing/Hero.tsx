@@ -51,7 +51,7 @@ export function Hero() {
             transition={{ duration: 0.9, delay: 0.25 }}
             className="mt-6 text-base md:text-xl text-gray-300 leading-relaxed font-medium max-w-xl"
           >
-            Meet Agent K your always-on career copilot. Connect with mentors, discover events and internships, polish your resume, and follow a personalized roadmap built for the way students actually work today.
+            Meet Agent K your always-on career copilot. Connect with mentors, discover events and career opportunities, polish your resume, and follow a personalized roadmap built for the way students actually work today.
           </motion.p>
 
           {/* CTA Buttons */}

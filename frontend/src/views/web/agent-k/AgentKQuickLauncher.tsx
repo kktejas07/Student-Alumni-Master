@@ -25,8 +25,8 @@ const FONT = Platform.select({
 }) as string;
 
 const SUGGESTIONS = [
-  'Find top 5 SWE internships matching my profile',
-  'Show me my wallet balance and tier',
+  'Find top 5 SWE career opportunities matching my profile',
+  'Show me my rewards balance and tier',
   'Find React mentors with their rates',
   'Find free system design courses',
   'Audit my profile against my career goal',
