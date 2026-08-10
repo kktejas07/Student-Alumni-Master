@@ -16,14 +16,7 @@ def _plain_text(html: str) -> str:
 
 
 def get_postal_config() -> Optional[dict]:
-    """Fetch Postal (postalserver.io) email configuration from environment.
-
-    Postal is a self-hosted mail server exposing an HTTP JSON API. Credentials
-    are supplied via environment variables so they never live in the database:
-      POSTAL_API_URL         e.g. https://mail.example.com
-      POSTAL_SERVER_API_KEY  server API key (Settings → API Keys)
-      POSTAL_FROM_EMAIL      verified sender, e.g. Student Alumni <noreply@domain>
-    """
+    """Fetch Postal (postalserver.io) email configuration from environment variables."""
     api_url = (os.environ.get("POSTAL_API_URL") or "").strip().rstrip("/")
     server_api_key = (os.environ.get("POSTAL_SERVER_API_KEY") or "").strip()
     if not api_url or not server_api_key:
@@ -34,6 +27,30 @@ def get_postal_config() -> Optional[dict]:
         "from_email": (os.environ.get("POSTAL_FROM_EMAIL") or "").strip()
                       or "Student Alumni <noreply@studentalumni.ai>",
     }
+
+
+async def _get_postal_from_db() -> Optional[dict]:
+    """Fetch Postal config from installed_tools in the database (superadmin settings UI)."""
+    try:
+        config = await db.installed_tools.find_one({
+            "tool_id": "postal",
+            "status": {"$in": ["connected", "mock_connected"]}
+        })
+        if not config:
+            return None
+        creds = config.get("credentials") or config.get("config") or {}
+        api_url = (creds.get("api_url") or "").strip().rstrip("/")
+        server_api_key = (creds.get("server_api_key") or "").strip()
+        if not api_url or not server_api_key:
+            return None
+        return {
+            "api_url": api_url,
+            "server_api_key": server_api_key,
+            "from_email": (creds.get("from_email") or "").strip()
+                          or "Student Alumni <noreply@studentalumni.ai>",
+        }
+    except Exception:
+        return None
 
 
 async def get_gmail_config():
@@ -72,6 +89,8 @@ async def send_email(to_email: str, subject: str, body_html: str):
     and recorded in the `email_failures` collection for admin visibility.
     """
     postal = get_postal_config()
+    if not postal:
+        postal = await _get_postal_from_db()
     if postal:
         ok = await _send_via_postal(postal, to_email, subject, body_html)
         if ok:
