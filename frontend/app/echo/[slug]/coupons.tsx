@@ -72,7 +72,7 @@ export default function EchoCouponsPage() {
 
   return (
     <View style={s.root}>
-      <EchoHeader current="echo" />
+      <EchoHeader />
       <ScrollView contentContainerStyle={{ paddingTop: ECHO_TOP_PADDING }}>
         <View style={s.content}>
           <Pressable onPress={() => router.push(`/echo/${slug}`)} style={s.backBtn}>
@@ -178,7 +178,7 @@ export default function EchoCouponsPage() {
                       <View style={s.qrSection}>
                         <View style={s.qrCard}>
                           <img
-                            src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(c.coupon_code)}&color=1a1a2e&bgcolor=ffffff`}
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(`${typeof window !== 'undefined' ? window.location.origin : 'https://studentalumni.ai'}/echo/scan/${c.coupon_code}`)}&color=1a1a2e&bgcolor=ffffff`}
                             alt={`QR code for ${c.session_name}`}
                             style={{ width: 240, height: 240, borderRadius: 12 }}
                           />
