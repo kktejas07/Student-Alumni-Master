@@ -54,7 +54,7 @@ def _make_absolute_url(url: str) -> str:
 
 
 def _unsub_token(email: str) -> str:
-    secret = os.environ.get("JWT_SECRET", "studentalumni_jwt_secret_key_2026")
+    secret = os.environ.get("JWT_SECRET", "dev-only-insecure-secret-change-me")
     return hmac.new(secret.encode("utf-8"), email.strip().lower().encode("utf-8"), hashlib.sha256).hexdigest()[:16]
 
 
