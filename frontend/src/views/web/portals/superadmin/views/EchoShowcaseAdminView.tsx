@@ -189,7 +189,6 @@ function ImageUploadWidget({
       try {
         const localPreview = URL.createObjectURL(file);
         onUpload(localPreview);
-        console.log('[CMS INSTANT PREVIEW]', { label, localPreview, fileName: file.name });
       } catch (e) {
         console.warn('Could not create local object URL for preview', e);
       }
@@ -198,23 +197,19 @@ function ImageUploadWidget({
     setUploading(true);
     setProgress(`Uploading ${file.name}…`);
     onUploadStart?.();
-    console.log('[CMS UPLOAD REQUEST]', { label, fileName: file.name, size: file.size, type: file.type });
 
     try {
       const fd = new FormData();
       fd.append('file', file, file.name);
       const res = await api.uploadEchoMedia(fd);
-      console.log('[CMS UPLOAD RESPONSE]', res);
 
       if (res?.url) {
         onUpload(res.url);
-        console.log('[CMS FORM STATE UPDATED]', { label, serverUrl: res.url });
         flash?.(`${label} uploaded`);
       } else {
         throw new Error('Upload returned no URL');
       }
     } catch (err: any) {
-      console.error('[CMS UPLOAD ERROR]', err);
       flash?.(`Upload failed: ${err?.message || 'Unknown error'}`);
     } finally {
       setUploading(false);
@@ -224,7 +219,6 @@ function ImageUploadWidget({
   };
 
   const handleRemove = () => {
-    console.log('[CMS REMOVE IMAGE]', { label, previousUrl: url });
     onRemove();
   };
 
@@ -2793,25 +2787,13 @@ export function EchoShowcaseAdminView() {
       form = { ...form, slug: form.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'untitled' };
     }
     setSaving(true);
-    console.log('[CMS SAVE PAYLOAD]', {
-      id: editing?._id,
-      title: form.title,
-      slug: form.slug,
-      status: form.status,
-      hero_image_url: form.hero_image_url,
-      hero_cover_url: form.hero_cover_url,
-      hero_thumbnail_url: form.hero_thumbnail_url,
-      gallery_count: form.gallery?.length,
-    });
 
     try {
       if (editing) {
         const res = await api.updateEchoShowcase(editing._id, form);
-        console.log('[CMS UPDATE RESPONSE]', res);
         flash('Showcase updated');
       } else {
         const res = await api.createEchoShowcase(form);
-        console.log('[CMS CREATE RESPONSE]', res);
         flash('Showcase created');
         // Clear autosave draft
         if (Platform.OS === 'web') {

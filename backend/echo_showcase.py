@@ -2911,11 +2911,21 @@ async def toggle_session_lock(slug: str, session_key: str, request: Request, adm
 
 
 @router.get("/{slug}/my-coupons")
-async def my_coupons(slug: str, request: Request, user=Depends(_get_current_user_dependency())):
-    """Get current user's coupons for an event."""
+async def my_coupons(slug: str, request: Request, email: Optional[str] = Query(None)):
+    """Get current user's coupons for an event. Supports guest access via ?email= param."""
     db = _get_db(request)
-    # Find user's registration
-    reg = await db.echo_registrations.find_one({"slug": slug, "user_id": str(user["_id"])})
+    # Try to resolve user from auth token
+    user = await _resolve_user(request, db)
+    # Build query — match by user_id or email
+    query: Dict[str, Any] = {"slug": slug}
+    if user:
+        query["$or"] = [{"user_id": str(user["_id"])}, {"email": (user.get("email") or "").lower()}]
+    elif email:
+        query["email"] = email.strip().lower()
+    else:
+        raise HTTPException(401, "Authentication required or provide ?email= query parameter")
+    # Find registration
+    reg = await db.echo_registrations.find_one(query)
     if not reg:
         raise HTTPException(404, "No registration found")
     coupons = await db.echo_coupons.find({"slug": slug, "reg_id": reg["id"]}).to_list(100)

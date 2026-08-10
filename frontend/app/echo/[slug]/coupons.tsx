@@ -31,7 +31,11 @@ export default function EchoCouponsPage() {
         const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
         const { tokenStore } = await import('@/src/models/services/api');
         const token = await tokenStore.getAccess();
-        const resp = await fetch(`${base}/api/echo/${slug}/my-coupons`, {
+        // Get user email from auth store for guest access
+        const { useAuthStore } = await import('@/src/viewmodels/stores/authStore');
+        const userEmail = useAuthStore.getState().user?.email || '';
+        const emailParam = userEmail ? `?email=${encodeURIComponent(userEmail)}` : '';
+        const resp = await fetch(`${base}/api/echo/${slug}/my-coupons${emailParam}`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         if (resp.status === 401) {
