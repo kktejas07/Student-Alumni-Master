@@ -44,6 +44,7 @@ import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated'
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Linking from 'expo-linking';
 import { SAC, FONTS } from '../tokens';
+import { Card } from '../applekit';
 import { request } from '@/src/models/services/api';
 import LexicalEditor from './LexicalEditor';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
