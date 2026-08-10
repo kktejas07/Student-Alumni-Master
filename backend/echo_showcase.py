@@ -2126,8 +2126,8 @@ async def my_invoices(request: Request):
 
 
 @router.get("/invoices/{invoice_no}")
-async def get_invoice(invoice_no: str, request: Request):
-    """Fetch a single invoice (user-owned or admin). Returns render-ready HTML."""
+async def get_invoice(invoice_no: str, request: Request, email: Optional[str] = Query(None)):
+    """Fetch a single invoice (user-owned, email-match, or admin). Returns render-ready HTML."""
     db = _get_db(request)
     inv = await db.invoices.find_one({"invoice_no": invoice_no})
     if not inv:
@@ -2149,15 +2149,17 @@ async def get_invoice(invoice_no: str, request: Request):
             str(user["_id"]) == inv.get("user_id")
             or (user.get("email") or "").strip().lower() == allowed_email
         )
-        if not owner_match:
+        # Also allow access if email query param matches (guest registrations)
+        email_match = email and email.strip().lower() == allowed_email
+        if not owner_match and not email_match:
             raise HTTPException(status_code=403, detail="You do not have access to this invoice")
     inv_ser["html"] = _build_invoice_html(inv_ser)
     return inv_ser
 
 
 @router.get("/tickets/{reg_id}")
-async def get_ticket(reg_id: str, request: Request):
-    """Fetch an attendee's entry pass (ticket) with QR — owner or admin.
+async def get_ticket(reg_id: str, request: Request, email: Optional[str] = Query(None)):
+    """Fetch an attendee's entry pass (ticket) with QR — owner, email-match, or admin.
 
     Returns render-ready standalone HTML so the app can open a printable page,
     download it as PDF, or share the link as proof of purchase / entry pass.
@@ -2184,7 +2186,9 @@ async def get_ticket(reg_id: str, request: Request):
             str(user["_id"]) == reg.get("user_id")
             or (user.get("email") or "").strip().lower() == allowed_email
         )
-        if not owner_match:
+        # Also allow access if email query param matches (guest registrations)
+        email_match = email and email.strip().lower() == allowed_email
+        if not owner_match and not email_match:
             raise HTTPException(status_code=403, detail="You do not have access to this ticket")
     return {
         "reg_id": reg_id,
