@@ -670,7 +670,30 @@ function DownloadsEditor({ downloads, onChange }: any) {
 
 // ── Poster Editor (simple URL list) ──────────────────────────────────────────
 function PosterEditor({ posters, onChange }: { posters: string[]; onChange: (p: string[]) => void }) {
+  const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState('');
   const list = Array.isArray(posters) ? posters : [];
+
+  const addFromUpload = async (files: FileList | File[]) => {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    const newUrls: string[] = [];
+    const total = files.length;
+    for (let i = 0; i < total; i++) {
+      const file = files[i];
+      setProgress(`Uploading ${i + 1} of ${total}…`);
+      try {
+        const fd = new FormData();
+        fd.append('file', file, file.name);
+        const res = await api.uploadEchoMedia(fd);
+        if (res?.url) newUrls.push(res.url);
+      } catch { /* skip failed */ }
+    }
+    if (newUrls.length > 0) onChange([...list, ...newUrls]);
+    setUploading(false);
+    setProgress('');
+  };
+
   const set = (i: number, v: string) => {
     const next = [...list];
     next[i] = v;
@@ -686,8 +709,54 @@ function PosterEditor({ posters, onChange }: { posters: string[]; onChange: (p: 
     onChange(next);
   };
 
+  const onDrop = (e: any) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer?.files) addFromUpload(e.dataTransfer.files);
+  };
+
   return (
     <View style={{ gap: 10 }}>
+      {/* Dropzone */}
+      <View
+        style={{
+          borderWidth: 2, borderColor: 'rgba(123,61,191,0.35)', borderStyle: 'dashed',
+          borderRadius: 10, padding: 16, alignItems: 'center', justifyContent: 'center',
+          backgroundColor: 'rgba(123,61,191,0.04)',
+        }}
+        {...(Platform.OS === 'web' ? {
+          onDragOver: (e: any) => { e.preventDefault(); e.stopPropagation(); },
+          onDrop: onDrop,
+        } : {})}
+      >
+        {uploading ? (
+          <View style={{ alignItems: 'center', gap: 6 }}>
+            <ActivityIndicator size="small" color={GRAD.from} />
+            <Text style={{ fontFamily: FONTS.semi, fontSize: 12, color: GRAD.from }}>{progress}</Text>
+          </View>
+        ) : (
+          <View style={{ alignItems: 'center', gap: 6 }}>
+            <Upload size={18} color={GRAD.from} />
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>Drop poster images here</Text>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.muted }}>Or use the button below</Text>
+            {Platform.OS === 'web' && (
+              <label style={{ marginTop: 4, cursor: 'pointer' }}>
+                <span style={{
+                  backgroundColor: 'rgba(123,61,191,0.25)', color: '#fff',
+                  padding: '5px 12px', borderRadius: '7px',
+                  fontFamily: FONTS.semi, fontSize: '11px',
+                }}>
+                  Browse Files
+                </span>
+                <input type="file" multiple accept="image/*" style={{ display: 'none' }}
+                  onChange={(e: any) => { if (e.target.files?.length > 0) addFromUpload(e.target.files); }} />
+              </label>
+            )}
+          </View>
+        )}
+      </View>
+
+      {/* Poster list */}
       {list.map((url, i) => (
         <View key={i} style={{ backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: SAC.border, gap: 8 }}>
           <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
@@ -721,7 +790,7 @@ function PosterEditor({ posters, onChange }: { posters: string[]; onChange: (p: 
         </View>
       ))}
       <Pressable onPress={add}>
-        <Text style={{ color: GRAD.from, fontFamily: FONTS.semi, fontSize: 12.5 }}>+ Add Poster Image</Text>
+        <Text style={{ color: GRAD.from, fontFamily: FONTS.semi, fontSize: 12.5 }}>+ Add Poster Image (URL)</Text>
       </Pressable>
     </View>
   );
