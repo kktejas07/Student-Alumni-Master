@@ -420,6 +420,8 @@ export const api = {
     request<any>('/echo/admin/revenue'),
   myEchoInvoices: () =>
     request<any>('/echo/my-invoices'),
+  myEchoRegistrations: () =>
+    request<any>('/echo/my-registrations'),
 
   // ── Newsletter ────────────────────────────────────────────────────────────
   sendNewsletter: (payload: any) =>

@@ -1,33 +1,59 @@
 /**
- * Student → My Tickets — paid event registrations with downloadable invoices.
+ * Student → My Tickets — Echo event registrations, passes, coupons, and invoices.
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Platform, ActivityIndicator } from 'react-native';
-import { Ticket, CheckCircle, Download, ShieldCheck } from '../iconShims';
+import { View, Text, StyleSheet, Pressable, Platform, ActivityIndicator, Modal } from 'react-native';
+import { Ticket, CheckCircle, Download, ShieldCheck, Eye, QrCode, ExternalLink, X } from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { GlassCard } from '../glass';
 import { EmptyState } from '../EmptyState';
 import { api, tokenStore } from '@/src/models/services/api';
+import { resolveImageUrl } from '@/src/models/services/api';
 
-type Inv = {
+type Coupon = {
+  coupon_code: string;
+  session_name?: string;
+  session_key?: string;
+  used?: boolean;
+  qr_url?: string;
+  session_locked?: boolean;
+};
+
+type Registration = {
+  id?: string;
+  slug?: string;
+  full_name?: string;
+  email?: string;
+  event_title?: string;
+  showcase_title?: string;
+  payment_status?: string;
+  status?: string;
+  registered_at?: string;
+};
+
+type Invoice = {
   invoice_no: string;
   event_title?: string;
-  event_date?: string;
-  full_name?: string;
   amount?: number;
   currency?: string;
   payment_id?: string;
-  paid_at?: string;
+};
+
+type RegItem = {
+  registration: Registration;
+  coupons: Coupon[];
+  invoice: Invoice | null;
 };
 
 export function MyTicketsView() {
-  const [items, setItems] = useState<Inv[]>([]);
+  const [items, setItems] = useState<RegItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [previewCoupon, setPreviewCoupon] = useState<Coupon | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const r = await api.myEchoInvoices();
+      const r = await api.myEchoRegistrations();
       setItems(r?.items || []);
     } catch {
       /* not authed / empty */
@@ -64,13 +90,37 @@ export function MyTicketsView() {
     }
   };
 
-  const total = items.reduce((a, i) => a + Number(i.amount || 0), 0);
+  const openTicket = async (regId: string) => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+    try {
+      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const token = await tokenStore.getAccess();
+      const resp = await fetch(`${base}/api/echo/tickets/${regId}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!resp.ok) throw new Error('not available');
+      const data = await resp.json();
+      const w = window.open('', '_blank');
+      if (w) {
+        w.document.open();
+        w.document.write(data.html);
+        w.document.close();
+        w.focus();
+      }
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const totalPaid = items.reduce((a, i) => a + Number(i.invoice?.amount || 0), 0);
 
   return (
     <View style={{ gap: 20 }}>
       <View>
-        <Text style={s.h1}>My Tickets & Invoices</Text>
-        <Text style={s.sub}>{items.length} ticket{items.length === 1 ? '' : 's'} · total paid {items[0]?.currency || '₹'}{total.toLocaleString('en-IN')}</Text>
+        <Text style={s.h1}>My Tickets & Passes</Text>
+        <Text style={s.sub}>
+          {items.length} event{items.length === 1 ? '' : 's'} · {items.reduce((a, i) => a + i.coupons.length, 0)} coupon{items.reduce((a, i) => a + i.coupons.length, 0) === 1 ? '' : 's'} · total paid ₹{totalPaid.toLocaleString('en-IN')}
+        </Text>
       </View>
 
       {loading ? (
@@ -81,54 +131,145 @@ export function MyTicketsView() {
         <EmptyState
           variant="generic"
           title="No tickets yet"
-          body="When you register and pay for an ECHO event, your ticket and invoice will appear here for download."
+          body="When you register and pay for an ECHO event, your ticket, passes and coupons will appear here."
           compact
         />
       ) : (
-        items.map((inv, idx) => (
-          <GlassCard key={inv.invoice_no} delay={idx * 40} radius={14} padding={16} style={{ gap: 12 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <View style={[s.iconBox, { backgroundColor: 'rgba(34,197,94,0.10)', borderColor: 'rgba(34,197,94,0.30)' }]}>
-                <Ticket size={18} color="#34D399" />
-              </View>
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={s.title}>{inv.event_title || 'Event Registration'}</Text>
-                <Text style={s.meta}>
-                  {inv.event_date ? `${inv.event_date} · ` : ''}{inv.invoice_no} · {inv.payment_id || ''}
-                </Text>
-              </View>
-              <View style={s.paidPill}>
-                <CheckCircle size={11} color="#34D399" />
-                <Text style={s.paidText}>PAID</Text>
-              </View>
-            </View>
+        items.map((item, idx) => {
+          const reg = item.registration;
+          const inv = item.invoice;
+          const slug = reg.slug || '';
+          const title = reg.event_title || reg.showcase_title || 'Event';
+          const paid = reg.payment_status === 'paid';
 
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <View>
-                <Text style={s.amountLabel}>AMOUNT PAID</Text>
-                <Text style={s.amount}>{inv.currency || '₹'}{Number(inv.amount || 0).toLocaleString('en-IN')}</Text>
+          return (
+            <GlassCard key={reg.id || idx} delay={idx * 40} radius={14} padding={16} style={{ gap: 14 }}>
+              {/* Header */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <View style={[s.iconBox, { backgroundColor: paid ? 'rgba(34,197,94,0.10)' : 'rgba(251,191,36,0.10)', borderColor: paid ? 'rgba(34,197,94,0.30)' : 'rgba(251,191,36,0.30)' }]}>
+                  <Ticket size={18} color={paid ? '#34D399' : '#FBBF24'} />
+                </View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={s.title}>{title}</Text>
+                  <Text style={s.meta}>
+                    {reg.registered_at ? new Date(reg.registered_at).toLocaleDateString() : ''}
+                    {inv?.invoice_no ? ` · ${inv.invoice_no}` : ''}
+                  </Text>
+                </View>
+                <View style={[s.paidPill, { backgroundColor: paid ? 'rgba(34,197,94,0.12)' : 'rgba(251,191,36,0.12)', borderColor: paid ? 'rgba(34,197,94,0.35)' : 'rgba(251,191,36,0.35)' }]}>
+                  <CheckCircle size={11} color={paid ? '#34D399' : '#FBBF24'} />
+                  <Text style={[s.paidText, { color: paid ? '#34D399' : '#FBBF24' }]}>{paid ? 'PAID' : 'PENDING'}</Text>
+                </View>
+              </View>
+
+              {/* Pass / Ticket button */}
+              <Pressable
+                onPress={() => openTicket(reg.id || '')}
+                style={({ hovered }: any) => [s.primaryBtn, hovered && { opacity: 0.85 }]}
+              >
+                <Ticket size={13} color="#fff" />
+                <Text style={s.btnText}>View Event Pass</Text>
+              </Pressable>
+
+              {/* Coupons section */}
+              {item.coupons.length > 0 && (
+                <View style={{ gap: 8 }}>
+                  <Text style={s.sectionTitle}>Session Passes ({item.coupons.length})</Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                    {item.coupons.map((c) => (
+                      <Pressable
+                        key={c.coupon_code}
+                        onPress={() => setPreviewCoupon(c)}
+                        style={[s.couponChip, c.used && s.couponChipUsed]}
+                      >
+                        <Text style={[s.couponIcon]}>{c.session_locked ? '🔒' : c.used ? '✓' : '🎫'}</Text>
+                        <View style={{ flex: 1 }}>
+                          <Text style={[s.couponName, c.used && s.couponNameUsed]} numberOfLines={1}>
+                            {c.session_name || c.session_key}
+                          </Text>
+                          <Text style={s.couponCode}>{c.coupon_code}</Text>
+                        </View>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {/* Invoice + actions */}
+              <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+                {inv?.invoice_no ? (
+                  <Pressable
+                    onPress={() => openInvoice(inv.invoice_no)}
+                    style={({ hovered }: any) => [s.secondaryBtn, hovered && { opacity: 0.85 }]}
+                  >
+                    {downloading === inv.invoice_no ? (
+                      <ActivityIndicator size="small" color={SC.accentBright} />
+                    ) : (
+                      <>
+                        <Download size={12} color={SC.accentBright} />
+                        <Text style={s.secondaryBtnText}>Invoice</Text>
+                      </>
+                    )}
+                  </Pressable>
+                ) : null}
+                {slug ? (
+                  <Pressable
+                    onPress={() => {
+                      if (Platform.OS === 'web') window.open(`/echo/${slug}/coupons`, '_blank');
+                    }}
+                    style={({ hovered }: any) => [s.secondaryBtn, { borderColor: 'rgba(167,139,250,0.30)' }, hovered && { opacity: 0.85 }]}
+                  >
+                    <QrCode size={12} color="#A78BFA" />
+                    <Text style={[s.secondaryBtnText, { color: '#C4B5FD' }]}>All Coupons</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <ShieldCheck size={11} color={SC.muted} />
+                <Text style={s.footNote}>A copy was emailed to you on registration.</Text>
+              </View>
+            </GlassCard>
+          );
+        })
+      )}
+
+      {/* Coupon preview modal */}
+      {previewCoupon && (
+        <Modal visible transparent animationType="fade" onRequestClose={() => setPreviewCoupon(null)}>
+          <View style={s.modalOverlay}>
+            <View style={s.modalCard}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 16 }}>
+                  {previewCoupon.session_name || 'Session Pass'}
+                </Text>
+                <Pressable onPress={() => setPreviewCoupon(null)} style={{ padding: 4 }}>
+                  <X size={18} color={SC.muted} />
+                </Pressable>
+              </View>
+              <View style={{ alignItems: 'center', gap: 12 }}>
+                <Text style={{ fontSize: 48 }}>{previewCoupon.session_locked ? '🔒' : '🎫'}</Text>
+                <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 24, letterSpacing: 2 }}>
+                  {previewCoupon.coupon_code}
+                </Text>
+                <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 13 }}>
+                  {previewCoupon.session_locked ? 'This session is currently locked' : previewCoupon.used ? 'Already used' : 'Show this code at the venue'}
+                </Text>
+                {previewCoupon.qr_url ? (
+                  <Text style={{ color: SC.accentBright, fontFamily: FONTS.med, fontSize: 11, marginTop: 8 }}>
+                    📱 {`${(process.env.EXPO_PUBLIC_BACKEND_URL as string) || ''}${previewCoupon.qr_url}`}
+                  </Text>
+                ) : null}
               </View>
               <Pressable
-                onPress={() => openInvoice(inv.invoice_no)}
-                style={({ hovered }: any) => [s.dlBtn, hovered && { opacity: 0.85 }]}
+                onPress={() => setPreviewCoupon(null)}
+                style={[s.primaryBtn, { marginTop: 16, width: '100%', justifyContent: 'center' }]}
               >
-                {downloading === inv.invoice_no ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <>
-                    <Download size={13} color="#fff" />
-                    <Text style={s.dlText}>Download Invoice</Text>
-                  </>
-                )}
+                <Text style={s.btnText}>Done</Text>
               </Pressable>
             </View>
-
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <ShieldCheck size={11} color={SC.muted} />
-              <Text style={s.footNote}>A copy was also emailed to you on payment.</Text>
-            </View>
-          </GlassCard>
-        ))
+          </View>
+        </Modal>
       )}
     </View>
   );
@@ -140,14 +281,30 @@ const s = StyleSheet.create({
   iconBox: { width: 38, height: 38, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   title: { color: '#fff', fontFamily: FONTS.bold, fontSize: 14 },
   meta: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 3 },
-  paidPill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999, backgroundColor: 'rgba(34,197,94,0.12)', borderColor: 'rgba(34,197,94,0.35)', borderWidth: 1 },
-  paidText: { color: '#34D399', fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 0.6 },
-  amountLabel: { color: SC.muted, fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 0.8 },
-  amount: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 20, marginTop: 2 },
-  dlBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 34, borderRadius: 9,
-    backgroundColor: SC.accentBright, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  paidPill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999, borderWidth: 1 },
+  paidText: { fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 0.6 },
+  sectionTitle: { color: SC.muted, fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 0.8, marginBottom: 2 },
+  couponChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8,
+    borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+    minWidth: 140,
   },
-  dlText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
+  couponChipUsed: { opacity: 0.5 },
+  couponIcon: { fontSize: 18 },
+  couponName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
+  couponNameUsed: { textDecorationLine: 'line-through', color: SC.muted },
+  couponCode: { color: SC.muted, fontFamily: FONTS.med, fontSize: 10, marginTop: 2 },
+  primaryBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 36, borderRadius: 10,
+    backgroundColor: SC.accentBright,
+  },
+  secondaryBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 32, borderRadius: 8,
+    borderWidth: 1, borderColor: 'rgba(34,197,94,0.30)', backgroundColor: 'rgba(34,197,94,0.06)',
+  },
+  btnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
+  secondaryBtnText: { color: '#34D399', fontFamily: FONTS.bold, fontSize: 11 },
   footNote: { color: SC.muted, fontFamily: FONTS.med, fontSize: 10.5 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  modalCard: { backgroundColor: '#1a1b3a', borderRadius: 16, padding: 24, width: '100%', maxWidth: 360, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
 });

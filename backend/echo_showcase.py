@@ -2125,6 +2125,60 @@ async def my_invoices(request: Request):
     return {"items": [_ser(d) for d in docs]}
 
 
+@router.get("/my-registrations")
+async def my_registrations(request: Request):
+    """Return all of the user's Echo registrations with coupons and ticket info.
+
+    Used by MyTicketsView to show a unified list of event registrations,
+    passes, coupons, and invoices in one place.
+    """
+    db = _get_db(request)
+    user = await _resolve_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    email = (user.get("email") or "").strip().lower()
+    uid = str(user["_id"])
+
+    # Find all registrations for this user
+    query = {"$or": [{"user_id": uid}]}
+    if email:
+        query = {"$or": [{"user_id": uid}, {"email": email}]}
+    regs = await db.echo_registrations.find(query).sort("created_at", -1).to_list(100)
+
+    results = []
+    for reg in regs:
+        reg_ser = _ser(reg)
+        slug = reg.get("slug", "")
+
+        # Fetch coupons for this registration
+        coupons = []
+        try:
+            raw_coupons = await db.echo_coupons.find({"slug": slug, "reg_id": reg.get("id")}).to_list(100)
+            for c in raw_coupons:
+                c["_id"] = str(c["_id"])
+                c["qr_url"] = f"/api/echo/scan/{c.get('coupon_code', '')}"
+                coupons.append({k: v for k, v in c.items() if k != "_id"})
+        except Exception:
+            pass
+
+        # Fetch invoice
+        invoice = None
+        try:
+            inv = await db.invoices.find_one({"reg_id": reg.get("id")})
+            if inv:
+                invoice = _ser(inv)
+        except Exception:
+            pass
+
+        results.append({
+            "registration": reg_ser,
+            "coupons": coupons,
+            "invoice": invoice,
+        })
+
+    return {"items": results}
+
+
 @router.get("/invoices/{invoice_no}")
 async def get_invoice(invoice_no: str, request: Request, email: Optional[str] = Query(None)):
     """Fetch a single invoice (user-owned, email-match, or admin). Returns render-ready HTML."""
