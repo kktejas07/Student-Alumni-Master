@@ -11,7 +11,7 @@ import { GradientBackground } from '@/src/views/components';
 
 const SAMPLE_POSTS = [
   {
-    title: 'How I Landed My Dream Internship via Student Alumni',
+    title: 'How I Landed My Dream Career Role via Student Alumni',
     excerpt:
       'A second-year IIT Delhi student shares the exact playbook — from cold-emailing alumni to acing the case study round.',
     author: 'Aanya Sharma · IIT Delhi',

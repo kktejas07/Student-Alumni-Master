@@ -41,7 +41,7 @@ export function CTA() {
             </h2>
             
             <p className="mt-8 text-xl font-medium text-gray-400 max-w-2xl leading-relaxed">
-              Join 50,000+ students already using StudentAlumni to land internships, find mentors, and build their future. No credit card required.
+              Join 50,000+ students already using StudentAlumni to land career opportunities, find mentors, and build their future. No credit card required.
             </p>
             
             <div className="mt-12 flex justify-center w-full">

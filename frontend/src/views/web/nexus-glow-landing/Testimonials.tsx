@@ -25,12 +25,12 @@ const reviews = [
   {
     name: "Zoe Chen",
     role: "Bio Junior · Stanford",
-    text: "Earning K-Credits for taking action feels like a game. I've unlocked 3 premium sessions I could never afford otherwise.",
+    text: "Unlocking premium sessions through active participation feels rewarding. I've joined 3 mentor sessions I could never afford otherwise.",
   },
   {
     name: "Daniel Okafor",
     role: "MBA · Harvard",
-    text: "The internship feed found me 4 fits in a week that I hadn't seen on any job board. The referrals through alumni sealed it.",
+    text: "The career feed found me 4 strong matches in a week that I hadn't seen on any job board. The referrals through alumni sealed it.",
   },
 ];
 
