@@ -278,6 +278,7 @@ async def _finalize_paid_registration(db, reg: dict, showcase: dict, payment_id:
         "method": current.get("method") or "upi",
     }
     canonical_slug = reg.get("slug") or (showcase or {}).get("slug")
+    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
 
     await db.echo_registrations.update_one(
         {"_id": reg["_id"]},
@@ -286,7 +287,7 @@ async def _finalize_paid_registration(db, reg: dict, showcase: dict, payment_id:
             "status": "registered",
             "registered_at": now_iso,
             "qr_code_base64": generate_qr_code(
-                f"ECHO:{canonical_slug}|{reg.get('user_key')}|{reg.get('id')}"
+                f"{frontend_url}/echo/scan/{reg.get('id')}"
             ),
             "payment_order": None,
         }},
@@ -1732,7 +1733,8 @@ async def register_for_showcase(
 
     reg_id = secrets.token_hex(6)
     now_iso = datetime.now(timezone.utc).isoformat()
-    qr_payload = f"ECHO:{canonical_slug}|{user_key}|{reg_id}"
+    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+    qr_payload = f"{frontend_url}/echo/scan/{reg_id}"
     fee = float(reg_cfg.get("fee", 0) or 0)
     currency = reg_cfg.get("currency", "INR")
 
@@ -2356,12 +2358,22 @@ class TicketVerifySchema(BaseModel):
 def _parse_ticket(ticket: str) -> dict:
     """Parse a QR payload into its components.
 
-    Accepts the full 'ECHO:<slug>|<user_key>|<reg_id>' payload (as encoded in the
-    registration QR) or a bare registration id. Returns {slug, user_key, reg_id}.
+    Accepts:
+    - the full 'ECHO:<slug>|<user_key>|<reg_id>' payload (as encoded in older
+      registration QRs),
+    - a bare registration id,
+    - a URL-wrapped payload, e.g. 'https://host/echo/scan/<reg_id>' or
+      'https://host/echo/scan/ECHO%3A<slug>%7C<user_key>%7C<reg_id>'.
+    Returns {slug, user_key, reg_id}.
     """
+    from urllib.parse import unquote
     t = (ticket or "").strip()
     if not t:
         return {}
+    # Strip URL wrapper and any path prefix up to the payload.
+    if t.startswith("http://") or t.startswith("https://"):
+        t = t.split("/echo/scan/", 1)[-1]
+    t = unquote(t)
     if t.startswith("ECHO:"):
         parts = t.split("|")
         if len(parts) >= 3:
@@ -2946,19 +2958,65 @@ async def my_coupons(slug: str, request: Request, email: Optional[str] = Query(N
 
 @router.get("/scan/{code}")
 async def scan_coupon_get(code: str, request: Request):
-    """Look up a coupon by code (public GET — used by QR scanner and previews)."""
+    """Public GET used by QR scanner / previews.
+
+    Resolves any of the following:
+    - a coupon code (e.g. LUNCH-A7X9K2)
+    - an entry-pass/ticket payload ECHO:<slug>|<user_key>|<reg_id>
+    - a bare registration id
+    Returns a unified shape with a `type` field ("coupon" | "ticket").
+    """
     db = _get_db(request)
-    coupon = await db.echo_coupons.find_one({"coupon_code": code.upper()})
-    if not coupon:
-        raise HTTPException(status_code=404, detail="Invalid coupon code")
+    raw = (code or "").strip()
+    if not raw:
+        raise HTTPException(status_code=400, detail="Missing code")
+
+    # 1) Coupon lookup (case-insensitive)
+    coupon = await db.echo_coupons.find_one({"coupon_code": raw.upper()})
+    if coupon:
+        return {
+            "ok": True,
+            "type": "coupon",
+            "coupon_code": coupon.get("coupon_code"),
+            "session_name": coupon.get("session_name"),
+            "session_key": coupon.get("session_key"),
+            "used": coupon.get("used", False),
+            "used_at": coupon.get("used_at"),
+            "slug": coupon.get("slug"),
+        }
+
+    # 2) Ticket / entry-pass lookup
+    parsed = _parse_ticket(raw)
+    query: Dict[str, Any] = {}
+    if parsed.get("slug"):
+        query["slug"] = parsed["slug"]
+    if parsed.get("reg_id"):
+        query["id"] = parsed["reg_id"]
+    reg = None
+    if query:
+        reg = await db.echo_registrations.find_one(query)
+        if not reg:
+            reg = await db.echo_registrations.find_one({"id": parsed.get("reg_id")})
+    if not reg:
+        reg = await db.echo_registrations.find_one({"id": raw})
+
+    if not reg:
+        raise HTTPException(status_code=404, detail="Invalid code")
+
+    payment = reg.get("payment") or {}
+    verified = payment.get("status") == "paid" and reg.get("status") == "registered"
     return {
         "ok": True,
-        "coupon_code": coupon.get("coupon_code"),
-        "session_name": coupon.get("session_name"),
-        "session_key": coupon.get("session_key"),
-        "used": coupon.get("used", False),
-        "used_at": coupon.get("used_at"),
-        "slug": coupon.get("slug"),
+        "type": "ticket",
+        "reg_id": reg.get("id"),
+        "slug": reg.get("slug"),
+        "event_title": reg.get("showcase_title") or "",
+        "full_name": reg.get("full_name") or "",
+        "email": reg.get("email") or "",
+        "college": reg.get("college") or "",
+        "verified": verified,
+        "checked_in": bool(reg.get("checked_in_at")),
+        "checked_in_at": reg.get("checked_in_at"),
     }
 
 
