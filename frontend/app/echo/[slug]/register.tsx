@@ -62,7 +62,8 @@ export default function EchoRegisterPage() {
       const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
       const { tokenStore } = await import('@/src/models/services/api');
       const token = await tokenStore.getAccess();
-      const resp = await fetch(`${base}/api/echo/invoices/${invoiceNo}`, {
+      const emailParam = form.email ? `?email=${encodeURIComponent(form.email)}` : '';
+      const resp = await fetch(`${base}/api/echo/invoices/${invoiceNo}${emailParam}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!resp.ok) throw new Error('Invoice not available');
@@ -86,7 +87,8 @@ export default function EchoRegisterPage() {
       const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
       const { tokenStore } = await import('@/src/models/services/api');
       const token = await tokenStore.getAccess();
-      const resp = await fetch(`${base}/api/echo/tickets/${regId}`, {
+      const emailParam = form.email ? `?email=${encodeURIComponent(form.email)}` : '';
+      const resp = await fetch(`${base}/api/echo/tickets/${regId}${emailParam}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!resp.ok) throw new Error('Ticket not available');
