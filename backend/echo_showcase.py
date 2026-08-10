@@ -2422,6 +2422,20 @@ async def check_in_attendee(payload: TicketVerifySchema, request: Request, _=Dep
     }
 
 
+@router.delete("/admin/registrations/{reg_id}")
+async def delete_registration(reg_id: str, request: Request, _=Depends(_require_admin)):
+    """Delete a registration by ID (admin only)."""
+    from bson import ObjectId
+    db = _get_db(request)
+    try:
+        result = await db.echo_registrations.delete_one({"_id": ObjectId(reg_id)})
+    except Exception:
+        result = await db.echo_registrations.delete_one({"id": reg_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Registration not found")
+    return {"ok": True, "deleted": reg_id}
+
+
 @router.get("/admin/revenue")
 async def admin_echo_revenue(request: Request, _=Depends(_require_admin)):
     """Per-event revenue aggregates from real ECHO registrations."""
