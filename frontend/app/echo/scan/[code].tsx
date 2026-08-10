@@ -8,7 +8,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { CheckCircle2, XCircle, Lock, Ticket, ArrowLeft, CalendarDays, Clock } from 'lucide-react-native';
+import { XCircle, Ticket, ArrowLeft, CalendarDays, Clock } from 'lucide-react-native';
 import { EchoHeader, EchoFooter, ECHO_TOP_PADDING } from '@/src/views/web/components/EchoChrome';
 
 const API_BASE = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://studentalumni.ai';
@@ -47,6 +47,10 @@ export default function EchoScanPage() {
 
   const used = data?.used;
   const locked = data?.session_locked;
+  const isTicket = data?.type === 'ticket';
+  const ticketValid = isTicket && data?.verified;
+  const ticketCheckedIn = isTicket && data?.checked_in;
+  const invalid = isTicket ? !data?.verified : undefined;
 
   const goToEvent = () => {
     if (data?.slug) {
@@ -71,7 +75,16 @@ export default function EchoScanPage() {
     );
   }
 
-  const isInvalid = status !== 'ok';
+  const isInvalid = status !== 'ok' || (isTicket && !ticketValid);
+
+  const iconColor = isInvalid ? '#F87171' : (used || ticketCheckedIn) ? '#34D399' : '#34D399';
+  const titleColor = isInvalid ? '#FCA5A5' : '#6EE7B7';
+  const statusTitle = isInvalid
+    ? (status !== 'ok' ? 'Invalid code' : 'Ticket not confirmed')
+    : (isTicket ? (ticketCheckedIn ? 'Already checked in' : 'Valid ticket') : used ? 'Already used' : 'Valid coupon');
+  const titleLabel = isTicket
+    ? (data?.event_title || 'Event ticket')
+    : (data?.session_name || '');
 
   return (
     <View style={s.root}>
@@ -86,51 +99,64 @@ export default function EchoScanPage() {
           <LinearGradient
             colors={isInvalid
               ? ['rgba(239,68,68,0.25)', 'rgba(30,10,80,0.4)', '#0a0f1e']
-              : used
-                ? ['rgba(16,185,129,0.2)', 'rgba(30,10,80,0.4)', '#0a0f1e']
-                : ['rgba(16,185,129,0.28)', 'rgba(30,10,80,0.4)', '#0a0f1e']}
+              : ['rgba(16,185,129,0.25)', 'rgba(30,10,80,0.4)', '#0a0f1e']}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
             style={s.card}
           >
-            <View style={[s.statusIcon, { backgroundColor: isInvalid ? 'rgba(239,68,68,0.15)' : used ? 'rgba(16,185,129,0.15)' : 'rgba(16,185,129,0.18)' }]}>
+            <View style={[s.statusIcon, { backgroundColor: isInvalid ? 'rgba(239,68,68,0.15)' : 'rgba(16,185,129,0.18)' }]}>
               {isInvalid ? (
-                <XCircle size={44} color="#F87171" />
-              ) : used ? (
-                <CheckCircle2 size={44} color="#34D399" />
+                <XCircle size={44} color={iconColor} />
               ) : (
-                <Ticket size={44} color="#34D399" />
+                <Ticket size={44} color={iconColor} />
               )}
             </View>
 
-            <Text style={[s.title, { color: isInvalid ? '#FCA5A5' : '#6EE7B7' }]}>
-              {isInvalid ? 'Invalid coupon' : used ? 'Already used' : 'Valid coupon'}
-            </Text>
+            <Text style={[s.title, { color: titleColor }]}>{statusTitle}</Text>
 
             {status === 'ok' && (
               <>
-                <Text style={s.sessionName}>{data.session_name}</Text>
-                <View style={s.codePill}>
-                  <Text style={s.codeText}>{data.coupon_code}</Text>
-                </View>
+                <Text style={s.sessionName}>{titleLabel}</Text>
+                {!isTicket ? (
+                  <View style={s.codePill}>
+                    <Text style={s.codeText}>{data.coupon_code}</Text>
+                  </View>
+                ) : (
+                  <>
+                    {data.full_name && (
+                      <Text style={s.metaText} numberOfLines={1} ellipsizeMode="tail">{data.full_name}</Text>
+                    )}
+                    {data.email && (
+                      <Text style={s.metaText} numberOfLines={1} ellipsizeMode="tail">{data.email}</Text>
+                    )}
+                  </>
+                )}
                 <View style={s.metaRow}>
                   <CalendarDays size={14} color="rgba(255,255,255,0.5)" />
-                  <Text style={s.metaText}>{data.event_name || 'ECHO event'}</Text>
+                  <Text style={s.metaText}>{data.event_name || titleLabel || 'ECHO event'}</Text>
                 </View>
-                {used && data.used_at && (
+                {!isTicket && used && data.used_at && (
                   <View style={s.metaRow}>
                     <Clock size={14} color="rgba(255,255,255,0.5)" />
                     <Text style={s.metaText}>Scanned {new Date(data.used_at).toLocaleString()}</Text>
+                  </View>
+                )}
+                {isTicket && ticketCheckedIn && data.checked_in_at && (
+                  <View style={s.metaRow}>
+                    <Clock size={14} color="rgba(255,255,255,0.5)" />
+                    <Text style={s.metaText}>Checked in {new Date(data.checked_in_at).toLocaleString()}</Text>
                   </View>
                 )}
               </>
             )}
 
             {isInvalid && <Text style={s.detailText}>{message}</Text>}
-            {status === 'ok' && !used && (
+            {status === 'ok' && !isInvalid && (
               <Text style={s.detailText}>
-                {locked
-                  ? 'This session is currently locked. It will be available when the session opens.'
-                  : 'This coupon is ready. Proceed to the venue counter.'}
+                {isTicket
+                  ? (ticketCheckedIn ? 'This attendee has already checked in.' : 'This ticket is confirmed. Proceed to check-in.')
+                  : (locked
+                      ? 'This session is currently locked. It will be available when the session opens.'
+                      : 'This coupon is ready. Proceed to the venue counter.')}
               </Text>
             )}
           </LinearGradient>
