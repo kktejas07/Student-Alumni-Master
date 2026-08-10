@@ -265,7 +265,7 @@ export function MyTicketsView() {
                 {previewCoupon.coupon_code && (
                   <View style={{ marginTop: 8, padding: 12, backgroundColor: '#fff', borderRadius: 12 }}>
                     <img
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(previewCoupon.coupon_code)}`}
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`${typeof window !== 'undefined' ? window.location.origin : 'https://studentalumni.ai'}/echo/scan/${previewCoupon.coupon_code}`)}`}
                       alt={`QR code for ${previewCoupon.coupon_code}`}
                       style={{ width: 200, height: 200 }}
                     />

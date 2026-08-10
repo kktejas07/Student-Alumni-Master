@@ -138,7 +138,10 @@ export default function EchoScanPage() {
   }, []);
 
   const submitCode = async (c: string) => {
-    const codeUpper = c.trim().toUpperCase();
+    let raw = (c || '').trim();
+    const urlMatch = raw.match(/\/echo\/scan\/([A-Za-z0-9-]+)/);
+    if (urlMatch) raw = urlMatch[1];
+    const codeUpper = raw.toUpperCase();
     if (!codeUpper) return;
     setLoading(true);
     setResult(null);
