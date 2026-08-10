@@ -149,7 +149,15 @@ export function Navbar() {
           <div className="flex items-center gap-2 sm:gap-4">
             {isLoggedIn ? (
               <button
-                onClick={() => router.push('/(tabs)')}
+                onClick={() => {
+                  const role = user?.role || 'student';
+                  const portalPath = role === 'super_admin' ? '/super-admin' :
+                    role === 'mentor' ? '/mentor-portal' :
+                    role === 'alumni' ? '/alumni-portal' :
+                    role === 'college' ? '/college-portal' :
+                    '/student-portal';
+                  router.push(portalPath);
+                }}
                 className="text-xs font-semibold text-green-400 hover:text-green-300 transition-colors duration-200 cursor-pointer"
               >
                 Dashboard
@@ -166,7 +174,15 @@ export function Navbar() {
             )}
             {isLoggedIn ? (
               <button
-                onClick={() => { setMobileOpen(false); router.push('/(tabs)'); }}
+                onClick={() => {
+                  const role = user?.role || 'student';
+                  const portalPath = role === 'super_admin' ? '/super-admin' :
+                    role === 'mentor' ? '/mentor-portal' :
+                    role === 'alumni' ? '/alumni-portal' :
+                    role === 'college' ? '/college-portal' :
+                    '/student-portal';
+                  router.push(portalPath);
+                }}
                 className="group relative overflow-hidden rounded-full bg-primary px-4 sm:px-5 py-2 text-xs font-bold text-primary-foreground transition-all duration-300 hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.4)] cursor-pointer"
               >
                 My Account
@@ -232,7 +248,16 @@ export function Navbar() {
               {isLoggedIn ? (
                 <>
                   <button
-                    onClick={() => { setMobileOpen(false); router.push('/(tabs)'); }}
+                    onClick={() => {
+                      const role = user?.role || 'student';
+                      const portalPath = role === 'super_admin' ? '/super-admin' :
+                        role === 'mentor' ? '/mentor-portal' :
+                        role === 'alumni' ? '/alumni-portal' :
+                        role === 'college' ? '/college-portal' :
+                        '/student-portal';
+                      setMobileOpen(false);
+                      router.push(portalPath);
+                    }}
                     className="px-4 py-3 rounded-xl text-sm font-semibold text-green-400 hover:text-green-300 hover:bg-white/5 text-left cursor-pointer"
                   >
                     Go to Dashboard
