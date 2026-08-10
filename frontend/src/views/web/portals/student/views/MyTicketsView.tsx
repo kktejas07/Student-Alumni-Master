@@ -3,7 +3,8 @@
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Platform, ActivityIndicator, Modal } from 'react-native';
-import { Ticket, CheckCircle, Download, ShieldCheck, Eye, QrCode, ExternalLink, X } from '../iconShims';
+import { useRouter } from 'expo-router';
+import { Ticket, CheckCircle, Download, ShieldCheck, Eye, QrCode, ExternalLink, X, Lock } from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { GlassCard } from '../glass';
 import { EmptyState } from '../EmptyState';
@@ -46,6 +47,7 @@ type RegItem = {
 };
 
 export function MyTicketsView() {
+  const router = useRouter();
   const [items, setItems] = useState<RegItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState<string | null>(null);
@@ -215,7 +217,11 @@ export function MyTicketsView() {
                 {slug ? (
                   <Pressable
                     onPress={() => {
-                      if (Platform.OS === 'web') window.open(`/echo/${slug}/coupons`, '_blank');
+                      if (Platform.OS === 'web') {
+                        window.location.href = `/echo/${slug}/coupons`;
+                      } else {
+                        router.push(`/echo/${slug}/coupons`);
+                      }
                     }}
                     style={({ hovered }: any) => [s.secondaryBtn, { borderColor: 'rgba(167,139,250,0.30)' }, hovered && { opacity: 0.85 }]}
                   >
@@ -255,14 +261,19 @@ export function MyTicketsView() {
                 <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 13 }}>
                   {previewCoupon.session_locked ? 'This session is currently locked' : previewCoupon.used ? 'Already used' : 'Show this code at the venue'}
                 </Text>
-                {previewCoupon.qr_url ? (
-                  <Text style={{ color: SC.accentBright, fontFamily: FONTS.med, fontSize: 11, marginTop: 8 }}>
-                    <QrCode size={14} color={SC.accentBright} />
-                    <Text style={{ color: SC.accentBright, fontFamily: FONTS.med, fontSize: 11, marginTop: 8 }}>
-                      {`${(process.env.EXPO_PUBLIC_BACKEND_URL as string) || ''}${previewCoupon.qr_url}`}
-                    </Text>
-                  </Text>
-                ) : null}
+                {/* QR Code image */}
+                {previewCoupon.coupon_code && (
+                  <View style={{ marginTop: 8, padding: 12, backgroundColor: '#fff', borderRadius: 12 }}>
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(previewCoupon.coupon_code)}`}
+                      alt={`QR code for ${previewCoupon.coupon_code}`}
+                      style={{ width: 200, height: 200 }}
+                    />
+                  </View>
+                )}
+                <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 10, marginTop: 4 }}>
+                  Scan this QR code at the venue
+                </Text>
               </View>
               <Pressable
                 onPress={() => setPreviewCoupon(null)}
