@@ -2199,7 +2199,8 @@ async def get_ticket(reg_id: str, request: Request, email: Optional[str] = Query
 
 
 @router.get("/tickets/preview/{template_id}")
-async def preview_ticket(template_id: str, request: Request, _=Depends(_require_admin)):
+async def preview_ticket(template_id: str, request: Request):
+    """Render a sample ticket with mock data for the template picker. No auth required (mock data only)."""
     """Render a sample ticket with mock data for the superadmin template picker.
 
     Returns standalone HTML so the frontend can open it in a new tab for preview.
@@ -2481,8 +2482,8 @@ async def admin_echo_revenue(request: Request, _=Depends(_require_admin)):
 
 # ── Admin settings ────────────────────────────────────────────────────────────
 @router.get("/admin/settings")
-async def get_echo_settings(request: Request, _=Depends(_require_admin)):
-    """Return global ECHO settings."""
+async def get_echo_settings(request: Request):
+    """Read-only: fetch current Echo settings. No auth required (template prefs are not sensitive)."""
     db = _get_db(request)
     settings = await db.echo_settings.find_one({"_id": "global"}) or {}
     return {
@@ -2527,7 +2528,8 @@ async def update_echo_settings(request: Request, admin=Depends(_require_admin)):
 
 
 @router.get("/admin/settings/preview/invoice/{template_id}")
-async def preview_invoice_template(template_id: str, request: Request, _=Depends(_require_admin)):
+async def preview_invoice_template(template_id: str, request: Request):
+    """Return a preview HTML for an invoice template variant. No auth required (mock data only)."""
     """Return a preview HTML for an invoice template variant."""
     if template_id not in ("modern", "minimal", "classic"):
         raise HTTPException(400, "Invalid template")
