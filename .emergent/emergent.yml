@@ -1,0 +1,8 @@
+# Rules
+
+## Code Style
+
+- **No emojis** in UI, comments, or any frontend code. Use `lucide-react-native` icons exclusively.
+- All UI icons must come from `lucide-react-native` (e.g. `Ticket`, `Lock`, `Coffee`, `Utensils`, `Cookie`, `Check`, `X`, `Eye`, `Trash2`, `Download`, etc.).
+- Do not use emoji characters like `🎫`, `🔒`, `📱`, `🍽️`, `🍪`, `☕`, `🍳`, `🥪`, `🖼`, `🛡`, `✓` in any file.
+- Text content should use plain text labels (e.g. "Used" instead of "✓", "Locked" instead of "🔒").
