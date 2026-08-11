@@ -2383,7 +2383,7 @@ async def get_invoice(invoice_no: str, request: Request, email: Optional[str] = 
 
 
 @router.get("/tickets/{reg_id}")
-async def get_ticket(reg_id: str, request: Request, email: Optional[str] = Query(None)):
+async def get_ticket(reg_id: str, request: Request, email: Optional[str] = Query(None), format: Optional[str] = Query(None)):
     """Fetch an attendee's entry pass (ticket) with QR — owner, email-match, or admin.
 
     Returns render-ready standalone HTML so the app can open a printable page,
@@ -2415,12 +2415,17 @@ async def get_ticket(reg_id: str, request: Request, email: Optional[str] = Query
         email_match = email and email.strip().lower() == allowed_email
         if not owner_match and not email_match:
             raise HTTPException(status_code=403, detail="You do not have access to this ticket")
-    return {
-        "reg_id": reg_id,
-        "status": reg.get("status"),
-        "event_title": reg.get("showcase_title") or (showcase or {}).get("title"),
-        "html": _build_ticket_html(reg_ser, showcase or {}, reg.get("ticket_template")),
-    }
+    
+    html_content = _build_ticket_html(reg_ser, showcase or {}, reg.get("ticket_template"))
+    if format == "json":
+        return {
+            "reg_id": reg_id,
+            "status": reg.get("status"),
+            "event_title": reg.get("showcase_title") or (showcase or {}).get("title"),
+            "html": html_content,
+        }
+    from fastapi.responses import HTMLResponse
+    return HTMLResponse(content=html_content)
 
 
 @router.get("/tickets/preview/{template_id}")

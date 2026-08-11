@@ -227,7 +227,7 @@ export default function EchoRegisterPage() {
       const { tokenStore } = await import('@/src/models/services/api');
       const token = await tokenStore.getAccess();
       const regEmail = done?.email || existing?.email || form.email || '';
-      const emailParam = regEmail ? `?email=${encodeURIComponent(regEmail)}` : '';
+      const emailParam = regEmail ? `?email=${encodeURIComponent(regEmail)}&format=json` : '?format=json';
       const resp = await fetch(`${base}/api/echo/tickets/${regId}${emailParam}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });

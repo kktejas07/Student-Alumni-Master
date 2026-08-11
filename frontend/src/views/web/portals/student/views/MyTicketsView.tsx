@@ -97,7 +97,7 @@ export function MyTicketsView() {
     try {
       const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
       const token = await tokenStore.getAccess();
-      const resp = await fetch(`${base}/api/echo/tickets/${regId}`, {
+      const resp = await fetch(`${base}/api/echo/tickets/${regId}?format=json`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!resp.ok) throw new Error('not available');
