@@ -402,7 +402,7 @@ async def _send_registration_confirmation(db, reg: dict, showcase: dict) -> None
         print(f"[ECHO] Confirmation email error: {e}")
 
 
-def _build_invoice(reg: dict, showcase: dict) -> dict:
+def _build_invoice(reg: dict, showcase: Optional[dict]) -> dict:
     """Build a normalized invoice record from a registration + showcase."""
     payment = reg.get("payment") or {}
     fee = float(reg.get("fee") or 0)
@@ -410,7 +410,7 @@ def _build_invoice(reg: dict, showcase: dict) -> dict:
     invoice_no = f"INV-{(reg.get('id') or str(reg.get('_id') or ''))[-10:].upper()}"
     items = [
         {
-            "desc": f"Registration — {showcase.get('title') or reg.get('showcase_title')}",
+            "desc": f"Registration — {(showcase or {}).get('title') or reg.get('showcase_title')}",
             "qty": 1,
             "amount": fee,
         }
@@ -419,9 +419,9 @@ def _build_invoice(reg: dict, showcase: dict) -> dict:
         "invoice_no": invoice_no,
         "reg_id": reg.get("id"),
         "slug": reg.get("slug"),
-        "event_title": showcase.get("title") or reg.get("showcase_title"),
-        "event_date": showcase.get("date") or "",
-        "event_venue": showcase.get("venue") or "",
+        "event_title": (showcase or {}).get("title") or reg.get("showcase_title"),
+        "event_date": (showcase or {}).get("date") or "",
+        "event_venue": (showcase or {}).get("venue") or "",
         "full_name": reg.get("full_name"),
         "email": reg.get("email"),
         "phone": reg.get("phone"),
@@ -1093,7 +1093,7 @@ async def _sync_user_profile_data(db, user: Optional[dict], payload: Any):
             pass
 
 
-async def _mirror_to_event_registration(db, reg: dict, showcase: dict, user: Optional[dict]):
+async def _mirror_to_event_registration(db, reg: dict, showcase: Optional[dict], user: Optional[dict]):
     """Mirror an ECHO registration into the StudentAlumni event_registrations collection."""
     canonical_slug = reg.get("slug") or (showcase or {}).get("slug")
     event_id = f"echo-{canonical_slug}"
@@ -1101,14 +1101,14 @@ async def _mirror_to_event_registration(db, reg: dict, showcase: dict, user: Opt
     if not event:
         event_doc = {
             "id": event_id,
-            "title": showcase.get("title"),
-            "category": showcase.get("category", "college-event"),
-            "organizer": showcase.get("organizer_name") or "Student Alumni Cell",
-            "venue": showcase.get("venue"),
-            "start_date": showcase.get("date"),
-            "description": showcase.get("description"),
-            "image": showcase.get("hero_image_url"),
-            "tags": ["ECHO", showcase.get("college", "")],
+            "title": (showcase or {}).get("title"),
+            "category": (showcase or {}).get("category", "college-event"),
+            "organizer": (showcase or {}).get("organizer_name") or "Student Alumni Cell",
+            "venue": (showcase or {}).get("venue"),
+            "start_date": (showcase or {}).get("date"),
+            "description": (showcase or {}).get("description"),
+            "image": (showcase or {}).get("hero_image_url"),
+            "tags": ["ECHO", (showcase or {}).get("college", "")],
             "rsvp_count": 0,
             "created_at": _now(),
         }
@@ -1116,7 +1116,7 @@ async def _mirror_to_event_registration(db, reg: dict, showcase: dict, user: Opt
     sa_reg = {
         "id": reg.get("id"),
         "event_id": event_id,
-        "event_title": showcase.get("title"),
+        "event_title": (showcase or {}).get("title"),
         "user_id": reg.get("user_id") or (str(user["_id"]) if user else None),
         "user_name": reg.get("full_name") or (user.get("full_name") if user else ""),
         "user_unique_id": (user or {}).get("unique_id"),
@@ -1144,7 +1144,7 @@ def _generate_temp_password(length: int = 12) -> str:
     return "".join(secrets.choice(alphabet) for _ in range(length))
 
 
-async def _provision_sa_account(db, reg: dict, showcase: dict):
+async def _provision_sa_account(db, reg: dict, showcase: Optional[dict]):
     """Ensure every confirmed ECHO attendee has a StudentAlumni account.
 
     Returns (user, created, password):
@@ -1223,13 +1223,13 @@ async def _provision_sa_account(db, reg: dict, showcase: dict):
     return user_doc, True, password
 
 
-async def _send_sa_welcome_email(reg: dict, showcase: dict, password: str) -> None:
+async def _send_sa_welcome_email(reg: dict, showcase: Optional[dict], password: str) -> None:
     """Welcome email from StudentAlumni when an ECHO registration creates an SA account."""
     try:
         email = (reg.get("email") or "").strip()
         if not email:
             return
-        title = reg.get("showcase_title") or showcase.get("title") or "Event Registration"
+        title = reg.get("showcase_title") or (showcase or {}).get("title") or "Event Registration"
         login_url = "https://studentalumni.ai/login"
         dashboard_url = "https://studentalumni.ai/dashboard"
         body = render_html_email(
@@ -1262,7 +1262,7 @@ async def _send_sa_welcome_email(reg: dict, showcase: dict, password: str) -> No
         print(f"[ECHO] Welcome email error: {e}")
 
 
-async def _store_invoice_and_email(db, reg: dict, showcase: dict) -> dict:
+async def _store_invoice_and_email(db, reg: dict, showcase: Optional[dict]) -> dict:
     """Persist an invoice for a paid registration and email it to the attendee."""
     fresh = _build_invoice(reg, showcase)
     existing = await db.invoices.find_one({"reg_id": reg.get("id")})
