@@ -26,14 +26,16 @@ import {
   Pencil, Trash2, Eye, Globe, Archive, Send, X, Zap,
   Star, BookOpen, Upload, MoveUp, MoveDown, Images, FolderOpen,
   Copy, Check, Search, RefreshCw, PlusCircle, FileText, Link2,
-  Image as ImageIcon, HardDrive, Calendar, Layout,
+  Image as ImageIcon, HardDrive, Calendar, Layout, ChevronUp, ChevronDown, Users,
+  Settings, Ticket, Mail, Palette, ScanLine,
 } from 'lucide-react-native';
 import {
   GRAD, GradientButton, SecondaryButton, Card,
   StatusPill, SearchField, KpiTile, useToast, Toast, TopTabs, IconBox,
 } from '../applekit';
 import { SAC, FONTS } from '../tokens';
-import { api } from '@/src/models/services/api';
+import { api, resolveImageUrl } from '@/src/models/services/api';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const STATUS_PILL_MAP: Record<string, any> = {
@@ -51,18 +53,21 @@ const GALLERY_LAYOUT_OPTIONS = ['grid', 'masonry', 'mixed', 'featured-grid', 'ca
 const VIDEO_PLATFORM_OPTIONS = ['youtube', 'vimeo', 'mp4'];
 const DOWNLOAD_CATEGORY_OPTIONS = ['Brochure', 'Schedule', 'Certificate', 'Presentation', 'Report', 'Document'];
 
-type PageTab = 'all' | 'create' | 'drafts' | 'media';
+type PageTab = 'all' | 'create' | 'drafts' | 'media' | 'registrations' | 'settings' | 'volunteers';
 type StatusFilter = 'all' | 'published' | 'draft' | 'archived';
 type FormTab =
   | 'general' | 'hero' | 'statistics' | 'about' | 'gallery'
   | 'testimonials' | 'highlights' | 'sponsors' | 'videos' | 'downloads'
-  | 'seo' | 'publish';
+  | 'sections' | 'registration' | 'seo' | 'publish';
 
 const PAGE_TABS: Array<{ id: PageTab; label: string; icon?: any }> = [
   { id: 'all', label: 'All Showcases', icon: Layout },
   { id: 'create', label: 'Create Showcase', icon: PlusCircle },
   { id: 'drafts', label: 'Drafts', icon: FileText },
+  { id: 'registrations', label: 'Registrations & Payments', icon: Users },
+  { id: 'volunteers', label: 'Volunteers', icon: Users },
   { id: 'media', label: 'Media Library', icon: Images },
+  { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
 const FILTER_TABS: Array<{ id: StatusFilter; label: string }> = [
@@ -83,6 +88,8 @@ const FORM_TABS: Array<{ id: FormTab; label: string }> = [
   { id: 'sponsors',     label: 'Sponsors' },
   { id: 'videos',       label: 'Videos' },
   { id: 'downloads',    label: 'Downloads' },
+  { id: 'sections',     label: 'Sections' },
+  { id: 'registration', label: 'Registration' },
   { id: 'seo',          label: 'SEO' },
   { id: 'publish',      label: 'Publish' },
 ];
@@ -161,39 +168,64 @@ const cs = StyleSheet.create({
 
 // ── Single image upload widget ────────────────────────────────────────────────
 function ImageUploadWidget({
-  label, url, onUpload, onRemove, aspectHint,
+  label, url, onUpload, onRemove, aspectHint, onUploadStart, onUploadEnd, flash, onPickMedia,
 }: {
   label: string;
   url?: string | null;
   onUpload: (url: string) => void;
   onRemove: () => void;
   aspectHint?: string;
+  onUploadStart?: () => void;
+  onUploadEnd?: () => void;
+  flash?: (msg: string) => void;
+  onPickMedia?: () => void;
 }) {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState('');
 
   const handleFile = async (file: File) => {
+    // 1. Instant local preview
+    if (Platform.OS === 'web' && typeof URL !== 'undefined') {
+      try {
+        const localPreview = URL.createObjectURL(file);
+        onUpload(localPreview);
+        console.log('[CMS INSTANT PREVIEW]', { label, localPreview, fileName: file.name });
+      } catch (e) {
+        console.warn('Could not create local object URL for preview', e);
+      }
+    }
+
     setUploading(true);
-    setProgress('Uploading…');
+    setProgress(`Uploading ${file.name}…`);
+    onUploadStart?.();
+    console.log('[CMS UPLOAD REQUEST]', { label, fileName: file.name, size: file.size, type: file.type });
+
     try {
-      const reader = new FileReader();
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-      const res = await api.uploadEchoMedia({ data: dataUrl, filename: file.name });
+      const fd = new FormData();
+      fd.append('file', file, file.name);
+      const res = await api.uploadEchoMedia(fd);
+      console.log('[CMS UPLOAD RESPONSE]', res);
+
       if (res?.url) {
         onUpload(res.url);
+        console.log('[CMS FORM STATE UPDATED]', { label, serverUrl: res.url });
+        flash?.(`${label} uploaded`);
       } else {
-        onUpload(dataUrl);
+        throw new Error('Upload returned no URL');
       }
-    } catch {
-      onUpload('');
+    } catch (err: any) {
+      console.error('[CMS UPLOAD ERROR]', err);
+      flash?.(`Upload failed: ${err?.message || 'Unknown error'}`);
     } finally {
       setUploading(false);
       setProgress('');
+      onUploadEnd?.();
     }
+  };
+
+  const handleRemove = () => {
+    console.log('[CMS REMOVE IMAGE]', { label, previousUrl: url });
+    onRemove();
   };
 
   const onDrop = (e: any) => {
@@ -214,7 +246,7 @@ function ImageUploadWidget({
       {url ? (
         <View style={{ borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: SAC.border }}>
           <Image
-            source={{ uri: url.startsWith('http') ? url : `http://localhost:8000${url}` }}
+            source={{ uri: resolveImageUrl(url) }}
             style={{ width: '100%', height: 140 }}
             resizeMode="cover"
           />
@@ -233,7 +265,7 @@ function ImageUploadWidget({
               </label>
             )}
             <Pressable
-              onPress={onRemove}
+              onPress={handleRemove}
               style={{ backgroundColor: 'rgba(239,68,68,0.25)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6 }}
             >
               <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: '#FCA5A5' }}>Remove</Text>
@@ -266,19 +298,26 @@ function ImageUploadWidget({
               <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.muted, marginTop: 4 }}>
                 JPEG · PNG · WEBP · AVIF · Max 25MB
               </Text>
-              {Platform.OS === 'web' && (
-                <label style={{ marginTop: 10, cursor: 'pointer' }}>
-                  <span style={{
-                    backgroundColor: 'rgba(123,61,191,0.30)', color: '#fff',
-                    padding: '6px 14px', borderRadius: '8px',
-                    fontFamily: FONTS.semi, fontSize: '12px',
-                  }}>
-                    Browse Files
-                  </span>
-                  <input type="file" accept="image/*" style={{ display: 'none' }}
-                    onChange={(e: any) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
-                </label>
-              )}
+              <View style={{ flexDirection: 'row', gap: 8, marginTop: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+                {Platform.OS === 'web' && (
+                  <label style={{ cursor: 'pointer' }}>
+                    <span style={{
+                      backgroundColor: 'rgba(123,61,191,0.30)', color: '#fff',
+                      padding: '6px 14px', borderRadius: '8px',
+                      fontFamily: FONTS.semi, fontSize: '12px',
+                    }}>
+                      Browse Files
+                    </span>
+                    <input type="file" accept="image/*" style={{ display: 'none' }}
+                      onChange={(e: any) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
+                  </label>
+                )}
+                {onPickMedia && (
+                  <Pressable onPress={onPickMedia} style={{ backgroundColor: 'rgba(255,255,255,0.08)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: SAC.border }}>
+                    <Text style={{ fontFamily: FONTS.semi, fontSize: 12, color: SAC.text }}>Choose Existing Image</Text>
+                  </Pressable>
+                )}
+              </View>
             </>
           )}
         </View>
@@ -388,14 +427,10 @@ function TestimonialsEditor({ testimonials, onChange }: any) {
 
   const handlePhotoUpload = async (i: number, file: File) => {
     try {
-      const reader = new FileReader();
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-      const res = await api.uploadEchoMedia({ data: dataUrl, filename: file.name });
-      update(i, 'photo_url', res?.url || dataUrl);
+      const fd = new FormData();
+      fd.append('file', file, file.name);
+      const res = await api.uploadEchoMedia(fd);
+      if (res?.url) update(i, 'photo_url', res.url);
     } catch { /* ignore */ }
   };
 
@@ -438,7 +473,7 @@ function TestimonialsEditor({ testimonials, onChange }: any) {
                 backgroundColor: 'rgba(123,61,191,0.15)', borderWidth: 1, borderColor: SAC.border,
                 alignItems: 'center', justifyContent: 'center' }}>
                 {t.photo_url ? (
-                  <Image source={{ uri: t.photo_url.startsWith('http') ? t.photo_url : `http://localhost:8000${t.photo_url}` }}
+                  <Image source={{ uri: resolveImageUrl(t.photo_url) }}
                     style={{ width: 60, height: 60 }} resizeMode="cover" />
                 ) : (
                   <Text style={{ fontFamily: FONTS.bold, fontSize: 18, color: GRAD.from }}>
@@ -500,14 +535,10 @@ function SponsorsEditor({ sponsors, onChange }: any) {
 
   const handleLogoUpload = async (i: number, file: File) => {
     try {
-      const reader = new FileReader();
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-      const res = await api.uploadEchoMedia({ data: dataUrl, filename: file.name });
-      update(i, 'logo_url', res?.url || dataUrl);
+      const fd = new FormData();
+      fd.append('file', file, file.name);
+      const res = await api.uploadEchoMedia(fd);
+      if (res?.url) update(i, 'logo_url', res.url);
     } catch { /* ignore */ }
   };
 
@@ -522,7 +553,7 @@ function SponsorsEditor({ sponsors, onChange }: any) {
                 backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: SAC.border,
                 alignItems: 'center', justifyContent: 'center' }}>
                 {sp.logo_url ? (
-                  <Image source={{ uri: sp.logo_url.startsWith('http') ? sp.logo_url : `http://localhost:8000${sp.logo_url}` }}
+                  <Image source={{ uri: resolveImageUrl(sp.logo_url) }}
                     style={{ width: 70, height: 42 }} resizeMode="contain" />
                 ) : (
                   <ImageIcon size={18} color={SAC.dim} />
@@ -581,16 +612,12 @@ function DownloadsEditor({ downloads, onChange }: any) {
 
   const handleFileUpload = async (i: number, file: File) => {
     try {
-      const reader = new FileReader();
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-      const res = await api.uploadEchoMedia({ data: dataUrl, filename: file.name });
+      const fd = new FormData();
+      fd.append('file', file, file.name);
+      const res = await api.uploadEchoMedia(fd);
       const sizeKB = file.size / 1024;
       const sizeHuman = sizeKB > 1024 ? `${(sizeKB / 1024).toFixed(1)} MB` : `${Math.round(sizeKB)} KB`;
-      update(i, 'file_url', res?.url || dataUrl);
+      if (res?.url) update(i, 'file_url', res.url);
       if (!downloads[i].file_size) update(i, 'file_size', sizeHuman);
     } catch { /* ignore */ }
   };
@@ -641,6 +668,189 @@ function DownloadsEditor({ downloads, onChange }: any) {
   );
 }
 
+// ── Poster Editor (simple URL list) ──────────────────────────────────────────
+function PosterEditor({ posters, onChange }: { posters: string[]; onChange: (p: string[]) => void }) {
+  const list = Array.isArray(posters) ? posters : [];
+  const set = (i: number, v: string) => {
+    const next = [...list];
+    next[i] = v;
+    onChange(next);
+  };
+  const add = () => onChange([...list, '']);
+  const remove = (i: number) => onChange(list.filter((_: string, j: number) => j !== i));
+  const move = (i: number, dir: -1 | 1) => {
+    const j = i + dir;
+    if (j < 0 || j >= list.length) return;
+    const next = [...list];
+    [next[i], next[j]] = [next[j], next[i]];
+    onChange(next);
+  };
+
+  return (
+    <View style={{ gap: 10 }}>
+      {list.map((url, i) => (
+        <View key={i} style={{ backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: SAC.border, gap: 8 }}>
+          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+            {url ? (
+              <Image source={{ uri: resolveImageUrl(url) }} style={{ width: 44, height: 56, borderRadius: 6, backgroundColor: '#0d1326' }} resizeMode="cover" />
+            ) : (
+              <View style={{ width: 44, height: 56, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center', justifyContent: 'center' }}>
+                <ImageIcon size={14} color={SAC.dim} />
+              </View>
+            )}
+            <TextInput value={url} onChangeText={(v) => set(i, v)}
+              placeholder="Poster image URL" placeholderTextColor={SAC.dim}
+              style={[fi.input, { flex: 1 }]} />
+            <View style={{ flexDirection: 'row', gap: 4 }}>
+              <Pressable onPress={() => move(i, -1)} disabled={i === 0} style={[cs.iconBtn, { opacity: i === 0 ? 0.35 : 1 }]}>
+                <ChevronUp size={13} color="#CBD5E1" />
+              </Pressable>
+              <Pressable onPress={() => move(i, 1)} disabled={i === list.length - 1} style={[cs.iconBtn, { opacity: i === list.length - 1 ? 0.35 : 1 }]}>
+                <ChevronDown size={13} color="#CBD5E1" />
+              </Pressable>
+              <Pressable onPress={() => remove(i)} style={[cs.iconBtn, { borderColor: 'rgba(239,68,68,0.30)' }]}>
+                <Trash2 size={13} color="#F87171" />
+              </Pressable>
+            </View>
+          </View>
+          {url ? (
+            <Text style={{ fontFamily: FONTS.med, fontSize: 10.5, color: SAC.muted }} numberOfLines={1}>
+              🖼 {url}
+            </Text>
+          ) : null}
+        </View>
+      ))}
+      <Pressable onPress={add}>
+        <Text style={{ color: GRAD.from, fontFamily: FONTS.semi, fontSize: 12.5 }}>+ Add Poster Image</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+// ── Banner Carousel Editor ──────────────────────────────────────────────────
+function BannerCarouselEditor({ banners, onChange }: { banners: string[]; onChange: (b: string[]) => void }) {
+  const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState('');
+  const list = Array.isArray(banners) ? banners : [];
+
+  const addFromUpload = async (files: FileList | File[]) => {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    const newUrls: string[] = [];
+    const total = files.length;
+    for (let i = 0; i < total; i++) {
+      const file = files[i];
+      setProgress(`Uploading ${i + 1} of ${total}…`);
+      try {
+        const fd = new FormData();
+        fd.append('file', file, file.name);
+        const res = await api.uploadEchoMedia(fd);
+        if (res?.url) newUrls.push(res.url);
+      } catch { /* skip failed */ }
+    }
+    if (newUrls.length > 0) onChange([...list, ...newUrls]);
+    setUploading(false);
+    setProgress('');
+  };
+
+  const set = (i: number, v: string) => {
+    const next = [...list];
+    next[i] = v;
+    onChange(next);
+  };
+  const add = () => onChange([...list, '']);
+  const remove = (i: number) => onChange(list.filter((_: string, j: number) => j !== i));
+  const move = (i: number, dir: -1 | 1) => {
+    const j = i + dir;
+    if (j < 0 || j >= list.length) return;
+    const next = [...list];
+    [next[i], next[j]] = [next[j], next[i]];
+    onChange(next);
+  };
+
+  const onDrop = (e: any) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer?.files) addFromUpload(e.dataTransfer.files);
+  };
+
+  return (
+    <View style={{ gap: 10 }}>
+      {/* Dropzone for bulk upload */}
+      <View
+        style={{
+          borderWidth: 2, borderColor: 'rgba(123,61,191,0.35)', borderStyle: 'dashed',
+          borderRadius: 10, padding: 18, alignItems: 'center', justifyContent: 'center',
+          backgroundColor: 'rgba(123,61,191,0.04)',
+        }}
+        {...(Platform.OS === 'web' ? {
+          onDragOver: (e: any) => { e.preventDefault(); e.stopPropagation(); },
+          onDrop: onDrop,
+        } : {})}
+      >
+        {uploading ? (
+          <View style={{ alignItems: 'center', gap: 6 }}>
+            <ActivityIndicator size="small" color={GRAD.from} />
+            <Text style={{ fontFamily: FONTS.semi, fontSize: 12, color: GRAD.from }}>{progress}</Text>
+          </View>
+        ) : (
+          <View style={{ alignItems: 'center', gap: 6 }}>
+            <Upload size={20} color={GRAD.from} />
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>Drag banner images here</Text>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.muted }}>Or use the buttons below</Text>
+            {Platform.OS === 'web' && (
+              <label style={{ marginTop: 4, cursor: 'pointer' }}>
+                <span style={{
+                  backgroundColor: 'rgba(123,61,191,0.25)', color: '#fff',
+                  padding: '5px 12px', borderRadius: '7px',
+                  fontFamily: FONTS.semi, fontSize: '11px',
+                }}>
+                  Browse Files
+                </span>
+                <input type="file" multiple accept="image/*" style={{ display: 'none' }}
+                  onChange={(e: any) => { if (e.target.files?.length > 0) addFromUpload(e.target.files); }} />
+              </label>
+            )}
+          </View>
+        )}
+      </View>
+
+      {/* Banner list */}
+      {list.map((url, i) => (
+        <View key={i} style={{ backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: SAC.border, gap: 8 }}>
+          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+            {url ? (
+              <Image source={{ uri: resolveImageUrl(url) }}
+                style={{ width: 80, height: 40, borderRadius: 6, backgroundColor: '#0d1326' }} resizeMode="cover" />
+            ) : (
+              <View style={{ width: 80, height: 40, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center', justifyContent: 'center' }}>
+                <ImageIcon size={14} color={SAC.dim} />
+              </View>
+            )}
+            <TextInput value={url} onChangeText={(v) => set(i, v)}
+              placeholder="Banner image URL or paste link" placeholderTextColor={SAC.dim}
+              style={[fi.input, { flex: 1 }]} />
+            <View style={{ flexDirection: 'row', gap: 4 }}>
+              <Pressable onPress={() => move(i, -1)} disabled={i === 0} style={[cs.iconBtn, { opacity: i === 0 ? 0.35 : 1 }]}>
+                <ChevronUp size={13} color="#CBD5E1" />
+              </Pressable>
+              <Pressable onPress={() => move(i, 1)} disabled={i === list.length - 1} style={[cs.iconBtn, { opacity: i === list.length - 1 ? 0.35 : 1 }]}>
+                <ChevronDown size={13} color="#CBD5E1" />
+              </Pressable>
+              <Pressable onPress={() => remove(i)} style={[cs.iconBtn, { borderColor: 'rgba(239,68,68,0.30)' }]}>
+                <Trash2 size={13} color="#F87171" />
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      ))}
+      <Pressable onPress={add}>
+        <Text style={{ color: GRAD.from, fontFamily: FONTS.semi, fontSize: 12.5 }}>+ Add Banner Image URL</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 // ── Gallery Dropzone ──────────────────────────────────────────────────────────
 function GalleryDropzone({ gallery, onChange }: { gallery: any[]; onChange: (g: any[]) => void }) {
   const [uploading, setUploading] = useState(false);
@@ -656,35 +866,29 @@ function GalleryDropzone({ gallery, onChange }: { gallery: any[]; onChange: (g: 
       const file = files[i];
       setProgress(`Uploading ${i + 1} of ${total}…`);
       try {
-        const reader = new FileReader();
-        const dataUrl = await new Promise<string>((resolve, reject) => {
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-
-        let finalUrl = dataUrl;
-        try {
-          const res = await api.uploadEchoMedia({ data: dataUrl, filename: file.name });
-          if (res?.url) finalUrl = res.url;
-        } catch { /* fallback to dataUrl */ }
-
-        newItems.push({
-          url: finalUrl,
-          caption: file.name.split('.')[0].replace(/[-_]/g, ' '),
-          alt: file.name,
-          credit: '',
-          tags: [],
-          featured: false,
-          hero: false,
-          order: (gallery?.length || 0) + i,
-        });
+        const fd = new FormData();
+        fd.append('file', file, file.name);
+        const res = await api.uploadEchoMedia(fd);
+        if (res?.url) {
+          newItems.push({
+            url: res.url,
+            caption: file.name.split('.')[0].replace(/[-_]/g, ' '),
+            alt: file.name,
+            credit: '',
+            tags: [],
+            featured: false,
+            hero: false,
+            order: (gallery?.length || 0) + i,
+          });
+        }
       } catch (err) {
         console.error('Upload error', err);
       }
     }
 
-    onChange([...(gallery || []), ...newItems]);
+    if (newItems.length > 0) {
+      onChange([...(gallery || []), ...newItems]);
+    }
     setUploading(false);
     setProgress('');
   };
@@ -772,7 +976,7 @@ function GalleryDropzone({ gallery, onChange }: { gallery: any[]; onChange: (g: 
               {/* Thumbnail */}
               <View style={{ width: 72, height: 72, borderRadius: 8, overflow: 'hidden', backgroundColor: '#000' }}>
                 {item.url ? (
-                  <Image source={{ uri: item.url.startsWith('http') ? item.url : `http://localhost:8000${item.url}` }}
+                  <Image source={{ uri: resolveImageUrl(item.url) }}
                     style={{ width: '100%', height: '100%' }} resizeMode="cover" />
                 ) : (
                   <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
@@ -890,13 +1094,9 @@ function MediaLibraryPanel() {
       setUploadProgress(`Uploading ${i + 1}/${files.length}…`);
       const file = files[i];
       try {
-        const reader = new FileReader();
-        const dataUrl = await new Promise<string>((resolve, reject) => {
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-        await api.uploadEchoMedia({ data: dataUrl, filename: file.name });
+        const fd = new FormData();
+        fd.append('file', file, file.name);
+        await api.uploadEchoMedia(fd);
         count++;
       } catch { /* skip failed */ }
     }
@@ -966,7 +1166,7 @@ function MediaLibraryPanel() {
                     style={{ width: 120, borderRadius: 10, overflow: 'hidden',
                       backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: SAC.border }}>
                     <Image
-                      source={{ uri: m.url.startsWith('http') ? m.url : `http://localhost:8000${m.url}` }}
+                      source={{ uri: resolveImageUrl(m.url) }}
                       style={{ width: 120, height: 80 }} resizeMode="cover"
                     />
                     <View style={{ padding: 6, gap: 3 }}>
@@ -1018,7 +1218,7 @@ function MediaLibraryPanel() {
             <View style={{ width: '90%', maxWidth: 700, backgroundColor: '#0d1326',
               borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: SAC.border, zIndex: 2 }}>
               <Image
-                source={{ uri: preview.url.startsWith('http') ? preview.url : `http://localhost:8000${preview.url}` }}
+                source={{ uri: resolveImageUrl(preview.url) }}
                 style={{ width: '100%', height: 380 }} resizeMode="contain"
               />
               <View style={{ padding: 14, gap: 10 }}>
@@ -1057,6 +1257,12 @@ function MediaLibraryPanel() {
 
 // ── Showcase Card ─────────────────────────────────────────────────────────────
 function ShowcaseCard({ item, onEdit, onDelete, onPublish, onDraft, onArchive, onPreview, busy }: any) {
+  const viewShowcase = () => {
+    if (Platform.OS === 'web') {
+      window.open(`/echo/${item.slug}`, '_blank');
+    }
+  };
+
   return (
     <Card style={{ marginBottom: 12 }}>
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 14 }}>
@@ -1070,13 +1276,16 @@ function ShowcaseCard({ item, onEdit, onDelete, onPublish, onDraft, onArchive, o
           </View>
           {item.subtitle ? <Text style={{ fontFamily: FONTS.med, fontSize: 12.5, color: SAC.muted }} numberOfLines={1}>{item.subtitle}</Text> : null}
           <View style={{ flexDirection: 'row', gap: 14, marginTop: 3, flexWrap: 'wrap' }}>
-            {item.date ? <Text style={cs.meta}>📅 {item.date}</Text> : null}
-            {item.venue ? <Text style={cs.meta}>📍 {item.venue}</Text> : null}
-            {item.category ? <Text style={cs.meta}>🏷 {item.category}</Text> : null}
-            <Text style={cs.meta}>🔗 /{item.slug}</Text>
+            {item.date ? <Text style={cs.meta}>{item.date}</Text> : null}
+            {item.venue ? <Text style={cs.meta}>{item.venue}</Text> : null}
+            {item.category ? <Text style={cs.meta}>{item.category}</Text> : null}
+            <Text style={cs.meta}>/{item.slug}</Text>
           </View>
         </View>
-        <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+        <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <Pressable onPress={viewShowcase} style={[cs.iconBtn, { backgroundColor: 'rgba(124,58,237,0.12)', borderColor: 'rgba(167,139,250,0.25)' }]}>
+            <Globe size={14} color="#A78BFA" />
+          </Pressable>
           <Pressable onPress={() => onPreview(item)} style={cs.iconBtn}><Eye size={14} color={SAC.muted} /></Pressable>
           <Pressable onPress={() => onEdit(item)} style={cs.iconBtn}><Pencil size={14} color={SAC.muted} /></Pressable>
           {item.status !== 'published' && (
@@ -1105,7 +1314,9 @@ const EMPTY: any = {
   date: '', time: '', venue: '', college: '', category: 'college-event',
   status: 'draft', event_status_badge: 'Upcoming',
   hero_image_url: '', hero_cover_url: '', hero_thumbnail_url: '', hero_bg_url: '',
+  hero_banners: [],
   organizer_name: '', organizer_logo_url: '',
+  sessions: [],
   cta_title: 'Stay tuned for more events!',
   cta_subtitle: 'Join our community and never miss an opportunity to learn, connect, and grow.',
   cta_button_text: 'View Upcoming Events',
@@ -1137,18 +1348,31 @@ const EMPTY: any = {
     { icon: 'network', title: 'Networking Sessions', description: '' },
   ],
   partners: [], sponsors: [], downloads: [], videos: [], gallery: [],
+  sections: {
+    hero: true, stats: true, about: true, gallery: true, testimonials: true,
+    timeline: true, partners: true, sponsors: true, videos: true,
+    downloads: true, cta: true, registration: true,
+  },
+  registration: {
+    enabled: true, fee: 0, currency: 'INR', max_seats: 0,
+    deadline: '', payment_note: '', payment_url: '', poster_images: [],
+  },
 };
 
 // ── Autosave key ──────────────────────────────────────────────────────────────
 const AUTOSAVE_KEY = 'echo_cms_autosave';
 
 // ── Showcase Editor Modal ─────────────────────────────────────────────────────
-function ShowcaseModal({ visible, editing, onClose, onSave, saving }: any) {
+function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPreview }: any) {
   const [tab, setTab] = useState<FormTab>('general');
   const [form, setForm] = useState<any>({ ...EMPTY });
   const [isDirty, setIsDirty] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
+  const [activeUploads, setActiveUploads] = useState(0);
   const autosaveTimer = useRef<any>(null);
+
+  const onUploadStart = () => setActiveUploads((c) => c + 1);
+  const onUploadEnd = () => setActiveUploads((c) => Math.max(0, c - 1));
 
   useEffect(() => {
     const initial = editing ? { ...editing } : { ...EMPTY };
@@ -1156,6 +1380,7 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving }: any) {
     setTab('general');
     setIsDirty(false);
     setLastSaved(null);
+    setActiveUploads(0);
     // Restore autosave draft if creating new
     if (!editing && Platform.OS === 'web') {
       try {
@@ -1200,7 +1425,6 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving }: any) {
   };
 
   const autoSlug = (title: string) => {
-    set('title', title);
     if (!editing) {
       const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
       setForm((prev: any) => {
@@ -1208,7 +1432,10 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving }: any) {
         scheduleAutosave(next);
         return next;
       });
+    } else {
+      set('title', title);
     }
+    setIsDirty(true);
   };
 
   // Unsaved changes warning on browser close
@@ -1237,7 +1464,7 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving }: any) {
               <Text style={ml.headerTitle}>{editing ? `Edit: ${editing.title}` : 'New ECHO Showcase'}</Text>
               {lastSaved && (
                 <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: 'rgba(255,255,255,0.7)', marginTop: 2 }}>
-                  ✓ Autosaved at {lastSaved}
+                  Autosaved at {lastSaved}
                 </Text>
               )}
             </View>
@@ -1265,7 +1492,7 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving }: any) {
                 <Field value={form.title} onChangeText={autoSlug} placeholder="VNR ECHO 2026" />
               </FieldRow>
               <FieldRow label="Short Title / Slug" hint="Auto-generated from title. Used in the page URL.">
-                <Field value={form.slug} onChangeText={(v: string) => set('slug', v)} placeholder="vnr-echo-2026" />
+                <Field value={form.slug} onChangeText={(v: string) => set('slug', v)} placeholder="vnrvjit" />
               </FieldRow>
               <FieldRow label="Subtitle">
                 <Field value={form.subtitle} onChangeText={(v: string) => set('subtitle', v)} placeholder="Empowering Tomorrow's Leaders" />
@@ -1319,40 +1546,38 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving }: any) {
             {/* ── HERO TAB ── */}
             {tab === 'hero' && <>
               <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: SAC.text, marginBottom: 16 }}>
-                Upload hero images for the showcase page. Each image serves a different display purpose.
+                Hero images for the showcase page. "Banners" shows a full-width carousel on the detail page. "Card Thumbnail" is the image on the /echo listing cards.
               </Text>
               <View style={{ gap: 20 }}>
+                <FieldRow label="Hero Banners (carousel)" hint="Multiple banner images for an auto-rotating carousel at the top of the detail page. First image is the primary banner.">
+                  <BannerCarouselEditor
+                    banners={form.hero_banners || []}
+                    onChange={(b: string[]) => set('hero_banners', b)}
+                  />
+                </FieldRow>
                 <ImageUploadWidget
-                  label="Hero Banner (main hero image)"
+                  label="Card Thumbnail (listing page + fallback)"
                   url={form.hero_image_url}
                   onUpload={(url) => set('hero_image_url', url)}
                   onRemove={() => set('hero_image_url', '')}
-                  aspectHint="Recommended: 1920×600px · Landscape · Min 1MB for crisp display"
+                  onUploadStart={onUploadStart}
+                  onUploadEnd={onUploadEnd}
+                  flash={flash}
+                  aspectHint="Used as card image on /echo listing page, fallback hero when no banners, and poster on register page"
                 />
                 <ImageUploadWidget
-                  label="Hero Cover"
+                  label="Cover Image (fallback card thumbnail)"
                   url={form.hero_cover_url}
                   onUpload={(url) => set('hero_cover_url', url)}
                   onRemove={() => set('hero_cover_url', '')}
-                  aspectHint="Recommended: 1200×800px · Used as card cover in listings"
-                />
-                <ImageUploadWidget
-                  label="Hero Thumbnail"
-                  url={form.hero_thumbnail_url}
-                  onUpload={(url) => set('hero_thumbnail_url', url)}
-                  onRemove={() => set('hero_thumbnail_url', '')}
-                  aspectHint="Recommended: 400×300px · Used in thumbnails and search results"
-                />
-                <ImageUploadWidget
-                  label="Hero Background"
-                  url={form.hero_bg_url}
-                  onUpload={(url) => set('hero_bg_url', url)}
-                  onRemove={() => set('hero_bg_url', '')}
-                  aspectHint="Recommended: 1920×1080px · Used as page background"
+                  onUploadStart={onUploadStart}
+                  onUploadEnd={onUploadEnd}
+                  flash={flash}
+                  aspectHint="Used as card image on /echo listing only when Card Thumbnail is empty"
                 />
               </View>
               <View style={{ marginTop: 20 }}>
-                <FieldRow label="Organizer Name">
+                <FieldRow label="Organizer Name" hint="Displayed in the 'About the Event' section on the detail page">
                   <Field value={form.organizer_name} onChangeText={(v: string) => set('organizer_name', v)} placeholder="Student Alumni Cell" />
                 </FieldRow>
                 <ImageUploadWidget
@@ -1360,7 +1585,10 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving }: any) {
                   url={form.organizer_logo_url}
                   onUpload={(url) => set('organizer_logo_url', url)}
                   onRemove={() => set('organizer_logo_url', '')}
-                  aspectHint="Recommended: 200×200px · Square PNG with transparent background"
+                  onUploadStart={onUploadStart}
+                  onUploadEnd={onUploadEnd}
+                  flash={flash}
+                  aspectHint="Shown next to organizer name in the About section"
                 />
               </View>
             </>}
@@ -1495,6 +1723,162 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving }: any) {
               </FieldRow>
             )}
 
+            {/* ── SECTIONS TAB ── */}
+            {tab === 'sections' && <>
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: SAC.text, marginBottom: 16 }}>
+                Toggle which sections appear on the public page. Hidden sections stay in the CMS but won't render publicly.
+              </Text>
+              <Card style={{ padding: 18, gap: 4 }}>
+                {[
+                  { key: 'hero', label: 'Hero', hint: 'Title, subtitle, date/time/venue, hero image' },
+                  { key: 'stats', label: 'Statistics', hint: 'Attendance, speakers, sessions numbers' },
+                  { key: 'about', label: 'About + Organizers', hint: 'Description, highlights, organizer card' },
+                  { key: 'gallery', label: 'Photo Gallery', hint: 'Event photos grid + lightbox' },
+                  { key: 'testimonials', label: 'Testimonials', hint: 'Student quotes with ratings' },
+                  { key: 'timeline', label: 'Timeline / Highlights', hint: 'Event agenda cards' },
+                  { key: 'partners', label: 'Collaboration Partners', hint: 'In-association partner chips' },
+                  { key: 'sponsors', label: 'Sponsors', hint: 'Sponsor logos with tiers' },
+                  { key: 'videos', label: 'Videos', hint: 'YouTube / uploaded videos' },
+                  { key: 'downloads', label: 'Downloads', hint: 'Brochures, schedules, certificates' },
+                  { key: 'cta', label: 'CTA Banner', hint: 'Bottom call-to-action' },
+                  { key: 'registration', label: 'Registration', hint: 'Register button + registration page' },
+                ].map((sec) => {
+                  const on = (form.sections && form.sections[sec.key]) !== false;
+                  return (
+                    <Pressable key={sec.key} onPress={() => set('sections', { ...(form.sections || {}), [sec.key]: !on })}
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: SAC.border }}>
+                      <View style={{
+                        width: 40, height: 22, borderRadius: 11, padding: 2,
+                        backgroundColor: on ? '#10B981' : '#334155',
+                      }}>
+                        <View style={{
+                          width: 18, height: 18, borderRadius: 9, backgroundColor: '#fff',
+                          transform: [{ translateX: on ? 18 : 0 }],
+                        }} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: '#fff', fontFamily: FONTS.semi, fontSize: 13 }}>{sec.label}</Text>
+                        <Text style={{ color: SAC.dim, fontFamily: FONTS.med, fontSize: 11 }}>{sec.hint}</Text>
+                      </View>
+                      <Text style={{ color: on ? '#34D399' : '#F87171', fontFamily: FONTS.bold, fontSize: 11 }}>{on ? 'Visible' : 'Hidden'}</Text>
+                    </Pressable>
+                  );
+                })}
+              </Card>
+            </>}
+
+            {/* ── REGISTRATION TAB ── */}
+            {tab === 'registration' && <>
+              <Card style={{ marginBottom: 16, padding: 20, gap: 12 }}>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>Registration & Payment</Text>
+                <FieldRow label="Registrations Enabled">
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <Pressable onPress={() => set('registration', { ...(form.registration || {}), enabled: !((form.registration || {}).enabled) })} style={{
+                      width: 44, height: 24, borderRadius: 12, padding: 2, backgroundColor: (form.registration || {}).enabled ? '#10B981' : '#334155',
+                    }}>
+                      <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff', transform: [{ translateX: (form.registration || {}).enabled ? 20 : 0 }] }} />
+                    </Pressable>
+                    <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 }}>
+                      Allow users to register + pay on the public page
+                    </Text>
+                  </View>
+                </FieldRow>
+                <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
+                  <View style={{ flex: 1, minWidth: 140 }}>
+                    <FieldRow label="Fee (0 = free)">
+                      <Field value={String((form.registration || {}).fee ?? 0)} onChangeText={(v: string) => set('registration', { ...(form.registration || {}), fee: Number(v) || 0 })} placeholder="0" />
+                    </FieldRow>
+                  </View>
+                  <View style={{ flex: 1, minWidth: 120 }}>
+                    <FieldRow label="Currency">
+                      <Field value={(form.registration || {}).currency || 'INR'} onChangeText={(v: string) => set('registration', { ...(form.registration || {}), currency: v })} placeholder="INR" />
+                    </FieldRow>
+                  </View>
+                  <View style={{ flex: 1, minWidth: 140 }}>
+                    <FieldRow label="Max Seats (0 = unlimited)">
+                      <Field value={String((form.registration || {}).max_seats ?? 0)} onChangeText={(v: string) => set('registration', { ...(form.registration || {}), max_seats: Number(v) || 0 })} placeholder="0" />
+                    </FieldRow>
+                  </View>
+                </View>
+                <FieldRow label="Registration Deadline">
+                  <Field value={(form.registration || {}).deadline || ''} onChangeText={(v: string) => set('registration', { ...(form.registration || {}), deadline: v })} placeholder="2026-08-14" />
+                </FieldRow>
+                <FieldRow label="Payment / Registration Note" hint="Shown to attendees on the registration page.">
+                  <Field value={(form.registration || {}).payment_note || ''} onChangeText={(v: string) => set('registration', { ...(form.registration || {}), payment_note: v })} placeholder="Free entry for VNR students…" multiline rows={3} />
+                </FieldRow>
+                <FieldRow label="External Payment Link (optional)" hint="Leave empty to use the connected Razorpay integration automatically. Only fill this if you want to redirect attendees to a custom payment page (e.g. a Razorpay payment link, PayU, or Stripe checkout).">
+                  <Field value={(form.registration || {}).payment_url || ''} onChangeText={(v: string) => set('registration', { ...(form.registration || {}), payment_url: v })} placeholder="Leave empty to use connected Razorpay" />
+                </FieldRow>
+                <FieldRow label="Poster Images" hint="Left-column carousel on the register page. Falls back to gallery/hero images when empty.">
+                  <PosterEditor
+                    posters={(form.registration || {}).poster_images || []}
+                    onChange={(p: string[]) => set('registration', { ...(form.registration || {}), poster_images: p })}
+                  />
+                </FieldRow>
+              </Card>
+
+              {/* Session Passes */}
+              <Card style={{ marginBottom: 16, padding: 20, gap: 12 }}>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>Session Passes</Text>
+                <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>
+                  Enable food/amenity coupons for attendees. Each enabled session generates a unique QR coupon that can be scanned once at the venue.
+                </Text>
+                {[
+                  { key: 'breakfast', label: 'Breakfast', icon: '🍳' },
+                  { key: 'lunch', label: 'Lunch', icon: '🍽️' },
+                  { key: 'snacks', label: 'Snacks', icon: '🍪' },
+                  { key: 'tiffin', label: 'Tiffin', icon: '🥪' },
+                  { key: 'coffee', label: 'Coffee & Tea', icon: '☕' },
+                ].map((s) => {
+                  const sessions = (form.sessions || []);
+                  const existing = sessions.find((x: any) => x.key === s.key);
+                  const enabled = existing?.enabled ?? false;
+                  const locked = existing?.locked ?? false;
+                  return (
+                    <View key={s.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' }}>
+                      <Text style={{ fontSize: 18, width: 28 }}>{s.icon}</Text>
+                      <Text style={{ flex: 1, fontFamily: FONTS.med, fontSize: 13, color: SAC.text }}>{s.label}</Text>
+                      {enabled && (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: locked ? '#F59E0B' : SAC.dim }}>
+                            {locked ? 'Locked' : 'Active'}
+                          </Text>
+                          <Pressable onPress={() => {
+                            const current = [...(form.sessions || [])];
+                            const idx = current.findIndex((x: any) => x.key === s.key);
+                            if (idx >= 0) {
+                              current[idx] = { ...current[idx], locked: !locked };
+                            }
+                            set('sessions', current);
+                          }} style={{
+                            width: 36, height: 20, borderRadius: 10, padding: 2,
+                            backgroundColor: locked ? '#F59E0B' : '#334155', cursor: 'pointer',
+                          }}>
+                            <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: '#fff', transform: [{ translateX: locked ? 16 : 0 }] }} />
+                          </Pressable>
+                        </View>
+                      )}
+                      <Pressable onPress={() => {
+                        const current = [...(form.sessions || [])];
+                        const idx = current.findIndex((x: any) => x.key === s.key);
+                        if (idx >= 0) {
+                          current[idx] = { ...current[idx], enabled: !enabled, locked: false };
+                        } else {
+                          current.push({ key: s.key, label: s.label, enabled: true, locked: false });
+                        }
+                        set('sessions', current);
+                      }} style={{
+                        width: 44, height: 24, borderRadius: 12, padding: 2,
+                        backgroundColor: enabled ? '#10B981' : '#334155', cursor: 'pointer',
+                      }}>
+                        <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff', transform: [{ translateX: enabled ? 20 : 0 }] }} />
+                      </Pressable>
+                    </View>
+                  );
+                })}
+              </Card>
+            </>}
+
             {/* ── SEO TAB ── */}
             {tab === 'seo' && <>
               <FieldRow label="SEO Page Title">
@@ -1534,11 +1918,11 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving }: any) {
                   After saving, the page will be available at:
                 </Text>
                 <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: GRAD.from }}>
-                  /echo-showcase/{form.slug || 'your-slug'}
+                  /echo/{form.slug || 'your-college'}
                 </Text>
                 {form.status !== 'published' && (
                   <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: '#FBBF24' }}>
-                    ⚠️ Status is "{form.status}" — set to Published to make it visible to students.
+                    Status is "{form.status}" — set to Published to make it visible to students.
                   </Text>
                 )}
               </Card>
@@ -1551,9 +1935,9 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving }: any) {
             <SecondaryButton onPress={handleClose} size="md">
               <Text style={{ fontFamily: FONTS.semi, fontSize: 13, color: SAC.muted }}>Cancel</Text>
             </SecondaryButton>
-            <GradientButton onPress={() => onSave(form)} loading={saving} size="md">
+            <GradientButton onPress={() => onSave(form)} loading={saving || activeUploads > 0} disabled={saving || activeUploads > 0} size="md">
               <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13 }}>
-                {editing ? 'Save Changes' : 'Create Showcase'}
+                {activeUploads > 0 ? 'Uploading…' : editing ? 'Save Changes' : 'Create Showcase'}
               </Text>
             </GradientButton>
           </View>
@@ -1578,6 +1962,646 @@ const ml = StyleSheet.create({
   footer: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, padding: 16, borderTopWidth: 1, borderTopColor: SAC.border },
 });
 
+// ── Registrations & Payments panel ───────────────────────────────────────────
+// ── Session Passes Overview ───────────────────────────────────────────────────
+function SessionPassesOverview({ events, onRefresh }: { events: any[]; onRefresh: () => void }) {
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [sessionData, setSessionData] = useState<Record<string, any[]>>({});
+  const [toggling, setToggling] = useState<string | null>(null);
+
+  const loadSessions = async (slug: string) => {
+    try {
+      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const { tokenStore } = await import('@/src/models/services/api');
+      const token = await tokenStore.getAccess();
+      const resp = await fetch(`${base}/api/echo/admin/${slug}/sessions`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        setSessionData((prev) => ({ ...prev, [slug]: data.sessions || [] }));
+      }
+    } catch { /* ignore */ }
+  };
+
+  const toggleLock = async (slug: string, sessionKey: string, currentLocked: boolean) => {
+    setToggling(`${slug}:${sessionKey}`);
+    try {
+      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const { tokenStore } = await import('@/src/models/services/api');
+      const token = await tokenStore.getAccess();
+      await fetch(`${base}/api/echo/admin/${slug}/sessions/${sessionKey}/lock`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ locked: !currentLocked }),
+      });
+      await loadSessions(slug);
+    } catch { /* ignore */ }
+    setToggling(null);
+  };
+
+  const toggleExpand = (slug: string) => {
+    if (expanded === slug) {
+      setExpanded(null);
+    } else {
+      setExpanded(slug);
+      if (!sessionData[slug]) loadSessions(slug);
+    }
+  };
+
+  if (events.length === 0) return null;
+
+  return (
+    <Card style={{ marginBottom: 16 }}>
+      <Pressable onPress={() => setExpanded(expanded ? null : events[0]?.slug)} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <Ticket size={16} color="#A78BFA" />
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: SAC.text }}>Session Passes</Text>
+          <StatusPill kind="info" label={`${events.length} events`} />
+        </View>
+        <ChevronUp size={16} color={SAC.muted} style={{ transform: [{ rotate: expanded ? '0deg' : '180deg' }] }} />
+      </Pressable>
+      {expanded && (
+        <View style={{ padding: 16, paddingTop: 0, gap: 12 }}>
+          {events.map((ev) => {
+            const sessions = sessionData[ev.slug] || [];
+            return (
+              <View key={ev.slug} style={{ borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)', paddingBottom: 12 }}>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: SAC.text, marginBottom: 8 }}>{ev.title}</Text>
+                {sessions.length === 0 ? (
+                  <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.dim }}>No sessions configured</Text>
+                ) : (
+                  <View style={{ gap: 6 }}>
+                    {sessions.map((s: any) => {
+                      const locked = s.locked ?? false;
+                      const enabled = s.enabled ?? false;
+                      return (
+                        <View key={s.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6, paddingHorizontal: 10, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
+                          <Text style={{ fontSize: 16, width: 24 }}>{s.icon || '🎫'}</Text>
+                          <Text style={{ flex: 1, fontFamily: FONTS.med, fontSize: 12, color: SAC.text }}>{s.label}</Text>
+                          {enabled && (
+                            <>
+                              <StatusPill kind={locked ? 'warn' : 'success'} label={locked ? 'Locked' : 'Active'} />
+                              <Pressable onPress={() => toggleLock(ev.slug, s.key, locked)} disabled={toggling === `${ev.slug}:${s.key}`} style={{
+                                width: 32, height: 18, borderRadius: 9, padding: 2,
+                                backgroundColor: locked ? '#F59E0B' : '#334155', cursor: 'pointer',
+                              }}>
+                                <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: '#fff', transform: [{ translateX: locked ? 14 : 0 }] }} />
+                              </Pressable>
+                            </>
+                          )}
+                          {!enabled && <StatusPill kind="neutral" label="Disabled" />}
+                        </View>
+                      );
+                    })}
+                  </View>
+                )}
+              </View>
+            );
+          })}
+        </View>
+      )}
+    </Card>
+  );
+}
+
+
+function RegistrationsPanel() {
+  const [rows, setRows] = useState<any[]>([]);
+  const [revenue, setRevenue] = useState<any>({ events: [], totals: {} });
+  const [loading, setLoading] = useState(true);
+  const [q, setQ] = useState('');
+  const [status, setStatus] = useState('all');
+  const [eventSlug, setEventSlug] = useState('all');
+  const { flash } = useToast();
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [regs, rev] = await Promise.all([
+        api.adminEchoRegistrations(),
+        api.adminEchoRevenue(),
+      ]);
+      setRows(regs?.items || []);
+      setRevenue(rev || { events: [], totals: {} });
+    } catch {
+      flash('Failed to load registrations');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const filtered = rows.filter((r) => {
+    const s = q.toLowerCase();
+    const matchQ = !s
+      || r.full_name?.toLowerCase().includes(s)
+      || r.email?.toLowerCase().includes(s)
+      || r.college?.toLowerCase().includes(s)
+      || r.event_title?.toLowerCase().includes(s);
+    const matchStatus = status === 'all' || r.payment_status === status;
+    const matchEvent = eventSlug === 'all' || r.slug === eventSlug;
+    return matchQ && matchStatus && matchEvent;
+  });
+
+  const uniqueEvents = Array.from(new Set(rows.map((r: any) => r.slug).filter(Boolean)))
+    .map((slug) => rows.find((r: any) => r.slug === slug))
+    .filter(Boolean)
+    .map((r: any) => ({ slug: r.slug, title: r.event_title || r.slug }));
+
+  const fmtAmt = (n: number) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
+  const paid = filtered.filter((r) => r.payment_status === 'paid');
+  const revenueTotal = paid.reduce((a, r) => a + Number(r.fee || 0), 0);
+
+  return (
+    <View>
+      {/* Revenue KPIs */}
+      <View style={{ flexDirection: 'row', gap: 12, marginBottom: 18, flexWrap: 'wrap' }}>
+        <KpiTile Icon={Users} label="Total Registrations" value={String(filtered.length)} />
+        <KpiTile Icon={Check} label="Paid" value={String(paid.length)} />
+        <KpiTile Icon={Zap} label="Revenue (filtered)" value={fmtAmt(revenueTotal)} delta="real-time" deltaKind="success" />
+        <Pressable onPress={() => window.open('/echo/admin/scan', '_blank')} style={{
+          flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#7C3AED',
+          borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, cursor: 'pointer',
+        }}>
+          <ScanLine size={14} color="#fff" />
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Scan Coupons</Text>
+        </Pressable>
+      </View>
+
+      {/* Per-event revenue */}
+      {revenue.events?.length > 0 && (
+        <Card style={{ marginBottom: 16 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>Event Revenue Breakdown</Text>
+            <StatusPill kind="info" label={`${revenue.events.length} events`} />
+          </View>
+          <View style={{ gap: 8 }}>
+            {revenue.events.map((ev: any, i: number) => (
+              <View key={ev.slug + i} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: GRAD.to }} />
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 12.5, color: '#fff' }}>{ev.title}</Text>
+                  <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10.5, color: SAC.dim }}>
+                    {ev.paid} paid · {ev.pending} pending · {ev.free} free
+                  </Text>
+                </View>
+                <Text style={{ fontFamily: FONTS.xbold, fontSize: 12.5, color: '#86EFAC' }}>{fmtAmt(ev.revenue)}</Text>
+              </View>
+            ))}
+          </View>
+        </Card>
+      )}
+
+      {/* Session Passes Overview */}
+      {uniqueEvents.length > 0 && (
+        <SessionPassesOverview events={uniqueEvents} onRefresh={load} />
+      )}
+
+      {/* Search + filter */}
+      <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+        <View style={{ flex: 1, minWidth: 200 }}>
+          <SearchField value={q} onChange={setQ} placeholder="Search attendee, email, event…" />
+        </View>
+        {uniqueEvents.length > 1 && (
+          <select
+            value={eventSlug}
+            onChange={(e: any) => setEventSlug(e.target.value)}
+            style={{
+              backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
+              borderRadius: 8, padding: '8px 12px', color: '#fff', fontSize: 12, fontFamily: 'Inter',
+              outline: 'none', cursor: 'pointer', minWidth: 140,
+            }}
+          >
+            <option value="all" style={{ background: '#1e1b4b', color: '#fff' }}>All Events</option>
+            {uniqueEvents.map((ev: any) => (
+              <option key={ev.slug} value={ev.slug} style={{ background: '#1e1b4b', color: '#fff' }}>{ev.title}</option>
+            ))}
+          </select>
+        )}
+        <TopTabs
+          tabs={[
+            { id: 'all', label: 'All' },
+            { id: 'paid', label: 'Paid' },
+            { id: 'pending', label: 'Pending' },
+          ]}
+          active={status}
+          onChange={setStatus}
+        />
+        <SecondaryButton onPress={load}><RefreshCw size={12} color={SAC.muted} /><Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12, marginLeft: 6 }}>Refresh</Text></SecondaryButton>
+      </View>
+
+      {/* Registrations table */}
+      <Card style={{ overflow: 'hidden' }}>
+        {loading ? (
+          <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+            <ActivityIndicator size="large" color={GRAD.from} />
+          </View>
+        ) : filtered.length === 0 ? (
+          <View style={{ padding: 40, alignItems: 'center', gap: 10 }}>
+            <IconBox size={46}><Users size={18} color={GRAD.to} /></IconBox>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>No registrations found</Text>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 12.5, color: SAC.muted, textAlign: 'center', maxWidth: 320 }}>
+              Registrations appear here the moment attendees sign up for an event.
+            </Text>
+          </View>
+        ) : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={{ minWidth: 760 }}>
+              {/* Header */}
+              <View style={{ flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 14, backgroundColor: 'rgba(255,255,255,0.04)', borderBottomWidth: 1, borderBottomColor: SAC.border }}>
+                <Text style={{ width: 180, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>ATTENDEE</Text>
+                <Text style={{ width: 200, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>EVENT</Text>
+                <Text style={{ width: 150, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>COLLEGE / BRANCH</Text>
+                <Text style={{ width: 150, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>AMOUNT</Text>
+                <Text style={{ width: 150, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>PAYMENT</Text>
+                <Text style={{ width: 120, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>SA ACCOUNT</Text>
+                <Text style={{ width: 150, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>DATE</Text>
+              </View>
+              {filtered.map((r: any, i: number) => (
+                <View key={r.id || i} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 11, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' }}>
+                  <View style={{ width: 180, minWidth: 0 }}>
+                    <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 12.5, color: '#fff' }}>{r.full_name || '—'}</Text>
+                    <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10.5, color: SAC.dim }}>{r.email || r.phone || ''}</Text>
+                  </View>
+                  <View style={{ width: 200, minWidth: 0 }}>
+                    <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 12, color: '#e5e7eb' }}>{r.event_title || r.slug || '—'}</Text>
+                  </View>
+                  <View style={{ width: 150, minWidth: 0 }}>
+                    <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 12, color: '#e5e7eb' }}>{r.college || '—'}</Text>
+                    <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10.5, color: SAC.dim }}>{[r.branch, r.year].filter(Boolean).join(' · ')}</Text>
+                  </View>
+                  <View style={{ width: 150, minWidth: 0 }}>
+                    <Text style={{ fontFamily: FONTS.xbold, fontSize: 12.5, color: '#fff' }}>
+                      {Number(r.fee || 0) > 0 ? `₹${Number(r.fee).toLocaleString('en-IN')}` : 'FREE'}
+                    </Text>
+                    <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>{r.payment_id || ''}</Text>
+                  </View>
+                  <View style={{ width: 150, minWidth: 0 }}>
+                    <StatusPill
+                      kind={r.payment_status === 'paid' ? 'success' : r.payment_status === 'pending' ? 'warn' : 'neutral'}
+                      label={(r.payment_status || '—').toUpperCase()}
+                    />
+                  </View>
+                  <View style={{ width: 120, minWidth: 0 }}>
+                    <StatusPill
+                      kind={r.has_account ? 'success' : 'neutral'}
+                      label={r.has_account ? 'Yes' : 'No'}
+                    />
+                  </View>
+                  <View style={{ width: 150, minWidth: 0 }}>
+                    <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.dim }}>
+                      {(r.registered_at || '').slice(0, 16).replace('T', ' ') || '—'}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </ScrollView>
+        )}
+      </Card>
+    </View>
+  );
+}
+
+// ── Volunteers Panel ──────────────────────────────────────────────────────────
+function VolunteersPanel() {
+  const [slug, setSlug] = useState('');
+  const [items, setItems] = useState<any[]>([]);
+  const [email, setEmail] = useState('');
+  const [role, setRole] = useState('volunteer');
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const { flash } = useToast();
+
+  const load = useCallback(async () => {
+    if (!slug) { setItems([]); return; }
+    setLoading(true);
+    try {
+      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const { tokenStore } = await import('@/src/models/services/api');
+      const token = await tokenStore.getAccess();
+      const resp = await fetch(`${base}/api/echo/admin/${slug}/volunteers`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        setItems(data.volunteers || []);
+      }
+    } catch { /* ignore */ }
+    setLoading(false);
+  }, [slug]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const addVolunteer = async () => {
+    const e = email.trim().toLowerCase();
+    if (!e || !slug) return;
+    setSaving(true);
+    try {
+      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const { tokenStore } = await import('@/src/models/services/api');
+      const token = await tokenStore.getAccess();
+      const resp = await fetch(`${base}/api/echo/admin/${slug}/volunteers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ email: e, role }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.detail || 'Failed to add');
+      flash(data.has_account ? `${e} added — has SA account` : `${e} added — will get access on signup`);
+      setEmail('');
+      load();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to add volunteer');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const removeVolunteer = async (id: string) => {
+    try {
+      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const { tokenStore } = await import('@/src/models/services/api');
+      const token = await tokenStore.getAccess();
+      await fetch(`${base}/api/echo/admin/${slug}/volunteers/${id}`, {
+        method: 'DELETE',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      load();
+    } catch { /* ignore */ }
+  };
+
+  return (
+    <View style={{ gap: 16 }}>
+      <Card style={{ padding: 20, gap: 16 }}>
+        <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>Volunteers & Ambassadors</Text>
+        <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>
+          Add registered users who can scan coupons at the venue. They get access to the scanner page only.
+        </Text>
+        <FieldRow label="Event Slug">
+          <Field value={slug} onChangeText={setSlug} placeholder="e.g. vnrvjit" />
+        </FieldRow>
+        {slug && (
+          <>
+            <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-end' }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: SAC.muted, marginBottom: 4 }}>Email</Text>
+                <TextInput value={email} onChangeText={setEmail} placeholder="volunteer@email.com"
+                  placeholderTextColor="#475569" keyboardType="email-address" autoCapitalize="none"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 10, color: '#fff', fontSize: 13 }} />
+              </View>
+              <View style={{ width: 120 }}>
+                <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: SAC.muted, marginBottom: 4 }}>Role</Text>
+                <SelectNative value={role} onChange={setRole} options={['volunteer', 'ambassador']} />
+              </View>
+              <GradientButton onPress={addVolunteer} loading={saving} disabled={saving || !email.trim()} size="sm">
+                <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>Add</Text>
+              </GradientButton>
+            </View>
+
+            <Text style={{ fontFamily: FONTS.semi, fontSize: 12, color: SAC.muted, marginTop: 8 }}>
+              Volunteers ({items.length})
+            </Text>
+            {loading ? (
+              <ActivityIndicator size="small" color="#A78BFA" style={{ marginVertical: 12 }} />
+            ) : items.length === 0 ? (
+              <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.dim }}>No volunteers added yet</Text>
+            ) : (
+              <View style={{ gap: 6 }}>
+                {items.map((v) => (
+                  <View key={v._id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: SAC.text }}>{v.email}</Text>
+                      <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.dim }}>
+                        {v.role} {v.has_account ? '· Has account' : '· No account yet'}
+                        {v.user_name ? ` · ${v.user_name}` : ''}
+                      </Text>
+                    </View>
+                    <StatusPill kind={v.has_account ? 'success' : 'warn'} label={v.has_account ? 'Active' : 'Pending'} />
+                    <Pressable onPress={() => removeVolunteer(v._id)} style={{ padding: 6 }}>
+                      <Trash2 size={14} color="#EF4444" />
+                    </Pressable>
+                  </View>
+                ))}
+              </View>
+            )}
+          </>
+        )}
+      </Card>
+    </View>
+  );
+}
+
+
+function SettingsPanel({ onPreview }: { onPreview?: (html: string) => void }) {
+  const [tab, setTab] = useState<'pass' | 'invoice' | 'email' | 'branding'>('pass');
+  const [defaultTemplate, setDefaultTemplate] = useState('aurora');
+  const [invoiceTemplate, setInvoiceTemplate] = useState('modern');
+  const [emailStyle, setEmailStyle] = useState('modern');
+  const [brandColor, setBrandColor] = useState('#7C3AED');
+  const [brandName, setBrandName] = useState('Student Alumni');
+  const [emailFooter, setEmailFooter] = useState('Student Alumni Cell — Empowering the next generation of leaders.');
+  const [saving, setSaving] = useState(false);
+  const { flash } = useToast();
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+        const { tokenStore } = await import('@/src/models/services/api');
+        const token = await tokenStore.getAccess();
+        const resp = await fetch(`${base}/api/echo/admin/settings`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (resp.ok) {
+          const d = await resp.json();
+          setDefaultTemplate(d.default_ticket_template || 'aurora');
+          setInvoiceTemplate(d.default_invoice_template || 'modern');
+          setEmailStyle(d.default_email_style || 'modern');
+          setBrandColor(d.email_brand_color || '#7C3AED');
+          setBrandName(d.brand_name || 'Student Alumni');
+          setEmailFooter(d.email_footer || '');
+        }
+      } catch { /* use defaults */ }
+    })();
+  }, []);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const { tokenStore } = await import('@/src/models/services/api');
+      const token = await tokenStore.getAccess();
+      const resp = await fetch(`${base}/api/echo/admin/settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({
+          default_ticket_template: defaultTemplate,
+          default_invoice_template: invoiceTemplate,
+          default_email_style: emailStyle,
+          email_brand_color: brandColor,
+          brand_name: brandName,
+          email_footer: emailFooter,
+        }),
+      });
+      if (!resp.ok) throw new Error('Failed to save');
+      flash('Settings saved');
+    } catch (err: any) {
+      flash(err?.message || 'Failed to save');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const tabs = [
+    { id: 'pass' as const, label: 'Pass / Ticket', icon: Ticket },
+    { id: 'invoice' as const, label: 'Invoice', icon: FileText },
+    { id: 'email' as const, label: 'Email', icon: Mail },
+    { id: 'branding' as const, label: 'Branding', icon: Palette },
+  ];
+
+  const fetchPreview = async (type: string, tplId: string) => {
+    const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+    try {
+      const { tokenStore } = await import('@/src/models/services/api');
+      const token = await tokenStore.getAccess();
+      const url = type === 'invoice'
+        ? `${base}/api/echo/admin/settings/preview/invoice/${tplId}`
+        : `${base}/api/echo/tickets/preview/${tplId}`;
+      const resp = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      if (!resp.ok) throw new Error('Preview not available');
+      const data = await resp.json();
+      onPreview?.(data.html);
+    } catch (err: any) {
+      flash(err?.message || 'Could not load preview');
+    }
+  };
+
+  const TemplatePicker = ({ label, options, value, onChange, previewType }: {
+    label: string; options: { id: string; name: string; desc: string; gradient: string }[];
+    value: string; onChange: (v: string) => void; previewType: string;
+  }) => (
+    <View style={{ gap: 8 }}>
+      <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: SAC.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</Text>
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        {options.map((tpl) => (
+          <Pressable key={tpl.id} onPress={() => onChange(tpl.id)} style={{
+            flex: 1, borderRadius: 10, borderWidth: 2,
+            borderColor: value === tpl.id ? '#7C3AED' : 'rgba(255,255,255,0.1)',
+            backgroundColor: value === tpl.id ? 'rgba(124,58,237,0.08)' : 'rgba(255,255,255,0.03)',
+            padding: 12, cursor: 'pointer',
+          }}>
+            <View style={{ height: 6, borderRadius: 3, marginBottom: 8, background: tpl.gradient }} />
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: value === tpl.id ? '#C4B5FD' : SAC.text }}>{tpl.name}</Text>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim, marginTop: 2 }}>{tpl.desc}</Text>
+          </Pressable>
+        ))}
+      </View>
+      <Pressable onPress={() => fetchPreview(previewType, value)} style={{
+        flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
+        backgroundColor: 'rgba(124,58,237,0.12)', borderRadius: 8,
+        paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)',
+        cursor: 'pointer', marginTop: 4,
+      }}>
+        <Eye size={12} color="#A78BFA" />
+        <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: '#C4B5FD' }}>Preview</Text>
+      </Pressable>
+    </View>
+  );
+
+  return (
+    <View style={{ gap: 16 }}>
+      <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+        {tabs.map((t) => (
+          <Pressable key={t.id} onPress={() => setTab(t.id)} style={{
+            flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8,
+            borderRadius: 8, borderWidth: 1, cursor: 'pointer',
+            borderColor: tab === t.id ? '#7C3AED' : SAC.border,
+            backgroundColor: tab === t.id ? 'rgba(124,58,237,0.12)' : 'rgba(255,255,255,0.03)',
+          }}>
+            <t.icon size={13} color={tab === t.id ? '#C4B5FD' : SAC.muted} />
+            <Text style={{ fontFamily: FONTS.semi, fontSize: 12, color: tab === t.id ? '#C4B5FD' : SAC.muted }}>{t.label}</Text>
+          </Pressable>
+        ))}
+      </View>
+
+      {tab === 'pass' && (
+        <Card style={{ padding: 20, gap: 16 }}>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>Pass / Ticket Templates</Text>
+          <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>
+            Default entry pass style for all events. Individual events can override.
+          </Text>
+          <TemplatePicker label="Default Template" previewType="pass" value={defaultTemplate} onChange={setDefaultTemplate} options={[
+            { id: 'aurora', name: 'Aurora', desc: 'Dark gradient, glow accents', gradient: 'linear-gradient(135deg,#312e81,#4C1D95)' },
+            { id: 'classic', name: 'Classic', desc: 'White + purple header', gradient: 'linear-gradient(135deg,#fff,#f3f4f6)' },
+            { id: 'minimal', name: 'Minimal', desc: 'Bare-bones borderless', gradient: 'linear-gradient(135deg,#f9fafb,#e5e7eb)' },
+          ]} />
+        </Card>
+      )}
+
+      {tab === 'invoice' && (
+        <Card style={{ padding: 20, gap: 16 }}>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>Invoice Templates</Text>
+          <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>
+            Default invoice style for paid event registrations.
+          </Text>
+          <TemplatePicker label="Default Invoice" previewType="invoice" value={invoiceTemplate} onChange={setInvoiceTemplate} options={[
+            { id: 'modern', name: 'Modern', desc: 'Gradient header, card layout', gradient: 'linear-gradient(135deg,#7C3AED,#5B21B6)' },
+            { id: 'minimal', name: 'Minimal', desc: 'Clean white, thin borders', gradient: 'linear-gradient(135deg,#f8fafc,#e2e8f0)' },
+            { id: 'classic', name: 'Classic', desc: 'Dark header, traditional', gradient: 'linear-gradient(135deg,#0f172a,#1e293b)' },
+          ]} />
+        </Card>
+      )}
+
+      {tab === 'email' && (
+        <Card style={{ padding: 20, gap: 16 }}>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>Email Templates</Text>
+          <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>
+            Style for transactional emails: welcome, registration, payment receipts, newsletters.
+          </Text>
+          <TemplatePicker label="Email Style" previewType="pass" value={emailStyle} onChange={setEmailStyle} options={[
+            { id: 'modern', name: 'Modern', desc: 'Purple gradient header', gradient: 'linear-gradient(135deg,#7C3AED,#5B21B6)' },
+            { id: 'minimal', name: 'Minimal', desc: 'Clean, no gradient', gradient: 'linear-gradient(135deg,#f8fafc,#e2e8f0)' },
+            { id: 'professional', name: 'Professional', desc: 'Dark header, corporate', gradient: 'linear-gradient(135deg,#0f172a,#334155)' },
+          ]} />
+          <FieldRow label="Email Footer Text">
+            <Field value={emailFooter} onChangeText={setEmailFooter} placeholder="Student Alumni Cell — Empowering the next generation of leaders." multiline />
+          </FieldRow>
+        </Card>
+      )}
+
+      {tab === 'branding' && (
+        <Card style={{ padding: 20, gap: 16 }}>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>Branding</Text>
+          <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>
+            Brand settings applied across emails, passes, and invoices.
+          </Text>
+          <FieldRow label="Brand Name">
+            <Field value={brandName} onChangeText={setBrandName} placeholder="Student Alumni" />
+          </FieldRow>
+          <FieldRow label="Brand Color">
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <input type="color" value={brandColor} onChange={(e: any) => setBrandColor(e.target.value)}
+                style={{ width: 40, height: 36, border: 'none', borderRadius: 8, cursor: 'pointer', background: 'transparent' }} />
+              <Field value={brandColor} onChangeText={setBrandColor} placeholder="#7C3AED" />
+            </View>
+          </FieldRow>
+          <View style={{ padding: 16, borderRadius: 12, backgroundColor: brandColor + '18', borderWidth: 1, borderColor: brandColor + '40' }}>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: brandColor }}>Preview</Text>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted, marginTop: 4 }}>This is how {brandName} will appear in emails and passes.</Text>
+          </View>
+        </Card>
+      )}
+
+      <GradientButton onPress={save} loading={saving} disabled={saving} size="md">
+        <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13 }}>Save Settings</Text>
+      </GradientButton>
+    </View>
+  );
+}
+
 // ── Main View ─────────────────────────────────────────────────────────────────
 export function EchoShowcaseAdminView() {
   const [pageTab, setPageTab] = useState<PageTab>('all');
@@ -1589,9 +2613,13 @@ export function EchoShowcaseAdminView() {
   const [modalOpen, setModalOpen] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const { toast, flash } = useToast();
+  const user = useAuthStore((s) => s.user);
 
   const load = useCallback(async () => {
+    if (!user) { setLoading(false); return; }
     try {
       const res = await api.adminListEchoShowcases();
       setItems(res?.items || []);
@@ -1600,7 +2628,7 @@ export function EchoShowcaseAdminView() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -1625,14 +2653,34 @@ export function EchoShowcaseAdminView() {
   const onClose = () => { setModalOpen(false); setEditing(null); if (pageTab === 'create') setPageTab('all'); };
 
   const onSave = async (form: any) => {
+    if (!form.title?.trim()) {
+      flash('Event name is required');
+      return;
+    }
+    if (!form.slug?.trim()) {
+      form = { ...form, slug: form.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'untitled' };
+    }
     setSaving(true);
+    console.log('[CMS SAVE PAYLOAD]', {
+      id: editing?._id,
+      title: form.title,
+      slug: form.slug,
+      status: form.status,
+      hero_image_url: form.hero_image_url,
+      hero_cover_url: form.hero_cover_url,
+      hero_thumbnail_url: form.hero_thumbnail_url,
+      gallery_count: form.gallery?.length,
+    });
+
     try {
       if (editing) {
-        await api.updateEchoShowcase(editing._id, form);
-        flash('Showcase updated ✓');
+        const res = await api.updateEchoShowcase(editing._id, form);
+        console.log('[CMS UPDATE RESPONSE]', res);
+        flash('Showcase updated');
       } else {
-        await api.createEchoShowcase(form);
-        flash('Showcase created ✓');
+        const res = await api.createEchoShowcase(form);
+        console.log('[CMS CREATE RESPONSE]', res);
+        flash('Showcase created');
         // Clear autosave draft
         if (Platform.OS === 'web') {
           try { sessionStorage.removeItem(AUTOSAVE_KEY); } catch { /* ignore */ }
@@ -1641,6 +2689,7 @@ export function EchoShowcaseAdminView() {
       onClose();
       await load();
     } catch (e: any) {
+      console.error('[CMS SAVE ERROR]', e);
       flash(e?.message || 'Save failed');
     } finally {
       setSaving(false);
@@ -1649,7 +2698,7 @@ export function EchoShowcaseAdminView() {
 
   const onPublish = async (item: any) => {
     setBusy(item._id);
-    try { await api.publishEchoShowcase(item._id); flash(`"${item.title}" published ✓`); await load(); }
+    try { await api.publishEchoShowcase(item._id); flash(`"${item.title}" published`); await load(); }
     catch { flash('Publish failed'); }
     finally { setBusy(null); }
   };
@@ -1671,7 +2720,7 @@ export function EchoShowcaseAdminView() {
     catch { flash('Delete failed'); }
   };
   const onPreview = (item: any) => {
-    if (Platform.OS === 'web') window.open(`/echo-showcase/${item.slug}`, '_blank');
+    if (Platform.OS === 'web') window.open(`/echo/${item.slug}`, '_blank');
   };
 
   const pub = items.filter((i) => i.status === 'published').length;
@@ -1703,6 +2752,15 @@ export function EchoShowcaseAdminView() {
 
       {/* ── MEDIA LIBRARY ── */}
       {pageTab === 'media' && <MediaLibraryPanel />}
+
+      {/* ── REGISTRATIONS & PAYMENTS ── */}
+      {pageTab === 'registrations' && <RegistrationsPanel />}
+
+      {/* ── SETTINGS ── */}
+      {pageTab === 'settings' && <SettingsPanel onPreview={(html: string) => setPreviewHtml(html)} />}
+
+      {/* ── VOLUNTEERS ── */}
+      {pageTab === 'volunteers' && <VolunteersPanel />}
 
       {/* ── SHOWCASES LIST (All / Drafts) ── */}
       {(pageTab === 'all' || pageTab === 'drafts') && (
@@ -1755,7 +2813,30 @@ export function EchoShowcaseAdminView() {
       )}
 
       {/* Showcase Editor Modal */}
-      <ShowcaseModal visible={modalOpen} editing={editing} onClose={onClose} onSave={onSave} saving={saving} />
+      <ShowcaseModal visible={modalOpen} editing={editing} onClose={onClose} onSave={onSave} saving={saving} flash={flash} onPreview={(html: string) => setPreviewHtml(html)} />
+
+      {/* Ticket Preview Modal */}
+      <Modal visible={!!previewHtml} transparent animationType="fade" onRequestClose={() => setPreviewHtml(null)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <View style={{ backgroundColor: '#1e1b4b', borderRadius: 16, overflow: 'hidden', width: '100%', maxWidth: 800, maxHeight: '90vh', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)' }}>
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#fff' }}>Ticket Preview</Text>
+              <Pressable onPress={() => setPreviewHtml(null)} style={{ padding: 6 }}>
+                <X size={18} color="#94a3b8" />
+              </Pressable>
+            </View>
+            <View style={{ flex: 1, overflow: 'auto' }}>
+              {previewHtml ? (
+                <iframe
+                  srcDoc={previewHtml}
+                  style={{ width: '100%', height: 600, border: 'none', background: '#0f172a' }}
+                  title="Ticket Preview"
+                />
+              ) : null}
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

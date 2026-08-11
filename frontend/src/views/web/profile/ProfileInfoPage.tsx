@@ -48,7 +48,17 @@ const INTERESTS = [
 
 const GRAD_YEARS = ['2024','2025','2026','2027','2028','2029','2030'];
 
+const YEAR_OPTIONS = [
+  '1st Year', '2nd Year', '3rd Year', '4th Year (Final Year)', '5th Year',
+  'Class 11', 'Class 12', 'Graduated / Passout',
+];
+
 const STREAMS = [
+  'MPC (Maths, Physics, Chemistry)',
+  'BiPC (Biology, Physics, Chemistry)',
+  'MEC (Maths, Economics, Commerce)',
+  'CEC (Civics, Economics, Commerce)',
+  'HEC (History, Economics, Civics)',
   'Science (PCM)', 'Science (PCB)', 'Science (PCMB)',
   'Commerce', 'Commerce (with Maths)', 'Arts / Humanities',
   'Vocational', 'Other',
@@ -532,15 +542,18 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
         <View style={{ zIndex: 40, position: 'relative' }}>
         <Card title="Academic Details" subtitle="Your education info — used for matching with peers.">
           <Field label="College / University"><TF value={draft.institution || ''} onChangeText={(v) => setField('institution', v)} leftIcon={<Building2 size={14} color={C.text2} />} placeholder="e.g. IIT Bombay" testID="pf-college" /></Field>
+          <View style={[st.row, { zIndex: 19 }]}>
+            <Field label="Stream" half hint="Class 11/12 stream (MPC, PCM, Commerce, etc.)"><SF value={String(draft.stream || draft.school_info?.stream || draft.school_info?.branch_or_stream || '')} onChange={(v) => setField('stream', v)} options={STREAMS} placeholder="Select stream" testID="pf-stream" /></Field>
+            <Field label="Year of Study" half hint="Current year / class (1st Year, 2nd Year, etc.)"><SF value={String(draft.class_or_year || draft.year_of_study || draft.school_info?.class_or_year || '')} onChange={(v) => { setField('class_or_year', v); setField('year_of_study', v); }} options={YEAR_OPTIONS} placeholder="Select year of study" testID="pf-year-of-study" /></Field>
+          </View>
           <View style={[st.row, { zIndex: 18 }]}>
-            <Field label="Stream" half hint="Class 11/12 stream (PCM, Commerce, etc.)"><SF value={String(draft.stream || '')} onChange={(v) => setField('stream', v)} options={STREAMS} placeholder="Select stream" testID="pf-stream" /></Field>
             <Field label="Branch / Major" half><TF value={draft.branch || ''} onChangeText={(v) => setField('branch', v)} placeholder="Computer Science" testID="pf-branch" /></Field>
+            <Field label="Department" half hint="College department / faculty"><SF value={String(draft.department || '')} onChange={(v) => setField('department', v)} options={DEPARTMENTS} placeholder="Select department" testID="pf-department" /></Field>
           </View>
           <View style={[st.row, { zIndex: 17 }]}>
-            <Field label="Department" half hint="College department / faculty"><SF value={String(draft.department || '')} onChange={(v) => setField('department', v)} options={DEPARTMENTS} placeholder="Select department" testID="pf-department" /></Field>
             <Field label="Graduation Year" half><SF value={String(draft.graduation_year || '')} onChange={(v) => setField('graduation_year', v)} options={GRAD_YEARS} placeholder="Select year" testID="pf-grad-year" /></Field>
+            <Field label="CGPA / GPA" half hint="Optional — out of 10 (or your scale)."><TF value={String(draft.cgpa || '')} onChangeText={(v) => setField('cgpa', v)} placeholder="8.5" testID="pf-cgpa" /></Field>
           </View>
-          <Field label="CGPA / GPA" hint="Optional — out of 10 (or your scale)."><TF value={String(draft.cgpa || '')} onChangeText={(v) => setField('cgpa', v)} placeholder="8.5" testID="pf-cgpa" /></Field>
         </Card>
 
         {/* Interests */}
@@ -742,7 +755,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
               </View>
               <View style={st.modalDetailRow}>
                 <Text style={st.modalDetailLabel}>Classification Source:</Text>
-                <Text style={st.modalDetailValue}>{selectedSkill.source === 'ai' ? 'Emergent AI' : 'Taxonomy Engine'}</Text>
+                <Text style={st.modalDetailValue}>{selectedSkill.source === 'ai' ? 'AI' : 'Taxonomy Engine'}</Text>
               </View>
               <View style={st.modalDetailRow}>
                 <Text style={st.modalDetailLabel}>AI Confidence:</Text>

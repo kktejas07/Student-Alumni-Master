@@ -23,7 +23,7 @@ import { useSidebarStore } from '@/src/viewmodels/stores/sidebarStore';
 import {
   LayoutDashboard, Sparkles, Briefcase, Users, Calendar, Wallet,
   Tag, CreditCard, GraduationCap, Home, User, ExternalLink, LogOut,
-  CalendarCheck, FileText, BookOpen, ChevronDown, ChevronRight, Zap,
+  CalendarCheck, FileText, BookOpen, ChevronDown, ChevronRight, Zap, Ticket,
 } from './iconShims';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -43,7 +43,7 @@ import { api } from '@/src/models/services/api';
 export type StudentNavId =
   | 'dashboard' | 'career-ai' | 'internships' | 'network' | 'events'
   | 'financial' | 'deals' | 'wallet' | 'higher-ed' | 'rentals' | 'courses' | 'profile'
-  | 'my-bookings' | 'my-workshops' | 'echo-showcase' | 'vnr-echo-2026' | string;
+  | 'my-bookings' | 'my-workshops' | 'echo-showcase' | string;
 
 export const NAV: Array<{ id: StudentNavId; label: string; Icon: any; spark?: boolean }> = [
   { id: 'dashboard',       label: 'Dashboard',          Icon: LayoutDashboard },
@@ -51,6 +51,7 @@ export const NAV: Array<{ id: StudentNavId; label: string; Icon: any; spark?: bo
   { id: 'internships',     label: 'Internships & Jobs', Icon: Briefcase },
   { id: 'network',         label: 'Network',            Icon: Users },
   { id: 'my-bookings',     label: 'My Bookings',        Icon: CalendarCheck },
+  { id: 'my-tickets',      label: 'My Tickets',         Icon: Ticket },
   { id: 'events',          label: 'Events',             Icon: Calendar },
   { id: 'my-workshops',    label: 'My Workshops',       Icon: BookOpen },
   { id: 'courses',         label: 'Courses',            Icon: BookOpen },
@@ -73,9 +74,7 @@ function EchoNavGroup({
   onNav: (id: StudentNavId) => void;
   C: any;
 }) {
-  const [showcases, setShowcases] = React.useState<any[]>([
-    { title: 'VNR ECHO 2026', slug: 'vnr-echo-2026' }
-  ]);
+  const [showcases, setShowcases] = React.useState<any[]>([]);
 
   React.useEffect(() => {
     let mounted = true;
@@ -90,7 +89,7 @@ function EchoNavGroup({
   }, []);
 
   const isChildActive = active === 'echo-showcase' || showcases.some((s) => s.slug === active || active === `echo-showcase:${s.slug}`);
-  const firstSlug = showcases[0]?.slug || 'vnr-echo-2026';
+  const firstSlug = showcases[0]?.slug || 'echo-showcase';
 
   return (
     <View style={{ marginBottom: 2 }}>
@@ -196,10 +195,10 @@ export function Sidebar({
   const bp = useBreakpoint();
   const user = useAuthStore((u) => u.user) as any;
   const [echoOpen, setEchoOpen] = React.useState<boolean>(
-    active === 'echo-showcase' || active === 'vnr-echo-2026'
+    active === 'echo-showcase' || active?.startsWith('echo-showcase:')
   );
   React.useEffect(() => {
-    if (active === 'echo-showcase' || active === 'vnr-echo-2026') setEchoOpen(true);
+    if (active === 'echo-showcase' || active?.startsWith('echo-showcase:')) setEchoOpen(true);
   }, [active]);
 
   const fullName: string = (user?.full_name || `${user?.first_name || ''} ${user?.last_name || ''}`).trim() || STUDENT.name;

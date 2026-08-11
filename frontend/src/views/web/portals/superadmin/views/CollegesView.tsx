@@ -25,7 +25,7 @@ import {
   GRAD, GradientButton, SecondaryButton, Card, IconBox, SectionLabel,
   TopTabs, SearchField, StatusPill, Toast, useToast, EmptyState, LoadingBox, KpiTile,
 } from '../applekit';
-import { request } from '@/src/models/services/api';
+import { request, resolveImageUrl } from '@/src/models/services/api';
 
 const PC_AMBER = {
   bgFrom:  '#1A0F05', bgTo: '#120A03',
@@ -280,7 +280,7 @@ function CollegeCard({ college: c, onOpen, onApprove, onDisable, onRestore, onRe
         {/* Header — logo, name, location */}
         <View style={{ flexDirection: 'row', gap: 14, alignItems: 'flex-start' }}>
           {c.logo_url ? (
-            <Image source={{ uri: c.logo_url }} style={s.logo} resizeMode="cover" />
+            <Image source={{ uri: resolveImageUrl(c.logo_url) }} style={s.logo} resizeMode="cover" />
           ) : (
             <View style={[s.logo, { backgroundColor: 'rgba(249,115,22,0.18)', alignItems: 'center', justifyContent: 'center' }]}>
               <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 19 }}>{c.initials}</Text>
@@ -445,7 +445,7 @@ function CollegeDetail({ college, onClose, onSaved }: any) {
         <Animated.View entering={FadeInDown.duration(220)} style={s.modalCard}>
           <LinearGradient colors={GRAD.soft} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.modalHero}>
             {c.logo_url ? (
-              <Image source={{ uri: c.logo_url }} style={[s.logo, { width: 48, height: 48 }]} />
+              <Image source={{ uri: resolveImageUrl(c.logo_url) }} style={[s.logo, { width: 48, height: 48 }]} />
             ) : (
               <View style={[s.logo, { width: 48, height: 48, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(249,115,22,0.18)' }]}>
                 <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 }}>{c.initials}</Text>

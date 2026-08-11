@@ -566,6 +566,65 @@ def _serialize(c: dict, student_count: int = 0) -> dict:
     }
 
 
+@router.get("/colleges/search")
+async def search_colleges_public(q: str = "", limit: int = 8):
+    """Public college autocomplete for registration / onboarding forms.
+
+    Matches by name substring AND common acronyms (e.g. "IIT" hits
+    "Indian Institute of Technology Bombay", "NIT" hits National
+    Institutes of Technology). Approved (active) colleges sort first;
+    pending ones still appear so a user can register under a real
+    institution awaiting admin verification. No auth required.
+    """
+    limit = max(1, min(int(limit or 8), 50))
+    query = re.sub(r"[^a-z0-9]+", "", (q or "").lower())
+    seen: Dict[str, Any] = {}
+
+    def add(c: dict):
+        if c.get("_id") and str(c["_id"]) not in seen:
+            seen[str(c["_id"])] = c
+
+    async def fetch_and_filter(match: Dict[str, Any], only_active: bool = False, cap: int = 500):
+        m: Dict[str, Any] = dict(match)
+        if only_active:
+            m["status"] = "active"
+        cur = _db.colleges.find(m).limit(cap)
+        hits = 0
+        async for c in cur:
+            hits += 1
+            name = c.get("name") or ""
+            norm = c.get("normalized_name") or _normalize(name)
+            flat = re.sub(r"[^a-z0-9]+", "", name.lower())
+            initials = "".join(
+                w[0] for w in re.findall(r"[a-z0-9]+", norm)
+                if w not in {"of", "the", "and", "for", "a", "an", "in", "at", "on", "&"}
+            )
+            if (query in name.lower() or query in norm
+                    or query in initials or query in flat):
+                add(c)
+        return hits
+
+    if query:
+        # 1) Direct name substring matches (any status)
+        await fetch_and_filter({"name": {"$regex": re.escape(query), "$options": "i"}})
+        # 2) Acronym / initials matches against active colleges
+        await fetch_and_filter({}, only_active=True)
+    else:
+        # Empty query → curated pick of active colleges
+        await fetch_and_filter({}, only_active=True, cap=limit)
+
+    ranked = sorted(seen.values(), key=lambda c: ((c.get("status") != "active"), (c.get("name") or "").lower()))
+    results = [{
+        "id": str(c["_id"]),
+        "name": c.get("name") or "",
+        "city": c.get("city") or "",
+        "state": c.get("state") or "",
+        "country": c.get("country") or "",
+        "status": c.get("status") or "pending",
+    } for c in ranked[:limit]]
+    return {"results": results, "count": len(results)}
+
+
 @router.get("/admin/colleges/list")
 async def list_colleges(
     status: Optional[str] = None,

@@ -246,7 +246,7 @@ export default function FeaturePageShell({
   }
 
   return (
-    <View style={{ flex: 1, flexDirection: 'row' }}>
+    <View style={{ flex: 1, flexDirection: 'row', overflow: 'hidden' }}>
       {/* Full-page role gradient */}
       <LinearGradient
         colors={pageBgColors as any}

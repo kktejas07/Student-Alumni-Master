@@ -34,6 +34,7 @@ import { NetworkView } from './views/NetworkView';
 import { ProfileSettingsView } from './views/ProfileSettingsView';
 import { MyBookingsView } from './views/MyBookingsView';
 import { MyWorkshopsView } from './views/MyWorkshopsView';
+import { MyTicketsView } from './views/MyTicketsView';
 import { EchoShowcaseView } from './views/EchoShowcaseView';
 
 import { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
@@ -129,13 +130,14 @@ function PortalShell() {
                   {active === 'internships'     && <InternshipsView />}
                   {active === 'network'         && <NetworkView />}
                   {active === 'my-bookings'     && <MyBookingsView />}
+                  {active === 'my-tickets'      && <MyTicketsView />}
                   {active === 'events'          && <EventsView />}
                   {active === 'my-workshops'    && <MyWorkshopsView />}
-                  {(active === 'vnr-echo-2026' || active === 'echo-showcase' || (![
+                  {(active === 'echo-showcase' || (![
                     'dashboard', 'career-ai', 'internships', 'network', 'my-bookings', 'events',
-                    'my-workshops', 'courses', 'financial', 'deals', 'wallet', 'higher-ed', 'rentals', 'profile'
+                    'my-workshops', 'my-tickets', 'courses', 'financial', 'deals', 'wallet', 'higher-ed', 'rentals', 'profile'
                   ].includes(active))) && (
-                    <EchoShowcaseView slug={active === 'echo-showcase' ? 'vnr-echo-2026' : active} onBack={() => handleNav('events')} />
+                    <EchoShowcaseView slug={active === 'echo-showcase' ? undefined : active} onBack={() => handleNav('events')} />
                   )}
                   {active === 'courses'         && <CoursesPage />}
                   {active === 'financial'       && <FinancialPage />}

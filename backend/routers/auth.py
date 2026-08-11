@@ -42,6 +42,33 @@ from firebase_admin import credentials, initialize_app, auth as fb_auth
 router = APIRouter(tags=["auth"])
 limiter = Limiter(key_func=get_real_ip)
 
+
+def _compute_age(dob_str: Optional[str]) -> Optional[int]:
+    """Compute age in whole years from an ISO YYYY-MM-DD DOB string."""
+    if not dob_str:
+        return None
+    try:
+        d = _date.fromisoformat(str(dob_str))
+    except Exception:
+        return None
+    today = _date.today()
+    return today.year - d.year - ((today.month, today.day) < (d.month, d.day))
+
+
+def _assert_min_age(role: str, age: Optional[int]) -> None:
+    """Enforce platform age policy server-side.
+
+    Students (and only students) may be 13+; all other roles require 18+.
+    """
+    if age is None:
+        raise HTTPException(status_code=400, detail="Date of birth is required")
+    if role == "student":
+        if age < 13:
+            raise HTTPException(status_code=400, detail="You must be at least 13 years old to register")
+        return
+    if age < 18:
+        raise HTTPException(status_code=400, detail="You must be at least 18 years old to register")
+
 # ----- Auth payloads -----
 class RegisterRequest(BaseModel):
     """Initial registration. Role-specific fields collected in onboarding step."""
@@ -180,6 +207,9 @@ async def register(request: Request, req: RegisterRequest):
         if not req.oauth_provider or existing_user.get("onboarding_completed"):
             raise HTTPException(400, "Email already registered")
 
+    # Server-side age gate — role-aware (students 13+, everyone else 18+).
+    _assert_min_age(req.role, _compute_age(req.dob))
+
     password_hash = ""
     if req.oauth_provider:
         verified_email = None
@@ -289,7 +319,14 @@ async def register(request: Request, req: RegisterRequest):
             "created_at": datetime.now(timezone.utc),
             "last_login": datetime.now(timezone.utc),
         }
-        result = await db.users.insert_one(user_doc)
+        try:
+            result = await db.users.insert_one(user_doc)
+        except Exception as e:
+            # Duplicate-key race: another request created the same email between the
+            # find_one above and this insert (unique email index enforces it).
+            if "duplicate key" in str(e).lower() or getattr(e, "code", None) == 11000:
+                raise HTTPException(400, "Email already registered")
+            raise
         user_id = str(result.inserted_id)
         user_doc["_id"] = result.inserted_id
 

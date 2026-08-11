@@ -27,6 +27,7 @@ import { TierBadge } from '@/src/views/web/TierBadge';
 import { api, request } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { AdBanner } from '@/src/views/web/components/AdBanner';
+import { CouponBanner } from '@/src/views/web/components/CouponBanner';
 
 interface Props {
   onNav: (id: string) => void;
@@ -139,6 +140,9 @@ export function DashboardView({ onNav, demoMode = false, setDemoMode }: Props) {
         )}
         {/* Ad Banner */}
         <AdBanner />
+
+        {/* Exclusive Coupons — below the ad banner */}
+        <CouponBanner portal="mentor" />
 
         {/* AI Daily Briefing */}
         <AIDailyBriefing onNav={onNav} demoMode={demoMode} />

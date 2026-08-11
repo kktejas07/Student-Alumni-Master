@@ -5,6 +5,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { View, Image, Pressable, StyleSheet, Platform, Linking, Dimensions } from 'react-native';
 import { fetchPortal } from '@/src/lib/portalApi';
+import { resolveImageUrl } from '@/src/models/services/api';
 
 type AdItem = {
   label: string;
@@ -45,7 +46,7 @@ export function AdBanner() {
   return (
     <View style={s.root}>
       <Pressable onPress={() => ad.redirect_url && Linking.openURL(ad.redirect_url)} style={s.wrap}>
-        <Image source={{ uri: ad.image_url }} style={s.img} resizeMode="cover" />
+        <Image source={{ uri: resolveImageUrl(ad.image_url) }} style={s.img} resizeMode="cover" />
       </Pressable>
       {ads.length > 1 && (
         <View style={s.dots}>
@@ -65,7 +66,7 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.3)',
     ...Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {},
   },
-  img: { width: '100%', height: 280 },
+  img: { width: '100%', maxHeight: 320, aspectRatio: 16 / 9 },
   dots: {
     flexDirection: 'row', justifyContent: 'center', gap: 8,
   },
