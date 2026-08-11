@@ -71,6 +71,7 @@ function FieldSelect({ label, value, options, onChange, placeholder = 'Select…
       </Pressable>
       {open && (
         <View style={[s.selectMenu, { zIndex }]}>
+          <View style={s.selectMenuScroll}>
           {options.map((opt) => {
             const active = opt === value;
             return (
@@ -84,6 +85,7 @@ function FieldSelect({ label, value, options, onChange, placeholder = 'Select…
               </Pressable>
             );
           })}
+          </View>
         </View>
       )}
     </View>
@@ -186,7 +188,8 @@ export default function EchoRegisterPage() {
       const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
       const { tokenStore } = await import('@/src/models/services/api');
       const token = await tokenStore.getAccess();
-      const emailParam = form.email ? `?email=${encodeURIComponent(form.email)}` : '';
+      const regEmail = done?.email || existing?.email || form.email || '';
+      const emailParam = regEmail ? `?email=${encodeURIComponent(regEmail)}` : '';
       const resp = await fetch(`${base}/api/echo/invoices/${invoiceNo}${emailParam}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
@@ -211,7 +214,8 @@ export default function EchoRegisterPage() {
       const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
       const { tokenStore } = await import('@/src/models/services/api');
       const token = await tokenStore.getAccess();
-      const emailParam = form.email ? `?email=${encodeURIComponent(form.email)}` : '';
+      const regEmail = done?.email || existing?.email || form.email || '';
+      const emailParam = regEmail ? `?email=${encodeURIComponent(regEmail)}` : '';
       const resp = await fetch(`${base}/api/echo/tickets/${regId}${emailParam}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
@@ -406,6 +410,15 @@ export default function EchoRegisterPage() {
     const reg = done || existing;
     const payment = reg.payment || {};
     const invoiceNo = reg.invoice?.invoice_no || done?.invoice?.invoice_no;
+    const regDetails = [
+      { label: 'Name', value: reg.full_name || reg.name || '—' },
+      { label: 'Email', value: reg.email || '—' },
+      { label: 'Phone', value: reg.phone || '—' },
+      { label: 'College', value: reg.college || showcase.college || '—' },
+      { label: 'Branch', value: reg.branch || '—' },
+      { label: 'Year', value: reg.year || '—' },
+    ].filter((d) => d.value !== '—');
+
     return (
       <View style={s.root}>
         <EchoHeader current="echo" />
@@ -415,20 +428,44 @@ export default function EchoRegisterPage() {
           <Text style={s.backText}>Back to event</Text>
         </Pressable>
 
-        <LinearGradient colors={['#065F46', '#059669']} style={s.successHero}>
-          <View style={s.successIcon}><Check size={30} color="#fff" /></View>
-          <Text style={s.successTitle}>You're registered!</Text>
-          <Text style={s.successSub}>
-            {payment.status === 'paid' ? `Payment of ${payment.currency || currency} ${payment.amount || fee} received.` : 'Registration confirmed.'}
-          </Text>
-          {payment.payment_id ? (
-            <View style={s.payId}>
-              <ShieldCheck size={13} color="#A7F3D0" />
-              <Text style={s.payIdText}>Payment ID: {payment.payment_id}</Text>
-            </View>
+        {/* Success hero with event poster background */}
+        <View style={s.successHeroBanner}>
+          {showcase.hero_image_url ? (
+            <Image source={{ uri: resolveImageUrl(showcase.hero_image_url) }} style={s.successHeroBg} resizeMode="cover" />
           ) : null}
-        </LinearGradient>
+          <LinearGradient
+            colors={['rgba(6,95,70,0.75)', 'rgba(5,150,105,0.85)']}
+            style={s.successHeroOverlay}
+          />
+          <View style={s.successHeroContent}>
+            <View style={s.successIcon}><Check size={30} color="#fff" /></View>
+            <Text style={s.successTitle}>You're registered!</Text>
+            <Text style={s.successSub}>
+              {payment.status === 'paid' ? `Payment of ${payment.currency || currency} ${payment.amount || fee} received.` : 'Registration confirmed.'}
+            </Text>
+            {payment.payment_id ? (
+              <View style={s.payId}>
+                <ShieldCheck size={13} color="#A7F3D0" />
+                <Text style={s.payIdText}>Payment ID: {payment.payment_id}</Text>
+              </View>
+            ) : null}
+          </View>
+        </View>
 
+        {/* Registration details card */}
+        {regDetails.length > 0 && (
+          <View style={s.card}>
+            <Text style={s.cardTitle}>Registration Details</Text>
+            {regDetails.map((d) => (
+              <View key={d.label} style={s.detailRow}>
+                <Text style={s.detailLabel}>{d.label}</Text>
+                <Text style={s.detailText}>{d.value}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Event details card */}
         <View style={s.card}>
           <Text style={s.cardTitle}>Event Details</Text>
           <View style={s.detailRow}><Calendar size={14} color={PALETTE.muted} /><Text style={s.detailText}>{showcase.date || '—'}</Text></View>
@@ -436,6 +473,7 @@ export default function EchoRegisterPage() {
           <View style={s.detailRow}><MapPin size={14} color={PALETTE.muted} /><Text style={s.detailText}>{showcase.venue || '—'}</Text></View>
         </View>
 
+        {/* QR code card */}
         {reg.qr_code_base64 ? (
           <View style={s.card}>
             <Text style={s.cardTitle}>Your Check-in QR</Text>
@@ -450,34 +488,38 @@ export default function EchoRegisterPage() {
           </View>
         ) : null}
 
-        <Pressable onPress={() => router.push(`/echo/${canonicalSlug}`)} style={s.doneBtn}>
-          <Text style={s.doneBtnText}>Done</Text>
-        </Pressable>
+        {/* Action buttons */}
+        <View style={s.actionSection}>
+          {/* Primary action */}
+          <Pressable onPress={() => router.push(`/echo/${canonicalSlug}`)} style={s.doneBtn}>
+            <Text style={s.doneBtnText}>Back to Event</Text>
+          </Pressable>
 
-        <Pressable onPress={() => router.push(`/echo/${canonicalSlug}/coupons`)} style={[s.invBtn, { borderColor: 'rgba(167,139,250,0.3)' }]}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
-            <Ticket size={14} color="#A78BFA" />
-            <Text style={[s.invBtnText, { color: '#C4B5FD' }]}>View My Coupons</Text>
+          {/* Secondary actions row */}
+          <View style={s.actionRow}>
+            <Pressable onPress={() => openTicket(reg.id)} style={[s.actionBtn, s.actionBtnPrimary]}>
+              <Ticket size={15} color="#fff" />
+              <Text style={s.actionBtnText}>Ticket</Text>
+            </Pressable>
+            <Pressable onPress={() => shareTicket(reg.id)} style={[s.actionBtn, s.actionBtnSecondary]}>
+              <ExternalLink size={15} color="#C4B5FD" />
+              <Text style={[s.actionBtnText, { color: '#C4B5FD' }]}>Share</Text>
+            </Pressable>
+            {invoiceNo ? (
+              <Pressable onPress={() => openInvoice(invoiceNo)} style={[s.actionBtn, s.actionBtnSecondary]}>
+                <CreditCard size={15} color="#C4B5FD" />
+                <Text style={[s.actionBtnText, { color: '#C4B5FD' }]}>Invoice</Text>
+              </Pressable>
+            ) : null}
           </View>
-        </Pressable>
 
-        {invoiceNo ? (
-          <Pressable onPress={() => openInvoice(invoiceNo)} style={s.invBtn}>
-            <Text style={s.invBtnText}>Download Invoice</Text>
-          </Pressable>
-        ) : null}
-
-        <View style={{ flexDirection: 'row', gap: 10, marginBottom: 14 }}>
-          <Pressable onPress={() => openTicket(reg.id)} style={[s.doneBtn, { flex: 1 }]}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
-              <Ticket size={16} color="#fff" />
-              <Text style={s.doneBtnText}>Download Ticket</Text>
-            </View>
-          </Pressable>
-          <Pressable onPress={() => shareTicket(reg.id)} style={[s.invBtn, { flex: 1, marginBottom: 0 }]}>
-            <Text style={s.invBtnText}>Share Ticket</Text>
+          {/* Tertiary link */}
+          <Pressable onPress={() => router.push(`/echo/${canonicalSlug}/coupons`)} style={s.linkBtn}>
+            <Ticket size={14} color="#A78BFA" />
+            <Text style={s.linkBtnText}>View My Coupons</Text>
           </Pressable>
         </View>
+
         <EchoFooter />
         </ScrollView>
       </View>
@@ -494,23 +536,32 @@ export default function EchoRegisterPage() {
         <Text style={s.backText}>Back to event</Text>
       </Pressable>
 
-      <LinearGradient colors={['rgba(124,58,237,0.30)', 'rgba(30,10,80,0.5)']} style={s.header}>
-        <View style={s.headerBadge}><Ticket size={14} color="#C4B5FD" /><Text style={s.headerBadgeText}>REGISTER</Text></View>
-        <Text style={s.headerTitle}>{showcase.title}</Text>
-        <Text style={s.headerOrg}>Organized by {showcase.organizer_name || showcase.college || '—'}</Text>
-        <View style={s.metaCol}>
-          {showcase.date ? <View style={s.metaRow}><Calendar size={13} color={PALETTE.muted} /><Text style={s.metaText}>{showcase.date}</Text></View> : null}
-          {showcase.time ? <View style={s.metaRow}><Clock size={13} color={PALETTE.muted} /><Text style={s.metaText}>{showcase.time}</Text></View> : null}
-          {showcase.venue ? <View style={s.metaRow}><MapPin size={13} color={PALETTE.muted} /><Text style={s.metaText}>{showcase.venue}</Text></View> : null}
+      <View style={[s.heroBanner, !isWide && s.heroBannerStack]}>
+        {showcase.hero_image_url ? (
+          <Image source={{ uri: resolveImageUrl(showcase.hero_image_url) }} style={s.heroBannerImg} resizeMode="cover" />
+        ) : null}
+        <LinearGradient
+          colors={['rgba(10,15,30,0.82)', 'rgba(10,15,30,0.92)']}
+          style={s.heroBannerOverlay}
+        />
+        <View style={s.heroBannerContent}>
+          <View style={s.headerBadge}><Ticket size={14} color="#C4B5FD" /><Text style={s.headerBadgeText}>REGISTER</Text></View>
+          <Text style={s.headerTitle}>{showcase.title}</Text>
+          <Text style={s.headerOrg}>Organized by {showcase.organizer_name || showcase.college || '—'}</Text>
+          <View style={s.metaCol}>
+            {showcase.date ? <View style={s.metaRow}><Calendar size={13} color={PALETTE.muted} /><Text style={s.metaText}>{showcase.date}</Text></View> : null}
+            {showcase.time ? <View style={s.metaRow}><Clock size={13} color={PALETTE.muted} /><Text style={s.metaText}>{showcase.time}</Text></View> : null}
+            {showcase.venue ? <View style={s.metaRow}><MapPin size={13} color={PALETTE.muted} /><Text style={s.metaText}>{showcase.venue}</Text></View> : null}
+          </View>
         </View>
-      </LinearGradient>
+      </View>
 
       <View style={[s.split, !isWide && s.splitStack]}>
         {/* ── LEFT: POSTER PLACEHOLDER(S) ─────────────────────────────── */}
         <View style={[s.posterCol, !isWide && s.posterColStack]}>
           <View style={s.posterWrap}>
             {activePoster ? (
-              <Image source={{ uri: resolveImageUrl(activePoster) }} style={s.poster} resizeMode="contain" />
+              <Image source={{ uri: resolveImageUrl(activePoster) }} style={s.poster} resizeMode="cover" />
             ) : (
               <LinearGradient colors={['rgba(123,61,191,0.35)', 'rgba(95,37,159,0.55)', 'rgba(30,10,80,0.85)']} style={s.poster}>
                 <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1, gap: 10, padding: 20 }}>
@@ -676,7 +727,7 @@ const s = StyleSheet.create({
 
   posterCol: { flex: 1, minWidth: 0, gap: 12 },
   posterColStack: { width: '100%' },
-  posterWrap: { position: 'relative', borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: PALETTE.glassBorder, width: '100%', aspectRatio: 3 / 4, maxHeight: 640, alignSelf: 'center' },
+  posterWrap: { position: 'relative', borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: PALETTE.glassBorder, width: '100%', flex: 1, minHeight: 300 },
   poster: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%', backgroundColor: '#0d1326' },
   posterNav: {
     position: 'absolute', top: '50%', marginTop: -20, width: 40, height: 40, borderRadius: 20,
@@ -702,6 +753,16 @@ const s = StyleSheet.create({
   backText: { color: '#fff', fontFamily: FONTS.med, fontSize: 13 },
   backInline: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
   backInlineText: { color: GRAD.from, fontFamily: FONTS.semi, fontSize: 13 },
+
+  heroBanner: {
+    position: 'relative', borderRadius: 18, overflow: 'hidden',
+    marginBottom: 20, minHeight: 200,
+    borderWidth: 1, borderColor: 'rgba(167,139,250,0.2)',
+  },
+  heroBannerStack: { width: '100%' },
+  heroBannerImg: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
+  heroBannerOverlay: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
+  heroBannerContent: { position: 'relative', padding: 28, gap: 8, zIndex: 2 },
 
   header: { borderRadius: 18, padding: 24, gap: 8, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)' },
   headerBadge: {
@@ -748,18 +809,24 @@ const s = StyleSheet.create({
   selectPlaceholder: { color: PALETTE.dim, fontFamily: FONTS.med, fontSize: 14 },
   selectMenu: {
     position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 6,
-    backgroundColor: '#1c2340', borderColor: 'rgba(167,139,250,0.45)', borderWidth: 1,
-    borderRadius: 10, overflow: 'hidden', maxHeight: 220,
+    backgroundColor: '#0f1629', borderColor: 'rgba(167,139,250,0.45)', borderWidth: 1,
+    borderRadius: 10, overflow: 'hidden', maxHeight: 260,
+    zIndex: 999,
     ...(Platform.OS === 'web' ? ({
-      boxShadow: '0 18px 50px rgba(0,0,0,0.65), 0 0 0 1px rgba(124,58,237,0.15)',
+      boxShadow: '0 18px 50px rgba(0,0,0,0.85), 0 0 0 1px rgba(124,58,237,0.15)',
     } as any) : {}),
+  },
+  selectMenuScroll: {
+    maxHeight: 250,
+    ...(Platform.OS === 'web' ? ({ overflowY: 'auto' } as any) : {}),
   },
   selectItem: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 14, paddingVertical: 11,
+    paddingHorizontal: 14, paddingVertical: 12, backgroundColor: '#0f1629',
+    borderBottomWidth: 1, borderBottomColor: 'rgba(167,139,250,0.1)',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  selectItemActive: { backgroundColor: 'rgba(124,58,237,0.16)' },
+  selectItemActive: { backgroundColor: 'rgba(124,58,237,0.25)' },
   selectItemText: { color: 'rgba(255,255,255,0.85)', fontFamily: FONTS.med, fontSize: 13.5 },
   selectItemTextActive: { color: '#C4B5FD', fontFamily: FONTS.semi },
   error: { color: '#F87171', fontFamily: FONTS.med, fontSize: 12.5, marginTop: 6 },
