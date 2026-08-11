@@ -356,6 +356,8 @@ export function NetworkView() {
           company: company || college,
           mutual: req.mutual || 0,
           tags: req.skills || req.interests || [],
+          linkedin: req.linkedin_url || req.linkedin || '',
+          github: req.github_url || req.github || '',
           connectionState: 'connected'
         };
       };
