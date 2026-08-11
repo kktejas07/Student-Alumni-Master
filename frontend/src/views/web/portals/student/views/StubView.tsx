@@ -27,8 +27,8 @@ export function StubView({ title, note, deepLink }: { title: string; note: strin
 const s = StyleSheet.create({
   wrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 60 },
   icon: { width: 60, height: 60, borderRadius: 16, backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
-  title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4, marginBottom: 8 },
+  title: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4, marginBottom: 8 },
   note:  { color: SC.muted, fontFamily: FONTS.med, fontSize: 13, textAlign: 'center', maxWidth: 460, lineHeight: 20 },
   cta:   { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: SC.primary, borderRadius: 10, paddingHorizontal: 16, height: 38, marginTop: 18 },
-  ctaText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12.5 },
+  ctaText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12.5 },
 });

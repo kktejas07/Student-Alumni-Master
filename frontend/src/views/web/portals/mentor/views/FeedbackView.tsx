@@ -291,7 +291,7 @@ export function FeedbackView({ demoMode = false, setDemoMode }: { demoMode?: boo
             Demo Mode · Sample data is displayed for demonstration purposes.{' '}
             <Text 
               onPress={() => setDemoMode?.(false)}
-              style={{ textDecorationLine: 'underline', color: '#fff', fontFamily: FONTS.bold }}
+              style={{ textDecorationLine: 'underline', color: '#1C1C1E', fontFamily: FONTS.bold }}
             >
               Switch to Live Mode
             </Text>
@@ -625,7 +625,7 @@ const s = StyleSheet.create({
     marginBottom: 4,
   },
   mainTitle: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.xbold,
     fontSize: 22,
     letterSpacing: -0.5,
@@ -680,7 +680,7 @@ const s = StyleSheet.create({
     fontSize: 12,
   },
   accordionTriggerTextActive: {
-    color: '#fff',
+    color: '#1C1C1E',
   },
   accordionBody: {
     backgroundColor: 'rgba(245,158,11,0.02)',
@@ -716,7 +716,7 @@ const s = StyleSheet.create({
     fontSize: 13,
   },
   hugeValue: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.xbold,
     fontSize: 38,
     letterSpacing: -1,
@@ -809,7 +809,7 @@ const s = StyleSheet.create({
     fontSize: 9.5,
   },
   chartBarMonthActive: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
   },
   filterContainer: {
@@ -870,7 +870,7 @@ const s = StyleSheet.create({
     fontSize: 12.5,
   },
   filterPillTextActive: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
   },
   reviewCard: {
@@ -887,7 +887,7 @@ const s = StyleSheet.create({
     gap: 10,
   },
   studentName: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
     fontSize: 13.5,
   },
@@ -938,7 +938,7 @@ const s = StyleSheet.create({
     letterSpacing: 0.6,
   },
   replyBoxBody: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.med,
     fontSize: 12.5,
     lineHeight: 18,
@@ -972,7 +972,7 @@ const s = StyleSheet.create({
     minHeight: 60,
   },
   replyTextInput: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.med,
     fontSize: 13,
     minHeight: 40,

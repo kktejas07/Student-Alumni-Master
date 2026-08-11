@@ -83,11 +83,11 @@ export function AgentKLauncher({ collapsed = false }: { collapsed?: boolean }) {
       accessibilityLabel="Agent K · Run automations"
       style={({ hovered }: any) => ([
         styles.outer,
-        hovered && Platform.OS === 'web' ? { borderColor: 'rgba(124,58,237,0.55)', transform: [{ translateY: -1 }] } as any : null,
+        hovered && Platform.OS === 'web' ? { borderColor: 'rgba(255,255,255,0.4)', transform: [{ translateY: -1 }] } as any : null,
       ])}
     >
       <LinearGradient
-        colors={['rgba(124,58,237,0.16)', 'rgba(34,211,238,0.10)'] as any}
+        colors={['rgba(255,255,255,0.15)', 'rgba(255,255,255,0.05)'] as any}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={styles.gradient}
       >
@@ -133,13 +133,15 @@ const styles = StyleSheet.create({
     margin: 12,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(124,58,237,0.35)',
+    borderColor: 'rgba(255,255,255,0.15)',
+    borderTopColor: 'rgba(255,255,255,0.35)',
     overflow: 'hidden',
     ...(Platform.OS === 'web' ? ({
       cursor: 'pointer',
+      backdropFilter: 'blur(12px)',
       transitionProperty: 'border-color, transform, box-shadow',
       transitionDuration: '200ms',
-      boxShadow: '0 0 24px -8px rgba(124,58,237,0.4)',
+      boxShadow: '0 8px 32px 0 rgba(0,0,0,0.15)',
     } as any) : {}),
   },
   gradient: { padding: 14, gap: 6 },

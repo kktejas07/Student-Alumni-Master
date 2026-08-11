@@ -24,9 +24,9 @@ import { useTheme } from '@/src/theme/ThemeContext';
  * ───────────────────────────────────────────────────────────────── */
 export const PALETTE = {
   // Canvas
-  bg0: '#0a0f1e',   // deep navy base
-  bg1: '#0d1326',   // mid-tone
-  bg2: '#131938',   // top of body gradient
+  bg0: '#F8F9FA',   // light background
+  bg1: '#FFFFFF',   // solid cards
+  bg2: '#FFFFFF',   // solid cards
 
   // Accents
   violet: '#6366F1',  // primary
@@ -39,22 +39,22 @@ export const PALETTE = {
   rose:   '#f43f5e',  // critical
 
   // Text
-  text:   '#F4F4F8',
-  muted:  '#A1A6B7',
-  dim:    '#6E7388',
+  text:   '#1C1C1E',
+  muted:  '#71717A',
+  dim:    '#A1A1AA',
 
   // Glass surfaces
-  glass:        'rgba(20, 26, 45, 0.55)',
-  glassStrong:  'rgba(20, 26, 45, 0.72)',
-  glassSoft:    'rgba(255,255,255,0.04)',
-  glassHover:   'rgba(99, 102, 241, 0.10)',
-  glassBorder:  'rgba(255,255,255,0.08)',
-  glassBorderHi:'rgba(99, 102, 241, 0.40)',
-  glassHighlight:'rgba(255,255,255,0.10)',
+  glass:        'rgba(255, 255, 255, 1)',
+  glassStrong:  'rgba(255, 255, 255, 1)',
+  glassSoft:    'rgba(255, 255, 255, 1)',
+  glassHover:   'rgba(244, 245, 247, 1)',
+  glassBorder:  'rgba(0,0,0,0.06)',
+  glassBorderHi:'rgba(0,0,0,0.12)',
+  glassHighlight:'rgba(0,0,0,0.02)',
 
   // Shadows / glows (web boxShadow strings)
-  glassShadow:  '0 16px 48px rgba(2,6,23,0.45), 0 1px 0 rgba(255,255,255,0.06) inset',
-  violetGlow:   '0 10px 30px rgba(99,102,241,0.35), 0 0 0 1px rgba(99,102,241,0.20)',
+  glassShadow:  '0 10px 30px rgba(0,0,0,0.05)',
+  violetGlow:   '0 10px 30px rgba(99,102,241,0.25), 0 0 0 1px rgba(99,102,241,0.10)',
 } as const;
 
 /* ─────────────────────────────────────────────────────────────────

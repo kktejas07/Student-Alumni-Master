@@ -878,7 +878,7 @@ function HistoryTab() {
                 <View style={s.resultTile}><Text style={s.miniLabel}>ADDED</Text><Text style={[s.kpiVal, { color: SAC.green }]}>{detail?.added}</Text></View>
                 <View style={s.resultTile}><Text style={s.miniLabel}>UPDATED</Text><Text style={[s.kpiVal, { color: '#93C5FD' }]}>{detail?.updated}</Text></View>
                 <View style={s.resultTile}><Text style={s.miniLabel}>SKIPPED</Text><Text style={[s.kpiVal, { color: '#FBBF24' }]}>{detail?.skipped}</Text></View>
-                <View style={s.resultTile}><Text style={s.miniLabel}>TOTAL</Text><Text style={[s.kpiVal, { color: '#fff' }]}>{detail?.total}</Text></View>
+                <View style={s.resultTile}><Text style={s.miniLabel}>TOTAL</Text><Text style={[s.kpiVal, { color: '#1C1C1E' }]}>{detail?.total}</Text></View>
               </View>
               {(detail?.skipped_rows || []).length > 0 && (
                 <View>
@@ -1118,7 +1118,7 @@ function EditRow({ label, value, onChange }: { label: string; value: string; onC
  * ────────────────────────────────────────────────────────────────── */
 const s = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 },
+  title: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 16 },
   sub:   { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 720 },
   muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
   err: { color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 12 },
@@ -1136,11 +1136,11 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ transitionDuration: '150ms' } as any) : {}),
   },
   dropIcon: { width: 56, height: 56, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  dropTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15, marginTop: 6 },
+  dropTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 15, marginTop: 6 },
   dropSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
 
   summaryRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  fileName: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 },
+  fileName: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 14 },
   summaryStats: {
     flexDirection: 'row', gap: 8, marginTop: 14, flexWrap: 'wrap',
   },
@@ -1168,10 +1168,10 @@ const s = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: SAC.border,
   },
   tableRowErr: { backgroundColor: 'rgba(239,68,68,0.04)' },
-  td: { color: '#fff', fontFamily: FONTS.med, fontSize: 11.5, paddingRight: 10 },
+  td: { color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 11.5, paddingRight: 10 },
 
   commitRow: { flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' },
-  commitTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
+  commitTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 13 },
   checkRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   checkBox: { width: 16, height: 16, borderRadius: 5, borderWidth: 1.4, borderColor: SAC.border2, alignItems: 'center', justifyContent: 'center' },
   checkLabel: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 11.5 },
@@ -1182,7 +1182,7 @@ const s = StyleSheet.create({
   formField: { flex: 1, minWidth: 180, gap: 6 },
   formLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
   formInput: {
-    color: '#fff', fontFamily: FONTS.med, fontSize: 13,
+    color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 13,
     backgroundColor: SAC.cardSolid, borderRadius: 9, borderWidth: 1, borderColor: SAC.border,
     paddingHorizontal: 12, paddingVertical: 10,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
@@ -1191,7 +1191,7 @@ const s = StyleSheet.create({
   previewRule: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 10, borderRadius: 9, backgroundColor: 'rgba(245,158,11,0.08)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.25)' },
   previewRuleText: { color: GRAD.to, fontFamily: FONTS.xbold, fontSize: 11.5, flex: 1 },
   previewLbl: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
-  previewVal: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
+  previewVal: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12 },
   warnBox: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 8, borderRadius: 8, backgroundColor: 'rgba(251,191,36,0.08)', borderWidth: 1, borderColor: 'rgba(251,191,36,0.30)' },
 
   // Browse
@@ -1232,7 +1232,7 @@ const s = StyleSheet.create({
       position: 'sticky' as any, bottom: 18,
     } as any) : {}),
   },
-  bulkText:   { color: '#fff',  fontFamily: FONTS.xbold, fontSize: 13 },
+  bulkText:   { color: '#1C1C1E',  fontFamily: FONTS.xbold, fontSize: 13 },
   bulkLinkBtn:{ ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   bulkLink:   { color: GRAD.to, fontFamily: FONTS.bold,  fontSize: 12 },
   bulkClose: {
@@ -1249,7 +1249,7 @@ const s = StyleSheet.create({
   },
   avatar: { width: 38, height: 38, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   avatarInit: { fontFamily: FONTS.xbold, fontSize: 12.5 },
-  userName: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
+  userName: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 13 },
 
   // History
   runCard: {
@@ -1279,7 +1279,7 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 12,
     padding: 18, borderBottomWidth: 1, borderBottomColor: SAC.border,
   },
-  modalTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
+  modalTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 15 },
   modalLabel: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
 
   resultGrid: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
@@ -1292,12 +1292,12 @@ const s = StyleSheet.create({
 
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   detailLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5, width: 130 },
-  detailValue: { color: '#fff', fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
+  detailValue: { color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
   catPick: { paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: SAC.border, marginRight: 6, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
 
   actionsRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 4 },
   destructiveBtn: { backgroundColor: SAC.red, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
 
-  btnText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
+  btnText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12 },
   secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
 });

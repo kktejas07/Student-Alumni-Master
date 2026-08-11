@@ -662,11 +662,11 @@ export function DashboardView() {
             </View>
             <Text style={s.modalText}>
               We redirected you to the recruiter's page for{" "}
-              <Text style={{ fontFamily: FONTS.bold, color: '#fff' }}>
+              <Text style={{ fontFamily: FONTS.bold, color: '#1C1C1E' }}>
                 {applyModalJob?.role || applyModalJob?.title || 'the role'}
               </Text>{" "}
               at{" "}
-              <Text style={{ fontFamily: FONTS.bold, color: '#fff' }}>
+              <Text style={{ fontFamily: FONTS.bold, color: '#1C1C1E' }}>
                 {applyModalJob?.company || 'the company'}
               </Text>.
             </Text>
@@ -762,7 +762,7 @@ const s = StyleSheet.create({
     paddingVertical: 14, paddingHorizontal: 18,
   },
   briefIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: 'rgba(123,61,191,0.18)', alignItems: 'center', justifyContent: 'center' },
-  briefTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 },
+  briefTitle: { color: SC.text, fontFamily: FONTS.xbold, fontSize: 14 },
   briefSub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 1 },
   briefCta: { borderRadius: 10, overflow: 'hidden', ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
   gradCta: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 34, borderRadius: 10 },
@@ -787,7 +787,7 @@ const s = StyleSheet.create({
     padding: 18,
   },
   tierKicker: { color: SC.accent, fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 1 },
-  tierTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4, marginTop: 2 },
+  tierTitle: { color: SC.text, fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4, marginTop: 2 },
   tierScore: { color: SC.muted, fontFamily: FONTS.bold, fontSize: 14 },
   tierSub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
   tierChip: {
@@ -802,7 +802,7 @@ const s = StyleSheet.create({
     padding: 22,
   },
   kicker: { color: SC.accent, fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 1 },
-  roadmapTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 26, letterSpacing: -0.6 },
+  roadmapTitle: { color: SC.text, fontFamily: FONTS.xbold, fontSize: 26, letterSpacing: -0.6 },
   roadmapGoal: { color: SC.accentBright, fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4, marginTop: 4 },
   progLabel: { color: SC.muted, fontFamily: FONTS.bold, fontSize: 11.5, letterSpacing: 0.2 },
   progPct:   { color: SC.accent, fontFamily: FONTS.xbold, fontSize: 12 },
@@ -816,7 +816,7 @@ const s = StyleSheet.create({
 
   col: {},
   colHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  colTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 16, letterSpacing: -0.3 },
+  colTitle: { color: SC.text, fontFamily: FONTS.xbold, fontSize: 16, letterSpacing: -0.3 },
   seeAll: { color: SC.accent, fontFamily: FONTS.bold, fontSize: 11.5 },
 
   matchRow: {
@@ -831,8 +831,8 @@ const s = StyleSheet.create({
     } as any) : {}),
   },
   companyLogo: { width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  companyLogoText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 },
-  matchRole: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13.5 },
+  companyLogoText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 14 },
+  matchRole: { color: SC.text, fontFamily: FONTS.bold, fontSize: 13.5 },
   matchCompany: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
   matchDot: { color: SC.dim, fontFamily: FONTS.med, fontSize: 11 },
   matchPill: { paddingHorizontal: 9, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(34,197,94,0.15)', borderColor: 'rgba(34,197,94,0.30)', borderWidth: 1 },
@@ -847,7 +847,7 @@ const s = StyleSheet.create({
       boxShadow: SC.glassShadow,
     } as any) : {}),
   },
-  mentorName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13.5 },
+  mentorName: { color: SC.text, fontFamily: FONTS.bold, fontSize: 13.5 },
   mentorRole: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
   mentorMeta: { color: SC.muted, fontFamily: FONTS.bold, fontSize: 11 },
   mentorPrice: { color: SC.accentBright, fontFamily: FONTS.xbold, fontSize: 12 },
@@ -866,14 +866,14 @@ const s = StyleSheet.create({
     } as any) : {}),
   },
   eventIcon: { width: 30, height: 30, borderRadius: 8, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  eventTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13.5, lineHeight: 18 },
+  eventTitle: { color: SC.text, fontFamily: FONTS.bold, fontSize: 13.5, lineHeight: 18 },
   eventDate: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 4 },
 
   completionCard: {
     flexDirection: 'row', alignItems: 'center', gap: 16,
     borderRadius: 16, padding: 18,
   },
-  completionLabel: { color: 'rgba(255,255,255,0.85)', fontFamily: FONTS.xbold, fontSize: 11.5, letterSpacing: 0.5 },
+  completionLabel: { color: SC.text, fontFamily: FONTS.xbold, fontSize: 11.5, letterSpacing: 0.5 },
   completionScorePill: { backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 },
   completionScoreText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 11 },
   completionTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 14, marginTop: 4 },
@@ -916,7 +916,7 @@ const s = StyleSheet.create({
     letterSpacing: 0.2,
   },
   kpiValText: {
-    color: '#fff',
+    color: SC.text,
     fontFamily: FONTS.xbold,
     fontSize: 22,
     marginTop: 4,
@@ -993,7 +993,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   sectionTitleText: {
-    color: '#fff',
+    color: SC.text,
     fontFamily: FONTS.xbold,
     fontSize: 18,
     letterSpacing: -0.3,
@@ -1035,7 +1035,7 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
   },
   seeAllBtnText: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
     fontSize: 11.5,
   },
@@ -1060,7 +1060,7 @@ const s = StyleSheet.create({
     fontSize: 16,
   },
   itemMainText: {
-    color: '#fff',
+    color: SC.text,
     fontFamily: FONTS.bold,
     fontSize: 13.5,
   },
@@ -1107,7 +1107,7 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
   },
   applyBtnText: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
     fontSize: 12,
   },
@@ -1121,7 +1121,7 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
   },
   continueBtnText: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
     fontSize: 12,
   },
@@ -1191,7 +1191,7 @@ const s = StyleSheet.create({
     fontSize: 13,
   },
   tabTextActive: {
-    color: '#fff',
+    color: SC.text,
   },
 });
 
@@ -1242,7 +1242,7 @@ function getStableMockData(jobId: string, company: string, jobType: string) {
     modalCard: { width: '100%', maxWidth: 480, backgroundColor: '#111827', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderRadius: 16, padding: 22 },
     modalHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
     modalIconDisc: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(124,58,237,0.16)', borderColor: 'rgba(124,58,237,0.40)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-    modalTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 17, letterSpacing: -0.3 },
+    modalTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 17, letterSpacing: -0.3 },
     modalText: { color: SC.muted, fontFamily: FONTS.med, fontSize: 13, lineHeight: 18, marginBottom: 12 },
     modalSubtext: { color: SC.dim, fontFamily: FONTS.med, fontSize: 12, lineHeight: 16, marginBottom: 20 },
     modalBtnRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10 },

@@ -132,14 +132,14 @@ const s = StyleSheet.create({
   chip: { paddingHorizontal: 12, height: 30, borderRadius: 8, backgroundColor: CC.card, borderWidth: 1, borderColor: CC.border, justifyContent: 'center' },
   chipOn: { backgroundColor: CC.primary, borderColor: CC.primary },
   searchBox: { flexDirection: 'row', alignItems: 'center', gap: 8, width: 220, height: 34, paddingHorizontal: 11, borderRadius: 10, backgroundColor: CC.card, borderColor: CC.border, borderWidth: 1 },
-  searchInput: { flex: 1, color: '#fff', fontFamily: FONTS.med, fontSize: 12, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
+  searchInput: { flex: 1, color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 12, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   
   /* New Card Styles matching UserCard */
   card: { backgroundColor: CC.card, borderColor: CC.border, borderWidth: 1, borderRadius: 16, padding: 16 },
   
   avWrap: { borderRadius: 999, borderWidth: 2, padding: 2 },
-  nameBold: { color: '#fff', fontFamily: FONTS.bold, fontSize: 14 },
+  nameBold: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 14 },
   
   rolePillAlumni: { backgroundColor: 'rgba(167, 139, 250, 0.1)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(167, 139, 250, 0.2)' },
   rolePillAlumniText: { color: '#A78BFA', fontSize: 10, fontFamily: FONTS.bold },
