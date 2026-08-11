@@ -218,6 +218,8 @@ export const api = {
     request<any>(`/users/${userId}/public-profile`),
 
   // AI
+  getCareerIntelligence: () => request<any>('/users/me/skill-intelligence'),
+
   getCareerSuggestions: (additional_context?: string) =>
     request<any>('/ai/career-suggestions', {
       method: 'POST',

@@ -5,8 +5,8 @@
  */
 
 // 5 user types — students/alumni/mentors register publicly,
-// college/admin are managed accounts.
-export type UserRole = 'student' | 'alumni' | 'mentor' | 'college' | 'admin';
+// college/admin are managed accounts. super_admin is the platform owner.
+export type UserRole = 'student' | 'alumni' | 'mentor' | 'college' | 'admin' | 'super_admin';
 
 // 4 career paths drive ALL personalization on the platform.
 export type CareerPath = 'job' | 'higher_education' | 'startup' | 'business';
@@ -51,6 +51,7 @@ export interface SchoolInfo {
   institution_name: string;
   institution_type: InstitutionType;
   institution_logo?: string;        // resolved logo URL (Clearbit/favicon)
+  logo?: string;
   institution_domain?: string;
   class_or_year: string;
   current_course?: '11th' | '12th' | 'other';   // student stage for promotions filter
@@ -71,6 +72,7 @@ export interface StudentInfo {
   age: number;                 // Spec: minimum age 10+
   education_level: EducationLevel;
   career_interests: string[];
+  career_goal?: string;
 }
 
 /** Alumni-only profile fields. */
@@ -96,6 +98,7 @@ export interface User {
   id: string;
   email: string;
   full_name: string;
+  name?: string;
   role: UserRole;
   phone?: string;
   unique_id?: string;

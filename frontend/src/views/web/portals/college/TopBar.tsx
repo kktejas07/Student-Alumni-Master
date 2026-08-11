@@ -3,7 +3,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { View, Text, Pressable, TextInput, StyleSheet, Platform } from 'react-native';
-import { Search, Bell, Calendar as CalIcon, Inbox } from 'lucide-react-native';
+import { Search, Bell, Calendar as CalIcon, Inbox, Plus } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { CC, FONTS } from './tokens';
 import { HelpMenu } from '@/src/views/web/help/HelpMenu';
@@ -16,11 +16,13 @@ export function TopBar({
   onCalendarPress,
   onNotificationsPress,
   onProfilePress,
+  onAddPress,
 }: {
   title?: string;
   onCalendarPress?: () => void;
   onNotificationsPress?: () => void;
   onProfilePress?: () => void;
+  onAddPress?: () => void;
 }) {
   const router = useRouter();
   const user = useAuthStore((u) => u.user);
@@ -47,7 +49,14 @@ export function TopBar({
         <TextInput placeholder="Search…" placeholderTextColor={CC.dim} style={s.searchInput} />
       </View>
 
-
+      {onAddPress && (
+        <Pressable onPress={onAddPress} style={s.addCta}>
+          <View style={s.addCtaInner}>
+            <Plus size={14} color="#fff" />
+            <Text style={s.addCtaText}>Add</Text>
+          </View>
+        </Pressable>
+      )}
 
       <Pressable
         onPress={onCalendarPress || (() => {})}
