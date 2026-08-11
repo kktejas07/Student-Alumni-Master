@@ -1426,6 +1426,7 @@ async def _store_invoice_and_email(db, reg: dict, showcase: Optional[dict]) -> d
     # Fire-and-forget email notification with PDF invoice attached
     try:
         email = reg.get("email") or ""
+        esc = lambda s: str(s or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
         if email:
             reg_id = reg.get("id") or ""
             import urllib.parse
@@ -1459,27 +1460,78 @@ async def _store_invoice_and_email(db, reg: dict, showcase: Optional[dict]) -> d
 
             body = render_html_email(
                 f"""
-                <h2 style="margin:0 0 14px 0;color:#111827;">Thank you for registering!</h2>
-                <p style="margin:0 0 18px 0;color:#374151;">Your payment for <strong>{inv_ser.get('event_title')}</strong>
-                has been received. Here are your payment details and entry pass:</p>
+                <h2 style="margin:0 0 6px 0;color:#111827;font-size:22px;">Payment Confirmed</h2>
+                <p style="margin:0 0 24px 0;color:#6b7280;font-size:14px;">Registration for <strong style="color:#111827;">{esc(inv_ser.get('event_title') or 'the event')}</strong> is complete.</p>
+
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
-                  style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;margin:0 0 18px 0;">
-                  <tr><td style="padding:12px 16px;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.4px;">Invoice No</td>
-                      <td style="padding:12px 16px;text-align:right;color:#111827;font-weight:700;">{inv_ser.get('invoice_no')}</td></tr>
-                  <tr><td style="padding:12px 16px;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.4px;">Payment ID</td>
-                      <td style="padding:12px 16px;text-align:right;color:#111827;font-weight:700;">{inv_ser.get('payment_id')}</td></tr>
-                  <tr><td style="padding:12px 16px;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.4px;">Amount Paid</td>
-                      <td style="padding:12px 16px;text-align:right;color:#111827;font-weight:700;">{inv_ser.get('currency')} {float(inv_ser.get('amount') or 0):,.2f}</td></tr>
+                  style="margin:0 0 24px 0;">
+                  <tr>
+                    <td style="padding:16px 20px;background:#f0fdf4;border-left:4px solid #22c55e;border-radius:0 10px 10px 0;">
+                      <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:#16a34a;margin-bottom:4px;">Amount Paid</div>
+                      <div style="font-size:26px;font-weight:800;color:#111827;">{inv_ser.get('currency') or 'INR'} {float(inv_ser.get('amount') or 0):,.2f}</div>
+                    </td>
+                  </tr>
                 </table>
+
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                  style="margin:0 0 24px 0;">
+                  <tr>
+                    <td style="padding:10px 0;border-bottom:1px solid #f1f5f9;"><span style="color:#94a3b8;font-size:12px;text-transform:uppercase;letter-spacing:.5px;">Invoice</span></td>
+                    <td style="padding:10px 0;border-bottom:1px solid #f1f5f9;text-align:right;font-weight:600;color:#111827;font-size:13px;">{esc(inv_ser.get('invoice_no') or '—')}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:10px 0;border-bottom:1px solid #f1f5f9;"><span style="color:#94a3b8;font-size:12px;text-transform:uppercase;letter-spacing:.5px;">Payment ID</span></td>
+                    <td style="padding:10px 0;border-bottom:1px solid #f1f5f9;text-align:right;font-weight:600;color:#111827;font-size:13px;font-family:monospace;">{esc(inv_ser.get('payment_id') or '—')}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:10px 0;border-bottom:1px solid #f1f5f9;"><span style="color:#94a3b8;font-size:12px;text-transform:uppercase;letter-spacing:.5px;">Date</span></td>
+                    <td style="padding:10px 0;border-bottom:1px solid #f1f5f9;text-align:right;color:#111827;font-size:13px;">{esc(inv_ser.get('date') or '—')}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:10px 0;"><span style="color:#94a3b8;font-size:12px;text-transform:uppercase;letter-spacing:.5px;">Event</span></td>
+                    <td style="padding:10px 0;text-align:right;font-weight:600;color:#111827;font-size:13px;">{esc(inv_ser.get('event_title') or '—')}</td>
+                  </tr>
+                </table>
+
                 {ticket_block}
-                <p style="margin:0 0 6px 0;color:#374151;">
-                  Two PDF documents are attached to this email:
-                  <strong>Invoice-{inv_no}.pdf</strong> (tax invoice) and
-                  <strong>Receipt</strong> (payment confirmation with payment history).
-                  You can also access your ticket and invoice anytime from your dashboard under <strong>My Tickets</strong>.
-                </p>
-                <a href="https://studentalumni.ai/dashboard"
-                   style="display:inline-block;padding:12px 26px;background:#7C3AED;color:#fff;text-decoration:none;border-radius:10px;font-weight:600;">Open My Dashboard</a>
+
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                  style="margin:0 0 24px 0;">
+                  <tr>
+                    <td style="padding:18px 20px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;">
+                      <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#7c3aed;margin-bottom:12px;">Your Documents</div>
+                      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                        <tr>
+                          <td style="padding:8px 0;width:36px;vertical-align:middle;">
+                            <div style="width:32px;height:32px;background:#ede9fe;border-radius:8px;text-align:center;line-height:32px;font-size:16px;">📄</div>
+                          </td>
+                          <td style="padding:8px 0;vertical-align:middle;">
+                            <div style="font-size:13px;font-weight:600;color:#111827;">Tax Invoice</div>
+                            <div style="font-size:12px;color:#94a3b8;">{esc(inv_no)}.pdf — attached to this email</div>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding:8px 0;width:36px;vertical-align:middle;">
+                            <div style="width:32px;height:32px;background:#dcfce7;border-radius:8px;text-align:center;line-height:32px;font-size:16px;">✅</div>
+                          </td>
+                          <td style="padding:8px 0;vertical-align:middle;">
+                            <div style="font-size:13px;font-weight:600;color:#111827;">Payment Receipt</div>
+                            <div style="font-size:12px;color:#94a3b8;">Official confirmation with payment history — attached</div>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 8px 0;">
+                  <tr>
+                    <td align="center" style="padding:0;">
+                      <a href="https://studentalumni.ai/dashboard"
+                         style="display:inline-block;padding:14px 32px;background:#7C3AED;color:#fff;text-decoration:none;border-radius:10px;font-weight:700;font-size:14px;letter-spacing:.3px;">View My Tickets</a>
+                    </td>
+                  </tr>
+                </table>
                 """
             )
             await send_email(email, subject, body, attachments=attachments or None)
