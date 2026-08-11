@@ -147,7 +147,7 @@ export function EarningsView({ demoMode = false, setDemoMode }: { demoMode?: boo
             Demo Mode · Sample data is displayed for demonstration purposes.{' '}
             <Text 
               onPress={() => setDemoMode?.(false)}
-              style={{ textDecorationLine: 'underline', color: '#fff', fontFamily: FONTS.bold }}
+              style={{ textDecorationLine: 'underline', color: '#1C1C1E', fontFamily: FONTS.bold }}
             >
               Switch to Live Mode
             </Text>
@@ -210,7 +210,7 @@ export function EarningsView({ demoMode = false, setDemoMode }: { demoMode?: boo
                   {demoMode ? (
                     <>
                       <Text style={s.insightsDetailText}>
-                        🚀 <Text style={{ fontFamily: FONTS.bold, color: '#fff' }}>Boost your weekly conversions by 18%:</Text>
+                        🚀 <Text style={{ fontFamily: FONTS.bold, color: '#1C1C1E' }}>Boost your weekly conversions by 18%:</Text>
                       </Text>
                       <Text style={s.insightsBullets}>
                         • Add 4 evening slots on Tuesday & Thursday (6:00 PM - 8:00 PM) — your highest-converting student booking windows.{"\n"}
@@ -290,7 +290,7 @@ export function EarningsView({ demoMode = false, setDemoMode }: { demoMode?: boo
                         Based on your current 12% monthly growth rate, average conversion, and active recurring student commitments, you are projected to make <Text style={{ color: '#5EEAD4', fontFamily: FONTS.bold }}>₹33,000</Text> next month (June 2026).
                       </Text>
                       <Text style={[s.forecastText, { marginTop: 6 }]}>
-                        🚀 <Text style={{ fontFamily: FONTS.bold, color: '#fff' }}>Pro Tip:</Text> Offering a "3-session package discount" can secure up to ₹42,000 in advanced bookings.
+                        🚀 <Text style={{ fontFamily: FONTS.bold, color: '#1C1C1E' }}>Pro Tip:</Text> Offering a "3-session package discount" can secure up to ₹42,000 in advanced bookings.
                       </Text>
                     </>
                   ) : (
@@ -399,14 +399,14 @@ export function EarningsView({ demoMode = false, setDemoMode }: { demoMode?: boo
                   {demoMode ? (
                     <>
                       <Text style={s.tdsText}>
-                        <Text style={{ fontFamily: FONTS.bold, color: '#FCD34D' }}>TDS (10%):</Text> Gross ₹1,42,000 - Deducted ₹14,200 - <Text style={{ fontFamily: FONTS.bold, color: '#fff' }}>Net ₹1,27,800</Text>
+                        <Text style={{ fontFamily: FONTS.bold, color: '#FCD34D' }}>TDS (10%):</Text> Gross ₹1,42,000 - Deducted ₹14,200 - <Text style={{ fontFamily: FONTS.bold, color: '#1C1C1E' }}>Net ₹1,27,800</Text>
                       </Text>
                       <Text style={s.tdsSubtext}>Taxes withheld under Section 194J. Net proceeds settled directly.</Text>
                     </>
                   ) : (
                     <>
                       <Text style={s.tdsText}>
-                        <Text style={{ fontFamily: FONTS.bold, color: '#FCD34D' }}>TDS (10%):</Text> Gross ₹0 - Deducted ₹0 - <Text style={{ fontFamily: FONTS.bold, color: '#fff' }}>Net ₹0</Text>
+                        <Text style={{ fontFamily: FONTS.bold, color: '#FCD34D' }}>TDS (10%):</Text> Gross ₹0 - Deducted ₹0 - <Text style={{ fontFamily: FONTS.bold, color: '#1C1C1E' }}>Net ₹0</Text>
                       </Text>
                       <Text style={s.tdsSubtext}>TDS details and Form 16 will be generated after your first paid session.</Text>
                     </>
@@ -681,7 +681,7 @@ export function EarningsView({ demoMode = false, setDemoMode }: { demoMode?: boo
                         Professional fee settlements are subject to a flat <Text style={{ color: '#FCD34D', fontFamily: FONTS.bold }}>10% TDS</Text> under Section 194J of the Income Tax Act.
                       </Text>
                       <Text style={[s.forecastText, { marginTop: 6 }]}>
-                        • Total deducted this fiscal year: <Text style={{ color: '#fff', fontFamily: FONTS.bold }}>₹14,200</Text>{"\n"}
+                        • Total deducted this fiscal year: <Text style={{ color: '#1C1C1E', fontFamily: FONTS.bold }}>₹14,200</Text>{"\n"}
                         • Consolidated Form 16 can be downloaded from the Overview tab. This TDS will automatically reflect in your Form 26AS for tax offsetting.
                       </Text>
                     </>
@@ -764,7 +764,7 @@ export function EarningsView({ demoMode = false, setDemoMode }: { demoMode?: boo
               <View style={s.infoBlockRow}>
                 <Check size={16} color={MC.green} />
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13 }}>Instant Clearing</Text>
+                  <Text style={{ color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 13 }}>Instant Clearing</Text>
                   <Text style={{ color: MC.dim, fontFamily: FONTS.med, fontSize: 11 }}>Funds cleared within 60 seconds of session completion.</Text>
                 </View>
               </View>
@@ -772,7 +772,7 @@ export function EarningsView({ demoMode = false, setDemoMode }: { demoMode?: boo
               <View style={s.infoBlockRow}>
                 <Check size={16} color={MC.green} />
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13 }}>Zero Fee Gateway</Text>
+                  <Text style={{ color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 13 }}>Zero Fee Gateway</Text>
                   <Text style={{ color: MC.dim, fontFamily: FONTS.med, fontSize: 11 }}>Zero convenience fees on both student payouts and alumni receipts.</Text>
                 </View>
               </View>
@@ -792,7 +792,7 @@ const s = StyleSheet.create({
     marginBottom: 4,
   },
   mainTitle: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.xbold,
     fontSize: 22,
     letterSpacing: -0.5,
@@ -832,7 +832,7 @@ const s = StyleSheet.create({
     fontSize: 13,
   },
   tabTextActive: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
   },
   card: {
@@ -843,7 +843,7 @@ const s = StyleSheet.create({
     padding: 20,
   },
   cardTitle: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.xbold,
     fontSize: 15,
     marginBottom: 16,
@@ -890,7 +890,7 @@ const s = StyleSheet.create({
     fontSize: 11,
   },
   insightsButtonTextActive: {
-    color: '#fff',
+    color: '#1C1C1E',
   },
   insightsContent: {
     marginTop: 14,
@@ -925,7 +925,7 @@ const s = StyleSheet.create({
     marginBottom: 4,
   },
   totalEarnedValue: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.xbold,
     fontSize: 38,
     letterSpacing: -1,
@@ -962,7 +962,7 @@ const s = StyleSheet.create({
     letterSpacing: 0.8,
   },
   metricItemVal: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
     fontSize: 16.5,
   },
@@ -980,7 +980,7 @@ const s = StyleSheet.create({
     cursor: 'pointer',
   } as any,
   withdrawPendingText: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
     fontSize: 13,
   },
@@ -1044,7 +1044,7 @@ const s = StyleSheet.create({
     marginBottom: 20,
   },
   chartTitle: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
     fontSize: 14.5,
   },
@@ -1108,7 +1108,7 @@ const s = StyleSheet.create({
     fontSize: 10,
   },
   chartBarMonthActive: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
   },
   highlightGrid: {
@@ -1138,7 +1138,7 @@ const s = StyleSheet.create({
     gap: 2,
   },
   highlightVal: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
     fontSize: 13.5,
   },
@@ -1223,7 +1223,7 @@ const s = StyleSheet.create({
     gap: 2,
   },
   txStudentName: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
     fontSize: 13.5,
   },
@@ -1269,7 +1269,7 @@ const s = StyleSheet.create({
     justifyContent: 'space-between',
   },
   studentNameText: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
     fontSize: 13.5,
   },
@@ -1279,7 +1279,7 @@ const s = StyleSheet.create({
     fontSize: 11,
   },
   studentAmountText: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
     fontSize: 13.5,
   },
@@ -1315,7 +1315,7 @@ const s = StyleSheet.create({
     marginBottom: 4,
   },
   withdrawMainAmount: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.xbold,
     fontSize: 34,
     letterSpacing: -0.5,
@@ -1354,7 +1354,7 @@ const s = StyleSheet.create({
     fontSize: 12,
   },
   methodBtnTextActive: {
-    color: '#fff',
+    color: '#1C1C1E',
   },
   withdrawDrawer: {
     marginTop: 16,
@@ -1378,7 +1378,7 @@ const s = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.med,
     fontSize: 12.5,
   },
@@ -1413,7 +1413,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   withdrawalAmountText: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
     fontSize: 13.5,
   },

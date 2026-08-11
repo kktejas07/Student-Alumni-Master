@@ -99,14 +99,14 @@ const s = StyleSheet.create({
     backgroundColor: SAC.bg2,
     position: 'relative', zIndex: 10,
   },
-  title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 18, letterSpacing: -0.4 },
+  title: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 18, letterSpacing: -0.4 },
   date:  { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
   searchBox: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     width: 240, height: 34, paddingHorizontal: 11,
     borderRadius: 10, backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1,
   },
-  searchInput: { flex: 1, color: '#fff', fontFamily: FONTS.med, fontSize: 12, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
+  searchInput: { flex: 1, color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 12, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
   bell: {
     width: 34, height: 34, borderRadius: 10, backgroundColor: SAC.card,
     borderColor: SAC.border, borderWidth: 1, alignItems: 'center', justifyContent: 'center',
@@ -123,8 +123,8 @@ const s = StyleSheet.create({
     borderRadius: 12, padding: 14, gap: 10,
     ...(Platform.OS === 'web' ? ({ boxShadow: '0 12px 40px rgba(0,0,0,0.5)' } as any) : {}),
   },
-  notifTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13, marginBottom: 4 },
+  notifTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 13, marginBottom: 4 },
   notifRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  notifText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 11.5 },
+  notifText: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 11.5 },
   notifTime: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 10.5, marginTop: 1 },
 });

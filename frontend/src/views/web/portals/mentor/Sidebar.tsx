@@ -56,11 +56,15 @@ export function Sidebar({
   const w = collapsed ? 56 : 220;
 
   return (
-    <View style={[s.sidebar, { width: w }]}>
+    <LinearGradient
+      colors={['#4338ca', '#6d28d9'] as any}
+      start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+      style={[s.sidebar, { width: w }]}
+    >
       {/* Hamburger + brand */}
       <View style={s.brandRow} nativeID="mentor-brand">
         <Pressable onPress={onToggle} style={({ hovered }: any) => [s.hamburger, hovered && { backgroundColor: 'rgba(20,184,166,0.10)' }]}>
-          <Menu size={18} color={MC.muted} />
+          <Menu size={18} color="rgba(255,255,255,0.7)" />
         </Pressable>
         {!collapsed && (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
@@ -111,7 +115,7 @@ export function Sidebar({
               </View>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text numberOfLines={1} style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 11 }}>{fullName}</Text>
-                <Text numberOfLines={1} style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 9 }}>{jobTitle} · {company}</Text>
+                <Text numberOfLines={1} style={{ color: 'rgba(255,255,255,0.7)', fontFamily: FONTS.med, fontSize: 9 }}>{jobTitle} · {company}</Text>
               </View>
             </Pressable>
             <Pressable 
@@ -120,10 +124,10 @@ export function Sidebar({
             >
               <QrCode size={13} color={MC.tealP} />
               <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={{ color: MC.tealP, fontFamily: FONTS.bold, fontSize: 11 }}>My Mentor Card</Text>
-                <Text style={{ color: MC.dim, fontFamily: FONTS.med, fontSize: 9 }}>Share your profile</Text>
+                <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 11 }}>My Mentor Card</Text>
+                <Text style={{ color: 'rgba(255,255,255,0.5)', fontFamily: FONTS.med, fontSize: 9 }}>Share your profile</Text>
               </View>
-              <ExternalLink size={11} color={MC.dim} />
+              <ExternalLink size={11} color="rgba(255,255,255,0.5)" />
             </Pressable>
           </View>
         )}
@@ -137,7 +141,7 @@ export function Sidebar({
         {!collapsed && <Text style={s.kicker}>MAIN MENU</Text>}
         {items.map((n) => {
           const isActive = active === n.id;
-          const tint = isActive ? MC.tealP : MC.muted;
+          const tint = isActive ? MC.tealP : 'rgba(255,255,255,0.7)';
           return (
             <Pressable
               key={n.id}
@@ -146,13 +150,13 @@ export function Sidebar({
               style={({ hovered }: any) => [
                 s.navRow,
                 { padding: collapsed ? 9 : 11, justifyContent: collapsed ? 'center' : 'flex-start', gap: collapsed ? 0 : 11 },
-                isActive && { backgroundColor: 'rgba(20,184,166,0.12)' },
-                hovered && !isActive && { backgroundColor: 'rgba(255,255,255,0.04)' },
+                isActive && s.navRowActive,
+                hovered && !isActive && { backgroundColor: 'rgba(255,255,255,0.08)' },
               ]}
             >
               <n.Icon size={16} color={tint} />
               {!collapsed && (
-                <Text style={{ flex: 1, color: isActive ? '#fff' : MC.muted, fontFamily: isActive ? FONTS.bold : FONTS.med, fontSize: 13 }}>
+                <Text style={{ flex: 1, color: isActive ? '#fff' : 'rgba(255,255,255,0.7)', fontFamily: isActive ? FONTS.bold : FONTS.med, fontSize: 13 }}>
                   {n.label}
                 </Text>
               )}
@@ -180,15 +184,14 @@ export function Sidebar({
           <Text style={{ color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 12 }}>Sign out</Text>
         )}
       </Pressable>
-    </View>
+    </LinearGradient>
   );
 }
 
 const s = StyleSheet.create({
   sidebar: {
-    backgroundColor: MC.bg2,
     borderRightWidth: 1,
-    borderRightColor: MC.border,
+    borderRightColor: 'rgba(255,255,255,0.1)',
     flexShrink: 0,
     height: '100%',
     overflow: 'hidden',
@@ -196,7 +199,7 @@ const s = StyleSheet.create({
   },
   brandRow: {
     height: 56, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12,
-    borderBottomWidth: 1, borderBottomColor: MC.border,
+    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)',
   },
   hamburger: {
     width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center',
@@ -205,12 +208,17 @@ const s = StyleSheet.create({
   brandLogo: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   brandLogoText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13, transform: [{ translateY: -1 }] },
   brandTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
-  brandSub: { color: MC.muted, fontFamily: FONTS.bold, fontSize: 9, letterSpacing: 0.5 },
+  brandSub: { color: 'rgba(255,255,255,0.7)', fontFamily: FONTS.bold, fontSize: 9, letterSpacing: 0.5 },
 
-  profileRow: { padding: 10, borderBottomWidth: 1, borderBottomColor: MC.border },
+  profileRow: { padding: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
   profileCard: {
-    backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 12, padding: 10,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(255,255,255,0.15)',
+    borderTopColor: 'rgba(255,255,255,0.3)',
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 12,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', backdropFilter: 'blur(12px)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' } as any) : {}),
   },
   avatarMini: {
     position: 'relative',
@@ -230,24 +238,33 @@ const s = StyleSheet.create({
   onlineDot: {
     position: 'absolute', bottom: 1, right: 1,
     width: 8, height: 8, borderRadius: 4,
-    backgroundColor: MC.green, borderColor: MC.bg2, borderWidth: 2,
+    backgroundColor: MC.green, borderColor: '#5D3FD3', borderWidth: 2,
   },
   idCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: 'rgba(20,184,166,0.08)',
-    borderColor: MC.border, borderWidth: 1,
-    borderRadius: 8, padding: 9,
-    ...({ cursor: 'pointer' } as any),
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderColor: 'rgba(255,255,255,0.15)',
+    borderTopColor: 'rgba(255,255,255,0.3)',
+    borderWidth: 1,
+    borderRadius: 10, padding: 10,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', backdropFilter: 'blur(8px)' } as any) : {}),
   },
-  kicker: { color: MC.dim, fontFamily: FONTS.xbold, fontSize: 9, letterSpacing: 1.2, padding: 8 },
-  navRow: { flexDirection: 'row', alignItems: 'center', borderRadius: 8, marginVertical: 2 },
+  kicker: { color: 'rgba(255,255,255,0.55)', fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 1.5, padding: 10, marginTop: 4 },
+  navRow: { flexDirection: 'row', alignItems: 'center', borderRadius: 10, marginVertical: 3, borderWidth: 1, borderColor: 'transparent' },
+  navRowActive: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderColor: 'rgba(255,255,255,0.2)',
+    borderTopColor: 'rgba(255,255,255,0.35)',
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 2px 8px rgba(0,0,0,0.15)', backdropFilter: 'blur(8px)' } as any) : {}),
+  },
   countPill: {
-    paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8,
-    backgroundColor: 'rgba(20,184,166,0.14)',
+    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderColor: 'rgba(255,255,255,0.2)', borderWidth: 1,
   },
-  countPillAlert: { backgroundColor: 'rgba(245,158,11,0.24)' },
+  countPillAlert: { backgroundColor: 'rgba(245,158,11,0.3)', borderColor: 'rgba(245,158,11,0.5)' },
   logoutRow: {
     flexDirection: 'row', alignItems: 'center',
-    borderTopWidth: 1, borderTopColor: MC.border,
+    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)',
   },
 });

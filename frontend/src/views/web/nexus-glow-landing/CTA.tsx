@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { ArrowUpRight, Zap } from "lucide-react-native";
 import { useRouter } from "expo-router";
+import { GradientShimmer } from "@/components/ui/gradient-shimmer";
 
 export function CTA() {
   const router = useRouter();
@@ -35,9 +36,15 @@ export function CTA() {
             <h2 className="text-5xl md:text-7xl font-medium tracking-tight leading-[1.05] text-white">
               Your career, quietly
               <br />
-              <span className="text-primary">
-                upgraded.
-              </span>
+              <GradientShimmer
+                gradient="mint"
+                easing="gentle"
+                duration={2}
+                spread={3}
+                pauseBetween={1500}
+                baseColor="#818CF8"
+                className="font-medium"
+              >upgraded.</GradientShimmer>
             </h2>
             
             <p className="mt-8 text-xl font-medium text-gray-400 max-w-2xl leading-relaxed">

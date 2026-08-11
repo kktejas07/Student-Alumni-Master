@@ -304,7 +304,7 @@ const aim = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     padding: 16, borderBottomWidth: 1, borderBottomColor: '#334155',
   },
-  title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
+  title: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 15 },
   closeBtn: {
     width: 28, height: 28, borderRadius: 7,
     alignItems: 'center', justifyContent: 'center',
@@ -335,5 +335,5 @@ const aim = StyleSheet.create({
     backgroundColor: '#F59E0B',
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {}),
   },
-  sendText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
+  sendText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12 },
 });

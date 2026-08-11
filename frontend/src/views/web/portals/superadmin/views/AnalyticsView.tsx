@@ -74,7 +74,7 @@ export function AnalyticsView() {
                     start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
                     style={{ width: '100%', height: h, borderTopLeftRadius: 6, borderTopRightRadius: 6, opacity: isLast ? 1 : 0.8 }}
                   />
-                  <Text style={[st.barM, isLast && { color: '#fff', fontFamily: FONTS.bold }]}>{g.m}</Text>
+                  <Text style={[st.barM, isLast && { color: '#1C1C1E', fontFamily: FONTS.bold }]}>{g.m}</Text>
                 </View>
               );
             })}
@@ -179,14 +179,14 @@ export function AnalyticsView() {
 
 const st = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 },
+  title: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 16 },
   sub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 760 },
   muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
 
   kpiRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
 
   cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  cardTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
+  cardTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 15 },
   cardSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 3 },
 
   barVal: { color: SAC.dim, fontFamily: FONTS.bold, fontSize: 10 },
@@ -195,10 +195,10 @@ const st = StyleSheet.create({
   retLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11, width: 32 },
   retTrack: { flex: 1, height: 7, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.05)', overflow: 'hidden' },
   retFill:  { height: '100%', borderRadius: 4 },
-  retVal:   { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12, width: 44, textAlign: 'right' },
+  retVal:   { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12, width: 44, textAlign: 'right' },
 
-  funnelL: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
-  funnelV: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12.5 },
+  funnelL: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12.5 },
+  funnelV: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12.5 },
   funnelTrack: { height: 24, borderRadius: 7, backgroundColor: 'rgba(255,255,255,0.05)', overflow: 'hidden' },
   funnelBar:   { height: '100%', borderRadius: 7 },
 
@@ -206,7 +206,7 @@ const st = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 12,
     paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: SAC.border,
   },
-  abName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
+  abName: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12.5 },
   abMeta: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 3 },
   upliftPill: {
     flexDirection: 'row', alignItems: 'center', gap: 4,

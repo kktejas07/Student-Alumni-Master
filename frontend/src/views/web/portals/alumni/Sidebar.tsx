@@ -142,7 +142,7 @@ export function Sidebar({
                   </LinearGradient>
                 ) : (
                   <View style={s.navItem}>
-                    {spark ? <SparkIcon Icon={Icon} size={16} color={SC.muted} /> : <Icon size={16} color={SC.muted} />}
+                    {spark ? <SparkIcon Icon={Icon} size={16} color="rgba(255,255,255,0.7)" /> : <Icon size={16} color="rgba(255,255,255,0.7)" />}
                     <Text style={s.navLabel} numberOfLines={1}>{label}</Text>
                   </View>
                 )}
@@ -168,31 +168,31 @@ export function Sidebar({
 
 const s = StyleSheet.create({
   aside: {
-    width: 240, height: '100%' as any, backgroundColor: SC.bg2,
-    borderRightWidth: 1, borderRightColor: SC.border,
+    width: 240, height: '100%' as any, backgroundColor: '#5D3FD3',
+    borderRightWidth: 1, borderRightColor: 'rgba(255,255,255,0.1)',
     paddingHorizontal: 12, paddingTop: 14, paddingBottom: 12,
   },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 18, paddingHorizontal: 4 },
   brandLogo: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   brandLogoText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12, letterSpacing: 0.5 },
   brandTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13, letterSpacing: -0.2 },
-  brandSub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 10.5 },
+  brandSub: { color: 'rgba(255,255,255,0.7)', fontFamily: FONTS.med, fontSize: 10.5 },
 
   profileCard: {
     paddingHorizontal: 4, paddingVertical: 8, marginBottom: 10,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  statusDotWrap: { position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, backgroundColor: SC.bg2, alignItems: 'center', justifyContent: 'center' },
+  statusDotWrap: { position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, backgroundColor: '#5D3FD3', alignItems: 'center', justifyContent: 'center' },
   profileName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13 },
-  profileYear: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11 },
+  profileYear: { color: 'rgba(255,255,255,0.7)', fontFamily: FONTS.med, fontSize: 11 },
 
   idCardPill: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1,
+    backgroundColor: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1,
     borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, marginBottom: 12,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  idCardLabel: { color: SC.muted, fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 0.3 },
+  idCardLabel: { color: 'rgba(255,255,255,0.7)', fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 0.3 },
   idCardNumber: { color: SC.accentBright, fontFamily: FONTS.xbold, fontSize: 11.5, letterSpacing: 0.5, marginTop: 1 },
 
   navItem: {
@@ -206,7 +206,7 @@ const s = StyleSheet.create({
       boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.18)',
     } as any) : {}),
   },
-  navLabel: { color: SC.muted, fontFamily: FONTS.bold, fontSize: 12.5, flex: 1 },
+  navLabel: { color: 'rgba(255,255,255,0.7)', fontFamily: FONTS.bold, fontSize: 12.5, flex: 1 },
   navLabelActive: { color: '#fff' },
   activeDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#fff', opacity: 0.9 },
 

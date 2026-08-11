@@ -437,7 +437,7 @@ export function CreateEventView() {
                           <TypeIcon size={16} color={isSelected ? coverColor : MC.dim} />
                         </View>
                         <View style={{ flex: 1 }}>
-                          <Text style={[s.typeLabel, isSelected && { color: '#fff' }]}>{t.label}</Text>
+                          <Text style={[s.typeLabel, isSelected && { color: '#1C1C1E' }]}>{t.label}</Text>
                           <Text style={s.typeDesc}>{t.desc}</Text>
                         </View>
                       </Pressable>
@@ -929,7 +929,7 @@ export function CreateEventView() {
 }
 
 const s = StyleSheet.create({
-  heading: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 20, letterSpacing: -0.5 },
+  heading: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 20, letterSpacing: -0.5 },
   subheading: { color: MC.muted, fontFamily: FONTS.med, fontSize: 13, marginTop: 2 },
   createBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
@@ -951,7 +951,7 @@ const s = StyleSheet.create({
     width: 36, height: 36, borderRadius: 18,
     alignItems: 'center', justifyContent: 'center'
   },
-  statValue: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 17 },
+  statValue: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 17 },
   statLabel: { color: MC.muted, fontFamily: FONTS.bold, fontSize: 11, marginTop: 1 },
 
   // Empty state
@@ -972,7 +972,7 @@ const s = StyleSheet.create({
     width: 42, height: 42, borderRadius: 21,
     borderWidth: 1.5, alignItems: 'center', justifyContent: 'center'
   },
-  eventTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 14.5, flexShrink: 1 },
+  eventTitle: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 14.5, flexShrink: 1 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginTop: 4 },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   metaText: { color: MC.dim, fontFamily: FONTS.med, fontSize: 11.5 },
@@ -989,7 +989,7 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: MC.border2, backgroundColor: MC.bg2,
     ...({ cursor: 'pointer' } as any)
   },
-  actionBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 11 },
+  actionBtnText: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 11 },
   deleteActionBtn: {
     width: 30, height: 30, borderRadius: 8,
     borderWidth: 1, borderColor: 'rgba(239,68,68,0.2)',
@@ -1001,11 +1001,11 @@ const s = StyleSheet.create({
   // Back CTA in form
   backBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
   backBtnText: { color: MC.tealP, fontFamily: FONTS.bold, fontSize: 13, ...({ cursor: 'pointer' } as any) },
-  formHeaderTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 14, marginLeft: 10, borderLeftWidth: 1, borderLeftColor: MC.border, paddingLeft: 12 },
+  formHeaderTitle: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 14, marginLeft: 10, borderLeftWidth: 1, borderLeftColor: MC.border, paddingLeft: 12 },
 
   // Form styles
   formCard: { backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 12, padding: 16 },
-  sectionHeader: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5, letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 12 },
+  sectionHeader: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12.5, letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 12 },
   detailsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
   label: { color: MC.muted, fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.3, marginBottom: 5 },
   inputBox: { backgroundColor: MC.bg2, borderColor: MC.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 4 },
@@ -1013,7 +1013,7 @@ const s = StyleSheet.create({
     backgroundColor: MC.bg2, borderColor: MC.border, borderWidth: 1, borderRadius: 10,
     paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'
   },
-  input: { color: '#fff', fontFamily: FONTS.med, fontSize: 13, paddingVertical: 8, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
+  input: { color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 13, paddingVertical: 8, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
   calTriggerBtn: { padding: 6, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.02)', ...({ cursor: 'pointer' } as any) },
   
   // AI button style
@@ -1043,14 +1043,14 @@ const s = StyleSheet.create({
     backgroundColor: MC.bg2, borderColor: MC.border, borderWidth: 1, borderRadius: 10,
     paddingHorizontal: 12, height: 38, ...({ cursor: 'pointer' } as any)
   },
-  dropdownValueText: { color: '#fff', fontFamily: FONTS.med, fontSize: 13 },
+  dropdownValueText: { color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 13 },
   selectDropdown: {
     position: 'absolute', top: 56, left: 0, right: 0,
     backgroundColor: '#0F172A', borderColor: MC.border2, borderWidth: 1, borderRadius: 10,
     zIndex: 99999, overflow: 'hidden'
   },
   dropdownItem: { paddingVertical: 8, paddingHorizontal: 12, ...({ cursor: 'pointer' } as any) },
-  dropdownItemText: { color: '#fff', fontFamily: FONTS.med, fontSize: 12.5 },
+  dropdownItemText: { color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 12.5 },
 
   // Pricing tabs
   pricingRow: { flexDirection: 'row', gap: 10, marginTop: 4 },
@@ -1089,22 +1089,22 @@ const s = StyleSheet.create({
   },
   calPopHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   calNavBtn: { width: 22, height: 22, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center', ...({ cursor: 'pointer' } as any) },
-  calMonthLabel: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
+  calMonthLabel: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12 },
   yearTrigger: { flexDirection: 'row', alignItems: 'center', gap: 2, backgroundColor: 'rgba(255,255,255,0.04)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-  yearTriggerText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 11 },
+  yearTriggerText: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 11 },
   yearDropdown: {
     position: 'absolute', top: 22, left: 20, width: 80, maxHeight: 120,
     backgroundColor: '#1E293B', borderColor: MC.border, borderWidth: 1, borderRadius: 6,
     zIndex: 100000, shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.2, shadowRadius: 4
   },
-  yearDropdownItemText: { color: '#fff', fontFamily: FONTS.med, fontSize: 11 },
+  yearDropdownItemText: { color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 11 },
   calWeekdays: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 4 },
   calWeekdayText: { color: MC.dim, fontFamily: FONTS.bold, fontSize: 9, width: 28, textAlign: 'center' },
   calDaysGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start' },
   calDayCell: { width: `${100 / 7}%`, aspectRatio: 1, alignItems: 'center', justifyContent: 'center', borderRadius: 4, marginVertical: 1, ...({ cursor: 'pointer' } as any) },
   calDayEmpty: { width: `${100 / 7}%`, aspectRatio: 1 },
-  calDayText: { color: '#fff', fontFamily: FONTS.med, fontSize: 10 },
-  pickerTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12, marginBottom: 6, textAlign: 'center' },
+  calDayText: { color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 10 },
+  pickerTitle: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12, marginBottom: 6, textAlign: 'center' },
 
   // Live Preview layout
   previewCard: {
@@ -1115,13 +1115,13 @@ const s = StyleSheet.create({
   previewLabel: { color: MC.dim, fontFamily: FONTS.bold, fontSize: 10.5, letterSpacing: 0.5 },
   previewCover: { padding: 16, height: 110, justifyContent: 'space-between' },
   previewTypeBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.25)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 },
-  previewTypeText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 9.5, letterSpacing: 0.3 },
+  previewTypeText: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 9.5, letterSpacing: 0.3 },
   previewPriceBadge: { backgroundColor: '#fff', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   previewPriceBadgeText: { color: '#000', fontFamily: FONTS.xbold, fontSize: 9.5 },
-  previewTitleText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15.5, letterSpacing: -0.3, marginTop: 8 },
+  previewTitleText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 15.5, letterSpacing: -0.3, marginTop: 8 },
   previewContent: { padding: 14, gap: 8 },
   previewDetailItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  previewDetailText: { color: '#fff', fontFamily: FONTS.med, fontSize: 12 },
+  previewDetailText: { color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 12 },
   presenterPill: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: MC.bg2, borderColor: MC.border, borderWidth: 1,
@@ -1131,8 +1131,8 @@ const s = StyleSheet.create({
     width: 28, height: 28, borderRadius: 14,
     backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center'
   },
-  presenterAvatarText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 10 },
-  presenterName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
+  presenterAvatarText: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 10 },
+  presenterName: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12 },
   presenterRole: { color: MC.dim, fontFamily: FONTS.med, fontSize: 10, marginTop: 1 },
   previewRegisterBtn: {
     height: 34, borderRadius: 8, borderWidth: 1,
@@ -1143,7 +1143,7 @@ const s = StyleSheet.create({
   // Attendance tips
   tipsCard: { backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 12, padding: 14 },
   tipsHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
-  tipsHeaderTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 10.5, letterSpacing: 0.4 },
+  tipsHeaderTitle: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 10.5, letterSpacing: 0.4 },
   tipsList: { gap: 8 },
   tipsItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   tipsDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#F59E0B' },

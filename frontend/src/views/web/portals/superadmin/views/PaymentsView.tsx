@@ -126,7 +126,7 @@ function PayoutTiersEditor({ visible, onClose }: { visible: boolean; onClose: ()
                 <Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>Cancel</Text>
               </SecondaryButton>
               <GradientButton onPress={save} loading={loading} disabled={!form.name} style={{ flex: 1 }}>
-                <Check size={13} color="#fff" /><Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>{editIdx !== null ? 'Update' : 'Add'}</Text>
+                <Check size={13} color="#fff" /><Text style={{ color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12 }}>{editIdx !== null ? 'Update' : 'Add'}</Text>
               </GradientButton>
             </View>
           </View>
@@ -140,16 +140,16 @@ const edst = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 20 },
   modal: { backgroundColor: '#1a1a2e', borderRadius: 16, padding: 18, maxWidth: 440, width: '100%', alignSelf: 'center' },
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
-  title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
+  title: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 15 },
   xBtn: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   tierRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: SAC.border },
   dot: { width: 8, height: 8, borderRadius: 4 },
-  tn: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
+  tn: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12.5 },
   ts: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 1 },
   smBtn: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.05)' },
   form: { marginTop: 14, gap: 8 },
   formTitle: { color: SAC.muted, fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 0.5 },
-  input: { height: 36, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.06)', color: '#fff', fontFamily: FONTS.med, fontSize: 12.5, paddingHorizontal: 12 },
+  input: { height: 36, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.06)', color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 12.5, paddingHorizontal: 12 },
 });
 
 export function PaymentsView() {
@@ -330,7 +330,7 @@ export function PaymentsView() {
 
 const st = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 },
+  title: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 16 },
   sub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 760 },
   secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
   muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
@@ -338,20 +338,20 @@ const st = StyleSheet.create({
 
   kpiRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
   cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  cardTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
+  cardTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 15 },
 
   txRow: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: SAC.border,
   },
   txIcon: { width: 30, height: 30, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
-  txDesc: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
+  txDesc: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12.5 },
   txMeta: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 10.5, marginTop: 2 },
   txAmount: { fontFamily: FONTS.xbold, fontSize: 13, minWidth: 90, textAlign: 'right' },
 
   gradCard: { borderRadius: 16, padding: 18, gap: 4 },
   gradKicker: { color: 'rgba(255,255,255,0.85)', fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 0.8, marginTop: 10 },
-  gradVal: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 32, marginTop: 4, letterSpacing: -0.6 },
+  gradVal: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 32, marginTop: 4, letterSpacing: -0.6 },
   gradSub: { color: 'rgba(255,255,255,0.85)', fontFamily: FONTS.med, fontSize: 11.5, marginTop: 6 },
   gradCta: {
     marginTop: 14, height: 38, borderRadius: 10, backgroundColor: '#fff',
@@ -361,7 +361,7 @@ const st = StyleSheet.create({
   gradCtaText: { color: GRAD.to, fontFamily: FONTS.xbold, fontSize: 12 },
 
   tierDot: { width: 8, height: 8, borderRadius: 4 },
-  tierName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
+  tierName: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12 },
   tierSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 10.5 },
   tierCutPill: {
     flexDirection: 'row', alignItems: 'center', gap: 4,

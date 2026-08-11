@@ -1613,7 +1613,7 @@ function DeleteRoleModal({ role, onClose, onDeleted }: {
           </View>
           <View style={{ padding: 20, gap: 10 }}>
             <Text style={s.modalLabel}>
-              You're about to delete <Text style={{ color: '#fff', fontFamily: FONTS.xbold }}>{role.name}</Text>.
+              You're about to delete <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold }}>{role.name}</Text>.
             </Text>
             <Text style={s.muted}>
               {role.user_count > 0
@@ -2082,7 +2082,7 @@ function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
                   {analysis.locations.slice(0, 4).map((loc: any, i: number) => (
                     <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 }}>
                       <Globe size={11} color={SAC.muted} />
-                      <Text style={{ color: '#fff', fontFamily: FONTS.med, fontSize: 12 }}>{loc.city}{loc.country ? `, ${loc.country}` : ''}</Text>
+                      <Text style={{ color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 12 }}>{loc.city}{loc.country ? `, ${loc.country}` : ''}</Text>
                       <Text style={{ color: SAC.dim, fontFamily: FONTS.med, fontSize: 10.5 }}>{loc.count} session{loc.count === 1 ? '' : 's'}</Text>
                     </View>
                   ))}
@@ -2102,7 +2102,7 @@ function MiniStat({ icon: Icon, label, value }: { icon: any; label: string; valu
       <Icon size={12} color={GRAD_TO} />
       <View>
         <Text style={{ color: SAC.dim, fontFamily: FONTS.xbold, fontSize: 9, letterSpacing: 0.6 }}>{label.toUpperCase()}</Text>
-        <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 }}>{value}</Text>
+        <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 13 }}>{value}</Text>
       </View>
     </View>
   );
@@ -2380,7 +2380,7 @@ function PagesTab({ onSaved }: { onSaved: (s?: string) => void }) {
             <ArrowLeft size={16} color="#fff" />
             <Text style={s.linkBtnText}>Back</Text>
           </Pressable>
-          <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 18 }}>{editing.title}</Text>
+          <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 18 }}>{editing.title}</Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <Text style={{ color: '#94a3b8', fontFamily: FONTS.med, fontSize: 12 }}>Route: {editing.route}</Text>
@@ -2449,7 +2449,7 @@ function PagesTab({ onSaved }: { onSaved: (s?: string) => void }) {
         {pages.map((p) => (
           <View key={p.key} style={s.toolCard}>
             <View style={{ flex: 1, gap: 4 }}>
-              <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 }}>{p.title}</Text>
+              <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 14 }}>{p.title}</Text>
               <Text style={{ color: '#64748b', fontFamily: FONTS.med, fontSize: 11 }}>{p.route}</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
                 <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: p.active ? '#22c55e' : '#ef4444' }} />
@@ -2846,7 +2846,7 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10,
   },
-  tabActiveText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12.5 },
+  tabActiveText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12.5 },
   tabInactive: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10,
@@ -2861,7 +2861,7 @@ const s = StyleSheet.create({
   cardHeadRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap',
   },
-  cardTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
+  cardTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 15 },
   cardSub:   { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
   sectionLabel: { color: SAC.muted, fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 1.8 },
 
@@ -2879,11 +2879,11 @@ const s = StyleSheet.create({
     width: 72, height: 72, borderRadius: 18,
     alignItems: 'center', justifyContent: 'center',
   },
-  avatarText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 24 },
-  h1: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 18 },
+  avatarText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 24 },
+  h1: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 18 },
   subtle: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5 },
   pillGrad: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
-  pillGradText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 0.4 },
+  pillGradText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 0.4 },
   pillGreen: { backgroundColor: 'rgba(16,185,129,0.15)', borderColor: 'rgba(16,185,129,0.30)', borderWidth: 1, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999 },
   pillGreenText: { color: SAC.green, fontFamily: FONTS.xbold, fontSize: 10.5 },
   pillNeutral: { backgroundColor: SAC.cardSolid, borderColor: SAC.border, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999 },
@@ -2891,16 +2891,16 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ fontFamily: '"JetBrains Mono", "SF Mono", monospace' } as any) : {}),
   },
   label: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 10.5 },
-  valueText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
+  valueText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 13 },
   valueGrad: { color: GRAD_TO, fontFamily: FONTS.xbold, fontSize: 12.5 },
   muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },
   dotGreen: { width: 8, height: 8, borderRadius: 4, backgroundColor: SAC.green },
 
   fieldRow: { flexDirection: 'row', alignItems: 'center', gap: 12, justifyContent: 'space-between' },
   fieldLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12, width: 130 },
-  fieldValue: { color: '#fff', fontFamily: FONTS.med, fontSize: 13, flex: 1, textAlign: 'right' },
+  fieldValue: { color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 13, flex: 1, textAlign: 'right' },
   input: {
-    color: '#fff', fontFamily: FONTS.med, fontSize: 13,
+    color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 13,
     backgroundColor: SAC.cardSolid, borderRadius: 9, borderWidth: 1, borderColor: SAC.border,
     paddingHorizontal: 12, paddingVertical: 10, flex: 1,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
@@ -2916,7 +2916,7 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 12,
     paddingVertical: 11, paddingHorizontal: 4,
   },
-  toggleTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13, flex: 1, marginRight: 8 },
+  toggleTitle: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 13, flex: 1, marginRight: 8 },
   toggleDesc: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },
   systemRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -2962,7 +2962,7 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(245,158,11,0.12)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.30)',
     alignItems: 'center', justifyContent: 'center',
   },
-  pickerTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
+  pickerTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 15 },
   pickerSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
   credentialBody: {
     padding: 16,
@@ -3072,7 +3072,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 8,
   },
   searchInput: {
-    flex: 1, color: '#fff', fontFamily: FONTS.med, fontSize: 13,
+    flex: 1, color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 13,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
   },
   popularToggle: {
@@ -3092,7 +3092,7 @@ const s = StyleSheet.create({
     borderRadius: 14, borderWidth: 1, borderColor: SAC.border,
     backgroundColor: SAC.cardSolid,
   },
-  emptyTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 },
+  emptyTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 14 },
   emptySub: {
     color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, textAlign: 'center',
     maxWidth: 360, lineHeight: 17,
@@ -3120,7 +3120,7 @@ const s = StyleSheet.create({
   },
   catPillActive: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999, marginRight: 6 },
   catPillText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
-  catPillActiveText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 11.5 },
+  catPillActiveText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 11.5 },
   catLabel: { color: SAC.dim, fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 1.6, marginBottom: 10 },
   toolGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   toolCard: {
@@ -3130,13 +3130,13 @@ const s = StyleSheet.create({
   toolIcon: {
     width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1,
   },
-  toolName: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
+  toolName: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 13 },
   toolDesc: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 10, lineHeight: 15.5, minHeight: 30 },
   toolBtnGrad: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
     paddingVertical: 8, borderRadius: 8,
   },
-  toolBtnText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
+  toolBtnText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12 },
   toolBtnSec: {
     marginTop: 10, alignItems: 'center', justifyContent: 'center',
     paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: SAC.border,
@@ -3159,7 +3159,7 @@ const s = StyleSheet.create({
     position: 'absolute', top: 10, right: 10,
     paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5,
   },
-  popPillText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 8.5, letterSpacing: 0.6 },
+  popPillText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 8.5, letterSpacing: 0.6 },
 
   // Roles
   roleGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 16 },
@@ -3173,7 +3173,7 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   roleBadgeText: { fontFamily: FONTS.xbold, fontSize: 13.5 },
-  roleName: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13.5 },
+  roleName: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 13.5 },
   permLine: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, flex: 1 },
   sysPill: { backgroundColor: 'rgba(251,146,60,0.16)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(251,146,60,0.40)' },
   sysPillText: { color: '#FB923C', fontFamily: FONTS.xbold, fontSize: 8.5, letterSpacing: 0.8 },
@@ -3215,7 +3215,7 @@ const s = StyleSheet.create({
   revokeBtnText: { color: SAC.red, fontFamily: FONTS.xbold, fontSize: 11 },
   logRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 4 },
   logDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: GRAD_TO, marginTop: 5 },
-  logAction: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
+  logAction: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12.5 },
 
   trustBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
@@ -3251,7 +3251,7 @@ const s = StyleSheet.create({
   idFlipHint: { color: 'rgba(31,17,7,0.7)', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.3 },
   idFlipHintDark: { color: 'rgba(251,191,36,0.7)', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.3 },
   flipOrg: { color: 'rgba(251,191,36,0.9)', fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 2, textAlign: 'center' },
-  flipTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4, textAlign: 'center' },
+  flipTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4, textAlign: 'center' },
   flipSub: { color: 'rgba(255,255,255,0.6)', fontFamily: FONTS.med, fontSize: 12, textAlign: 'center', marginTop: 2 },
   flipDataLabel: { color: 'rgba(251,191,36,0.7)', fontFamily: FONTS.bold, fontSize: 9, letterSpacing: 1.4 },
   flipQrData: { color: 'rgba(255,255,255,0.85)', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.5, textAlign: 'center' },
@@ -3261,21 +3261,21 @@ const s = StyleSheet.create({
     backgroundColor: SAC.cardSolid, borderWidth: 1, borderColor: SAC.border,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '150ms' } as any) : {}),
   },
-  idActionText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
+  idActionText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12 },
   featGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 8 },
   featCard: {
     flex: 1, minWidth: 220, padding: 16, borderRadius: 12,
     backgroundColor: SAC.card, borderWidth: 1, borderColor: SAC.border, gap: 8,
   },
   featIcon: { width: 34, height: 34, borderRadius: 9, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
-  featTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
+  featTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 13 },
 
   // Primary buttons
   primaryBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 14, paddingVertical: 9, borderRadius: 9,
   },
-  primaryBtnText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
+  primaryBtnText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12 },
   secondaryBtn: {
     paddingHorizontal: 14, paddingVertical: 9, borderRadius: 9,
     borderWidth: 1, borderColor: SAC.border, backgroundColor: 'transparent',
@@ -3308,7 +3308,7 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 12,
     padding: 18, borderBottomWidth: 1, borderBottomColor: SAC.border,
   },
-  modalTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 },
+  modalTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 16 },
   modalSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
   modalClose: { width: 28, height: 28, borderRadius: 7, alignItems: 'center', justifyContent: 'center',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
@@ -3357,7 +3357,7 @@ const s = StyleSheet.create({
     padding: 14, marginTop: 14, gap: 2,
   },
   sigPreviewLine:      { color: SAC.text,  fontFamily: FONTS.med,   fontSize: 12.5, lineHeight: 17 },
-  sigPreviewLineFirst: { color: '#fff',    fontFamily: FONTS.xbold, fontSize: 13 },
+  sigPreviewLineFirst: { color: '#1C1C1E',    fontFamily: FONTS.xbold, fontSize: 13 },
   sigEditor: {
     minHeight: 130, paddingHorizontal: 12, paddingTop: 10,
     color: SAC.text, fontFamily: FONTS.med, fontSize: 13,
@@ -3384,7 +3384,7 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   roleDetailBackText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
-  roleDetailTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 18 },
+  roleDetailTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 18 },
   roleDetailSub:   { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
   roleStatRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap', marginBottom: 14 },
   roleStat: {
@@ -3393,7 +3393,7 @@ const s = StyleSheet.create({
     paddingVertical: 12, paddingHorizontal: 14,
   },
   roleStatLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 10.5, letterSpacing: 0.4 },
-  roleStatValue: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 22, marginTop: 4 },
+  roleStatValue: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 22, marginTop: 4 },
   roleUserRow: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     padding: 11, borderRadius: 10, backgroundColor: SAC.cardSolid,
@@ -3417,7 +3417,7 @@ const previewStyles = StyleSheet.create({
     overflow: 'hidden',
   },
   title: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: 'DMSans_700Bold, DMSansBold, sans-serif',
     fontSize: 26,
     paddingHorizontal: 24,

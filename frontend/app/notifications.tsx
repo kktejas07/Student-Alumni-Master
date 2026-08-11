@@ -63,7 +63,7 @@ export default function NotificationsScreen() {
       // auto-mark all unread as read
       const unreadIds = list.filter((n) => !n.read).map((n) => n.id);
       if (unreadIds.length > 0) {
-        api.markNotificationsRead(unreadIds).catch(() => {});
+        api.markNotificationsRead(unreadIds).catch(() => { });
       }
     } catch (e) {
       // swallow — UI shows empty state
@@ -112,10 +112,10 @@ export default function NotificationsScreen() {
                 onPress={() => {
                   // Route depending on type, supporting nested and title-based fallbacks
                   const resolvedType = (n.type || n.data?.type || '').toLowerCase();
-                  const isBooking = resolvedType.includes('booking') || 
-                                    (n.title || '').toLowerCase().includes('booking') || 
-                                    !!n.booking_id;
-                  
+                  const isBooking = resolvedType.includes('booking') ||
+                    (n.title || '').toLowerCase().includes('booking') ||
+                    !!n.booking_id;
+
                   if (resolvedType === 'connection_request' || resolvedType === 'connection_accepted') {
                     router.push('/network');
                   } else if (isBooking) {

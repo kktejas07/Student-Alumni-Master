@@ -33,10 +33,10 @@ export const MC = {
   accent:    A.accent,
   accentBright: '#5EEAD4',
 
-  // Text on dark navy surface
+  // Text on light surface
   text:  NX.textP,
-  muted: 'rgba(255,255,255,0.66)',
-  dim:   'rgba(255,255,255,0.46)',
+  muted: NX.textS,
+  dim:   NX.textT,
 
   // Status / utility
   green: NX.success,

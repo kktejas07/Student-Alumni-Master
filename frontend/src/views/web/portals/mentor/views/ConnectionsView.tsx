@@ -762,7 +762,7 @@ function DrawerInner({ st, onClose, onUpdateStudent, onRefresh }: { st: Student;
             ) : (
               <View style={[d.panelCard, { alignItems: 'center', paddingVertical: 20 }]}>
                 <MaterialCommunityIcons name="calendar-question" size={24} color={MC.dim} />
-                <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13, marginTop: 8 }}>No Upcoming Sessions Scheduled</Text>
+                <Text style={{ color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 13, marginTop: 8 }}>No Upcoming Sessions Scheduled</Text>
                 <Pressable onPress={() => setActiveTab('sessions')} style={d.schedulePromptBtn}>
                   <Text style={{ color: MC.bg, fontFamily: FONTS.xbold, fontSize: 11.5 }}>Schedule New Session Now</Text>
                 </Pressable>
@@ -799,7 +799,7 @@ function DrawerInner({ st, onClose, onUpdateStudent, onRefresh }: { st: Student;
             {st.lastSession && (
               <View style={d.panelCard}>
                 <Text style={d.kicker}>LAST COMPLETED SESSION</Text>
-                <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13, marginTop: 4 }}>Covered Core Topics</Text>
+                <Text style={{ color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 13, marginTop: 4 }}>Covered Core Topics</Text>
                 <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 4, lineHeight: 18 }}>{st.lastSession.notes}</Text>
               </View>
             )}
@@ -942,7 +942,7 @@ const d = StyleSheet.create({
     justifyContent: 'space-between'
   },
   drawerTopTitle: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.xbold,
     fontSize: 18,
     letterSpacing: -0.4
@@ -969,7 +969,7 @@ const d = StyleSheet.create({
     padding: 16,
     marginBottom: 16
   },
-  stName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 16 },
+  stName: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 16 },
   stSub: { color: MC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
   stCgpaText: { color: MC.dim, fontFamily: FONTS.med, fontSize: 11 },
   stZapBadge: { flexDirection: 'row', alignItems: 'center', gap: 2, backgroundColor: 'rgba(20, 184, 166, 0.08)', borderWidth: 1, borderColor: 'rgba(20, 184, 166, 0.2)', borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1 },
@@ -989,7 +989,7 @@ const d = StyleSheet.create({
   // 4 Stats Card Grid
   fourStatsRow: { flexDirection: 'row', gap: 8, marginBottom: 20 },
   fourStatCard: { flex: 1, backgroundColor: 'rgba(255,255,255,0.01)', borderColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderRadius: 12, paddingVertical: 10, alignItems: 'center', gap: 4 },
-  fourStatVal: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13 },
+  fourStatVal: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 13 },
   fourStatLabel: { color: MC.dim, fontFamily: FONTS.med, fontSize: 9.5 },
 
   // Tabs style
@@ -1002,7 +1002,7 @@ const d = StyleSheet.create({
   // Overview items
   kicker: { color: MC.dim, fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 0.8 },
   goalCapsule: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(20, 184, 166, 0.02)', borderColor: 'rgba(20, 184, 166, 0.12)', borderWidth: 1, borderRadius: 10, padding: 10 },
-  goalCapsuleText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
+  goalCapsuleText: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12.5 },
   
   tagInterests: { backgroundColor: 'rgba(20,184,166,0.05)', borderColor: 'rgba(20,184,166,0.18)', borderWidth: 1, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
   tagInterestsText: { color: MC.tealP, fontSize: 10, fontFamily: FONTS.bold },
@@ -1010,19 +1010,19 @@ const d = StyleSheet.create({
   tagSkillsText: { color: MC.muted, fontSize: 10, fontFamily: FONTS.bold },
 
   panelCard: { backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderRadius: 14, padding: 14, gap: 8 },
-  cardTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13 },
+  cardTitle: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 13 },
   progressValText: { color: MC.tealP, fontFamily: FONTS.bold, fontSize: 13 },
   progressBarWrapper: { height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.05)', overflow: 'hidden' },
   progressBarFilled: { height: '100%', backgroundColor: MC.tealP, borderRadius: 3 },
   progressSub: { color: MC.dim, fontFamily: FONTS.med, fontSize: 11 },
 
   upcomingTitle: { color: MC.tealP, fontFamily: FONTS.bold, fontSize: 13 },
-  upcomingDateTime: { color: '#fff', fontFamily: FONTS.bold, fontSize: 15 },
+  upcomingDateTime: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 15 },
   upcomingTopic: { color: MC.muted, fontFamily: FONTS.med, fontSize: 12 },
   
   sessionStartLabel: { color: MC.dim, fontFamily: FONTS.bold, fontSize: 9.5, letterSpacing: 0.5 },
   meetBtn: { flexDirection: 'row', gap: 4, alignItems: 'center', paddingHorizontal: 10, height: 32, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(34, 197, 94, 0.20)', backgroundColor: 'rgba(34, 197, 94, 0.08)', flex: 1, justifyContent: 'center', cursor: 'pointer' },
-  meetBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 10.5 },
+  meetBtnText: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 10.5 },
   agendaBtn: { flexDirection: 'row', gap: 6, alignItems: 'center', paddingHorizontal: 14, height: 36, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(20, 184, 166, 0.20)', backgroundColor: 'rgba(20, 184, 166, 0.05)', justifyContent: 'center', marginTop: 10, cursor: 'pointer' },
   agendaBtnText: { color: '#00ffcc', fontFamily: FONTS.bold, fontSize: 11.5 },
   schedulePromptBtn: { height: 32, paddingHorizontal: 14, backgroundColor: MC.tealP, borderRadius: 8, justifyContent: 'center', marginTop: 12, cursor: 'pointer' },
@@ -1032,17 +1032,17 @@ const d = StyleSheet.create({
   aiBtnText: { color: '#00ffcc', fontFamily: FONTS.bold, fontSize: 11.5 },
   aiAnalysisBox: { padding: 12, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.01)', gap: 6 },
   aiAnalysisPlaceholder: { color: MC.dim, fontFamily: FONTS.med, fontSize: 11.5 },
-  aiAnalysisText: { color: '#fff', fontFamily: FONTS.med, fontSize: 12, lineHeight: 18 },
+  aiAnalysisText: { color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 12, lineHeight: 18 },
   loadingSpin: { alignSelf: 'center' },
 
   // Interactive scheduler inside drawer
   inputLabel: { color: MC.muted, fontFamily: FONTS.bold, fontSize: 10.5, marginBottom: 5 },
-  topicInput: { backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 10, padding: 10, color: '#fff', fontSize: 13, fontFamily: FONTS.med, height: 40, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
+  topicInput: { backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 10, padding: 10, color: '#1C1C1E', fontSize: 13, fontFamily: FONTS.med, height: 40, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
   timeSlot: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: MC.border2, backgroundColor: 'rgba(20, 184, 166, 0.05)', cursor: 'pointer' },
   timeSlotActive: { backgroundColor: MC.tealP, borderColor: MC.tealP },
   calCard: { backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 12, padding: 12, marginTop: 5 },
   monthRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  monthLabel: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
+  monthLabel: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12.5 },
   navArrow: { width: 28, height: 28, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.05)', cursor: 'pointer' },
   weekDaysRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
   weekDayName: { color: MC.dim, fontFamily: FONTS.bold, fontSize: 10.5, width: '13%', textAlign: 'center' },
@@ -1050,27 +1050,27 @@ const d = StyleSheet.create({
   dayCell: { width: '13%', height: 30, alignItems: 'center', justifyContent: 'center', borderRadius: 6, marginBottom: 4, cursor: 'pointer' },
   dayCellEmpty: { width: '13%', height: 30, marginBottom: 4 },
   dayCellSelected: { backgroundColor: MC.tealP },
-  dayText: { color: '#fff', fontFamily: FONTS.med, fontSize: 11 },
+  dayText: { color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 11 },
   dayTextSelected: { color: MC.bg, fontFamily: FONTS.bold },
   confirmBtn: { backgroundColor: MC.tealP, height: 42, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginTop: 10, cursor: 'pointer' },
 
   // Notes tab
-  notesTextarea: { backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 10, padding: 12, color: '#fff', fontSize: 13, fontFamily: FONTS.med, minHeight: 100, textAlignVertical: 'top', ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
+  notesTextarea: { backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 10, padding: 12, color: '#1C1C1E', fontSize: 13, fontFamily: FONTS.med, minHeight: 100, textAlignVertical: 'top', ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
   saveNotesBtn: { flexDirection: 'row', gap: 6, alignItems: 'center', paddingHorizontal: 14, height: 38, borderRadius: 8, backgroundColor: MC.tealP, justifyContent: 'center', marginTop: 12, cursor: 'pointer' },
   saveBtnText: { color: MC.bg, fontFamily: FONTS.xbold, fontSize: 12 },
 });
 
 const s = StyleSheet.create({
-  sectionTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 20, letterSpacing: -0.4 },
+  sectionTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 20, letterSpacing: -0.4 },
   sub: { color: MC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
   searchBox: { flexDirection: 'row', alignItems: 'center', gap: 8, width: 260, height: 36, paddingHorizontal: 11, borderRadius: 10, backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1 },
-  searchInput: { flex: 1, color: '#fff', fontFamily: FONTS.med, fontSize: 12.5, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
+  searchInput: { flex: 1, color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 12.5, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
   
   // Stats Row Styles
   statsRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap', marginTop: 4 },
   statCard: { flex: 1, minWidth: 120, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10 },
   statIconBg: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  statVal: { color: '#fff', fontFamily: FONTS.bold, fontSize: 15 },
+  statVal: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 15 },
   statLabel: { color: MC.muted, fontFamily: FONTS.med, fontSize: 10.5, marginTop: 1 },
 
   // Left Sidebar Filter Styles
@@ -1086,13 +1086,13 @@ const s = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, width: '100%' },
   card: { backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 14, padding: 14, cursor: 'pointer', position: 'relative' },
   cardHovered: { borderColor: MC.border2 },
-  cardName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13.5 },
+  cardName: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 13.5 },
   cardSubtitle: { color: MC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },
   cardSaId: { color: MC.dim, fontFamily: FONTS.med, fontSize: 10, marginTop: 1 },
   
   // Custom Card Badges
   unreadBadge: { backgroundColor: '#EF4444', borderRadius: 10, minWidth: 16, height: 16, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
-  unreadText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 9.5 },
+  unreadText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 9.5 },
   zapBadge: { flexDirection: 'row', alignItems: 'center', gap: 2, backgroundColor: 'rgba(20, 184, 166, 0.08)', borderWidth: 1, borderColor: 'rgba(20, 184, 166, 0.2)', borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1 },
   zapText: { color: MC.tealP, fontFamily: FONTS.xbold, fontSize: 9 },
 
@@ -1107,7 +1107,7 @@ const s = StyleSheet.create({
   
   nextBox: { backgroundColor: 'rgba(20,184,166,0.04)', borderColor: 'rgba(20,184,166,0.15)', borderWidth: 1, borderRadius: 8, padding: 8, gap: 2 },
   nextLabel: { color: MC.tealP, fontFamily: FONTS.bold, fontSize: 9.5 },
-  nextDateTime: { color: '#fff', fontFamily: FONTS.bold, fontSize: 11 },
+  nextDateTime: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 11 },
   nextTopic: { color: MC.muted, fontFamily: FONTS.med, fontSize: 10.5 },
 
   // Card Action Footer
@@ -1136,18 +1136,18 @@ const s = StyleSheet.create({
   bubbleMentor: { backgroundColor: 'rgba(20, 184, 166, 0.15)', alignSelf: 'flex-end', borderBottomRightRadius: 2 },
   bubbleStudent: { backgroundColor: 'rgba(255,255,255,0.06)', alignSelf: 'flex-start', borderBottomLeftRadius: 2 },
   inputWrapper: { flexDirection: 'row', gap: 8, alignItems: 'flex-end', marginTop: 10 },
-  msgInput: { flex: 1, backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 10, padding: 10, color: '#fff', fontSize: 13, fontFamily: FONTS.med, minHeight: 40, maxHeight: 80, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
+  msgInput: { flex: 1, backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 10, padding: 10, color: '#1C1C1E', fontSize: 13, fontFamily: FONTS.med, minHeight: 40, maxHeight: 80, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
   sendBtn: { height: 40, width: 60, backgroundColor: MC.tealP, borderRadius: 10, alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   
   // Schedule tab in Drawer
-  topicInput: { backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 10, padding: 10, color: '#fff', fontSize: 13, fontFamily: FONTS.med, height: 40, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
+  topicInput: { backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 10, padding: 10, color: '#1C1C1E', fontSize: 13, fontFamily: FONTS.med, height: 40, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
   chip: { paddingHorizontal: 14, height: 32, borderRadius: 8, backgroundColor: MC.card, borderWidth: 1, borderColor: MC.border, justifyContent: 'center', cursor: 'pointer' },
   chipOn: { backgroundColor: MC.teal, borderColor: MC.teal },
   timeSlot: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: MC.border2, backgroundColor: 'rgba(20, 184, 166, 0.05)', cursor: 'pointer' },
   timeSlotActive: { backgroundColor: MC.tealP, borderColor: MC.tealP },
   calCard: { backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 12, padding: 12, marginTop: 5 },
   monthRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  monthLabel: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
+  monthLabel: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12.5 },
   navArrow: { width: 28, height: 28, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.05)', cursor: 'pointer' },
   weekDaysRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
   weekDayName: { color: MC.dim, fontFamily: FONTS.bold, fontSize: 10.5, width: '13%', textAlign: 'center' },
@@ -1155,11 +1155,11 @@ const s = StyleSheet.create({
   dayCell: { width: '13%', height: 30, alignItems: 'center', justifyContent: 'center', borderRadius: 6, marginBottom: 4, cursor: 'pointer' },
   dayCellEmpty: { width: '13%', height: 30, marginBottom: 4 },
   dayCellSelected: { backgroundColor: MC.tealP },
-  dayText: { color: '#fff', fontFamily: FONTS.med, fontSize: 11 },
+  dayText: { color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 11 },
   dayTextSelected: { color: MC.bg, fontFamily: FONTS.bold },
   confirmBtn: { backgroundColor: MC.tealP, height: 42, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginTop: 10, cursor: 'pointer' },
   pagination: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 16, gap: 14 },
   pageBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: MC.card, borderRadius: 8, borderWidth: 1, borderColor: MC.border, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  pageBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
+  pageBtnText: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12 },
   pageInfo: { color: MC.muted, fontFamily: FONTS.med, fontSize: 12 },
 });

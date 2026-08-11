@@ -107,7 +107,7 @@ export function TopBar({
     <GlassTopbar scrolled={scrolled} style={{
       height: bp.isPhone ? 56 : 64,
       paddingHorizontal: bp.isPhone ? SP.base : SP.lg,
-      backgroundColor: 'rgba(10,15,30,0.80)',
+      backgroundColor: PALETTE.glassSoft,
       borderBottomColor: PALETTE.glassBorder,
       // @ts-expect-error web-only
       backdropFilter: 'blur(20px) saturate(180%)',

@@ -40,8 +40,33 @@ import { LogBox } from 'react-native';
 
 LogBox.ignoreLogs(['6000ms timeout exceeded', 'fontfaceobserver']);
 
+if (typeof window !== 'undefined') {
+  window.addEventListener('error', (e) => {
+    if (e.message?.includes('6000ms timeout exceeded')) {
+      e.stopImmediatePropagation();
+      e.preventDefault();
+    }
+  }, true);
+  
+  window.addEventListener('unhandledrejection', (e) => {
+    if (e.reason?.message?.includes('6000ms timeout exceeded')) {
+      e.stopImmediatePropagation();
+      e.preventDefault();
+    }
+  }, true);
+}
 
-
+if (typeof window !== 'undefined') {
+  const originalConsoleError = console.error;
+  console.error = (...args) => {
+    const isTimeout = args.some(arg => 
+      (typeof arg === 'string' && arg.includes('6000ms timeout exceeded')) ||
+      (arg && arg.message && arg.message.includes('6000ms timeout exceeded'))
+    );
+    if (isTimeout) return;
+    originalConsoleError(...args);
+  };
+}
 // Material 3 theme — overrides primary/secondary to brand purple. This means
 // all react-native-paper components (Surface, Card, Button, Ripple) will pick
 // up the SA brand automatically.
@@ -94,28 +119,7 @@ export default function RootLayout() {
     JetBrainsMono_700Bold: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
 
-  useEffect(() => {
-    if (__DEV__ && typeof window !== 'undefined') {
-      const handleError = (e: ErrorEvent) => {
-        if (e.message?.includes('6000ms timeout exceeded')) {
-          e.preventDefault();
-        }
-      };
-      const handleRejection = (e: PromiseRejectionEvent) => {
-        if (e.reason?.message?.includes('6000ms timeout exceeded')) {
-          e.preventDefault();
-        }
-      };
-      
-      window.addEventListener('error', handleError);
-      window.addEventListener('unhandledrejection', handleRejection);
-      
-      return () => {
-        window.removeEventListener('error', handleError);
-        window.removeEventListener('unhandledrejection', handleRejection);
-      };
-    }
-  }, []);
+
 
   const init = useAuthStore((s) => s.init);
   const initialized = useAuthStore((s) => s.initialized);

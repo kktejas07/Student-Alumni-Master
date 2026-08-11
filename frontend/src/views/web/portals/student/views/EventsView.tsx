@@ -196,7 +196,7 @@ export function DropdownSelect({ label, value, options, onSelect }: DropdownSele
           cursor: 'pointer',
         }}
       >
-        <Text style={{ color: '#fff', fontSize: 12, fontFamily: FONTS.med }}>
+        <Text style={{ color: '#1C1C1E', fontSize: 12, fontFamily: FONTS.med }}>
           {selectedOption?.label}
         </Text>
         <MaterialCommunityIcons name={open ? 'chevron-up' : 'chevron-down'} size={15} color="rgba(255,255,255,0.6)" />
@@ -362,7 +362,7 @@ export function EventsView() {
       </Pressable>
 
       <View style={{ marginBottom: 18 }}>
-        <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 18 }}>Featured Events</Text>
+        <Text style={{ color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 18 }}>Featured Events</Text>
         <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 }}>Handpicked for your interests</Text>
       </View>
 
@@ -555,7 +555,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   cardTitle: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
     fontSize: 15,
     lineHeight: 20,
@@ -604,7 +604,7 @@ const s = StyleSheet.create({
     borderRadius: 8,
   },
   btnRegisterText: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
     fontSize: 11,
   },
@@ -626,7 +626,7 @@ const s = StyleSheet.create({
   },
   pagination: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 16, gap: 14 },
   pageBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  pageBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
+  pageBtnText: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12 },
   pageInfo: { color: SC.muted, fontFamily: FONTS.med, fontSize: 12 },
   sortChip: {
     paddingHorizontal: 12,
@@ -658,7 +658,7 @@ const s = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.med,
     fontSize: 13,
     paddingVertical: 0,
