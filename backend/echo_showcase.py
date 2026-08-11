@@ -87,9 +87,9 @@ def _generate_coupon_code(session_key: str, reg_id: str) -> str:
     return f"{session_key.upper()}-{h}"
 
 
-def _generate_coupons_for_registration(db, slug: str, reg_id: str, sessions: list):
+async def _generate_coupons_for_registration(db, slug: str, reg_id: str, sessions: list):
     """Generate coupon records for all enabled sessions."""
-    from datetime import datetime, timezone
+    from datetime import timezone
     coupons = []
     for s in sessions:
         if not s.get("enabled"):
@@ -107,7 +107,7 @@ def _generate_coupons_for_registration(db, slug: str, reg_id: str, sessions: lis
             "created_at": datetime.now(timezone.utc),
         })
     if coupons:
-        db.echo_coupons.insert_many(coupons)
+        await db.echo_coupons.insert_many(coupons)
     return coupons
 
 
