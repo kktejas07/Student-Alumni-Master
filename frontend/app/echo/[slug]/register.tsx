@@ -593,7 +593,7 @@ export default function EchoRegisterPage() {
 
         </View>
         <EchoFooter />
-        </View>
+        </ScrollView>
       </View>
     );
   }
