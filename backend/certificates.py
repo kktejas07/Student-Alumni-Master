@@ -53,49 +53,49 @@ def _gen_code() -> str:
 ISSUERS: Dict[str, Dict[str, Any]] = {
     "udemy": {
         "label": "Udemy",
-        "match": re.compile(r"udemy\.com/certificate/UC-[A-Za-z0-9-]{6,}"),
+        "match": re.compile(r"udemy\.com/certificate/UC-[A-Za-z0-9-]{6,}", re.IGNORECASE),
         "verify_url": lambda u: u,
         "hint": "Udemy certificates are verifiable at the udemy.com/certificate/ link you saved.",
     },
     "coursera": {
         "label": "Coursera",
-        "match": re.compile(r"coursera\.org/(?:learn|account/accomplishments)[^\s]*|coursera\.org/verify/[A-Z0-9]{4,}"),
+        "match": re.compile(r"coursera\.org/(?:learn|account/accomplishments)[^\s]*|coursera\.org/verify/[A-Z0-9]{4,}", re.IGNORECASE),
         "verify_url": lambda u: u,
         "hint": "Coursera credentials verify at coursera.org/verify/<code>.",
     },
     "linkedin": {
         "label": "LinkedIn Learning",
-        "match": re.compile(r"linkedin\.com/(?:learning/certificates|in/|public-profile)[^\s]*"),
+        "match": re.compile(r"linkedin\.com/(?:learning/certificates|in/|public-profile)[^\s]*", re.IGNORECASE),
         "verify_url": lambda u: u,
         "hint": "LinkedIn credentials are verified via the profile / learning certificate URL.",
     },
     "freecodecamp": {
         "label": "freeCodeCamp",
-        "match": re.compile(r"freecodecamp\.org/certification/[A-Za-z0-9_-]+/[A-Za-z0-9_-]+"),
+        "match": re.compile(r"freecodecamp\.org/certification/[A-Za-z0-9_-]+/[A-Za-z0-9_-]+", re.IGNORECASE),
         "verify_url": lambda u: u,
         "hint": "freeCodeCamp certificates verify at freecodecamp.org/certification/<user>/<slug>.",
     },
     "codespectra": {
         "label": "CodeSpectra",
-        "match": re.compile(r"codespectra\.ai[^\s]*"),
+        "match": re.compile(r"codespectra\.ai[^\s]*", re.IGNORECASE),
         "verify_url": lambda u: u,
         "hint": "CodeSpectra credentials verify on the issuing page.",
     },
     "edx": {
         "label": "edX",
-        "match": re.compile(r"edx\.org[^\s]*|credentials\.edx\.org[^\s]*"),
+        "match": re.compile(r"edx\.org[^\s]*|credentials\.edx\.org[^\s]*", re.IGNORECASE),
         "verify_url": lambda u: u,
         "hint": "edX certificates verify via your credentials.edx.org link.",
     },
     "google": {
         "label": "Google Career Certificates",
-        "match": re.compile(r"grow\.google[^\s]*|coursera\.org/verify[^\s]*"),
+        "match": re.compile(r"grow\.google[^\s]*", re.IGNORECASE),
         "verify_url": lambda u: u,
         "hint": "Google certificates verify via the credential URL.",
     },
     "ibm": {
         "label": "IBM SkillsBuild / Credly",
-        "match": re.compile(r"credly\.com[^\s]*|skillsbuild\.org[^\s]*|ibm\.com[^\s]*"),
+        "match": re.compile(r"credly\.com[^\s]*|skillsbuild\.org[^\s]*|ibm\.com[^\s]*", re.IGNORECASE),
         "verify_url": lambda u: u,
         "hint": "IBM / Credly badges verify on the Credly page.",
     },
@@ -109,9 +109,8 @@ _DEFAULT_HINT = (
 
 def classify_external(url: str) -> Dict[str, Any]:
     """Return issuer metadata for an external credential URL."""
-    url_l = (url or "").lower()
     for key, meta in ISSUERS.items():
-        if meta["match"].search(url_l):
+        if meta["match"].search(url or ""):
             return {
                 "issuer": meta["label"],
                 "issuer_key": key,
