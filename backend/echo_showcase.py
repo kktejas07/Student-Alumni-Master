@@ -372,7 +372,8 @@ async def _send_registration_confirmation(db, reg: dict, showcase: dict) -> None
             return
         title = reg.get("showcase_title") or showcase.get("title") or "Event Registration"
         reg_id = reg.get("id") or ""
-        ticket_url = f"https://studentalumni.ai/api/echo/tickets/{reg_id}"
+        import urllib.parse
+        ticket_url = f"https://studentalumni.ai/api/echo/tickets/{reg_id}?email={urllib.parse.quote(email)}"
         ticket_block = _ticket_email_block(reg, showcase, ticket_url)
         subject = f"Your Entry Pass — {title}"
         body = render_html_email(
@@ -1280,7 +1281,8 @@ async def _store_invoice_and_email(db, reg: dict, showcase: Optional[dict]) -> d
         email = reg.get("email") or ""
         if email:
             reg_id = reg.get("id") or ""
-            ticket_url = f"https://studentalumni.ai/api/echo/tickets/{reg_id}"
+            import urllib.parse
+            ticket_url = f"https://studentalumni.ai/api/echo/tickets/{reg_id}?email={urllib.parse.quote(email)}"
             ticket_block = _ticket_email_block(reg, showcase, ticket_url)
             subject = f"Payment Receipt & Entry Pass — {inv_ser.get('event_title') or 'Event Registration'}"
             body = render_html_email(
