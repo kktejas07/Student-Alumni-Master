@@ -26,12 +26,12 @@ import json
 import secrets
 import mimetypes
 from pathlib import Path
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date as _date
 from typing import Any, Dict, List, Optional
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, Request, File, UploadFile, Query
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from core.security import generate_qr_code
 from core.email import send_email, render_html_email
@@ -133,7 +133,7 @@ async def _razorpay_create_order(db, amount: float, currency: str, receipt: str,
                 "https://api.razorpay.com/v1/orders",
                 auth=(cfg["key_id"], cfg["key_secret"]),
                 json={
-                    "amount": int(round(amount * 100)),
+                    "amount": int(amount * 100),
                     "currency": currency,
                     "receipt": receipt,
                     "notes": notes,
@@ -282,7 +282,7 @@ def _build_invoice_html(inv: dict) -> str:
           </td>
           <td style="padding-top:16px;">
             <div class="label">Payment Method</div>
-            <div class="val">{_payment_label(inv.get('payment_method'))}</div>
+            <div class="val">{_payment_label(inv.get('payment_method') or '')}</div>
           </td>
         </tr>
       </table>
@@ -305,6 +305,34 @@ def _build_invoice_html(inv: dict) -> str:
   </div>
 </body>
 </html>"""
+
+
+async def _sync_user_profile_data(db, user: Optional[dict], payload: Any):
+    if user is None:
+        return
+    dob_val = getattr(payload, "date_of_birth", None) or getattr(payload, "dob", None) or ""
+    branch_val = getattr(payload, "branch", None) or ""
+    year_val = getattr(payload, "year", None) or ""
+    college_val = getattr(payload, "college", None) or ""
+
+    user_updates = {}
+    if dob_val and not user.get("dob"):
+        user_updates["dob"] = dob_val
+    if branch_val:
+        user_updates["branch"] = branch_val
+        user_updates["school_info.branch_or_stream"] = branch_val
+    if year_val:
+        user_updates["year"] = year_val
+        user_updates["school_info.class_or_year"] = f"Y{year_val}"
+    if college_val:
+        user_updates["college"] = college_val
+        user_updates["school_info.institution_name"] = college_val
+
+    if user_updates:
+        try:
+            await db.users.update_one({"_id": user["_id"]}, {"$set": user_updates})
+        except Exception:
+            pass
 
 
 async def _mirror_to_event_registration(db, reg: dict, showcase: dict, user: Optional[dict]):
@@ -716,7 +744,7 @@ DEFAULT_SHOWCASE_SEED = {
 async def seed_echo_showcase(db: AsyncIOMotorDatabase):
     """Seed initial VNR ECHO 2026 showcase if missing, and ensure gallery_layout exists."""
     try:
-        seed_slug = DEFAULT_SHOWCASE_SEED.get("slug")
+        seed_slug = str(DEFAULT_SHOWCASE_SEED.get("slug") or "vnr-echo-2026")
         seed_aliases = DEFAULT_SHOWCASE_SEED.get("aliases") or []
         existing = await db.echo_showcases.find_one(_slug_query(seed_slug))
         if not existing and seed_aliases:
@@ -782,14 +810,94 @@ async def get_showcase(slug: str, request: Request):
 
 
 # ── Registration (mock payment gateway) ───────────────────────────────────────
+ALLOWED_BTECH_BRANCHES = {
+    "CSE", "CSE-AIML", "AI-DS", "IT", "ECE", "EEE", "ME", "CE", "CHE", "BT", "Other",
+    "Computer Science and Engineering",
+    "Computer Science and Engineering (CSE)",
+    "Computer Science and Engineering (AI & ML)",
+    "Artificial Intelligence and Data Science",
+    "Information Technology",
+    "Electronics and Communication Engineering",
+    "Electrical and Electronics Engineering",
+    "Mechanical Engineering",
+    "Civil Engineering",
+    "Chemical Engineering",
+    "Biotechnology",
+}
+
+BRANCH_CANONICAL_MAP = {
+    "Computer Science and Engineering": "CSE",
+    "Computer Science and Engineering (CSE)": "CSE",
+    "Computer Science and Engineering (AI & ML)": "CSE-AIML",
+    "Artificial Intelligence and Data Science": "AI-DS",
+    "Information Technology": "IT",
+    "Electronics and Communication Engineering": "ECE",
+    "Electrical and Electronics Engineering": "EEE",
+    "Mechanical Engineering": "ME",
+    "Civil Engineering": "CE",
+    "Chemical Engineering": "CHE",
+    "Biotechnology": "BT",
+}
+
+YEAR_CANONICAL_MAP = {
+    "1st Year": "1",
+    "2nd Year": "2",
+    "3rd Year": "3",
+    "4th Year": "4",
+    "Final": "4",
+    "Final Year": "4",
+    "1": "1",
+    "2": "2",
+    "3": "3",
+    "4": "4",
+}
+
 class RegisterSchema(BaseModel):
     full_name: Optional[str] = ""
     email: Optional[str] = ""
     phone: Optional[str] = ""
+    date_of_birth: Optional[str] = ""
+    dob: Optional[str] = ""
     branch: Optional[str] = ""
     year: Optional[str] = ""
     college: Optional[str] = ""
     payment_method: Optional[str] = "mock"
+
+    @field_validator("date_of_birth", "dob")
+    @classmethod
+    def _validate_dob(cls, v):
+        if not v or not v.strip():
+            return ""
+        val = v.strip()
+        try:
+            d = _date.fromisoformat(val)
+        except Exception:
+            raise ValueError("Date of birth must be in YYYY-MM-DD format")
+        if d > _date.today():
+            raise ValueError("Date of birth cannot be in the future")
+        return val
+
+    @field_validator("branch")
+    @classmethod
+    def _validate_branch(cls, v):
+        if not v or not v.strip():
+            return ""
+        val = v.strip()
+        norm = BRANCH_CANONICAL_MAP.get(val, val)
+        if norm not in ALLOWED_BTECH_BRANCHES and val not in ALLOWED_BTECH_BRANCHES:
+            raise ValueError(f"Invalid B.Tech branch: {val}")
+        return norm
+
+    @field_validator("year")
+    @classmethod
+    def _validate_year(cls, v):
+        if not v or not v.strip():
+            return ""
+        val = v.strip()
+        norm = YEAR_CANONICAL_MAP.get(val, val)
+        if norm not in ("1", "2", "3", "4"):
+            raise ValueError("Academic year must be 1, 2, 3, or 4")
+        return norm
 
 
 @router.post("/showcases/{slug}/register")
@@ -888,6 +996,7 @@ async def register_for_showcase(
         }
 
     # 1) Event-side registration
+    dob_val = payload.date_of_birth or payload.dob or ""
     reg = {
         "id": reg_id,
         "slug": canonical_slug,
@@ -898,6 +1007,8 @@ async def register_for_showcase(
         "full_name": payload.full_name or (user.get("full_name") if user else "") or "Attendee",
         "email": payload.email or (user.get("email") if user else ""),
         "phone": payload.phone or (user.get("phone") if user else ""),
+        "date_of_birth": dob_val,
+        "dob": dob_val,
         "branch": payload.branch,
         "year": payload.year,
         "college": payload.college or showcase.get("college"),
@@ -910,6 +1021,7 @@ async def register_for_showcase(
         "created_at": now_iso,
     }
     await db.echo_registrations.insert_one(dict(reg))
+    await _sync_user_profile_data(db, user, payload)
 
     # 2) StudentAlumni-side registration (mirror /events/:id/register)
     if user is not None or auto_paid:
@@ -955,9 +1067,47 @@ class PaymentOrderSchema(BaseModel):
     full_name: Optional[str] = ""
     email: Optional[str] = ""
     phone: Optional[str] = ""
+    date_of_birth: Optional[str] = ""
+    dob: Optional[str] = ""
     branch: Optional[str] = ""
     year: Optional[str] = ""
     college: Optional[str] = ""
+
+    @field_validator("date_of_birth", "dob")
+    @classmethod
+    def _validate_dob(cls, v):
+        if not v or not v.strip():
+            return ""
+        val = v.strip()
+        try:
+            d = _date.fromisoformat(val)
+        except Exception:
+            raise ValueError("Date of birth must be in YYYY-MM-DD format")
+        if d > _date.today():
+            raise ValueError("Date of birth cannot be in the future")
+        return val
+
+    @field_validator("branch")
+    @classmethod
+    def _validate_branch(cls, v):
+        if not v or not v.strip():
+            return ""
+        val = v.strip()
+        norm = BRANCH_CANONICAL_MAP.get(val, val)
+        if norm not in ALLOWED_BTECH_BRANCHES and val not in ALLOWED_BTECH_BRANCHES:
+            raise ValueError(f"Invalid B.Tech branch: {val}")
+        return norm
+
+    @field_validator("year")
+    @classmethod
+    def _validate_year(cls, v):
+        if not v or not v.strip():
+            return ""
+        val = v.strip()
+        norm = YEAR_CANONICAL_MAP.get(val, val)
+        if norm not in ("1", "2", "3", "4"):
+            raise ValueError("Academic year must be 1, 2, 3, or 4")
+        return norm
 
 
 class VerifyPaymentSchema(PaymentOrderSchema):
@@ -1046,6 +1196,7 @@ async def create_payment_order(slug: str, payload: PaymentOrderSchema, request: 
 
     # Persist a pending registration so verify-payment has a record to finalize
     if not existing:
+        dob_val = payload.date_of_birth or payload.dob or ""
         reg = {
             "id": reg_id,
             "slug": canonical_slug,
@@ -1056,6 +1207,8 @@ async def create_payment_order(slug: str, payload: PaymentOrderSchema, request: 
             "full_name": payload.full_name,
             "email": email,
             "phone": payload.phone,
+            "date_of_birth": dob_val,
+            "dob": dob_val,
             "branch": payload.branch,
             "year": payload.year,
             "college": payload.college or showcase.get("college"),
@@ -1161,9 +1314,10 @@ async def verify_payment(slug: str, payload: VerifyPaymentSchema, request: Reque
         }}
     )
 
-    updated = await db.echo_registrations.find_one({"_id": reg["_id"]})
-    updated = _ser(updated)
+    updated_doc = await db.echo_registrations.find_one({"_id": reg["_id"]})
+    updated = _ser(updated_doc) if updated_doc else {}
     await _mirror_to_event_registration(db, updated, showcase, user)
+    await _sync_user_profile_data(db, user, payload)
     invoice = await _store_invoice_and_email(db, updated, showcase)
     return {"registration": updated, "invoice": invoice}
 
@@ -1410,16 +1564,16 @@ async def upload_echo_media(request: Request, file: UploadFile = File(None), adm
     elif "multipart/form-data" in content_type:
         form = await request.form()
         uploaded_file = form.get("file") or form.get("image") or form.get("media")
-        if uploaded_file and hasattr(uploaded_file, "filename"):
-            filename = uploaded_file.filename
+        if uploaded_file and hasattr(uploaded_file, "filename") and hasattr(uploaded_file, "read"):
+            filename = str(getattr(uploaded_file, "filename", "") or "")
             original_name = filename
-            file_bytes = await uploaded_file.read()
+            file_bytes = await uploaded_file.read() # type: ignore
         else:
             raise HTTPException(status_code=400, detail="No file found in multipart upload")
     elif "application/json" in content_type:
         body = await request.json()
         data = body.get("data", "")
-        filename = body.get("filename") or f"upload_{int(datetime.now().timestamp())}.png"
+        filename = str(body.get("filename") or f"upload_{int(datetime.now().timestamp())}.png")
         original_name = filename
         if "," in data:
             data = data.split(",", 1)[1]
@@ -1432,13 +1586,13 @@ async def upload_echo_media(request: Request, file: UploadFile = File(None), adm
     if len(file_bytes) > MAX_SIZE:
         raise HTTPException(status_code=413, detail="File too large. Maximum 25 MB allowed.")
 
-    ext = Path(filename).suffix.lower() or ".png"
+    ext = Path(str(filename or "")).suffix.lower() or ".png"
     ALLOWED = {".jpg", ".jpeg", ".png", ".webp", ".avif", ".svg", ".gif", ".pdf", ".docx", ".xlsx", ".pptx", ".zip"}
     if ext not in ALLOWED:
         raise HTTPException(status_code=400, detail=f"File type {ext} not allowed.")
 
     ts = int(datetime.now().timestamp())
-    stem = Path(filename).stem.replace(" ", "_")
+    stem = Path(str(filename or "")).stem.replace(" ", "_")
     safe_name = f"{ts}_{stem}{ext}"
     out_path = UPLOAD_DIR / safe_name
 

@@ -26,6 +26,9 @@ import { PALETTE, FONTS, TYPO } from '@/src/views/web/portals/student/tokens';
 import { GRAD } from '@/src/views/web/portals/student/portalkit';
 import { EchoHeader, EchoFooter, ECHO_TOP_PADDING } from '@/src/views/web/components/EchoChrome';
 import { CollegeAutocomplete } from '@/src/views/web/components/CollegeAutocomplete';
+import { CalendarDatePicker } from '@/src/views/web/components/CalendarDatePicker';
+import { DarkDropdown } from '@/src/views/web/components/DarkDropdown';
+import { BTECH_BRANCHES, BTECH_YEAR_OPTIONS } from '@/src/constants/branches';
 
 export default function EchoRegisterPage() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
@@ -37,7 +40,8 @@ export default function EchoRegisterPage() {
   const [loading, setLoading] = useState(true);
   const [existing, setExisting] = useState<any>(null);
 
-  const [form, setForm] = useState({ full_name: '', email: '', phone: '', branch: '', year: '', college: '' });
+  const [form, setForm] = useState({ full_name: '', email: '', phone: '', date_of_birth: '', branch: '', year: '', college: '' });
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -120,8 +124,21 @@ export default function EchoRegisterPage() {
   };
 
   const onSubmit = async () => {
-    if (!form.full_name.trim() || !form.email.trim()) {
-      setError('Please fill in your name and email.');
+    const errs: Record<string, string> = {};
+    if (!form.full_name.trim()) errs.full_name = 'Please fill in your name.';
+    if (!form.email.trim() || !form.email.includes('@')) errs.email = 'Please enter a valid email address.';
+    if (form.date_of_birth) {
+      const d = new Date(form.date_of_birth);
+      if (isNaN(d.getTime())) {
+        errs.date_of_birth = 'Please select a valid date of birth.';
+      } else if (d > new Date()) {
+        errs.date_of_birth = 'Date of birth cannot be in the future.';
+      }
+    }
+
+    setFieldErrors(errs);
+    if (Object.keys(errs).length > 0) {
+      setError('Please fix the highlighted errors before submitting.');
       return;
     }
     setSubmitting(true);
@@ -393,23 +410,43 @@ export default function EchoRegisterPage() {
                 <Text style={s.cardTitle}>Registration Details</Text>
 
                 <Text style={s.label}>Full Name *</Text>
-                <TextInput style={s.input} value={form.full_name} onChangeText={(v) => set('full_name', v)} placeholder="Your full name" placeholderTextColor={PALETTE.dim} />
+                <TextInput style={[s.input, fieldErrors.full_name ? s.inputError : null]} value={form.full_name} onChangeText={(v) => set('full_name', v)} placeholder="Your full name" placeholderTextColor={PALETTE.dim} />
+                {fieldErrors.full_name ? <Text style={s.fieldErrText}>{fieldErrors.full_name}</Text> : null}
 
                 <Text style={s.label}>Email *</Text>
-                <TextInput style={s.input} value={form.email} onChangeText={(v) => set('email', v)} placeholder="you@example.com" placeholderTextColor={PALETTE.dim} keyboardType="email-address" autoCapitalize="none" />
+                <TextInput style={[s.input, fieldErrors.email ? s.inputError : null]} value={form.email} onChangeText={(v) => set('email', v)} placeholder="you@example.com" placeholderTextColor={PALETTE.dim} keyboardType="email-address" autoCapitalize="none" />
+                {fieldErrors.email ? <Text style={s.fieldErrText}>{fieldErrors.email}</Text> : null}
 
                 <Text style={s.label}>Phone</Text>
                 <TextInput style={s.input} value={form.phone} onChangeText={(v) => set('phone', v)} placeholder="+91 …" placeholderTextColor={PALETTE.dim} keyboardType="phone-pad" />
 
-                <View style={{ flexDirection: 'row', gap: 10 }}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={s.label}>Branch</Text>
-                    <TextInput style={s.input} value={form.branch} onChangeText={(v) => set('branch', v)} placeholder="CSE" placeholderTextColor={PALETTE.dim} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={s.label}>Year</Text>
-                    <TextInput style={s.input} value={form.year} onChangeText={(v) => set('year', v)} placeholder="Final" placeholderTextColor={PALETTE.dim} />
-                  </View>
+                <CalendarDatePicker
+                  label="Date of Birth"
+                  value={form.date_of_birth}
+                  onChange={(iso) => set('date_of_birth', iso)}
+                  placeholder="YYYY-MM-DD"
+                  error={fieldErrors.date_of_birth}
+                />
+
+                <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
+                  <DarkDropdown
+                    label="Branch"
+                    value={form.branch}
+                    options={BTECH_BRANCHES}
+                    onChange={(v) => set('branch', v)}
+                    placeholder="Select your B.Tech branch"
+                    error={fieldErrors.branch}
+                    modalTitle="SELECT B.TECH BRANCH"
+                  />
+                  <DarkDropdown
+                    label="Current B.Tech Year"
+                    value={form.year}
+                    options={BTECH_YEAR_OPTIONS}
+                    onChange={(v) => set('year', v)}
+                    placeholder="Select your current year"
+                    error={fieldErrors.year}
+                    modalTitle="SELECT CURRENT YEAR"
+                  />
                 </View>
 
                 <Text style={s.label}>College</Text>
@@ -542,6 +579,8 @@ const s = StyleSheet.create({
     borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, color: '#fff',
     fontFamily: FONTS.med, fontSize: 14,
   },
+  inputError: { borderColor: '#F87171' },
+  fieldErrText: { color: '#F87171', fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
   error: { color: '#F87171', fontFamily: FONTS.med, fontSize: 12.5, marginTop: 6 },
   payBtnWrap: { borderRadius: 12, marginTop: 18, overflow: 'hidden' },
   payBtn: {
