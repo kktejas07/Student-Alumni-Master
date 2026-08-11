@@ -200,6 +200,10 @@ async def _lifespan(application):
         db.token_blacklist, [("expires_at", 1)], expireAfterSeconds=0
     )
     await _safe_create_index(db.token_blacklist, "jti", unique=True, sparse=True)
+    # Certificate registry — unique verification codes (guarantees no two
+    # certificates share a code, and lookups stay O(1) at 400+ scale)
+    await _safe_create_index(db.certificates, "verification_code", unique=True)
+    await _safe_create_index(db.certificates, "recipient_email")
     # ECHO Showcase indexes
     await _safe_create_index(db.echo_showcases, "slug", unique=True, sparse=True)
     await _safe_create_index(db.echo_showcases, [("status", 1), ("date", -1)])
