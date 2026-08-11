@@ -10,7 +10,7 @@
  * superadmin CMS (Registration tab). On submit it registers the user in BOTH
  * the StudentAlumni platform and the event itself.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable, TextInput,
   ActivityIndicator, Image, Platform, useWindowDimensions, Linking,
@@ -20,12 +20,136 @@ import { LinearGradient } from 'expo-linear-gradient';
 import {
   ArrowLeft, Calendar, MapPin, Clock, Ticket, CreditCard,
   Check, ShieldCheck, Users, ChevronLeft, ChevronRight, ExternalLink,
+  ChevronDown,
 } from 'lucide-react-native';
 import { api, resolveImageUrl } from '@/src/models/services/api';
 import { PALETTE, FONTS, TYPO } from '@/src/views/web/portals/student/tokens';
 import { GRAD } from '@/src/views/web/portals/student/portalkit';
 import { EchoHeader, EchoFooter, ECHO_TOP_PADDING } from '@/src/views/web/components/EchoChrome';
 import { CollegeAutocomplete } from '@/src/views/web/components/CollegeAutocomplete';
+
+const YEARS = [
+  '1st Year', '2nd Year', '3rd Year', 'Final Year',
+];
+
+const BRANCHES = [
+  'CSE', 'IT', 'ECE', 'EEE', 'MECH', 'CIVIL',
+  'AIML', 'CSDS', 'CST', 'AIDS', 'CSE (AI & ML)',
+  'EIE', 'Others',
+];
+
+/* ── Dark-glass dropdown matching the register form's inputs ────────────── */
+function FieldSelect({ label, value, options, onChange, placeholder = 'Select…', zIndex = 20 }: {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (v: string) => void;
+  placeholder?: string;
+  zIndex?: number;
+}) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const handler = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    if (open) setTimeout(() => document.addEventListener('mousedown', handler), 0);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  return (
+    <View ref={wrapRef} style={{ position: 'relative', zIndex: open ? zIndex : 1 }}>
+      <Text style={s.label}>{label}</Text>
+      <Pressable
+        onPress={() => setOpen((o) => !o)}
+        style={[s.input, s.selectTrigger, open && s.selectTriggerOpen]}
+      >
+        <Text style={value ? s.selectValue : s.selectPlaceholder}>{value || placeholder}</Text>
+        <ChevronDown size={15} color={PALETTE.muted} />
+      </Pressable>
+      {open && (
+        <View style={[s.selectMenu, { zIndex }]}>
+          {options.map((opt) => {
+            const active = opt === value;
+            return (
+              <Pressable
+                key={opt}
+                onPress={() => { onChange(opt); setOpen(false); }}
+                style={[s.selectItem, active && s.selectItemActive]}
+              >
+                <Text style={[s.selectItemText, active && s.selectItemTextActive]}>{opt}</Text>
+                {active ? <Check size={14} color="#A78BFA" /> : null}
+              </Pressable>
+            );
+          })}
+        </View>
+      )}
+    </View>
+  );
+}
+
+/* ── DD / MM / YYYY date picker emitting ISO YYYY-MM-DD ──────────────────── */
+function DobPicker({ value, onChange }: { value: string; onChange: (iso: string) => void }) {
+  const [d, setD] = useState('');
+  const [m, setM] = useState('');
+  const [y, setY] = useState('');
+  const lastEmitted = useRef(value || '');
+
+  const curYear = new Date().getFullYear();
+
+  useEffect(() => {
+    if (value === lastEmitted.current) return;
+    lastEmitted.current = value || '';
+    if (value && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      const [yy, mm, dd] = value.split('-');
+      setY(yy); setM(mm); setD(dd);
+    } else if (!value) {
+      setY(''); setM(''); setD('');
+    }
+  }, [value]);
+
+  const years = useMemo(() => {
+    const arr: string[] = [];
+    for (let yr = curYear - 13; yr >= curYear - 60; yr--) arr.push(String(yr));
+    return arr;
+  }, [curYear]);
+
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+  const days = useMemo(() => {
+    let max = 31;
+    if (m && y) max = new Date(parseInt(y, 10), parseInt(m, 10), 0).getDate();
+    return Array.from({ length: max }, (_, i) => String(i + 1).padStart(2, '0'));
+  }, [m, y]);
+
+  useEffect(() => {
+    const iso = d && m && y ? `${y}-${m}-${d}` : '';
+    if (iso !== lastEmitted.current) {
+      lastEmitted.current = iso;
+      onChange(iso);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [d, m, y]);
+
+  return (
+    <View>
+      <Text style={s.label}>Date of Birth</Text>
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        <View style={{ flex: 1 }}>
+          <FieldSelect label="" value={d} options={days} onChange={setD} placeholder="DD" zIndex={30} />
+        </View>
+        <View style={{ flex: 1.4 }}>
+          <FieldSelect label="" value={m} options={months} onChange={setM} placeholder="Month" zIndex={20} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <FieldSelect label="" value={y} options={years} onChange={setY} placeholder="Year" zIndex={10} />
+        </View>
+      </View>
+    </View>
+  );
+}
 
 export default function EchoRegisterPage() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
@@ -464,17 +588,16 @@ export default function EchoRegisterPage() {
                 <Text style={s.label}>Phone</Text>
                 <TextInput style={s.input} value={form.phone} onChangeText={(v) => set('phone', v)} placeholder="+91 …" placeholderTextColor={PALETTE.dim} keyboardType="phone-pad" />
 
-                <Text style={s.label}>Date of Birth</Text>
-                <TextInput style={s.input} value={form.dob} onChangeText={(v) => set('dob', v)} placeholder="YYYY-MM-DD" placeholderTextColor={PALETTE.dim} autoCapitalize="none" />
+                <View style={{ marginBottom: 8 }}>
+                  <DobPicker value={form.dob} onChange={(iso) => set('dob', iso)} />
+                </View>
 
                 <View style={{ flexDirection: 'row', gap: 10 }}>
                   <View style={{ flex: 1 }}>
-                    <Text style={s.label}>Branch</Text>
-                    <TextInput style={s.input} value={form.branch} onChangeText={(v) => set('branch', v)} placeholder="CSE" placeholderTextColor={PALETTE.dim} />
+                    <FieldSelect label="Branch" value={form.branch} options={BRANCHES} onChange={(v) => set('branch', v)} placeholder="Select branch" zIndex={30} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={s.label}>Year</Text>
-                    <TextInput style={s.input} value={form.year} onChangeText={(v) => set('year', v)} placeholder="Final" placeholderTextColor={PALETTE.dim} />
+                    <FieldSelect label="Year" value={form.year} options={YEARS} onChange={(v) => set('year', v)} placeholder="Select year" zIndex={20} />
                   </View>
                 </View>
 
@@ -616,6 +739,27 @@ const s = StyleSheet.create({
     borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, color: '#fff',
     fontFamily: FONTS.med, fontSize: 14,
   },
+  selectTrigger: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  selectTriggerOpen: { borderColor: GRAD.from },
+  selectValue: { color: '#fff', fontFamily: FONTS.med, fontSize: 14 },
+  selectPlaceholder: { color: PALETTE.dim, fontFamily: FONTS.med, fontSize: 14 },
+  selectMenu: {
+    position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 6,
+    backgroundColor: '#161a2e', borderColor: PALETTE.glassBorder, borderWidth: 1,
+    borderRadius: 10, overflow: 'hidden', maxHeight: 220,
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 12px 40px rgba(0,0,0,0.55)' } as any) : {}),
+  },
+  selectItem: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 14, paddingVertical: 11,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  selectItemActive: { backgroundColor: 'rgba(124,58,237,0.16)' },
+  selectItemText: { color: 'rgba(255,255,255,0.85)', fontFamily: FONTS.med, fontSize: 13.5 },
+  selectItemTextActive: { color: '#C4B5FD', fontFamily: FONTS.semi },
   error: { color: '#F87171', fontFamily: FONTS.med, fontSize: 12.5, marginTop: 6 },
   payBtnWrap: { borderRadius: 12, marginTop: 18, overflow: 'hidden' },
   payBtn: {
