@@ -846,11 +846,11 @@ export function NetworkView() {
                             <Pressable onPress={() => alert(`Starting message chat with ${person.name}`)} style={[s.iconSquareBtn, { height: 32, width: 32, borderColor: '#EF444433', backgroundColor: 'rgba(239, 68, 68, 0.05)' }]}>
                               <User size={13} color="#EF4444" />
                             </Pressable>
-                            <Pressable onPress={() => person.linkedin ? Linking.openURL(person.linkedin.startsWith('http') ? person.linkedin : `https://${person.linkedin}`) : alert('No link provided')} style={[s.iconSquareBtn, { height: 32, width: 32, backgroundColor: '#0A66C2' }]}>
+                            <Pressable onPress={() => person.linkedin ? Linking.openURL(person.linkedin.startsWith('http') ? person.linkedin : `https://${person.linkedin}`) : toast.info('Link Unavailable', 'This user has not connected this social profile yet.')} style={[s.iconSquareBtn, { height: 32, width: 32, backgroundColor: '#0A66C2' }]}>
                               <LinkedinGlyph size={13} color="#fff" />
                             </Pressable>
                             {person.github && (
-                              <Pressable onPress={() => person.github ? Linking.openURL(person.github.startsWith('http') ? person.github : `https://${person.github}`) : alert('No link provided')} style={[s.iconSquareBtn, { height: 32, width: 32, backgroundColor: '#24292e' }]}>
+                              <Pressable onPress={() => person.github ? Linking.openURL(person.github.startsWith('http') ? person.github : `https://${person.github}`) : toast.info('Link Unavailable', 'This user has not connected this social profile yet.')} style={[s.iconSquareBtn, { height: 32, width: 32, backgroundColor: '#24292e' }]}>
                                 <Code size={13} color="#fff" />
                               </Pressable>
                             )}
@@ -1055,7 +1055,7 @@ export function NetworkView() {
                   )}
 
                   <View style={{ flexDirection: 'row', gap: 4 }}>
-                    <Pressable onPress={() => person.linkedin ? Linking.openURL(person.linkedin.startsWith('http') ? person.linkedin : `https://${person.linkedin}`) : alert('No link provided')} style={s.iconBtn}>
+                    <Pressable onPress={() => person.linkedin ? Linking.openURL(person.linkedin.startsWith('http') ? person.linkedin : `https://${person.linkedin}`) : toast.info('Link Unavailable', 'This user has not connected this social profile yet.')} style={s.iconBtn}>
                       <Linkedin size={12} color={SC.muted} />
                     </Pressable>
                   </View>
@@ -1106,11 +1106,11 @@ export function NetworkView() {
                     
                     {/* Top-Right Social Links. */}
                     <View style={{ flexDirection: 'row', gap: 4, alignSelf: 'flex-start' }}>
-                      <Pressable onPress={() => m.linkedin ? Linking.openURL(m.linkedin.startsWith('http') ? m.linkedin : `https://${m.linkedin}`) : alert('No link provided')} style={s.iconBtn}>
+                      <Pressable onPress={() => m.linkedin ? Linking.openURL(m.linkedin.startsWith('http') ? m.linkedin : `https://${m.linkedin}`) : toast.info('Link Unavailable', 'This user has not connected this social profile yet.')} style={s.iconBtn}>
                         <Linkedin size={12} color={SC.muted} />
                       </Pressable>
                       {m.github && (
-                        <Pressable onPress={() => m.github ? Linking.openURL(m.github.startsWith('http') ? m.github : `https://${m.github}`) : alert('No link provided')} style={s.iconBtn}>
+                        <Pressable onPress={() => m.github ? Linking.openURL(m.github.startsWith('http') ? m.github : `https://${m.github}`) : toast.info('Link Unavailable', 'This user has not connected this social profile yet.')} style={s.iconBtn}>
                           <Github size={12} color={SC.muted} />
                         </Pressable>
                       )}
@@ -1223,7 +1223,7 @@ export function NetworkView() {
                       <View style={{ flexDirection: 'row', gap: 6, alignSelf: 'flex-start' }}>
                         {pickedPerson.linkedin && (
                           <Pressable 
-                            onPress={() => pickedPerson.linkedin ? Linking.openURL(pickedPerson.linkedin.startsWith('http') ? pickedPerson.linkedin : `https://${pickedPerson.linkedin}`) : alert('No link provided')} 
+                            onPress={() => pickedPerson.linkedin ? Linking.openURL(pickedPerson.linkedin.startsWith('http') ? pickedPerson.linkedin : `https://${pickedPerson.linkedin}`) : toast.info('Link Unavailable', 'This user has not connected this social profile yet.')} 
                             style={s.socialIconBtn}
                           >
                             <Linkedin size={14} color="#fff" />
@@ -1231,7 +1231,7 @@ export function NetworkView() {
                         )}
                         {pickedPerson.github && (
                           <Pressable 
-                            onPress={() => pickedPerson.github ? Linking.openURL(pickedPerson.github.startsWith('http') ? pickedPerson.github : `https://${pickedPerson.github}`) : alert('No link provided')} 
+                            onPress={() => pickedPerson.github ? Linking.openURL(pickedPerson.github.startsWith('http') ? pickedPerson.github : `https://${pickedPerson.github}`) : toast.info('Link Unavailable', 'This user has not connected this social profile yet.')} 
                             style={s.socialIconBtn}
                           >
                             <Github size={14} color="#fff" />

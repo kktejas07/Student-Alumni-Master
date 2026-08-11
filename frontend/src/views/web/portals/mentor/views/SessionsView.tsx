@@ -4,6 +4,7 @@
  * Full high-fidelity mock implementations matching the reference screens.
  */
 import React, { useState, useMemo, useEffect } from 'react';
+import { useToast } from '@/src/views/components';
 import { View, Text, Pressable, StyleSheet, Linking, Platform, ScrollView, TextInput, ActivityIndicator } from 'react-native';
 import { api } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
@@ -130,7 +131,8 @@ const formatLocalDate = (d: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-export function SessionsView({ demoMode = false, setDemoMode }: { demoMode?: boolean; setDemoMode?: (val: boolean) => void }) {
+export function SessionsView({
+  const toast = useToast(); demoMode = false, setDemoMode }: { demoMode?: boolean; setDemoMode?: (val: boolean) => void }) {
   const [tab, setTab] = useState<TabId>('upcoming');
   const user = useAuthStore((s) => s.user);
   const [students, setStudents] = useState(demoMode ? INITIAL_STUDENTS : []);
@@ -937,12 +939,12 @@ export function SessionsView({ demoMode = false, setDemoMode }: { demoMode?: boo
                 {/* Socials / External links */}
                 <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
                   {p.student.linkedin && (
-                    <Pressable onPress={() => p.student.linkedin ? Linking.openURL(p.student.linkedin.startsWith('http') ? p.student.linkedin : `https://${p.student.linkedin}`) : alert('No link provided')} style={[s.socialIconCircle, { backgroundColor: '#0A66C2' }]}>
+                    <Pressable onPress={() => p.student.linkedin ? Linking.openURL(p.student.linkedin.startsWith('http') ? p.student.linkedin : `https://${p.student.linkedin}`) : toast.info('Link Unavailable', 'This user has not connected this social profile yet.')} style={[s.socialIconCircle, { backgroundColor: '#0A66C2' }]}>
                       <LinkedinGlyph size={15} color="#fff" />
                     </Pressable>
                   )}
                   {p.student.github && (
-                    <Pressable onPress={() => p.student.github ? Linking.openURL(p.student.github.startsWith('http') ? p.student.github : `https://${p.student.github}`) : alert('No link provided')} style={[s.socialIconCircle, { backgroundColor: '#24292e' }]}>
+                    <Pressable onPress={() => p.student.github ? Linking.openURL(p.student.github.startsWith('http') ? p.student.github : `https://${p.student.github}`) : toast.info('Link Unavailable', 'This user has not connected this social profile yet.')} style={[s.socialIconCircle, { backgroundColor: '#24292e' }]}>
                       <Code size={15} color="#fff" />
                     </Pressable>
                   )}
