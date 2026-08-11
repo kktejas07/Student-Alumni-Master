@@ -45,6 +45,7 @@ interface Props {
   onBlur?: () => void;
   /** Render the options inline directly below the trigger instead of in a modal pop up */
   inline?: boolean;
+  maxHeight?: number;
 }
 
 const OTHER_VALUE = '__other__';
@@ -53,7 +54,7 @@ export function Dropdown({
   label, required, optional, value, options, onChange,
   placeholder = 'Select…', testID, allowOther = true, overlayHeader,
   editable, keyboardType = 'default', maxLength, inputRef, onFocus, onBlur,
-  inline,
+  inline, maxHeight,
 }: Props) {
   const { primary } = useRoleTheme();
   const [open, setOpen] = useState(false);
@@ -240,7 +241,7 @@ export function Dropdown({
             )}
             <View style={{ marginTop: 6, zIndex: 10, position: 'absolute', top: '100%', left: 0, right: 0 }}>
               <OptionListCard
-                maxHeight={140}
+                maxHeight={maxHeight ?? 140}
                 headerLabel={inline ? undefined : (overlayHeader || label?.toUpperCase() || 'SELECT')}
                 options={filteredOptions}
                 selectedValue={value}
@@ -270,6 +271,7 @@ export function Dropdown({
                   onSelect={(opt) => { onChange(opt.value); setManualMode(false); setOpen(false); }}
                   showOther={allowOther}
                   onSelectOther={() => { setOpen(false); setManualMode(true); setManualText(''); onChange(''); }}
+                  maxHeight={maxHeight}
                 />
               </Pressable>
             </Pressable>

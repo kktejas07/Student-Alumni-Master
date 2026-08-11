@@ -8,7 +8,8 @@
  * • All existing routing, state, props, API calls preserved 1:1
  */
 import React, { useState, createContext, useContext } from 'react';
-import { View, ScrollView, StyleSheet, NativeSyntheticEvent, NativeScrollEvent, Platform } from 'react-native';
+import { View, ScrollView, StyleSheet, NativeSyntheticEvent, NativeScrollEvent, Platform, Pressable, Text } from 'react-native';
+import { LayoutDashboard, Sparkles, Users, Calendar, User } from 'lucide-react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
