@@ -2530,6 +2530,10 @@ api_router.include_router(talent_pool_router)
 from crud_endpoints import router as crud_router
 api_router.include_router(crud_router)
 
+# Certificate registry + public verification (Coursera-style /verify/{code})
+from certificates import router as certificates_router
+api_router.include_router(certificates_router)
+
 # Collaboration partners (Phase A) — public landing strip + admin CRUD
 from routers.partners import router as partners_router
 app.include_router(partners_router)
