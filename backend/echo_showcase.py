@@ -28,12 +28,12 @@ import json
 import secrets
 import mimetypes
 from pathlib import Path
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date as _date
 from typing import Any, Dict, List, Optional
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, Request, File, UploadFile, Query
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from core.security import (
     generate_qr_code,
@@ -515,33 +515,32 @@ def _build_invoice_html(inv: dict, template_id: str = "modern") -> str:
       </div>
     </div>
     <div class="body">
-      <div class="meta-grid">
-        <div class="meta-col">
-          <div class="meta-label">Billed To</div>
-          <div class="meta-val">{esc(inv.get('full_name') or 'Attendee')}</div>
-          <div class="meta-sub">{esc(inv.get('email') or '')}</div>
-          <div class="meta-sub">{esc(inv.get('phone') or '')}</div>
-          {f'<div class="meta-sub">{esc(inv.get("college") or "")}</div>' if inv.get('college') else ''}
-        </div>
-        <div class="meta-col">
-          <div class="meta-label">Event</div>
-          <div class="meta-val">{esc(inv.get('event_title') or '')}</div>
-          <div class="meta-sub">{esc(inv.get('event_date') or '')}</div>
-          <div class="meta-sub">{esc(inv.get('event_venue') or '')}</div>
-        </div>
-      </div>
-      <div class="meta-grid" style="margin-bottom:0;">
-        <div class="meta-col">
-          <div class="meta-label">Payment ID</div>
-          <div class="meta-val" style="font-size:13px;letter-spacing:.5px;">{esc(inv.get('payment_id') or '—')}</div>
-        </div>
-        <div class="meta-col">
-          <div class="meta-label">Payment Method</div>
-          <div class="meta-val" style="font-size:13px;">{_payment_label(inv.get('payment_method'))}</div>
-        </div>
-      </div>
-
-      <div class="divider"></div>
+      <table class="meta">
+        <tr>
+          <td style="width:50%;">
+            <div class="label">Billed To</div>
+            <div class="val">{esc(inv.get('full_name') or 'Attendee')}</div>
+            <div style="color:#374151;font-size:13px;">{esc(inv.get('email') or '')}</div>
+            <div style="color:#374151;font-size:13px;">{esc(inv.get('phone') or '')}</div>
+          </td>
+          <td>
+            <div class="label">Event</div>
+            <div class="val">{esc(inv.get('event_title') or '')}</div>
+            <div style="color:#374151;font-size:13px;">{esc(inv.get('event_date') or '')}</div>
+            <div style="color:#374151;font-size:13px;">{esc(inv.get('event_venue') or '')}</div>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding-top:16px;">
+            <div class="label">Payment ID</div>
+            <div class="val">{esc(inv.get('payment_id') or '—')}</div>
+          </td>
+          <td style="padding-top:16px;">
+            <div class="label">Payment Method</div>
+            <div class="val">{_payment_label(inv.get('payment_method') or '')}</div>
+          </td>
+        </tr>
+      </table>
 
       <table class="items">
         <tr><th>Description</th><th style="text-align:center;">Qty</th><th class="r">Amount</th></tr>
@@ -1064,6 +1063,34 @@ def _ticket_email_block(reg: dict, showcase: dict, ticket_url: str) -> str:
       </td></tr>
       {sponsors_html}
     </table>"""
+
+
+async def _sync_user_profile_data(db, user: Optional[dict], payload: Any):
+    if user is None:
+        return
+    dob_val = getattr(payload, "date_of_birth", None) or getattr(payload, "dob", None) or ""
+    branch_val = getattr(payload, "branch", None) or ""
+    year_val = getattr(payload, "year", None) or ""
+    college_val = getattr(payload, "college", None) or ""
+
+    user_updates = {}
+    if dob_val and not user.get("dob"):
+        user_updates["dob"] = dob_val
+    if branch_val:
+        user_updates["branch"] = branch_val
+        user_updates["school_info.branch_or_stream"] = branch_val
+    if year_val:
+        user_updates["year"] = year_val
+        user_updates["school_info.class_or_year"] = f"Y{year_val}"
+    if college_val:
+        user_updates["college"] = college_val
+        user_updates["school_info.institution_name"] = college_val
+
+    if user_updates:
+        try:
+            await db.users.update_one({"_id": user["_id"]}, {"$set": user_updates})
+        except Exception:
+            pass
 
 
 async def _mirror_to_event_registration(db, reg: dict, showcase: dict, user: Optional[dict]):
@@ -1655,15 +1682,94 @@ async def get_showcase(slug: str, request: Request):
 
 
 # ── Registration (real payments only — Razorpay) ─────────────────────────────
+ALLOWED_BTECH_BRANCHES = {
+    "CSE", "CSE-AIML", "AI-DS", "IT", "ECE", "EEE", "ME", "CE", "CHE", "BT", "Other",
+    "Computer Science and Engineering",
+    "Computer Science and Engineering (CSE)",
+    "Computer Science and Engineering (AI & ML)",
+    "Artificial Intelligence and Data Science",
+    "Information Technology",
+    "Electronics and Communication Engineering",
+    "Electrical and Electronics Engineering",
+    "Mechanical Engineering",
+    "Civil Engineering",
+    "Chemical Engineering",
+    "Biotechnology",
+}
+
+BRANCH_CANONICAL_MAP = {
+    "Computer Science and Engineering": "CSE",
+    "Computer Science and Engineering (CSE)": "CSE",
+    "Computer Science and Engineering (AI & ML)": "CSE-AIML",
+    "Artificial Intelligence and Data Science": "AI-DS",
+    "Information Technology": "IT",
+    "Electronics and Communication Engineering": "ECE",
+    "Electrical and Electronics Engineering": "EEE",
+    "Mechanical Engineering": "ME",
+    "Civil Engineering": "CE",
+    "Chemical Engineering": "CHE",
+    "Biotechnology": "BT",
+}
+
+YEAR_CANONICAL_MAP = {
+    "1st Year": "1",
+    "2nd Year": "2",
+    "3rd Year": "3",
+    "4th Year": "4",
+    "Final": "4",
+    "Final Year": "4",
+    "1": "1",
+    "2": "2",
+    "3": "3",
+    "4": "4",
+}
+
 class RegisterSchema(BaseModel):
     full_name: Optional[str] = ""
     email: Optional[str] = ""
     phone: Optional[str] = ""
+    date_of_birth: Optional[str] = ""
+    dob: Optional[str] = ""
     branch: Optional[str] = ""
     year: Optional[str] = ""
     college: Optional[str] = ""
-    dob: Optional[str] = ""  # YYYY-MM-DD — used to provision the StudentAlumni account
     payment_method: Optional[str] = ""
+
+    @field_validator("date_of_birth", "dob")
+    @classmethod
+    def _validate_dob(cls, v):
+        if not v or not v.strip():
+            return ""
+        val = v.strip()
+        try:
+            d = _date.fromisoformat(val)
+        except Exception:
+            raise ValueError("Date of birth must be in YYYY-MM-DD format")
+        if d > _date.today():
+            raise ValueError("Date of birth cannot be in the future")
+        return val
+
+    @field_validator("branch")
+    @classmethod
+    def _validate_branch(cls, v):
+        if not v or not v.strip():
+            return ""
+        val = v.strip()
+        norm = BRANCH_CANONICAL_MAP.get(val, val)
+        if norm not in ALLOWED_BTECH_BRANCHES and val not in ALLOWED_BTECH_BRANCHES:
+            raise ValueError(f"Invalid B.Tech branch: {val}")
+        return norm
+
+    @field_validator("year")
+    @classmethod
+    def _validate_year(cls, v):
+        if not v or not v.strip():
+            return ""
+        val = v.strip()
+        norm = YEAR_CANONICAL_MAP.get(val, val)
+        if norm not in ("1", "2", "3", "4"):
+            raise ValueError("Academic year must be 1, 2, 3, or 4")
+        return norm
 
 
 @router.post("/showcases/{slug}/register")
@@ -1771,6 +1877,7 @@ async def register_for_showcase(
         }
 
     # 1) Event-side registration
+    dob_val = payload.date_of_birth or payload.dob or ""
     reg = {
         "id": reg_id,
         "slug": canonical_slug,
@@ -1781,9 +1888,10 @@ async def register_for_showcase(
         "full_name": payload.full_name or (user.get("full_name") if user else "") or "Attendee",
         "email": reg_email or (user.get("email") if user else ""),
         "phone": payload.phone or (user.get("phone") if user else ""),
+        "date_of_birth": dob_val,
+        "dob": dob_val,
         "branch": payload.branch,
         "year": payload.year,
-        "dob": (payload.dob or "").strip(),
         "college": payload.college or showcase.get("college"),
         "fee": fee,
         "currency": currency,
@@ -1794,6 +1902,7 @@ async def register_for_showcase(
         "created_at": now_iso,
     }
     await db.echo_registrations.insert_one(dict(reg))
+    await _sync_user_profile_data(db, user, payload)
 
     # 2) StudentAlumni-side: provision an SA account for the attendee (idempotent,
     #    by email), then mirror the registration into their SA account so it shows
@@ -1852,10 +1961,47 @@ class PaymentOrderSchema(BaseModel):
     full_name: Optional[str] = ""
     email: Optional[str] = ""
     phone: Optional[str] = ""
+    date_of_birth: Optional[str] = ""
+    dob: Optional[str] = ""
     branch: Optional[str] = ""
     year: Optional[str] = ""
     college: Optional[str] = ""
-    dob: Optional[str] = ""  # YYYY-MM-DD — used to provision the StudentAlumni account
+
+    @field_validator("date_of_birth", "dob")
+    @classmethod
+    def _validate_dob(cls, v):
+        if not v or not v.strip():
+            return ""
+        val = v.strip()
+        try:
+            d = _date.fromisoformat(val)
+        except Exception:
+            raise ValueError("Date of birth must be in YYYY-MM-DD format")
+        if d > _date.today():
+            raise ValueError("Date of birth cannot be in the future")
+        return val
+
+    @field_validator("branch")
+    @classmethod
+    def _validate_branch(cls, v):
+        if not v or not v.strip():
+            return ""
+        val = v.strip()
+        norm = BRANCH_CANONICAL_MAP.get(val, val)
+        if norm not in ALLOWED_BTECH_BRANCHES and val not in ALLOWED_BTECH_BRANCHES:
+            raise ValueError(f"Invalid B.Tech branch: {val}")
+        return norm
+
+    @field_validator("year")
+    @classmethod
+    def _validate_year(cls, v):
+        if not v or not v.strip():
+            return ""
+        val = v.strip()
+        norm = YEAR_CANONICAL_MAP.get(val, val)
+        if norm not in ("1", "2", "3", "4"):
+            raise ValueError("Academic year must be 1, 2, 3, or 4")
+        return norm
 
 
 class VerifyPaymentSchema(PaymentOrderSchema):
@@ -1947,6 +2093,7 @@ async def create_payment_order(slug: str, payload: PaymentOrderSchema, request: 
 
     # Persist a pending registration so verify-payment / webhook has a record
     if not existing:
+        dob_val = payload.date_of_birth or payload.dob or ""
         reg = {
             "id": reg_id,
             "slug": canonical_slug,
@@ -1957,9 +2104,10 @@ async def create_payment_order(slug: str, payload: PaymentOrderSchema, request: 
             "full_name": payload.full_name,
             "email": email,
             "phone": payload.phone,
+            "date_of_birth": dob_val,
+            "dob": dob_val,
             "branch": payload.branch,
             "year": payload.year,
-            "dob": (payload.dob or "").strip(),
             "college": payload.college or showcase.get("college"),
             "fee": fee,
             "currency": currency,
@@ -2041,6 +2189,7 @@ async def verify_payment(slug: str, payload: VerifyPaymentSchema, request: Reque
 
     finalized = await _finalize_paid_registration(db, reg, showcase, payload.razorpay_payment_id)
     registration = finalized or _ser(reg)
+    await _sync_user_profile_data(db, user, payload)
     return {"registration": registration, "invoice": registration.get("invoice")}
 
 
@@ -2755,16 +2904,16 @@ async def upload_echo_media(request: Request, file: UploadFile = File(None), adm
     elif "multipart/form-data" in content_type_header:
         form = await request.form()
         uploaded_file = form.get("file") or form.get("image") or form.get("media")
-        if uploaded_file and hasattr(uploaded_file, "filename"):
-            filename = uploaded_file.filename
+        if uploaded_file and hasattr(uploaded_file, "filename") and hasattr(uploaded_file, "read"):
+            filename = str(getattr(uploaded_file, "filename", "") or "")
             original_name = filename
-            file_bytes = await uploaded_file.read()
+            file_bytes = await uploaded_file.read() # type: ignore
         else:
             raise HTTPException(status_code=400, detail="No file found in multipart upload")
     elif "application/json" in content_type_header:
         body = await request.json()
         data = body.get("data", "")
-        filename = body.get("filename") or f"upload_{int(_dt.now(_tz.utc).timestamp())}.png"
+        filename = str(body.get("filename") or f"upload_{int(_dt.now(_tz.utc).timestamp())}.png")
         original_name = filename
         if "," in data:
             data = data.split(",", 1)[1]
@@ -2776,7 +2925,7 @@ async def upload_echo_media(request: Request, file: UploadFile = File(None), adm
     if len(file_bytes) > MAX_SIZE:
         raise HTTPException(status_code=413, detail="File too large. Maximum 10 MB allowed.")
 
-    ext = Path(filename).suffix.lower() or ".png"
+    ext = Path(str(filename or "")).suffix.lower() or ".png"
     ALLOWED = {".jpg", ".jpeg", ".png", ".webp", ".avif", ".svg", ".gif", ".pdf", ".docx", ".xlsx", ".pptx", ".zip"}
     if ext not in ALLOWED:
         raise HTTPException(status_code=400, detail=f"File type {ext} not allowed.")
@@ -2787,7 +2936,7 @@ async def upload_echo_media(request: Request, file: UploadFile = File(None), adm
     upload_dir = _Path("uploads") / "echo"
     upload_dir.mkdir(parents=True, exist_ok=True)
     ts = int(_dt.now(_tz.utc).timestamp())
-    stem = Path(filename).stem.replace(" ", "_").replace("/", "_") if file.filename else f"upload_{ts}"
+    stem = Path(str(filename or "")).stem.replace(" ", "_").replace("/", "_") if filename else f"upload_{ts}"
     safe_name = f"{ts}_{stem}{ext}"
     out_path = upload_dir / safe_name
     with open(out_path, "wb") as f:
