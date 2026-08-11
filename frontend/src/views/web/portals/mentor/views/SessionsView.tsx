@@ -937,12 +937,12 @@ export function SessionsView({ demoMode = false, setDemoMode }: { demoMode?: boo
                 {/* Socials / External links */}
                 <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
                   {p.student.linkedin && (
-                    <Pressable onPress={() => Linking.openURL(`https://${p.student.linkedin}`)} style={[s.socialIconCircle, { backgroundColor: '#0A66C2' }]}>
+                    <Pressable onPress={() => p.student.linkedin ? Linking.openURL(p.student.linkedin.startsWith('http') ? p.student.linkedin : `https://${p.student.linkedin}`) : alert('No link provided')} style={[s.socialIconCircle, { backgroundColor: '#0A66C2' }]}>
                       <LinkedinGlyph size={15} color="#fff" />
                     </Pressable>
                   )}
                   {p.student.github && (
-                    <Pressable onPress={() => Linking.openURL(`https://${p.student.github}`)} style={[s.socialIconCircle, { backgroundColor: '#24292e' }]}>
+                    <Pressable onPress={() => p.student.github ? Linking.openURL(p.student.github.startsWith('http') ? p.student.github : `https://${p.student.github}`) : alert('No link provided')} style={[s.socialIconCircle, { backgroundColor: '#24292e' }]}>
                       <Code size={15} color="#fff" />
                     </Pressable>
                   )}
