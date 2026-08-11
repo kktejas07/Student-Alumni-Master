@@ -16,7 +16,7 @@ import {
 } from './iconShims';
 import { SC, FONTS } from './tokens';
 import { GRADS } from './gradients';
-import { STUDENT } from './data';
+import { STUDENT } from '../student/data';
 import { Av } from './atoms';
 import { FadeInView, PressScale, SparkIcon, PulseDot } from './motion';
 import { AgentKLauncher } from '@/src/views/web/agent-k/AgentKLauncher';

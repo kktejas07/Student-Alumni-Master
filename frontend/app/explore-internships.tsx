@@ -10,7 +10,7 @@ export default function ExploreInternshipsPreview() {
       <LinearGradient colors={['#1A0438', '#2D0760']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
       <SafeAreaView style={{ flex: 1 }} edges={['top','bottom']}>
         <ExploreScreen
-          pageTitle="Internships"
+          pageTitle="Career Opportunities"
           pageSubtitle="Discover roles tailored to your career path & skills."
           searchPlaceholder="Search roles, companies, locations…"
           hero={INTERNSHIPS_HERO}

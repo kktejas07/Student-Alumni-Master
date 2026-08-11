@@ -550,7 +550,7 @@ export function CouponBanner({ portal, editable }: { portal: string; editable?: 
                   </Text>
                   <View style={[s.cardCode, c.locked && { backgroundColor: 'rgba(245,158,11,0.15)' }]}>
                     <Text style={[s.cardCodeText, c.locked && { color: '#F59E0B' }]}>
-                      {c.locked ? '🔒 Locked' : c.code}
+                      {c.locked ? 'Locked' : c.code}
                     </Text>
                   </View>
                 </View>

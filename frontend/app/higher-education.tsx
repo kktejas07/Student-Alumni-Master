@@ -217,7 +217,7 @@ export default function HigherEducationScreen() {
       <View style={s.tabsRow}>
         {([
           { id: 'programmes',  label: 'Programmes',  icon: 'school' as IconName },
-          { id: 'scholarships',label: 'Scholarships', icon: 'medal' as IconName },
+          { id: 'scholarships',label: 'Funding', icon: 'medal' as IconName },
           { id: 'countries',   label: 'Countries',    icon: 'earth' as IconName },
         ] as const).map((t) => {
           const active = tab === t.id;
@@ -267,9 +267,9 @@ export default function HigherEducationScreen() {
                 <AdvisorAIBlock
                   context="higher-education"
                   advisorTitle="Talk to a Higher-Ed Advisor"
-                  advisorDesc="Need 1-on-1 guidance on programmes, visas, or scholarships? Connect with our advisors."
+                  advisorDesc="Need 1-on-1 guidance on programmes, visas, or funding? Connect with our advisors."
                   aiTitle="Ask the Higher-Ed AI"
-                  aiDesc="Eligibility, fees, scholarships, SOP/CV — ask anything 24×7."
+                  aiDesc="Eligibility, fees, funding, SOP/CV — ask anything 24×7."
                   advisorAccent="#A78BFA"
                   aiAccent="#10B981"
                   advisorIcon="account-tie"
@@ -336,7 +336,7 @@ export default function HigherEducationScreen() {
                   <Text style={s.cardTitle}>{c.name}</Text>
                   <View style={{ flexDirection: 'row', gap: 14, marginTop: 4, flexWrap: 'wrap' }}>
                     <Text style={s.cardSub}>📚 {c.programmes} programmes</Text>
-                    <Text style={s.cardSub}>🎖️ {c.scholarships} scholarships</Text>
+                    <Text style={s.cardSub}>🎖️ {c.scholarships} funding options</Text>
                   </View>
                   <View style={s.statsGrid}>
                     <Stat label="Avg fee/yr" value={fmtINR(c.avg_fee_inr)} />

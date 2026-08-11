@@ -153,7 +153,7 @@ export default function JobsInternshipsScreen() {
           <ArrowLeft size={18} color="rgba(255,255,255,0.85)" />
         </Pressable>
         <View style={{ flex: 1 }}>
-          <Text style={styles.title}>Jobs & Internships</Text>
+          <Text style={styles.title}>Jobs & Opportunities</Text>
           <Text style={styles.subtitle}>{user?.full_name?.split(' ')[0]} · personalized matches</Text>
         </View>
       </View>
@@ -217,10 +217,10 @@ export default function JobsInternshipsScreen() {
         <View style={styles.filters}>
           <FilterChip
             label="Type"
-            value={filterType ? (filterType === 'internship' ? 'Internships' : 'Jobs') : 'All'}
+            value={filterType ? (filterType === 'internship' ? 'Opportunities' : 'Jobs') : 'All'}
             options={[
               { v: '', l: 'All Types' },
-              { v: 'internship', l: 'Internships' },
+              { v: 'internship', l: 'Opportunities' },
               { v: 'job', l: 'Jobs' },
             ]}
             onChange={(v: any) => setFilterType(v)}

@@ -138,17 +138,59 @@ export default function EchoScanPage() {
   }, []);
 
   const submitCode = async (c: string) => {
-    const codeUpper = c.trim().toUpperCase();
+    const original = (c || '').trim();
+    const isTicketPayload = original.startsWith('ECHO:') || original.includes('%3A');
+    let raw = original;
+    const urlMatch = raw.match(/\/echo\/scan\/([A-Za-z0-9-]+)/);
+    if (urlMatch) raw = urlMatch[1];
+    const codeUpper = raw.toUpperCase();
     if (!codeUpper) return;
     setLoading(true);
     setResult(null);
+    const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+    const { tokenStore } = await import('@/src/models/services/api');
+    const token = await tokenStore.getAccess();
+    const headers = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
     try {
-      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
-      const { tokenStore } = await import('@/src/models/services/api');
-      const token = await tokenStore.getAccess();
+      // Entry-pass / ticket payload (ECHO:... or URL-wrapped or bare reg id)
+      const isTicketPayload2 = isTicketPayload || raw.startsWith('ECHO:') || /^[a-f0-9]{12}$/i.test(raw);
+      if (isTicketPayload) {
+        const resp = await fetch(`${base}/api/echo/admin/registrations/verify`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ ticket: original }),
+        });
+        const data = await resp.json();
+        if (!resp.ok) {
+          setResult({ ok: false, status: 'invalid', message: data?.detail || 'Invalid ticket' });
+          setRecent((prev) => [{ ok: false, scannedCode: codeUpper, time: new Date().toLocaleTimeString() }, ...prev].slice(0, 50));
+        } else {
+          const reg = data.registration || {};
+          const result = {
+            ok: true,
+            type: 'ticket',
+            status: data.valid ? (data.checked_in ? 'checked_in' : 'valid') : 'unconfirmed',
+            message: data.message || (data.valid ? 'Valid ticket' : 'Ticket not confirmed'),
+            coupon: {
+              session_name: reg.event_title || 'Event pass',
+              attendee_name: reg.full_name || 'Unknown',
+              attendee_email: reg.email || '',
+              code: reg.id || codeUpper,
+              used_at: data.checked_in_at || null,
+              verified: data.valid,
+              checked_in: data.checked_in,
+            },
+          };
+          setResult(result);
+          setRecent((prev) => [{ ...result, scannedCode: codeUpper, time: new Date().toLocaleTimeString() }, ...prev].slice(0, 50));
+        }
+        return;
+      }
+
+      // Coupon code → existing scan-coupon flow
       const resp = await fetch(`${base}/api/echo/admin/scan-coupon`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        headers,
         body: JSON.stringify({ code: codeUpper }),
       });
       const data = await resp.json();
@@ -282,15 +324,27 @@ export default function EchoScanPage() {
                 {result.ok ? <Check size={28} color="#10B981" /> : <X size={28} color="#EF4444" />}
               </View>
               <Text style={[s.resultTitle, { color: result.ok ? '#34D399' : '#FCA5A5' }]}>
-                {result.ok ? 'Valid Coupon' : result.status === 'already_used' ? 'Already Used' : 'Invalid'}
+                {result.ok
+                  ? result.type === 'ticket'
+                    ? result.status === 'checked_in' ? 'Already Checked In' : result.status === 'valid' ? 'Valid Ticket' : 'Valid Ticket'
+                    : 'Valid Coupon'
+                  : result.status === 'already_used' ? 'Already Used' : 'Invalid'}
               </Text>
               <Text style={s.resultMsg}>{result.message}</Text>
               {result.coupon && (
                 <View style={s.resultDetails}>
-                  <Text style={s.resultDetail}>Session: {result.coupon.session_name}</Text>
+                  <Text style={s.resultDetail}>
+                    {result.type === 'ticket' ? 'Event' : 'Session'}: {result.coupon.session_name}
+                  </Text>
                   <Text style={s.resultDetail}>Attendee: {result.coupon.attendee_name || '—'}</Text>
+                  {result.coupon.attendee_email ? <Text style={s.resultDetail}>Email: {result.coupon.attendee_email}</Text> : null}
                   <Text style={s.resultDetail}>Code: {result.coupon.code}</Text>
-                  {result.coupon.used_at && <Text style={s.resultDetail}>Scanned: {result.coupon.used_at}</Text>}
+                  {result.status === 'checked_in' && result.coupon.used_at && (
+                    <Text style={s.resultDetail}>Checked in: {result.coupon.used_at}</Text>
+                  )}
+                  {result.type === 'ticket' && result.status === 'unconfirmed' && (
+                    <Text style={s.resultDetail}>Payment pending — not eligible for check-in</Text>
+                  )}
                 </View>
               )}
             </View>

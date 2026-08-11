@@ -25,12 +25,12 @@ import { StudentDashboardView } from '@/src/views/web/StudentDashboardView';
 const NAV: NavItem[] = [
   { id: 'home',              Icon: HomeIcon,       label: 'Dashboard',        color: '#A78BFA' },
   { id: 'career',            Icon: Sparkles,       label: 'Career AI',        color: '#A78BFA' },
-  { id: 'internships',       Icon: Briefcase,      label: 'Internships',      color: '#34D399' },
+  { id: 'internships',       Icon: Briefcase,      label: 'Opportunities',   color: '#34D399' },
   { id: 'courses',           Icon: BookOpen,       label: 'Courses',          color: '#22D3EE' },
   { id: 'higher-education',  Icon: GraduationCap,  label: 'Higher Education', color: '#FCD34D' },
   { id: 'network',           Icon: Users,          label: 'Network',          color: '#F472B6' },
   { id: 'events',            Icon: Calendar,       label: 'Events',           color: '#FB923C' },
-  { id: 'financial',         Icon: Wallet,         label: 'Financial',        color: '#FCD34D' },
+  { id: 'financial',         Icon: Wallet,         label: 'Funding',          color: '#FCD34D' },
   { id: 'insurance',         Icon: Shield,         label: 'Insurance',        color: '#60A5FA' },
   { id: 'rentals',           Icon: Building2,      label: 'Rentals',          color: '#A78BFA' },
   { id: 'deals',             Icon: Gift,           label: 'Deals',            color: '#F472B6' },
@@ -156,7 +156,7 @@ function Home({ onNav }: { onNav: (id: string) => void }) {
 
       {/* KPI strip */}
       <View style={[styles.kpiRow, !isWide && { flexDirection: 'column' }]}>
-        <KpiTile emoji="💼" label="Internship Matches" value={String(internships.length || 48)} note={`↑ ${Math.min(12, internships.length)} new today`} />
+        <KpiTile emoji="💼" label="Career Matches" value={String(internships.length || 48)} note={`↑ ${Math.min(12, internships.length)} new today`} />
         <KpiTile emoji="📚" label="Courses In Progress" value={String((courses.filter((c: any) => c.status === 'in_progress') || []).length || 3)} note="68% avg completion" noteColor={SA.purplePale} />
         <KpiTile emoji="👥" label="Mentor Connections" value={String(mentors.length || 5)} note={`${bookings.length} sessions logged`} />
         <KpiTile emoji="🏆" label="Career Score" value={`${dashboard?.career_score || 74}%`} note="↑ 8pts this month" noteColor={SA.warn} />
@@ -180,7 +180,7 @@ function Home({ onNav }: { onNav: (id: string) => void }) {
             </View>
             {[
               { label: 'Complete DSA fundamentals', done: true, score: '100%' },
-              { label: 'Apply to 3 tech internships', done: true, score: '100%' },
+              { label: 'Apply to 3 tech opportunities', done: true, score: '100%' },
               { label: 'Connect with a senior mentor', done: false, score: '0%' },
               { label: 'Build and deploy capstone project', done: false, score: '20%' },
             ].map((s, i) => (
@@ -208,10 +208,10 @@ function Home({ onNav }: { onNav: (id: string) => void }) {
             ))}
           </GlassCard>
 
-          {/* Top internship matches */}
+          {/* Top opportunity matches */}
           <GlassCard pad={22}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <SectionLabel>🌍 TOP INTERNSHIP MATCHES</SectionLabel>
+              <SectionLabel>🌍 TOP OPPORTUNITY MATCHES</SectionLabel>
               <Pressable onPress={() => onNav('internships')}>
                 <Text style={{ color: SA.purplePale, fontFamily: SA.fontSemi, fontSize: 12 }}>
                   See all {internships.length || 48} →
@@ -360,8 +360,8 @@ function Career() {
         <SectionLabel>ROADMAP MILESTONES</SectionLabel>
         {[
           { phase: 'Foundation', tasks: ['Learn Python & DSA', 'Complete UI/UX course'], done: true, month: 'Aug–Sep 2024' },
-          { phase: 'Application', tasks: ['Apply to 5 internships', 'Build portfolio project'], done: true, month: 'Oct–Nov 2024' },
-          { phase: 'Experience', tasks: ['Complete internship', 'Get mentor sessions (x4)'], done: false, month: 'Dec–Feb 2025', active: true },
+          { phase: 'Application', tasks: ['Apply to 5 opportunities', 'Build portfolio project'], done: true, month: 'Oct–Nov 2024' },
+          { phase: 'Experience', tasks: ['Complete a career role', 'Get mentor sessions (x4)'], done: false, month: 'Dec–Feb 2025', active: true },
           { phase: 'Launch', tasks: ['Full-time job applications', 'Network with 20+ professionals'], done: false, month: 'Mar–May 2025' },
         ].map((p, i) => (
           <View key={i} style={{ flexDirection: 'row', gap: 20, marginBottom: 24 }}>

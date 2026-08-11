@@ -4,6 +4,7 @@ import { useRouter, usePathname } from "expo-router";
 import { Menu, X } from "lucide-react-native";
 import { Image } from "react-native";
 import { useBreakpoint } from "@/src/theme/breakpoints";
+import { useAuthStore } from "@/src/viewmodels/stores/authStore";
 
 // Module-scoped so a pending section survives the Navbar remount when we
 // navigate from an echo page (/echo/...) to the landing page (/welcome).
@@ -12,6 +13,8 @@ let pendingLandingSection: string | null = null;
 export function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
+  const user = useAuthStore((s) => s.user);
+  const isLoggedIn = !!user;
   const [scrolled, setScrolled] = useState(false);
   const [active, setActive] = useState("Agent K");
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -144,20 +147,54 @@ export function Navbar() {
 
           {/* CTA buttons */}
           <div className="flex items-center gap-2 sm:gap-4">
-            {width >= 420 && (
+            {isLoggedIn ? (
               <button
-                onClick={() => router.push('/(auth)/login')}
-                className="text-xs font-semibold text-gray-400 hover:text-white transition-colors duration-200 cursor-pointer"
+                onClick={() => {
+                  const role = user?.role || 'student';
+                  const portalPath = role === 'super_admin' ? '/super-admin' :
+                    role === 'mentor' ? '/mentor-portal' :
+                    role === 'alumni' ? '/alumni-portal' :
+                    role === 'college' ? '/college-portal' :
+                    '/student-portal';
+                  router.push(portalPath);
+                }}
+                className="text-xs font-semibold text-green-400 hover:text-green-300 transition-colors duration-200 cursor-pointer"
               >
-                Sign in
+                Dashboard
+              </button>
+            ) : (
+              width >= 420 && (
+                <button
+                  onClick={() => router.push('/(auth)/login')}
+                  className="text-xs font-semibold text-gray-400 hover:text-white transition-colors duration-200 cursor-pointer"
+                >
+                  Sign in
+                </button>
+              )
+            )}
+            {isLoggedIn ? (
+              <button
+                onClick={() => {
+                  const role = user?.role || 'student';
+                  const portalPath = role === 'super_admin' ? '/super-admin' :
+                    role === 'mentor' ? '/mentor-portal' :
+                    role === 'alumni' ? '/alumni-portal' :
+                    role === 'college' ? '/college-portal' :
+                    '/student-portal';
+                  router.push(portalPath);
+                }}
+                className="group relative overflow-hidden rounded-full bg-primary px-4 sm:px-5 py-2 text-xs font-bold text-primary-foreground transition-all duration-300 hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.4)] cursor-pointer"
+              >
+                My Account
+              </button>
+            ) : (
+              <button
+                onClick={() => { setMobileOpen(false); router.push('/get-started'); }}
+                className="group relative overflow-hidden rounded-full bg-primary px-4 sm:px-5 py-2 text-xs font-bold text-primary-foreground transition-all duration-300 hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.4)] cursor-pointer"
+              >
+                Get Started
               </button>
             )}
-            <button
-              onClick={() => { setMobileOpen(false); router.push('/get-started'); }}
-              className="group relative overflow-hidden rounded-full bg-primary px-4 sm:px-5 py-2 text-xs font-bold text-primary-foreground transition-all duration-300 hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.4)] cursor-pointer"
-            >
-              Get Started
-            </button>
             {/* Hamburger (tablet + mobile) */}
             {!isLargeScreen && (
               <button
@@ -208,12 +245,32 @@ export function Navbar() {
                 );
               })}
               <div className="h-px bg-white/10 my-2" />
-              <button
-                onClick={() => { setMobileOpen(false); router.push('/(auth)/login'); }}
-                className="px-4 py-3 rounded-xl text-sm font-semibold text-gray-300 hover:text-white hover:bg-white/5 text-left cursor-pointer"
-              >
-                Sign in
-              </button>
+              {isLoggedIn ? (
+                <>
+                  <button
+                    onClick={() => {
+                      const role = user?.role || 'student';
+                      const portalPath = role === 'super_admin' ? '/super-admin' :
+                        role === 'mentor' ? '/mentor-portal' :
+                        role === 'alumni' ? '/alumni-portal' :
+                        role === 'college' ? '/college-portal' :
+                        '/student-portal';
+                      setMobileOpen(false);
+                      router.push(portalPath);
+                    }}
+                    className="px-4 py-3 rounded-xl text-sm font-semibold text-green-400 hover:text-green-300 hover:bg-white/5 text-left cursor-pointer"
+                  >
+                    Go to Dashboard
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => { setMobileOpen(false); router.push('/(auth)/login'); }}
+                  className="px-4 py-3 rounded-xl text-sm font-semibold text-gray-300 hover:text-white hover:bg-white/5 text-left cursor-pointer"
+                >
+                  Sign in
+                </button>
+              )}
             </div>
           </motion.nav>
         )}

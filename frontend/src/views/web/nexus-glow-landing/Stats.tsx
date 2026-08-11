@@ -24,7 +24,7 @@ const items = [
   { n: 50000, s: "+", label: "Active Students", sublabel: "and growing every day", icon: Users },
   { n: 1200, s: "+", label: "Verified Mentors", sublabel: "from top 500 companies", icon: Award },
   { n: 200, s: "+", label: "Partner Universities", sublabel: "across 30+ countries", icon: Building2 },
-  { n: 96, s: "%", label: "Internship Rate", sublabel: "within 6 months of joining", icon: TrendingUp },
+  { n: 96, s: "%", label: "Placement Rate", sublabel: "within 6 months of joining", icon: TrendingUp },
 ];
 
 export function Stats() {

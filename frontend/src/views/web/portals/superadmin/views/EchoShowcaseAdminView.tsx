@@ -189,7 +189,6 @@ function ImageUploadWidget({
       try {
         const localPreview = URL.createObjectURL(file);
         onUpload(localPreview);
-        console.log('[CMS INSTANT PREVIEW]', { label, localPreview, fileName: file.name });
       } catch (e) {
         console.warn('Could not create local object URL for preview', e);
       }
@@ -198,23 +197,19 @@ function ImageUploadWidget({
     setUploading(true);
     setProgress(`Uploading ${file.name}…`);
     onUploadStart?.();
-    console.log('[CMS UPLOAD REQUEST]', { label, fileName: file.name, size: file.size, type: file.type });
 
     try {
       const fd = new FormData();
       fd.append('file', file, file.name);
       const res = await api.uploadEchoMedia(fd);
-      console.log('[CMS UPLOAD RESPONSE]', res);
 
       if (res?.url) {
         onUpload(res.url);
-        console.log('[CMS FORM STATE UPDATED]', { label, serverUrl: res.url });
         flash?.(`${label} uploaded`);
       } else {
         throw new Error('Upload returned no URL');
       }
     } catch (err: any) {
-      console.error('[CMS UPLOAD ERROR]', err);
       flash?.(`Upload failed: ${err?.message || 'Unknown error'}`);
     } finally {
       setUploading(false);
@@ -224,7 +219,6 @@ function ImageUploadWidget({
   };
 
   const handleRemove = () => {
-    console.log('[CMS REMOVE IMAGE]', { label, previousUrl: url });
     onRemove();
   };
 
@@ -670,7 +664,30 @@ function DownloadsEditor({ downloads, onChange }: any) {
 
 // ── Poster Editor (simple URL list) ──────────────────────────────────────────
 function PosterEditor({ posters, onChange }: { posters: string[]; onChange: (p: string[]) => void }) {
+  const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState('');
   const list = Array.isArray(posters) ? posters : [];
+
+  const addFromUpload = async (files: FileList | File[]) => {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    const newUrls: string[] = [];
+    const total = files.length;
+    for (let i = 0; i < total; i++) {
+      const file = files[i];
+      setProgress(`Uploading ${i + 1} of ${total}…`);
+      try {
+        const fd = new FormData();
+        fd.append('file', file, file.name);
+        const res = await api.uploadEchoMedia(fd);
+        if (res?.url) newUrls.push(res.url);
+      } catch { /* skip failed */ }
+    }
+    if (newUrls.length > 0) onChange([...list, ...newUrls]);
+    setUploading(false);
+    setProgress('');
+  };
+
   const set = (i: number, v: string) => {
     const next = [...list];
     next[i] = v;
@@ -686,8 +703,54 @@ function PosterEditor({ posters, onChange }: { posters: string[]; onChange: (p: 
     onChange(next);
   };
 
+  const onDrop = (e: any) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer?.files) addFromUpload(e.dataTransfer.files);
+  };
+
   return (
     <View style={{ gap: 10 }}>
+      {/* Dropzone */}
+      <View
+        style={{
+          borderWidth: 2, borderColor: 'rgba(123,61,191,0.35)', borderStyle: 'dashed',
+          borderRadius: 10, padding: 16, alignItems: 'center', justifyContent: 'center',
+          backgroundColor: 'rgba(123,61,191,0.04)',
+        }}
+        {...(Platform.OS === 'web' ? {
+          onDragOver: (e: any) => { e.preventDefault(); e.stopPropagation(); },
+          onDrop: onDrop,
+        } : {})}
+      >
+        {uploading ? (
+          <View style={{ alignItems: 'center', gap: 6 }}>
+            <ActivityIndicator size="small" color={GRAD.from} />
+            <Text style={{ fontFamily: FONTS.semi, fontSize: 12, color: GRAD.from }}>{progress}</Text>
+          </View>
+        ) : (
+          <View style={{ alignItems: 'center', gap: 6 }}>
+            <Upload size={18} color={GRAD.from} />
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>Drop poster images here</Text>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.muted }}>Or use the button below</Text>
+            {Platform.OS === 'web' && (
+              <label style={{ marginTop: 4, cursor: 'pointer' }}>
+                <span style={{
+                  backgroundColor: 'rgba(123,61,191,0.25)', color: '#fff',
+                  padding: '5px 12px', borderRadius: '7px',
+                  fontFamily: FONTS.semi, fontSize: '11px',
+                }}>
+                  Browse Files
+                </span>
+                <input type="file" multiple accept="image/*" style={{ display: 'none' }}
+                  onChange={(e: any) => { if (e.target.files?.length > 0) addFromUpload(e.target.files); }} />
+              </label>
+            )}
+          </View>
+        )}
+      </View>
+
+      {/* Poster list */}
       {list.map((url, i) => (
         <View key={i} style={{ backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: SAC.border, gap: 8 }}>
           <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
@@ -715,13 +778,13 @@ function PosterEditor({ posters, onChange }: { posters: string[]; onChange: (p: 
           </View>
           {url ? (
             <Text style={{ fontFamily: FONTS.med, fontSize: 10.5, color: SAC.muted }} numberOfLines={1}>
-              🖼 {url}
+                    <Ticket size={14} color={SAC.muted} /> {url}
             </Text>
           ) : null}
         </View>
       ))}
       <Pressable onPress={add}>
-        <Text style={{ color: GRAD.from, fontFamily: FONTS.semi, fontSize: 12.5 }}>+ Add Poster Image</Text>
+        <Text style={{ color: GRAD.from, fontFamily: FONTS.semi, fontSize: 12.5 }}>+ Add Poster Image (URL)</Text>
       </Pressable>
     </View>
   );
@@ -1824,11 +1887,11 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                   Enable food/amenity coupons for attendees. Each enabled session generates a unique QR coupon that can be scanned once at the venue.
                 </Text>
                 {[
-                  { key: 'breakfast', label: 'Breakfast', icon: '🍳' },
-                  { key: 'lunch', label: 'Lunch', icon: '🍽️' },
-                  { key: 'snacks', label: 'Snacks', icon: '🍪' },
-                  { key: 'tiffin', label: 'Tiffin', icon: '🥪' },
-                  { key: 'coffee', label: 'Coffee & Tea', icon: '☕' },
+                  { key: 'breakfast', label: 'Breakfast', icon: 'cup-soda' },
+                  { key: 'lunch', label: 'Lunch', icon: 'utensils' },
+                  { key: 'snacks', label: 'Snacks', icon: 'cookie' },
+                  { key: 'tiffin', label: 'Tiffin', icon: 'sandwich' },
+                  { key: 'coffee', label: 'Coffee & Tea', icon: 'coffee' },
                 ].map((s) => {
                   const sessions = (form.sessions || []);
                   const existing = sessions.find((x: any) => x.key === s.key);
@@ -2037,7 +2100,7 @@ function SessionPassesOverview({ events, onRefresh }: { events: any[]; onRefresh
                       const enabled = s.enabled ?? false;
                       return (
                         <View key={s.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6, paddingHorizontal: 10, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
-                          <Text style={{ fontSize: 16, width: 24 }}>{s.icon || '🎫'}</Text>
+                          <Text style={{ fontSize: 16, width: 24 }}>{s.icon || 'ticket'}</Text>
                           <Text style={{ flex: 1, fontFamily: FONTS.med, fontSize: 12, color: SAC.text }}>{s.label}</Text>
                           {enabled && (
                             <>
@@ -2073,6 +2136,8 @@ function RegistrationsPanel() {
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('all');
   const [eventSlug, setEventSlug] = useState('all');
+  const [detailRow, setDetailRow] = useState<any>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
   const { flash } = useToast();
 
   const load = useCallback(async () => {
@@ -2092,6 +2157,20 @@ function RegistrationsPanel() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  const deleteReg = async (id: string) => {
+    if (!confirm('Delete this registration? This cannot be undone.')) return;
+    setDeleting(id);
+    try {
+      await api.adminEchoDeleteRegistration(id);
+      setRows((prev) => prev.filter((r) => r.id !== id && r._id !== id));
+      flash('Registration deleted');
+    } catch {
+      flash('Failed to delete registration');
+    } finally {
+      setDeleting(null);
+    }
+  };
 
   const filtered = rows.filter((r) => {
     const s = q.toLowerCase();
@@ -2208,7 +2287,7 @@ function RegistrationsPanel() {
           </View>
         ) : (
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={{ minWidth: 760 }}>
+            <View style={{ minWidth: 860 }}>
               {/* Header */}
               <View style={{ flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 14, backgroundColor: 'rgba(255,255,255,0.04)', borderBottomWidth: 1, borderBottomColor: SAC.border }}>
                 <Text style={{ width: 180, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>ATTENDEE</Text>
@@ -2218,6 +2297,7 @@ function RegistrationsPanel() {
                 <Text style={{ width: 150, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>PAYMENT</Text>
                 <Text style={{ width: 120, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>SA ACCOUNT</Text>
                 <Text style={{ width: 150, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>DATE</Text>
+                <Text style={{ width: 100, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5, textAlign: 'center' }}>ACTIONS</Text>
               </View>
               {filtered.map((r: any, i: number) => (
                 <View key={r.id || i} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 11, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' }}>
@@ -2255,12 +2335,58 @@ function RegistrationsPanel() {
                       {(r.registered_at || '').slice(0, 16).replace('T', ' ') || '—'}
                     </Text>
                   </View>
+                  <View style={{ width: 100, flexDirection: 'row', gap: 6, justifyContent: 'center' }}>
+                    <Pressable onPress={() => setDetailRow(r)} style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: 'rgba(99,102,241,0.15)', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                      <Eye size={14} color="#818CF8" />
+                    </Pressable>
+                    <Pressable onPress={() => deleteReg(r.id || r._id)} disabled={deleting === (r.id || r._id)} style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: deleting === (r.id || r._id) ? 'rgba(100,100,100,0.15)' : 'rgba(239,68,68,0.15)', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', opacity: deleting === (r.id || r._id) ? 0.5 : 1 }}>
+                      <Trash2 size={14} color={deleting === (r.id || r._id) ? '#666' : '#F87171'} />
+                    </Pressable>
+                  </View>
                 </View>
               ))}
             </View>
           </ScrollView>
         )}
       </Card>
+
+      {/* Detail Modal */}
+      {detailRow && (
+        <Modal visible={true} transparent animationType="fade" onRequestClose={() => setDetailRow(null)}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+            <Card style={{ width: '100%', maxWidth: 480, padding: 24, gap: 16 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: SAC.text }}>Registration Details</Text>
+                <Pressable onPress={() => setDetailRow(null)} style={{ padding: 4 }}><X size={18} color={SAC.muted} /></Pressable>
+              </View>
+              <View style={{ gap: 10 }}>
+                {[
+                  ['Name', detailRow.full_name],
+                  ['Email', detailRow.email],
+                  ['Phone', detailRow.phone],
+                  ['College', detailRow.college],
+                  ['Branch', detailRow.branch],
+                  ['Event', detailRow.event_title || detailRow.slug],
+                  ['Fee', Number(detailRow.fee || 0) > 0 ? `₹${Number(detailRow.fee).toLocaleString('en-IN')}` : 'FREE'],
+                  ['Payment Status', (detailRow.payment_status || '—').toUpperCase()],
+                  ['Payment ID', detailRow.payment_id],
+                  ['SA Account', detailRow.has_account ? 'Yes' : 'No'],
+                  ['Registered', (detailRow.registered_at || '').slice(0, 19).replace('T', ' ')],
+                  ['Checked In', detailRow.checked_in_at ? new Date(detailRow.checked_in_at).toLocaleString() : 'No'],
+                ].map(([label, value]) => (
+                  <View key={label} style={{ flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)', paddingBottom: 8 }}>
+                    <Text style={{ fontFamily: FONTS.semi, fontSize: 12, color: SAC.muted }}>{label}</Text>
+                    <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.text, textAlign: 'right', maxWidth: 260 }}>{value || '—'}</Text>
+                  </View>
+                ))}
+              </View>
+              <GradientButton onPress={() => setDetailRow(null)} size="sm" style={{ alignSelf: 'flex-end' }}>
+                <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>Close</Text>
+              </GradientButton>
+            </Card>
+          </View>
+        </Modal>
+      )}
     </View>
   );
 }
@@ -2661,25 +2787,13 @@ export function EchoShowcaseAdminView() {
       form = { ...form, slug: form.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'untitled' };
     }
     setSaving(true);
-    console.log('[CMS SAVE PAYLOAD]', {
-      id: editing?._id,
-      title: form.title,
-      slug: form.slug,
-      status: form.status,
-      hero_image_url: form.hero_image_url,
-      hero_cover_url: form.hero_cover_url,
-      hero_thumbnail_url: form.hero_thumbnail_url,
-      gallery_count: form.gallery?.length,
-    });
 
     try {
       if (editing) {
         const res = await api.updateEchoShowcase(editing._id, form);
-        console.log('[CMS UPDATE RESPONSE]', res);
         flash('Showcase updated');
       } else {
         const res = await api.createEchoShowcase(form);
-        console.log('[CMS CREATE RESPONSE]', res);
         flash('Showcase created');
         // Clear autosave draft
         if (Platform.OS === 'web') {

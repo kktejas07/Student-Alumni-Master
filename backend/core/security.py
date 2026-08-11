@@ -38,7 +38,9 @@ except Exception:
 from .db import db
 
 # ─── JWT configuration ─────────────────────────────────────────────────
-JWT_SECRET = os.environ.get('JWT_SECRET') or "studentalumni_jwt_secret_key_2026"
+JWT_SECRET = os.environ.get('JWT_SECRET')
+if not JWT_SECRET:
+    raise RuntimeError("JWT_SECRET is not set. Copy backend/.env.example to backend/.env and set JWT_SECRET.")
 JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60  # 1 hour — short-lived; use refresh token for re-auth
 REFRESH_TOKEN_EXPIRE_DAYS = 30

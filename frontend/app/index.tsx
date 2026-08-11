@@ -8,7 +8,7 @@
  *   • Native + first launch (no intro seen) → /intro
  *   • Native + intro already seen         → /(auth)/login
  *
- * Splash itself shows ~1.6s on web, ~2.0s on native (longer reveal).
+ * Routes immediately once auth state is known (no artificial splash delay).
  */
 import { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Animated, Easing, Platform } from 'react-native';
@@ -57,39 +57,37 @@ export default function Index() {
       .catch(() => setHasSeenIntro(false));
   }, []);
 
-  // Route once both auth and intro flags are known.
+  // Route as soon as auth state is known — no artificial splash delay.
+  // The splash/logo entrance still plays for the brief moment the page is
+  // visible while auth init resolves.
   useEffect(() => {
     if (!initialized || hasSeenIntro === null) return;
-    const delay = IS_WEB ? 1400 : 2000;
-    const t = setTimeout(() => {
-      // Web default: always show the /welcome landing page on initial app load.
-      if (IS_WEB) {
-        router.replace('/welcome');
-        return;
-      }
-      // Authed users on native go straight to their home.
-      if (user) {
-        if (!user.onboarding_completed) {
-          const dest =
-            user.role === 'student' ? '/(onboarding)/student-onboard' :
-              user.role === 'mentor' ? '/(onboarding)/mentor-onboard' :
-                user.role === 'alumni' ? '/(onboarding)/alumni-onboard' :
-                  user.role === 'college' ? '/(onboarding)/college-onboard' :
-                    '/(onboarding)/role-info';
-          router.replace(dest as any);
-        } else {
-          router.replace('/(tabs)');
-        }
-        return;
-      }
-      // Unauthed native: intro (first time) or login.
-      if (!hasSeenIntro) {
-        router.replace('/intro');
+    // Web default: always show the /welcome landing page on initial app load.
+    if (IS_WEB) {
+      router.replace('/welcome');
+      return;
+    }
+    // Authed users on native go straight to their home.
+    if (user) {
+      if (!user.onboarding_completed) {
+        const dest =
+          user.role === 'student' ? '/(onboarding)/student-onboard' :
+            user.role === 'mentor' ? '/(onboarding)/mentor-onboard' :
+              user.role === 'alumni' ? '/(onboarding)/alumni-onboard' :
+                user.role === 'college' ? '/(onboarding)/college-onboard' :
+                  '/(onboarding)/role-info';
+        router.replace(dest as any);
       } else {
-        router.replace('/(auth)/login');
+        router.replace('/(tabs)');
       }
-    }, delay);
-    return () => clearTimeout(t);
+      return;
+    }
+    // Unauthed native: intro (first time) or login.
+    if (!hasSeenIntro) {
+      router.replace('/intro');
+    } else {
+      router.replace('/(auth)/login');
+    }
   }, [user, initialized, hasSeenIntro, router]);
 
   return (

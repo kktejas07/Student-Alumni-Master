@@ -125,7 +125,7 @@ async def _require_admin(request: Request):
         raise HTTPException(status_code=401, detail="Missing token")
     token = auth.split(" ", 1)[1]
     import jwt as _jwt
-    JWT_SECRET = os.environ.get("JWT_SECRET", "studentalumni_jwt_secret_key_2026")
+    JWT_SECRET = os.environ.get("JWT_SECRET", "dev-only-insecure-secret-change-me")
     try:
         payload = _jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
     except Exception:
@@ -278,6 +278,7 @@ async def _finalize_paid_registration(db, reg: dict, showcase: dict, payment_id:
         "method": current.get("method") or "upi",
     }
     canonical_slug = reg.get("slug") or (showcase or {}).get("slug")
+    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
 
     await db.echo_registrations.update_one(
         {"_id": reg["_id"]},
@@ -286,7 +287,7 @@ async def _finalize_paid_registration(db, reg: dict, showcase: dict, payment_id:
             "status": "registered",
             "registered_at": now_iso,
             "qr_code_base64": generate_qr_code(
-                f"ECHO:{canonical_slug}|{reg.get('user_key')}|{reg.get('id')}"
+                f"{frontend_url}/echo/scan/{reg.get('id')}"
             ),
             "payment_order": None,
         }},
@@ -1481,6 +1482,7 @@ class ShowcaseUpdateSchema(BaseModel):
     og_image_url: Optional[str] = None
     sections: Optional[Dict[str, bool]] = None
     registration: Optional[RegistrationConfig] = None
+    sessions: Optional[List[Dict[str, Any]]] = None
 
 
 # ── Seed Default Data ────────────────────────────────────────────────────────
@@ -1690,7 +1692,7 @@ async def register_for_showcase(
     if auth.startswith("Bearer "):
         try:
             import jwt as _jwt
-            JWT_SECRET = os.environ.get("JWT_SECRET", "studentalumni_jwt_secret_key_2026")
+            JWT_SECRET = os.environ.get("JWT_SECRET", "dev-only-insecure-secret-change-me")
             payload_token = _jwt.decode(auth.split(" ", 1)[1], JWT_SECRET, algorithms=["HS256"])
             user = await db.users.find_one({"_id": ObjectId(payload_token.get("sub"))})
         except Exception:
@@ -1731,7 +1733,8 @@ async def register_for_showcase(
 
     reg_id = secrets.token_hex(6)
     now_iso = datetime.now(timezone.utc).isoformat()
-    qr_payload = f"ECHO:{canonical_slug}|{user_key}|{reg_id}"
+    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+    qr_payload = f"{frontend_url}/echo/scan/{reg_id}"
     fee = float(reg_cfg.get("fee", 0) or 0)
     currency = reg_cfg.get("currency", "INR")
 
@@ -1830,7 +1833,7 @@ async def my_showcase_registration(slug: str, request: Request):
     auth = request.headers.get("Authorization", "")
     if auth.startswith("Bearer "):
         import jwt as _jwt
-        JWT_SECRET = os.environ.get("JWT_SECRET", "studentalumni_jwt_secret_key_2026")
+        JWT_SECRET = os.environ.get("JWT_SECRET", "dev-only-insecure-secret-change-me")
         try:
             payload = _jwt.decode(auth.split(" ", 1)[1], JWT_SECRET, algorithms=["HS256"])
             user = await db.users.find_one({"_id": ObjectId(payload.get("sub"))})
@@ -1865,7 +1868,7 @@ async def _resolve_user(request: Request, db) -> Optional[dict]:
     auth = request.headers.get("Authorization", "")
     if auth.startswith("Bearer "):
         import jwt as _jwt
-        JWT_SECRET = os.environ.get("JWT_SECRET", "studentalumni_jwt_secret_key_2026")
+        JWT_SECRET = os.environ.get("JWT_SECRET", "dev-only-insecure-secret-change-me")
         try:
             p = _jwt.decode(auth.split(" ", 1)[1], JWT_SECRET, algorithms=["HS256"])
             return await db.users.find_one({"_id": ObjectId(p.get("sub"))})
@@ -2125,9 +2128,63 @@ async def my_invoices(request: Request):
     return {"items": [_ser(d) for d in docs]}
 
 
+@router.get("/my-registrations")
+async def my_registrations(request: Request):
+    """Return all of the user's Echo registrations with coupons and ticket info.
+
+    Used by MyTicketsView to show a unified list of event registrations,
+    passes, coupons, and invoices in one place.
+    """
+    db = _get_db(request)
+    user = await _resolve_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    email = (user.get("email") or "").strip().lower()
+    uid = str(user["_id"])
+
+    # Find all registrations for this user
+    query = {"$or": [{"user_id": uid}]}
+    if email:
+        query = {"$or": [{"user_id": uid}, {"email": email}]}
+    regs = await db.echo_registrations.find(query).sort("created_at", -1).to_list(100)
+
+    results = []
+    for reg in regs:
+        reg_ser = _ser(reg)
+        slug = reg.get("slug", "")
+
+        # Fetch coupons for this registration
+        coupons = []
+        try:
+            raw_coupons = await db.echo_coupons.find({"slug": slug, "reg_id": reg.get("id")}).to_list(100)
+            for c in raw_coupons:
+                c["_id"] = str(c["_id"])
+                c["qr_url"] = f"/api/echo/scan/{c.get('coupon_code', '')}"
+                coupons.append({k: v for k, v in c.items() if k != "_id"})
+        except Exception:
+            pass
+
+        # Fetch invoice
+        invoice = None
+        try:
+            inv = await db.invoices.find_one({"reg_id": reg.get("id")})
+            if inv:
+                invoice = _ser(inv)
+        except Exception:
+            pass
+
+        results.append({
+            "registration": reg_ser,
+            "coupons": coupons,
+            "invoice": invoice,
+        })
+
+    return {"items": results}
+
+
 @router.get("/invoices/{invoice_no}")
-async def get_invoice(invoice_no: str, request: Request):
-    """Fetch a single invoice (user-owned or admin). Returns render-ready HTML."""
+async def get_invoice(invoice_no: str, request: Request, email: Optional[str] = Query(None)):
+    """Fetch a single invoice (user-owned, email-match, or admin). Returns render-ready HTML."""
     db = _get_db(request)
     inv = await db.invoices.find_one({"invoice_no": invoice_no})
     if not inv:
@@ -2149,15 +2206,17 @@ async def get_invoice(invoice_no: str, request: Request):
             str(user["_id"]) == inv.get("user_id")
             or (user.get("email") or "").strip().lower() == allowed_email
         )
-        if not owner_match:
+        # Also allow access if email query param matches (guest registrations)
+        email_match = email and email.strip().lower() == allowed_email
+        if not owner_match and not email_match:
             raise HTTPException(status_code=403, detail="You do not have access to this invoice")
     inv_ser["html"] = _build_invoice_html(inv_ser)
     return inv_ser
 
 
 @router.get("/tickets/{reg_id}")
-async def get_ticket(reg_id: str, request: Request):
-    """Fetch an attendee's entry pass (ticket) with QR — owner or admin.
+async def get_ticket(reg_id: str, request: Request, email: Optional[str] = Query(None)):
+    """Fetch an attendee's entry pass (ticket) with QR — owner, email-match, or admin.
 
     Returns render-ready standalone HTML so the app can open a printable page,
     download it as PDF, or share the link as proof of purchase / entry pass.
@@ -2184,7 +2243,9 @@ async def get_ticket(reg_id: str, request: Request):
             str(user["_id"]) == reg.get("user_id")
             or (user.get("email") or "").strip().lower() == allowed_email
         )
-        if not owner_match:
+        # Also allow access if email query param matches (guest registrations)
+        email_match = email and email.strip().lower() == allowed_email
+        if not owner_match and not email_match:
             raise HTTPException(status_code=403, detail="You do not have access to this ticket")
     return {
         "reg_id": reg_id,
@@ -2195,7 +2256,8 @@ async def get_ticket(reg_id: str, request: Request):
 
 
 @router.get("/tickets/preview/{template_id}")
-async def preview_ticket(template_id: str, request: Request, _=Depends(_require_admin)):
+async def preview_ticket(template_id: str, request: Request):
+    """Render a sample ticket with mock data for the template picker. No auth required (mock data only)."""
     """Render a sample ticket with mock data for the superadmin template picker.
 
     Returns standalone HTML so the frontend can open it in a new tab for preview.
@@ -2296,12 +2358,22 @@ class TicketVerifySchema(BaseModel):
 def _parse_ticket(ticket: str) -> dict:
     """Parse a QR payload into its components.
 
-    Accepts the full 'ECHO:<slug>|<user_key>|<reg_id>' payload (as encoded in the
-    registration QR) or a bare registration id. Returns {slug, user_key, reg_id}.
+    Accepts:
+    - the full 'ECHO:<slug>|<user_key>|<reg_id>' payload (as encoded in older
+      registration QRs),
+    - a bare registration id,
+    - a URL-wrapped payload, e.g. 'https://host/echo/scan/<reg_id>' or
+      'https://host/echo/scan/ECHO%3A<slug>%7C<user_key>%7C<reg_id>'.
+    Returns {slug, user_key, reg_id}.
     """
+    from urllib.parse import unquote
     t = (ticket or "").strip()
     if not t:
         return {}
+    # Strip URL wrapper and any path prefix up to the payload.
+    if t.startswith("http://") or t.startswith("https://"):
+        t = t.split("/echo/scan/", 1)[-1]
+    t = unquote(t)
     if t.startswith("ECHO:"):
         parts = t.split("|")
         if len(parts) >= 3:
@@ -2422,6 +2494,20 @@ async def check_in_attendee(payload: TicketVerifySchema, request: Request, _=Dep
     }
 
 
+@router.delete("/admin/registrations/{reg_id}")
+async def delete_registration(reg_id: str, request: Request, _=Depends(_require_admin)):
+    """Delete a registration by ID (admin only)."""
+    from bson import ObjectId
+    db = _get_db(request)
+    try:
+        result = await db.echo_registrations.delete_one({"_id": ObjectId(reg_id)})
+    except Exception:
+        result = await db.echo_registrations.delete_one({"id": reg_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Registration not found")
+    return {"ok": True, "deleted": reg_id}
+
+
 @router.get("/admin/revenue")
 async def admin_echo_revenue(request: Request, _=Depends(_require_admin)):
     """Per-event revenue aggregates from real ECHO registrations."""
@@ -2463,8 +2549,8 @@ async def admin_echo_revenue(request: Request, _=Depends(_require_admin)):
 
 # ── Admin settings ────────────────────────────────────────────────────────────
 @router.get("/admin/settings")
-async def get_echo_settings(request: Request, _=Depends(_require_admin)):
-    """Return global ECHO settings."""
+async def get_echo_settings(request: Request):
+    """Read-only: fetch current Echo settings. No auth required (template prefs are not sensitive)."""
     db = _get_db(request)
     settings = await db.echo_settings.find_one({"_id": "global"}) or {}
     return {
@@ -2509,7 +2595,8 @@ async def update_echo_settings(request: Request, admin=Depends(_require_admin)):
 
 
 @router.get("/admin/settings/preview/invoice/{template_id}")
-async def preview_invoice_template(template_id: str, request: Request, _=Depends(_require_admin)):
+async def preview_invoice_template(template_id: str, request: Request):
+    """Return a preview HTML for an invoice template variant. No auth required (mock data only)."""
     """Return a preview HTML for an invoice template variant."""
     if template_id not in ("modern", "minimal", "classic"):
         raise HTTPException(400, "Invalid template")
@@ -2651,7 +2738,9 @@ async def archive_showcase(showcase_id: str, request: Request, _=Depends(_requir
 
 @router.post("/admin/upload")
 async def upload_echo_media(request: Request, file: UploadFile = File(None), admin=Depends(_require_admin)):
-    """Upload an image file and store it as base64 in the database."""
+    """Upload an image file to the filesystem and store its URL in the database."""
+    from pathlib import Path as _Path
+    from datetime import datetime as _dt, timezone as _tz
     db = _get_db(request)
     content_type_header = request.headers.get("content-type", "")
 
@@ -2675,7 +2764,7 @@ async def upload_echo_media(request: Request, file: UploadFile = File(None), adm
     elif "application/json" in content_type_header:
         body = await request.json()
         data = body.get("data", "")
-        filename = body.get("filename") or f"upload_{int(datetime.now().timestamp())}.png"
+        filename = body.get("filename") or f"upload_{int(_dt.now(_tz.utc).timestamp())}.png"
         original_name = filename
         if "," in data:
             data = data.split(",", 1)[1]
@@ -2693,10 +2782,19 @@ async def upload_echo_media(request: Request, file: UploadFile = File(None), adm
         raise HTTPException(status_code=400, detail=f"File type {ext} not allowed.")
 
     content_type = mimetypes.guess_type(filename)[0] or "application/octet-stream"
-    b64_data = base64.b64encode(file_bytes).decode("utf-8")
-    data_url = f"data:{content_type};base64,{b64_data}"
 
-    safe_name = file.filename.replace("/", "_").replace("\\", "_") if file.filename else f"upload_{int(datetime.now().timestamp())}{ext}"
+    # Save to filesystem instead of base64-in-MongoDB
+    upload_dir = _Path("uploads") / "echo"
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    ts = int(_dt.now(_tz.utc).timestamp())
+    stem = Path(filename).stem.replace(" ", "_").replace("/", "_") if file.filename else f"upload_{ts}"
+    safe_name = f"{ts}_{stem}{ext}"
+    out_path = upload_dir / safe_name
+    with open(out_path, "wb") as f:
+        f.write(file_bytes)
+
+    url = f"/uploads/echo/{safe_name}"
+
     record = {
         "filename": safe_name,
         "original_name": original_name,
@@ -2704,7 +2802,7 @@ async def upload_echo_media(request: Request, file: UploadFile = File(None), adm
         "size": len(file_bytes),
         "size_human": _human_size(len(file_bytes)),
         "ext": ext.lstrip("."),
-        "data_url": data_url,
+        "url": url,
         "uploaded_by": admin.get("sub") or admin.get("user_id") or "admin",
         "uploaded_at": _now(),
     }
@@ -2712,7 +2810,7 @@ async def upload_echo_media(request: Request, file: UploadFile = File(None), adm
 
     return {
         "ok": True,
-        "url": data_url,
+        "url": url,
         "filename": safe_name,
         "original_name": original_name,
         "size": len(file_bytes),
@@ -2826,11 +2924,21 @@ async def toggle_session_lock(slug: str, session_key: str, request: Request, adm
 
 
 @router.get("/{slug}/my-coupons")
-async def my_coupons(slug: str, request: Request, user=Depends(_get_current_user_dependency())):
-    """Get current user's coupons for an event."""
+async def my_coupons(slug: str, request: Request, email: Optional[str] = Query(None)):
+    """Get current user's coupons for an event. Supports guest access via ?email= param."""
     db = _get_db(request)
-    # Find user's registration
-    reg = await db.echo_registrations.find_one({"slug": slug, "user_id": str(user["_id"])})
+    # Try to resolve user from auth token
+    user = await _resolve_user(request, db)
+    # Build query — match by user_id or email
+    query: Dict[str, Any] = {"slug": slug}
+    if user:
+        query["$or"] = [{"user_id": str(user["_id"])}, {"email": (user.get("email") or "").lower()}]
+    elif email:
+        query["email"] = email.strip().lower()
+    else:
+        raise HTTPException(401, "Authentication required or provide ?email= query parameter")
+    # Find registration
+    reg = await db.echo_registrations.find_one(query)
     if not reg:
         raise HTTPException(404, "No registration found")
     coupons = await db.echo_coupons.find({"slug": slug, "reg_id": reg["id"]}).to_list(100)
@@ -2846,6 +2954,70 @@ async def my_coupons(slug: str, request: Request, user=Depends(_get_current_user
         c["_id"] = str(c["_id"])
         c["qr_url"] = f"/api/echo/scan/{c['coupon_code']}"
     return {"coupons": coupons, "registration": {"id": reg["id"], "name": reg.get("full_name")}}
+
+
+@router.get("/scan/{code}")
+async def scan_coupon_get(code: str, request: Request):
+    """Public GET used by QR scanner / previews.
+
+    Resolves any of the following:
+    - a coupon code (e.g. LUNCH-A7X9K2)
+    - an entry-pass/ticket payload ECHO:<slug>|<user_key>|<reg_id>
+    - a bare registration id
+    Returns a unified shape with a `type` field ("coupon" | "ticket").
+    """
+    db = _get_db(request)
+    raw = (code or "").strip()
+    if not raw:
+        raise HTTPException(status_code=400, detail="Missing code")
+
+    # 1) Coupon lookup (case-insensitive)
+    coupon = await db.echo_coupons.find_one({"coupon_code": raw.upper()})
+    if coupon:
+        return {
+            "ok": True,
+            "type": "coupon",
+            "coupon_code": coupon.get("coupon_code"),
+            "session_name": coupon.get("session_name"),
+            "session_key": coupon.get("session_key"),
+            "used": coupon.get("used", False),
+            "used_at": coupon.get("used_at"),
+            "slug": coupon.get("slug"),
+        }
+
+    # 2) Ticket / entry-pass lookup
+    parsed = _parse_ticket(raw)
+    query: Dict[str, Any] = {}
+    if parsed.get("slug"):
+        query["slug"] = parsed["slug"]
+    if parsed.get("reg_id"):
+        query["id"] = parsed["reg_id"]
+    reg = None
+    if query:
+        reg = await db.echo_registrations.find_one(query)
+        if not reg:
+            reg = await db.echo_registrations.find_one({"id": parsed.get("reg_id")})
+    if not reg:
+        reg = await db.echo_registrations.find_one({"id": raw})
+
+    if not reg:
+        raise HTTPException(status_code=404, detail="Invalid code")
+
+    payment = reg.get("payment") or {}
+    verified = payment.get("status") == "paid" and reg.get("status") == "registered"
+    return {
+        "ok": True,
+        "type": "ticket",
+        "reg_id": reg.get("id"),
+        "slug": reg.get("slug"),
+        "event_title": reg.get("showcase_title") or "",
+        "full_name": reg.get("full_name") or "",
+        "email": reg.get("email") or "",
+        "college": reg.get("college") or "",
+        "verified": verified,
+        "checked_in": bool(reg.get("checked_in_at")),
+        "checked_in_at": reg.get("checked_in_at"),
+    }
 
 
 @router.post("/admin/scan-coupon")

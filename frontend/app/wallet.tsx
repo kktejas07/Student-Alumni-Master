@@ -1,6 +1,6 @@
 /**
- * /wallet — SA Credits Wallet (5-tab)
- *   Overview · Add Money · Withdraw · Credits · History
+ * /wallet — SA Rewards (5-tab)
+ *   Overview · Add Funds · Redeem · Rewards · History
  *
  * Wired to:
  *   GET  /api/wallet/summary
@@ -9,7 +9,7 @@
  *   POST /api/wallet/track
  *   POST /api/wallet/seed-demo-earnings
  *
- * Conversion: 25 credits = ₹1 INR (CREDITS_PER_INR=25)
+ * Conversion: 25 points = ₹1 INR (CREDITS_PER_INR=25)
  */
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
@@ -124,9 +124,9 @@ const CATEGORY_META: Record<string, { label: string; icon: IconName; color: stri
 
 const TABS: { id: 'overview' | 'topup' | 'withdraw' | 'credits' | 'history'; label: string; icon: IconName }[] = [
   { id: 'overview', label: 'Overview',   icon: 'view-dashboard' },
-  { id: 'topup',    label: 'Add Money',  icon: 'plus-circle' },
-  { id: 'withdraw', label: 'Withdraw',   icon: 'cash-fast' },
-  { id: 'credits',  label: 'Credits',    icon: 'star-four-points' },
+  { id: 'topup',    label: 'Add Funds',  icon: 'plus-circle' },
+  { id: 'withdraw', label: 'Redeem',     icon: 'cash-fast' },
+  { id: 'credits',  label: 'Rewards',    icon: 'star-four-points' },
   { id: 'history',  label: 'History',    icon: 'history' },
 ];
 
@@ -259,10 +259,10 @@ export default function WalletScreen() {
 
   if (loading) {
     return (
-      <FeaturePageShell title="Wallet" subtitle="Your SA Credits + earnings" heroEmoji="💰" accent={NX.purple}>
+      <FeaturePageShell title="Rewards" subtitle="Your SA rewards + activity" heroEmoji="🎁" accent={NX.purple}>
         <View style={s.loaderBox}>
           <ActivityIndicator color="#A78BFA" size="large" />
-          <Text style={s.loaderText}>Loading your wallet…</Text>
+          <Text style={s.loaderText}>Loading your rewards…</Text>
         </View>
       </FeaturePageShell>
     );
@@ -270,9 +270,9 @@ export default function WalletScreen() {
 
   return (
     <FeaturePageShell
-      title="Wallet"
-      subtitle="Earn credits by being active. Convert to ₹ when you cross the threshold."
-      heroEmoji="💰"
+      title="Rewards"
+      subtitle="Earn rewards by being active and redeem them when you cross the threshold."
+      heroEmoji="🎁"
       accent={NX.purple}
       rightSlot={headerRight}
       hideHero={true}
@@ -349,7 +349,7 @@ function BalanceHero({ data, onJump }: { data: Summary; onJump: (t: any) => void
     <View style={s.newHeroCard}>
       {/* Left: Balance and Verified status */}
       <View style={s.newHeroLeft}>
-        <Text style={s.newHeroKicker}>SA WALLET BALANCE</Text>
+        <Text style={s.newHeroKicker}>SA REWARDS BALANCE</Text>
         <Text style={s.newHeroBalance}>{fmtINR(inrBalance)}</Text>
         <View style={s.newHeroVerified}>
           <MaterialCommunityIcons name="shield-check" size={13} color="#86EFAC" />
@@ -361,11 +361,11 @@ function BalanceHero({ data, onJump }: { data: Summary; onJump: (t: any) => void
       <View style={s.newHeroMiddle}>
         <Pressable style={s.newHeroAddBtn} onPress={() => onJump('topup')}>
           <MaterialCommunityIcons name="plus" size={16} color="#5F259F" />
-          <Text style={s.newHeroAddBtnText}>Add Money</Text>
+          <Text style={s.newHeroAddBtnText}>Add Funds</Text>
         </Pressable>
         <Pressable style={s.newHeroWithdrawBtn} onPress={() => onJump('withdraw')}>
           <MaterialCommunityIcons name="arrow-up-bold-circle-outline" size={16} color="#fff" />
-          <Text style={s.newHeroWithdrawBtnText}>Withdraw</Text>
+          <Text style={s.newHeroWithdrawBtnText}>Redeem</Text>
         </Pressable>
       </View>
 
@@ -374,7 +374,7 @@ function BalanceHero({ data, onJump }: { data: Summary; onJump: (t: any) => void
         <View style={s.newHeroStatCol}>
           <MaterialCommunityIcons name="star-four-points" size={20} color="#FCD34D" />
           <Text style={s.newHeroStatVal}>{fmtCredits(credits)}</Text>
-          <Text style={s.newHeroStatLabel}>Credits</Text>
+          <Text style={s.newHeroStatLabel}>Rewards</Text>
         </View>
         <View style={s.newHeroStatCol}>
           <MaterialCommunityIcons name="plus-circle" size={20} color="#86EFAC" />
@@ -415,7 +415,7 @@ function OverviewTab({ data }: { data: Summary }) {
       <View style={s.orangeAlert}>
         <MaterialCommunityIcons name="star-four-points" size={16} color="#F59E0B" />
         <Text style={s.orangeAlertText}>
-          You are {creditsToGold} credits away from {nextLvlName} status - book one mentor session to unlock it!
+          You are {creditsToGold} points away from {nextLvlName} status - book one mentor session to unlock it!
         </Text>
       </View>
 
@@ -445,7 +445,7 @@ function OverviewTab({ data }: { data: Summary }) {
               <Text style={s.statCardSub}>{sessionCount}x · +50 cr each</Text>
             </View>
           </View>
-          <Text style={[s.statCardCredits, { color: '#22D3EE' }]}>{sessionCredits} cr earned</Text>
+          <Text style={[s.statCardCredits, { color: '#22D3EE' }]}>{sessionCredits} pts earned</Text>
         </View>
 
         {/* Card 2: Deals */}
@@ -459,7 +459,7 @@ function OverviewTab({ data }: { data: Summary }) {
               <Text style={s.statCardSub}>{dealCount}x · +10–25 cr each</Text>
             </View>
           </View>
-          <Text style={[s.statCardCredits, { color: '#FCD34D' }]}>{dealCredits} cr earned</Text>
+          <Text style={[s.statCardCredits, { color: '#FCD34D' }]}>{dealCredits} pts earned</Text>
         </View>
 
         {/* Card 3: Events */}
@@ -473,7 +473,7 @@ function OverviewTab({ data }: { data: Summary }) {
               <Text style={s.statCardSub}>{eventCount}x · +15 cr each</Text>
             </View>
           </View>
-          <Text style={[s.statCardCredits, { color: '#F472B6' }]}>{eventCredits} cr earned</Text>
+          <Text style={[s.statCardCredits, { color: '#F472B6' }]}>{eventCredits} pts earned</Text>
         </View>
 
         {/* Card 4: Referrals */}
@@ -487,18 +487,18 @@ function OverviewTab({ data }: { data: Summary }) {
               <Text style={s.statCardSub}>{referralCount}x · +100 cr each</Text>
             </View>
           </View>
-          <Text style={[s.statCardCredits, { color: '#34D399' }]}>{referralCredits} cr earned</Text>
+          <Text style={[s.statCardCredits, { color: '#34D399' }]}>{referralCredits} pts earned</Text>
         </View>
       </View>
 
-      {/* How SA Wallet Works */}
+      {/* How SA Rewards Works */}
       <View style={s.worksCard}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
           <MaterialCommunityIcons name="information" size={18} color="#F59E0B" />
-          <Text style={s.worksTitle}>How SA Wallet Works</Text>
+          <Text style={s.worksTitle}>How SA Rewards Works</Text>
         </View>
         <Text style={s.worksText}>
-          Add money via UPI/bank to pay for sessions, events & rentals. Earn credits for every interaction. Redeem credits for free sessions, event passes, deal discounts and more. Withdraw your balance anytime to UPI or bank.
+          Add funds via UPI/bank to pay for sessions, events & rentals. Earn rewards for every interaction. Redeem rewards for free sessions, event passes, deal discounts and more. Redeem your balance anytime to UPI or bank.
         </Text>
       </View>
     </View>
@@ -537,7 +537,7 @@ function TopupTab(props: {
       {/* Left Column: Form */}
       <View style={{ flex: stack ? undefined : 1.6, gap: 16 }}>
         <View style={s.section}>
-          <Text style={s.topupCardTitle}>Add Money to Wallet</Text>
+          <Text style={s.topupCardTitle}>Add Funds to Rewards</Text>
 
           {/* Payment Method Selector */}
           <Text style={s.fieldLabel}>Payment Method</Text>
@@ -800,7 +800,7 @@ function TopupTab(props: {
             {submitting ? <ActivityIndicator color="#fff" /> : (
               <>
                 <MaterialCommunityIcons name="wallet-plus" size={16} color="#fff" />
-                <Text style={s.newSubmitBtnText}>Add ₹{inr.toLocaleString()} to Wallet</Text>
+                <Text style={s.newSubmitBtnText}>Add ₹{inr.toLocaleString()} to Rewards</Text>
               </>
             )}
           </Pressable>
@@ -811,7 +811,7 @@ function TopupTab(props: {
               <MaterialCommunityIcons name="check-decagram" size={18} color="#34D399" />
               <View style={{ flex: 1 }}>
                 <Text style={s.resultTitle}>Top-up successful</Text>
-                <Text style={s.resultSub}>+{fmtCredits(result.total_credits)} credits added · New balance {fmtCredits(result.balance_credits)} cr</Text>
+                <Text style={s.resultSub}>+{fmtCredits(result.total_credits)} points added · New balance {fmtCredits(result.balance_credits)} pts</Text>
               </View>
             </View>
           )}
@@ -933,7 +933,7 @@ function WithdrawTab(props: {
       <View style={s.section}>
         <View style={s.sectionHead}>
           <MaterialCommunityIcons name="cash-fast" size={16} color="#F472B6" />
-          <Text style={s.sectionTitle}>Withdraw to bank / UPI</Text>
+          <Text style={s.sectionTitle}>Redeem to bank / UPI</Text>
         </View>
 
         {/* Threshold banner */}
@@ -945,8 +945,8 @@ function WithdrawTab(props: {
           />
           <Text style={s.bannerText}>
             {eligible
-              ? `Eligible — you can withdraw up to ${fmtCredits(data.balance_credits)} credits (${fmtINR(data.balance_inr)})`
-              : `Earn ${fmtCredits(data.withdraw_threshold_credits - data.balance_credits)} more credits to unlock withdrawal (min ${fmtINR(data.withdraw_threshold_inr)})`}
+              ? `Eligible — you can redeem up to ${fmtCredits(data.balance_credits)} rewards (${fmtINR(data.balance_inr)})`
+              : `Earn ${fmtCredits(data.withdraw_threshold_credits - data.balance_credits)} more rewards to unlock redemption (min ${fmtINR(data.withdraw_threshold_inr)})`}
           </Text>
         </View>
 
@@ -991,12 +991,12 @@ function WithdrawTab(props: {
             <Text style={s.previewValue}>{fmtINR(inr)}</Text>
           </View>
           <View style={s.previewRow}>
-            <Text style={s.previewLabel}>Credits debited ({data.credits_per_inr}/₹)</Text>
-            <Text style={s.previewValue}>−{fmtCredits(credits)} cr</Text>
+            <Text style={s.previewLabel}>Points debited ({data.credits_per_inr}/₹)</Text>
+            <Text style={s.previewValue}>−{fmtCredits(credits)} pts</Text>
           </View>
           <View style={[s.previewRow, s.previewTotalRow]}>
             <Text style={s.previewTotalLabel}>Balance after</Text>
-            <Text style={s.previewTotalValue}>{fmtCredits(Math.max(0, data.balance_credits - credits))} cr</Text>
+            <Text style={s.previewTotalValue}>{fmtCredits(Math.max(0, data.balance_credits - credits))} pts</Text>
           </View>
         </View>
 
@@ -1035,7 +1035,7 @@ function WithdrawTab(props: {
               name={requiresOtp ? 'shield-lock' : 'bank-transfer-out'}
               size={16} color="#3F0518" />
             <Text style={[s.primaryBtnText, { color: '#3F0518' }]}>
-              {requiresOtp ? 'Confirm withdrawal' : 'Withdraw '} {fmtINR(inr)}
+              {requiresOtp ? 'Confirm redemption' : 'Redeem '} {fmtINR(inr)}
             </Text>
           </>}
         </Pressable>
@@ -1044,7 +1044,7 @@ function WithdrawTab(props: {
           <View style={[s.resultBox, { borderColor: '#F472B666', backgroundColor: 'rgba(244,114,182,0.08)' }]}>
             <MaterialCommunityIcons name="check-decagram" size={18} color="#F472B6" />
             <View style={{ flex: 1 }}>
-              <Text style={s.resultTitle}>Withdrawal initiated</Text>
+              <Text style={s.resultTitle}>Redemption initiated</Text>
               <Text style={s.resultSub}>{fmtINR(result.amount_inr)} → {result.method?.toUpperCase()} · ETA {result.eta}</Text>
             </View>
           </View>
@@ -1065,7 +1065,7 @@ function WithdrawTab(props: {
       {otpStep === 'review' && (
         <View style={s.modalBackdrop}>
           <View style={s.modalCard}>
-            <Text style={s.modalTitle}>Confirm Withdrawal</Text>
+            <Text style={s.modalTitle}>Confirm Redemption</Text>
             <View style={{ gap: 8, marginTop: 10 }}>
               <ReviewRow label="Amount" value={fmtINR(inr)} bold />
               <ReviewRow label="To" value={target || (method === 'upi' ? '—' : 'Saved bank account')} />
@@ -1088,7 +1088,7 @@ function WithdrawTab(props: {
               </Pressable>
               <Pressable onPress={handleConfirmReview} style={s.modalConfirmBtn}>
                 <Text style={s.modalConfirmText}>
-                  {requiresOtp ? 'Send OTP' : 'Confirm withdrawal'}
+                  {requiresOtp ? 'Send OTP' : 'Confirm redemption'}
                 </Text>
               </Pressable>
             </View>
@@ -1144,7 +1144,7 @@ function WithdrawTab(props: {
                   (otp.length !== 6 || submitting) && { opacity: 0.5 }]}>
                 {submitting
                   ? <ActivityIndicator color="#fff" size="small" />
-                  : <Text style={s.modalConfirmText}>Verify & Withdraw</Text>}
+                  : <Text style={s.modalConfirmText}>Verify & Redeem</Text>}
               </Pressable>
             </View>
           </View>
@@ -1193,7 +1193,7 @@ function CreditsTab({ data, onSeedDemo, seeding }: { data: Summary; onSeedDemo: 
             <MaterialCommunityIcons name="star-four-points" size={22} color="#F59E0B" />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={s.creditsTitle}>SA Credits</Text>
+            <Text style={s.creditsTitle}>SA Rewards</Text>
             <Text style={s.creditsSub}>Earn & redeem for perks</Text>
           </View>
           <View style={s.tierBadge}>
@@ -1207,7 +1207,7 @@ function CreditsTab({ data, onSeedDemo, seeding }: { data: Summary; onSeedDemo: 
 
         <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8, marginTop: 8 }}>
           <Text style={s.creditsBig}>{balance.toLocaleString()}</Text>
-          <Text style={s.creditsUnit}>credits</Text>
+          <Text style={s.creditsUnit}>points</Text>
         </View>
 
         <View style={s.creditsBarBg}>
@@ -1235,10 +1235,10 @@ function CreditsTab({ data, onSeedDemo, seeding }: { data: Summary; onSeedDemo: 
           <MaterialCommunityIcons name="auto-fix" size={18} color="#F59E0B" />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={s.optimizerTitle}>Credit Earning Optimizer</Text>
+          <Text style={s.optimizerTitle}>Reward Earning Optimizer</Text>
           <Text style={s.optimizerSub}>
             {toNext > 0
-              ? `${toNext} credits to ${nextName} · I'll find the fastest path`
+              ? `${toNext} points to ${nextName} · I'll find the fastest path`
               : 'Optimize for next reward redemptions'}
           </Text>
         </View>
@@ -1357,9 +1357,9 @@ function RedeemPanel({ balance }: { balance: number }) {
     <View style={s.section}>
       <View style={s.sectionHead}>
         <MaterialCommunityIcons name="gift-outline" size={16} color="#F9A8D4" />
-        <Text style={s.sectionTitle}>Redeem Credits</Text>
+        <Text style={s.sectionTitle}>Redeem Rewards</Text>
         <View style={[s.balPill, { marginLeft: 'auto' }]}>
-          <Text style={s.balPillText}>{balance.toLocaleString()} cr available</Text>
+          <Text style={s.balPillText}>{balance.toLocaleString()} pts available</Text>
         </View>
       </View>
 
@@ -1405,11 +1405,11 @@ function RedeemPanel({ balance }: { balance: number }) {
       {confirmFor && (
         <View style={s.modalBackdrop}>
           <View style={s.modalCard}>
-            <Text style={s.modalTitle}>Redeem {confirmFor.cost} credits?</Text>
+            <Text style={s.modalTitle}>Redeem {confirmFor.cost} points?</Text>
             <Text style={s.modalBody}>
               You'll redeem <Text style={{ color: '#FCD34D', fontFamily: 'DMSans_800ExtraBold' }}>
                 {confirmFor.title}</Text>.
-              {' '}Remaining balance: {(balance - confirmFor.cost).toLocaleString()} credits.
+              {' '}Remaining balance: {(balance - confirmFor.cost).toLocaleString()} points.
             </Text>
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
               <Pressable onPress={() => setConfirmFor(null)} style={s.modalCancelBtn}>
@@ -1524,7 +1524,7 @@ function HistoryTab({ data }: { data: Summary }) {
             return (
               <Pressable key={f} onPress={() => setFilter(f)} style={[s.filterChip, active && s.filterChipActive]}>
                 <Text style={[s.filterText, active && s.filterTextActive]}>
-                  {f === 'all' ? 'All types' : f === 'credit' ? '+ Credits' : '− Debits'}
+                  {f === 'all' ? 'All types' : f === 'credit' ? '+ Earned' : '− Redeemed'}
                 </Text>
               </Pressable>
             );
@@ -1559,7 +1559,7 @@ function HistoryTab({ data }: { data: Summary }) {
             {filter !== 'all' && (
               <Pressable onPress={() => setFilter('all')} style={s.removableChip}>
                 <Text style={s.removableChipText}>
-                  Type: {filter === 'credit' ? 'Credits' : 'Debits'}
+                  Type: {filter === 'credit' ? 'Earned' : 'Redeemed'}
                 </Text>
                 <MaterialCommunityIcons name="close" size={11} color="#C4B5FD" />
               </Pressable>
@@ -1628,9 +1628,9 @@ function TxnDetailDrawer({ txn, onClose }: { txn: Txn; onClose: () => void }) {
             <Text style={s.txnHeroTime}>{relTime(txn.ts)}</Text>
           </View>
           <View style={{ gap: 10 }}>
-            <DetailRow label="Type" value={isCredit ? 'Credit (incoming)' : 'Debit (outgoing)'} />
+            <DetailRow label="Type" value={isCredit ? 'Earned (incoming)' : 'Redeemed (outgoing)'} />
             <DetailRow label="Category" value={meta.category || meta.kind || 'other'} />
-            <DetailRow label="Balance after" value={`${fmtCredits(txn.balance_after)} cr`} />
+            <DetailRow label="Balance after" value={`${fmtCredits(txn.balance_after)} pts`} />
             {meta.related_module && <DetailRow label="Source module" value={meta.related_module} />}
             {meta.external_ref && <DetailRow label="Reference" value={String(meta.external_ref)} />}
             <DetailRow label="Transaction ID" value={txn.id} />

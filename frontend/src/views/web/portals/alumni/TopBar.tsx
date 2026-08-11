@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { Bell, Search } from './iconShims';
 import { SC, FONTS } from './tokens';
-import { STUDENT } from './data';
+import { STUDENT } from '../student/data';
 import { Av } from './atoms';
 import { HelpMenu } from '@/src/views/web/help/HelpMenu';
 import { AlumniPortalNavContext } from './AlumniPortalRN';

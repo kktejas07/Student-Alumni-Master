@@ -191,3 +191,27 @@ run.ps1
 scratch/
 node-local/
 yarn-local/
+
+# ── Test artifacts & results (regenerable, never commit)
+QA-Automation/allure-results/
+QA-Automation/reports/
+tests/artifacts/
+backend/acceptance_screenshots/
+backend/e2e_report/
+backend/qa_audit_report/
+backend/phase7_e2e_screenshots/
+
+# ── Result dumps & one-off output (never commit)
+git_log.txt
+frontend_lint_results.txt
+backend_test_results.txt
+frontend_test_results.txt
+test_commits.txt
+portal_regression_results.json
+backend/out.txt
+backend/working_accounts.json
+backend/body_text.txt
+backend/api_audit_results.json
+backend/phase7_e2e_results.json
+backend/portal_regression_results.json
+backend/cryptography.whl
