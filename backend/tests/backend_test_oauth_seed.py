@@ -7,11 +7,12 @@ Targets:
   3. Personalization with seeded users (student01 school + student21 alumni-eligible)
   4. Regression: admin login + pending mentors queue ≥3
 """
+import os
 import time
 import json
 import requests
 
-BASE = "https://hiring-mvvm.preview.emergentagent.com/api"
+BASE = os.environ.get("BASE_URL", "http://localhost:8002").rstrip("/") + "/api"
 
 results = []
 
@@ -56,7 +57,7 @@ def test_oauth():
     g_email = f"newoauth.google.{ts}@example.com"
     li_email = f"newoauth.li.{ts}@example.com"
 
-    # 1a. /auth/google (new student)
+    # 1a. /auth/google (new student) -> should return registration_required
     r = post("/auth/google", {
         "email": g_email,
         "full_name": "Google Test",
@@ -65,21 +66,65 @@ def test_oauth():
     if r.status_code == 200:
         body = r.json()
         ok = (
-            "access_token" in body and "refresh_token" in body and "user" in body
-            and body["user"]["email"] == g_email
-            and body["user"]["onboarding_completed"] is False
-            and body["user"]["role"] == "student"
+            body.get("registration_required") is True
+            and body.get("email") == g_email
+            and body.get("full_name") == "Google Test"
+            and body.get("oauth_provider") == "google"
         )
-        log("OAuth Google new student", ok,
-            f"email={body['user']['email']}, onboarding_completed={body['user']['onboarding_completed']}, role={body['user']['role']}")
-        google_token_first = body.get("access_token")
-        google_user_id_first = body["user"]["id"]
+        log("OAuth Google new student -> registration_required", ok,
+            f"email={body.get('email')} registration_required={body.get('registration_required')}")
+        oauth_token = body.get("oauth_token")
     else:
-        log("OAuth Google new student", False, f"status={r.status_code} body={r.text[:200]}")
+        log("OAuth Google new student -> registration_required", False, f"status={r.status_code} body={r.text[:200]}")
+        oauth_token = None
+
+    # Now, complete registration!
+    if oauth_token:
+        # POST /auth/register
+        r_reg = post("/auth/register", {
+            "email": g_email,
+            "full_name": "Google Test",
+            "role": "student",
+            "phone": "+919876543210",
+            "dob": "2000-01-01",
+            "country_code": "IN",
+            "oauth_provider": "google",
+            "oauth_token": oauth_token,
+        })
+        if r_reg.status_code == 200:
+            body = r_reg.json()
+            ok = (
+                "access_token" in body and "refresh_token" in body and "user" in body
+                and body["user"]["email"] == g_email
+                and body["user"]["onboarding_completed"] is False
+                and body["user"]["role"] == "student"
+            )
+            log("OAuth Google register", ok, f"email={body['user']['email']}, onboarding_completed={body['user']['onboarding_completed']}")
+            google_token_first = body.get("access_token")
+            google_user_id_first = body["user"]["id"]
+            
+            # Complete onboarding to mark the user as onboarded for the subsequent re-login test
+            r_onb = post("/users/onboarding", {
+                "school_info": {
+                    "institution_name": "Springdale Sr Sec",
+                    "institution_type": "school",
+                    "class_or_year": "12",
+                    "branch_or_stream": "Science",
+                    "country": "India"
+                },
+                "career_path": "job",
+                "interests": [],
+            }, token=google_token_first)
+            log("OAuth Google onboarding", r_onb.status_code == 200, f"status={r_onb.status_code}")
+        else:
+            log("OAuth Google register", False, f"status={r_reg.status_code} body={r_reg.text[:200]}")
+            google_token_first = None
+            google_user_id_first = None
+    else:
         google_token_first = None
         google_user_id_first = None
 
-    # 1b. /auth/linkedin (new student)
+    # 1b. /auth/linkedin (new student) -> registration_required
     r = post("/auth/linkedin", {
         "email": li_email,
         "full_name": "LinkedIn Test",
@@ -88,15 +133,33 @@ def test_oauth():
     if r.status_code == 200:
         body = r.json()
         ok = (
-            "access_token" in body and "refresh_token" in body and "user" in body
-            and body["user"]["email"] == li_email
-            and body["user"]["onboarding_completed"] is False
-            and body["user"]["role"] == "student"
+            body.get("registration_required") is True
+            and body.get("email") == li_email
         )
-        log("OAuth LinkedIn new student", ok,
-            f"email={body['user']['email']}, onboarding_completed={body['user']['onboarding_completed']}")
+        log("OAuth LinkedIn new student -> registration_required", ok,
+            f"email={body.get('email')} registration_required={body.get('registration_required')}")
+        li_oauth_token = body.get("oauth_token")
     else:
-        log("OAuth LinkedIn new student", False, f"status={r.status_code} body={r.text[:200]}")
+        log("OAuth LinkedIn new student -> registration_required", False, f"status={r.status_code} body={r.text[:200]}")
+        li_oauth_token = None
+
+    if li_oauth_token:
+        # Register the LinkedIn user to verify LinkedIn register flow
+        r_reg = post("/auth/register", {
+            "email": li_email,
+            "full_name": "LinkedIn Test",
+            "role": "student",
+            "phone": "+919876543211",
+            "dob": "2000-01-01",
+            "country_code": "IN",
+            "oauth_provider": "linkedin",
+            "oauth_token": li_oauth_token,
+        })
+        if r_reg.status_code == 200:
+            body = r_reg.json()
+            log("OAuth LinkedIn register", True, f"email={body['user']['email']}")
+        else:
+            log("OAuth LinkedIn register", False, f"status={r_reg.status_code}")
 
     # 1c. Re-call /auth/google with SAME email → must re-find existing user, no duplicate
     r2 = post("/auth/google", {
@@ -106,7 +169,10 @@ def test_oauth():
     })
     if r2.status_code == 200 and google_user_id_first:
         body2 = r2.json()
-        ok = body2["user"]["id"] == google_user_id_first
+        ok = (
+            body2.get("access_token") is not None
+            and body2["user"]["id"] == google_user_id_first
+        )
         log("OAuth Google re-login (no duplicate)", ok,
             f"first_id={google_user_id_first} second_id={body2['user']['id']}")
     else:
@@ -115,10 +181,10 @@ def test_oauth():
 
     # 1d. /auth/google with missing email → 400
     r = post("/auth/google", {"full_name": "Anonymous"})
-    log("OAuth Google missing email → 400", r.status_code == 400,
+    log("OAuth Google missing email -> 400", r.status_code == 400,
         f"status={r.status_code} body={r.text[:120]}")
 
-    # 1e. /auth/google with role=mentor
+    # 1e. /auth/google with role=mentor -> registration_required
     mentor_email = f"newoauth.mentor.{ts}@example.com"
     r = post("/auth/google", {
         "email": mentor_email,
@@ -127,10 +193,10 @@ def test_oauth():
     })
     if r.status_code == 200:
         body = r.json()
-        ok = body["user"]["role"] == "mentor"
-        log("OAuth Google role=mentor", ok, f"role={body['user']['role']}")
+        ok = body.get("registration_required") is True
+        log("OAuth Google role=mentor -> registration_required", ok, f"registration_required={body.get('registration_required')}")
     else:
-        log("OAuth Google role=mentor", False, f"status={r.status_code} body={r.text[:200]}")
+        log("OAuth Google role=mentor -> registration_required", False, f"status={r.status_code} body={r.text[:200]}")
 
     # 1f. After OAuth login, GET /auth/me should return same user
     if google_token_first:

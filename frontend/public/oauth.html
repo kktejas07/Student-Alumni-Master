@@ -104,22 +104,32 @@
             access_token: data.access_token,
             refresh_token: data.refresh_token,
             user: data.user,
+            registration_required: data.registration_required,
+            email: data.email,
+            full_name: data.full_name,
+            picture: data.picture,
+            oauth_provider: data.oauth_provider,
+            oauth_token: data.oauth_token,
           }
         }, '*');
-        status.textContent = 'Signed in!';
+        status.textContent = data.registration_required ? 'Redirecting to registration...' : 'Signed in!';
         subtext.textContent = 'This window will close automatically.';
         setTimeout(() => window.close(), 1000);
       } else {
-        // Not a popup - store tokens and redirect
-        localStorage.setItem('access_token', data.access_token);
-        localStorage.setItem('refresh_token', data.refresh_token || '');
-        const role = (data.user?.role || '').toLowerCase();
-        const routes = {
-          admin: '/super-admin', super_admin: '/super-admin',
-          mentor: '/mentor-portal',
-          college: '/college-portal', alumni: '/alumni-portal',
-        };
-        window.location.href = routes[role] || '/student-portal';
+        if (data.registration_required) {
+          window.location.href = `/register?email=${encodeURIComponent(data.email)}&full_name=${encodeURIComponent(data.full_name)}&picture=${encodeURIComponent(data.picture || '')}&is_oauth=true&oauth_provider=${data.oauth_provider}&oauth_token=${encodeURIComponent(data.oauth_token)}`;
+        } else {
+          // Not a popup - store tokens and redirect
+          localStorage.setItem('access_token', data.access_token);
+          localStorage.setItem('refresh_token', data.refresh_token || '');
+          const role = (data.user?.role || '').toLowerCase();
+          const routes = {
+            admin: '/super-admin', super_admin: '/super-admin',
+            mentor: '/mentor-portal',
+            college: '/college-portal', alumni: '/alumni-portal',
+          };
+          window.location.href = routes[role] || '/student-portal';
+        }
       }
     } catch (e) {
       showError(e?.message || 'OAuth sign-in failed');

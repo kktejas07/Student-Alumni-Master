@@ -135,7 +135,21 @@ export default function LoginScreen() {
     if (Platform.OS !== 'web') return;
     const handler = (event: MessageEvent) => {
       if (event.data?.type === 'OAUTH_SUCCESS') {
-        const { access_token, refresh_token, user } = event.data.payload;
+        const { access_token, refresh_token, user, registration_required, email, full_name, picture, oauth_provider, oauth_token } = event.data.payload;
+        if (registration_required) {
+          router.replace({
+            pathname: '/(auth)/register',
+            params: {
+              email,
+              full_name,
+              picture,
+              is_oauth: 'true',
+              oauth_provider,
+              oauth_token
+            }
+          });
+          return;
+        }
         if (access_token && user) {
           setUser(user);
           setTokens(access_token, refresh_token);
@@ -288,6 +302,20 @@ export default function LoginScreen() {
                     });
                     if (!res.ok) throw new Error('Firebase auth failed');
                     const data = await res.json();
+                    if (data.registration_required) {
+                      router.replace({
+                        pathname: '/(auth)/register',
+                        params: {
+                          email: data.email,
+                          full_name: data.full_name,
+                          picture: data.picture,
+                          is_oauth: 'true',
+                          oauth_provider: 'google',
+                          oauth_token: result.idToken
+                        }
+                      });
+                      return;
+                    }
                     setUser(data.user);
                     setTokens(data.access_token, data.refresh_token);
                     trackAuth({ event: 'login_success', email: data.user.email, role: data.user.role });

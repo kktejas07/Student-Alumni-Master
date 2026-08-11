@@ -177,6 +177,13 @@ class UserResponse(BaseModel):
 
 class AuthResponse(BaseModel):
     """Returned on successful login/registration/refresh."""
-    access_token: str
-    refresh_token: str
-    user: UserResponse
+    access_token: Optional[str] = None
+    refresh_token: Optional[str] = None
+    user: Optional[UserResponse] = None
+    registration_required: Optional[bool] = None
+    email: Optional[str] = None
+    full_name: Optional[str] = None
+    picture: Optional[str] = None
+    oauth_provider: Optional[str] = None
+    oauth_token: Optional[str] = None
+

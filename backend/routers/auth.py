@@ -21,7 +21,7 @@ except ImportError:
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.responses import FileResponse
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, EmailStr, field_validator, model_validator
 from slowapi import Limiter
 from bson import ObjectId
 
@@ -46,7 +46,7 @@ limiter = Limiter(key_func=get_real_ip)
 class RegisterRequest(BaseModel):
     """Initial registration. Role-specific fields collected in onboarding step."""
     email: EmailStr
-    password: str
+    password: Optional[str] = None
     full_name: str
     role: UserRole
     phone: Optional[str] = None
@@ -57,21 +57,27 @@ class RegisterRequest(BaseModel):
     country_code: Optional[str] = None
     # Postal / PIN code (validated per country at the frontend; stored verbatim).
     postal_code: Optional[str] = None
+    oauth_provider: Optional[str] = None
+    oauth_token: Optional[str] = None
+    oauth_picture: Optional[str] = None
 
-    @field_validator("password")
-    @classmethod
-    def _password_strength(cls, v):
-        if len(v) < 8:
-            raise ValueError("Password must be at least 8 characters long")
-        if not re.search(r"[A-Z]", v):
-            raise ValueError("Password must contain at least one uppercase letter")
-        if not re.search(r"[a-z]", v):
-            raise ValueError("Password must contain at least one lowercase letter")
-        if not re.search(r"\d", v):
-            raise ValueError("Password must contain at least one digit")
-        if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", v):
-            raise ValueError("Password must contain at least one special character (!@#$%^&*...)")
-        return v
+    @model_validator(mode="after")
+    def _validate_auth(self) -> "RegisterRequest":
+        if not self.oauth_provider:
+            if not self.password:
+                raise ValueError("Password is required")
+            v = self.password
+            if len(v) < 8:
+                raise ValueError("Password must be at least 8 characters long")
+            if not re.search(r"[A-Z]", v):
+                raise ValueError("Password must contain at least one uppercase letter")
+            if not re.search(r"[a-z]", v):
+                raise ValueError("Password must contain at least one lowercase letter")
+            if not re.search(r"\d", v):
+                raise ValueError("Password must contain at least one digit")
+            if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", v):
+                raise ValueError("Password must contain at least one special character (!@#$%^&*...)")
+        return self
 
     @field_validator("dob")
     @classmethod
@@ -169,39 +175,123 @@ class OAuthCallback(BaseModel):
 async def register(request: Request, req: RegisterRequest):
     """Register a new user. Role is captured upfront — onboarding collects role-specific fields."""
     email = req.email.lower().strip()
-    if await db.users.find_one({"email": email}, {"_id": 1}):
-        raise HTTPException(400, "Email already registered")
+    existing_user = await db.users.find_one({"email": email})
+    if existing_user:
+        if not req.oauth_provider or existing_user.get("onboarding_completed"):
+            raise HTTPException(400, "Email already registered")
 
-    user_doc = {
-        "email": email,
-        "password_hash": hash_password(req.password),
-        "full_name": req.full_name.strip(),
-        "role": req.role,
-        # Sensitive PII — encrypted at rest with Fernet (decrypted on read).
-        "phone": encrypt_value(req.phone),
-        "dob": encrypt_value(req.dob),
-        "country_code": req.country_code,  # not sensitive, kept plain for indexing
-        "postal_code": encrypt_value(req.postal_code),
-        "unique_id": None,
-        "qr_code_base64": None,
-        "school_info": None,
-        "career_path": None,
-        "student_info": None,
-        "alumni_info": None,
-        "mentor_info": None,
-        # Mentors are pending until admin approves (per spec).
-        "mentor_status": "pending" if req.role == "mentor" else None,
-        "interests": [],
-        "skills": [],
-        "bio": None,
-        "face_image_base64": None,
-        "onboarding_completed": False,
-        "created_at": datetime.now(timezone.utc),
-        "last_login": datetime.now(timezone.utc),
-    }
-    result = await db.users.insert_one(user_doc)
-    user_id = str(result.inserted_id)
-    user_doc["_id"] = result.inserted_id
+    password_hash = ""
+    if req.oauth_provider:
+        verified_email = None
+        if req.oauth_provider == "google":
+            creds = await _get_oauth_creds()
+            client_id = creds.get("google_oauth_client_id", "")
+            profile = _verify_google_token(req.oauth_token, client_id) if req.oauth_token else None
+            if profile:
+                verified_email = profile.get("email")
+            elif os.getenv("ENV") == "development":
+                verified_email = email
+            else:
+                raise HTTPException(400, "Invalid Google OAuth token")
+        
+        elif req.oauth_provider == "linkedin":
+            creds = await _get_oauth_creds()
+            client_id = creds.get("linkedin_oauth_client_id", "")
+            client_secret = creds.get("linkedin_oauth_client_secret", "")
+            profile = await _verify_linkedin_token(req.oauth_token, client_id, client_secret) if req.oauth_token else None
+            if profile:
+                verified_email = profile.get("email")
+            elif os.getenv("ENV") == "development":
+                verified_email = email
+            else:
+                raise HTTPException(400, "Invalid LinkedIn OAuth token")
+
+        elif req.oauth_provider == "github":
+            creds = await _get_oauth_creds()
+            client_id = creds.get("github_oauth_client_id", "")
+            client_secret = creds.get("github_oauth_client_secret", "")
+            profile = await _verify_github_token(req.oauth_token, client_id, client_secret) if req.oauth_token else None
+            if profile:
+                verified_email = profile.get("email")
+            elif os.getenv("ENV") == "development":
+                verified_email = email
+            else:
+                raise HTTPException(400, "Invalid GitHub OAuth token")
+
+        elif req.oauth_provider in ("firebase", "google_firebase"): # handle firebase provider mapping
+            profile = _verify_firebase_token(req.oauth_token) if req.oauth_token else None
+            if profile:
+                verified_email = profile.get("email")
+            elif os.getenv("ENV") == "development":
+                verified_email = email
+            else:
+                raise HTTPException(400, "Invalid Firebase OAuth token")
+
+        if not verified_email or verified_email.lower().strip() != email:
+            raise HTTPException(400, f"OAuth email mismatch or verification failed. Verified: {verified_email}, expected: {email}")
+
+        password_hash = hash_password(secrets.token_urlsafe(16))
+    else:
+        if not req.password:
+            raise HTTPException(400, "Password is required for non-OAuth registration")
+        password_hash = hash_password(req.password)
+
+    if existing_user:
+        update_fields = {
+            "full_name": req.full_name.strip(),
+            "role": req.role,
+            "phone": encrypt_value(req.phone.strip() if req.phone else ""),
+            "dob": encrypt_value(req.dob.strip() if req.dob else ""),
+            "country_code": req.country_code,
+            "postal_code": encrypt_value(req.postal_code.strip() if req.postal_code else ""),
+            "photo_data": req.oauth_picture or existing_user.get("photo_data"),
+            "oauth_provider": req.oauth_provider or existing_user.get("oauth_provider"),
+            "oauth_picture": req.oauth_picture or existing_user.get("oauth_picture"),
+            "onboarding_completed": False,
+            "last_login": datetime.now(timezone.utc),
+        }
+        if password_hash:
+            update_fields["password_hash"] = password_hash
+        if req.role == "mentor":
+            update_fields["mentor_status"] = "pending"
+
+        await db.users.update_one({"_id": existing_user["_id"]}, {"$set": update_fields})
+        user_doc = await db.users.find_one({"_id": existing_user["_id"]})
+        user_id = str(existing_user["_id"])
+    else:
+        user_doc = {
+            "email": email,
+            "password_hash": password_hash,
+            "full_name": req.full_name.strip(),
+            "role": req.role,
+            # Sensitive PII — encrypted at rest with Fernet (decrypted on read).
+            "phone": encrypt_value(req.phone),
+            "dob": encrypt_value(req.dob),
+            "country_code": req.country_code,  # not sensitive, kept plain for indexing
+            "postal_code": encrypt_value(req.postal_code),
+            "unique_id": None,
+            "qr_code_base64": None,
+            "school_info": None,
+            "career_path": None,
+            "student_info": None,
+            "alumni_info": None,
+            "mentor_info": None,
+            # Mentors are pending until admin approves (per spec).
+            "mentor_status": "pending" if req.role == "mentor" else None,
+            "interests": [],
+            "skills": [],
+            "bio": None,
+            "face_image_base64": None,
+            "photo_data": req.oauth_picture or None,
+            "oauth_provider": req.oauth_provider,
+            "oauth_picture": req.oauth_picture,
+            "onboarding_completed": False,
+            "created_at": datetime.now(timezone.utc),
+            "last_login": datetime.now(timezone.utc),
+        }
+        result = await db.users.insert_one(user_doc)
+        user_id = str(result.inserted_id)
+        user_doc["_id"] = result.inserted_id
 
     # Audit log — capture the full registration payload for compliance.
     # Sensitive PII (phone / dob / postal_code) are encrypted in audit_logs
@@ -1304,20 +1394,31 @@ async def auth_google(request: Request, req: OAuthCallback):
     client_id = creds.get("google_oauth_client_id", "")
     profile = _verify_google_token(req.id_token, client_id) if req.id_token else None
     if profile is None:
-        if not client_id and os.getenv("ENV") == "development":
+        if (not client_id or not req.id_token) and os.getenv("ENV") == "development":
             if not req.email or not req.full_name:
                 raise HTTPException(400, "Development mock mode requires email/full_name")
             profile = {"email": req.email, "name": req.full_name, "picture": req.picture}
         else:
             raise HTTPException(400, "Google OAuth requires a valid id_token. Configure google_oauth_client_id in platform settings or set ENV=development for mock mode.")
 
-    user = await _upsert_oauth_user(
-        provider="google",
-        email=profile.get("email") or "",
-        full_name=profile.get("name") or profile.get("full_name") or "",
-        picture=profile.get("picture"),
-        role=req.role or "student",
-    )
+    email = (profile.get("email") or "").lower().strip()
+    user = await db.users.find_one({"email": email})
+    if not user or not user.get("onboarding_completed"):
+        return AuthResponse(
+            registration_required=True,
+            email=email,
+            full_name=profile.get("name") or profile.get("full_name") or (user.get("full_name") if user else ""),
+            picture=profile.get("picture") or (user.get("photo_data") if user else None),
+            oauth_provider="google",
+            oauth_token=req.id_token or req.email,
+        )
+
+    update = {"oauth_provider": "google", "oauth_picture": profile.get("picture"), "last_login": datetime.now(timezone.utc)}
+    if profile.get("picture"):
+        update["photo_data"] = profile.get("picture")
+    await db.users.update_one({"_id": user["_id"]}, {"$set": update})
+    user = await db.users.find_one({"_id": user["_id"]})
+
     return AuthResponse(
         access_token=create_access_token(str(user["_id"]), user["email"], user["role"]),
         refresh_token=create_refresh_token(str(user["_id"])),
@@ -1334,20 +1435,31 @@ async def auth_linkedin(request: Request, req: OAuthCallback):
     client_secret = creds.get("linkedin_oauth_client_secret", "")
     profile = await _verify_linkedin_token(req.access_token, client_id, client_secret) if req.access_token else None
     if profile is None:
-        if not client_id and os.getenv("ENV") == "development":
+        if (not client_id or not req.access_token) and os.getenv("ENV") == "development":
             if not req.email or not req.full_name:
                 raise HTTPException(400, "Development mock mode requires email/full_name")
             profile = {"email": req.email, "name": req.full_name, "picture": req.picture}
         else:
             raise HTTPException(400, "LinkedIn OAuth requires a valid access_token. Configure linkedin_oauth_client_id in platform settings or set ENV=development for mock mode.")
 
-    user = await _upsert_oauth_user(
-        provider="linkedin",
-        email=profile.get("email") or "",
-        full_name=profile.get("name") or profile.get("full_name") or "",
-        picture=profile.get("picture"),
-        role=req.role or "student",
-    )
+    email = (profile.get("email") or "").lower().strip()
+    user = await db.users.find_one({"email": email})
+    if not user or not user.get("onboarding_completed"):
+        return AuthResponse(
+            registration_required=True,
+            email=email,
+            full_name=profile.get("name") or profile.get("full_name") or (user.get("full_name") if user else ""),
+            picture=profile.get("picture") or (user.get("photo_data") if user else None),
+            oauth_provider="linkedin",
+            oauth_token=req.access_token or req.email,
+        )
+
+    update = {"oauth_provider": "linkedin", "oauth_picture": profile.get("picture"), "last_login": datetime.now(timezone.utc)}
+    if profile.get("picture"):
+        update["photo_data"] = profile.get("picture")
+    await db.users.update_one({"_id": user["_id"]}, {"$set": update})
+    user = await db.users.find_one({"_id": user["_id"]})
+
     return AuthResponse(
         access_token=create_access_token(str(user["_id"]), user["email"], user["role"]),
         refresh_token=create_refresh_token(str(user["_id"])),
@@ -1364,20 +1476,31 @@ async def auth_github(request: Request, req: OAuthCallback):
     client_secret = creds.get("github_oauth_client_secret", "")
     profile = await _verify_github_token(req.access_token, client_id, client_secret) if req.access_token else None
     if profile is None:
-        if not client_id and os.getenv("ENV") == "development":
+        if (not client_id or not req.access_token) and os.getenv("ENV") == "development":
             if not req.email or not req.full_name:
                 raise HTTPException(400, "Development mock mode requires email/full_name")
             profile = {"email": req.email, "name": req.full_name, "picture": req.picture}
         else:
             raise HTTPException(400, "GitHub OAuth requires a valid authorization code. Configure github_oauth_client_id / github_oauth_client_secret in platform settings or set ENV=development for mock mode.")
 
-    user = await _upsert_oauth_user(
-        provider="github",
-        email=profile.get("email") or "",
-        full_name=profile.get("name") or profile.get("full_name") or "",
-        picture=profile.get("picture"),
-        role=req.role or "student",
-    )
+    email = (profile.get("email") or "").lower().strip()
+    user = await db.users.find_one({"email": email})
+    if not user or not user.get("onboarding_completed"):
+        return AuthResponse(
+            registration_required=True,
+            email=email,
+            full_name=profile.get("name") or profile.get("full_name") or (user.get("full_name") if user else ""),
+            picture=profile.get("picture") or (user.get("photo_data") if user else None),
+            oauth_provider="github",
+            oauth_token=req.access_token or req.email,
+        )
+
+    update = {"oauth_provider": "github", "oauth_picture": profile.get("picture"), "last_login": datetime.now(timezone.utc)}
+    if profile.get("picture"):
+        update["photo_data"] = profile.get("picture")
+    await db.users.update_one({"_id": user["_id"]}, {"$set": update})
+    user = await db.users.find_one({"_id": user["_id"]})
+
     return AuthResponse(
         access_token=create_access_token(str(user["_id"]), user["email"], user["role"]),
         refresh_token=create_refresh_token(str(user["_id"])),
@@ -1446,13 +1569,24 @@ async def auth_firebase(request: Request, req: OAuthCallback):
             raise HTTPException(400, "Firebase Auth requires a valid id_token. Configure firebase_service_account in platform settings or set ENV=development for mock mode.")
 
     provider = profile.get("firebase_provider", "firebase")
-    user = await _upsert_oauth_user(
-        provider=provider or "google",
-        email=profile.get("email") or "",
-        full_name=profile.get("name") or req.full_name or "",
-        picture=profile.get("picture"),
-        role=req.role or "student",
-    )
+    email = (profile.get("email") or "").lower().strip()
+    user = await db.users.find_one({"email": email})
+    if not user or not user.get("onboarding_completed"):
+        return AuthResponse(
+            registration_required=True,
+            email=email,
+            full_name=profile.get("name") or req.full_name or (user.get("full_name") if user else ""),
+            picture=profile.get("picture") or (user.get("photo_data") if user else None),
+            oauth_provider=provider or "google",
+            oauth_token=req.id_token or req.email,
+        )
+
+    update = {"oauth_provider": provider or "google", "oauth_picture": profile.get("picture"), "last_login": datetime.now(timezone.utc)}
+    if profile.get("picture"):
+        update["photo_data"] = profile.get("picture")
+    await db.users.update_one({"_id": user["_id"]}, {"$set": update})
+    user = await db.users.find_one({"_id": user["_id"]})
+
     return AuthResponse(
         access_token=create_access_token(str(user["_id"]), user["email"], user["role"]),
         refresh_token=create_refresh_token(str(user["_id"])),

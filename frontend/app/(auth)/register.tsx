@@ -20,14 +20,46 @@ const BASE = getBaseUrl();
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ role?: Role; email?: string }>();
+  const params = useLocalSearchParams<{
+    role?: Role;
+    email?: string;
+    full_name?: string;
+    picture?: string;
+    is_oauth?: string;
+    oauth_provider?: string;
+    oauth_token?: string;
+  }>();
+  const isOauth = params.is_oauth === 'true';
   const initialRole: Role = (params.role as Role) || 'student';
   const initialEmail: string = (params.email as string) || '';
+  const initialFullName: string = (params.full_name as string) || '';
+  const oauthProvider = params.oauth_provider || '';
+  const oauthToken = params.oauth_token || '';
+  const oauthPicture = params.picture || '';
+
   const [role, setRole] = useState<Role>(initialRole);
   const [showPicker, setShowPicker] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState(initialEmail);
+
+  useEffect(() => {
+    if (initialEmail) {
+      setEmail(initialEmail);
+    }
+  }, [initialEmail]);
+
+  useEffect(() => {
+    if (initialFullName) {
+      const parts = initialFullName.trim().split(/\s+/);
+      if (parts.length > 0) {
+        setFirstName(parts[0]);
+        if (parts.length > 1) {
+          setLastName(parts.slice(1).join(' '));
+        }
+      }
+    }
+  }, [initialFullName]);
   const [phone, setPhone] = useState('');
   const [phoneCountry, setPhoneCountry] = useState('IN');
   const [dob, setDob] = useState('');  // ISO 8601 YYYY-MM-DD
@@ -70,7 +102,7 @@ export default function RegisterScreen() {
     // DOB — mandatory + role-aware min age
     const dobCheck = isDobValid(dob, minAge);
     if (!dobCheck.ok) errs.dob = dobCheck.message || 'Date of birth required';
-    if (strength.checks.some(c => !c.met)) errs.pwd = 'Password does not meet all requirements';
+    if (!isOauth && strength.checks.some(c => !c.met)) errs.pwd = 'Password does not meet all requirements';
     setErrors(errs);
     if (Object.keys(errs).length) return;
 
@@ -87,12 +119,15 @@ export default function RegisterScreen() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email,
-          password: pwd,
+          password: isOauth ? undefined : pwd,
           full_name: fullName,
           role,
           phone,
           dob,
           country_code: phoneCountry,
+          oauth_provider: isOauth ? oauthProvider : undefined,
+          oauth_token: isOauth ? oauthToken : undefined,
+          oauth_picture: isOauth ? oauthPicture : undefined,
         }),
       });
       if (!res.ok) {
@@ -174,7 +209,7 @@ export default function RegisterScreen() {
                 <AuthInput ref={lastNameRef} label="Last name" value={lastName} onChangeText={(t) => { setLastName(t); setErrors((p) => ({ ...p, lastName: '' })); }} placeholder="e.g. Kapoor" autoCapitalize="words" error={errors.lastName} editable={!loading} onSubmitEditing={() => emailRef.current?.focus()} blurOnSubmit={false} testID="register-last-name" />
               </View>
             </View>
-            <AuthInput ref={emailRef} label="Email" value={email} onChangeText={(t) => { setEmail(t); setErrors((p) => ({ ...p, email: '' })); }} placeholder="you@university.edu" keyboardType="email-address" error={errors.email} editable={!loading} onSubmitEditing={() => phoneRef.current?.focus()} blurOnSubmit={false} testID="register-email" />
+            <AuthInput ref={emailRef} label="Email" value={email} onChangeText={(t) => { setEmail(t); setErrors((p) => ({ ...p, email: '' })); }} placeholder="you@university.edu" keyboardType="email-address" error={errors.email} editable={!loading && !isOauth} onSubmitEditing={() => phoneRef.current?.focus()} blurOnSubmit={false} testID="register-email" />
 
             {/* Personal Information — phone (with country code) + DOB (mandatory) */}
             <View style={{ zIndex: 30, position: 'relative' }}>
@@ -216,49 +251,53 @@ export default function RegisterScreen() {
             </View>
             {errors.dob ? <Text style={s.fieldErr}>{errors.dob}</Text> : null}
 
-            <AuthInput
-              ref={pwdRef}
-              label="Password"
-              value={pwd}
-              onChangeText={(t) => { setPwd(t); setErrors((p) => ({ ...p, pwd: '' })); }}
-              placeholder="Min 8 characters"
-              secureTextEntry={!showPwd}
-              error={errors.pwd}
-              editable={!loading}
-              testID="register-password"
-              rightSlot={
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                  <Pressable onPress={() => setShowPwd((v) => !v)} style={{ paddingHorizontal: 6 }} testID="register-show-password" accessible={true} accessibilityRole="button" accessibilityLabel={showPwd ? "Hide password" : "Show password"}>
-                    {showPwd ? <EyeOff size={16} color="#6B7280" /> : <Eye size={16} color="#6B7280" />}
-                  </Pressable>
-                  <Pressable
-                    onPress={() => {
-                      // Generate a strong 14-char password with a mix of upper, lower, digits, symbols.
-                      const U = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-                      const L = 'abcdefghjkmnpqrstuvwxyz';
-                      const D = '23456789';
-                      const S = '!@#$%^&*';
-                      const all = U + L + D + S;
-                      const r = (s: string) => s[Math.floor(Math.random() * s.length)];
-                      let p = r(U) + r(L) + r(D) + r(S);
-                      while (p.length < 14) p += r(all);
-                      // shuffle
-                      p = p.split('').sort(() => Math.random() - 0.5).join('');
-                      setPwd(p); setShowPwd(true); setErrors((e) => ({ ...e, pwd: '' }));
-                    }}
-                    style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(124,58,237,0.28)' }}
-                    testID="register-generate-password"
-                    accessible={true}
-                    accessibilityRole="button"
-                    accessibilityLabel="Generate strong password"
-                  >
-                    <Text style={{ color: '#FFF', fontFamily: 'DMSans_700Bold', fontSize: 11 }}>Generate</Text>
-                  </Pressable>
-                </View>
-              }
-              onSubmitEditing={() => onSubmit()}
-            />
-            {pwd.length > 0 && <PasswordRules checks={strength.checks} />}
+            {!isOauth && (
+              <>
+                <AuthInput
+                  ref={pwdRef}
+                  label="Password"
+                  value={pwd}
+                  onChangeText={(t) => { setPwd(t); setErrors((p) => ({ ...p, pwd: '' })); }}
+                  placeholder="Min 8 characters"
+                  secureTextEntry={!showPwd}
+                  error={errors.pwd}
+                  editable={!loading}
+                  testID="register-password"
+                  rightSlot={
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <Pressable onPress={() => setShowPwd((v) => !v)} style={{ paddingHorizontal: 6 }} testID="register-show-password" accessible={true} accessibilityRole="button" accessibilityLabel={showPwd ? "Hide password" : "Show password"}>
+                        {showPwd ? <EyeOff size={16} color="#6B7280" /> : <Eye size={16} color="#6B7280" />}
+                      </Pressable>
+                      <Pressable
+                        onPress={() => {
+                          // Generate a strong 14-char password with a mix of upper, lower, digits, symbols.
+                          const U = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+                          const L = 'abcdefghjkmnpqrstuvwxyz';
+                          const D = '23456789';
+                          const S = '!@#$%^&*';
+                          const all = U + L + D + S;
+                          const r = (s: string) => s[Math.floor(Math.random() * s.length)];
+                          let p = r(U) + r(L) + r(D) + r(S);
+                          while (p.length < 14) p += r(all);
+                          // shuffle
+                          p = p.split('').sort(() => Math.random() - 0.5).join('');
+                          setPwd(p); setShowPwd(true); setErrors((e) => ({ ...e, pwd: '' }));
+                        }}
+                        style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(124,58,237,0.28)' }}
+                        testID="register-generate-password"
+                        accessible={true}
+                        accessibilityRole="button"
+                        accessibilityLabel="Generate strong password"
+                      >
+                        <Text style={{ color: '#FFF', fontFamily: 'DMSans_700Bold', fontSize: 11 }}>Generate</Text>
+                      </Pressable>
+                    </View>
+                  }
+                  onSubmitEditing={() => onSubmit()}
+                />
+                {pwd.length > 0 && <PasswordRules checks={strength.checks} />}
+              </>
+            )}
           </View>
 
           <View style={{ height: 18 }} />
