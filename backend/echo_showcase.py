@@ -1283,7 +1283,7 @@ async def _store_invoice_and_email(db, reg: dict, showcase: Optional[dict]) -> d
             reg_id = reg.get("id") or ""
             import urllib.parse
             ticket_url = f"https://studentalumni.ai/api/echo/tickets/{reg_id}?email={urllib.parse.quote(email)}"
-            ticket_block = _ticket_email_block(reg, showcase, ticket_url)
+            ticket_block = _ticket_email_block(reg, showcase or {}, ticket_url)
             subject = f"Payment Receipt & Entry Pass — {inv_ser.get('event_title') or 'Event Registration'}"
             body = render_html_email(
                 f"""
