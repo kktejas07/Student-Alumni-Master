@@ -464,7 +464,7 @@ function DashboardShowcase({ desk }: { desk: boolean }) {
                 <SvgText x={580} y={220} fill={C.accent} fontFamily="PlusJakartaSans_700Bold" fontSize="28">420</SvgText>
                 <SvgText x={580} y={240} fill={C.text3} fontFamily="PlusJakartaSans_500Medium" fontSize="9">this month</SvgText>
                 <SvgText x={272} y={300} fill={C.secondary} fontFamily="PlusJakartaSans_700Bold" fontSize="10">Upcoming Events</SvgText>
-                <SvgText x={500} y={300} fill={C.amber} fontFamily="PlusJakartaSans_700Bold" fontSize="10">Job Matches</SvgText>
+                <SvgText x={500} y={300} fill={C.amber} fontFamily="PlusJakartaSans_700Bold" fontSize="10">Career Matches</SvgText>
                 {/* Chart bars bottom row */}
                 {[3,5,2,7,4].map((h,i) => (
                   <Rect key={`b${i}`} x={500 + i * 52} y={360 - h * 8} width="36" height={h * 8} rx="3" fill={C.amber} opacity={0.5 + i * 0.1} />
@@ -573,7 +573,7 @@ function MentorMiniSVG() {
 const MILESTONES = [
   { n: '01', t: 'Student joins', d: 'Signs up with college email. Instant verification.', c: C.primary, icon: GraduationCap },
   { n: '02', t: 'Creates profile', d: 'Adds skills, goals, target roles. Agent K activates.', c: C.secondary, icon: Target },
-  { n: '03', t: 'AI recommends', d: 'Agent K suggests alumni, events, and internships.', c: C.accent, icon: Bot },
+  { n: '03', t: 'AI recommends', d: 'Agent K suggests alumni, events, and skill roadmaps.', c: C.accent, icon: Bot },
   { n: '04', t: 'Connects', d: 'Finds mentor, books 1-on-1, joins community.', c: C.amber, icon: Users },
   { n: '05', t: 'Grows', d: 'Attends events, gains referrals, builds network.', c: '#A78BFA', icon: Activity },
 ];
@@ -663,9 +663,9 @@ function AlumniShowcase({ desk }: { desk: boolean }) {
 /* ════════════════════════════════════════════════════════════════════════
    ── Success Stories Carousel ─────────────────────────────────────────── */
 const STORIES = [
-  { n: 'Aanya R.', r: 'BTech CS · NIT Trichy', p: 'Google', s: '24 LPA', q: 'Agent K wrote my entire internship application list. I got 6 callbacks in week one. The mentorship network is unreal.', c: C.primary },
+  { n: 'Aanya R.', r: 'BTech CS · NIT Trichy', p: 'Google', s: '24 LPA', q: 'Agent K wrote my entire career roadmap & skill breakdown. The mentorship network is unreal.', c: C.primary },
   { n: 'Karthik M.', r: 'MBA · IIM Bangalore', p: 'McKinsey', s: '35 LPA', q: 'A 45-minute call with an alumnus was worth more than a semester of generic career counseling.', c: C.secondary },
-  { n: 'Reema S.', r: 'Final Year · DTU Delhi', p: 'Microsoft', s: '28 LPA', q: 'The wallet covered 4 SaaS subscriptions. But honestly, the mentor matching is the killer feature.', c: C.accent },
+  { n: 'Reema S.', r: 'Final Year · DTU Delhi', p: 'Microsoft', s: '28 LPA', q: 'Connecting with alumni helped our hackathon team win. The mentor matching is the killer feature.', c: C.accent },
 ];
 
 function SuccessCarousel() {
@@ -727,7 +727,7 @@ function AIChatSection() {
               { l: 'Weekly career briefs tailored to your domain', c: C.accent },
               { l: 'AI-powered resume edits with score tracking', c: C.primary },
               { l: 'Smart mentor matching based on your goals', c: C.secondary },
-              { l: 'Proactive alerts for jobs and events', c: C.amber },
+              { l: 'Proactive alerts for mentorship and events', c: C.amber },
             ].map(f => (
               <View key={f.l} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <View style={{ width: 18, height: 18, borderRadius: 5, backgroundColor: f.c + '18', alignItems: 'center', justifyContent: 'center' }}>
@@ -776,7 +776,7 @@ const FAQS = [
   { q: 'Is StudentAlumni free?', a: 'Yes — completely free for students. Premium AI integration (bring your own API key) and analytics dashboards are available as optional upgrades.' },
   { q: 'How do I find a mentor?', a: 'Use the Mentor Network to search by company, role, or college. Send a connection request with your goals and book a session once accepted.' },
   { q: 'How does Agent K work?', a: 'Agent K is your AI career copilot. Connect your own API key (OpenAI, Anthropic, or Gemini) and get weekly career briefs, resume edits, and personalized recommendations.' },
-  { q: 'Can alumni benefit too?', a: 'Absolutely. Alumni can mentor students, host events, post job openings, grow their professional network, and give back to their alma mater.' },
+  { q: 'Can alumni benefit too?', a: 'Absolutely. Alumni can mentor students, host events, share knowledge, grow their professional network, and give back to their alma mater.' },
   { q: 'What kind of events are on the platform?', a: 'Hackathons, webinars, study circles, alumni meetups, resume workshops, and career fairs — both online and on-campus across 100+ institutions.' },
   { q: 'How is my data protected?', a: 'We use end-to-end encryption for sessions, SOC 2 compliant infrastructure, and never share your data without consent.' },
 ];
@@ -852,7 +852,7 @@ function FooterSection() {
               <Text style={{ color: C.text, fontFamily: TYPO.display700, fontSize: 14 }}>StudentAlumni</Text>
             </View>
             <Text style={{ color: C.text2, fontFamily: TYPO.body400, fontSize: 12, lineHeight: 18 }}>
-              The private career network for India's top students and alumni. AI-powered mentoring, events, internships, and career growth.
+              The private career network for India's top students and alumni. AI-powered mentoring, events, and career growth.
             </Text>
             <View style={{ flexDirection: 'row', gap: 8 }}>
               {SOCIAL_ICONS.map(({ key, Icon }) => (

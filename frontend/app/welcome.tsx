@@ -68,7 +68,7 @@ export default function Welcome() {
               </Text>
 
               <Text style={styles.heroSubtitle}>
-                Connect with global mentors & alumni, discover free courses, career opportunities, exclusive
+                Connect with global mentors & alumni, discover free courses, exclusive
                 deals — and build your future with AI guidance.
               </Text>
 
