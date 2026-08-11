@@ -2254,53 +2254,11 @@ except Exception:
 
 
 async def get_claude_chat(session_id: str, system_message: str):
-    """Return an AI chat instance via g4f (free API integration)."""
-    class G4FChat:
-        def __init__(self, sys_msg, sess_id):
-            self.sys_msg = sys_msg
-            self.sess_id = sess_id
-        async def send_message(self, msg):
-            # Keep the rich fallback data for the career-ai tests if explicitly requested
-            if "12-week" in self.sys_msg and "career-roadmap" in self.sess_id:
-                return """{
-                    "target_role": "Software Engineer",
-                    "target_company_type": "Top Tech Company",
-                    "progress_pct": 42,
-                    "skill_scores": {"communication": 40, "soft_skills": 45, "technical": 70, "interview_prep": 35, "networking": 30, "leadership": 35},
-                    "milestones": [
-                        {"id": "m1", "title": "Build your resume", "description": "Upload a tailored resume for AI review.", "milestone_type": "RESUME", "completion_rule": "resume_documents.length > 0", "completed": false, "completed_at": null}
-                    ],
-                    "suggestion": "Your trajectory is solid — focus this week on shipping one polished portfolio piece."
-                }"""
-            if "bio-" in self.sess_id.lower():
-                raise ValueError("Triggering bio fallback logic")
-            
-            try:
-                import g4f
-                from g4f.client import AsyncClient
-                
-                client = AsyncClient()
-                messages = [
-                    {"role": "system", "content": self.sys_msg},
-                    {"role": "user", "content": getattr(msg, "text", str(msg))}
-                ]
-                
-                response = await client.chat.completions.create(
-                    model="gpt-4",
-                    messages=messages
-                )
-                return response.choices[0].message.content
-            except Exception as e:
-                # Graceful fallback if the free API providers fail
-                user_text = getattr(msg, "text", str(msg))
-                clean_text = user_text.replace("[financial] ", "").replace("[career] ", "").strip()
-                if "/scholarships" in clean_text.lower():
-                    return "Here are some top scholarships for you:\n\n1. **Global Tech Leaders Scholarship** - $5,000 for Computer Science students.\n2. **Diversity in STEM Grant** - $3,500 (Deadline: Next month).\n3. **University Merit Award** - $2,000 based on GPA.\n\nReply with a scholarship name to learn more or apply!"
-                elif "/loans" in clean_text.lower():
-                    return "Here are the top student loan options available right now:\n\n1. **Federal Subsidized Loan** - 4.99% APY (Recommended)\n2. **Sallie Mae Smart Option** - 6.5% APY\n3. **Discover Undergraduate** - 7.2% APY\n\nLet me know if you want to calculate your monthly payments!"
-                return f"Free AI providers are currently busy or rate-limited. Error: {str(e)}"
-                
-    return G4FChat(system_message, session_id)
+    """Return an AI chat instance via emergentintegrations LlmChat."""
+    return LlmChat(
+        session_id=session_id,
+        system_message=system_message
+    ).with_model("anthropic", "claude-sonnet-4-5-20250929")
 
 
 @router.post("/ai/career-suggestions")
@@ -2514,18 +2472,38 @@ async def ai_chat(req: ChatRequest, request: Request):
         raise HTTPException(status_code=401, detail="Not authenticated")
         
     user_id = str(user["_id"])
+    session_id = req.session_id or f"chat-{uuid.uuid4().hex[:12]}"
     
     from agent_k.core.engine import process_message
+    from agent_k.memory.history import ChatMemory
     
     try:
-        session_id = req.session_id or f"chat-{uuid.uuid4().hex[:12]}"
-        # Process message using Agent K (RAG pipeline)
+        # Process message using Agent K pipeline
         reply = await process_message(user_id, req.message, session_id=session_id)
-        
+        if not reply or "Error initializing AI provider" in reply:
+            sys_prompt = "You are an intelligent Financial and Student Coach. Assist the student with actionable guidance on scholarships, loans, careers, housing, or platform tools."
+            chat = await get_claude_chat(session_id, sys_prompt)
+            reply = await chat.send_message(UserMessage(text=req.message))
+            try:
+                await ChatMemory().add_interaction(user_id, req.message, reply, session_id=session_id)
+            except Exception:
+                pass
+                
         return ChatResponse(session_id=session_id, message=reply)
     except Exception as e:
-        logger.error(f"AI chat failed: {e}")
-        raise HTTPException(status_code=500, detail=f"AI service error: {str(e)}")
+        logger.error(f"AI chat primary failed: {e}")
+        try:
+            sys_prompt = "You are an intelligent Financial and Student Coach. Assist the student with actionable guidance on scholarships, loans, careers, housing, or platform tools."
+            chat = await get_claude_chat(session_id, sys_prompt)
+            reply = await chat.send_message(UserMessage(text=req.message))
+            try:
+                await ChatMemory().add_interaction(user_id, req.message, reply, session_id=session_id)
+            except Exception:
+                pass
+            return ChatResponse(session_id=session_id, message=reply)
+        except Exception as e2:
+            logger.error(f"AI chat fallback failed: {e2}")
+            raise HTTPException(status_code=500, detail=f"AI service error: {str(e2)}")
 
 
 @router.get("/ai/chat/history")
