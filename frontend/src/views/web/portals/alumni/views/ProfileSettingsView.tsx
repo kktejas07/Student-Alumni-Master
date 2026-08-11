@@ -214,7 +214,7 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
       const payload: any = {};
       const watched = [
         'first_name','last_name','full_name','headline','bio','phone','city','state','location',
-        'photo_data','face_image_base64','institution','branch','graduation_year','cgpa','stream','department','class_or_year','year_of_study',
+        'photo_data','face_image_base64','institution','branch','graduation_year','cgpa','stream','department','class_or_year','year_of_study','year',
         'interests','skills','projects','linkedin_url','github_url','portfolio_url','profile_visibility',
         'section_toggles','primary_skill','preferences',
       ];

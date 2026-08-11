@@ -544,7 +544,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
           <Field label="College / University"><TF value={draft.institution || ''} onChangeText={(v) => setField('institution', v)} leftIcon={<Building2 size={14} color={C.text2} />} placeholder="e.g. IIT Bombay" testID="pf-college" /></Field>
           <View style={[st.row, { zIndex: 19 }]}>
             <Field label="Stream" half hint="Class 11/12 stream (MPC, PCM, Commerce, etc.)"><SF value={String(draft.stream || draft.school_info?.stream || draft.school_info?.branch_or_stream || '')} onChange={(v) => setField('stream', v)} options={STREAMS} placeholder="Select stream" testID="pf-stream" /></Field>
-            <Field label="Year of Study" half hint="Current year / class (1st Year, 2nd Year, etc.)"><SF value={String(draft.class_or_year || draft.year_of_study || draft.school_info?.class_or_year || '')} onChange={(v) => { setField('class_or_year', v); setField('year_of_study', v); }} options={YEAR_OPTIONS} placeholder="Select year of study" testID="pf-year-of-study" /></Field>
+            <Field label="Year of Study" half hint="Current year / class (1st Year, 2nd Year, etc.)"><SF value={String(draft.class_or_year || draft.year_of_study || draft.year || draft.school_info?.class_or_year || '')} onChange={(v) => { setField('class_or_year', v); setField('year_of_study', v); setField('year', v); }} options={YEAR_OPTIONS} placeholder="Select year of study" testID="pf-year-of-study" /></Field>
           </View>
           <View style={[st.row, { zIndex: 18 }]}>
             <Field label="Branch / Major" half><TF value={draft.branch || ''} onChangeText={(v) => setField('branch', v)} placeholder="Computer Science" testID="pf-branch" /></Field>
