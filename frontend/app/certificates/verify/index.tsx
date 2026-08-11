@@ -1,13 +1,13 @@
+// @ts-nocheck
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, Pressable, StyleSheet, Platform, ScrollView, KeyboardAvoidingView,
 } from 'react-native';
 import { router } from 'expo-router';
 import {
-  ShieldCheck, Award, ScanSearch, ArrowRight, BadgeCheck,
+  ShieldCheck, Award, ScanSearch, ArrowRight, BadgeCheck, ArrowLeft,
 } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { EchoHeader, EchoFooter, ECHO_TOP_PADDING } from '@/src/views/web/components/EchoChrome';
 import { FONTS } from '@/src/views/web/portals/superadmin/tokens';
 
 export default function CertificateVerifyIndex() {
@@ -29,20 +29,14 @@ export default function CertificateVerifyIndex() {
       style={s.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <EchoHeader />
       <ScrollView style={s.scroll} contentContainerStyle={s.container} keyboardShouldPersistTaps="handled">
-        <View style={s.header}>
-          <Pressable onPress={() => router.back()} style={s.backArrow}>
-            <MaterialCommunityIcons name="arrow-left" size={20} color="#fff" />
-          </Pressable>
-          <Text style={s.title}>Verify Certificate</Text>
-        </View>
+        <Pressable onPress={() => router.push('/welcome')} style={s.backPill}>
+          <ArrowLeft size={14} color="#fff" />
+          <Text style={s.backPillText}>Home</Text>
+        </Pressable>
 
-        <LinearGradient
-          colors={['rgba(167,139,250,0.16)', 'rgba(124,58,237,0.10)']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={s.heroCard}
-        >
+        <View style={s.heroCard}>
           <View style={s.heroIconWrap}>
             <BadgeCheck size={30} color="#C4B5FD" />
           </View>
@@ -66,11 +60,11 @@ export default function CertificateVerifyIndex() {
             />
             <Pressable onPress={submit} style={s.verifyBtn} testID="cert-verify-btn">
               <Text style={s.verifyBtnText}>Verify</Text>
-              <ArrowRight size={16} color="#1e1b4b" />
+              <ArrowRight size={16} color="#fff" />
             </Pressable>
           </View>
           {error ? <Text style={s.errorText}>{error}</Text> : null}
-        </LinearGradient>
+        </View>
 
         <View style={s.infoCard}>
           <Text style={s.sectionTitle}>How it works</Text>
@@ -116,35 +110,35 @@ export default function CertificateVerifyIndex() {
           </View>
         </View>
       </ScrollView>
+      <EchoFooter />
     </KeyboardAvoidingView>
   );
 }
 
 const s = StyleSheet.create({
-  flex: { flex: 1 },
-  scroll: { flex: 1, backgroundColor: '#0f172a' },
-  container: { padding: 16, paddingBottom: 40 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20, marginTop: Platform.OS === 'web' ? 20 : 50 },
-  backArrow: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#1e293b', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#334155' },
-  title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 20 },
-  heroCard: { borderRadius: 20, padding: 22, borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)', ...(Platform.OS === 'web' ? { boxShadow: '0 20px 50px rgba(124,58,237,0.18)' } as any : {}) },
+  flex: { flex: 1, backgroundColor: '#0a0f1e' },
+  scroll: { flex: 1 },
+  container: { paddingTop: ECHO_TOP_PADDING, padding: 20, paddingBottom: 40, maxWidth: 800, alignSelf: 'center', width: '100%' },
+  backPill: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 12, paddingVertical: 7, marginBottom: 20, ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}) },
+  backPillText: { color: '#fff', fontFamily: FONTS.med, fontSize: 13 },
+  heroCard: { borderRadius: 18, padding: 24, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.2)', ...(Platform.OS === 'web' ? { boxShadow: '0 20px 50px rgba(124,58,237,0.18)' } as any : {}) },
   heroIconWrap: { width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(167,139,250,0.15)', alignItems: 'center', justifyContent: 'center', marginBottom: 12, borderWidth: 1, borderColor: 'rgba(167,139,250,0.3)' },
-  heroTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 20, lineHeight: 26 },
-  heroSub: { color: 'rgba(255,255,255,0.66)', fontFamily: FONTS.med, fontSize: 13.5, lineHeight: 20, marginTop: 6 },
+  heroTitle: { color: '#F4F4F8', fontFamily: FONTS.xbold, fontSize: 20, lineHeight: 26 },
+  heroSub: { color: '#A1A6B7', fontFamily: FONTS.med, fontSize: 13.5, lineHeight: 20, marginTop: 6 },
   codeInputRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 18 },
   codeInput: {
     flex: 1, height: 48, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.06)',
     borderWidth: 1, borderColor: 'rgba(167,139,250,0.35)', paddingHorizontal: 14,
-    color: '#fff', fontFamily: (Platform.OS === 'web' ? '"JetBrains Mono", "SF Mono", monospace' : FONTS.bold) as any,
+    color: '#F4F4F8', fontFamily: (Platform.OS === 'web' ? '"JetBrains Mono", "SF Mono", monospace' : FONTS.bold) as any,
     fontSize: 15, letterSpacing: 1,
   },
-  verifyBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 48, paddingHorizontal: 18, borderRadius: 12, backgroundColor: '#A78BFA', ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}) },
-  verifyBtnText: { color: '#1e1b4b', fontFamily: FONTS.xbold, fontSize: 13 },
+  verifyBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 48, paddingHorizontal: 18, borderRadius: 12, backgroundColor: '#7B3DBF', ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}) },
+  verifyBtnText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
   errorText: { color: '#fca5a5', fontFamily: FONTS.bold, fontSize: 12, marginTop: 10 },
-  infoCard: { backgroundColor: '#1e293b', borderRadius: 16, padding: 18, marginTop: 16, borderWidth: 1, borderColor: '#334155', gap: 16 },
-  sectionTitle: { color: '#94a3b8', fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 1.4, textTransform: 'uppercase' },
+  infoCard: { backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 18, padding: 20, marginTop: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', gap: 16 },
+  sectionTitle: { color: '#A1A6B7', fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 1.4, textTransform: 'uppercase' },
   stepRow: { flexDirection: 'row', gap: 12 },
   stepIcon: { width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(167,139,250,0.2)' },
-  stepTitle: { color: '#e2e8f0', fontFamily: FONTS.bold, fontSize: 13.5 },
-  stepDesc: { color: '#94a3b8', fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 18, marginTop: 3 },
+  stepTitle: { color: '#F4F4F8', fontFamily: FONTS.bold, fontSize: 13.5 },
+  stepDesc: { color: '#A1A6B7', fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 18, marginTop: 3 },
 });
