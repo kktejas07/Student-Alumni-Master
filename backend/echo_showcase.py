@@ -148,7 +148,7 @@ def _oid(v: str) -> ObjectId:
         raise HTTPException(status_code=400, detail=f"Invalid id: {v}")
 
 
-def _ser(doc: dict) -> dict:
+def _ser(doc: Optional[dict]) -> dict:
     """Recursively serialise ObjectId → str for JSON responses."""
     if doc is None:
         return {}
@@ -211,7 +211,7 @@ async def _razorpay_create_order(db, amount: float, currency: str, receipt: str,
                 "https://api.razorpay.com/v1/orders",
                 auth=(cfg["key_id"], cfg["key_secret"]),
                 json={
-                    "amount": int(round(amount * 100)),
+                    "amount": round(amount * 100),
                     "currency": currency,
                     "receipt": receipt,
                     "notes": notes,
@@ -257,7 +257,7 @@ async def _razorpay_verify_webhook_signature(db, body: bytes, signature: str) ->
     return hmac.compare_digest(expected, (signature or ""))
 
 
-async def _finalize_paid_registration(db, reg: dict, showcase: dict, payment_id: str) -> Optional[dict]:
+async def _finalize_paid_registration(db, reg: dict, showcase: Optional[dict], payment_id: str) -> Optional[dict]:
     """Shared logic to mark a pending ECHO registration paid, generate its QR,
     mirror to event_registrations, and email the invoice. Idempotent.
     """
@@ -310,12 +310,12 @@ async def _finalize_paid_registration(db, reg: dict, showcase: dict, payment_id:
     invoice = await _store_invoice_and_email(db, updated_ser, showcase)
     # Generate session coupons for paid registrations
     sessions = (showcase or {}).get("sessions") or []
-    if sessions:
-        await _generate_coupons_for_registration(db, canonical_slug, reg.get("id"), sessions)
+    if sessions and canonical_slug and reg.get("id"):
+        await _generate_coupons_for_registration(db, str(canonical_slug), str(reg.get("id")), sessions)
     return {**updated_ser, "invoice": invoice}
 
 
-def _payment_label(method: str) -> str:
+def _payment_label(method: Optional[str]) -> str:
     return {
         "upi": "UPI",
         "card": "Credit / Debit Card",
@@ -325,12 +325,12 @@ def _payment_label(method: str) -> str:
     }.get(method or "", (method or "").title())
 
 
-def _parse_iso(s: str):
+def _parse_iso(s: Optional[str]):
     """Parse an ISO 8601 string to an aware datetime. Returns None if unparseable."""
     if not s:
         return None
     try:
-        dt = datetime.fromisoformat(str(s).replace("Z", "+00:00"))
+        dt = datetime.fromisoformat(s.replace("Z", "+00:00"))
     except Exception:
         return None
     if dt.tzinfo is None:
@@ -463,109 +463,6 @@ def _build_invoice_html(inv: dict, template_id: str = "modern") -> str:
     paid_at = inv.get("paid_at") or ""
     if paid_at and "T" in str(paid_at):
         paid_at = str(paid_at)[:16].replace("T", " ")
-    return f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
-<title>Invoice {esc(inv.get('invoice_no'))}</title>
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
-  body {{ padding:32px; background:#0f172a; font-family:'Inter',-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:#0f172a; -webkit-print-color-adjust:exact; print-color-adjust:exact; }}
-  .sheet {{ max-width:720px; margin:0 auto; background:#fff; border-radius:18px; overflow:hidden; border:1px solid rgba(0,0,0,0.04); box-shadow:0 25px 60px rgba(0,0,0,0.25); }}
-  .head {{ background:linear-gradient(135deg,#7C3AED 0%,#5B21B6 100%); color:#fff; padding:32px 36px; }}
-  .head-brand {{ font-size:10px; font-weight:800; letter-spacing:3px; opacity:.6; }}
-  .head h1 {{ margin:8px 0 0; font-size:28px; font-weight:900; letter-spacing:-0.3px; }}
-  .head-meta {{ display:flex; align-items:center; gap:12px; margin-top:10px; flex-wrap:wrap; }}
-  .head-pill {{ background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.2); padding:4px 12px; border-radius:999px; font-size:12px; font-weight:600; }}
-  .body {{ padding:32px 36px; }}
-  .meta-grid {{ display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:28px; }}
-  .meta-col {{ }}
-  .meta-label {{ font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:1.2px; color:#94a3b8; margin-bottom:6px; }}
-  .meta-val {{ font-size:15px; font-weight:700; color:#0f172a; line-height:1.3; }}
-  .meta-sub {{ font-size:12px; color:#64748b; margin-top:2px; line-height:1.4; }}
-  table.items {{ width:100%; border-collapse:collapse; margin-top:4px; }}
-  table.items th {{ text-align:left; padding:10px 16px; background:#f8fafc; color:#64748b; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.8px; border-bottom:2px solid #f1f5f9; }}
-  table.items th.r, table.items td.r {{ text-align:right; }}
-  .total-section {{ margin-top:24px; display:flex; justify-content:flex-end; }}
-  .total-box {{ background:#f8fafc; border:1px solid #e2e8f0; border-radius:14px; padding:18px 24px; text-align:right; min-width:220px; }}
-  .total-label {{ font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#94a3b8; }}
-  .total-amt {{ font-size:28px; font-weight:900; color:#7C3AED; margin-top:4px; letter-spacing:-0.5px; }}
-  .total-currency {{ font-size:14px; font-weight:600; color:#a78bfa; }}
-  .divider {{ height:1px; background:linear-gradient(90deg,transparent,#e2e8f0,transparent); margin:24px 0; }}
-  .foot {{ padding:24px 36px; background:#f8fafc; border-top:1px solid #f1f5f9; }}
-  .foot-text {{ font-size:11px; color:#94a3b8; line-height:1.7; }}
-  .foot-brand {{ font-size:9px; font-weight:800; letter-spacing:2px; color:#cbd5e1; margin-top:12px; }}
-  @media print {{
-    body {{ background:#fff; padding:0; }}
-    .sheet {{ border:none; border-radius:0; box-shadow:none; max-width:100%; }}
-  }}
-</style>
-</head>
-<body>
-  <div class="sheet">
-    <div class="head">
-      <div class="head-brand">STUDENT ALUMNI · ECHO</div>
-      <h1>Payment Invoice</h1>
-      <div class="head-meta">
-        <span class="head-pill">INV: {esc(inv.get('invoice_no'))}</span>
-        <span class="head-pill" style="background:rgba(52,211,153,0.2);border-color:rgba(52,211,153,0.3);color:#6ee7b7;">PAID</span>
-        {f'<span class="head-pill">Paid {esc(paid_at)}</span>' if paid_at else ''}
-      </div>
-    </div>
-    <div class="body">
-      <table class="meta">
-        <tr>
-          <td style="width:50%;">
-            <div class="label">Billed To</div>
-            <div class="val">{esc(inv.get('full_name') or 'Attendee')}</div>
-            <div style="color:#374151;font-size:13px;">{esc(inv.get('email') or '')}</div>
-            <div style="color:#374151;font-size:13px;">{esc(inv.get('phone') or '')}</div>
-          </td>
-          <td>
-            <div class="label">Event</div>
-            <div class="val">{esc(inv.get('event_title') or '')}</div>
-            <div style="color:#374151;font-size:13px;">{esc(inv.get('event_date') or '')}</div>
-            <div style="color:#374151;font-size:13px;">{esc(inv.get('event_venue') or '')}</div>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding-top:16px;">
-            <div class="label">Payment ID</div>
-            <div class="val">{esc(inv.get('payment_id') or '—')}</div>
-          </td>
-          <td style="padding-top:16px;">
-            <div class="label">Payment Method</div>
-            <div class="val">{_payment_label(inv.get('payment_method') or '')}</div>
-          </td>
-        </tr>
-      </table>
-
-      <table class="items">
-        <tr><th>Description</th><th style="text-align:center;">Qty</th><th class="r">Amount</th></tr>
-        {rows}
-      </table>
-
-      <div class="total-section">
-        <div class="total-box">
-          <div class="total-label">Total Paid</div>
-          <div class="total-amt"><span class="total-currency">{currency}</span> {amount:,.2f}</div>
-        </div>
-      </div>
-    </div>
-    <div class="foot">
-      <div class="foot-text">
-        Thank you for registering for <strong style="color:#0f172a;">{esc(inv.get('event_title') or 'our event')}</strong>.
-        Please carry this invoice and your check-in QR pass to the venue. This is a computer-generated
-        invoice and does not require a signature. For queries, contact the Student Alumni Cell.
-      </div>
-      <div class="foot-brand">STUDENT ALUMNI · ECHO</div>
-    </div>
-  </div>
-</body>
-</html>"""
-
     if template_id == "minimal":
         return f"""<!DOCTYPE html>
 <html lang="en">
@@ -682,6 +579,109 @@ def _build_invoice_html(inv: dict, template_id: str = "modern") -> str:
       <div class="total"><div class="total-box"><div class="total-label">Total Paid</div><div class="total-amt">{currency} {amount:,.2f}</div></div></div>
     </div>
     <div class="foot"><div class="foot-text">This is a computer-generated invoice. Carry it along with your entry pass to the venue.</div></div>
+  </div>
+</body>
+</html>"""
+
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Invoice {esc(inv.get('invoice_no'))}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+  body {{ padding:32px; background:#0f172a; font-family:'Inter',,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:#0f172a; -webkit-print-color-adjust:exact; print-color-adjust:exact; }}
+  .sheet {{ max-width:720px; margin:0 auto; background:#fff; border-radius:18px; overflow:hidden; border:1px solid rgba(0,0,0,0.04); box-shadow:0 25px 60px rgba(0,0,0,0.25); }}
+  .head {{ background:linear-gradient(135deg,#7C3AED 0%,#5B21B6 100%); color:#fff; padding:32px 36px; }}
+  .head-brand {{ font-size:10px; font-weight:800; letter-spacing:3px; opacity:.6; }}
+  .head h1 {{ margin:8px 0 0; font-size:28px; font-weight:900; letter-spacing:-0.3px; }}
+  .head-meta {{ display:flex; align-items:center; gap:12px; margin-top:10px; flex-wrap:wrap; }}
+  .head-pill {{ background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.2); padding:4px 12px; border-radius:999px; font-size:12px; font-weight:600; }}
+  .body {{ padding:32px 36px; }}
+  .meta-grid {{ display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:28px; }}
+  .meta-col {{ }}
+  .meta-label {{ font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:1.2px; color:#94a3b8; margin-bottom:6px; }}
+  .meta-val {{ font-size:15px; font-weight:700; color:#0f172a; line-height:1.3; }}
+  .meta-sub {{ font-size:12px; color:#64748b; margin-top:2px; line-height:1.4; }}
+  table.items {{ width:100%; border-collapse:collapse; margin-top:4px; }}
+  table.items th {{ text-align:left; padding:10px 16px; background:#f8fafc; color:#64748b; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.8px; border-bottom:2px solid #f1f5f9; }}
+  table.items th.r, table.items td.r {{ text-align:right; }}
+  .total-section {{ margin-top:24px; display:flex; justify-content:flex-end; }}
+  .total-box {{ background:#f8fafc; border:1px solid #e2e8f0; border-radius:14px; padding:18px 24px; text-align:right; min-width:220px; }}
+  .total-label {{ font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#94a3b8; }}
+  .total-amt {{ font-size:28px; font-weight:900; color:#7C3AED; margin-top:4px; letter-spacing:-0.5px; }}
+  .total-currency {{ font-size:14px; font-weight:600; color:#a78bfa; }}
+  .divider {{ height:1px; background:linear-gradient(90deg,transparent,#e2e8f0,transparent); margin:24px 0; }}
+  .foot {{ padding:24px 36px; background:#f8fafc; border-top:1px solid #f1f5f9; }}
+  .foot-text {{ font-size:11px; color:#94a3b8; line-height:1.7; }}
+  .foot-brand {{ font-size:9px; font-weight:800; letter-spacing:2px; color:#cbd5e1; margin-top:12px; }}
+  @media print {{
+    body {{ background:#fff; padding:0; }}
+    .sheet {{ border:none; border-radius:0; box-shadow:none; max-width:100%; }}
+  }}
+</style>
+</head>
+<body>
+  <div class="sheet">
+    <div class="head">
+      <div class="head-brand">STUDENT ALUMNI · ECHO</div>
+      <h1>Payment Invoice</h1>
+      <div class="head-meta">
+        <span class="head-pill">INV: {esc(inv.get('invoice_no'))}</span>
+        <span class="head-pill" style="background:rgba(52,211,153,0.2);border-color:rgba(52,211,153,0.3);color:#6ee7b7;">PAID</span>
+        {f'<span class="head-pill">Paid {esc(paid_at)}</span>' if paid_at else ''}
+      </div>
+    </div>
+    <div class="body">
+      <table class="meta">
+        <tr>
+          <td style="width:50%;">
+            <div class="label">Billed To</div>
+            <div class="val">{esc(inv.get('full_name') or 'Attendee')}</div>
+            <div style="color:#374151;font-size:13px;">{esc(inv.get('email') or '')}</div>
+            <div style="color:#374151;font-size:13px;">{esc(inv.get('phone') or '')}</div>
+          </td>
+          <td>
+            <div class="label">Event</div>
+            <div class="val">{esc(inv.get('event_title') or '')}</div>
+            <div style="color:#374151;font-size:13px;">{esc(inv.get('event_date') or '')}</div>
+            <div style="color:#374151;font-size:13px;">{esc(inv.get('event_venue') or '')}</div>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding-top:16px;">
+            <div class="label">Payment ID</div>
+            <div class="val">{esc(inv.get('payment_id') or '—')}</div>
+          </td>
+          <td style="padding-top:16px;">
+            <div class="label">Payment Method</div>
+            <div class="val">{_payment_label(inv.get('payment_method') or '')}</div>
+          </td>
+        </tr>
+      </table>
+
+      <table class="items">
+        <tr><th>Description</th><th style="text-align:center;">Qty</th><th class="r">Amount</th></tr>
+        {rows}
+      </table>
+
+      <div class="total-section">
+        <div class="total-box">
+          <div class="total-label">Total Paid</div>
+          <div class="total-amt"><span class="total-currency">{currency}</span> {amount:,.2f}</div>
+        </div>
+      </div>
+    </div>
+    <div class="foot">
+      <div class="foot-text">
+        Thank you for registering for <strong style="color:#0f172a;">{esc(inv.get('event_title') or 'our event')}</strong>.
+        Please carry this invoice and your check-in QR pass to the venue. This is a computer-generated
+        invoice and does not require a signature. For queries, contact the Student Alumni Cell.
+      </div>
+      <div class="foot-brand">STUDENT ALUMNI · ECHO</div>
+    </div>
   </div>
 </body>
 </html>"""
@@ -1618,7 +1618,7 @@ async def seed_echo_showcase(db: AsyncIOMotorDatabase):
     try:
         seed_slug = DEFAULT_SHOWCASE_SEED.get("slug")
         seed_aliases = DEFAULT_SHOWCASE_SEED.get("aliases") or []
-        existing = await db.echo_showcases.find_one(_slug_query(seed_slug))
+        existing = await db.echo_showcases.find_one(_slug_query(str(seed_slug or "")))
         if not existing and seed_aliases:
             existing = await db.echo_showcases.find_one(
                 {"aliases": {"$in": seed_aliases}}
@@ -2925,7 +2925,7 @@ async def upload_echo_media(request: Request, file: UploadFile = File(None), adm
     if len(file_bytes) > MAX_SIZE:
         raise HTTPException(status_code=413, detail="File too large. Maximum 10 MB allowed.")
 
-    ext = Path(str(filename or "")).suffix.lower() or ".png"
+    ext = Path(filename or "").suffix.lower() or ".png"
     ALLOWED = {".jpg", ".jpeg", ".png", ".webp", ".avif", ".svg", ".gif", ".pdf", ".docx", ".xlsx", ".pptx", ".zip"}
     if ext not in ALLOWED:
         raise HTTPException(status_code=400, detail=f"File type {ext} not allowed.")
@@ -2936,7 +2936,7 @@ async def upload_echo_media(request: Request, file: UploadFile = File(None), adm
     upload_dir = _Path("uploads") / "echo"
     upload_dir.mkdir(parents=True, exist_ok=True)
     ts = int(_dt.now(_tz.utc).timestamp())
-    stem = Path(str(filename or "")).stem.replace(" ", "_").replace("/", "_") if filename else f"upload_{ts}"
+    stem = Path(filename or "").stem.replace(" ", "_").replace("/", "_") if filename else f"upload_{ts}"
     safe_name = f"{ts}_{stem}{ext}"
     out_path = upload_dir / safe_name
     with open(out_path, "wb") as f:
