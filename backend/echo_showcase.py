@@ -1005,8 +1005,9 @@ def _ticket_email_block(reg: dict, showcase: dict, ticket_url: str) -> str:
     esc_img = lambda s: str(s or "").replace("&", "&amp;").replace('"', "&quot;")
     email_addr = esc(reg.get("email") or "")
 
+    base_url = ticket_url.split("/tickets/")[0]
     qr_img = (
-        f'<img src="data:image/png;base64,{qr}" width="130" height="130" style="border-radius:12px;display:block;" alt="Check-in QR" />'
+        f'<img src="{base_url}/registrations/{reg_id}/qr.png" width="130" height="130" style="border-radius:12px;display:block;" alt="Check-in QR" />'
         if qr
         else ""
     )
@@ -1954,6 +1955,22 @@ async def my_showcase_registration(slug: str, request: Request):
         except Exception:
             pass
     return {}
+
+
+@router.get("/registrations/{reg_id}/qr.png")
+async def get_registration_qr_png(reg_id: str, request: Request):
+    """Fetch registration QR code directly as a PNG image for email clients."""
+    db = _get_db(request)
+    reg = await db.echo_registrations.find_one({"id": reg_id})
+    if not reg or not reg.get("qr_code_base64"):
+        raise HTTPException(status_code=404, detail="QR Code not found")
+    import base64
+    from fastapi import Response
+    try:
+        img_data = base64.b64decode(reg.get("qr_code_base64"))
+        return Response(content=img_data, media_type="image/png")
+    except Exception:
+        raise HTTPException(status_code=500, detail="Error loading QR image")
 
 
 # ── Payment endpoints (Razorpay) ─────────────────────────────────────────────
