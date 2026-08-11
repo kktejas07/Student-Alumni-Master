@@ -1129,7 +1129,7 @@ function MediaLibraryPanel() {
 
   const copyUrl = (url: string) => {
     if (Platform.OS === 'web') {
-      const full = url.startsWith('http') ? url : `http://localhost:8000${url}`;
+      const full = resolveImageUrl(url);
       navigator.clipboard?.writeText(full).catch(() => {});
     }
     setCopiedUrl(url);
