@@ -905,7 +905,7 @@ async def update_profile(updates: dict, user: dict = Depends(get_current_user)):
         "phone", "city", "state", "location", "face_image_base64", "photo_data", "banner_data", "college_logo_data",
         # Academic
         "institution", "branch", "graduation_year", "year", "class_or_year", "year_of_study", "cgpa",
-        "stream", "department",
+        "stream", "department", "board_or_university",
         # Career
         "career_path", "primary_skill", "interests", "skills",
         # Social
@@ -955,6 +955,9 @@ async def update_profile(updates: dict, user: dict = Depends(get_current_user)):
             si_updated = True
         if "department" in safe:
             si["department"] = safe["department"]
+            si_updated = True
+        if "board_or_university" in safe:
+            si["board_or_university"] = safe["board_or_university"]
             si_updated = True
         if "class_or_year" in safe or "year_of_study" in safe or "year" in safe:
             yr_val = safe.get("class_or_year") or safe.get("year_of_study") or safe.get("year")
