@@ -688,7 +688,154 @@ def _build_invoice_html(inv: dict, template_id: str = "modern") -> str:
 </html>"""
 
 
+def _build_receipt_html(inv: dict) -> str:
+    """Render a payment Receipt PDF — separate from the Invoice.
+
+    Mirrors the industry-standard format (Stripe / Anomaly / Razorpay):
+      • Heading: "Receipt"
+      • Invoice number + Receipt number + Date paid
+      • 'Amount paid on <date>' headline
+      • Line-items table with Subtotal / Total / Amount paid
+      • Payment history table: method, date, amount, receipt number
+    """
+    amount = float(inv.get("amount") or 0)
+    currency = inv.get("currency") or "INR"
+    inv_no = inv.get("invoice_no") or ""
+    payment_id = inv.get("payment_id") or "—"
+    # Receipt number = last 9 chars of payment_id (like Stripe's 2664-2355)
+    raw_pid = str(payment_id).replace("pay_", "").replace("PAY_", "")
+    receipt_no = f"{raw_pid[:4]}-{raw_pid[-4:]}" if len(raw_pid) >= 8 else raw_pid or inv_no.replace("INV-", "")
+
+    paid_at_raw = inv.get("paid_at") or ""
+    if paid_at_raw and "T" in str(paid_at_raw):
+        paid_at_display = str(paid_at_raw)[:10]
+    else:
+        paid_at_display = str(paid_at_raw)[:10] if paid_at_raw else ""
+
+    method_label = _payment_label(inv.get("payment_method") or inv.get("payment_gateway") or "")
+    esc = lambda s: str(s or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+    rows = "".join(
+        f"<tr>"
+        f"<td style='padding:10px 0;border-bottom:1px solid #e5e7eb;color:#111827;font-size:14px;'>{esc(i.get('desc'))}</td>"
+        f"<td style='padding:10px 0;border-bottom:1px solid #e5e7eb;text-align:center;color:#6b7280;font-size:14px;'>{i.get('qty')}</td>"
+        f"<td style='padding:10px 0;border-bottom:1px solid #e5e7eb;text-align:right;color:#111827;font-size:14px;'>{currency} {float(i.get('amount') or 0):,.2f}</td>"
+        f"</tr>"
+        for i in inv.get("items") or []
+    )
+    if not rows:
+        rows = (
+            f"<tr>"
+            f"<td style='padding:10px 0;border-bottom:1px solid #e5e7eb;color:#111827;font-size:14px;'>Event registration</td>"
+            f"<td style='padding:10px 0;border-bottom:1px solid #e5e7eb;text-align:center;color:#6b7280;font-size:14px;'>1</td>"
+            f"<td style='padding:10px 0;border-bottom:1px solid #e5e7eb;text-align:right;color:#111827;font-size:14px;'>{currency} {amount:,.2f}</td>"
+            f"</tr>"
+        )
+
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" /><title>Receipt {esc(receipt_no)}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  * {{ box-sizing:border-box; margin:0; padding:0; }}
+  body {{ padding:40px 32px; background:#fff; font-family:'Inter',-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:#111827; -webkit-print-color-adjust:exact; print-color-adjust:exact; }}
+  .sheet {{ max-width:640px; margin:0 auto; }}
+  .logo {{ font-size:11px; font-weight:800; letter-spacing:2px; color:#6b7280; margin-bottom:28px; }}
+  h1 {{ font-size:26px; font-weight:800; color:#111827; margin-bottom:4px; }}
+  .headline {{ font-size:18px; font-weight:700; color:#111827; margin:28px 0 20px; }}
+  .meta-row {{ display:flex; justify-content:space-between; margin-bottom:18px; }}
+  .meta-label {{ font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.6px; color:#6b7280; margin-bottom:3px; }}
+  .meta-val {{ font-size:14px; font-weight:600; color:#111827; }}
+  .meta-sub {{ font-size:13px; color:#374151; margin-top:1px; }}
+  .divider {{ height:1px; background:#e5e7eb; margin:22px 0; }}
+  table.items {{ width:100%; border-collapse:collapse; }}
+  table.items th {{ text-align:left; padding:8px 0; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:#6b7280; border-bottom:2px solid #111827; }}
+  table.items th.r {{ text-align:right; }}
+  .totals {{ margin-top:16px; }}
+  .totals-row {{ display:flex; justify-content:space-between; padding:6px 0; font-size:14px; color:#374151; }}
+  .totals-row.bold {{ font-weight:700; color:#111827; border-top:1px solid #e5e7eb; margin-top:6px; padding-top:10px; }}
+  .history-head {{ font-size:16px; font-weight:700; color:#111827; margin:28px 0 12px; }}
+  table.history {{ width:100%; border-collapse:collapse; }}
+  table.history th {{ text-align:left; padding:8px 0; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:#6b7280; border-bottom:1px solid #e5e7eb; }}
+  table.history td {{ padding:10px 0; font-size:13px; color:#374151; border-bottom:1px solid #f3f4f6; vertical-align:top; }}
+  .foot {{ margin-top:36px; font-size:11px; color:#9ca3af; line-height:1.6; border-top:1px solid #f3f4f6; padding-top:18px; }}
+  @media print {{ body {{ padding:20px; }} }}
+</style>
+</head>
+<body>
+  <div class="sheet">
+    <div class="logo">STUDENT ALUMNI · ECHO</div>
+    <h1>Receipt</h1>
+    <div class="meta-row" style="margin-top:20px;">
+      <div><div class="meta-label">Invoice number</div><div class="meta-val">{esc(inv_no)}</div></div>
+      <div style="text-align:right;"><div class="meta-label">Receipt number</div><div class="meta-val">{esc(receipt_no)}</div></div>
+    </div>
+    <div class="meta-row">
+      <div><div class="meta-label">Date paid</div><div class="meta-val">{esc(paid_at_display)}</div></div>
+    </div>
+    <div class="divider"></div>
+    <div class="meta-row">
+      <div>
+        <div class="meta-label">Bill to</div>
+        <div class="meta-val">{esc(inv.get('full_name') or 'Attendee')}</div>
+        <div class="meta-sub">{esc(inv.get('email') or '')}</div>
+        <div class="meta-sub">{esc(inv.get('college') or '')}</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="meta-label">Event</div>
+        <div class="meta-val">{esc(inv.get('event_title') or '')}</div>
+        <div class="meta-sub">{esc(inv.get('event_date') or '')}</div>
+        <div class="meta-sub">{esc(inv.get('event_venue') or '')}</div>
+      </div>
+    </div>
+    <div class="headline">{currency} {amount:,.2f} paid on {esc(paid_at_display)}</div>
+    <table class="items">
+      <tr>
+        <th>Description</th>
+        <th style="text-align:center;">Qty</th>
+        <th class="r">Unit price</th>
+        <th class="r">Amount</th>
+      </tr>
+      {rows}
+    </table>
+    <div class="totals">
+      <div class="totals-row"><span>Subtotal</span><span>{currency} {amount:,.2f}</span></div>
+      <div class="totals-row"><span>Total</span><span>{currency} {amount:,.2f}</span></div>
+      <div class="totals-row bold"><span>Amount paid</span><span>{currency} {amount:,.2f}</span></div>
+    </div>
+    <div class="divider"></div>
+    <div class="history-head">Payment history</div>
+    <table class="history">
+      <tr>
+        <th>Payment method</th>
+        <th>Date</th>
+        <th style="text-align:right;">Amount paid</th>
+        <th style="text-align:right;">Receipt number</th>
+      </tr>
+      <tr>
+        <td>
+          <div>{esc(method_label)}</div>
+          <div style="color:#6b7280;font-size:12px;">{esc(payment_id)}</div>
+        </td>
+        <td>{esc(paid_at_display)}</td>
+        <td style="text-align:right;">{currency} {amount:,.2f}</td>
+        <td style="text-align:right;">{esc(receipt_no)}</td>
+      </tr>
+    </table>
+    <div class="foot">
+      This is a computer-generated receipt and does not require a signature.
+      For queries, contact the Student Alumni Cell.<br/>
+      <strong style="color:#6b7280;">STUDENT ALUMNI · ECHO</strong>
+    </div>
+  </div>
+</body>
+</html>"""
+
+
 def _build_ticket_html(reg: dict, showcase: dict, template_id: Optional[str] = None) -> str:
+
     """Render a professional, printable entry pass (ticket) with QR for an attendee.
 
     Design follows Behance/Dribbble-grade event ticket conventions:
@@ -1286,19 +1433,29 @@ async def _store_invoice_and_email(db, reg: dict, showcase: Optional[dict]) -> d
             ticket_block = _ticket_email_block(reg, showcase or {}, ticket_url)
             subject = f"Payment Receipt & Entry Pass — {inv_ser.get('event_title') or 'Event Registration'}"
 
-            # Generate invoice PDF attachment (pixel-perfect via Playwright)
-            invoice_html = _build_invoice_html(inv_ser)
+            # Generate BOTH PDFs: Invoice + Receipt (like Stripe/Razorpay pattern)
             inv_no = inv_ser.get("invoice_no") or "invoice"
-            pdf_bytes = await generate_pdf_from_html(invoice_html)
             attachments = []
-            if pdf_bytes:
-                attachments.append({
-                    "filename": f"{inv_no}.pdf",
-                    "content": pdf_bytes,
-                })
-                print(f"[ECHO] Invoice PDF generated ({len(pdf_bytes)} bytes) for {email}")
-            else:
-                print(f"[WARN] Invoice PDF generation skipped for {email}")
+
+            # 1) Invoice PDF
+            invoice_html = _build_invoice_html(inv_ser)
+            invoice_pdf = await generate_pdf_from_html(invoice_html)
+            if invoice_pdf:
+                attachments.append({"filename": f"Invoice-{inv_no}.pdf", "content": invoice_pdf})
+                print(f"[ECHO] Invoice PDF generated ({len(invoice_pdf)} bytes) for {email}")
+
+            # 2) Receipt PDF
+            receipt_html = _build_receipt_html(inv_ser)
+            receipt_pdf = await generate_pdf_from_html(receipt_html)
+            if receipt_pdf:
+                # derive receipt number same way as _build_receipt_html
+                raw_pid = str(inv_ser.get("payment_id") or "").replace("pay_", "").replace("PAY_", "")
+                rno = f"{raw_pid[:4]}-{raw_pid[-4:]}" if len(raw_pid) >= 8 else raw_pid
+                attachments.append({"filename": f"Receipt-{rno or inv_no}.pdf", "content": receipt_pdf})
+                print(f"[ECHO] Receipt PDF generated ({len(receipt_pdf)} bytes) for {email}")
+
+            if not attachments:
+                print(f"[WARN] PDF generation skipped for {email}")
 
             body = render_html_email(
                 f"""
@@ -1316,9 +1473,10 @@ async def _store_invoice_and_email(db, reg: dict, showcase: Optional[dict]) -> d
                 </table>
                 {ticket_block}
                 <p style="margin:0 0 6px 0;color:#374151;">
-                  Your invoice is attached to this email as a PDF (<strong>{inv_no}.pdf</strong>).
-                  You can also view and download your invoice and ticket anytime from your dashboard under
-                  <strong>My Tickets</strong>.
+                  Two PDF documents are attached to this email:
+                  <strong>Invoice-{inv_no}.pdf</strong> (tax invoice) and
+                  <strong>Receipt</strong> (payment confirmation with payment history).
+                  You can also access your ticket and invoice anytime from your dashboard under <strong>My Tickets</strong>.
                 </p>
                 <a href="https://studentalumni.ai/dashboard"
                    style="display:inline-block;padding:12px 26px;background:#7C3AED;color:#fff;text-decoration:none;border-radius:10px;font-weight:600;">Open My Dashboard</a>
