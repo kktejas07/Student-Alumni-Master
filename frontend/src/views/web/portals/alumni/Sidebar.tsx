@@ -80,12 +80,7 @@ export function Sidebar({
       <FadeInView delay={70}>
         <PressScale onPress={() => onNav('profile')} style={s.profileCard}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <View style={{ position: 'relative' }}>
-              <Av initials={initials} size={40} color={SC.primaryL} photo={photo} />
-              <View style={s.statusDotWrap}>
-                <PulseDot size={10} color="#22C55E" />
-              </View>
-            </View>
+
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text numberOfLines={1} style={s.profileName}>{name}</Text>
               <Text numberOfLines={1} style={s.profileYear}>{subTitle}</Text>

@@ -83,14 +83,7 @@ export function Sidebar({
               pressed && { opacity: 0.8 }
             ]}
           >
-            <View style={[s.avatarMini, { overflow: 'hidden' }]}>
-              {photo ? (
-                <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} />
-              ) : (
-                <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 }}>{initials}</Text>
-              )}
-              <View style={s.onlineDot} />
-            </View>
+              <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 }}>{initials}</Text>
           </Pressable>
         ) : (
           <View style={s.profileCard}>
@@ -101,14 +94,7 @@ export function Sidebar({
                 pressed && { opacity: 0.8 }
               ]}
             >
-              <View style={[s.avatarLg, { overflow: 'hidden' }]}>
-                {photo ? (
-                  <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} />
-                ) : (
-                  <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 }}>{initials}</Text>
-                )}
-                <View style={s.onlineDot} />
-              </View>
+
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text numberOfLines={1} style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 11 }}>{fullName}</Text>
                 <Text numberOfLines={1} style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 9 }}>{jobTitle} · {company}</Text>
