@@ -2835,7 +2835,7 @@ async def list_echo_media(request: Request, _=Depends(_require_admin)):
         files.append({
             "filename": doc.get("filename", ""),
             "original_name": doc.get("original_name", doc.get("filename", "")),
-            "url": doc.get("data_url", ""),
+            "url": doc.get("url") or doc.get("data_url", ""),
             "size": size,
             "size_human": _human_size(size),
             "ext": ext,
