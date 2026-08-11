@@ -548,7 +548,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
           </View>
           <View style={[st.row, { zIndex: 18 }]}>
             <Field label="Branch / Major" half><TF value={draft.branch || ''} onChangeText={(v) => setField('branch', v)} placeholder="Computer Science" testID="pf-branch" /></Field>
-            <Field label="Department" half hint="College department / faculty"><SF value={String(draft.department || '')} onChange={(v) => setField('department', v)} options={DEPARTMENTS} placeholder="Select department" testID="pf-department" /></Field>
+            <Field label="Department" half hint="College department / faculty"><SF value={String(draft.department || draft.school_info?.department || '')} onChange={(v) => setField('department', v)} options={DEPARTMENTS} placeholder="Select department" testID="pf-department" /></Field>
           </View>
           <View style={[st.row, { zIndex: 17 }]}>
             <Field label="Graduation Year" half><SF value={String(draft.graduation_year || '')} onChange={(v) => setField('graduation_year', v)} options={GRAD_YEARS} placeholder="Select year" testID="pf-grad-year" /></Field>
