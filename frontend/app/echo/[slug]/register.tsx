@@ -748,15 +748,13 @@ const s = StyleSheet.create({
   selectPlaceholder: { color: PALETTE.dim, fontFamily: FONTS.med, fontSize: 14 },
   selectMenu: {
     position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 6,
-    backgroundColor: '#1c2340', borderColor: 'rgba(167,139,250,0.45)', borderWidth: 1,
+    backgroundColor: '#161a2e', borderColor: PALETTE.glassBorder, borderWidth: 1,
     borderRadius: 10, overflow: 'hidden', maxHeight: 220,
-    ...(Platform.OS === 'web' ? ({
-      boxShadow: '0 18px 50px rgba(0,0,0,0.65), 0 0 0 1px rgba(124,58,237,0.15)',
-    } as any) : {}),
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 12px 40px rgba(0,0,0,0.55)' } as any) : {}),
   },
   selectItem: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 14, paddingVertical: 11, backgroundColor: 'transparent',
+    paddingHorizontal: 14, paddingVertical: 11,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   selectItemActive: { backgroundColor: 'rgba(124,58,237,0.16)' },
