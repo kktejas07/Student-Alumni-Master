@@ -19,7 +19,7 @@ import {
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import {
   Award, Upload, ExternalLink, ShieldCheck, Search, Mail,
-  Sparkles, Link2, X, AlertTriangle, CheckCircle2, User,
+  Sparkles, Link2, X, AlertTriangle, CheckCircle2, User, FileUp, FileText,
 } from 'lucide-react-native';
 import { SAC, FONTS } from '../tokens';
 import {
@@ -29,7 +29,7 @@ import {
 import { request } from '@/src/models/services/api';
 import * as Linking from 'expo-linking';
 
-type TabId = 'issue' | 'bulk' | 'external' | 'verify';
+type TabId = 'issue' | 'bulk' | 'external' | 'verify' | 'files';
 
 export function CertificatesView() {
   const [tab, setTab] = useState<TabId>('issue');
@@ -38,6 +38,7 @@ export function CertificatesView() {
   const tabs = [
     { id: 'issue',    label: 'Issue',     icon: Award },
     { id: 'bulk',     label: 'Bulk Issue', icon: Upload },
+    { id: 'files',    label: 'Files',     icon: FileUp },
     { id: 'external', label: 'External',  icon: ExternalLink },
     { id: 'verify',   label: 'Verify',    icon: ShieldCheck },
   ] as const;
@@ -51,9 +52,10 @@ export function CertificatesView() {
             <View>
               <Text style={s.title}>Certificates</Text>
               <Text style={s.sub}>
-                Issue verifiable certificates (Coursera-style SA codes), store third-party
-                credentials with issuer classification, and confirm any certificate from
-                the public /certificates/verify page.
+                Issue verifiable certificates (Coursera-style SA codes), upload certificate
+                files (PNG/JPEG/WEBP/PDF), store third-party credentials with issuer
+                classification, and confirm any certificate from the public
+                /certificates/verify page.
               </Text>
             </View>
           </View>
@@ -64,6 +66,7 @@ export function CertificatesView() {
 
       {tab === 'issue'    && <IssueTab onSaved={flash} />}
       {tab === 'bulk'     && <BulkTab onSaved={flash} />}
+      {tab === 'files'    && <FilesTab onSaved={flash} />}
       {tab === 'external' && <ExternalTab onSaved={flash} />}
       {tab === 'verify'   && <VerifyTab onSaved={flash} />}
 
@@ -267,6 +270,237 @@ function BulkTab({ onSaved }: { onSaved: (s?: string) => void }) {
                 </View>
               ))}
             </ScrollView>
+          </View>
+        )}
+      </Card>
+    </Animated.View>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════
+ *  FILES TAB — upload certificate files (PNG/JPEG/WEBP/PDF)
+ * ══════════════════════════════════════════════════════════════════ */
+function FilesTab({ onSaved }: { onSaved: (s?: string) => void }) {
+  const [mode, setMode] = useState<'single' | 'bulk'>('single');
+  const [email, setEmail] = useState('');
+  const [title, setTitle] = useState('');
+  const [files, setFiles] = useState<File[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const bulkRef = React.useRef<HTMLInputElement>(null);
+
+  const pickSingle = () => inputRef.current?.click();
+  const pickBulk = () => bulkRef.current?.click();
+
+  const onSingleFile = (e: any) => {
+    const f = e?.target?.files?.[0];
+    if (f) setFiles([f]);
+  };
+
+  const onBulkFiles = (e: any) => {
+    const list = Array.from(e?.target?.files || []) as File[];
+    if (list.length) setFiles(list);
+  };
+
+  const uploadSingle = async () => {
+    setError(null); setResult(null);
+    if (!email.trim() || !title.trim()) { setError('Recipient email and certificate title are required.'); return; }
+    if (!files.length) { setError('Choose a certificate file first.'); return; }
+    setBusy(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', files[0]);
+      fd.append('recipient_email', email.trim());
+      fd.append('title', title.trim());
+      fd.append('issuer', 'Student Alumni');
+      const r = await request('/certificates/upload', { method: 'POST', body: fd });
+      setResult(r);
+      onSaved(`Uploaded + issued ${r.verification_code}`);
+    } catch (e: any) {
+      setError(e.message || 'Upload failed');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const uploadBulk = async () => {
+    setError(null); setResult(null);
+    if (!files.length) { setError('Choose at least one certificate file.'); return; }
+    setBusy(true);
+    try {
+      const fd = new FormData();
+      files.forEach((f) => fd.append('files', f));
+      const r = await request('/certificates/upload-bulk', { method: 'POST', body: fd });
+      setResult(r);
+      onSaved(`${r.created} uploaded and issued`);
+      setFiles([]);
+    } catch (e: any) {
+      setError(e.message || 'Bulk upload failed');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Animated.View entering={FadeInDown.duration(260)}>
+      <Card>
+        <SectionLabel text="Upload Certificate Files" />
+        <Text style={s.hint}>
+          Accepts PNG, JPG, JPEG, WEBP, and PDF (max 15 MB each). Each file becomes a
+          verifiable registry entry with its own SA-XXXX-XXXX code and is displayed on
+          the recipient's public verify page.
+        </Text>
+
+        <View style={s.seg}>
+          {(['single', 'bulk'] as const).map((m) => (
+            <Pressable
+              key={m}
+              onPress={() => { setMode(m); setResult(null); setError(null); }}
+              style={[s.segBtn, mode === m && s.segActive]}
+            >
+              <Text style={[s.segText, mode === m && s.segTextActive]}>{m === 'single' ? 'Single file' : 'Bulk files'}</Text>
+            </Pressable>
+          ))}
+        </View>
+
+        {mode === 'single' && (
+          <>
+            <View style={s.field}>
+              <Text style={s.label}>Recipient Email *</Text>
+              <View style={s.inputRow}>
+                <Mail size={15} color={SAC.muted} />
+                <TextInput
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder="student@college.edu"
+                  placeholderTextColor="#475569"
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  style={s.input}
+                />
+              </View>
+            </View>
+            <View style={s.field}>
+              <Text style={s.label}>Certificate Title *</Text>
+              <View style={s.inputRow}>
+                <Award size={15} color={SAC.muted} />
+                <TextInput
+                  value={title}
+                  onChangeText={setTitle}
+                  placeholder="e.g. AI & ML Bootcamp"
+                  placeholderTextColor="#475569"
+                  style={s.input}
+                />
+              </View>
+            </View>
+          </>
+        )}
+
+        <Pressable onPress={mode === 'single' ? pickSingle : pickBulk} style={({ hovered }: any) => [s.dropZone, hovered && { borderColor: '#A78BFA' }]}>
+          <FileUp size={20} color="#A78BFA" />
+          <Text style={s.dropTitle}>{files.length ? `${files.length} file${files.length === 1 ? '' : 's'} selected` : 'Choose certificate file(s)'}</Text>
+          <Text style={s.dropSub}>
+            {mode === 'single'
+              ? 'PNG · JPG · WEBP · PDF · up to 15 MB'
+              : 'Multi-select. Name each file "{email}__{title}.{ext}" — e.g. john@college.edu__AI Bootcamp.pdf'}
+          </Text>
+        </Pressable>
+
+        {Platform.OS === 'web' && (
+          <>
+            <input
+              ref={inputRef as any}
+              type="file"
+              accept=".png,.jpg,.jpeg,.webp,.pdf"
+              style={{ display: 'none' }}
+              onChange={onSingleFile}
+            />
+            <input
+              ref={bulkRef as any}
+              type="file"
+              multiple
+              accept=".png,.jpg,.jpeg,.webp,.pdf"
+              style={{ display: 'none' }}
+              onChange={onBulkFiles}
+            />
+          </>
+        )}
+
+        {files.length > 0 && (
+          <ScrollView style={{ maxHeight: 180 }} nestedScrollEnabled>
+            {files.map((f, i) => (
+              <View key={i} style={s.fileRow}>
+                <FileText size={14} color={SAC.muted} />
+                <Text style={s.fileName} numberOfLines={1}>{f.name}</Text>
+                <Text style={s.fileSize}>{(f.size / 1024 / 1024).toFixed(1)} MB</Text>
+                <Pressable onPress={() => setFiles(files.filter((_, j) => j !== i))}>
+                  <X size={14} color={SAC.muted} />
+                </Pressable>
+              </View>
+            ))}
+          </ScrollView>
+        )}
+
+        {error && (
+          <View style={s.errorBox}>
+            <AlertTriangle size={14} color="#F87171" />
+            <Text style={s.errorText}>{error}</Text>
+          </View>
+        )}
+
+        <GradientButton onPress={mode === 'single' ? uploadSingle : uploadBulk} loading={busy} disabled={!files.length}>
+          <View style={s.btnInner}><Upload size={15} color="#fff" /><Text style={s.btnText}>{busy ? 'Uploading...' : mode === 'single' ? 'Upload & Issue Certificate' : `Upload & Issue ${files.length} Certificate${files.length === 1 ? '' : 's'}`}</Text></View>
+        </GradientButton>
+
+        {result && mode === 'single' && (
+          <View style={s.resultBox}>
+            <View style={s.resultHead}>
+              <CheckCircle2 size={16} color="#34D399" />
+              <Text style={s.resultTitle}>Uploaded & issued</Text>
+            </View>
+            <InfoRow label="Code" value={result.verification_code} mono />
+            <InfoRow label="Recipient" value={result.recipient_name} />
+            <InfoRow label="Verify URL" value={result.verify_url} mono />
+            {result.verify_url && (
+              <Pressable
+                onPress={() => Linking.openURL(result.verify_url)}
+                style={({ hovered }: any) => [s.linkBtn, hovered && { borderColor: '#A78BFA' }]}
+              >
+                <ExternalLink size={14} color="#A78BFA" />
+                <Text style={s.linkBtnText}>Open verify page</Text>
+              </Pressable>
+            )}
+          </View>
+        )}
+
+        {result && mode === 'bulk' && (
+          <View style={s.resultBox}>
+            <View style={s.resultHead}>
+              <CheckCircle2 size={16} color="#34D399" />
+              <Text style={s.resultTitle}>{result.created} uploaded & issued</Text>
+            </View>
+            {(result.certificates || []).length > 0 && (
+              <ScrollView style={{ maxHeight: 260 }} nestedScrollEnabled>
+                {(result.certificates || []).map((c: any, i: number) => (
+                  <View key={i} style={s.bulkRow}>
+                    <Text style={[s.mono, { color: '#A78BFA' }]}>{c.verification_code}</Text>
+                    <Text style={s.bulkEmail} numberOfLines={1}>{c.recipient_email}</Text>
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+            {(result.errors || []).length > 0 && (
+              <View style={{ marginTop: 8 }}>
+                <Text style={[s.hint, { marginBottom: 6 }]}>{result.errors.length} file(s) could not be processed:</Text>
+                {(result.errors || []).map((e: any, i: number) => (
+                  <Text key={i} numberOfLines={2} style={[s.errorText, { color: '#F87171' }]}>
+                    {e.filename || '(unknown)'}: {e.error}
+                  </Text>
+                ))}
+              </View>
+            )}
           </View>
         )}
       </Card>
@@ -569,6 +803,17 @@ const s = StyleSheet.create({
   classRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
   classKey: { color: '#64748b', fontFamily: FONTS.bold, fontSize: 11 },
   divider: { height: 1, backgroundColor: '#1e293b', marginVertical: 14 },
+  seg: { flexDirection: 'row', gap: 8, marginBottom: 14, backgroundColor: '#0f172a', borderWidth: 1, borderColor: '#1e293b', borderRadius: 10, padding: 4 },
+  segBtn: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 8 },
+  segActive: { backgroundColor: 'rgba(167,139,250,0.15)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.35)' },
+  segText: { color: '#64748b', fontFamily: FONTS.bold, fontSize: 12.5 },
+  segTextActive: { color: '#c4b5fd' },
+  dropZone: { alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#334155', borderRadius: 12, paddingVertical: 26, paddingHorizontal: 16, marginBottom: 14, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  dropTitle: { color: '#cbd5e1', fontFamily: FONTS.bold, fontSize: 13 },
+  dropSub: { color: '#64748b', fontFamily: FONTS.med, fontSize: 11, lineHeight: 16, textAlign: 'center' },
+  fileRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(30,41,59,0.6)' },
+  fileName: { flex: 1, color: '#cbd5e1', fontFamily: FONTS.med, fontSize: 12 },
+  fileSize: { color: '#64748b', fontFamily: FONTS.med, fontSize: 11 },
   btnInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   btnText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
   btnTextSm: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },

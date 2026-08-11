@@ -20,14 +20,17 @@ Collections:
 """
 from __future__ import annotations
 
+import base64
+import mimetypes
 import os
 import re
 import secrets
 import string
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, File, UploadFile, Form
 from pydantic import BaseModel
 
 from core.db import db
@@ -172,6 +175,9 @@ async def verify_certificate(code: str):
         "issuer_type": doc.get("issuer_type", "platform"),
         "issued_at": issued.isoformat() if hasattr(issued, "isoformat") else issued,
         "credential_url": doc.get("credential_url"),
+        "file_url": doc.get("file_url"),
+        "file_name": doc.get("file_name"),
+        "content_type": doc.get("content_type"),
         "meta": doc.get("meta"),
     }
 
@@ -447,6 +453,151 @@ async def sync_legacy_certificates(request: Request, _=None):
     return {"ok": True, "migrated": migrated}
 
 
+# ── File uploads (PNG/JPEG/WEBP/PDF certificate files) ─────────────────────
+_ALLOWED_CERT_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".pdf"}
+_MAX_CERT_FILE_BYTES = 15 * 1024 * 1024
+
+
+async def _save_cert_file(file_bytes: bytes, original_name: str) -> str:
+    """Persist a certificate file to uploads/certificates and return its URL."""
+    ext = Path(original_name or "").suffix.lower() or ".png"
+    if ext not in _ALLOWED_CERT_EXTS:
+        raise HTTPException(400, f"Unsupported certificate file type '{ext}'. Allowed: png, jpg, jpeg, webp, pdf")
+    if len(file_bytes) > _MAX_CERT_FILE_BYTES:
+        raise HTTPException(413, "Certificate file too large. Maximum 15 MB allowed.")
+    upload_dir = Path("uploads") / "certificates"
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    ts = int(_now().timestamp())
+    stem = re.sub(r"[^A-Za-z0-9_.-]+", "_", Path(original_name).stem)[:80] or "certificate"
+    safe_name = f"{ts}_{stem}{ext}"
+    out_path = upload_dir / safe_name
+    with open(out_path, "wb") as f:
+        f.write(file_bytes)
+    return f"/uploads/certificates/{safe_name}"
+
+
+@router.post("/certificates/upload")
+async def upload_certificate(
+    request: Request,
+    file: UploadFile = File(None),
+    recipient_email: str = Form(""),
+    title: str = Form(""),
+    issuer: str = Form("Student Alumni"),
+):
+    """Admin: upload a certificate image/PDF. The file is stored on disk and a
+    verifiable registry entry (SA code) is created. Anyone can validate the
+    result at /certificates/verify/{code} and see the uploaded file."""
+    await _require_admin(request)
+    email = (recipient_email or "").strip().lower()
+    title = (title or "").strip()
+    if not email or not title:
+        raise HTTPException(400, "recipient_email and title are required")
+    if file is None or not file.filename:
+        raise HTTPException(400, "certificate file is required")
+
+    file_bytes = await file.read()
+    url = await _save_cert_file(file_bytes, file.filename)
+    content_type = mimetypes.guess_type(url)[0] or "application/octet-stream"
+
+    code = _gen_code()
+    for _ in range(5):
+        if not await db.certificates.find_one({"verification_code": code}):
+            break
+        code = _gen_code()
+
+    doc = {
+        "verification_code": code,
+        "recipient_email": email,
+        "recipient_name": await _recipient_name(email),
+        "title": title,
+        "issuer": issuer or "Student Alumni",
+        "issuer_type": "platform",
+        "file_url": url,
+        "file_name": Path(file.filename).name,
+        "content_type": content_type,
+        "issued_at": _now(),
+        "created_at": _now(),
+        "meta": {"source": "admin_upload"},
+    }
+    res = await db.certificates.insert_one(doc)
+    return {
+        "ok": True,
+        "verification_code": code,
+        "certificate_id": str(res.inserted_id),
+        "recipient_name": doc["recipient_name"],
+        "verify_url": f"{os.environ.get('FRONTEND_URL', 'https://studentalumni.ai')}/certificates/verify/{code}",
+        "file_url": url,
+    }
+
+
+@router.post("/certificates/upload-bulk")
+async def upload_certificates_bulk(
+    request: Request,
+    files: List[UploadFile] = File(None),
+):
+    """Admin: bulk-upload multiple certificate files at once. Each file's
+    recipient email + title are read from the filename in the form
+    '{email}__{title}.{ext}' (e.g. john.doe@college.edu__Workshop.pdf).
+    Falls back to a generic title if no '__' separator is present. Files with
+    names that can't be linked to an email are reported in 'errors'."""
+    await _require_admin(request)
+    files = files or []
+    if not files:
+        raise HTTPException(400, "at least one file is required")
+    if len(files) > 200:
+        raise HTTPException(400, "maximum 200 files per request")
+
+    created = 0
+    errors: List[Dict[str, str]] = []
+    created_codes: List[Dict[str, str]] = []
+    for f in files:
+        if not f or not f.filename:
+            errors.append({"filename": "", "error": "missing file"})
+            continue
+        name = f.filename
+        stem = Path(name).stem
+        email = None
+        title = "Certificate"
+        if "__" in stem:
+            parts = stem.split("__", 1)
+            email = parts[0].strip().lower()
+            if parts[1].strip():
+                title = parts[1].strip().replace("_", " ")
+        elif "@" in stem:
+            email = stem.split("__")[0].strip().lower()
+        if not email or "@" not in email:
+            errors.append({"filename": name, "error": "cannot derive recipient email from filename — use '{email}__{title}.{ext}'"})
+            continue
+        try:
+            file_bytes = await f.read()
+            url = await _save_cert_file(file_bytes, name)
+        except HTTPException as e:
+            errors.append({"filename": name, "error": e.detail})
+            continue
+        code = _gen_code()
+        for _ in range(5):
+            if not await db.certificates.find_one({"verification_code": code}):
+                break
+            code = _gen_code()
+        await db.certificates.insert_one({
+            "verification_code": code,
+            "recipient_email": email,
+            "recipient_name": await _recipient_name(email),
+            "title": title,
+            "issuer": "Student Alumni",
+            "issuer_type": "platform",
+            "file_url": url,
+            "file_name": Path(name).name,
+            "content_type": mimetypes.guess_type(url)[0] or "application/octet-stream",
+            "issued_at": _now(),
+            "created_at": _now(),
+            "meta": {"source": "admin_bulk_upload"},
+        })
+        created += 1
+        created_codes.append({"recipient_email": email, "verification_code": code, "title": title})
+    return {"ok": True, "created": created, "errors": errors, "certificates": created_codes}
+
+
 async def _recipient_name(email: str) -> str:
     user = await db.users.find_one({"email": email})
     if user and (user.get("full_name") or user.get("name")):
@@ -460,7 +611,7 @@ async def recipient_certificates(email: str):
     docs = await db.certificates.find(
         {"recipient_email": (email or "").strip().lower()},
         {"verification_code": 1, "title": 1, "issuer": 1, "issuer_type": 1,
-         "issued_at": 1, "credential_url": 1},
+         "issued_at": 1, "credential_url": 1, "file_url": 1, "file_name": 1},
     ).sort("issued_at", -1).to_list(200)
     out = []
     for d in docs:
@@ -472,5 +623,7 @@ async def recipient_certificates(email: str):
             "issuer_type": d.get("issuer_type", "platform"),
             "issued_at": issued.isoformat() if hasattr(issued, "isoformat") else issued,
             "credential_url": d.get("credential_url"),
+            "file_url": d.get("file_url"),
+            "file_name": d.get("file_name"),
         })
     return {"certificates": out}

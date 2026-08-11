@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, Pressable, StyleSheet, Platform, ScrollView, ActivityIndicator, Linking,
+  View, Text, Pressable, StyleSheet, Platform, ScrollView, ActivityIndicator, Linking, Image,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import {
-  ShieldCheck, ExternalLink, Award, Mail, Calendar, User, ChevronLeft,
+  ShieldCheck, ExternalLink, Award, Mail, Calendar, User, ChevronLeft, FileText,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -25,8 +25,17 @@ type CertData = {
   hint?: string;
   verify_url?: string;
   credential_url?: string;
+  file_url?: string;
+  file_name?: string;
+  content_type?: string;
   issued_at?: string;
 };
+
+function absUrl(u?: string): string {
+  if (!u) return '';
+  if (u.startsWith('http')) return u;
+  return `${API_BASE}${u}`;
+}
 
 export default function CertificateVerifyResult() {
   const { code } = useLocalSearchParams<{ code: string }>();
@@ -84,6 +93,7 @@ export default function CertificateVerifyResult() {
   const isPlatform = data.issuer_type !== 'external';
   const accent = isPlatform ? '#10B981' : '#F59E0B';
   const issuedAt = data.issued_at ? new Date(data.issued_at).toLocaleDateString() : '';
+  const isImageFile = (ct?: string) => !!ct && ct.startsWith('image/');
 
   return (
     <ScrollView style={s.scroll} contentContainerStyle={s.container}>
@@ -121,6 +131,32 @@ export default function CertificateVerifyResult() {
             </View>
           )}
         </LinearGradient>
+
+        {/* Uploaded certificate file preview */}
+        {data.file_url && (
+          <View style={s.fileCard}>
+            <Text style={s.sectionTitle}>Certificate Document</Text>
+            {isImageFile(data.content_type) ? (
+              <Image
+                source={{ uri: absUrl(data.file_url) }}
+                style={s.fileImage}
+                resizeMode="contain"
+              />
+            ) : (
+              <Pressable
+                onPress={() => Linking.openURL(absUrl(data.file_url))}
+                style={({ hovered }: any) => [s.pdfBtn, hovered && { borderColor: '#A78BFA' }]}
+              >
+                <FileText size={20} color="#A78BFA" />
+                <View style={{ flex: 1 }}>
+                  <Text style={s.pdfName} numberOfLines={1}>{data.file_name || 'Certificate.pdf'}</Text>
+                  <Text style={s.pdfHint}>Tap to open the PDF</Text>
+                </View>
+                <ExternalLink size={16} color="#A78BFA" />
+              </Pressable>
+            )}
+          </View>
+        )}
 
         {/* Details */}
         <View style={s.detailsCard}>
@@ -214,4 +250,9 @@ const s = StyleSheet.create({
   externalHint: { color: '#a3a3a3', fontFamily: FONTS.med, fontSize: 12, marginTop: 12, lineHeight: 18 },
   verifiedBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 16, paddingVertical: 12, borderRadius: 12, borderWidth: 1 },
   verifiedText: { fontFamily: FONTS.bold, fontSize: 12 },
+  fileCard: { backgroundColor: '#1e293b', borderRadius: 16, padding: 18, marginTop: 16, borderWidth: 1, borderColor: '#334155' },
+  fileImage: { width: '100%', height: 320, borderRadius: 12, backgroundColor: '#0f172a', borderWidth: 1, borderColor: '#334155' },
+  pdfBtn: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderColor: 'rgba(167,139,250,0.3)', backgroundColor: 'rgba(167,139,250,0.06)', borderRadius: 12, padding: 16, ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}) },
+  pdfName: { color: '#e2e8f0', fontFamily: FONTS.bold, fontSize: 14 },
+  pdfHint: { color: '#94a3b8', fontFamily: FONTS.med, fontSize: 12, marginTop: 3 },
 });

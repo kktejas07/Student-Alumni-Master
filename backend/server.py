@@ -293,6 +293,7 @@ from fastapi.staticfiles import StaticFiles
 os.makedirs("uploads/echo", exist_ok=True)
 os.makedirs("uploads/general", exist_ok=True)
 os.makedirs("uploads/coupons", exist_ok=True)
+os.makedirs("uploads/certificates", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 
