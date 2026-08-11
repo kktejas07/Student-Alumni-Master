@@ -28,10 +28,10 @@ export const CC = {
   accentBright: '#67E8F9',
   accent2:   NX.purple,        // purple highlight
 
-  // Text on dark NexusOS surface
+  // Text on light surface
   text:  NX.textP,
-  muted: 'rgba(255,255,255,0.66)',
-  dim:   'rgba(255,255,255,0.46)',
+  muted: NX.textS,
+  dim:   NX.textT,
 
   // Status / utility
   green:  NX.success,

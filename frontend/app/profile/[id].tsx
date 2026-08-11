@@ -23,9 +23,9 @@ import { request, api } from '@/src/models/services/api';
 import { useAuth } from '@/src/viewmodels/hooks';
 
 const C = {
-  bg: '#0C0818', card: 'rgba(255,255,255,0.04)', border: 'rgba(255,255,255,0.09)',
-  text: '#fff', text2: 'rgba(255,255,255,0.65)', text3: 'rgba(255,255,255,0.45)',
-  purple: '#A78BFA', green: '#10B981', amber: '#F59E0B', cyan: '#22D3EE', pink: '#EC4899', rose: '#F43F5E',
+  bg: '#F9FAFB', card: '#FFFFFF', border: '#E5E7EB',
+  text: '#1C1C1E', text2: '#6B7280', text3: '#9CA3AF',
+  purple: '#8B5CF6', green: '#10B981', amber: '#F59E0B', cyan: '#06B6D4', pink: '#EC4899', rose: '#F43F5E',
 };
 type TabKey = 'overview' | 'linkedin' | 'github' | 'sessions';
 
@@ -81,12 +81,23 @@ export default function ProfileSocialView() {
   }
   if (error || !profile) {
     return (
-      <SafeAreaView style={[styles.screen, { alignItems: 'center', justifyContent: 'center', padding: 30 }]}>
-        <Lock size={48} color={C.text3} />
-        <Text style={styles.errTitle}>{error?.includes('private') ? 'Profile is private' : 'Profile not found'}</Text>
-        <Text style={styles.errSub}>{error || 'This profile is unavailable right now.'}</Text>
-        <Pressable onPress={() => router.back()} style={styles.errBtn}><Text style={styles.errBtnText}>Go Back</Text></Pressable>
-      </SafeAreaView>
+      <View style={{ flex: 1, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' }}>
+        <LinearGradient
+          colors={['rgba(237,233,254,0.6)', 'rgba(243,244,246,0.2)', 'rgba(224,242,254,0.6)']}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFillObject}
+        />
+        <View style={styles.errCard}>
+          <View style={styles.errIconWrap}>
+            <Lock size={32} color={C.purple} />
+          </View>
+          <Text style={styles.errTitle}>{error?.includes('private') ? 'Profile is private' : 'Profile not found'}</Text>
+          <Text style={styles.errSub}>{error || 'This profile is unavailable right now.'}</Text>
+          <Pressable onPress={() => router.back()} style={({hovered}: any) => [styles.errBtn, hovered && { transform: [{scale: 1.02}] }]}>
+            <Text style={styles.errBtnText}>Go Back</Text>
+          </Pressable>
+        </View>
+      </View>
     );
   }
 
@@ -106,7 +117,7 @@ export default function ProfileSocialView() {
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: 'transparent' }]} edges={['top', 'bottom']}>
       <Pressable 
-        style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(12, 8, 24, 0.7)' }, Platform.OS === 'web' ? { backdropFilter: 'blur(12px)' } as any : {}]}
+        style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(249, 250, 251, 0.8)' }, Platform.OS === 'web' ? { backdropFilter: 'blur(12px)' } as any : {}]}
         onPress={() => router.back()}
       />
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: isMobile ? 0 : 40 }} pointerEvents="box-none">
@@ -271,7 +282,7 @@ export default function ProfileSocialView() {
               return (
                 <Pressable key={t.key} onPress={() => setTab(t.key)} style={[styles.tab, active && styles.tabActive]} testID={`psv-tab-${t.key}`}>
                   <Icon size={13} color={active ? '#fff' : C.text2} />
-                  <Text style={[styles.tabText, active && { color: '#fff' }]}>{t.label}</Text>
+                  <Text style={[styles.tabText, active && { color: C.text }]}>{t.label}</Text>
                 </Pressable>
               );
             })}
@@ -647,7 +658,7 @@ function BadgePill({ badge }: { badge: any }) {
         <LinearGradient colors={['#FCD34D', '#F59E0B', '#B45309']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.badgeChip, { borderColor: '#FCD34D', borderWidth: 1, backgroundColor: 'transparent' }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
             <Crown size={9} color="#fff" />
-            <Text style={[styles.badgeChipText, { color: '#fff' }]} numberOfLines={1}>{badge.label}</Text>
+            <Text style={[styles.badgeChipText, { color: C.text }]} numberOfLines={1}>{badge.label}</Text>
           </View>
         </LinearGradient>
       </View>
@@ -663,10 +674,29 @@ function BadgePill({ badge }: { badge: any }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: C.bg },
-  errTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 16, marginTop: 18 },
-  errSub: { color: C.text2, fontFamily: 'DMSans_400Regular', fontSize: 12, marginTop: 6, textAlign: 'center' },
-  errBtn: { marginTop: 18, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, backgroundColor: C.purple, ...({ cursor: 'pointer' } as any) },
-  errBtnText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12 },
+  errCard: {
+    alignItems: 'center', padding: 40, borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    borderColor: '#fff', borderWidth: 1.5,
+    maxWidth: 400, width: '90%',
+    ...(Platform.OS === 'web' ? ({
+      backdropFilter: 'blur(20px)',
+      boxShadow: '0 20px 40px -12px rgba(0,0,0,0.1)',
+    } as any) : {}),
+  },
+  errIconWrap: {
+    width: 64, height: 64, borderRadius: 20, backgroundColor: '#fff',
+    alignItems: 'center', justifyContent: 'center', marginBottom: 16,
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 8px 20px rgba(139, 92, 246, 0.15)' } as any) : {}),
+  },
+  errTitle: { color: C.text, fontFamily: 'DMSans_800ExtraBold', fontSize: 22, letterSpacing: -0.5 },
+  errSub: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 14, marginTop: 6, textAlign: 'center', lineHeight: 20 },
+  errBtn: { 
+    marginTop: 24, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12, 
+    backgroundColor: C.purple, 
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 6px 16px rgba(139, 92, 246, 0.3)' } as any) : {}) 
+  },
+  errBtnText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13 },
 
   hero: { paddingHorizontal: 16, paddingBottom: 18, position: 'relative' },
   heroGradient: { position: 'absolute', top: 0, left: 0, right: 0, height: 240 },
@@ -679,11 +709,11 @@ const styles = StyleSheet.create({
   avatarCheck: { position: 'absolute', right: 3, bottom: 3, width: 20, height: 20, borderRadius: 10, backgroundColor: C.green, alignItems: 'center', justifyContent: 'center', borderColor: C.bg, borderWidth: 2, zIndex: 3 },
   onlineDot: { position: 'absolute', right: 6, bottom: 6, width: 14, height: 14, borderRadius: 7, backgroundColor: C.green, borderColor: C.bg, borderWidth: 2, zIndex: 3 },
 
-  name: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 22, letterSpacing: -0.3 },
+  name: { color: C.text, fontFamily: 'DMSans_700Bold', fontSize: 22, letterSpacing: -0.3 },
   roleChip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1 },
   roleText: { fontFamily: 'DMSans_800ExtraBold', fontSize: 9, letterSpacing: 0.6 },
   ratingChip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 999, backgroundColor: 'rgba(245,158,11,0.10)', borderColor: 'rgba(245,158,11,0.30)', borderWidth: 1 },
-  ratingText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 11 },
+  ratingText: { color: C.text, fontFamily: 'DMSans_700Bold', fontSize: 11 },
   ratingSub: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 10.5 },
 
   headline: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 13.5, marginTop: 4 },
@@ -692,7 +722,7 @@ const styles = StyleSheet.create({
   metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 6 },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   metaText: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11.5, lineHeight: 14 },
-  mono: { color: '#fff', fontFamily: Platform.OS === 'web' ? 'monospace' : 'DMSans_700Bold', fontSize: 10.5 },
+  mono: { color: C.text, fontFamily: Platform.OS === 'web' ? 'monospace' : 'DMSans_700Bold', fontSize: 10.5 },
 
   actions: { flexDirection: 'row', gap: 8 },
   btn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, height: 36, borderRadius: 9, ...({ cursor: 'pointer' } as any) },
@@ -700,7 +730,7 @@ const styles = StyleSheet.create({
   btnPrimary: { backgroundColor: C.purple, borderColor: C.purple, borderWidth: 1 },
   btnGreen: { backgroundColor: C.green, borderColor: C.green, borderWidth: 1 },
   btnGhost: { backgroundColor: 'rgba(255,255,255,0.05)', borderColor: C.border, borderWidth: 1 },
-  btnTextWhite: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12 },
+  btnTextWhite: { color: C.text, fontFamily: 'DMSans_700Bold', fontSize: 12 },
   btnTextLight: { color: C.text, fontFamily: 'DMSans_700Bold', fontSize: 12 },
 
   tabBar: { borderTopColor: C.border, borderTopWidth: 1, borderBottomColor: C.border, borderBottomWidth: 1, paddingVertical: 8 },
@@ -713,14 +743,14 @@ const styles = StyleSheet.create({
   section: { backgroundColor: C.card, borderColor: C.border, borderWidth: 1, borderRadius: 14, padding: 16, gap: 12 },
   secHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   secIcon: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
-  secTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 14 },
+  secTitle: { color: C.text, fontFamily: 'DMSans_700Bold', fontSize: 14 },
 
   bodyDim: { color: C.text3, fontFamily: 'DMSans_400Regular', fontSize: 12 },
 
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 },
   rowIcon: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   rowLabel: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 12 },
-  rowValue: { color: '#fff', fontFamily: 'DMSans_500Medium', fontSize: 12, maxWidth: 240 },
+  rowValue: { color: C.text, fontFamily: 'DMSans_500Medium', fontSize: 12, maxWidth: 240 },
   rowDim: { color: C.text3, fontFamily: 'DMSans_400Regular', fontSize: 11.5 },
   linkBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 7, backgroundColor: 'rgba(167,139,250,0.10)', borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1, ...({ cursor: 'pointer' } as any) },
   linkText: { color: C.purple, fontFamily: 'DMSans_700Bold', fontSize: 11 },
@@ -741,17 +771,17 @@ const styles = StyleSheet.create({
   linkedinIcon: { width: 36, height: 36, borderRadius: 9, backgroundColor: 'rgba(11,95,255,0.14)', borderColor: 'rgba(11,95,255,0.40)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   githubHead: { flexDirection: 'row', alignItems: 'center', gap: 12, ...({ cursor: 'pointer' } as any) },
   githubIcon: { width: 36, height: 36, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.10)', borderColor: 'rgba(255,255,255,0.20)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  lhTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13 },
+  lhTitle: { color: C.text, fontFamily: 'DMSans_700Bold', fontSize: 13 },
   lhSub: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11.5, marginTop: 2 },
 
   highlightCard: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 12, borderRadius: 11, backgroundColor: 'rgba(245,158,11,0.06)', borderColor: 'rgba(245,158,11,0.20)', borderWidth: 1 },
-  hlTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13 },
+  hlTitle: { color: C.text, fontFamily: 'DMSans_700Bold', fontSize: 13 },
   hlSub: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11.5, marginTop: 2 },
 
   timelineRow: { flexDirection: 'row', gap: 12, paddingBottom: 14, position: 'relative' },
   timelineDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: C.cyan, marginTop: 6 },
   timelineLine: { position: 'absolute', left: 4, top: 14, bottom: 0, width: 1, backgroundColor: 'rgba(255,255,255,0.12)' },
-  expTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13 },
+  expTitle: { color: C.text, fontFamily: 'DMSans_700Bold', fontSize: 13 },
   expCompany: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12 },
   expMeta: { color: C.text3, fontFamily: 'DMSans_500Medium', fontSize: 11 },
   expDesc: { color: C.text2, fontFamily: 'DMSans_400Regular', fontSize: 12, lineHeight: 17, marginTop: 4 },
@@ -760,22 +790,22 @@ const styles = StyleSheet.create({
   langBar: { flexDirection: 'row', height: 10, borderRadius: 5, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.04)' },
   langPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.03)', borderColor: C.border, borderWidth: 1 },
   langText: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11 },
-  langPct: { color: '#fff', fontFamily: 'DMSans_700Bold' },
+  langPct: { color: C.text, fontFamily: 'DMSans_700Bold' },
   heatLabel: { color: C.text3, fontFamily: 'DMSans_700Bold', fontSize: 10.5, letterSpacing: 0.4, textTransform: 'uppercase' },
 
   statBox: { flex: 1, minWidth: 110, padding: 12, borderRadius: 11, backgroundColor: 'rgba(255,255,255,0.03)', borderColor: C.border, borderWidth: 1, alignItems: 'flex-start' },
-  statValue: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 22 },
+  statValue: { color: C.text, fontFamily: 'DMSans_800ExtraBold', fontSize: 22 },
   statLabel: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11, marginTop: 4 },
 
   repoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   repoCard: { flex: 1, minWidth: 220, padding: 12, borderRadius: 11, backgroundColor: 'rgba(255,255,255,0.03)', borderColor: C.border, borderWidth: 1 },
-  repoName: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12.5 },
+  repoName: { color: C.text, fontFamily: 'DMSans_700Bold', fontSize: 12.5 },
   repoDesc: { color: C.text2, fontFamily: 'DMSans_400Regular', fontSize: 11.5, lineHeight: 15 },
   repoMeta: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 10.5 },
 
   priceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomColor: 'rgba(255,255,255,0.05)', borderBottomWidth: 1 },
   priceLabel: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12 },
-  priceValue: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13 },
+  priceValue: { color: C.text, fontFamily: 'DMSans_700Bold', fontSize: 13 },
 
   toast: { position: 'absolute', bottom: 30, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10, backgroundColor: 'rgba(16,185,129,0.16)', borderColor: 'rgba(16,185,129,0.50)', borderWidth: 1 },
   toastText: { color: C.green, fontFamily: 'DMSans_700Bold', fontSize: 12 },

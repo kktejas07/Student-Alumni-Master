@@ -585,11 +585,11 @@ ${email}`;
             </View>
             <Text style={s.modalText}>
               We redirected you to the recruiter's page for{" "}
-              <Text style={{ fontFamily: FONTS.bold, color: '#fff' }}>
+              <Text style={{ fontFamily: FONTS.bold, color: '#1C1C1E' }}>
                 {applyModalJob?.title}
               </Text>{" "}
               at{" "}
-              <Text style={{ fontFamily: FONTS.bold, color: '#fff' }}>
+              <Text style={{ fontFamily: FONTS.bold, color: '#1C1C1E' }}>
                 {applyModalJob?.company}
               </Text>.
             </Text>
@@ -694,7 +694,7 @@ ${email}`;
                     value={coverLetterText}
                     onChangeText={setCoverLetterText}
                     style={{ 
-                      color: '#fff', 
+                      color: '#1C1C1E', 
                       fontFamily: FONTS.med, 
                       fontSize: 12, 
                       lineHeight: 16,
@@ -724,7 +724,7 @@ ${email}`;
                       justifyContent: 'center',
                     }}
                   >
-                    <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 }}>
+                    <Text style={{ color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12.5 }}>
                       Copy to Clipboard
                     </Text>
                   </Pressable>
@@ -751,7 +751,7 @@ ${email}`;
               <Text style={s.modalTitle}>Why Match?</Text>
             </View>
             
-            <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 14, marginBottom: 12 }}>
+            <Text style={{ color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 14, marginBottom: 12 }}>
               Skills & Profile Alignment
             </Text>
             <Text style={s.modalText}>
@@ -761,7 +761,7 @@ ${email}`;
               <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
                 <MaterialCommunityIcons name="check-circle" size={14} color="#10B981" />
                 <Text style={{ color: SC.muted, fontSize: 12.5, fontFamily: FONTS.med }}>
-                  Your skills in <Text style={{ color: '#fff' }}>{(whyMatchJob?.tags || []).slice(0, 2).join(', ') || 'related tech'}</Text> match the job tags.
+                  Your skills in <Text style={{ color: '#1C1C1E' }}>{(whyMatchJob?.tags || []).slice(0, 2).join(', ') || 'related tech'}</Text> match the job tags.
                 </Text>
               </View>
               <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
@@ -790,7 +790,7 @@ ${email}`;
                   justifyContent: 'center',
                 }}
               >
-                <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 }}>
+                <Text style={{ color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12.5 }}>
                   Awesome
                 </Text>
               </Pressable>
@@ -876,13 +876,13 @@ function JobCard({
           alignItems: 'center',
           justifyContent: 'center',
         }}>
-          <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 20 }}>{initials}</Text>
+          <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 20 }}>{initials}</Text>
         </View>
 
         {/* Details Column */}
         <View style={{ flex: 1, minWidth: 0 }}>
           {/* Job Title */}
-          <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 16, letterSpacing: -0.2 }}>
+          <Text style={{ color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 16, letterSpacing: -0.2 }}>
             {job.title || '—'}
           </Text>
 
@@ -1121,7 +1121,7 @@ function JobCard({
                   pressed && { opacity: 0.8 },
                 ]}
               >
-                <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 11.5 }}>
+                <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 11.5 }}>
                   {job.applied ? 'Applied Now' : 'Apply'}
                 </Text>
                 <ExternalLink size={11} color="#fff" />
@@ -1239,7 +1239,7 @@ const s = StyleSheet.create({
     fontSize: 12.5,
   },
   tabButtonTextActive: {
-    color: '#fff',
+    color: '#1C1C1E',
   },
   filtersContainer: {
     flexDirection: 'row',
@@ -1263,7 +1263,7 @@ const s = StyleSheet.create({
   },
   searchInput: { 
     flex: 1, 
-    color: '#fff', 
+    color: '#1C1C1E', 
     fontFamily: FONTS.med, 
     fontSize: 12.5, 
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) 
@@ -1293,12 +1293,12 @@ const s = StyleSheet.create({
   modalCard: { width: '100%', maxWidth: 480, backgroundColor: '#111827', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderRadius: 16, padding: 22 },
   modalHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
   modalIconDisc: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(124,58,237,0.16)', borderColor: 'rgba(124,58,237,0.40)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  modalTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 17, letterSpacing: -0.3 },
+  modalTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 17, letterSpacing: -0.3 },
   modalText: { color: SC.muted, fontFamily: FONTS.med, fontSize: 13, lineHeight: 18, marginBottom: 12 },
   modalSubtext: { color: SC.dim, fontFamily: FONTS.med, fontSize: 12, lineHeight: 16, marginBottom: 20 },
   modalBtnRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10 },
   modalCancelBtn: { paddingHorizontal: 16, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center', backgroundColor: 'transparent' },
   modalCancelTxt: { color: SC.muted, fontFamily: FONTS.bold, fontSize: 12.5 },
   modalConfirmBtn: { flexDirection: 'row', gap: 6, alignItems: 'center', paddingHorizontal: 18, height: 36, borderRadius: 10 },
-  modalConfirmTxt: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12.5 },
+  modalConfirmTxt: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12.5 },
 });

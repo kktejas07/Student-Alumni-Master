@@ -1210,7 +1210,7 @@ export function NetworkView() {
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                       <Av initials={nameInitials} size={64} color={pickedPerson.color} photo={pickedPerson.photo} />
                       <View style={{ flex: 1, minWidth: 0 }}>
-                        <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 18 }}>{pickedPerson.name}</Text>
+                        <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 18 }}>{pickedPerson.name}</Text>
                         <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4 }}>
                           {titleLine}
                         </Text>
@@ -1254,15 +1254,15 @@ export function NetworkView() {
                       <Text style={{ color: '#F97316', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.6 }}>MENTOR STATS</Text>
                       <View style={{ flexDirection: 'row', gap: 8 }}>
                         <GlassCard radius={10} padding={12} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)', borderWidth: 1 }}>
-                          <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 }}>{pickedPerson.rating}★</Text>
+                          <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 15 }}>{pickedPerson.rating}★</Text>
                           <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 10, marginTop: 4 }}>Rating</Text>
                         </GlassCard>
                         <GlassCard radius={10} padding={12} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)', borderWidth: 1 }}>
-                          <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 }}>{pickedPerson.sessions}</Text>
+                          <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 15 }}>{pickedPerson.sessions}</Text>
                           <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 10, marginTop: 4 }}>Sessions</Text>
                         </GlassCard>
                         <GlassCard radius={10} padding={12} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)', borderWidth: 1 }}>
-                          <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 }} numberOfLines={1}>{pickedPerson.price}</Text>
+                          <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 13 }} numberOfLines={1}>{pickedPerson.price}</Text>
                           <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 10, marginTop: 4 }}>Price</Text>
                         </GlassCard>
                       </View>
@@ -1311,7 +1311,7 @@ export function NetworkView() {
                           style={[s.bookBtnLarge, { flex: 1.2 }]}
                         >
                           <Calendar size={16} color="#fff" style={{ marginRight: 8 }} />
-                          <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 }}>Book Session</Text>
+                          <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 14 }}>Book Session</Text>
                         </Pressable>
                       </View>
                     ) : isConnected ? (
@@ -1330,7 +1330,7 @@ export function NetworkView() {
                         style={s.connectBtnLarge}
                       >
                         <UserPlus size={16} color="#fff" style={{ marginRight: 6 }} />
-                        <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 }}>+ Connect</Text>
+                        <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 14 }}>+ Connect</Text>
                       </Pressable>
                     )}
                   </View>
@@ -1358,7 +1358,7 @@ export function NetworkView() {
                 {/* Mentor Header Section */}
                 <View style={{ alignItems: 'center', gap: 8, paddingVertical: 12 }}>
                   <Av initials={bookingMentor.initials} size={64} color={bookingMentor.color} photo={bookingMentor.photo} />
-                  <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 18, textAlign: 'center' }}>
+                  <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 18, textAlign: 'center' }}>
                     {bookingMentor.name}
                   </Text>
                   <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 13, textAlign: 'center' }}>
@@ -1366,7 +1366,7 @@ export function NetworkView() {
                   </Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <Star size={14} color={SC.amber} fill={SC.amber} />
-                    <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 }}>
+                    <Text style={{ color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12.5 }}>
                       {bookingMentor.rating}
                     </Text>
                     <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 12.5 }}>
@@ -1400,7 +1400,7 @@ export function NetworkView() {
                 <View style={{ gap: 6 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <Calendar size={14} color={SC.accentBright} />
-                    <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13.5 }}>Available Slots</Text>
+                    <Text style={{ color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 13.5 }}>Available Slots</Text>
                   </View>
                   <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5 }}>
                     30-minute 1:1 sessions. Pick a slot that works for you.
@@ -1439,7 +1439,7 @@ export function NetworkView() {
                       borderWidth: 1,
                       borderRadius: 10,
                       padding: 12,
-                      color: '#fff',
+                      color: '#1C1C1E',
                       fontFamily: FONTS.med,
                       fontSize: 13,
                       height: 80,
@@ -1517,7 +1517,7 @@ const s = StyleSheet.create({
     fontSize: 13
   },
   tabBtnTextActive: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold
   },
 
@@ -1590,7 +1590,7 @@ const s = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.med,
     fontSize: 13,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {})
@@ -1617,7 +1617,7 @@ const s = StyleSheet.create({
     marginRight: 10
   },
   secTitle: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.xbold,
     fontSize: 15,
     letterSpacing: -0.2
@@ -1663,7 +1663,7 @@ const s = StyleSheet.create({
     marginBottom: 10
   },
   cardName: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
     fontSize: 14.5
   },
@@ -1792,7 +1792,7 @@ const s = StyleSheet.create({
     ...({ cursor: 'pointer' } as any)
   },
   actionBtnFillText: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.xbold,
     fontSize: 11.5
   },
@@ -1891,7 +1891,7 @@ const s = StyleSheet.create({
     borderBottomWidth: 1
   },
   modalTitle: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.xbold,
     fontSize: 15
   },
@@ -2015,7 +2015,7 @@ const s = StyleSheet.create({
     borderBottomWidth: 1
   },
   bookingModalTitle: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.xbold,
     fontSize: 16
   },
@@ -2056,7 +2056,7 @@ const s = StyleSheet.create({
     fontSize: 12
   },
   dayTextActive: {
-    color: '#fff',
+    color: '#1C1C1E',
   },
   dateText: {
     color: SC.dim,
@@ -2095,7 +2095,7 @@ const s = StyleSheet.create({
     fontSize: 12
   },
   slotTextActive: {
-    color: '#fff'
+    color: '#1C1C1E'
   },
   bookingSubmitBtn: {
     height: 46,
@@ -2112,7 +2112,7 @@ const s = StyleSheet.create({
     borderWidth: 1
   },
   bookingSubmitBtnText: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.xbold,
     fontSize: 14
   },
@@ -2313,7 +2313,7 @@ const s = StyleSheet.create({
     minHeight: 64
   },
   requestName: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
     fontSize: 14
   },
@@ -2396,7 +2396,7 @@ const s = StyleSheet.create({
     textAlign: 'center'
   },
   stubTitle: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.xbold,
     fontSize: 16
   },
@@ -2457,7 +2457,7 @@ const s = StyleSheet.create({
     paddingBottom: 10
   },
   draftModalTitle: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.xbold,
     fontSize: 16
   },
@@ -2477,7 +2477,7 @@ const s = StyleSheet.create({
     minHeight: 120
   },
   draftTextInput: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.med,
     fontSize: 13,
     lineHeight: 18,
@@ -2532,7 +2532,7 @@ const s = StyleSheet.create({
     borderBottomWidth: 1
   },
   modalTitle: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.xbold,
     fontSize: 15
   },
@@ -2634,7 +2634,7 @@ const s = StyleSheet.create({
     alignItems: 'center'
   },
   nameBold: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
     fontSize: 14.5
   },

@@ -224,12 +224,12 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 const s = StyleSheet.create({
-  h1: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4 },
+  h1: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4 },
   sub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4 },
   sectionTitle: { color: SC.muted, fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 1, marginBottom: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 12, padding: 14 },
   iconBox: { width: 38, height: 38, borderRadius: 10, backgroundColor: 'rgba(167,139,250,0.10)', borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  title: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13.5 },
+  title: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 13.5 },
   meta: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 3 },
   statusPill: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 6, borderWidth: 1 },
   statusPending: { backgroundColor: 'rgba(251,191,36,0.10)', borderColor: 'rgba(251,191,36,0.30)' },
@@ -248,7 +248,7 @@ const s = StyleSheet.create({
     marginTop: 4,
   },
   trackingLabel: { color: SC.muted, fontFamily: FONTS.bold, fontSize: 11 },
-  trackingPct: { color: '#fff', fontFamily: FONTS.bold, fontSize: 11 },
+  trackingPct: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 11 },
   progressBarBg: { height: 6, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden' },
   progressBarFill: { height: '100%', backgroundColor: SC.accentBright },
 
@@ -257,16 +257,16 @@ const s = StyleSheet.create({
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.2)' },
   dotDone: { backgroundColor: '#10B981', ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 6px #10B981' } as any) : {}) } as any,
   stepText: { color: SC.muted, fontFamily: FONTS.med, fontSize: 10.5 },
-  stepTextDone: { color: '#fff', fontFamily: FONTS.bold },
+  stepTextDone: { color: '#1C1C1E', fontFamily: FONTS.bold },
 
   actionRow: { flexDirection: 'row', gap: 8, justifyContent: 'flex-end', marginTop: 4 },
   actionBtn: { paddingHorizontal: 12, height: 28, borderRadius: 6, justifyContent: 'center', alignItems: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  btnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 11.5 },
+  btnText: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 11.5 },
   startBtn: { backgroundColor: 'rgba(167,139,250,0.2)', borderColor: 'rgba(167,139,250,0.4)', borderWidth: 1 },
   nextBtn: { backgroundColor: 'rgba(251,191,36,0.15)', borderColor: 'rgba(251,191,36,0.3)', borderWidth: 1 },
   completeBtn: { backgroundColor: 'rgba(16,185,129,0.15)', borderColor: 'rgba(16,185,129,0.3)', borderWidth: 1 },
 
-  exploreTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 14 },
+  exploreTitle: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 14 },
   exploreMeta: { color: SC.muted, fontFamily: FONTS.med, fontSize: 12 },
   exploreDesc: { color: 'rgba(255,255,255,0.6)', fontFamily: FONTS.med, fontSize: 12, lineHeight: 16, marginTop: 4 },
 });
