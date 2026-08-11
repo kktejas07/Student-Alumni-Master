@@ -52,11 +52,19 @@ function FieldSelect({ label, value, options, onChange, placeholder = 'Select…
 
   useEffect(() => {
     if (Platform.OS !== 'web') return;
+    let timerId: any = null;
     const handler = (e: MouseEvent) => {
       if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
     };
-    if (open) setTimeout(() => document.addEventListener('mousedown', handler), 0);
-    return () => document.removeEventListener('mousedown', handler);
+    if (open) {
+      timerId = setTimeout(() => {
+        document.addEventListener('mousedown', handler);
+      }, 0);
+    }
+    return () => {
+      if (timerId) clearTimeout(timerId);
+      document.removeEventListener('mousedown', handler);
+    };
   }, [open]);
 
   return (
