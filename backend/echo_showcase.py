@@ -41,7 +41,7 @@ from core.security import (
     hash_password,
     encrypt_value,
 )
-from core.email import send_email, render_html_email
+from core.email import send_email, render_html_email, generate_pdf_from_html
 
 router = APIRouter(prefix="/api/echo", tags=["echo-showcase"])
 
@@ -1276,7 +1276,7 @@ async def _store_invoice_and_email(db, reg: dict, showcase: Optional[dict]) -> d
         inv = {**fresh, "_id": result.inserted_id}
     inv_ser = _ser(inv)
 
-    # Fire-and-forget email notification
+    # Fire-and-forget email notification with PDF invoice attached
     try:
         email = reg.get("email") or ""
         if email:
@@ -1285,6 +1285,21 @@ async def _store_invoice_and_email(db, reg: dict, showcase: Optional[dict]) -> d
             ticket_url = f"https://studentalumni.ai/api/echo/tickets/{reg_id}?email={urllib.parse.quote(email)}"
             ticket_block = _ticket_email_block(reg, showcase or {}, ticket_url)
             subject = f"Payment Receipt & Entry Pass — {inv_ser.get('event_title') or 'Event Registration'}"
+
+            # Generate invoice PDF attachment (pixel-perfect via Playwright)
+            invoice_html = _build_invoice_html(inv_ser)
+            inv_no = inv_ser.get("invoice_no") or "invoice"
+            pdf_bytes = await generate_pdf_from_html(invoice_html)
+            attachments = []
+            if pdf_bytes:
+                attachments.append({
+                    "filename": f"{inv_no}.pdf",
+                    "content": pdf_bytes,
+                })
+                print(f"[ECHO] Invoice PDF generated ({len(pdf_bytes)} bytes) for {email}")
+            else:
+                print(f"[WARN] Invoice PDF generation skipped for {email}")
+
             body = render_html_email(
                 f"""
                 <h2 style="margin:0 0 14px 0;color:#111827;">Thank you for registering!</h2>
@@ -1300,15 +1315,16 @@ async def _store_invoice_and_email(db, reg: dict, showcase: Optional[dict]) -> d
                       <td style="padding:12px 16px;text-align:right;color:#111827;font-weight:700;">{inv_ser.get('currency')} {float(inv_ser.get('amount') or 0):,.2f}</td></tr>
                 </table>
                 {ticket_block}
-                <p style="margin:0 0 22px 0;color:#374151;">
-                  You can view and download your invoice and ticket anytime from your dashboard under
+                <p style="margin:0 0 6px 0;color:#374151;">
+                  Your invoice is attached to this email as a PDF (<strong>{inv_no}.pdf</strong>).
+                  You can also view and download your invoice and ticket anytime from your dashboard under
                   <strong>My Tickets</strong>.
                 </p>
                 <a href="https://studentalumni.ai/dashboard"
                    style="display:inline-block;padding:12px 26px;background:#7C3AED;color:#fff;text-decoration:none;border-radius:10px;font-weight:600;">Open My Dashboard</a>
                 """
             )
-            await send_email(email, subject, body)
+            await send_email(email, subject, body, attachments=attachments or None)
     except Exception as e:
         print(f"[ECHO] Invoice email error: {e}")
     return inv_ser

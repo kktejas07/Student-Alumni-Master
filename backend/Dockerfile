@@ -9,12 +9,30 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
+# System deps: build tools + Playwright Chromium shared libraries
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     curl \
     libffi-dev \
     libssl-dev \
     ca-certificates \
+    # Playwright / Chromium runtime libraries
+    libnss3 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libdbus-1-3 \
+    libdrm2 \
+    libxkbcommon0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxrandr2 \
+    libgbm1 \
+    libasound2 \
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    libgtk-3-0 \
  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -22,7 +40,9 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --upgrade pip && \
     pip install -r requirements.txt && \
-    pip install "uvicorn[standard]" gunicorn
+    pip install "uvicorn[standard]" gunicorn && \
+    # Install Playwright's headless Chromium browser (needed for PDF generation)
+    playwright install chromium --with-deps
 
 COPY . .
 
