@@ -131,8 +131,8 @@ const formatLocalDate = (d: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-export function SessionsView({
-  const toast = useToast(); demoMode = false, setDemoMode }: { demoMode?: boolean; setDemoMode?: (val: boolean) => void }) {
+export function SessionsView({ demoMode = false, setDemoMode }: { demoMode?: boolean; setDemoMode?: (val: boolean) => void }) {
+  const toast = useToast();
   const [tab, setTab] = useState<TabId>('upcoming');
   const user = useAuthStore((s) => s.user);
   const [students, setStudents] = useState(demoMode ? INITIAL_STUDENTS : []);
