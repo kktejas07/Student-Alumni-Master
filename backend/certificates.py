@@ -250,7 +250,7 @@ async def issue_certificate(payload: IssueRequest, request: Request, _=None):
         "verification_code": code,
         "certificate_id": str(res.inserted_id),
         "recipient_name": recipient_name,
-        "verify_url": f"/certificates/verify/{code}",
+        "verify_url": f"{os.environ.get('FRONTEND_URL', 'https://studentalumni.ai')}/certificates/verify/{code}",
     }
 
 
