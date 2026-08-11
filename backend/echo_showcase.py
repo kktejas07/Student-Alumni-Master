@@ -1503,7 +1503,9 @@ async def _store_invoice_and_email(db, reg: dict, showcase: Optional[dict]) -> d
                       <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                         <tr>
                           <td style="padding:8px 0;width:36px;vertical-align:middle;">
-                            <div style="width:32px;height:32px;background:#ede9fe;border-radius:8px;text-align:center;line-height:32px;font-size:16px;">📄</div>
+                            <div style="width:32px;height:32px;background:#ede9fe;border-radius:8px;text-align:center;line-height:32px;">
+                              <span style="font-size:14px;font-weight:700;color:#7c3aed;">IN</span>
+                            </div>
                           </td>
                           <td style="padding:8px 0;vertical-align:middle;">
                             <div style="font-size:13px;font-weight:600;color:#111827;">Tax Invoice</div>
@@ -1512,7 +1514,9 @@ async def _store_invoice_and_email(db, reg: dict, showcase: Optional[dict]) -> d
                         </tr>
                         <tr>
                           <td style="padding:8px 0;width:36px;vertical-align:middle;">
-                            <div style="width:32px;height:32px;background:#dcfce7;border-radius:8px;text-align:center;line-height:32px;font-size:16px;">✅</div>
+                            <div style="width:32px;height:32px;background:#dcfce7;border-radius:8px;text-align:center;line-height:32px;">
+                              <span style="font-size:14px;font-weight:700;color:#16a34a;">RC</span>
+                            </div>
                           </td>
                           <td style="padding:8px 0;vertical-align:middle;">
                             <div style="font-size:13px;font-weight:600;color:#111827;">Payment Receipt</div>
@@ -1534,7 +1538,9 @@ async def _store_invoice_and_email(db, reg: dict, showcase: Optional[dict]) -> d
                 </table>
                 """
             )
-            await send_email(email, subject, body, attachments=attachments or None)
+            sent = await send_email(email, subject, body, attachments=attachments or None)
+            if not sent:
+                print(f"[ECHO] WARNING: Email to {email} could not be sent — no email provider configured in Settings > Tools > Email")
     except Exception as e:
         print(f"[ECHO] Invoice email error: {e}")
     return inv_ser
