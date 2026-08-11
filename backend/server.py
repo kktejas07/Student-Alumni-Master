@@ -200,6 +200,10 @@ async def _lifespan(application):
         db.token_blacklist, [("expires_at", 1)], expireAfterSeconds=0
     )
     await _safe_create_index(db.token_blacklist, "jti", unique=True, sparse=True)
+    # Certificate registry — unique verification codes (guarantees no two
+    # certificates share a code, and lookups stay O(1) at 400+ scale)
+    await _safe_create_index(db.certificates, "verification_code", unique=True)
+    await _safe_create_index(db.certificates, "recipient_email")
     # ECHO Showcase indexes
     await _safe_create_index(db.echo_showcases, "slug", unique=True, sparse=True)
     await _safe_create_index(db.echo_showcases, [("status", 1), ("date", -1)])
@@ -2529,6 +2533,10 @@ api_router.include_router(talent_pool_router)
 # CRUD endpoints — append-only mutations (book, RSVP, enroll, apply)
 from crud_endpoints import router as crud_router
 api_router.include_router(crud_router)
+
+# Certificate registry + public verification (Coursera-style /verify/{code})
+from certificates import router as certificates_router
+api_router.include_router(certificates_router)
 
 # Collaboration partners (Phase A) — public landing strip + admin CRUD
 from routers.partners import router as partners_router
