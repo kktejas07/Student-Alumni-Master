@@ -3164,9 +3164,10 @@ async def scan_coupon_get(code: str, request: Request):
     if query:
         reg = await db.echo_registrations.find_one(query)
         if not reg:
-            reg = await db.echo_registrations.find_one({"id": parsed.get("reg_id")})
+            reg_id_parsed = parsed.get("reg_id")
+            reg = await db.echo_registrations.find_one({"id": reg_id_parsed.lower() if reg_id_parsed else None})
     if not reg:
-        reg = await db.echo_registrations.find_one({"id": raw})
+        reg = await db.echo_registrations.find_one({"id": raw.lower()})
 
     if not reg:
         raise HTTPException(status_code=404, detail="Invalid code")

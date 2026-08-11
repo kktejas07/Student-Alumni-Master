@@ -556,7 +556,7 @@ export default function EchoRegisterPage() {
             {/* Pass QR Card */}
             {reg.qr_code_base64 ? (
               <View style={s.formCard}>
-                <Text style={s.cardTitle}>Your Entry Pass</Text>
+                <Text style={[s.cardTitle, { marginBottom: 12 }]}>Your Entry Pass</Text>
                 <Text style={s.qrHint}>Show this QR code at the venue entrance to check in.</Text>
                 <View style={s.qrWrapper}>
                   <Image
@@ -571,7 +571,7 @@ export default function EchoRegisterPage() {
             {/* Attendee Details Card */}
             {regDetails.length > 0 && (
               <View style={s.formCard}>
-                <Text style={s.cardTitle}>Attendee Information</Text>
+                <Text style={[s.cardTitle, { marginBottom: 16 }]}>Attendee Information</Text>
                 <View style={s.detailsGrid}>
                   {regDetails.map((d) => (
                     <View key={d.label} style={s.detailsGridRow}>
