@@ -71,7 +71,7 @@ function FieldSelect({ label, value, options, onChange, placeholder = 'Select…
       </Pressable>
       {open && (
         <View style={[s.selectMenu, { zIndex }]}>
-          <View style={s.selectMenuScroll}>
+          <ScrollView style={s.selectMenuScroll} nestedScrollEnabled={true} showsVerticalScrollIndicator={true}>
           {options.map((opt) => {
             const active = opt === value;
             return (
@@ -85,7 +85,7 @@ function FieldSelect({ label, value, options, onChange, placeholder = 'Select…
               </Pressable>
             );
           })}
-          </View>
+          </ScrollView>
         </View>
       )}
     </View>
@@ -136,16 +136,16 @@ function DobPicker({ value, onChange }: { value: string; onChange: (iso: string)
   }, [d, m, y]);
 
   return (
-    <View>
+    <View style={{ zIndex: 100, position: 'relative' }}>
       <Text style={s.label}>Date of Birth</Text>
-      <View style={{ flexDirection: 'row', gap: 8 }}>
-        <View style={{ flex: 1 }}>
+      <View style={{ flexDirection: 'row', gap: 8, zIndex: 100, position: 'relative' }}>
+        <View style={{ flex: 1, zIndex: 30, position: 'relative' }}>
           <FieldSelect label="" value={d} options={days} onChange={setD} placeholder="DD" zIndex={30} />
         </View>
-        <View style={{ flex: 1.4 }}>
+        <View style={{ flex: 1.4, zIndex: 20, position: 'relative' }}>
           <FieldSelect label="" value={m} options={months} onChange={setM} placeholder="Month" zIndex={20} />
         </View>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, zIndex: 10, position: 'relative' }}>
           <FieldSelect label="" value={y} options={years} onChange={setY} placeholder="Year" zIndex={10} />
         </View>
       </View>
@@ -639,25 +639,27 @@ export default function EchoRegisterPage() {
                 <Text style={s.label}>Phone</Text>
                 <TextInput style={s.input} value={form.phone} onChangeText={(v) => set('phone', v)} placeholder="+91 …" placeholderTextColor={PALETTE.dim} keyboardType="phone-pad" />
 
-                <View style={{ marginBottom: 8 }}>
+                <View style={{ marginBottom: 8, zIndex: 50, position: 'relative' }}>
                   <DobPicker value={form.dob} onChange={(iso) => set('dob', iso)} />
                 </View>
 
-                <View style={{ flexDirection: 'row', gap: 10 }}>
-                  <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', gap: 10, zIndex: 40, position: 'relative' }}>
+                  <View style={{ flex: 1, zIndex: 30, position: 'relative' }}>
                     <FieldSelect label="Branch" value={form.branch} options={BRANCHES} onChange={(v) => set('branch', v)} placeholder="Select branch" zIndex={30} />
                   </View>
-                  <View style={{ flex: 1 }}>
+                  <View style={{ flex: 1, zIndex: 20, position: 'relative' }}>
                     <FieldSelect label="Year" value={form.year} options={YEARS} onChange={(v) => set('year', v)} placeholder="Select year" zIndex={20} />
                   </View>
                 </View>
 
-                <Text style={s.label}>College</Text>
-                <CollegeAutocomplete
-                  value={form.college}
-                  onChangeText={(v) => set('college', v)}
-                  placeholder={showcase.college || 'Search your college…'}
-                />
+                <View style={{ zIndex: 30, position: 'relative' }}>
+                  <Text style={s.label}>College</Text>
+                  <CollegeAutocomplete
+                    value={form.college}
+                    onChangeText={(v) => set('college', v)}
+                    placeholder={showcase.college || 'Search your college…'}
+                  />
+                </View>
 
                 {error ? <Text style={s.error}>{error}</Text> : null}
 
