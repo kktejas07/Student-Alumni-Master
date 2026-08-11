@@ -44,16 +44,33 @@ export default function EchoCouponsPage() {
         const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
         const { tokenStore } = await import('@/src/models/services/api');
         const token = await tokenStore.getAccess();
-        const userEmail = user?.email || '';
+        let userEmail = user?.email || '';
+        if (!userEmail && typeof window !== 'undefined') {
+          const localStr = window.localStorage.getItem(`echo_reg_${slug}`);
+          if (localStr) {
+            try {
+              const localReg = JSON.parse(localStr);
+              userEmail = localReg?.email || '';
+            } catch {}
+          }
+        }
         const emailParam = userEmail ? `?email=${encodeURIComponent(userEmail)}` : '';
         const resp = await fetch(`${base}/api/echo/${slug}/my-coupons${emailParam}`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         if (resp.status === 401) {
-          if (mounted) { setError('Please sign in to view your coupons.'); setLoading(false); }
+          if (mounted) { setError('Please sign in or register to view your coupons.'); setLoading(false); }
           return;
         }
-        if (!resp.ok) throw new Error('Failed to load coupons');
+        if (!resp.ok) {
+          try {
+            const errData = await resp.json();
+            if (errData?.detail) {
+              throw new Error(errData.detail);
+            }
+          } catch {}
+          throw new Error('Failed to load coupons');
+        }
         const data = await resp.json();
         if (mounted) {
           setCoupons(data.coupons || []);
