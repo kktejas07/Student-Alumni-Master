@@ -456,7 +456,7 @@ export function NetworkView() {
         batch: p.batch || 2026,
         tags: p.tags ? p.tags.filter((t: string) => t !== 'Mentor' && t !== 'Alumni' && t !== 'Student') : [],
         mutual: p.mutual || ((sumChars(p.id || '') % 18) + 4),
-        linkedin: p.linkedin || 'linkedin.com',
+        linkedin: p.linkedin_url || p.linkedin || '',
         github: p.github || 'github.com',
         connectionState: p.connection_state || 'none',
         kind,
