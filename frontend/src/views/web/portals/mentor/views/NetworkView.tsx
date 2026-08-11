@@ -318,7 +318,9 @@ export function NetworkView() {
           tag,
           kind: role,
           company: c.college || '',
-          mutual: c.mutual || ((sumChars(c.id || '') % 12) + 2)
+          mutual: c.mutual || ((sumChars(c.id || '') % 12) + 2),
+          linkedin: c.linkedin_url || c.linkedin || '',
+          github: c.github_url || c.github || ''
         };
       }));
     } catch (e) {
