@@ -23,6 +23,7 @@ export function Footer() {
       { label: "Collaborations", href: "#collaborations" }
     ] },
     { title: "Resources", items: [
+      { label: "Verify Certificate", href: "/certificates/verify" },
       { label: "Blog", href: "/blogs" },
       { label: "Help center", href: "/help-center" },
       { label: "Community", href: "/community" }

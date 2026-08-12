@@ -78,6 +78,13 @@ export function Navbar() {
     router.push('/echo');
   };
 
+  const goToVerify = (e: any) => {
+    e.preventDefault();
+    setMobileOpen(false);
+    setActive("Verify");
+    router.push('/certificates/verify');
+  };
+
   return (
     <motion.header
       initial={{ y: -30, opacity: 0 }}
@@ -122,6 +129,17 @@ export function Navbar() {
                 }`}
               >
                 ECHO
+              </a>
+              <a
+                href="/certificates/verify"
+                onClick={goToVerify}
+                className={`relative px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-colors duration-200 cursor-pointer ${
+                  active === "Verify"
+                    ? "text-white bg-white/10"
+                    : "text-gray-400 hover:text-white hover:bg-white/5"
+                }`}
+              >
+                Verify
               </a>
               {links.map((l) => {
                 const isActive = active === l;
@@ -228,6 +246,13 @@ export function Navbar() {
                 }`}
               >
                 ECHO
+              </a>
+              <a
+                href="/certificates/verify"
+                onClick={goToVerify}
+                className="px-4 py-3 rounded-xl text-sm font-semibold transition-colors cursor-pointer text-gray-300 hover:text-white hover:bg-white/5"
+              >
+                Verify Certificate
               </a>
               {links.map((l) => {
                 const targetId = l.toLowerCase().replace(" ", "-");
