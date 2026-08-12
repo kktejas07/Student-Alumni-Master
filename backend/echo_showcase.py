@@ -3366,7 +3366,16 @@ async def my_coupons(slug: str, request: Request, email: Optional[str] = Query(N
         uemail = (user.get("email") or "").lower()
         query["$or"] = [{"user_id": uid}, {"user_key": uid}, {"email": uemail}]
     elif email:
-        query["email"] = email.strip().lower()
+        uemail = email.strip().lower()
+        # Resolve the email to a user _id so we can also match user_key. A paid
+        # registration stores the provisioned SA account's email, so an exact
+        # email match would miss the original guest registrant.
+        u = await db.users.find_one({"email": uemail}, {"_id": 1, "email": 1})
+        ukey = str(u["_id"]) if u else None
+        parts: List[Dict[str, Any]] = [{"email": uemail}]
+        if ukey:
+            parts.append({"user_key": ukey})
+        query["$or"] = parts
     else:
         raise HTTPException(401, "Authentication required or provide ?email= query parameter")
     # Find registration
