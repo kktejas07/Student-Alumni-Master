@@ -12,7 +12,7 @@
  *              auto issuer classification + deep link
  *   Verify   — look up any code to confirm validity
  */
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, Pressable, StyleSheet, TextInput, ScrollView, Platform, ActivityIndicator,
 } from 'react-native';
@@ -20,22 +20,24 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import {
   Award, Upload, ExternalLink, ShieldCheck, Search, Mail,
   Sparkles, Link2, X, AlertTriangle, CheckCircle2, User, FileUp, FileText,
+  FolderOpen, RefreshCw, Copy,
 } from 'lucide-react-native';
 import { SAC, FONTS } from '../tokens';
 import {
   GRAD, GradientButton, Card, IconBox, SectionLabel,
   TopTabs, Toast, useToast,
 } from '../applekit';
-import { request } from '@/src/models/services/api';
+import { request, resolveImageUrl } from '@/src/models/services/api';
 import * as Linking from 'expo-linking';
 
-type TabId = 'issue' | 'bulk' | 'external' | 'verify' | 'files';
+type TabId = 'issue' | 'bulk' | 'external' | 'verify' | 'files' | 'registry';
 
 export function CertificatesView() {
-  const [tab, setTab] = useState<TabId>('issue');
+  const [tab, setTab] = useState<TabId>('registry');
   const { toast, flash } = useToast();
 
   const tabs = [
+    { id: 'registry', label: 'Registry',  icon: FolderOpen },
     { id: 'issue',    label: 'Issue',     icon: Award },
     { id: 'bulk',     label: 'Bulk Issue', icon: Upload },
     { id: 'files',    label: 'Files',     icon: FileUp },
@@ -55,7 +57,8 @@ export function CertificatesView() {
                 Issue verifiable certificates (Coursera-style SA codes), upload certificate
                 files (PNG/JPEG/WEBP/PDF), store third-party credentials with issuer
                 classification, and confirm any certificate from the public
-                /certificates/verify page.
+                /certificates/verify page. The Registry tab lists every certificate
+                stored in the system.
               </Text>
             </View>
           </View>
@@ -64,6 +67,7 @@ export function CertificatesView() {
 
       <TopTabs<TabId> tabs={tabs as any} active={tab} onChange={setTab} />
 
+      {tab === 'registry' && <RegistryTab onSaved={flash} />}
       {tab === 'issue'    && <IssueTab onSaved={flash} />}
       {tab === 'bulk'     && <BulkTab onSaved={flash} />}
       {tab === 'files'    && <FilesTab onSaved={flash} />}
@@ -72,6 +76,210 @@ export function CertificatesView() {
 
       <Toast text={toast.text} visible={toast.visible} />
     </View>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════
+ *  REGISTRY TAB — browse every certificate stored in the system
+ * ══════════════════════════════════════════════════════════════════ */
+function RegistryTab({ onSaved }: { onSaved: (s?: string) => void }) {
+  const [q, setQ] = useState('');
+  const [branch, setBranch] = useState('ALL');
+  const [items, setItems] = useState<any[]>([]);
+  const [total, setTotal] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
+
+  const branches = ['ALL', 'CSE', 'IT', 'ECE', 'EEE', 'MECH', 'CIVIL'];
+
+  const load = useCallback(async (append = false) => {
+    setError(null);
+    setLoading(true);
+    try {
+      const skip = append ? items.length : 0;
+      const params = new URLSearchParams({ limit: '50', skip: String(skip) });
+      if (q.trim()) params.set('q', q.trim());
+      if (branch !== 'ALL') params.set('branch', branch);
+      const r: any = await request(`/certificates/list?${params.toString()}`, { method: 'GET', auth: true });
+      const list: any[] = r?.items || [];
+      setTotal(r?.total ?? list.length);
+      setItems(append ? (prev) => [...prev, ...list] : list);
+    } catch (e: any) {
+      setError(e?.message || 'Failed to load registry');
+    } finally {
+      setLoading(false);
+    }
+  }, [q, branch, items.length]);
+
+  useEffect(() => {
+    load(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const reload = () => {
+    setItems([]);
+    load(false);
+  };
+
+  const copyUrl = async (id: string) => {
+    const u = `${typeof window !== 'undefined' && window.location ? window.location.origin : 'https://studentalumni.ai'}/certificates/verify/${encodeURIComponent(id)}`;
+    try {
+      if (navigator?.clipboard) await navigator.clipboard.writeText(u);
+      setCopied(id);
+      setTimeout(() => setCopied(null), 1500);
+    } catch {
+      setCopied(null);
+    }
+  };
+
+  return (
+    <Animated.View entering={FadeInDown.duration(260)}>
+      <Card>
+        <View style={s.regHead}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+            <IconBox size={34}><FolderOpen size={16} color={GRAD.to} /></IconBox>
+            <View style={{ flex: 1 }}>
+              <Text style={s.regTitle}>Certificate Registry</Text>
+              <Text style={s.regSub}>
+                Browse every certificate in the system. Search by recipient, code, roll
+                number, or branch — click any entry to open its public verify page.
+              </Text>
+            </View>
+          </View>
+          {typeof total === 'number' && (
+            <View style={s.countPill}>
+              <Text style={s.countText}>{total} total</Text>
+            </View>
+          )}
+        </View>
+
+        <View style={s.regFilters}>
+          <View style={[s.inputRow, { flex: 1 }]}>
+            <Search size={15} color={SAC.muted} />
+            <TextInput
+              value={q}
+              onChangeText={(t) => { setQ(t); }}
+              onSubmitEditing={reload}
+              placeholder="Search name, code, roll no…"
+              placeholderTextColor="#475569"
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={s.input}
+            />
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+            {branches.map((b) => (
+              <Pressable
+                key={b}
+                onPress={() => { setBranch(b); setItems([]); setTimeout(reload, 0); }}
+                style={[s.filterChip, branch === b && s.filterChipActive]}
+              >
+                <Text style={[s.filterChipText, branch === b && s.filterChipTextActive]}>{b}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+
+        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
+          <GradientButton onPress={reload} loading={loading} size="sm">
+            <View style={s.btnInner}><Search size={14} color="#fff" /><Text style={s.btnTextSm}>Search Registry</Text></View>
+          </GradientButton>
+          <Pressable onPress={reload} style={s.refreshBtn}>
+            <RefreshCw size={14} color="#A78BFA" />
+          </Pressable>
+        </View>
+
+        {error && (
+          <View style={s.errorBox}>
+            <AlertTriangle size={14} color="#F87171" />
+            <Text style={s.errorText}>{error}</Text>
+          </View>
+        )}
+
+        {loading && !items.length && (
+          <View style={s.emptyBox}>
+            <ActivityIndicator color="#A78BFA" />
+            <Text style={s.emptyText}>Loading registry…</Text>
+          </View>
+        )}
+
+        {!loading && items.length === 0 && (
+          <View style={s.emptyBox}>
+            <FolderOpen size={22} color="#475569" />
+            <Text style={s.emptyText}>
+              {total === 0 ? 'No certificates in the registry yet.' : 'No results match your filters.'}
+            </Text>
+          </View>
+        )}
+
+        {items.length > 0 && (
+          <ScrollView style={{ maxHeight: 480 }} nestedScrollEnabled>
+            {items.map((c) => {
+              const id: string = c?.id || c?.certificate_id || c?.verification_code || '';
+              const code: string = c?.verification_code || c?.certificate_id || c?.id || id;
+              const name: string = c?.recipient_name || c?.recipient_email || '—';
+              const title: string = c?.title || c?.certification_name || '';
+              const img: string | null = c?.image_url ? resolveImageUrl(c.image_url) : null;
+              return (
+                <View key={c?._id || id || Math.random()} style={s.regRow}>
+                  {img ? (
+                    <View style={s.thumbWrap}>
+                      <img
+                        src={img}
+                        alt="cert"
+                        style={{
+                          width: 44, height: 44, borderRadius: 8, objectFit: 'cover',
+                          display: 'block', background: '#0f172a',
+                        }}
+                      />
+                    </View>
+                  ) : (
+                    <View style={s.thumbPlaceholder}>
+                      <FileText size={18} color="#475569" />
+                    </View>
+                  )}
+
+                  <View style={{ flex: 1, gap: 3, minWidth: 0 }}>
+                    <Text numberOfLines={1} style={s.regName}>{name}</Text>
+                    {title ? <Text numberOfLines={1} style={s.regTitleText}>{title}</Text> : null}
+                    <Text numberOfLines={1} style={[s.mono, s.regCode]}>{code || id || '—'}</Text>
+                    {c?.branch ? <Text style={s.regMeta}>{c.branch}</Text> : null}
+                  </View>
+
+                  <View style={{ gap: 6, alignItems: 'flex-end' }}>
+                    <Pressable
+                      onPress={() => Linking.openURL(`${typeof window !== 'undefined' && window.location ? window.location.origin : 'https://studentalumni.ai'}/certificates/verify/${encodeURIComponent(id || code)}`)}
+                      style={s.regLinkBtn}
+                    >
+                      <ExternalLink size={13} color="#A78BFA" />
+                      <Text style={s.regLinkText}>Verify</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => copyUrl(id || code)}
+                      style={s.regCopyBtn}
+                    >
+                      <Copy size={12} color="#64748b" />
+                      <Text style={s.regCopyText}>{copied === (id || code) ? 'Copied!' : 'Copy link'}</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              );
+            })}
+          </ScrollView>
+        )}
+
+        {typeof total === 'number' && items.length < total && (
+          <View style={{ marginTop: 12 }}>
+            <GradientButton onPress={() => load(true)} loading={loading} size="sm">
+              <View style={s.btnInner}>
+                <Text style={s.btnTextSm}>{loading ? 'Loading…' : `Load more (${items.length} / ${total})`}</Text>
+              </View>
+            </GradientButton>
+          </View>
+        )}
+      </Card>
+    </Animated.View>
   );
 }
 
@@ -817,4 +1025,28 @@ const s = StyleSheet.create({
   btnInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   btnText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
   btnTextSm: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
+  regHead: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 14 },
+  regTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
+  regSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, lineHeight: 18, marginTop: 4 },
+  countPill: { backgroundColor: 'rgba(167,139,250,0.12)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.28)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
+  countText: { color: '#c4b5fd', fontFamily: FONTS.xbold, fontSize: 11.5 },
+  regFilters: { gap: 8, marginBottom: 12 },
+  filterChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: '#1e293b', backgroundColor: '#0f172a' },
+  filterChipActive: { borderColor: 'rgba(167,139,250,0.5)', backgroundColor: 'rgba(167,139,250,0.14)' },
+  filterChipText: { color: '#64748b', fontFamily: FONTS.bold, fontSize: 11.5 },
+  filterChipTextActive: { color: '#c4b5fd' },
+  refreshBtn: { width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(167,139,250,0.3)', backgroundColor: 'rgba(167,139,250,0.08)', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  emptyBox: { alignItems: 'center', gap: 10, paddingVertical: 34 },
+  emptyText: { color: '#64748b', fontFamily: FONTS.med, fontSize: 12.5 },
+  regRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(30,41,59,0.6)' },
+  thumbWrap: { width: 44, height: 44 },
+  thumbPlaceholder: { width: 44, height: 44, borderRadius: 8, backgroundColor: '#0f172a', borderWidth: 1, borderColor: '#1e293b', alignItems: 'center', justifyContent: 'center' },
+  regName: { color: '#e2e8f0', fontFamily: FONTS.xbold, fontSize: 13 },
+  regTitleText: { color: '#94a3b8', fontFamily: FONTS.med, fontSize: 11.5 },
+  regCode: { color: '#A78BFA', fontSize: 10.5 },
+  regMeta: { color: '#64748b', fontFamily: FONTS.bold, fontSize: 10 },
+  regLinkBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 7, borderWidth: 1, borderColor: 'rgba(167,139,250,0.3)', backgroundColor: 'rgba(167,139,250,0.08)', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  regLinkText: { color: '#A78BFA', fontFamily: FONTS.bold, fontSize: 10.5 },
+  regCopyBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 7, borderWidth: 1, borderColor: '#1e293b', backgroundColor: '#0f172a', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  regCopyText: { color: '#64748b', fontFamily: FONTS.bold, fontSize: 10.5 },
 });
