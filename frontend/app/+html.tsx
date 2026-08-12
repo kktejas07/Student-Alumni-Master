@@ -15,10 +15,23 @@ export default function Root({ children }: PropsWithChildren) {
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/favicon.png" type="image/png" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        {/* Google Analytics */}
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-GTPG1F884T"></script>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'G-GTPG1F884T');
+            `,
+          }}
+        />
+
         {/*
           Disable body scrolling on web to make ScrollView components work correctly.
-          If you want to enable scrolling, remove `ScrollViewStyleReset` and
-          set `overflow: auto` on the body style below.
+          If you want to enable scrolling, remove \`ScrollViewStyleReset\` and
+          set \`overflow: auto\` on the body style below.
         */}
         <ScrollViewStyleReset />
         <style
