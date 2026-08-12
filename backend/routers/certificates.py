@@ -25,6 +25,8 @@ def _clean_str(val: Optional[str]) -> str:
     return (val or "").strip()
 
 
+import re
+
 @router.get("/verify/{identifier}")
 async def verify_certificate(identifier: str):
     """
@@ -39,18 +41,43 @@ async def verify_certificate(identifier: str):
     if not ident:
         raise HTTPException(400, "Identifier is required")
 
+    # Extract clean ID if full URL or query param was passed
+    if "id=" in ident:
+        ident = ident.split("id=")[-1].split("&")[0]
+    elif "/" in ident:
+        ident = ident.rstrip("/").split("/")[-1]
+    ident = ident.strip().strip('"').strip("'")
+
+    pattern = re.escape(ident)
+
     # 1. Search db.certificates collection
     cert_query = {
         "$or": [
-            {"id": {"$regex": f"^{ident}$", "$options": "i"}},
-            {"certificate_id": {"$regex": f"^{ident}$", "$options": "i"}},
-            {"roll_number": {"$regex": f"^{ident}$", "$options": "i"}},
-            {"sa_id": {"$regex": f"^{ident}$", "$options": "i"}},
-            {"verification_hash": {"$regex": f"^{ident}$", "$options": "i"}}
+            {"id": {"$regex": f"^{pattern}$", "$options": "i"}},
+            {"certificate_id": {"$regex": f"^{pattern}$", "$options": "i"}},
+            {"verification_code": {"$regex": f"^{pattern}$", "$options": "i"}},
+            {"roll_number": {"$regex": f"^{pattern}$", "$options": "i"}},
+            {"sa_id": {"$regex": f"^{pattern}$", "$options": "i"}},
+            {"verification_hash": {"$regex": f"^{pattern}$", "$options": "i"}},
+            {"file_path": {"$regex": pattern, "$options": "i"}}
         ]
     }
     
     matched_certs = await db.certificates.find(cert_query).to_list(length=50)
+
+    if not matched_certs:
+        # Fallback substring matching for partial IDs
+        fallback_query = {
+            "$or": [
+                {"id": {"$regex": pattern, "$options": "i"}},
+                {"certificate_id": {"$regex": pattern, "$options": "i"}},
+                {"verification_code": {"$regex": pattern, "$options": "i"}},
+                {"roll_number": {"$regex": pattern, "$options": "i"}},
+                {"sa_id": {"$regex": pattern, "$options": "i"}},
+                {"verification_hash": {"$regex": pattern, "$options": "i"}}
+            ]
+        }
+        matched_certs = await db.certificates.find(fallback_query).to_list(length=50)
     
     if matched_certs:
         for c in matched_certs:
