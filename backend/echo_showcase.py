@@ -1871,7 +1871,7 @@ DEFAULT_SHOWCASE_SEED = {
 async def seed_echo_showcase(db: AsyncIOMotorDatabase):
     """Seed initial VNR ECHO 2026 showcase if missing, and ensure gallery_layout exists."""
     try:
-        seed_slug = DEFAULT_SHOWCASE_SEED.get("slug")
+        seed_slug = str(DEFAULT_SHOWCASE_SEED.get("slug") or "vnr-echo-2026")
         seed_aliases = DEFAULT_SHOWCASE_SEED.get("aliases") or []
         existing = await db.echo_showcases.find_one(_slug_query(str(seed_slug or "")))
         if not existing and seed_aliases:
@@ -1989,6 +1989,42 @@ class RegisterSchema(BaseModel):
     year: Optional[str] = ""
     college: Optional[str] = ""
     payment_method: Optional[str] = ""
+
+    @field_validator("date_of_birth", "dob")
+    @classmethod
+    def _validate_dob(cls, v):
+        if not v or not v.strip():
+            return ""
+        val = v.strip()
+        try:
+            d = _date.fromisoformat(val)
+        except Exception:
+            raise ValueError("Date of birth must be in YYYY-MM-DD format")
+        if d > _date.today():
+            raise ValueError("Date of birth cannot be in the future")
+        return val
+
+    @field_validator("branch")
+    @classmethod
+    def _validate_branch(cls, v):
+        if not v or not v.strip():
+            return ""
+        val = v.strip()
+        norm = BRANCH_CANONICAL_MAP.get(val, val)
+        if norm not in ALLOWED_BTECH_BRANCHES and val not in ALLOWED_BTECH_BRANCHES:
+            raise ValueError(f"Invalid B.Tech branch: {val}")
+        return norm
+
+    @field_validator("year")
+    @classmethod
+    def _validate_year(cls, v):
+        if not v or not v.strip():
+            return ""
+        val = v.strip()
+        norm = YEAR_CANONICAL_MAP.get(val, val)
+        if norm not in ("1", "2", "3", "4"):
+            raise ValueError("Academic year must be 1, 2, 3, or 4")
+        return norm
 
     @field_validator("date_of_birth", "dob")
     @classmethod
