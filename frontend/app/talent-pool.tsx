@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Search, Filter, X, MapPin, Briefcase, GraduationCap, Star } from 'lucide-react-native';
-import { request } from '@/src/models/services/api';
+import { request, resolveImageUrl } from '@/src/models/services/api';
 import Svg, { Path, G } from 'react-native-svg';
 
 function LinkedInIcon({ size = 14 }: { size?: number }) {
@@ -141,7 +141,7 @@ export default function TalentPoolPage() {
       {/* Header */}
       <View style={s.cardHeader}>
         {profile.photo_url || profile.photo_data ? (
-          <Image source={{ uri: profile.photo_url || profile.photo_data! }} style={s.avatarImage} />
+          <Image source={{ uri: resolveImageUrl(profile.photo_url) || profile.photo_data! }} style={s.avatarImage} />
         ) : (
           <View style={s.avatar}>
             <Text style={s.avatarText}>

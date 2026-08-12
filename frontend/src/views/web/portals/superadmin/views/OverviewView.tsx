@@ -14,9 +14,10 @@ import { Av } from '../atoms';
 import { GRAD, GradientButton, SecondaryButton, KpiTile, IconBox, useToast, Toast } from '../applekit';
 import * as MOCK from '../data';
 import { usePortalData, postPortal, fetchPortal } from '@/src/lib/portalApi';
+import { resolveImageUrl } from '@/src/models/services/api';
 import { LiveStrip } from '@/src/views/web/LiveStrip';
 import { CouponBanner } from '@/src/views/web/components/CouponBanner';
-import { fileToDataUrl, fileNameToLabel } from '@/src/lib/image';
+import { uploadImage, fileNameToLabel } from '@/src/lib/image';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 const KPI_ICONS: Record<string, any> = {
@@ -82,15 +83,15 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
     const drafts: AdDraft[] = [];
     for (const file of files) {
       try {
-        const dataUrl = await fileToDataUrl(file);
+        const url = await uploadImage(file, 'ads');
         drafts.push({
           label: fileNameToLabel(file.name),
-          image_url: dataUrl,
+          image_url: url,
           redirect_url: '',
           key: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         });
       } catch {
-        // skip files that fail to decode
+        // skip files that fail to upload
       }
     }
     if (drafts.length) setEditorItems((prev) => [...prev, ...drafts]);
@@ -202,7 +203,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
               {ads.map((ad, i) => (
                 <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 8 }}>
                   <Image
-                    source={{ uri: ad.image_url }}
+                    source={{ uri: resolveImageUrl(ad.image_url) }}
                     style={{ width: 50, height: 34, borderRadius: 4 }}
                     resizeMode="cover"
                   />
@@ -267,7 +268,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
                   <View key={it.key} style={s.adDraftCard}>
                     <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
                       {it.image_url ? (
-                        <Image source={{ uri: it.image_url }} style={{ width: 64, height: 42, borderRadius: 6 }} resizeMode="cover" />
+                        <Image source={{ uri: resolveImageUrl(it.image_url) }} style={{ width: 64, height: 42, borderRadius: 6 }} resizeMode="cover" />
                       ) : (
                         <View style={{ width: 64, height: 42, borderRadius: 6, backgroundColor: SAC.bg2, borderColor: SAC.border, borderWidth: 1, alignItems: 'center', justifyContent: 'center' }}>
                           <ImageIcon size={14} color={SAC.dim} />

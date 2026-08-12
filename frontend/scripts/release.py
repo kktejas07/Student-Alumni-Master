@@ -20,8 +20,8 @@ What it does:
          /app/.release/<vX.Y.Z>/  — copy of commit-msg + release-notes + PR body
     4. Prints copy-paste-ready commands for: `git commit`, `git tag`,
        `gh release create`, and `gh pr create`.
-    5. If --push is set, also runs `git add` + `git commit` + `git tag`
-       locally (does NOT push to remote — Emergent's Save-to-Github does that).
+     5. If --push is set, also runs `git add` + `git commit` + `git tag`
+        locally (does NOT push to remote — Save-to-Github does that).
 """
 from __future__ import annotations
 
@@ -135,7 +135,7 @@ def build_sections(raw_commits: List[str]) -> Dict[str, List[str]]:
             continue
         sha, subject = parts[0], parts[1]
         author = parts[2] if len(parts) > 2 else ""
-        # Skip the noisy Emergent auto-commits unless they're the only thing.
+        # Skip the noisy auto-commits unless they're the only thing.
         if subject.startswith("auto-commit for "):
             continue
         kind = classify(subject)
@@ -288,7 +288,7 @@ def print_next_steps(version: str, paths: Dict[str, Path]):
     print(f"     git commit -F {paths['commit_msg']}")
     print(f"     git tag -a v{version} -m 'Release v{version}'")
     print()
-    print("2) Push via Emergent's 'Save to GitHub' button OR locally:")
+    print("2) Push via the 'Save to GitHub' button OR locally:")
     print(f"     git push origin {branch}")
     print()
     print(f"   .github/workflows/release.yml will then OPEN A PR FROM"

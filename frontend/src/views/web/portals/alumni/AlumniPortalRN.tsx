@@ -17,7 +17,7 @@ import { StarryBackground } from '@/src/views/web/nexus-glow-landing/StarryBackg
 import { DashboardFooter } from '../../components/SponsorStrip';
 import { PromoBanner } from '../../components/PromoBanner';
 import { DashboardView } from './views/DashboardView';
-import { StubView } from './views/StubView';
+import { StubView } from '../student/views/StubView';
 import { EventsView } from './views/EventsView';
 import { InternshipsView } from './views/InternshipsView';
 import { NetworkView } from './views/NetworkView';

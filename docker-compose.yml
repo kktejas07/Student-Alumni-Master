@@ -21,6 +21,8 @@ services:
       # Expose externally only when running locally.  In Dokploy the
       # reverse-proxy will route to this port automatically.
       - "${BACKEND_HOST_PORT:-8000}:8000"
+    volumes:
+      - uploads_data:/app/uploads
     environment:
       # ── Required ────────────────────────────────────────────────
       MONGO_URL:        ${MONGO_URL}
@@ -36,6 +38,12 @@ services:
       EMERGENT_LLM_KEY: ${EMERGENT_LLM_KEY:-}
       FERNET_KEY:       ${FERNET_KEY:-}
       UVICORN_WORKERS:  ${UVICORN_WORKERS:-2}
+      # ── Email delivery (Postal — postalserver.io) ───────────────
+      # POSTAL_API_URL / POSTAL_SERVER_API_KEY are the primary sender;
+      # SendGrid + Gmail (marketplace) remain as fallback providers.
+      POSTAL_API_URL:        ${POSTAL_API_URL:-}
+      POSTAL_SERVER_API_KEY: ${POSTAL_SERVER_API_KEY:-}
+      POSTAL_FROM_EMAIL:     ${POSTAL_FROM_EMAIL:-Student Alumni <noreply@studentalumni.ai>}
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8000/api/health"]
       interval: 30s
@@ -56,6 +64,7 @@ services:
       dockerfile: Dockerfile
       args:
         # Backend origin is BAKED into the JS bundle at build-time.
+        BACKEND_HOST:                  ${BACKEND_HOST:-backend}
         EXPO_PUBLIC_BACKEND_URL:               ${EXPO_PUBLIC_BACKEND_URL}
         EXPO_PUBLIC_FIREBASE_API_KEY:          ${EXPO_PUBLIC_FIREBASE_API_KEY:-}
         EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN:      ${EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN:-}
@@ -92,3 +101,6 @@ services:
 networks:
   studentalumni:
     driver: bridge
+
+volumes:
+  uploads_data:

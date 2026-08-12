@@ -36,10 +36,10 @@ const SLIDES = [
     body: 'Book 1:1 sessions with alumni and industry experts who actually want to help you grow.',
   },
   {
-    emoji: '💼',
+    emoji: '🚀',
     accent: ['rgba(245,158,11,0.55)', 'rgba(217,119,6,0.25)'],
-    title: '10,000+ Internships\n& Jobs',
-    body: 'Discover global opportunities curated to your goals — from tech to creative to research.',
+    title: 'Skill & Career\nRoadmaps',
+    body: 'Discover AI-driven learning pathways curated to your goals — from tech to creative to research.',
   },
   {
     emoji: '🎉',

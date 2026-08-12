@@ -23,7 +23,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { request, tokenStore } from '@/src/models/services/api';
+import { request, tokenStore, resolveImageUrl } from '@/src/models/services/api';
 import AdvisorAIBlock from '@/src/views/web/AdvisorAIBlock';
 
 // ─── Constants ────────────────────────────────────────────────────────
@@ -369,7 +369,7 @@ export default function EventsScreen() {
         it.event_id === ev.event_id ? { ...it, rsvp_status: null } : it
       );
       setFeatured(upd); setMore(upd); setAiRecs(upd);
-      showToast(r.refunded_credits ? `Cancelled — ${r.refunded_credits} credits refunded` : 'Cancelled');
+      showToast(r.refunded_credits ? `Cancelled — ${r.refunded_credits} points refunded` : 'Cancelled');
       if (selected?.event_id === ev.event_id) setSelected({ ...selected, rsvp_status: null });
       loadRegistered();
     } catch (err: any) {
@@ -878,7 +878,7 @@ function EventCard({
     ]}>
       {/* Image banner if available */}
       {ev.image_url ? (
-        <Image source={{ uri: ev.image_url }} style={s.cardImg} />
+        <Image source={{ uri: resolveImageUrl(ev.image_url) }} style={s.cardImg} />
       ) : (
         <LinearGradient
           colors={[tint + '40', tint + '15']}
@@ -1016,7 +1016,7 @@ function DetailPanel({
           {/* Banner */}
           <View style={{ position: 'relative' }}>
             {ev.image_url ? (
-              <Image source={{ uri: ev.image_url }} style={s.panelBanner} />
+              <Image source={{ uri: resolveImageUrl(ev.image_url) }} style={s.panelBanner} />
             ) : (
               <LinearGradient colors={[tint + '60', tint + '20']} style={s.panelBanner}>
                 <MaterialCommunityIcons name={icon} size={64} color={tint} style={{ alignSelf: 'center', marginTop: 64 }} />
@@ -1133,12 +1133,12 @@ function DetailPanel({
                         <View style={[s.checkbox, useCredits && { backgroundColor: C.primary }]}>
                           {useCredits && <MaterialCommunityIcons name="check" size={12} color="#fff" />}
                         </View>
-                        <Text style={s.creditToggleText}>Use SA Credits to pay (₹{ev.price_amount})</Text>
+                        <Text style={s.creditToggleText}>Use SA points to pay (₹{ev.price_amount})</Text>
                       </Pressable>
                     )}
                     <Pressable onPress={() => onRegister(useCredits)} style={[s.registerCta, { backgroundColor: C.primary }]}>
                       <Text style={s.registerCtaText}>
-                        {isFree ? 'Register — Free' : useCredits ? `Pay & Register (${ev.price_amount} credits)` : `Register Here · ₹${ev.price_amount}`}
+                        {isFree ? 'Register — Free' : useCredits ? `Pay & Register (${ev.price_amount} points)` : `Register Here · ₹${ev.price_amount}`}
                       </Text>
                       <MaterialCommunityIcons name="arrow-right" size={18} color="#fff" />
                     </Pressable>
@@ -1485,7 +1485,7 @@ function HostEventModal({
               <TextInput
                 value={String(form.price_amount)}
                 onChangeText={(v) => update('price_amount', v.replace(/[^0-9]/g, ''))}
-                placeholder="Price in ₹ (SA Credits)"
+                placeholder="Price in ₹ (SA points)"
                 placeholderTextColor={C.textDim}
                 keyboardType="numeric"
                 style={[s.formInput, { marginTop: 8 }]}

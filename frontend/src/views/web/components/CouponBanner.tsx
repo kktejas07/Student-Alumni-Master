@@ -17,8 +17,10 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View, Text, Pressable, StyleSheet, Platform, Image, Modal, Linking, ScrollView, TextInput, NativeSyntheticEvent, NativeScrollEvent,
 } from 'react-native';
-import { Ticket, ExternalLink, X, Copy, Check, Tag, Plus, Pencil, Trash2, Save, Upload, AlertTriangle } from 'lucide-react-native';
+import { Ticket, ExternalLink, X, Copy, Check, Tag, Plus, Pencil, Trash2, Save, Upload, AlertTriangle, Lock } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
+import { uploadImage } from '@/src/lib/image';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 export type Coupon = {
   id: string;
@@ -35,6 +37,7 @@ export type Coupon = {
   instructions?: string;
   audience?: string[];
   active?: boolean;
+  locked?: boolean;
 };
 
 function discountLabel(c: Coupon): string {
@@ -198,18 +201,18 @@ function CouponEditor({
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<any>(null);
 
-  const handleFileSelect = (e: any) => {
+  const handleFileSelect = async (e: any) => {
     const file = e.target?.files?.[0];
     if (!file) return;
     setUploading(true);
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const dataUrl = ev.target?.result as string;
-      if (dataUrl) setImageUrl(dataUrl);
+    try {
+      const url = await uploadImage(file, 'coupons');
+      setImageUrl(url);
+    } catch {
+      // upload failed silently
+    } finally {
       setUploading(false);
-    };
-    reader.onerror = () => setUploading(false);
-    reader.readAsDataURL(file);
+    }
   };
 
   useEffect(() => {
@@ -411,6 +414,7 @@ export function CouponBanner({ portal, editable }: { portal: string; editable?: 
   const [currentPage, setCurrentPage] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
   const toastTimer = useRef<any>(null);
+  const user = useAuthStore((s) => s.user);
 
   const flash = useCallback((text: string, kind: 'success' | 'error' = 'success') => {
     setToast({ text, kind });
@@ -419,13 +423,14 @@ export function CouponBanner({ portal, editable }: { portal: string; editable?: 
   }, []);
 
   const loadCoupons = useCallback(async () => {
+    if (!user) { setCoupons([]); return; }
     try {
       const r = await request<{ coupons: Coupon[] }>(editable ? '/admin/coupons' : '/coupons/active');
       setCoupons(r.coupons || []);
     } catch {
       setCoupons([]);
     }
-  }, [editable]);
+  }, [editable, user]);
 
   useEffect(() => {
     loadCoupons();
@@ -439,6 +444,17 @@ export function CouponBanner({ portal, editable }: { portal: string; editable?: 
       flash('Coupon deleted');
     } catch (e: any) {
       flash(e?.message || 'Failed to delete coupon', 'error');
+    }
+  };
+
+  const toggleCouponLock = async (c: Coupon) => {
+    try {
+      const newLocked = !c.locked;
+      await request(`/admin/coupons/${c.id}`, { method: 'PATCH', body: { locked: newLocked } });
+      setCoupons((prev) => prev.map((x) => x.id === c.id ? { ...x, locked: newLocked } : x));
+      flash(newLocked ? 'Coupon locked' : 'Coupon unlocked');
+    } catch (e: any) {
+      flash(e?.message || 'Failed to update lock', 'error');
     }
   };
 
@@ -477,7 +493,7 @@ export function CouponBanner({ portal, editable }: { portal: string; editable?: 
     <View style={s.wrap}>
       <View style={s.headRow}>
         <Tag size={13} color="#A78BFA" />
-        <Text style={s.headText}>Exclusive Coupons{editable ? ` (${coupons.length})` : ''}</Text>
+        <Text style={s.headText}>Collab Exclusive Coupons{editable ? ` (${coupons.length})` : ''}</Text>
         {editable && (
           <>
             <View style={{ flex: 1 }} />
@@ -502,9 +518,13 @@ export function CouponBanner({ portal, editable }: { portal: string; editable?: 
             decelerationRate="fast"
           >
             {coupons.map((c) => (
-              <Pressable key={c.id} onPress={() => setSelected(c)} style={[s.card, editable && !c.active && s.cardInactive]}>
+              <Pressable key={c.id} onPress={() => !c.locked && setSelected(c)} style={[s.card, editable && !c.active && s.cardInactive, c.locked && { borderColor: 'rgba(245,158,11,0.4)' }]}>
                 <View style={s.cardImgWrap}>
-                  {c.image_url ? (
+                  {c.locked ? (
+                    <View style={[s.cardImg, s.cardImgFallback, { backgroundColor: 'rgba(245,158,11,0.08)' }]}>
+                      <Lock size={28} color="#F59E0B" />
+                    </View>
+                  ) : c.image_url ? (
                     <Image source={{ uri: c.image_url }} style={s.cardImg} resizeMode="contain" />
                   ) : (
                     <View style={[s.cardImg, s.cardImgFallback]}>
@@ -519,19 +539,34 @@ export function CouponBanner({ portal, editable }: { portal: string; editable?: 
                       <Pressable onPress={() => deleteCoupon(c)} style={s.cardAdminBtn} hitSlop={6}>
                         <Trash2 size={11} color="#F87171" />
                       </Pressable>
+                      <Pressable onPress={() => toggleCouponLock(c)} style={[s.cardAdminBtn, { backgroundColor: c.locked ? 'rgba(245,158,11,0.3)' : 'rgba(255,255,255,0.15)' }]} hitSlop={6}>
+                        <Lock size={11} color={c.locked ? '#F59E0B' : '#fff'} />
+                      </Pressable>
                     </View>
                   )}
                 </View>
                 <View style={s.cardBody}>
-                  <Text style={s.cardPartner} numberOfLines={1}>
-                    {c.partner_name || 'Partner Offer'}
-                  </Text>
-                  <Text style={s.cardTitle} numberOfLines={1}>
-                    {c.discount_pct ? discountLabel(c) : c.description || 'Coupon'}
-                  </Text>
-                  <View style={s.cardCode}>
-                    <Text style={s.cardCodeText}>{c.code}</Text>
-                  </View>
+                  {c.locked ? (
+                    <>
+                      <Text style={[s.cardPartner, { color: '#F59E0B' }]}>Coming soon</Text>
+                      <Text style={[s.cardTitle, { color: 'rgba(255,255,255,0.3)' }]}>This coupon will be available shortly</Text>
+                      <View style={[s.cardCode, { backgroundColor: 'rgba(245,158,11,0.12)' }]}>
+                        <Text style={[s.cardCodeText, { color: '#F59E0B' }]}>Locked</Text>
+                      </View>
+                    </>
+                  ) : (
+                    <>
+                      <Text style={s.cardPartner} numberOfLines={1}>
+                        {c.partner_name || 'Partner Offer'}
+                      </Text>
+                      <Text style={s.cardTitle} numberOfLines={1}>
+                        {c.discount_pct ? discountLabel(c) : c.description || 'Coupon'}
+                      </Text>
+                      <View style={s.cardCode}>
+                        <Text style={s.cardCodeText}>{c.code}</Text>
+                      </View>
+                    </>
+                  )}
                 </View>
               </Pressable>
             ))}

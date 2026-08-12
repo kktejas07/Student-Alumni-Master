@@ -38,13 +38,13 @@ export const EmbeddedShellContext = React.createContext<boolean>(false);
 const NAV: NavItem[] = [
   { id: 'home',              Icon: HomeIcon,       label: 'Dashboard',        color: '#818CF8' },
   { id: 'career',            Icon: Sparkles,       label: 'Career AI',        color: '#818CF8' },
-  { id: 'internships',       Icon: Briefcase,      label: 'Internships',      color: '#34D399' },
+  { id: 'internships',       Icon: Briefcase,      label: 'Opportunities',   color: '#34D399' },
   { id: 'courses',           Icon: BookOpen,       label: 'Courses',          color: '#22D3EE' },
   { id: 'higher-education',  Icon: GraduationCap,  label: 'Higher Education', color: '#FCD34D' },
   { id: 'network',           Icon: Users,          label: 'Network',          color: '#F472B6' },
   { id: 'events',            Icon: Calendar,       label: 'Events',           color: '#FB923C' },
-  { id: 'financial',         Icon: Wallet,         label: 'Financial',        color: '#FCD34D' },
-  { id: 'wallet',            Icon: Wallet,         label: 'Wallet',           color: '#86EFAC' },
+  { id: 'financial',         Icon: Wallet,         label: 'Funding',         color: '#FCD34D' },
+  { id: 'wallet',            Icon: Wallet,         label: 'Rewards',          color: '#86EFAC' },
   { id: 'insurance',         Icon: Shield,         label: 'Insurance',        color: '#60A5FA' },
   { id: 'rentals',           Icon: Building2,      label: 'Rentals',          color: '#818CF8' },
   { id: 'deals',             Icon: Gift,           label: 'Deals',            color: '#F472B6' },
@@ -246,7 +246,7 @@ export default function FeaturePageShell({
   }
 
   return (
-    <View style={{ flex: 1, flexDirection: 'row' }}>
+    <View style={{ flex: 1, flexDirection: 'row', overflow: 'hidden' }}>
       {/* Full-page role gradient */}
       <LinearGradient
         colors={pageBgColors as any}

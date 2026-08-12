@@ -22,7 +22,7 @@ const Icon = (props: { name: IconName; size?: number; color?: string;
 const C = { text: '#fff', text2: 'rgba(255,255,255,0.70)', text3: 'rgba(255,255,255,0.45)', border: 'rgba(255,255,255,0.09)' };
 
 const TABS = [
-  { id: 'scholarships', label: 'Scholarships',    icon: 'trophy-award' as IconName,    color: '#F97316', api: '/financial/scholarships/search' },
+  { id: 'scholarships', label: 'Funding',       icon: 'trophy-award' as IconName,    color: '#F97316', api: '/financial/scholarships/search' },
   { id: 'loans',        label: 'Education Loans', icon: 'bank-outline' as IconName,    color: '#3B82F6', api: '/financial/loans/search' },
   { id: 'startup',      label: 'Startup Funding', icon: 'rocket-launch' as IconName,   color: '#14B8A6', api: '/financial/startup-funding/search' },
   { id: 'investors',    label: 'Investors & VCs', icon: 'trending-up' as IconName,     color: '#6366F1', api: '/financial/venture-capital/search' },
@@ -30,7 +30,7 @@ const TABS = [
 ];
 
 const AI_LABELS: Record<string, string> = {
-  scholarships: 'AI: Find Scholarships I Qualify For',
+  scholarships: 'AI: Find Funding I Qualify For',
   loans: 'AI: Which loan is best for me?',
   startup: 'AI: Best funding for my idea',
   investors: 'AI: Right VC for my stage',
@@ -304,13 +304,13 @@ export default function FinancialPage() {
   return (
     <FeaturePageShell
       title="Financial Services"
-      subtitle="Scholarships, funding, investors, loans, insurance — matched to your profile."
+      subtitle="Funding, education loans, investors, insurance — matched to your profile."
       heroEmoji="💰"
       accent="#5F259F"
       rightSlot={<View style={s.savPill}><Icon name="wallet-outline" size={12} color="#86EFAC" /><Text style={s.savPillText}>SA Savings Advisor</Text></View>}
     >
       <View style={s.statsRow}>
-        <Stat label="HIGH MATCH SCHOLARSHIPS" value="3+" sub="Matched to you" color="#F97316" iconName="trophy-award" />
+        <Stat label="HIGH MATCH FUNDING" value="3+" sub="Matched to you" color="#F97316" iconName="trophy-award" />
         <Stat label="FREE GRANTS" value="4+" sub="Zero repayment" color="#14B8A6" iconName="auto-fix" />
         <Stat label="ALUMNI INVESTORS" value="2+" sub="Active pitch pipeline" color="#6366F1" iconName="trending-up" />
         <Stat label="TAX BENEFIT" value="Available" sub="Under Sec 80C / 80E" color="#22C55E" iconName="check-decagram" />

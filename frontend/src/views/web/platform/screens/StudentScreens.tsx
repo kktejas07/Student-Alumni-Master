@@ -12,7 +12,7 @@ import {
 export function StudentInternships() {
   return (
     <ExploreScreen
-      pageTitle="Internships"
+      pageTitle="Career Opportunities"
       pageSubtitle="Discover roles tailored to your career path & skills."
       searchPlaceholder="Search roles, companies, locations…"
       hero={INTERNSHIPS_HERO}

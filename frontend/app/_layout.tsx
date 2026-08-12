@@ -22,7 +22,7 @@ import {
   Manrope_700Bold,
   Manrope_800ExtraBold,
 } from '@expo-google-fonts/manrope';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, Platform, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
@@ -126,10 +126,11 @@ export default function RootLayout() {
     analytics.init();
   }, [init]);
 
-  // Render the loader only while fonts are still loading AND haven't errored.
-  // If fonts fail to load (e.g. network / CDN issue on web), fall back to
-  // system fonts instead of blocking the entire app indefinitely.
-  if ((!fontsLoaded && !fontError) || !initialized) {
+  // Render the loader only while auth is initializing, or while native fonts
+  // are still loading (local assets, fast). On web we do NOT block first paint
+  // on web fonts — the browser swaps them in (FOUT) once they finish loading,
+  // so the landing page renders immediately instead of waiting on the network.
+  if ((Platform.OS !== 'web' && !fontsLoaded && !fontError) || !initialized) {
     return (
       <View
         style={{

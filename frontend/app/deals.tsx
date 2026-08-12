@@ -18,7 +18,7 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import FeaturePageShell, { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
-import { request } from '@/src/models/services/api';
+import { request, resolveImageUrl } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useRouter } from 'expo-router';
 
@@ -318,7 +318,7 @@ export default function DealsScreen() {
               {stats.smart_bundle.map((b) => (
                 <View key={b.deal_id} style={[s.bundleItem, { borderColor: b.accent + '55' }]}>
                   {b.logo_url ? (
-                    <Image source={{ uri: b.logo_url }} style={s.bundleLogo} resizeMode="contain" />
+                    <Image source={{ uri: resolveImageUrl(b.logo_url) }} style={s.bundleLogo} resizeMode="contain" />
                   ) : (
                     <View style={[s.bundleLogoFallback, { backgroundColor: b.accent + '33' }]}>
                       <Text style={{ color: b.accent, fontSize: 14, fontWeight: '800' }}>{b.brand?.[0] || '?'}</Text>
@@ -428,7 +428,7 @@ export default function DealsScreen() {
               <>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                   {claimDeal.logo_url ? (
-                    <Image source={{ uri: claimDeal.logo_url }} style={s.modalLogo} resizeMode="contain" />
+                    <Image source={{ uri: resolveImageUrl(claimDeal.logo_url) }} style={s.modalLogo} resizeMode="contain" />
                   ) : (
                     <View style={[s.modalLogoFallback, { backgroundColor: claimDeal.accent + '33' }]}>
                       <Text style={{ color: claimDeal.accent, fontSize: 18, fontWeight: '800' }}>{claimDeal.brand[0]}</Text>
@@ -469,7 +469,7 @@ export default function DealsScreen() {
                     <View style={{ flex: 1 }}>
                       <Text style={s.claimSuccessTitle}>
                         {claimResult.credits_awarded > 0
-                          ? `+${claimResult.credits_awarded} SA Credits earned!`
+                          ? `+${claimResult.credits_awarded} SA points earned!`
                           : 'Daily quota reached — redirecting'}
                       </Text>
                       <Text style={s.claimSuccessSub}>
@@ -497,7 +497,7 @@ export default function DealsScreen() {
                     </>
                   )}
                 </Pressable>
-                <Text style={s.modalNote}>+20 SA Credits earned per claim · max 3 claims/day</Text>
+                <Text style={s.modalNote}>+20 SA points earned per claim · max 3 claims/day</Text>
               </>
             )}
           </View>
@@ -556,7 +556,7 @@ function DealCard({ d, onClaim }: { d: Deal; onClaim: (d: Deal) => void }) {
           {/* Col 1: Logo */}
           <View style={s.cardLogoWrap}>
             {d.logo_url ? (
-              <Image source={{ uri: d.logo_url }} style={s.cardLogo} resizeMode="contain" />
+              <Image source={{ uri: resolveImageUrl(d.logo_url) }} style={s.cardLogo} resizeMode="contain" />
             ) : (
               <View style={[s.cardLogoFallback, { backgroundColor: d.accent + '33' }]}>
                 <Text style={{ color: d.accent, fontSize: 18, fontWeight: '800' }}>{d.brand[0]}</Text>

@@ -29,7 +29,7 @@ import {
   GRAD, GradientButton, SecondaryButton, Card, IconBox, SectionLabel,
   SearchField, StatusPill, Toast, useToast, EmptyState, LoadingBox,
 } from '../applekit';
-import { request } from '@/src/models/services/api';
+import { request, resolveImageUrl } from '@/src/models/services/api';
 import { PromoTone } from '@/src/views/web/components/PromoBanner';
 
 /* ────────────────────────────────────────────────────────────────────
@@ -259,7 +259,7 @@ function PromoRow({
 
         {/* Icon / image */}
         {promo.image_url ? (
-          <Image source={{ uri: promo.image_url }} style={s.thumb} resizeMode="cover" />
+          <Image source={{ uri: resolveImageUrl(promo.image_url) }} style={s.thumb} resizeMode="cover" />
         ) : (
           <View style={[s.toneIconBox, { backgroundColor: tone.from + '22', borderColor: tone.from + '55' }]}>
             <Sparkles size={15} color={tone.from} />

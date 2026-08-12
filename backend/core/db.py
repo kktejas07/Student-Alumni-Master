@@ -12,13 +12,18 @@ the topology discovery before the first request is served.
 from dotenv import load_dotenv
 from pathlib import Path
 import os
+from typing import Any, Dict
 
 # Load env from /app/backend/.env (parent directory of /core)
 load_dotenv(Path(__file__).resolve().parent.parent / '.env')
 
 from motor.motor_asyncio import AsyncIOMotorClient  # noqa: E402
 
-mongo_url = os.environ.get('MONGO_URL') or 'mongodb+srv://studentalumniadmin_db_user:wDruHz5sCPoEVuFy@studentalumniadmin.hhu4uao.mongodb.net/?appName=studentalumniadmin'
+mongo_url = os.environ.get('MONGO_URL')
+if not mongo_url:
+    raise RuntimeError(
+        "MONGO_URL is not set. Copy backend/.env.example to backend/.env and set MONGO_URL."
+    )
 
 # Inject short timeouts so topology discovery never hangs for 60 s.
 _qs = "?" if "?" not in mongo_url else "&"
@@ -30,15 +35,22 @@ if "connectTimeoutMS" not in mongo_url:
 # Single shared connection pool — created once at import time.
 # Motor internally defers socket activity to a background thread, so this
 # does NOT block the event loop during import.
-client = AsyncIOMotorClient(
-    mongo_url,
-    maxPoolSize=20,
-    minPoolSize=2,
-    # Resolve Atlas hostnames eagerly (avoids lazy-DNS hang on first request)
-    serverSelectionTimeoutMS=10000,
-)
+_client_kwargs: Dict[str, Any] = {
+    "maxPoolSize": 20,
+    "minPoolSize": 2,
+    "serverSelectionTimeoutMS": 10000,
+}
+# Only enable the TLS CA bundle when the URL is genuinely a TLS/Atlas
+# connection (tls=true, ssl=true, or mongodb+srv://). Passing tlsCAFile
+# alone forces TLS in PyMongo, which breaks plaintext self-hosted MongoDB.
+if any(tag in mongo_url.lower() for tag in ("tls=true", "ssl=true", "mongodb+srv://")):
+    import certifi
+
+    _client_kwargs["tlsCAFile"] = certifi.where()
+client = AsyncIOMotorClient(mongo_url, **_client_kwargs)
 db_name = os.environ.get('DB_NAME', 'studentalumniadmin')
 db = client[db_name]
+
 
 
 async def warm_db() -> float:

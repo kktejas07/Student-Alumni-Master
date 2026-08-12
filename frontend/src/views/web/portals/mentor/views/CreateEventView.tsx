@@ -19,10 +19,10 @@ export function CreateEventView() {
   const { width } = useWindowDimensions();
   const stack = width < 1024;
 
-  const [events, setEvents] = useState<MentorEvent[]>([]);
+  const [events, setEvents] = useState<MentorEvent[]>(INITIAL_EVENTS);
   const [isLoading, setIsLoading] = useState(true);
   const [subView, setSubView] = useState<'list' | 'create' | 'edit'>('list');
-  const [editingEventId, setEditingEventId] = useState<number | null>(null);
+  const [editingEventId, setEditingEventId] = useState<number | string | null>(null);
 
   // Form States
   const [eventType, setEventType] = useState<MentorEvent['type']>('webinar');
@@ -82,6 +82,23 @@ export function CreateEventView() {
     { hex: '#F59E0B', name: 'yellow' },
     { hex: '#6366F1', name: 'indigo' },
   ];
+
+  // Load events from API, falling back to mock data
+  const fetchEvents = async () => {
+    setIsLoading(true);
+    try {
+      const data: any = await request('/events', { method: 'GET' });
+      if (data && Array.isArray(data.items) && data.items.length > 0) {
+        setEvents(data.items.map((e: any) => ({ ...e, id: e.id || e._id })));
+      }
+    } catch {
+      // use INITIAL_EVENTS already loaded as fallback
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchEvents(); }, []);
 
   // Auto set matching cover color when event type changes to give UI harmony
   useEffect(() => {

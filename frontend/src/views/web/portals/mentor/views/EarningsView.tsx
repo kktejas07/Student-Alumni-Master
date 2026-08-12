@@ -27,7 +27,8 @@ import {
   Check, 
   FileText, 
   TrendingUp, 
-  ArrowRight
+  ArrowRight,
+  Lock
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MC, FONTS } from '../tokens';
@@ -220,7 +221,7 @@ export function EarningsView({ demoMode = false, setDemoMode }: { demoMode?: boo
                     </>
                   ) : (
                     <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 18 }}>
-                      🔒 AI Earnings Insights are locked. Complete at least 3 paid mentoring sessions to unlock conversion and slot recommendations.
+                      <Lock size={14} color="#F59E0B" /> AI Earnings Insights are locked. Complete at least 3 paid mentoring sessions to unlock conversion and slot recommendations.
                     </Text>
                   )}
                 </View>
@@ -295,7 +296,7 @@ export function EarningsView({ demoMode = false, setDemoMode }: { demoMode?: boo
                     </>
                   ) : (
                     <Text style={s.forecastText}>
-                      🔒 AI Revenue Forecast will be available after completing 5 paid mentoring sessions.
+                      <Lock size={14} color="#F59E0B" /> AI Revenue Forecast will be available after completing 5 paid mentoring sessions.
                     </Text>
                   )}
                 </View>
@@ -687,7 +688,7 @@ export function EarningsView({ demoMode = false, setDemoMode }: { demoMode?: boo
                     </>
                   ) : (
                     <Text style={s.forecastText}>
-                      🔒 AI Tax Summary will be available after your first paid session.
+                      <Lock size={14} color="#F59E0B" /> AI Tax Summary will be available after your first paid session.
                     </Text>
                   )}
                 </View>

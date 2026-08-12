@@ -33,7 +33,7 @@ import {
   GRAD, GradientButton, SecondaryButton, Card, IconBox, SectionLabel,
   TopTabs, SearchField, StatusPill, Toast, useToast, EmptyState, LoadingBox,
 } from '../applekit';
-import { request } from '@/src/models/services/api';
+import { request, resolveImageUrl } from '@/src/models/services/api';
 
 /* ────────────────────────────────────────────────────────────────────
  * Types & constants
@@ -366,7 +366,7 @@ function PartnerRow({
         {/* Logo */}
         <View style={s.logoBox}>
           {partner.logo_url ? (
-            <Image source={{ uri: partner.logo_url }} style={s.logoImg} resizeMode="contain" />
+            <Image source={{ uri: resolveImageUrl(partner.logo_url) }} style={s.logoImg} resizeMode="contain" />
           ) : (
             <ImagePlus size={18} color={SAC.dim} />
           )}

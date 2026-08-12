@@ -9,7 +9,7 @@ import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform, Activit
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Sparkles, ArrowRight, Calendar, Building2, MapPin } from 'lucide-react-native';
-import { api } from '@/src/models/services/api';
+import { api, resolveImageUrl } from '@/src/models/services/api';
 import { EchoHeader, EchoFooter, ECHO_TOP_PADDING } from '@/src/views/web/components/EchoChrome';
 
 export default function EchoIndexPage() {
@@ -61,7 +61,7 @@ export default function EchoIndexPage() {
             <Pressable key={sc.slug} style={s.card} onPress={() => router.push(`/echo/${sc.slug}`)}>
               {sc.hero_image_url || sc.hero_cover_url ? (
                 <Image
-                  source={{ uri: sc.hero_image_url || sc.hero_cover_url }}
+                  source={{ uri: resolveImageUrl(sc.hero_image_url || sc.hero_cover_url) }}
                   style={s.cardImg} resizeMode="cover"
                 />
               ) : (

@@ -41,8 +41,20 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _make_absolute_url(url: str) -> str:
+    """Convert relative URLs to absolute for email clients."""
+    if not url:
+        return url
+    if url.startswith("http://") or url.startswith("https://") or url.startswith("data:"):
+        return url
+    base = os.environ.get("BACKEND_URL", "https://studentalumni.ai")
+    base = base.rstrip("/")
+    path = url if url.startswith("/") else f"/{url}"
+    return f"{base}{path}"
+
+
 def _unsub_token(email: str) -> str:
-    secret = os.environ.get("JWT_SECRET", "studentalumni_jwt_secret_key_2026")
+    secret = os.environ.get("JWT_SECRET", "dev-only-insecure-secret-change-me")
     return hmac.new(secret.encode("utf-8"), email.strip().lower().encode("utf-8"), hashlib.sha256).hexdigest()[:16]
 
 
@@ -73,7 +85,7 @@ def _upcoming_events_html(events: list) -> str:
         college = ev.get("college") or "Student Alumni Cell"
         when = ev.get("date") or ""
         venue = ev.get("venue") or ""
-        img = ev.get("hero_image_url") or ev.get("poster_image") or ""
+        img = _make_absolute_url(ev.get("hero_image_url") or ev.get("poster_image") or "")
         img_html = f"<img src='{img}' alt='' style='width:100%;height:auto;display:block;border-radius:10px 10px 0 0;' />" if img else ""
         badge = "FREE ENTRY" if float((ev.get("registration") or {}).get("fee") or 0) <= 0 else f"₹{float((ev.get('registration') or {}).get('fee') or 0):,.0f} ENTRY"
         cards.append(
@@ -110,7 +122,7 @@ def build_newsletter_html(
     upcoming_events: list,
 ) -> str:
     hero_html = (
-        f"<img src='{hero_image}' alt='' style='width:100%;height:auto;display:block;border-radius:12px;margin:0 0 20px 0;' />"
+        f"<img src='{_make_absolute_url(hero_image)}' alt='' style='width:100%;height:auto;display:block;border-radius:12px;margin:0 0 20px 0;' />"
         if hero_image else ""
     )
     intro_html = (
@@ -540,5 +552,36 @@ async def send_individual_notification(
             result["in_app"] = "fail"
 
     result["ok"] = True
+
+    # Log to email_campaigns so send history shows individual notifications too
+    campaign = {
+        "campaign_id": f"ind_{secrets.token_hex(6)}",
+        "subject": payload.subject or payload.title,
+        "hero_image": "",
+        "intro": "",
+        "body": payload.body,
+        "cta_text": "",
+        "cta_url": payload.cta_url or "",
+        "include_upcoming": False,
+        "channels": {
+            "email": payload.send_email,
+            "push": payload.send_push,
+            "in_app": payload.send_in_app,
+        },
+        "recipients_count": 1,
+        "sent": True,
+        "status": "completed",
+        "email_ok": 1 if result.get("email") == "ok" else 0,
+        "email_fail": 1 if result.get("email") == "fail" else 0,
+        "push_ok": 1 if result.get("push") == "ok" else 0,
+        "push_fail": 1 if result.get("push") == "fail" else 0,
+        "in_app_ok": 1 if result.get("in_app") == "ok" else 0,
+        "attempts": [{"email": user_email, "user_id": user_id, "email": result.get("email", ""), "push": result.get("push", ""), "in_app": result.get("in_app", "")}],
+        "created_at": _now(),
+        "completed_at": _now(),
+        "created_by": (user or {}).get("email") or "admin",
+        "individual": True,
+    }
+    await db.email_campaigns.insert_one(campaign)
     result["message"] = f"Notification sent to {user_doc.get('full_name') or user_email}"
     return result

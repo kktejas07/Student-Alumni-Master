@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Bot, Users, CalendarDays, Wallet, Briefcase, FileText, Map } from "lucide-react-native";
+import { Bot, Users, CalendarDays, Gift, Briefcase, FileText, Map } from "lucide-react-native";
 
 const features = [
   {
@@ -27,18 +27,18 @@ const features = [
     num: "03",
   },
   {
-    icon: Wallet,
-    title: "Wallet",
-    badge: "💰 Earn & Redeem",
-    desc: "Earn K-Credits for every action. Unlock premium mentorship, courses, and exclusive merch.",
+    icon: Gift,
+    title: "Student Perks",
+    badge: "🎁 Exclusive Deals",
+    desc: "Unlock exclusive student deals and discounts on mentorship, courses, and partner services.",
     span: "",
     num: "04",
   },
   {
     icon: Briefcase,
-    title: "Internships",
+    title: "Career Opportunities",
     badge: "✅ Verified",
-    desc: "Personalized internship feed sourced from partner companies and warm alumni referrals.",
+    desc: "Personalized opportunity feed sourced from partner companies and warm alumni referrals.",
     span: "",
     num: "05",
   },
@@ -94,7 +94,7 @@ export function Features() {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="mt-6 text-lg text-gray-400 max-w-xl font-medium"
           >
-            Everything from your first internship to your full-time offer in one intelligent platform.
+            Everything from your first job match to your full-time offer in one intelligent platform.
           </motion.p>
         </div>
 

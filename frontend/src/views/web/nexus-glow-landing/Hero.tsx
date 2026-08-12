@@ -2,12 +2,23 @@ import { motion } from "framer-motion";
 import { ArrowUpRight, Sparkles } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { AgentK3D } from "./AgentK3D";
+import { useBreakpoint } from "@/src/theme/breakpoints";
 
 export function Hero() {
   const router = useRouter();
+  const { atLeast } = useBreakpoint();
+  const isLargeScreen = atLeast("lg");
+  const isMediumScreen = atLeast("md");
+
+  const paddingTop = isLargeScreen ? 160 : isMediumScreen ? 140 : 120;
+  const paddingBottom = isLargeScreen ? 120 : isMediumScreen ? 100 : 80;
 
   return (
-    <section id="hero" className="relative overflow-hidden pt-36 pb-20 md:pt-48 md:pb-32 flex flex-col items-center justify-center">
+    <section
+      id="hero"
+      className="relative overflow-hidden flex flex-col items-center justify-center"
+      style={{ paddingTop, paddingBottom }}
+    >
       <div className="mx-auto max-w-7xl px-6 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-8 items-center relative z-10 w-full">
 
         {/* Left Side: Headline, Subheading & CTAs */}
@@ -19,7 +30,7 @@ export function Hero() {
             className="inline-flex items-center gap-2 text-[11px] font-bold tracking-[0.15em] uppercase mb-8"
             style={{ color: "#4f46e5" }}
           >
-            <Sparkles className="h-3.5 w-3.5" style={{ color: "#4f46e5" }} />
+            <Sparkles className="h-3.5 w-3.5" color="#4f46e5" />
             <span>AI Career Platform for Students</span>
           </motion.div>
 
@@ -40,7 +51,7 @@ export function Hero() {
             transition={{ duration: 0.9, delay: 0.25 }}
             className="mt-6 text-base md:text-xl text-gray-300 leading-relaxed font-medium max-w-xl"
           >
-            Meet Agent K your always-on career copilot. Connect with mentors, discover events and internships, polish your resume, and follow a personalized roadmap built for the way students actually work today.
+            Meet Agent K your always-on career copilot. Connect with mentors, discover events and career opportunities, polish your resume, and follow a personalized roadmap built for the way students actually work today.
           </motion.p>
 
           {/* CTA Buttons */}

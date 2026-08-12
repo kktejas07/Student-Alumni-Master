@@ -8,7 +8,8 @@
  * • All existing routing, state, props, API calls preserved 1:1
  */
 import React, { useState, createContext, useContext } from 'react';
-import { View, ScrollView, StyleSheet, NativeSyntheticEvent, NativeScrollEvent, Platform } from 'react-native';
+import { View, ScrollView, StyleSheet, NativeSyntheticEvent, NativeScrollEvent, Platform, Pressable, Text } from 'react-native';
+import { LayoutDashboard, Sparkles, Users, Calendar, User } from 'lucide-react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
@@ -116,7 +117,7 @@ function PortalShell() {
             <TopBar scrolled={scrolled} activeView={active} onAvatarPress={() => handleNav('profile')} onBellPress={() => setShowNotifs(!showNotifs)} />
             <ScrollView
               style={{ flex: 1 }}
-              contentContainerStyle={{ flexGrow: 1, paddingHorizontal: padH, paddingTop: SP.lg }}
+              contentContainerStyle={{ flexGrow: 1, paddingHorizontal: padH, paddingTop: SP.lg, paddingBottom: bp.isPhone ? 80 : 0 }}
               showsVerticalScrollIndicator={false}
               onScroll={onScroll}
               scrollEventThrottle={16}
@@ -156,6 +157,29 @@ function PortalShell() {
           {/* Global AI Copilot FAB — visible on every Student screen */}
           <AiCopilotFab onPress={() => router.push('/agent-k')} />
         </View>
+
+        {/* Mobile bottom-tab bar (phone only) */}
+        {bp.isPhone && (
+          <View style={[s.mobileNav, { borderTopColor: 'rgba(167,139,250,0.15)' }]}>
+            {[
+              { id: 'dashboard', Icon: LayoutDashboard, label: 'Home' },
+              { id: 'career-ai', Icon: Sparkles, label: 'AI' },
+              { id: 'network', Icon: Users, label: 'Network' },
+              { id: 'events', Icon: Calendar, label: 'Events' },
+              { id: 'profile', Icon: User, label: 'Profile' },
+            ].map(({ id, Icon, label }) => (
+              <Pressable
+                key={id}
+                onPress={() => handleNav(id)}
+                style={[s.navItem, active === id && s.navItemActive]}
+              >
+                <Icon size={20} color={active === id ? '#A78BFA' : 'rgba(255,255,255,0.4)'} />
+                <Text style={[s.navLabel, active === id && s.navLabelActive]}>{label}</Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
+
         {showNotifs && (
           <StudentNotificationsPanel
             onClose={() => setShowNotifs(false)}
@@ -172,4 +196,44 @@ function PortalShell() {
 
 const s = StyleSheet.create({
   shell: { flex: 1, flexDirection: 'row', height: '100%' as any },
+  mobileNav: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(167,139,250,0.15)',
+    backgroundColor: 'rgba(10,15,30,0.95)',
+    paddingBottom: 8,
+    paddingTop: 6,
+    paddingHorizontal: 2,
+    ...(Platform.OS === 'web' ? ({
+      position: 'fixed' as any,
+      bottom: 0,
+      left: 0,
+      right: 0,
+      zIndex: 100,
+      backdropFilter: 'blur(20px) saturate(180%)',
+      WebkitBackdropFilter: 'blur(20px) saturate(160%)',
+    } as any) : {}),
+  },
+  navItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+    paddingVertical: 4,
+    minWidth: 0,
+    cursor: Platform.OS === 'web' ? ('pointer' as any) : undefined,
+  },
+  navItemActive: {
+    opacity: 1,
+  },
+  navLabel: {
+    fontFamily: 'DMSans_500Medium',
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.4)',
+    textAlign: 'center',
+  },
+  navLabelActive: {
+    color: '#A78BFA',
+    fontFamily: 'DMSans_700Bold',
+  },
 });
