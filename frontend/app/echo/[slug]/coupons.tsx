@@ -148,7 +148,9 @@ export default function EchoCouponsPage() {
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={s.couponName}>{c.session_name}</Text>
-                        <Text style={s.couponCode}>{c.coupon_code}</Text>
+                        <Text style={[s.couponCode, c.session_locked && { color: 'rgba(255,255,255,0.25)', letterSpacing: 3 }]}>
+                          {c.session_locked ? '****-****-****' : c.coupon_code}
+                        </Text>
                       </View>
                       {c.used ? (
                         <View style={[s.statusBadge, { backgroundColor: 'rgba(16,185,129,0.15)' }]}>
