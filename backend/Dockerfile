@@ -37,12 +37,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-COPY requirements.txt .
 RUN pip install --upgrade pip && \
     pip install -r requirements.txt && \
     pip install "uvicorn[standard]" gunicorn && \
-    # Install Playwright's headless Chromium browser (needed for PDF generation)
-    playwright install chromium --with-deps
+    # Install Playwright Chromium to a shared path accessible by appuser
+    PLAYWRIGHT_BROWSERS_PATH=/app/.playwright playwright install chromium --with-deps
 
 COPY . .
 
@@ -56,4 +55,5 @@ HEALTHCHECK --interval=30s --timeout=8s --start-period=20s --retries=3 \
     CMD curl -fsS http://localhost:8000/api/health || exit 1
 
 ENV UVICORN_WORKERS=2
+ENV PLAYWRIGHT_BROWSERS_PATH=/app/.playwright
 CMD ["sh", "-c", "uvicorn server:app --host 0.0.0.0 --port 8000 --workers ${UVICORN_WORKERS} --proxy-headers --forwarded-allow-ips '*'"]
