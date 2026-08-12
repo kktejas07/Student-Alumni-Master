@@ -515,6 +515,9 @@ class SchoolInfo(BaseModel):
     class_or_year: Optional[str] = None
     branch_or_stream: Optional[str] = None
     board_or_university: Optional[str] = None
+    department: Optional[str] = None
+    stream: Optional[str] = None
+    branch: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = None
     country: str = "India"

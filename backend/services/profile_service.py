@@ -16,11 +16,13 @@ def compute_profile_completion(u: dict) -> dict:
             {"key": "socials", "label": "Social Links", "done": bool(u.get("linkedin_url")), "weight": 20},
         ]
     else:
-        inst_done = bool((u.get("institution") or (u.get("school_info") or {}).get("institution_name") or "").strip()) and bool((u.get("branch") or (u.get("school_info") or {}).get("branch_or_stream") or "").strip())
+        inst_done = bool((u.get("institution") or (u.get("school_info") or {}).get("institution_name") or "").strip())
+        academic_done = bool((u.get("branch") or (u.get("school_info") or {}).get("branch_or_stream") or u.get("stream") or "").strip()) and bool((u.get("class_or_year") or u.get("year_of_study") or u.get("year") or (u.get("school_info") or {}).get("class_or_year") or "").strip()) and bool((u.get("board_or_university") or (u.get("school_info") or {}).get("board_or_university") or "").strip())
         account_done = bool((u.get("email") or u.get("full_name") or "").strip())
         items = [
             {"key": "account", "label": "Account registered", "done": account_done, "weight": 15},
-            {"key": "education", "label": "Education/College details", "done": inst_done, "weight": 15},
+            {"key": "education", "label": "College / Institution", "done": inst_done, "weight": 5},
+            {"key": "academic", "label": "Academic Details (Stream, Year, Board)", "done": academic_done, "weight": 10},
             {"key": "skills", "label": "Skills listed", "done": len(u.get("skills") or []) > 0, "weight": 20},
             {"key": "resume", "label": "Resume uploaded", "done": len(u.get("resume_documents") or []) > 0 or bool(u.get("resume_url")) or bool(u.get("resume_data")), "weight": 15},
             {"key": "projects", "label": "Projects added", "done": len(u.get("projects") or []) > 0, "weight": 15},

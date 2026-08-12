@@ -284,20 +284,10 @@ export function Sidebar({
       {/* Profile card */}
       {!collapsed && (
         <FadeInView delay={70}>
-          <PressScale onPress={() => onNav('profile')} style={s.profileCard}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: SP.md }}>
-              <View style={{ position: 'relative' }}>
-                <Av initials={initials} size={40} color={C.accent} photo={photo} />
-                <View style={[s.statusDotWrap, { backgroundColor: C.bg }]}>
-                  <PulseDot size={10} color={theme.green} />
-                </View>
-              </View>
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text numberOfLines={1} style={[s.profileName, { color: C.text }]}>{fullName}</Text>
-                <Text style={[s.profileYear, { color: C.textSec }]}>{yearLabel}</Text>
-              </View>
-            </View>
-          </PressScale>
+          <View style={[s.profileCard, { alignItems: 'center', ...(Platform.OS === 'web' ? { cursor: 'default' } : {}) }]}>
+            <Text numberOfLines={1} style={[s.profileName, { color: C.text, textAlign: 'center' }]}>{fullName}</Text>
+            <Text style={[s.profileYear, { color: C.textSec, textAlign: 'center', marginTop: 2 }]}>{yearLabel}</Text>
+          </View>
         </FadeInView>
       )}
 

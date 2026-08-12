@@ -85,14 +85,10 @@ export function Sidebar({
       </View>
 
       {/* Profile card — opens settings/profile in same tab */}
-      <Pressable onPress={() => onNav('settings')} style={s.profileCard}>
-        <Av initials={profile.initials} size={38} color={SAC.primary} />
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text numberOfLines={1} style={s.profileName}>{profile.name}</Text>
-          <Text numberOfLines={1} style={s.profileRole}>{profile.role}</Text>
-        </View>
-        <ExternalLink size={13} color={SAC.muted} />
-      </Pressable>
+      <View style={[s.profileCard, { alignItems: 'center' }]}>
+        <Text numberOfLines={1} style={[s.profileName, { textAlign: 'center' }]}>{profile.name}</Text>
+        <Text numberOfLines={1} style={[s.profileRole, { textAlign: 'center', marginTop: 2 }]}>{profile.role}</Text>
+      </View>
 
       {/* Agent K launcher */}
       <AgentKLauncher />
@@ -148,7 +144,7 @@ export function Sidebar({
         style={({ hovered }: any) => [s.footer, hovered && { backgroundColor: 'rgba(239,68,68,0.10)' }]}
         testID="logout-button"
       >
-        <Av initials={profile.initials} size={32} color={SAC.primaryD} />
+
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text numberOfLines={1} style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>{profile.name}</Text>
           <Text numberOfLines={1} style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 10.5 }}>{profile.email}</Text>

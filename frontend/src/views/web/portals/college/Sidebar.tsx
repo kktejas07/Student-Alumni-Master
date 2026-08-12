@@ -88,20 +88,15 @@ export function Sidebar({
       </View>
 
       {/* College card */}
-      <View style={s.collegeCard}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <Av photo={user?.college_logo_data || user?.college_info?.logo || user?.school_info?.logo || null} initials={collegeInitials} size={40} color="#6366F1" />
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={s.collegeName}>{collegeName}</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 }}>
-              <Text style={s.collegeRole}>Admin ·</Text>
-              <Badge label={collegeRank} color="cyan" />
-            </View>
-          </View>
+      <View style={[s.collegeCard, { alignItems: 'center' }]}>
+        <Text style={[s.collegeName, { textAlign: 'center' }]}>{collegeName}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 3 }}>
+          <Text style={s.collegeRole}>Admin ·</Text>
+          <Badge label={collegeRank} color="cyan" />
         </View>
-      </View>
+    </View>
 
-      {/* Admin card pill */}
+    {/* Admin card pill */}
       <Pressable
         onPress={() => router.push('/id-card')}
         style={({ hovered }: any) => [s.idCardPill, hovered && { backgroundColor: CC.cardH }]}
