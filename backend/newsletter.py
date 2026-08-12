@@ -552,5 +552,36 @@ async def send_individual_notification(
             result["in_app"] = "fail"
 
     result["ok"] = True
+
+    # Log to email_campaigns so send history shows individual notifications too
+    campaign = {
+        "campaign_id": f"ind_{secrets.token_hex(6)}",
+        "subject": payload.subject or payload.title,
+        "hero_image": "",
+        "intro": "",
+        "body": payload.body,
+        "cta_text": "",
+        "cta_url": payload.cta_url or "",
+        "include_upcoming": False,
+        "channels": {
+            "email": payload.send_email,
+            "push": payload.send_push,
+            "in_app": payload.send_in_app,
+        },
+        "recipients_count": 1,
+        "sent": True,
+        "status": "completed",
+        "email_ok": 1 if result.get("email") == "ok" else 0,
+        "email_fail": 1 if result.get("email") == "fail" else 0,
+        "push_ok": 1 if result.get("push") == "ok" else 0,
+        "push_fail": 1 if result.get("push") == "fail" else 0,
+        "in_app_ok": 1 if result.get("in_app") == "ok" else 0,
+        "attempts": [{"email": user_email, "user_id": user_id, "email": result.get("email", ""), "push": result.get("push", ""), "in_app": result.get("in_app", "")}],
+        "created_at": _now(),
+        "completed_at": _now(),
+        "created_by": (user or {}).get("email") or "admin",
+        "individual": True,
+    }
+    await db.email_campaigns.insert_one(campaign)
     result["message"] = f"Notification sent to {user_doc.get('full_name') or user_email}"
     return result
