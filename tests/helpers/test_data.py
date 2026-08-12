@@ -2,7 +2,10 @@ import time
 import os
 
 BASE_URL = os.environ.get("BASE_URL", "http://localhost:8081")
-MONGO_URL = os.environ.get('MONGO_URL', 'mongodb+srv://studentalumniadmin_db_user:wDruHz5sCPoEVuFy@studentalumniadmin.hhu4uao.mongodb.net/?appName=studentalumniadmin')
+# IMPORTANT: never commit real credentials. MONGO_URL must be supplied via
+# environment variable in CI/runtime — the fallback here is a local placeholder
+# only (tests should not rely on a shared Atlas cluster).
+MONGO_URL = os.environ.get('MONGO_URL', 'mongodb://localhost:27017/studentalumniadmin')
 DB_NAME = os.environ.get('DB_NAME', 'studentalumniadmin')
 
 VALID_STUDENT = {

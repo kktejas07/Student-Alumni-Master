@@ -710,6 +710,11 @@ const s = StyleSheet.create({
     letterSpacing: 1,
     marginBottom: 4,
   },
+  cardTitle: {
+    color: '#fff',
+    fontFamily: FONTS.bold,
+    fontSize: 13,
+  },
   hugeValue: {
     color: '#fff',
     fontFamily: FONTS.xbold,

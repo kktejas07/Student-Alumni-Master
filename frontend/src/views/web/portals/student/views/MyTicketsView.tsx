@@ -97,7 +97,7 @@ export function MyTicketsView() {
     try {
       const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
       const token = await tokenStore.getAccess();
-      const resp = await fetch(`${base}/api/echo/tickets/${regId}`, {
+      const resp = await fetch(`${base}/api/echo/tickets/${regId}?format=json`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!resp.ok) throw new Error('not available');
@@ -189,7 +189,9 @@ export function MyTicketsView() {
                           <Text style={[s.couponName, c.used && s.couponNameUsed]} numberOfLines={1}>
                             {c.session_name || c.session_key}
                           </Text>
-                          <Text style={s.couponCode}>{c.coupon_code}</Text>
+                          <Text style={[s.couponCode, c.session_locked && { color: 'rgba(255,255,255,0.25)', letterSpacing: 3 }]}>
+                            {c.session_locked ? '****' : c.coupon_code}
+                          </Text>
                         </View>
                       </Pressable>
                     ))}
@@ -255,20 +257,29 @@ export function MyTicketsView() {
               </View>
               <View style={{ alignItems: 'center', gap: 12 }}>
                 <Ticket size={40} color={previewCoupon.session_locked ? '#F59E0B' : '#A78BFA'} />
-                <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 24, letterSpacing: 2 }}>
-                  {previewCoupon.coupon_code}
+                <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 24, letterSpacing: previewCoupon.session_locked ? 3 : 2 }}>
+                  {previewCoupon.session_locked ? '****-****-****' : previewCoupon.coupon_code}
                 </Text>
                 <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 13 }}>
                   {previewCoupon.session_locked ? 'This session is currently locked' : previewCoupon.used ? 'Already used' : 'Show this code at the venue'}
                 </Text>
-                {/* QR Code image */}
-                {previewCoupon.coupon_code && (
+                {/* QR Code image — only when unlocked */}
+                {!previewCoupon.session_locked && previewCoupon.coupon_code && (
                   <View style={{ marginTop: 8, padding: 12, backgroundColor: '#fff', borderRadius: 12 }}>
                     <img
                       src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`${typeof window !== 'undefined' ? window.location.origin : 'https://studentalumni.ai'}/echo/scan/${previewCoupon.coupon_code}`)}`}
                       alt={`QR code for ${previewCoupon.coupon_code}`}
                       style={{ width: 200, height: 200 }}
                     />
+                  </View>
+                )}
+                {previewCoupon.session_locked && (
+                  <View style={{ marginTop: 8, padding: 20, backgroundColor: 'rgba(245,158,11,0.08)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(245,158,11,0.2)', alignItems: 'center', gap: 8 }}>
+                    <Lock size={28} color="#F59E0B" />
+                    <Text style={{ color: '#FCD34D', fontFamily: FONTS.bold, fontSize: 14 }}>Not yet released</Text>
+                    <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 12, textAlign: 'center' }}>
+                      This session coupon will be available when the session opens.
+                    </Text>
                   </View>
                 )}
                 <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 10, marginTop: 4 }}>

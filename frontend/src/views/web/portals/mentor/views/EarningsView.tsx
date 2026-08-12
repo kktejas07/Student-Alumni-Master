@@ -27,7 +27,8 @@ import {
   Check, 
   FileText, 
   TrendingUp, 
-  ArrowRight
+  ArrowRight,
+  Lock
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MC, FONTS } from '../tokens';

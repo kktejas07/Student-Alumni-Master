@@ -57,6 +57,35 @@ export const tokenStore = {
 };
 
 // ----- HTTP wrapper -----
+
+// Single-flight lock: concurrent 401s all wait on one in-flight refresh.
+let refreshInFlight: Promise<string | null> | null = null;
+
+async function refreshAccessToken(): Promise<string | null> {
+  if (refreshInFlight) return refreshInFlight;
+  refreshInFlight = (async () => {
+    const refreshToken = await tokenStore.getRefresh();
+    if (!refreshToken) return null;
+    try {
+      const res = await fetch(`${BASE_URL}/api/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (!data.access_token) return null;
+      await tokenStore.setTokens(data.access_token, refreshToken);
+      return data.access_token;
+    } catch {
+      return null;
+    } finally {
+      refreshInFlight = null;
+    }
+  })();
+  return refreshInFlight;
+}
+
 export async function request<T>(
   path: string,
   options: { method?: string; body?: any; auth?: boolean } = {},
@@ -100,32 +129,26 @@ export async function request<T>(
     data = { raw: text };
   }
 
-  // On 401, do a one-shot retry — gives AsyncStorage one more chance to
-  // surface a token that was just persisted in the background.
+  // On 401, exchange the refresh token for a fresh access token and retry
+  // once. If the refresh fails (expired/revoked), fall through to the error
+  // path below.
   if (res.status === 401 && auth) {
-    const t2 = await tokenStore.getAccess();
-    if (t2 && t2 !== token) {
-      if (Platform.OS !== 'web') {
-        await new Promise((r) => setTimeout(r, 350));
-      }
-      // Re-fetch token in case it changed during sleep
-      const t3 = await tokenStore.getAccess();
-      if (t3) {
-        const r2 = await fetch(`${BASE_URL}/api${path}`, {
-          method,
-          headers: { ...headers, Authorization: `Bearer ${t3}` },
-          body: body ? JSON.stringify(body) : undefined,
-        });
-        const t = await r2.text();
-        let d: any;
-        try { d = t ? JSON.parse(t) : {}; } catch { d = { raw: t }; }
-        if (r2.ok) return d as T;
-        const detail2 = d?.detail;
-        const msg2 = typeof detail2 === 'string'
-          ? detail2
-          : detail2?.msg || `Request failed (${r2.status})`;
-        throw new Error(msg2);
-      }
+    const fresh = await refreshAccessToken();
+    if (fresh) {
+      const r2 = await fetch(`${BASE_URL}/api${path}`, {
+        method,
+        headers: { ...headers, Authorization: `Bearer ${fresh}` },
+        body: body ? (isFormData ? body : JSON.stringify(body)) : undefined,
+      });
+      const t = await r2.text();
+      let d: any;
+      try { d = t ? JSON.parse(t) : {}; } catch { d = { raw: t }; }
+      if (r2.ok) return d as T;
+      const detail2 = d?.detail;
+      const msg2 = typeof detail2 === 'string'
+        ? detail2
+        : detail2?.msg || `Request failed (${r2.status})`;
+      throw new Error(msg2);
     }
   }
 
@@ -195,6 +218,8 @@ export const api = {
     request<any>(`/users/${userId}/public-profile`),
 
   // AI
+  getCareerIntelligence: () => request<any>('/users/me/skill-intelligence'),
+
   getCareerSuggestions: (additional_context?: string) =>
     request<any>('/ai/career-suggestions', {
       method: 'POST',

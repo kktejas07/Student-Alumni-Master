@@ -28,12 +28,12 @@ import json
 import secrets
 import mimetypes
 from pathlib import Path
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date as _date
 from typing import Any, Dict, List, Optional
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, Request, File, UploadFile, Query
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from core.security import (
     generate_qr_code,
@@ -41,7 +41,7 @@ from core.security import (
     hash_password,
     encrypt_value,
 )
-from core.email import send_email, render_html_email
+from core.email import send_email, render_html_email, generate_pdf_from_html
 
 router = APIRouter(prefix="/api/echo", tags=["echo-showcase"])
 
@@ -87,9 +87,9 @@ def _generate_coupon_code(session_key: str, reg_id: str) -> str:
     return f"{session_key.upper()}-{h}"
 
 
-def _generate_coupons_for_registration(db, slug: str, reg_id: str, sessions: list):
+async def _generate_coupons_for_registration(db, slug: str, reg_id: str, sessions: list):
     """Generate coupon records for all enabled sessions."""
-    from datetime import datetime, timezone
+    from datetime import timezone
     coupons = []
     for s in sessions:
         if not s.get("enabled"):
@@ -107,7 +107,7 @@ def _generate_coupons_for_registration(db, slug: str, reg_id: str, sessions: lis
             "created_at": datetime.now(timezone.utc),
         })
     if coupons:
-        db.echo_coupons.insert_many(coupons)
+        await db.echo_coupons.insert_many(coupons)
     return coupons
 
 
@@ -148,7 +148,7 @@ def _oid(v: str) -> ObjectId:
         raise HTTPException(status_code=400, detail=f"Invalid id: {v}")
 
 
-def _ser(doc: dict) -> dict:
+def _ser(doc: Optional[dict]) -> dict:
     """Recursively serialise ObjectId → str for JSON responses."""
     if doc is None:
         return {}
@@ -211,7 +211,7 @@ async def _razorpay_create_order(db, amount: float, currency: str, receipt: str,
                 "https://api.razorpay.com/v1/orders",
                 auth=(cfg["key_id"], cfg["key_secret"]),
                 json={
-                    "amount": int(round(amount * 100)),
+                    "amount": round(amount * 100),
                     "currency": currency,
                     "receipt": receipt,
                     "notes": notes,
@@ -257,7 +257,7 @@ async def _razorpay_verify_webhook_signature(db, body: bytes, signature: str) ->
     return hmac.compare_digest(expected, (signature or ""))
 
 
-async def _finalize_paid_registration(db, reg: dict, showcase: dict, payment_id: str) -> Optional[dict]:
+async def _finalize_paid_registration(db, reg: dict, showcase: Optional[dict], payment_id: str) -> Optional[dict]:
     """Shared logic to mark a pending ECHO registration paid, generate its QR,
     mirror to event_registrations, and email the invoice. Idempotent.
     """
@@ -310,12 +310,12 @@ async def _finalize_paid_registration(db, reg: dict, showcase: dict, payment_id:
     invoice = await _store_invoice_and_email(db, updated_ser, showcase)
     # Generate session coupons for paid registrations
     sessions = (showcase or {}).get("sessions") or []
-    if sessions:
-        await _generate_coupons_for_registration(db, canonical_slug, reg.get("id"), sessions)
+    if sessions and canonical_slug and reg.get("id"):
+        await _generate_coupons_for_registration(db, str(canonical_slug), str(reg.get("id")), sessions)
     return {**updated_ser, "invoice": invoice}
 
 
-def _payment_label(method: str) -> str:
+def _payment_label(method: Optional[str]) -> str:
     return {
         "upi": "UPI",
         "card": "Credit / Debit Card",
@@ -325,12 +325,12 @@ def _payment_label(method: str) -> str:
     }.get(method or "", (method or "").title())
 
 
-def _parse_iso(s: str):
+def _parse_iso(s: Optional[str]):
     """Parse an ISO 8601 string to an aware datetime. Returns None if unparseable."""
     if not s:
         return None
     try:
-        dt = datetime.fromisoformat(str(s).replace("Z", "+00:00"))
+        dt = datetime.fromisoformat(s.replace("Z", "+00:00"))
     except Exception:
         return None
     if dt.tzinfo is None:
@@ -372,7 +372,8 @@ async def _send_registration_confirmation(db, reg: dict, showcase: dict) -> None
             return
         title = reg.get("showcase_title") or showcase.get("title") or "Event Registration"
         reg_id = reg.get("id") or ""
-        ticket_url = f"https://studentalumni.ai/api/echo/tickets/{reg_id}"
+        import urllib.parse
+        ticket_url = f"https://studentalumni.ai/api/echo/tickets/{reg_id}?email={urllib.parse.quote(email)}"
         ticket_block = _ticket_email_block(reg, showcase, ticket_url)
         subject = f"Your Entry Pass — {title}"
         body = render_html_email(
@@ -402,7 +403,7 @@ async def _send_registration_confirmation(db, reg: dict, showcase: dict) -> None
         print(f"[ECHO] Confirmation email error: {e}")
 
 
-def _build_invoice(reg: dict, showcase: dict) -> dict:
+def _build_invoice(reg: dict, showcase: Optional[dict]) -> dict:
     """Build a normalized invoice record from a registration + showcase."""
     payment = reg.get("payment") or {}
     fee = float(reg.get("fee") or 0)
@@ -410,7 +411,7 @@ def _build_invoice(reg: dict, showcase: dict) -> dict:
     invoice_no = f"INV-{(reg.get('id') or str(reg.get('_id') or ''))[-10:].upper()}"
     items = [
         {
-            "desc": f"Registration — {showcase.get('title') or reg.get('showcase_title')}",
+            "desc": f"Registration — {(showcase or {}).get('title') or reg.get('showcase_title')}",
             "qty": 1,
             "amount": fee,
         }
@@ -419,9 +420,9 @@ def _build_invoice(reg: dict, showcase: dict) -> dict:
         "invoice_no": invoice_no,
         "reg_id": reg.get("id"),
         "slug": reg.get("slug"),
-        "event_title": showcase.get("title") or reg.get("showcase_title"),
-        "event_date": showcase.get("date") or "",
-        "event_venue": showcase.get("venue") or "",
+        "event_title": (showcase or {}).get("title") or reg.get("showcase_title"),
+        "event_date": (showcase or {}).get("date") or "",
+        "event_venue": (showcase or {}).get("venue") or "",
         "full_name": reg.get("full_name"),
         "email": reg.get("email"),
         "phone": reg.get("phone"),
@@ -463,110 +464,6 @@ def _build_invoice_html(inv: dict, template_id: str = "modern") -> str:
     paid_at = inv.get("paid_at") or ""
     if paid_at and "T" in str(paid_at):
         paid_at = str(paid_at)[:16].replace("T", " ")
-    return f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
-<title>Invoice {esc(inv.get('invoice_no'))}</title>
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
-  body {{ padding:32px; background:#0f172a; font-family:'Inter',-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:#0f172a; -webkit-print-color-adjust:exact; print-color-adjust:exact; }}
-  .sheet {{ max-width:720px; margin:0 auto; background:#fff; border-radius:18px; overflow:hidden; border:1px solid rgba(0,0,0,0.04); box-shadow:0 25px 60px rgba(0,0,0,0.25); }}
-  .head {{ background:linear-gradient(135deg,#7C3AED 0%,#5B21B6 100%); color:#fff; padding:32px 36px; }}
-  .head-brand {{ font-size:10px; font-weight:800; letter-spacing:3px; opacity:.6; }}
-  .head h1 {{ margin:8px 0 0; font-size:28px; font-weight:900; letter-spacing:-0.3px; }}
-  .head-meta {{ display:flex; align-items:center; gap:12px; margin-top:10px; flex-wrap:wrap; }}
-  .head-pill {{ background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.2); padding:4px 12px; border-radius:999px; font-size:12px; font-weight:600; }}
-  .body {{ padding:32px 36px; }}
-  .meta-grid {{ display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:28px; }}
-  .meta-col {{ }}
-  .meta-label {{ font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:1.2px; color:#94a3b8; margin-bottom:6px; }}
-  .meta-val {{ font-size:15px; font-weight:700; color:#0f172a; line-height:1.3; }}
-  .meta-sub {{ font-size:12px; color:#64748b; margin-top:2px; line-height:1.4; }}
-  table.items {{ width:100%; border-collapse:collapse; margin-top:4px; }}
-  table.items th {{ text-align:left; padding:10px 16px; background:#f8fafc; color:#64748b; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.8px; border-bottom:2px solid #f1f5f9; }}
-  table.items th.r, table.items td.r {{ text-align:right; }}
-  .total-section {{ margin-top:24px; display:flex; justify-content:flex-end; }}
-  .total-box {{ background:#f8fafc; border:1px solid #e2e8f0; border-radius:14px; padding:18px 24px; text-align:right; min-width:220px; }}
-  .total-label {{ font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#94a3b8; }}
-  .total-amt {{ font-size:28px; font-weight:900; color:#7C3AED; margin-top:4px; letter-spacing:-0.5px; }}
-  .total-currency {{ font-size:14px; font-weight:600; color:#a78bfa; }}
-  .divider {{ height:1px; background:linear-gradient(90deg,transparent,#e2e8f0,transparent); margin:24px 0; }}
-  .foot {{ padding:24px 36px; background:#f8fafc; border-top:1px solid #f1f5f9; }}
-  .foot-text {{ font-size:11px; color:#94a3b8; line-height:1.7; }}
-  .foot-brand {{ font-size:9px; font-weight:800; letter-spacing:2px; color:#cbd5e1; margin-top:12px; }}
-  @media print {{
-    body {{ background:#fff; padding:0; }}
-    .sheet {{ border:none; border-radius:0; box-shadow:none; max-width:100%; }}
-  }}
-</style>
-</head>
-<body>
-  <div class="sheet">
-    <div class="head">
-      <div class="head-brand">STUDENT ALUMNI · ECHO</div>
-      <h1>Payment Invoice</h1>
-      <div class="head-meta">
-        <span class="head-pill">INV: {esc(inv.get('invoice_no'))}</span>
-        <span class="head-pill" style="background:rgba(52,211,153,0.2);border-color:rgba(52,211,153,0.3);color:#6ee7b7;">PAID</span>
-        {f'<span class="head-pill">Paid {esc(paid_at)}</span>' if paid_at else ''}
-      </div>
-    </div>
-    <div class="body">
-      <div class="meta-grid">
-        <div class="meta-col">
-          <div class="meta-label">Billed To</div>
-          <div class="meta-val">{esc(inv.get('full_name') or 'Attendee')}</div>
-          <div class="meta-sub">{esc(inv.get('email') or '')}</div>
-          <div class="meta-sub">{esc(inv.get('phone') or '')}</div>
-          {f'<div class="meta-sub">{esc(inv.get("college") or "")}</div>' if inv.get('college') else ''}
-        </div>
-        <div class="meta-col">
-          <div class="meta-label">Event</div>
-          <div class="meta-val">{esc(inv.get('event_title') or '')}</div>
-          <div class="meta-sub">{esc(inv.get('event_date') or '')}</div>
-          <div class="meta-sub">{esc(inv.get('event_venue') or '')}</div>
-        </div>
-      </div>
-      <div class="meta-grid" style="margin-bottom:0;">
-        <div class="meta-col">
-          <div class="meta-label">Payment ID</div>
-          <div class="meta-val" style="font-size:13px;letter-spacing:.5px;">{esc(inv.get('payment_id') or '—')}</div>
-        </div>
-        <div class="meta-col">
-          <div class="meta-label">Payment Method</div>
-          <div class="meta-val" style="font-size:13px;">{_payment_label(inv.get('payment_method'))}</div>
-        </div>
-      </div>
-
-      <div class="divider"></div>
-
-      <table class="items">
-        <tr><th>Description</th><th style="text-align:center;">Qty</th><th class="r">Amount</th></tr>
-        {rows}
-      </table>
-
-      <div class="total-section">
-        <div class="total-box">
-          <div class="total-label">Total Paid</div>
-          <div class="total-amt"><span class="total-currency">{currency}</span> {amount:,.2f}</div>
-        </div>
-      </div>
-    </div>
-    <div class="foot">
-      <div class="foot-text">
-        Thank you for registering for <strong style="color:#0f172a;">{esc(inv.get('event_title') or 'our event')}</strong>.
-        Please carry this invoice and your check-in QR pass to the venue. This is a computer-generated
-        invoice and does not require a signature. For queries, contact the Student Alumni Cell.
-      </div>
-      <div class="foot-brand">STUDENT ALUMNI · ECHO</div>
-    </div>
-  </div>
-</body>
-</html>"""
-
     if template_id == "minimal":
         return f"""<!DOCTYPE html>
 <html lang="en">
@@ -687,8 +584,258 @@ def _build_invoice_html(inv: dict, template_id: str = "modern") -> str:
 </body>
 </html>"""
 
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Invoice {esc(inv.get('invoice_no'))}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+  body {{ padding:32px; background:#0f172a; font-family:'Inter',,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:#0f172a; -webkit-print-color-adjust:exact; print-color-adjust:exact; }}
+  .sheet {{ max-width:720px; margin:0 auto; background:#fff; border-radius:18px; overflow:hidden; border:1px solid rgba(0,0,0,0.04); box-shadow:0 25px 60px rgba(0,0,0,0.25); }}
+  .head {{ background:linear-gradient(135deg,#7C3AED 0%,#5B21B6 100%); color:#fff; padding:32px 36px; }}
+  .head-brand {{ font-size:10px; font-weight:800; letter-spacing:3px; opacity:.6; }}
+  .head h1 {{ margin:8px 0 0; font-size:28px; font-weight:900; letter-spacing:-0.3px; }}
+  .head-meta {{ display:flex; align-items:center; gap:12px; margin-top:10px; flex-wrap:wrap; }}
+  .head-pill {{ background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.2); padding:4px 12px; border-radius:999px; font-size:12px; font-weight:600; }}
+  .body {{ padding:32px 36px; }}
+  .meta-grid {{ display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:28px; }}
+  .meta-col {{ }}
+  .meta-label {{ font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:1.2px; color:#94a3b8; margin-bottom:6px; }}
+  .meta-val {{ font-size:15px; font-weight:700; color:#0f172a; line-height:1.3; }}
+  .meta-sub {{ font-size:12px; color:#64748b; margin-top:2px; line-height:1.4; }}
+  table.items {{ width:100%; border-collapse:collapse; margin-top:4px; }}
+  table.items th {{ text-align:left; padding:10px 16px; background:#f8fafc; color:#64748b; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.8px; border-bottom:2px solid #f1f5f9; }}
+  table.items th.r, table.items td.r {{ text-align:right; }}
+  .total-section {{ margin-top:24px; display:flex; justify-content:flex-end; }}
+  .total-box {{ background:#f8fafc; border:1px solid #e2e8f0; border-radius:14px; padding:18px 24px; text-align:right; min-width:220px; }}
+  .total-label {{ font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#94a3b8; }}
+  .total-amt {{ font-size:28px; font-weight:900; color:#7C3AED; margin-top:4px; letter-spacing:-0.5px; }}
+  .total-currency {{ font-size:14px; font-weight:600; color:#a78bfa; }}
+  .divider {{ height:1px; background:linear-gradient(90deg,transparent,#e2e8f0,transparent); margin:24px 0; }}
+  .foot {{ padding:24px 36px; background:#f8fafc; border-top:1px solid #f1f5f9; }}
+  .foot-text {{ font-size:11px; color:#94a3b8; line-height:1.7; }}
+  .foot-brand {{ font-size:9px; font-weight:800; letter-spacing:2px; color:#cbd5e1; margin-top:12px; }}
+  @media print {{
+    body {{ background:#fff; padding:0; }}
+    .sheet {{ border:none; border-radius:0; box-shadow:none; max-width:100%; }}
+  }}
+</style>
+</head>
+<body>
+  <div class="sheet">
+    <div class="head">
+      <div class="head-brand">STUDENT ALUMNI · ECHO</div>
+      <h1>Payment Invoice</h1>
+      <div class="head-meta">
+        <span class="head-pill">INV: {esc(inv.get('invoice_no'))}</span>
+        <span class="head-pill" style="background:rgba(52,211,153,0.2);border-color:rgba(52,211,153,0.3);color:#6ee7b7;">PAID</span>
+        {f'<span class="head-pill">Paid {esc(paid_at)}</span>' if paid_at else ''}
+      </div>
+    </div>
+    <div class="body">
+      <table class="meta">
+        <tr>
+          <td style="width:50%;">
+            <div class="label">Billed To</div>
+            <div class="val">{esc(inv.get('full_name') or 'Attendee')}</div>
+            <div style="color:#374151;font-size:13px;">{esc(inv.get('email') or '')}</div>
+            <div style="color:#374151;font-size:13px;">{esc(inv.get('phone') or '')}</div>
+          </td>
+          <td>
+            <div class="label">Event</div>
+            <div class="val">{esc(inv.get('event_title') or '')}</div>
+            <div style="color:#374151;font-size:13px;">{esc(inv.get('event_date') or '')}</div>
+            <div style="color:#374151;font-size:13px;">{esc(inv.get('event_venue') or '')}</div>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding-top:16px;">
+            <div class="label">Payment ID</div>
+            <div class="val">{esc(inv.get('payment_id') or '—')}</div>
+          </td>
+          <td style="padding-top:16px;">
+            <div class="label">Payment Method</div>
+            <div class="val">{_payment_label(inv.get('payment_method') or '')}</div>
+          </td>
+        </tr>
+      </table>
+
+      <table class="items">
+        <tr><th>Description</th><th style="text-align:center;">Qty</th><th class="r">Amount</th></tr>
+        {rows}
+      </table>
+
+      <div class="total-section">
+        <div class="total-box">
+          <div class="total-label">Total Paid</div>
+          <div class="total-amt"><span class="total-currency">{currency}</span> {amount:,.2f}</div>
+        </div>
+      </div>
+    </div>
+    <div class="foot">
+      <div class="foot-text">
+        Thank you for registering for <strong style="color:#0f172a;">{esc(inv.get('event_title') or 'our event')}</strong>.
+        Please carry this invoice and your check-in QR pass to the venue. This is a computer-generated
+        invoice and does not require a signature. For queries, contact the Student Alumni Cell.
+      </div>
+      <div class="foot-brand">STUDENT ALUMNI · ECHO</div>
+    </div>
+  </div>
+</body>
+</html>"""
+
+
+def _build_receipt_html(inv: dict) -> str:
+    """Render a payment Receipt PDF — separate from the Invoice.
+
+    Mirrors the industry-standard format (Stripe / Anomaly / Razorpay):
+      • Heading: "Receipt"
+      • Invoice number + Receipt number + Date paid
+      • 'Amount paid on <date>' headline
+      • Line-items table with Subtotal / Total / Amount paid
+      • Payment history table: method, date, amount, receipt number
+    """
+    amount = float(inv.get("amount") or 0)
+    currency = inv.get("currency") or "INR"
+    inv_no = inv.get("invoice_no") or ""
+    payment_id = inv.get("payment_id") or "—"
+    # Receipt number = last 9 chars of payment_id (like Stripe's 2664-2355)
+    raw_pid = str(payment_id).replace("pay_", "").replace("PAY_", "")
+    receipt_no = f"{raw_pid[:4]}-{raw_pid[-4:]}" if len(raw_pid) >= 8 else raw_pid or inv_no.replace("INV-", "")
+
+    paid_at_raw = inv.get("paid_at") or ""
+    if paid_at_raw and "T" in str(paid_at_raw):
+        paid_at_display = str(paid_at_raw)[:10]
+    else:
+        paid_at_display = str(paid_at_raw)[:10] if paid_at_raw else ""
+
+    method_label = _payment_label(inv.get("payment_method") or inv.get("payment_gateway") or "")
+    esc = lambda s: str(s or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+    rows = "".join(
+        f"<tr>"
+        f"<td style='padding:10px 0;border-bottom:1px solid #e5e7eb;color:#111827;font-size:14px;'>{esc(i.get('desc'))}</td>"
+        f"<td style='padding:10px 0;border-bottom:1px solid #e5e7eb;text-align:center;color:#6b7280;font-size:14px;'>{i.get('qty')}</td>"
+        f"<td style='padding:10px 0;border-bottom:1px solid #e5e7eb;text-align:right;color:#111827;font-size:14px;'>{currency} {float(i.get('amount') or 0):,.2f}</td>"
+        f"</tr>"
+        for i in inv.get("items") or []
+    )
+    if not rows:
+        rows = (
+            f"<tr>"
+            f"<td style='padding:10px 0;border-bottom:1px solid #e5e7eb;color:#111827;font-size:14px;'>Event registration</td>"
+            f"<td style='padding:10px 0;border-bottom:1px solid #e5e7eb;text-align:center;color:#6b7280;font-size:14px;'>1</td>"
+            f"<td style='padding:10px 0;border-bottom:1px solid #e5e7eb;text-align:right;color:#111827;font-size:14px;'>{currency} {amount:,.2f}</td>"
+            f"</tr>"
+        )
+
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" /><title>Receipt {esc(receipt_no)}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  * {{ box-sizing:border-box; margin:0; padding:0; }}
+  body {{ padding:40px 32px; background:#fff; font-family:'Inter',-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:#111827; -webkit-print-color-adjust:exact; print-color-adjust:exact; }}
+  .sheet {{ max-width:640px; margin:0 auto; }}
+  .logo {{ font-size:11px; font-weight:800; letter-spacing:2px; color:#6b7280; margin-bottom:28px; }}
+  h1 {{ font-size:26px; font-weight:800; color:#111827; margin-bottom:4px; }}
+  .headline {{ font-size:18px; font-weight:700; color:#111827; margin:28px 0 20px; }}
+  .meta-row {{ display:flex; justify-content:space-between; margin-bottom:18px; }}
+  .meta-label {{ font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.6px; color:#6b7280; margin-bottom:3px; }}
+  .meta-val {{ font-size:14px; font-weight:600; color:#111827; }}
+  .meta-sub {{ font-size:13px; color:#374151; margin-top:1px; }}
+  .divider {{ height:1px; background:#e5e7eb; margin:22px 0; }}
+  table.items {{ width:100%; border-collapse:collapse; }}
+  table.items th {{ text-align:left; padding:8px 0; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:#6b7280; border-bottom:2px solid #111827; }}
+  table.items th.r {{ text-align:right; }}
+  .totals {{ margin-top:16px; }}
+  .totals-row {{ display:flex; justify-content:space-between; padding:6px 0; font-size:14px; color:#374151; }}
+  .totals-row.bold {{ font-weight:700; color:#111827; border-top:1px solid #e5e7eb; margin-top:6px; padding-top:10px; }}
+  .history-head {{ font-size:16px; font-weight:700; color:#111827; margin:28px 0 12px; }}
+  table.history {{ width:100%; border-collapse:collapse; }}
+  table.history th {{ text-align:left; padding:8px 0; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:#6b7280; border-bottom:1px solid #e5e7eb; }}
+  table.history td {{ padding:10px 0; font-size:13px; color:#374151; border-bottom:1px solid #f3f4f6; vertical-align:top; }}
+  .foot {{ margin-top:36px; font-size:11px; color:#9ca3af; line-height:1.6; border-top:1px solid #f3f4f6; padding-top:18px; }}
+  @media print {{ body {{ padding:20px; }} }}
+</style>
+</head>
+<body>
+  <div class="sheet">
+    <div class="logo">STUDENT ALUMNI · ECHO</div>
+    <h1>Receipt</h1>
+    <div class="meta-row" style="margin-top:20px;">
+      <div><div class="meta-label">Invoice number</div><div class="meta-val">{esc(inv_no)}</div></div>
+      <div style="text-align:right;"><div class="meta-label">Receipt number</div><div class="meta-val">{esc(receipt_no)}</div></div>
+    </div>
+    <div class="meta-row">
+      <div><div class="meta-label">Date paid</div><div class="meta-val">{esc(paid_at_display)}</div></div>
+    </div>
+    <div class="divider"></div>
+    <div class="meta-row">
+      <div>
+        <div class="meta-label">Bill to</div>
+        <div class="meta-val">{esc(inv.get('full_name') or 'Attendee')}</div>
+        <div class="meta-sub">{esc(inv.get('email') or '')}</div>
+        <div class="meta-sub">{esc(inv.get('college') or '')}</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="meta-label">Event</div>
+        <div class="meta-val">{esc(inv.get('event_title') or '')}</div>
+        <div class="meta-sub">{esc(inv.get('event_date') or '')}</div>
+        <div class="meta-sub">{esc(inv.get('event_venue') or '')}</div>
+      </div>
+    </div>
+    <div class="headline">{currency} {amount:,.2f} paid on {esc(paid_at_display)}</div>
+    <table class="items">
+      <tr>
+        <th>Description</th>
+        <th style="text-align:center;">Qty</th>
+        <th class="r">Unit price</th>
+        <th class="r">Amount</th>
+      </tr>
+      {rows}
+    </table>
+    <div class="totals">
+      <div class="totals-row"><span>Subtotal</span><span>{currency} {amount:,.2f}</span></div>
+      <div class="totals-row"><span>Total</span><span>{currency} {amount:,.2f}</span></div>
+      <div class="totals-row bold"><span>Amount paid</span><span>{currency} {amount:,.2f}</span></div>
+    </div>
+    <div class="divider"></div>
+    <div class="history-head">Payment history</div>
+    <table class="history">
+      <tr>
+        <th>Payment method</th>
+        <th>Date</th>
+        <th style="text-align:right;">Amount paid</th>
+        <th style="text-align:right;">Receipt number</th>
+      </tr>
+      <tr>
+        <td>
+          <div>{esc(method_label)}</div>
+          <div style="color:#6b7280;font-size:12px;">{esc(payment_id)}</div>
+        </td>
+        <td>{esc(paid_at_display)}</td>
+        <td style="text-align:right;">{currency} {amount:,.2f}</td>
+        <td style="text-align:right;">{esc(receipt_no)}</td>
+      </tr>
+    </table>
+    <div class="foot">
+      This is a computer-generated receipt and does not require a signature.
+      For queries, contact the Student Alumni Cell.<br/>
+      <strong style="color:#6b7280;">STUDENT ALUMNI · ECHO</strong>
+    </div>
+  </div>
+</body>
+</html>"""
+
 
 def _build_ticket_html(reg: dict, showcase: dict, template_id: Optional[str] = None) -> str:
+
     """Render a professional, printable entry pass (ticket) with QR for an attendee.
 
     Design follows Behance/Dribbble-grade event ticket conventions:
@@ -1006,8 +1153,9 @@ def _ticket_email_block(reg: dict, showcase: dict, ticket_url: str) -> str:
     esc_img = lambda s: str(s or "").replace("&", "&amp;").replace('"', "&quot;")
     email_addr = esc(reg.get("email") or "")
 
+    base_url = ticket_url.split("/tickets/")[0]
     qr_img = (
-        f'<img src="data:image/png;base64,{qr}" width="130" height="130" style="border-radius:12px;display:block;" alt="Check-in QR" />'
+        f'<img src="{base_url}/registrations/{reg_id}/qr.png" width="130" height="130" style="border-radius:12px;display:block;" alt="Check-in QR" />'
         if qr
         else ""
     )
@@ -1066,7 +1214,35 @@ def _ticket_email_block(reg: dict, showcase: dict, ticket_url: str) -> str:
     </table>"""
 
 
-async def _mirror_to_event_registration(db, reg: dict, showcase: dict, user: Optional[dict]):
+async def _sync_user_profile_data(db, user: Optional[dict], payload: Any):
+    if user is None:
+        return
+    dob_val = getattr(payload, "date_of_birth", None) or getattr(payload, "dob", None) or ""
+    branch_val = getattr(payload, "branch", None) or ""
+    year_val = getattr(payload, "year", None) or ""
+    college_val = getattr(payload, "college", None) or ""
+
+    user_updates = {}
+    if dob_val and not user.get("dob"):
+        user_updates["dob"] = dob_val
+    if branch_val:
+        user_updates["branch"] = branch_val
+        user_updates["school_info.branch_or_stream"] = branch_val
+    if year_val:
+        user_updates["year"] = year_val
+        user_updates["school_info.class_or_year"] = f"Y{year_val}"
+    if college_val:
+        user_updates["college"] = college_val
+        user_updates["school_info.institution_name"] = college_val
+
+    if user_updates:
+        try:
+            await db.users.update_one({"_id": user["_id"]}, {"$set": user_updates})
+        except Exception:
+            pass
+
+
+async def _mirror_to_event_registration(db, reg: dict, showcase: Optional[dict], user: Optional[dict]):
     """Mirror an ECHO registration into the StudentAlumni event_registrations collection."""
     canonical_slug = reg.get("slug") or (showcase or {}).get("slug")
     event_id = f"echo-{canonical_slug}"
@@ -1074,14 +1250,14 @@ async def _mirror_to_event_registration(db, reg: dict, showcase: dict, user: Opt
     if not event:
         event_doc = {
             "id": event_id,
-            "title": showcase.get("title"),
-            "category": showcase.get("category", "college-event"),
-            "organizer": showcase.get("organizer_name") or "Student Alumni Cell",
-            "venue": showcase.get("venue"),
-            "start_date": showcase.get("date"),
-            "description": showcase.get("description"),
-            "image": showcase.get("hero_image_url"),
-            "tags": ["ECHO", showcase.get("college", "")],
+            "title": (showcase or {}).get("title"),
+            "category": (showcase or {}).get("category", "college-event"),
+            "organizer": (showcase or {}).get("organizer_name") or "Student Alumni Cell",
+            "venue": (showcase or {}).get("venue"),
+            "start_date": (showcase or {}).get("date"),
+            "description": (showcase or {}).get("description"),
+            "image": (showcase or {}).get("hero_image_url"),
+            "tags": ["ECHO", (showcase or {}).get("college", "")],
             "rsvp_count": 0,
             "created_at": _now(),
         }
@@ -1089,7 +1265,7 @@ async def _mirror_to_event_registration(db, reg: dict, showcase: dict, user: Opt
     sa_reg = {
         "id": reg.get("id"),
         "event_id": event_id,
-        "event_title": showcase.get("title"),
+        "event_title": (showcase or {}).get("title"),
         "user_id": reg.get("user_id") or (str(user["_id"]) if user else None),
         "user_name": reg.get("full_name") or (user.get("full_name") if user else ""),
         "user_unique_id": (user or {}).get("unique_id"),
@@ -1117,7 +1293,7 @@ def _generate_temp_password(length: int = 12) -> str:
     return "".join(secrets.choice(alphabet) for _ in range(length))
 
 
-async def _provision_sa_account(db, reg: dict, showcase: dict):
+async def _provision_sa_account(db, reg: dict, showcase: Optional[dict]):
     """Ensure every confirmed ECHO attendee has a StudentAlumni account.
 
     Returns (user, created, password):
@@ -1196,13 +1372,13 @@ async def _provision_sa_account(db, reg: dict, showcase: dict):
     return user_doc, True, password
 
 
-async def _send_sa_welcome_email(reg: dict, showcase: dict, password: str) -> None:
+async def _send_sa_welcome_email(reg: dict, showcase: Optional[dict], password: str) -> None:
     """Welcome email from StudentAlumni when an ECHO registration creates an SA account."""
     try:
         email = (reg.get("email") or "").strip()
         if not email:
             return
-        title = reg.get("showcase_title") or showcase.get("title") or "Event Registration"
+        title = reg.get("showcase_title") or (showcase or {}).get("title") or "Event Registration"
         login_url = "https://studentalumni.ai/login"
         dashboard_url = "https://studentalumni.ai/dashboard"
         body = render_html_email(
@@ -1235,7 +1411,7 @@ async def _send_sa_welcome_email(reg: dict, showcase: dict, password: str) -> No
         print(f"[ECHO] Welcome email error: {e}")
 
 
-async def _store_invoice_and_email(db, reg: dict, showcase: dict) -> dict:
+async def _store_invoice_and_email(db, reg: dict, showcase: Optional[dict]) -> dict:
     """Persist an invoice for a paid registration and email it to the attendee."""
     fresh = _build_invoice(reg, showcase)
     existing = await db.invoices.find_one({"reg_id": reg.get("id")})
@@ -1247,38 +1423,144 @@ async def _store_invoice_and_email(db, reg: dict, showcase: dict) -> dict:
         inv = {**fresh, "_id": result.inserted_id}
     inv_ser = _ser(inv)
 
-    # Fire-and-forget email notification
+    # Fire-and-forget email notification with PDF invoice attached
     try:
         email = reg.get("email") or ""
+        esc = lambda s: str(s or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
         if email:
             reg_id = reg.get("id") or ""
-            ticket_url = f"https://studentalumni.ai/api/echo/tickets/{reg_id}"
-            ticket_block = _ticket_email_block(reg, showcase, ticket_url)
+            import urllib.parse
+            ticket_url = f"https://studentalumni.ai/api/echo/tickets/{reg_id}?email={urllib.parse.quote(email)}"
+            ticket_block = _ticket_email_block(reg, showcase or {}, ticket_url)
             subject = f"Payment Receipt & Entry Pass — {inv_ser.get('event_title') or 'Event Registration'}"
+
+            # Generate BOTH PDFs: Invoice + Receipt (like Stripe/Razorpay pattern)
+            inv_no = inv_ser.get("invoice_no") or "invoice"
+            attachments = []
+
+            # 1) Invoice PDF
+            invoice_html = _build_invoice_html(inv_ser)
+            invoice_pdf = await generate_pdf_from_html(invoice_html)
+            if invoice_pdf:
+                attachments.append({"filename": f"Invoice-{inv_no}.pdf", "content": invoice_pdf})
+                print(f"[ECHO] Invoice PDF generated ({len(invoice_pdf)} bytes) for {email}")
+
+            # 2) Receipt PDF
+            receipt_html = _build_receipt_html(inv_ser)
+            receipt_pdf = await generate_pdf_from_html(receipt_html)
+            if receipt_pdf:
+                # derive receipt number same way as _build_receipt_html
+                raw_pid = str(inv_ser.get("payment_id") or "").replace("pay_", "").replace("PAY_", "")
+                rno = f"{raw_pid[:4]}-{raw_pid[-4:]}" if len(raw_pid) >= 8 else raw_pid
+                attachments.append({"filename": f"Receipt-{rno or inv_no}.pdf", "content": receipt_pdf})
+                print(f"[ECHO] Receipt PDF generated ({len(receipt_pdf)} bytes) for {email}")
+
+            # 3) Ticket/Entry Pass PDF
+            reg = reg  # already defined above
+            ticket_url = f"https://studentalumni.ai/api/echo/tickets/{inv_ser.get('reg_id', '')}?email={urllib.parse.quote(email)}"
+            ticket_html = _ticket_email_block(reg, showcase, ticket_url)
+            ticket_pdf = await generate_pdf_from_html(ticket_html)
+            if ticket_pdf:
+                attachments.append({"filename": f"EntryPass-{inv_no}.pdf", "content": ticket_pdf})
+                print(f"[ECHO] Ticket PDF generated ({len(ticket_pdf)} bytes) for {email}")
+
+            if not attachments:
+                print(f"[WARN] PDF generation skipped for {email}")
+
             body = render_html_email(
                 f"""
-                <h2 style="margin:0 0 14px 0;color:#111827;">Thank you for registering!</h2>
-                <p style="margin:0 0 18px 0;color:#374151;">Your payment for <strong>{inv_ser.get('event_title')}</strong>
-                has been received. Here are your payment details and entry pass:</p>
+                <h2 style="margin:0 0 6px 0;color:#111827;font-size:22px;">Payment Confirmed</h2>
+                <p style="margin:0 0 24px 0;color:#6b7280;font-size:14px;">Registration for <strong style="color:#111827;">{esc(inv_ser.get('event_title') or 'the event')}</strong> is complete.</p>
+
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
-                  style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;margin:0 0 18px 0;">
-                  <tr><td style="padding:12px 16px;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.4px;">Invoice No</td>
-                      <td style="padding:12px 16px;text-align:right;color:#111827;font-weight:700;">{inv_ser.get('invoice_no')}</td></tr>
-                  <tr><td style="padding:12px 16px;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.4px;">Payment ID</td>
-                      <td style="padding:12px 16px;text-align:right;color:#111827;font-weight:700;">{inv_ser.get('payment_id')}</td></tr>
-                  <tr><td style="padding:12px 16px;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.4px;">Amount Paid</td>
-                      <td style="padding:12px 16px;text-align:right;color:#111827;font-weight:700;">{inv_ser.get('currency')} {float(inv_ser.get('amount') or 0):,.2f}</td></tr>
+                  style="margin:0 0 24px 0;">
+                  <tr>
+                    <td style="padding:16px 20px;background:#f0fdf4;border-left:4px solid #22c55e;border-radius:0 10px 10px 0;">
+                      <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:#16a34a;margin-bottom:4px;">Amount Paid</div>
+                      <div style="font-size:26px;font-weight:800;color:#111827;">{inv_ser.get('currency') or 'INR'} {float(inv_ser.get('amount') or 0):,.2f}</div>
+                    </td>
+                  </tr>
                 </table>
+
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                  style="margin:0 0 24px 0;">
+                  <tr>
+                    <td style="padding:10px 0;border-bottom:1px solid #f1f5f9;"><span style="color:#94a3b8;font-size:12px;text-transform:uppercase;letter-spacing:.5px;">Invoice</span></td>
+                    <td style="padding:10px 0;border-bottom:1px solid #f1f5f9;text-align:right;font-weight:600;color:#111827;font-size:13px;">{esc(inv_ser.get('invoice_no') or '—')}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:10px 0;border-bottom:1px solid #f1f5f9;"><span style="color:#94a3b8;font-size:12px;text-transform:uppercase;letter-spacing:.5px;">Payment ID</span></td>
+                    <td style="padding:10px 0;border-bottom:1px solid #f1f5f9;text-align:right;font-weight:600;color:#111827;font-size:13px;font-family:monospace;">{esc(inv_ser.get('payment_id') or '—')}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:10px 0;border-bottom:1px solid #f1f5f9;"><span style="color:#94a3b8;font-size:12px;text-transform:uppercase;letter-spacing:.5px;">Date</span></td>
+                    <td style="padding:10px 0;border-bottom:1px solid #f1f5f9;text-align:right;color:#111827;font-size:13px;">{esc(inv_ser.get('date') or '—')}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:10px 0;"><span style="color:#94a3b8;font-size:12px;text-transform:uppercase;letter-spacing:.5px;">Event</span></td>
+                    <td style="padding:10px 0;text-align:right;font-weight:600;color:#111827;font-size:13px;">{esc(inv_ser.get('event_title') or '—')}</td>
+                  </tr>
+                </table>
+
                 {ticket_block}
-                <p style="margin:0 0 22px 0;color:#374151;">
-                  You can view and download your invoice and ticket anytime from your dashboard under
-                  <strong>My Tickets</strong>.
-                </p>
-                <a href="https://studentalumni.ai/dashboard"
-                   style="display:inline-block;padding:12px 26px;background:#7C3AED;color:#fff;text-decoration:none;border-radius:10px;font-weight:600;">Open My Dashboard</a>
+
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                  style="margin:0 0 24px 0;">
+                  <tr>
+                    <td style="padding:18px 20px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;">
+                      <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#7c3aed;margin-bottom:12px;">Your Documents</div>
+                      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                        <tr>
+                          <td style="padding:8px 0;width:36px;vertical-align:middle;">
+                            <div style="width:32px;height:32px;background:#ede9fe;border-radius:8px;text-align:center;line-height:32px;">
+                              <span style="font-size:14px;font-weight:700;color:#7c3aed;">IN</span>
+                            </div>
+                          </td>
+                          <td style="padding:8px 0;vertical-align:middle;">
+                            <div style="font-size:13px;font-weight:600;color:#111827;">Tax Invoice</div>
+                            <div style="font-size:12px;color:#94a3b8;">{esc(inv_no)}.pdf — attached to this email</div>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding:8px 0;width:36px;vertical-align:middle;">
+                            <div style="width:32px;height:32px;background:#dcfce7;border-radius:8px;text-align:center;line-height:32px;">
+                              <span style="font-size:14px;font-weight:700;color:#16a34a;">RC</span>
+                            </div>
+                          </td>
+                          <td style="padding:8px 0;vertical-align:middle;">
+                            <div style="font-size:13px;font-weight:600;color:#111827;">Payment Receipt</div>
+                            <div style="font-size:12px;color:#94a3b8;">Official confirmation with payment history — attached</div>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding:8px 0;width:36px;vertical-align:middle;">
+                            <div style="width:32px;height:32px;background:#fef3c7;border-radius:8px;text-align:center;line-height:32px;">
+                              <span style="font-size:14px;font-weight:700;color:#d97706;">EP</span>
+                            </div>
+                          </td>
+                          <td style="padding:8px 0;vertical-align:middle;">
+                            <div style="font-size:13px;font-weight:600;color:#111827;">Entry Pass</div>
+                            <div style="font-size:12px;color:#94a3b8;">Your event ticket with QR code — attached</div>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 8px 0;">
+                  <tr>
+                    <td align="center" style="padding:0;">
+                      <a href="https://studentalumni.ai/dashboard"
+                         style="display:inline-block;padding:14px 32px;background:#7C3AED;color:#fff;text-decoration:none;border-radius:10px;font-weight:700;font-size:14px;letter-spacing:.3px;">View My Tickets</a>
+                    </td>
+                  </tr>
+                </table>
                 """
             )
-            await send_email(email, subject, body)
+            sent = await send_email(email, subject, body, attachments=attachments or None)
+            if not sent:
+                print(f"[ECHO] WARNING: Email to {email} could not be sent — no email provider configured in Settings > Tools > Email")
     except Exception as e:
         print(f"[ECHO] Invoice email error: {e}")
     return inv_ser
@@ -1591,7 +1873,7 @@ async def seed_echo_showcase(db: AsyncIOMotorDatabase):
     try:
         seed_slug = DEFAULT_SHOWCASE_SEED.get("slug")
         seed_aliases = DEFAULT_SHOWCASE_SEED.get("aliases") or []
-        existing = await db.echo_showcases.find_one(_slug_query(seed_slug))
+        existing = await db.echo_showcases.find_one(_slug_query(str(seed_slug or "")))
         if not existing and seed_aliases:
             existing = await db.echo_showcases.find_one(
                 {"aliases": {"$in": seed_aliases}}
@@ -1655,15 +1937,94 @@ async def get_showcase(slug: str, request: Request):
 
 
 # ── Registration (real payments only — Razorpay) ─────────────────────────────
+ALLOWED_BTECH_BRANCHES = {
+    "CSE", "CSE-AIML", "AI-DS", "IT", "ECE", "EEE", "ME", "CE", "CHE", "BT", "Other",
+    "Computer Science and Engineering",
+    "Computer Science and Engineering (CSE)",
+    "Computer Science and Engineering (AI & ML)",
+    "Artificial Intelligence and Data Science",
+    "Information Technology",
+    "Electronics and Communication Engineering",
+    "Electrical and Electronics Engineering",
+    "Mechanical Engineering",
+    "Civil Engineering",
+    "Chemical Engineering",
+    "Biotechnology",
+}
+
+BRANCH_CANONICAL_MAP = {
+    "Computer Science and Engineering": "CSE",
+    "Computer Science and Engineering (CSE)": "CSE",
+    "Computer Science and Engineering (AI & ML)": "CSE-AIML",
+    "Artificial Intelligence and Data Science": "AI-DS",
+    "Information Technology": "IT",
+    "Electronics and Communication Engineering": "ECE",
+    "Electrical and Electronics Engineering": "EEE",
+    "Mechanical Engineering": "ME",
+    "Civil Engineering": "CE",
+    "Chemical Engineering": "CHE",
+    "Biotechnology": "BT",
+}
+
+YEAR_CANONICAL_MAP = {
+    "1st Year": "1",
+    "2nd Year": "2",
+    "3rd Year": "3",
+    "4th Year": "4",
+    "Final": "4",
+    "Final Year": "4",
+    "1": "1",
+    "2": "2",
+    "3": "3",
+    "4": "4",
+}
+
 class RegisterSchema(BaseModel):
     full_name: Optional[str] = ""
     email: Optional[str] = ""
     phone: Optional[str] = ""
+    date_of_birth: Optional[str] = ""
+    dob: Optional[str] = ""
     branch: Optional[str] = ""
     year: Optional[str] = ""
     college: Optional[str] = ""
-    dob: Optional[str] = ""  # YYYY-MM-DD — used to provision the StudentAlumni account
     payment_method: Optional[str] = ""
+
+    @field_validator("date_of_birth", "dob")
+    @classmethod
+    def _validate_dob(cls, v):
+        if not v or not v.strip():
+            return ""
+        val = v.strip()
+        try:
+            d = _date.fromisoformat(val)
+        except Exception:
+            raise ValueError("Date of birth must be in YYYY-MM-DD format")
+        if d > _date.today():
+            raise ValueError("Date of birth cannot be in the future")
+        return val
+
+    @field_validator("branch")
+    @classmethod
+    def _validate_branch(cls, v):
+        if not v or not v.strip():
+            return ""
+        val = v.strip()
+        norm = BRANCH_CANONICAL_MAP.get(val, val)
+        if norm not in ALLOWED_BTECH_BRANCHES and val not in ALLOWED_BTECH_BRANCHES:
+            raise ValueError(f"Invalid B.Tech branch: {val}")
+        return norm
+
+    @field_validator("year")
+    @classmethod
+    def _validate_year(cls, v):
+        if not v or not v.strip():
+            return ""
+        val = v.strip()
+        norm = YEAR_CANONICAL_MAP.get(val, val)
+        if norm not in ("1", "2", "3", "4"):
+            raise ValueError("Academic year must be 1, 2, 3, or 4")
+        return norm
 
 
 @router.post("/showcases/{slug}/register")
@@ -1771,6 +2132,7 @@ async def register_for_showcase(
         }
 
     # 1) Event-side registration
+    dob_val = payload.date_of_birth or payload.dob or ""
     reg = {
         "id": reg_id,
         "slug": canonical_slug,
@@ -1781,9 +2143,10 @@ async def register_for_showcase(
         "full_name": payload.full_name or (user.get("full_name") if user else "") or "Attendee",
         "email": reg_email or (user.get("email") if user else ""),
         "phone": payload.phone or (user.get("phone") if user else ""),
+        "date_of_birth": dob_val,
+        "dob": dob_val,
         "branch": payload.branch,
         "year": payload.year,
-        "dob": (payload.dob or "").strip(),
         "college": payload.college or showcase.get("college"),
         "fee": fee,
         "currency": currency,
@@ -1794,6 +2157,7 @@ async def register_for_showcase(
         "created_at": now_iso,
     }
     await db.echo_registrations.insert_one(dict(reg))
+    await _sync_user_profile_data(db, user, payload)
 
     # 2) StudentAlumni-side: provision an SA account for the attendee (idempotent,
     #    by email), then mirror the registration into their SA account so it shows
@@ -1847,15 +2211,68 @@ async def my_showcase_registration(slug: str, request: Request):
     return {}
 
 
+@router.get("/registrations/{reg_id}/qr.png")
+async def get_registration_qr_png(reg_id: str, request: Request):
+    """Fetch registration QR code directly as a PNG image for email clients."""
+    db = _get_db(request)
+    reg = await db.echo_registrations.find_one({"id": reg_id})
+    if not reg or not reg.get("qr_code_base64"):
+        raise HTTPException(status_code=404, detail="QR Code not found")
+    import base64
+    from fastapi import Response
+    try:
+        img_data = base64.b64decode(reg.get("qr_code_base64"))
+        return Response(content=img_data, media_type="image/png")
+    except Exception:
+        raise HTTPException(status_code=500, detail="Error loading QR image")
+
+
 # ── Payment endpoints (Razorpay) ─────────────────────────────────────────────
 class PaymentOrderSchema(BaseModel):
     full_name: Optional[str] = ""
     email: Optional[str] = ""
     phone: Optional[str] = ""
+    date_of_birth: Optional[str] = ""
+    dob: Optional[str] = ""
     branch: Optional[str] = ""
     year: Optional[str] = ""
     college: Optional[str] = ""
-    dob: Optional[str] = ""  # YYYY-MM-DD — used to provision the StudentAlumni account
+
+    @field_validator("date_of_birth", "dob")
+    @classmethod
+    def _validate_dob(cls, v):
+        if not v or not v.strip():
+            return ""
+        val = v.strip()
+        try:
+            d = _date.fromisoformat(val)
+        except Exception:
+            raise ValueError("Date of birth must be in YYYY-MM-DD format")
+        if d > _date.today():
+            raise ValueError("Date of birth cannot be in the future")
+        return val
+
+    @field_validator("branch")
+    @classmethod
+    def _validate_branch(cls, v):
+        if not v or not v.strip():
+            return ""
+        val = v.strip()
+        norm = BRANCH_CANONICAL_MAP.get(val, val)
+        if norm not in ALLOWED_BTECH_BRANCHES and val not in ALLOWED_BTECH_BRANCHES:
+            raise ValueError(f"Invalid B.Tech branch: {val}")
+        return norm
+
+    @field_validator("year")
+    @classmethod
+    def _validate_year(cls, v):
+        if not v or not v.strip():
+            return ""
+        val = v.strip()
+        norm = YEAR_CANONICAL_MAP.get(val, val)
+        if norm not in ("1", "2", "3", "4"):
+            raise ValueError("Academic year must be 1, 2, 3, or 4")
+        return norm
 
 
 class VerifyPaymentSchema(PaymentOrderSchema):
@@ -1947,6 +2364,7 @@ async def create_payment_order(slug: str, payload: PaymentOrderSchema, request: 
 
     # Persist a pending registration so verify-payment / webhook has a record
     if not existing:
+        dob_val = payload.date_of_birth or payload.dob or ""
         reg = {
             "id": reg_id,
             "slug": canonical_slug,
@@ -1957,9 +2375,10 @@ async def create_payment_order(slug: str, payload: PaymentOrderSchema, request: 
             "full_name": payload.full_name,
             "email": email,
             "phone": payload.phone,
+            "date_of_birth": dob_val,
+            "dob": dob_val,
             "branch": payload.branch,
             "year": payload.year,
-            "dob": (payload.dob or "").strip(),
             "college": payload.college or showcase.get("college"),
             "fee": fee,
             "currency": currency,
@@ -2041,6 +2460,7 @@ async def verify_payment(slug: str, payload: VerifyPaymentSchema, request: Reque
 
     finalized = await _finalize_paid_registration(db, reg, showcase, payload.razorpay_payment_id)
     registration = finalized or _ser(reg)
+    await _sync_user_profile_data(db, user, payload)
     return {"registration": registration, "invoice": registration.get("invoice")}
 
 
@@ -2215,7 +2635,7 @@ async def get_invoice(invoice_no: str, request: Request, email: Optional[str] = 
 
 
 @router.get("/tickets/{reg_id}")
-async def get_ticket(reg_id: str, request: Request, email: Optional[str] = Query(None)):
+async def get_ticket(reg_id: str, request: Request, email: Optional[str] = Query(None), format: Optional[str] = Query(None)):
     """Fetch an attendee's entry pass (ticket) with QR — owner, email-match, or admin.
 
     Returns render-ready standalone HTML so the app can open a printable page,
@@ -2247,12 +2667,17 @@ async def get_ticket(reg_id: str, request: Request, email: Optional[str] = Query
         email_match = email and email.strip().lower() == allowed_email
         if not owner_match and not email_match:
             raise HTTPException(status_code=403, detail="You do not have access to this ticket")
-    return {
-        "reg_id": reg_id,
-        "status": reg.get("status"),
-        "event_title": reg.get("showcase_title") or (showcase or {}).get("title"),
-        "html": _build_ticket_html(reg_ser, showcase or {}, reg.get("ticket_template")),
-    }
+    
+    html_content = _build_ticket_html(reg_ser, showcase or {}, reg.get("ticket_template"))
+    if format == "json":
+        return {
+            "reg_id": reg_id,
+            "status": reg.get("status"),
+            "event_title": reg.get("showcase_title") or (showcase or {}).get("title"),
+            "html": html_content,
+        }
+    from fastapi.responses import HTMLResponse
+    return HTMLResponse(content=html_content)
 
 
 @router.get("/tickets/preview/{template_id}")
@@ -2755,16 +3180,16 @@ async def upload_echo_media(request: Request, file: UploadFile = File(None), adm
     elif "multipart/form-data" in content_type_header:
         form = await request.form()
         uploaded_file = form.get("file") or form.get("image") or form.get("media")
-        if uploaded_file and hasattr(uploaded_file, "filename"):
-            filename = uploaded_file.filename
+        if uploaded_file and hasattr(uploaded_file, "filename") and hasattr(uploaded_file, "read"):
+            filename = str(getattr(uploaded_file, "filename", "") or "")
             original_name = filename
-            file_bytes = await uploaded_file.read()
+            file_bytes = await uploaded_file.read() # type: ignore
         else:
             raise HTTPException(status_code=400, detail="No file found in multipart upload")
     elif "application/json" in content_type_header:
         body = await request.json()
         data = body.get("data", "")
-        filename = body.get("filename") or f"upload_{int(_dt.now(_tz.utc).timestamp())}.png"
+        filename = str(body.get("filename") or f"upload_{int(_dt.now(_tz.utc).timestamp())}.png")
         original_name = filename
         if "," in data:
             data = data.split(",", 1)[1]
@@ -2776,7 +3201,7 @@ async def upload_echo_media(request: Request, file: UploadFile = File(None), adm
     if len(file_bytes) > MAX_SIZE:
         raise HTTPException(status_code=413, detail="File too large. Maximum 10 MB allowed.")
 
-    ext = Path(filename).suffix.lower() or ".png"
+    ext = Path(filename or "").suffix.lower() or ".png"
     ALLOWED = {".jpg", ".jpeg", ".png", ".webp", ".avif", ".svg", ".gif", ".pdf", ".docx", ".xlsx", ".pptx", ".zip"}
     if ext not in ALLOWED:
         raise HTTPException(status_code=400, detail=f"File type {ext} not allowed.")
@@ -2787,7 +3212,7 @@ async def upload_echo_media(request: Request, file: UploadFile = File(None), adm
     upload_dir = _Path("uploads") / "echo"
     upload_dir.mkdir(parents=True, exist_ok=True)
     ts = int(_dt.now(_tz.utc).timestamp())
-    stem = Path(filename).stem.replace(" ", "_").replace("/", "_") if file.filename else f"upload_{ts}"
+    stem = Path(filename or "").stem.replace(" ", "_").replace("/", "_") if filename else f"upload_{ts}"
     safe_name = f"{ts}_{stem}{ext}"
     out_path = upload_dir / safe_name
     with open(out_path, "wb") as f:
@@ -2835,7 +3260,7 @@ async def list_echo_media(request: Request, _=Depends(_require_admin)):
         files.append({
             "filename": doc.get("filename", ""),
             "original_name": doc.get("original_name", doc.get("filename", "")),
-            "url": doc.get("data_url", ""),
+            "url": doc.get("url") or doc.get("data_url", ""),
             "size": size,
             "size_human": _human_size(size),
             "ext": ext,
@@ -2996,9 +3421,10 @@ async def scan_coupon_get(code: str, request: Request):
     if query:
         reg = await db.echo_registrations.find_one(query)
         if not reg:
-            reg = await db.echo_registrations.find_one({"id": parsed.get("reg_id")})
+            reg_id_parsed = parsed.get("reg_id")
+            reg = await db.echo_registrations.find_one({"id": reg_id_parsed.lower() if reg_id_parsed else None})
     if not reg:
-        reg = await db.echo_registrations.find_one({"id": raw})
+        reg = await db.echo_registrations.find_one({"id": raw.lower()})
 
     if not reg:
         raise HTTPException(status_code=404, detail="Invalid code")
