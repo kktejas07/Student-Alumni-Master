@@ -34,6 +34,7 @@ import {
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
+import { EchoHeader, EchoFooter, ECHO_TOP_PADDING } from '@/src/views/web/components/EchoChrome';
 
 const API_BASE = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://studentalumni.ai';
 
@@ -138,7 +139,9 @@ export default function CertificateVerifyPortal() {
   const suggestedRole = result?.suggested_role || 'student';
 
   return (
-    <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
+    <View style={{ flex: 1, backgroundColor: '#090d16' }}>
+      <EchoHeader />
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
       <Animated.View entering={FadeIn.duration(400)} style={styles.wrapper}>
         
         {/* Hero Header */}
@@ -387,12 +390,7 @@ export default function CertificateVerifyPortal() {
         )}
 
         {/* Footer */}
-        <View style={styles.footerNote}>
-          <ShieldCheck size={16} color="#64748b" />
-          <Text style={styles.footerNoteText}>
-            Official BGV Registry • Student Alumni Network
-          </Text>
-        </View>
+        <EchoFooter />
 
       </Animated.View>
 
@@ -440,6 +438,7 @@ export default function CertificateVerifyPortal() {
       </Modal>
 
     </ScrollView>
+    </View>
   );
 }
 
@@ -449,7 +448,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#090d16',
   },
   container: {
-    paddingVertical: 40,
+    paddingTop: ECHO_TOP_PADDING + 20,
+    paddingBottom: 40,
     paddingHorizontal: 20,
     alignItems: 'center',
   },
