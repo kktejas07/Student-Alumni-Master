@@ -83,14 +83,10 @@ export function Sidebar({
       </View>
 
       {/* Profile card — opens settings/profile in same tab */}
-      <Pressable onPress={() => onNav('settings')} style={s.profileCard}>
-
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text numberOfLines={1} style={s.profileName}>{profile.name}</Text>
-          <Text numberOfLines={1} style={s.profileRole}>{profile.role}</Text>
-        </View>
-        <ExternalLink size={13} color={SAC.muted} />
-      </Pressable>
+      <View style={[s.profileCard, { alignItems: 'center' }]}>
+        <Text numberOfLines={1} style={[s.profileName, { textAlign: 'center' }]}>{profile.name}</Text>
+        <Text numberOfLines={1} style={[s.profileRole, { textAlign: 'center', marginTop: 2 }]}>{profile.role}</Text>
+      </View>
 
       {/* Agent K launcher */}
       <AgentKLauncher />

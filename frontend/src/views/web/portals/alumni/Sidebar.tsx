@@ -78,15 +78,10 @@ export function Sidebar({
 
       {/* Alumni profile card */}
       <FadeInView delay={70}>
-        <PressScale onPress={() => onNav('profile')} style={s.profileCard}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text numberOfLines={1} style={s.profileName}>{name}</Text>
-              <Text numberOfLines={1} style={s.profileYear}>{subTitle}</Text>
-            </View>
-          </View>
-        </PressScale>
+        <View style={[s.profileCard, { alignItems: 'center', ...(Platform.OS === 'web' ? { cursor: 'default' } : {}) }]}>
+          <Text numberOfLines={1} style={[s.profileName, { textAlign: 'center' }]}>{name}</Text>
+          <Text numberOfLines={1} style={[s.profileYear, { textAlign: 'center', marginTop: 2 }]}>{subTitle}</Text>
+        </View>
       </FadeInView>
 
       {/* Alumni card pill */}
