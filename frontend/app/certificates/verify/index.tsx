@@ -389,10 +389,9 @@ export default function CertificateVerifyPortal() {
           </Animated.View>
         )}
 
-        {/* Footer */}
-        <EchoFooter />
-
       </Animated.View>
+
+      <EchoFooter />
 
       {/* Role-specific Registration Modal Prompt */}
       <Modal
