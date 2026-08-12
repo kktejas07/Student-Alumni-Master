@@ -5,7 +5,6 @@ import io
 import asyncio
 import hashlib
 from datetime import datetime
-import certifi
 from dotenv import load_dotenv
 
 # Add parent directory to sys.path to allow core.db import
@@ -16,7 +15,14 @@ from motor.motor_asyncio import AsyncIOMotorClient
 
 mongo_url = os.environ.get('MONGO_URL')
 db_name = os.environ.get('DB_NAME', 'studentalumniadmin')
-client = AsyncIOMotorClient(mongo_url, tlsCAFile=certifi.where(), serverSelectionTimeoutMS=10000)
+_client_kwargs = {"serverSelectionTimeoutMS": 10000}
+# Only enable the TLS CA bundle for genuine TLS/Atlas connections.
+# Passing tlsCAFile alone forces TLS in PyMongo, which breaks plaintext MongoDB.
+if any(tag in (mongo_url or "").lower() for tag in ("tls=true", "ssl=true", "mongodb+srv://")):
+    import certifi
+
+    _client_kwargs["tlsCAFile"] = certifi.where()
+client = AsyncIOMotorClient(mongo_url, **_client_kwargs)
 db = client[db_name]
 
 
