@@ -141,7 +141,8 @@ export default function CertificateVerifyPortal() {
   return (
     <View style={{ flex: 1, backgroundColor: '#090d16' }}>
       <EchoHeader />
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
+      <ScrollView style={styles.scroll}>
+        <View style={styles.container}>
       <Animated.View entering={FadeIn.duration(400)} style={styles.wrapper}>
         
         {/* Hero Header */}
@@ -390,6 +391,7 @@ export default function CertificateVerifyPortal() {
         )}
 
       </Animated.View>
+        </View>
 
       <EchoFooter />
 
@@ -450,7 +452,6 @@ const styles = StyleSheet.create({
     paddingTop: ECHO_TOP_PADDING + 20,
     paddingBottom: 40,
     paddingHorizontal: 20,
-    alignItems: 'center',
   },
   wrapper: {
     width: '100%',
