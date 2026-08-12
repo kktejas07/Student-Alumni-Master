@@ -57,13 +57,32 @@ async def _get_postal_from_db() -> Optional[dict]:
 
 
 async def get_gmail_config():
-    """Fetch Gmail integration config from installed_tools."""
-    # System-level or any connected gmail integration
+    """Fetch Gmail integration config from installed_tools or settings collection."""
+    # 1) Check installed_tools (superadmin Tools UI)
     config = await db.installed_tools.find_one({
         "tool_id": "gmail",
         "status": {"$in": ["connected", "mock_connected"]}
     })
-    return config
+    if config:
+        return config
+
+    # 2) Fallback: check settings collection (flat SMTP fields from admin settings)
+    settings = await db.settings.find_one({"_id": "global"})
+    if settings and settings.get("email_provider") == "gmail":
+        smtp_user = settings.get("smtp_user") or ""
+        smtp_pass = settings.get("smtp_password") or ""
+        if smtp_user and smtp_pass:
+            return {
+                "tool_id": "gmail",
+                "status": "connected",
+                "credentials": {
+                    "smtp_user": smtp_user,
+                    "app_password": smtp_pass,
+                    "smtp_host": settings.get("smtp_host", "smtp.gmail.com"),
+                    "smtp_port": settings.get("smtp_port", "587"),
+                },
+            }
+    return None
 
 
 async def get_sendgrid_config():
@@ -318,8 +337,9 @@ async def _send_via_gmail(
             msg.attach(part)
 
     try:
-        # Use SMTP_SSL for port 465 or starttls for port 587
-        server = smtplib.SMTP("smtp.gmail.com", 587)
+        smtp_host = creds.get("smtp_host", "smtp.gmail.com")
+        smtp_port = int(creds.get("smtp_port", 587))
+        server = smtplib.SMTP(smtp_host, smtp_port)
         server.ehlo()
         server.starttls()
         server.login(sender_email, app_password)
