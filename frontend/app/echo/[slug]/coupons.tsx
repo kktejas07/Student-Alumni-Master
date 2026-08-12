@@ -9,7 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, QrCode, Check, Clock, Ticket, Lock, CupSoda, UtensilsCrossed, Cookie, Sandwich, Coffee } from 'lucide-react-native';
 import { EchoHeader, EchoFooter, ECHO_TOP_PADDING } from '@/src/views/web/components/EchoChrome';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
-import { resolveImageUrl } from '@/src/models/services/api';
+import { api, resolveImageUrl } from '@/src/models/services/api';
 
 const SESSION_ICONS: Record<string, any> = {
   breakfast: CupSoda,
@@ -35,6 +35,7 @@ export default function EchoCouponsPage() {
   const [regName, setRegName] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [notRegistered, setNotRegistered] = useState(false);
   const [expandedCoupon, setExpandedCoupon] = useState<string | null>(null);
 
   useEffect(() => {
@@ -45,14 +46,11 @@ export default function EchoCouponsPage() {
         const { tokenStore } = await import('@/src/models/services/api');
         const token = await tokenStore.getAccess();
         let userEmail = user?.email || '';
-        if (!userEmail && typeof window !== 'undefined') {
-          const localStr = window.localStorage.getItem(`echo_reg_${slug}`);
-          if (localStr) {
-            try {
-              const localReg = JSON.parse(localStr);
-              userEmail = localReg?.email || '';
-            } catch {}
-          }
+        if (!userEmail && token) {
+          try {
+            const reg = await api.myEchoRegistration(slug);
+            if (reg?.email) userEmail = reg.email;
+          } catch {}
         }
         const emailParam = userEmail ? `?email=${encodeURIComponent(userEmail)}` : '';
         const resp = await fetch(`${base}/api/echo/${slug}/my-coupons${emailParam}`, {
@@ -63,13 +61,13 @@ export default function EchoCouponsPage() {
           return;
         }
         if (!resp.ok) {
-          try {
-            const errData = await resp.json();
-            if (errData?.detail) {
-              throw new Error(errData.detail);
-            }
-          } catch {}
-          throw new Error('Failed to load coupons');
+          const errData = await resp.json().catch(() => null);
+          if (errData?.detail?.includes('No registration')) {
+            if (mounted) { setNotRegistered(true); setLoading(false); }
+            return;
+          }
+          if (mounted) { setError(errData?.detail || 'Failed to load coupons'); setLoading(false); }
+          return;
         }
         const data = await resp.json();
         if (mounted) {
@@ -123,6 +121,23 @@ export default function EchoCouponsPage() {
           ) : error ? (
             <View style={s.center}>
               <Text style={[s.centerText, { color: '#F87171' }]}>{error}</Text>
+            </View>
+          ) : notRegistered ? (
+            <View style={s.center}>
+              <Ticket size={48} color="rgba(255,255,255,0.2)" />
+              <Text style={s.centerText}>You haven't registered for this event yet.</Text>
+              <Text style={[s.centerText, { fontSize: 12, marginTop: 4, opacity: 0.6 }]}>
+                Register to unlock your session passes.
+              </Text>
+              <Pressable
+                onPress={() => router.push(`/echo/${slug}/register`)}
+                style={{
+                  marginTop: 16, backgroundColor: '#7C3AED', borderRadius: 10,
+                  paddingHorizontal: 20, paddingVertical: 10,
+                }}
+              >
+                <Text style={{ color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13 }}>Register Now</Text>
+              </Pressable>
             </View>
           ) : coupons.length === 0 ? (
             <View style={s.center}>
