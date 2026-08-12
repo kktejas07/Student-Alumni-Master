@@ -204,6 +204,13 @@ async def _lifespan(application):
     # certificates share a code, and lookups stay O(1) at 400+ scale)
     await _safe_create_index(db.certificates, "verification_code", unique=True)
     await _safe_create_index(db.certificates, "recipient_email")
+
+    # 3. Auto seed certificates on startup if count is 0
+    try:
+        from scripts.seed_certificates import seed_certificates
+        await seed_certificates()
+    except Exception as e:
+        logger.warning(f"Auto certificate seeding skipped: {e}")
     # ECHO Showcase indexes
     await _safe_create_index(db.echo_showcases, "slug", unique=True, sparse=True)
     await _safe_create_index(db.echo_showcases, [("status", 1), ("date", -1)])
@@ -2538,10 +2545,6 @@ api_router.include_router(talent_pool_router)
 from crud_endpoints import router as crud_router
 api_router.include_router(crud_router)
 
-# Certificate registry + public verification (Coursera-style /verify/{code})
-from certificates import router as certificates_router
-api_router.include_router(certificates_router)
-
 # Collaboration partners (Phase A) — public landing strip + admin CRUD
 from routers.partners import router as partners_router
 app.include_router(partners_router)
@@ -2566,7 +2569,12 @@ api_router.include_router(users_router)
 from routers.career_ai import router as career_ai_router
 api_router.include_router(career_ai_router)
 
+# Certificates & SA ID Verification
+from routers.certificates import router as certificates_router
+api_router.include_router(certificates_router)
+
 app.include_router(api_router)
+
 
 # ── CORS — origins configurable via env for production deployments ──
 # Comma-separated list, e.g.

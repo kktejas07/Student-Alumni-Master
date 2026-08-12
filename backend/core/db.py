@@ -52,6 +52,7 @@ db_name = os.environ.get('DB_NAME', 'studentalumniadmin')
 db = client[db_name]
 
 
+
 async def warm_db() -> float:
     """
     Ping MongoDB and force topology discovery.
