@@ -188,8 +188,8 @@ export default function CertificateVerifyResult() {
             </Text>
           </View>
         </Animated.View>
+        <EchoFooter />
       </ScrollView>
-      <EchoFooter />
     </View>
   );
 }
@@ -212,7 +212,7 @@ function DetailRow({ icon: Icon, label, value }: { icon: any; label: string; val
 const s = StyleSheet.create({
   flex: { flex: 1, backgroundColor: '#0a0f1e' },
   scroll: { flex: 1 },
-  container: { paddingTop: ECHO_TOP_PADDING, padding: 20, paddingBottom: 40, maxWidth: 800, alignSelf: 'center', width: '100%' },
+  container: { paddingTop: ECHO_TOP_PADDING, padding: 20, paddingBottom: 0, maxWidth: 800, alignSelf: 'center', width: '100%', flexGrow: 1 },
   loadingText: { color: '#A1A6B7', fontFamily: FONTS.med, fontSize: 14, marginTop: 12 },
   errorTitle: { color: '#ef4444', fontFamily: FONTS.xbold, fontSize: 18, marginTop: 12, textAlign: 'center' },
   errorSub: { color: '#A1A6B7', fontFamily: FONTS.med, fontSize: 14, marginTop: 6, textAlign: 'center', lineHeight: 20 },
