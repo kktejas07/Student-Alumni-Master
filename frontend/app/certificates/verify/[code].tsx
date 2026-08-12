@@ -189,8 +189,8 @@ export default function CertificateVerifyResult() {
             </Text>
           </View>
         </Animated.View>
-        <EchoFooter />
         </View>
+        <EchoFooter />
       </View>
     </View>
   );
