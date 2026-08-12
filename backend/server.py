@@ -2566,7 +2566,12 @@ api_router.include_router(users_router)
 from routers.career_ai import router as career_ai_router
 api_router.include_router(career_ai_router)
 
+# Certificates & SA ID Verification
+from routers.certificates import router as certificates_router
+api_router.include_router(certificates_router)
+
 app.include_router(api_router)
+
 
 # ── CORS — origins configurable via env for production deployments ──
 # Comma-separated list, e.g.

@@ -31,6 +31,8 @@ if "serverSelectionTimeoutMS" not in mongo_url:
 if "connectTimeoutMS" not in mongo_url:
     mongo_url += "&connectTimeoutMS=10000"
 
+import certifi
+
 # Single shared connection pool — created once at import time.
 # Motor internally defers socket activity to a background thread, so this
 # does NOT block the event loop during import.
@@ -38,11 +40,12 @@ client = AsyncIOMotorClient(
     mongo_url,
     maxPoolSize=20,
     minPoolSize=2,
-    # Resolve Atlas hostnames eagerly (avoids lazy-DNS hang on first request)
+    tlsCAFile=certifi.where(),
     serverSelectionTimeoutMS=10000,
 )
 db_name = os.environ.get('DB_NAME', 'studentalumniadmin')
 db = client[db_name]
+
 
 
 async def warm_db() -> float:
