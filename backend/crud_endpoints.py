@@ -49,6 +49,7 @@ from pydantic import BaseModel
 load_dotenv(Path(__file__).parent / ".env")
 
 from core.db import db as _db
+from core.email import send_email, render_html_email
 router = APIRouter()
 
 
@@ -97,9 +98,40 @@ async def _issue_workshop_certificate(reg: Dict[str, Any], student: Dict[str, An
             "created_at": _now(),
         }
         await _db.certificates.insert_one(cert_doc)
+        verify_url = f"{os.environ.get('FRONTEND_URL', 'https://studentalumni.ai')}/certificates/verify/{code}"
+        # Send certificate notification email
+        try:
+            cert_name = (email or "").split("@")[0].replace(".", " ").title()
+            content_html = f"""
+            <h2 style="margin:0 0 8px 0;color:#111827;font-size:20px;">Your Certificate is Ready</h2>
+            <p style="margin:0 0 18px 0;color:#374151;">
+              Hi <strong>{cert_name}</strong>,<br/><br/>
+              You have completed the workshop and your certificate has been issued on <strong>Student Alumni</strong>.
+            </p>
+            <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;width:100%;">
+              <tr><td style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:16px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                  <tr><td style="padding:4px 0;color:#6b7280;font-size:12px;font-weight:600;">Certificate</td>
+                      <td style="padding:4px 0;color:#111827;font-size:14px;font-weight:700;">{cert_doc.get('title','Workshop Completion')}</td></tr>
+                  <tr><td style="padding:4px 0;color:#6b7280;font-size:12px;font-weight:600;">Code</td>
+                      <td style="padding:4px 0;color:#7c3aed;font-size:14px;font-weight:700;font-family:monospace;">{code}</td></tr>
+                </table>
+              </td></tr>
+            </table>
+            <a href="{verify_url}" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#7C3AED,#5B21B6);color:#fff;text-decoration:none;border-radius:10px;font-size:14px;font-weight:700;">
+              Verify Your Certificate
+            </a>
+            <p style="margin:18px 0 0 0;color:#6b7280;font-size:13px;">
+              Anyone can confirm this certificate at
+              <a href="{verify_url}" style="color:#7c3aed;">{verify_url}</a>
+            </p>
+            """
+            await send_email(email, f"Your Certificate — {cert_doc.get('title','Workshop Completion')}", render_html_email(content_html))
+        except Exception as email_err:
+            print(f"[CERTIFICATE] Email notification failed: {email_err}", flush=True)
         return {
             "verification_code": code,
-            "verify_url": f"{os.environ.get('FRONTEND_URL', 'https://studentalumni.ai')}/certificates/verify/{code}",
+            "verify_url": verify_url,
         }
     except Exception as e:
         print(f"[CERTIFICATE] Workshop issuance failed: {e}", flush=True)
