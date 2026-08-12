@@ -105,16 +105,17 @@ export default function CertificateVerifyPortal() {
   };
 
   const downloadBGVReport = (memberData: any) => {
-    const reportContent = `STUDENT ALUMNI NETWORK — BACKGROUND VERIFICATION (BGV) REPORT
-=================================================================
-VERIFICATION STATUS: OFFICIALLY VERIFIED ACTIVE MEMBER
-MEMBER SA ID: ${memberData.sa_id}
-FULL NAME: ${memberData.full_name}
-ROLE: ${memberData.role}
-INSTITUTION: ${memberData.institution}
-VERIFIED AT: ${new Date().toISOString()}
-VERIFICATION AUTHORITY: Student Alumni Network Cryptographic BGV Registry
-=================================================================`;
+    const reportContent =
+      "STUDENT ALUMNI NETWORK — BACKGROUND VERIFICATION (BGV) REPORT\n" +
+      "=================================================================\n" +
+      "VERIFICATION STATUS: OFFICIALLY VERIFIED ACTIVE MEMBER\n" +
+      `MEMBER SA ID: ${memberData.sa_id}\n` +
+      `FULL NAME: ${memberData.full_name}\n` +
+      `ROLE: ${memberData.role}\n` +
+      `INSTITUTION: ${memberData.institution}\n` +
+      `VERIFIED AT: ${new Date().toISOString()}\n` +
+      "VERIFICATION AUTHORITY: Student Alumni Network Cryptographic BGV Registry\n" +
+      "=================================================================";
 
     if (Platform.OS === 'web') {
       const blob = new Blob([reportContent], { type: 'text/plain' });
