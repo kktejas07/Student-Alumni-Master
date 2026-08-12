@@ -10,7 +10,7 @@
  * superadmin CMS (Registration tab). On submit it registers the user in BOTH
  * the StudentAlumni platform and the event itself.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable, TextInput,
   ActivityIndicator, Image, Platform, useWindowDimensions, Linking,
@@ -20,12 +20,149 @@ import { LinearGradient } from 'expo-linear-gradient';
 import {
   ArrowLeft, Calendar, MapPin, Clock, Ticket, CreditCard,
   Check, ShieldCheck, Users, ChevronLeft, ChevronRight, ExternalLink,
+  ChevronDown,
 } from 'lucide-react-native';
 import { api, resolveImageUrl } from '@/src/models/services/api';
 import { PALETTE, FONTS, TYPO } from '@/src/views/web/portals/student/tokens';
 import { GRAD } from '@/src/views/web/portals/student/portalkit';
 import { EchoHeader, EchoFooter, ECHO_TOP_PADDING } from '@/src/views/web/components/EchoChrome';
 import { CollegeAutocomplete } from '@/src/views/web/components/CollegeAutocomplete';
+import { CalendarDatePicker } from '@/src/views/web/components/CalendarDatePicker';
+import { DarkDropdown } from '@/src/views/web/components/DarkDropdown';
+import { BTECH_BRANCHES, BTECH_YEAR_OPTIONS } from '@/src/constants/branches';
+
+const YEARS = [
+  '1st Year', '2nd Year', '3rd Year', 'Final Year',
+];
+
+const BRANCHES = [
+  'CSE', 'IT', 'ECE', 'EEE', 'MECH', 'CIVIL',
+  'AIML', 'CSDS', 'CST', 'AIDS', 'CSE (AI & ML)',
+  'EIE', 'Others',
+];
+
+/* ── Dark-glass dropdown matching the register form's inputs ────────────── */
+function FieldSelect({ label, value, options, onChange, placeholder = 'Select…', zIndex = 20 }: {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (v: string) => void;
+  placeholder?: string;
+  zIndex?: number;
+}) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    let timerId: any = null;
+    const handler = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    if (open) {
+      timerId = setTimeout(() => {
+        document.addEventListener('mousedown', handler);
+      }, 0);
+    }
+    return () => {
+      if (timerId) clearTimeout(timerId);
+      document.removeEventListener('mousedown', handler);
+    };
+  }, [open]);
+
+  return (
+    <View ref={wrapRef} style={{ position: 'relative', zIndex: open ? zIndex : 1 }}>
+      <Text style={s.label}>{label}</Text>
+      <Pressable
+        onPress={() => setOpen((o) => !o)}
+        style={[s.input, s.selectTrigger, open && s.selectTriggerOpen]}
+      >
+        <Text style={value ? s.selectValue : s.selectPlaceholder}>{value || placeholder}</Text>
+        <ChevronDown size={15} color={PALETTE.muted} />
+      </Pressable>
+      {open && (
+        <View style={[s.selectMenu, { zIndex }]}>
+          <ScrollView style={s.selectMenuScroll} nestedScrollEnabled={true} showsVerticalScrollIndicator={true}>
+          {options.map((opt) => {
+            const active = opt === value;
+            return (
+              <Pressable
+                key={opt}
+                onPress={() => { onChange(opt); setOpen(false); }}
+                style={[s.selectItem, active && s.selectItemActive]}
+              >
+                <Text style={[s.selectItemText, active && s.selectItemTextActive]}>{opt}</Text>
+                {active ? <Check size={14} color="#A78BFA" /> : null}
+              </Pressable>
+            );
+          })}
+          </ScrollView>
+        </View>
+      )}
+    </View>
+  );
+}
+
+/* ── DD / MM / YYYY date picker emitting ISO YYYY-MM-DD ──────────────────── */
+function DobPicker({ value, onChange }: { value: string; onChange: (iso: string) => void }) {
+  const [d, setD] = useState('');
+  const [m, setM] = useState('');
+  const [y, setY] = useState('');
+  const lastEmitted = useRef(value || '');
+
+  const curYear = new Date().getFullYear();
+
+  useEffect(() => {
+    if (value === lastEmitted.current) return;
+    lastEmitted.current = value || '';
+    if (value && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      const [yy, mm, dd] = value.split('-');
+      setY(yy); setM(mm); setD(dd);
+    } else if (!value) {
+      setY(''); setM(''); setD('');
+    }
+  }, [value]);
+
+  const years = useMemo(() => {
+    const arr: string[] = [];
+    for (let yr = curYear - 13; yr >= curYear - 60; yr--) arr.push(String(yr));
+    return arr;
+  }, [curYear]);
+
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+  const days = useMemo(() => {
+    let max = 31;
+    if (m && y) max = new Date(parseInt(y, 10), parseInt(m, 10), 0).getDate();
+    return Array.from({ length: max }, (_, i) => String(i + 1).padStart(2, '0'));
+  }, [m, y]);
+
+  useEffect(() => {
+    const iso = d && m && y ? `${y}-${m}-${d}` : '';
+    if (iso !== lastEmitted.current) {
+      lastEmitted.current = iso;
+      onChange(iso);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [d, m, y]);
+
+  return (
+    <View style={{ zIndex: 100, position: 'relative' }}>
+      <Text style={s.label}>Date of Birth</Text>
+      <View style={{ flexDirection: 'row', gap: 8, zIndex: 100, position: 'relative' }}>
+        <View style={{ flex: 1, zIndex: 30, position: 'relative' }}>
+          <FieldSelect label="" value={d} options={days} onChange={setD} placeholder="DD" zIndex={30} />
+        </View>
+        <View style={{ flex: 1.4, zIndex: 20, position: 'relative' }}>
+          <FieldSelect label="" value={m} options={months} onChange={setM} placeholder="Month" zIndex={20} />
+        </View>
+        <View style={{ flex: 1, zIndex: 10, position: 'relative' }}>
+          <FieldSelect label="" value={y} options={years} onChange={setY} placeholder="Year" zIndex={10} />
+        </View>
+      </View>
+    </View>
+  );
+}
 
 export default function EchoRegisterPage() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
@@ -37,7 +174,8 @@ export default function EchoRegisterPage() {
   const [loading, setLoading] = useState(true);
   const [existing, setExisting] = useState<any>(null);
 
-  const [form, setForm] = useState({ full_name: '', email: '', phone: '', dob: '', branch: '', year: '', college: '' });
+  const [form, setForm] = useState({ full_name: '', email: '', phone: '', date_of_birth: '', branch: '', year: '', college: '' });
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -62,7 +200,8 @@ export default function EchoRegisterPage() {
       const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
       const { tokenStore } = await import('@/src/models/services/api');
       const token = await tokenStore.getAccess();
-      const emailParam = form.email ? `?email=${encodeURIComponent(form.email)}` : '';
+      const regEmail = done?.email || existing?.email || form.email || '';
+      const emailParam = regEmail ? `?email=${encodeURIComponent(regEmail)}` : '';
       const resp = await fetch(`${base}/api/echo/invoices/${invoiceNo}${emailParam}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
@@ -87,7 +226,8 @@ export default function EchoRegisterPage() {
       const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
       const { tokenStore } = await import('@/src/models/services/api');
       const token = await tokenStore.getAccess();
-      const emailParam = form.email ? `?email=${encodeURIComponent(form.email)}` : '';
+      const regEmail = done?.email || existing?.email || form.email || '';
+      const emailParam = regEmail ? `?email=${encodeURIComponent(regEmail)}&format=json` : '?format=json';
       const resp = await fetch(`${base}/api/echo/tickets/${regId}${emailParam}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
@@ -135,7 +275,15 @@ export default function EchoRegisterPage() {
       } catch { /* not found */ }
       try {
         const reg = await api.myEchoRegistration(slug);
-        if (mounted && reg?.id) setExisting(reg);
+        if (mounted && reg?.id) {
+          setExisting(reg);
+        } else if (typeof window !== 'undefined') {
+          const localStr = window.localStorage.getItem(`echo_reg_${slug}`);
+          if (localStr) {
+            const localReg = JSON.parse(localStr);
+            if (mounted && localReg?.id) setExisting(localReg);
+          }
+        }
       } catch { /* no auth / none */ }
       if (mounted) setLoading(false);
     })();
@@ -166,8 +314,21 @@ export default function EchoRegisterPage() {
   };
 
   const onSubmit = async () => {
-    if (!form.full_name.trim() || !form.email.trim()) {
-      setError('Please fill in your name and email.');
+    const errs: Record<string, string> = {};
+    if (!form.full_name.trim()) errs.full_name = 'Please fill in your name.';
+    if (!form.email.trim() || !form.email.includes('@')) errs.email = 'Please enter a valid email address.';
+    if (form.date_of_birth) {
+      const d = new Date(form.date_of_birth);
+      if (isNaN(d.getTime())) {
+        errs.date_of_birth = 'Please select a valid date of birth.';
+      } else if (d > new Date()) {
+        errs.date_of_birth = 'Date of birth cannot be in the future.';
+      }
+    }
+
+    setFieldErrors(errs);
+    if (Object.keys(errs).length > 0) {
+      setError('Please fix the highlighted errors before submitting.');
       return;
     }
     setSubmitting(true);
@@ -180,7 +341,11 @@ export default function EchoRegisterPage() {
       // Free event → register directly.
       if (fee <= 0) {
         const res = await api.registerEchoShowcase(canonicalSlug, regPayload);
-        setDone(res);
+        const regObj = res.registration || res;
+        if (typeof window !== 'undefined' && regObj?.id) {
+          window.localStorage.setItem(`echo_reg_${canonicalSlug}`, JSON.stringify(regObj));
+        }
+        setDone(regObj);
         return;
       }
 
@@ -189,7 +354,11 @@ export default function EchoRegisterPage() {
 
       // Already paid → show the existing registration + invoice.
       if (order?.already) {
-        setDone(order.registration);
+        const regObj = order.registration || order;
+        if (typeof window !== 'undefined' && regObj?.id) {
+          window.localStorage.setItem(`echo_reg_${canonicalSlug}`, JSON.stringify(regObj));
+        }
+        setDone(regObj);
         return;
       }
 
@@ -216,7 +385,11 @@ export default function EchoRegisterPage() {
               razorpay_order_id: res.razorpay_order_id,
               razorpay_signature: res.razorpay_signature,
             });
-            setDone(verified.registration || verified);
+            const regObj = verified.registration || verified;
+            if (typeof window !== 'undefined' && regObj?.id) {
+              window.localStorage.setItem(`echo_reg_${canonicalSlug}`, JSON.stringify(regObj));
+            }
+            setDone(regObj);
           } catch (err: any) {
             setError(err?.message || 'Payment verification failed. Please contact support.');
             setSubmitting(false);
@@ -282,77 +455,162 @@ export default function EchoRegisterPage() {
     const reg = done || existing;
     const payment = reg.payment || {};
     const invoiceNo = reg.invoice?.invoice_no || done?.invoice?.invoice_no;
+    const regDetails = [
+      { label: 'Name', value: reg.full_name || reg.name || '—' },
+      { label: 'Email', value: reg.email || '—' },
+      { label: 'Phone', value: reg.phone || '—' },
+      { label: 'College', value: reg.college || showcase.college || '—' },
+      { label: 'Branch', value: reg.branch || '—' },
+      { label: 'Year', value: reg.year || '—' },
+    ].filter((d) => d.value !== '—');
+
     return (
       <View style={s.root}>
         <EchoHeader current="echo" />
-        <ScrollView contentContainerStyle={[s.content, { paddingBottom: 80, paddingTop: ECHO_TOP_PADDING }]}>
+        <ScrollView contentContainerStyle={{ paddingTop: ECHO_TOP_PADDING }}>
+        <View style={s.content}>
         <Pressable onPress={() => router.push(`/echo/${canonicalSlug}`)} style={s.backBtn}>
           <ArrowLeft size={14} color="#fff" />
           <Text style={s.backText}>Back to event</Text>
         </Pressable>
 
-        <LinearGradient colors={['#065F46', '#059669']} style={s.successHero}>
-          <View style={s.successIcon}><Check size={30} color="#fff" /></View>
-          <Text style={s.successTitle}>You're registered!</Text>
-          <Text style={s.successSub}>
-            {payment.status === 'paid' ? `Payment of ${payment.currency || currency} ${payment.amount || fee} received.` : 'Registration confirmed.'}
-          </Text>
-          {payment.payment_id ? (
-            <View style={s.payId}>
-              <ShieldCheck size={13} color="#A7F3D0" />
-              <Text style={s.payIdText}>Payment ID: {payment.payment_id}</Text>
-            </View>
+        {/* Hero banner at the top */}
+        <View style={[s.heroBanner, !isWide && s.heroBannerStack]}>
+          {showcase.hero_image_url ? (
+            <Image source={{ uri: resolveImageUrl(showcase.hero_image_url) }} style={s.heroBannerImg} resizeMode="cover" />
           ) : null}
-        </LinearGradient>
-
-        <View style={s.card}>
-          <Text style={s.cardTitle}>Event Details</Text>
-          <View style={s.detailRow}><Calendar size={14} color={PALETTE.muted} /><Text style={s.detailText}>{showcase.date || '—'}</Text></View>
-          <View style={s.detailRow}><Clock size={14} color={PALETTE.muted} /><Text style={s.detailText}>{showcase.time || '—'}</Text></View>
-          <View style={s.detailRow}><MapPin size={14} color={PALETTE.muted} /><Text style={s.detailText}>{showcase.venue || '—'}</Text></View>
+          <LinearGradient
+            colors={['rgba(10,15,30,0.82)', 'rgba(10,15,30,0.92)']}
+            style={s.heroBannerOverlay}
+          />
+          <View style={s.heroBannerContent}>
+            <View style={s.headerBadge}><Check size={12} color="#34D399" /><Text style={[s.headerBadgeText, { color: '#34D399' }]}>REGISTERED</Text></View>
+            <Text style={s.headerTitle}>{showcase.title}</Text>
+            <Text style={s.headerOrg}>Organized by {showcase.organizer_name || showcase.college || '—'}</Text>
+            <View style={s.metaCol}>
+              {showcase.date ? <View style={s.metaRow}><Calendar size={13} color={PALETTE.muted} /><Text style={s.metaText}>{showcase.date}</Text></View> : null}
+              {showcase.time ? <View style={s.metaRow}><Clock size={13} color={PALETTE.muted} /><Text style={s.metaText}>{showcase.time}</Text></View> : null}
+              {showcase.venue ? <View style={s.metaRow}><MapPin size={13} color={PALETTE.muted} /><Text style={s.metaText}>{showcase.venue}</Text></View> : null}
+            </View>
+          </View>
         </View>
 
-        {reg.qr_code_base64 ? (
-          <View style={s.card}>
-            <Text style={s.cardTitle}>Your Check-in QR</Text>
-            <Text style={s.hint}>Show this at the venue to check in.</Text>
-            <View style={s.qrWrap}>
-              <Image
-                source={{ uri: `data:image/png;base64,${reg.qr_code_base64}` }}
-                style={s.qr} resizeMode="contain"
-              />
+        <View style={[s.split, !isWide && s.splitStack]}>
+          {/* LEFT: POSTER */}
+          <View style={[s.posterCol, !isWide && s.posterColStack]}>
+            <View style={s.posterWrap}>
+              {activePoster ? (
+                <Image source={{ uri: resolveImageUrl(activePoster) }} style={s.poster} resizeMode="cover" />
+              ) : (
+                <LinearGradient colors={['rgba(123,61,191,0.35)', 'rgba(95,37,159,0.55)', 'rgba(30,10,80,0.85)']} style={s.poster}>
+                  <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1, gap: 10, padding: 20 }}>
+                    <Ticket size={40} color={GRAD.from} />
+                    <Text style={{ fontFamily: TYPO.display800, fontSize: 20, color: '#fff', textAlign: 'center' }}>{showcase.title}</Text>
+                    <Text style={{ fontFamily: TYPO.body500, fontSize: 12.5, color: 'rgba(255,255,255,0.7)', textAlign: 'center' }}>Event poster</Text>
+                  </View>
+                </LinearGradient>
+              )}
+              {posters.length > 1 && (
+                <>
+                  <Pressable onPress={() => setPosterIdx((posterIdx - 1 + posters.length) % posters.length)} style={[s.posterNav, s.posterNavL]}>
+                    <ChevronLeft size={20} color="#fff" />
+                  </Pressable>
+                  <Pressable onPress={() => setPosterIdx((posterIdx + 1) % posters.length)} style={[s.posterNav, s.posterNavR]}>
+                    <ChevronRight size={20} color="#fff" />
+                  </Pressable>
+                </>
+              )}
             </View>
-            <Text style={s.regId}>Registration ID: {reg.id}</Text>
+            {posters.length > 1 && (
+              <View style={s.dots}>
+                {posters.map((_, i) => (
+                  <Pressable key={i} onPress={() => setPosterIdx(i)} style={[s.dot, i === (posterIdx % posters.length) && s.dotOn]} />
+                ))}
+              </View>
+            )}
           </View>
-        ) : null}
 
-        <Pressable onPress={() => router.push(`/echo/${canonicalSlug}`)} style={s.doneBtn}>
-          <Text style={s.doneBtnText}>Done</Text>
-        </Pressable>
-
-        <Pressable onPress={() => router.push(`/echo/${canonicalSlug}/coupons`)} style={[s.invBtn, { borderColor: 'rgba(167,139,250,0.3)' }]}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
-            <Ticket size={14} color="#A78BFA" />
-            <Text style={[s.invBtnText, { color: '#C4B5FD' }]}>View My Coupons</Text>
-          </View>
-        </Pressable>
-
-        {invoiceNo ? (
-          <Pressable onPress={() => openInvoice(invoiceNo)} style={s.invBtn}>
-            <Text style={s.invBtnText}>Download Invoice</Text>
-          </Pressable>
-        ) : null}
-
-        <View style={{ flexDirection: 'row', gap: 10, marginBottom: 14 }}>
-          <Pressable onPress={() => openTicket(reg.id)} style={[s.doneBtn, { flex: 1 }]}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
-              <Ticket size={16} color="#fff" />
-              <Text style={s.doneBtnText}>Download Ticket</Text>
+          {/* RIGHT: CONFIRMATION DETAILS */}
+          <View style={[s.formCol, !isWide && s.formColStack]}>
+            {/* Success card with emerald tint */}
+            <View style={s.successCard}>
+              <View style={s.successIconRow}>
+                <View style={s.successCheckCircle}>
+                  <Check size={20} color="#fff" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.successCardTitle}>You're registered!</Text>
+                  <Text style={s.successCardSub}>
+                    {payment.status === 'paid' ? `Payment of ${payment.currency || currency} ${payment.amount || fee} received.` : 'Registration confirmed.'}
+                  </Text>
+                </View>
+              </View>
+              {payment.payment_id ? (
+                <View style={s.payIdBadge}>
+                  <ShieldCheck size={12} color="#34D399" />
+                  <Text style={s.payIdBadgeText}>Payment ID: {payment.payment_id}</Text>
+                </View>
+              ) : null}
             </View>
-          </Pressable>
-          <Pressable onPress={() => shareTicket(reg.id)} style={[s.invBtn, { flex: 1, marginBottom: 0 }]}>
-            <Text style={s.invBtnText}>Share Ticket</Text>
-          </Pressable>
+
+            {/* Pass QR Card */}
+            {reg.qr_code_base64 ? (
+              <View style={s.formCard}>
+                <Text style={[s.cardTitle, { marginBottom: 12 }]}>Your Entry Pass</Text>
+                <Text style={s.qrHint}>Show this QR code at the venue entrance to check in.</Text>
+                <View style={s.qrWrapper}>
+                  <Image
+                    source={{ uri: `data:image/png;base64,${reg.qr_code_base64}` }}
+                    style={s.qrCodeImg} resizeMode="contain"
+                  />
+                </View>
+                <Text style={s.qrRegId}>Registration ID: {reg.id}</Text>
+              </View>
+            ) : null}
+
+            {/* Attendee Details Card */}
+            {regDetails.length > 0 && (
+              <View style={s.formCard}>
+                <Text style={[s.cardTitle, { marginBottom: 16 }]}>Attendee Information</Text>
+                <View style={s.detailsGrid}>
+                  {regDetails.map((d) => (
+                    <View key={d.label} style={s.detailsGridRow}>
+                      <Text style={s.detailsGridLabel}>{d.label}</Text>
+                      <Text style={s.detailsGridValue}>{d.value}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* Action buttons */}
+            <View style={{ gap: 10, marginTop: 8 }}>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <Pressable onPress={() => openTicket(reg.id)} style={[s.actionBtn, { flex: 1 }]}>
+                  <Ticket size={16} color="#fff" />
+                  <Text style={s.actionBtnText}>Print Ticket</Text>
+                </Pressable>
+                {invoiceNo ? (
+                  <Pressable onPress={() => openInvoice(invoiceNo)} style={[s.actionBtn, s.actionBtnOutline, { flex: 1 }]}>
+                    <CreditCard size={16} color="#34D399" />
+                    <Text style={[s.actionBtnText, { color: '#34D399' }]}>Invoice</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+
+              <Pressable onPress={() => router.push(`/echo/${canonicalSlug}/coupons`)} style={s.couponLinkBtn}>
+                <Ticket size={16} color="#C4B5FD" />
+                <Text style={s.couponLinkBtnText}>View My Exclusive Coupons</Text>
+              </Pressable>
+
+              <Pressable onPress={() => router.push(`/echo/${canonicalSlug}`)} style={s.doneBtn}>
+                <Text style={s.doneBtnText}>Back to Event</Text>
+              </Pressable>
+            </View>
+
+          </View>
+        </View>
+
         </View>
         <EchoFooter />
         </ScrollView>
@@ -370,16 +628,25 @@ export default function EchoRegisterPage() {
         <Text style={s.backText}>Back to event</Text>
       </Pressable>
 
-      <LinearGradient colors={['rgba(124,58,237,0.30)', 'rgba(30,10,80,0.5)']} style={s.header}>
-        <View style={s.headerBadge}><Ticket size={14} color="#C4B5FD" /><Text style={s.headerBadgeText}>REGISTER</Text></View>
-        <Text style={s.headerTitle}>{showcase.title}</Text>
-        <Text style={s.headerOrg}>Organized by {showcase.organizer_name || showcase.college || '—'}</Text>
-        <View style={s.metaCol}>
-          {showcase.date ? <View style={s.metaRow}><Calendar size={13} color={PALETTE.muted} /><Text style={s.metaText}>{showcase.date}</Text></View> : null}
-          {showcase.time ? <View style={s.metaRow}><Clock size={13} color={PALETTE.muted} /><Text style={s.metaText}>{showcase.time}</Text></View> : null}
-          {showcase.venue ? <View style={s.metaRow}><MapPin size={13} color={PALETTE.muted} /><Text style={s.metaText}>{showcase.venue}</Text></View> : null}
+      <View style={[s.heroBanner, !isWide && s.heroBannerStack]}>
+        {showcase.hero_image_url ? (
+          <Image source={{ uri: resolveImageUrl(showcase.hero_image_url) }} style={s.heroBannerImg} resizeMode="cover" />
+        ) : null}
+        <LinearGradient
+          colors={['rgba(10,15,30,0.82)', 'rgba(10,15,30,0.92)']}
+          style={s.heroBannerOverlay}
+        />
+        <View style={s.heroBannerContent}>
+          <View style={s.headerBadge}><Ticket size={14} color="#C4B5FD" /><Text style={s.headerBadgeText}>REGISTER</Text></View>
+          <Text style={s.headerTitle}>{showcase.title}</Text>
+          <Text style={s.headerOrg}>Organized by {showcase.organizer_name || showcase.college || '—'}</Text>
+          <View style={s.metaCol}>
+            {showcase.date ? <View style={s.metaRow}><Calendar size={13} color={PALETTE.muted} /><Text style={s.metaText}>{showcase.date}</Text></View> : null}
+            {showcase.time ? <View style={s.metaRow}><Clock size={13} color={PALETTE.muted} /><Text style={s.metaText}>{showcase.time}</Text></View> : null}
+            {showcase.venue ? <View style={s.metaRow}><MapPin size={13} color={PALETTE.muted} /><Text style={s.metaText}>{showcase.venue}</Text></View> : null}
+          </View>
         </View>
-      </LinearGradient>
+      </View>
 
       <View style={[s.split, !isWide && s.splitStack]}>
         {/* ── LEFT: POSTER PLACEHOLDER(S) ─────────────────────────────── */}
@@ -456,34 +723,53 @@ export default function EchoRegisterPage() {
                 <Text style={s.cardTitle}>Registration Details</Text>
 
                 <Text style={s.label}>Full Name *</Text>
-                <TextInput style={s.input} value={form.full_name} onChangeText={(v) => set('full_name', v)} placeholder="Your full name" placeholderTextColor={PALETTE.dim} />
+                <TextInput style={[s.input, fieldErrors.full_name ? s.inputError : null]} value={form.full_name} onChangeText={(v) => set('full_name', v)} placeholder="Your full name" placeholderTextColor={PALETTE.dim} />
+                {fieldErrors.full_name ? <Text style={s.fieldErrText}>{fieldErrors.full_name}</Text> : null}
 
                 <Text style={s.label}>Email *</Text>
-                <TextInput style={s.input} value={form.email} onChangeText={(v) => set('email', v)} placeholder="you@example.com" placeholderTextColor={PALETTE.dim} keyboardType="email-address" autoCapitalize="none" />
+                <TextInput style={[s.input, fieldErrors.email ? s.inputError : null]} value={form.email} onChangeText={(v) => set('email', v)} placeholder="you@example.com" placeholderTextColor={PALETTE.dim} keyboardType="email-address" autoCapitalize="none" />
+                {fieldErrors.email ? <Text style={s.fieldErrText}>{fieldErrors.email}</Text> : null}
 
                 <Text style={s.label}>Phone</Text>
                 <TextInput style={s.input} value={form.phone} onChangeText={(v) => set('phone', v)} placeholder="+91 …" placeholderTextColor={PALETTE.dim} keyboardType="phone-pad" />
 
-                <Text style={s.label}>Date of Birth</Text>
-                <TextInput style={s.input} value={form.dob} onChangeText={(v) => set('dob', v)} placeholder="YYYY-MM-DD" placeholderTextColor={PALETTE.dim} autoCapitalize="none" />
+                <CalendarDatePicker
+                  label="Date of Birth"
+                  value={form.date_of_birth}
+                  onChange={(iso) => set('date_of_birth', iso)}
+                  placeholder="YYYY-MM-DD"
+                  error={fieldErrors.date_of_birth}
+                />
 
-                <View style={{ flexDirection: 'row', gap: 10 }}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={s.label}>Branch</Text>
-                    <TextInput style={s.input} value={form.branch} onChangeText={(v) => set('branch', v)} placeholder="CSE" placeholderTextColor={PALETTE.dim} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={s.label}>Year</Text>
-                    <TextInput style={s.input} value={form.year} onChangeText={(v) => set('year', v)} placeholder="Final" placeholderTextColor={PALETTE.dim} />
-                  </View>
+                <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
+                  <DarkDropdown
+                    label="Branch"
+                    value={form.branch}
+                    options={BTECH_BRANCHES}
+                    onChange={(v) => set('branch', v)}
+                    placeholder="Select your B.Tech branch"
+                    error={fieldErrors.branch}
+                    modalTitle="SELECT B.TECH BRANCH"
+                  />
+                  <DarkDropdown
+                    label="Current B.Tech Year"
+                    value={form.year}
+                    options={BTECH_YEAR_OPTIONS}
+                    onChange={(v) => set('year', v)}
+                    placeholder="Select your current year"
+                    error={fieldErrors.year}
+                    modalTitle="SELECT CURRENT YEAR"
+                  />
                 </View>
 
-                <Text style={s.label}>College</Text>
-                <CollegeAutocomplete
-                  value={form.college}
-                  onChangeText={(v) => set('college', v)}
-                  placeholder={showcase.college || 'Search your college…'}
-                />
+                <View style={{ zIndex: 30, position: 'relative' }}>
+                  <Text style={s.label}>College</Text>
+                  <CollegeAutocomplete
+                    value={form.college}
+                    onChangeText={(v) => set('college', v)}
+                    placeholder={showcase.college || 'Search your college…'}
+                  />
+                </View>
 
                 {error ? <Text style={s.error}>{error}</Text> : null}
 
@@ -553,7 +839,7 @@ const s = StyleSheet.create({
 
   posterCol: { flex: 1, minWidth: 0, gap: 12 },
   posterColStack: { width: '100%' },
-  posterWrap: { position: 'relative', borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: PALETTE.glassBorder, flex: 1, minHeight: 460 },
+  posterWrap: { position: 'relative', borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: PALETTE.glassBorder, width: '100%', flex: 1, minHeight: 300 },
   poster: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%', backgroundColor: '#0d1326' },
   posterNav: {
     position: 'absolute', top: '50%', marginTop: -20, width: 40, height: 40, borderRadius: 20,
@@ -579,6 +865,16 @@ const s = StyleSheet.create({
   backText: { color: '#fff', fontFamily: FONTS.med, fontSize: 13 },
   backInline: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
   backInlineText: { color: GRAD.from, fontFamily: FONTS.semi, fontSize: 13 },
+
+  heroBanner: {
+    position: 'relative', borderRadius: 18, overflow: 'hidden',
+    marginBottom: 20, minHeight: 200,
+    borderWidth: 1, borderColor: 'rgba(167,139,250,0.2)',
+  },
+  heroBannerStack: { width: '100%' },
+  heroBannerImg: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
+  heroBannerOverlay: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
+  heroBannerContent: { position: 'relative', padding: 28, gap: 8, zIndex: 2 },
 
   header: { borderRadius: 18, padding: 24, gap: 8, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)' },
   headerBadge: {
@@ -616,6 +912,37 @@ const s = StyleSheet.create({
     borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, color: '#fff',
     fontFamily: FONTS.med, fontSize: 14,
   },
+  selectTrigger: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  selectTriggerOpen: { borderColor: GRAD.from },
+  selectValue: { color: '#fff', fontFamily: FONTS.med, fontSize: 14 },
+  selectPlaceholder: { color: PALETTE.dim, fontFamily: FONTS.med, fontSize: 14 },
+  selectMenu: {
+    position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 6,
+    backgroundColor: '#0f1629', borderColor: 'rgba(167,139,250,0.45)', borderWidth: 1,
+    borderRadius: 10, overflow: 'hidden', maxHeight: 260,
+    zIndex: 999,
+    ...(Platform.OS === 'web' ? ({
+      boxShadow: '0 18px 50px rgba(0,0,0,0.85), 0 0 0 1px rgba(124,58,237,0.15)',
+    } as any) : {}),
+  },
+  selectMenuScroll: {
+    maxHeight: 250,
+    ...(Platform.OS === 'web' ? ({ overflowY: 'auto' } as any) : {}),
+  },
+  selectItem: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 14, paddingVertical: 12, backgroundColor: '#0f1629',
+    borderBottomWidth: 1, borderBottomColor: 'rgba(167,139,250,0.1)',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  selectItemActive: { backgroundColor: 'rgba(124,58,237,0.25)' },
+  selectItemText: { color: 'rgba(255,255,255,0.85)', fontFamily: FONTS.med, fontSize: 13.5 },
+  selectItemTextActive: { color: '#C4B5FD', fontFamily: FONTS.semi },
+  inputError: { borderColor: '#F87171' },
+  fieldErrText: { color: '#F87171', fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
   error: { color: '#F87171', fontFamily: FONTS.med, fontSize: 12.5, marginTop: 6 },
   payBtnWrap: { borderRadius: 12, marginTop: 18, overflow: 'hidden' },
   payBtn: {
@@ -667,4 +994,138 @@ const s = StyleSheet.create({
   },
   closedTitle: { color: '#FCD34D', fontFamily: TYPO.display700, fontSize: 16 },
   closedSub: { color: PALETTE.muted, fontFamily: FONTS.med, fontSize: 13 },
+  successCard: {
+    backgroundColor: 'rgba(16,185,129,0.08)',
+    borderColor: 'rgba(52,211,153,0.3)',
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 14,
+    gap: 12,
+  },
+  successIconRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  successCheckCircle: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(16,185,129,0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  successCardTitle: {
+    color: '#fff',
+    fontFamily: TYPO.display800,
+    fontSize: 18,
+  },
+  successCardSub: {
+    color: '#A7F3D0',
+    fontFamily: FONTS.med,
+    fontSize: 12.5,
+    marginTop: 2,
+    lineHeight: 16,
+  },
+  payIdBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  payIdBadgeText: {
+    color: '#D1FAE5',
+    fontFamily: FONTS.semi,
+    fontSize: 11,
+  },
+  qrHint: {
+    color: PALETTE.muted,
+    fontFamily: FONTS.med,
+    fontSize: 12,
+    lineHeight: 16,
+    marginBottom: 10,
+  },
+  qrWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    alignSelf: 'center',
+    marginVertical: 12,
+  },
+  qrCodeImg: {
+    width: 160,
+    height: 160,
+  },
+  qrRegId: {
+    color: PALETTE.dim,
+    fontFamily: FONTS.semi,
+    fontSize: 11,
+    textAlign: 'center',
+    marginTop: 4,
+    letterSpacing: 0.5,
+  },
+  detailsGrid: {
+    gap: 10,
+    marginTop: 4,
+  },
+  detailsGridRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.04)',
+  },
+  detailsGridLabel: {
+    color: '#64748b',
+    fontFamily: FONTS.semi,
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  detailsGridValue: {
+    color: '#fff',
+    fontFamily: FONTS.semi,
+    fontSize: 13.5,
+  },
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#059669',
+    borderRadius: 10,
+    paddingVertical: 12,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  actionBtnOutline: {
+    backgroundColor: 'rgba(52,211,153,0.06)',
+    borderColor: 'rgba(52,211,153,0.3)',
+    borderWidth: 1,
+  },
+  couponLinkBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(124,58,237,0.15)',
+    borderColor: 'rgba(167,139,250,0.3)',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 12,
+    marginVertical: 4,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  couponLinkBtnText: {
+    color: '#C4B5FD',
+    fontFamily: TYPO.display700,
+    fontSize: 13.5,
+  },
 });

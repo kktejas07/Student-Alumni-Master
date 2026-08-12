@@ -34,6 +34,7 @@ export function OptionListCard({
   loading = false,
   width,
   style,
+  maxHeight,
 }: {
   headerLabel?: string;
   options: OptionItem[];
@@ -46,6 +47,7 @@ export function OptionListCard({
   loading?: boolean;
   width?: number | string;
   style?: any;
+  maxHeight?: number;
 }) {
   const { primary } = useRoleTheme();
   return (
@@ -57,7 +59,7 @@ export function OptionListCard({
         <View style={styles.empty}><Text style={styles.emptyText}>{emptyLabel}</Text></View>
       ) : (
         <>
-          <ScrollView style={styles.scroll} nestedScrollEnabled={true} showsVerticalScrollIndicator={true}>
+          <ScrollView style={[styles.scroll, maxHeight != null ? { maxHeight } : null]} nestedScrollEnabled={true} showsVerticalScrollIndicator={true}>
             {options.map((opt) => {
               const isSelected = opt.value === selectedValue;
               return (

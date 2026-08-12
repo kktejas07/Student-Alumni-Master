@@ -493,7 +493,7 @@ export function CouponBanner({ portal, editable }: { portal: string; editable?: 
     <View style={s.wrap}>
       <View style={s.headRow}>
         <Tag size={13} color="#A78BFA" />
-        <Text style={s.headText}>Exclusive Coupons{editable ? ` (${coupons.length})` : ''}</Text>
+        <Text style={s.headText}>Collab Exclusive Coupons{editable ? ` (${coupons.length})` : ''}</Text>
         {editable && (
           <>
             <View style={{ flex: 1 }} />
@@ -518,13 +518,17 @@ export function CouponBanner({ portal, editable }: { portal: string; editable?: 
             decelerationRate="fast"
           >
             {coupons.map((c) => (
-              <Pressable key={c.id} onPress={() => setSelected(c)} style={[s.card, editable && !c.active && s.cardInactive, c.locked && { borderColor: 'rgba(245,158,11,0.4)' }]}>
+              <Pressable key={c.id} onPress={() => !c.locked && setSelected(c)} style={[s.card, editable && !c.active && s.cardInactive, c.locked && { borderColor: 'rgba(245,158,11,0.4)' }]}>
                 <View style={s.cardImgWrap}>
-                  {c.image_url ? (
+                  {c.locked ? (
+                    <View style={[s.cardImg, s.cardImgFallback, { backgroundColor: 'rgba(245,158,11,0.08)' }]}>
+                      <Lock size={28} color="#F59E0B" />
+                    </View>
+                  ) : c.image_url ? (
                     <Image source={{ uri: c.image_url }} style={s.cardImg} resizeMode="contain" />
                   ) : (
                     <View style={[s.cardImg, s.cardImgFallback]}>
-                      {c.locked ? <Lock size={22} color="#F59E0B" /> : <Ticket size={22} color="#A78BFA" />}
+                      <Ticket size={22} color="#A78BFA" />
                     </View>
                   )}
                   {editable && (
@@ -542,17 +546,27 @@ export function CouponBanner({ portal, editable }: { portal: string; editable?: 
                   )}
                 </View>
                 <View style={s.cardBody}>
-                  <Text style={s.cardPartner} numberOfLines={1}>
-                    {c.locked ? 'Available soon' : (c.partner_name || 'Partner Offer')}
-                  </Text>
-                  <Text style={s.cardTitle} numberOfLines={1}>
-                    {c.locked ? 'Session locked' : (c.discount_pct ? discountLabel(c) : c.description || 'Coupon')}
-                  </Text>
-                  <View style={[s.cardCode, c.locked && { backgroundColor: 'rgba(245,158,11,0.15)' }]}>
-                    <Text style={[s.cardCodeText, c.locked && { color: '#F59E0B' }]}>
-                      {c.locked ? 'Locked' : c.code}
-                    </Text>
-                  </View>
+                  {c.locked ? (
+                    <>
+                      <Text style={[s.cardPartner, { color: '#F59E0B' }]}>Coming soon</Text>
+                      <Text style={[s.cardTitle, { color: 'rgba(255,255,255,0.3)' }]}>This coupon will be available shortly</Text>
+                      <View style={[s.cardCode, { backgroundColor: 'rgba(245,158,11,0.12)' }]}>
+                        <Text style={[s.cardCodeText, { color: '#F59E0B' }]}>Locked</Text>
+                      </View>
+                    </>
+                  ) : (
+                    <>
+                      <Text style={s.cardPartner} numberOfLines={1}>
+                        {c.partner_name || 'Partner Offer'}
+                      </Text>
+                      <Text style={s.cardTitle} numberOfLines={1}>
+                        {c.discount_pct ? discountLabel(c) : c.description || 'Coupon'}
+                      </Text>
+                      <View style={s.cardCode}>
+                        <Text style={s.cardCodeText}>{c.code}</Text>
+                      </View>
+                    </>
+                  )}
                 </View>
               </Pressable>
             ))}

@@ -255,6 +255,10 @@ const s = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
+  beatIconWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   beatIcon: { fontSize: 16 },
   beatText: {
     color: '#6B7280',

@@ -14,7 +14,7 @@ export default function Root({ children }: PropsWithChildren) {
         />
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/favicon.png" type="image/png" />
-        <link rel="apple-touch-icon" href="/sa-icon.png" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         {/*
           Disable body scrolling on web to make ScrollView components work correctly.
           If you want to enable scrolling, remove `ScrollViewStyleReset` and

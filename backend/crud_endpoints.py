@@ -60,6 +60,52 @@ def _short_id(oid) -> str:
     return str(oid)[-8:] if oid else ""
 
 
+async def _issue_workshop_certificate(reg: Dict[str, Any], student: Dict[str, Any], email: str) -> Optional[Dict[str, Any]]:
+    """Issue a verifiable certificate into the `certificates` registry.
+
+    Follows the Coursera/Udemy model: a unique verification code is stored
+    in the registry and exposed via a public /certificates/verify/{code}
+    page, so anyone can confirm authenticity without logging in.
+    """
+    try:
+        import secrets as _secrets
+        alphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
+        code = "SA-" + "".join(_secrets.choice(alphabet) for _ in range(4)) + "-" + "".join(
+            _secrets.choice(alphabet) for _ in range(4)
+        )
+        for _ in range(5):
+            if not await _db.certificates.find_one({"verification_code": code}):
+                break
+            code = "SA-" + "".join(_secrets.choice(alphabet) for _ in range(4)) + "-" + "".join(
+                _secrets.choice(alphabet) for _ in range(4)
+            )
+
+        recipient_name = student.get("full_name") or student.get("name") or ""
+        if not recipient_name:
+            recipient_name = (email or "").split("@")[0].replace(".", " ").title()
+
+        cert_doc = {
+            "verification_code": code,
+            "recipient_email": (email or "").lower(),
+            "recipient_name": recipient_name,
+            "title": reg.get("workshop_title") or "Workshop Completion",
+            "issuer": "Student Alumni",
+            "issuer_type": "platform",
+            "issued_at": _now(),
+            "credential_url": None,
+            "meta": {"source": "workshop", "registration_id": str(reg["_id"]), "weeks": reg.get("weeks")},
+            "created_at": _now(),
+        }
+        await _db.certificates.insert_one(cert_doc)
+        return {
+            "verification_code": code,
+            "verify_url": f"{os.environ.get('FRONTEND_URL', 'https://studentalumni.ai')}/certificates/verify/{code}",
+        }
+    except Exception as e:
+        print(f"[CERTIFICATE] Workshop issuance failed: {e}", flush=True)
+        return None
+
+
 async def _resolve_user(role: str, email: Optional[str]) -> Dict[str, Any]:
     if email:
         user = await _db.users.find_one({"email": email})
@@ -616,7 +662,15 @@ async def progress_workshop(req: WorkshopProgressReq):
 
     if status == "completed":
         update_doc["completed_at"] = reg.get("completed_at") or _now()
-        update_doc["certificate_url"] = reg.get("certificate_url") or f"https://certificates.example.com/{_short_id(reg['_id'])}"
+        # Real certificate issuance (Coursera-style): create a registry entry
+        # with a unique verification code + public verify URL, replacing the
+        # old placeholder certificates.example.com link.
+        cert = await _issue_workshop_certificate(
+            reg, student, req.student_email or student.get("email")
+        )
+        if cert:
+            update_doc["certificate_url"] = cert["verify_url"]
+            update_doc["verification_code"] = cert["verification_code"]
 
     await _db.workshop_registrations.update_one(
         {"_id": reg["_id"]},

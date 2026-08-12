@@ -538,8 +538,7 @@ const s = StyleSheet.create({
     paddingVertical: 6,
     marginBottom: 20,
     gap: 6,
-    // @ts-ignore
-    cursor: 'pointer',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   aiBtnText: {
     color: '#C4B5FD',
@@ -638,8 +637,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 4,
-    // @ts-ignore
-    cursor: 'pointer',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   sortChipOn: {
     backgroundColor: 'rgba(139, 92, 246, 0.25)',
@@ -662,8 +660,7 @@ const s = StyleSheet.create({
     fontFamily: FONTS.med,
     fontSize: 13,
     paddingVertical: 0,
-    // @ts-ignore
-    outlineStyle: 'none',
+    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
   },
 });
 
