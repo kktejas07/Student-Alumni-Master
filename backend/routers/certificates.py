@@ -1,14 +1,20 @@
 import os
 import io
 import csv
+import re
+import secrets
 import zipfile
 import hashlib
 from typing import Optional, List
-from datetime import datetime
-from fastapi import APIRouter, HTTPException, Depends, Query, File, UploadFile
+from datetime import datetime, timezone
+from fastapi import APIRouter, HTTPException, Depends, Query, File, UploadFile, Body
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 from core.db import db
+from core.email import send_email, render_html_email
+
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://studentalumni.ai")
 
 try:
     from routers.auth import _deps_get_current_user as get_current_user
@@ -159,6 +165,14 @@ async def verify_certificate(identifier: str):
             "type": "certificate",
             "identifier": primary.get("id") or primary.get("certificate_id"),
             "certificate_id": primary.get("id") or primary.get("certificate_id"),
+            "verification_code": primary.get("verification_code"),
+            "recipient_name": primary.get("recipient_name"),
+            "recipient_email": primary.get("recipient_email"),
+            "title": primary.get("title") or primary.get("certification_name"),
+            "issuer": primary.get("issuer"),
+            "issuer_type": primary.get("issuer_type"),
+            "issued_at": primary.get("issued_at"),
+            "verify_url": f"{FRONTEND_URL}/certificates/verify/{primary.get('verification_code')}",
             "status": "valid",
             "status_label": primary.get("status_label", "Officially Verified"),
             "certificate": primary,
@@ -355,3 +369,388 @@ async def batch_import_certificates(
         count += 1
 
     return {"ok": True, "imported_count": count}
+
+
+# ──────────────────────────────────────────────────────────────────────
+#  HELPERS
+# ──────────────────────────────────────────────────────────────────────
+
+_ALPHA = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"  # no I/O/0/1/L to avoid ambiguity
+
+async def _generate_code() -> str:
+    """Generate a unique SA-XXXX-XXXX verification code."""
+    for _ in range(10):
+        code = "SA-" + "".join(secrets.choice(_ALPHA) for _ in range(4)) + "-" + "".join(
+            secrets.choice(_ALPHA) for _ in range(4)
+        )
+        if not await db.certificates.find_one({"verification_code": code}):
+            return code
+    raise HTTPException(500, "Could not generate a unique verification code after 10 attempts")
+
+
+_ISSUER_PATTERNS = [
+    (re.compile(r"coursera\.org", re.I), "Coursera", "course", "Online course platform"),
+    (re.compile(r"udemy\.com", re.I), "Udemy", "course", "Online course platform"),
+    (re.compile(r"linkedin\.com/learning|linkedin\.com/in", re.I), "LinkedIn Learning", "credential", "Professional credential"),
+    (re.compile(r"edx\.org", re.I), "edX", "course", "Online course platform"),
+    (re.compile(r"freecodecamp\.org", re.I), "freeCodeCamp", "certification", "Coding certification"),
+    (re.compile(r"hackerrank\.com", re.I), "HackerRank", "skill", "Skill certification"),
+    (re.compile(r"leetcode\.com", re.I), "LeetCode", "skill", "Coding challenge"),
+    (re.compile(r"aws\.amazon\.com|amazonaws\.com", re.I), "Amazon Web Services", "cloud", "Cloud certification"),
+    (re.compile(r"google\.com/.*(?:certified|training|cloud)", re.I), "Google", "cloud", "Cloud certification"),
+    (re.compile(r"microsoft\.com/.*(?:learn|certified)", re.I), "Microsoft", "cloud", "Microsoft certification"),
+    (re.compile(r"github\.com|github\.dev", re.I), "GitHub", "developer", "Developer credential"),
+]
+
+
+def _classify_issuer_from_url(url: str) -> dict:
+    """Classify an issuer from a credential URL and return metadata."""
+    for pattern, issuer, issuer_key, hint in _ISSUER_PATTERNS:
+        if pattern.search(url):
+            return {"issuer": issuer, "issuer_key": issuer_key, "hint": hint}
+    return {"issuer": "Unknown", "issuer_key": "unknown", "hint": "Unrecognized issuer — URL does not match known platforms"}
+
+
+async def _send_cert_email(to_email: str, title: str, recipient_name: str, code: str, verify_url: str):
+    """Send a certificate-issued email to the recipient."""
+    content = f"""
+    <h2 style="margin:0 0 8px 0;color:#111827;font-size:20px;">Your Certificate is Ready</h2>
+    <p style="margin:0 0 18px 0;color:#374151;">
+      Hi <strong>{recipient_name or 'there'}</strong>,<br/><br/>
+      A certificate has been issued to you on <strong>Student Alumni</strong>.
+    </p>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;width:100%;">
+      <tr>
+        <td style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:16px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td style="padding:4px 0;color:#6b7280;font-size:12px;font-weight:600;">Certificate</td>
+              <td style="padding:4px 0;color:#111827;font-size:14px;font-weight:700;">{title}</td>
+            </tr>
+            <tr>
+              <td style="padding:4px 0;color:#6b7280;font-size:12px;font-weight:600;">Code</td>
+              <td style="padding:4px 0;color:#7c3aed;font-size:14px;font-weight:700;font-family:monospace;">{code}</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+    <a href="{verify_url}" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#7C3AED,#5B21B6);color:#fff;text-decoration:none;border-radius:10px;font-size:14px;font-weight:700;">
+      Verify Your Certificate
+    </a>
+    <p style="margin:18px 0 0 0;color:#6b7280;font-size:13px;">
+      Anyone can confirm this certificate at
+      <a href="{verify_url}" style="color:#7c3aed;">{verify_url}</a>
+    </p>
+    """
+    await send_email(to_email, f"Your Certificate — {title}", render_html_email(content))
+
+
+# ──────────────────────────────────────────────────────────────────────
+#  ENDPOINTS — Issue / Upload / External / Classify / Recipient
+# ──────────────────────────────────────────────────────────────────────
+
+class IssuePayload(BaseModel):
+    recipient_email: str
+    title: str
+    issuer: str = "Student Alumni"
+
+
+@router.post("/issue")
+async def issue_certificate(payload: IssuePayload, user: dict = Depends(get_current_user)):
+    """Issue a single platform certificate (auto SA-XXXX-XXXX code)."""
+    code = await _generate_code()
+    verify_url = f"{FRONTEND_URL}/certificates/verify/{code}"
+
+    doc = {
+        "verification_code": code,
+        "certificate_id": code,
+        "id": code,
+        "recipient_email": payload.recipient_email.strip().lower(),
+        "recipient_name": (payload.recipient_email.split("@")[0].replace(".", " ").title()),
+        "title": payload.title.strip(),
+        "issuer": payload.issuer.strip() or "Student Alumni",
+        "issuer_type": "platform",
+        "issued_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "status": "valid",
+        "status_label": "Officially Verified",
+    }
+    await db.certificates.insert_one(doc)
+
+    # Fire-and-forget email notification
+    await _send_cert_email(
+        doc["recipient_email"], doc["title"], doc["recipient_name"], code, verify_url
+    )
+
+    return {
+        "ok": True,
+        "verification_code": code,
+        "verify_url": verify_url,
+        "recipient_email": doc["recipient_email"],
+        "recipient_name": doc["recipient_name"],
+        "title": doc["title"],
+    }
+
+
+@router.post("/upload")
+async def upload_certificate(
+    file: UploadFile = File(...),
+    recipient_email: str = "",
+    title: str = "",
+    issuer: str = "Student Alumni",
+    user: dict = Depends(get_current_user),
+):
+    """Upload a single certificate file (PNG/JPG/WEBP/PDF) + issue."""
+    if not file.filename:
+        raise HTTPException(400, "No file provided")
+
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in (".png", ".jpg", ".jpeg", ".webp", ".pdf"):
+        raise HTTPException(400, f"Unsupported file type: {ext}")
+
+    content = await file.read()
+    if len(content) > 15 * 1024 * 1024:
+        raise HTTPException(400, "File too large (max 15 MB)")
+
+    # Save file
+    os.makedirs("uploads/certificates", exist_ok=True)
+    safe_name = re.sub(r"[^a-zA-Z0-9._-]", "_", file.filename)
+    file_path = f"uploads/certificates/{safe_name}"
+    with open(file_path, "wb") as f:
+        f.write(content)
+
+    code = await _generate_code()
+    verify_url = f"{FRONTEND_URL}/certificates/verify/{code}"
+    email = (recipient_email or "").strip().lower()
+    name = (email.split("@")[0].replace(".", " ").title()) if email else "Certificate Holder"
+
+    doc = {
+        "verification_code": code,
+        "certificate_id": code,
+        "id": code,
+        "recipient_email": email,
+        "recipient_name": name,
+        "title": title.strip() or "Certificate of Achievement",
+        "issuer": issuer.strip() or "Student Alumni",
+        "issuer_type": "platform",
+        "issued_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "status": "valid",
+        "status_label": "Officially Verified",
+        "image_url": f"/uploads/certificates/{safe_name}",
+        "file_path": file_path,
+    }
+    await db.certificates.insert_one(doc)
+
+    if email:
+        await _send_cert_email(email, doc["title"], name, code, verify_url)
+
+    return {
+        "ok": True,
+        "verification_code": code,
+        "verify_url": verify_url,
+        "recipient_email": email,
+        "recipient_name": name,
+        "title": doc["title"],
+        "file_url": f"/uploads/certificates/{safe_name}",
+    }
+
+
+@router.post("/upload-bulk")
+async def upload_bulk_certificates(
+    files: List[UploadFile] = File(...),
+    user: dict = Depends(get_current_user),
+):
+    """Bulk upload certificate files. Name each file "{email}__{title}.{ext}"."""
+    results = []
+    errors = []
+
+    for f in files:
+        if not f.filename:
+            errors.append({"filename": "(empty)", "error": "No filename"})
+            continue
+
+        ext = os.path.splitext(f.filename)[1].lower()
+        if ext not in (".png", ".jpg", ".jpeg", ".webp", ".pdf"):
+            errors.append({"filename": f.filename, "error": f"Unsupported file type: {ext}"})
+            continue
+
+        # Parse email__title from filename
+        base = os.path.splitext(f.filename)[0]
+        parts = base.split("__", 1)
+        email = parts[0].strip().lower() if parts else ""
+        file_title = parts[1].strip().replace("_", " ") if len(parts) > 1 else ""
+
+        try:
+            content = await f.read()
+            if len(content) > 15 * 1024 * 1024:
+                errors.append({"filename": f.filename, "error": "File too large (max 15 MB)"})
+                continue
+
+            safe_name = re.sub(r"[^a-zA-Z0-9._-]", "_", f.filename)
+            file_path = f"uploads/certificates/{safe_name}"
+            os.makedirs("uploads/certificates", exist_ok=True)
+            with open(file_path, "wb") as fp:
+                fp.write(content)
+
+            code = await _generate_code()
+            verify_url = f"{FRONTEND_URL}/certificates/verify/{code}"
+            name = (email.split("@")[0].replace(".", " ").title()) if email else "Certificate Holder"
+
+            doc = {
+                "verification_code": code,
+                "certificate_id": code,
+                "id": code,
+                "recipient_email": email,
+                "recipient_name": name,
+                "title": file_title or "Certificate of Achievement",
+                "issuer": "Student Alumni",
+                "issuer_type": "platform",
+                "issued_at": datetime.now(timezone.utc).isoformat(),
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "status": "valid",
+                "status_label": "Officially Verified",
+                "image_url": f"/uploads/certificates/{safe_name}",
+                "file_path": file_path,
+            }
+            await db.certificates.insert_one(doc)
+
+            if email:
+                await _send_cert_email(email, doc["title"], name, code, verify_url)
+
+            results.append({
+                "verification_code": code,
+                "verify_url": verify_url,
+                "recipient_email": email,
+                "recipient_name": name,
+                "title": doc["title"],
+            })
+        except Exception as e:
+            errors.append({"filename": f.filename, "error": str(e)})
+
+    return {"ok": True, "created": len(results), "certificates": results, "errors": errors}
+
+
+class ExternalPayload(BaseModel):
+    recipient_email: str
+    title: str
+    credential_url: str
+
+
+class BulkItem(BaseModel):
+    recipient_email: str
+    title: str
+
+
+class BulkPayload(BaseModel):
+    items: List[BulkItem]
+
+
+@router.post("/bulk")
+async def bulk_issue_certificates(payload: BulkPayload, user: dict = Depends(get_current_user)):
+    """Bulk issue up to 1000 certificates from email|title rows."""
+    if not payload.items:
+        raise HTTPException(400, "No items provided")
+    if len(payload.items) > 1000:
+        raise HTTPException(400, "Maximum 1000 certificates per batch")
+
+    results = []
+    for item in payload.items:
+        email = (item.recipient_email or "").strip().lower()
+        if not email or not item.title.strip():
+            continue
+        code = await _generate_code()
+        verify_url = f"{FRONTEND_URL}/certificates/verify/{code}"
+        name = (email.split("@")[0].replace(".", " ").title()) if email else "Certificate Holder"
+
+        doc = {
+            "verification_code": code,
+            "certificate_id": code,
+            "id": code,
+            "recipient_email": email,
+            "recipient_name": name,
+            "title": item.title.strip(),
+            "issuer": "Student Alumni",
+            "issuer_type": "platform",
+            "issued_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "status": "valid",
+            "status_label": "Officially Verified",
+        }
+        await db.certificates.insert_one(doc)
+        await _send_cert_email(email, doc["title"], name, code, verify_url)
+
+        results.append({
+            "verification_code": code,
+            "verify_url": verify_url,
+            "recipient_email": email,
+            "recipient_name": name,
+        })
+
+    return {"ok": True, "created": len(results), "certificates": results}
+
+
+@router.post("/external")
+async def store_external_certificate(payload: ExternalPayload, user: dict = Depends(get_current_user)):
+    """Store a third-party certificate (Udemy/Coursera/LinkedIn etc.) with issuer classification."""
+    classification = _classify_issuer_from_url(payload.credential_url)
+    code = await _generate_code()
+    verify_url = f"{FRONTEND_URL}/certificates/verify/{code}"
+    email = payload.recipient_email.strip().lower()
+    name = (email.split("@")[0].replace(".", " ").title()) if email else "Certificate Holder"
+
+    doc = {
+        "verification_code": code,
+        "certificate_id": code,
+        "id": code,
+        "recipient_email": email,
+        "recipient_name": name,
+        "title": payload.title.strip(),
+        "issuer": classification["issuer"],
+        "issuer_type": classification["issuer_key"],
+        "credential_url": payload.credential_url.strip(),
+        "issued_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "status": "valid",
+        "status_label": "Officially Verified",
+    }
+    await db.certificates.insert_one(doc)
+
+    if email:
+        await _send_cert_email(email, doc["title"], name, code, verify_url)
+
+    return {
+        "ok": True,
+        "verification_code": code,
+        "verify_url": verify_url,
+        "recipient_email": email,
+        "title": doc["title"],
+        "issuer": classification["issuer"],
+    }
+
+
+class ClassifyPayload(BaseModel):
+    credential_url: str
+
+
+@router.post("/classify")
+async def classify_credential(payload: ClassifyPayload, user: dict = Depends(get_current_user)):
+    """Classify a third-party credential URL and return issuer info."""
+    result = _classify_issuer_from_url(payload.credential_url)
+    return {
+        "ok": True,
+        "issuer": result["issuer"],
+        "issuer_key": result["issuer_key"],
+        "hint": result["hint"],
+    }
+
+
+@router.get("/recipient/{email}")
+async def list_certificates_by_recipient(email: str):
+    """List all certificates issued to a recipient by email."""
+    email = email.strip().lower()
+    certs = await db.certificates.find({"recipient_email": email}).sort("created_at", -1).to_list(100)
+    for c in certs:
+        c["_id"] = str(c["_id"])
+    return {"certificates": certs, "total": len(certs)}
