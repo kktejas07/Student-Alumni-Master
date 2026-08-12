@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, Pressable, StyleSheet, Platform, ScrollView, ActivityIndicator, Linking, Image,
+  View, Text, Pressable, StyleSheet, Platform, ActivityIndicator, Linking, Image,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import {
@@ -100,12 +100,13 @@ export default function CertificateVerifyResult() {
   return (
     <View style={s.flex}>
       <EchoHeader />
-      <ScrollView style={s.scroll} contentContainerStyle={s.container}>
-        <Animated.View entering={FadeIn.duration(300)}>
-          <Pressable onPress={() => router.push('/welcome')} style={s.backPill}>
-            <ArrowLeft size={14} color="#fff" />
-            <Text style={s.backPillText}>Home</Text>
-          </Pressable>
+      <View style={s.scroll}>
+        <View style={s.container}>
+          <Animated.View entering={FadeIn.duration(300)}>
+            <Pressable onPress={() => router.push('/welcome')} style={s.backPill}>
+              <ArrowLeft size={14} color="#fff" />
+              <Text style={s.backPillText}>Home</Text>
+            </Pressable>
 
           <View style={[s.statusCard, isPlatform ? s.statusValid : s.statusExternal]}>
             <View style={s.statusIconWrap}>
@@ -188,8 +189,9 @@ export default function CertificateVerifyResult() {
             </Text>
           </View>
         </Animated.View>
-        <EchoFooter />
-      </ScrollView>
+        </View>
+      </View>
+      <EchoFooter />
     </View>
   );
 }
@@ -211,8 +213,8 @@ function DetailRow({ icon: Icon, label, value }: { icon: any; label: string; val
 
 const s = StyleSheet.create({
   flex: { flex: 1, backgroundColor: '#0a0f1e' },
-  scroll: { flex: 1 },
-  container: { paddingTop: ECHO_TOP_PADDING, padding: 20, paddingBottom: 0, maxWidth: 800, alignSelf: 'center', width: '100%', flexGrow: 1 },
+  scroll: { flex: 1, overflow: 'auto' as any },
+  container: { paddingTop: ECHO_TOP_PADDING, padding: 20, paddingBottom: 40, maxWidth: 800, alignSelf: 'center', width: '100%' },
   loadingText: { color: '#A1A6B7', fontFamily: FONTS.med, fontSize: 14, marginTop: 12 },
   errorTitle: { color: '#ef4444', fontFamily: FONTS.xbold, fontSize: 18, marginTop: 12, textAlign: 'center' },
   errorSub: { color: '#A1A6B7', fontFamily: FONTS.med, fontSize: 14, marginTop: 6, textAlign: 'center', lineHeight: 20 },
