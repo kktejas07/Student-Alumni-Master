@@ -37,6 +37,7 @@ import {
 import { SAC, FONTS } from '../tokens';
 import { api, resolveImageUrl } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { useSubTab } from '@/src/views/web/portals/portalUrl';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const STATUS_PILL_MAP: Record<string, any> = {
@@ -2741,8 +2742,8 @@ function SettingsPanel({ onPreview }: { onPreview?: (html: string) => void }) {
 }
 
 // ── Main View ─────────────────────────────────────────────────────────────────
-export function EchoShowcaseAdminView() {
-  const [pageTab, setPageTab] = useState<PageTab>('all');
+export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
+  const [pageTab, setPageTab] = useSubTab<PageTab>(['all', 'create', 'drafts', 'registrations', 'volunteers', 'media', 'settings'], 'all', { sub, onSub });
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');

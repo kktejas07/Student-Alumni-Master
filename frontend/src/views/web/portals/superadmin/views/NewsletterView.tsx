@@ -27,6 +27,7 @@ import {
 } from '../applekit';
 import { api, resolveImageUrl } from '@/src/models/services/api';
 import HtmlRenderer from '@/src/views/web/policy/HtmlRenderer';
+import { useSubTab } from '@/src/views/web/portals/portalUrl';
 
 type Campaign = {
   campaign_id: string;
@@ -81,7 +82,7 @@ function buildPreviewHtml(form: any, events: any[]): string {
   </div>`;
 }
 
-export function NewsletterView() {
+export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
   const { toast, flash } = useToast();
   const [form, setForm] = useState({
     subject: '',
@@ -100,7 +101,7 @@ export function NewsletterView() {
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [confirming, setConfirming] = useState(false);
-  const [activeTab, setActiveTab] = useState<'bulk' | 'individual'>('bulk');
+  const [activeTab, setActiveTab] = useSubTab<'bulk' | 'individual'>(['bulk', 'individual'], 'bulk', { sub, onSub });
   const [heroUploading, setHeroUploading] = useState(false);
   const heroFileRef = useRef<any>(null);
 

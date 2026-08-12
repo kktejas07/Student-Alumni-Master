@@ -34,6 +34,7 @@ import {
   TopTabs, SearchField, StatusPill, Toast, useToast, EmptyState, LoadingBox,
 } from '../applekit';
 import { request, resolveImageUrl } from '@/src/models/services/api';
+import { useSubTab } from '@/src/views/web/portals/portalUrl';
 
 /* ────────────────────────────────────────────────────────────────────
  * Types & constants
@@ -69,11 +70,11 @@ type TabId = (typeof TAB_OPTIONS)[number]['id'];
 /* ────────────────────────────────────────────────────────────────────
  * Root
  * ────────────────────────────────────────────────────────────────── */
-export function PartnersView() {
+export function PartnersView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
   const { toast, flash } = useToast();
   const [partners, setPartners] = useState<Partner[] | null>(null);
   const [busy, setBusy] = useState(false);
-  const [tab, setTab] = useState<TabId>('all');
+  const [tab, setTab] = useSubTab<TabId>(['all', 'college', 'company', 'sponsor'], 'all', { sub, onSub });
   const [q, setQ] = useState('');
   const [editing, setEditing] = useState<Partner | null>(null);   // null = no modal; {} = create
   const [creating, setCreating] = useState(false);

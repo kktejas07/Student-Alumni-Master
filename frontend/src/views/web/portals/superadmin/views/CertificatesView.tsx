@@ -29,11 +29,14 @@ import {
 } from '../applekit';
 import { request, resolveImageUrl } from '@/src/models/services/api';
 import * as Linking from 'expo-linking';
+import { useSubTab } from '@/src/views/web/portals/portalUrl';
 
 type TabId = 'issue' | 'bulk' | 'external' | 'verify' | 'files' | 'registry';
 
-export function CertificatesView() {
-  const [tab, setTab] = useState<TabId>('registry');
+const TAB_IDS: TabId[] = ['registry', 'issue', 'bulk', 'files', 'external', 'verify'];
+
+export function CertificatesView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
+  const [tab, setTab] = useSubTab<TabId>(TAB_IDS, 'registry', { sub, onSub });
   const { toast, flash } = useToast();
 
   const tabs = [

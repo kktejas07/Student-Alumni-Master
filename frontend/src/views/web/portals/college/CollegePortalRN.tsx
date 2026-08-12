@@ -5,6 +5,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, ScrollView, StyleSheet, DeviceEventEmitter, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { usePortalUrl } from '@/src/views/web/portals/portalUrl';
 
 import { CC } from './tokens';
 import { Sidebar, CollegeNavId, NAV } from './Sidebar';
@@ -34,10 +35,13 @@ import { useAutoTour } from '@/src/views/web/tour/TourProvider';
 export function CollegePortalRN() {
   const router = useRouter();
   const logout = useAuthStore((sx) => sx.logout);
-  const [active, setActive] = useState<CollegeNavId>('dashboard');
+  const { tab, go } = usePortalUrl();
+  const active = tab as any;
   const [showNotifs, setShowNotifs] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   useAutoTour('college');
+
+  const setActive = (id: any) => { if (String(id) !== tab) go(String(id)); };
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ y: 0, animated: true });

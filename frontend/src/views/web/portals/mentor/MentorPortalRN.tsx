@@ -14,8 +14,9 @@
  */
 import React, { useState, useEffect } from 'react';
 import { View, ScrollView, StyleSheet, Platform } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { usePortalUrl } from '@/src/views/web/portals/portalUrl';
 
 import { MC } from './tokens';
 import { Sidebar, NavId } from './Sidebar';
@@ -59,22 +60,24 @@ const PAGE_TITLES: Record<NavId, string> = {
 
 export default function MentorPortalRN() {
   const router = useRouter();
-  const params = useLocalSearchParams();
+  const { tab, sub, go } = usePortalUrl();
   const logout = useAuthStore((st) => st.logout);
   const user = useAuthStore((st) => st.user) as any;
 
   const [active, setActive] = useState<NavId>('dashboard');
 
   useEffect(() => {
-    if (params.tab) {
-      setActive(params.tab as NavId);
+    if (tab && PAGE_TITLES[tab as NavId]) {
+      setActive(tab as NavId);
     }
-  }, [params.tab]);
+  }, [tab]);
 
   const [collapsed, setCollapsed] = useState(false);
   const [query, setQuery] = useState('');
   const [showNotifs, setShowNotifs] = useState(false);
-  const [profileTab, setProfileTab] = useState<'manage' | 'digital-id' | 'notifications'>('manage');
+  const [profileTab, setProfileTab] = useState<'manage' | 'digital-id' | 'notifications'>(
+    sub === 'digital-id' ? 'digital-id' : sub === 'notifications' ? 'notifications' : 'manage'
+  );
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   useAutoTour('mentor');
@@ -117,17 +120,20 @@ export default function MentorPortalRN() {
     return () => clearInterval(interval);
   }, [user?.email]);
 
-  useEffect(() => {
-    if (params.tab && PAGE_TITLES[params.tab as NavId]) {
-      setActive(params.tab as NavId);
-    }
-  }, [params.tab]);
-
   const [decisions, setDecisions] = useState<Record<number, 'pending' | 'accepted' | 'declined'>>({});
 
   const onLogout = async () => {
     router.replace('/welcome');
     try { await logout(); } catch {}
+  };
+
+  const navigate = (id: NavId, pt?: 'manage' | 'digital-id' | 'notifications') => {
+    if (pt) setProfileTab(pt);
+    if (id === 'profile' && pt) {
+      go(id, pt);
+      return;
+    }
+    if (String(id) !== tab) go(id); else setActive(id);
   };
 
   return (
@@ -141,7 +147,7 @@ export default function MentorPortalRN() {
 
       <Sidebar
         active={active}
-        onNav={(id) => setActive(id)}
+        onNav={(id) => navigate(id as NavId)}
         collapsed={collapsed}
         onToggle={() => setCollapsed((c) => !c)}
         onLogout={onLogout}
@@ -156,13 +162,13 @@ export default function MentorPortalRN() {
             setQuery={setQuery}
             notifCount={unreadCount}
             onBellPress={() => setShowNotifs(!showNotifs)}
-            onAvatarPress={() => { setProfileTab('manage'); setActive('profile'); }}
+            onAvatarPress={() => navigate('profile', 'manage')}
           />
 
           <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }}>
             <View style={{ flex: 1, padding: 20 }}>
               <PromoBanner portal="mentor" />
-              {active === 'dashboard' && <DashboardView onNav={(id) => setActive(id as NavId)} />}
+              {active === 'dashboard' && <DashboardView onNav={(id) => navigate(id as NavId)} />}
               {active === 'ai-studio' && <MentorAIStudioView />}
               {active === 'students'  && <ConnectionsView />}
               {active === 'sessions'  && <SessionsView />}
@@ -180,11 +186,10 @@ export default function MentorPortalRN() {
           <NotificationsPanel
             onClose={() => setShowNotifs(false)}
             onOpenSettings={() => {
-              setProfileTab('notifications');
-              setActive('profile');
+              navigate('profile', 'notifications');
               setShowNotifs(false);
             }}
-            onNav={(id) => setActive(id)}
+            onNav={(id) => navigate(id as NavId)}
             notifications={notifications}
             onRefresh={fetchDashboardData}
           />

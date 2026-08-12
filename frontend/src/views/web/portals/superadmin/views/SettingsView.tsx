@@ -48,6 +48,7 @@ import { Card } from '../applekit';
 import { request } from '@/src/models/services/api';
 import LexicalEditor from './LexicalEditor';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { useSubTab } from '@/src/views/web/portals/portalUrl';
 
 /* ─────────────────────────────────────────────────────────────────
  * Provider docs map — used by the "How to get credentials" link in
@@ -231,8 +232,12 @@ function Toast({ text, visible }: { text: string; visible: boolean }) {
 /* ─────────────────────────────────────────────────────────────────
  * Main view
  * ───────────────────────────────────────────────────────────────── */
-export function SettingsView() {
-  const [tab, setTab] = useState<TabId>('profile');
+export function SettingsView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
+  const [tab, setTab] = useSubTab<TabId>(
+    ['profile', 'platform', 'integrations', 'roles', 'notifications', 'security', 'digital-id', 'pages', 'templates', 'branding'],
+    'profile',
+    { sub, onSub },
+  );
   const [toast, setToast] = useState({ visible: false, text: 'Saved' });
   const flashToast = (text = 'Saved') => {
     setToast({ visible: true, text });
