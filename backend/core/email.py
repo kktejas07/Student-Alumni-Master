@@ -67,7 +67,7 @@ async def get_gmail_config():
         return config
 
     # 2) Fallback: check settings collection (flat SMTP fields from admin settings)
-    settings = await db.settings.find_one({"_id": "global"})
+    settings = await db.settings.find_one({"id": "global"})
     if settings and settings.get("email_provider") == "gmail":
         smtp_user = settings.get("smtp_user") or ""
         smtp_pass = settings.get("smtp_password") or ""
