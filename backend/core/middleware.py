@@ -113,20 +113,16 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         )
 
         # ── Content Security Policy ─────────────────────────────────────────
-        # Strict in production; relaxed in dev to allow hot-reload tools.
-        if _IS_PROD:
-            response.headers["Content-Security-Policy"] = (
-                "default-src 'self'; "
-                "script-src 'self'; "
-                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-                "font-src 'self' https://fonts.gstatic.com; "
-                "img-src 'self' data: https:; "
-                "connect-src 'self'; "
-                "frame-ancestors 'none';"
-            )
-        else:
-            # Dev: allow everything but still block frames
-            response.headers["Content-Security-Policy"] = "frame-ancestors 'none';"
+        # Allow API requests, CDN scripts, and image blobs across all environments
+        response.headers["Content-Security-Policy"] = (
+            "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; "
+            "script-src * 'unsafe-inline' 'unsafe-eval' data: blob:; "
+            "style-src * 'unsafe-inline' https://fonts.googleapis.com; "
+            "font-src * data: https://fonts.gstatic.com; "
+            "img-src * data: blob:; "
+            "connect-src * 'unsafe-inline' data: blob:; "
+            "frame-ancestors 'none';"
+        )
 
         # ── HSTS — only over HTTPS, only in production ──────────────────────
         if _IS_PROD:
