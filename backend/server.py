@@ -1550,24 +1550,27 @@ async def student_dashboard_summary(user: dict = Depends(get_current_user)):
 # Coupon System — CRUD + redemption
 # ----------------------------------------------------------------------------
 def _coupon_fields(d: dict) -> dict:
-    """Whitelist of coupon fields returned to clients (never leaks internals)."""
+    """Whitelist of coupon fields returned to clients (never leaks internals).
+    When locked, the code, description, and instructions are masked."""
+    locked = bool(d.get("locked", False))
     return {
         "id": str(d["_id"]),
-        "code": d.get("code", ""),
-        "description": d.get("description", ""),
+        "code": "****" if locked else d.get("code", ""),
+        "description": "" if locked else d.get("description", ""),
         "discount_type": d.get("discount_type", "percentage"),
-        "discount_pct": d.get("discount_pct", 0),
+        "discount_pct": 0 if locked else d.get("discount_pct", 0),
         "max_uses": d.get("max_uses", 0),
         "used_count": d.get("used_count", 0),
         "active": bool(d.get("active", True)),
         "expires_at": d.get("expires_at"),
         "image_url": d.get("image_url"),
-        "partner_name": d.get("partner_name"),
-        "partner_website_url": d.get("partner_website_url"),
-        "instructions": d.get("instructions", ""),
+        "partner_name": "" if locked else d.get("partner_name"),
+        "partner_website_url": "" if locked else d.get("partner_website_url"),
+        "instructions": "" if locked else d.get("instructions", ""),
         "audience": d.get("audience") or ["all"],
         "display_order": int(d.get("display_order", 0)),
         "created_at": d.get("created_at"),
+        "locked": locked,
     }
 
 
