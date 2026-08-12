@@ -32,6 +32,7 @@ import { request, tokenStore } from '@/src/models/services/api';
 import * as Linking from 'expo-linking';
 import { ProfileCard, ProfileCardSkeleton } from './ProfileCard';
 import type { ProfileCardCategory, ProfileCardStatus } from './ProfileCard';
+import { useSubTab } from '@/src/views/web/portals/portalUrl';
 
 /* ────────────────────────────────────────────────────────────────────
  * Category palette (per the spec)
@@ -62,8 +63,8 @@ function CategoryBadge({ cat, small }: { cat: CatKey; small?: boolean }) {
 /* ────────────────────────────────────────────────────────────────── */
 type TabId = 'upload' | 'manual' | 'history' | 'browse';
 
-export function ImportsView() {
-  const [tab, setTab] = useState<TabId>('upload');
+export function ImportsView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
+  const [tab, setTab] = useSubTab<TabId>(['upload', 'manual', 'history', 'browse'], 'upload', { sub, onSub });
   const { toast, flash } = useToast();
   const [refreshKey, setRefreshKey] = useState(0);
   const [profileId, setProfileId] = useState<string | null>(null);

@@ -7,11 +7,12 @@
  * • TopBar receives `scrolled` state for glass blur (kicks in past 8px)
  * • All existing routing, state, props, API calls preserved 1:1
  */
-import React, { useState, createContext, useContext } from 'react';
+import React, { useState } from 'react';
 import { View, ScrollView, StyleSheet, NativeSyntheticEvent, NativeScrollEvent, Platform, Pressable, Text } from 'react-native';
 import { LayoutDashboard, Sparkles, Users, Calendar, User } from 'lucide-react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { usePortalUrl } from '@/src/views/web/portals/portalUrl';
 
 import { ThemeProvider, useTheme } from '@/src/theme/ThemeContext';
 import { useBreakpoint } from '@/src/theme/breakpoints';
@@ -64,11 +65,11 @@ export function StudentPortalRN() {
 
 function PortalShell() {
   const router = useRouter();
-  const { tab } = useLocalSearchParams<{ tab?: string }>();
+  const { tab, go } = usePortalUrl();
   const { theme } = useTheme();
   const bp = useBreakpoint();
   const logout = useAuthStore((sx) => sx.logout);
-  const [active, setActive] = useState<StudentNavId>((tab as StudentNavId) || 'dashboard');
+  const [active, setActive] = useState<StudentNavId>(tab as StudentNavId);
   const [searchQuery, setSearchQuery] = useState('');
   const [detailCourse, setDetailCourse] = useState<any>(null);
   const [scrolled, setScrolled] = useState(false);
@@ -87,7 +88,11 @@ function PortalShell() {
     try { await logout(); } catch {}
   };
   const handleNav = (id: StudentNavId, params?: { q?: string; detailCourse?: any }) => {
-    setActive(id);
+    if (id === active) {
+      // Same tab — still allow param updates (search, detail) without a nav.
+    } else {
+      go(id);
+    }
     if (params && typeof params.q === 'string') {
       setSearchQuery(params.q);
     }

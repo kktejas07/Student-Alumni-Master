@@ -19,6 +19,7 @@ import { SAC, FONTS } from '../tokens';
 import { GRAD, Card, IconBox, KpiTile, StatusPill, GradientButton, SecondaryButton, SearchField, TopTabs, EmptyState, useToast, Toast } from '../applekit';
 import { usePortalData } from '@/src/lib/portalApi';
 import { request } from '@/src/models/services/api';
+import { useSubTab } from '@/src/views/web/portals/portalUrl';
 
 type Ev = { id: string; title: string; date: string; mode: string; city: string; cat: string; attending: number; capacity: number; status: string; kind: string; price?: number; accent: string };
 const FALLBACK = { items: [] as Ev[] };
@@ -257,11 +258,11 @@ function Segmented({ value, onChange, options }: { value: string; onChange: (v: 
 
 /* ─── Main view ─────────────────────────────────────────────────────── */
 
-export function EventsView() {
+export function EventsView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
   const { data, refresh } = usePortalData<typeof FALLBACK>('/admin/super/events', FALLBACK);
   const EVENTS = data?.items || [];
   const { width } = useWindowDimensions();
-  const [tab, setTab] = useState<Tab>('all');
+  const [tab, setTab] = useSubTab<Tab>(['all', 'live', 'pending', 'free', 'paid'], 'all', { sub, onSub });
   const [q, setQ] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Ev | null>(null);

@@ -1,8 +1,8 @@
 /**
  * Super Admin Portal — outer shell.
  */
-import React, { useState } from 'react';
-import { View, ScrollView, StyleSheet , Platform} from 'react-native';
+import React from 'react';
+import { View, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
@@ -34,11 +34,13 @@ import { NewsletterView } from './views/NewsletterView';
 import { EchoShowcaseAdminView } from './views/EchoShowcaseAdminView';
 import { CertificatesView } from './views/CertificatesView';
 import { useAutoTour } from '@/src/views/web/tour/TourProvider';
+import { usePortalUrl } from '@/src/views/web/portals/portalUrl';
 
 export function SuperAdminPortalRN() {
   const router = useRouter();
   const logout = useAuthStore((sx) => sx.logout);
-  const [active, setActive] = useState<SuperAdminNavId>('overview');
+  const { tab, sub, go } = usePortalUrl();
+  const active = tab as SuperAdminNavId;
   useAutoTour('super_admin');
 
   const onLogout = async () => {
@@ -47,6 +49,15 @@ export function SuperAdminPortalRN() {
   };
 
   const titleFor = (id: SuperAdminNavId) => NAV.find((n) => n.id === id)?.label || 'Overview';
+  const nav = (id: SuperAdminNavId) => go(id);
+  // Pass the current sub-segment + a setter so views with internal tabs
+  // (`useSubTab`) reflect their active tab in the URL. Passing fresh props on
+  // every render is fine — `useSubTab` falls back to local state when the
+  // props don't change meaningfully.
+  const subFor = (t: string) => ({
+    sub,
+    onSub: (s: string) => go(active, s),
+  });
 
   return (
     <View style={s.shell}>
@@ -60,7 +71,7 @@ export function SuperAdminPortalRN() {
       <AnimatedAurora intensity="normal" />
       <GridOverlay />
 
-      <Sidebar active={active} onNav={setActive} onLogout={onLogout} />
+      <Sidebar active={active} onNav={nav} onLogout={onLogout} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <TopBar title={titleFor(active)} />
         <ScrollView
@@ -69,25 +80,25 @@ export function SuperAdminPortalRN() {
           showsVerticalScrollIndicator={false}
         >
           <PromoBanner portal="super_admin" />
-          {active === 'overview'    && <OverviewView onNavigate={(id) => setActive(id as SuperAdminNavId)} />}
-          {active === 'colleges'    && <CollegesView />}
+          {active === 'overview'    && <OverviewView onNavigate={(id) => go(id as SuperAdminNavId)} />}
+          {active === 'colleges'    && <CollegesView {...subFor('colleges')} />}
           {active === 'students'    && <StudentsView />}
           {active === 'mentors'     && <MentorsView />}
           {active === 'alumni'      && <AlumniView />}
-          {active === 'events'      && <EventsView />}
+          {active === 'events'      && <EventsView {...subFor('events')} />}
           {active === 'payments'    && <PaymentsView />}
           {active === 'analytics'   && <AnalyticsView />}
           {active === 'approvals'   && <ApprovalsView />}
           {active === 'ai-insights' && <AIInsightsView />}
-          {active === 'settings'    && <SettingsView />}
+          {active === 'settings'    && <SettingsView {...subFor('settings')} />}
           {active === 'workflows'   && <WorkflowsView />}
-          {active === 'imports'     && <ImportsView />}
-          {active === 'partners'    && <PartnersView />}
+          {active === 'imports'     && <ImportsView {...subFor('imports')} />}
+          {active === 'partners'    && <PartnersView {...subFor('partners')} />}
           {active === 'promotions'  && <PromotionsView />}
-          {active === 'newsletter'  && <NewsletterView />}
+          {active === 'newsletter'  && <NewsletterView {...subFor('newsletter')} />}
           {active === 'talent-pool' && <TalentPoolView />}
-          {active === 'echo-showcase' && <EchoShowcaseAdminView />}
-          {active === 'certificates' && <CertificatesView />}
+          {active === 'echo-showcase' && <EchoShowcaseAdminView {...subFor('echo-showcase')} />}
+          {active === 'certificates' && <CertificatesView {...subFor('certificates')} />}
           <DashboardFooter portal="super_admin" />
         </ScrollView>
       </View>

@@ -5,9 +5,10 @@
  */
 import React, { useState } from 'react';
 import { View, ScrollView, StyleSheet , Platform} from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useAutoTour } from '@/src/views/web/tour/TourProvider';
+import { usePortalUrl } from '@/src/views/web/portals/portalUrl';
 
 import { SC } from './tokens';
 import { Sidebar, StudentNavId } from './Sidebar';
@@ -46,9 +47,9 @@ export const AlumniPortalNavContext = React.createContext<{
 
 export function AlumniPortalRN() {
   const router = useRouter();
-  const { tab } = useLocalSearchParams<{ tab?: string }>();
+  const { tab, go } = usePortalUrl();
   const logout = useAuthStore((sx) => sx.logout);
-  const [active, setActive] = useState<StudentNavId>((tab as StudentNavId) || 'dashboard');
+  const [active, setActive] = useState<StudentNavId>(tab as StudentNavId);
   const [searchQuery, setSearchQuery] = useState('');
   useAutoTour('alumni');
 
@@ -64,7 +65,7 @@ export function AlumniPortalRN() {
   };
 
   const handleNav = (id: StudentNavId, params?: { q?: string }) => {
-    setActive(id);
+    if (id !== active) go(id);
     if (params && typeof params.q === 'string') {
       setSearchQuery(params.q);
     }

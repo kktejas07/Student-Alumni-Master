@@ -26,6 +26,7 @@ import {
   TopTabs, SearchField, StatusPill, Toast, useToast, EmptyState, LoadingBox, KpiTile,
 } from '../applekit';
 import { request, resolveImageUrl } from '@/src/models/services/api';
+import { useSubTab } from '@/src/views/web/portals/portalUrl';
 
 const PC_AMBER = {
   bgFrom:  '#1A0F05', bgTo: '#120A03',
@@ -44,8 +45,8 @@ const PC_AMBER = {
 
 type Status = 'all' | 'pending' | 'active' | 'paused';
 
-export function CollegesView() {
-  const [tab, setTab] = useState<Status>('all');
+export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
+  const [tab, setTab] = useSubTab<Status>(['all', 'pending', 'active', 'paused'], 'all', { sub, onSub });
   const [q, setQ] = useState('');
   const [data, setData] = useState<any>(null);
   const [busy, setBusy] = useState(false);
