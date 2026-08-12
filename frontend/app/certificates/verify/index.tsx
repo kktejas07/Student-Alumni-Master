@@ -456,6 +456,7 @@ const styles = StyleSheet.create({
   wrapper: {
     width: '100%',
     maxWidth: 860,
+    alignSelf: 'center',
   },
   heroSection: {
     alignItems: 'center',
