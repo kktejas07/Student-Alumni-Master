@@ -37,11 +37,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
+COPY requirements.txt .
 RUN pip install --upgrade pip && \
     pip install -r requirements.txt && \
     pip install "uvicorn[standard]" gunicorn && \
-    # Install Playwright Chromium to a shared path accessible by appuser
-    PLAYWRIGHT_BROWSERS_PATH=/app/.playwright playwright install chromium --with-deps
+    # Install Playwright Chromium (system deps already installed above)
+    PLAYWRIGHT_BROWSERS_PATH=/app/.playwright playwright install chromium
 
 COPY . .
 
