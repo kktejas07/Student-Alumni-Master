@@ -456,6 +456,13 @@ export const api = {
   newsletterUpcomingEvents: () =>
     request<any>('/newsletter/admin/upcoming-events'),
 
+  // ── Newsletter image upload (shared /admin/upload endpoint) ───────────────
+  uploadNewsletterImage: (file: File, folder = 'newsletter') => {
+    const fd = new FormData();
+    fd.append('file', file, file.name);
+    return request<any>(`/admin/upload?folder=${encodeURIComponent(folder)}`, { method: 'POST', body: fd });
+  },
+
   // ── Individual notifications ──────────────────────────────────────────────
   searchUsers: (q: string) =>
     request<any>(`/newsletter/admin/search-users?q=${encodeURIComponent(q)}`),

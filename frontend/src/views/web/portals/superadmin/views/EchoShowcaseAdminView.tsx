@@ -28,6 +28,7 @@ import {
   Copy, Check, Search, RefreshCw, PlusCircle, FileText, Link2,
   Image as ImageIcon, HardDrive, Calendar, Layout, ChevronUp, ChevronDown, Users,
   Settings, Ticket, Mail, Palette, ScanLine,
+  CupSoda, UtensilsCrossed, Cookie, Sandwich, Coffee, Lock,
 } from 'lucide-react-native';
 import {
   GRAD, GradientButton, SecondaryButton, Card,
@@ -40,6 +41,14 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 // ── Constants ─────────────────────────────────────────────────────────────────
 const STATUS_PILL_MAP: Record<string, any> = {
   published: 'success', draft: 'warn', archived: 'neutral',
+};
+
+const SESSION_PASS_ICONS: Record<string, any> = {
+  breakfast: CupSoda,
+  lunch: UtensilsCrossed,
+  snacks: Cookie,
+  tiffin: Sandwich,
+  coffee: Coffee,
 };
 
 const CATEGORY_OPTIONS = [
@@ -1887,11 +1896,11 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                   Enable food/amenity coupons for attendees. Each enabled session generates a unique QR coupon that can be scanned once at the venue.
                 </Text>
                 {[
-                  { key: 'breakfast', label: 'Breakfast', icon: 'cup-soda' },
-                  { key: 'lunch', label: 'Lunch', icon: 'utensils' },
-                  { key: 'snacks', label: 'Snacks', icon: 'cookie' },
-                  { key: 'tiffin', label: 'Tiffin', icon: 'sandwich' },
-                  { key: 'coffee', label: 'Coffee & Tea', icon: 'coffee' },
+                  { key: 'breakfast', label: 'Breakfast', Icon: CupSoda },
+                  { key: 'lunch', label: 'Lunch', Icon: UtensilsCrossed },
+                  { key: 'snacks', label: 'Snacks', Icon: Cookie },
+                  { key: 'tiffin', label: 'Tiffin', Icon: Sandwich },
+                  { key: 'coffee', label: 'Coffee & Tea', Icon: Coffee },
                 ].map((s) => {
                   const sessions = (form.sessions || []);
                   const existing = sessions.find((x: any) => x.key === s.key);
@@ -1899,7 +1908,9 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                   const locked = existing?.locked ?? false;
                   return (
                     <View key={s.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' }}>
-                      <Text style={{ fontSize: 18, width: 28 }}>{s.icon}</Text>
+                      <View style={{ width: 28, alignItems: 'center', justifyContent: 'center' }}>
+                        <s.Icon size={18} color={enabled ? GRAD.from : SAC.dim} />
+                      </View>
                       <Text style={{ flex: 1, fontFamily: FONTS.med, fontSize: 13, color: SAC.text }}>{s.label}</Text>
                       {enabled && (
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -2098,9 +2109,10 @@ function SessionPassesOverview({ events, onRefresh }: { events: any[]; onRefresh
                     {sessions.map((s: any) => {
                       const locked = s.locked ?? false;
                       const enabled = s.enabled ?? false;
+                      const SessionIcon = SESSION_PASS_ICONS[s.key] || Ticket;
                       return (
                         <View key={s.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6, paddingHorizontal: 10, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
-                          <Text style={{ fontSize: 16, width: 24 }}>{s.icon || 'ticket'}</Text>
+                          <SessionIcon size={16} color={enabled ? '#A78BFA' : SAC.dim} />
                           <Text style={{ flex: 1, fontFamily: FONTS.med, fontSize: 12, color: SAC.text }}>{s.label}</Text>
                           {enabled && (
                             <>

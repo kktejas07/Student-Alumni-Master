@@ -14,18 +14,18 @@
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  View, Text, Pressable, StyleSheet, TextInput, Platform,
+  View, Text, Pressable, StyleSheet, TextInput, Platform, Image, ActivityIndicator,
 } from 'react-native';
 import {
   Mail, Send, RefreshCw, Calendar, AlertTriangle, Check, Users, Megaphone,
-  Bell, Smartphone, Search, User,
+  Bell, Smartphone, Search, User, Upload, X, ImagePlus,
 } from 'lucide-react-native';
 import { SAC, FONTS } from '../tokens';
 import {
   GRAD, GradientButton, SecondaryButton, Card, IconBox, SectionLabel,
   StatusPill, Toast, useToast, KpiTile,
 } from '../applekit';
-import { api } from '@/src/models/services/api';
+import { api, resolveImageUrl } from '@/src/models/services/api';
 import HtmlRenderer from '@/src/views/web/policy/HtmlRenderer';
 
 type Campaign = {
@@ -47,7 +47,7 @@ type Campaign = {
 
 function buildPreviewHtml(form: any, events: any[]): string {
   const hero = form.hero_image
-    ? `<img src="${form.hero_image}" alt="" style="width:100%;height:auto;display:block;border-radius:12px;margin:0 0 20px 0;" />`
+    ? `<img src="${resolveImageUrl(form.hero_image)}" alt="" style="width:100%;height:auto;display:block;border-radius:12px;margin:0 0 20px 0;" />`
     : '';
   const intro = form.intro
     ? `<p style="margin:0 0 14px 0;color:#374151;font-size:15px;">${form.intro}</p>`
@@ -101,6 +101,8 @@ export function NewsletterView() {
   const [sending, setSending] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [activeTab, setActiveTab] = useState<'bulk' | 'individual'>('bulk');
+  const [heroUploading, setHeroUploading] = useState(false);
+  const heroFileRef = useRef<any>(null);
 
   // Individual notification state
   const [indUserQuery, setIndUserQuery] = useState('');
@@ -131,6 +133,30 @@ export function NewsletterView() {
 
   const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
   const previewHtml = useMemo(() => buildPreviewHtml(form, events), [form, events]);
+
+  const handleHeroFile = async (file: File) => {
+    if (!file) return;
+    // 1. Instant local preview
+    if (Platform.OS === 'web' && typeof URL !== 'undefined') {
+      try {
+        set('hero_image', URL.createObjectURL(file));
+      } catch { /* ignore */ }
+    }
+    setHeroUploading(true);
+    try {
+      const res: any = await api.uploadNewsletterImage(file, 'newsletter');
+      if (res?.url) {
+        set('hero_image', res.url);
+        flash('Hero image uploaded');
+      } else {
+        throw new Error('Upload returned no URL');
+      }
+    } catch (err: any) {
+      flash(`Upload failed: ${err?.message || 'Unknown error'}`);
+    } finally {
+      setHeroUploading(false);
+    }
+  };
 
   const doSend = async () => {
     if (!form.subject.trim()) { flash('Subject is required'); return; }
@@ -257,8 +283,64 @@ export function NewsletterView() {
                 <Field label="Subject *" hint="Appears in the email subject line.">
                   <TextInput style={st.input} value={form.subject} onChangeText={(v) => set('subject', v)} placeholder="e.g. Join us at ECHO 2026!" placeholderTextColor={SAC.dim} />
                 </Field>
-                <Field label="Hero Image URL" hint="Full-width image at the top (poster or banner).">
-                  <TextInput style={st.input} value={form.hero_image} onChangeText={(v) => set('hero_image', v)} placeholder="https://…" placeholderTextColor={SAC.dim} autoCapitalize="none" />
+                <Field label="Hero Image" hint="Upload a banner/poster, or paste a direct image URL. Shown full-width at the top of the email.">
+                  <View style={{ gap: 8 }}>
+                    {form.hero_image ? (
+                      <View style={{ borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: SAC.border }}>
+                        <Image source={{ uri: resolveImageUrl(form.hero_image) }} style={{ width: '100%', height: 140 }} resizeMode="cover" />
+                        <View style={{ flexDirection: 'row', gap: 8, padding: 8, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center' }}>
+                          {Platform.OS === 'web' && (
+                            <label style={{ cursor: 'pointer' }}>
+                              <span style={{
+                                backgroundColor: 'rgba(123,61,191,0.30)', color: '#fff',
+                                padding: '5px 10px', borderRadius: '6px',
+                                fontFamily: FONTS.semi, fontSize: '11px',
+                              }}>
+                                {heroUploading ? 'Uploading…' : 'Replace'}
+                              </span>
+                              <input type="file" accept="image/*" style={{ display: 'none' }}
+                                disabled={heroUploading}
+                                onChange={(e: any) => { const f = e.target.files?.[0]; if (f) handleHeroFile(f); e.target.value = ''; }} />
+                            </label>
+                          )}
+                          <Pressable onPress={() => set('hero_image', '')} style={{ backgroundColor: 'rgba(239,68,68,0.25)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6 }}>
+                            <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: '#FCA5A5' }}>Remove</Text>
+                          </Pressable>
+                        </View>
+                      </View>
+                    ) : (
+                      <Pressable
+                        onPress={() => { if (Platform.OS === 'web') heroFileRef.current?.click?.(); }}
+                        style={{
+                          borderWidth: 2, borderColor: 'rgba(123,61,191,0.40)', borderStyle: 'dashed',
+                          borderRadius: 10, padding: 20, alignItems: 'center', justifyContent: 'center',
+                          backgroundColor: 'rgba(123,61,191,0.04)', cursor: 'pointer',
+                        }}
+                      >
+                        {heroUploading ? (
+                          <ActivityIndicator size="small" color={GRAD.from} />
+                        ) : (
+                          <>
+                            <ImagePlus size={22} color={GRAD.from} />
+                            <Text style={{ fontFamily: FONTS.semi, fontSize: 12, color: GRAD.from, marginTop: 8 }}>Click to upload a hero image</Text>
+                          </>
+                        )}
+                      </Pressable>
+                    )}
+                    {Platform.OS === 'web' && (
+                      <input ref={heroFileRef} type="file" accept="image/png,image/jpeg,image/jpg,image/webp,image/gif" style={{ display: 'none' }}
+                        onChange={(e: any) => { const f = e.target.files?.[0]; if (f) handleHeroFile(f); e.target.value = ''; }} />
+                    )}
+                    <TextInput
+                      style={st.input}
+                      value={form.hero_image.startsWith('blob:') ? '' : form.hero_image}
+                      onChangeText={(v) => set('hero_image', v)}
+                      placeholder="…or paste an image URL (https://…)"
+                      placeholderTextColor={SAC.dim}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                  </View>
                 </Field>
                 <Field label="Intro" hint="One or two welcoming sentences.">
                   <TextInput style={st.input} value={form.intro} onChangeText={(v) => set('intro', v)} placeholder="Hi everyone, we're excited to share what's coming up…" placeholderTextColor={SAC.dim} />

@@ -2202,8 +2202,9 @@ async def my_showcase_registration(slug: str, request: Request):
             payload = _jwt.decode(auth.split(" ", 1)[1], JWT_SECRET, algorithms=["HS256"])
             user = await db.users.find_one({"_id": ObjectId(payload.get("sub"))})
             if user:
+                uid = str(user["_id"])
                 reg = await db.echo_registrations.find_one(
-                    {"slug": canonical_slug, "user_id": str(user["_id"])}
+                    {"slug": canonical_slug, "$or": [{"user_id": uid}, {"user_key": uid}]}
                 )
                 return _ser(reg or {})
         except Exception:
@@ -2562,10 +2563,11 @@ async def my_registrations(request: Request):
     email = (user.get("email") or "").strip().lower()
     uid = str(user["_id"])
 
-    # Find all registrations for this user
-    query = {"$or": [{"user_id": uid}]}
+    # Find all registrations for this user — match user_key too because paid
+    # registrations can have user_id rewritten to a provisioned SA account.
+    query = {"$or": [{"user_id": uid}, {"user_key": uid}]}
     if email:
-        query = {"$or": [{"user_id": uid}, {"email": email}]}
+        query = {"$or": [{"user_id": uid}, {"user_key": uid}, {"email": email}]}
     regs = await db.echo_registrations.find(query).sort("created_at", -1).to_list(100)
 
     results = []
@@ -3354,10 +3356,15 @@ async def my_coupons(slug: str, request: Request, email: Optional[str] = Query(N
     db = _get_db(request)
     # Try to resolve user from auth token
     user = await _resolve_user(request, db)
-    # Build query — match by user_id or email
+    # Build query — match by user_id, user_key (the account id captured at
+    # registration time), or email. user_id can drift from user_key when a paid
+    # registration provisions an SA account under a different email, so we must
+    # check user_key too or the original registrant loses access to coupons.
     query: Dict[str, Any] = {"slug": slug}
     if user:
-        query["$or"] = [{"user_id": str(user["_id"])}, {"email": (user.get("email") or "").lower()}]
+        uid = str(user["_id"])
+        uemail = (user.get("email") or "").lower()
+        query["$or"] = [{"user_id": uid}, {"user_key": uid}, {"email": uemail}]
     elif email:
         query["email"] = email.strip().lower()
     else:

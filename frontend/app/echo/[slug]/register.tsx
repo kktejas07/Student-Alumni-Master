@@ -277,12 +277,6 @@ export default function EchoRegisterPage() {
         const reg = await api.myEchoRegistration(slug);
         if (mounted && reg?.id) {
           setExisting(reg);
-        } else if (typeof window !== 'undefined') {
-          const localStr = window.localStorage.getItem(`echo_reg_${slug}`);
-          if (localStr) {
-            const localReg = JSON.parse(localStr);
-            if (mounted && localReg?.id) setExisting(localReg);
-          }
         }
       } catch { /* no auth / none */ }
       if (mounted) setLoading(false);
@@ -342,9 +336,6 @@ export default function EchoRegisterPage() {
       if (fee <= 0) {
         const res = await api.registerEchoShowcase(canonicalSlug, regPayload);
         const regObj = res.registration || res;
-        if (typeof window !== 'undefined' && regObj?.id) {
-          window.localStorage.setItem(`echo_reg_${canonicalSlug}`, JSON.stringify(regObj));
-        }
         setDone(regObj);
         return;
       }
@@ -355,9 +346,6 @@ export default function EchoRegisterPage() {
       // Already paid → show the existing registration + invoice.
       if (order?.already) {
         const regObj = order.registration || order;
-        if (typeof window !== 'undefined' && regObj?.id) {
-          window.localStorage.setItem(`echo_reg_${canonicalSlug}`, JSON.stringify(regObj));
-        }
         setDone(regObj);
         return;
       }
@@ -386,9 +374,6 @@ export default function EchoRegisterPage() {
               razorpay_signature: res.razorpay_signature,
             });
             const regObj = verified.registration || verified;
-            if (typeof window !== 'undefined' && regObj?.id) {
-              window.localStorage.setItem(`echo_reg_${canonicalSlug}`, JSON.stringify(regObj));
-            }
             setDone(regObj);
           } catch (err: any) {
             setError(err?.message || 'Payment verification failed. Please contact support.');
