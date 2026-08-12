@@ -1455,6 +1455,15 @@ async def _store_invoice_and_email(db, reg: dict, showcase: Optional[dict]) -> d
                 attachments.append({"filename": f"Receipt-{rno or inv_no}.pdf", "content": receipt_pdf})
                 print(f"[ECHO] Receipt PDF generated ({len(receipt_pdf)} bytes) for {email}")
 
+            # 3) Ticket/Entry Pass PDF
+            reg = reg  # already defined above
+            ticket_url = f"https://studentalumni.ai/api/echo/tickets/{inv_ser.get('reg_id', '')}?email={urllib.parse.quote(email)}"
+            ticket_html = _ticket_email_block(reg, showcase, ticket_url)
+            ticket_pdf = await generate_pdf_from_html(ticket_html)
+            if ticket_pdf:
+                attachments.append({"filename": f"EntryPass-{inv_no}.pdf", "content": ticket_pdf})
+                print(f"[ECHO] Ticket PDF generated ({len(ticket_pdf)} bytes) for {email}")
+
             if not attachments:
                 print(f"[WARN] PDF generation skipped for {email}")
 
@@ -1521,6 +1530,17 @@ async def _store_invoice_and_email(db, reg: dict, showcase: Optional[dict]) -> d
                           <td style="padding:8px 0;vertical-align:middle;">
                             <div style="font-size:13px;font-weight:600;color:#111827;">Payment Receipt</div>
                             <div style="font-size:12px;color:#94a3b8;">Official confirmation with payment history — attached</div>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding:8px 0;width:36px;vertical-align:middle;">
+                            <div style="width:32px;height:32px;background:#fef3c7;border-radius:8px;text-align:center;line-height:32px;">
+                              <span style="font-size:14px;font-weight:700;color:#d97706;">EP</span>
+                            </div>
+                          </td>
+                          <td style="padding:8px 0;vertical-align:middle;">
+                            <div style="font-size:13px;font-weight:600;color:#111827;">Entry Pass</div>
+                            <div style="font-size:12px;color:#94a3b8;">Your event ticket with QR code — attached</div>
                           </td>
                         </tr>
                       </table>
