@@ -217,6 +217,20 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
     }
   };
 
+  const cancelCampaign = async (campaignId: string) => {
+    if (!campaignId) return;
+    setCancellingId(campaignId);
+    try {
+      const res = await api.cancelNewsletterCampaign(campaignId);
+      flash(res?.message || 'Campaign cancelled');
+      await load();
+    } catch (e: any) {
+      flash(e?.message || 'Failed to cancel campaign');
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
   const doSend = async () => {
     if (!form.subject.trim()) { flash('Subject is required'); return; }
     if (!form.body.trim() && !form.cta_url.trim()) { flash('Add a message or a CTA link'); return; }
