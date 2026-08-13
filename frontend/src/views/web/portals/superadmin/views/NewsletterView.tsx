@@ -275,7 +275,12 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
     if (!campaignId) return;
     setLoadingEdit(true);
     try {
+      console.log('[Newsletter] startEdit fetching campaign:', campaignId);
       const c: any = await api.getNewsletterCampaign(campaignId);
+      console.log('[Newsletter] startEdit got campaign:', c);
+      if (!c || !c.subject) {
+        console.warn('[Newsletter] startEdit: campaign returned empty or missing subject');
+      }
       const channels = c?.channels || {};
       setForm({
         subject: c?.subject || '',
@@ -295,11 +300,14 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
         setSendImmediately(false);
         setScheduleDate(dt.toISOString().slice(0, 10));
         setScheduleTime(`${String(dt.getUTCHours()).padStart(2, '0')}:${String(dt.getUTCMinutes()).padStart(2, '0')}`);
+      } else {
+        setSendImmediately(true);
       }
       setEditingCampaign(c);
       setActiveTab('bulk');
-      flash(`Editing "${c?.subject || 'campaign'}" — make changes and save`);
+      flash(`Editing "${c?.subject || 'campaign'}"`);
     } catch (e: any) {
+      console.error('[Newsletter] startEdit error:', e);
       flash(e?.message || 'Failed to load campaign', 'error');
     } finally {
       setLoadingEdit(false);

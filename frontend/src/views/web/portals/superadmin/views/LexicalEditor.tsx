@@ -14,6 +14,8 @@ export default function LexicalEditor({ value, onChange }: { value: string; onCh
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [aiModalVisible, setAiModalVisible] = useState(false);
 
+  const prevValueRef = useRef(value);
+
   useEffect(() => {
     contentRef.current = value;
   }, [value]);
@@ -34,6 +36,7 @@ export default function LexicalEditor({ value, onChange }: { value: string; onCh
     div.contentEditable = 'true';
     div.innerHTML = contentRef.current || '';
     div.addEventListener('input', () => {
+      prevValueRef.current = div.innerHTML;
       onChange(div.innerHTML);
     });
     div.addEventListener('keydown', (e) => {
@@ -48,6 +51,17 @@ export default function LexicalEditor({ value, onChange }: { value: string; onCh
     editorRef.current = div;
     return () => { container.removeChild(div); editorRef.current = null; };
   }, []);
+
+  // Sync external value changes (e.g., loading a draft) into the contentEditable div.
+  // Only updates when the value actually changed externally (not from user typing).
+  useEffect(() => {
+    const el = editorRef.current;
+    if (!el) return;
+    if (value !== prevValueRef.current) {
+      prevValueRef.current = value;
+      el.innerHTML = value || '';
+    }
+  }, [value]);
 
   const exec = (cmd: string, val?: string) => {
     const el = editorRef.current;
