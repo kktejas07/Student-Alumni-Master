@@ -429,12 +429,43 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
         send_at,
       });
       flash(r?.message || 'Newsletter sent');
-      await load();
+
+      // If we got a campaign ID back, poll for status updates
+      if (r?.campaign_id) {
+        await pollCampaignStatus(r.campaign_id);
+      } else {
+        await load();
+      }
     } catch (e: any) {
       flash(e?.message || 'Failed to send newsletter');
     } finally {
       setSending(false);
     }
+  };
+
+  // Poll campaign status until it's no longer "sending" or timeout after 2 minutes
+  const pollCampaignStatus = async (campaignId: string) => {
+    const startTime = Date.now();
+    const timeoutMs = 2 * 60 * 1000; // 2 minutes
+    const pollIntervalMs = 3000; // 3 seconds
+
+    while (Date.now() - startTime < timeoutMs) {
+      await load();
+
+      // Find our campaign in the list
+      const campaign = campaigns.find(c => c.campaign_id === campaignId);
+
+      // If campaign is no longer sending, we're done
+      if (!campaign || campaign.status !== 'sending') {
+        break;
+      }
+
+      // Wait before next poll
+      await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+    }
+
+    // Final load to get latest status
+    await load();
   };
 
   const doSaveDraft = async () => {

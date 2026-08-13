@@ -674,7 +674,7 @@ async def send_newsletter(payload: SendNewsletterSchema, request: Request, user=
         "message": f"Campaign scheduled successfully for {dt_send.strftime('%Y-%m-%d %H:%M:%S UTC')}",
     }
 
-    # Otherwise immediate send (runs in background task so API client receives fast response)
+# Otherwise immediate send (runs in background task so API client receives fast response)
     campaign = {
         "campaign_id": campaign_id,
         "subject": payload.subject,
@@ -703,7 +703,7 @@ async def send_newsletter(payload: SendNewsletterSchema, request: Request, user=
         "created_by": created_by,
     }
     await db.email_campaigns.insert_one(campaign)
-    
+
     asyncio.create_task(execute_campaign(db, campaign))
 
     return {
@@ -716,27 +716,185 @@ async def send_newsletter(payload: SendNewsletterSchema, request: Request, user=
 
 async def execute_campaign(db, campaign: dict):
     campaign_id = campaign["campaign_id"]
-    
-    # Get upcoming events
-    upcoming = []
-    if campaign.get("include_upcoming"):
-        try:
-            docs = await db.echo_showcases.find(
-                {"status": "published"},
-                {"title": 1, "slug": 1, "college": 1, "date": 1, "venue": 1,
-                 "hero_image_url": 1, "registration": 1, "poster_image": 1},
-            ).to_list(200)
-            upcoming = _filter_upcoming_events(docs)
-        except Exception:
-            pass
-        
-    subscribers = await _all_subscribers(db)
-    if not subscribers:
+    try:
+        # Get upcoming events
+        upcoming = []
+        if campaign.get("include_upcoming"):
+            try:
+                docs = await db.echo_showcases.find(
+                    {"status": "published"},
+                    {"title": 1, "slug": 1, "college": 1, "date": 1, "venue": 1,
+                     "hero_image_url": 1, "registration": 1, "poster_image": 1},
+                ).to_list(200)
+                upcoming = _filter_upcoming_events(docs)
+            except Exception:
+                pass  # upcoming remains []
+
+        subscribers = await _all_subscribers(db)
+        if not subscribers:
+            await db.email_campaigns.update_one(
+                {"campaign_id": campaign_id},
+                {"$set": {"status": "failed", "sent": False, "completed_at": _now()}}
+            )
+            return
+
+        base_html = build_newsletter_html(
+            campaign["subject"],
+            campaign.get("hero_image") or "",
+            campaign.get("intro") or "",
+            campaign.get("body") or "",
+            campaign.get("cta_text") or "",
+            campaign.get("cta_url") or "",
+            upcoming,
+        )
+
+        send_email_enabled = campaign["channels"].get("email", True)
+        send_push_enabled = campaign["channels"].get("push", True)
+        send_in_app_enabled = campaign["channels"].get("in_app", True)
+        send_whatsapp_enabled = campaign["channels"].get("whatsapp", False)
+
+        push_title = campaign["subject"]
+        push_body = campaign.get("intro") or campaign.get("body") or campaign["subject"]
+        push_data = {"type": "newsletter", "campaign_id": campaign_id}
+        if campaign.get("cta_url"):
+            push_data["url"] = campaign["cta_url"]
+
+        email_ok = 0
+        email_fail = 0
+        push_ok = 0
+        push_fail = 0
+        in_app_ok = 0
+        whatsapp_ok = 0
+        whatsapp_fail = 0
+        attempts = []
+
+        for sub in subscribers:
+            uid = sub["_id"]
+            email = sub["email"]
+            attempt = {"email": email, "user_id": uid}
+
+            # Email
+            if send_email_enabled:
+                per_html = (
+                    base_html
+                    + f"<div style='text-align:center;margin-top:14px;'>"
+                    f"<a href='https://studentalumni.ai/api/newsletter/unsubscribe?email={email}&t={_unsub_token(email)}' "
+                    f"style='color:#9ca3af;font-size:11px;text-decoration:underline;'>Unsubscribe from these emails</a></div>"
+                )
+                try:
+                    sent = await send_email(email, campaign["subject"], per_html)
+                    attempt["email"] = "ok" if sent else "fail"
+                    if sent:
+                        email_ok += 1
+                    else:
+                        email_fail += 1
+                except Exception as e:
+                    email_fail += 1
+                    attempt["email"] = "fail"
+                    attempt["email_error"] = str(e)[:200]
+
+            # Push
+            if send_push_enabled:
+                try:
+                    tokens = await list_user_tokens(db, uid)
+                    valid_tokens = [t for t in tokens if t.startswith("ExponentPushToken[") or t.startswith("ExpoPushToken[")]
+                    if valid_tokens:
+                        import httpx as _httpx
+                        messages = [
+                            {"to": t, "title": push_title, "body": push_body, "data": push_data, "sound": "default", "priority": "high"}
+                            for t in valid_tokens
+                        ]
+                        async with _httpx.AsyncClient(timeout=8) as c:
+                            r = await c.post("https://exp.host/--/api/v2/push/send", json=messages,
+                                             headers={"Accept": "application/json", "Content-Type": "application/json"})
+                            if r.is_success:
+                                push_ok += 1
+                                attempt["push"] = "ok"
+                            else:
+                                push_fail += 1
+                                attempt["push"] = "fail"
+                    else:
+                        attempt["push"] = "no_tokens"
+                except Exception:
+                    push_fail += 1
+                    attempt["push"] = "fail"
+
+            # In-app
+            if send_in_app_enabled:
+                try:
+                    await _log_inbox(db, uid, push_title, push_body, push_data)
+                    in_app_ok += 1
+                    attempt["in_app"] = "ok"
+                except Exception:
+                    attempt["in_app"] = "fail"
+
+            # WhatsApp
+            if send_whatsapp_enabled:
+                from core.whatsapp import send_wa_message as _wa_msg, send_wa_image as _wa_img
+                phone = sub.get("phone") or ""
+                if phone:
+                    wa_text = f"*{campaign['subject']}*\n\n{_strip_html(push_body)}"
+                    if campaign.get("cta_url"):
+                        wa_text += f"\n\n{campaign['cta_url']}"
+                    hero_url = _make_absolute_url((campaign.get("hero_image") or "").strip())
+                    try:
+                        if hero_url:
+                            wa_result = await _wa_img(phone=phone, image_url=hero_url, caption=wa_text, kind="newsletter")
+                        else:
+                            wa_result = await _wa_msg(phone=phone, text=wa_text, kind="newsletter")
+                        if wa_result.get("status") == "sent":
+                            whatsapp_ok += 1
+                            attempt["whatsapp"] = "ok"
+                        else:
+                            whatsapp_fail += 1
+                            attempt["whatsapp"] = "fail"
+                    except Exception:
+                        whatsapp_fail += 1
+                        attempt["whatsapp"] = "fail"
+                else:
+                    attempt["whatsapp"] = "no_phone"
+
+            attempts.append(attempt)
+            if len(attempts) % 50 == 0:
+                await db.email_campaigns.update_one(
+                    {"campaign_id": campaign_id},
+                    {"$set": {
+                        "attempts": attempts,
+                        "email_ok": email_ok, "email_fail": email_fail,
+                        "push_ok": push_ok, "push_fail": push_fail,
+                        "in_app_ok": in_app_ok,
+                        "whatsapp_ok": whatsapp_ok, "whatsapp_fail": whatsapp_fail,
+                    }},
+                )
+
         await db.email_campaigns.update_one(
             {"campaign_id": campaign_id},
-            {"$set": {"status": "failed", "sent": False, "completed_at": _now()}}
+            {"$set": {
+                "sent": True,
+                "status": "completed",
+                "email_ok": email_ok,
+                "email_fail": email_fail,
+                "push_ok": push_ok,
+                "push_fail": push_fail,
+                "in_app_ok": in_app_ok,
+                "whatsapp_ok": whatsapp_ok,
+                "whatsapp_fail": whatsapp_fail,
+                "attempts": attempts,
+                "completed_at": _now()
+            }}
         )
-        return
+    except Exception as e:
+        # Log the exception and mark campaign as failed
+        print(f"Error executing campaign {campaign_id}: {e}")
+        await db.email_campaigns.update_one(
+            {"campaign_id": campaign_id},
+            {"$set": {
+                "status": "failed",
+                "sent": False,
+                "failed_at": _now(),
+                "error": str(e)[:500]
+            }}
+        )
 
     base_html = build_newsletter_html(
         campaign["subject"],
