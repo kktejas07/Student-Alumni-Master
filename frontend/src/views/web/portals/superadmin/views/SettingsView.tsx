@@ -259,7 +259,7 @@ export function SettingsView({ sub, onSub }: { sub?: string; onSub?: (s: string)
         {tab === 'templates'     && <TemplatesTab onSaved={flashToast} />}
         {tab === 'branding'      && <BrandingTab onSaved={flashToast} />}
       </View>
-      <Toast text={toast.text} visible={toast.visible} />
+      <Toast text={toast.text} visible={toast.visible} kind={toast.kind} onDismiss={hide} />
     </View>
   );
 }
@@ -2499,7 +2499,7 @@ function BrandingTab({ onSaved }: { onSaved: (s?: string) => void }) {
         const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
         const { tokenStore } = await import('@/src/models/services/api');
         const token = await tokenStore.getAccess();
-        const resp = await fetch(`${base}/api/admin/branding`, {
+        const resp = await fetch(`${base}/api/echo/admin/branding`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         if (resp.ok) {
@@ -2523,7 +2523,7 @@ function BrandingTab({ onSaved }: { onSaved: (s?: string) => void }) {
       const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
       const { tokenStore } = await import('@/src/models/services/api');
       const token = await tokenStore.getAccess();
-      const resp = await fetch(`${base}/api/admin/branding`, {
+      const resp = await fetch(`${base}/api/echo/admin/branding`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({
