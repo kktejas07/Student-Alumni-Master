@@ -52,7 +52,7 @@ async def process_message(user_id: str, message: str, session_id: str = None) ->
     }
     
     prompt = ""
-    if intent in ("application", "mixed", "general"):
+    if intent in ("application", "mixed"):
         metrics["rag_hit"] = True
         # Retrieve context
         results = QdrantRetriever.query(message, top_k=3)
@@ -173,7 +173,7 @@ async def stream_message(user_id: str, message: str, user_role: str, session_id:
     }
 
     prompt = ""
-    if intent in ("application", "mixed", "general"):
+    if intent in ("application", "mixed"):
         metrics["rag_hit"] = True
         # Retrieve context with role-awareness
         results = QdrantRetriever.query(message, top_k=3, user_role=user_role)
