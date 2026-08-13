@@ -174,6 +174,7 @@ class SendNewsletterSchema(BaseModel):
     send_email: bool = True
     send_push: bool = True
     send_in_app: bool = True
+    send_at: Optional[str] = None  # ISO format string for scheduling
 
 
 @router.get("/admin/campaigns")
@@ -229,6 +230,84 @@ async def upcoming_events(request: Request, _=Depends(require_role("admin"))):
     return {"items": out}
 
 
+class TestNewsletterSchema(BaseModel):
+    subject: str
+    hero_image: Optional[str] = ""
+    intro: Optional[str] = ""
+    body: Optional[str] = ""
+    cta_text: Optional[str] = ""
+    cta_url: Optional[str] = ""
+    include_upcoming: bool = True
+    test_email: str
+
+
+@router.post("/admin/preview")
+async def preview_newsletter(payload: SendNewsletterSchema, request: Request, _=Depends(require_role("admin"))):
+    """Render and return the full HTML preview of the newsletter."""
+    db = _get_db(request)
+    upcoming = []
+    if payload.include_upcoming:
+        try:
+            docs = await db.echo_showcases.find(
+                {"status": "published"},
+                {"title": 1, "slug": 1, "college": 1, "date": 1, "venue": 1,
+                 "hero_image_url": 1, "registration": 1, "poster_image": 1},
+            ).to_list(200)
+            upcoming = [d for d in docs if d.get("date") or True]
+        except Exception:
+            pass
+
+    base_html = build_newsletter_html(
+        payload.subject,
+        payload.hero_image or "",
+        payload.intro or "",
+        payload.body or "",
+        payload.cta_text or "",
+        payload.cta_url or "",
+        upcoming,
+    )
+    return {"html": base_html}
+
+
+@router.post("/admin/send-test")
+async def send_test_email(payload: TestNewsletterSchema, request: Request, _=Depends(require_role("admin"))):
+    """Send a test newsletter email to a specific address."""
+    db = _get_db(request)
+    upcoming = []
+    if payload.include_upcoming:
+        try:
+            docs = await db.echo_showcases.find(
+                {"status": "published"},
+                {"title": 1, "slug": 1, "college": 1, "date": 1, "venue": 1,
+                 "hero_image_url": 1, "registration": 1, "poster_image": 1},
+            ).to_list(200)
+            upcoming = [d for d in docs if d.get("date") or True]
+        except Exception:
+            pass
+
+    base_html = build_newsletter_html(
+        payload.subject,
+        payload.hero_image or "",
+        payload.intro or "",
+        payload.body or "",
+        payload.cta_text or "",
+        payload.cta_url or "",
+        upcoming,
+    )
+
+    per_html = (
+        base_html
+        + f"<div style='text-align:center;margin-top:14px;'>"
+        f"<a href='#' style='color:#9ca3af;font-size:11px;text-decoration:underline;'>Unsubscribe (Mock Link for Test)</a></div>"
+    )
+
+    sent = await send_email(payload.test_email, "[TEST] " + payload.subject, per_html)
+    if not sent:
+        raise HTTPException(status_code=500, detail="Failed to send test email")
+
+    return {"ok": True, "message": f"Test email sent successfully to {payload.test_email}"}
+
+
 @router.post("/admin/send")
 async def send_newsletter(payload: SendNewsletterSchema, request: Request, user=Depends(require_role("admin"))):
     """Compose a newsletter and send it via selected channels (email, push, in-app)."""
@@ -243,30 +322,51 @@ async def send_newsletter(payload: SendNewsletterSchema, request: Request, user=
     campaign_id = secrets.token_hex(8)
     created_by = (user or {}).get("email") or "admin"
 
-    upcoming = []
-    if payload.include_upcoming:
-        docs = await db.echo_showcases.find(
-            {"status": "published"},
-            {"title": 1, "slug": 1, "college": 1, "date": 1, "venue": 1,
-             "hero_image_url": 1, "registration": 1, "poster_image": 1},
-        ).to_list(200)
-        upcoming = [d for d in docs if d.get("date") or True]
-
     subscribers = await _all_subscribers(db)
     if not subscribers:
         raise HTTPException(status_code=400, detail="No subscribed user emails found")
 
-    # Build email HTML once
-    base_html = build_newsletter_html(
-        payload.subject,
-        payload.hero_image or "",
-        payload.intro or "",
-        payload.body or "",
-        payload.cta_text or "",
-        payload.cta_url or "",
-        upcoming,
-    )
+    # If scheduling in the future
+    if payload.send_at:
+        try:
+            dt_send = datetime.fromisoformat(payload.send_at.replace("Z", "+00:00"))
+            if dt_send.tzinfo is None:
+                dt_send = dt_send.replace(tzinfo=timezone.utc)
+            if dt_send <= datetime.now(timezone.utc):
+                raise HTTPException(status_code=400, detail="Scheduled send time must be in the future")
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid date format. Use ISO format (e.g., YYYY-MM-DDTHH:MM:SSZ)")
 
+        campaign = {
+            "campaign_id": campaign_id,
+            "subject": payload.subject,
+            "hero_image": payload.hero_image or "",
+            "intro": payload.intro or "",
+            "body": payload.body or "",
+            "cta_text": payload.cta_text or "",
+            "cta_url": payload.cta_url or "",
+            "include_upcoming": payload.include_upcoming,
+            "channels": {
+                "email": payload.send_email,
+                "push": payload.send_push,
+                "in_app": payload.send_in_app,
+            },
+            "recipients_count": len(subscribers),
+            "sent": False,
+            "status": "scheduled",
+            "send_at": dt_send.isoformat(),
+            "created_at": _now(),
+            "created_by": created_by,
+        }
+        await db.email_campaigns.insert_one(campaign)
+        return {
+            "ok": True,
+            "campaign_id": campaign_id,
+            "recipients": len(subscribers),
+            "message": f"Campaign scheduled successfully for {dt_send.strftime('%Y-%m-%d %H:%M:%S UTC')}",
+        }
+
+    # Otherwise immediate send (runs in background task so API client receives fast response)
     campaign = {
         "campaign_id": campaign_id,
         "subject": payload.subject,
@@ -294,27 +394,75 @@ async def send_newsletter(payload: SendNewsletterSchema, request: Request, user=
         "created_by": created_by,
     }
     await db.email_campaigns.insert_one(campaign)
+    
+    asyncio.create_task(execute_campaign(db, campaign))
 
-    # Build push notification content
-    push_title = payload.subject
-    push_body = payload.intro or payload.body or payload.subject
+    return {
+        "ok": True,
+        "campaign_id": campaign_id,
+        "recipients": len(subscribers),
+        "message": "Campaign sending started in the background",
+    }
+
+
+async def execute_campaign(db, campaign: dict):
+    campaign_id = campaign["campaign_id"]
+    
+    # Get upcoming events
+    upcoming = []
+    if campaign.get("include_upcoming"):
+        try:
+            docs = await db.echo_showcases.find(
+                {"status": "published"},
+                {"title": 1, "slug": 1, "college": 1, "date": 1, "venue": 1,
+                 "hero_image_url": 1, "registration": 1, "poster_image": 1},
+            ).to_list(200)
+            upcoming = [d for d in docs if d.get("date") or True]
+        except Exception:
+            pass
+        
+    subscribers = await _all_subscribers(db)
+    if not subscribers:
+        await db.email_campaigns.update_one(
+            {"campaign_id": campaign_id},
+            {"$set": {"status": "failed", "sent": False, "completed_at": _now()}}
+        )
+        return
+
+    base_html = build_newsletter_html(
+        campaign["subject"],
+        campaign.get("hero_image") or "",
+        campaign.get("intro") or "",
+        campaign.get("body") or "",
+        campaign.get("cta_text") or "",
+        campaign.get("cta_url") or "",
+        upcoming,
+    )
+
+    send_email_enabled = campaign["channels"].get("email", True)
+    send_push_enabled = campaign["channels"].get("push", True)
+    send_in_app_enabled = campaign["channels"].get("in_app", True)
+
+    push_title = campaign["subject"]
+    push_body = campaign.get("intro") or campaign.get("body") or campaign["subject"]
     push_data = {"type": "newsletter", "campaign_id": campaign_id}
-    if payload.cta_url:
-        push_data["url"] = payload.cta_url
+    if campaign.get("cta_url"):
+        push_data["url"] = campaign["cta_url"]
 
     email_ok = 0
     email_fail = 0
     push_ok = 0
     push_fail = 0
     in_app_ok = 0
+    attempts = []
 
     for sub in subscribers:
         uid = sub["_id"]
         email = sub["email"]
-        attempt: Dict[str, Any] = {"email": email, "user_id": uid}
+        attempt = {"email": email, "user_id": uid}
 
-        # ── Email ──
-        if payload.send_email:
+        # Email
+        if send_email_enabled:
             per_html = (
                 base_html
                 + f"<div style='text-align:center;margin-top:14px;'>"
@@ -322,7 +470,7 @@ async def send_newsletter(payload: SendNewsletterSchema, request: Request, user=
                 f"style='color:#9ca3af;font-size:11px;text-decoration:underline;'>Unsubscribe from these emails</a></div>"
             )
             try:
-                sent = await send_email(email, payload.subject, per_html)
+                sent = await send_email(email, campaign["subject"], per_html)
                 attempt["email"] = "ok" if sent else "fail"
                 if sent:
                     email_ok += 1
@@ -333,8 +481,8 @@ async def send_newsletter(payload: SendNewsletterSchema, request: Request, user=
                 attempt["email"] = "fail"
                 attempt["email_error"] = str(e)[:200]
 
-        # ── Push notification ──
-        if payload.send_push:
+        # Push
+        if send_push_enabled:
             try:
                 tokens = await list_user_tokens(db, uid)
                 valid_tokens = [t for t in tokens if t.startswith("ExponentPushToken[") or t.startswith("ExpoPushToken[")]
@@ -359,8 +507,8 @@ async def send_newsletter(payload: SendNewsletterSchema, request: Request, user=
                 push_fail += 1
                 attempt["push"] = "fail"
 
-        # ── In-app inbox ──
-        if payload.send_in_app:
+        # In-app
+        if send_in_app_enabled:
             try:
                 await _log_inbox(db, uid, push_title, push_body, push_data)
                 in_app_ok += 1
@@ -368,59 +516,45 @@ async def send_newsletter(payload: SendNewsletterSchema, request: Request, user=
             except Exception:
                 attempt["in_app"] = "fail"
 
-        campaign["attempts"].append(attempt)
-
-        # Checkpoint every 50 users
-        if len(campaign["attempts"]) % 50 == 0:
+        attempts.append(attempt)
+        if len(attempts) % 50 == 0:
             await db.email_campaigns.update_one(
                 {"campaign_id": campaign_id},
                 {"$set": {
-                    "attempts": campaign["attempts"],
+                    "attempts": attempts,
                     "email_ok": email_ok, "email_fail": email_fail,
                     "push_ok": push_ok, "push_fail": push_fail,
                     "in_app_ok": in_app_ok,
                 }},
             )
 
-    campaign["sent"] = True
-    campaign["status"] = "completed"
-    campaign["email_ok"] = email_ok
-    campaign["email_fail"] = email_fail
-    campaign["push_ok"] = push_ok
-    campaign["push_fail"] = push_fail
-    campaign["in_app_ok"] = in_app_ok
-    campaign["completed_at"] = _now()
     await db.email_campaigns.update_one(
         {"campaign_id": campaign_id},
         {"$set": {
-            "sent": True, "status": "completed",
-            "email_ok": email_ok, "email_fail": email_fail,
-            "push_ok": push_ok, "push_fail": push_fail,
+            "sent": True,
+            "status": "completed",
+            "email_ok": email_ok,
+            "email_fail": email_fail,
+            "push_ok": push_ok,
+            "push_fail": push_fail,
             "in_app_ok": in_app_ok,
-            "completed_at": campaign["completed_at"],
-            "attempts": campaign["attempts"],
-        }},
+            "attempts": attempts,
+            "completed_at": _now()
+        }}
     )
 
-    parts = []
-    if payload.send_email:
-        parts.append(f"email to {email_ok}")
-    if payload.send_push:
-        parts.append(f"push to {push_ok}")
-    if payload.send_in_app:
-        parts.append(f"in-app to {in_app_ok}")
 
-    return {
-        "ok": True,
-        "campaign_id": campaign_id,
-        "recipients": len(subscribers),
-        "email_sent": email_ok,
-        "email_failed": email_fail,
-        "push_sent": push_ok,
-        "push_failed": push_fail,
-        "in_app_sent": in_app_ok,
-        "message": f"Sent {', '.join(parts)} of {len(subscribers)} subscribers",
-    }
+async def process_scheduled_campaigns(db):
+    """Query scheduled campaigns due for sending, lock them, and run delivery."""
+    now = datetime.now(timezone.utc).isoformat()
+    campaign = await db.email_campaigns.find_one_and_update(
+        {"status": "scheduled", "send_at": {"$lte": now}},
+        {"$set": {"status": "sending"}},
+        return_document=True
+    )
+    if campaign:
+        campaign["_id"] = str(campaign["_id"])
+        await execute_campaign(db, campaign)
 
 
 @router.get("/unsubscribe")

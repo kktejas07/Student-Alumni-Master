@@ -451,6 +451,10 @@ export const api = {
   // ── Newsletter ────────────────────────────────────────────────────────────
   sendNewsletter: (payload: any) =>
     request<any>('/newsletter/admin/send', { method: 'POST', body: payload }),
+  previewNewsletter: (payload: any) =>
+    request<any>('/newsletter/admin/preview', { method: 'POST', body: payload }),
+  sendNewsletterTest: (payload: any) =>
+    request<any>('/newsletter/admin/send-test', { method: 'POST', body: payload }),
   listNewsletterCampaigns: () =>
     request<any>('/newsletter/admin/campaigns'),
   newsletterUpcomingEvents: () =>

@@ -256,10 +256,15 @@ async def _lifespan(application):
     # Start the workflow automation cron tick (60s polling).
     try:
         from workflow_automation import run_cron_workflows as _run_cron
+        from newsletter import process_scheduled_campaigns as _process_sched
         async def _wf_cron_tick():
             while True:
                 try:
                     await _run_cron()
+                except Exception:
+                    pass
+                try:
+                    await _process_sched(db)
                 except Exception:
                     pass
                 await asyncio.sleep(60)
