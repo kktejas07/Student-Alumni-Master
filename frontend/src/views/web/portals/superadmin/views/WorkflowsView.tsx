@@ -28,7 +28,7 @@ const [newWorkflow, setNewWorkflow] = useState({ name: '', trigger: '', event_tr
   const [editWf, setEditWf] = useState<Wf | null>(null);
   const [deleteWf, setDeleteWf] = useState<Wf | null>(null);
   const [runLogWf, setRunLogWf] = useState<Wf | null>(null);
-  const { toast, flash } = useToast();
+  const { toast, flash, hide } = useToast();
 
   const items: Wf[] = (data?.items || []).map((w) => ({
     ...w,
@@ -466,7 +466,7 @@ const [newWorkflow, setNewWorkflow] = useState({ name: '', trigger: '', event_tr
         </View>
       </Modal>
 
-      <Toast text={toast.text} visible={toast.visible} />
+      <Toast text={toast.text} visible={toast.visible} kind={toast.kind} onDismiss={hide} />
     </View>
   );
 }

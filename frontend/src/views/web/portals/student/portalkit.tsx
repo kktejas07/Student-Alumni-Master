@@ -16,14 +16,13 @@
  *     GRAD, Card, IconBox, GradientButton, SectionLabel, KpiTile,
  *   } from '../portalkit';
  */
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View, Text, Pressable, TextInput, StyleSheet, Platform, ScrollView,
-  ActivityIndicator,
+  ActivityIndicator, Animated as RNAnimated, Easing, useWindowDimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeIn } from 'react-native-reanimated';
-import { Check, Search } from 'lucide-react-native';
+import { Check, Search, AlertTriangle, Info, Loader, X } from 'lucide-react-native';
 import { SC, FONTS } from './tokens';
 
 /* ─────────────────────────────────────────────────────────────────
@@ -232,25 +231,183 @@ export function SearchField({ value, onChange, placeholder = 'Search…', width 
 }
 
 /* ─────────────────────────────────────────────────────────────────
- * Toast hook + component (auto-save / action confirmation)
+ * Toast hook + component
+ * Bottom-right, 5s auto-dismiss, progress bar, status colors.
  * ───────────────────────────────────────────────────────────────── */
-export function useToast() {
-  const [toast, setToast] = useState({ visible: false, text: 'Saved' });
-  const flash = useCallback((text = 'Saved') => {
-    setToast({ visible: true, text });
-    setTimeout(() => setToast((t) => ({ ...t, visible: false })), 1500);
-  }, []);
-  return { toast, flash };
+export type ToastKind = 'success' | 'error' | 'warning' | 'info' | 'pending';
+
+const TOAST_MS = 5000;
+
+function inferToastKind(text: string, kind?: ToastKind): ToastKind {
+  if (kind) return kind;
+  const t = (text || '').toLowerCase();
+  if (/(fail|error|invalid|required|denied|unable|rejected|not found|forbidden|crash)/.test(t)) return 'error';
+  if (/(warn|caution|make sure|almost|partial)/.test(t)) return 'warning';
+  if (/(pending|loading|sending|processing|wait|queued|running)/.test(t)) return 'pending';
+  if (/(info|note|heads up|editing|tip|reminder)/.test(t)) return 'info';
+  return 'success';
 }
 
-export function Toast({ text, visible }: { text: string; visible: boolean }) {
+const TOAST_PALETTE: Record<ToastKind, {
+  Icon: any;
+  accent: string;
+  iconColor: string;
+  iconBg: string;
+  border: string;
+  bg: string;
+}> = {
+  success: {
+    Icon: Check,
+    accent: '#10B981',
+    iconColor: '#6EE7B7',
+    iconBg: 'rgba(16,185,129,0.18)',
+    border: 'rgba(16,185,129,0.35)',
+    bg: 'rgba(12, 18, 28, 0.94)',
+  },
+  error: {
+    Icon: AlertTriangle,
+    accent: '#EF4444',
+    iconColor: '#FCA5A5',
+    iconBg: 'rgba(239,68,68,0.18)',
+    border: 'rgba(239,68,68,0.4)',
+    bg: 'rgba(18, 10, 14, 0.94)',
+  },
+  warning: {
+    Icon: AlertTriangle,
+    accent: '#F59E0B',
+    iconColor: '#FCD34D',
+    iconBg: 'rgba(245,158,11,0.18)',
+    border: 'rgba(245,158,11,0.4)',
+    bg: 'rgba(18, 14, 8, 0.94)',
+  },
+  info: {
+    Icon: Info,
+    accent: '#A78BFA',
+    iconColor: '#DDD6FE',
+    iconBg: 'rgba(124,58,237,0.18)',
+    border: 'rgba(167,139,250,0.4)',
+    bg: 'rgba(14, 10, 24, 0.94)',
+  },
+  pending: {
+    Icon: Loader,
+    accent: '#8B5CF6',
+    iconColor: '#C4B5FD',
+    iconBg: 'rgba(139,92,246,0.18)',
+    border: 'rgba(139,92,246,0.4)',
+    bg: 'rgba(14, 10, 24, 0.94)',
+  },
+};
+
+export function useToast() {
+  const [toast, setToast] = useState({
+    visible: false,
+    text: 'Saved',
+    kind: 'success' as ToastKind,
+  });
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const hide = useCallback(() => {
+    setToast((t) => ({ ...t, visible: false }));
+  }, []);
+
+  const flash = useCallback((text = 'Saved', kind?: ToastKind) => {
+    const resolved = inferToastKind(text, kind);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setToast({ visible: true, text, kind: resolved });
+    timerRef.current = setTimeout(hide, TOAST_MS);
+  }, [hide]);
+
+  useEffect(() => () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+  }, []);
+
+  return { toast, flash, hide };
+}
+
+export function Toast({
+  text,
+  visible,
+  kind = 'success',
+  onDismiss,
+}: {
+  text: string;
+  visible: boolean;
+  kind?: ToastKind;
+  onDismiss?: () => void;
+}) {
+  const { width } = useWindowDimensions();
+  const progress = useRef(new RNAnimated.Value(1)).current;
+  const narrow = Platform.OS === 'web' ? width < 640 : width < 480;
+  const palette = TOAST_PALETTE[kind] || TOAST_PALETTE.success;
+  const Icon = palette.Icon;
+
+  useEffect(() => {
+    if (!visible) return;
+    progress.setValue(1);
+    const anim = RNAnimated.timing(progress, {
+      toValue: 0,
+      duration: TOAST_MS,
+      easing: Easing.linear,
+      useNativeDriver: false,
+    });
+    anim.start();
+    return () => anim.stop();
+  }, [visible, text, kind, progress]);
+
   if (!visible) return null;
-  return (
-    <Animated.View entering={FadeIn.duration(180)} style={k.toast} pointerEvents="none">
-      <Check size={12} color={SC.green} />
-      <Text style={k.toastText}>{text}</Text>
-    </Animated.View>
+
+  const widthPct = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0%', '100%'],
+  });
+
+  const node = (
+    <View
+      pointerEvents="box-none"
+      style={[
+        k.toastHost,
+        narrow && k.toastHostNarrow,
+        Platform.OS === 'web' && ({
+          position: 'fixed',
+          top: 'auto',
+          left: narrow ? 16 : 'auto',
+          right: 24,
+          bottom: 24,
+          zIndex: 2147483000,
+          width: narrow ? 'auto' : 380,
+          maxWidth: narrow ? 'calc(100vw - 32px)' : 380,
+        } as any),
+      ]}
+    >
+      <View
+        accessibilityRole="alert"
+        accessibilityLabel={`${kind}: ${text}`}
+        style={[k.toastCard, { backgroundColor: palette.bg, borderColor: palette.border }]}
+      >
+        <View style={[k.toastAccent, { backgroundColor: palette.accent }]} />
+        <View style={[k.toastIconWrap, { backgroundColor: palette.iconBg }]}>
+          <Icon size={15} color={palette.iconColor} />
+        </View>
+        <Text style={k.toastText} numberOfLines={3}>{text}</Text>
+        {!!onDismiss && (
+          <Pressable onPress={onDismiss} hitSlop={8} accessibilityLabel="Dismiss notification" style={k.toastClose}>
+            <X size={14} color="rgba(255,255,255,0.7)" />
+          </Pressable>
+        )}
+        <View style={k.toastProgressTrack}>
+          <RNAnimated.View
+            style={[k.toastProgressFill, { backgroundColor: palette.accent, width: widthPct as any }]}
+          />
+        </View>
+      </View>
+    </View>
   );
+
+  if (Platform.OS === 'web' && typeof document !== 'undefined') {
+    const ReactDOM = require('react-dom');
+    return ReactDOM.createPortal(node, document.body);
+  }
+  return node;
 }
 
 /* ─────────────────────────────────────────────────────────────────
@@ -361,15 +518,82 @@ const k = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
   },
 
-  toast: {
-    position: 'absolute', bottom: 24, left: 0, right: 0,
-    alignSelf: 'center', alignItems: 'center', justifyContent: 'center',
-    flexDirection: 'row', gap: 6,
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999,
-    backgroundColor: 'rgba(16,185,129,0.18)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.35)',
-    maxWidth: 220, marginHorizontal: 'auto' as any,
+  toastHost: {
+    ...(Platform.OS === 'web'
+      ? { position: 'fixed' as any, bottom: 24, right: 24, top: 'auto' as any, left: 'auto' as any }
+      : { position: 'absolute' as any, bottom: 24, right: 16 }),
+    zIndex: 99999,
+    elevation: 99999,
+    maxWidth: 380,
+    width: 360,
+    pointerEvents: 'box-none' as any,
   },
-  toastText: { color: SC.green, fontFamily: FONTS.xbold, fontSize: 11.5 },
+  toastHostNarrow: {
+    left: 12,
+    right: 12,
+    bottom: 16,
+    width: 'auto' as any,
+    maxWidth: '100%' as any,
+  },
+  toastCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    paddingLeft: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+    overflow: 'hidden',
+    ...(Platform.OS === 'web'
+      ? ({
+          boxShadow: '0 12px 32px rgba(0,0,0,0.45)',
+          backdropFilter: 'blur(18px)',
+          cursor: 'pointer',
+        } as any)
+      : {}),
+  },
+  toastAccent: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 3,
+  },
+  toastIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  toastText: {
+    flex: 1,
+    color: '#fff',
+    fontFamily: FONTS.semi,
+    fontSize: 13,
+    lineHeight: 18,
+    letterSpacing: -0.1,
+  },
+  toastClose: {
+    width: 26,
+    height: 26,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  toastProgressTrack: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 3,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  toastProgressFill: {
+    height: '100%',
+  },
 
   kpiCard: {
     flex: 1, minWidth: 180, paddingVertical: 16, paddingHorizontal: 18,

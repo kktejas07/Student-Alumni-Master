@@ -27,6 +27,7 @@ import { LiveStrip } from '@/src/views/web/LiveStrip';
 import { request } from '@/src/models/services/api';
 import { AdBanner } from '@/src/views/web/components/AdBanner';
 import { CouponBanner } from '@/src/views/web/components/CouponBanner';
+import { useToast } from '@/src/views/components';
 
 const KPI_ICONS = { matches: Briefcase, applications: Briefcase, courses: BookOpen, mentors: Users, score: TrendingUp, events: Calendar } as const;
 
@@ -49,6 +50,7 @@ export function DashboardView({
   onOpenCareerAi?: () => void;
 } = {}) {
   const router = useRouter();
+  const toast = useToast();
   const { data } = usePortalData<typeof STUDENT_MOCK>('/student/dashboard', STUDENT_MOCK);
   // Live counters polled every 15s so users can SEE auto-refresh working
   const { data: live } = usePortalData<any>('/live/counters', null as any, 15_000);
@@ -164,13 +166,13 @@ export function DashboardView({
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 16 }}>
           <Pressable
             style={({ hovered }: any) => [s.primaryCta, hovered && { backgroundColor: SC.primaryL }]}
-            onPress={onOpenCareerAi || (() => alert('Open full roadmap'))}
+            onPress={onOpenCareerAi || (() => toast.info('Career roadmap', 'Open the full career roadmap from the Career AI tab.'))}
           >
             <Text style={s.primaryCtaText}>View Full Roadmap →</Text>
           </Pressable>
           <Pressable
             style={({ hovered }: any) => [s.secCta, hovered && { backgroundColor: SC.cardH }]}
-            onPress={onOpenInternships || (() => alert('Browse internships'))}
+            onPress={onOpenInternships || (() => toast.info('Internships', 'Open Internships from the sidebar to browse roles.'))}
           >
             <Text style={s.secCtaText}>Browse Internships</Text>
           </Pressable>

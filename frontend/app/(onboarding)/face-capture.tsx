@@ -3,7 +3,7 @@
  * Web: split-screen.  Native: full-screen dark.
  */
 import { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Image, Platform, Alert } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Image, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Camera as CameraIcon, ImagePlus, RotateCcw, Check } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
@@ -52,8 +52,7 @@ export default function FaceCapture() {
     }
     const ok = await ensureCameraPerm();
     if (!ok) {
-      Alert.alert('Permission required', 'Please grant camera access to capture your face photo.');
-      toast.error('Camera blocked', 'Grant camera permission in settings.');
+      toast.error('Camera blocked', 'Please grant camera access to capture your face photo.');
       return;
     }
     const result = await ImagePicker.launchCameraAsync({

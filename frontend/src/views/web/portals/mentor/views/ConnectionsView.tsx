@@ -11,6 +11,7 @@ import { Av, Badge } from '../atoms';
 import { STUDENTS, statusMeta } from '../data';
 import { api } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { useToast } from '@/src/views/components';
 
 type Student = typeof STUDENTS[number];
 const FILTERS = [
@@ -26,6 +27,7 @@ const MONTH_NAMES = [
 ];
 
 export function ConnectionsView() {
+  const toast = useToast();
   const { width } = useWindowDimensions();
   const isLarge = width >= 1024;
   const user = useAuthStore((s) => s.user);
@@ -75,18 +77,22 @@ export function ConnectionsView() {
       if (decision === 'accept') {
         await api.acceptConnection(otherId);
         await loadConnections();
+        toast.success('Connection accepted');
       } else if (decision === 'decline') {
         await api.rejectConnection(otherId);
         setStudentsList(prev => prev.map(s => String(s.id) === String(otherId) ? { ...s, status: 'declined' } : s));
+        toast.success('Request declined');
       } else if (decision === 'withdraw') {
         await api.withdrawConnection(otherId);
         setStudentsList(prev => prev.map(s => String(s.id) === String(otherId) ? { ...s, status: 'none' } : s));
+        toast.success('Request withdrawn');
       } else if (decision === 'connect') {
         await api.sendConnectionRequest(otherId);
         setStudentsList(prev => prev.map(s => String(s.id) === String(otherId) ? { ...s, status: 'pending_sent' } : s));
+        toast.success('Connection request sent');
       }
-    } catch (e) {
-      console.error(`Failed to ${decision} connection request:`, e);
+    } catch (e: any) {
+      toast.error(`Could not ${decision}`, e?.message || 'Please try again.');
     } finally {
       setActioningId(null);
     }
@@ -416,14 +422,14 @@ export function ConnectionsView() {
                         <Text style={s.footerBtnText}>View Profile</Text>
                       </Pressable>
                       <View style={{ flexDirection: 'row', gap: 4 }}>
-                        <Pressable style={s.socialBtn} onPress={() => alert('Social Profile coming soon!')}>
+                        <Pressable style={s.socialBtn} onPress={() => toast.info('Coming soon', 'Social profile is not available yet.')}>
                           <Text style={s.socialText}>in</Text>
                         </Pressable>
-                        <Pressable style={s.socialBtn} onPress={() => alert('Github Profile coming soon!')}>
+                        <Pressable style={s.socialBtn} onPress={() => toast.info('Coming soon', 'GitHub profile is not available yet.')}>
                           <MaterialCommunityIcons name="github" size={12} color={MC.muted} />
                         </Pressable>
                       </View>
-                      <Pressable style={[s.footerBtn, { backgroundColor: 'rgba(34,197,94,0.08)' }]} onPress={() => alert('Check-in successful!')}>
+                      <Pressable style={[s.footerBtn, { backgroundColor: 'rgba(34,197,94,0.08)' }]} onPress={() => toast.success('Checked in')}>
                         <MaterialCommunityIcons name="check" size={12} color={MC.green} style={{ marginRight: 2 }} />
                         <Text style={[s.footerBtnText, { color: MC.green }]}>Check-in</Text>
                       </Pressable>
@@ -495,6 +501,8 @@ const parseToISO = (dateStr: string, timeStr: string) => {
 };
 
 function DrawerInner({ st, onClose, onUpdateStudent, onRefresh }: { st: Student; onClose: () => void; onUpdateStudent: (updated: Student) => void; onRefresh: () => Promise<void> }) {
+  const toast = useToast();
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState<'overview' | 'sessions' | 'notes'>('overview');
   const [notesText, setNotesText] = useState(st.lastSession?.notes || '');
   const [isSaved, setIsSaved] = useState(false);
@@ -555,9 +563,9 @@ function DrawerInner({ st, onClose, onUpdateStudent, onRefresh }: { st: Student;
       });
       await onRefresh();
       setActiveTab('overview');
+      toast.success('Session scheduled', `Booked with ${st.name || 'student'}.`);
     } catch (e: any) {
-      console.error('Failed to schedule session:', e);
-      alert(e.message || 'Failed to schedule session. Please try again.');
+      toast.error('Schedule failed', e?.message || 'Please try again.');
     } finally {
       setIsScheduling(false);
     }
@@ -618,10 +626,10 @@ function DrawerInner({ st, onClose, onUpdateStudent, onRefresh }: { st: Student;
             </View>
           </View>
           <View style={{ gap: 6, justifyContent: 'center' }}>
-            <Pressable style={d.iconCircleBtn} onPress={() => alert('Social Profile coming soon!')}>
+            <Pressable style={d.iconCircleBtn} onPress={() => toast.info('Coming soon', 'Social profile is not available yet.')}>
               <Text style={{ color: '#00ffcc', fontFamily: FONTS.bold, fontSize: 11 }}>in</Text>
             </Pressable>
-            <Pressable style={d.iconCircleBtn} onPress={() => alert('Github Profile coming soon!')}>
+            <Pressable style={d.iconCircleBtn} onPress={() => toast.info('Coming soon', 'GitHub profile is not available yet.')}>
               <MaterialCommunityIcons name="github" size={12} color="#fff" />
             </Pressable>
           </View>
@@ -738,15 +746,15 @@ function DrawerInner({ st, onClose, onUpdateStudent, onRefresh }: { st: Student;
                 <View style={{ marginTop: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)', paddingTop: 12 }}>
                   <Text style={d.sessionStartLabel}>🟢 START SESSION VIA</Text>
                   <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-                    <Pressable style={d.meetBtn} onPress={() => Platform.OS === 'web' ? window.open('https://meet.google.com', '_blank') : alert('Opening Meet...')}>
+                    <Pressable style={d.meetBtn} onPress={() => Platform.OS === 'web' ? window.open('https://meet.google.com', '_blank') : toast.info('Opening Meet')}>
                       <MaterialCommunityIcons name="video-outline" size={14} color="#fff" />
                       <Text style={d.meetBtnText}>Google Meet</Text>
                     </Pressable>
-                    <Pressable style={d.meetBtn} onPress={() => Platform.OS === 'web' ? window.open('https://zoom.us', '_blank') : alert('Opening Zoom...')}>
+                    <Pressable style={d.meetBtn} onPress={() => Platform.OS === 'web' ? window.open('https://zoom.us', '_blank') : toast.info('Opening Zoom')}>
                       <MaterialCommunityIcons name="video-box" size={14} color="#fff" />
                       <Text style={d.meetBtnText}>Zoom</Text>
                     </Pressable>
-                    <Pressable style={[d.meetBtn, { backgroundColor: '#3f2a56', borderColor: '#5c3e7f' }]} onPress={() => Platform.OS === 'web' ? window.open('https://teams.microsoft.com', '_blank') : alert('Opening Teams...')}>
+                    <Pressable style={[d.meetBtn, { backgroundColor: '#3f2a56', borderColor: '#5c3e7f' }]} onPress={() => Platform.OS === 'web' ? window.open('https://teams.microsoft.com', '_blank') : toast.info('Opening Teams')}>
                       <MaterialCommunityIcons name="microsoft-teams" size={14} color="#fff" />
                       <Text style={d.meetBtnText}>Teams</Text>
                     </Pressable>
@@ -754,7 +762,7 @@ function DrawerInner({ st, onClose, onUpdateStudent, onRefresh }: { st: Student;
                 </View>
 
                 {/* Agenda Generator */}
-                <Pressable style={d.agendaBtn} onPress={() => alert('Generating beautifully tailored agenda with AI...')}>
+                <Pressable style={d.agendaBtn} onPress={() => toast.info('Generating agenda', 'Creating a tailored agenda with AI...')}>
                   <MaterialCommunityIcons name="calendar-check-outline" size={14} color="#00ffcc" />
                   <Text style={d.agendaBtnText}>Generate Session Agenda</Text>
                 </Pressable>

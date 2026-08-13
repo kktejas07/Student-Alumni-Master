@@ -4,12 +4,12 @@
  * Built on top of unified project icon shims and MaterialCommunityIcons.
  */
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView, Image, Platform, ActivityIndicator, useWindowDimensions, TextInput, Alert } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, Image, Platform, ActivityIndicator, useWindowDimensions, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { CompletionRing } from '@/src/views/web/profile/CompletionRing';
-import { useToast } from '@/src/views/components';
+import { useToast, useConfirm } from '@/src/views/components';
 import { MC, FONTS } from '../tokens';
 import { Av } from '../atoms';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -51,6 +51,7 @@ export function MentorProfileSettingsView({
 }) {
   const router = useRouter();
   const toast = useToast();
+  const { confirm } = useConfirm();
   const user = useAuthStore((u) => u.user);
   const refreshUser = useAuthStore((u) => u.refreshUser);
   
@@ -1054,7 +1055,7 @@ export function MentorProfileSettingsView({
                     <Pressable
                       onPress={() => {
                         if (googleMeetConnected) { setGoogleMeetConnected(false); setGoogleMeetEmail(''); }
-                        else { if (!googleMeetEmail) { alert('Please enter Google Meet email'); return; } setGoogleMeetConnected(true); }
+                        else { if (!googleMeetEmail) { toast.warning('Email required', 'Please enter Google Meet email'); return; } setGoogleMeetConnected(true); }
                       }}
                       style={[st.connectBtnStyle, googleMeetConnected && st.disconnectBtnStyle]}
                     >
@@ -1082,7 +1083,7 @@ export function MentorProfileSettingsView({
                     <Pressable
                       onPress={() => {
                         if (zoomConnected) { setZoomConnected(false); setZoomEmail(''); }
-                        else { if (!zoomEmail) { alert('Please enter Zoom email'); return; } setZoomConnected(true); }
+                        else { if (!zoomEmail) { toast.warning('Email required', 'Please enter Zoom email'); return; } setZoomConnected(true); }
                       }}
                       style={[st.connectBtnStyle, zoomConnected && st.disconnectBtnStyle]}
                     >
@@ -1110,7 +1111,7 @@ export function MentorProfileSettingsView({
                     <Pressable
                       onPress={() => {
                         if (teamsConnected) { setTeamsConnected(false); setTeamsEmail(''); }
-                        else { if (!teamsEmail) { alert('Please enter Teams email'); return; } setTeamsConnected(true); }
+                        else { if (!teamsEmail) { toast.warning('Email required', 'Please enter Teams email'); return; } setTeamsConnected(true); }
                       }}
                       style={[st.connectBtnStyle, teamsConnected && st.disconnectBtnStyle]}
                     >
@@ -1149,7 +1150,7 @@ export function MentorProfileSettingsView({
                     <Pressable
                       onPress={() => {
                         if (googleCalendarConnected) { setGoogleCalendarConnected(false); setGoogleCalendarEmail(''); }
-                        else { if (!googleCalendarEmail) { alert('Please enter Google Calendar email'); return; } setGoogleCalendarConnected(true); }
+                        else { if (!googleCalendarEmail) { toast.warning('Email required', 'Please enter Google Calendar email'); return; } setGoogleCalendarConnected(true); }
                       }}
                       style={[st.connectBtnStyle, googleCalendarConnected && st.disconnectBtnStyle]}
                     >
@@ -1177,7 +1178,7 @@ export function MentorProfileSettingsView({
                     <Pressable
                       onPress={() => {
                         if (notionConnected) { setNotionConnected(false); setNotionEmail(''); }
-                        else { if (!notionEmail) { alert('Please enter Notion email'); return; } setNotionConnected(true); }
+                        else { if (!notionEmail) { toast.warning('Email required', 'Please enter Notion email'); return; } setNotionConnected(true); }
                       }}
                       style={[st.connectBtnStyle, notionConnected && st.disconnectBtnStyle]}
                     >
@@ -1205,7 +1206,7 @@ export function MentorProfileSettingsView({
                     <Pressable
                       onPress={() => {
                         if (slackConnected) { setSlackConnected(false); setSlackEmail(''); }
-                        else { if (!slackEmail) { alert('Please enter Slack email'); return; } setSlackConnected(true); }
+                        else { if (!slackEmail) { toast.warning('Email required', 'Please enter Slack email'); return; } setSlackConnected(true); }
                       }}
                       style={[st.connectBtnStyle, slackConnected && st.disconnectBtnStyle]}
                     >
@@ -1421,21 +1422,15 @@ export function MentorProfileSettingsView({
                     btnText="Delete"
                     isDelete
                     isLast
-                    onPress={() => {
-                      if (Platform.OS === 'web') {
-                        const confirmDelete = window.confirm("Are you sure you want to permanently delete your account and all data? This action is irreversible.");
-                        if (confirmDelete) {
-                          toast.error('Account Action', 'Account deletion request submitted. Please check email to confirm.');
-                        }
-                      } else {
-                        Alert.alert(
-                          "Delete Account",
-                          "Are you sure you want to permanently delete your account and all data? This action is irreversible.",
-                          [
-                            { text: "Cancel", style: "cancel" },
-                            { text: "Delete", style: "destructive", onPress: () => toast.error('Account Action', 'Account deletion request submitted. Please check email to confirm.') }
-                          ]
-                        );
+                    onPress={async () => {
+                      const ok = await confirm({
+                        title: 'Delete account',
+                        message: 'Are you sure you want to permanently delete your account and all data? This action is irreversible.',
+                        confirmText: 'Delete',
+                        danger: true,
+                      });
+                      if (ok) {
+                        toast.info('Account action', 'Account deletion request submitted. Please check email to confirm.');
                       }
                     }}
                   />

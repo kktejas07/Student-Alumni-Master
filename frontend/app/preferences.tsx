@@ -18,7 +18,6 @@ import {
   StyleSheet,
   ScrollView,
   Pressable,
-  Alert,
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -28,7 +27,7 @@ import { Menu, Divider } from 'react-native-paper';
 import { ArrowLeft, ChevronDown, GraduationCap, Sparkles, Check } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { Colors as C, Typography, Spacing, Radius, Shadows, Gradients } from '@/src/theme';
-import { AnimatedCard, Button } from '@/src/views/components';
+import { AnimatedCard, Button, useToast, useConfirm } from '@/src/views/components';
 import { useAuth } from '@/src/viewmodels/hooks';
 import { api } from '@/src/models/services/api';
 
@@ -57,6 +56,8 @@ const INTEREST_TAGS = [
 
 export default function PreferencesScreen() {
   const router = useRouter();
+  const toast = useToast();
+  const { confirm } = useConfirm();
   const { user, refreshUser } = useAuth();
 
   const initialEdu = user?.student_info?.education_level || 'btech';
@@ -92,32 +93,26 @@ export default function PreferencesScreen() {
       if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.back();
     } catch (e: any) {
-      Alert.alert('Update failed', e.message || 'Please try again.');
+      toast.error('Update failed', e.message || 'Please try again.');
     } finally {
       setSaving(false);
     }
   };
 
   const onTransitionAlumni = async () => {
-    Alert.alert(
-      'Become an alumni?',
-      'This will mark you as a graduate. You\'ll unlock mentor mode and Knowledge Rooms.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Confirm',
-          onPress: async () => {
-            try {
-              await api.transitionToAlumni();
-              await refreshUser?.();
-              router.replace('/(tabs)');
-            } catch (e: any) {
-              Alert.alert('Error', e.message || 'Could not transition.');
-            }
-          },
-        },
-      ],
-    );
+    const ok = await confirm({
+      title: 'Become an alumni?',
+      message: "This will mark you as a graduate. You'll unlock mentor mode and Knowledge Rooms.",
+      confirmText: 'Confirm',
+    });
+    if (!ok) return;
+    try {
+      await api.transitionToAlumni();
+      await refreshUser?.();
+      router.replace('/(tabs)');
+    } catch (e: any) {
+      toast.error('Could not transition', e.message || 'Please try again.');
+    }
   };
 
   return (

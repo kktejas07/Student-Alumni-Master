@@ -8,7 +8,7 @@ import { View, Text, Pressable, StyleSheet, Platform, useWindowDimensions, TextI
 import { ArrowDown, ArrowUp, CreditCard, Download, IndianRupee, TrendingUp, AlertTriangle, BadgePercent, Edit3, Trash2, X, Check, Zap } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SAC, FONTS } from '../tokens';
-import { GRAD, Card, IconBox, KpiTile, StatusPill, GradientButton, SecondaryButton, SectionLabel } from '../applekit';
+import { GRAD, Card, IconBox, KpiTile, StatusPill, GradientButton, SecondaryButton, SectionLabel, useToast, Toast } from '../applekit';
 import { usePortalData } from '@/src/lib/portalApi';
 import { request } from '@/src/models/services/api';
 
@@ -153,6 +153,7 @@ const edst = StyleSheet.create({
 });
 
 export function PaymentsView() {
+  const { toast, flash, hide } = useToast();
   const [exporting, setExporting] = useState(false);
   const [payoutLoading, setPayoutLoading] = useState(false);
   const [payoutDone, setPayoutDone] = useState(false);
@@ -178,8 +179,13 @@ export function PaymentsView() {
         a.download = 'payments_export.csv';
         a.click();
         URL.revokeObjectURL(url);
+        flash('Payments CSV exported');
+      } else {
+        flash('Export failed', 'error');
       }
-    } catch { /* silent */ } finally { setExporting(false); }
+    } catch (e: any) {
+      flash(e?.message || 'Export failed', 'error');
+    } finally { setExporting(false); }
   };
 
   const doPayout = async () => {
@@ -187,8 +193,11 @@ export function PaymentsView() {
     try {
       const r = await request<{ ok: boolean; message: string }>('/admin/super/payouts/initiate', { method: 'POST' });
       setPayoutDone(true);
+      flash(r?.message || 'Payout initiated');
       setTimeout(() => setPayoutDone(false), 3000);
-    } catch { /* silent */ } finally { setPayoutLoading(false); }
+    } catch (e: any) {
+      flash(e?.message || 'Payout failed', 'error');
+    } finally { setPayoutLoading(false); }
   };
 
   return (
@@ -324,6 +333,7 @@ export function PaymentsView() {
           </Card>
         </View>
       </View>
+      <Toast text={toast.text} visible={toast.visible} kind={toast.kind} onDismiss={hide} />
     </View>
   );
 }

@@ -3,12 +3,14 @@ import { View, Text, Pressable, StyleSheet, TextInput, Platform, Animated } from
 import { Megaphone, Pin, Send, CheckCircle } from 'lucide-react-native';
 import { CC, FONTS } from '../tokens';
 import { usePortalData } from '@/src/lib/portalApi';
+import { useToast } from '@/src/views/components';
 
 type Ann = { id: string; title: string; body: string; audience: string; tag: string; pinned: boolean; author: string; posted_at: string | null };
 const FALLBACK = { items: [] as Ann[] };
 const TAG_COLORS: Record<string, string> = { placement: '#22D3EE', event: '#34D399', career: '#FBBF24', general: '#A78BFA', hiring: '#EC4899' };
 
 export function AnnouncementsView() {
+  const toast = useToast();
   const { data, refresh } = usePortalData<typeof FALLBACK>('/college/announcements', FALLBACK);
   const ANN = data?.items || [];
   const [draft, setDraft] = useState('');
@@ -27,7 +29,10 @@ export function AnnouncementsView() {
   };
 
   const handlePublish = async () => {
-    if (!draft.trim() || !bodyText.trim()) return;
+    if (!draft.trim() || !bodyText.trim()) {
+      toast.error('Missing fields', 'Add both a title and message body.');
+      return;
+    }
     setSending(true);
     try {
       const { postPortal } = await import('@/src/lib/portalApi');
@@ -38,8 +43,9 @@ export function AnnouncementsView() {
       setBodyText('');
       refresh();
       showConfirmation();
-    } catch {
-      // silent — keep form intact so user can retry
+      toast.success('Announcement published', 'Sent to your college audience.');
+    } catch (e: any) {
+      toast.error('Publish failed', e?.message || 'Please try again.');
     } finally {
       setSending(false);
     }

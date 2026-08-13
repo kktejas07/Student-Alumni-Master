@@ -7,12 +7,14 @@ import { Clock, CheckCircle, Plus, X } from 'lucide-react-native';
 import { MC, FONTS } from '../tokens';
 import { useCurrentUser } from '@/src/lib/useCurrentUser';
 import { request } from '@/src/models/services/api';
+import { useToast } from '@/src/views/components';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 type Slot = { day: string; start_time: string; end_time: string };
 
 export function AvailabilityView() {
+  const toast = useToast();
   const { email } = useCurrentUser('mentor-active1@persona.demo');
   const [slots, setSlots] = useState<Slot[]>([
     { day: 'Monday', start_time: '09:00', end_time: '17:00' },
@@ -34,7 +36,14 @@ export function AvailabilityView() {
         method: 'POST',
         body: { mentor_email: email, slots },
       });
-      if (j.ok) setSavedAt(new Date().toLocaleTimeString());
+      if (j.ok) {
+        setSavedAt(new Date().toLocaleTimeString());
+        toast.success('Availability saved');
+      } else {
+        toast.error('Save failed', 'Could not update availability.');
+      }
+    } catch (e: any) {
+      toast.error('Save failed', e?.message || 'Please try again.');
     } finally { setSaving(false); }
   };
 

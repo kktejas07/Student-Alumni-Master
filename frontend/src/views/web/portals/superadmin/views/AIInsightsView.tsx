@@ -4,19 +4,27 @@ import { Sparkles, AlertTriangle, TrendingUp, Lightbulb, Zap } from 'lucide-reac
 import { SAC, FONTS } from '../tokens';
 import { Badge } from '../atoms';
 import { usePortalData, postPortal } from '@/src/lib/portalApi';
+import { useToast, Toast } from '../applekit';
 
 type Insight = { id: string; kind: 'risk' | 'opportunity' | 'insight'; icon: string; color: string; title: string; body: string };
 const ICON_MAP: Record<string, any> = { AlertTriangle, TrendingUp, Lightbulb, Zap };
 const FALLBACK = { items: [] as Insight[] };
 
 export function AIInsightsView() {
+  const { toast, flash, hide } = useToast();
   const { data } = usePortalData<typeof FALLBACK>('/admin/super/ai-insights', FALLBACK);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const items = (data?.items || []).filter((i) => !dismissed.has(i.id));
 
   const onDismiss = async (id: string) => {
     setDismissed((p) => new Set(p).add(id));
-    try { await postPortal(`/admin/super/ai-insights/${id}/dismiss`); } catch {}
+    try {
+      await postPortal(`/admin/super/ai-insights/${id}/dismiss`);
+      flash('Insight dismissed');
+    } catch (e: any) {
+      setDismissed((p) => { const n = new Set(p); n.delete(id); return n; });
+      flash(e?.message || 'Dismiss failed', 'error');
+    }
   };
   return (
     <View>
@@ -48,6 +56,7 @@ export function AIInsightsView() {
           );
         })}
       </View>
+      <Toast text={toast.text} visible={toast.visible} kind={toast.kind} onDismiss={hide} />
     </View>
   );
 }

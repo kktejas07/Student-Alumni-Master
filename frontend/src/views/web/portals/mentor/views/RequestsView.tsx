@@ -9,6 +9,7 @@ import { MC, FONTS } from '../tokens';
 import { Av, Badge, Countdown } from '../atoms';
 import { SESSION_REQUESTS } from '../data';
 import { api } from '@/src/models/services/api';
+import { useToast } from '@/src/views/components';
 
 export type Decision = 'pending' | 'accepted' | 'declined';
 
@@ -19,6 +20,7 @@ export interface RequestsViewProps {
 }
 
 export function RequestsView({ decisions, onSetDecision, demoMode = false }: RequestsViewProps) {
+  const toast = useToast();
   const [realBookings, setRealBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -42,18 +44,21 @@ export function RequestsView({ decisions, onSetDecision, demoMode = false }: Req
   const handleDecision = async (req: any, decision: 'accepted' | 'declined') => {
     if (req.isMock) {
       onSetDecision(req.id, decision);
-    } else {
-      try {
-        if (decision === 'accepted') {
-          await api.confirmBooking(req.id);
-          setRealBookings(prev => prev.map(b => b.id === req.id ? { ...b, status: 'confirmed' } : b));
-        } else {
-          await api.declineBooking(req.id);
-          setRealBookings(prev => prev.map(b => b.id === req.id ? { ...b, status: 'cancelled' } : b));
-        }
-      } catch (err) {
-        console.error(err);
+      toast.success(decision === 'accepted' ? 'Request accepted' : 'Request declined');
+      return;
+    }
+    try {
+      if (decision === 'accepted') {
+        await api.confirmBooking(req.id);
+        setRealBookings(prev => prev.map(b => b.id === req.id ? { ...b, status: 'confirmed' } : b));
+        toast.success('Request accepted', `${req.studentName || 'Student'} session confirmed.`);
+      } else {
+        await api.declineBooking(req.id);
+        setRealBookings(prev => prev.map(b => b.id === req.id ? { ...b, status: 'cancelled' } : b));
+        toast.success('Request declined');
       }
+    } catch (err: any) {
+      toast.error(decision === 'accepted' ? 'Accept failed' : 'Decline failed', err?.message || 'Please try again.');
     }
   };
 

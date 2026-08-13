@@ -21,6 +21,7 @@ import {
 import QRCode from 'react-native-qrcode-svg';
 import { request } from '@/src/models/services/api';
 import { Colors as C } from '@/src/theme';
+import { useToast } from '@/src/views/components';
 
 interface IDCard {
   sa_id: string;
@@ -44,6 +45,7 @@ interface IDCard {
 }
 
 export default function DigitalIDScreen() {
+  const toast = useToast();
   const router = useRouter();
   const [card, setCard] = useState<IDCard | null>(null);
   const [loading, setLoading] = useState(true);
@@ -76,7 +78,7 @@ export default function DigitalIDScreen() {
         catch { /* user cancelled */ }
       } else if ((navigator as any).clipboard) {
         await (navigator as any).clipboard.writeText(text);
-        if (typeof window !== 'undefined') window.alert('Card details copied to clipboard');
+        toast.success('Copied', 'Card details copied to clipboard');
       }
     } else {
       try { await Share.share({ message: text, title: 'My SA Digital ID' }); }

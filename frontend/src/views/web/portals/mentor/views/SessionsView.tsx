@@ -255,7 +255,7 @@ export function SessionsView({ demoMode = false, setDemoMode }: { demoMode?: boo
       const endParts = formRangeEnd.split(':').map(Number);
       
       if (isNaN(startParts[0]) || isNaN(endParts[0])) {
-        alert("Please enter valid start and end times (format HH:MM).");
+        toast.warning('Invalid times', 'Please enter valid start and end times (format HH:MM).');
         return;
       }
       
@@ -278,7 +278,7 @@ export function SessionsView({ demoMode = false, setDemoMode }: { demoMode?: boo
       }
       
       if (newSlots.length === 0) {
-        alert("End time must be after start time.");
+        toast.warning('Invalid range', 'End time must be after start time.');
         return;
       }
       
@@ -586,9 +586,9 @@ export function SessionsView({ demoMode = false, setDemoMode }: { demoMode?: boo
         await api.rescheduleBooking(reschedulingSession.id, slot_start_iso);
       }
       await loadData();
+      toast.success('Session rescheduled');
     } catch (e: any) {
-      console.error(e);
-      alert('Could not reschedule: ' + (e.message || 'Error occurred'));
+      toast.error('Reschedule failed', e?.message || 'Error occurred');
     } finally {
       setLoading(false);
     }

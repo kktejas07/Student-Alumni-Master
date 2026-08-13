@@ -601,6 +601,7 @@ export function NetworkView() {
 
       await loadRequests();
       await loadDiscover();
+      toast.success('Connection request sent', `Invite sent to ${connectPerson.name}.`);
     } catch (e: any) {
       toast.error('Could not connect', e.message || 'Please try again.');
       setConnectPerson(null);
@@ -812,7 +813,7 @@ export function NetworkView() {
                           </Pressable>
 
                           <View style={{ flexDirection: 'row', gap: 6 }}>
-                            <Pressable onPress={() => alert(`Starting session schedule with ${student.name}`)} style={[s.iconSquareBtn, { borderColor: '#EF444433', backgroundColor: 'rgba(239, 68, 68, 0.05)' }]}>
+                            <Pressable onPress={() => toast.info('Scheduling session', `Opening scheduler for ${student.name}`)} style={[s.iconSquareBtn, { borderColor: '#EF444433', backgroundColor: 'rgba(239, 68, 68, 0.05)' }]}>
                               <User size={13} color="#EF4444" />
                             </Pressable>
                             {student.linkedin && (
@@ -903,7 +904,7 @@ export function NetworkView() {
                           </Pressable>
 
                           <View style={{ flexDirection: 'row', gap: 6 }}>
-                            <Pressable onPress={() => alert(`Starting message chat with ${person.name}`)} style={[s.iconSquareBtn, { borderColor: '#EF444433', backgroundColor: 'rgba(239, 68, 68, 0.05)' }]}>
+                            <Pressable onPress={() => toast.info('Starting chat', `Opening messages with ${person.name}`)} style={[s.iconSquareBtn, { borderColor: '#EF444433', backgroundColor: 'rgba(239, 68, 68, 0.05)' }]}>
                               <User size={13} color="#EF4444" />
                             </Pressable>
                             <Pressable onPress={() => person.linkedin ? Linking.openURL(person.linkedin.startsWith('http') ? person.linkedin : `https://${person.linkedin}`) : toast.info('Link Unavailable', 'This user has not connected this social profile yet.')} style={[s.iconSquareBtn, { backgroundColor: '#0A66C2' }]}>
@@ -1179,7 +1180,7 @@ export function NetworkView() {
                           </Pressable>
 
                           <View style={{ flexDirection: 'row', gap: 6 }}>
-                            <Pressable onPress={() => alert(`Starting message chat with ${person.name}`)} style={[s.iconSquareBtn, { height: 32, width: 32, borderColor: '#EF444433', backgroundColor: 'rgba(239, 68, 68, 0.05)' }]}>
+                            <Pressable onPress={() => toast.info('Starting chat', `Opening messages with ${person.name}`)} style={[s.iconSquareBtn, { height: 32, width: 32, borderColor: '#EF444433', backgroundColor: 'rgba(239, 68, 68, 0.05)' }]}>
                               <User size={13} color="#EF4444" />
                             </Pressable>
                             <Pressable onPress={() => person.linkedin ? Linking.openURL(person.linkedin.startsWith('http') ? person.linkedin : `https://${person.linkedin}`) : toast.info('Link Unavailable', 'This user has not connected this social profile yet.')} style={[s.iconSquareBtn, { height: 32, width: 32, backgroundColor: '#0A66C2' }]}>

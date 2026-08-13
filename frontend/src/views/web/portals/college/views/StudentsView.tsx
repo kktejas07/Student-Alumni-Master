@@ -198,8 +198,13 @@ export function StudentsView() {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+        toast.success('Export ready', 'Students CSV downloaded.');
+      } else {
+        toast.error('Export failed', 'Could not download the CSV.');
       }
-    } catch { /* silent */ } finally { setExporting(false); }
+    } catch (e: any) {
+      toast.error('Export failed', e?.message || 'Please try again.');
+    } finally { setExporting(false); }
   };
 
   const doClear = async () => {

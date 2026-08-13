@@ -28,6 +28,7 @@ import {
   TopTabs, Toast, useToast,
 } from '../applekit';
 import { request, resolveImageUrl } from '@/src/models/services/api';
+import { useConfirm } from '@/src/views/components';
 import * as Linking from 'expo-linking';
 import { useSubTab } from '@/src/views/web/portals/portalUrl';
 
@@ -37,7 +38,7 @@ const TAB_IDS: TabId[] = ['registry', 'issue', 'bulk', 'files', 'external', 'ver
 
 export function CertificatesView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
   const [tab, setTab] = useSubTab<TabId>(TAB_IDS, 'registry', { sub, onSub });
-  const { toast, flash } = useToast();
+  const { toast, flash, hide } = useToast();
 
   const tabs = [
     { id: 'registry', label: 'Registry',  icon: FolderOpen },
@@ -77,7 +78,7 @@ export function CertificatesView({ sub, onSub }: { sub?: string; onSub?: (s: str
       {tab === 'external' && <ExternalTab onSaved={flash} />}
       {tab === 'verify'   && <VerifyTab onSaved={flash} />}
 
-      <Toast text={toast.text} visible={toast.visible} />
+      <Toast text={toast.text} visible={toast.visible} kind={toast.kind} onDismiss={hide} />
     </View>
   );
 }
@@ -86,6 +87,7 @@ export function CertificatesView({ sub, onSub }: { sub?: string; onSub?: (s: str
  *  REGISTRY TAB — browse every certificate stored in the system
  * ══════════════════════════════════════════════════════════════════ */
 function RegistryTab({ onSaved }: { onSaved: (s?: string) => void }) {
+  const { confirm } = useConfirm();
   const [q, setQ] = useState('');
   const [branch, setBranch] = useState('ALL');
   const [items, setItems] = useState<any[]>([]);
@@ -140,7 +142,13 @@ function RegistryTab({ onSaved }: { onSaved: (s?: string) => void }) {
   };
 
   const doDelete = async (code: string) => {
-    if (Platform.OS === 'web' && !window.confirm(`Delete certificate ${code}? This cannot be undone.`)) return;
+    const ok = await confirm({
+      title: 'Delete certificate',
+      message: `Delete certificate ${code}? This cannot be undone.`,
+      confirmText: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
     setDeleting(code);
     try {
       await request(`/certificates/${encodeURIComponent(code)}`, { method: 'DELETE', auth: true });

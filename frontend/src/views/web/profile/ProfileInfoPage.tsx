@@ -3,7 +3,7 @@
  * Sections: Profile Completion banner, Basic Info, Contact, Academic, Interests, Social, Skills.
  */
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform, Alert, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform, Modal } from 'react-native';
 import { Mail, Phone, MapPin, Building2, Link2, Link2 as GithubIcon, Globe, Sparkles, Check, X, Upload, Camera, TrendingUp, AlertCircle, Plus, Trash2, Folder, Image as ImageIcon } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { WebcamModal } from '@/src/views/components/WebcamModal';
@@ -136,7 +136,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
     try {
       const perm = await ImagePicker.requestCameraPermissionsAsync();
       if (!perm.granted) {
-        Alert.alert('Permission Denied', 'Camera permission is required to take a selfie.');
+        toast.error('Permission denied', 'Camera permission is required to take a selfie.');
         return;
       }
       const res = await ImagePicker.launchCameraAsync({
@@ -152,7 +152,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
       }
     } catch (e) {
       console.error(e);
-      Alert.alert('Error', 'Could not open camera.');
+      toast.error('Camera error', 'Could not open camera.');
     }
   };
 
@@ -170,7 +170,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
       }
     } catch (e) {
       console.error(e);
-      Alert.alert('Error', 'Could not pick image.');
+      toast.error('Image error', 'Could not pick image.');
     }
   };
 
@@ -201,7 +201,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
       }
     } catch (e) {
       console.error(e);
-      Alert.alert('Error', 'Could not pick image.');
+      toast.error('Image error', 'Could not pick image.');
     }
   };
 

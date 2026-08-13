@@ -71,7 +71,7 @@ type TabId = (typeof TAB_OPTIONS)[number]['id'];
  * Root
  * ────────────────────────────────────────────────────────────────── */
 export function PartnersView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
-  const { toast, flash } = useToast();
+  const { toast, flash, hide } = useToast();
   const [partners, setPartners] = useState<Partner[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [tab, setTab] = useSubTab<TabId>(['all', 'college', 'company', 'sponsor'], 'all', { sub, onSub });
@@ -275,7 +275,7 @@ export function PartnersView({ sub, onSub }: { sub?: string; onSub?: (s: string)
         />
       )}
 
-      <Toast text={toast.text} visible={toast.visible} />
+      <Toast text={toast.text} visible={toast.visible} kind={toast.kind} onDismiss={hide} />
     </View>
   );
 }

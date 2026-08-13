@@ -8,11 +8,13 @@ import { CC, FONTS } from '../tokens';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { request } from '@/src/models/services/api';
 import { useRouter } from 'expo-router';
+import { useToast } from '@/src/views/components';
 
 const MODES = ['Online', 'In-person', 'Hybrid'];
 const CATEGORIES = ['Workshop', 'Hackathon', 'Career Fair', 'Talk', 'Networking'];
 
 export function CreateEventView({ onNavigate }: { onNavigate?: (id: any) => void }) {
+  const toast = useToast();
   const user = useAuthStore((s) => s.user);
   const email = user?.email || 'college-high1@persona.demo';
   const initialCollegeName = user?.college_info?.institution_name || user?.school_info?.institution_name || 'IIT Bombay';
@@ -28,6 +30,10 @@ export function CreateEventView({ onNavigate }: { onNavigate?: (id: any) => void
   const [createdEvent, setCreatedEvent] = useState<any>(null);
 
   const create = async () => {
+    if (!title.trim()) {
+      toast.error('Title required', 'Please enter an event title.');
+      return;
+    }
     try {
       setCreating(true);
       const sd = startDate || new Date(Date.now() + 14 * 86400000).toISOString();
@@ -40,11 +46,12 @@ export function CreateEventView({ onNavigate }: { onNavigate?: (id: any) => void
       });
       // request() throws on HTTP errors — reaching here means the POST succeeded.
       setCreatedEvent({ ...j, title, category, mode });
+      toast.success('Event created', `"${title.trim()}" has been published.`);
       setTimeout(() => {
         onNavigate?.('events');
       }, 1500);
-    } catch {
-      // silent — keep form open so user can retry
+    } catch (e: any) {
+      toast.error('Create failed', e?.message || 'Please try again.');
     } finally { setCreating(false); }
   };
 

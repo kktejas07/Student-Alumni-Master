@@ -15,6 +15,7 @@ import { Colors as C, Spacing, Typography } from '@/src/theme';
 import { api } from '@/src/models/services/api';
 import type { ChatMsg } from '@/src/models/entities';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { useToast } from '@/src/views/components';
 
 const SUGGESTIONS = [
   'What courses should I take next?',
@@ -24,6 +25,7 @@ const SUGGESTIONS = [
 ];
 
 export default function ChatScreen() {
+  const toast = useToast();
   const { user } = useAuthStore();
   const firstName = user?.full_name?.split(' ')[0] || user?.name?.split(' ')[0] || 'User';
   
@@ -72,9 +74,9 @@ export default function ChatScreen() {
         setSessions(res.sessions);
         setShowSessions(true);
       } else {
-        alert("No history found.");
+        toast.info('No history', 'No previous chats found.');
       }
-    }).catch(() => alert("Failed to load sessions.")).finally(() => setLoading(false));
+    }).catch(() => toast.error('Could not load sessions')).finally(() => setLoading(false));
   };
 
   const loadSession = (sid: string) => {
@@ -85,9 +87,9 @@ export default function ChatScreen() {
         setMessages(res.messages.map((m: any) => ({ role: m.role, content: m.content })));
         setSessionId(sid);
       } else {
-        alert("No messages found.");
+        toast.info('Empty chat', 'No messages in this session.');
       }
-    }).catch(() => alert("Failed to load history.")).finally(() => setLoading(false));
+    }).catch(() => toast.error('Could not load history')).finally(() => setLoading(false));
   };
 
   const pickDocument = async () => {

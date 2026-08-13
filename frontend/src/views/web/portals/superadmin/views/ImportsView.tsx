@@ -65,7 +65,7 @@ type TabId = 'upload' | 'manual' | 'history' | 'browse';
 
 export function ImportsView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
   const [tab, setTab] = useSubTab<TabId>(['upload', 'manual', 'history', 'browse'], 'upload', { sub, onSub });
-  const { toast, flash } = useToast();
+  const { toast, flash, hide } = useToast();
   const [refreshKey, setRefreshKey] = useState(0);
   const [profileId, setProfileId] = useState<string | null>(null);
 
@@ -103,7 +103,7 @@ export function ImportsView({ sub, onSub }: { sub?: string; onSub?: (s: string) 
 
       <ProfilePanel userId={profileId} onClose={() => setProfileId(null)} onSaved={() => { flash('Profile updated'); setRefreshKey((k) => k + 1); }} />
 
-      <Toast text={toast.text} visible={toast.visible} />
+      <Toast text={toast.text} visible={toast.visible} kind={toast.kind} onDismiss={hide} />
     </View>
   );
 }

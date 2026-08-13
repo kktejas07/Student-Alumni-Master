@@ -96,7 +96,7 @@ function buildPreviewHtml(form: any, events: any[]): string {
 }
 
 export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
-  const { toast, flash } = useToast();
+  const { toast, flash, hide } = useToast();
   const [form, setForm] = useState({
     subject: '',
     hero_image: '',
@@ -582,7 +582,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
 
   return (
     <View style={{ gap: 14 }}>
-      <Toast text={toast.text} visible={toast.visible} kind={toast.kind} />
+      <Toast text={toast.text} visible={toast.visible} kind={toast.kind} onDismiss={hide} />
 
       <Card>
         <View style={st.headRow}>

@@ -7,8 +7,10 @@ import {
 } from 'lucide-react-native';
 import { SAC, FONTS } from '../tokens';
 import { request } from '@/src/models/services/api';
+import { useToast } from '@/src/views/components';
 
 export default function LexicalEditor({ value, onChange }: { value: string; onChange: (html: string) => void }) {
+  const toast = useToast();
   const contentRef = useRef(value);
   const editorRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -89,9 +91,7 @@ export default function LexicalEditor({ value, onChange }: { value: string; onCh
       }
     } catch (e: any) {
       console.warn('AI Assist failed:', e?.message);
-      if (Platform.OS === 'web') {
-        alert('AI Assist failed: ' + (e?.message || 'Please try again.'));
-      }
+      toast.error('AI Assist failed', e?.message || 'Please try again.');
     }
   };
 

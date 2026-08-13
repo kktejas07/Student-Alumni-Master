@@ -19,6 +19,7 @@ import { LiveStrip } from '@/src/views/web/LiveStrip';
 import { CouponBanner } from '@/src/views/web/components/CouponBanner';
 import { uploadImage, fileNameToLabel } from '@/src/lib/image';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { useConfirm } from '@/src/views/components';
 
 const KPI_ICONS: Record<string, any> = {
   Building2, GraduationCap, UserCheck, Users, CreditCard, Calendar, CheckCircle, BarChart3,
@@ -60,7 +61,8 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
   const maxEnroll = Math.max(...MONTHLY_ENROLLMENTS.map((m) => m.value));
 
   // ── Ad Manager state (multi-ad) ──────────────────────────────────────
-  const { flash: flashToast, toast } = useToast();
+  const { flash: flashToast, toast, hide } = useToast();
+  const { confirm } = useConfirm();
   const [ads, setAds] = useState<any[]>([]);
   const [showAdEditor, setShowAdEditor] = useState(false);
   const [editingAdIdx, setEditingAdIdx] = useState<number | null>(null);
@@ -133,11 +135,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
       flashToast(editingAdIdx !== null ? 'Advertisement updated' : 'Advertisement saved');
     } catch (e: any) {
       console.error('Failed to save ad', e);
-      if (Platform.OS === 'web') {
-        window.alert(e?.message || 'Failed to save advertisement');
-      } else {
-        flashToast('Failed to save advertisement');
-      }
+      flashToast(e?.message || 'Failed to save advertisement', 'error');
       setAds(prevAds);
     } finally {
       setAdSaving(false);
@@ -162,6 +160,13 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
   };
 
   const deleteAd = async (idx: number) => {
+    const ok = await confirm({
+      title: 'Delete advertisement',
+      message: 'Remove this advertisement from the board?',
+      confirmText: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
     const newItems = ads.filter((_, i) => i !== idx);
     const prevAds = [...ads];
     try {
@@ -170,9 +175,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
       flashToast('Advertisement deleted');
     } catch (e: any) {
       console.error('Failed to delete ad', e);
-      if (Platform.OS === 'web') {
-        window.alert(e?.message || 'Failed to delete advertisement');
-      }
+      flashToast(e?.message || 'Failed to delete advertisement', 'error');
       setAds(prevAds);
     }
   };
@@ -462,7 +465,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
         </View>
       </View>
 
-      <Toast text={toast.text} visible={toast.visible} />
+      <Toast text={toast.text} visible={toast.visible} kind={toast.kind} onDismiss={hide} />
     </View>
   );
 }

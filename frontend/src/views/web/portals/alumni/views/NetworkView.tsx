@@ -843,7 +843,7 @@ export function NetworkView() {
                           </Pressable>
 
                           <View style={{ flexDirection: 'row', gap: 6 }}>
-                            <Pressable onPress={() => alert(`Starting message chat with ${person.name}`)} style={[s.iconSquareBtn, { height: 32, width: 32, borderColor: '#EF444433', backgroundColor: 'rgba(239, 68, 68, 0.05)' }]}>
+                            <Pressable onPress={() => toast.info('Starting chat', `Opening messages with ${person.name}`)} style={[s.iconSquareBtn, { height: 32, width: 32, borderColor: '#EF444433', backgroundColor: 'rgba(239, 68, 68, 0.05)' }]}>
                               <User size={13} color="#EF4444" />
                             </Pressable>
                             <Pressable onPress={() => person.linkedin ? Linking.openURL(person.linkedin.startsWith('http') ? person.linkedin : `https://${person.linkedin}`) : toast.info('Link Unavailable', 'This user has not connected this social profile yet.')} style={[s.iconSquareBtn, { height: 32, width: 32, backgroundColor: '#0A66C2' }]}>

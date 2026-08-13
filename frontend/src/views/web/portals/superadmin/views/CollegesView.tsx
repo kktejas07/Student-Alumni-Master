@@ -57,7 +57,7 @@ export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string)
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
   const [backfilling, setBackfilling] = useState(false);
-  const { toast, flash } = useToast();
+  const { toast, flash, hide } = useToast();
 
   const backfill = async () => {
     setBackfilling(true);
@@ -216,7 +216,12 @@ export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string)
         </View>
       )}
 
-      <CollegeDetail college={open} onClose={() => setOpen(null)} onSaved={() => { flash('Updated'); setBump((b) => b + 1); }} />
+      <CollegeDetail
+        college={open}
+        onClose={() => setOpen(null)}
+        onSaved={() => { flash('Updated'); setBump((b) => b + 1); }}
+        onError={(msg: string) => flash(msg, 'error')}
+      />
 
       {/* New college modal */}
       <Modal visible={creating} transparent animationType="fade" onRequestClose={() => setCreating(false)}>
@@ -248,7 +253,7 @@ export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string)
         </View>
       </Modal>
 
-      <Toast text={toast.text} visible={toast.visible} />
+      <Toast text={toast.text} visible={toast.visible} kind={toast.kind} onDismiss={hide} />
     </View>
   );
 }
@@ -422,7 +427,7 @@ function CollegeCardSkeleton() {
 /* ════════════════════════════════════════════════════════════════════
  *  Detail modal
  * ══════════════════════════════════════════════════════════════════ */
-function CollegeDetail({ college, onClose, onSaved }: any) {
+function CollegeDetail({ college, onClose, onSaved, onError }: any) {
   const [edit, setEdit] = useState(false);
   const [draft, setDraft] = useState<any>({});
   const [confirmDel, setConfirmDel] = useState(false);
@@ -431,12 +436,20 @@ function CollegeDetail({ college, onClose, onSaved }: any) {
   const c = { ...college, ...draft };
 
   const save = async () => {
-    try { await request(`/admin/colleges/${college.id}`, { method: 'PATCH', body: draft });
+    try {
+      await request(`/admin/colleges/${college.id}`, { method: 'PATCH', body: draft });
       setEdit(false); setDraft({}); onSaved(); onClose();
-    } catch {}
+    } catch (e: any) {
+      onError?.(e?.message || 'Failed to save college');
+    }
   };
   const del = async () => {
-    try { await request(`/admin/colleges/${college.id}`, { method: 'DELETE' }); onClose(); onSaved(); } catch {}
+    try {
+      await request(`/admin/colleges/${college.id}`, { method: 'DELETE' });
+      onClose(); onSaved();
+    } catch (e: any) {
+      onError?.(e?.message || 'Failed to delete college');
+    }
   };
   const set = (k: string, v: any) => setDraft((d: any) => ({ ...d, [k]: v }));
 

@@ -30,7 +30,7 @@ import { useEffect } from 'react';
 import { PaperProvider, MD3LightTheme, configureFonts } from 'react-native-paper';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { Colors } from '@/src/theme';
-import { ToastProvider } from '@/src/views/components';
+import { ToastProvider, ConfirmProvider } from '@/src/views/components';
 import analytics from '@/src/lib/analytics';
 import { AgentKQuickLauncher } from '@/src/views/web/agent-k/AgentKQuickLauncher';
 import { ConsentBanner } from '@/src/views/web/consent/ConsentBanner';
@@ -151,6 +151,7 @@ export default function RootLayout() {
       <PaperProvider theme={SAPaperTheme}>
         <SafeAreaProvider>
           <ToastProvider>
+            <ConfirmProvider>
             <TourProvider>
               <StatusBar style="light" />
               <Stack
@@ -179,6 +180,7 @@ export default function RootLayout() {
               {/* Global announcement popup (web only, feature-flagged via backend) */}
               <AnnouncementPopup />
             </TourProvider>
+            </ConfirmProvider>
           </ToastProvider>
         </SafeAreaProvider>
       </PaperProvider>

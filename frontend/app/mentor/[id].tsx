@@ -18,7 +18,6 @@ import {
   Image,
   TouchableOpacity,
   Linking,
-  Alert,
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -26,6 +25,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, Star, MessageCircle, ExternalLink, Calendar, Clock } from 'lucide-react-native';
 import { Colors as C, Spacing, Typography, Shadows } from '@/src/theme';
 import { Card, Button, Input } from '@/src/views/components';
+import { useToast } from '@/src/views/components';
 import { api } from '@/src/models/services/api';
 
 // Generate next 7 days × 3 slots/day for booking preview (mock availability)
@@ -55,6 +55,7 @@ function generateSlots() {
 
 export default function MentorProfileScreen() {
   const router = useRouter();
+  const toast = useToast();
   // Mentor data is passed via URL params for mocked sample mentors
   const params = useLocalSearchParams<{
     id?: string;
@@ -112,11 +113,11 @@ export default function MentorProfileScreen() {
   /** Confirm the booking by POST /api/bookings. */
   const confirm = async () => {
     if (!selectedSlot) {
-      Alert.alert('Pick a slot', 'Please select an available time slot.');
+      toast.warning('Pick a slot', 'Please select an available time slot.');
       return;
     }
     if (!topic.trim()) {
-      Alert.alert('Topic required', 'What would you like to discuss?');
+      toast.warning('Topic required', 'What would you like to discuss?');
       return;
     }
     setSubmitting(true);
@@ -130,16 +131,10 @@ export default function MentorProfileScreen() {
         topic: topic.trim(),
       });
       setBooked(true);
-      if (Platform.OS === 'web') {
-        window.alert(`Your session with ${displayName} is confirmed.`);
-        router.back();
-      } else {
-        Alert.alert('Booked!', `Your session with ${displayName} is confirmed.`, [
-          { text: 'OK', onPress: () => router.back() },
-        ]);
-      }
+      toast.success('Booked', `Your session with ${displayName} is confirmed.`);
+      router.back();
     } catch (e: any) {
-      Alert.alert('Booking failed', e.message);
+      toast.error('Booking failed', e.message);
     } finally {
       setSubmitting(false);
     }

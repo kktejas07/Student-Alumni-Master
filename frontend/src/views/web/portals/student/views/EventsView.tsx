@@ -10,6 +10,7 @@ import { usePortalData, postPortal, fetchPortal } from '@/src/lib/portalApi';
 import { request } from '@/src/models/services/api';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SkeletonBlock } from '../motion';
+import { useToast } from '@/src/views/components';
 type Ev = { id: string; title: string; date: string; mode: string; city: string; cat: string; attending: number; capacity: number; kind: string; price?: number; accent: string; registered: boolean; description?: string; tags?: string[]; spotsLeft?: number; };
 const FALLBACK = { items: [] as Ev[] };
 
@@ -253,6 +254,7 @@ export function DropdownSelect({ label, value, options, onSelect }: DropdownSele
 }
 
 export function EventsView() {
+  const toast = useToast();
   const [eventsData, setEventsData] = useState<any>(null);
   const [eventsLoading, setEventsLoading] = useState(true);
   const [eventsPage, setEventsPage] = useState(1);
@@ -297,7 +299,13 @@ export function EventsView() {
 
   const onRSVP = async (id: string) => {
     setRsvpd((p) => new Set(p).add(id));
-    try { await postPortal(`/student/events/${id}/rsvp`); } catch {}
+    try {
+      await postPortal(`/student/events/${id}/rsvp`);
+      toast.success('RSVP confirmed', 'You’re registered for this event.');
+    } catch (e: any) {
+      setRsvpd((p) => { const n = new Set(p); n.delete(id); return n; });
+      toast.error('RSVP failed', e?.message || 'Please try again.');
+    }
   };
 
   const processedList = EVENTS.map(enrichEvent)

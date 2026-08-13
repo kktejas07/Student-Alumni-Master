@@ -9,6 +9,7 @@ import { GlassCard } from '../glass';
 import { EmptyState } from '../EmptyState';
 import { usePortalData, postPortal } from '@/src/lib/portalApi';
 import { useCurrentUser } from '@/src/lib/useCurrentUser';
+import { useToast } from '@/src/views/components';
 
 type WS = {
   id: string; title: string; fee_inr: number; weeks: number; status: string;
@@ -23,6 +24,7 @@ const POPULAR_WORKSHOPS = [
 ];
 
 export function MyWorkshopsView() {
+  const toast = useToast();
   const { email } = useCurrentUser('workshop1@persona.demo');
   const { data, refresh } = usePortalData<{ items: WS[]; count: number }>(
     `/student/my-workshops?email=${encodeURIComponent(email)}`,
@@ -39,8 +41,11 @@ export function MyWorkshopsView() {
         body: { student_email: email, registration_id: id, action },
       });
       refresh();
-    } catch (e) {
-      console.error(e);
+      toast.success(
+        action === 'complete' ? 'Workshop completed' : action === 'start' ? 'Workshop started' : 'Progress updated',
+      );
+    } catch (e: any) {
+      toast.error('Update failed', e?.message || 'Please try again.');
     } finally {
       setUpdatingId(null);
     }
@@ -53,8 +58,9 @@ export function MyWorkshopsView() {
         body: { student_email: email, workshop_title: title, fee_inr: fee, weeks: weeks },
       });
       refresh();
-    } catch (e) {
-      console.error(e);
+      toast.success('Enrolled', `You’re now enrolled in ${title}.`);
+    } catch (e: any) {
+      toast.error('Enrollment failed', e?.message || 'Please try again.');
     } finally {
       setEnrollingTitle(null);
     }

@@ -11,8 +11,10 @@ import { MC, FONTS } from '../tokens';
 import { Av, StarRow, Badge } from '../atoms';
 import { MENTOR } from '../data';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { useToast } from '@/src/views/components';
 
 export function ProfileView() {
+  const toast = useToast();
   const { width } = useWindowDimensions();
   const stack = width < 980;
 
@@ -44,7 +46,7 @@ export function ProfileView() {
                 <Text style={{ color: MC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>{rating} · {sessions} sessions</Text>
               </View>
             </View>
-            <Pressable onPress={() => alert('Edit profile (mock)')} style={s.editBtn}><Text style={{ color: MC.tealP, fontFamily: FONTS.bold, fontSize: 12 }}>Edit Profile</Text></Pressable>
+            <Pressable onPress={() => toast.info('Edit profile', 'Use Settings to update your profile.')} style={s.editBtn}><Text style={{ color: MC.tealP, fontFamily: FONTS.bold, fontSize: 12 }}>Edit Profile</Text></Pressable>
           </View>
 
           <View style={{ marginTop: 18, gap: 8 }}>

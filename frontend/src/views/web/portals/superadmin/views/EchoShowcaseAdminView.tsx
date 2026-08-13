@@ -36,6 +36,7 @@ import {
 } from '../applekit';
 import { SAC, FONTS } from '../tokens';
 import { api, resolveImageUrl } from '@/src/models/services/api';
+import { useConfirm } from '@/src/views/components';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useSubTab } from '@/src/views/web/portals/portalUrl';
 
@@ -1288,6 +1289,7 @@ function GalleryDropzone({ gallery, onChange }: { gallery: any[]; onChange: (g: 
 
 // ── Media Library Panel ───────────────────────────────────────────────────────
 function MediaLibraryPanel() {
+  const { confirm } = useConfirm();
   const [media, setMedia] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -1332,7 +1334,13 @@ function MediaLibraryPanel() {
   };
 
   const onDelete = async (filename: string) => {
-    if (Platform.OS === 'web' && !window.confirm(`Delete ${filename}? This cannot be undone.`)) return;
+    const ok = await confirm({
+      title: 'Delete file',
+      message: `Delete ${filename}? This cannot be undone.`,
+      confirmText: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
     setDeleting(filename);
     try {
       await api.deleteEchoMedia(filename);
@@ -1641,6 +1649,7 @@ const AUTOSAVE_KEY = 'echo_cms_autosave';
 
 // ── Showcase Editor Modal ─────────────────────────────────────────────────────
 function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPreview }: any) {
+  const { confirm } = useConfirm();
   const [tab, setTab] = useState<FormTab>('general');
   const [form, setForm] = useState<any>({ ...EMPTY });
   const [isDirty, setIsDirty] = useState(false);
@@ -1693,9 +1702,15 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
     }, 2000);
   };
 
-  const handleClose = () => {
-    if (isDirty && Platform.OS === 'web') {
-      if (!window.confirm('You have unsaved changes. Close anyway?')) return;
+  const handleClose = async () => {
+    if (isDirty) {
+      const ok = await confirm({
+        title: 'Unsaved changes',
+        message: 'You have unsaved changes. Close anyway?',
+        confirmText: 'Discard',
+        danger: true,
+      });
+      if (!ok) return;
     }
     if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
     onClose();
@@ -2431,6 +2446,7 @@ function SessionPassesOverview({ events, onRefresh }: { events: any[]; onRefresh
 
 
 function RegistrationsPanel() {
+  const { confirm } = useConfirm();
   const [rows, setRows] = useState<any[]>([]);
   const [revenue, setRevenue] = useState<any>({ events: [], totals: {} });
   const [loading, setLoading] = useState(true);
@@ -2465,7 +2481,13 @@ function RegistrationsPanel() {
   useEffect(() => { load(); }, [load]);
 
   const deleteReg = async (id: string) => {
-    if (!confirm('Delete this registration? This cannot be undone.')) return;
+    const ok = await confirm({
+      title: 'Delete registration',
+      message: 'Delete this registration? This cannot be undone.',
+      confirmText: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
     setDeleting(id);
     try {
       await api.adminEchoDeleteRegistration(id);
@@ -2492,7 +2514,13 @@ function RegistrationsPanel() {
   };
 
   const markFailed = async (r: any) => {
-    if (!confirm(`Mark this registration as failed? No ticket or pass will be issued, and the attendee will be emailed.`)) return;
+    const ok = await confirm({
+      title: 'Mark as failed',
+      message: 'Mark this registration as failed? No ticket or pass will be issued, and the attendee will be emailed.',
+      confirmText: 'Mark failed',
+      danger: true,
+    });
+    if (!ok) return;
     setActioning(r.id);
     try {
       await api.adminEchoMarkRegistrationFailed(r.id);
@@ -2887,6 +2915,7 @@ function RegistrationsPanel() {
 
 // ── Volunteers Panel ──────────────────────────────────────────────────────────
 function VolunteersPanel() {
+  const { confirm } = useConfirm();
   const [showcases, setShowcases] = useState<any[]>([]);
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -2963,7 +2992,13 @@ function VolunteersPanel() {
   };
 
   const removeVolunteer = async (v: any) => {
-    if (!confirm(`Remove ${v.email} as ${v.role} for ${v.event_title || v.slug}?`)) return;
+    const ok = await confirm({
+      title: 'Remove volunteer',
+      message: `Remove ${v.email} as ${v.role} for ${v.event_title || v.slug}?`,
+      confirmText: 'Remove',
+      danger: true,
+    });
+    if (!ok) return;
     setRemoving(v._id);
     try {
       const token = await authToken();
@@ -3179,7 +3214,8 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
   const [previewLoading, setPreviewLoading] = useState(false);
   const [page, setPage] = useState(1);
   const PER_PAGE = 20;
-  const { toast, flash } = useToast();
+  const { toast, flash, hide } = useToast();
+  const { confirm } = useConfirm();
   const user = useAuthStore((s) => s.user);
 
   const load = useCallback(async () => {
@@ -3275,7 +3311,13 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
     finally { setBusy(null); }
   };
   const onDelete = async (item: any) => {
-    if (Platform.OS === 'web' && !window.confirm(`Delete "${item.title}"? This cannot be undone.`)) return;
+    const ok = await confirm({
+      title: 'Delete showcase',
+      message: `Delete "${item.title}"? This cannot be undone.`,
+      confirmText: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
     try { await api.deleteEchoShowcase(item._id); flash('Deleted'); await load(); }
     catch { flash('Delete failed'); }
   };
@@ -3289,7 +3331,7 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
 
   return (
     <View>
-      <Toast text={toast.text} visible={toast.visible} />
+      <Toast text={toast.text} visible={toast.visible} kind={toast.kind} onDismiss={hide} />
 
       {/* Page header */}
       <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>

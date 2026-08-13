@@ -5,6 +5,7 @@ import { SC, FONTS } from '../tokens';
 import { Badge } from '../atoms';
 import { postPortal } from '@/src/lib/portalApi';
 import { request } from '@/src/models/services/api';
+import { useToast } from '@/src/views/components';
 
 type Ev = { id: string; title: string; date: string; mode: string; city: string; cat: string; attending: number; capacity: number; kind: string; price?: number; accent: string; registered: boolean };
 
@@ -12,6 +13,7 @@ const FILTERS = ['All', 'Free', 'Paid', 'Online', 'Onsite'];
 const PER_PAGE = 24;
 
 export function EventsView() {
+  const toast = useToast();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -34,7 +36,13 @@ export function EventsView() {
 
   const onRSVP = async (id: string) => {
     setRsvpd((p) => new Set(p).add(id));
-    try { await postPortal(`/student/events/${id}/rsvp`); } catch {}
+    try {
+      await postPortal(`/student/events/${id}/rsvp`);
+      toast.success('RSVP confirmed', 'You’re registered for this event.');
+    } catch (e: any) {
+      setRsvpd((p) => { const n = new Set(p); n.delete(id); return n; });
+      toast.error('RSVP failed', e?.message || 'Please try again.');
+    }
   };
 
   const EVENTS = data?.items || [];

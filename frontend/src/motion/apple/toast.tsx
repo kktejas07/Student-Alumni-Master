@@ -17,7 +17,7 @@
  * Per spec:
  *   - Enter: translateY(20px→0) + opacity 0→1 + scale 0.95→1, 300ms ease-spring
  *   - Stack: new toast pushes existing toasts up with spring-soft
- *   - Auto-dismiss progress: thin bar at bottom shrinks linearly over 4s
+ *   - Auto-dismiss progress: thin bar at bottom shrinks linearly over 5s
  *   - Swipe-to-dismiss on touch (translateX off-screen + fade)
  *   - Position: phone → top full-width, tablet+ → bottom-right max 400px
  */
@@ -49,7 +49,7 @@ const ToastCtx = createContext<Ctx | null>(null);
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<Toast[]>([]);
 
-  const push = useCallback((variant: Variant, title: string, body?: string, duration = 4000) => {
+  const push = useCallback((variant: Variant, title: string, body?: string, duration = 5000) => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     setItems((arr) => [...arr, { id, variant, title, body, duration }]);
   }, []);
@@ -86,27 +86,47 @@ export function useAppleToast(): Ctx {
 
 function ToastStack({ items, onDismiss }: { items: Toast[]; onDismiss: (id: string) => void }) {
   const bp = useBreakpoint();
-  const phone = bp.isPhone;
-  return (
+  // Web desktop/tablet: always bottom-right. Phone-width web: full-width bottom.
+  const compact = Platform.OS === 'web'
+    ? (typeof window !== 'undefined' ? window.innerWidth < 640 : bp.isPhone)
+    : bp.isPhone;
+
+  const node = (
     <View
       pointerEvents="box-none"
       style={[
-        StyleSheet.absoluteFill,
         {
           padding: SP.base,
-          alignItems: phone ? 'stretch' : 'flex-end',
-          justifyContent: phone ? 'flex-start' : 'flex-end',
-          ...(Platform.OS === 'web' ? ({ position: 'fixed' as any, zIndex: 9999 } as any) : {}),
+          alignItems: compact ? 'stretch' : 'flex-end',
+          justifyContent: 'flex-end',
+          ...(Platform.OS === 'web'
+            ? ({
+                position: 'fixed',
+                top: 'auto',
+                left: compact ? 16 : 'auto',
+                right: 24,
+                bottom: 24,
+                zIndex: 2147483000,
+                width: compact ? 'auto' : 400,
+                maxWidth: compact ? 'calc(100vw - 32px)' : 400,
+              } as any)
+            : StyleSheet.absoluteFillObject),
         },
       ]}
     >
-      <View style={{ gap: SP.sm, maxWidth: phone ? undefined : 400, width: phone ? '100%' : undefined }}>
+      <View style={{ gap: SP.sm, width: compact ? '100%' : '100%' }}>
         {items.map((t) => (
           <ToastItem key={t.id} toast={t} onDismiss={() => onDismiss(t.id)} />
         ))}
       </View>
     </View>
   );
+
+  if (Platform.OS === 'web' && typeof document !== 'undefined') {
+    const ReactDOM = require('react-dom');
+    return ReactDOM.createPortal(node, document.body);
+  }
+  return node;
 }
 
 function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }) {
@@ -119,8 +139,9 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }
   useEffect(() => {
     // Enter
     v.value = reduced ? 1 : withSpring(1, SPRING.soft);
-    // Auto-dismiss timer + progress bar
-    progress.value = withTiming(1, { duration: toast.duration, easing: REasing.linear });
+    // Auto-dismiss timer + shrinking progress bar (100% → 0%)
+    progress.value = 1;
+    progress.value = withTiming(0, { duration: toast.duration, easing: REasing.linear });
     const t = setTimeout(() => {
       v.value = reduced ? 0 : withTiming(0, { duration: DUR.base, easing: REasing.bezier(0.4, 0, 1, 1) });
       setTimeout(onDismiss, DUR.base);
@@ -136,7 +157,7 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }
       { scale: 0.95 + v.value * 0.05 },
     ],
   }));
-  const aProgress = useAnimatedStyle(() => ({ width: `${progress.value * 100}%` as any }));
+  const aProgress = useAnimatedStyle(() => ({ width: `${Math.max(0, progress.value) * 100}%` as any }));
 
   const palette: Record<Variant, { bg: string; tint: string; icon: any; iconBg: string }> = {
     success: { bg: theme.bgElevated, tint: theme.green,  icon: 'check-circle',          iconBg: theme.green  + '22' },

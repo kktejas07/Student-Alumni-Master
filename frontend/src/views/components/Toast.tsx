@@ -1,14 +1,16 @@
 /**
- * Toast — Glass + Gradient toast/snackbar system.
+ * Toast — Glass toast/snackbar system.
  *
  * Usage:
  *   const toast = useToast();
  *   toast.success('Account created');
  *   toast.error('Something went wrong');
  *   toast.info('Heads up');
+ *   toast.pending('Sending…');
  *
  * Mount <ToastProvider> once near the top of the app tree (root layout).
- * On web, toasts appear top-right; on native they slide from the top.
+ * Position: bottom-right on desktop/tablet; full-width bottom on compact phones.
+ * Auto-dismiss: 5s with a shrinking progress bar.
  */
 import {
   createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState,
@@ -16,10 +18,9 @@ import {
 import {
   View, Text, StyleSheet, Animated, Easing, Platform, Pressable, useWindowDimensions,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Check, X, AlertTriangle, Info } from 'lucide-react-native';
+import { Check, X, AlertTriangle, Info, Loader } from 'lucide-react-native';
 
-type Variant = 'success' | 'error' | 'info' | 'warning';
+type Variant = 'success' | 'error' | 'info' | 'warning' | 'pending';
 type Toast = { id: string; variant: Variant; title: string; message?: string };
 
 type ToastApi = {
@@ -28,9 +29,11 @@ type ToastApi = {
   error: (title: string, message?: string) => void;
   info: (title: string, message?: string) => void;
   warning: (title: string, message?: string) => void;
+  pending: (title: string, message?: string) => void;
 };
 
 const ToastCtx = createContext<ToastApi | null>(null);
+const TOAST_MS = 5000;
 
 export function useToast(): ToastApi {
   const ctx = useContext(ToastCtx);
@@ -42,6 +45,7 @@ export function useToast(): ToastApi {
       error: () => {},
       info: () => {},
       warning: () => {},
+      pending: () => {},
     };
   }
   return ctx;
@@ -59,9 +63,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   const show = useCallback((variant: Variant, title: string, message?: string) => {
     const id = nextId();
-    setToasts((cur) => [...cur, { id, variant, title, message }]);
-    // auto-dismiss after 3.6s
-    setTimeout(() => remove(id), 3600);
+    setToasts((cur) => [...cur.slice(-2), { id, variant, title, message }]);
+    setTimeout(() => remove(id), TOAST_MS);
   }, [remove]);
 
   const api: ToastApi = {
@@ -70,6 +73,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     error: (t, m) => show('error', t, m),
     info: (t, m) => show('info', t, m),
     warning: (t, m) => show('warning', t, m),
+    pending: (t, m) => show('pending', t, m),
   };
 
   return (
@@ -83,64 +87,70 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 function ToastViewport({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id: string) => void }) {
   const { width } = useWindowDimensions();
   const isWeb = Platform.OS === 'web';
-  // Compact phones get full-width centered top toasts; tablets/desktop get top-right stack.
-  const stackRight = isWeb && width >= 700;
+  const compact = isWeb ? width < 640 : width < 480;
 
-  return (
+  const node = (
     <View
       pointerEvents="box-none"
       style={[
         styles.viewport,
-        stackRight ? styles.viewportRight : styles.viewportTop,
+        compact ? styles.viewportCompact : styles.viewportRight,
+        isWeb && ({
+          position: 'fixed',
+          top: 'auto',
+          left: compact ? 16 : 'auto',
+          right: 24,
+          bottom: 24,
+          zIndex: 2147483000,
+          width: compact ? 'auto' : undefined,
+          maxWidth: compact ? 'calc(100vw - 32px)' : undefined,
+        } as any),
       ]}
     >
       {toasts.map((t) => (
-        <ToastItem key={t.id} toast={t} onDismiss={() => onDismiss(t.id)} stackRight={stackRight} />
+        <ToastItem key={t.id} toast={t} onDismiss={() => onDismiss(t.id)} compact={compact} />
       ))}
     </View>
   );
+
+  if (isWeb && typeof document !== 'undefined') {
+    const ReactDOM = require('react-dom');
+    return ReactDOM.createPortal(node, document.body);
+  }
+  return node;
 }
 
-function ToastItem({ toast, onDismiss, stackRight }: { toast: Toast; onDismiss: () => void; stackRight: boolean }) {
-  const slide = useRef(new Animated.Value(stackRight ? 60 : -40)).current;
+function ToastItem({ toast, onDismiss, compact }: { toast: Toast; onDismiss: () => void; compact: boolean }) {
+  const slide = useRef(new Animated.Value(compact ? 40 : 60)).current;
   const opacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(slide, { toValue: 0, duration: 320, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-      Animated.timing(opacity, { toValue: 1, duration: 280, useNativeDriver: true }),
+      Animated.timing(slide, { toValue: 0, duration: 280, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.timing(opacity, { toValue: 1, duration: 240, useNativeDriver: true }),
     ]).start();
   }, [slide, opacity]);
 
-  const palette = palettes[toast.variant];
+  const palette = palettes[toast.variant] || palettes.info;
   const Icon = palette.Icon;
 
   return (
     <Animated.View
       style={[
         styles.toastShell,
+        compact && styles.toastShellCompact,
         {
           opacity,
-          transform: stackRight ? [{ translateX: slide }] : [{ translateY: slide }],
+          transform: compact ? [{ translateY: slide }] : [{ translateX: slide }],
         },
       ]}
     >
-      {/* Gradient backdrop */}
-      <LinearGradient
-        colors={palette.gradient as any}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
-      {/* Glass overlay */}
-      <View style={styles.glassOverlay} />
-      {/* Left accent bar */}
+      <View style={[styles.surface, { backgroundColor: palette.bg, borderColor: palette.border }]} />
       <View style={[styles.accentBar, { backgroundColor: palette.accent }]} />
 
-      {/* Content */}
       <View style={styles.content}>
         <View style={[styles.iconWrap, { backgroundColor: palette.iconBg }]}>
-          <Icon size={18} color={palette.iconColor} />
+          <Icon size={16} color={palette.iconColor} />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.title} numberOfLines={2}>{toast.title}</Text>
@@ -149,13 +159,13 @@ function ToastItem({ toast, onDismiss, stackRight }: { toast: Toast; onDismiss: 
         <Pressable
           onPress={onDismiss}
           hitSlop={8}
+          accessibilityLabel="Dismiss notification"
           style={({ hovered }: any) => [styles.closeBtn, hovered && { opacity: 1 }]}
         >
-          <X size={16} color="rgba(255,255,255,0.8)" />
+          <X size={15} color="rgba(255,255,255,0.8)" />
         </Pressable>
       </View>
 
-      {/* Bottom progress strip */}
       <View style={styles.progressTrack}>
         <ProgressFill color={palette.accent} />
       </View>
@@ -164,107 +174,124 @@ function ToastItem({ toast, onDismiss, stackRight }: { toast: Toast; onDismiss: 
 }
 
 function ProgressFill({ color }: { color: string }) {
-  const w = useRef(new Animated.Value(0)).current;
+  const w = useRef(new Animated.Value(1)).current;
   useEffect(() => {
-    Animated.timing(w, { toValue: 1, duration: 3500, easing: Easing.linear, useNativeDriver: false }).start();
+    Animated.timing(w, {
+      toValue: 0,
+      duration: TOAST_MS,
+      easing: Easing.linear,
+      useNativeDriver: false,
+    }).start();
   }, [w]);
-  const widthInterpolated = w.interpolate({ inputRange: [0, 1], outputRange: ['100%', '0%'] }) as any;
+  const widthInterpolated = w.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }) as any;
   return <Animated.View style={[styles.progressFill, { backgroundColor: color, width: widthInterpolated }]} />;
 }
 
-// ─── palettes ────────────────────────────────────────────────────────────────
 const palettes: Record<Variant, {
   Icon: any;
-  gradient: string[];
   accent: string;
   iconBg: string;
   iconColor: string;
+  border: string;
+  bg: string;
 }> = {
   success: {
     Icon: Check,
-    gradient: ['rgba(16,185,129,0.45)', 'rgba(5,150,105,0.25)', 'rgba(20,12,40,0.85)'],
     accent: '#10B981',
-    iconBg: 'rgba(16,185,129,0.25)',
+    iconBg: 'rgba(16,185,129,0.22)',
     iconColor: '#86EFAC',
+    border: 'rgba(16,185,129,0.35)',
+    bg: 'rgba(12, 18, 28, 0.94)',
   },
   error: {
     Icon: AlertTriangle,
-    gradient: ['rgba(220,38,38,0.45)', 'rgba(190,18,60,0.28)', 'rgba(20,12,40,0.85)'],
     accent: '#EF4444',
-    iconBg: 'rgba(239,68,68,0.25)',
+    iconBg: 'rgba(239,68,68,0.22)',
     iconColor: '#FCA5A5',
+    border: 'rgba(239,68,68,0.4)',
+    bg: 'rgba(18, 10, 14, 0.94)',
   },
   warning: {
     Icon: AlertTriangle,
-    gradient: ['rgba(245,158,11,0.4)', 'rgba(217,119,6,0.25)', 'rgba(20,12,40,0.85)'],
     accent: '#F59E0B',
-    iconBg: 'rgba(245,158,11,0.25)',
+    iconBg: 'rgba(245,158,11,0.22)',
     iconColor: '#FCD34D',
+    border: 'rgba(245,158,11,0.4)',
+    bg: 'rgba(18, 14, 8, 0.94)',
   },
   info: {
     Icon: Info,
-    gradient: ['rgba(124,58,237,0.45)', 'rgba(91,33,182,0.28)', 'rgba(20,12,40,0.85)'],
     accent: '#A78BFA',
-    iconBg: 'rgba(124,58,237,0.25)',
+    iconBg: 'rgba(124,58,237,0.22)',
     iconColor: '#C4B5FD',
+    border: 'rgba(167,139,250,0.4)',
+    bg: 'rgba(14, 10, 24, 0.94)',
+  },
+  pending: {
+    Icon: Loader,
+    accent: '#FB923C',
+    iconBg: 'rgba(251,146,60,0.22)',
+    iconColor: '#FDBA74',
+    border: 'rgba(251,146,60,0.4)',
+    bg: 'rgba(18, 12, 8, 0.94)',
   },
 };
 
 const styles = StyleSheet.create({
   viewport: {
-    position: 'absolute',
-    zIndex: 9999,
+    zIndex: 2147483000,
     gap: 10,
     pointerEvents: 'box-none',
   },
-  viewportTop: {
-    top: 16,
-    left: 16,
-    right: 16,
-    alignItems: 'center',
+  viewportCompact: {
+    alignItems: 'stretch',
   },
   viewportRight: {
-    top: 24,
-    right: 24,
     alignItems: 'flex-end',
   },
   toastShell: {
     width: 380,
     maxWidth: '100%',
-    borderRadius: 16,
+    borderRadius: 14,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
-    boxShadow: '0px 12px 24px rgba(0,0,0,0.45)',
-    ...({ backdropFilter: 'blur(18px)' } as any),
+    borderColor: 'rgba(255,255,255,0.12)',
+    ...(Platform.OS === 'web'
+      ? ({
+          boxShadow: '0 12px 32px rgba(0,0,0,0.45)',
+          backdropFilter: 'blur(18px)',
+        } as any)
+      : {}),
   },
-  glassOverlay: {
+  toastShellCompact: {
+    width: '100%' as any,
+  },
+  surface: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(20,12,40,0.45)',
   },
   accentBar: {
     position: 'absolute',
     left: 0, top: 0, bottom: 0,
-    width: 4,
+    width: 3,
   },
   content: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    paddingLeft: 22,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    paddingLeft: 18,
   },
   iconWrap: {
-    width: 36, height: 36,
-    borderRadius: 10,
+    width: 32, height: 32,
+    borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
   },
   title: {
     color: '#FFFFFF',
     fontFamily: 'DMSans_700Bold',
-    fontSize: 14,
+    fontSize: 13.5,
     letterSpacing: -0.2,
   },
   message: {
@@ -280,12 +307,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.06)',
-    opacity: 0.7,
-    ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
+    opacity: 0.75,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}),
   },
   progressTrack: {
-    height: 2,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    height: 3,
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
   progressFill: {
     height: '100%',

@@ -32,6 +32,7 @@ import { PORTAL_ACCENTS } from '@/src/theme/nexus';
 import { request } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { AiCopilotFab as StudentAiCopilotFab } from '@/src/views/web/portals/student/glass';
+import { useToast } from '@/src/views/components';
 
 const FONT = Platform.select({
   ios: 'System', android: 'sans-serif',
@@ -242,6 +243,7 @@ function EmptyConnectAI({ gradient, textColor, subColor, borderColor }: {
   gradient: [string, string]; textColor: string; subColor: string; borderColor: string;
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [mode, setMode] = useState<'your' | 'featherless'>('your');
   const [apiKey, setApiKey] = useState('');
   const [loading, setLoading] = useState(false);
@@ -278,7 +280,7 @@ function EmptyConnectAI({ gradient, textColor, subColor, borderColor }: {
       });
       router.push('/chat');
     } catch (e: any) {
-      alert(e.message || 'Failed to save API key');
+      toast.error('Could not save key', e.message || 'Failed to save API key');
     } finally {
       setLoading(false);
     }

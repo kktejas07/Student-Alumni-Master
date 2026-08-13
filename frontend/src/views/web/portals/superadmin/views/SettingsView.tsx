@@ -44,7 +44,7 @@ import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated'
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Linking from 'expo-linking';
 import { SAC, FONTS } from '../tokens';
-import { Card } from '../applekit';
+import { Card, Toast } from '../applekit';
 import { request } from '@/src/models/services/api';
 import LexicalEditor from './LexicalEditor';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
@@ -217,19 +217,6 @@ const DEFAULT_SYSTEM_OPTIONS: Record<string, { value: string; label: string }[]>
 };
 
 /* ─────────────────────────────────────────────────────────────────
- * Toast (Auto-save confirmation)
- * ───────────────────────────────────────────────────────────────── */
-function Toast({ text, visible }: { text: string; visible: boolean }) {
-  if (!visible) return null;
-  return (
-    <Animated.View entering={FadeIn.duration(180)} style={s.toast} pointerEvents="none">
-      <Check size={12} color={SAC.green} />
-      <Text style={s.toastText}>{text}</Text>
-    </Animated.View>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────────────
  * Main view
  * ───────────────────────────────────────────────────────────────── */
 export function SettingsView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
@@ -238,10 +225,21 @@ export function SettingsView({ sub, onSub }: { sub?: string; onSub?: (s: string)
     'profile',
     { sub, onSub },
   );
-  const [toast, setToast] = useState({ visible: false, text: 'Saved' });
-  const flashToast = (text = 'Saved') => {
-    setToast({ visible: true, text });
-    setTimeout(() => setToast((t) => ({ ...t, visible: false })), 1500);
+  const [toast, setToast] = useState({ visible: false, text: 'Saved', kind: 'success' as 'success' | 'error' | 'warning' | 'info' | 'pending' });
+  const toastTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hideToast = () => setToast((t) => ({ ...t, visible: false }));
+  const flashToast = (text = 'Saved', kind?: 'success' | 'error' | 'warning' | 'info' | 'pending') => {
+    const t = (text || '').toLowerCase();
+    const resolved = kind || (
+      /(fail|error|invalid|required|denied|unable)/.test(t) ? 'error'
+        : /(warn|caution)/.test(t) ? 'warning'
+          : /(pending|loading|sending|processing)/.test(t) ? 'pending'
+            : /(info|note|editing)/.test(t) ? 'info'
+              : 'success'
+    );
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast({ visible: true, text, kind: resolved });
+    toastTimer.current = setTimeout(hideToast, 5000);
   };
 
   return (
@@ -259,7 +257,7 @@ export function SettingsView({ sub, onSub }: { sub?: string; onSub?: (s: string)
         {tab === 'templates'     && <TemplatesTab onSaved={flashToast} />}
         {tab === 'branding'      && <BrandingTab onSaved={flashToast} />}
       </View>
-      <Toast text={toast.text} visible={toast.visible} kind={toast.kind} onDismiss={hide} />
+      <Toast text={toast.text} visible={toast.visible} kind={toast.kind} onDismiss={hideToast} />
     </View>
   );
 }
@@ -1659,7 +1657,8 @@ function NotificationsTab({ onSaved }: { onSaved: (s?: string) => void }) {
   const toggle = async (key: string, channel: string, value: boolean) => {
     if (!prefs) return;
     setPrefs(prefs.map((p) => p.key === key ? { ...p, [channel]: value } : p));
-    try { await request('/admin/notifications/preferences', { method: 'PATCH', body: { key, channel, value } }); onSaved('Saved'); } catch {}
+    try { await request('/admin/notifications/preferences', { method: 'PATCH', body: { key, channel, value } }); onSaved('Saved'); }
+    catch (e: any) { onSaved(e?.message || 'Failed to save preference'); }
   };
 
   if (!prefs) return <Loading />;
@@ -1826,7 +1825,8 @@ function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
 
   const revoke = async (id: string) => {
     setSessions(sessions.filter((sx) => sx.id !== id));
-    try { await request(`/admin/security/sessions/${id}`, { method: 'DELETE' }); onSaved('Session revoked'); } catch {}
+    try { await request(`/admin/security/sessions/${id}`, { method: 'DELETE' }); onSaved('Session revoked'); }
+    catch (e: any) { onSaved(e?.message || 'Failed to revoke session'); }
   };
 
   return (
@@ -3420,20 +3420,6 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ fontFamily: '"JetBrains Mono", "SF Mono", monospace' } as any) : {}),
   },
   errorText: { color: SAC.red, fontFamily: FONTS.bold, fontSize: 12 },
-
-  // Toast
-  toast: {
-    ...(Platform.OS === 'web'
-      ? { position: 'fixed' as any, bottom: 24, right: 24 }
-      : { position: 'absolute' as any, bottom: 24 }),
-    left: 'auto' as any,
-    alignSelf: 'flex-end',
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12,
-    backgroundColor: 'rgba(16,185,129,0.92)', borderWidth: 1, borderColor: 'rgba(16,185,129,1)',
-    maxWidth: 340, zIndex: 9999, elevation: 9999,
-  },
-  toastText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
 
   // Signature editor
   sigPreview: {

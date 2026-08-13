@@ -10,28 +10,23 @@ import {
   Pressable,
   Platform,
   TextInput,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, MessageCircle, Mail, MapPin, Phone, Send } from 'lucide-react-native';
 import { Colors as C, Typography, Spacing, Radius } from '@/src/theme';
-import { Button, GradientBackground } from '@/src/views/components';
+import { Button, GradientBackground, useToast } from '@/src/views/components';
 
 export default function ContactPage() {
   const router = useRouter();
+  const toast = useToast();
   const [form, setForm] = useState({ name: '', email: '', message: '' });
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
 
   const submit = async () => {
     if (!form.name || !form.email || !form.message) {
-      if (Platform.OS === 'web') {
-        // eslint-disable-next-line no-undef
-        (globalThis as any).alert?.('Please fill all fields');
-      } else {
-        Alert.alert('Missing info', 'Please fill all fields');
-      }
+      toast.warning('Missing info', 'Please fill all fields');
       return;
     }
     setSending(true);

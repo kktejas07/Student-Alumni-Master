@@ -45,6 +45,9 @@ export function MyBookingsView() {
       setCancellingId(id);
       await request(`/student/bookings/${id}`, { method: 'DELETE' });
       refresh();
+      toast.success('Booking cancelled');
+    } catch (e: any) {
+      toast.error('Cancel failed', e?.message || 'Please try again.');
     } finally { setCancellingId(null); }
   };
 

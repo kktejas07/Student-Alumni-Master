@@ -12,7 +12,7 @@
  *   • "Review & approve" → patches start_date to "now+1 day" + reloads
  */
 import React, { useMemo, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, Platform, useWindowDimensions, Modal, TextInput, ScrollView, Alert } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Platform, useWindowDimensions, Modal, TextInput, ScrollView } from 'react-native';
 import { Calendar as CalIcon, MapPin, Users as UsersIcon, ShieldCheck, AlertTriangle, IndianRupee, Sparkles, Plus, X, Trash2 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SAC, FONTS } from '../tokens';
@@ -20,6 +20,7 @@ import { GRAD, Card, IconBox, KpiTile, StatusPill, GradientButton, SecondaryButt
 import { usePortalData } from '@/src/lib/portalApi';
 import { request } from '@/src/models/services/api';
 import { useSubTab } from '@/src/views/web/portals/portalUrl';
+import { useConfirm } from '@/src/views/components';
 
 type Ev = { id: string; title: string; date: string; mode: string; city: string; cat: string; attending: number; capacity: number; status: string; kind: string; price?: number; accent: string };
 const FALLBACK = { items: [] as Ev[] };
@@ -54,6 +55,7 @@ function EventModal({
   onSaved: () => void;
   onDeleted: () => void;
 }) {
+  const { confirm } = useConfirm();
   const isEdit = !!editing;
   const [form, setForm] = useState<Editable>(EMPTY);
   const [saving, setSaving] = useState(false);
@@ -113,10 +115,13 @@ function EventModal({
 
   const remove = async () => {
     if (!editing?.id) return;
-    if (Platform.OS === 'web') {
-      // eslint-disable-next-line no-alert
-      if (!window.confirm('Delete this event? This cannot be undone.')) return;
-    }
+    const ok = await confirm({
+      title: 'Delete event',
+      message: 'Delete this event? This cannot be undone.',
+      confirmText: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
     setSaving(true); setErr('');
     try {
       await request(`/admin/super/events/${editing.id}`, { method: 'DELETE' });
@@ -266,7 +271,7 @@ export function EventsView({ sub, onSub }: { sub?: string; onSub?: (s: string) =
   const [q, setQ] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Ev | null>(null);
-  const { toast, flash } = useToast();
+  const { toast, flash, hide } = useToast();
 
   const list = useMemo(() => {
     return EVENTS.filter((e) => {
@@ -399,7 +404,7 @@ export function EventsView({ sub, onSub }: { sub?: string; onSub?: (s: string) =
         onSaved={() => { refresh?.(); flash(editing ? 'Event updated' : 'Event created'); }}
         onDeleted={() => { refresh?.(); flash('Event deleted'); }}
       />
-      <Toast text={toast.text} visible={toast.visible} />
+      <Toast text={toast.text} visible={toast.visible} kind={toast.kind} onDismiss={hide} />
     </View>
   );
 }

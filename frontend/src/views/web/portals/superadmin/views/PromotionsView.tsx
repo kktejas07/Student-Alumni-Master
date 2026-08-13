@@ -80,7 +80,7 @@ const AUDIENCE_OPTIONS: Array<{ id: Audience; label: string }> = [
  * Root
  * ────────────────────────────────────────────────────────────────── */
 export function PromotionsView() {
-  const { toast, flash } = useToast();
+  const { toast, flash, hide } = useToast();
   const [items, setItems] = useState<Promotion[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [q, setQ] = useState('');
@@ -214,7 +214,7 @@ export function PromotionsView() {
         />
       )}
 
-      <Toast text={toast.text} visible={toast.visible} />
+      <Toast text={toast.text} visible={toast.visible} kind={toast.kind} onDismiss={hide} />
     </View>
   );
 }

@@ -10,14 +10,13 @@
  *   import { GRAD, GradientButton, Card, IconBox, StatusPill, TopTabs,
  *            SearchField, useToast, Toast, SectionLabel } from '../applekit';
  */
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View, Text, Pressable, TextInput, StyleSheet, Platform, ScrollView,
-  ActivityIndicator,
+  ActivityIndicator, Animated as RNAnimated, Easing, useWindowDimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeIn } from 'react-native-reanimated';
-import { Check, Search, AlertTriangle } from 'lucide-react-native';
+import { Check, Search, AlertTriangle, Info, Loader, X } from 'lucide-react-native';
 import { SAC, FONTS } from './tokens';
 
 /* ─────────────────────────────────────────────────────────────────
@@ -231,25 +230,189 @@ export function SearchField({ value, onChange, placeholder = 'Search…', width 
 
 /* ─────────────────────────────────────────────────────────────────
  * Toast hook + component
+ * Bottom-right, 5s auto-dismiss, progress bar, status colors.
  * ───────────────────────────────────────────────────────────────── */
-export function useToast() {
-  const [toast, setToast] = useState({ visible: false, text: 'Saved', kind: 'success' as 'success' | 'error' });
-  const flash = useCallback((text = 'Saved', kind: 'success' | 'error' = 'success') => {
-    setToast({ visible: true, text, kind });
-    setTimeout(() => setToast((t) => ({ ...t, visible: false })), 3000);
-  }, []);
-  return { toast, flash };
+export type ToastKind = 'success' | 'error' | 'warning' | 'info' | 'pending';
+
+const TOAST_MS = 5000;
+
+function inferToastKind(text: string, kind?: ToastKind): ToastKind {
+  if (kind) return kind;
+  const t = (text || '').toLowerCase();
+  if (/(fail|error|invalid|required|denied|unable|rejected|not found|forbidden|crash)/.test(t)) return 'error';
+  if (/(warn|caution|make sure|almost|partial)/.test(t)) return 'warning';
+  if (/(pending|loading|sending|processing|wait|queued|running)/.test(t)) return 'pending';
+  if (/(info|note|heads up|editing|tip|reminder)/.test(t)) return 'info';
+  return 'success';
 }
 
-export function Toast({ text, visible, kind = 'success' }: { text: string; visible: boolean; kind?: 'success' | 'error' }) {
+const TOAST_PALETTE: Record<ToastKind, {
+  Icon: any;
+  accent: string;
+  iconColor: string;
+  iconBg: string;
+  border: string;
+  bg: string;
+}> = {
+  success: {
+    Icon: Check,
+    accent: '#10B981',
+    iconColor: '#6EE7B7',
+    iconBg: 'rgba(16,185,129,0.18)',
+    border: 'rgba(16,185,129,0.35)',
+    bg: 'rgba(12, 18, 28, 0.94)',
+  },
+  error: {
+    Icon: AlertTriangle,
+    accent: '#EF4444',
+    iconColor: '#FCA5A5',
+    iconBg: 'rgba(239,68,68,0.18)',
+    border: 'rgba(239,68,68,0.4)',
+    bg: 'rgba(18, 10, 14, 0.94)',
+  },
+  warning: {
+    Icon: AlertTriangle,
+    accent: '#F59E0B',
+    iconColor: '#FCD34D',
+    iconBg: 'rgba(245,158,11,0.18)',
+    border: 'rgba(245,158,11,0.4)',
+    bg: 'rgba(18, 14, 8, 0.94)',
+  },
+  info: {
+    Icon: Info,
+    accent: '#818CF8',
+    iconColor: '#C7D2FE',
+    iconBg: 'rgba(99,102,241,0.18)',
+    border: 'rgba(129,140,248,0.4)',
+    bg: 'rgba(12, 12, 24, 0.94)',
+  },
+  pending: {
+    Icon: Loader,
+    accent: '#FB923C',
+    iconColor: '#FDBA74',
+    iconBg: 'rgba(251,146,60,0.18)',
+    border: 'rgba(251,146,60,0.4)',
+    bg: 'rgba(18, 12, 8, 0.94)',
+  },
+};
+
+export function useToast() {
+  const [toast, setToast] = useState({
+    visible: false,
+    text: 'Saved',
+    kind: 'success' as ToastKind,
+  });
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const hide = useCallback(() => {
+    setToast((t) => ({ ...t, visible: false }));
+  }, []);
+
+  const flash = useCallback((text = 'Saved', kind?: ToastKind) => {
+    const resolved = inferToastKind(text, kind);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setToast({ visible: true, text, kind: resolved });
+    timerRef.current = setTimeout(hide, TOAST_MS);
+  }, [hide]);
+
+  useEffect(() => () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+  }, []);
+
+  return { toast, flash, hide };
+}
+
+export function Toast({
+  text,
+  visible,
+  kind = 'success',
+  onDismiss,
+}: {
+  text: string;
+  visible: boolean;
+  kind?: ToastKind;
+  onDismiss?: () => void;
+}) {
+  const { width } = useWindowDimensions();
+  const progress = useRef(new RNAnimated.Value(1)).current;
+  const narrow = Platform.OS === 'web' ? width < 640 : width < 480;
+  const palette = TOAST_PALETTE[kind] || TOAST_PALETTE.success;
+  const Icon = palette.Icon;
+
+  useEffect(() => {
+    if (!visible) return;
+    progress.setValue(1);
+    const anim = RNAnimated.timing(progress, {
+      toValue: 0,
+      duration: TOAST_MS,
+      easing: Easing.linear,
+      useNativeDriver: false,
+    });
+    anim.start();
+    return () => anim.stop();
+  }, [visible, text, kind, progress]);
+
   if (!visible) return null;
-  const isError = kind === 'error';
-  return (
-    <Animated.View entering={FadeIn.duration(180)} style={[k.toast, isError && k.toastError]} pointerEvents="none">
-      {isError ? <AlertTriangle size={15} color="#FCA5A5" /> : <Check size={15} color="#fff" />}
-      <Text style={[k.toastText, isError && { color: '#FCA5A5' }]}>{text}</Text>
-    </Animated.View>
+
+  const widthPct = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0%', '100%'],
+  });
+
+  const node = (
+    <View
+      pointerEvents="box-none"
+      // Critical for web: keep host free of transforms so position:fixed sticks to the viewport.
+      style={[
+        k.toastHost,
+        narrow && k.toastHostNarrow,
+        Platform.OS === 'web' && ({
+          position: 'fixed',
+          top: 'auto',
+          left: narrow ? 16 : 'auto',
+          right: 24,
+          bottom: 24,
+          zIndex: 2147483000,
+          width: narrow ? 'auto' : 380,
+          maxWidth: narrow ? 'calc(100vw - 32px)' : 380,
+        } as any),
+      ]}
+    >
+      <View
+        accessibilityRole="alert"
+        accessibilityLabel={`${kind}: ${text}`}
+        style={[k.toastCard, { backgroundColor: palette.bg, borderColor: palette.border }]}
+      >
+        <View style={[k.toastAccent, { backgroundColor: palette.accent }]} />
+        <View style={[k.toastIconWrap, { backgroundColor: palette.iconBg }]}>
+          <Icon size={15} color={palette.iconColor} />
+        </View>
+        <Text style={k.toastText} numberOfLines={3}>{text}</Text>
+        {!!onDismiss && (
+          <Pressable
+            onPress={onDismiss}
+            hitSlop={8}
+            accessibilityLabel="Dismiss notification"
+            style={k.toastClose}
+          >
+            <X size={14} color="rgba(255,255,255,0.7)" />
+          </Pressable>
+        )}
+        <View style={k.toastProgressTrack}>
+          <RNAnimated.View
+            style={[k.toastProgressFill, { backgroundColor: palette.accent, width: widthPct as any }]}
+          />
+        </View>
+      </View>
+    </View>
   );
+
+  // Portal to <body> on web so sidebar/scroll/transform ancestors cannot pin it mid-screen.
+  if (Platform.OS === 'web' && typeof document !== 'undefined') {
+    const ReactDOM = require('react-dom');
+    return ReactDOM.createPortal(node, document.body);
+  }
+  return node;
 }
 
 /* ─────────────────────────────────────────────────────────────────
@@ -360,23 +523,82 @@ const k = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
   },
 
-  toast: {
+  toastHost: {
     ...(Platform.OS === 'web'
-      ? { position: 'fixed' as any, bottom: 24, right: 24 }
-      : { position: 'absolute' as any, bottom: 24 }),
-    left: 'auto' as any,
-    alignSelf: 'flex-end',
-    alignItems: 'center', justifyContent: 'center',
-    flexDirection: 'row', gap: 8,
-    paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12,
-    backgroundColor: 'rgba(16,185,129,0.92)', borderWidth: 1, borderColor: 'rgba(16,185,129,1)',
-    maxWidth: 340, zIndex: 9999, elevation: 9999,
-    ...(Platform.OS === 'web' ? { boxShadow: '0 8px 24px rgba(0,0,0,0.4)' } as any : {}),
+      ? { position: 'fixed' as any, bottom: 24, right: 24, top: 'auto' as any, left: 'auto' as any }
+      : { position: 'absolute' as any, bottom: 24, right: 16 }),
+    zIndex: 99999,
+    elevation: 99999,
+    maxWidth: 380,
+    width: 360,
+    pointerEvents: 'box-none' as any,
   },
-  toastError: {
-    backgroundColor: 'rgba(239,68,68,0.92)', borderColor: 'rgba(239,68,68,1)',
+  toastHostNarrow: {
+    left: 12,
+    right: 12,
+    bottom: 16,
+    width: 'auto' as any,
+    maxWidth: '100%' as any,
   },
-  toastText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
+  toastCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    paddingLeft: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+    overflow: 'hidden',
+    ...(Platform.OS === 'web'
+      ? ({
+          boxShadow: '0 12px 32px rgba(0,0,0,0.45)',
+          backdropFilter: 'blur(18px)',
+          cursor: 'pointer',
+        } as any)
+      : {}),
+  },
+  toastAccent: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 3,
+  },
+  toastIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  toastText: {
+    flex: 1,
+    color: '#fff',
+    fontFamily: FONTS.semi,
+    fontSize: 13,
+    lineHeight: 18,
+    letterSpacing: -0.1,
+  },
+  toastClose: {
+    width: 26,
+    height: 26,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  toastProgressTrack: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 3,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  toastProgressFill: {
+    height: '100%',
+  },
 
   kpiCard: {
     flex: 1, minWidth: 180, paddingVertical: 16, paddingHorizontal: 18,

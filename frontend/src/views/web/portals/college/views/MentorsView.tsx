@@ -4,11 +4,13 @@ import { Check, X } from 'lucide-react-native';
 import { CC, FONTS } from '../tokens';
 import { Av, Badge } from '../atoms';
 import { usePortalData, postPortal } from '@/src/lib/portalApi';
+import { useToast } from '@/src/views/components';
 
 type Mentor = { id: string; name: string; initials: string; role: string; company: string; status: string; sessions: number; rating: number; color: string };
 const FALLBACK = { items: [] as Mentor[] };
 
 export function MentorsView() {
+  const toast = useToast();
   const { data } = usePortalData<typeof FALLBACK>('/college/mentors', FALLBACK);
   const [actioned, setActioned] = useState<Record<string, string>>({});
   const MENTORS = (data?.items || []).filter((m) => !actioned[m.id]);
@@ -16,8 +18,26 @@ export function MentorsView() {
   const [tab, setTab] = useState<'active'|'pending'>('active');
   const list = MENTORS.filter((m) => (tab === 'active' ? m.status === 'approved' : m.status === 'pending'));
 
-  const onApprove = async (id: string) => { setActioned((p) => ({ ...p, [id]: 'approved' })); try { await postPortal(`/admin/super/approvals/${id}/approve`); } catch {} };
-  const onReject = async (id: string) => { setActioned((p) => ({ ...p, [id]: 'rejected' })); try { await postPortal(`/admin/super/approvals/${id}/reject`); } catch {} };
+  const onApprove = async (id: string) => {
+    setActioned((p) => ({ ...p, [id]: 'approved' }));
+    try {
+      await postPortal(`/admin/super/approvals/${id}/approve`);
+      toast.success('Mentor approved', 'The mentor is now active.');
+    } catch (e: any) {
+      setActioned((p) => { const n = { ...p }; delete n[id]; return n; });
+      toast.error('Approve failed', e?.message || 'Please try again.');
+    }
+  };
+  const onReject = async (id: string) => {
+    setActioned((p) => ({ ...p, [id]: 'rejected' }));
+    try {
+      await postPortal(`/admin/super/approvals/${id}/reject`);
+      toast.success('Mentor rejected', 'The request has been declined.');
+    } catch (e: any) {
+      setActioned((p) => { const n = { ...p }; delete n[id]; return n; });
+      toast.error('Reject failed', e?.message || 'Please try again.');
+    }
+  };
 
   return (
     <View>

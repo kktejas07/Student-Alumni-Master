@@ -29,6 +29,7 @@ import { FadeInView, PressScale } from '../motion';
 import { GRAD } from '../portalkit';
 import { useRouter } from 'expo-router';
 import { EchoImg } from '@/src/views/web/components/EchoChrome';
+import { useToast } from '@/src/views/components';
 
 // ── Status badge colors ─────────────────────────────────────────────────────
 const STATUS_COLORS: Record<string, { bg: string; border: string; text: string; dot: string }> = {
@@ -444,6 +445,7 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
   const [lbOpen, setLbOpen] = useState(false);
   const [lbIndex, setLbIndex] = useState(0);
   const router = useRouter();
+  const toast = useToast();
 
   // Section visibility — defaults to showing everything when not configured.
   const sections = (data?.sections && typeof data.sections === 'object') ? data.sections : {};
@@ -557,7 +559,7 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
                 navigator.share({ title: data?.title, text, url }).catch(() => {});
               } else if (Platform.OS === 'web' && navigator.clipboard) {
                 navigator.clipboard.writeText(`${text}\n${url}`).then(() => {
-                  alert('Link copied to clipboard!');
+                  toast.success('Link copied');
                 }).catch(() => {});
               }
             }}
@@ -601,7 +603,7 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
                 navigator.share({ title: data?.title, text, url }).catch(() => {});
               } else if (Platform.OS === 'web' && navigator.clipboard) {
                 navigator.clipboard.writeText(`${text}\n${url}`).then(() => {
-                  alert('Link copied to clipboard!');
+                  toast.success('Link copied');
                 }).catch(() => {});
               }
             }}>

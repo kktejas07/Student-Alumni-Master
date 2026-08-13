@@ -65,7 +65,7 @@ export function UserDirectoryView({
   /* Bulk selection */
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
-  const { toast, flash } = useToast();
+  const { toast, flash, hide } = useToast();
 
   const goToPage = useCallback((p: number) => {
     setPage(p);
@@ -263,7 +263,7 @@ export function UserDirectoryView({
       )}
 
       <ProfilePanel userId={profileId} onClose={() => setProfileId(null)} onSaved={() => { flash('Updated'); setBump((b) => b + 1); }} />
-      <Toast text={toast.text} visible={toast.visible} />
+      <Toast text={toast.text} visible={toast.visible} kind={toast.kind} onDismiss={hide} />
 
       {/* Floating bulk action bar */}
       {selectMode && selectedIds.length > 0 && (

@@ -6,6 +6,7 @@
 // from a single design-system entry point.
 export { AnimatedCard, AnimatedTile, StaggerView, CountdownBadge } from './AnimatedCard';
 export { ToastProvider, useToast } from './Toast';
+export { ConfirmProvider, useConfirm } from './ConfirmDialog';
 export { OnboardingProgressBar } from './onboarding/OnboardingProgressBar';
 
 import React from 'react';

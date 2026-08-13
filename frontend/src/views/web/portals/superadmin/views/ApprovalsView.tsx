@@ -185,7 +185,7 @@ export function ApprovalsView() {
   const [selection, setSelection] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState('');
   const [reviewItem, setReviewItem] = useState<Approval | null>(null);
-  const { toast, flash } = useToast();
+  const { toast, flash, hide } = useToast();
 
   const items = data?.items || [];
   const counts = data?.counts || FALLBACK.counts;
@@ -222,12 +222,24 @@ export function ApprovalsView() {
   };
   const bulkApprove = async () => {
     const ids = Array.from(selection);
+    let ok = 0;
+    let fail = 0;
     for (const id of ids) {
       setActioned((p) => ({ ...p, [id]: 'approved' }));
-      try { await postPortal(`/admin/super/approvals/${id}/approve`); } catch {}
+      try {
+        await postPortal(`/admin/super/approvals/${id}/approve`);
+        ok += 1;
+      } catch {
+        fail += 1;
+        setActioned((p) => { const n = { ...p }; delete n[id]; return n; });
+      }
     }
     setSelection(new Set());
-    flash(`Approved ${ids.length} item${ids.length === 1 ? '' : 's'}`);
+    if (fail === 0) {
+      flash(`Approved ${ok} item${ok === 1 ? '' : 's'}`);
+    } else {
+      flash(`Approved ${ok}, failed ${fail}`, fail === ids.length ? 'error' : 'warning');
+    }
     refresh();
   };
 
@@ -329,7 +341,7 @@ export function ApprovalsView() {
         </View>
       )}
 
-      <Toast text={toast.text} visible={toast.visible} />
+      <Toast text={toast.text} visible={toast.visible} kind={toast.kind} onDismiss={hide} />
     </View>
   );
 }

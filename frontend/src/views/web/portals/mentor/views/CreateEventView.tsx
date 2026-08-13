@@ -9,6 +9,7 @@ import { MC, FONTS } from '../tokens';
 import { Badge } from '../atoms';
 import { MY_EVENTS as INITIAL_EVENTS, MentorEvent } from '../data';
 import { request } from '@/src/models/services/api';
+import { useToast, useConfirm } from '@/src/views/components';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -16,6 +17,8 @@ const MONTH_NAMES = [
 ];
 
 export function CreateEventView() {
+  const toast = useToast();
+  const { confirm } = useConfirm();
   const { width } = useWindowDimensions();
   const stack = width < 1024;
 
@@ -157,9 +160,9 @@ export function CreateEventView() {
   };
 
   const handlePublish = async () => {
-    if (!title.trim()) { alert('Please enter an event title'); return; }
-    if (!date) { alert('Please select a date'); return; }
-    if (!time) { alert('Please select a time'); return; }
+    if (!title.trim()) { toast.warning('Missing title', 'Please enter an event title'); return; }
+    if (!date) { toast.warning('Missing date', 'Please select a date'); return; }
+    if (!time) { toast.warning('Missing time', 'Please select a time'); return; }
 
     const numSeats = parseInt(seats) || 100;
     const ticketPrice = pricing === 'paid' ? (parseFloat(price) || 0) : undefined;
@@ -190,28 +193,34 @@ export function CreateEventView() {
       if (subView === 'edit' && editingEventId !== null) {
         // Edit mode
         await request(`/events/${editingEventId}`, { method: 'PATCH', body: JSON.stringify(payload) });
-        alert('Event updated successfully!');
+        toast.success('Event updated', 'Changes have been saved.');
       } else {
         // Create mode
         await request('/events', { method: 'POST', body: JSON.stringify(payload) });
-        alert('Event published successfully!');
+        toast.success('Event published', `"${title.trim()}" is live.`);
       }
       resetForm();
       setSubView('list');
       fetchEvents();
     } catch (e: any) {
-      alert(e.message || 'Failed to save event');
+      toast.error('Save failed', e?.message || 'Failed to save event');
     }
   };
 
   const handleDelete = async (id: number | string) => {
-    if (confirm('Are you sure you want to delete this event?')) {
-      try {
-        await request(`/events/${id}`, { method: 'DELETE' });
-        fetchEvents();
-      } catch (e: any) {
-        alert(e.message || 'Failed to delete event');
-      }
+    const ok = await confirm({
+      title: 'Delete event',
+      message: 'Are you sure you want to delete this event? This cannot be undone.',
+      confirmText: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      await request(`/events/${id}`, { method: 'DELETE' });
+      toast.success('Event deleted');
+      fetchEvents();
+    } catch (e: any) {
+      toast.error('Delete failed', e?.message || 'Failed to delete event');
     }
   };
 

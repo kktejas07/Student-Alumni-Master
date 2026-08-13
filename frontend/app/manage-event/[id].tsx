@@ -8,11 +8,12 @@ import { ArrowLeft, Users, Calendar, MapPin, Edit2, CheckCircle, Ticket, Activit
 import { AnimatedAurora, GridOverlay, GlassCard, GlassSoft } from '@/src/views/web/portals/student/glass';
 import { PALETTE, FONTS, SC } from '@/src/views/web/portals/student/tokens';
 import { request } from '@/src/models/services/api';
-import { useToast } from '@/src/views/components/Toast';
+import { useToast, useConfirm } from '@/src/views/components';
 
 export default function ManageEvent() {
   const router = useRouter();
   const toast = useToast();
+  const { confirm } = useConfirm();
   const params = useLocalSearchParams<any>();
   const [event, setEvent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -62,7 +63,13 @@ export default function ManageEvent() {
   };
 
   const deleteEvent = async () => {
-    if (!window.confirm('Are you sure you want to delete this event?')) return;
+    const ok = await confirm({
+      title: 'Delete event',
+      message: 'Are you sure you want to delete this event? This cannot be undone.',
+      confirmText: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await request(`/events/${params.id}`, { method: 'DELETE' });
       toast.success('Event Deleted', 'The event has been permanently removed.');

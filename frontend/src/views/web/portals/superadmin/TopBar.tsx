@@ -8,6 +8,7 @@ import { SAC, FONTS } from './tokens';
 import { ADMIN } from './data';
 import { Av } from './atoms';
 import { HelpMenu } from '@/src/views/web/help/HelpMenu';
+import { useToast } from '@/src/views/components';
 
 function today(): string {
   return new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -20,6 +21,7 @@ const NOTIFICATIONS = [
 ];
 
 export function TopBar({ title = 'Overview' }: { title?: string }) {
+  const toast = useToast();
   const [searchQuery, setSearchQuery] = React.useState('');
   const [notifOpen, setNotifOpen] = React.useState(false);
 
@@ -45,7 +47,7 @@ export function TopBar({ title = 'Overview' }: { title?: string }) {
           onChangeText={setSearchQuery}
           onSubmitEditing={() => {
             if (searchQuery.trim()) {
-              alert(`Search not yet wired to a global search endpoint. Query: "${searchQuery.trim()}"`);
+              toast.info('Search unavailable', `Global search is not wired yet for “${searchQuery.trim()}”.`);
             }
           }}
           placeholder="Search anything…"
