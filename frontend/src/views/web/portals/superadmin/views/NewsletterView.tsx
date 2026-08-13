@@ -18,7 +18,7 @@ import {
 } from 'react-native';
 import {
   Mail, Send, RefreshCw, Calendar, AlertTriangle, Check, Users, Megaphone,
-  Bell, Smartphone, Search, User, Upload, X, ImagePlus,
+  Bell, Smartphone, Search, User, Upload, X, ImagePlus, MessageSquare,
 } from 'lucide-react-native';
 import { SAC, FONTS } from '../tokens';
 import {
@@ -40,6 +40,7 @@ type Campaign = {
   push_ok?: number;
   push_fail?: number;
   in_app_ok?: number;
+  whatsapp_ok?: number;
   status?: string;
   created_at?: string;
   created_by?: string;
@@ -102,6 +103,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
     send_email: true,
     send_push: true,
     send_in_app: true,
+    send_whatsapp: false,
   });
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [events, setEvents] = useState<any[]>([]);
@@ -128,7 +130,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
   const [indUserQuery, setIndUserQuery] = useState('');
   const [indUserResults, setIndUserResults] = useState<any[]>([]);
   const [indSelectedUser, setIndSelectedUser] = useState<any>(null);
-  const [indForm, setIndForm] = useState({ title: '', body: '', cta_url: '', send_email: true, send_push: true, send_in_app: true });
+  const [indForm, setIndForm] = useState({ title: '', body: '', cta_url: '', send_email: true, send_push: true, send_in_app: true, send_whatsapp: false });
   const [indSending, setIndSending] = useState(false);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchSeqRef = useRef(0);
@@ -256,6 +258,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
         send_email: channels.email ?? true,
         send_push: channels.push ?? true,
         send_in_app: channels.in_app ?? true,
+        send_whatsapp: channels.whatsapp ?? false,
       });
       if (c?.send_at) {
         const dt = new Date(c.send_at);
@@ -281,7 +284,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
     setForm({
       subject: '', hero_image: '', intro: '', body: '',
       cta_text: 'Register Now', cta_url: 'https://studentalumni.ai/echo',
-      include_upcoming: true, send_email: true, send_push: true, send_in_app: true,
+      include_upcoming: true, send_email: true, send_push: true, send_in_app: true, send_whatsapp: false,
     });
   };
 
@@ -322,6 +325,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
         send_email: form.send_email,
         send_push: form.send_push,
         send_in_app: form.send_in_app,
+        send_whatsapp: form.send_whatsapp,
         ...(send_at ? { send_at } : {}),
       });
       flash(res?.message || 'Campaign updated');
@@ -337,7 +341,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
   const doSend = async () => {
     if (!form.subject.trim()) { flash('Subject is required'); return; }
     if (!form.body.trim() && !form.cta_url.trim()) { flash('Add a message or a CTA link'); return; }
-    if (!form.send_email && !form.send_push && !form.send_in_app) { flash('Select at least one channel'); return; }
+    if (!form.send_email && !form.send_push && !form.send_in_app && !form.send_whatsapp) { flash('Select at least one channel'); return; }
 
     let send_at: string | undefined = undefined;
     if (!sendImmediately) {
@@ -375,6 +379,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
         send_email: form.send_email,
         send_push: form.send_push,
         send_in_app: form.send_in_app,
+        send_whatsapp: form.send_whatsapp,
         send_at,
       });
       flash(r?.message || 'Newsletter sent');
@@ -413,7 +418,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
     if (!indSelectedUser) { flash('Select a user first'); return; }
     if (!indForm.title.trim()) { flash('Title is required'); return; }
     if (!indForm.body.trim()) { flash('Body is required'); return; }
-    if (!indForm.send_email && !indForm.send_push && !indForm.send_in_app) { flash('Select at least one channel'); return; }
+    if (!indForm.send_email && !indForm.send_push && !indForm.send_in_app && !indForm.send_whatsapp) { flash('Select at least one channel'); return; }
     setIndSending(true);
     try {
       const r: any = await api.sendIndividualNotification({
@@ -425,12 +430,13 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
         send_email: indForm.send_email,
         send_push: indForm.send_push,
         send_in_app: indForm.send_in_app,
+        send_whatsapp: indForm.send_whatsapp,
       });
       flash(r?.message || 'Notification sent');
       setIndSelectedUser(null);
       setIndUserQuery('');
       setIndUserResults([]);
-      setIndForm({ title: '', body: '', cta_url: '', send_email: true, send_push: true, send_in_app: true });
+      setIndForm({ title: '', body: '', cta_url: '', send_email: true, send_push: true, send_in_app: true, send_whatsapp: false });
     } catch (e: any) {
       flash(e?.message || 'Failed to send notification');
     } finally {
@@ -591,6 +597,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                     <ChannelPill icon={Mail} label="Email" active={form.send_email} onToggle={() => set('send_email', !form.send_email)} />
                     <ChannelPill icon={Smartphone} label="Push" active={form.send_push} onToggle={() => set('send_push', !form.send_push)} />
                     <ChannelPill icon={Bell} label="In-App" active={form.send_in_app} onToggle={() => set('send_in_app', !form.send_in_app)} />
+                    <ChannelPill icon={MessageSquare} label="WhatsApp" active={form.send_whatsapp} onToggle={() => set('send_whatsapp', !form.send_whatsapp)} />
                   </View>
                 </View>
 
@@ -724,6 +731,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                         <ChannelPill icon={Mail} label="Email" active={indForm.send_email} onToggle={() => setIndForm((f) => ({ ...f, send_email: !f.send_email }))} />
                         <ChannelPill icon={Smartphone} label="Push" active={indForm.send_push} onToggle={() => setIndForm((f) => ({ ...f, send_push: !f.send_push }))} />
                         <ChannelPill icon={Bell} label="In-App" active={indForm.send_in_app} onToggle={() => setIndForm((f) => ({ ...f, send_in_app: !f.send_in_app }))} />
+                        <ChannelPill icon={MessageSquare} label="WhatsApp" active={indForm.send_whatsapp} onToggle={() => setIndForm((f) => ({ ...f, send_whatsapp: !f.send_whatsapp }))} />
                       </View>
                     </View>
 
@@ -843,6 +851,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                   {c.email_ok != null && c.email_ok > 0 && <StatusPill kind="success" label={`${c.email_ok} email`} />}
                   {c.push_ok != null && c.push_ok > 0 && <StatusPill kind="info" label={`${c.push_ok} push`} />}
                   {c.in_app_ok != null && c.in_app_ok > 0 && <StatusPill kind="info" label={`${c.in_app_ok} in-app`} />}
+                  {c.whatsapp_ok != null && c.whatsapp_ok > 0 && <StatusPill kind="brand" label={`${c.whatsapp_ok} whatsapp`} />}
                   {c.fail_count != null && c.fail_count > 0 && <StatusPill kind="warn" label={`${c.fail_count} failed`} />}
                 </View>
               </View>

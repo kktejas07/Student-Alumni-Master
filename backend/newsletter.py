@@ -237,6 +237,7 @@ class SendNewsletterSchema(BaseModel):
     send_email: bool = True
     send_push: bool = True
     send_in_app: bool = True
+    send_whatsapp: bool = False
     send_at: Optional[str] = None  # ISO format string for scheduling
 
 
@@ -313,6 +314,7 @@ class UpdateCampaignSchema(BaseModel):
     send_email: Optional[bool] = None
     send_push: Optional[bool] = None
     send_in_app: Optional[bool] = None
+    send_whatsapp: Optional[bool] = None
     send_at: Optional[str] = None  # ISO format string for (re)scheduling
 
 
@@ -341,6 +343,8 @@ async def update_campaign(campaign_id: str, payload: UpdateCampaignSchema, reque
         channels["push"] = payload.send_push
     if payload.send_in_app is not None:
         channels["in_app"] = payload.send_in_app
+    if payload.send_whatsapp is not None:
+        channels["whatsapp"] = payload.send_whatsapp
     if channels:
         update["channels"] = channels
 
@@ -475,8 +479,8 @@ async def send_newsletter(payload: SendNewsletterSchema, request: Request, user=
         raise HTTPException(status_code=400, detail="Subject is required")
     if not (payload.cta_url or "").strip() and not (payload.body or "").strip():
         raise HTTPException(status_code=400, detail="Add either a message body or a call-to-action link")
-    if not payload.send_email and not payload.send_push and not payload.send_in_app:
-        raise HTTPException(status_code=400, detail="Select at least one channel (email, push, or in-app)")
+    if not payload.send_email and not payload.send_push and not payload.send_in_app and not payload.send_whatsapp:
+        raise HTTPException(status_code=400, detail="Select at least one channel (email, push, in-app, or WhatsApp)")
 
     db = _get_db(request)
     campaign_id = secrets.token_hex(8)
@@ -510,6 +514,7 @@ async def send_newsletter(payload: SendNewsletterSchema, request: Request, user=
                 "email": payload.send_email,
                 "push": payload.send_push,
                 "in_app": payload.send_in_app,
+                "whatsapp": payload.send_whatsapp,
             },
             "recipients_count": len(subscribers),
             "sent": False,
@@ -540,6 +545,7 @@ async def send_newsletter(payload: SendNewsletterSchema, request: Request, user=
             "email": payload.send_email,
             "push": payload.send_push,
             "in_app": payload.send_in_app,
+            "whatsapp": payload.send_whatsapp,
         },
         "recipients_count": len(subscribers),
         "sent": False,
@@ -602,6 +608,7 @@ async def execute_campaign(db, campaign: dict):
     send_email_enabled = campaign["channels"].get("email", True)
     send_push_enabled = campaign["channels"].get("push", True)
     send_in_app_enabled = campaign["channels"].get("in_app", True)
+    send_whatsapp_enabled = campaign["channels"].get("whatsapp", False)
 
     push_title = campaign["subject"]
     push_body = campaign.get("intro") or campaign.get("body") or campaign["subject"]
@@ -614,6 +621,8 @@ async def execute_campaign(db, campaign: dict):
     push_ok = 0
     push_fail = 0
     in_app_ok = 0
+    whatsapp_ok = 0
+    whatsapp_fail = 0
     attempts = []
 
     for sub in subscribers:
@@ -676,6 +685,28 @@ async def execute_campaign(db, campaign: dict):
             except Exception:
                 attempt["in_app"] = "fail"
 
+        # WhatsApp
+        if send_whatsapp_enabled:
+            from core.whatsapp import send_wa_message as _wa_msg
+            phone = sub.get("phone") or ""
+            if phone:
+                wa_text = f"📢 *{campaign['subject']}*\n\n{push_body}"
+                if campaign.get("cta_url"):
+                    wa_text += f"\n\n🔗 {campaign['cta_url']}"
+                try:
+                    wa_result = await _wa_msg(phone=phone, text=wa_text, kind="newsletter")
+                    if wa_result.get("status") == "sent":
+                        whatsapp_ok += 1
+                        attempt["whatsapp"] = "ok"
+                    else:
+                        whatsapp_fail += 1
+                        attempt["whatsapp"] = "fail"
+                except Exception:
+                    whatsapp_fail += 1
+                    attempt["whatsapp"] = "fail"
+            else:
+                attempt["whatsapp"] = "no_phone"
+
         attempts.append(attempt)
         if len(attempts) % 50 == 0:
             await db.email_campaigns.update_one(
@@ -685,6 +716,7 @@ async def execute_campaign(db, campaign: dict):
                     "email_ok": email_ok, "email_fail": email_fail,
                     "push_ok": push_ok, "push_fail": push_fail,
                     "in_app_ok": in_app_ok,
+                    "whatsapp_ok": whatsapp_ok, "whatsapp_fail": whatsapp_fail,
                 }},
             )
 
@@ -698,6 +730,8 @@ async def execute_campaign(db, campaign: dict):
             "push_ok": push_ok,
             "push_fail": push_fail,
             "in_app_ok": in_app_ok,
+            "whatsapp_ok": whatsapp_ok,
+            "whatsapp_fail": whatsapp_fail,
             "attempts": attempts,
             "completed_at": _now()
         }}
@@ -746,6 +780,7 @@ class SendIndividualSchema(BaseModel):
     send_email: bool = True
     send_push: bool = True
     send_in_app: bool = True
+    send_whatsapp: bool = False
 
 
 @router.get("/admin/search-users")
@@ -786,7 +821,7 @@ async def send_individual_notification(
         raise HTTPException(status_code=400, detail="Title is required")
     if not payload.body.strip():
         raise HTTPException(status_code=400, detail="Body is required")
-    if not payload.send_email and not payload.send_push and not payload.send_in_app:
+    if not payload.send_email and not payload.send_push and not payload.send_in_app and not payload.send_whatsapp:
         raise HTTPException(status_code=400, detail="Select at least one channel")
 
     db = _get_db(request)
@@ -845,6 +880,22 @@ async def send_individual_notification(
         except Exception:
             result["in_app"] = "fail"
 
+    # ── WhatsApp ──
+    if payload.send_whatsapp:
+        from core.whatsapp import send_wa_message as _wa_msg
+        phone = user_doc.get("phone") or ""
+        if phone:
+            wa_text = f"📢 *{payload.title}*\n\n{payload.body}"
+            if payload.cta_url:
+                wa_text += f"\n\n🔗 {payload.cta_url}"
+            try:
+                wa_result = await _wa_msg(phone=phone, text=wa_text, kind="admin_message")
+                result["whatsapp"] = wa_result.get("status", "unknown")
+            except Exception:
+                result["whatsapp"] = "fail"
+        else:
+            result["whatsapp"] = "no_phone"
+
     result["ok"] = True
 
     # Log to email_campaigns so send history shows individual notifications too
@@ -861,6 +912,7 @@ async def send_individual_notification(
             "email": payload.send_email,
             "push": payload.send_push,
             "in_app": payload.send_in_app,
+            "whatsapp": payload.send_whatsapp,
         },
         "recipients_count": 1,
         "sent": True,
@@ -870,7 +922,9 @@ async def send_individual_notification(
         "push_ok": 1 if result.get("push") == "ok" else 0,
         "push_fail": 1 if result.get("push") == "fail" else 0,
         "in_app_ok": 1 if result.get("in_app") == "ok" else 0,
-        "attempts": [{"email": user_email, "user_id": user_id, "email": result.get("email", ""), "push": result.get("push", ""), "in_app": result.get("in_app", "")}],
+        "whatsapp_ok": 1 if result.get("whatsapp") == "sent" else 0,
+        "whatsapp_fail": 1 if result.get("whatsapp") == "fail" else 0,
+        "attempts": [{"email": user_email, "user_id": user_id, "email": result.get("email", ""), "push": result.get("push", ""), "in_app": result.get("in_app", ""), "whatsapp": result.get("whatsapp", "")}],
         "created_at": _now(),
         "completed_at": _now(),
         "created_by": (user or {}).get("email") or "admin",

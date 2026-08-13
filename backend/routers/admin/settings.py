@@ -229,6 +229,11 @@ MARKETPLACE = [
      "auth_fields": [_f("account_id","Account ID","text"), _f("client_id","Client ID","text"), _f("client_secret","Client Secret","password")]},
     {"id": "whatsapp",        "name": "WhatsApp Business","category": "Comms",    "icon": "whatsapp",                "tint": "#25D366", "description": "Send transactional messages over WhatsApp.",       "auth_type": "api_key",
      "auth_fields": [_f("phone_number_id","Phone Number ID","text"), _f("access_token","Permanent Access Token","password")]},
+    {"id": "openwa",          "name": "OpenWA (WhatsApp)","category": "Comms",    "icon": "whatsapp",                "tint": "#25D366", "description": "Self-hosted WhatsApp gateway — send passes, invoices, coupons & alerts via a QR-paired number.", "auth_type": "api_key", "popular": True,
+     "auth_fields": [_f("base_url","Gateway URL","url","http://your-vps:2785","OpenWA REST API base URL (port 2785)"),
+                     _f("api_key","API Key","password","owa_k1_…","From OpenWA dashboard → API Keys"),
+                     _f("session_id","Session ID","text","main","The WhatsApp session that holds the paired number"),
+                     _f("default_country_code","Default Country Code","text","91","Pre-pended when a phone has no country code")]},
     {"id": "gmail",           "name": "Gmail",           "category": "Email",     "icon": "gmail",                   "tint": "#EA4335", "description": "Send transactional + drip email via Gmail.",      "auth_type": "oauth",
      "auth_fields": [_f("client_id","Client ID","text"), _f("client_secret","Client Secret","password"), _f("refresh_token","Refresh Token","password","optional","Optional — leave blank to start OAuth")]},
     {"id": "sendgrid",        "name": "SendGrid",        "category": "Email",     "icon": "email-fast-outline",      "tint": "#1A82E2", "description": "Transactional email delivery.",                    "auth_type": "api_key", "popular": True,
@@ -559,6 +564,22 @@ async def _live_test(tool_id: str, creds: Dict[str, str]) -> tuple[bool, str]:
             r = await _get("https://slack.com/api/auth.test", headers={"Authorization": f"Bearer {tok}"})
             ok = r.status_code == 200 and (r.json() or {}).get("ok") is True
             return (ok, "Verified — Slack token accepted" if ok else "Slack: token rejected")
+        if tool_id == "openwa":
+            base_url = (creds.get("base_url") or "").strip().rstrip("/")
+            session_id = (creds.get("session_id") or "").strip()
+            if not base_url or not session_id:
+                return (False, "OpenWA: Gateway URL and Session ID are required")
+            r = await _get(
+                f"{base_url}/api/sessions/{session_id}",
+                headers={"X-API-Key": api_key or creds.get("api_key", "")},
+            )
+            if r.status_code == 200:
+                return (True, "Verified — OpenWA gateway + session reached")
+            if r.status_code == 401:
+                return (False, "OpenWA: API key rejected (HTTP 401)")
+            if r.status_code == 404:
+                return (False, "OpenWA: session not found — check Session ID")
+            return (False, f"OpenWA: HTTP {r.status_code}")
         # No live test implemented — accept after basic format checks
         return True, "Credentials look valid (no live check for this provider)"
     except Exception as e:
