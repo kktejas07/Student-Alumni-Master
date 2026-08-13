@@ -32,6 +32,19 @@ from notifications import send_push, _log_inbox, list_user_tokens
 router = APIRouter(prefix="/api/newsletter", tags=["newsletter"])
 
 
+def _strip_html(html: str) -> str:
+    """Convert HTML to plain text for WhatsApp (strip tags, decode entities, collapse whitespace)."""
+    if not html:
+        return ""
+    text = re.sub(r"<br\s*/?>", "\n", html, flags=re.IGNORECASE)
+    text = re.sub(r"</(p|div|li|h[1-6])>", "\n", text, flags=re.IGNORECASE)
+    text = re.sub(r"<[^>]+>", "", text)
+    text = text.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">")
+    text = text.replace("&nbsp;", " ").replace("&quot;", '"').replace("&#39;", "'")
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
+
+
 def _get_db(request: Request):
     from db import db
     return db
@@ -557,7 +570,7 @@ async def send_test_whatsapp(payload: TestWhatsAppSchema, request: Request, _=De
     if not phone:
         raise HTTPException(status_code=400, detail="Phone number is required")
     subject = (payload.subject or "").strip() or "Newsletter Preview"
-    body_text = (payload.body or "").strip() or subject
+    body_text = _strip_html((payload.body or "").strip() or subject)
     wa_text = f"*{subject}*\n\n{body_text}"
     if payload.cta_url:
         wa_text += f"\n\n{payload.cta_url}"
@@ -792,9 +805,9 @@ async def execute_campaign(db, campaign: dict):
             from core.whatsapp import send_wa_message as _wa_msg
             phone = sub.get("phone") or ""
             if phone:
-                wa_text = f"📢 *{campaign['subject']}*\n\n{push_body}"
+                wa_text = f"*{campaign['subject']}*\n\n{_strip_html(push_body)}"
                 if campaign.get("cta_url"):
-                    wa_text += f"\n\n🔗 {campaign['cta_url']}"
+                    wa_text += f"\n\n{campaign['cta_url']}"
                 try:
                     wa_result = await _wa_msg(phone=phone, text=wa_text, kind="newsletter")
                     if wa_result.get("status") == "sent":
@@ -987,9 +1000,9 @@ async def send_individual_notification(
         from core.whatsapp import send_wa_message as _wa_msg
         phone = user_doc.get("phone") or ""
         if phone:
-            wa_text = f"📢 *{payload.title}*\n\n{payload.body}"
+            wa_text = f"*{payload.title}*\n\n{_strip_html(payload.body)}"
             if payload.cta_url:
-                wa_text += f"\n\n🔗 {payload.cta_url}"
+                wa_text += f"\n\n{payload.cta_url}"
             try:
                 wa_result = await _wa_msg(phone=phone, text=wa_text, kind="admin_message")
                 result["whatsapp"] = wa_result.get("status", "unknown")
