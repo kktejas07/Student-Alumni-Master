@@ -244,6 +244,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
     try {
       const res = await api.sendNewsletterTestWhatsApp({
         subject: form.subject,
+        hero_image: form.hero_image,
         body: form.body || form.intro || '',
         cta_url: form.cta_url,
         test_phone: testPhone.trim(),

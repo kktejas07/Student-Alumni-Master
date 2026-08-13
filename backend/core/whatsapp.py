@@ -169,6 +169,19 @@ async def send_whatsapp_document(config: Dict[str, Any], chat_id: str, filename:
     )
 
 
+async def send_whatsapp_image(config: Dict[str, Any], chat_id: str, image_bytes: bytes, caption: str = "") -> Dict[str, Any]:
+    """Send an image as a WhatsApp image message (renders inline, not as document)."""
+    payload: Dict[str, Any] = {
+        "chatId": chat_id,
+        "file": base64.b64encode(image_bytes).decode(),
+    }
+    if caption:
+        payload["caption"] = caption[:1000]
+    return await _rate_limited_call(
+        lambda: _gateway_post(config, "send-image", payload)
+    )
+
+
 # ---------------------------------------------------------------------------
 # High-level best-effort API used by the rest of the app
 # ---------------------------------------------------------------------------
@@ -225,6 +238,49 @@ async def send_wa_message(*, phone: str, text: str, kind: str = "text", reg_id: 
         result = await send_whatsapp_text(config, chat_id, text)
         if result.get("ok"):
             await _log_send(phone_digits, kind, True, str(result.get("response"))[:300], reg_id)
+            return {"status": "sent", "chat_id": chat_id}
+        reason = f"HTTP {result.get('http')} {result.get('error', '')}"
+        await _log_send(phone_digits, kind, False, reason, reg_id)
+        await _log_failure(phone_digits, kind, reason)
+        return {"status": "failed", "reason": reason}
+    except Exception as e:  # noqa: BLE001
+        await _log_send(phone_digits, kind, False, str(e), reg_id)
+        await _log_failure(phone_digits, kind, f"exception: {e}")
+        return {"status": "failed", "reason": str(e)}
+
+
+async def send_wa_image(*, phone: str, image_url: str, caption: str = "", kind: str = "image", reg_id: str = "", opt_in: bool = True) -> Dict[str, Any]:
+    """Best-effort WhatsApp image send. Downloads image from URL and sends inline."""
+    phone_digits = strip_phone(phone)
+    if not phone_digits:
+        return {"status": "skipped", "reason": "no_phone"}
+    if not opt_in:
+        return {"status": "skipped", "reason": "opt_out"}
+    if not image_url:
+        return {"status": "skipped", "reason": "no_image"}
+
+    config = await get_openwa_config()
+    if not config:
+        await _log_failure(phone_digits, kind, "OpenWA not configured")
+        return {"status": "skipped", "reason": "not_configured"}
+
+    chat_id = normalize_phone(phone, config.get("default_country_code", "91"))
+    if not chat_id:
+        await _log_failure(phone_digits, kind, "invalid phone")
+        return {"status": "skipped", "reason": "invalid_phone"}
+
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            r = await client.get(image_url)
+            if r.status_code != 200:
+                reason = f"image download failed: HTTP {r.status_code}"
+                await _log_failure(phone_digits, kind, reason)
+                return {"status": "failed", "reason": reason}
+            image_bytes = r.content
+
+        result = await send_whatsapp_image(config, chat_id, image_bytes, caption=caption)
+        if result.get("ok"):
+            await _log_send(phone_digits, kind, True, "image sent", reg_id)
             return {"status": "sent", "chat_id": chat_id}
         reason = f"HTTP {result.get('http')} {result.get('error', '')}"
         await _log_send(phone_digits, kind, False, reason, reg_id)

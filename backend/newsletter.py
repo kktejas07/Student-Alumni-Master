@@ -487,6 +487,7 @@ class TestNewsletterSchema(BaseModel):
 
 class TestWhatsAppSchema(BaseModel):
     subject: str
+    hero_image: Optional[str] = ""
     body: Optional[str] = ""
     cta_url: Optional[str] = ""
     test_phone: str
@@ -562,7 +563,7 @@ async def send_test_email(payload: TestNewsletterSchema, request: Request, _=Dep
 @router.post("/admin/send-test-whatsapp")
 async def send_test_whatsapp(payload: TestWhatsAppSchema, request: Request, _=Depends(require_role("admin", "super_admin"))):
     """Send a test WhatsApp message to a single phone number."""
-    from core.whatsapp import send_wa_message, get_openwa_config
+    from core.whatsapp import send_wa_message, send_wa_image, get_openwa_config
     config = await get_openwa_config()
     if not config:
         raise HTTPException(status_code=503, detail="OpenWA gateway not configured — connect it in Settings > Integrations first")
@@ -574,17 +575,26 @@ async def send_test_whatsapp(payload: TestWhatsAppSchema, request: Request, _=De
     wa_text = f"*{subject}*\n\n{body_text}"
     if payload.cta_url:
         wa_text += f"\n\n{payload.cta_url}"
-    result = await send_wa_message(phone=phone, text=wa_text, kind="newsletter_test")
-    if result.get("status") == "sent":
-        return {"ok": True, "message": f"Test WhatsApp sent to {phone}"}
-    reason = result.get("reason", "unknown")
-    if reason == "not_configured":
-        raise HTTPException(status_code=503, detail="OpenWA gateway not configured — connect it in Settings > Integrations first")
-    if reason == "invalid_phone":
-        raise HTTPException(status_code=400, detail="Invalid phone number format")
-    if reason in ("skipped", "opt_out"):
-        raise HTTPException(status_code=400, detail="WhatsApp send skipped — check phone number and opt-in status")
-    raise HTTPException(status_code=500, detail=f"WhatsApp send failed: {reason}")
+
+    hero_url = _make_absolute_url((payload.hero_image or "").strip())
+    if hero_url:
+        img_result = await send_wa_image(phone=phone, image_url=hero_url, caption=wa_text, kind="newsletter_test")
+        if img_result.get("status") == "sent":
+            return {"ok": True, "message": f"Test WhatsApp sent to {phone}"}
+        text_result = await send_wa_message(phone=phone, text=wa_text, kind="newsletter_test")
+        if text_result.get("status") == "sent":
+            return {"ok": True, "message": f"Test WhatsApp sent to {phone} (text only — image failed)"}
+        raise HTTPException(status_code=500, detail=f"WhatsApp send failed: {img_result.get('reason') or text_result.get('reason', 'unknown')}")
+    else:
+        result = await send_wa_message(phone=phone, text=wa_text, kind="newsletter_test")
+        if result.get("status") == "sent":
+            return {"ok": True, "message": f"Test WhatsApp sent to {phone}"}
+        reason = result.get("reason", "unknown")
+        if reason == "not_configured":
+            raise HTTPException(status_code=503, detail="OpenWA gateway not configured — connect it in Settings > Integrations first")
+        if reason == "invalid_phone":
+            raise HTTPException(status_code=400, detail="Invalid phone number format")
+        raise HTTPException(status_code=500, detail=f"WhatsApp send failed: {reason}")
 
 
 @router.post("/admin/send")
@@ -802,14 +812,18 @@ async def execute_campaign(db, campaign: dict):
 
         # WhatsApp
         if send_whatsapp_enabled:
-            from core.whatsapp import send_wa_message as _wa_msg
+            from core.whatsapp import send_wa_message as _wa_msg, send_wa_image as _wa_img
             phone = sub.get("phone") or ""
             if phone:
                 wa_text = f"*{campaign['subject']}*\n\n{_strip_html(push_body)}"
                 if campaign.get("cta_url"):
                     wa_text += f"\n\n{campaign['cta_url']}"
+                hero_url = _make_absolute_url((campaign.get("hero_image") or "").strip())
                 try:
-                    wa_result = await _wa_msg(phone=phone, text=wa_text, kind="newsletter")
+                    if hero_url:
+                        wa_result = await _wa_img(phone=phone, image_url=hero_url, caption=wa_text, kind="newsletter")
+                    else:
+                        wa_result = await _wa_msg(phone=phone, text=wa_text, kind="newsletter")
                     if wa_result.get("status") == "sent":
                         whatsapp_ok += 1
                         attempt["whatsapp"] = "ok"
