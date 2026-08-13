@@ -287,19 +287,18 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
       if (!c || !c.subject) {
         console.warn('[Newsletter] startEdit: campaign returned empty or missing subject');
       }
-      const channels = c?.channels || {};
       setForm({
         subject: c?.subject || '',
-        hero_image: c?.hero_image || '',
+        hero_image: (c?.hero_image && !c?.hero_image.startsWith('blob:') && !c?.hero_image.startsWith('data:')) ? c?.hero_image : '',
         intro: c?.intro || '',
         body: c?.body || '',
         cta_text: c?.cta_text || 'Register Now',
         cta_url: c?.cta_url || 'https://studentalumni.ai/echo',
         include_upcoming: c?.include_upcoming ?? true,
-        send_email: channels.email ?? true,
-        send_push: channels.push ?? true,
-        send_in_app: channels.in_app ?? true,
-        send_whatsapp: channels.whatsapp ?? false,
+        send_email: c?.send_email ?? true,
+        send_push: c?.send_push ?? true,
+        send_in_app: c?.send_in_app ?? true,
+        send_whatsapp: c?.send_whatsapp ?? false,
       });
       if (c?.send_at) {
         const dt = new Date(c.send_at);
@@ -360,18 +359,19 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
 
     setSending(true);
     try {
+      const clean = sanitizePayload(form);
       const res: any = await api.updateNewsletterCampaign(editingCampaign.campaign_id, {
-        subject: form.subject,
-        hero_image: form.hero_image,
-        intro: form.intro,
-        body: form.body,
-        cta_text: form.cta_text,
-        cta_url: form.cta_url,
-        include_upcoming: form.include_upcoming,
-        send_email: form.send_email,
-        send_push: form.send_push,
-        send_in_app: form.send_in_app,
-        send_whatsapp: form.send_whatsapp,
+        subject: clean.subject,
+        hero_image: clean.hero_image,
+        intro: clean.intro,
+        body: clean.body,
+        cta_text: clean.cta_text,
+        cta_url: clean.cta_url,
+        include_upcoming: clean.include_upcoming,
+        send_email: clean.send_email,
+        send_push: clean.send_push,
+        send_in_app: clean.send_in_app,
+        send_whatsapp: clean.send_whatsapp,
         ...(send_at ? { send_at } : {}),
       });
       flash(res?.message || 'Campaign updated');
@@ -668,7 +668,11 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                   <TextInput style={st.input} value={form.intro} onChangeText={(v) => set('intro', v)} placeholder="Hi everyone, we're excited to share what's coming up…" placeholderTextColor={SAC.dim} />
                 </Field>
                 <Field label="Message" hint="The main newsletter body (rich text).">
-                  <LexicalEditor value={form.body} onChange={(v) => set('body', v)} />
+                  <LexicalEditor
+                    value={form.body}
+                    onChange={(v) => set('body', v)}
+                    key={`body-editor-${form.body}`}
+                  />
                 </Field>
                 <View style={{ flexDirection: 'row', gap: 10 }}>
                   <View style={{ flex: 1 }}>
