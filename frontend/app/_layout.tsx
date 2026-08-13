@@ -1,5 +1,5 @@
 import { Stack } from 'expo-router';
-import { usePathname } from 'expo-router';
+import { usePathname, useGlobalSearchParams } from 'expo-router';
 import {
   useFonts,
   DMSans_400Regular,
@@ -119,12 +119,21 @@ export default function RootLayout() {
 
   const init = useAuthStore((s) => s.init);
   const initialized = useAuthStore((s) => s.initialized);
+  const pathname = usePathname();
+  const params = useGlobalSearchParams();
 
   useEffect(() => {
     init();
     // Boot the analytics stack — gracefully no-ops if env keys are missing.
     analytics.init();
   }, [init]);
+
+  // Track page views automatically on route change
+  useEffect(() => {
+    if (pathname) {
+      analytics.pageView(pathname, params as Record<string, string>);
+    }
+  }, [pathname, params]);
 
   // Render the loader only while fonts are still loading AND haven't errored.
   // If fonts fail to load (e.g. network / CDN issue on web), fall back to

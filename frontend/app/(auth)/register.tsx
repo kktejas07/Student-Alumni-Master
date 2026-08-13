@@ -14,6 +14,7 @@ import { AC, FONTS } from '@/src/views/auth/tokens';
 import { trackAuth, passwordStrength } from '@/src/lib/authAnalytics';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { PhoneInput } from '@/src/views/web/PhoneInput';
+import analytics from '@/src/lib/analytics';
 import { DateOfBirthPicker, isDobValid } from '@/src/views/web/DateOfBirthPicker';
 
 const BASE = getBaseUrl();
@@ -163,6 +164,7 @@ export default function RegisterScreen() {
       setUser(data.user);
       setTokens(data.access_token, data.refresh_token);
       trackAuth({ event: 'register_success', email, role });
+      analytics.identify(data.user.id || data.user._id || email, { email, role: data.user.role, full_name: data.user.full_name });
       // Per spec — offer Referral Code step before Onboarding. User can skip.
       router.replace('/(auth)/referral-code');
     } catch (e: any) {

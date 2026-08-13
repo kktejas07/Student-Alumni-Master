@@ -190,6 +190,14 @@ export function identify(userId: string, traits?: UserTraits) {
         }
       }
     } catch {}
+    // Google Analytics (gtag.js) for Web
+    try {
+      if (Platform.OS === 'web' && typeof window !== 'undefined' && (window as any).gtag) {
+        (window as any).gtag('config', 'G-XQRXXJQW1T', {
+          user_id: userId,
+        });
+      }
+    } catch {}
   };
   ready ? fn() : queue.push(fn);
 }
@@ -215,6 +223,12 @@ export function track(event: string, props?: EventProps) {
         logEvent(firebaseAnalytics, event, safe || {});
       }
     } catch {}
+    // Google Analytics (gtag.js) for Web
+    try {
+      if (Platform.OS === 'web' && typeof window !== 'undefined' && (window as any).gtag) {
+        (window as any).gtag('event', event, safe || {});
+      }
+    } catch {}
   };
   ready ? fn() : queue.push(fn);
 }
@@ -233,6 +247,12 @@ export function setUserProperty(key: string, value: string | number | boolean) {
       if (firebaseAnalytics) {
         const { setUserProperties } = require('firebase/analytics');
         setUserProperties(firebaseAnalytics, { [key]: value });
+      }
+    } catch {}
+    // Google Analytics (gtag.js) for Web
+    try {
+      if (Platform.OS === 'web' && typeof window !== 'undefined' && (window as any).gtag) {
+        (window as any).gtag('set', 'user_properties', { [key]: value });
       }
     } catch {}
   };

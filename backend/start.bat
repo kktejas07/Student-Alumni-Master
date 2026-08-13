@@ -14,5 +14,5 @@ if not exist "%VENV_PYTHON%" (
 echo Using: %VENV_PYTHON%
 %VENV_PYTHON% --version
 
-echo Starting uvicorn on http://127.0.0.1:8000 ...
-%VENV_PYTHON% -m uvicorn server:app --reload
+echo Starting uvicorn on http://127.0.0.1:8002 ...
+%VENV_PYTHON% -m uvicorn server:app --reload --port 8002

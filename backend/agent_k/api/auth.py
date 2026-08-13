@@ -3,9 +3,7 @@ from typing import Optional
 from fastapi import HTTPException
 import jwt as _jwt
 from core.db import db as _db
-
-_JWT_SECRET = os.environ.get("JWT_SECRET", "")
-_JWT_ALG = os.environ.get("JWT_ALGORITHM", "HS256")
+from core.security import JWT_SECRET as _JWT_SECRET, JWT_ALGORITHM as _JWT_ALG
 
 async def resolve_user(authorization: Optional[str]) -> Optional[dict]:
     if not authorization or not authorization.startswith("Bearer "):

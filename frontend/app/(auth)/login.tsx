@@ -14,6 +14,7 @@ import { AC, FONTS } from '@/src/views/auth/tokens';
 import { trackAuth, passwordStrength } from '@/src/lib/authAnalytics';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { initFirebaseAuth, signInWithGoogle, signInWithGitHub } from '@/src/lib/firebaseAuth';
+import analytics from '@/src/lib/analytics';
 
 const BASE = getBaseUrl();
 
@@ -154,6 +155,7 @@ export default function LoginScreen() {
           setUser(user);
           setTokens(access_token, refresh_token);
           trackAuth({ event: 'login_success', email: user.email, role: user.role });
+          analytics.identify(user.id || user._id || user.email, { email: user.email, role: user.role, full_name: user.full_name });
           const r = (user.role || '').toLowerCase();
           if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
           else if (r === 'mentor') router.replace('/mentor-portal');
@@ -242,6 +244,7 @@ export default function LoginScreen() {
       // Navigation should not be blocked by this microtask overhead.
       setTokens(data.access_token, data.refresh_token);
       trackAuth({ event: 'login_success', email, role: data.user.role });
+      analytics.identify(data.user.id || data.user._id || email, { email, role: data.user.role, full_name: data.user.full_name });
       // Stop loading BEFORE navigating so the component unmounts in a clean state,
       // preventing a stale loading→false re-render from racing the navigation event queue.
       setLoading(false);
@@ -319,6 +322,7 @@ export default function LoginScreen() {
                     setUser(data.user);
                     setTokens(data.access_token, data.refresh_token);
                     trackAuth({ event: 'login_success', email: data.user.email, role: data.user.role });
+                    analytics.identify(data.user.id || data.user._id || data.user.email, { email: data.user.email, role: data.user.role, full_name: data.user.full_name });
                     const r = (data.user.role || '').toLowerCase();
                     if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
                     else if (r === 'mentor') router.replace('/mentor-portal');
