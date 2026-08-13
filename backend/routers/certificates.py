@@ -754,3 +754,45 @@ async def list_certificates_by_recipient(email: str):
     for c in certs:
         c["_id"] = str(c["_id"])
     return {"certificates": certs, "total": len(certs)}
+
+
+def _require_admin(user: dict):
+    role = (user.get("role") or "").lower()
+    if role not in {"super_admin", "admin", "superadmin"}:
+        raise HTTPException(status_code=403, detail="Admin role required")
+
+
+@router.delete("/{code}")
+async def delete_certificate(code: str, user: dict = Depends(get_current_user)):
+    """Delete a certificate by its verification code / certificate ID (admin only)."""
+    _require_admin(user)
+    ident = _clean_str(code)
+    if not ident:
+        raise HTTPException(400, "Certificate code is required")
+
+    pattern = re.escape(ident)
+    query = {
+        "$or": [
+            {"verification_code": {"$regex": f"^{pattern}$", "$options": "i"}},
+            {"certificate_id": {"$regex": f"^{pattern}$", "$options": "i"}},
+            {"id": {"$regex": f"^{pattern}$", "$options": "i"}},
+        ]
+    }
+
+    doc = await db.certificates.find_one(query)
+    if not doc:
+        raise HTTPException(404, "Certificate not found")
+
+    await db.certificates.delete_one({"_id": doc["_id"]})
+
+    # Best-effort cleanup of the uploaded file (if a copy lives in this backend)
+    file_path = doc.get("file_path") or ""
+    image_url = doc.get("image_url") or ""
+    for ref in (file_path, image_url):
+        if isinstance(ref, str) and ref.startswith("uploads/") and os.path.isfile(ref):
+            try:
+                os.remove(ref)
+            except OSError:
+                pass
+
+    return {"ok": True, "deleted": ident}

@@ -20,7 +20,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import {
   Award, Upload, ExternalLink, ShieldCheck, Search, Mail,
   Sparkles, Link2, X, AlertTriangle, CheckCircle2, User, FileUp, FileText,
-  FolderOpen, RefreshCw, Copy,
+  FolderOpen, RefreshCw, Copy, Trash2,
 } from 'lucide-react-native';
 import { SAC, FONTS } from '../tokens';
 import {
@@ -93,6 +93,7 @@ function RegistryTab({ onSaved }: { onSaved: (s?: string) => void }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   const branches = ['ALL', 'CSE', 'IT', 'ECE', 'EEE', 'MECH', 'CIVIL'];
 
@@ -136,6 +137,20 @@ function RegistryTab({ onSaved }: { onSaved: (s?: string) => void }) {
     }
   };
 
+  const doDelete = async (code: string) => {
+    if (Platform.OS === 'web' && !window.confirm(`Delete certificate ${code}? This cannot be undone.`)) return;
+    setDeleting(code);
+    try {
+      await request(`/certificates/${encodeURIComponent(code)}`, { method: 'DELETE', auth: true });
+      onSaved(`Deleted certificate ${code}`);
+      reload();
+    } catch (e: any) {
+      setError(e?.message || 'Failed to delete certificate');
+    } finally {
+      setDeleting(null);
+    }
+  };
+
   return (
     <Animated.View entering={FadeInDown.duration(260)}>
       <Card>
@@ -157,7 +172,7 @@ function RegistryTab({ onSaved }: { onSaved: (s?: string) => void }) {
           )}
         </View>
 
-        <View style={s.regFilters}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
           <View style={[s.inputRow, { flex: 1 }]}>
             <Search size={15} color={SAC.muted} />
             <TextInput
@@ -171,26 +186,24 @@ function RegistryTab({ onSaved }: { onSaved: (s?: string) => void }) {
               style={s.input}
             />
           </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-            {branches.map((b) => (
-              <Pressable
-                key={b}
-                onPress={() => { setBranch(b); setItems([]); setTimeout(reload, 0); }}
-                style={[s.filterChip, branch === b && s.filterChipActive]}
-              >
-                <Text style={[s.filterChipText, branch === b && s.filterChipTextActive]}>{b}</Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-        </View>
-
-        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
           <GradientButton onPress={reload} loading={loading} size="sm">
             <View style={s.btnInner}><Search size={14} color="#fff" /><Text style={s.btnTextSm}>Search Registry</Text></View>
           </GradientButton>
           <Pressable onPress={reload} style={s.refreshBtn}>
             <RefreshCw size={14} color="#A78BFA" />
           </Pressable>
+        </View>
+
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+          {branches.map((b) => (
+            <Pressable
+              key={b}
+              onPress={() => { setBranch(b); setItems([]); setTimeout(reload, 0); }}
+              style={[s.filterChip, branch === b && s.filterChipActive]}
+            >
+              <Text style={[s.filterChipText, branch === b && s.filterChipTextActive]}>{b}</Text>
+            </Pressable>
+          ))}
         </View>
 
         {error && (
@@ -264,6 +277,20 @@ function RegistryTab({ onSaved }: { onSaved: (s?: string) => void }) {
                     >
                       <Copy size={12} color="#64748b" />
                       <Text style={s.regCopyText}>{copied === (id || code) ? 'Copied!' : 'Copy link'}</Text>
+                    </Pressable>
+                    <Pressable
+                      disabled={deleting === (id || code)}
+                      onPress={() => doDelete(id || code)}
+                      style={[s.regLinkBtn, { borderColor: 'rgba(248,113,113,0.35)', backgroundColor: 'rgba(248,113,113,0.08)' }]}
+                    >
+                      {deleting === (id || code) ? (
+                        <ActivityIndicator size={11} color="#F87171" />
+                      ) : (
+                        <Trash2 size={13} color="#F87171" />
+                      )}
+                      <Text style={[s.regLinkText, { color: '#F87171' }]}>
+                        {deleting === (id || code) ? 'Deleting…' : 'Delete'}
+                      </Text>
                     </Pressable>
                   </View>
                 </View>
