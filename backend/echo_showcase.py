@@ -115,6 +115,56 @@ async def _generate_coupons_for_registration(db, slug: str, reg_id: str, session
     return coupons
 
 
+async def _reconcile_coupons_for_paid(db, showcase: dict) -> dict:
+    """Sync enabled session coupons to registrations that already paid.
+
+    When an organizer adds/updates session passes after people have registered,
+    previously-paid attendees must still receive coupons for the newly-enabled
+    passes. This finds every paid ("registered") registration for the event and
+    generates any missing coupon for an enabled session (matched by key + day).
+    """
+    sessions = showcase.get("sessions") or []
+    enabled = [s for s in sessions if s.get("enabled")]
+    slug = showcase.get("slug") or ""
+    if not enabled or not slug:
+        return {"added": 0}
+    added = 0
+    regs = await db.echo_registrations.find(
+        {"slug": slug, "status": "registered"}
+    ).to_list(5000)
+    for reg in regs:
+        reg_id = reg.get("id")
+        if not reg_id:
+            continue
+        existing = await db.echo_coupons.find(
+            {"slug": slug, "reg_id": reg_id}
+        ).to_list(500)
+        have = {(c.get("session_key"), c.get("session_day") or 1) for c in existing}
+        new_coupons = []
+        for s in enabled:
+            day = int(s.get("day") or 1)
+            if (s.get("key"), day) in have:
+                continue
+            from datetime import timezone
+            day_label = f"Day {day} · " if day > 1 else ""
+            new_coupons.append({
+                "slug": slug,
+                "reg_id": reg_id,
+                "session_key": s["key"],
+                "session_name": f"{day_label}{s.get('label', s['key'])}",
+                "session_day": day,
+                "coupon_code": _generate_coupon_code(s["key"], reg_id),
+                "used": False,
+                "used_at": None,
+                "scanned_by": None,
+                "created_at": datetime.now(timezone.utc),
+            })
+        if new_coupons:
+            await db.echo_coupons.insert_many(new_coupons)
+            added += len(new_coupons)
+    return {"added": added}
+
+
 # ── DB dependency ────────────────────────────────────────────────────────────
 def _get_db(request: Request) -> AsyncIOMotorDatabase:
     from db import db  # imported lazily to avoid circular imports at module load
@@ -3466,7 +3516,11 @@ async def update_showcase(showcase_id: str, payload: ShowcaseUpdateSchema, reque
         raise HTTPException(status_code=404, detail="Showcase not found")
     print(f"[MONGO UPDATE EXECUTED] showcase_id={showcase_id} matched={result.matched_count} modified={result.modified_count} fields={list(update.keys())}")
     doc = await db.echo_showcases.find_one({"_id": _oid(showcase_id)})
-    return _ser(doc or {})
+    outcome = _ser(doc or {})
+    if "sessions" in update:
+        recon = await _reconcile_coupons_for_paid(db, doc or {})
+        outcome["coupon_sync"] = recon
+    return outcome
 
 
 @router.delete("/admin/showcases/{showcase_id}")
@@ -3653,7 +3707,9 @@ async def update_sessions(slug: str, request: Request, admin=Depends(_require_ad
     await db.echo_showcases.update_one(
         {"slug": slug}, {"$set": {"sessions": sessions}}, upsert=True
     )
-    return {"ok": True, "sessions": sessions}
+    show = await db.echo_showcases.find_one({"slug": slug}) or {"slug": slug, "sessions": sessions}
+    recon = await _reconcile_coupons_for_paid(db, show)
+    return {"ok": True, "sessions": sessions, "coupon_sync": recon}
 
 
 @router.put("/admin/{slug}/sessions/{session_key}/lock")

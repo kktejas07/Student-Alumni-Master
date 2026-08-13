@@ -109,14 +109,120 @@ const FORM_TABS: Array<{ id: FormTab; label: string }> = [
 function FieldRow({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <View style={{ marginBottom: 14 }}>
-      <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: SAC.muted, marginBottom: 5, letterSpacing: 0.4 }}>
-        {label.toUpperCase()}
-      </Text>
-      {hint && (
-        <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.dim, marginBottom: 5 }}>{hint}</Text>
-      )}
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
+        <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: SAC.muted, letterSpacing: 0.4 }}>
+          {label.toUpperCase()}
+        </Text>
+        {hint && (
+          <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>{hint}</Text>
+        )}
+      </View>
       {children}
     </View>
+  );
+}
+
+// Human date ("July 31, 2026") <-> ISO date ("2026-07-31") for native pickers
+function humanToIso(human: string): string {
+  if (!human) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(human)) return human;
+  const t = Date.parse(human);
+  if (isNaN(t)) return '';
+  const d = new Date(t);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function isoToHuman(iso: string): string {
+  if (!iso) return '';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+}
+// 12h display ("10:00 AM") <-> 24h native time ("10:00")
+function humanTimeToNative(t: string): string {
+  if (!t) return '';
+  const m = t.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+  if (m) {
+    let h = parseInt(m[1], 10), mm = m[2], ap = (m[3] || '').toUpperCase();
+    if (ap === 'PM' && h !== 12) h += 12;
+    if (ap === 'AM' && h === 12) h = 0;
+    return `${String(h).padStart(2, '0')}:${mm}`;
+  }
+  return '';
+}
+function nativeToHumanTime(t: string): string {
+  if (!t) return '';
+  const m = t.trim().match(/^(\d{2}):(\d{2})$/);
+  if (!m) return t;
+  let h = parseInt(m[1], 10);
+  const ap = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  return `${h}:${m[2]} ${ap}`;
+}
+
+function FieldDate({ value, onChangeText, placeholder }: { value: string; onChangeText: (v: string) => void; placeholder?: string }) {
+  if (Platform.OS === 'web') {
+    return (
+      <input
+        type="date"
+        value={humanToIso(value)}
+        placeholder={placeholder}
+        onChange={(e: any) => onChangeText(e.target.value ? isoToHuman(e.target.value) : '')}
+        style={{
+          backgroundColor: '#0d1326', border: `1px solid ${SAC.border}`,
+          borderRadius: 8, padding: '9px 12px',
+          fontFamily: FONTS.med, fontSize: 13, color: SAC.text, width: '100%',
+          colorScheme: 'dark',
+        }}
+      />
+    );
+  }
+  return (
+    <TextInput value={value} onChangeText={onChangeText} placeholder={placeholder} placeholderTextColor={SAC.dim} style={fi.input} />
+  );
+}
+
+function FieldTime({ value, onChangeText, placeholder }: { value: string; onChangeText: (v: string) => void; placeholder?: string }) {
+  if (Platform.OS === 'web') {
+    return (
+      <input
+        type="time"
+        value={humanTimeToNative(value)}
+        placeholder={placeholder}
+        onChange={(e: any) => onChangeText(e.target.value ? nativeToHumanTime(e.target.value) : '')}
+        style={{
+          backgroundColor: '#0d1326', border: `1px solid ${SAC.border}`,
+          borderRadius: 8, padding: '9px 12px',
+          fontFamily: FONTS.med, fontSize: 13, color: SAC.text, width: '100%',
+          colorScheme: 'dark',
+        }}
+      />
+    );
+  }
+  return (
+    <TextInput value={value} onChangeText={onChangeText} placeholder={placeholder} placeholderTextColor={SAC.dim} style={fi.input} />
+  );
+}
+
+// ISO date field (YYYY-MM-DD) — use where the backend parses ISO directly
+function IsoDateField({ value, onChangeText, placeholder }: { value: string; onChangeText: (v: string) => void; placeholder?: string }) {
+  if (Platform.OS === 'web') {
+    return (
+      <input
+        type="date"
+        value={/^\d{4}-\d{2}-\d{2}$/.test(value || '') ? value.slice(0, 10) : ''}
+        placeholder={placeholder}
+        onChange={(e: any) => onChangeText(e.target.value ? e.target.value.slice(0, 10) : '')}
+        style={{
+          backgroundColor: '#0d1326', border: `1px solid ${SAC.border}`,
+          borderRadius: 8, padding: '9px 12px',
+          fontFamily: FONTS.med, fontSize: 13, color: SAC.text, width: '100%',
+          colorScheme: 'dark',
+        }}
+      />
+    );
+  }
+  return (
+    <TextInput value={value} onChangeText={onChangeText} placeholder={placeholder} placeholderTextColor={SAC.dim} style={fi.input} />
   );
 }
 
@@ -215,7 +321,33 @@ function IconAction({ icon, label, color, bg, onPress, disabled = false, danger 
           marginTop: 5, paddingHorizontal: 7, paddingVertical: 4,
           backgroundColor: '#0B0F1E', borderRadius: 6,
           borderWidth: 1, borderColor: 'rgba(167,139,250,0.3)',
-          maxWidth: 150, zIndex: 60,
+          maxWidth: 150, zIndex: 60, whiteSpace: 'nowrap' as any,
+        }}>
+          <Text style={{ color: '#E9E4FF', fontFamily: FONTS.med, fontSize: 10, textAlign: 'center', lineHeight: 13 }}>{label}</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+// ── Generic hover tooltip wrapper (any icon button) ──────────────────────────
+function Tip({ label, children }: { label: string; children: React.ReactNode }) {
+  const [hover, setHover] = useState(false);
+  return (
+    <View
+      style={{ position: 'relative', zIndex: hover ? 50 : 1 }}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+    >
+      {children}
+      {hover && (
+        <View style={{
+          position: 'absolute', bottom: '100%', left: '50%',
+          transform: [{ translateX: -50 }] as any,
+          marginBottom: 5, paddingHorizontal: 7, paddingVertical: 4,
+          backgroundColor: '#0B0F1E', borderRadius: 6,
+          borderWidth: 1, borderColor: 'rgba(167,139,250,0.3)',
+          maxWidth: 160, zIndex: 60, whiteSpace: 'nowrap' as any,
         }}>
           <Text style={{ color: '#E9E4FF', fontFamily: FONTS.med, fontSize: 10, textAlign: 'center', lineHeight: 13 }}>{label}</Text>
         </View>
@@ -418,10 +550,10 @@ function StatsEditor({ stats, onChange }: any) {
           <TextInput value={s.value || ''} onChangeText={(v) => update(i, 'value', v)} placeholder="Value" placeholderTextColor={SAC.dim} style={[fi.input, { flex: 0.4 }]} />
           <TextInput value={s.label || ''} onChangeText={(v) => update(i, 'label', v)} placeholder="Label" placeholderTextColor={SAC.dim} style={[fi.input, { flex: 1 }]} />
           <View style={{ flexDirection: 'row', gap: 4 }}>
-            <Pressable onPress={() => move(i, i - 1)} style={[cs.iconBtn, { width: 26, height: 26 }]}><MoveUp size={11} color={SAC.muted} /></Pressable>
-            <Pressable onPress={() => move(i, i + 1)} style={[cs.iconBtn, { width: 26, height: 26 }]}><MoveDown size={11} color={SAC.muted} /></Pressable>
+            <Tip label="Move up"><Pressable onPress={() => move(i, i - 1)} style={[cs.iconBtn, { width: 26, height: 26 }]}><MoveUp size={11} color={SAC.muted} /></Pressable></Tip>
+            <Tip label="Move down"><Pressable onPress={() => move(i, i + 1)} style={[cs.iconBtn, { width: 26, height: 26 }]}><MoveDown size={11} color={SAC.muted} /></Pressable></Tip>
           </View>
-          <Pressable onPress={() => remove(i)} style={cs.iconBtn}><X size={12} color="#F87171" /></Pressable>
+          <Tip label="Remove"><Pressable onPress={() => remove(i)} style={cs.iconBtn}><X size={12} color="#F87171" /></Pressable></Tip>
         </View>
       ))}
       <Pressable onPress={add}><Text style={{ color: GRAD.from, fontFamily: FONTS.semi, fontSize: 12.5 }}>+ Add Stat</Text></Pressable>
@@ -456,7 +588,7 @@ function ListEditor({ items, fields, onChange, addLabel }: any) {
               style={[fi.input, { flex: fd.flex ?? 1, minWidth: 70 }]}
             />
           ))}
-          <Pressable onPress={() => remove(i)} style={cs.iconBtn}><X size={12} color="#F87171" /></Pressable>
+          <Tip label="Remove"><Pressable onPress={() => remove(i)} style={cs.iconBtn}><X size={12} color="#F87171" /></Pressable></Tip>
         </View>
       ))}
       <Pressable onPress={add}><Text style={{ color: GRAD.from, fontFamily: FONTS.semi, fontSize: 12.5 }}>+ {addLabel}</Text></Pressable>
@@ -639,11 +771,11 @@ function SponsorsEditor({ sponsors, onChange }: any) {
                 </Pressable>
               )}
             </View>
-            <Pressable onPress={() => remove(i)} style={[cs.iconBtn, { borderColor: 'rgba(239,68,68,0.30)' }]}>
-              <Trash2 size={13} color="#F87171" />
-            </Pressable>
+<Tip label="Remove tab"><Pressable onPress={() => remove(i)} style={[cs.iconBtn, { borderColor: 'rgba(239,68,68,0.30)' }]}>
+                <Trash2 size={13} color="#F87171" />
+              </Pressable></Tip>
+            </View>
           </View>
-        </View>
       ))}
       <Pressable onPress={add}>
         <Text style={{ color: GRAD.from, fontFamily: FONTS.semi, fontSize: 12.5 }}>+ Add Sponsor</Text>
@@ -686,9 +818,9 @@ function DownloadsEditor({ downloads, onChange }: any) {
             </View>
             <TextInput value={dl.file_size || ''} onChangeText={(v) => update(i, 'file_size', v)}
               placeholder="Size (2.4 MB)" placeholderTextColor={SAC.dim} style={[fi.input, { flex: 0.35, minWidth: 80 }]} />
-            <Pressable onPress={() => remove(i)} style={[cs.iconBtn, { borderColor: 'rgba(239,68,68,0.30)' }]}>
+            <Tip label="Remove sponsor"><Tip label="Remove download"><Pressable onPress={() => remove(i)} style={[cs.iconBtn, { borderColor: 'rgba(239,68,68,0.30)' }]}>
               <Trash2 size={13} color="#F87171" />
-            </Pressable>
+            </Pressable></Tip></Tip>
           </View>
           <TextInput value={dl.description || ''} onChangeText={(v) => update(i, 'description', v)}
             placeholder="Description" placeholderTextColor={SAC.dim} style={fi.input} />
@@ -697,13 +829,15 @@ function DownloadsEditor({ downloads, onChange }: any) {
             <TextInput value={dl.file_url || ''} onChangeText={(v) => update(i, 'file_url', v)}
               placeholder="File URL or paste link" placeholderTextColor={SAC.dim} style={[fi.input, { flex: 1 }]} />
             {Platform.OS === 'web' && (
-              <label style={{ cursor: 'pointer' }}>
-                <View style={[cs.iconBtn, { backgroundColor: 'rgba(123,61,191,0.15)', borderColor: 'rgba(123,61,191,0.40)' }]}>
-                  <Upload size={13} color={GRAD.from} />
-                </View>
-                <input type="file" accept=".pdf,.docx,.xlsx,.pptx,.zip" style={{ display: 'none' }}
-                  onChange={(e: any) => { const f = e.target.files?.[0]; if (f) handleFileUpload(i, f); }} />
-              </label>
+              <Tip label="Upload file">
+                <label style={{ cursor: 'pointer' }}>
+                  <View style={[cs.iconBtn, { backgroundColor: 'rgba(123,61,191,0.15)', borderColor: 'rgba(123,61,191,0.40)' }]}>
+                    <Upload size={13} color={GRAD.from} />
+                  </View>
+                  <input type="file" accept=".pdf,.docx,.xlsx,.pptx,.zip" style={{ display: 'none' }}
+                    onChange={(e: any) => { const f = e.target.files?.[0]; if (f) handleFileUpload(i, f); }} />
+                </label>
+              </Tip>
             )}
           </View>
           {dl.file_url && (
@@ -823,15 +957,15 @@ function PosterEditor({ posters, onChange }: { posters: string[]; onChange: (p: 
               placeholder="Poster image URL" placeholderTextColor={SAC.dim}
               style={[fi.input, { flex: 1 }]} />
             <View style={{ flexDirection: 'row', gap: 4 }}>
-              <Pressable onPress={() => move(i, -1)} disabled={i === 0} style={[cs.iconBtn, { opacity: i === 0 ? 0.35 : 1 }]}>
+              <Tip label="Move up"><Pressable onPress={() => move(i, -1)} disabled={i === 0} style={[cs.iconBtn, { opacity: i === 0 ? 0.35 : 1 }]}>
                 <ChevronUp size={13} color="#CBD5E1" />
-              </Pressable>
-              <Pressable onPress={() => move(i, 1)} disabled={i === list.length - 1} style={[cs.iconBtn, { opacity: i === list.length - 1 ? 0.35 : 1 }]}>
+              </Pressable></Tip>
+              <Tip label="Move down"><Pressable onPress={() => move(i, 1)} disabled={i === list.length - 1} style={[cs.iconBtn, { opacity: i === list.length - 1 ? 0.35 : 1 }]}>
                 <ChevronDown size={13} color="#CBD5E1" />
-              </Pressable>
-              <Pressable onPress={() => remove(i)} style={[cs.iconBtn, { borderColor: 'rgba(239,68,68,0.30)' }]}>
+              </Pressable></Tip>
+              <Tip label="Remove"><Pressable onPress={() => remove(i)} style={[cs.iconBtn, { borderColor: 'rgba(239,68,68,0.30)' }]}>
                 <Trash2 size={13} color="#F87171" />
-              </Pressable>
+              </Pressable></Tip>
             </View>
           </View>
           {url ? (
@@ -952,15 +1086,15 @@ function BannerCarouselEditor({ banners, onChange }: { banners: string[]; onChan
               placeholder="Banner image URL or paste link" placeholderTextColor={SAC.dim}
               style={[fi.input, { flex: 1 }]} />
             <View style={{ flexDirection: 'row', gap: 4 }}>
-              <Pressable onPress={() => move(i, -1)} disabled={i === 0} style={[cs.iconBtn, { opacity: i === 0 ? 0.35 : 1 }]}>
+              <Tip label="Move up"><Pressable onPress={() => move(i, -1)} disabled={i === 0} style={[cs.iconBtn, { opacity: i === 0 ? 0.35 : 1 }]}>
                 <ChevronUp size={13} color="#CBD5E1" />
-              </Pressable>
-              <Pressable onPress={() => move(i, 1)} disabled={i === list.length - 1} style={[cs.iconBtn, { opacity: i === list.length - 1 ? 0.35 : 1 }]}>
+              </Pressable></Tip>
+              <Tip label="Move down"><Pressable onPress={() => move(i, 1)} disabled={i === list.length - 1} style={[cs.iconBtn, { opacity: i === list.length - 1 ? 0.35 : 1 }]}>
                 <ChevronDown size={13} color="#CBD5E1" />
-              </Pressable>
-              <Pressable onPress={() => remove(i)} style={[cs.iconBtn, { borderColor: 'rgba(239,68,68,0.30)' }]}>
+              </Pressable></Tip>
+              <Tip label="Remove"><Pressable onPress={() => remove(i)} style={[cs.iconBtn, { borderColor: 'rgba(239,68,68,0.30)' }]}>
                 <Trash2 size={13} color="#F87171" />
-              </Pressable>
+              </Pressable></Tip>
             </View>
           </View>
         </View>
@@ -1122,24 +1256,28 @@ function GalleryDropzone({ gallery, onChange }: { gallery: any[]; onChange: (g: 
               {/* Controls */}
               <View style={{ gap: 5, alignItems: 'center' }}>
                 {/* Featured star */}
-                <Pressable onPress={() => updateItem(i, 'featured', !item.featured)}
-                  style={[cs.iconBtn, item.featured && { borderColor: '#F59E0B', backgroundColor: 'rgba(245,158,11,0.15)' }]}>
-                  <Star size={14} color={item.featured ? '#F59E0B' : SAC.muted} fill={item.featured ? '#F59E0B' : 'transparent'} />
-                </Pressable>
+                <Tip label={item.featured ? 'Unmark featured' : 'Mark featured'}>
+                  <Pressable onPress={() => updateItem(i, 'featured', !item.featured)}
+                    style={[cs.iconBtn, item.featured && { borderColor: '#F59E0B', backgroundColor: 'rgba(245,158,11,0.15)' }]}>
+                    <Star size={14} color={item.featured ? '#F59E0B' : SAC.muted} fill={item.featured ? '#F59E0B' : 'transparent'} />
+                  </Pressable>
+                </Tip>
                 {/* Hero marker */}
-                <Pressable onPress={() => updateItem(i, 'hero', !item.hero)}
-                  style={[cs.iconBtn, item.hero && { borderColor: GRAD.from, backgroundColor: 'rgba(123,61,191,0.15)' }]}>
-                  <ImageIcon size={13} color={item.hero ? GRAD.from : SAC.muted} />
-                </Pressable>
+                <Tip label={item.hero ? 'Unmark hero' : 'Mark as hero image'}>
+                  <Pressable onPress={() => updateItem(i, 'hero', !item.hero)}
+                    style={[cs.iconBtn, item.hero && { borderColor: GRAD.from, backgroundColor: 'rgba(123,61,191,0.15)' }]}>
+                    <ImageIcon size={13} color={item.hero ? GRAD.from : SAC.muted} />
+                  </Pressable>
+                </Tip>
                 {/* Order */}
                 <View style={{ flexDirection: 'row', gap: 3 }}>
-                  <Pressable onPress={() => moveItem(i, i - 1)} style={[cs.iconBtn, { width: 24, height: 24 }]}><MoveUp size={10} color={SAC.muted} /></Pressable>
-                  <Pressable onPress={() => moveItem(i, i + 1)} style={[cs.iconBtn, { width: 24, height: 24 }]}><MoveDown size={10} color={SAC.muted} /></Pressable>
+                  <Tip label="Move up"><Pressable onPress={() => moveItem(i, i - 1)} style={[cs.iconBtn, { width: 24, height: 24 }]}><MoveUp size={10} color={SAC.muted} /></Pressable></Tip>
+                  <Tip label="Move down"><Pressable onPress={() => moveItem(i, i + 1)} style={[cs.iconBtn, { width: 24, height: 24 }]}><MoveDown size={10} color={SAC.muted} /></Pressable></Tip>
                 </View>
                 {/* Delete */}
-                <Pressable onPress={() => removeItem(i)} style={[cs.iconBtn, { borderColor: 'rgba(239,68,68,0.30)' }]}>
+                <Tip label="Remove image"><Pressable onPress={() => removeItem(i)} style={[cs.iconBtn, { borderColor: 'rgba(239,68,68,0.30)' }]}>
                   <X size={13} color="#F87171" />
-                </Pressable>
+                </Pressable></Tip>
               </View>
             </View>
           ))}
@@ -1252,9 +1390,9 @@ function MediaLibraryPanel() {
                 onChange={(e: any) => { if (e.target.files?.length > 0) handleBulkUpload(e.target.files); }} />
             </label>
           )}
-          <Pressable onPress={load} style={[cs.iconBtn, { width: 34, height: 34 }]}>
+          <Tip label="Refresh files"><Pressable onPress={load} style={[cs.iconBtn, { width: 34, height: 34 }]}>
             <RefreshCw size={15} color={SAC.muted} />
-          </Pressable>
+          </Pressable></Tip>
         </View>
       </View>
 
@@ -1317,13 +1455,17 @@ function MediaLibraryPanel() {
                     <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>{m.original_name || m.filename}</Text>
                     <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted }}>{m.size_human} · {m.ext.toUpperCase()}</Text>
                   </View>
-                  <Pressable onPress={() => copyUrl(m.url)} style={cs.iconBtn}>
-                    {copiedUrl === m.url ? <Check size={13} color="#34D399" /> : <Copy size={13} color={SAC.muted} />}
-                  </Pressable>
-                  <Pressable onPress={() => onDelete(m.filename)}
-                    style={[cs.iconBtn, { borderColor: 'rgba(239,68,68,0.30)' }]}>
-                    {deleting === m.filename ? <ActivityIndicator size={10} color="#F87171" /> : <Trash2 size={13} color="#F87171" />}
-                  </Pressable>
+                  <Tip label="Copy URL">
+                    <Pressable onPress={() => copyUrl(m.url)} style={cs.iconBtn}>
+                      {copiedUrl === m.url ? <Check size={13} color="#34D399" /> : <Copy size={13} color={SAC.muted} />}
+                    </Pressable>
+                  </Tip>
+                  <Tip label="Delete file">
+                    <Pressable onPress={() => onDelete(m.filename)}
+                      style={[cs.iconBtn, { borderColor: 'rgba(239,68,68,0.30)' }]}>
+                      {deleting === m.filename ? <ActivityIndicator size={10} color="#F87171" /> : <Trash2 size={13} color="#F87171" />}
+                    </Pressable>
+                  </Tip>
                 </View>
               ))}
             </View>
@@ -1404,25 +1546,39 @@ function ShowcaseCard({ item, onEdit, onDelete, onPublish, onDraft, onArchive, o
           </View>
         </View>
         <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          <Pressable onPress={viewShowcase} style={[cs.iconBtn, { backgroundColor: 'rgba(124,58,237,0.12)', borderColor: 'rgba(167,139,250,0.25)' }]}>
-            <Globe size={14} color="#A78BFA" />
-          </Pressable>
-          <Pressable onPress={() => onPreview(item)} style={cs.iconBtn}><Eye size={14} color={SAC.muted} /></Pressable>
-          <Pressable onPress={() => onEdit(item)} style={cs.iconBtn}><Pencil size={14} color={SAC.muted} /></Pressable>
-          {item.status !== 'published' && (
-            <Pressable onPress={() => onPublish(item)} style={[cs.iconBtn, { borderColor: 'rgba(16,185,129,0.35)' }]}>
-              {busy === item._id ? <ActivityIndicator size={12} color={SAC.text} /> : <Send size={14} color="#34D399" />}
+          <Tip label="View live page">
+            <Pressable onPress={viewShowcase} style={[cs.iconBtn, { backgroundColor: 'rgba(124,58,237,0.12)', borderColor: 'rgba(167,139,250,0.25)' }]}>
+              <Globe size={14} color="#A78BFA" />
             </Pressable>
+          </Tip>
+          <Tip label="Preview">
+            <Pressable onPress={() => onPreview(item)} style={cs.iconBtn}><Eye size={14} color={SAC.muted} /></Pressable>
+          </Tip>
+          <Tip label="Edit">
+            <Pressable onPress={() => onEdit(item)} style={cs.iconBtn}><Pencil size={14} color={SAC.muted} /></Pressable>
+          </Tip>
+          {item.status !== 'published' && (
+            <Tip label="Publish">
+              <Pressable onPress={() => onPublish(item)} style={[cs.iconBtn, { borderColor: 'rgba(16,185,129,0.35)' }]}>
+                {busy === item._id ? <ActivityIndicator size={12} color={SAC.text} /> : <Send size={14} color="#34D399" />}
+              </Pressable>
+            </Tip>
           )}
           {item.status === 'published' && (
-            <Pressable onPress={() => onDraft(item)} style={cs.iconBtn}><Globe size={14} color={SAC.muted} /></Pressable>
+            <Tip label="Move to draft">
+              <Pressable onPress={() => onDraft(item)} style={cs.iconBtn}><Globe size={14} color={SAC.muted} /></Pressable>
+            </Tip>
           )}
           {item.status !== 'archived' && (
-            <Pressable onPress={() => onArchive(item)} style={cs.iconBtn}><Archive size={14} color={SAC.muted} /></Pressable>
+            <Tip label="Archive">
+              <Pressable onPress={() => onArchive(item)} style={cs.iconBtn}><Archive size={14} color={SAC.muted} /></Pressable>
+            </Tip>
           )}
-          <Pressable onPress={() => onDelete(item)} style={[cs.iconBtn, { borderColor: 'rgba(239,68,68,0.30)' }]}>
-            <Trash2 size={14} color="#F87171" />
-          </Pressable>
+          <Tip label="Delete">
+            <Pressable onPress={() => onDelete(item)} style={[cs.iconBtn, { borderColor: 'rgba(239,68,68,0.30)' }]}>
+              <Trash2 size={14} color="#F87171" />
+            </Pressable>
+          </Tip>
         </View>
       </View>
     </Card>
@@ -1624,17 +1780,17 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
               <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
                 <View style={{ flex: 1, minWidth: 180 }}>
                   <FieldRow label="Start Date">
-                    <Field value={form.date} onChangeText={(v: string) => set('date', v)} placeholder="August 15, 2026" />
+                    <FieldDate value={form.date} onChangeText={(v: string) => set('date', v)} placeholder="August 15, 2026" />
                   </FieldRow>
                 </View>
                 <View style={{ flex: 1, minWidth: 180 }}>
-                  <FieldRow label="End Date" hint="Leave empty for one-day events">
-                    <Field value={form.end_date} onChangeText={(v: string) => set('end_date', v)} placeholder="August 16, 2026" />
+                  <FieldRow label="End Date" hint="Empty = one-day">
+                    <FieldDate value={form.end_date} onChangeText={(v: string) => set('end_date', v)} placeholder="August 16, 2026" />
                   </FieldRow>
                 </View>
                 <View style={{ flex: 1, minWidth: 150 }}>
                   <FieldRow label="Time">
-                    <Field value={form.time} onChangeText={(v: string) => set('time', v)} placeholder="10:00 AM – 4:30 PM" />
+                    <FieldTime value={form.time} onChangeText={(v: string) => set('time', v)} placeholder="10:00 AM – 4:30 PM" />
                   </FieldRow>
                 </View>
               </View>
@@ -1927,7 +2083,7 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                   </View>
                 </View>
                 <FieldRow label="Registration Deadline">
-                  <Field value={(form.registration || {}).deadline || ''} onChangeText={(v: string) => set('registration', { ...(form.registration || {}), deadline: v })} placeholder="2026-08-14" />
+                  <IsoDateField value={(form.registration || {}).deadline || ''} onChangeText={(v: string) => set('registration', { ...(form.registration || {}), deadline: v })} placeholder="2026-08-14" />
                 </FieldRow>
                 <FieldRow label="Payment / Registration Note" hint="Shown to attendees on the registration page.">
                   <Field value={(form.registration || {}).payment_note || ''} onChangeText={(v: string) => set('registration', { ...(form.registration || {}), payment_note: v })} placeholder="Free entry for VNR students…" multiline rows={3} />
