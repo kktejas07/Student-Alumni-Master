@@ -87,12 +87,21 @@ def normalize_phone(phone: str, default_country: str = "91") -> Optional[str]:
         digits = digits[2:]
     if len(digits) < 7 or len(digits) > 15:
         return None
-    # If it already carries a country code (starts with default_country and is
-    # longer than a national number), keep as-is.
-    if digits.startswith(default_country) and len(digits) > len(default_country) + 6:
-        full = digits
-    else:
-        full = f"{default_country}{digits}"
+
+    # Common country code prefixes (length 1-3 digits). If the number starts
+    # with one of these AND is long enough to be cc+national, treat it as
+    # already carrying the country code — don't prepend the default.
+    _KNOWN_CC = {"1", "7", "20", "27", "30", "31", "32", "33", "34", "36",
+                 "39", "40", "41", "43", "44", "45", "46", "47", "48", "49",
+                 "51", "52", "53", "54", "55", "56", "57", "58", "60", "61",
+                 "62", "63", "64", "65", "66", "81", "82", "84", "86", "90",
+                 "91", "92", "93", "94", "95", "98"}
+    for cc in sorted(_KNOWN_CC, key=len, reverse=True):
+        if digits.startswith(cc) and len(digits) > len(cc) + 6:
+            return f"{digits}@c.us"
+
+    # Fallback: prepend default country code
+    full = f"{default_country}{digits}"
     return f"{full}@c.us"
 
 

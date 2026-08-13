@@ -367,6 +367,7 @@ const k = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999,
     backgroundColor: 'rgba(16,185,129,0.18)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.35)',
     maxWidth: 220, marginHorizontal: 'auto' as any,
+    zIndex: 9999, elevation: 9999,
   },
   toastError: {
     backgroundColor: 'rgba(239,68,68,0.18)', borderColor: 'rgba(239,68,68,0.45)',

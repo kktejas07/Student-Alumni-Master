@@ -327,7 +327,7 @@ async def upload_file(
 ):
     """Upload an image file and return its static URL. Used by ads, coupons, promotions."""
     role = (user.get("role") or "").lower()
-    if role not in ("admin", "superadmin", "super_admin"):
+    if role not in ("admin", "superadmin", "super_admin", "hr admin", "hr_admin"):
         raise HTTPException(403, "Only admins can upload files")
     from pathlib import Path
     from datetime import datetime as _dt, timezone as _tz

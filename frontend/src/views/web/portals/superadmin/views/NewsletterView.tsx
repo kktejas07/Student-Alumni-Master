@@ -28,6 +28,7 @@ import {
 import { api, resolveImageUrl } from '@/src/models/services/api';
 import HtmlRenderer from '@/src/views/web/policy/HtmlRenderer';
 import { useSubTab } from '@/src/views/web/portals/portalUrl';
+import LexicalEditor from './LexicalEditor';
 
 type Campaign = {
   campaign_id: string;
@@ -590,8 +591,8 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                 <Field label="Intro" hint="One or two welcoming sentences.">
                   <TextInput style={st.input} value={form.intro} onChangeText={(v) => set('intro', v)} placeholder="Hi everyone, we're excited to share what's coming up…" placeholderTextColor={SAC.dim} />
                 </Field>
-                <Field label="Message" hint="The main newsletter body (plain text or simple HTML).">
-                  <TextInput style={[st.input, { minHeight: 120, textAlignVertical: 'top' }]} value={form.body} onChangeText={(v) => set('body', v)} placeholder="Write your update here…" placeholderTextColor={SAC.dim} multiline />
+                <Field label="Message" hint="The main newsletter body (rich text).">
+                  <LexicalEditor value={form.body} onChange={(v) => set('body', v)} />
                 </Field>
                 <View style={{ flexDirection: 'row', gap: 10 }}>
                   <View style={{ flex: 1 }}>
@@ -743,7 +744,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                       <TextInput style={st.input} value={indForm.title} onChangeText={(v) => setIndForm((f) => ({ ...f, title: v }))} placeholder="e.g. Your session is confirmed!" placeholderTextColor={SAC.dim} />
                     </Field>
                     <Field label="Body *" hint="Notification message.">
-                      <TextInput style={[st.input, { minHeight: 80, textAlignVertical: 'top' }]} value={indForm.body} onChangeText={(v) => setIndForm((f) => ({ ...f, body: v }))} placeholder="Write the notification message…" placeholderTextColor={SAC.dim} multiline />
+                      <LexicalEditor value={indForm.body} onChange={(v) => setIndForm((f) => ({ ...f, body: v }))} />
                     </Field>
                     <Field label="Link URL (optional)" hint="Opens when user taps the notification.">
                       <TextInput style={st.input} value={indForm.cta_url} onChangeText={(v) => setIndForm((f) => ({ ...f, cta_url: v }))} placeholder="https://…" placeholderTextColor={SAC.dim} autoCapitalize="none" />
