@@ -27,7 +27,7 @@ Schema (promotions collection):
   }
 """
 from __future__ import annotations
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 from typing import List, Literal, Optional
 
 from bson import ObjectId
@@ -176,13 +176,26 @@ async def get_popup_announcements():
     promo_cur = db.promotions.find(promo_q).sort("display_order", 1).limit(3)
     promos = [_serialize(d) async for d in promo_cur]
 
-    # 2. Upcoming published Echo showcases
+    # 2. Upcoming published Echo shows only (date >= today, sorted ascending)
+    today = datetime.now(timezone.utc).date()
     event_cur = db.echo_showcases.find(
         {"status": "published"},
         {"title": 1, "slug": 1, "date": 1, "time": 1, "venue": 1, "hero_image_url": 1, "subtitle": 1}
-    ).sort("date", -1).limit(5)
+    ).sort("date", 1).limit(20)
     events = []
     async for d in event_cur:
+        raw = (d.get("date") or "").strip()
+        if not raw:
+            continue
+        ev_date = None
+        for fmt in ("%B %d, %Y", "%b %d, %Y", "%Y-%m-%d", "%d %B %Y", "%d/%m/%Y", "%m/%d/%Y"):
+            try:
+                ev_date = datetime.strptime(raw, fmt).date()
+                break
+            except ValueError:
+                continue
+        if ev_date is None or ev_date < today:
+            continue
         events.append({
             "id": str(d["_id"]),
             "title": d.get("title", ""),
@@ -193,6 +206,8 @@ async def get_popup_announcements():
             "hero_image_url": d.get("hero_image_url"),
             "subtitle": d.get("subtitle", ""),
         })
+        if len(events) >= 5:
+            break
 
     return {"promos": promos, "events": events}
 
