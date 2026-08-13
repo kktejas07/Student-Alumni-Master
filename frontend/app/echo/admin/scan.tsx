@@ -336,6 +336,7 @@ export default function EchoScanPage() {
                   <Text style={s.resultDetail}>
                     {result.type === 'ticket' ? 'Event' : 'Session'}: {result.coupon.session_name}
                   </Text>
+                  {result.coupon.session_day && <Text style={s.resultDetail}>Day: {result.coupon.session_day}</Text>}
                   <Text style={s.resultDetail}>Attendee: {result.coupon.attendee_name || '—'}</Text>
                   {result.coupon.attendee_email ? <Text style={s.resultDetail}>Email: {result.coupon.attendee_email}</Text> : null}
                   <Text style={s.resultDetail}>Code: {result.coupon.code}</Text>

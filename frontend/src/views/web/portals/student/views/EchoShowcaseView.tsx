@@ -216,7 +216,7 @@ function HeroBannerCarousel({ banners, data, isWide, onBack, canonicalSlug, show
           {/* Meta row */}
           <View style={bc.metaRow}>
             {data?.date ? (
-              <View style={bc.metaItem}><Calendar size={13} color="rgba(255,255,255,0.7)" /><Text style={bc.metaText}>{data.date}</Text></View>
+              <View style={bc.metaItem}><Calendar size={13} color="rgba(255,255,255,0.7)" /><Text style={bc.metaText}>{data.end_date && data.end_date !== data.date ? `${data.date} – ${data.end_date}` : data.date}</Text></View>
             ) : null}
             {data?.time ? (
               <View style={bc.metaItem}><Clock size={13} color="rgba(255,255,255,0.7)" /><Text style={bc.metaText}>{data.time}</Text></View>
@@ -635,7 +635,7 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
               {/* Meta rows */}
               <View style={s.metaGroup}>
                 {data?.date ? (
-                  <View style={s.metaRow}><Calendar size={13} color={PALETTE.muted} /><Text style={s.metaText}>{data.date}</Text></View>
+                  <View style={s.metaRow}><Calendar size={13} color={PALETTE.muted} /><Text style={s.metaText}>{data.end_date && data.end_date !== data.date ? `${data.date} – ${data.end_date}` : data.date}</Text></View>
                 ) : null}
                 {data?.time ? (
                   <View style={s.metaRow}><Clock size={13} color={PALETTE.muted} /><Text style={s.metaText}>{data.time}</Text></View>

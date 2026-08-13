@@ -72,11 +72,12 @@ DEFAULT_TICKET_TEMPLATE = "aurora"
 
 # Session coupon configuration — per-event
 DEFAULT_SESSIONS = [
-    {"key": "breakfast", "label": "Breakfast", "icon": "egg-fried", "enabled": False, "locked": False},
-    {"key": "lunch", "label": "Lunch", "icon": "utensils", "enabled": True, "locked": False},
-    {"key": "snacks", "label": "Snacks", "icon": "cookie", "enabled": True, "locked": False},
-    {"key": "tiffin", "label": "Tiffin", "icon": "sandwich", "enabled": False, "locked": False},
-    {"key": "coffee", "label": "Coffee & Tea", "icon": "cup-soda", "enabled": False, "locked": False},
+    {"key": "breakfast", "label": "Breakfast", "icon": "egg-fried", "day": 1, "enabled": False, "locked": False},
+    {"key": "lunch", "label": "Lunch", "icon": "utensils", "day": 1, "enabled": True, "locked": False},
+    {"key": "snacks", "label": "Snacks", "icon": "cookie", "day": 1, "enabled": True, "locked": False},
+    {"key": "dinner", "label": "Dinner", "icon": "utensils-crossed", "day": 1, "enabled": False, "locked": False},
+    {"key": "tiffin", "label": "Tiffin", "icon": "sandwich", "day": 1, "enabled": False, "locked": False},
+    {"key": "coffee", "label": "Coffee & Tea", "icon": "cup-soda", "day": 1, "enabled": False, "locked": False},
 ]
 
 
@@ -95,11 +96,14 @@ async def _generate_coupons_for_registration(db, slug: str, reg_id: str, session
         if not s.get("enabled"):
             continue
         code = _generate_coupon_code(s["key"], reg_id)
+        day = int(s.get("day") or 1)
+        day_label = f"Day {day} · " if day > 1 else ""
         coupons.append({
             "slug": slug,
             "reg_id": reg_id,
             "session_key": s["key"],
-            "session_name": s.get("label", s["key"]),
+            "session_name": f"{day_label}{s.get('label', s['key'])}",
+            "session_day": day,
             "coupon_code": code,
             "used": False,
             "used_at": None,
@@ -393,6 +397,16 @@ def _payment_label(method: Optional[str]) -> str:
     }.get(method or "", (method or "").title())
 
 
+def _event_date_label(showcase: Optional[dict]) -> str:
+    """Return a human-readable date string, showing a range for multi-day events."""
+    s = showcase or {}
+    start = (s.get("date") or "").strip()
+    end = (s.get("end_date") or "").strip()
+    if start and end and end != start:
+        return f"{start} – {end}"
+    return start or end or ""
+
+
 def _parse_iso(s: Optional[str]):
     """Parse an ISO 8601 string to an aware datetime. Returns None if unparseable."""
     if not s:
@@ -601,7 +615,7 @@ def _build_invoice(reg: dict, showcase: Optional[dict]) -> dict:
         "reg_id": reg.get("id"),
         "slug": reg.get("slug"),
         "event_title": (showcase or {}).get("title") or reg.get("showcase_title"),
-        "event_date": (showcase or {}).get("date") or "",
+        "event_date": _event_date_label(showcase),
         "event_venue": (showcase or {}).get("venue") or "",
         "full_name": reg.get("full_name"),
         "email": reg.get("email"),
@@ -1040,7 +1054,7 @@ def _build_ticket_html(reg: dict, showcase: dict, template_id: Optional[str] = N
     brand = "STUDENT ALUMNI · ECHO"
     organizer = esc(showcase.get("organizer_name") or "Student Alumni Cell")
     title = esc(reg.get("showcase_title") or showcase.get("title") or "Event")
-    event_date = esc(showcase.get("date") or "")
+    event_date = esc(_event_date_label(showcase))
     event_time = esc(showcase.get("time") or "")
     venue = esc(showcase.get("venue") or "")
     name = esc(reg.get("full_name") or "Attendee")
@@ -1325,7 +1339,7 @@ def _ticket_email_block(reg: dict, showcase: dict, ticket_url: str) -> str:
     qr = reg.get("qr_code_base64") or ""
     title = reg.get("showcase_title") or showcase.get("title") or "Event"
     reg_id = reg.get("id") or ""
-    event_date = showcase.get("date") or ""
+    event_date = _event_date_label(showcase)
     event_time = showcase.get("time") or ""
     venue = showcase.get("venue") or ""
     organizer = showcase.get("organizer_name") or "Student Alumni Cell"
@@ -1865,6 +1879,7 @@ class ShowcaseCreateSchema(BaseModel):
     subtitle: Optional[str] = ""
     description: Optional[str] = ""
     date: Optional[str] = ""
+    end_date: Optional[str] = ""
     time: Optional[str] = ""
     venue: Optional[str] = ""
     college: Optional[str] = ""
@@ -1910,6 +1925,7 @@ class ShowcaseUpdateSchema(BaseModel):
     subtitle: Optional[str] = None
     description: Optional[str] = None
     date: Optional[str] = None
+    end_date: Optional[str] = None
     time: Optional[str] = None
     venue: Optional[str] = None
     college: Optional[str] = None
@@ -3752,6 +3768,7 @@ async def scan_coupon_get(code: str, request: Request):
             "coupon_code": coupon.get("coupon_code"),
             "session_name": coupon.get("session_name"),
             "session_key": coupon.get("session_key"),
+            "session_day": coupon.get("session_day") or 1,
             "used": coupon.get("used", False),
             "used_at": coupon.get("used_at"),
             "slug": coupon.get("slug"),
@@ -3838,6 +3855,7 @@ async def scan_coupon(request: Request, admin=Depends(_require_admin)):
         "coupon": {
             "code": code,
             "session_name": coupon["session_name"],
+            "session_day": coupon.get("session_day") or 1,
             "attendee_name": reg.get("full_name", "") if reg else "",
             "attendee_email": reg.get("email", "") if reg else "",
             "used_at": now.isoformat(),

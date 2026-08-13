@@ -286,6 +286,13 @@ export default function EchoRegisterPage() {
 
   const canonicalSlug: string = showcase?.slug || slug || '';
 
+  const eventDateLabel: string = useMemo(() => {
+    const start = (showcase?.date || '').trim();
+    const end = (showcase?.end_date || '').trim();
+    if (start && end && end !== start) return `${start} – ${end}`;
+    return start || end || '';
+  }, [showcase?.date, showcase?.end_date]);
+
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   const regCfg = showcase?.registration || {};
@@ -473,7 +480,7 @@ export default function EchoRegisterPage() {
             <Text style={s.headerTitle}>{showcase.title}</Text>
             <Text style={s.headerOrg}>Organized by {showcase.organizer_name || showcase.college || '—'}</Text>
             <View style={s.metaCol}>
-              {showcase.date ? <View style={s.metaRow}><Calendar size={13} color={PALETTE.muted} /><Text style={s.metaText}>{showcase.date}</Text></View> : null}
+              {eventDateLabel ? <View style={s.metaRow}><Calendar size={13} color={PALETTE.muted} /><Text style={s.metaText}>{eventDateLabel}</Text></View> : null}
               {showcase.time ? <View style={s.metaRow}><Clock size={13} color={PALETTE.muted} /><Text style={s.metaText}>{showcase.time}</Text></View> : null}
               {showcase.venue ? <View style={s.metaRow}><MapPin size={13} color={PALETTE.muted} /><Text style={s.metaText}>{showcase.venue}</Text></View> : null}
             </View>
@@ -626,7 +633,7 @@ export default function EchoRegisterPage() {
           <Text style={s.headerTitle}>{showcase.title}</Text>
           <Text style={s.headerOrg}>Organized by {showcase.organizer_name || showcase.college || '—'}</Text>
           <View style={s.metaCol}>
-            {showcase.date ? <View style={s.metaRow}><Calendar size={13} color={PALETTE.muted} /><Text style={s.metaText}>{showcase.date}</Text></View> : null}
+            {eventDateLabel ? <View style={s.metaRow}><Calendar size={13} color={PALETTE.muted} /><Text style={s.metaText}>{eventDateLabel}</Text></View> : null}
             {showcase.time ? <View style={s.metaRow}><Clock size={13} color={PALETTE.muted} /><Text style={s.metaText}>{showcase.time}</Text></View> : null}
             {showcase.venue ? <View style={s.metaRow}><MapPin size={13} color={PALETTE.muted} /><Text style={s.metaText}>{showcase.venue}</Text></View> : null}
           </View>

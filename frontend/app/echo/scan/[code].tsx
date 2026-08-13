@@ -85,6 +85,7 @@ export default function EchoScanPage() {
   const titleLabel = isTicket
     ? (data?.event_title || 'Event ticket')
     : (data?.session_name || '');
+  const sessionDay = !isTicket && data?.session_day ? Number(data.session_day) : 0;
 
   return (
     <View style={s.root}>
@@ -116,12 +117,14 @@ export default function EchoScanPage() {
             {status === 'ok' && (
               <>
                 <Text style={s.sessionName}>{titleLabel}</Text>
+                {sessionDay > 0 && (
+                  <Text style={[s.sessionName, { fontSize: 12, opacity: 0.7, marginTop: 2 }]}>Day {sessionDay}</Text>
+                )}
                 {!isTicket ? (
                   <View style={s.codePill}>
                     <Text style={s.codeText}>{data.coupon_code}</Text>
                   </View>
-                ) : (
-                  <>
+                ) : (                  <>
                     {data.full_name && (
                       <Text style={s.metaText} numberOfLines={1} ellipsizeMode="tail">{data.full_name}</Text>
                     )}
