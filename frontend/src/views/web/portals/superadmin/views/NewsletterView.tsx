@@ -105,6 +105,15 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
   const [heroUploading, setHeroUploading] = useState(false);
   const heroFileRef = useRef<any>(null);
 
+  // Scheduling and test send states
+  const [sendImmediately, setSendImmediately] = useState(true);
+  const [scheduleDate, setScheduleDate] = useState('');
+  const [scheduleTime, setScheduleTime] = useState('12:00');
+  const [testEmail, setTestEmail] = useState('');
+  const [testSending, setTestSending] = useState(false);
+  const [previewHtmlBackend, setPreviewHtmlBackend] = useState('');
+  const [loadingPreview, setLoadingPreview] = useState(false);
+
   // Individual notification state
   const [indUserQuery, setIndUserQuery] = useState('');
   const [indUserResults, setIndUserResults] = useState<any[]>([]);
@@ -159,10 +168,80 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
     }
   };
 
+  const fetchFullPreview = async () => {
+    if (!form.subject.trim()) { flash('Subject is required to generate preview'); return; }
+    setLoadingPreview(true);
+    try {
+      const res = await api.previewNewsletter({
+        subject: form.subject,
+        hero_image: form.hero_image,
+        intro: form.intro,
+        body: form.body,
+        cta_text: form.cta_text,
+        cta_url: form.cta_url,
+        include_upcoming: form.include_upcoming,
+      });
+      if (res?.html) {
+        setPreviewHtmlBackend(res.html);
+        flash('Full layout preview updated');
+      }
+    } catch (e: any) {
+      flash(e?.message || 'Failed to fetch layout preview');
+    } finally {
+      setLoadingPreview(false);
+    }
+  };
+
+  const doSendTest = async () => {
+    if (!testEmail.trim()) { flash('Enter a test email address'); return; }
+    if (!form.subject.trim()) { flash('Subject is required'); return; }
+    setTestSending(true);
+    try {
+      const res = await api.sendNewsletterTest({
+        subject: form.subject,
+        hero_image: form.hero_image,
+        intro: form.intro,
+        body: form.body,
+        cta_text: form.cta_text,
+        cta_url: form.cta_url,
+        include_upcoming: form.include_upcoming,
+        test_email: testEmail.trim(),
+      });
+      flash(res?.message || 'Test email sent successfully');
+    } catch (e: any) {
+      flash(e?.message || 'Failed to send test email');
+    } finally {
+      setTestSending(false);
+    }
+  };
+
   const doSend = async () => {
     if (!form.subject.trim()) { flash('Subject is required'); return; }
     if (!form.body.trim() && !form.cta_url.trim()) { flash('Add a message or a CTA link'); return; }
     if (!form.send_email && !form.send_push && !form.send_in_app) { flash('Select at least one channel'); return; }
+
+    let send_at: string | undefined = undefined;
+    if (!sendImmediately) {
+      if (!scheduleDate.trim() || !scheduleTime.trim()) {
+        flash('Please fill in both Date and Time for scheduling');
+        return;
+      }
+      try {
+        const parsed = new Date(`${scheduleDate}T${scheduleTime}:00`);
+        if (isNaN(parsed.getTime())) {
+          throw new Error('Invalid Date/Time values');
+        }
+        if (parsed <= new Date()) {
+          flash('Scheduled time must be in the future');
+          return;
+        }
+        send_at = parsed.toISOString();
+      } catch {
+        flash('Invalid Date or Time format. Use YYYY-MM-DD and HH:MM');
+        return;
+      }
+    }
+
     setSending(true);
     setConfirming(false);
     try {
@@ -177,6 +256,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
         send_email: form.send_email,
         send_push: form.send_push,
         send_in_app: form.send_in_app,
+        send_at,
       });
       flash(r?.message || 'Newsletter sent');
       await load();
@@ -380,6 +460,34 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                     <ChannelPill icon={Bell} label="In-App" active={form.send_in_app} onToggle={() => set('send_in_app', !form.send_in_app)} />
                   </View>
                 </View>
+
+                {/* Scheduling controls */}
+                <View style={st.channelSection}>
+                  <Text style={st.channelLabel}>DELIVERY TYPE</Text>
+                  <View style={{ flexDirection: 'row', gap: 10, marginTop: 6 }}>
+                    <Pressable onPress={() => setSendImmediately(true)} style={[st.tab, sendImmediately && st.tabActive, { flex: 1, paddingVertical: 8, justifyContent: 'center' }]}>
+                      <Text style={[st.tabText, sendImmediately && st.tabTextActive, { textAlign: 'center' }]}>Send Immediately</Text>
+                    </Pressable>
+                    <Pressable onPress={() => { setSendImmediately(false); if (!scheduleDate) { const tom = new Date(); tom.setDate(tom.getDate() + 1); setScheduleDate(tom.toISOString().split('T')[0]); } }} style={[st.tab, !sendImmediately && st.tabActive, { flex: 1, paddingVertical: 8, justifyContent: 'center' }]}>
+                      <Text style={[st.tabText, !sendImmediately && st.tabTextActive, { textAlign: 'center' }]}>Schedule Send</Text>
+                    </Pressable>
+                  </View>
+                </View>
+
+                {!sendImmediately && (
+                  <View style={{ flexDirection: 'row', gap: 10 }}>
+                    <View style={{ flex: 1 }}>
+                      <Field label="Schedule Date *" hint="Format: YYYY-MM-DD">
+                        <TextInput style={st.input} value={scheduleDate} onChangeText={setScheduleDate} placeholder="e.g. 2026-08-15" placeholderTextColor={SAC.dim} />
+                      </Field>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Field label="Schedule Time (UTC) *" hint="Format: HH:MM (24h)">
+                        <TextInput style={st.input} value={scheduleTime} onChangeText={setScheduleTime} placeholder="e.g. 14:30" placeholderTextColor={SAC.dim} />
+                      </Field>
+                    </View>
+                  </View>
+                )}
               </View>
 
               <View style={{ flexDirection: 'row', gap: 10, marginTop: 18 }}>
@@ -387,7 +495,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                   <View style={{ flexDirection: 'row', gap: 10, flex: 1 }}>
                     <View style={{ flex: 1 }}>
                       <GradientButton onPress={doSend} loading={sending}>
-                        <Send size={13} color="#fff" /><Text style={st.btnText}>Send to all users</Text>
+                        <Send size={13} color="#fff" /><Text style={st.btnText}>{sendImmediately ? "Send to all users" : "Schedule Campaign"}</Text>
                       </GradientButton>
                     </View>
                     <SecondaryButton onPress={() => setConfirming(false)}><Text style={st.secText}>Cancel</Text></SecondaryButton>
@@ -395,7 +503,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                 ) : (
                   <View style={{ flex: 1 }}>
                     <GradientButton onPress={() => setConfirming(true)}>
-                      <Send size={13} color="#fff" /><Text style={st.btnText}>Send Newsletter</Text>
+                      <Send size={13} color="#fff" /><Text style={st.btnText}>{sendImmediately ? "Send Newsletter" : "Schedule Newsletter"}</Text>
                     </GradientButton>
                   </View>
                 )}
@@ -403,7 +511,12 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
               {confirming && !sending && (
                 <View style={st.confirmBox}>
                   <AlertTriangle size={13} color="#FCD34D" />
-                  <Text style={st.confirmText}>This will notify every registered user via selected channels. Make sure your content looks right.</Text>
+                  <Text style={st.confirmText}>
+                    {sendImmediately 
+                      ? "This will notify every registered user via selected channels. Make sure your content looks right."
+                      : `This will schedule the newsletter to be sent automatically on ${scheduleDate} at ${scheduleTime} UTC.`
+                    }
+                  </Text>
                 </View>
               )}
             </>
@@ -488,9 +601,32 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
 
         {/* ── Preview ── */}
         <Card style={{ width: Platform.OS === 'web' ? 400 : '100%' }}>
-          <SectionLabel>EMAIL PREVIEW</SectionLabel>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <SectionLabel>EMAIL PREVIEW</SectionLabel>
+            <SecondaryButton onPress={fetchFullPreview} loading={loadingPreview}>
+              <Text style={st.secText}>Get Full Layout</Text>
+            </SecondaryButton>
+          </View>
           <View style={st.previewFrame}>
-            <HtmlRenderer html={previewHtml} />
+            <HtmlRenderer html={previewHtmlBackend || previewHtml} />
+          </View>
+
+          <View style={{ marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: SAC.border, gap: 10 }}>
+            <SectionLabel>SEND TEST EMAIL</SectionLabel>
+            <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+              <TextInput
+                style={[st.input, { flex: 1, height: 36, paddingVertical: 4 }]}
+                value={testEmail}
+                onChangeText={setTestEmail}
+                placeholder="test@example.com"
+                placeholderTextColor={SAC.dim}
+                autoCapitalize="none"
+                keyboardType="email-address"
+              />
+              <SecondaryButton onPress={doSendTest} loading={testSending}>
+                <Text style={st.secText}>Send Test</Text>
+              </SecondaryButton>
+            </View>
           </View>
         </Card>
       </View>
@@ -517,6 +653,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                   </Text>
                 </View>
                 <View style={{ flexDirection: 'row', gap: 6 }}>
+                  {c.status === 'scheduled' && <StatusPill kind="warn" label={`Scheduled: ${c.send_at?.slice(0, 16).replace('T', ' ')}`} />}
                   {c.email_ok > 0 && <StatusPill kind="success" label={`${c.email_ok} email`} />}
                   {c.push_ok > 0 && <StatusPill kind="info" label={`${c.push_ok} push`} />}
                   {c.in_app_ok > 0 && <StatusPill kind="info" label={`${c.in_app_ok} in-app`} />}
