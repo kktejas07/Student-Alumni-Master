@@ -644,37 +644,37 @@ async def send_newsletter(payload: SendNewsletterSchema, request: Request, user=
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid date format. Use ISO format (e.g., YYYY-MM-DDTHH:MM:SSZ)")
 
-    campaign = {
-        "campaign_id": campaign_id,
-        "subject": payload.subject,
-        "hero_image": payload.hero_image or "",
-        "intro": payload.intro or "",
-        "body": payload.body or "",
-        "cta_text": payload.cta_text or "",
-        "cta_url": payload.cta_url or "",
-        "include_upcoming": payload.include_upcoming,
-        "channels": {
-            "email": payload.send_email,
-            "push": payload.send_push,
-            "in_app": payload.send_in_app,
-            "whatsapp": payload.send_whatsapp,
-        },
-        "recipients_count": len(subscribers),
-        "sent": False,
-        "status": "scheduled",
-        "send_at": dt_send.isoformat(),
-        "created_at": _now(),
-        "created_by": created_by,
-    }
-    await db.email_campaigns.insert_one(campaign)
-    return {
-        "ok": True,
-        "campaign_id": campaign_id,
-        "recipients": len(subscribers),
-        "message": f"Campaign scheduled successfully for {dt_send.strftime('%Y-%m-%d %H:%M:%S UTC')}",
-    }
+        campaign = {
+            "campaign_id": campaign_id,
+            "subject": payload.subject,
+            "hero_image": payload.hero_image or "",
+            "intro": payload.intro or "",
+            "body": payload.body or "",
+            "cta_text": payload.cta_text or "",
+            "cta_url": payload.cta_url or "",
+            "include_upcoming": payload.include_upcoming,
+            "channels": {
+                "email": payload.send_email,
+                "push": payload.send_push,
+                "in_app": payload.send_in_app,
+                "whatsapp": payload.send_whatsapp,
+            },
+            "recipients_count": len(subscribers),
+            "sent": False,
+            "status": "scheduled",
+            "send_at": dt_send.isoformat(),
+            "created_at": _now(),
+            "created_by": created_by,
+        }
+        await db.email_campaigns.insert_one(campaign)
+        return {
+            "ok": True,
+            "campaign_id": campaign_id,
+            "recipients": len(subscribers),
+            "message": f"Campaign scheduled successfully for {dt_send.strftime('%Y-%m-%d %H:%M:%S UTC')}",
+        }
 
-# Otherwise immediate send (runs in background task so API client receives fast response)
+    # Immediate send (runs in background task so API client receives fast response)
     campaign = {
         "campaign_id": campaign_id,
         "subject": payload.subject,
