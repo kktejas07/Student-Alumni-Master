@@ -41,11 +41,15 @@ type Campaign = {
   push_fail?: number;
   in_app_ok?: number;
   whatsapp_ok?: number;
+  whatsapp_fail?: number;
   status?: string;
   created_at?: string;
+  completed_at?: string;
+  cancelled_at?: string;
   created_by?: string;
   include_upcoming?: boolean;
   send_at?: string;
+  individual?: boolean;
 };
 
 function buildPreviewHtml(form: any, events: any[]): string {
@@ -849,55 +853,77 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
           ) : campaigns.length === 0 ? (
             <Text style={st.muted}>No campaigns sent yet. Your first newsletter will appear here.</Text>
           ) : (
-            campaigns.map((c, i) => (
-              <View key={c.campaign_id || i} style={st.campRow}>
-                <IconBox size={30}>
-                  {c.status === 'scheduled' ? <Calendar size={13} color="#FCD34D" /> : <Mail size={13} color={GRAD.to} />}
-                </IconBox>
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text numberOfLines={1} style={st.campTitle}>{c.subject}</Text>
-                  <Text numberOfLines={1} style={st.campMeta}>
-                    {c.status === 'scheduled'
-                      ? `Scheduled for ${c.send_at?.slice(0, 16).replace('T', ' ')} UTC`
-                      : `Sent ${c.created_at?.slice(0, 16).replace('T', ' ') || '—'} · ${c.recipients_count || 0} users`
-                    }
-                  </Text>
-                </View>
-                <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                  {(c.status === 'scheduled' || c.status === 'cancelled' || c.status === 'failed') && (
-                    <>
-                      <Pressable
-                        onPress={() => startEdit(c.campaign_id)}
-                        style={[st.channelPill, { borderColor: '#7C3AED', paddingHorizontal: 8, paddingVertical: 4 }]}
-                        disabled={loadingEdit}
-                      >
-                        <Text style={{ color: '#A78BFA', fontSize: 11, fontFamily: 'System' }}>
-                          {loadingEdit ? 'Loading…' : 'Edit'}
-                        </Text>
-                      </Pressable>
-                      {c.status === 'scheduled' && (
+            campaigns.map((c, i) => {
+              const statusKind = c.status === 'completed' || c.status === 'sent' ? 'success'
+                : c.status === 'scheduled' ? 'info'
+                : c.status === 'sending' ? 'info'
+                : c.status === 'cancelled' ? 'warn'
+                : c.status === 'failed' ? 'danger'
+                : 'neutral';
+              const statusLabel = c.status === 'completed' ? 'Sent'
+                : c.status === 'sent' ? 'Sent'
+                : c.status === 'scheduled' ? `Scheduled · ${c.send_at?.slice(5, 16).replace('T', ' ') || ''}`
+                : c.status === 'sending' ? 'Sending…'
+                : c.status === 'cancelled' ? 'Cancelled'
+                : c.status === 'failed' ? 'Failed'
+                : c.status || 'unknown';
+              const totalOk = (c.email_ok || 0) + (c.push_ok || 0) + (c.in_app_ok || 0) + (c.whatsapp_ok || 0);
+              const totalFail = (c.email_fail || 0) + (c.push_fail || 0) + (c.whatsapp_fail || 0);
+              return (
+                <View key={c.campaign_id || i} style={st.campRow}>
+                  <IconBox size={30}>
+                    {c.status === 'scheduled' ? <Calendar size={13} color="#FCD34D" />
+                      : c.status === 'sending' ? <RefreshCw size={13} color="#93C5FD" />
+                      : c.status === 'cancelled' ? <X size={13} color="#FCA5A5" />
+                      : c.individual ? <User size={13} color={GRAD.to} />
+                      : <Mail size={13} color={GRAD.to} />}
+                  </IconBox>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text numberOfLines={1} style={st.campTitle}>
+                      {c.individual ? '📢 ' : ''}{c.subject}
+                    </Text>
+                    <Text numberOfLines={1} style={st.campMeta}>
+                      {c.status === 'scheduled'
+                        ? `Scheduled for ${c.send_at?.slice(0, 16).replace('T', ' ')} UTC`
+                        : c.status === 'sending'
+                        ? 'Sending in progress…'
+                        : `${c.recipients_count || 0} recipients · ${c.created_at?.slice(0, 16).replace('T', ' ') || '—'}`
+                      }
+                    </Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: 280 }}>
+                    <StatusPill kind={statusKind} label={statusLabel} />
+                    {totalOk > 0 && <StatusPill kind="success" label={`${totalOk} delivered`} />}
+                    {totalFail > 0 && <StatusPill kind="warn" label={`${totalFail} failed`} />}
+                    {/* Actions */}
+                    {c.status !== 'sending' && (
+                      <>
+                        {c.status === 'scheduled' && (
+                          <Pressable
+                            onPress={() => startEdit(c.campaign_id)}
+                            style={[st.channelPill, { borderColor: '#7C3AED', paddingHorizontal: 8, paddingVertical: 4 }]}
+                            disabled={loadingEdit}
+                          >
+                            <Text style={{ color: '#A78BFA', fontSize: 11, fontFamily: 'System' }}>
+                              {loadingEdit ? 'Loading…' : 'Edit'}
+                            </Text>
+                          </Pressable>
+                        )}
                         <Pressable
                           onPress={() => cancelCampaign(c.campaign_id)}
                           style={[st.channelPill, { borderColor: '#ef4444', paddingHorizontal: 8, paddingVertical: 4 }]}
                           disabled={cancellingId === c.campaign_id}
                         >
                           <Text style={{ color: '#ef4444', fontSize: 11, fontFamily: 'System' }}>
-                            {cancellingId === c.campaign_id ? 'Cancelling…' : 'Cancel'}
+                            {cancellingId === c.campaign_id ? 'Working…' : c.status === 'scheduled' ? 'Cancel' : 'Delete'}
                           </Text>
                         </Pressable>
-                      )}
-                    </>
-                  )}
-                  {c.status === 'cancelled' && <StatusPill kind="warn" label="Cancelled" />}
-                  {c.status === 'sending' && <StatusPill kind="info" label="Sending…" />}
-                  {c.email_ok != null && c.email_ok > 0 && <StatusPill kind="success" label={`${c.email_ok} email`} />}
-                  {c.push_ok != null && c.push_ok > 0 && <StatusPill kind="info" label={`${c.push_ok} push`} />}
-                  {c.in_app_ok != null && c.in_app_ok > 0 && <StatusPill kind="info" label={`${c.in_app_ok} in-app`} />}
-                  {c.whatsapp_ok != null && c.whatsapp_ok > 0 && <StatusPill kind="brand" label={`${c.whatsapp_ok} whatsapp`} />}
-                  {c.fail_count != null && c.fail_count > 0 && <StatusPill kind="warn" label={`${c.fail_count} failed`} />}
+                      </>
+                    )}
+                  </View>
                 </View>
-              </View>
-            ))
+              );
+            })
           )}
         </View>
       </Card>

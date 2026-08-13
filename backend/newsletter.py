@@ -260,8 +260,10 @@ async def list_campaigns(
         d["push_ok"] = d.get("push_ok", 0)
         d["push_fail"] = d.get("push_fail", 0)
         d["in_app_ok"] = d.get("in_app_ok", 0)
+        d["whatsapp_ok"] = d.get("whatsapp_ok", 0)
+        d["whatsapp_fail"] = d.get("whatsapp_fail", 0)
         d["ok_count"] = email_ok
-        d["fail_count"] = email_fail + d["push_fail"]
+        d["fail_count"] = email_fail + d["push_fail"] + d.get("whatsapp_fail", 0)
         d["send_at"] = d.get("send_at")
         d["status"] = d.get("status", "sent")
         d.pop("attempts", None)
@@ -270,19 +272,24 @@ async def list_campaigns(
 
 
 @router.delete("/admin/campaigns/{campaign_id}")
-async def cancel_scheduled_campaign(campaign_id: str, request: Request, _=Depends(require_role("admin", "super_admin"))):
-    """Cancel a scheduled campaign that has not been sent yet."""
+async def cancel_or_delete_campaign(campaign_id: str, request: Request, _=Depends(require_role("admin", "super_admin"))):
+    """Cancel a scheduled campaign, or delete a completed/cancelled/failed one."""
     db = _get_db(request)
     camp = await db.email_campaigns.find_one({"campaign_id": campaign_id})
     if not camp:
         raise HTTPException(status_code=404, detail="Campaign not found")
-    if camp.get("status") != "scheduled":
-        raise HTTPException(status_code=400, detail="Only scheduled campaigns can be cancelled")
-    await db.email_campaigns.update_one(
-        {"campaign_id": campaign_id},
-        {"$set": {"status": "cancelled", "cancelled_at": _now()}}
-    )
-    return {"ok": True, "message": "Campaign cancelled successfully"}
+    status = camp.get("status", "sent")
+    if status == "sending":
+        raise HTTPException(status_code=400, detail="Cannot delete a campaign that is currently sending")
+    if status == "scheduled":
+        await db.email_campaigns.update_one(
+            {"campaign_id": campaign_id},
+            {"$set": {"status": "cancelled", "cancelled_at": _now()}}
+        )
+        return {"ok": True, "message": "Campaign cancelled"}
+    # For sent/completed/cancelled/failed → permanently delete
+    await db.email_campaigns.delete_one({"campaign_id": campaign_id})
+    return {"ok": True, "message": "Campaign deleted"}
 
 
 def _serialize_campaign(d: dict) -> dict:
