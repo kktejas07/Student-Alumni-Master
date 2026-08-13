@@ -215,3 +215,7 @@ backend/api_audit_results.json
 backend/phase7_e2e_results.json
 backend/portal_regression_results.json
 backend/cryptography.whl
+
+# ── User uploaded files / media (always store in docker volume, never in Git)
+uploads/
+backend/uploads/
