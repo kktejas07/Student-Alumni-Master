@@ -934,7 +934,7 @@ export default function EchoRegisterPage() {
                     </View>
                   </View>
                 </Modal>
-                <ImportantRegistrationInfo />
+                <ImportantRegistrationInfo phones={(showcase?.registration?.contact_phones || []).filter((p: string) => p.trim())} />
                 <View style={s.accountNote}>
                   <ShieldCheck size={13} color="#A78BFA" />
                   <Text style={s.accountNoteText}>

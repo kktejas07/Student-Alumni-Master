@@ -2054,6 +2054,7 @@ class RegistrationConfig(BaseModel):
     payment_url: Optional[str] = None  # External payment gateway link (e.g. Razorpay/Stripe) shown on the register page
     poster_images: Optional[List[str]] = []  # Poster images displayed on the register page
     ticket_template: Optional[str] = "aurora"  # aurora | classic | minimal
+    contact_phones: Optional[List[str]] = []  # Contact phone numbers shown on the registration page
 
 
 DEFAULT_SECTIONS = {
@@ -2256,6 +2257,12 @@ DEFAULT_SHOWCASE_SEED = {
             "https://picsum.photos/seed/echo2026-poster1/900/1200",
             "https://picsum.photos/seed/echo2026-poster2/900/1200",
             "https://picsum.photos/seed/echo2026-poster3/900/1200"
+        ],
+        "contact_phones": [
+            "91214 95077",
+            "84669 65800",
+            "+91 96527 14339",
+            "+91 83416 97598"
         ],
     },
     "created_at": _now(),

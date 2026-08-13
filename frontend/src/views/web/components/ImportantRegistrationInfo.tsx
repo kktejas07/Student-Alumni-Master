@@ -3,13 +3,22 @@ import { View, Text, StyleSheet, Platform, Linking, useWindowDimensions } from '
 import { PALETTE, FONTS } from '@/src/views/web/portals/student/tokens';
 import { Users, Info, HelpCircle, Check } from 'lucide-react-native';
 
-export function ImportantRegistrationInfo() {
+function normalizePhoneForDialer(raw: string): string {
+  const digits = raw.replace(/[^0-9+]/g, '');
+  if (digits.startsWith('+')) return digits;
+  if (digits.length === 10) return digits;
+  return digits;
+}
+
+export function ImportantRegistrationInfo({ phones = [] }: { phones?: string[] }) {
   const { width } = useWindowDimensions();
   const isMobile = width < 500;
 
   const openDialer = (number: string) => {
-    Linking.openURL(`tel:${number}`);
+    Linking.openURL(`tel:${normalizePhoneForDialer(number)}`);
   };
+
+  const validPhones = phones.filter((p) => p.trim().length > 0);
 
   return (
     <View style={s.container}>
@@ -38,37 +47,50 @@ export function ImportantRegistrationInfo() {
         </Text>
       </View>
 
-      <View style={s.item}>
-        <View style={s.itemHeader}>
-          <HelpCircle size={14} color={PALETTE.muted} />
-          <Text style={s.itemTitle}>Need Help?</Text>
+      {validPhones.length > 0 && (
+        <View style={s.item}>
+          <View style={s.itemHeader}>
+            <HelpCircle size={14} color={PALETTE.muted} />
+            <Text style={s.itemTitle}>Need Help?</Text>
+          </View>
+          <Text style={s.itemText}>
+            For any registration issues or queries, contact:
+          </Text>
+
+          {isMobile ? (
+            <View style={[s.contactGrid, { flexDirection: 'column', gap: 6 }]}>
+              {validPhones.map((phone, idx) => (
+                <Text key={idx} onPress={() => openDialer(phone)} style={s.phoneText}>{phone}</Text>
+              ))}
+            </View>
+          ) : (
+            <View style={s.contactGrid}>
+              {validPhones.reduce<React.ReactNode[]>((rows, phone, idx) => {
+                if (idx % 2 === 0) {
+                  rows.push(
+                    <View key={idx} style={s.contactRow}>
+                      <Text onPress={() => openDialer(phone)} style={s.phoneText}>{phone}</Text>
+                      {idx + 1 < validPhones.length && <Text style={s.divider}> | </Text>}
+                    </View>
+                  );
+                } else {
+                  const last = rows[rows.length - 1] as React.ReactElement;
+                  if (last && last.props?.children) {
+                    rows[rows.length - 1] = React.cloneElement(last, {
+                      children: [
+                        ...React.Children.toArray(last.props.children),
+                        <Text key={`d-${idx}`} style={s.divider}> | </Text>,
+                        <Text key={`p-${idx}`} onPress={() => openDialer(phone)} style={s.phoneText}>{phone}</Text>,
+                      ],
+                    });
+                  }
+                }
+                return rows;
+              }, [])}
+            </View>
+          )}
         </View>
-        <Text style={s.itemText}>
-          For any registration issues or queries, contact:
-        </Text>
-        
-        {isMobile ? (
-          <View style={[s.contactGrid, { flexDirection: 'column', gap: 6 }]}>
-            <Text onPress={() => openDialer('9121495077')} style={s.phoneText}>91214 95077</Text>
-            <Text onPress={() => openDialer('8466965800')} style={s.phoneText}>84669 65800</Text>
-            <Text onPress={() => openDialer('+919652714339')} style={s.phoneText}>+91 96527 14339</Text>
-            <Text onPress={() => openDialer('+918341697598')} style={s.phoneText}>+91 83416 97598</Text>
-          </View>
-        ) : (
-          <View style={s.contactGrid}>
-            <View style={s.contactRow}>
-              <Text onPress={() => openDialer('9121495077')} style={s.phoneText}>91214 95077</Text>
-              <Text style={s.divider}> | </Text>
-              <Text onPress={() => openDialer('8466965800')} style={s.phoneText}>84669 65800</Text>
-            </View>
-            <View style={s.contactRow}>
-              <Text onPress={() => openDialer('+919652714339')} style={s.phoneText}>+91 96527 14339</Text>
-              <Text style={s.divider}> | </Text>
-              <Text onPress={() => openDialer('+918341697598')} style={s.phoneText}>+91 83416 97598</Text>
-            </View>
-          </View>
-        )}
-      </View>
+      )}
     </View>
   );
 }

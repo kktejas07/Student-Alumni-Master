@@ -27,7 +27,7 @@ import {
   Star, BookOpen, Upload, MoveUp, MoveDown, Images, FolderOpen,
   Copy, Check, Search, RefreshCw, PlusCircle, FileText, Link2,
   Image as ImageIcon, HardDrive, Calendar, Layout, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Users,
-  Ticket, Mail, ScanLine,
+  Ticket, Mail, ScanLine, Phone,
   CupSoda, UtensilsCrossed, Cookie, Sandwich, Coffee, Lock, XCircle, Clock,
 } from 'lucide-react-native';
 import {
@@ -1632,6 +1632,7 @@ const EMPTY: any = {
   registration: {
     enabled: true, fee: 0, currency: 'INR', max_seats: 0,
     deadline: '', payment_note: '', payment_url: '', poster_images: [],
+    contact_phones: [],
   },
 };
 
@@ -2105,6 +2106,38 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                     posters={(form.registration || {}).poster_images || []}
                     onChange={(p: string[]) => set('registration', { ...(form.registration || {}), poster_images: p })}
                   />
+                </FieldRow>
+                <FieldRow label="Contact Phone Numbers" hint="Phone numbers shown in the 'Important Information' section on the registration page.">
+                  <View style={{ flex: 1, gap: 6 }}>
+                    {((form.registration || {}).contact_phones || []).map((phone: string, idx: number) => (
+                      <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Phone size={14} color={SAC.muted} />
+                        <Field
+                          value={phone}
+                          onChangeText={(v: string) => {
+                            const phones = [...((form.registration || {}).contact_phones || [])];
+                            phones[idx] = v;
+                            set('registration', { ...(form.registration || {}), contact_phones: phones });
+                          }}
+                          placeholder="+91 98765 43210"
+                          style={{ flex: 1 }}
+                        />
+                        <Pressable onPress={() => {
+                          const phones = ((form.registration || {}).contact_phones || []).filter((_: string, i: number) => i !== idx);
+                          set('registration', { ...(form.registration || {}), contact_phones: phones });
+                        }} style={{ padding: 4 }}>
+                          <Trash2 size={14} color="#EF4444" />
+                        </Pressable>
+                      </View>
+                    ))}
+                    <Pressable onPress={() => {
+                      const phones = [...((form.registration || {}).contact_phones || []), ''];
+                      set('registration', { ...(form.registration || {}), contact_phones: phones });
+                    }} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6 }}>
+                      <PlusCircle size={14} color={GRAD.from} />
+                      <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: GRAD.from }}>Add Phone Number</Text>
+                    </Pressable>
+                  </View>
                 </FieldRow>
               </Card>
 
