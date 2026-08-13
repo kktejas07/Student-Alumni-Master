@@ -65,28 +65,19 @@ export function ImportantRegistrationInfo({ phones = [] }: { phones?: string[] }
             </View>
           ) : (
             <View style={s.contactGrid}>
-              {validPhones.reduce<React.ReactNode[]>((rows, phone, idx) => {
-                if (idx % 2 === 0) {
-                  rows.push(
-                    <View key={idx} style={s.contactRow}>
-                      <Text onPress={() => openDialer(phone)} style={s.phoneText}>{phone}</Text>
-                      {idx + 1 < validPhones.length && <Text style={s.divider}> | </Text>}
-                    </View>
-                  );
-                } else {
-                  const last = rows[rows.length - 1] as React.ReactElement;
-                  if (last && last.props?.children) {
-                    rows[rows.length - 1] = React.cloneElement(last, {
-                      children: [
-                        ...React.Children.toArray(last.props.children),
-                        <Text key={`d-${idx}`} style={s.divider}> | </Text>,
-                        <Text key={`p-${idx}`} onPress={() => openDialer(phone)} style={s.phoneText}>{phone}</Text>,
-                      ],
-                    });
-                  }
-                }
-                return rows;
-              }, [])}
+              {Array.from({ length: Math.ceil(validPhones.length / 2) }, (_, rowIdx) => {
+                const pair = validPhones.slice(rowIdx * 2, rowIdx * 2 + 2);
+                return (
+                  <View key={rowIdx} style={s.contactRow}>
+                    {pair.map((phone, i) => (
+                      <React.Fragment key={i}>
+                        {i > 0 && <Text style={s.divider}> | </Text>}
+                        <Text onPress={() => openDialer(phone)} style={s.phoneText}>{phone}</Text>
+                      </React.Fragment>
+                    ))}
+                  </View>
+                );
+              })}
             </View>
           )}
         </View>
