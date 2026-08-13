@@ -2478,6 +2478,39 @@ function PagesTab({ onSaved }: { onSaved: (s?: string) => void }) {
 }
 
 
+function BrandingField({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <View style={{ gap: 6 }}>
+      <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: SAC.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</Text>
+      <TextInput
+        value={value}
+        onChangeText={onChange}
+        placeholder={placeholder}
+        placeholderTextColor="#475569"
+        style={{
+          backgroundColor: 'rgba(255,255,255,0.06)',
+          borderRadius: 8,
+          borderWidth: 1,
+          borderColor: 'rgba(255,255,255,0.08)',
+          padding: 12,
+          color: '#e2e8f0',
+          fontSize: 13,
+        }}
+      />
+    </View>
+  );
+}
+
 function BrandingTab({ onSaved }: { onSaved: (s?: string) => void }) {
   const [logoUrl, setLogoUrl] = useState('');
   const [faviconUrl, setFaviconUrl] = useState('');
@@ -2564,15 +2597,6 @@ function BrandingTab({ onSaved }: { onSaved: (s?: string) => void }) {
     }
   };
 
-  const Field = ({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder: string }) => (
-    <View style={{ gap: 6 }}>
-      <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: SAC.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</Text>
-      <TextInput value={value} onChangeText={onChange} placeholder={placeholder}
-        placeholderTextColor="#475569"
-        style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 12, color: '#e2e8f0', fontSize: 13 }} />
-    </View>
-  );
-
   return (
     <View style={{ gap: 16 }}>
       <Card style={{ padding: 20, gap: 16 }}>
@@ -2581,8 +2605,8 @@ function BrandingTab({ onSaved }: { onSaved: (s?: string) => void }) {
           Configure logo, favicon, and contact information displayed across the platform.
         </Text>
 
-        <Field label="Brand Name" value={brandName} onChange={setBrandName} placeholder="StudentAlumni" />
-        <Field label="Logo URL" value={logoUrl} onChange={setLogoUrl} placeholder="https://example.com/logo.png" />
+        <BrandingField label="Brand Name" value={brandName} onChange={setBrandName} placeholder="StudentAlumni" />
+        <BrandingField label="Logo URL" value={logoUrl} onChange={setLogoUrl} placeholder="https://example.com/logo.png" />
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <Pressable
             onPress={() => logoRef.current?.click?.()}
@@ -2606,7 +2630,7 @@ function BrandingTab({ onSaved }: { onSaved: (s?: string) => void }) {
               onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadBrandingFile(f, 'logo'); }} />
           )}
         </View>
-        <Field label="Favicon URL" value={faviconUrl} onChange={setFaviconUrl} placeholder="https://example.com/favicon.png" />
+        <BrandingField label="Favicon URL" value={faviconUrl} onChange={setFaviconUrl} placeholder="https://example.com/favicon.png" />
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <Pressable
             onPress={() => faviconRef.current?.click?.()}
@@ -2640,11 +2664,11 @@ function BrandingTab({ onSaved }: { onSaved: (s?: string) => void }) {
         <View style={{ height: 1, backgroundColor: SAC.border, marginVertical: 4 }} />
         <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: SAC.text }}>Contact & Legal</Text>
 
-        <Field label="Copyright" value={copyright} onChange={setCopyright} placeholder="2026 StudentAlumni. All rights reserved." />
-        <Field label="Address" value={address} onChange={setAddress} placeholder="123 Main St, City, Country" />
-        <Field label="Phone" value={phone} onChange={setPhone} placeholder="+91 98765 43210" />
-        <Field label="Email" value={email} onChange={setEmail} placeholder="contact@studentalumni.ai" />
-        <Field label="Website" value={website} onChange={setWebsite} placeholder="https://studentalumni.ai" />
+        <BrandingField label="Copyright" value={copyright} onChange={setCopyright} placeholder="2026 StudentAlumni. All rights reserved." />
+        <BrandingField label="Address" value={address} onChange={setAddress} placeholder="123 Main St, City, Country" />
+        <BrandingField label="Phone" value={phone} onChange={setPhone} placeholder="+91 98765 43210" />
+        <BrandingField label="Email" value={email} onChange={setEmail} placeholder="contact@studentalumni.ai" />
+        <BrandingField label="Website" value={website} onChange={setWebsite} placeholder="https://studentalumni.ai" />
 
         <Pressable onPress={save} disabled={saving} style={{
           backgroundColor: '#7C3AED', borderRadius: 10, paddingVertical: 14, alignItems: 'center', cursor: 'pointer', opacity: saving ? 0.6 : 1,
