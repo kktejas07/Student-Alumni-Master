@@ -57,17 +57,23 @@ function buildPreviewHtml(form: any, events: any[]): string {
   const body = form.body
     ? `<div style="margin:0 0 18px 0;color:#374151;font-size:15px;line-height:1.65;">${form.body}</div>`
     : '';
+  const origin = typeof window !== 'undefined' && window.location ? window.location.origin : 'https://studentalumni.ai';
   const evCards = (events || []).slice(0, 4).map((ev) => {
     const img = ev.hero_image_url
       ? `<img src="${ev.hero_image_url}" alt="" style="width:100%;height:auto;display:block;border-radius:10px 10px 0 0;" />`
       : '';
     const badge = Number(ev.fee || 0) <= 0 ? 'FREE ENTRY' : `₹${Number(ev.fee).toLocaleString('en-IN')} ENTRY`;
+    const link = ev.slug ? `${origin}/echo/${ev.slug}` : '';
+    const titleHtml = link
+      ? `<a href="${link}" style="font-size:16px;font-weight:700;color:#111827;text-decoration:none;">${ev.title}</a>`
+      : `<div style="font-size:16px;font-weight:700;color:#111827;">${ev.title}</div>`;
     return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;"><tr><td style="background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">${img}
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:16px 18px;">
         <div style="font-size:11px;font-weight:700;color:#7C3AED;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px;">${badge}</div>
-        <div style="font-size:16px;font-weight:700;color:#111827;">${ev.title}</div>
+        ${titleHtml}
         <div style="font-size:12.5px;color:#6b7280;margin-top:6px;">${ev.college || 'Student Alumni Cell'}${ev.date ? ' · ' + ev.date : ''}</div>
         <div style="font-size:12.5px;color:#6b7280;">${ev.venue || ''}</div>
+        ${link ? `<div style="margin-top:10px;"><a href="${link}" style="display:inline-block;padding:8px 18px;background:#7C3AED;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:700;font-size:12px;">View Event</a></div>` : ''}
       </td></tr></table></td></tr></table>`;
   }).join('');
   const eventsSection = evCards
@@ -115,6 +121,8 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
   const [previewHtmlBackend, setPreviewHtmlBackend] = useState('');
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
+  const [loadingEdit, setLoadingEdit] = useState(false);
 
   // Individual notification state
   const [indUserQuery, setIndUserQuery] = useState('');
@@ -195,8 +203,8 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
   };
 
   const doSendTest = async () => {
-    if (!testEmail.trim()) { flash('Enter a test email address'); return; }
-    if (!form.subject.trim()) { flash('Subject is required'); return; }
+    if (!testEmail.trim()) { flash('Enter a test email address first', 'error'); return; }
+    if (!form.subject.trim()) { flash('Subject is required to send a test email', 'error'); return; }
     setTestSending(true);
     try {
       const res = await api.sendNewsletterTest({
@@ -209,9 +217,9 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
         include_upcoming: form.include_upcoming,
         test_email: testEmail.trim(),
       });
-      flash(res?.message || 'Test email sent successfully');
+      flash(res?.message || `Test email sent to ${testEmail.trim()}`);
     } catch (e: any) {
-      flash(e?.message || 'Failed to send test email');
+      flash(`Test email FAILED: ${e?.message || 'Unknown error'}`, 'error');
     } finally {
       setTestSending(false);
     }
@@ -225,9 +233,104 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
       flash(res?.message || 'Campaign cancelled');
       await load();
     } catch (e: any) {
-      flash(e?.message || 'Failed to cancel campaign');
+      flash(e?.message || 'Failed to cancel campaign', 'error');
     } finally {
       setCancellingId(null);
+    }
+  };
+
+  const startEdit = async (campaignId: string) => {
+    if (!campaignId) return;
+    setLoadingEdit(true);
+    try {
+      const c: any = await api.getNewsletterCampaign(campaignId);
+      const channels = c?.channels || {};
+      setForm({
+        subject: c?.subject || '',
+        hero_image: c?.hero_image || '',
+        intro: c?.intro || '',
+        body: c?.body || '',
+        cta_text: c?.cta_text || 'Register Now',
+        cta_url: c?.cta_url || 'https://studentalumni.ai/echo',
+        include_upcoming: c?.include_upcoming ?? true,
+        send_email: channels.email ?? true,
+        send_push: channels.push ?? true,
+        send_in_app: channels.in_app ?? true,
+      });
+      if (c?.send_at) {
+        const dt = new Date(c.send_at);
+        setSendImmediately(false);
+        setScheduleDate(dt.toISOString().slice(0, 10));
+        setScheduleTime(`${String(dt.getUTCHours()).padStart(2, '0')}:${String(dt.getUTCMinutes()).padStart(2, '0')}`);
+      }
+      setEditingCampaign(c);
+      setActiveTab('bulk');
+      flash(`Editing "${c?.subject || 'campaign'}" — make changes and save`);
+    } catch (e: any) {
+      flash(e?.message || 'Failed to load campaign', 'error');
+    } finally {
+      setLoadingEdit(false);
+    }
+  };
+
+  const stopEdit = () => {
+    setEditingCampaign(null);
+    setSendImmediately(true);
+    setScheduleDate('');
+    setScheduleTime('12:00');
+    setForm({
+      subject: '', hero_image: '', intro: '', body: '',
+      cta_text: 'Register Now', cta_url: 'https://studentalumni.ai/echo',
+      include_upcoming: true, send_email: true, send_push: true, send_in_app: true,
+    });
+  };
+
+  const doUpdate = async () => {
+    if (!editingCampaign) return;
+    if (!form.subject.trim()) { flash('Subject is required', 'error'); return; }
+
+    let send_at: string | undefined = undefined;
+    if (!sendImmediately) {
+      if (!scheduleDate.trim() || !scheduleTime.trim()) {
+        flash('Please fill in both Date and Time for rescheduling', 'error');
+        return;
+      }
+      try {
+        const parsed = new Date(`${scheduleDate}T${scheduleTime}:00`);
+        if (isNaN(parsed.getTime())) throw new Error('Invalid Date/Time values');
+        if (parsed <= new Date()) {
+          flash('Scheduled time must be in the future', 'error');
+          return;
+        }
+        send_at = parsed.toISOString();
+      } catch {
+        flash('Invalid Date or Time format. Use YYYY-MM-DD and HH:MM', 'error');
+        return;
+      }
+    }
+
+    setSending(true);
+    try {
+      const res: any = await api.updateNewsletterCampaign(editingCampaign.campaign_id, {
+        subject: form.subject,
+        hero_image: form.hero_image,
+        intro: form.intro,
+        body: form.body,
+        cta_text: form.cta_text,
+        cta_url: form.cta_url,
+        include_upcoming: form.include_upcoming,
+        send_email: form.send_email,
+        send_push: form.send_push,
+        send_in_app: form.send_in_app,
+        ...(send_at ? { send_at } : {}),
+      });
+      flash(res?.message || 'Campaign updated');
+      await load();
+      stopEdit();
+    } catch (e: any) {
+      flash(e?.message || 'Failed to update campaign', 'error');
+    } finally {
+      setSending(false);
     }
   };
 
@@ -339,7 +442,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
 
   return (
     <View style={{ gap: 14 }}>
-      <Toast text={toast.text} visible={toast.visible} />
+      <Toast text={toast.text} visible={toast.visible} kind={toast.kind} />
 
       <Card>
         <View style={st.headRow}>
@@ -376,6 +479,20 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
           {activeTab === 'bulk' ? (
             <>
               <SectionLabel>COMPOSE NEWSLETTER</SectionLabel>
+              {editingCampaign && (
+                <View style={st.editBanner}>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={st.editBannerTitle}>Editing scheduled campaign</Text>
+                    <Text style={st.editBannerSub}>
+                      {editingCampaign.subject} · will re-activate at the updated schedule when saved.
+                    </Text>
+                  </View>
+                  <Pressable onPress={stopEdit} style={st.editBannerCancel}>
+                    <X size={13} color="#94a3b8" />
+                    <Text style={st.editBannerCancelText}>Cancel edit</Text>
+                  </Pressable>
+                </View>
+              )}
               <View style={{ marginTop: 12, gap: 12 }}>
                 <Field label="Subject *" hint="Appears in the email subject line.">
                   <TextInput style={st.input} value={form.subject} onChangeText={(v) => set('subject', v)} placeholder="e.g. Join us at ECHO 2026!" placeholderTextColor={SAC.dim} />
@@ -510,8 +627,10 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                 {confirming ? (
                   <View style={{ flexDirection: 'row', gap: 10, flex: 1 }}>
                     <View style={{ flex: 1 }}>
-                      <GradientButton onPress={doSend} loading={sending}>
-                        <Send size={13} color="#fff" /><Text style={st.btnText}>{sendImmediately ? "Send to all users" : "Schedule Campaign"}</Text>
+                      <GradientButton onPress={editingCampaign ? doUpdate : doSend} loading={sending}>
+                        <Send size={13} color="#fff" /><Text style={st.btnText}>
+                          {editingCampaign ? 'Save Changes' : sendImmediately ? "Send to all users" : "Schedule Campaign"}
+                        </Text>
                       </GradientButton>
                     </View>
                     <SecondaryButton onPress={() => setConfirming(false)}><Text style={st.secText}>Cancel</Text></SecondaryButton>
@@ -519,7 +638,9 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                 ) : (
                   <View style={{ flex: 1 }}>
                     <GradientButton onPress={() => setConfirming(true)}>
-                      <Send size={13} color="#fff" /><Text style={st.btnText}>{sendImmediately ? "Send Newsletter" : "Schedule Newsletter"}</Text>
+                      <Send size={13} color="#fff" /><Text style={st.btnText}>
+                        {editingCampaign ? 'Save Changes' : sendImmediately ? "Send Newsletter" : "Schedule Newsletter"}
+                      </Text>
                     </GradientButton>
                   </View>
                 )}
@@ -528,10 +649,11 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                 <View style={st.confirmBox}>
                   <AlertTriangle size={13} color="#FCD34D" />
                   <Text style={st.confirmText}>
-                    {sendImmediately 
-                      ? "This will notify every registered user via selected channels. Make sure your content looks right."
-                      : `This will schedule the newsletter to be sent automatically on ${scheduleDate} at ${scheduleTime} UTC.`
-                    }
+                    {editingCampaign
+                      ? "This will update the scheduled campaign with your current content and reschedule it to the time shown. Recipients won't be notified twice."
+                      : sendImmediately
+                        ? "This will notify every registered user via selected channels. Make sure your content looks right."
+                        : `This will schedule the newsletter to be sent automatically on ${scheduleDate} at ${scheduleTime} UTC.`}
                   </Text>
                 </View>
               )}
@@ -692,18 +814,28 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                   </Text>
                 </View>
                 <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                  {c.status === 'scheduled' && (
+                  {(c.status === 'scheduled' || c.status === 'cancelled' || c.status === 'failed') && (
                     <>
-                      <StatusPill kind="warn" label={`Scheduled`} />
                       <Pressable
-                        onPress={() => cancelCampaign(c.campaign_id)}
-                        style={[st.channelPill, { borderColor: '#ef4444', paddingHorizontal: 8, paddingVertical: 4 }]}
-                        disabled={cancellingId === c.campaign_id}
+                        onPress={() => startEdit(c.campaign_id)}
+                        style={[st.channelPill, { borderColor: '#7C3AED', paddingHorizontal: 8, paddingVertical: 4 }]}
+                        disabled={loadingEdit}
                       >
-                        <Text style={{ color: '#ef4444', fontSize: 11, fontFamily: 'System' }}>
-                          {cancellingId === c.campaign_id ? 'Cancelling…' : 'Cancel'}
+                        <Text style={{ color: '#A78BFA', fontSize: 11, fontFamily: 'System' }}>
+                          {loadingEdit ? 'Loading…' : 'Edit'}
                         </Text>
                       </Pressable>
+                      {c.status === 'scheduled' && (
+                        <Pressable
+                          onPress={() => cancelCampaign(c.campaign_id)}
+                          style={[st.channelPill, { borderColor: '#ef4444', paddingHorizontal: 8, paddingVertical: 4 }]}
+                          disabled={cancellingId === c.campaign_id}
+                        >
+                          <Text style={{ color: '#ef4444', fontSize: 11, fontFamily: 'System' }}>
+                            {cancellingId === c.campaign_id ? 'Cancelling…' : 'Cancel'}
+                          </Text>
+                        </Pressable>
+                      )}
                     </>
                   )}
                   {c.status === 'cancelled' && <StatusPill kind="warn" label="Cancelled" />}
@@ -776,6 +908,20 @@ const st = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(252,211,77,0.25)',
   },
   confirmText: { color: '#FDE68A', fontFamily: FONTS.med, fontSize: 11.5, lineHeight: 16, flex: 1 },
+  editBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12,
+    padding: 12, borderRadius: 10, backgroundColor: 'rgba(124,58,237,0.10)',
+    borderWidth: 1, borderColor: 'rgba(124,58,237,0.35)',
+  },
+  editBannerTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
+  editBannerSub: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11, marginTop: 1, lineHeight: 15 },
+  editBannerCancel: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 9, paddingVertical: 5, borderRadius: 7,
+    borderWidth: 1, borderColor: SAC.border, backgroundColor: 'rgba(255,255,255,0.04)',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  editBannerCancelText: { color: '#94a3b8', fontFamily: FONTS.bold, fontSize: 10.5 },
   previewFrame: {
     marginTop: 12, backgroundColor: '#f3f4f6', borderRadius: 12, padding: 14,
     maxHeight: 620, overflow: 'hidden',

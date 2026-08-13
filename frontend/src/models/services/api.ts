@@ -457,6 +457,10 @@ export const api = {
     request<any>('/newsletter/admin/send-test', { method: 'POST', body: payload }),
   cancelNewsletterCampaign: (campaignId: string) =>
     request<any>(`/newsletter/admin/campaigns/${campaignId}`, { method: 'DELETE' }),
+  getNewsletterCampaign: (campaignId: string) =>
+    request<any>(`/newsletter/admin/campaigns/${campaignId}`),
+  updateNewsletterCampaign: (campaignId: string, payload: any) =>
+    request<any>(`/newsletter/admin/campaigns/${campaignId}`, { method: 'PATCH', body: payload }),
   listNewsletterCampaigns: () =>
     request<any>('/newsletter/admin/campaigns'),
   newsletterUpcomingEvents: () =>
