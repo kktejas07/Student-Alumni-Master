@@ -59,11 +59,7 @@ def _unsub_token(email: str) -> str:
 
 
 async def _all_subscribers(db, limit: int = 100000) -> list:
-    """All registered users with a valid email who haven't unsubscribed. Returns list of dicts with _id, email."""
-    unsubscribed = {
-        doc.get("email", "").strip().lower()
-        for doc in await db.email_preferences.find({"newsletter": False}).to_list(20000)
-    }
+    """All registered users with a valid email. Every user is auto-subscribed."""
     subscribers: list = []
     cur = db.users.find(
         {"email": {"$regex": r"@", "$options": "i"}},
@@ -71,7 +67,7 @@ async def _all_subscribers(db, limit: int = 100000) -> list:
     ).limit(limit)
     async for u in cur:
         email = (u.get("email") or "").strip().lower()
-        if email and email not in unsubscribed:
+        if email:
             subscribers.append({"_id": str(u["_id"]), "email": email})
     return subscribers
 
@@ -556,19 +552,26 @@ async def send_test_whatsapp(payload: TestWhatsAppSchema, request: Request, _=De
     from core.whatsapp import send_wa_message, get_openwa_config
     config = await get_openwa_config()
     if not config:
-        raise HTTPException(status_code=503, detail="OpenWA gateway not configured — connect it in Settings → Integrations first")
+        raise HTTPException(status_code=503, detail="OpenWA gateway not configured — connect it in Settings > Integrations first")
     phone = (payload.test_phone or "").strip()
     if not phone:
         raise HTTPException(status_code=400, detail="Phone number is required")
     subject = (payload.subject or "").strip() or "Newsletter Preview"
     body_text = (payload.body or "").strip() or subject
-    wa_text = f"📢 *{subject}*\n\n{body_text}"
+    wa_text = f"*{subject}*\n\n{body_text}"
     if payload.cta_url:
-        wa_text += f"\n\n🔗 {payload.cta_url}"
+        wa_text += f"\n\n{payload.cta_url}"
     result = await send_wa_message(phone=phone, text=wa_text, kind="newsletter_test")
     if result.get("status") == "sent":
         return {"ok": True, "message": f"Test WhatsApp sent to {phone}"}
-    raise HTTPException(status_code=500, detail=f"WhatsApp send failed: {result.get('reason', 'unknown')}")
+    reason = result.get("reason", "unknown")
+    if reason == "not_configured":
+        raise HTTPException(status_code=503, detail="OpenWA gateway not configured — connect it in Settings > Integrations first")
+    if reason == "invalid_phone":
+        raise HTTPException(status_code=400, detail="Invalid phone number format")
+    if reason in ("skipped", "opt_out"):
+        raise HTTPException(status_code=400, detail="WhatsApp send skipped — check phone number and opt-in status")
+    raise HTTPException(status_code=500, detail=f"WhatsApp send failed: {reason}")
 
 
 @router.post("/admin/send")
