@@ -1786,6 +1786,13 @@ async def _send_sa_welcome_email(reg: dict, showcase: Optional[dict], password: 
             """
         )
         await send_email(email, f"Welcome to StudentAlumni — your account for {title}", body)
+        # Best-effort WhatsApp with account details
+        try:
+            phone = (reg.get("phone") or "").strip()
+            if phone:
+                await send_wa_message(phone=phone, text=f"🎓 *Welcome to StudentAlumni!*\n\nBecause you registered for *{title}*, we created an account for you.\n\n📧 Email: {email}\n🔑 Password: `{password}`\n\nLogin: https://studentalumni.ai/login\n\nYou can change your password from your profile once you're in.", kind="sa_welcome")
+        except Exception:
+            pass
     except Exception as e:
         print(f"[ECHO] Welcome email error: {e}")
 

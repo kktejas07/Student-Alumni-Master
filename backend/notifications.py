@@ -21,6 +21,8 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 import httpx
 from bson import ObjectId
+from core.db import db as _db
+from core.whatsapp import send_wa_message
 
 
 EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send"
@@ -167,46 +169,70 @@ async def unread_count(db, user_id: str) -> int:
 # ---------------------------------------------------------------------------
 # Trigger helpers — call these from server.py business logic
 # ---------------------------------------------------------------------------
+async def _user_phone(user_id: str) -> str:
+    """Look up a user's phone number from the users collection."""
+    try:
+        user = await _db.users.find_one({"_id": ObjectId(user_id)}, {"phone": 1})
+        return (user or {}).get("phone") or ""
+    except Exception:
+        return ""
+
+
 async def notify_booking_created(db, *, mentor_id: str, student_name: str, topic: str, when: str):
-    return await send_push(
+    await send_push(
         db, user_id=mentor_id,
         title="New booking request",
         body=f"{student_name} has requested a session on '{topic}' for {when}.",
         data={"type": "booking_request", "mentor_id": mentor_id},
     )
+    phone = await _user_phone(mentor_id)
+    if phone:
+        await send_wa_message(phone=phone, text=f"📅 *New booking request*\n\n{student_name} has requested a session on *{topic}* for *{when}*.", kind="booking_request")
 
 
 async def notify_booking_confirmed(db, *, student_id: str, mentor_name: str, when: str):
-    return await send_push(
+    await send_push(
         db, user_id=student_id,
         title="Session confirmed!",
         body=f"Your session with {mentor_name} on {when} is confirmed.",
         data={"type": "booking_confirmed", "student_id": student_id},
     )
+    phone = await _user_phone(student_id)
+    if phone:
+        await send_wa_message(phone=phone, text=f"✅ *Session confirmed!*\n\nYour session with *{mentor_name}* on *{when}* is confirmed.", kind="booking_confirmed")
 
 
 async def notify_event_registered(db, *, user_id: str, event_title: str):
-    return await send_push(
+    await send_push(
         db, user_id=user_id,
         title="You're registered!",
         body=f"You're in for {event_title}. We'll remind you 24h before.",
         data={"type": "event_registered"},
     )
+    phone = await _user_phone(user_id)
+    if phone:
+        await send_wa_message(phone=phone, text=f"🎉 *You're registered!*\n\nYou're in for *{event_title}*. We'll remind you 24h before.", kind="event_registered")
 
 
 async def notify_mentor_approved(db, *, mentor_id: str):
-    return await send_push(
+    await send_push(
         db, user_id=mentor_id,
         title="🎉 You're now a mentor!",
         body="Your profile is live. Students can now book sessions with you.",
         data={"type": "mentor_approved"},
     )
+    phone = await _user_phone(mentor_id)
+    if phone:
+        await send_wa_message(phone=phone, text="🎓 *You're now a mentor!*\n\nYour profile is live. Students can now book sessions with you.", kind="mentor_approved")
 
 
 async def notify_review_received(db, *, mentor_id: str, rating: int, student_name: str):
-    return await send_push(
+    await send_push(
         db, user_id=mentor_id,
         title=f"⭐ New {rating}-star review",
         body=f"{student_name} just left a review on your profile.",
         data={"type": "review_received"},
     )
+    phone = await _user_phone(mentor_id)
+    if phone:
+        await send_wa_message(phone=phone, text=f"⭐ *New {rating}-star review*\n\n{student_name} just left a review on your profile.", kind="review_received")

@@ -463,6 +463,16 @@ async def _send_cert_email(to_email: str, title: str, recipient_name: str, code:
     </p>
     """
     await send_email(to_email, f"Your Certificate — {title}", render_html_email(content))
+    # Best-effort WhatsApp with certificate details
+    try:
+        from core.whatsapp import send_wa_message as _wa
+        from core.db import db as _db
+        user_doc = await _db.users.find_one({"email": to_email.lower().strip()}, {"phone": 1})
+        phone = (user_doc or {}).get("phone") or ""
+        if phone:
+            await _wa(phone=phone, text=f"🎓 *Certificate Issued*\n\n*{title}*\nRecipient: {recipient_name}\nCode: `{code}`\n\nVerify: {verify_url}", kind="certificate_issued")
+    except Exception:
+        pass
 
 
 # ──────────────────────────────────────────────────────────────────────

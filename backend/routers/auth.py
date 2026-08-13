@@ -317,7 +317,15 @@ async def forgot_password(request: Request, req: ForgotPasswordRequest):
     
     import asyncio
     asyncio.create_task(send_email(email, "Password Reset Code", body))
-    
+    # Best-effort WhatsApp with the reset code
+    try:
+        from core.whatsapp import send_wa_message as _wa
+        phone = (user.get("phone") or "").strip()
+        if phone:
+            asyncio.create_task(_wa(phone=phone, text=f"🔑 *Password Reset Code*\n\nYour code is: *{otp}*\n\nExpires in 15 minutes. If you didn't request this, ignore this message.", kind="password_reset"))
+    except Exception:
+        pass
+
     return {"success": True}
 
 
