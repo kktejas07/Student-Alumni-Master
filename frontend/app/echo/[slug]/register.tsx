@@ -13,7 +13,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable, TextInput,
-  ActivityIndicator, Image, Platform, useWindowDimensions, Linking,
+  ActivityIndicator, Image, Platform, useWindowDimensions, Linking, Modal,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Redirect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -181,6 +181,8 @@ export default function EchoRegisterPage() {
   const [done, setDone] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [posterIdx, setPosterIdx] = useState(0);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [termsModalVisible, setTermsModalVisible] = useState(false);
 
   const loadRazorpay = () =>
     new Promise<boolean>((resolve) => {
@@ -319,6 +321,15 @@ export default function EchoRegisterPage() {
     const errs: Record<string, string> = {};
     if (!form.full_name.trim()) errs.full_name = 'Please fill in your name.';
     if (!form.email.trim() || !form.email.includes('@')) errs.email = 'Please enter a valid email address.';
+    // Phone is mandatory
+    if (!form.phone.trim()) {
+      errs.phone = 'Phone number is required.';
+    } else {
+      const digits = form.phone.replace(/[^\d]/g, '');
+      if (digits.length < 7 || digits.length > 15) {
+        errs.phone = 'Please enter a valid phone number.';
+      }
+    }
     if (form.date_of_birth) {
       const d = new Date(form.date_of_birth);
       if (isNaN(d.getTime())) {
@@ -333,12 +344,18 @@ export default function EchoRegisterPage() {
       setError('Please fix the highlighted errors before submitting.');
       return;
     }
+
+    if (!termsAccepted) {
+      setError('Please accept the Terms & Conditions to continue.');
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
     let keepLoading = true;
     try {
       const contact = { ...form, email: form.email.trim().toLowerCase() };
-      const regPayload = { ...contact, payment_method: fee > 0 ? 'online' : 'free' };
+      const regPayload = { ...contact, payment_method: fee > 0 ? 'online' : 'free', terms_accepted: termsAccepted, terms_accepted_at: new Date().toISOString() };
 
       // Free event → register directly.
       if (fee <= 0) {
@@ -349,7 +366,7 @@ export default function EchoRegisterPage() {
       }
 
       // Paid event → create a payment order, then redirect to the gateway.
-      const order = await api.createEchoPaymentOrder(canonicalSlug, contact);
+      const order = await api.createEchoPaymentOrder(canonicalSlug, { ...contact, terms_accepted: termsAccepted });
 
       // Already paid → show the existing registration + invoice.
       if (order?.already) {
@@ -723,8 +740,9 @@ export default function EchoRegisterPage() {
                 <TextInput style={[s.input, fieldErrors.email ? s.inputError : null]} value={form.email} onChangeText={(v) => set('email', v)} placeholder="you@example.com" placeholderTextColor={PALETTE.dim} keyboardType="email-address" autoCapitalize="none" />
                 {fieldErrors.email ? <Text style={s.fieldErrText}>{fieldErrors.email}</Text> : null}
 
-                <Text style={s.label}>Phone</Text>
-                <TextInput style={s.input} value={form.phone} onChangeText={(v) => set('phone', v)} placeholder="+91 …" placeholderTextColor={PALETTE.dim} keyboardType="phone-pad" />
+                <Text style={s.label}>Phone Number *</Text>
+                <TextInput style={[s.input, fieldErrors.phone ? s.inputError : null]} value={form.phone} onChangeText={(v) => set('phone', v)} placeholder="+91 …" placeholderTextColor={PALETTE.dim} keyboardType="phone-pad" />
+                {fieldErrors.phone ? <Text style={s.fieldErrText}>{fieldErrors.phone}</Text> : null}
 
                 <CalendarDatePicker
                   label="Date of Birth"
@@ -766,30 +784,54 @@ export default function EchoRegisterPage() {
 
                 {error ? <Text style={s.error}>{error}</Text> : null}
 
+                {/* Terms & Conditions checkbox */}
+                <View style={s.termsRow}>
+                  <Pressable
+                    onPress={() => setTermsAccepted((v) => !v)}
+                    style={[s.checkbox, termsAccepted && s.checkboxChecked]}
+                  >
+                    {termsAccepted ? <Check size={13} color="#fff" /> : null}
+                  </Pressable>
+                  <Text style={s.termsText}>
+                    I have read and agree to the{' '}
+                    <Text
+                      style={s.termsLink}
+                      onPress={() => setTermsModalVisible(true)}
+                    >
+                      Terms &amp; Conditions
+                    </Text>
+                  </Text>
+                </View>
+                {!termsAccepted && (
+                  <Text style={s.termsHint}>Please accept the Terms &amp; Conditions to continue.</Text>
+                )}
+
                 {paymentUrl ? (
                   <>
-                    <LinearGradient colors={['#059669', '#047857']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.payBtnWrap}>
-                      <Pressable onPress={openPayment} style={s.payBtn}>
-                        <ExternalLink size={16} color="#fff" />
-                        <Text style={s.payBtnText}>
-                          {fee > 0 ? `Pay ${currency} ${fee}` : 'Proceed'} — Payment Gateway
-                        </Text>
-                      </Pressable>
-                    </LinearGradient>
+                    <View style={[s.payBtnWrap, !termsAccepted && s.payBtnDisabledWrap]}>
+                      <LinearGradient colors={!termsAccepted ? ['#374151', '#374151'] : ['#059669', '#047857']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.payBtnWrap}>
+                        <Pressable onPress={termsAccepted ? openPayment : undefined} disabled={!termsAccepted} style={[s.payBtn, !termsAccepted && s.payBtnDisabled]}>
+                          <ExternalLink size={16} color={termsAccepted ? '#fff' : 'rgba(255,255,255,0.4)'} />
+                          <Text style={[s.payBtnText, !termsAccepted && s.payBtnTextDisabled]}>
+                            {fee > 0 ? `Pay ${currency} ${fee}` : 'Proceed'} — Payment Gateway
+                          </Text>
+                        </Pressable>
+                      </LinearGradient>
+                    </View>
                     <Text style={s.disclaimer}>
                       You'll be redirected to the secure payment gateway to complete payment. Registration is confirmed after payment.
                     </Text>
                   </>
                 ) : (
                   <>
-                    <LinearGradient colors={[GRAD.from, GRAD.to]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.payBtnWrap}>
-                      <Pressable onPress={onSubmit} disabled={submitting} style={s.payBtn}>
+                    <LinearGradient colors={!termsAccepted ? ['#374151', '#374151'] : [GRAD.from, GRAD.to]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.payBtnWrap}>
+                      <Pressable onPress={termsAccepted ? onSubmit : undefined} disabled={!termsAccepted || submitting} style={[s.payBtn, (!termsAccepted) && s.payBtnDisabled]}>
                         {submitting ? (
                           <ActivityIndicator color="#fff" size="small" />
                         ) : (
                           <>
-                            <CreditCard size={16} color="#fff" />
-                            <Text style={s.payBtnText}>
+                            <CreditCard size={16} color={termsAccepted ? '#fff' : 'rgba(255,255,255,0.4)'} />
+                            <Text style={[s.payBtnText, !termsAccepted && s.payBtnTextDisabled]}>
                               {fee > 0 ? `Pay ${currency} ${fee} via Razorpay` : 'Register Free'}
                             </Text>
                           </>
@@ -801,6 +843,71 @@ export default function EchoRegisterPage() {
                     </Text>
                   </>
                 )}
+
+                {/* Terms & Conditions Modal */}
+                <Modal
+                  visible={termsModalVisible}
+                  transparent={true}
+                  animationType="slide"
+                  onRequestClose={() => setTermsModalVisible(false)}
+                >
+                  <View style={s.modalOverlay}>
+                    <View style={s.modalBox}>
+                      <View style={s.modalHeader}>
+                        <Text style={s.modalTitle}>Terms &amp; Conditions</Text>
+                        <Pressable onPress={() => setTermsModalVisible(false)} style={s.modalCloseBtn}>
+                          <Text style={s.modalCloseText}>✕</Text>
+                        </Pressable>
+                      </View>
+                      <ScrollView style={s.modalScroll} showsVerticalScrollIndicator={true}>
+                        <Text style={s.modalHeading}>Hackathon Registration – Terms &amp; Conditions</Text>
+                        <Text style={s.modalBody}>
+                          By registering for the hackathon, I acknowledge that I have read, understood, and agree to comply with the following Terms &amp; Conditions:
+                        </Text>
+
+                        <Text style={s.modalSection}>1. Registration</Text>
+                        <Text style={s.modalBullet}>• Registration must be completed before the stated deadline.</Text>
+                        <Text style={s.modalBullet}>• Each participant/team may register only once unless otherwise permitted by the organizers.</Text>
+                        <Text style={s.modalBullet}>• Participants are responsible for providing accurate and complete information.</Text>
+                        <Text style={s.modalBullet}>• A valid phone number is mandatory for registration. Participants must provide an active phone number that can be used for hackathon-related communication.</Text>
+                        <Text style={s.modalBullet}>• Participants are responsible for ensuring that the phone number provided during registration is accurate and accessible.</Text>
+                        <Text style={s.modalBullet}>• Team size must comply with the event rules specified by the organizers.</Text>
+
+                        <Text style={s.modalSection}>2. Participation</Text>
+                        <Text style={s.modalBullet}>• Participants must follow all hackathon rules, guidelines, schedules, and instructions provided by the organizers.</Text>
+                        <Text style={s.modalBullet}>• Participants must behave respectfully toward other participants, mentors, judges, volunteers, and organizers.</Text>
+                        <Text style={s.modalBullet}>• Harassment, abusive behavior, cheating, or disruptive conduct may result in removal from the event.</Text>
+
+                        <Text style={s.modalSection}>3. Project Development and Submission</Text>
+                        <Text style={s.modalBullet}>• Projects must be created within the specified hackathon period, unless the event rules explicitly state otherwise.</Text>
+                        <Text style={s.modalBullet}>• Participants must submit their project before the specified submission deadline.</Text>
+                        <Text style={s.modalBullet}>• Participants are responsible for ensuring that their submission is complete and accessible to the judges.</Text>
+
+                        <Text style={s.modalSection}>4. Originality and Plagiarism</Text>
+                        <Text style={s.modalBullet}>• Participants must submit original work or have appropriate rights and permissions for any third-party resources used in their project.</Text>
+                        <Text style={s.modalBullet}>• Plagiarism, fraudulent submissions, unauthorized copying, or misrepresentation of another person's work may result in immediate disqualification.</Text>
+                        <Text style={s.modalBullet}>• Organizers reserve the right to verify the originality and eligibility of submitted projects.</Text>
+
+                        <Text style={s.modalSection}>5. Disqualification</Text>
+                        <Text style={s.modalBody}>
+                          The organizers reserve the right to disqualify a participant or team if they violate the hackathon rules, these Terms &amp; Conditions, or engage in fraudulent, inappropriate, or disruptive conduct.
+                        </Text>
+
+                        <Text style={s.modalSection}>6. Acceptance</Text>
+                        <Text style={s.modalBody}>By selecting the acceptance checkbox during registration, I confirm that:</Text>
+                        <Text style={s.modalBullet}>• I have read and understood these Hackathon Terms &amp; Conditions.</Text>
+                        <Text style={s.modalBullet}>• I agree to comply with these Terms &amp; Conditions and the applicable hackathon rules.</Text>
+                        <Text style={s.modalBullet}>• I have provided accurate and complete registration information, including my phone number.</Text>
+                        <Text style={s.modalBullet}>• I understand that acceptance of these Terms &amp; Conditions is mandatory to proceed with payment and complete my registration.</Text>
+
+                        <View style={{ height: 24 }} />
+                      </ScrollView>
+                      <Pressable onPress={() => setTermsModalVisible(false)} style={s.modalDoneBtn}>
+                        <Text style={s.modalDoneBtnText}>Close</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                </Modal>
                 <ImportantRegistrationInfo />
                 <View style={s.accountNote}>
                   <ShieldCheck size={13} color="#A78BFA" />
@@ -939,12 +1046,71 @@ const s = StyleSheet.create({
   fieldErrText: { color: '#F87171', fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
   error: { color: '#F87171', fontFamily: FONTS.med, fontSize: 12.5, marginTop: 6 },
   payBtnWrap: { borderRadius: 12, marginTop: 18, overflow: 'hidden' },
+  payBtnDisabledWrap: { opacity: 0.45 },
   payBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     paddingVertical: 15,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
+  payBtnDisabled: {
+    ...(Platform.OS === 'web' ? ({ cursor: 'not-allowed' } as any) : {}),
+  },
   payBtnText: { color: '#fff', fontFamily: TYPO.display700, fontSize: 15 },
+  payBtnTextDisabled: { color: 'rgba(255,255,255,0.45)' },
+
+  termsRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 18, marginBottom: 4,
+  },
+  checkbox: {
+    width: 20, height: 20, borderRadius: 5, borderWidth: 1.5,
+    borderColor: 'rgba(167,139,250,0.5)', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  checkboxChecked: {
+    backgroundColor: GRAD.from, borderColor: GRAD.from,
+  },
+  termsText: { color: '#94a3b8', fontFamily: FONTS.med, fontSize: 13, flex: 1, lineHeight: 18 },
+  termsLink: {
+    color: '#A78BFA', fontFamily: FONTS.semi, fontSize: 13,
+    textDecorationLine: 'underline',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  termsHint: { color: '#F87171', fontFamily: FONTS.med, fontSize: 11.5, marginBottom: 4 },
+
+  /* Modal */
+  modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.75)',
+    justifyContent: 'flex-end',
+    ...(Platform.OS === 'web' ? { justifyContent: 'center', alignItems: 'center' } as any : {}),
+  },
+  modalBox: {
+    backgroundColor: '#0f1629', borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    borderWidth: 1, borderColor: 'rgba(167,139,250,0.2)',
+    maxHeight: '85%',
+    ...(Platform.OS === 'web' ? { borderRadius: 16, maxWidth: 680, width: '92%', maxHeight: '88vh' } as any : {}),
+  },
+  modalHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    padding: 18, borderBottomWidth: 1, borderBottomColor: 'rgba(167,139,250,0.15)',
+  },
+  modalTitle: { color: '#fff', fontFamily: TYPO.display700, fontSize: 17 },
+  modalCloseBtn: {
+    width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center', justifyContent: 'center',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  modalCloseText: { color: '#fff', fontFamily: FONTS.semi, fontSize: 15 },
+  modalScroll: { paddingHorizontal: 20, paddingTop: 16, flex: 1 },
+  modalHeading: { color: '#fff', fontFamily: TYPO.display800, fontSize: 15, marginBottom: 10 },
+  modalSection: { color: '#A78BFA', fontFamily: TYPO.display700, fontSize: 13.5, marginTop: 16, marginBottom: 6 },
+  modalBody: { color: '#94a3b8', fontFamily: FONTS.med, fontSize: 13, lineHeight: 20, marginBottom: 6 },
+  modalBullet: { color: '#94a3b8', fontFamily: FONTS.med, fontSize: 13, lineHeight: 20, marginBottom: 4, paddingLeft: 4 },
+  modalDoneBtn: {
+    backgroundColor: GRAD.from, borderRadius: 12, margin: 16, paddingVertical: 13, alignItems: 'center',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  modalDoneBtnText: { color: '#fff', fontFamily: TYPO.display700, fontSize: 14 },
   disclaimer: { color: PALETTE.dim, fontFamily: FONTS.med, fontSize: 11, lineHeight: 16, textAlign: 'center', marginTop: 10 },
   accountNote: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 12,

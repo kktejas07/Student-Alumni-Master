@@ -2175,6 +2175,22 @@ YEAR_CANONICAL_MAP = {
     "4": "4",
 }
 
+# Phone number regex: optional leading +, 7-15 digits/spaces/dashes/parens
+import re as _re
+_PHONE_RE = _re.compile(r'^[+]?[\d\s\-().]{7,15}$')
+
+def _validate_phone_value(v: str) -> str:
+    """Shared phone validator: required, non-empty, valid format."""
+    if not v or not v.strip():
+        raise ValueError("Phone number is required.")
+    digits = _re.sub(r'[^\d]', '', v)
+    if len(digits) < 7 or len(digits) > 15:
+        raise ValueError("Please enter a valid phone number.")
+    if not _PHONE_RE.match(v.strip()):
+        raise ValueError("Please enter a valid phone number.")
+    return v.strip()
+
+
 class RegisterSchema(BaseModel):
     full_name: Optional[str] = ""
     email: Optional[str] = ""
@@ -2185,42 +2201,13 @@ class RegisterSchema(BaseModel):
     year: Optional[str] = ""
     college: Optional[str] = ""
     payment_method: Optional[str] = ""
+    terms_accepted: Optional[bool] = False
+    terms_accepted_at: Optional[str] = ""
 
-    @field_validator("date_of_birth", "dob")
+    @field_validator("phone")
     @classmethod
-    def _validate_dob(cls, v):
-        if not v or not v.strip():
-            return ""
-        val = v.strip()
-        try:
-            d = _date.fromisoformat(val)
-        except Exception:
-            raise ValueError("Date of birth must be in YYYY-MM-DD format")
-        if d > _date.today():
-            raise ValueError("Date of birth cannot be in the future")
-        return val
-
-    @field_validator("branch")
-    @classmethod
-    def _validate_branch(cls, v):
-        if not v or not v.strip():
-            return ""
-        val = v.strip()
-        norm = BRANCH_CANONICAL_MAP.get(val, val)
-        if norm not in ALLOWED_BTECH_BRANCHES and val not in ALLOWED_BTECH_BRANCHES:
-            raise ValueError(f"Invalid B.Tech branch: {val}")
-        return norm
-
-    @field_validator("year")
-    @classmethod
-    def _validate_year(cls, v):
-        if not v or not v.strip():
-            return ""
-        val = v.strip()
-        norm = YEAR_CANONICAL_MAP.get(val, val)
-        if norm not in ("1", "2", "3", "4"):
-            raise ValueError("Academic year must be 1, 2, 3, or 4")
-        return norm
+    def _validate_phone(cls, v):
+        return _validate_phone_value(v or "")
 
     @field_validator("date_of_birth", "dob")
     @classmethod
@@ -2305,6 +2292,13 @@ async def register_for_showcase(
     # Server-side gates: closed registrations, past deadline, full capacity.
     await _assert_registration_open(db, showcase)
 
+    # Terms & Conditions acceptance is mandatory.
+    if payload.terms_accepted is not True:
+        raise HTTPException(
+            status_code=400,
+            detail="Terms and Conditions must be accepted before completing registration.",
+        )
+
     # Auto-onboard manually-typed colleges (idempotent — no-op if already in DB).
     college_value = (payload.college or "").strip()
     if college_value:
@@ -2387,6 +2381,8 @@ async def register_for_showcase(
         "registered_at": now_iso,
         "status": "registered" if auto_paid else "pending",
         "created_at": now_iso,
+        "terms_accepted": payload.terms_accepted or False,
+        "terms_accepted_at": payload.terms_accepted_at or now_iso,
     }
     await db.echo_registrations.insert_one(dict(reg))
     await _sync_user_profile_data(db, user, payload)
@@ -2470,6 +2466,12 @@ class PaymentOrderSchema(BaseModel):
     branch: Optional[str] = ""
     year: Optional[str] = ""
     college: Optional[str] = ""
+    terms_accepted: Optional[bool] = False
+
+    @field_validator("phone")
+    @classmethod
+    def _validate_phone(cls, v):
+        return _validate_phone_value(v or "")
 
     @field_validator("date_of_birth", "dob")
     @classmethod
@@ -2555,6 +2557,13 @@ async def create_payment_order(slug: str, payload: PaymentOrderSchema, request: 
 
     if not (payload.full_name or "").strip() or not (payload.email or "").strip():
         raise HTTPException(status_code=400, detail="Full name and email are required")
+
+    # Terms & Conditions acceptance is mandatory.
+    if payload.terms_accepted is not True:
+        raise HTTPException(
+            status_code=400,
+            detail="Terms and Conditions must be accepted before completing registration.",
+        )
 
     # A real Razorpay gateway must be configured — no demo/mock order creation.
     cfg = await _razorpay_config(db)
