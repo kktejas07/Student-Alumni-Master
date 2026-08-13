@@ -2972,10 +2972,26 @@ async def admin_echo_registrations(
             {"college": rx},
         ]
     cur = db.echo_registrations.find(query).sort("created_at", -1).limit(limit)
+    regs = await cur.to_list(limit)
+    reg_ids = [r.get("id") for r in regs if r.get("id")]
+
+    # Batch-fetch issued artifacts (coupons + invoices) for the visible page so
+    # we can tell admins exactly what was issued per attendee.
+    coupons_map: Dict[str, int] = {}
+    invoice_map: Dict[str, dict] = {}
+    if reg_ids:
+        for c in await db.echo_coupons.find({"reg_id": {"$in": reg_ids}}).to_list(5000):
+            coupons_map[c.get("reg_id")] = coupons_map.get(c.get("reg_id"), 0) + 1
+        for inv in await db.invoices.find({"reg_id": {"$in": reg_ids}}).to_list(2000):
+            invoice_map[inv.get("reg_id")] = {"invoice_no": inv.get("invoice_no"), "issued": True}
+
     items = []
-    for r in await cur.to_list(limit):
+    for r in regs:
         s = _ser(r)
         payment = s.get("payment") or {}
+        paid = payment.get("status") == "paid" and s.get("status") == "registered"
+        rid = s.get("id")
+        inv_rec = invoice_map.get(rid) or {}
         items.append({
             "id": s.get("id"),
             "slug": s.get("slug"),
@@ -2999,6 +3015,11 @@ async def admin_echo_registrations(
             "failed_at": payment.get("failed_at"),
             "failed_reason": payment.get("failed_reason"),
             "reminder_sent_at": s.get("payment_reminder_sent_at"),
+            "checked_in_at": s.get("checked_in_at"),
+            "ticket_issued": paid and bool(s.get("qr_code_base64")),
+            "coupons_issued": coupons_map.get(rid, 0),
+            "invoice_issued": bool(inv_rec.get("issued")),
+            "invoice_no": inv_rec.get("invoice_no"),
         })
     return {"items": items, "total": len(items)}
 

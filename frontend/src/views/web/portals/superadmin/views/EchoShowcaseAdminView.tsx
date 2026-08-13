@@ -176,6 +176,54 @@ const cs = StyleSheet.create({
   },
 });
 
+// ── Hover-tooltip icon action button (super-admin rows) ──────────────────────
+function IconAction({ icon, label, color, bg, onPress, disabled = false, danger = false }: {
+  icon: React.ReactNode;
+  label: string;
+  color: string;
+  bg?: string;
+  onPress?: () => void;
+  disabled?: boolean;
+  danger?: boolean;
+}) {
+  const [hover, setHover] = useState(false);
+  return (
+    <View
+      style={{ position: 'relative', zIndex: hover ? 50 : 1 }}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+    >
+      <Pressable
+        onPress={onPress}
+        disabled={disabled}
+        style={{
+          width: 30, height: 30, borderRadius: 8,
+          backgroundColor: bg || (danger ? 'rgba(239,68,68,0.15)' : 'rgba(99,102,241,0.15)'),
+          alignItems: 'center', justifyContent: 'center',
+          cursor: disabled ? 'default' : 'pointer',
+          opacity: disabled ? 0.45 : 1,
+          transitionDuration: '120ms',
+        }}
+      >
+        {icon}
+      </Pressable>
+      {hover && !disabled && (
+        <View style={{
+          position: 'absolute', top: '100%', left: '50%',
+          transform: [{ translateX: -50 }] as any,
+          marginTop: 6, paddingHorizontal: 9, paddingVertical: 5,
+          backgroundColor: '#0B0F1E', borderRadius: 7,
+          borderWidth: 1, borderColor: 'rgba(167,139,250,0.35)',
+          shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.45, shadowRadius: 12,
+          maxWidth: 240, zIndex: 60,
+        }}>
+          <Text style={{ color: '#E9E4FF', fontFamily: FONTS.med, fontSize: 10.5, textAlign: 'center', lineHeight: 14 }}>{label}</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
 // ── Single image upload widget ────────────────────────────────────────────────
 function ImageUploadWidget({
   label, url, onUpload, onRemove, aspectHint, onUploadStart, onUploadEnd, flash, onPickMedia,
@@ -2341,6 +2389,7 @@ function RegistrationsPanel() {
                 <Text style={{ width: 150, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>COLLEGE / BRANCH</Text>
                 <Text style={{ width: 150, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>AMOUNT</Text>
                 <Text style={{ width: 150, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>PAYMENT</Text>
+                <Text style={{ width: 130, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>ISSUED</Text>
                 <Text style={{ width: 120, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>SA ACCOUNT</Text>
                 <Text style={{ width: 150, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>DATE</Text>
                 <Text style={{ width: 100, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5, textAlign: 'center' }}>ACTIONS</Text>
@@ -2375,6 +2424,26 @@ function RegistrationsPanel() {
                       </Text>
                     ) : null}
                   </View>
+                  <View style={{ width: 130, minWidth: 0 }}>
+                    {r.payment_status === 'paid' ? (
+                      <>
+                        <Text style={{ fontFamily: FONTS.xbold, fontSize: 10.5, color: '#86EFAC' }}>
+                          {r.coupons_issued > 0 ? `Ticket + ${r.coupons_issued} coupon${r.coupons_issued > 1 ? 's' : ''}` : 'Ticket'}
+                        </Text>
+                        <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 9.5, color: SAC.dim }}>
+                          {r.invoice_issued ? (r.invoice_no || 'Invoice issued') : 'No invoice'}
+                        </Text>
+                      </>
+                    ) : r.payment_status === 'pending' ? (
+                      <Text style={{ fontFamily: FONTS.med, fontSize: 10.5, color: '#FCD34D' }}>
+                        Nothing — awaiting payment
+                      </Text>
+                    ) : (
+                      <Text style={{ fontFamily: FONTS.med, fontSize: 10.5, color: '#FCA5A5' }}>
+                        Nothing — not issued
+                      </Text>
+                    )}
+                  </View>
                   <View style={{ width: 120, minWidth: 0 }}>
                     <StatusPill
                       kind={r.has_account ? 'success' : 'neutral'}
@@ -2387,32 +2456,37 @@ function RegistrationsPanel() {
                     </Text>
                   </View>
                   <View style={{ width: 100, flexDirection: 'row', gap: 6, justifyContent: 'center' }}>
-                    <Pressable onPress={() => setDetailRow(r)} style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: 'rgba(99,102,241,0.15)', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                      <Eye size={14} color="#818CF8" />
-                    </Pressable>
+                    <IconAction icon={<Eye size={14} color="#818CF8" />} label="View registration details" color="#818CF8" onPress={() => setDetailRow(r)} />
                     {r.payment_status === 'pending' && (
                       <>
-                        <Pressable
+                        <IconAction
+                          icon={<Mail size={14} color="#FBBF24" />}
+                          label="Email a payment reminder to this attendee"
+                          color="#FBBF24"
+                          bg="rgba(245,158,11,0.15)"
                           onPress={() => sendReminder(r)}
                           disabled={actioning === r.id}
-                          title="Email payment reminder"
-                          style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: 'rgba(245,158,11,0.15)', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', opacity: actioning === r.id ? 0.5 : 1 }}
-                        >
-                          <Mail size={14} color="#FBBF24" />
-                        </Pressable>
-                        <Pressable
+                        />
+                        <IconAction
+                          icon={<XCircle size={14} color="#F87171" />}
+                          label="Mark payment as failed — no ticket, pass or invoice will be issued"
+                          color="#F87171"
+                          bg="rgba(239,68,68,0.15)"
+                          danger
                           onPress={() => markFailed(r)}
                           disabled={actioning === r.id}
-                          title="Mark payment as failed (no ticket/pass issued)"
-                          style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: 'rgba(239,68,68,0.15)', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', opacity: actioning === r.id ? 0.5 : 1 }}
-                        >
-                          <XCircle size={14} color="#F87171" />
-                        </Pressable>
+                        />
                       </>
                     )}
-                    <Pressable onPress={() => deleteReg(r.id || r._id)} disabled={deleting === (r.id || r._id)} style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: deleting === (r.id || r._id) ? 'rgba(100,100,100,0.15)' : 'rgba(239,68,68,0.15)', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', opacity: deleting === (r.id || r._id) ? 0.5 : 1 }}>
-                      <Trash2 size={14} color={deleting === (r.id || r._id) ? '#666' : '#F87171'} />
-                    </Pressable>
+                    <IconAction
+                      icon={<Trash2 size={14} color="#F87171" />}
+                      label="Delete this registration permanently"
+                      color="#F87171"
+                      bg={deleting === (r.id || r._id) ? 'rgba(100,100,100,0.15)' : 'rgba(239,68,68,0.15)'}
+                      danger
+                      onPress={() => deleteReg(r.id || r._id)}
+                      disabled={deleting === (r.id || r._id)}
+                    />
                   </View>
                 </View>
               ))}
@@ -2424,8 +2498,15 @@ function RegistrationsPanel() {
       {/* Detail Modal */}
       {detailRow && (
         <Modal visible={true} transparent animationType="fade" onRequestClose={() => setDetailRow(null)}>
-          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-            <Card style={{ width: '100%', maxWidth: 480, padding: 24, gap: 16 }}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.72)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+            <View style={{
+              width: '100%', maxWidth: 480, padding: 24, gap: 16,
+              backgroundColor: '#141A2D',
+              borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)',
+              borderRadius: 16,
+              shadowColor: '#000', shadowOffset: { width: 0, height: 18 }, shadowOpacity: 0.55, shadowRadius: 30,
+              elevation: 12,
+            }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: SAC.text }}>Registration Details</Text>
                 <Pressable onPress={() => setDetailRow(null)} style={{ padding: 4 }}><X size={18} color={SAC.muted} /></Pressable>
@@ -2444,8 +2525,10 @@ function RegistrationsPanel() {
                   ['Failed At', detailRow.failed_at ? new Date(detailRow.failed_at).toLocaleString() : null],
                   ['Failed Reason', detailRow.failed_reason],
                   ['Reminder Sent', detailRow.reminder_sent_at ? new Date(detailRow.reminder_sent_at).toLocaleString() : null],
+                  ['Ticket / Pass Issued', detailRow.ticket_issued ? 'Yes — QR pass generated' : 'No — not issued until payment confirmed'],
+                  ['Session Coupons', detailRow.coupons_issued > 0 ? `${detailRow.coupons_issued} issued` : 'None'],
+                  ['Invoice', detailRow.invoice_issued ? (detailRow.invoice_no || 'Yes') : 'No — not issued until payment confirmed'],
                   ['SA Account', detailRow.has_account ? 'Yes' : 'No'],
-                  ['Registered', (detailRow.registered_at || '').slice(0, 19).replace('T', ' ')],
                   ['Checked In', detailRow.checked_in_at ? new Date(detailRow.checked_in_at).toLocaleString() : 'No'],
                 ].map(([label, value]) => (
                   <View key={label} style={{ flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)', paddingBottom: 8 }}>
@@ -2457,7 +2540,7 @@ function RegistrationsPanel() {
               <GradientButton onPress={() => setDetailRow(null)} size="sm" style={{ alignSelf: 'flex-end' }}>
                 <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>Close</Text>
               </GradientButton>
-            </Card>
+            </View>
           </View>
         </Modal>
       )}
