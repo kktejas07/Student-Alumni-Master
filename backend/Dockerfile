@@ -48,6 +48,11 @@ COPY . .
 
 RUN useradd --create-home --shell /usr/sbin/nologin appuser && \
     chown -R appuser:appuser /app
+
+# Pre-create uploads dir with correct ownership (volume mount may override)
+RUN mkdir -p /app/uploads/newsletter /app/uploads/echo /app/uploads/general /app/uploads/coupons /app/uploads/certificates && \
+    chown -R appuser:appuser /app/uploads
+
 USER appuser
 
 EXPOSE 8000
@@ -57,4 +62,7 @@ HEALTHCHECK --interval=30s --timeout=8s --start-period=20s --retries=3 \
 
 ENV UVICORN_WORKERS=2
 ENV PLAYWRIGHT_BROWSERS_PATH=/app/.playwright
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["sh", "-c", "uvicorn server:app --host 0.0.0.0 --port 8000 --workers ${UVICORN_WORKERS} --proxy-headers --forwarded-allow-ips '*'"]

@@ -3428,12 +3428,12 @@ const s = StyleSheet.create({
       : { position: 'absolute' as any, bottom: 24 }),
     left: 'auto' as any,
     alignSelf: 'flex-end',
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999,
-    backgroundColor: 'rgba(16,185,129,0.18)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.35)',
-    maxWidth: 320, zIndex: 9999, elevation: 9999,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12,
+    backgroundColor: 'rgba(16,185,129,0.92)', borderWidth: 1, borderColor: 'rgba(16,185,129,1)',
+    maxWidth: 340, zIndex: 9999, elevation: 9999,
   },
-  toastText: { color: SAC.green, fontFamily: FONTS.xbold, fontSize: 11.5 },
+  toastText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
 
   // Signature editor
   sigPreview: {

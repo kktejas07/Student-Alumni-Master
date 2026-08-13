@@ -236,7 +236,7 @@ export function useToast() {
   const [toast, setToast] = useState({ visible: false, text: 'Saved', kind: 'success' as 'success' | 'error' });
   const flash = useCallback((text = 'Saved', kind: 'success' | 'error' = 'success') => {
     setToast({ visible: true, text, kind });
-    setTimeout(() => setToast((t) => ({ ...t, visible: false })), 1500);
+    setTimeout(() => setToast((t) => ({ ...t, visible: false })), 3000);
   }, []);
   return { toast, flash };
 }
@@ -246,7 +246,7 @@ export function Toast({ text, visible, kind = 'success' }: { text: string; visib
   const isError = kind === 'error';
   return (
     <Animated.View entering={FadeIn.duration(180)} style={[k.toast, isError && k.toastError]} pointerEvents="none">
-      {isError ? <AlertTriangle size={12} color="#F87171" /> : <Check size={12} color={SAC.green} />}
+      {isError ? <AlertTriangle size={15} color="#FCA5A5" /> : <Check size={15} color="#fff" />}
       <Text style={[k.toastText, isError && { color: '#FCA5A5' }]}>{text}</Text>
     </Animated.View>
   );
@@ -367,15 +367,16 @@ const k = StyleSheet.create({
     left: 'auto' as any,
     alignSelf: 'flex-end',
     alignItems: 'center', justifyContent: 'center',
-    flexDirection: 'row', gap: 6,
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999,
-    backgroundColor: 'rgba(16,185,129,0.18)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.35)',
-    maxWidth: 320, zIndex: 9999, elevation: 9999,
+    flexDirection: 'row', gap: 8,
+    paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12,
+    backgroundColor: 'rgba(16,185,129,0.92)', borderWidth: 1, borderColor: 'rgba(16,185,129,1)',
+    maxWidth: 340, zIndex: 9999, elevation: 9999,
+    ...(Platform.OS === 'web' ? { boxShadow: '0 8px 24px rgba(0,0,0,0.4)' } as any : {}),
   },
   toastError: {
-    backgroundColor: 'rgba(239,68,68,0.18)', borderColor: 'rgba(239,68,68,0.45)',
+    backgroundColor: 'rgba(239,68,68,0.92)', borderColor: 'rgba(239,68,68,1)',
   },
-  toastText: { color: SAC.green, fontFamily: FONTS.xbold, fontSize: 11.5 },
+  toastText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
 
   kpiCard: {
     flex: 1, minWidth: 180, paddingVertical: 16, paddingHorizontal: 18,
