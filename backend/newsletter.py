@@ -405,6 +405,13 @@ class TestNewsletterSchema(BaseModel):
     test_email: str
 
 
+class TestWhatsAppSchema(BaseModel):
+    subject: str
+    body: Optional[str] = ""
+    cta_url: Optional[str] = ""
+    test_phone: str
+
+
 @router.post("/admin/preview")
 async def preview_newsletter(payload: SendNewsletterSchema, request: Request, _=Depends(require_role("admin", "super_admin"))):
     """Render and return the full HTML preview of the newsletter."""
@@ -470,6 +477,27 @@ async def send_test_email(payload: TestNewsletterSchema, request: Request, _=Dep
         raise HTTPException(status_code=500, detail="Failed to send test email")
 
     return {"ok": True, "message": f"Test email sent successfully to {payload.test_email}"}
+
+
+@router.post("/admin/send-test-whatsapp")
+async def send_test_whatsapp(payload: TestWhatsAppSchema, request: Request, _=Depends(require_role("admin", "super_admin"))):
+    """Send a test WhatsApp message to a single phone number."""
+    from core.whatsapp import send_wa_message, get_openwa_config
+    config = await get_openwa_config()
+    if not config:
+        raise HTTPException(status_code=503, detail="OpenWA gateway not configured — connect it in Settings → Integrations first")
+    phone = (payload.test_phone or "").strip()
+    if not phone:
+        raise HTTPException(status_code=400, detail="Phone number is required")
+    subject = (payload.subject or "").strip() or "Newsletter Preview"
+    body_text = (payload.body or "").strip() or subject
+    wa_text = f"📢 *{subject}*\n\n{body_text}"
+    if payload.cta_url:
+        wa_text += f"\n\n🔗 {payload.cta_url}"
+    result = await send_wa_message(phone=phone, text=wa_text, kind="newsletter_test")
+    if result.get("status") == "sent":
+        return {"ok": True, "message": f"Test WhatsApp sent to {phone}"}
+    raise HTTPException(status_code=500, detail=f"WhatsApp send failed: {result.get('reason', 'unknown')}")
 
 
 @router.post("/admin/send")

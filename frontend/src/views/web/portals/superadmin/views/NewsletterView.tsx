@@ -119,7 +119,9 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
   const [scheduleDate, setScheduleDate] = useState('');
   const [scheduleTime, setScheduleTime] = useState('12:00');
   const [testEmail, setTestEmail] = useState('');
+  const [testPhone, setTestPhone] = useState('');
   const [testSending, setTestSending] = useState(false);
+  const [testWhatsappSending, setTestWhatsappSending] = useState(false);
   const [previewHtmlBackend, setPreviewHtmlBackend] = useState('');
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
@@ -224,6 +226,25 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
       flash(`Test email FAILED: ${e?.message || 'Unknown error'}`, 'error');
     } finally {
       setTestSending(false);
+    }
+  };
+
+  const doSendTestWhatsApp = async () => {
+    if (!testPhone.trim()) { flash('Enter a test phone number first', 'error'); return; }
+    if (!form.subject.trim()) { flash('Subject is required to send a test WhatsApp', 'error'); return; }
+    setTestWhatsappSending(true);
+    try {
+      const res = await api.sendNewsletterTestWhatsApp({
+        subject: form.subject,
+        body: form.body || form.intro || '',
+        cta_url: form.cta_url,
+        test_phone: testPhone.trim(),
+      });
+      flash(res?.message || `Test WhatsApp sent to ${testPhone.trim()}`);
+    } catch (e: any) {
+      flash(`Test WhatsApp FAILED: ${e?.message || 'Unknown error'}`, 'error');
+    } finally {
+      setTestWhatsappSending(false);
     }
   };
 
@@ -790,6 +811,27 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
             </View>
             <Text style={{ color: SAC.dim, fontSize: 11, fontFamily: 'System' }}>
               Sends a real preview email to the address above using the current form content.
+            </Text>
+          </View>
+
+          <View style={{ marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: SAC.border, gap: 10 }}>
+            <SectionLabel>SEND TEST WHATSAPP</SectionLabel>
+            <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+              <TextInput
+                style={[st.input, { flex: 1, height: 36, paddingVertical: 4 }]}
+                value={testPhone}
+                onChangeText={setTestPhone}
+                placeholder="+1 609 651 4555"
+                placeholderTextColor={SAC.dim}
+                autoCapitalize="none"
+                keyboardType="phone-pad"
+              />
+              <SecondaryButton onPress={doSendTestWhatsApp} loading={testWhatsappSending}>
+                <Text style={st.secText}>Send Test</Text>
+              </SecondaryButton>
+            </View>
+            <Text style={{ color: SAC.dim, fontSize: 11, fontFamily: 'System' }}>
+              Sends a real WhatsApp message to the number above. Requires OpenWA configured in Settings → Integrations.
             </Text>
           </View>
         </Card>
