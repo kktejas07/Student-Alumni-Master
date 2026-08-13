@@ -502,7 +502,6 @@ const parseToISO = (dateStr: string, timeStr: string) => {
 
 function DrawerInner({ st, onClose, onUpdateStudent, onRefresh }: { st: Student; onClose: () => void; onUpdateStudent: (updated: Student) => void; onRefresh: () => Promise<void> }) {
   const toast = useToast();
-  const toast = useToast();
   const [activeTab, setActiveTab] = useState<'overview' | 'sessions' | 'notes'>('overview');
   const [notesText, setNotesText] = useState(st.lastSession?.notes || '');
   const [isSaved, setIsSaved] = useState(false);
