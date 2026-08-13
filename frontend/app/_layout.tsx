@@ -36,6 +36,7 @@ import { AgentKQuickLauncher } from '@/src/views/web/agent-k/AgentKQuickLauncher
 import { ConsentBanner } from '@/src/views/web/consent/ConsentBanner';
 import { TourProvider } from '@/src/views/web/tour/TourProvider';
 import { TourOverlay } from '@/src/views/web/tour/TourOverlay';
+import { AnnouncementPopup } from '@/src/views/web/components/AnnouncementPopup';
 import { LogBox } from 'react-native';
 
 LogBox.ignoreLogs(['6000ms timeout exceeded', 'fontfaceobserver']);
@@ -175,6 +176,8 @@ export default function RootLayout() {
               <ConsentBanner />
               {/* Phase B — product tour spotlight overlay (web only) */}
               <TourOverlay />
+              {/* Global announcement popup (web only, feature-flagged via backend) */}
+              <AnnouncementPopup />
             </TourProvider>
           </ToastProvider>
         </SafeAreaProvider>

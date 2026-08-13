@@ -147,6 +147,56 @@ async def list_active_for_me(user: dict = Depends(get_current_user)):
     return {"items": items, "role": role, "as_of": now.isoformat()}
 
 
+# ── Public: popup announcements (modal promos + upcoming events) ─────────
+@router.get("/promotions/popup")
+async def get_popup_announcements():
+    """
+    Returns active promotions with placement='modal' plus upcoming published
+    Echo showcases. No auth required — works for logged-out visitors too.
+    Respects the 'popup_announcements' feature flag in platform_controls.
+    """
+    now = datetime.now(timezone.utc)
+
+    # Check feature flag
+    controls = await db.platform_controls.find_one({"_id": "singleton"})
+    flags = controls.get("feature_flags", []) if controls else []
+    popup_flag = next((f for f in flags if f.get("key") == "popup_announcements"), None)
+    if popup_flag and popup_flag.get("value") is False:
+        return {"promos": [], "events": []}
+
+    # 1. Active modal promotions
+    promo_q: dict = {
+        "is_active": True,
+        "placement": "modal",
+        "$and": [
+            {"$or": [{"starts_at": None}, {"starts_at": {"$lte": now}}]},
+            {"$or": [{"ends_at": None}, {"ends_at": {"$gte": now}}]},
+        ],
+    }
+    promo_cur = db.promotions.find(promo_q).sort("display_order", 1).limit(3)
+    promos = [_serialize(d) async for d in promo_cur]
+
+    # 2. Upcoming published Echo showcases
+    event_cur = db.echo_showcases.find(
+        {"status": "published"},
+        {"title": 1, "slug": 1, "date": 1, "time": 1, "venue": 1, "hero_image_url": 1, "subtitle": 1}
+    ).sort("date", -1).limit(5)
+    events = []
+    async for d in event_cur:
+        events.append({
+            "id": str(d["_id"]),
+            "title": d.get("title", ""),
+            "slug": d.get("slug", ""),
+            "date": d.get("date", ""),
+            "time": d.get("time", ""),
+            "venue": d.get("venue", ""),
+            "hero_image_url": d.get("hero_image_url"),
+            "subtitle": d.get("subtitle", ""),
+        })
+
+    return {"promos": promos, "events": events}
+
+
 # ── Admin CRUD ───────────────────────────────────────────────────────────
 @router.get("/admin/promotions")
 async def list_all(user: dict = Depends(get_current_user)):

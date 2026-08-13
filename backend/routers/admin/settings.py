@@ -808,6 +808,7 @@ DEFAULT_PLATFORM_CONTROLS = {
         {"key": "enable_google_login",  "label": "Enable Google Login",  "description": "Show Google sign-in button on login page", "value": True},
         {"key": "enable_linkedin_login","label": "Enable LinkedIn Login","description": "Show LinkedIn sign-in button on login page", "value": True},
         {"key": "enable_github_login",  "label": "Enable GitHub Login",  "description": "Show GitHub sign-in button on login page", "value": True},
+        {"key": "popup_announcements",  "label": "Popup Announcements",  "description": "Show announcement popup when users visit the site", "value": True},
     ],
     "system_settings": [
         {"key": "session_timeout",  "label": "Session Timeout",   "value": "30 minutes"},
