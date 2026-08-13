@@ -313,6 +313,7 @@ os.makedirs("uploads/echo", exist_ok=True)
 os.makedirs("uploads/general", exist_ok=True)
 os.makedirs("uploads/coupons", exist_ok=True)
 os.makedirs("uploads/certificates", exist_ok=True)
+os.makedirs("uploads/newsletter", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 
@@ -325,30 +326,42 @@ async def upload_file(
     folder: str = Query("general"),
     user: dict = Depends(_deps_get_current_user),
 ):
-    """Upload an image file and return its static URL. Used by ads, coupons, promotions."""
+    """Upload an image file and return its static URL. Used by ads, coupons, promotions, newsletter."""
     role = (user.get("role") or "").lower()
     if role not in ("admin", "superadmin", "super_admin", "hr admin", "hr_admin"):
         raise HTTPException(403, "Only admins can upload files")
     from pathlib import Path
     from datetime import datetime as _dt, timezone as _tz
     allowed = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
-    ext = Path(file.filename).suffix.lower() if file.filename else ".png"
+    filename = file.filename or "upload.png"
+    ext = Path(filename).suffix.lower() or ".png"
     if ext not in allowed:
         raise HTTPException(400, f"File type {ext} not allowed. Use JPG, PNG, WebP, or GIF.")
-    contents = await file.read()
+    try:
+        contents = await file.read()
+    except Exception as e:
+        raise HTTPException(500, f"Failed to read uploaded file: {e}")
     max_size = 5 * 1024 * 1024  # 5 MB
     if len(contents) > max_size:
         raise HTTPException(413, "File too large. Maximum 5 MB allowed.")
+    if len(contents) == 0:
+        raise HTTPException(400, "Uploaded file is empty")
     # Sanitize folder name to prevent path traversal
     safe_folder = Path(folder).name if folder else "general"
     upload_dir = Path("uploads") / safe_folder
-    upload_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        upload_dir.mkdir(parents=True, exist_ok=True)
+    except Exception as e:
+        raise HTTPException(500, f"Failed to create upload directory: {e}")
     ts = int(_dt.now(_tz.utc).timestamp())
-    stem = Path(file.filename).stem.replace(" ", "_").replace("/", "_") if file.filename else "upload"
+    stem = Path(filename).stem.replace(" ", "_").replace("/", "_")[:80]
     safe_name = f"{ts}_{stem}{ext}"
     out_path = upload_dir / safe_name
-    with open(out_path, "wb") as f:
-        f.write(contents)
+    try:
+        with open(out_path, "wb") as f:
+            f.write(contents)
+    except Exception as e:
+        raise HTTPException(500, f"Failed to save file: {e}")
     url = f"/uploads/{safe_folder}/{safe_name}"
     return {"status": "ok", "url": url}
 
