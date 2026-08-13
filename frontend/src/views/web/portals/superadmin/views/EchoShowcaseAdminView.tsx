@@ -48,6 +48,7 @@ const SESSION_PASS_ICONS: Record<string, any> = {
   breakfast: CupSoda,
   lunch: UtensilsCrossed,
   snacks: Cookie,
+  dinner: UtensilsCrossed,
   tiffin: Sandwich,
   coffee: Coffee,
 };
@@ -211,13 +212,12 @@ function IconAction({ icon, label, color, bg, onPress, disabled = false, danger 
         <View style={{
           position: 'absolute', top: '100%', left: '50%',
           transform: [{ translateX: -50 }] as any,
-          marginTop: 6, paddingHorizontal: 9, paddingVertical: 5,
-          backgroundColor: '#0B0F1E', borderRadius: 7,
-          borderWidth: 1, borderColor: 'rgba(167,139,250,0.35)',
-          shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.45, shadowRadius: 12,
-          maxWidth: 240, zIndex: 60,
+          marginTop: 5, paddingHorizontal: 7, paddingVertical: 4,
+          backgroundColor: '#0B0F1E', borderRadius: 6,
+          borderWidth: 1, borderColor: 'rgba(167,139,250,0.3)',
+          maxWidth: 150, zIndex: 60,
         }}>
-          <Text style={{ color: '#E9E4FF', fontFamily: FONTS.med, fontSize: 10.5, textAlign: 'center', lineHeight: 14 }}>{label}</Text>
+          <Text style={{ color: '#E9E4FF', fontFamily: FONTS.med, fontSize: 10, textAlign: 'center', lineHeight: 13 }}>{label}</Text>
         </View>
       )}
     </View>
@@ -1397,7 +1397,7 @@ function ShowcaseCard({ item, onEdit, onDelete, onPublish, onDraft, onArchive, o
           </View>
           {item.subtitle ? <Text style={{ fontFamily: FONTS.med, fontSize: 12.5, color: SAC.muted }} numberOfLines={1}>{item.subtitle}</Text> : null}
           <View style={{ flexDirection: 'row', gap: 14, marginTop: 3, flexWrap: 'wrap' }}>
-            {item.date ? <Text style={cs.meta}>{item.date}</Text> : null}
+            {item.date ? <Text style={cs.meta}>{item.end_date && item.end_date !== item.date ? `${item.date} – ${item.end_date}` : item.date}</Text> : null}
             {item.venue ? <Text style={cs.meta}>{item.venue}</Text> : null}
             {item.category ? <Text style={cs.meta}>{item.category}</Text> : null}
             <Text style={cs.meta}>/{item.slug}</Text>
@@ -1432,7 +1432,7 @@ function ShowcaseCard({ item, onEdit, onDelete, onPublish, onDraft, onArchive, o
 // ── Empty showcase form ───────────────────────────────────────────────────────
 const EMPTY: any = {
   title: '', slug: '', subtitle: '', description: '',
-  date: '', time: '', venue: '', college: '', category: 'college-event',
+  date: '', end_date: '', time: '', venue: '', college: '', category: 'college-event',
   status: 'draft', event_status_badge: 'Upcoming',
   hero_image_url: '', hero_cover_url: '', hero_thumbnail_url: '', hero_bg_url: '',
   hero_banners: [],
@@ -1623,8 +1623,13 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
               </FieldRow>
               <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
                 <View style={{ flex: 1, minWidth: 180 }}>
-                  <FieldRow label="Date">
+                  <FieldRow label="Start Date">
                     <Field value={form.date} onChangeText={(v: string) => set('date', v)} placeholder="August 15, 2026" />
+                  </FieldRow>
+                </View>
+                <View style={{ flex: 1, minWidth: 180 }}>
+                  <FieldRow label="End Date" hint="Leave empty for one-day events">
+                    <Field value={form.end_date} onChangeText={(v: string) => set('end_date', v)} placeholder="August 16, 2026" />
                   </FieldRow>
                 </View>
                 <View style={{ flex: 1, minWidth: 150 }}>
@@ -1942,12 +1947,13 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
               <Card style={{ marginBottom: 16, padding: 20, gap: 12 }}>
                 <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>Session Passes</Text>
                 <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>
-                  Enable food/amenity coupons for attendees. Each enabled session generates a unique QR coupon that can be scanned once at the venue.
+                  Enable food/amenity coupons for attendees. Each enabled session generates a unique QR coupon that can be scanned once at the venue. For multi-day events, set the Day each pass belongs to.
                 </Text>
                 {[
                   { key: 'breakfast', label: 'Breakfast', Icon: CupSoda },
                   { key: 'lunch', label: 'Lunch', Icon: UtensilsCrossed },
                   { key: 'snacks', label: 'Snacks', Icon: Cookie },
+                  { key: 'dinner', label: 'Dinner', Icon: UtensilsCrossed },
                   { key: 'tiffin', label: 'Tiffin', Icon: Sandwich },
                   { key: 'coffee', label: 'Coffee & Tea', Icon: Coffee },
                 ].map((s) => {
@@ -1955,6 +1961,9 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                   const existing = sessions.find((x: any) => x.key === s.key);
                   const enabled = existing?.enabled ?? false;
                   const locked = existing?.locked ?? false;
+                  const day = existing?.day ?? 1;
+                  const maxDay = Math.max(1, Math.min(7, parseInt(form.end_date && form.date ? '2' : '1', 10) || 1));
+                  const dayOptions = Array.from({ length: Math.max(2, maxDay) }, (_, i) => String(i + 1));
                   return (
                     <View key={s.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' }}>
                       <View style={{ width: 28, alignItems: 'center', justifyContent: 'center' }}>
@@ -1962,24 +1971,43 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                       </View>
                       <Text style={{ flex: 1, fontFamily: FONTS.med, fontSize: 13, color: SAC.text }}>{s.label}</Text>
                       {enabled && (
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                          <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: locked ? '#F59E0B' : SAC.dim }}>
-                            {locked ? 'Locked' : 'Active'}
-                          </Text>
-                          <Pressable onPress={() => {
-                            const current = [...(form.sessions || [])];
-                            const idx = current.findIndex((x: any) => x.key === s.key);
-                            if (idx >= 0) {
-                              current[idx] = { ...current[idx], locked: !locked };
-                            }
-                            set('sessions', current);
-                          }} style={{
-                            width: 36, height: 20, borderRadius: 10, padding: 2,
-                            backgroundColor: locked ? '#F59E0B' : '#334155', cursor: 'pointer',
-                          }}>
-                            <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: '#fff', transform: [{ translateX: locked ? 16 : 0 }] }} />
-                          </Pressable>
-                        </View>
+                        <>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>Day</Text>
+                            <select
+                              value={String(day)}
+                              onChange={(e: any) => {
+                                const current = [...(form.sessions || [])];
+                                const idx = current.findIndex((x: any) => x.key === s.key);
+                                if (idx >= 0) {
+                                  current[idx] = { ...current[idx], day: Number(e.target.value) || 1 };
+                                  set('sessions', current);
+                                }
+                              }}
+                              style={{ backgroundColor: '#0d1326', border: `1px solid ${SAC.border}`, borderRadius: 6, padding: '3px 6px', fontFamily: FONTS.med, fontSize: 11, color: SAC.text, appearance: 'none' } as any}
+                            >
+                              {dayOptions.map((d) => <option key={d} value={d} style={{ backgroundColor: '#0d1326' }}>{d}</option>)}
+                            </select>
+                          </View>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: locked ? '#F59E0B' : SAC.dim }}>
+                              {locked ? 'Locked' : 'Active'}
+                            </Text>
+                            <Pressable onPress={() => {
+                              const current = [...(form.sessions || [])];
+                              const idx = current.findIndex((x: any) => x.key === s.key);
+                              if (idx >= 0) {
+                                current[idx] = { ...current[idx], locked: !locked };
+                              }
+                              set('sessions', current);
+                            }} style={{
+                              width: 36, height: 20, borderRadius: 10, padding: 2,
+                              backgroundColor: locked ? '#F59E0B' : '#334155', cursor: 'pointer',
+                            }}>
+                              <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: '#fff', transform: [{ translateX: locked ? 16 : 0 }] }} />
+                            </Pressable>
+                          </View>
+                        </>
                       )}
                       <Pressable onPress={() => {
                         const current = [...(form.sessions || [])];
@@ -1987,7 +2015,7 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                         if (idx >= 0) {
                           current[idx] = { ...current[idx], enabled: !enabled, locked: false };
                         } else {
-                          current.push({ key: s.key, label: s.label, enabled: true, locked: false });
+                          current.push({ key: s.key, label: s.label, day: 1, enabled: true, locked: false });
                         }
                         set('sessions', current);
                       }} style={{
@@ -2154,31 +2182,45 @@ function SessionPassesOverview({ events, onRefresh }: { events: any[]; onRefresh
                 {sessions.length === 0 ? (
                   <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.dim }}>No sessions configured</Text>
                 ) : (
-                  <View style={{ gap: 6 }}>
-                    {sessions.map((s: any) => {
-                      const locked = s.locked ?? false;
-                      const enabled = s.enabled ?? false;
-                      const SessionIcon = SESSION_PASS_ICONS[s.key] || Ticket;
-                      return (
-                        <View key={s.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6, paddingHorizontal: 10, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
-                          <SessionIcon size={16} color={enabled ? '#A78BFA' : SAC.dim} />
-                          <Text style={{ flex: 1, fontFamily: FONTS.med, fontSize: 12, color: SAC.text }}>{s.label}</Text>
-                          {enabled && (
-                            <>
-                              <StatusPill kind={locked ? 'warn' : 'success'} label={locked ? 'Locked' : 'Active'} />
-                              <Pressable onPress={() => toggleLock(ev.slug, s.key, locked)} disabled={toggling === `${ev.slug}:${s.key}`} style={{
-                                width: 32, height: 18, borderRadius: 9, padding: 2,
-                                backgroundColor: locked ? '#F59E0B' : '#334155', cursor: 'pointer',
-                              }}>
-                                <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: '#fff', transform: [{ translateX: locked ? 14 : 0 }] }} />
-                              </Pressable>
-                            </>
-                          )}
-                          {!enabled && <StatusPill kind="neutral" label="Disabled" />}
-                        </View>
-                      );
-                    })}
-                  </View>
+                  (() => {
+                    const days = Array.from(new Set((sessions as any[]).map((x: any) => Number(x.day) || 1))).sort((a, b) => a - b);
+                    return (
+                      <View style={{ gap: 8 }}>
+                        {days.map((day) => {
+                          const daySessions = sessions.filter((x: any) => (Number(x.day) || 1) === day);
+                          const dayLabel = days.length > 1 ? `Day ${day}` : 'Day 1';
+                          return (
+                            <View key={day} style={{ gap: 4 }}>
+                              <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: SAC.muted, marginBottom: 2 }}>{dayLabel}</Text>
+                              {daySessions.map((s: any) => {
+                                const locked = s.locked ?? false;
+                                const enabled = s.enabled ?? false;
+                                const SessionIcon = SESSION_PASS_ICONS[s.key] || Ticket;
+                                return (
+                                  <View key={`${s.key}-${day}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6, paddingHorizontal: 10, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
+                                    <SessionIcon size={16} color={enabled ? '#A78BFA' : SAC.dim} />
+                                    <Text style={{ flex: 1, fontFamily: FONTS.med, fontSize: 12, color: SAC.text }}>{s.label}</Text>
+                                    {enabled && (
+                                      <>
+                                        <StatusPill kind={locked ? 'warn' : 'success'} label={locked ? 'Locked' : 'Active'} />
+                                        <Pressable onPress={() => toggleLock(ev.slug, s.key, locked)} disabled={toggling === `${ev.slug}:${s.key}`} style={{
+                                          width: 32, height: 18, borderRadius: 9, padding: 2,
+                                          backgroundColor: locked ? '#F59E0B' : '#334155', cursor: 'pointer',
+                                        }}>
+                                          <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: '#fff', transform: [{ translateX: locked ? 14 : 0 }] }} />
+                                        </Pressable>
+                                      </>
+                                    )}
+                                    {!enabled && <StatusPill kind="neutral" label="Disabled" />}
+                                  </View>
+                                );
+                              })}
+                            </View>
+                          );
+                        })}
+                      </View>
+                    );
+                  })()
                 )}
               </View>
             );
@@ -2456,12 +2498,12 @@ function RegistrationsPanel() {
                     </Text>
                   </View>
                   <View style={{ width: 100, flexDirection: 'row', gap: 6, justifyContent: 'center' }}>
-                    <IconAction icon={<Eye size={14} color="#818CF8" />} label="View registration details" color="#818CF8" onPress={() => setDetailRow(r)} />
+                    <IconAction icon={<Eye size={14} color="#818CF8" />} label="View" color="#818CF8" onPress={() => setDetailRow(r)} />
                     {r.payment_status === 'pending' && (
                       <>
                         <IconAction
                           icon={<Mail size={14} color="#FBBF24" />}
-                          label="Email a payment reminder to this attendee"
+                          label="Remind"
                           color="#FBBF24"
                           bg="rgba(245,158,11,0.15)"
                           onPress={() => sendReminder(r)}
@@ -2469,7 +2511,7 @@ function RegistrationsPanel() {
                         />
                         <IconAction
                           icon={<XCircle size={14} color="#F87171" />}
-                          label="Mark payment as failed — no ticket, pass or invoice will be issued"
+                          label="Mark failed"
                           color="#F87171"
                           bg="rgba(239,68,68,0.15)"
                           danger
@@ -2480,7 +2522,7 @@ function RegistrationsPanel() {
                     )}
                     <IconAction
                       icon={<Trash2 size={14} color="#F87171" />}
-                      label="Delete this registration permanently"
+                      label="Delete"
                       color="#F87171"
                       bg={deleting === (r.id || r._id) ? 'rgba(100,100,100,0.15)' : 'rgba(239,68,68,0.15)'}
                       danger

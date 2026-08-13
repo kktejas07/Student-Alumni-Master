@@ -6,7 +6,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, QrCode, Check, Clock, Ticket, Lock, CupSoda, UtensilsCrossed, Cookie, Sandwich, Coffee } from 'lucide-react-native';
+import { ArrowLeft, QrCode, Check, Clock, Ticket, Lock, CupSoda, UtensilsCrossed, Cookie, Sandwich, Coffee, CalendarDays } from 'lucide-react-native';
 import { EchoHeader, EchoFooter, ECHO_TOP_PADDING } from '@/src/views/web/components/EchoChrome';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { api, resolveImageUrl } from '@/src/models/services/api';
@@ -15,6 +15,7 @@ const SESSION_ICONS: Record<string, any> = {
   breakfast: CupSoda,
   lunch: UtensilsCrossed,
   snacks: Cookie,
+  dinner: UtensilsCrossed,
   tiffin: Sandwich,
   coffee: Coffee,
 };
@@ -23,6 +24,7 @@ const SESSION_COLORS: Record<string, string> = {
   breakfast: '#F59E0B',
   lunch: '#10B981',
   snacks: '#F97316',
+  dinner: '#EF4444',
   tiffin: '#8B5CF6',
   coffee: '#6366F1',
 };
@@ -146,8 +148,26 @@ export default function EchoCouponsPage() {
               <Text style={[s.centerText, { fontSize: 12, marginTop: 4, opacity: 0.6 }]}>The organizer hasn't enabled session passes yet.</Text>
             </View>
           ) : (
-            <View style={s.grid}>
-              {coupons.map((c, i) => {
+            <View style={{ gap: 20 }}>
+              {(() => {
+                const days = Array.from(new Set((coupons as any[]).map((c) => Number(c.session_day) || 1))).sort((a, b) => a - b);
+                return days.map((day) => {
+                  const dayCoupons = coupons.filter((c) => (Number(c.session_day) || 1) === day);
+                  const dayUsed = dayCoupons.filter((c) => c.used).length;
+                  const hasMultiDay = days.length > 1;
+                  return (
+                    <View key={day}>
+                      {hasMultiDay && (
+                        <View style={s.dayHeader}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            <CalendarDays size={13} color="#A78BFA" />
+                            <Text style={s.dayHeaderText}>Day {day}</Text>
+                          </View>
+                          <Text style={s.dayHeaderCount}>{dayUsed}/{dayCoupons.length} used</Text>
+                        </View>
+                      )}
+                      <View style={s.grid}>
+                        {dayCoupons.map((c, i) => {
                 const Icon = SESSION_ICONS[c.session_key] || Ticket;
                 const color = SESSION_COLORS[c.session_key] || '#A78BFA';
                 const isExpanded = expandedCoupon === c.coupon_code;
@@ -226,6 +246,11 @@ export default function EchoCouponsPage() {
                   </View>
                 );
               })}
+                      </View>
+                    </View>
+                  );
+                });
+              })()}
             </View>
           )}
         </View>
@@ -255,6 +280,9 @@ const s = StyleSheet.create({
   center: { alignItems: 'center', paddingVertical: 60, gap: 12 },
   centerText: { color: 'rgba(255,255,255,0.6)', fontFamily: 'DMSans_500Medium', fontSize: 13 },
   grid: { gap: 12 },
+  dayHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 4, paddingTop: 4 },
+  dayHeaderText: { fontFamily: 'DMSans_700Bold', fontSize: 14, color: '#E9E4FF', letterSpacing: 0.3 },
+  dayHeaderCount: { fontFamily: 'DMSans_500Medium', fontSize: 11, color: 'rgba(255,255,255,0.4)' },
   couponCard: {
     backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 16, borderWidth: 1,
     borderColor: 'rgba(167,139,250,0.2)', overflow: 'hidden',
