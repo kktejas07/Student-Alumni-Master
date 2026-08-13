@@ -455,6 +455,8 @@ export const api = {
   // ── Newsletter ────────────────────────────────────────────────────────────
   sendNewsletter: (payload: any) =>
     request<any>('/newsletter/admin/send', { method: 'POST', body: payload }),
+  saveNewsletterDraft: (payload: any) =>
+    request<any>('/newsletter/admin/save-draft', { method: 'POST', body: payload }),
   previewNewsletter: (payload: any) =>
     request<any>('/newsletter/admin/preview', { method: 'POST', body: payload }),
   sendNewsletterTest: (payload: any) =>
@@ -471,6 +473,8 @@ export const api = {
     request<any>('/newsletter/admin/campaigns'),
   newsletterUpcomingEvents: () =>
     request<any>('/newsletter/admin/upcoming-events'),
+  getNewsletterRecipientCount: () =>
+    request<any>('/newsletter/admin/recipient-count'),
 
   // ── Newsletter image upload (shared /admin/upload endpoint) ───────────────
   uploadNewsletterImage: (file: File, folder = 'newsletter') => {

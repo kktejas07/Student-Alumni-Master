@@ -58,7 +58,7 @@ def _unsub_token(email: str) -> str:
     return hmac.new(secret.encode("utf-8"), email.strip().lower().encode("utf-8"), hashlib.sha256).hexdigest()[:16]
 
 
-async def _all_subscribers(db, limit: int = 20000) -> list:
+async def _all_subscribers(db, limit: int = 100000) -> list:
     """All registered users with a valid email who haven't unsubscribed. Returns list of dicts with _id, email."""
     unsubscribed = {
         doc.get("email", "").strip().lower()
@@ -241,6 +241,67 @@ class SendNewsletterSchema(BaseModel):
     send_at: Optional[str] = None  # ISO format string for scheduling
 
 
+class DraftNewsletterSchema(BaseModel):
+    subject: str
+    hero_image: Optional[str] = ""
+    intro: Optional[str] = ""
+    body: Optional[str] = ""
+    cta_text: Optional[str] = ""
+    cta_url: Optional[str] = ""
+    include_upcoming: bool = True
+    send_email: bool = True
+    send_push: bool = True
+    send_in_app: bool = True
+    send_whatsapp: bool = False
+
+
+@router.post("/admin/save-draft")
+async def save_draft(payload: DraftNewsletterSchema, request: Request, user=Depends(require_role("admin", "super_admin"))):
+    """Save a newsletter as a draft without sending."""
+    if not (payload.subject or "").strip():
+        raise HTTPException(status_code=400, detail="Subject is required")
+
+    db = _get_db(request)
+    campaign_id = secrets.token_hex(8)
+    created_by = (user or {}).get("email") or "admin"
+
+    campaign = {
+        "campaign_id": campaign_id,
+        "subject": payload.subject,
+        "hero_image": payload.hero_image or "",
+        "intro": payload.intro or "",
+        "body": payload.body or "",
+        "cta_text": payload.cta_text or "",
+        "cta_url": payload.cta_url or "",
+        "include_upcoming": payload.include_upcoming,
+        "channels": {
+            "email": payload.send_email,
+            "push": payload.send_push,
+            "in_app": payload.send_in_app,
+            "whatsapp": payload.send_whatsapp,
+        },
+        "recipients_count": 0,
+        "sent": False,
+        "status": "draft",
+        "created_at": _now(),
+        "created_by": created_by,
+    }
+    await db.email_campaigns.insert_one(campaign)
+    return {
+        "ok": True,
+        "campaign_id": campaign_id,
+        "message": "Draft saved successfully",
+    }
+
+
+@router.get("/admin/recipient-count")
+async def recipient_count(request: Request, _=Depends(require_role("admin", "super_admin"))):
+    """Return the number of subscribers who would receive a newsletter."""
+    db = _get_db(request)
+    subscribers = await _all_subscribers(db)
+    return {"count": len(subscribers)}
+
+
 @router.get("/admin/campaigns")
 async def list_campaigns(
     request: Request,
@@ -287,7 +348,7 @@ async def cancel_or_delete_campaign(campaign_id: str, request: Request, _=Depend
             {"$set": {"status": "cancelled", "cancelled_at": _now()}}
         )
         return {"ok": True, "message": "Campaign cancelled"}
-    # For sent/completed/cancelled/failed → permanently delete
+    # For sent/completed/cancelled/failed/draft → permanently delete
     await db.email_campaigns.delete_one({"campaign_id": campaign_id})
     return {"ok": True, "message": "Campaign deleted"}
 
@@ -332,8 +393,8 @@ async def update_campaign(campaign_id: str, payload: UpdateCampaignSchema, reque
     camp = await db.email_campaigns.find_one({"campaign_id": campaign_id})
     if not camp:
         raise HTTPException(status_code=404, detail="Campaign not found")
-    if camp.get("status") not in ("scheduled", "cancelled", "failed"):
-        raise HTTPException(status_code=400, detail="Only scheduled campaigns can be edited")
+    if camp.get("status") not in ("scheduled", "cancelled", "failed", "draft"):
+        raise HTTPException(status_code=400, detail="Only scheduled or draft campaigns can be edited")
 
     update = {}
     for field in ("subject", "hero_image", "intro", "body", "cta_text", "cta_url"):
@@ -369,7 +430,10 @@ async def update_campaign(campaign_id: str, payload: UpdateCampaignSchema, reque
     if not update:
         raise HTTPException(status_code=400, detail="No changes provided")
 
-    update["status"] = "scheduled"  # re-activate if it was cancelled/failed
+    if camp.get("status") == "draft" and not payload.send_at:
+        update["status"] = "draft"  # keep as draft if no send_at provided
+    else:
+        update["status"] = "scheduled"  # re-activate if it was cancelled/failed/draft-with-schedule
     update["updated_at"] = _now()
     await db.email_campaigns.update_one({"campaign_id": campaign_id}, {"$set": update})
 

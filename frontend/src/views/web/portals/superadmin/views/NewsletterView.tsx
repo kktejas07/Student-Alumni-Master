@@ -132,6 +132,9 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
   const [loadingEdit, setLoadingEdit] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [recipientCount, setRecipientCount] = useState<number | null>(null);
+  const [loadingRecipientCount, setLoadingRecipientCount] = useState(false);
 
   // Individual notification state
   const [indUserQuery, setIndUserQuery] = useState('');
@@ -307,11 +310,13 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
     setSendImmediately(true);
     setScheduleDate('');
     setScheduleTime('12:00');
+    setRecipientCount(null);
     setForm({
       subject: '', hero_image: '', intro: '', body: '',
       cta_text: 'Register Now', cta_url: 'https://studentalumni.ai/echo',
       include_upcoming: true, send_email: true, send_push: true, send_in_app: true, send_whatsapp: false,
     });
+    flash('Edit cancelled');
   };
 
   const doUpdate = async () => {
@@ -414,6 +419,61 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
       flash(e?.message || 'Failed to send newsletter');
     } finally {
       setSending(false);
+    }
+  };
+
+  const doSaveDraft = async () => {
+    if (!form.subject.trim()) { flash('Subject is required', 'error'); return; }
+    setSavingDraft(true);
+    try {
+      if (editingCampaign) {
+        const res: any = await api.updateNewsletterCampaign(editingCampaign.campaign_id, {
+          subject: form.subject,
+          hero_image: form.hero_image,
+          intro: form.intro,
+          body: form.body,
+          cta_text: form.cta_text,
+          cta_url: form.cta_url,
+          include_upcoming: form.include_upcoming,
+          send_email: form.send_email,
+          send_push: form.send_push,
+          send_in_app: form.send_in_app,
+          send_whatsapp: form.send_whatsapp,
+        });
+        flash(res?.message || 'Draft updated');
+      } else {
+        const res: any = await api.saveNewsletterDraft({
+          subject: form.subject,
+          hero_image: form.hero_image,
+          intro: form.intro,
+          body: form.body,
+          cta_text: form.cta_text,
+          cta_url: form.cta_url,
+          include_upcoming: form.include_upcoming,
+          send_email: form.send_email,
+          send_push: form.send_push,
+          send_in_app: form.send_in_app,
+          send_whatsapp: form.send_whatsapp,
+        });
+        flash(res?.message || 'Draft saved');
+      }
+      await load();
+    } catch (e: any) {
+      flash(e?.message || 'Failed to save draft', 'error');
+    } finally {
+      setSavingDraft(false);
+    }
+  };
+
+  const fetchRecipientCount = async () => {
+    setLoadingRecipientCount(true);
+    try {
+      const res = await api.getNewsletterRecipientCount();
+      setRecipientCount(res?.count ?? 0);
+    } catch {
+      setRecipientCount(null);
+    } finally {
+      setLoadingRecipientCount(false);
     }
   };
 
@@ -669,12 +729,17 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                     <SecondaryButton onPress={() => setConfirming(false)}><Text style={st.secText}>Cancel</Text></SecondaryButton>
                   </View>
                 ) : (
-                  <View style={{ flex: 1 }}>
-                    <GradientButton onPress={() => setConfirming(true)}>
-                      <Send size={13} color="#fff" /><Text style={st.btnText}>
-                        {editingCampaign ? 'Save Changes' : sendImmediately ? "Send Newsletter" : "Schedule Newsletter"}
-                      </Text>
-                    </GradientButton>
+                  <View style={{ flexDirection: 'row', gap: 10, flex: 1 }}>
+                    <View style={{ flex: 1 }}>
+                      <GradientButton onPress={() => { setConfirming(true); fetchRecipientCount(); }}>
+                        <Send size={13} color="#fff" /><Text style={st.btnText}>
+                          {editingCampaign ? 'Save Changes' : sendImmediately ? "Send Newsletter" : "Schedule Newsletter"}
+                        </Text>
+                      </GradientButton>
+                    </View>
+                    <SecondaryButton onPress={doSaveDraft} loading={savingDraft}>
+                      <Text style={st.secText}>{editingCampaign ? 'Save as Draft' : 'Save Draft'}</Text>
+                    </SecondaryButton>
                   </View>
                 )}
               </View>
@@ -685,7 +750,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                     {editingCampaign
                       ? "This will update the scheduled campaign with your current content and reschedule it to the time shown. Recipients won't be notified twice."
                       : sendImmediately
-                        ? "This will notify every registered user via selected channels. Make sure your content looks right."
+                        ? `This will notify ${loadingRecipientCount ? '...' : recipientCount ?? 'all'} registered user${(recipientCount ?? 0) !== 1 ? 's' : ''} via selected channels. Make sure your content looks right.`
                         : `This will schedule the newsletter to be sent automatically on ${scheduleDate} at ${scheduleTime} UTC.`}
                   </Text>
                 </View>
@@ -858,6 +923,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
               const statusKind = c.status === 'completed' || c.status === 'sent' ? 'success'
                 : c.status === 'scheduled' ? 'info'
                 : c.status === 'sending' ? 'info'
+                : c.status === 'draft' ? 'info'
                 : c.status === 'cancelled' ? 'warn'
                 : c.status === 'failed' ? 'danger'
                 : 'neutral';
@@ -865,17 +931,20 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                 : c.status === 'sent' ? 'Sent'
                 : c.status === 'scheduled' ? `Scheduled · ${c.send_at?.slice(5, 16).replace('T', ' ') || ''}`
                 : c.status === 'sending' ? 'Sending…'
+                : c.status === 'draft' ? 'Draft'
                 : c.status === 'cancelled' ? 'Cancelled'
                 : c.status === 'failed' ? 'Failed'
                 : c.status || 'unknown';
-              const totalOk = (c.email_ok || 0) + (c.push_ok || 0) + (c.in_app_ok || 0) + (c.whatsapp_ok || 0);
-              const totalFail = (c.email_fail || 0) + (c.push_fail || 0) + (c.whatsapp_fail || 0);
+              const emailSent = (c.email_ok || 0) + (c.email_fail || 0);
+              const pushSent = (c.push_ok || 0) + (c.push_fail || 0);
+              const hasStats = c.status === 'completed' || c.status === 'sent' || c.status === 'failed';
               return (
                 <View key={c.campaign_id || i} style={st.campRow}>
                   <IconBox size={30}>
                     {c.status === 'scheduled' ? <Calendar size={13} color="#FCD34D" />
                       : c.status === 'sending' ? <RefreshCw size={13} color="#93C5FD" />
                       : c.status === 'cancelled' ? <X size={13} color="#FCA5A5" />
+                      : c.status === 'draft' ? <Mail size={13} color="#93C5FD" />
                       : c.individual ? <User size={13} color={GRAD.to} />
                       : <Mail size={13} color={GRAD.to} />}
                   </IconBox>
@@ -888,18 +957,34 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                         ? `Scheduled for ${c.send_at?.slice(0, 16).replace('T', ' ')} UTC`
                         : c.status === 'sending'
                         ? 'Sending in progress…'
+                        : c.status === 'draft'
+                        ? `Draft · ${c.created_at?.slice(0, 16).replace('T', ' ') || '—'}`
                         : `${c.recipients_count || 0} recipients · ${c.created_at?.slice(0, 16).replace('T', ' ') || '—'}`
                       }
                     </Text>
+                    {hasStats && (
+                      <View style={{ flexDirection: 'row', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
+                        {emailSent > 0 && (
+                          <StatPill icon={Mail} label={`${c.email_ok || 0} email`} kind={c.email_fail ? 'warn' : 'success'} />
+                        )}
+                        {pushSent > 0 && (
+                          <StatPill icon={Bell} label={`${c.push_ok || 0} push`} kind={c.push_fail ? 'warn' : 'success'} />
+                        )}
+                        {(c.in_app_ok || 0) > 0 && (
+                          <StatPill icon={Smartphone} label={`${c.in_app_ok} in-app`} kind="success" />
+                        )}
+                        {((c.whatsapp_ok || 0) + (c.whatsapp_fail || 0)) > 0 && (
+                          <StatPill icon={MessageSquare} label={`${c.whatsapp_ok || 0} WhatsApp`} kind={c.whatsapp_fail ? 'warn' : 'success'} />
+                        )}
+                      </View>
+                    )}
                   </View>
                   <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: 280 }}>
                     <StatusPill kind={statusKind} label={statusLabel} />
-                    {totalOk > 0 && <StatusPill kind="success" label={`${totalOk} delivered`} />}
-                    {totalFail > 0 && <StatusPill kind="warn" label={`${totalFail} failed`} />}
                     {/* Actions */}
                     {c.status !== 'sending' && (
                       <>
-                        {c.status === 'scheduled' && (
+                        {(c.status === 'scheduled' || c.status === 'draft') && (
                           <Pressable
                             onPress={() => startEdit(c.campaign_id)}
                             style={[st.channelPill, { borderColor: '#7C3AED', paddingHorizontal: 8, paddingVertical: 4 }]}
@@ -948,6 +1033,18 @@ function ChannelPill({ icon: Icon, label, active, onToggle }: { icon: any; label
       <Icon size={13} color={active ? '#fff' : SAC.muted} />
       <Text style={[st.channelPillText, active && st.channelPillTextActive]}>{label}</Text>
     </Pressable>
+  );
+}
+
+function StatPill({ icon: Icon, label, kind = 'success' }: { icon: any; label: string; kind?: 'success' | 'warn' }) {
+  const bg = kind === 'warn' ? 'rgba(251,191,36,0.12)' : 'rgba(34,197,94,0.12)';
+  const border = kind === 'warn' ? 'rgba(251,191,36,0.30)' : 'rgba(34,197,94,0.30)';
+  const color = kind === 'warn' ? '#FCD34D' : '#4ADE80';
+  return (
+    <View style={[st.channelPill, { backgroundColor: bg, borderColor: border, paddingHorizontal: 8, paddingVertical: 3 }]}>
+      <Icon size={11} color={color} />
+      <Text style={{ color, fontFamily: FONTS.bold, fontSize: 10.5 }}>{label}</Text>
+    </View>
   );
 }
 
