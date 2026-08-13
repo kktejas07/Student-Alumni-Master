@@ -27,7 +27,7 @@ import {
   Star, BookOpen, Upload, MoveUp, MoveDown, Images, FolderOpen,
   Copy, Check, Search, RefreshCw, PlusCircle, FileText, Link2,
   Image as ImageIcon, HardDrive, Calendar, Layout, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Users,
-  Settings, Ticket, Mail, Palette, ScanLine,
+  Ticket, Mail, ScanLine,
   CupSoda, UtensilsCrossed, Cookie, Sandwich, Coffee, Lock, XCircle, Clock,
 } from 'lucide-react-native';
 import {
@@ -64,7 +64,7 @@ const GALLERY_LAYOUT_OPTIONS = ['grid', 'masonry', 'mixed', 'featured-grid', 'ca
 const VIDEO_PLATFORM_OPTIONS = ['youtube', 'vimeo', 'mp4'];
 const DOWNLOAD_CATEGORY_OPTIONS = ['Brochure', 'Schedule', 'Certificate', 'Presentation', 'Report', 'Document'];
 
-type PageTab = 'all' | 'create' | 'drafts' | 'media' | 'registrations' | 'settings' | 'volunteers';
+type PageTab = 'all' | 'create' | 'drafts' | 'media' | 'registrations' | 'volunteers';
 type StatusFilter = 'all' | 'published' | 'draft' | 'archived';
 type FormTab =
   | 'general' | 'hero' | 'statistics' | 'about' | 'gallery'
@@ -78,7 +78,6 @@ const PAGE_TABS: Array<{ id: PageTab; label: string; icon?: any }> = [
   { id: 'registrations', label: 'Registrations & Payments', icon: Users },
   { id: 'volunteers', label: 'Volunteers', icon: Users },
   { id: 'media', label: 'Media Library', icon: Images },
-  { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
 const FILTER_TABS: Array<{ id: StatusFilter; label: string }> = [
@@ -3122,216 +3121,9 @@ function VolunteersPanel() {
 }
 
 
-function SettingsPanel({ onPreview }: { onPreview?: (html: string) => void }) {
-  const [tab, setTab] = useState<'pass' | 'invoice' | 'email' | 'branding'>('pass');
-  const [defaultTemplate, setDefaultTemplate] = useState('aurora');
-  const [invoiceTemplate, setInvoiceTemplate] = useState('modern');
-  const [emailStyle, setEmailStyle] = useState('modern');
-  const [brandColor, setBrandColor] = useState('#7C3AED');
-  const [brandName, setBrandName] = useState('Student Alumni');
-  const [emailFooter, setEmailFooter] = useState('Student Alumni Cell — Empowering the next generation of leaders.');
-  const [saving, setSaving] = useState(false);
-  const { flash } = useToast();
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
-        const { tokenStore } = await import('@/src/models/services/api');
-        const token = await tokenStore.getAccess();
-        const resp = await fetch(`${base}/api/echo/admin/settings`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
-        if (resp.ok) {
-          const d = await resp.json();
-          setDefaultTemplate(d.default_ticket_template || 'aurora');
-          setInvoiceTemplate(d.default_invoice_template || 'modern');
-          setEmailStyle(d.default_email_style || 'modern');
-          setBrandColor(d.email_brand_color || '#7C3AED');
-          setBrandName(d.brand_name || 'Student Alumni');
-          setEmailFooter(d.email_footer || '');
-        }
-      } catch { /* use defaults */ }
-    })();
-  }, []);
-
-  const save = async () => {
-    setSaving(true);
-    try {
-      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
-      const { tokenStore } = await import('@/src/models/services/api');
-      const token = await tokenStore.getAccess();
-      const resp = await fetch(`${base}/api/echo/admin/settings`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({
-          default_ticket_template: defaultTemplate,
-          default_invoice_template: invoiceTemplate,
-          default_email_style: emailStyle,
-          email_brand_color: brandColor,
-          brand_name: brandName,
-          email_footer: emailFooter,
-        }),
-      });
-      if (!resp.ok) throw new Error('Failed to save');
-      flash('Settings saved');
-    } catch (err: any) {
-      flash(err?.message || 'Failed to save');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const tabs = [
-    { id: 'pass' as const, label: 'Pass / Ticket', icon: Ticket },
-    { id: 'invoice' as const, label: 'Invoice', icon: FileText },
-    { id: 'email' as const, label: 'Email', icon: Mail },
-    { id: 'branding' as const, label: 'Branding', icon: Palette },
-  ];
-
-  const fetchPreview = async (type: string, tplId: string) => {
-    const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
-    try {
-      const { tokenStore } = await import('@/src/models/services/api');
-      const token = await tokenStore.getAccess();
-      const url = type === 'invoice'
-        ? `${base}/api/echo/admin/settings/preview/invoice/${tplId}`
-        : `${base}/api/echo/tickets/preview/${tplId}`;
-      const resp = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
-      if (!resp.ok) throw new Error('Preview not available');
-      const data = await resp.json();
-      onPreview?.(data.html);
-    } catch (err: any) {
-      flash(err?.message || 'Could not load preview');
-    }
-  };
-
-  const TemplatePicker = ({ label, options, value, onChange, previewType }: {
-    label: string; options: { id: string; name: string; desc: string; gradient: string }[];
-    value: string; onChange: (v: string) => void; previewType: string;
-  }) => (
-    <View style={{ gap: 8 }}>
-      <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: SAC.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</Text>
-      <View style={{ flexDirection: 'row', gap: 10 }}>
-        {options.map((tpl) => (
-          <Pressable key={tpl.id} onPress={() => onChange(tpl.id)} style={{
-            flex: 1, borderRadius: 10, borderWidth: 2,
-            borderColor: value === tpl.id ? '#7C3AED' : 'rgba(255,255,255,0.1)',
-            backgroundColor: value === tpl.id ? 'rgba(124,58,237,0.08)' : 'rgba(255,255,255,0.03)',
-            padding: 12, cursor: 'pointer',
-          }}>
-            <View style={{ height: 6, borderRadius: 3, marginBottom: 8, background: tpl.gradient }} />
-            <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: value === tpl.id ? '#C4B5FD' : SAC.text }}>{tpl.name}</Text>
-            <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim, marginTop: 2 }}>{tpl.desc}</Text>
-          </Pressable>
-        ))}
-      </View>
-      <Pressable onPress={() => fetchPreview(previewType, value)} style={{
-        flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
-        backgroundColor: 'rgba(124,58,237,0.12)', borderRadius: 8,
-        paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)',
-        cursor: 'pointer', marginTop: 4,
-      }}>
-        <Eye size={12} color="#A78BFA" />
-        <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: '#C4B5FD' }}>Preview</Text>
-      </Pressable>
-    </View>
-  );
-
-  return (
-    <View style={{ gap: 16 }}>
-      <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-        {tabs.map((t) => (
-          <Pressable key={t.id} onPress={() => setTab(t.id)} style={{
-            flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8,
-            borderRadius: 8, borderWidth: 1, cursor: 'pointer',
-            borderColor: tab === t.id ? '#7C3AED' : SAC.border,
-            backgroundColor: tab === t.id ? 'rgba(124,58,237,0.12)' : 'rgba(255,255,255,0.03)',
-          }}>
-            <t.icon size={13} color={tab === t.id ? '#C4B5FD' : SAC.muted} />
-            <Text style={{ fontFamily: FONTS.semi, fontSize: 12, color: tab === t.id ? '#C4B5FD' : SAC.muted }}>{t.label}</Text>
-          </Pressable>
-        ))}
-      </View>
-
-      {tab === 'pass' && (
-        <Card style={{ padding: 20, gap: 16 }}>
-          <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>Pass / Ticket Templates</Text>
-          <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>
-            Default entry pass style for all events. Individual events can override.
-          </Text>
-          <TemplatePicker label="Default Template" previewType="pass" value={defaultTemplate} onChange={setDefaultTemplate} options={[
-            { id: 'aurora', name: 'Aurora', desc: 'Dark gradient, glow accents', gradient: 'linear-gradient(135deg,#312e81,#4C1D95)' },
-            { id: 'classic', name: 'Classic', desc: 'White + purple header', gradient: 'linear-gradient(135deg,#fff,#f3f4f6)' },
-            { id: 'minimal', name: 'Minimal', desc: 'Bare-bones borderless', gradient: 'linear-gradient(135deg,#f9fafb,#e5e7eb)' },
-          ]} />
-        </Card>
-      )}
-
-      {tab === 'invoice' && (
-        <Card style={{ padding: 20, gap: 16 }}>
-          <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>Invoice Templates</Text>
-          <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>
-            Default invoice style for paid event registrations.
-          </Text>
-          <TemplatePicker label="Default Invoice" previewType="invoice" value={invoiceTemplate} onChange={setInvoiceTemplate} options={[
-            { id: 'modern', name: 'Modern', desc: 'Gradient header, card layout', gradient: 'linear-gradient(135deg,#7C3AED,#5B21B6)' },
-            { id: 'minimal', name: 'Minimal', desc: 'Clean white, thin borders', gradient: 'linear-gradient(135deg,#f8fafc,#e2e8f0)' },
-            { id: 'classic', name: 'Classic', desc: 'Dark header, traditional', gradient: 'linear-gradient(135deg,#0f172a,#1e293b)' },
-          ]} />
-        </Card>
-      )}
-
-      {tab === 'email' && (
-        <Card style={{ padding: 20, gap: 16 }}>
-          <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>Email Templates</Text>
-          <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>
-            Style for transactional emails: welcome, registration, payment receipts, newsletters.
-          </Text>
-          <TemplatePicker label="Email Style" previewType="pass" value={emailStyle} onChange={setEmailStyle} options={[
-            { id: 'modern', name: 'Modern', desc: 'Purple gradient header', gradient: 'linear-gradient(135deg,#7C3AED,#5B21B6)' },
-            { id: 'minimal', name: 'Minimal', desc: 'Clean, no gradient', gradient: 'linear-gradient(135deg,#f8fafc,#e2e8f0)' },
-            { id: 'professional', name: 'Professional', desc: 'Dark header, corporate', gradient: 'linear-gradient(135deg,#0f172a,#334155)' },
-          ]} />
-          <FieldRow label="Email Footer Text">
-            <Field value={emailFooter} onChangeText={setEmailFooter} placeholder="Student Alumni Cell — Empowering the next generation of leaders." multiline />
-          </FieldRow>
-        </Card>
-      )}
-
-      {tab === 'branding' && (
-        <Card style={{ padding: 20, gap: 16 }}>
-          <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>Branding</Text>
-          <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>
-            Brand settings applied across emails, passes, and invoices.
-          </Text>
-          <FieldRow label="Brand Name">
-            <Field value={brandName} onChangeText={setBrandName} placeholder="Student Alumni" />
-          </FieldRow>
-          <FieldRow label="Brand Color">
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <input type="color" value={brandColor} onChange={(e: any) => setBrandColor(e.target.value)}
-                style={{ width: 40, height: 36, border: 'none', borderRadius: 8, cursor: 'pointer', background: 'transparent' }} />
-              <Field value={brandColor} onChangeText={setBrandColor} placeholder="#7C3AED" />
-            </View>
-          </FieldRow>
-          <View style={{ padding: 16, borderRadius: 12, backgroundColor: brandColor + '18', borderWidth: 1, borderColor: brandColor + '40' }}>
-            <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: brandColor }}>Preview</Text>
-            <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted, marginTop: 4 }}>This is how {brandName} will appear in emails and passes.</Text>
-          </View>
-        </Card>
-      )}
-
-      <GradientButton onPress={save} loading={saving} disabled={saving} size="md">
-        <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13 }}>Save Settings</Text>
-      </GradientButton>
-    </View>
-  );
-}
-
 // ── Main View ─────────────────────────────────────────────────────────────────
 export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
-  const [pageTab, setPageTab] = useSubTab<PageTab>(['all', 'create', 'drafts', 'registrations', 'volunteers', 'media', 'settings'], 'all', { sub, onSub });
+  const [pageTab, setPageTab] = useSubTab<PageTab>(['all', 'create', 'drafts', 'registrations', 'volunteers', 'media'], 'all', { sub, onSub });
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -3342,6 +3134,8 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
   const [saving, setSaving] = useState(false);
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const PER_PAGE = 20;
   const { toast, flash } = useToast();
   const user = useAuthStore((s) => s.user);
 
@@ -3374,6 +3168,14 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
     const matchPage = pageTab === 'drafts' ? i.status === 'draft' : true;
     return matchQ && matchStatus && matchPage;
   });
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, statusFilter, pageTab, items]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+  const safePage = Math.min(page, totalPages);
+  const paged = filtered.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
 
   const onCreate = () => { setEditing(null); setModalOpen(true); setPageTab('create'); };
   const onEdit = (item: any) => { setEditing(item); setModalOpen(true); };
@@ -3471,9 +3273,6 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
       {/* ── REGISTRATIONS & PAYMENTS ── */}
       {pageTab === 'registrations' && <RegistrationsPanel />}
 
-      {/* ── SETTINGS ── */}
-      {pageTab === 'settings' && <SettingsPanel onPreview={(html: string) => setPreviewHtml(html)} />}
-
       {/* ── VOLUNTEERS ── */}
       {pageTab === 'volunteers' && <VolunteersPanel />}
 
@@ -3519,10 +3318,65 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
               </GradientButton>
             </Card>
           ) : (
-            filtered.map((item) => (
-              <ShowcaseCard key={item._id} item={item} onEdit={onEdit} onDelete={onDelete}
-                onPublish={onPublish} onDraft={onDraft} onArchive={onArchive} onPreview={onPreview} busy={busy} />
-            ))
+            <>
+              {paged.map((item) => (
+                <ShowcaseCard key={item._id} item={item} onEdit={onEdit} onDelete={onDelete}
+                  onPublish={onPublish} onDraft={onDraft} onArchive={onArchive} onPreview={onPreview} busy={busy} />
+              ))}
+              {/* Pagination */}
+              {filtered.length > PER_PAGE && (
+                <View style={{
+                  flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+                  paddingVertical: 10, paddingHorizontal: 4,
+                  borderTopWidth: 1, borderTopColor: SAC.border, flexWrap: 'wrap', gap: 10, marginTop: 6,
+                }}>
+                  <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.dim }}>
+                    Showing {(safePage - 1) * PER_PAGE + 1}–{Math.min(safePage * PER_PAGE, filtered.length)} of {filtered.length}
+                  </Text>
+                  <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+                    <Pressable
+                      onPress={() => setPage(safePage - 1)}
+                      disabled={safePage === 1}
+                      style={{
+                        paddingHorizontal: 10, paddingVertical: 6, borderRadius: 7,
+                        backgroundColor: safePage === 1 ? 'rgba(255,255,255,0.04)' : 'rgba(167,139,250,0.15)',
+                        borderWidth: 1, borderColor: safePage === 1 ? SAC.border : 'rgba(167,139,250,0.3)',
+                        opacity: safePage === 1 ? 0.4 : 1,
+                      }}
+                    >
+                      <ChevronLeft size={14} color={SAC.text} />
+                    </Pressable>
+                    {Array.from({ length: totalPages }, (_, p) => p + 1).map((p) => {
+                      if (totalPages > 7 && Math.abs(p - safePage) > 2 && p !== 1 && p !== totalPages) {
+                        return null;
+                      }
+                      return (
+                        <Pressable key={p} onPress={() => setPage(p)} style={{
+                          minWidth: 30, alignItems: 'center', justifyContent: 'center',
+                          paddingVertical: 6, borderRadius: 7,
+                          backgroundColor: p === safePage ? '#7C3AED' : 'rgba(255,255,255,0.05)',
+                          borderWidth: 1, borderColor: p === safePage ? '#7C3AED' : SAC.border,
+                        }}>
+                          <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: p === safePage ? '#fff' : SAC.text }}>{p}</Text>
+                        </Pressable>
+                      );
+                    })}
+                    <Pressable
+                      onPress={() => setPage(safePage + 1)}
+                      disabled={safePage >= totalPages}
+                      style={{
+                        paddingHorizontal: 10, paddingVertical: 6, borderRadius: 7,
+                        backgroundColor: safePage >= totalPages ? 'rgba(255,255,255,0.04)' : 'rgba(167,139,250,0.15)',
+                        borderWidth: 1, borderColor: safePage >= totalPages ? SAC.border : 'rgba(167,139,250,0.3)',
+                        opacity: safePage >= totalPages ? 0.4 : 1,
+                      }}
+                    >
+                      <ChevronRight size={14} color={SAC.text} />
+                    </Pressable>
+                  </View>
+                </View>
+              )}
+            </>
           )}
         </>
       )}
