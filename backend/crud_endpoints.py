@@ -127,6 +127,15 @@ async def _issue_workshop_certificate(reg: Dict[str, Any], student: Dict[str, An
             </p>
             """
             await send_email(email, f"Your Certificate — {cert_doc.get('title','Workshop Completion')}", render_html_email(content_html))
+            # Best-effort WhatsApp with certificate details
+            try:
+                from core.whatsapp import send_wa_message as _wa
+                user_doc = await _db.users.find_one({"email": email.lower().strip()}, {"phone": 1})
+                phone = (user_doc or {}).get("phone") or ""
+                if phone:
+                    await _wa(phone=phone, text=f"🎓 *Certificate Issued*\n\n*{cert_doc.get('title','Workshop Completion')}*\nCode: `{code}`\n\nVerify: {verify_url}", kind="certificate_issued")
+            except Exception:
+                pass
         except Exception as email_err:
             print(f"[CERTIFICATE] Email notification failed: {email_err}", flush=True)
         return {

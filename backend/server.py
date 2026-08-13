@@ -1788,6 +1788,14 @@ async def send_verification_email(payload: dict):
     if not sent:
         # fallback — store as console log; user can still use OTP flow
         print(f"[EMAIL] Verification token for {email}: {token}")
+    # Best-effort WhatsApp with the verification link
+    try:
+        from core.whatsapp import send_wa_message as _wa
+        phone = (user.get("phone") or "").strip()
+        if phone:
+            await _wa(phone=phone, text=f"🔐 *Verify your email*\n\nClick to verify your Student Alumni account:\n{verify_link}\n\nThis link expires in 24 hours.", kind="email_verification")
+    except Exception:
+        pass
     return {"status": "ok", "message": "Verification email sent" if sent else "Token generated (email service not configured)"}
 
 
@@ -1848,6 +1856,15 @@ async def send_email_otp(payload: dict):
     if not sent:
         # Don't leak the code — only log to server for ops debugging.
         print(f"[EMAIL-OTP] OTP generated for {email} (delivery pending provider config)")
+    # Best-effort WhatsApp with the OTP code
+    try:
+        from core.whatsapp import send_wa_message as _wa
+        user_doc = await db.users.find_one({"email": email}, {"phone": 1})
+        phone = (user_doc or {}).get("phone") or ""
+        if phone:
+            await _wa(phone=phone, text=f"🔐 *Your sign-in code*\n\nYour one-time code is: *{otp}*\n\nExpires in 10 minutes. If you didn't request this, ignore this message.", kind="email_otp")
+    except Exception:
+        pass
     return {"status": "ok", "message": "OTP sent"}
 
 
