@@ -14,6 +14,7 @@ Admin routes (admin/super_admin JWT required):
 """
 
 from __future__ import annotations
+import asyncio
 import os
 import re
 import hashlib
@@ -73,15 +74,23 @@ def _unsub_token(email: str) -> str:
 
 async def _all_subscribers(db, limit: int = 100000) -> list:
     """All registered users with a valid email. Every user is auto-subscribed."""
+    from core.security import decrypt_value
+
     subscribers: list = []
     cur = db.users.find(
         {"email": {"$regex": r"@", "$options": "i"}},
-        {"_id": 1, "email": 1},
+        {"_id": 1, "email": 1, "phone": 1},
     ).limit(limit)
     async for u in cur:
         email = (u.get("email") or "").strip().lower()
-        if email:
-            subscribers.append({"_id": str(u["_id"]), "email": email})
+        if not email or "@" not in email:
+            continue
+        phone = decrypt_value(u.get("phone") or "") or ""
+        if isinstance(phone, str):
+            phone = phone.strip()
+        else:
+            phone = ""
+        subscribers.append({"_id": str(u["_id"]), "email": email, "phone": phone})
     return subscribers
 
 
@@ -896,152 +905,6 @@ async def execute_campaign(db, campaign: dict):
             }}
         )
 
-    base_html = build_newsletter_html(
-        campaign["subject"],
-        campaign.get("hero_image") or "",
-        campaign.get("intro") or "",
-        campaign.get("body") or "",
-        campaign.get("cta_text") or "",
-        campaign.get("cta_url") or "",
-        upcoming,
-    )
-
-    send_email_enabled = campaign["channels"].get("email", True)
-    send_push_enabled = campaign["channels"].get("push", True)
-    send_in_app_enabled = campaign["channels"].get("in_app", True)
-    send_whatsapp_enabled = campaign["channels"].get("whatsapp", False)
-
-    push_title = campaign["subject"]
-    push_body = campaign.get("intro") or campaign.get("body") or campaign["subject"]
-    push_data = {"type": "newsletter", "campaign_id": campaign_id}
-    if campaign.get("cta_url"):
-        push_data["url"] = campaign["cta_url"]
-
-    email_ok = 0
-    email_fail = 0
-    push_ok = 0
-    push_fail = 0
-    in_app_ok = 0
-    whatsapp_ok = 0
-    whatsapp_fail = 0
-    attempts = []
-
-    for sub in subscribers:
-        uid = sub["_id"]
-        email = sub["email"]
-        attempt = {"email": email, "user_id": uid}
-
-        # Email
-        if send_email_enabled:
-            per_html = (
-                base_html
-                + f"<div style='text-align:center;margin-top:14px;'>"
-                f"<a href='https://studentalumni.ai/api/newsletter/unsubscribe?email={email}&t={_unsub_token(email)}' "
-                f"style='color:#9ca3af;font-size:11px;text-decoration:underline;'>Unsubscribe from these emails</a></div>"
-            )
-            try:
-                sent = await send_email(email, campaign["subject"], per_html)
-                attempt["email"] = "ok" if sent else "fail"
-                if sent:
-                    email_ok += 1
-                else:
-                    email_fail += 1
-            except Exception as e:
-                email_fail += 1
-                attempt["email"] = "fail"
-                attempt["email_error"] = str(e)[:200]
-
-        # Push
-        if send_push_enabled:
-            try:
-                tokens = await list_user_tokens(db, uid)
-                valid_tokens = [t for t in tokens if t.startswith("ExponentPushToken[") or t.startswith("ExpoPushToken[")]
-                if valid_tokens:
-                    import httpx as _httpx
-                    messages = [
-                        {"to": t, "title": push_title, "body": push_body, "data": push_data, "sound": "default", "priority": "high"}
-                        for t in valid_tokens
-                    ]
-                    async with _httpx.AsyncClient(timeout=8) as c:
-                        r = await c.post("https://exp.host/--/api/v2/push/send", json=messages,
-                                         headers={"Accept": "application/json", "Content-Type": "application/json"})
-                        if r.is_success:
-                            push_ok += 1
-                            attempt["push"] = "ok"
-                        else:
-                            push_fail += 1
-                            attempt["push"] = "fail"
-                else:
-                    attempt["push"] = "no_tokens"
-            except Exception:
-                push_fail += 1
-                attempt["push"] = "fail"
-
-        # In-app
-        if send_in_app_enabled:
-            try:
-                await _log_inbox(db, uid, push_title, push_body, push_data)
-                in_app_ok += 1
-                attempt["in_app"] = "ok"
-            except Exception:
-                attempt["in_app"] = "fail"
-
-        # WhatsApp
-        if send_whatsapp_enabled:
-            from core.whatsapp import send_wa_message as _wa_msg, send_wa_image as _wa_img
-            phone = sub.get("phone") or ""
-            if phone:
-                wa_text = f"*{campaign['subject']}*\n\n{_strip_html(push_body)}"
-                if campaign.get("cta_url"):
-                    wa_text += f"\n\n{campaign['cta_url']}"
-                hero_url = _make_absolute_url((campaign.get("hero_image") or "").strip())
-                try:
-                    if hero_url:
-                        wa_result = await _wa_img(phone=phone, image_url=hero_url, caption=wa_text, kind="newsletter")
-                    else:
-                        wa_result = await _wa_msg(phone=phone, text=wa_text, kind="newsletter")
-                    if wa_result.get("status") == "sent":
-                        whatsapp_ok += 1
-                        attempt["whatsapp"] = "ok"
-                    else:
-                        whatsapp_fail += 1
-                        attempt["whatsapp"] = "fail"
-                except Exception:
-                    whatsapp_fail += 1
-                    attempt["whatsapp"] = "fail"
-            else:
-                attempt["whatsapp"] = "no_phone"
-
-        attempts.append(attempt)
-        if len(attempts) % 50 == 0:
-            await db.email_campaigns.update_one(
-                {"campaign_id": campaign_id},
-                {"$set": {
-                    "attempts": attempts,
-                    "email_ok": email_ok, "email_fail": email_fail,
-                    "push_ok": push_ok, "push_fail": push_fail,
-                    "in_app_ok": in_app_ok,
-                    "whatsapp_ok": whatsapp_ok, "whatsapp_fail": whatsapp_fail,
-                }},
-            )
-
-    await db.email_campaigns.update_one(
-        {"campaign_id": campaign_id},
-        {"$set": {
-            "sent": True,
-            "status": "completed",
-            "email_ok": email_ok,
-            "email_fail": email_fail,
-            "push_ok": push_ok,
-            "push_fail": push_fail,
-            "in_app_ok": in_app_ok,
-            "whatsapp_ok": whatsapp_ok,
-            "whatsapp_fail": whatsapp_fail,
-            "attempts": attempts,
-            "completed_at": _now()
-        }}
-    )
-
 
 async def process_scheduled_campaigns(db):
     """Query scheduled campaigns due for sending, lock them, and run delivery."""
@@ -1188,7 +1051,8 @@ async def send_individual_notification(
     # ── WhatsApp ──
     if payload.send_whatsapp:
         from core.whatsapp import send_wa_message as _wa_msg
-        phone = user_doc.get("phone") or ""
+        from core.security import decrypt_value
+        phone = (decrypt_value(user_doc.get("phone") or "") or "").strip()
         if phone:
             wa_text = f"*{payload.title}*\n\n{_strip_html(payload.body)}"
             if payload.cta_url:

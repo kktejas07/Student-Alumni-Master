@@ -385,14 +385,14 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
   };
 
   const doSend = async () => {
-    if (!form.subject.trim()) { flash('Subject is required'); return; }
-    if (!form.body.trim() && !form.cta_url.trim()) { flash('Add a message or a CTA link'); return; }
-    if (!form.send_email && !form.send_push && !form.send_in_app && !form.send_whatsapp) { flash('Select at least one channel'); return; }
+    if (!form.subject.trim()) { flash('Subject is required', 'error'); return; }
+    if (!form.body.trim() && !form.cta_url.trim()) { flash('Add a message or a CTA link', 'error'); return; }
+    if (!form.send_email && !form.send_push && !form.send_in_app && !form.send_whatsapp) { flash('Select at least one channel', 'error'); return; }
 
     let send_at: string | undefined = undefined;
     if (!sendImmediately) {
       if (!scheduleDate.trim() || !scheduleTime.trim()) {
-        flash('Please fill in both Date and Time for scheduling');
+        flash('Please fill in both Date and Time for scheduling', 'error');
         return;
       }
       try {
@@ -401,12 +401,12 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
           throw new Error('Invalid Date/Time values');
         }
         if (parsed <= new Date()) {
-          flash('Scheduled time must be in the future');
+          flash('Scheduled time must be in the future', 'error');
           return;
         }
         send_at = parsed.toISOString();
       } catch {
-        flash('Invalid Date or Time format. Use YYYY-MM-DD and HH:MM');
+        flash('Invalid Date or Time format. Use YYYY-MM-DD and HH:MM', 'error');
         return;
       }
     }
@@ -414,18 +414,19 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
     setSending(true);
     setConfirming(false);
     try {
+      const clean = sanitizePayload(form);
       const r: any = await api.sendNewsletter({
-        subject: form.subject,
-        hero_image: form.hero_image,
-        intro: form.intro,
-        body: form.body,
-        cta_text: form.cta_text,
-        cta_url: form.cta_url,
-        include_upcoming: form.include_upcoming,
-        send_email: form.send_email,
-        send_push: form.send_push,
-        send_in_app: form.send_in_app,
-        send_whatsapp: form.send_whatsapp,
+        subject: clean.subject,
+        hero_image: clean.hero_image,
+        intro: clean.intro,
+        body: clean.body,
+        cta_text: clean.cta_text,
+        cta_url: clean.cta_url,
+        include_upcoming: clean.include_upcoming,
+        send_email: clean.send_email,
+        send_push: clean.send_push,
+        send_in_app: clean.send_in_app,
+        send_whatsapp: clean.send_whatsapp,
         send_at,
       });
       flash(r?.message || 'Newsletter sent');
@@ -437,7 +438,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
         await load();
       }
     } catch (e: any) {
-      flash(e?.message || 'Failed to send newsletter');
+      flash(e?.message || 'Failed to send newsletter', 'error');
     } finally {
       setSending(false);
     }
