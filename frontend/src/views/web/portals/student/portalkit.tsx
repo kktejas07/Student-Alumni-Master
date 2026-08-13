@@ -140,7 +140,7 @@ export type PillKind = keyof typeof PILL;
 export function StatusPill({ label, kind = 'neutral', dot }: {
   label: string; kind?: PillKind; dot?: boolean;
 }) {
-  const p = PILL[kind];
+  const p = PILL[kind] || PILL.neutral;
   return (
     <View style={[k.pill, { backgroundColor: p.bg, borderColor: p.bc }]}>
       {dot && <View style={[k.pillDot, { backgroundColor: p.c }]} />}

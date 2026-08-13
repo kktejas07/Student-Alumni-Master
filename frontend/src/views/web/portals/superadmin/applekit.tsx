@@ -130,6 +130,7 @@ const PILL = {
   warn:    { bg: 'rgba(245,158,11,0.14)', bc: 'rgba(245,158,11,0.34)', c: '#FBBF24' },
   info:    { bg: 'rgba(59,130,246,0.14)', bc: 'rgba(59,130,246,0.32)', c: '#93C5FD' },
   danger:  { bg: 'rgba(239,68,68,0.14)',  bc: 'rgba(239,68,68,0.32)',  c: '#FCA5A5' },
+  brand:   { bg: 'rgba(123,61,191,0.16)', bc: 'rgba(123,61,191,0.40)', c: '#C4B5FD' },
   neutral: { bg: 'rgba(255,255,255,0.06)',bc: 'rgba(255,255,255,0.14)',c: SAC.muted },
 } as const;
 export type PillKind = keyof typeof PILL;
@@ -137,7 +138,7 @@ export type PillKind = keyof typeof PILL;
 export function StatusPill({ label, kind = 'neutral', dot }: {
   label: string; kind?: PillKind; dot?: boolean;
 }) {
-  const p = PILL[kind];
+  const p = PILL[kind] || PILL.neutral;
   return (
     <View style={[k.pill, { backgroundColor: p.bg, borderColor: p.bc }]}>
       {dot && <View style={[k.pillDot, { backgroundColor: p.c }]} />}
