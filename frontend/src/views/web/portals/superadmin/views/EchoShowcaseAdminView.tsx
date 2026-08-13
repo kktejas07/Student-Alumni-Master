@@ -2724,7 +2724,6 @@ function RegistrationsPanel() {
                   ['Failed Reason', detailRow.failed_reason],
                   ['Reminder Sent', detailRow.reminder_sent_at ? new Date(detailRow.reminder_sent_at).toLocaleString() : null],
                   ['Ticket / Pass Issued', detailRow.ticket_issued ? 'Yes — QR pass generated' : 'No — not issued until payment confirmed'],
-                  ['Session Coupons', detailRow.coupons_issued > 0 ? `${detailRow.coupons_issued} issued` : 'None'],
                   ['Invoice', detailRow.invoice_issued ? (detailRow.invoice_no || 'Yes') : 'No — not issued until payment confirmed'],
                   ['SA Account', detailRow.has_account ? 'Yes' : 'No'],
                   ['Checked In', detailRow.checked_in_at ? new Date(detailRow.checked_in_at).toLocaleString() : 'No'],
@@ -2734,6 +2733,43 @@ function RegistrationsPanel() {
                     <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.text, textAlign: 'right', maxWidth: 260 }}>{value || '—'}</Text>
                   </View>
                 ))}
+                <View style={{ borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)', paddingBottom: 8 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <Text style={{ fontFamily: FONTS.semi, fontSize: 12, color: SAC.muted }}>Session Coupons</Text>
+                    <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.text }}>
+                      {(detailRow.coupons || []).length > 0 ? `${detailRow.coupons.length} issued` : 'None'}
+                    </Text>
+                  </View>
+                  {(detailRow.coupons || []).length > 0 && (
+                    <View style={{ gap: 5 }}>
+                      {(detailRow.coupons || []).map((c: any, ci: number) => (
+                        <View key={ci} style={{
+                          flexDirection: 'row', alignItems: 'center', gap: 8,
+                          backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 7,
+                          paddingHorizontal: 9, paddingVertical: 6,
+                          borderWidth: 1, borderColor: c.used ? 'rgba(16,185,129,0.30)' : 'rgba(167,139,250,0.25)',
+                        }}>
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ fontFamily: FONTS.bold, fontSize: 11.5, color: SAC.text }}>
+                              {c.session_name || c.session_key}
+                            </Text>
+                            <Text style={{ fontFamily: FONTS.med, fontSize: 9.5, color: SAC.dim }}>
+                              {c.session_day > 1 ? `Day ${c.session_day} · ` : ''}{c.coupon_code || ''}
+                            </Text>
+                          </View>
+                          <View style={{
+                            borderRadius: 5, paddingHorizontal: 7, paddingVertical: 3,
+                            backgroundColor: c.used ? 'rgba(16,185,129,0.15)' : 'rgba(167,139,250,0.15)',
+                          }}>
+                            <Text style={{ fontFamily: FONTS.bold, fontSize: 9, color: c.used ? '#34D399' : '#A78BFA' }}>
+                              {c.used ? 'USED' : 'ACTIVE'}
+                            </Text>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </View>
               </View>
               <GradientButton onPress={() => setDetailRow(null)} size="sm" style={{ alignSelf: 'flex-end' }}>
                 <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>Close</Text>

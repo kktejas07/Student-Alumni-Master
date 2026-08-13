@@ -123,17 +123,21 @@ async def _reconcile_coupons_for_paid(db, showcase: dict) -> dict:
     passes. This finds every paid ("registered") registration for the event and
     for each enabled session:
       • creates a missing coupon (matched by session_key) if the attendee never
-        got one, and
+        got one,
       • refreshes session_day / session_name on existing coupons so day changes
-        on the pass config reflect on the attendee's coupon.
+        on the pass config reflect on the attendee's coupon, and
+      • removes coupons for sessions that were disabled, so paid users always
+        reflect the current enabled set.
     """
     sessions = showcase.get("sessions") or []
     enabled = [s for s in sessions if s.get("enabled")]
+    enabled_keys = {s.get("key") for s in enabled if s.get("key")}
     slug = showcase.get("slug") or ""
-    if not enabled or not slug:
-        return {"added": 0, "updated": 0}
+    if not slug:
+        return {"added": 0, "updated": 0, "removed": 0}
     added = 0
     updated = 0
+    removed = 0
     regs = await db.echo_registrations.find(
         {"slug": slug, "status": "registered"}
     ).to_list(5000)
@@ -174,7 +178,15 @@ async def _reconcile_coupons_for_paid(db, showcase: dict) -> dict:
         if new_coupons:
             await db.echo_coupons.insert_many(new_coupons)
             added += len(new_coupons)
-    return {"added": added, "updated": updated}
+        # Remove coupons for sessions that are no longer enabled so the set a
+        # paid user holds always matches the organizer's current configuration.
+        stale_keys = [k for k in set(by_key.keys()) - enabled_keys if k]
+        if stale_keys:
+            res = await db.echo_coupons.delete_many(
+                {"slug": slug, "reg_id": reg_id, "session_key": {"$in": stale_keys}}
+            )
+            removed += res.deleted_count
+    return {"added": added, "updated": updated, "removed": removed}
 
 
 # ── DB dependency ────────────────────────────────────────────────────────────
@@ -3100,11 +3112,17 @@ async def admin_echo_registrations(
 
     # Batch-fetch issued artifacts (coupons + invoices) for the visible page so
     # we can tell admins exactly what was issued per attendee.
-    coupons_map: Dict[str, int] = {}
+    coupons_map: Dict[str, list] = {}
     invoice_map: Dict[str, dict] = {}
     if reg_ids:
         for c in await db.echo_coupons.find({"reg_id": {"$in": reg_ids}}).to_list(5000):
-            coupons_map[c.get("reg_id")] = coupons_map.get(c.get("reg_id"), 0) + 1
+            coupons_map.setdefault(c.get("reg_id"), []).append({
+                "session_key": c.get("session_key"),
+                "session_name": c.get("session_name"),
+                "session_day": c.get("session_day") or 1,
+                "coupon_code": c.get("coupon_code"),
+                "used": bool(c.get("used")),
+            })
         for inv in await db.invoices.find({"reg_id": {"$in": reg_ids}}).to_list(2000):
             invoice_map[inv.get("reg_id")] = {"invoice_no": inv.get("invoice_no"), "issued": True}
 
@@ -3140,7 +3158,8 @@ async def admin_echo_registrations(
             "reminder_sent_at": s.get("payment_reminder_sent_at"),
             "checked_in_at": s.get("checked_in_at"),
             "ticket_issued": paid and bool(s.get("qr_code_base64")),
-            "coupons_issued": coupons_map.get(rid, 0),
+            "coupons": coupons_map.get(rid) or [],
+            "coupons_issued": len(coupons_map.get(rid) or []),
             "invoice_issued": bool(inv_rec.get("issued")),
             "invoice_no": inv_rec.get("invoice_no"),
         })
