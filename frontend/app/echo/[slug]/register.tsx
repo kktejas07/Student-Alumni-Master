@@ -477,6 +477,12 @@ export default function EchoRegisterPage() {
 
     return (
       <View style={s.root}>
+        {showcase.hero_bg_url ? (
+          <>
+            <Image source={{ uri: resolveImageUrl(showcase.hero_bg_url) }} style={s.pageBg} resizeMode="cover" />
+            <View style={s.pageBgOverlay} />
+          </>
+        ) : null}
         <EchoHeader current="echo" />
         <ScrollView contentContainerStyle={{ paddingTop: ECHO_TOP_PADDING }}>
         <View style={s.content}>
@@ -631,6 +637,12 @@ export default function EchoRegisterPage() {
 
   return (
     <View style={s.root}>
+      {showcase.hero_bg_url ? (
+        <>
+          <Image source={{ uri: resolveImageUrl(showcase.hero_bg_url) }} style={s.pageBg} resizeMode="cover" />
+          <View style={s.pageBgOverlay} />
+        </>
+      ) : null}
       <EchoHeader current="echo" />
       <ScrollView contentContainerStyle={{ paddingTop: ECHO_TOP_PADDING }}>
       <View style={s.content}>
@@ -945,6 +957,8 @@ export default function EchoRegisterPage() {
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#0a0f1e' },
+  pageBg: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
+  pageBgOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(10,15,30,0.75)' },
   content: { padding: 20, maxWidth: 1100, width: '100%', alignSelf: 'center' },
   center: { alignItems: 'center', justifyContent: 'center', paddingVertical: 100, gap: 14 },
   centerText: { color: PALETTE.muted, fontFamily: FONTS.med, fontSize: 14 },

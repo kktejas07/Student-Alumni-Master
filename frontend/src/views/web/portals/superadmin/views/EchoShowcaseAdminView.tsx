@@ -1856,6 +1856,16 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                   flash={flash}
                   aspectHint="Used as card image on /echo listing only when Card Thumbnail is empty"
                 />
+                <ImageUploadWidget
+                  label="Registration Page Background"
+                  url={form.hero_bg_url}
+                  onUpload={(url) => set('hero_bg_url', url)}
+                  onRemove={() => set('hero_bg_url', '')}
+                  onUploadStart={onUploadStart}
+                  onUploadEnd={onUploadEnd}
+                  flash={flash}
+                  aspectHint="Full-page background image shown behind the registration form (transparent overlay applied automatically)"
+                />
               </View>
               <View style={{ marginTop: 20 }}>
                 <FieldRow label="Organizer Name" hint="Displayed in the 'About the Event' section on the detail page">
