@@ -166,6 +166,12 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
   const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
   const previewHtml = useMemo(() => buildPreviewHtml(form, events), [form, events]);
 
+  const sanitizePayload = (f: typeof form) => ({
+    ...f,
+    hero_image: (f.hero_image && !f.hero_image.startsWith('blob:') && !f.hero_image.startsWith('data:'))
+      ? f.hero_image : '',
+  });
+
   const handleHeroFile = async (file: File) => {
     if (!file) return;
     // 1. Instant local preview
@@ -435,34 +441,35 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
     if (!form.subject.trim()) { flash('Subject is required', 'error'); return; }
     setSavingDraft(true);
     try {
+      const clean = sanitizePayload(form);
       if (editingCampaign) {
         const res: any = await api.updateNewsletterCampaign(editingCampaign.campaign_id, {
-          subject: form.subject,
-          hero_image: form.hero_image,
-          intro: form.intro,
-          body: form.body,
-          cta_text: form.cta_text,
-          cta_url: form.cta_url,
-          include_upcoming: form.include_upcoming,
-          send_email: form.send_email,
-          send_push: form.send_push,
-          send_in_app: form.send_in_app,
-          send_whatsapp: form.send_whatsapp,
+          subject: clean.subject,
+          hero_image: clean.hero_image,
+          intro: clean.intro,
+          body: clean.body,
+          cta_text: clean.cta_text,
+          cta_url: clean.cta_url,
+          include_upcoming: clean.include_upcoming,
+          send_email: clean.send_email,
+          send_push: clean.send_push,
+          send_in_app: clean.send_in_app,
+          send_whatsapp: clean.send_whatsapp,
         });
         flash(res?.message || 'Draft updated');
       } else {
         const res: any = await api.saveNewsletterDraft({
-          subject: form.subject,
-          hero_image: form.hero_image,
-          intro: form.intro,
-          body: form.body,
-          cta_text: form.cta_text,
-          cta_url: form.cta_url,
-          include_upcoming: form.include_upcoming,
-          send_email: form.send_email,
-          send_push: form.send_push,
-          send_in_app: form.send_in_app,
-          send_whatsapp: form.send_whatsapp,
+          subject: clean.subject,
+          hero_image: clean.hero_image,
+          intro: clean.intro,
+          body: clean.body,
+          cta_text: clean.cta_text,
+          cta_url: clean.cta_url,
+          include_upcoming: clean.include_upcoming,
+          send_email: clean.send_email,
+          send_push: clean.send_push,
+          send_in_app: clean.send_in_app,
+          send_whatsapp: clean.send_whatsapp,
         });
         flash(res?.message || 'Draft saved');
       }

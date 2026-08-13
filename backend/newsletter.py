@@ -310,6 +310,17 @@ async def save_draft(payload: DraftNewsletterSchema, request: Request, user=Depe
     }
 
 
+@router.post("/admin/cleanup-blob-urls")
+async def cleanup_blob_urls(request: Request, _=Depends(require_role("admin", "super_admin"))):
+    """One-time cleanup: strip blob:/data: hero_image URLs from all campaigns."""
+    db = _get_db(request)
+    result = await db.email_campaigns.update_many(
+        {"hero_image": {"$regex": "^(blob:|data:)"}},
+        {"$set": {"hero_image": ""}},
+    )
+    return {"ok": True, "cleaned": result.modified_count}
+
+
 @router.get("/admin/recipient-count")
 async def recipient_count(request: Request, _=Depends(require_role("admin", "super_admin"))):
     """Return the number of subscribers who would receive a newsletter."""
