@@ -257,6 +257,74 @@ async def _razorpay_verify_webhook_signature(db, body: bytes, signature: str) ->
     return hmac.compare_digest(expected, (signature or ""))
 
 
+# Payment-session default from Razorpay checkout (no payment, page left open).
+ECHO_PAYMENT_SESSION_TTL_SECONDS = 15 * 60       # how long a pending order may stay open
+ECHO_PAYMENT_REMINDER_SECONDS = 5 * 60           # remind the attendee after 5 minutes pending
+
+
+async def sweep_expired_echo_payments(db) -> dict:
+    """Background job: expire abandoned pending ECHO registrations and email attendees.
+
+    Razorpay sessions expire on their own after ~15 minutes. Any registration still
+    `payment.status == "pending"` beyond the TTL is marked FAILED:
+
+      • payment.status          → "failed"
+      • payment.failed_at       → now
+      • payment.failed_reason   → "payment session expired"
+      • reg.status              → "failed"
+
+    No SA account is created, no ticket/pass/invoice is issued, and the attendee is
+    emailed a "payment not completed" notice. Freshly-pending registrations that are
+    within the TTL but past REMINDER_SECONDS get one payment-reminder email.
+
+    Idempotent & safe to run every minute. Returns a small summary for logs.
+    """
+    result = {"checked": 0, "failed": 0, "reminded": 0}
+    try:
+        now = datetime.now(timezone.utc)
+        cutoff_fail = now.timestamp() - ECHO_PAYMENT_SESSION_TTL_SECONDS
+        cutoff_remind = now.timestamp() - ECHO_PAYMENT_REMINDER_SECONDS
+
+        pending = await db.echo_registrations.find({"payment.status": "pending"}).to_list(500)
+        for reg in pending:
+            result["checked"] += 1
+            created_raw = (reg.get("payment_order") or {}).get("created_at") or reg.get("created_at")
+            created = _parse_iso(created_raw) if created_raw else now
+            age_seconds = (now - created).total_seconds()
+            reg_id = reg.get("id")
+
+            # Mark abandoned sessions as failed.
+            if age_seconds > ECHO_PAYMENT_SESSION_TTL_SECONDS:
+                showcase = await db.echo_showcases.find_one(_slug_query(reg.get("slug") or ""))
+                await db.echo_registrations.update_one(
+                    {"_id": reg["_id"]},
+                    {"$set": {
+                        "payment.status": "failed",
+                        "payment.failed_at": _now(),
+                        "payment.failed_reason": "payment session expired",
+                        "status": "failed",
+                    }},
+                )
+                await _send_payment_failed_email(db, {**reg, "payment": {**reg.get("payment", {}), "status": "failed"}}, showcase,
+                                                 reason="session expired before you completed it")
+                result["failed"] += 1
+                continue
+
+            # Fresh pending (past 5 minutes) → one reminder email.
+            if age_seconds > ECHO_PAYMENT_REMINDER_SECONDS and not reg.get("payment_reminder_sent_at"):
+                showcase = await db.echo_showcases.find_one(_slug_query(reg.get("slug") or ""))
+                await db.echo_registrations.update_one(
+                    {"_id": reg["_id"]},
+                    {"$set": {"payment_reminder_sent_at": _now()}},
+                )
+                await _send_payment_reminder_email(db, reg, showcase)
+                result["reminded"] += 1
+        return result
+    except Exception as e:
+        print(f"[ECHO-SWEEP] sweep failed: {e}")
+        return result
+
+
 async def _finalize_paid_registration(db, reg: dict, showcase: Optional[dict], payment_id: str) -> Optional[dict]:
     """Shared logic to mark a pending ECHO registration paid, generate its QR,
     mirror to event_registrations, and email the invoice. Idempotent.
@@ -401,6 +469,118 @@ async def _send_registration_confirmation(db, reg: dict, showcase: dict) -> None
         await send_email(email, subject, body)
     except Exception as e:
         print(f"[ECHO] Confirmation email error: {e}")
+
+
+async def _send_payment_reminder_email(db, reg: dict, showcase: Optional[dict]) -> None:
+    """Email an attendee whose registration is pending because payment was not completed.
+
+    Reminds them their seat is NOT confirmed — no ticket or pass is issued until
+    they complete payment. Uses the same resume URL as the register page so they
+    can re-open the Razorpay checkout.
+    """
+    try:
+        email = (reg.get("email") or "").strip()
+        if not email:
+            return
+        esc = lambda s: str(s or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        title = esc(reg.get("showcase_title") or (showcase or {}).get("title") or "Event")
+        fee = float(reg.get("fee") or 0)
+        currency = reg.get("currency") or "INR"
+        slug = reg.get("slug") or (showcase or {}).get("slug") or ""
+        frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+        resume_url = f"{frontend_url}/echo/{slug}/register"
+        order_id = (reg.get("payment_order") or {}).get("order_id") or ""
+        created_at = reg.get("created_at") or reg.get("registered_at") or ""
+
+        subject = f"Complete your payment — {title}"
+        body = render_html_email(
+            f"""
+            <h2 style="margin:0 0 14px 0;color:#111827;">Your payment is pending</h2>
+            <p style="margin:0 0 18px 0;color:#374151;">
+              Hi <strong>{esc(reg.get('full_name') or 'there')}</strong>,<br/><br/>
+              You started registering for <strong>{title}</strong> but the payment has
+              <strong>not been completed</strong>. Until payment is confirmed:
+            </p>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+              style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;margin:0 0 18px 0;">
+              <tr>
+                <td style="padding:14px 18px;color:#92400e;font-size:13px;">
+                  • Your seat is <strong>not reserved</strong> and no entry pass will be issued.<br/>
+                  • No ticket, QR code or invoice is sent until the payment succeeds.<br/>
+                  • Your pending session expires shortly, after which you must re-register.
+                </td>
+              </tr>
+            </table>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+              style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;margin:0 0 18px 0;">
+              <tr><td style="padding:12px 16px;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.4px;">Event</td>
+                  <td style="padding:12px 16px;text-align:right;color:#111827;font-weight:700;">{title}</td></tr>
+              <tr><td style="padding:12px 16px;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.4px;">Amount Due</td>
+                  <td style="padding:12px 16px;text-align:right;color:#111827;font-weight:700;">{currency} {fee:,.2f}</td></tr>
+              {"<tr><td style='padding:12px 16px;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.4px;'>Order</td><td style='padding:12px 16px;text-align:right;color:#111827;font-weight:700;font-family:monospace;font-size:12px;'>" + esc(order_id) + "</td></tr>" if order_id else ""}
+              {"<tr><td style='padding:12px 16px;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.4px;'>Started</td><td style='padding:12px 16px;text-align:right;color:#111827;font-weight:700;font-size:12px;'>" + esc(created_at)[:19].replace('T', ' ') + "</td></tr>" if created_at else ""}
+            </table>
+            <a href="{resume_url}"
+               style="display:inline-block;padding:12px 26px;background:#7C3AED;color:#fff;text-decoration:none;border-radius:10px;font-weight:600;">Complete Payment</a>
+            <p style="margin:18px 0 0 0;color:#6b7280;font-size:12px;">
+              If you do not complete the payment, your registration will be marked as failed and you will have to register again.
+            </p>
+            """
+        )
+        await send_email(email, subject, body)
+        print(f"[ECHO] Payment reminder sent to {email} for {reg.get('id')}")
+    except Exception as e:
+        print(f"[ECHO] Payment reminder email error: {e}")
+
+
+async def _send_payment_failed_email(db, reg: dict, showcase: Optional[dict], reason: str = "payment session expired") -> None:
+    """Email an attendee whose payment session expired/failed.
+
+    Politely confirms no seat/ticket was issued, and they can re-register if they
+    still want to attend. This is the ONLY email a failed registration gets.
+    """
+    try:
+        email = (reg.get("email") or "").strip()
+        if not email:
+            return
+        esc = lambda s: str(s or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        title = esc(reg.get("showcase_title") or (showcase or {}).get("title") or "Event")
+        fee = float(reg.get("fee") or 0)
+        currency = reg.get("currency") or "INR"
+        slug = reg.get("slug") or (showcase or {}).get("slug") or ""
+        frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+        resume_url = f"{frontend_url}/echo/{slug}/register"
+
+        subject = f"Payment not completed — {title}"
+        body = render_html_email(
+            f"""
+            <h2 style="margin:0 0 14px 0;color:#111827;">Your payment was not completed</h2>
+            <p style="margin:0 0 18px 0;color:#374151;">
+              Hi <strong>{esc(reg.get('full_name') or 'there')}</strong>,<br/><br/>
+              Your registration for <strong>{title}</strong> could not be confirmed because the
+              payment {esc(reason)}. We did <strong>not</strong> issue a ticket, pass or invoice,
+              and no charge was made.
+            </p>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+              style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;margin:0 0 18px 0;">
+              <tr>
+                <td style="padding:14px 18px;color:#991b1b;font-size:13px;">
+                  No seat was reserved, and your registration was marked as failed.
+                  If you still wish to attend, please register again and complete the payment.
+                </td>
+              </tr>
+            </table>
+            <a href="{resume_url}"
+               style="display:inline-block;padding:12px 26px;background:#7C3AED;color:#fff;text-decoration:none;border-radius:10px;font-weight:600;">Register Again</a>
+            <p style="margin:18px 0 0 0;color:#6b7280;font-size:12px;">
+              If you believe this is an error, or already completed a payment, reply to this email and our team will investigate.
+            </p>
+            """
+        )
+        await send_email(email, subject, body)
+        print(f"[ECHO] Payment failure email sent to {email} for {reg.get('id')}")
+    except Exception as e:
+        print(f"[ECHO] Payment failure email error: {e}")
 
 
 def _build_invoice(reg: dict, showcase: Optional[dict]) -> dict:
@@ -2376,8 +2556,16 @@ async def create_payment_order(slug: str, payload: PaymentOrderSchema, request: 
         payment = existing.get("payment") or {}
         if payment.get("status") == "paid":
             return {"already": True, "registration": _ser(existing)}
+        # Reuse an existing fresh order ONLY if this registration is still pending
+        # and the session hasn't expired. A failed/expired registration must get a
+        # brand-new Razorpay order — old order ids are dead after ~15 minutes.
+        existing.order_check = True
+        order_created_raw = (existing.get("payment_order") or {}).get("created_at")
+        order_created = _parse_iso(order_created_raw) if order_created_raw else None
+        order_fresh = order_created and (datetime.now(timezone.utc) - order_created).total_seconds() <= ECHO_PAYMENT_SESSION_TTL_SECONDS
+        status_pending = existing.get("status") == "pending" and payment.get("status") == "pending"
         order_id = (existing.get("payment_order") or {}).get("order_id")
-        if order_id:
+        if order_id and order_fresh and status_pending:
             return {
                 "already": False,
                 "order_id": order_id,
@@ -2387,6 +2575,7 @@ async def create_payment_order(slug: str, payload: PaymentOrderSchema, request: 
                 "receipt": existing.get("id"),
                 "pending": True,
             }
+        # Stale/failed → reset to a fresh pending state below (create a new order).
 
     reg_id = secrets.token_hex(6)
     now_iso = _now()
@@ -2437,11 +2626,19 @@ async def create_payment_order(slug: str, payload: PaymentOrderSchema, request: 
         await db.echo_registrations.insert_one(dict(reg))
     else:
         reg_id = existing.get("id")
-        # Attach the freshly-created order to the pre-existing pending reg so
-        # verify-payment / webhook can resolve it by order id.
+        # Attach the freshly-created order to the pre-existing reg and reset any
+        # expired/failed state back to pending so verify-payment / webhook can
+        # resolve it by order id and the user can pay with the new session.
         await db.echo_registrations.update_one(
             {"_id": existing["_id"]},
-            {"$set": {"payment_order": {"order_id": order.get("id"), "created_at": now_iso}}},
+            {"$set": {
+                "payment_order": {"order_id": order.get("id"), "created_at": now_iso},
+                "status": "pending",
+                "payment.status": "pending",
+                "payment.failed_at": None,
+                "payment.failed_reason": None,
+                "payment.payment_id": None,
+            }},
         )
 
     return {
@@ -2678,6 +2875,11 @@ async def get_ticket(reg_id: str, request: Request, email: Optional[str] = Query
 
     Returns render-ready standalone HTML so the app can open a printable page,
     download it as PDF, or share the link as proof of purchase / entry pass.
+
+    SECURITY: a paid event NEVER issues a pass until payment is confirmed. For a
+    paid event with payment.status other than 'paid' (pending / failed / expired)
+    this returns 402/403 — no ticket, pass, QR, or confirmation is generated so
+    unpaid attendees cannot obtain an entry pass.
     """
     db = _get_db(request)
     reg = await db.echo_registrations.find_one({"id": reg_id})
@@ -2685,6 +2887,26 @@ async def get_ticket(reg_id: str, request: Request, email: Optional[str] = Query
         raise HTTPException(status_code=404, detail="Ticket not found")
     reg_ser = _ser(reg)
     showcase = await db.echo_showcases.find_one({"slug": reg.get("slug")})
+
+    # Payment gate: free events (fee <= 0 registered) are pass-eligible; paid
+    # events only after the payment is verified (payment.status == "paid").
+    fee = float(reg.get("fee") or 0)
+    payment = reg.get("payment") or {}
+    reg_status = reg.get("status") or "pending"
+    is_free = fee <= 0 and payment.get("status") == "paid" and reg_status == "registered"
+    is_paid = payment.get("status") == "paid" and reg_status == "registered"
+    pass_eligible = is_free or is_paid
+    if not pass_eligible:
+        pending = payment.get("status") == "pending"
+        raise HTTPException(
+            status_code=402 if pending else 403,
+            detail=(
+                "Payment pending — complete your payment to receive your entry pass."
+                if pending else
+                "Payment required for this event. Your entry pass is issued only after payment is confirmed."
+            ),
+        )
+
     # Authorization: owner, matching email, or admin
     user = await _resolve_user(request, db)
     is_admin = False
@@ -2809,8 +3031,59 @@ async def admin_echo_registrations(
             "registered_at": s.get("registered_at"),
             "user_id": s.get("user_id"),
             "has_account": bool(s.get("user_id")),
+            "failed_at": payment.get("failed_at"),
+            "failed_reason": payment.get("failed_reason"),
+            "reminder_sent_at": s.get("payment_reminder_sent_at"),
         })
     return {"items": items, "total": len(items)}
+
+
+@router.post("/admin/registrations/{reg_id}/remind")
+async def admin_send_payment_reminder(reg_id: str, request: Request, _=Depends(_require_admin)):
+    """Super-admin: email the attendee a payment reminder for a pending registration."""
+    db = _get_db(request)
+    reg = await db.echo_registrations.find_one({"id": reg_id})
+    if not reg:
+        raise HTTPException(status_code=404, detail="Registration not found")
+    payment = reg.get("payment") or {}
+    if payment.get("status") != "pending":
+        raise HTTPException(status_code=400, detail="Payment reminder only applies to pending payments")
+    showcase = await db.echo_showcases.find_one(_slug_query(reg.get("slug") or ""))
+    await db.echo_registrations.update_one(
+        {"_id": reg["_id"]}, {"$set": {"payment_reminder_sent_at": _now()}}
+    )
+    await _send_payment_reminder_email(db, reg, showcase)
+    return {"ok": True, "message": "Payment reminder emailed", "reminder_sent_at": _now()}
+
+
+@router.post("/admin/registrations/{reg_id}/mark-failed")
+async def admin_mark_registration_failed(reg_id: str, request: Request, _=Depends(_require_admin)):
+    """Super-admin: manually mark a pending registration as failed (payment not completed).
+
+    No SA account, ticket, pass, QR or invoice is ever generated for a failed
+    registration. The attendee is emailed that payment was not completed.
+    """
+    db = _get_db(request)
+    reg = await db.echo_registrations.find_one({"id": reg_id})
+    if not reg:
+        raise HTTPException(status_code=404, detail="Registration not found")
+    payment = reg.get("payment") or {}
+    if payment.get("status") != "pending":
+        raise HTTPException(status_code=400, detail="Only pending registrations can be marked failed")
+    showcase = await db.echo_showcases.find_one(_slug_query(reg.get("slug") or ""))
+    now_iso = _now()
+    await db.echo_registrations.update_one(
+        {"_id": reg["_id"]},
+        {"$set": {
+            "payment.status": "failed",
+            "payment.failed_at": now_iso,
+            "payment.failed_reason": "marked failed by admin (payment not completed)",
+            "status": "failed",
+        }},
+    )
+    await _send_payment_failed_email(db, {**reg, "payment": {**payment, "status": "failed"}}, showcase,
+                                     reason="was not completed (your payment session has expired)")
+    return {"ok": True, "message": "Registration marked as failed", "failed_at": now_iso}
 
 
 # ── Ticket verification / check-in (venue staff) ─────────────────────────────
