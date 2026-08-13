@@ -121,14 +121,19 @@ async def _reconcile_coupons_for_paid(db, showcase: dict) -> dict:
     When an organizer adds/updates session passes after people have registered,
     previously-paid attendees must still receive coupons for the newly-enabled
     passes. This finds every paid ("registered") registration for the event and
-    generates any missing coupon for an enabled session (matched by key + day).
+    for each enabled session:
+      • creates a missing coupon (matched by session_key) if the attendee never
+        got one, and
+      • refreshes session_day / session_name on existing coupons so day changes
+        on the pass config reflect on the attendee's coupon.
     """
     sessions = showcase.get("sessions") or []
     enabled = [s for s in sessions if s.get("enabled")]
     slug = showcase.get("slug") or ""
     if not enabled or not slug:
-        return {"added": 0}
+        return {"added": 0, "updated": 0}
     added = 0
+    updated = 0
     regs = await db.echo_registrations.find(
         {"slug": slug, "status": "registered"}
     ).to_list(5000)
@@ -139,30 +144,37 @@ async def _reconcile_coupons_for_paid(db, showcase: dict) -> dict:
         existing = await db.echo_coupons.find(
             {"slug": slug, "reg_id": reg_id}
         ).to_list(500)
-        have = {(c.get("session_key"), c.get("session_day") or 1) for c in existing}
+        by_key = {c.get("session_key"): c for c in existing}
         new_coupons = []
         for s in enabled:
-            day = int(s.get("day") or 1)
-            if (s.get("key"), day) in have:
-                continue
             from datetime import timezone
+            day = int(s.get("day") or 1)
             day_label = f"Day {day} · " if day > 1 else ""
-            new_coupons.append({
-                "slug": slug,
-                "reg_id": reg_id,
-                "session_key": s["key"],
-                "session_name": f"{day_label}{s.get('label', s['key'])}",
-                "session_day": day,
-                "coupon_code": _generate_coupon_code(s["key"], reg_id),
-                "used": False,
-                "used_at": None,
-                "scanned_by": None,
-                "created_at": datetime.now(timezone.utc),
-            })
+            name = f"{day_label}{s.get('label', s['key'])}"
+            old = by_key.get(s.get("key"))
+            if old is None:
+                new_coupons.append({
+                    "slug": slug,
+                    "reg_id": reg_id,
+                    "session_key": s["key"],
+                    "session_name": name,
+                    "session_day": day,
+                    "coupon_code": _generate_coupon_code(s["key"], reg_id),
+                    "used": False,
+                    "used_at": None,
+                    "scanned_by": None,
+                    "created_at": datetime.now(timezone.utc),
+                })
+            elif (old.get("session_day") or 1) != day or old.get("session_name") != name:
+                await db.echo_coupons.update_one(
+                    {"_id": old.get("_id") or old.get("id")},
+                    {"$set": {"session_day": day, "session_name": name}}
+                )
+                updated += 1
         if new_coupons:
             await db.echo_coupons.insert_many(new_coupons)
             added += len(new_coupons)
-    return {"added": added}
+    return {"added": added, "updated": updated}
 
 
 # ── DB dependency ────────────────────────────────────────────────────────────
