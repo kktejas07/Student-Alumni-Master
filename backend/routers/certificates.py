@@ -160,6 +160,22 @@ async def verify_certificate(identifier: str):
                 clean_k = k.replace("_", " ").title()
                 dynamic_attributes[clean_k] = v
 
+        # Determine content type of the certificate file
+        img_url = primary.get("image_url") or ""
+        if img_url.lower().endswith(".png"):
+            content_type = "image/png"
+        elif img_url.lower().endswith(".pdf"):
+            content_type = "application/pdf"
+        elif img_url.lower().endswith(".webp"):
+            content_type = "image/webp"
+        else:
+            content_type = "image/jpeg"
+
+        file_name = None
+        if primary.get("file_path"):
+            import os
+            file_name = os.path.basename(primary.get("file_path"))
+
         return {
             "valid": True,
             "type": "certificate",
@@ -175,6 +191,9 @@ async def verify_certificate(identifier: str):
             "verify_url": f"{FRONTEND_URL}/certificates/verify/{primary.get('verification_code')}",
             "status": "valid",
             "status_label": primary.get("status_label", "Officially Verified"),
+            "file_url": primary.get("image_url") or primary.get("file_path"),
+            "file_name": file_name,
+            "content_type": content_type,
             "certificate": primary,
             "dynamic_attributes": dynamic_attributes,
             "is_registered_member": is_member,
