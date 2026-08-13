@@ -42,6 +42,7 @@ from core.security import (
     encrypt_value,
 )
 from core.email import send_email, render_html_email, generate_pdf_from_html
+from core.whatsapp import send_wa_message, send_wa_documents
 
 router = APIRouter(prefix="/api/echo", tags=["echo-showcase"])
 
@@ -453,11 +454,13 @@ async def _finalize_paid_registration(db, reg: dict, showcase: Optional[dict], p
         await _mirror_to_event_registration(db, updated_ser, showcase, sa_user)
     if created and temp_password:
         await _send_sa_welcome_email(updated_ser, showcase, temp_password)
-    invoice = await _store_invoice_and_email(db, updated_ser, showcase)
-    # Generate session coupons for paid registrations
+    # Generate session coupons for paid registrations (so the WhatsApp package
+    # can include the codes and the invoice email knows coupons exist).
     sessions = (showcase or {}).get("sessions") or []
+    coupon_list = []
     if sessions and canonical_slug and reg.get("id"):
-        await _generate_coupons_for_registration(db, str(canonical_slug), str(reg.get("id")), sessions)
+        coupon_list = await _generate_coupons_for_registration(db, str(canonical_slug), str(reg.get("id")), sessions)
+    invoice = await _store_invoice_and_email(db, updated_ser, showcase, coupons=coupon_list)
     return {**updated_ser, "invoice": invoice}
 
 
@@ -559,6 +562,112 @@ async def _send_registration_confirmation(db, reg: dict, showcase: dict) -> None
         print(f"[ECHO] Confirmation email error: {e}")
 
 
+def _wa_opt_in(reg: dict) -> bool:
+    """Whether the attendee consents to WhatsApp delivery. Defaults to True for
+    legacy registrations; the registration form captures an explicit opt-in."""
+    v = reg.get("whatsapp_opt_in")
+    return v is None or bool(v)
+
+
+def _wa_ticket_url(reg: dict, email: str) -> str:
+    import urllib.parse
+    reg_id = reg.get("id") or ""
+    return f"https://studentalumni.ai/api/echo/tickets/{reg_id}?email={urllib.parse.quote(email or '')}"
+
+
+async def _send_wa_confirmation(db, reg: dict, showcase: dict, coupons: list) -> None:
+    """Best-effort WhatsApp text with ticket link + coupon codes (free/confirmed)."""
+    try:
+        phone = (reg.get("phone") or "").strip()
+        if not phone or not _wa_opt_in(reg):
+            return
+        title = reg.get("showcase_title") or showcase.get("title") or "Event"
+        reg_id = reg.get("id") or ""
+        lines = [f"🎟 *You're registered!*", f"Event: *{title}*", f"Registration ID: {reg_id}", ""]
+        if coupons:
+            lines.append("*Your passes:*")
+            for c in coupons:
+                name = c.get("session_name") or c.get("session_key")
+                code = c.get("coupon_code") or ""
+                lines.append(f"  • {name}: `{code}`")
+            lines.append("")
+        lines.append(f"Show this link at check-in: {_wa_ticket_url(reg, reg.get('email') or '')}")
+        await send_wa_message(phone=phone, text="\n".join(lines), kind="registration", reg_id=reg_id, opt_in=_wa_opt_in(reg))
+    except Exception as e:
+        print(f"[ECHO] WhatsApp confirmation error: {e}")
+
+
+async def _send_wa_payment_reminder(db, reg: dict, showcase: Optional[dict]) -> None:
+    """Best-effort WhatsApp nudge to complete a pending payment."""
+    try:
+        phone = (reg.get("phone") or "").strip()
+        if not phone or not _wa_opt_in(reg):
+            return
+        title = reg.get("showcase_title") or (showcase or {}).get("title") or "Event"
+        fee = float(reg.get("fee") or 0)
+        currency = reg.get("currency") or "INR"
+        slug = reg.get("slug") or (showcase or {}).get("slug") or ""
+        frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+        resume_url = f"{frontend_url}/echo/{slug}/register"
+        text = (
+            f"⏳ *Payment pending — {title}*\n\n"
+            f"Hi {reg.get('full_name') or 'there'}, your registration for *{title}* is "
+            f"still *pending payment* ({currency} {fee:,.2f}).\n\n"
+            f"Your seat is NOT confirmed and no pass will be issued until you pay.\n\n"
+            f"Complete your payment here: {resume_url}"
+        )
+        await send_wa_message(phone=phone, text=text, kind="reminder", reg_id=reg.get("id") or "", opt_in=_wa_opt_in(reg))
+    except Exception as e:
+        print(f"[ECHO] WhatsApp payment reminder error: {e}")
+
+
+async def _send_wa_payment_failed(db, reg: dict, showcase: Optional[dict], reason: str = "payment session expired") -> None:
+    """Best-effort WhatsApp notice that payment failed / was not completed."""
+    try:
+        phone = (reg.get("phone") or "").strip()
+        if not phone or not _wa_opt_in(reg):
+            return
+        title = reg.get("showcase_title") or (showcase or {}).get("title") or "Event"
+        slug = reg.get("slug") or (showcase or {}).get("slug") or ""
+        frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+        resume_url = f"{frontend_url}/echo/{slug}/register"
+        text = (
+            f"❌ *Payment not completed — {title}*\n\n"
+            f"Hi {reg.get('full_name') or 'there'}, we couldn't confirm your registration for "
+            f"*{title}* because the payment {reason}.\n\n"
+            f"No charge was made and no pass was issued. If you still want to attend, "
+            f"please register again: {resume_url}"
+        )
+        await send_wa_message(phone=phone, text=text, kind="payment_failed", reg_id=reg.get("id") or "", opt_in=_wa_opt_in(reg))
+    except Exception as e:
+        print(f"[ECHO] WhatsApp payment failed error: {e}")
+
+
+async def _send_wa_paid_package(db, reg: dict, showcase: dict, attachments: list, coupons: list) -> None:
+    """Best-effort WhatsApp invoice+receipt+pass PDFs, then the coupon codes."""
+    try:
+        phone = (reg.get("phone") or "").strip()
+        if not phone or not _wa_opt_in(reg):
+            return
+        title = reg.get("showcase_title") or showcase.get("title") or "Event"
+        reg_id = reg.get("id") or ""
+        docs = [{"filename": a["filename"], "content": a["content"]} for a in attachments if a.get("content")]
+        caption = f"Your payment is confirmed for {title} 🎉"
+        if docs:
+            await send_wa_documents(phone=phone, docs=docs, caption=caption, kind="invoice", reg_id=reg_id, opt_in=True)
+        if coupons:
+            lines = [f"🎟 *Your passes for {title}*", ""]
+            for c in coupons:
+                name = c.get("session_name") or c.get("session_key")
+                code = c.get("coupon_code") or ""
+                lines.append(f"• {name}: `{code}`")
+            lines.append("")
+            lines.append(f"Show this link at check-in: {_wa_ticket_url(reg, reg.get('email') or '')}")
+            await send_wa_message(phone=phone, text="\n".join(lines), kind="coupons", reg_id=reg_id, opt_in=True)
+    except Exception as e:
+        print(f"[ECHO] WhatsApp paid package error: {e}")
+
+
 async def _send_payment_reminder_email(db, reg: dict, showcase: Optional[dict]) -> None:
     """Email an attendee whose registration is pending because payment was not completed.
 
@@ -617,6 +726,7 @@ async def _send_payment_reminder_email(db, reg: dict, showcase: Optional[dict]) 
         )
         await send_email(email, subject, body)
         print(f"[ECHO] Payment reminder sent to {email} for {reg.get('id')}")
+        await _send_wa_payment_reminder(db, reg, showcase)
     except Exception as e:
         print(f"[ECHO] Payment reminder email error: {e}")
 
@@ -667,6 +777,7 @@ async def _send_payment_failed_email(db, reg: dict, showcase: Optional[dict], re
         )
         await send_email(email, subject, body)
         print(f"[ECHO] Payment failure email sent to {email} for {reg.get('id')}")
+        await _send_wa_payment_failed(db, reg, showcase, reason)
     except Exception as e:
         print(f"[ECHO] Payment failure email error: {e}")
 
@@ -1679,7 +1790,7 @@ async def _send_sa_welcome_email(reg: dict, showcase: Optional[dict], password: 
         print(f"[ECHO] Welcome email error: {e}")
 
 
-async def _store_invoice_and_email(db, reg: dict, showcase: Optional[dict]) -> dict:
+async def _store_invoice_and_email(db, reg: dict, showcase: Optional[dict], coupons: Optional[list] = None) -> dict:
     """Persist an invoice for a paid registration and email it to the attendee."""
     fresh = _build_invoice(reg, showcase)
     existing = await db.invoices.find_one({"reg_id": reg.get("id")})
@@ -1829,6 +1940,14 @@ async def _store_invoice_and_email(db, reg: dict, showcase: Optional[dict]) -> d
             sent = await send_email(email, subject, body, attachments=attachments or None)
             if not sent:
                 print(f"[ECHO] WARNING: Email to {email} could not be sent — no email provider configured in Settings > Tools > Email")
+            # Best-effort WhatsApp: send the same PDF docs + coupon codes.
+            try:
+                _coupons = coupons or await db.echo_coupons.find(
+                    {"slug": inv_ser.get("slug") or "", "reg_id": reg.get("id")}
+                ).to_list(100)
+                await _send_wa_paid_package(db, reg, showcase or {}, attachments, _coupons)
+            except Exception as wa_err:
+                print(f"[ECHO] WhatsApp invoice delivery error: {wa_err}")
     except Exception as e:
         print(f"[ECHO] Invoice email error: {e}")
     return inv_ser
@@ -2277,6 +2396,7 @@ class RegisterSchema(BaseModel):
     payment_method: Optional[str] = ""
     terms_accepted: Optional[bool] = False
     terms_accepted_at: Optional[str] = ""
+    whatsapp_opt_in: Optional[bool] = True
 
     @field_validator("phone")
     @classmethod
@@ -2457,6 +2577,7 @@ async def register_for_showcase(
         "created_at": now_iso,
         "terms_accepted": payload.terms_accepted or False,
         "terms_accepted_at": payload.terms_accepted_at or now_iso,
+        "whatsapp_opt_in": payload.whatsapp_opt_in if payload.whatsapp_opt_in is not None else True,
     }
     await db.echo_registrations.insert_one(dict(reg))
     await _sync_user_profile_data(db, user, payload)
@@ -2479,8 +2600,9 @@ async def register_for_showcase(
     if auto_paid:
         # Generate session coupons
         sessions = showcase.get("sessions") or []
-        await _generate_coupons_for_registration(db, canonical_slug, reg_id, sessions)
+        coupons = await _generate_coupons_for_registration(db, canonical_slug, reg_id, sessions)
         await _send_registration_confirmation(db, reg, showcase)
+        await _send_wa_confirmation(db, reg, showcase, coupons)
         confirmation_sent = True
 
     result = _ser(reg)

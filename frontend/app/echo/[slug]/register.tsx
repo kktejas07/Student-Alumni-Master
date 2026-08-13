@@ -182,6 +182,7 @@ export default function EchoRegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [posterIdx, setPosterIdx] = useState(0);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [whatsappOptIn, setWhatsappOptIn] = useState(true);
   const [termsModalVisible, setTermsModalVisible] = useState(false);
 
   const loadRazorpay = () =>
@@ -355,7 +356,7 @@ export default function EchoRegisterPage() {
     let keepLoading = true;
     try {
       const contact = { ...form, email: form.email.trim().toLowerCase() };
-      const regPayload = { ...contact, payment_method: fee > 0 ? 'online' : 'free', terms_accepted: termsAccepted, terms_accepted_at: new Date().toISOString() };
+      const regPayload = { ...contact, payment_method: fee > 0 ? 'online' : 'free', terms_accepted: termsAccepted, terms_accepted_at: new Date().toISOString(), whatsapp_opt_in: whatsappOptIn };
 
       // Free event → register directly.
       if (fee <= 0) {
@@ -366,7 +367,7 @@ export default function EchoRegisterPage() {
       }
 
       // Paid event → create a payment order, then redirect to the gateway.
-      const order = await api.createEchoPaymentOrder(canonicalSlug, { ...contact, terms_accepted: termsAccepted });
+      const order = await api.createEchoPaymentOrder(canonicalSlug, { ...contact, terms_accepted: termsAccepted, whatsapp_opt_in: whatsappOptIn });
 
       // Already paid → show the existing registration + invoice.
       if (order?.already) {
@@ -805,6 +806,19 @@ export default function EchoRegisterPage() {
                 {!termsAccepted && (
                   <Text style={s.termsHint}>Please accept the Terms &amp; Conditions to continue.</Text>
                 )}
+
+                {/* WhatsApp opt-in checkbox */}
+                <View style={s.termsRow}>
+                  <Pressable
+                    onPress={() => setWhatsappOptIn((v) => !v)}
+                    style={[s.checkbox, whatsappOptIn && s.checkboxChecked]}
+                  >
+                    {whatsappOptIn ? <Check size={13} color="#fff" /> : null}
+                  </Pressable>
+                  <Text style={s.termsText}>
+                    Send my entry passes, invoices &amp; coupons via WhatsApp
+                  </Text>
+                </View>
 
                 {paymentUrl ? (
                   <>
