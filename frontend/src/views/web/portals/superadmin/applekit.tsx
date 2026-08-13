@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import { Check, Search } from 'lucide-react-native';
+import { Check, Search, AlertTriangle } from 'lucide-react-native';
 import { SAC, FONTS } from './tokens';
 
 /* ─────────────────────────────────────────────────────────────────
@@ -67,8 +67,9 @@ export function GradientButton({
   );
 }
 
-export function SecondaryButton({ onPress, children, size = 'md', danger, style }: {
-  onPress?: () => void; children: React.ReactNode; size?: 'sm' | 'md' | 'lg'; danger?: boolean; style?: any;
+export function SecondaryButton({ onPress, loading, disabled, children, size = 'md', danger, style }: {
+  onPress?: () => void; loading?: boolean; disabled?: boolean;
+  children: React.ReactNode; size?: 'sm' | 'md' | 'lg'; danger?: boolean; style?: any;
 }) {
   const pad = size === 'sm'
     ? { paddingHorizontal: 11, paddingVertical: 7 }
@@ -76,14 +77,16 @@ export function SecondaryButton({ onPress, children, size = 'md', danger, style 
   return (
     <Pressable
       onPress={onPress}
+      disabled={loading || disabled}
       style={({ hovered }: any) => [
         k.secBtn, pad,
+        { opacity: loading || disabled ? 0.6 : 1 },
         danger && { borderColor: 'rgba(239,68,68,0.35)' },
         hovered && Platform.OS === 'web' ? { backgroundColor: 'rgba(255,255,255,0.05)' } : null,
         style,
       ]}
     >
-      {children}
+      {loading ? <ActivityIndicator size="small" color="#7C3AED" /> : children}
     </Pressable>
   );
 }
@@ -229,20 +232,21 @@ export function SearchField({ value, onChange, placeholder = 'Search…', width 
  * Toast hook + component
  * ───────────────────────────────────────────────────────────────── */
 export function useToast() {
-  const [toast, setToast] = useState({ visible: false, text: 'Saved' });
-  const flash = useCallback((text = 'Saved') => {
-    setToast({ visible: true, text });
+  const [toast, setToast] = useState({ visible: false, text: 'Saved', kind: 'success' as 'success' | 'error' });
+  const flash = useCallback((text = 'Saved', kind: 'success' | 'error' = 'success') => {
+    setToast({ visible: true, text, kind });
     setTimeout(() => setToast((t) => ({ ...t, visible: false })), 1500);
   }, []);
   return { toast, flash };
 }
 
-export function Toast({ text, visible }: { text: string; visible: boolean }) {
+export function Toast({ text, visible, kind = 'success' }: { text: string; visible: boolean; kind?: 'success' | 'error' }) {
   if (!visible) return null;
+  const isError = kind === 'error';
   return (
-    <Animated.View entering={FadeIn.duration(180)} style={k.toast} pointerEvents="none">
-      <Check size={12} color={SAC.green} />
-      <Text style={k.toastText}>{text}</Text>
+    <Animated.View entering={FadeIn.duration(180)} style={[k.toast, isError && k.toastError]} pointerEvents="none">
+      {isError ? <AlertTriangle size={12} color="#F87171" /> : <Check size={12} color={SAC.green} />}
+      <Text style={[k.toastText, isError && { color: '#FCA5A5' }]}>{text}</Text>
     </Animated.View>
   );
 }
@@ -362,6 +366,9 @@ const k = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999,
     backgroundColor: 'rgba(16,185,129,0.18)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.35)',
     maxWidth: 220, marginHorizontal: 'auto' as any,
+  },
+  toastError: {
+    backgroundColor: 'rgba(239,68,68,0.18)', borderColor: 'rgba(239,68,68,0.45)',
   },
   toastText: { color: SAC.green, fontFamily: FONTS.xbold, fontSize: 11.5 },
 

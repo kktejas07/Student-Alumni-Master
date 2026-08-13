@@ -122,9 +122,12 @@ def _upcoming_events_html(events: list) -> str:
         college = ev.get("college") or "Student Alumni Cell"
         when = ev.get("date") or ""
         venue = ev.get("venue") or ""
+        slug = (ev.get("slug") or "").strip()
+        link = f"{os.environ.get('FRONTEND_URL', 'https://studentalumni.ai').rstrip('/')}/echo/{slug}" if slug else ""
         img = _make_absolute_url(ev.get("hero_image_url") or ev.get("poster_image") or "")
         img_html = f"<img src='{img}' alt='' style='width:100%;height:auto;display:block;border-radius:10px 10px 0 0;' />" if img else ""
         badge = "FREE ENTRY" if float((ev.get("registration") or {}).get("fee") or 0) <= 0 else f"₹{float((ev.get('registration') or {}).get('fee') or 0):,.0f} ENTRY"
+        title_html = f"<a href='{link}' style='color:#111827;text-decoration:none;'>{title}</a>" if link else f"<div style='font-size:16px;font-weight:700;color:#111827;'>{title}</div>"
         cards.append(
             f"""
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">
@@ -135,9 +138,10 @@ def _upcoming_events_html(events: list) -> str:
                     <tr>
                       <td style="padding:16px 18px;">
                         <div style="font-size:11px;font-weight:700;color:#7C3AED;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px;">{badge}</div>
-                        <div style="font-size:16px;font-weight:700;color:#111827;">{title}</div>
+                        {title_html}
                         <div style="font-size:12.5px;color:#6b7280;margin-top:6px;">{college}{' · ' + when if when else ''}</div>
                         <div style="font-size:12.5px;color:#6b7280;">{venue}</div>
+                        {f"<div style='margin-top:10px;'><a href='{link}' style='display:inline-block;padding:8px 18px;background:#7C3AED;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:700;font-size:12px;'>View Event</a></div>" if link else ""}
                       </td>
                     </tr>
                   </table>
@@ -199,8 +203,19 @@ def build_newsletter_html(
         if cta_text and cta_url else ""
     )
 
+    from datetime import datetime, timezone as _tz
+    send_date = datetime.now(_tz.utc).strftime("%B %d, %Y")
+
     content = f"""
-    <h2 style="margin:0 0 6px 0;color:#111827;">{subject}</h2>
+    <!-- Subject header -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;border-bottom:2px solid #7C3AED;padding-bottom:18px;">
+      <tr>
+        <td>
+          <p style="margin:0 0 6px 0;font-size:11px;font-weight:700;color:#7C3AED;letter-spacing:1.5px;text-transform:uppercase;">Newsletter &nbsp;·&nbsp; {send_date}</p>
+          <h2 style="margin:0;font-size:22px;font-weight:800;color:#111827;line-height:1.3;">{subject}</h2>
+        </td>
+      </tr>
+    </table>
     {hero_html}
     {intro_html}
     {body_html}
@@ -267,6 +282,88 @@ async def cancel_scheduled_campaign(campaign_id: str, request: Request, _=Depend
         {"$set": {"status": "cancelled", "cancelled_at": _now()}}
     )
     return {"ok": True, "message": "Campaign cancelled successfully"}
+
+
+def _serialize_campaign(d: dict) -> dict:
+    """Normalize a campaign doc for API responses (excludes heavy attempts log)."""
+    out = dict(d)
+    out["_id"] = str(out["_id"]) if "_id" in out else None
+    out.pop("attempts", None)
+    return out
+
+
+@router.get("/admin/campaigns/{campaign_id}")
+async def get_campaign(campaign_id: str, request: Request, _=Depends(require_role("admin", "super_admin"))):
+    """Fetch a single campaign (including scheduled ones) so it can be edited/rescheduled."""
+    db = _get_db(request)
+    doc = await db.email_campaigns.find_one({"campaign_id": campaign_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    return _serialize_campaign(doc)
+
+
+class UpdateCampaignSchema(BaseModel):
+    subject: Optional[str] = None
+    hero_image: Optional[str] = None
+    intro: Optional[str] = None
+    body: Optional[str] = None
+    cta_text: Optional[str] = None
+    cta_url: Optional[str] = None
+    include_upcoming: Optional[bool] = None
+    send_email: Optional[bool] = None
+    send_push: Optional[bool] = None
+    send_in_app: Optional[bool] = None
+    send_at: Optional[str] = None  # ISO format string for (re)scheduling
+
+
+@router.patch("/admin/campaigns/{campaign_id}")
+async def update_campaign(campaign_id: str, payload: UpdateCampaignSchema, request: Request, _=Depends(require_role("admin", "super_admin"))):
+    """Update a scheduled campaign's content and/or reschedule its send time."""
+    db = _get_db(request)
+    camp = await db.email_campaigns.find_one({"campaign_id": campaign_id})
+    if not camp:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    if camp.get("status") not in ("scheduled", "cancelled", "failed"):
+        raise HTTPException(status_code=400, detail="Only scheduled campaigns can be edited")
+
+    update = {}
+    for field in ("subject", "hero_image", "intro", "body", "cta_text", "cta_url"):
+        val = getattr(payload, field, None)
+        if val is not None:
+            update[field] = val
+    if payload.include_upcoming is not None:
+        update["include_upcoming"] = payload.include_upcoming
+
+    channels = dict(camp.get("channels") or {})
+    if payload.send_email is not None:
+        channels["email"] = payload.send_email
+    if payload.send_push is not None:
+        channels["push"] = payload.send_push
+    if payload.send_in_app is not None:
+        channels["in_app"] = payload.send_in_app
+    if channels:
+        update["channels"] = channels
+
+    if payload.send_at:
+        try:
+            dt_send = datetime.fromisoformat(payload.send_at.replace("Z", "+00:00"))
+            if dt_send.tzinfo is None:
+                dt_send = dt_send.replace(tzinfo=timezone.utc)
+            if dt_send <= datetime.now(timezone.utc):
+                raise HTTPException(status_code=400, detail="Scheduled send time must be in the future")
+            update["send_at"] = dt_send.isoformat()
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid date format. Use ISO format (e.g., YYYY-MM-DDTHH:MM:SSZ)")
+
+    if not update:
+        raise HTTPException(status_code=400, detail="No changes provided")
+
+    update["status"] = "scheduled"  # re-activate if it was cancelled/failed
+    update["updated_at"] = _now()
+    await db.email_campaigns.update_one({"campaign_id": campaign_id}, {"$set": update})
+
+    doc = await db.email_campaigns.find_one({"campaign_id": campaign_id})
+    return {"ok": True, "message": "Campaign updated", "campaign": _serialize_campaign(doc)}
 
 
 @router.get("/admin/upcoming-events")
