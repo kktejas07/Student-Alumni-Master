@@ -171,6 +171,13 @@ def _is_server_url(url: str) -> bool:
     return True
 
 
+def _sanitize_hero_url(url: str) -> str:
+    """Strip blob/data URLs that can't persist across sessions. Return server-safe URL or empty."""
+    if not url:
+        return ""
+    return url if _is_server_url(url) else ""
+
+
 def build_newsletter_html(
     subject: str,
     hero_image: str,
@@ -277,7 +284,7 @@ async def save_draft(payload: DraftNewsletterSchema, request: Request, user=Depe
     campaign = {
         "campaign_id": campaign_id,
         "subject": payload.subject,
-        "hero_image": payload.hero_image or "",
+        "hero_image": _sanitize_hero_url(payload.hero_image or ""),
         "intro": payload.intro or "",
         "body": payload.body or "",
         "cta_text": payload.cta_text or "",
@@ -409,7 +416,7 @@ async def update_campaign(campaign_id: str, payload: UpdateCampaignSchema, reque
     for field in ("subject", "hero_image", "intro", "body", "cta_text", "cta_url"):
         val = getattr(payload, field, None)
         if val is not None:
-            update[field] = val
+            update[field] = _sanitize_hero_url(val) if field == "hero_image" else val
     if payload.include_upcoming is not None:
         update["include_upcoming"] = payload.include_upcoming
 
@@ -626,35 +633,35 @@ async def send_newsletter(payload: SendNewsletterSchema, request: Request, user=
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid date format. Use ISO format (e.g., YYYY-MM-DDTHH:MM:SSZ)")
 
-        campaign = {
-            "campaign_id": campaign_id,
-            "subject": payload.subject,
-            "hero_image": payload.hero_image or "",
-            "intro": payload.intro or "",
-            "body": payload.body or "",
-            "cta_text": payload.cta_text or "",
-            "cta_url": payload.cta_url or "",
-            "include_upcoming": payload.include_upcoming,
-            "channels": {
-                "email": payload.send_email,
-                "push": payload.send_push,
-                "in_app": payload.send_in_app,
-                "whatsapp": payload.send_whatsapp,
-            },
-            "recipients_count": len(subscribers),
-            "sent": False,
-            "status": "scheduled",
-            "send_at": dt_send.isoformat(),
-            "created_at": _now(),
-            "created_by": created_by,
-        }
-        await db.email_campaigns.insert_one(campaign)
-        return {
-            "ok": True,
-            "campaign_id": campaign_id,
-            "recipients": len(subscribers),
-            "message": f"Campaign scheduled successfully for {dt_send.strftime('%Y-%m-%d %H:%M:%S UTC')}",
-        }
+    campaign = {
+        "campaign_id": campaign_id,
+        "subject": payload.subject,
+        "hero_image": payload.hero_image or "",
+        "intro": payload.intro or "",
+        "body": payload.body or "",
+        "cta_text": payload.cta_text or "",
+        "cta_url": payload.cta_url or "",
+        "include_upcoming": payload.include_upcoming,
+        "channels": {
+            "email": payload.send_email,
+            "push": payload.send_push,
+            "in_app": payload.send_in_app,
+            "whatsapp": payload.send_whatsapp,
+        },
+        "recipients_count": len(subscribers),
+        "sent": False,
+        "status": "scheduled",
+        "send_at": dt_send.isoformat(),
+        "created_at": _now(),
+        "created_by": created_by,
+    }
+    await db.email_campaigns.insert_one(campaign)
+    return {
+        "ok": True,
+        "campaign_id": campaign_id,
+        "recipients": len(subscribers),
+        "message": f"Campaign scheduled successfully for {dt_send.strftime('%Y-%m-%d %H:%M:%S UTC')}",
+    }
 
     # Otherwise immediate send (runs in background task so API client receives fast response)
     campaign = {
