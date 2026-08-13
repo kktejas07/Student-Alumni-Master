@@ -2523,7 +2523,6 @@ async def create_payment_order(slug: str, payload: PaymentOrderSchema, request: 
         # Reuse an existing fresh order ONLY if this registration is still pending
         # and the session hasn't expired. A failed/expired registration must get a
         # brand-new Razorpay order — old order ids are dead after ~15 minutes.
-        existing.order_check = True
         order_created_raw = (existing.get("payment_order") or {}).get("created_at")
         order_created = _parse_iso(order_created_raw) if order_created_raw else None
         order_fresh = order_created and (datetime.now(timezone.utc) - order_created).total_seconds() <= ECHO_PAYMENT_SESSION_TTL_SECONDS
@@ -2541,7 +2540,9 @@ async def create_payment_order(slug: str, payload: PaymentOrderSchema, request: 
             }
         # Stale/failed → reset to a fresh pending state below (create a new order).
 
-    reg_id = secrets.token_hex(6)
+    # Use the existing registration id as the Razorpay receipt when re-registering
+    # (failed/expired pending) so the order is attributable to that registration.
+    reg_id = existing.get("id") if existing else secrets.token_hex(6)
     now_iso = _now()
 
     # Create the Razorpay order
