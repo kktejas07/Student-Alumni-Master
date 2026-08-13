@@ -29,6 +29,7 @@ import { EchoHeader, EchoFooter, ECHO_TOP_PADDING } from '@/src/views/web/compon
 import { CollegeAutocomplete } from '@/src/views/web/components/CollegeAutocomplete';
 import { CalendarDatePicker } from '@/src/views/web/components/CalendarDatePicker';
 import { DarkDropdown } from '@/src/views/web/components/DarkDropdown';
+import { ImportantRegistrationInfo } from '@/src/views/web/components/ImportantRegistrationInfo';
 import { BTECH_BRANCHES, BTECH_YEAR_OPTIONS } from '@/src/constants/branches';
 
 const YEARS = [
@@ -800,6 +801,7 @@ export default function EchoRegisterPage() {
                     </Text>
                   </>
                 )}
+                <ImportantRegistrationInfo />
                 <View style={s.accountNote}>
                   <ShieldCheck size={13} color="#A78BFA" />
                   <Text style={s.accountNoteText}>
