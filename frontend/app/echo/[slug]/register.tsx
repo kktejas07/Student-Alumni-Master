@@ -958,7 +958,7 @@ export default function EchoRegisterPage() {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#0a0f1e' },
   pageBg: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
-  pageBgOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(10,15,30,0.75)' },
+  pageBgOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(10,15,30,0.50)' },
   content: { padding: 20, maxWidth: 1100, width: '100%', alignSelf: 'center' },
   center: { alignItems: 'center', justifyContent: 'center', paddingVertical: 100, gap: 14 },
   centerText: { color: PALETTE.muted, fontFamily: FONTS.med, fontSize: 14 },
