@@ -94,36 +94,38 @@ function RegistryTab({ onSaved }: { onSaved: (s?: string) => void }) {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const LIMIT = 20;
 
   const branches = ['ALL', 'CSE', 'IT', 'ECE', 'EEE', 'MECH', 'CIVIL'];
 
-  const load = useCallback(async (append = false) => {
+  const load = useCallback(async (targetPage = 1) => {
     setError(null);
     setLoading(true);
     try {
-      const skip = append ? items.length : 0;
-      const params = new URLSearchParams({ limit: '50', skip: String(skip) });
+      const skip = (targetPage - 1) * LIMIT;
+      const params = new URLSearchParams({ limit: String(LIMIT), skip: String(skip) });
       if (q.trim()) params.set('q', q.trim());
       if (branch !== 'ALL') params.set('branch', branch);
       const r: any = await request(`/certificates/list?${params.toString()}`, { method: 'GET', auth: true });
       const list: any[] = r?.items || [];
       setTotal(r?.total ?? list.length);
-      setItems(append ? (prev) => [...prev, ...list] : list);
+      setItems(list);
+      setPage(targetPage);
     } catch (e: any) {
       setError(e?.message || 'Failed to load registry');
     } finally {
       setLoading(false);
     }
-  }, [q, branch, items.length]);
+  }, [q, branch]);
 
   useEffect(() => {
-    load(false);
+    load(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [branch]);
 
   const reload = () => {
-    setItems([]);
-    load(false);
+    load(1);
   };
 
   const copyUrl = async (id: string) => {
@@ -263,7 +265,7 @@ function RegistryTab({ onSaved }: { onSaved: (s?: string) => void }) {
                     {c?.branch ? <Text style={s.regMeta}>{c.branch}</Text> : null}
                   </View>
 
-                  <View style={{ gap: 6, alignItems: 'flex-end' }}>
+                  <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
                     <Pressable
                       onPress={() => Linking.openURL(`${typeof window !== 'undefined' && window.location ? window.location.origin : 'https://studentalumni.ai'}/certificates/verify/${encodeURIComponent(id || code)}`)}
                       style={s.regLinkBtn}
@@ -299,13 +301,15 @@ function RegistryTab({ onSaved }: { onSaved: (s?: string) => void }) {
           </ScrollView>
         )}
 
-        {typeof total === 'number' && items.length < total && (
-          <View style={{ marginTop: 12 }}>
-            <GradientButton onPress={() => load(true)} loading={loading} size="sm">
-              <View style={s.btnInner}>
-                <Text style={s.btnTextSm}>{loading ? 'Loading…' : `Load more (${items.length} / ${total})`}</Text>
-              </View>
-            </GradientButton>
+        {total !== null && total > 0 && (
+          <View style={s.pagination}>
+            <Pressable style={s.pageBtn} onPress={() => load(page - 1)} disabled={page <= 1 || loading}>
+              <Text style={s.pageBtnText}>Prev</Text>
+            </Pressable>
+            <Text style={s.pageInfo}>Page {page} of {Math.ceil(total / LIMIT)}</Text>
+            <Pressable style={s.pageBtn} onPress={() => load(page + 1)} disabled={page >= Math.ceil(total / LIMIT) || loading}>
+              <Text style={s.pageBtnText}>Next</Text>
+            </Pressable>
           </View>
         )}
       </Card>
@@ -1079,4 +1083,8 @@ const s = StyleSheet.create({
   regLinkText: { color: '#A78BFA', fontFamily: FONTS.bold, fontSize: 10.5 },
   regCopyBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 7, borderWidth: 1, borderColor: '#1e293b', backgroundColor: '#0f172a', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   regCopyText: { color: '#64748b', fontFamily: FONTS.bold, fontSize: 10.5 },
+  pagination: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 16, gap: 14 },
+  pageBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: '#0f172a', borderRadius: 8, borderWidth: 1, borderColor: '#1e293b', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  pageBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
+  pageInfo: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
 });
