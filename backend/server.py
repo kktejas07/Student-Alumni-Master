@@ -361,6 +361,19 @@ async def upload_file(
     try:
         with open(out_path, "wb") as f:
             f.write(contents)
+    except PermissionError:
+        # Self-healing: try to fix permissions and retry once
+        import subprocess
+        try:
+            subprocess.run(["chmod", "-R", "777", str(ROOT_DIR / "uploads")], check=False, timeout=5)
+            subprocess.run(["chown", "-R", f"{os.getuid()}:{os.getgid()}", str(ROOT_DIR / "uploads")], check=False, timeout=5)
+        except Exception:
+            pass
+        try:
+            with open(out_path, "wb") as f:
+                f.write(contents)
+        except Exception as e:
+            raise HTTPException(500, f"Permission denied writing to {out_path}. Run: chmod -R 777 {ROOT_DIR / 'uploads'}")
     except Exception as e:
         raise HTTPException(500, f"Failed to save file: {e}")
     url = f"/uploads/{safe_folder}/{safe_name}"
