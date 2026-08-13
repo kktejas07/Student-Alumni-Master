@@ -257,6 +257,7 @@ async def _lifespan(application):
     try:
         from workflow_automation import run_cron_workflows as _run_cron
         from newsletter import process_scheduled_campaigns as _process_sched
+        from echo_showcase import sweep_expired_echo_payments as _sweep_echo_pay
         async def _wf_cron_tick():
             while True:
                 try:
@@ -265,6 +266,12 @@ async def _lifespan(application):
                     pass
                 try:
                     await _process_sched(db)
+                except Exception:
+                    pass
+                try:
+                    sweep_summary = await _sweep_echo_pay(db)
+                    if sweep_summary.get("failed") or sweep_summary.get("reminded"):
+                        logger.info("ECHO payment sweep: %s", sweep_summary)
                 except Exception:
                     pass
                 await asyncio.sleep(60)

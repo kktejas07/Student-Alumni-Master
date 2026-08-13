@@ -28,7 +28,7 @@ import {
   Copy, Check, Search, RefreshCw, PlusCircle, FileText, Link2,
   Image as ImageIcon, HardDrive, Calendar, Layout, ChevronUp, ChevronDown, Users,
   Settings, Ticket, Mail, Palette, ScanLine,
-  CupSoda, UtensilsCrossed, Cookie, Sandwich, Coffee, Lock,
+  CupSoda, UtensilsCrossed, Cookie, Sandwich, Coffee, Lock, XCircle, Clock,
 } from 'lucide-react-native';
 import {
   GRAD, GradientButton, SecondaryButton, Card,
@@ -2151,6 +2151,7 @@ function RegistrationsPanel() {
   const [eventSlug, setEventSlug] = useState('all');
   const [detailRow, setDetailRow] = useState<any>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [actioning, setActioning] = useState<string | null>(null);
   const { flash } = useToast();
 
   const load = useCallback(async () => {
@@ -2185,6 +2186,33 @@ function RegistrationsPanel() {
     }
   };
 
+  const sendReminder = async (r: any) => {
+    setActioning(r.id);
+    try {
+      await api.adminEchoSendPaymentReminder(r.id);
+      flash('Payment reminder emailed to the attendee');
+      await load();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to send reminder');
+    } finally {
+      setActioning(null);
+    }
+  };
+
+  const markFailed = async (r: any) => {
+    if (!confirm(`Mark this registration as failed? No ticket or pass will be issued, and the attendee will be emailed.`)) return;
+    setActioning(r.id);
+    try {
+      await api.adminEchoMarkRegistrationFailed(r.id);
+      flash('Registration marked as failed');
+      await load();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to mark as failed');
+    } finally {
+      setActioning(null);
+    }
+  };
+
   const filtered = rows.filter((r) => {
     const s = q.toLowerCase();
     const matchQ = !s
@@ -2204,6 +2232,8 @@ function RegistrationsPanel() {
 
   const fmtAmt = (n: number) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
   const paid = filtered.filter((r) => r.payment_status === 'paid');
+  const pending = filtered.filter((r) => r.payment_status === 'pending');
+  const failed = filtered.filter((r) => r.payment_status === 'failed');
   const revenueTotal = paid.reduce((a, r) => a + Number(r.fee || 0), 0);
 
   return (
@@ -2212,6 +2242,8 @@ function RegistrationsPanel() {
       <View style={{ flexDirection: 'row', gap: 12, marginBottom: 18, flexWrap: 'wrap' }}>
         <KpiTile Icon={Users} label="Total Registrations" value={String(filtered.length)} />
         <KpiTile Icon={Check} label="Paid" value={String(paid.length)} />
+        <KpiTile Icon={Clock} label="Pending" value={String(pending.length)} />
+        <KpiTile Icon={XCircle} label="Failed" value={String(failed.length)} />
         <KpiTile Icon={Zap} label="Revenue (filtered)" value={fmtAmt(revenueTotal)} delta="real-time" deltaKind="success" />
         <Pressable onPress={() => window.open('/echo/admin/scan', '_blank')} style={{
           flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#7C3AED',
@@ -2277,6 +2309,7 @@ function RegistrationsPanel() {
             { id: 'all', label: 'All' },
             { id: 'paid', label: 'Paid' },
             { id: 'pending', label: 'Pending' },
+            { id: 'failed', label: 'Failed' },
           ]}
           active={status}
           onChange={setStatus}
@@ -2333,9 +2366,14 @@ function RegistrationsPanel() {
                   </View>
                   <View style={{ width: 150, minWidth: 0 }}>
                     <StatusPill
-                      kind={r.payment_status === 'paid' ? 'success' : r.payment_status === 'pending' ? 'warn' : 'neutral'}
+                      kind={r.payment_status === 'paid' ? 'success' : r.payment_status === 'pending' ? 'warn' : r.payment_status === 'failed' ? 'danger' : 'neutral'}
                       label={(r.payment_status || '—').toUpperCase()}
                     />
+                    {r.failed_reason ? (
+                      <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 9.5, color: '#FCA5A5', marginTop: 3 }}>
+                        {r.failed_reason}
+                      </Text>
+                    ) : null}
                   </View>
                   <View style={{ width: 120, minWidth: 0 }}>
                     <StatusPill
@@ -2352,6 +2390,26 @@ function RegistrationsPanel() {
                     <Pressable onPress={() => setDetailRow(r)} style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: 'rgba(99,102,241,0.15)', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                       <Eye size={14} color="#818CF8" />
                     </Pressable>
+                    {r.payment_status === 'pending' && (
+                      <>
+                        <Pressable
+                          onPress={() => sendReminder(r)}
+                          disabled={actioning === r.id}
+                          title="Email payment reminder"
+                          style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: 'rgba(245,158,11,0.15)', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', opacity: actioning === r.id ? 0.5 : 1 }}
+                        >
+                          <Mail size={14} color="#FBBF24" />
+                        </Pressable>
+                        <Pressable
+                          onPress={() => markFailed(r)}
+                          disabled={actioning === r.id}
+                          title="Mark payment as failed (no ticket/pass issued)"
+                          style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: 'rgba(239,68,68,0.15)', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', opacity: actioning === r.id ? 0.5 : 1 }}
+                        >
+                          <XCircle size={14} color="#F87171" />
+                        </Pressable>
+                      </>
+                    )}
                     <Pressable onPress={() => deleteReg(r.id || r._id)} disabled={deleting === (r.id || r._id)} style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: deleting === (r.id || r._id) ? 'rgba(100,100,100,0.15)' : 'rgba(239,68,68,0.15)', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', opacity: deleting === (r.id || r._id) ? 0.5 : 1 }}>
                       <Trash2 size={14} color={deleting === (r.id || r._id) ? '#666' : '#F87171'} />
                     </Pressable>
@@ -2383,6 +2441,9 @@ function RegistrationsPanel() {
                   ['Fee', Number(detailRow.fee || 0) > 0 ? `₹${Number(detailRow.fee).toLocaleString('en-IN')}` : 'FREE'],
                   ['Payment Status', (detailRow.payment_status || '—').toUpperCase()],
                   ['Payment ID', detailRow.payment_id],
+                  ['Failed At', detailRow.failed_at ? new Date(detailRow.failed_at).toLocaleString() : null],
+                  ['Failed Reason', detailRow.failed_reason],
+                  ['Reminder Sent', detailRow.reminder_sent_at ? new Date(detailRow.reminder_sent_at).toLocaleString() : null],
                   ['SA Account', detailRow.has_account ? 'Yes' : 'No'],
                   ['Registered', (detailRow.registered_at || '').slice(0, 19).replace('T', ' ')],
                   ['Checked In', detailRow.checked_in_at ? new Date(detailRow.checked_in_at).toLocaleString() : 'No'],

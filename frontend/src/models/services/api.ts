@@ -441,6 +441,10 @@ export const api = {
     request<any>('/echo/admin/registrations'),
   adminEchoDeleteRegistration: (regId: string) =>
     request<any>(`/echo/admin/registrations/${regId}`, { method: 'DELETE' }),
+  adminEchoSendPaymentReminder: (regId: string) =>
+    request<any>(`/echo/admin/registrations/${regId}/remind`, { method: 'POST' }),
+  adminEchoMarkRegistrationFailed: (regId: string) =>
+    request<any>(`/echo/admin/registrations/${regId}/mark-failed`, { method: 'POST' }),
   adminEchoRevenue: () =>
     request<any>('/echo/admin/revenue'),
   myEchoInvoices: () =>
