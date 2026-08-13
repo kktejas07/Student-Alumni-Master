@@ -361,7 +361,10 @@ const k = StyleSheet.create({
   },
 
   toast: {
-    position: 'absolute', bottom: 24, left: 0, right: 0,
+    ...(Platform.OS === 'web'
+      ? { position: 'fixed' as any, bottom: 24 }
+      : { position: 'absolute' as any, bottom: 24 }),
+    left: 0, right: 0,
     alignSelf: 'center', alignItems: 'center', justifyContent: 'center',
     flexDirection: 'row', gap: 6,
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999,
