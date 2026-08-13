@@ -3990,6 +3990,30 @@ async def admin_coupons(slug: str, request: Request, _=Depends(_require_admin)):
 
 # ── Volunteer / Ambassador Management ────────────────────────────────────────
 
+@router.get("/admin/volunteers")
+async def list_all_volunteers(request: Request, _=Depends(_require_admin)):
+    """List all volunteers across every event, joined with the event title."""
+    db = _get_db(request)
+    vols = await db.echo_volunteers.find().sort("created_at", -1).to_list(1000)
+    # Build slug -> showcase title map
+    slugs = {v.get("slug") for v in vols if v.get("slug")}
+    title_map = {}
+    if slugs:
+        for s in await db.echo_showcases.find({"slug": {"$in": list(slugs)}}, {"slug": 1, "title": 1}).to_list(500):
+            title_map[s.get("slug")] = s.get("title") or s.get("slug")
+    for v in vols:
+        v["_id"] = str(v["_id"])
+        v["event_title"] = title_map.get(v.get("slug")) or v.get("slug") or "—"
+        if v.get("email"):
+            user = await db.users.find_one({"email": v["email"].lower().strip()})
+            v["has_account"] = user is not None
+            v["user_name"] = user.get("full_name", "") if user else ""
+        else:
+            v["has_account"] = False
+            v["user_name"] = ""
+    return {"volunteers": vols, "total": len(vols)}
+
+
 @router.get("/admin/{slug}/volunteers")
 async def list_volunteers(slug: str, request: Request, _=Depends(_require_admin)):
     """List all volunteers for an event."""

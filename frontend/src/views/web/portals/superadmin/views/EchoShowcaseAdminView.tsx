@@ -26,7 +26,7 @@ import {
   Pencil, Trash2, Eye, Globe, Archive, Send, X, Zap,
   Star, BookOpen, Upload, MoveUp, MoveDown, Images, FolderOpen,
   Copy, Check, Search, RefreshCw, PlusCircle, FileText, Link2,
-  Image as ImageIcon, HardDrive, Calendar, Layout, ChevronUp, ChevronDown, Users,
+  Image as ImageIcon, HardDrive, Calendar, Layout, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Users,
   Settings, Ticket, Mail, Palette, ScanLine,
   CupSoda, UtensilsCrossed, Cookie, Sandwich, Coffee, Lock, XCircle, Clock,
 } from 'lucide-react-native';
@@ -2398,7 +2398,11 @@ function RegistrationsPanel() {
   const [detailRow, setDetailRow] = useState<any>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [actioning, setActioning] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  const PER_PAGE = 20;
   const { flash } = useToast();
+
+  useEffect(() => { setPage(0); }, [q, status, eventSlug, rows]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -2470,6 +2474,10 @@ function RegistrationsPanel() {
     const matchEvent = eventSlug === 'all' || r.slug === eventSlug;
     return matchQ && matchStatus && matchEvent;
   });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+  const safePage = Math.min(page, totalPages - 1);
+  const paged = filtered.slice(safePage * PER_PAGE, safePage * PER_PAGE + PER_PAGE);
 
   const uniqueEvents = Array.from(new Set(rows.map((r: any) => r.slug).filter(Boolean)))
     .map((slug) => rows.find((r: any) => r.slug === slug))
@@ -2592,7 +2600,7 @@ function RegistrationsPanel() {
                 <Text style={{ width: 150, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>DATE</Text>
                 <Text style={{ width: 100, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5, textAlign: 'center' }}>ACTIONS</Text>
               </View>
-              {filtered.map((r: any, i: number) => (
+              {paged.map((r: any, i: number) => (
                 <View key={r.id || i} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 11, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' }}>
                   <View style={{ width: 180, minWidth: 0 }}>
                     <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 12.5, color: '#fff' }}>{r.full_name || '—'}</Text>
@@ -2691,6 +2699,59 @@ function RegistrationsPanel() {
             </View>
           </ScrollView>
         )}
+        {/* Pagination */}
+        {filtered.length > PER_PAGE && (
+          <View style={{
+            flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+            paddingVertical: 10, paddingHorizontal: 14,
+            borderTopWidth: 1, borderTopColor: SAC.border, flexWrap: 'wrap', gap: 10,
+          }}>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.dim }}>
+              Showing {safePage * PER_PAGE + 1}–{Math.min((safePage + 1) * PER_PAGE, filtered.length)} of {filtered.length}
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+              <Pressable
+                onPress={() => setPage(safePage - 1)}
+                disabled={safePage === 0}
+                style={{
+                  paddingHorizontal: 10, paddingVertical: 6, borderRadius: 7,
+                  backgroundColor: safePage === 0 ? 'rgba(255,255,255,0.04)' : 'rgba(167,139,250,0.15)',
+                  borderWidth: 1, borderColor: safePage === 0 ? SAC.border : 'rgba(167,139,250,0.3)',
+                  opacity: safePage === 0 ? 0.4 : 1,
+                }}
+              >
+                <ChevronLeft size={14} color={SAC.text} />
+              </Pressable>
+              {Array.from({ length: totalPages }, (_, p) => p).map((p) => {
+                if (totalPages > 7 && Math.abs(p - safePage) > 2 && p !== 0 && p !== totalPages - 1) {
+                  return null;
+                }
+                return (
+                  <Pressable key={p} onPress={() => setPage(p)} style={{
+                    minWidth: 30, alignItems: 'center', justifyContent: 'center',
+                    paddingVertical: 6, borderRadius: 7,
+                    backgroundColor: p === safePage ? '#7C3AED' : 'rgba(255,255,255,0.05)',
+                    borderWidth: 1, borderColor: p === safePage ? '#7C3AED' : SAC.border,
+                  }}>
+                    <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: p === safePage ? '#fff' : SAC.text }}>{p + 1}</Text>
+                  </Pressable>
+                );
+              })}
+              <Pressable
+                onPress={() => setPage(safePage + 1)}
+                disabled={safePage >= totalPages - 1}
+                style={{
+                  paddingHorizontal: 10, paddingVertical: 6, borderRadius: 7,
+                  backgroundColor: safePage >= totalPages - 1 ? 'rgba(255,255,255,0.04)' : 'rgba(167,139,250,0.15)',
+                  borderWidth: 1, borderColor: safePage >= totalPages - 1 ? SAC.border : 'rgba(167,139,250,0.3)',
+                  opacity: safePage >= totalPages - 1 ? 0.4 : 1,
+                }}
+              >
+                <ChevronRight size={14} color={SAC.text} />
+              </Pressable>
+            </View>
+          </View>
+        )}
       </Card>
 
       {/* Detail Modal */}
@@ -2784,50 +2845,72 @@ function RegistrationsPanel() {
 
 // ── Volunteers Panel ──────────────────────────────────────────────────────────
 function VolunteersPanel() {
-  const [slug, setSlug] = useState('');
+  const [showcases, setShowcases] = useState<any[]>([]);
   const [items, setItems] = useState<any[]>([]);
-  const [email, setEmail] = useState('');
-  const [role, setRole] = useState('volunteer');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [addSlug, setAddSlug] = useState('');
+  const [email, setEmail] = useState('');
+  const [role, setRole] = useState('volunteer');
+  const [q, setQ] = useState('');
+  const [filterEvent, setFilterEvent] = useState('all');
+  const [removing, setRemoving] = useState<string | null>(null);
   const { flash } = useToast();
 
+  const apiBase = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+
+  const authToken = async () => {
+    const { tokenStore } = await import('@/src/models/services/api');
+    const token = await tokenStore.getAccess();
+    return token || '';
+  };
+
   const load = useCallback(async () => {
-    if (!slug) { setItems([]); return; }
     setLoading(true);
     try {
-      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
-      const { tokenStore } = await import('@/src/models/services/api');
-      const token = await tokenStore.getAccess();
-      const resp = await fetch(`${base}/api/echo/admin/${slug}/volunteers`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (resp.ok) {
-        const data = await resp.json();
+      const token = await authToken();
+      const [volResp, showResp] = await Promise.all([
+        fetch(`${apiBase}/api/echo/admin/volunteers`, { headers: token ? { Authorization: `Bearer ${token}` } : {} }),
+        fetch(`${apiBase}/api/echo/admin/showcases`, { headers: token ? { Authorization: `Bearer ${token}` } : {} }),
+      ]);
+      if (volResp.ok) {
+        const data = await volResp.json();
         setItems(data.volunteers || []);
+      }
+      if (showResp.ok) {
+        const data = await showResp.json();
+        const list = Array.isArray(data) ? data : (data.items || data.showcases || []);
+        setShowcases(list.map((s: any) => ({ slug: s.slug, title: s.title || s.slug })));
       }
     } catch { /* ignore */ }
     setLoading(false);
-  }, [slug]);
+  }, [apiBase]);
 
   useEffect(() => { load(); }, [load]);
 
+  const openAdd = () => {
+    setAdding(true);
+    setAddSlug(showcases.length === 1 ? showcases[0].slug : '');
+    setEmail('');
+    setRole('volunteer');
+  };
+
   const addVolunteer = async () => {
     const e = email.trim().toLowerCase();
-    if (!e || !slug) return;
+    if (!e || !addSlug) return;
     setSaving(true);
     try {
-      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
-      const { tokenStore } = await import('@/src/models/services/api');
-      const token = await tokenStore.getAccess();
-      const resp = await fetch(`${base}/api/echo/admin/${slug}/volunteers`, {
+      const token = await authToken();
+      const resp = await fetch(`${apiBase}/api/echo/admin/${addSlug}/volunteers`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ email: e, role }),
       });
       const data = await resp.json();
       if (!resp.ok) throw new Error(data.detail || 'Failed to add');
-      flash(data.has_account ? `${e} added — has SA account` : `${e} added — will get access on signup`);
+      flash(data.has_account ? `${e} added as ${role} — has SA account` : `${e} added as ${role} — will get access on signup`);
+      setAdding(false);
       setEmail('');
       load();
     } catch (err: any) {
@@ -2837,74 +2920,201 @@ function VolunteersPanel() {
     }
   };
 
-  const removeVolunteer = async (id: string) => {
+  const removeVolunteer = async (v: any) => {
+    if (!confirm(`Remove ${v.email} as ${v.role} for ${v.event_title || v.slug}?`)) return;
+    setRemoving(v._id);
     try {
-      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
-      const { tokenStore } = await import('@/src/models/services/api');
-      const token = await tokenStore.getAccess();
-      await fetch(`${base}/api/echo/admin/${slug}/volunteers/${id}`, {
+      const token = await authToken();
+      await fetch(`${apiBase}/api/echo/admin/${v.slug}/volunteers/${v._id}`, {
         method: 'DELETE',
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-      load();
-    } catch { /* ignore */ }
+      setItems((prev) => prev.filter((x) => x._id !== v._id));
+      flash('Volunteer removed');
+    } catch { flash('Failed to remove volunteer'); }
+    setRemoving(null);
   };
+
+  const filtered = items.filter((v) => {
+    const s = q.toLowerCase();
+    const matchQ = !s || v.email?.toLowerCase().includes(s) || (v.user_name || '').toLowerCase().includes(s) || (v.event_title || '').toLowerCase().includes(s);
+    const matchEvent = filterEvent === 'all' || v.slug === filterEvent;
+    return matchQ && matchEvent;
+  });
+
+  const uniqueEvents = Array.from(new Set(items.map((v) => v.slug).filter(Boolean)));
 
   return (
     <View style={{ gap: 16 }}>
-      <Card style={{ padding: 20, gap: 16 }}>
-        <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>Volunteers & Ambassadors</Text>
-        <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>
-          Add registered users who can scan coupons at the venue. They get access to the scanner page only.
-        </Text>
-        <FieldRow label="Event Slug">
-          <Field value={slug} onChangeText={setSlug} placeholder="e.g. vnrvjit" />
-        </FieldRow>
-        {slug && (
-          <>
-            <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-end' }}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: SAC.muted, marginBottom: 4 }}>Email</Text>
-                <TextInput value={email} onChangeText={setEmail} placeholder="volunteer@email.com"
-                  placeholderTextColor="#475569" keyboardType="email-address" autoCapitalize="none"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 10, color: '#fff', fontSize: 13 }} />
-              </View>
-              <View style={{ width: 120 }}>
-                <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: SAC.muted, marginBottom: 4 }}>Role</Text>
-                <SelectNative value={role} onChange={setRole} options={['volunteer', 'ambassador']} />
-              </View>
-              <GradientButton onPress={addVolunteer} loading={saving} disabled={saving || !email.trim()} size="sm">
-                <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>Add</Text>
-              </GradientButton>
+      {/* Header + Add button */}
+      <Card style={{ padding: 20 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 8 }}>
+          <View style={{ flex: 1, minWidth: 220 }}>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>Volunteers & Ambassadors</Text>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted, marginTop: 3 }}>
+              Registered users who can scan coupons at the venue. They get access to the scanner page only.
+            </Text>
+          </View>
+          <GradientButton onPress={openAdd} size="sm">
+            <PlusCircle size={13} color="#fff" />
+            <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12, marginLeft: 6 }}>Add Volunteer</Text>
+          </GradientButton>
+        </View>
+
+        {/* Add wizard */}
+        {adding && (
+          <View style={{ marginTop: 12, backgroundColor: 'rgba(167,139,250,0.08)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(167,139,250,0.3)', padding: 16, gap: 12 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: SAC.text }}>New Volunteer</Text>
+              <Pressable onPress={() => setAdding(false)} style={{ padding: 4 }}><X size={16} color={SAC.muted} /></Pressable>
             </View>
 
-            <Text style={{ fontFamily: FONTS.semi, fontSize: 12, color: SAC.muted, marginTop: 8 }}>
-              Volunteers ({items.length})
-            </Text>
-            {loading ? (
-              <ActivityIndicator size="small" color="#A78BFA" style={{ marginVertical: 12 }} />
-            ) : items.length === 0 ? (
-              <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.dim }}>No volunteers added yet</Text>
-            ) : (
-              <View style={{ gap: 6 }}>
-                {items.map((v) => (
-                  <View key={v._id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' }}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: SAC.text }}>{v.email}</Text>
-                      <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.dim }}>
-                        {v.role} {v.has_account ? '· Has account' : '· No account yet'}
-                        {v.user_name ? ` · ${v.user_name}` : ''}
-                      </Text>
-                    </View>
-                    <StatusPill kind={v.has_account ? 'success' : 'warn'} label={v.has_account ? 'Active' : 'Pending'} />
-                    <Pressable onPress={() => removeVolunteer(v._id)} style={{ padding: 6 }}>
-                      <Trash2 size={14} color="#EF4444" />
+            {!addSlug ? (
+              <>
+                <Text style={{ fontFamily: FONTS.semi, fontSize: 12, color: SAC.muted }}>
+                  Step 1 · Select the event this person will help with
+                </Text>
+                <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+                  {showcases.length === 0 && (
+                    <Text style={{ fontFamily: FONTS.med, fontSize: 11.5, color: SAC.dim }}>No showcases found. Create an event first.</Text>
+                  )}
+                  {showcases.map((s) => (
+                    <Pressable
+                      key={s.slug}
+                      onPress={() => setAddSlug(s.slug)}
+                      style={{
+                        paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9,
+                        backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: SAC.border,
+                      }}
+                    >
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>{s.title}</Text>
+                      <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>{s.slug}</Text>
                     </Pressable>
+                  ))}
+                </View>
+              </>
+            ) : (
+              <>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                  <Text style={{ fontFamily: FONTS.semi, fontSize: 12, color: SAC.muted }}>
+                    Step 2 · Email & role for{' '}
+                    <Text style={{ color: '#C4B5FD' }}>{showcases.find((s) => s.slug === addSlug)?.title || addSlug}</Text>
+                  </Text>
+                  <Pressable onPress={() => setAddSlug('')} style={{ padding: 4 }}>
+                    <Text style={{ fontFamily: FONTS.med, fontSize: 10.5, color: '#A78BFA' }}>← change event</Text>
+                  </Pressable>
+                </View>
+                <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                  <View style={{ flex: 1, minWidth: 200 }}>
+                    <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: SAC.muted, marginBottom: 4 }}>Email</Text>
+                    <TextInput value={email} onChangeText={setEmail} placeholder="volunteer@email.com"
+                      placeholderTextColor="#475569" keyboardType="email-address" autoCapitalize="none"
+                      style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 10, color: '#fff', fontSize: 13 }} />
                   </View>
-                ))}
-              </View>
+                  <View style={{ width: 140 }}>
+                    <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: SAC.muted, marginBottom: 4 }}>Role</Text>
+                    <SelectNative value={role} onChange={setRole} options={['volunteer', 'ambassador']} />
+                  </View>
+                  <GradientButton onPress={addVolunteer} loading={saving} disabled={saving || !email.trim()} size="sm">
+                    <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>Add</Text>
+                  </GradientButton>
+                </View>
+              </>
             )}
-          </>
+          </View>
+        )}
+
+        {/* Search + filter */}
+        <View style={{ flexDirection: 'row', gap: 10, marginTop: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+          <SearchField value={q} onChange={setQ} placeholder="Search name, email, event…" width="260px" />
+          <select
+            value={filterEvent}
+            onChange={(e: any) => setFilterEvent(e.target.value)}
+            style={{
+              backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
+              borderRadius: 8, padding: '8px 12px', color: '#fff', fontSize: 12, fontFamily: 'Inter',
+              outline: 'none', cursor: 'pointer', minWidth: 150,
+            }}
+          >
+            <option value="all" style={{ background: '#1e1b4b', color: '#fff' }}>All Events</option>
+            {uniqueEvents.map((slug) => (
+              <option key={slug} value={slug} style={{ background: '#1e1b4b', color: '#fff' }}>
+                {items.find((v) => v.slug === slug)?.event_title || slug}
+              </option>
+            ))}
+          </select>
+        </View>
+      </Card>
+
+      {/* Volunteers table */}
+      <Card style={{ overflow: 'hidden' }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: SAC.border }}>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted }}>
+            {filtered.length > 0 ? `${filtered.length} volunteer${filtered.length > 1 ? 's' : ''}` : 'No volunteers'}
+          </Text>
+          <Pressable onPress={load} style={{ flexDirection: 'row', alignItems: 'center', gap: 5, padding: 4 }}>
+            <RefreshCw size={12} color={SAC.muted} />
+            <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.muted }}>Refresh</Text>
+          </Pressable>
+        </View>
+        {loading ? (
+          <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+            <ActivityIndicator size="large" color={GRAD.from} />
+          </View>
+        ) : filtered.length === 0 ? (
+          <View style={{ padding: 40, alignItems: 'center', gap: 10 }}>
+            <IconBox size={46}><Users size={18} color={GRAD.to} /></IconBox>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: SAC.text }}>No volunteers yet</Text>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted, textAlign: 'center', maxWidth: 340 }}>
+              {items.length === 0
+                ? 'Add volunteers to let them scan coupons at the venue.'
+                : 'No volunteers match your search / filter.'}
+            </Text>
+          </View>
+        ) : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={{ minWidth: 760 }}>
+              {/* Header */}
+              <View style={{ flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 14, backgroundColor: 'rgba(255,255,255,0.04)', borderBottomWidth: 1, borderBottomColor: SAC.border }}>
+                <Text style={{ width: 200, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>VOLUNTEER</Text>
+                <Text style={{ width: 180, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>EVENT</Text>
+                <Text style={{ width: 110, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>ROLE</Text>
+                <Text style={{ width: 110, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>STATUS</Text>
+                <Text style={{ width: 150, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>ADDED</Text>
+                <Text style={{ width: 90, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5, textAlign: 'center' }}>ACTIONS</Text>
+              </View>
+              {filtered.map((v) => (
+                <View key={v._id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' }}>
+                  <View style={{ width: 200, minWidth: 0 }}>
+                    <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 12.5, color: '#fff' }}>{v.email}</Text>
+                    <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10.5, color: SAC.dim }}>{v.user_name || '—'}</Text>
+                  </View>
+                  <View style={{ width: 180, minWidth: 0 }}>
+                    <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 12, color: '#e5e7eb' }}>{v.event_title || v.slug || '—'}</Text>
+                    <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>{v.slug}</Text>
+                  </View>
+                  <View style={{ width: 110, minWidth: 0 }}>
+                    <StatusPill kind="info" label={(v.role || 'volunteer').toUpperCase()} />
+                  </View>
+                  <View style={{ width: 110, minWidth: 0 }}>
+                    <StatusPill kind={v.has_account ? 'success' : 'warn'} label={v.has_account ? 'Active' : 'Pending'} />
+                  </View>
+                  <View style={{ width: 150, minWidth: 0 }}>
+                    <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.dim }}>
+                      {v.created_at ? new Date(v.created_at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '—'}
+                    </Text>
+                  </View>
+                  <View style={{ width: 90, flexDirection: 'row', gap: 6, justifyContent: 'center' }}>
+                    <Tip label="Remove volunteer">
+                      <Pressable onPress={() => removeVolunteer(v)} style={cs.iconBtn}>
+                        {removing === v._id ? <ActivityIndicator size={12} color="#F87171" /> : <Trash2 size={13} color="#F87171" />}
+                      </Pressable>
+                    </Tip>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </ScrollView>
         )}
       </Card>
     </View>
