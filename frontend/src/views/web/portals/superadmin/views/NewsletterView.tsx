@@ -44,6 +44,7 @@ type Campaign = {
   created_at?: string;
   created_by?: string;
   include_upcoming?: boolean;
+  send_at?: string;
 };
 
 function buildPreviewHtml(form: any, events: any[]): string {
@@ -113,6 +114,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
   const [testSending, setTestSending] = useState(false);
   const [previewHtmlBackend, setPreviewHtmlBackend] = useState('');
   const [loadingPreview, setLoadingPreview] = useState(false);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
 
   // Individual notification state
   const [indUserQuery, setIndUserQuery] = useState('');
@@ -212,6 +214,20 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
       flash(e?.message || 'Failed to send test email');
     } finally {
       setTestSending(false);
+    }
+  };
+
+  const cancelCampaign = async (campaignId: string) => {
+    if (!campaignId) return;
+    setCancellingId(campaignId);
+    try {
+      const res = await api.cancelNewsletterCampaign(campaignId);
+      flash(res?.message || 'Campaign cancelled');
+      await load();
+    } catch (e: any) {
+      flash(e?.message || 'Failed to cancel campaign');
+    } finally {
+      setCancellingId(null);
     }
   };
 
@@ -607,9 +623,24 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
               <Text style={st.secText}>Get Full Layout</Text>
             </SecondaryButton>
           </View>
-          <View style={st.previewFrame}>
-            <HtmlRenderer html={previewHtmlBackend || previewHtml} />
-          </View>
+          {Platform.OS === 'web' ? (
+            <iframe
+              srcDoc={previewHtmlBackend || previewHtml}
+              style={{
+                width: '100%',
+                height: 540,
+                border: 'none',
+                borderRadius: 12,
+                backgroundColor: '#f3f4f6',
+              } as any}
+              title="Email Preview"
+              sandbox="allow-same-origin"
+            />
+          ) : (
+            <View style={st.previewFrame}>
+              <HtmlRenderer html={previewHtmlBackend || previewHtml} />
+            </View>
+          )}
 
           <View style={{ marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: SAC.border, gap: 10 }}>
             <SectionLabel>SEND TEST EMAIL</SectionLabel>
@@ -627,6 +658,9 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                 <Text style={st.secText}>Send Test</Text>
               </SecondaryButton>
             </View>
+            <Text style={{ color: SAC.dim, fontSize: 11, fontFamily: 'System' }}>
+              Sends a real preview email to the address above using the current form content.
+            </Text>
           </View>
         </Card>
       </View>
@@ -645,19 +679,39 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
           ) : (
             campaigns.map((c, i) => (
               <View key={c.campaign_id || i} style={st.campRow}>
-                <IconBox size={30}><Mail size={13} color={GRAD.to} /></IconBox>
+                <IconBox size={30}>
+                  {c.status === 'scheduled' ? <Calendar size={13} color="#FCD34D" /> : <Mail size={13} color={GRAD.to} />}
+                </IconBox>
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Text numberOfLines={1} style={st.campTitle}>{c.subject}</Text>
                   <Text numberOfLines={1} style={st.campMeta}>
-                    {c.created_at?.slice(0, 16).replace('T', ' ') || '—'} · to {c.recipients_count || 0} users
+                    {c.status === 'scheduled'
+                      ? `Scheduled for ${c.send_at?.slice(0, 16).replace('T', ' ')} UTC`
+                      : `Sent ${c.created_at?.slice(0, 16).replace('T', ' ') || '—'} · ${c.recipients_count || 0} users`
+                    }
                   </Text>
                 </View>
-                <View style={{ flexDirection: 'row', gap: 6 }}>
-                  {c.status === 'scheduled' && <StatusPill kind="warn" label={`Scheduled: ${c.send_at?.slice(0, 16).replace('T', ' ')}`} />}
-                  {c.email_ok > 0 && <StatusPill kind="success" label={`${c.email_ok} email`} />}
-                  {c.push_ok > 0 && <StatusPill kind="info" label={`${c.push_ok} push`} />}
-                  {c.in_app_ok > 0 && <StatusPill kind="info" label={`${c.in_app_ok} in-app`} />}
-                  {c.fail_count > 0 && <StatusPill kind="warn" label={`${c.fail_count} failed`} />}
+                <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  {c.status === 'scheduled' && (
+                    <>
+                      <StatusPill kind="warn" label={`Scheduled`} />
+                      <Pressable
+                        onPress={() => cancelCampaign(c.campaign_id)}
+                        style={[st.channelPill, { borderColor: '#ef4444', paddingHorizontal: 8, paddingVertical: 4 }]}
+                        disabled={cancellingId === c.campaign_id}
+                      >
+                        <Text style={{ color: '#ef4444', fontSize: 11, fontFamily: 'System' }}>
+                          {cancellingId === c.campaign_id ? 'Cancelling…' : 'Cancel'}
+                        </Text>
+                      </Pressable>
+                    </>
+                  )}
+                  {c.status === 'cancelled' && <StatusPill kind="warn" label="Cancelled" />}
+                  {c.status === 'sending' && <StatusPill kind="info" label="Sending…" />}
+                  {c.email_ok != null && c.email_ok > 0 && <StatusPill kind="success" label={`${c.email_ok} email`} />}
+                  {c.push_ok != null && c.push_ok > 0 && <StatusPill kind="info" label={`${c.push_ok} push`} />}
+                  {c.in_app_ok != null && c.in_app_ok > 0 && <StatusPill kind="info" label={`${c.in_app_ok} in-app`} />}
+                  {c.fail_count != null && c.fail_count > 0 && <StatusPill kind="warn" label={`${c.fail_count} failed`} />}
                 </View>
               </View>
             ))

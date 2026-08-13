@@ -19,7 +19,7 @@ import re
 import hashlib
 import hmac
 import secrets
-from datetime import datetime, timezone, date
+from datetime import datetime, timezone, date, timedelta
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -76,7 +76,44 @@ async def _all_subscribers(db, limit: int = 20000) -> list:
     return subscribers
 
 
+def _filter_upcoming_events(docs: list) -> list:
+    """Return only events whose date is today or in the future.
+    Handles human-readable strings like 'July 31, 2026' or ISO 'YYYY-MM-DD'.
+    Events with no parseable date are excluded.
+    """
+    today = datetime.now(timezone.utc).date()
+    result = []
+    for doc in docs:
+        raw = (doc.get("date") or "").strip()
+        if not raw:
+            continue
+        ev_date = None
+        # Try multiple formats
+        for fmt in ("%B %d, %Y", "%b %d, %Y", "%Y-%m-%d", "%d %B %Y", "%d/%m/%Y", "%m/%d/%Y"):
+            try:
+                ev_date = datetime.strptime(raw, fmt).date()
+                break
+            except ValueError:
+                continue
+        if ev_date is None:
+            continue  # skip unparseable dates
+        if ev_date >= today:
+            result.append(doc)
+    # Sort ascending by event date so nearest upcoming comes first
+    def _sort_key(doc):
+        raw = (doc.get("date") or "").strip()
+        for fmt in ("%B %d, %Y", "%b %d, %Y", "%Y-%m-%d", "%d %B %Y", "%d/%m/%Y", "%m/%d/%Y"):
+            try:
+                return datetime.strptime(raw, fmt).date()
+            except ValueError:
+                continue
+        return date.max
+    result.sort(key=_sort_key)
+    return result
+
+
 def _upcoming_events_html(events: list) -> str:
+    events = _filter_upcoming_events(events)
     if not events:
         return ""
     cards = []
@@ -112,6 +149,15 @@ def _upcoming_events_html(events: list) -> str:
     return "".join(cards)
 
 
+def _is_server_url(url: str) -> bool:
+    """Return True if the URL is a proper http(s) or absolute path (not a blob/data URL)."""
+    if not url:
+        return False
+    if url.startswith("blob:") or url.startswith("data:"):
+        return False
+    return True
+
+
 def build_newsletter_html(
     subject: str,
     hero_image: str,
@@ -121,9 +167,11 @@ def build_newsletter_html(
     cta_url: str,
     upcoming_events: list,
 ) -> str:
+    # Reject blob/data URLs — they only work in the browser, not in email clients
+    safe_hero = hero_image if _is_server_url(hero_image) else ""
     hero_html = (
-        f"<img src='{_make_absolute_url(hero_image)}' alt='' style='width:100%;height:auto;display:block;border-radius:12px;margin:0 0 20px 0;' />"
-        if hero_image else ""
+        f"<img src='{_make_absolute_url(safe_hero)}' alt='' style='width:100%;height:auto;display:block;border-radius:12px;margin:0 0 20px 0;' />"
+        if safe_hero else ""
     )
     intro_html = (
         f"<p style='margin:0 0 14px 0;color:#374151;font-size:15px;'>{intro}</p>" if intro else ""
@@ -181,7 +229,7 @@ class SendNewsletterSchema(BaseModel):
 async def list_campaigns(
     request: Request,
     limit: int = Query(20, ge=1, le=100),
-    _=Depends(require_role("admin")),
+    _=Depends(require_role("admin", "super_admin")),
 ):
     db = _get_db(request)
     docs = await db.email_campaigns.find({}).sort("created_at", -1).limit(limit).to_list(limit)
@@ -189,10 +237,6 @@ async def list_campaigns(
     for d in docs:
         d["_id"] = str(d["_id"])
         d["sent"] = d.get("recipients_count", 0)
-        # Multi-channel campaigns store per-channel counters. Fall back to the
-        # legacy ok_count/fail_count so pre-multichannel campaigns still render.
-        # (New campaigns always store email_ok/email_fail — even 0 — so the
-        # default only kicks in for pre-multichannel docs.)
         email_ok = d.get("email_ok", d.get("ok_count", 0))
         email_fail = d.get("email_fail", d.get("fail_count", 0))
         d["email_ok"] = email_ok
@@ -202,32 +246,51 @@ async def list_campaigns(
         d["in_app_ok"] = d.get("in_app_ok", 0)
         d["ok_count"] = email_ok
         d["fail_count"] = email_fail + d["push_fail"]
+        d["send_at"] = d.get("send_at")
+        d["status"] = d.get("status", "sent")
         d.pop("attempts", None)
         items.append(d)
     return {"items": items}
 
 
+@router.delete("/admin/campaigns/{campaign_id}")
+async def cancel_scheduled_campaign(campaign_id: str, request: Request, _=Depends(require_role("admin", "super_admin"))):
+    """Cancel a scheduled campaign that has not been sent yet."""
+    db = _get_db(request)
+    camp = await db.email_campaigns.find_one({"campaign_id": campaign_id})
+    if not camp:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    if camp.get("status") != "scheduled":
+        raise HTTPException(status_code=400, detail="Only scheduled campaigns can be cancelled")
+    await db.email_campaigns.update_one(
+        {"campaign_id": campaign_id},
+        {"$set": {"status": "cancelled", "cancelled_at": _now()}}
+    )
+    return {"ok": True, "message": "Campaign cancelled successfully"}
+
+
 @router.get("/admin/upcoming-events")
-async def upcoming_events(request: Request, _=Depends(require_role("admin"))):
+async def upcoming_events(request: Request, _=Depends(require_role("admin", "super_admin"))):
     db = _get_db(request)
     docs = await db.echo_showcases.find(
         {"status": "published"},
         {"title": 1, "slug": 1, "college": 1, "date": 1, "venue": 1, "hero_image_url": 1,
          "registration": 1, "poster_image": 1},
     ).to_list(200)
+    upcoming = _filter_upcoming_events(docs)
     out = []
-    for d in docs:
+    for d in upcoming:
         out.append({
             "slug": d.get("slug"),
             "title": d.get("title"),
             "college": d.get("college"),
             "date": d.get("date"),
             "venue": d.get("venue"),
-            "hero_image_url": d.get("hero_image_url"),
+            "hero_image_url": _make_absolute_url(d.get("hero_image_url") or ""),
             "fee": float((d.get("registration") or {}).get("fee") or 0),
         })
-    out.sort(key=lambda e: e.get("date") or "9999")
     return {"items": out}
+
 
 
 class TestNewsletterSchema(BaseModel):
@@ -242,7 +305,7 @@ class TestNewsletterSchema(BaseModel):
 
 
 @router.post("/admin/preview")
-async def preview_newsletter(payload: SendNewsletterSchema, request: Request, _=Depends(require_role("admin"))):
+async def preview_newsletter(payload: SendNewsletterSchema, request: Request, _=Depends(require_role("admin", "super_admin"))):
     """Render and return the full HTML preview of the newsletter."""
     db = _get_db(request)
     upcoming = []
@@ -253,7 +316,7 @@ async def preview_newsletter(payload: SendNewsletterSchema, request: Request, _=
                 {"title": 1, "slug": 1, "college": 1, "date": 1, "venue": 1,
                  "hero_image_url": 1, "registration": 1, "poster_image": 1},
             ).to_list(200)
-            upcoming = [d for d in docs if d.get("date") or True]
+            upcoming = _filter_upcoming_events(docs)
         except Exception:
             pass
 
@@ -270,7 +333,7 @@ async def preview_newsletter(payload: SendNewsletterSchema, request: Request, _=
 
 
 @router.post("/admin/send-test")
-async def send_test_email(payload: TestNewsletterSchema, request: Request, _=Depends(require_role("admin"))):
+async def send_test_email(payload: TestNewsletterSchema, request: Request, _=Depends(require_role("admin", "super_admin"))):
     """Send a test newsletter email to a specific address."""
     db = _get_db(request)
     upcoming = []
@@ -281,7 +344,7 @@ async def send_test_email(payload: TestNewsletterSchema, request: Request, _=Dep
                 {"title": 1, "slug": 1, "college": 1, "date": 1, "venue": 1,
                  "hero_image_url": 1, "registration": 1, "poster_image": 1},
             ).to_list(200)
-            upcoming = [d for d in docs if d.get("date") or True]
+            upcoming = _filter_upcoming_events(docs)
         except Exception:
             pass
 
@@ -309,7 +372,7 @@ async def send_test_email(payload: TestNewsletterSchema, request: Request, _=Dep
 
 
 @router.post("/admin/send")
-async def send_newsletter(payload: SendNewsletterSchema, request: Request, user=Depends(require_role("admin"))):
+async def send_newsletter(payload: SendNewsletterSchema, request: Request, user=Depends(require_role("admin", "super_admin"))):
     """Compose a newsletter and send it via selected channels (email, push, in-app)."""
     if not (payload.subject or "").strip():
         raise HTTPException(status_code=400, detail="Subject is required")
@@ -417,7 +480,7 @@ async def execute_campaign(db, campaign: dict):
                 {"title": 1, "slug": 1, "college": 1, "date": 1, "venue": 1,
                  "hero_image_url": 1, "registration": 1, "poster_image": 1},
             ).to_list(200)
-            upcoming = [d for d in docs if d.get("date") or True]
+            upcoming = _filter_upcoming_events(docs)
         except Exception:
             pass
         

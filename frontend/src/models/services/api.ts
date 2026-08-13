@@ -455,6 +455,8 @@ export const api = {
     request<any>('/newsletter/admin/preview', { method: 'POST', body: payload }),
   sendNewsletterTest: (payload: any) =>
     request<any>('/newsletter/admin/send-test', { method: 'POST', body: payload }),
+  cancelNewsletterCampaign: (campaignId: string) =>
+    request<any>(`/newsletter/admin/campaigns/${campaignId}`, { method: 'DELETE' }),
   listNewsletterCampaigns: () =>
     request<any>('/newsletter/admin/campaigns'),
   newsletterUpcomingEvents: () =>
