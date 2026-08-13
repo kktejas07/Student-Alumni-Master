@@ -1714,6 +1714,42 @@ function NotificationsTab({ onSaved }: { onSaved: (s?: string) => void }) {
 /* ═════════════════════════════════════════════════════════════════
  * TAB 6 — Security
  * ═══════════════════════════════════════════════════════════════ */
+async function collectSessionHints() {
+  const hints: Record<string, any> = {};
+  try {
+    if (typeof navigator !== 'undefined') {
+      hints.language = navigator.language;
+      hints.platform = (navigator as any).userAgentData?.platform || navigator.platform;
+      hints.hardware_concurrency = (navigator as any).hardwareConcurrency;
+    }
+    if (typeof Intl !== 'undefined') {
+      hints.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    }
+    if (typeof window !== 'undefined' && window.screen) {
+      hints.screen = `${window.screen.width}x${window.screen.height}`;
+    }
+    const ctrl = typeof AbortSignal !== 'undefined' && AbortSignal.timeout
+      ? AbortSignal.timeout(2500)
+      : undefined;
+    const r = await fetch('https://api.ipify.org?format=json', { signal: ctrl as any });
+    const d = await r.json();
+    if (d?.ip) hints.public_ip = d.ip;
+  } catch { /* geo still resolved server-side from proxy headers */ }
+  return hints;
+}
+
+function liveAgo(iso?: string) {
+  if (!iso) return '—';
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return '—';
+  const secs = Math.max(0, Math.floor((Date.now() - t) / 1000));
+  if (secs < 20) return 'Just now';
+  if (secs < 60) return `${secs}s ago`;
+  if (secs < 3600) return `${Math.floor(secs / 60)}m ago`;
+  if (secs < 86400) return `${Math.floor(secs / 3600)}h ago`;
+  return `${Math.floor(secs / 86400)}d ago`;
+}
+
 function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
   const [twoFa, setTwoFa] = useState(false);
   const [twoFaLoading, setTwoFaLoading] = useState(false);
@@ -1732,13 +1768,16 @@ function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
   const [log, setLog] = useState<any[]>([]);
   const [pwdErr, setPwdErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [liveAt, setLiveAt] = useState<Date | null>(null);
+  const [liveBusy, setLiveBusy] = useState(false);
 
   const load = useCallback(async () => {
+    setLiveBusy(true);
     try {
-      // Record current session (fire & forget)
-      request('/admin/security/sessions/record', { method: 'POST' }).catch(() => {});
+      const hints = await collectSessionHints();
+      await request('/admin/security/sessions/record', { method: 'POST', body: hints }).catch(() => {});
       const [sessR, logR, analysisR, tdR] = await Promise.all([
-        request<any>('/admin/security/sessions'),
+        request<any>(`/admin/security/sessions${showAllSessions ? '?all=true' : ''}`),
         request<any>('/admin/security/access-log'),
         request<any>('/admin/security/sessions/analysis').catch(() => null),
         request<any>('/admin/security/trusted-devices').catch(() => null),
@@ -1748,13 +1787,33 @@ function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
       setLog(logR?.entries || []);
       setAnalysis(analysisR || null);
       setTrustedDevices(tdR?.trusted_devices || []);
+      setLiveAt(new Date());
     } catch {}
-    try {
-      const r = await request<{ enabled: boolean }>('/admin/security/2fa/status');
-      setTwoFa(r?.enabled ?? false);
-    } catch {}
-  }, []);
+    finally { setLiveBusy(false); }
+  }, [showAllSessions]);
+
   useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await request<{ enabled: boolean }>('/admin/security/2fa/status');
+        setTwoFa(r?.enabled ?? false);
+      } catch {}
+    })();
+  }, []);
+  useEffect(() => {
+    const id = setInterval(() => { load(); }, 12000);
+    const onFocus = () => { load(); };
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      window.addEventListener('focus', onFocus);
+    }
+    return () => {
+      clearInterval(id);
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.removeEventListener('focus', onFocus);
+      }
+    };
+  }, [load]);
 
   const onToggle2fa = async (value: boolean) => {
     if (value) {
@@ -1931,15 +1990,22 @@ function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
 
         {/* ACCESS LOG */}
         <View style={s.card}>
-          <Text style={s.sectionLabel}>ACCESS LOG</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+            <Text style={s.sectionLabel}>ACCESS LOG</Text>
+            <Text style={[s.muted, { fontSize: 10.5 }]}>
+              {liveBusy ? 'Refreshing…' : liveAt ? `Live · ${liveAt.toLocaleTimeString()}` : ''}
+            </Text>
+          </View>
           <View style={{ marginTop: 12, gap: 10 }}>
-            {log.length === 0 && <Text style={s.muted}>No activity yet.</Text>}
+            {log.length === 0 && <Text style={s.muted}>No activity recorded yet. Open this page from a signed-in admin session to start the live log.</Text>}
             {log.map((it, i) => (
-              <View key={i} style={s.logRow}>
+              <View key={`${it.at}-${i}`} style={s.logRow}>
                 <View style={s.logDot} />
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Text style={s.logAction}>{prettyAction(it.action)} {it.target && it.target !== 'self' && `: ${it.target}`}</Text>
-                  <Text style={s.muted}>{it.ip} · {new Date(it.at).toLocaleString()}</Text>
+                  <Text style={s.muted}>
+                    {[it.ip, it.location, it.browser || it.device, it.at ? new Date(it.at).toLocaleString() : null].filter(Boolean).join(' · ')}
+                  </Text>
                 </View>
               </View>
             ))}
@@ -1950,11 +2016,21 @@ function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
       {/* ACTIVE SESSIONS + ANALYSIS */}
       <View style={{ flex: 1, minWidth: 320, gap: 14 }}>
         <View style={s.card}>
-          <Text style={s.sectionLabel}>ACTIVE SESSIONS</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+            <Text style={s.sectionLabel}>ACTIVE SESSIONS</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <View style={[s.dotGreen, liveBusy && { backgroundColor: '#FBBF24' }]} />
+              <Text style={[s.muted, { fontSize: 10.5 }]}>{liveBusy ? 'Updating' : 'Live · 12s'}</Text>
+            </View>
+          </View>
           <View style={{ marginTop: 12, gap: 8 }}>
+            {sessions.length === 0 && <Text style={s.muted}>No sessions recorded yet.</Text>}
             {sessions.map((sess) => {
-              const isMobile = (sess.device || '').toLowerCase().includes('iphone') || (sess.device || '').toLowerCase().includes('android');
+              const isMobile = /iphone|ipad|android|phone/i.test(`${sess.device || ''} ${sess.os || ''}`);
               const Icon = isMobile ? Smartphone : Monitor;
+              const coords = (sess.lat != null && sess.lon != null && sess.lat !== 0)
+                ? `${Number(sess.lat).toFixed(3)}, ${Number(sess.lon).toFixed(3)}`
+                : '';
               return (
                 <View key={sess.id} style={s.sessRow}>
                   <View style={[s.sessIcon, sess.current && { borderColor: GRAD_TO, backgroundColor: 'rgba(251,146,60,0.12)' }]}>
@@ -1963,21 +2039,39 @@ function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                       <Text style={s.toggleTitle}>{sess.browser} · {sess.device}</Text>
-                      {sess.os && <Text style={s.muted}>{sess.os}</Text>}
+                      {sess.os ? <Text style={s.muted}>{sess.os}</Text> : null}
                     </View>
-                    <View style={{ gap: 1, marginTop: 2 }}>
-                      <Text style={s.muted} numberOfLines={1}>
-                        <MapPin size={10} color={SAC.muted} /> {sess.location}
-                        {sess.isp ? ` · ${sess.isp}` : ''}
-                        {sess.ip ? ` · IP: ${sess.ip}` : ''}
-                      </Text>
-                      <Text style={s.muted}>{sess.last_active}</Text>
+                    <View style={{ gap: 2, marginTop: 4 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 5 }}>
+                        <MapPin size={11} color={SAC.muted} style={{ marginTop: 2 }} />
+                        <Text style={[s.muted, { flex: 1 }]}>{sess.location}</Text>
+                      </View>
+                      {sess.ip ? (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                          <Wifi size={11} color={SAC.muted} />
+                          <Text style={s.muted}>IP {sess.ip}{sess.isp ? ` · ${sess.isp}` : ''}{sess.asn ? ` · ${sess.asn}` : ''}</Text>
+                        </View>
+                      ) : null}
+                      {(sess.timezone || sess.language || sess.screen) ? (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                          <Globe size={11} color={SAC.muted} />
+                          <Text style={s.muted}>
+                            {[sess.timezone, sess.language, sess.screen, coords].filter(Boolean).join(' · ')}
+                          </Text>
+                        </View>
+                      ) : coords ? (
+                        <Text style={s.muted}>{coords}</Text>
+                      ) : null}
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                        <Clock size={11} color={SAC.muted} />
+                        <Text style={s.muted}>Last active {liveAgo(sess.last_active_raw) || sess.last_active}</Text>
+                      </View>
                     </View>
                   </View>
                   {sess.current ? (
                     <View style={s.activeChip}>
                       <View style={s.dotGreen} />
-                      <Text style={s.activeChipText}>Active</Text>
+                      <Text style={s.activeChipText}>This device</Text>
                     </View>
                   ) : (
                     <Pressable onPress={() => revoke(sess.id)} style={s.revokeBtn}>
@@ -2021,7 +2115,8 @@ function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
           <Pressable
             onPress={async () => {
               try {
-                const r = await request<any>('/admin/security/trusted-devices', { method: 'POST' });
+                const hints = await collectSessionHints();
+                const r = await request<any>('/admin/security/trusted-devices', { method: 'POST', body: hints });
                 if (r?.trusted) {
                   const td = await request<any>('/admin/security/trusted-devices');
                   setTrustedDevices(td?.trusted_devices || []);
@@ -2048,7 +2143,7 @@ function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={s.toggleTitle}>{d.browser} · {d.device}</Text>
-                    <Text style={s.muted} numberOfLines={1}>{d.location}{d.ip ? ` · IP: ${d.ip}` : ''}</Text>
+                    <Text style={s.muted}>{[d.location, d.ip && `IP ${d.ip}`, d.isp].filter(Boolean).join(' · ')}</Text>
                   </View>
                   <Text style={s.muted}>{d.added_ago}</Text>
                   <Pressable
@@ -2087,7 +2182,7 @@ function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
                   {analysis.locations.slice(0, 4).map((loc: any, i: number) => (
                     <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 }}>
                       <Globe size={11} color={SAC.muted} />
-                      <Text style={{ color: '#fff', fontFamily: FONTS.med, fontSize: 12 }}>{loc.city}{loc.country ? `, ${loc.country}` : ''}</Text>
+                      <Text style={{ color: '#fff', fontFamily: FONTS.med, fontSize: 12 }}>{[loc.city, loc.country].filter(Boolean).join(', ') || 'Unknown'}</Text>
                       <Text style={{ color: SAC.dim, fontFamily: FONTS.med, fontSize: 10.5 }}>{loc.count} session{loc.count === 1 ? '' : 's'}</Text>
                     </View>
                   ))}
@@ -2137,6 +2232,11 @@ function PasswordField({ icon: Icon, value, onChange, placeholder, show, onToggl
 function prettyAction(a: string) {
   const map: Record<string, string> = {
     'session.login': 'Logged in',
+    'session.seen': 'Session recorded',
+    'session.revoked': 'Session revoked',
+    'session.auto_revoked': 'Session auto-revoked',
+    'trusted_device.added': 'Trusted this device',
+    'trusted_device.removed': 'Removed trusted device',
     'security.password_changed': 'Changed password',
     'integration.connected': 'Connected integration',
     'integration.disconnected': 'Disconnected integration',
@@ -3303,11 +3403,11 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   sessRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
+    flexDirection: 'row', alignItems: 'flex-start', gap: 12,
     paddingVertical: 12, paddingHorizontal: 12, borderRadius: 10,
     backgroundColor: 'rgba(255,255,255,0.02)', borderWidth: 1, borderColor: SAC.border,
   },
-  sessIcon: { width: 32, height: 32, borderRadius: 8, backgroundColor: SAC.cardSolid, borderWidth: 1, borderColor: SAC.border, alignItems: 'center', justifyContent: 'center' },
+  sessIcon: { width: 32, height: 32, marginTop: 2, borderRadius: 8, backgroundColor: SAC.cardSolid, borderWidth: 1, borderColor: SAC.border, alignItems: 'center', justifyContent: 'center' },
   activeChip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999, backgroundColor: 'rgba(16,185,129,0.12)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.30)' },
   activeChipText: { color: SAC.green, fontFamily: FONTS.xbold, fontSize: 10.5 },
   revokeBtn: {

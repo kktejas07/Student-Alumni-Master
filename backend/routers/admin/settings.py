@@ -14,7 +14,7 @@ states. Wiring real OAuth flows can plug into this same row schema.
 """
 from __future__ import annotations
 from pathlib import Path
-import os, json
+import os, json, hashlib, re, ipaddress
 from datetime import datetime, timezone
 from typing import Optional, Any, Dict, List
 from uuid import uuid4
@@ -1135,72 +1135,200 @@ async def patch_notification_pref(body: NotifPrefPatch, authorization: Optional[
 # SESSIONS
 # ═══════════════════════════════════════════════════════════════════
 _GEO_CACHE: Dict[str, dict] = {}
+_GEO_EMPTY = {
+    "city": "", "regionName": "", "country": "", "countryCode": "",
+    "lat": None, "lon": None, "isp": "", "asn": "", "timezone": "",
+    "zip": "", "query": "",
+}
+
+
+def _is_public_ip(ip: str) -> bool:
+    try:
+        obj = ipaddress.ip_address((ip or "").split("%")[0].strip().strip("[]"))
+        return bool(obj.is_global)
+    except Exception:
+        return False
+
+
+def _strip_port(ip: str) -> str:
+    raw = (ip or "").strip().strip("[]")
+    if raw.count(".") == 3 and raw.count(":") == 1:
+        return raw.split(":", 1)[0]
+    return raw
+
+
+def _client_ip(request: Request, reported: Optional[str] = None) -> str:
+    """Resolve the visitor IP from proxy headers, then a client-reported public IP."""
+    headers = request.headers
+    candidates: List[str] = []
+    for key in ("cf-connecting-ip", "true-client-ip", "x-real-ip"):
+        v = headers.get(key)
+        if v:
+            candidates.append(_strip_port(v))
+    for part in (headers.get("x-forwarded-for") or "").split(","):
+        p = _strip_port(part)
+        if p:
+            candidates.append(p)
+    if request.client and request.client.host:
+        candidates.append(_strip_port(request.client.host))
+    if reported:
+        candidates.append(_strip_port(reported))
+    for ip in candidates:
+        if _is_public_ip(ip):
+            return ip
+    return next((c for c in candidates if c), "unknown")
 
 
 async def _geo_lookup(ip: str) -> dict:
     """Look up IP geolocation via ip-api.com with in-memory cache."""
+    if not ip or ip in ("unknown", "localhost", "::1"):
+        return {**_GEO_EMPTY, "isp": "Unknown", "query": ip or ""}
     if ip in _GEO_CACHE:
         return _GEO_CACHE[ip]
-    if ip.startswith(("127.", "10.", "172.16.", "192.168.")) or ip in ("::1", "localhost"):
-        result = {"city": "Local", "regionName": "Development", "country": "India", "lat": 0, "lon": 0, "isp": "Localhost"}
-        _GEO_CACHE[ip] = result
-        return result
+    if not _is_public_ip(ip):
+        return {**_GEO_EMPTY, "isp": "Private network", "query": ip}
     try:
         import httpx
+        fields = "status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,query"
         async with httpx.AsyncClient(timeout=5) as c:
-            r = await c.get(f"http://ip-api.com/json/{ip}?fields=city,regionName,country,lat,lon,isp,org,query,status")
+            r = await c.get(f"http://ip-api.com/json/{ip}?fields={fields}")
             if r.status_code == 200:
                 data = r.json()
                 if data.get("status") == "success":
-                    result = {"city": data.get("city"), "regionName": data.get("regionName"), "country": data.get("country"), "lat": data.get("lat"), "lon": data.get("lon"), "isp": data.get("isp") or data.get("org")}
+                    result = {
+                        "city": data.get("city") or "",
+                        "regionName": data.get("regionName") or "",
+                        "country": data.get("country") or "",
+                        "countryCode": data.get("countryCode") or "",
+                        "lat": data.get("lat"),
+                        "lon": data.get("lon"),
+                        "isp": data.get("isp") or data.get("org") or "",
+                        "asn": data.get("as") or "",
+                        "timezone": data.get("timezone") or "",
+                        "zip": data.get("zip") or "",
+                        "query": data.get("query") or ip,
+                    }
                     _GEO_CACHE[ip] = result
                     return result
     except Exception:
         pass
-    result = {"city": "Unknown", "regionName": "", "country": "", "lat": 0, "lon": 0, "isp": ""}
-    _GEO_CACHE[ip] = result
-    return result
+    return {**_GEO_EMPTY, "query": ip}
+
+
+def _ua_ver(ua: str, *tokens: str) -> str:
+    for token in tokens:
+        m = re.search(rf"{re.escape(token)}/([\d.]+)", ua, re.I)
+        if m:
+            return m.group(1).split(".")[0]
+    return ""
 
 
 def _parse_ua(ua: str) -> dict:
-    """Parse user-agent string for device, browser, OS."""
+    """Parse user-agent string for device, browser, OS (with versions)."""
+    ua = ua or ""
     ua_lower = ua.lower()
     device = "Desktop"
-    if "iphone" in ua_lower or "ipad" in ua_lower:
-        device = "iPhone" if "iphone" in ua_lower else "iPad"
+    if "iphone" in ua_lower:
+        device = "iPhone"
+    elif "ipad" in ua_lower:
+        device = "iPad"
+    elif "android" in ua_lower and "mobile" in ua_lower:
+        device = "Android phone"
     elif "android" in ua_lower:
-        device = "Android"
+        device = "Android tablet"
     elif "windows phone" in ua_lower:
         device = "Windows Phone"
     elif "macintosh" in ua_lower or "mac os" in ua_lower:
         device = "Mac"
-    elif "linux" in ua_lower and not "android" in ua_lower:
-        device = "Linux"
+    elif "cros" in ua_lower:
+        device = "Chromebook"
+    elif "linux" in ua_lower:
+        device = "Linux PC"
     elif "windows" in ua_lower:
         device = "Windows PC"
-    browser = "Unknown"
-    if "chrome/" in ua_lower and "edge/" not in ua_lower and "opr/" not in ua_lower:
-        browser = "Chrome"
-    elif "firefox/" in ua_lower:
-        browser = "Firefox"
-    elif "safari/" in ua_lower and "chrome/" not in ua_lower:
-        browser = "Safari"
-    elif "edge/" in ua_lower or "edg/" in ua_lower:
-        browser = "Edge"
+
+    browser, bver = "Unknown", ""
+    if "edg/" in ua_lower or "edge/" in ua_lower:
+        browser, bver = "Edge", _ua_ver(ua, "Edg", "Edge")
     elif "opr/" in ua_lower or "opera" in ua_lower:
-        browser = "Opera"
+        browser, bver = "Opera", _ua_ver(ua, "OPR", "Opera")
+    elif "firefox/" in ua_lower:
+        browser, bver = "Firefox", _ua_ver(ua, "Firefox")
+    elif "chrome/" in ua_lower:
+        browser, bver = "Chrome", _ua_ver(ua, "Chrome")
+    elif "safari/" in ua_lower:
+        browser, bver = "Safari", _ua_ver(ua, "Version", "Safari")
+    elif "msie" in ua_lower or "trident/" in ua_lower:
+        browser = "Internet Explorer"
+
     os_name = "Unknown"
-    if "windows" in ua_lower:
+    if "windows nt 10" in ua_lower:
+        os_name = "Windows 10/11"
+    elif "windows nt 6.3" in ua_lower:
+        os_name = "Windows 8.1"
+    elif "windows" in ua_lower:
         os_name = "Windows"
-    elif "mac os" in ua_lower or "macintosh" in ua_lower:
-        os_name = "macOS"
+    elif "mac os x" in ua_lower or "macintosh" in ua_lower:
+        m = re.search(r"mac os x (\d+)[._](\d+)", ua_lower)
+        os_name = f"macOS {m.group(1)}.{m.group(2)}" if m else "macOS"
+    elif "android" in ua_lower:
+        m = re.search(r"android ([\d.]+)", ua_lower)
+        os_name = f"Android {m.group(1)}" if m else "Android"
+    elif "iphone os" in ua_lower or "cpu os" in ua_lower:
+        m = re.search(r"(?:iphone os|cpu os) (\d+)[._](\d+)", ua_lower)
+        os_name = f"iOS {m.group(1)}.{m.group(2)}" if m else "iOS"
+    elif "cros" in ua_lower:
+        os_name = "ChromeOS"
     elif "linux" in ua_lower:
         os_name = "Linux"
-    elif "android" in ua_lower:
-        os_name = "Android"
-    elif "iphone" in ua_lower or "ipad" in ua_lower:
-        os_name = "iOS"
-    return {"device": device, "browser": browser, "os": os_name}
+
+    label_browser = f"{browser} {bver}".strip() if bver else browser
+    return {
+        "device": device,
+        "browser": label_browser,
+        "browser_name": browser,
+        "browser_version": bver,
+        "os": os_name,
+    }
+
+
+def _fmt_location(geo: Optional[dict]) -> str:
+    geo = geo or {}
+    parts = [geo.get("city"), geo.get("regionName"), geo.get("country")]
+    return ", ".join(p for p in parts if p) or "Location unavailable"
+
+
+def _session_out(s: dict) -> dict:
+    geo = s.get("geo") or {}
+    info = s.get("device_info") or {}
+    hints = s.get("client_hints") or {}
+    dt = s.get("last_active")
+    return {
+        "id": str(s["_id"]),
+        "device": info.get("device") or s.get("device") or "Unknown",
+        "browser": info.get("browser") or s.get("browser") or "Unknown",
+        "os": info.get("os") or s.get("os") or "",
+        "location": _fmt_location(geo),
+        "city": geo.get("city") or "",
+        "region": geo.get("regionName") or "",
+        "country": geo.get("country") or "",
+        "country_code": geo.get("countryCode") or "",
+        "lat": geo.get("lat"),
+        "lon": geo.get("lon"),
+        "isp": geo.get("isp") or "",
+        "asn": geo.get("asn") or "",
+        "timezone": hints.get("timezone") or geo.get("timezone") or "",
+        "zip": geo.get("zip") or "",
+        "ip": s.get("ip") or geo.get("query") or "",
+        "language": hints.get("language") or "",
+        "screen": hints.get("screen") or "",
+        "platform": hints.get("platform") or "",
+        "user_agent": (s.get("user_agent") or "")[:240],
+        "last_active": _timeago(dt) if isinstance(dt, datetime) else "—",
+        "last_active_raw": dt.isoformat() if isinstance(dt, datetime) else "",
+        "created_at": s["created_at"].isoformat() if isinstance(s.get("created_at"), datetime) else "",
+        "current": bool(s.get("current")),
+    }
 
 
 @router.get("/admin/security/sessions")
@@ -1209,88 +1337,91 @@ async def get_sessions(authorization: Optional[str] = Header(None), all: bool = 
     user = await _require_admin(authorization)
     uid = str(user["_id"])
     total = await _db.admin_sessions.count_documents({"user_id": uid})
-    sessions = []
-    try:
-        limit = 999 if all else 5
-        cur = _db.admin_sessions.find({"user_id": uid}).sort("last_active", -1).limit(limit)
-        sessions_raw = await cur.to_list(limit)
-        for s in sessions_raw:
-            dt = s.get("last_active")
-            sessions.append({
-                "id": str(s["_id"]),
-                "device": s.get("device_info", {}).get("device") or s.get("device", "Unknown"),
-                "browser": s.get("device_info", {}).get("browser") or s.get("browser", "Unknown"),
-                "os": s.get("device_info", {}).get("os") or s.get("os", ""),
-                "location": f"{s.get('geo', {}).get('city', 'Unknown')}, {s.get('geo', {}).get('country', '')}".strip(", "),
-                "city": s.get("geo", {}).get("city", ""),
-                "region": s.get("geo", {}).get("regionName", ""),
-                "country": s.get("geo", {}).get("country", ""),
-                "lat": s.get("geo", {}).get("lat", 0),
-                "lon": s.get("geo", {}).get("lon", 0),
-                "isp": s.get("geo", {}).get("isp", ""),
-                "ip": s.get("ip", ""),
-                "last_active": _timeago(dt) if isinstance(dt, datetime) else "—",
-                "last_active_raw": dt.isoformat() if isinstance(dt, datetime) else "",
-                "current": bool(s.get("current")),
-            })
-    except Exception:
-        pass
-    if not sessions:
-        sessions = [
-            {"id": "sess_demo_1", "device": "MacBook Pro", "browser": "Chrome", "os": "macOS", "location": "Bangalore, India", "city": "Bangalore", "region": "Karnataka", "country": "India", "lat": 12.97, "lon": 77.59, "isp": "Airtel", "ip": "49.205.xxx.xx", "last_active": "Now", "current": True},
-            {"id": "sess_demo_2", "device": "iPhone 15", "browser": "Safari", "os": "iOS", "location": "Mumbai, India", "city": "Mumbai", "region": "Maharashtra", "country": "India", "lat": 19.07, "lon": 72.87, "isp": "Jio", "ip": "103.xxx.xx.xx", "last_active": "2h ago", "current": False},
-            {"id": "sess_demo_3", "device": "Windows PC", "browser": "Chrome", "os": "Windows", "location": "Delhi, India", "city": "Delhi", "region": "Delhi", "country": "India", "lat": 28.70, "lon": 77.10, "isp": "BSNL", "ip": "117.xxx.xx.xx", "last_active": "3d ago", "current": False},
-        ]
-    return {"sessions": sessions, "total": total}
+    limit = 999 if all else 5
+    cur = _db.admin_sessions.find({"user_id": uid}).sort("last_active", -1).limit(limit)
+    sessions_raw = await cur.to_list(limit)
+    sessions = [_session_out(s) for s in sessions_raw]
+    return {"sessions": sessions, "total": total, "server_time": datetime.now(timezone.utc).isoformat()}
 
 
 @router.post("/admin/security/sessions/record")
 async def record_session(request: Request, authorization: Optional[str] = Header(None)):
+    user = await _require_admin(authorization)
+    uid = str(user["_id"])
+    hints: Dict[str, Any] = {}
     try:
-        user = await _require_admin(authorization)
-        uid = str(user["_id"])
-        ua = request.headers.get("user-agent", "")
-        forwarded = request.headers.get("x-forwarded-for", "")
-        ip = forwarded.split(",")[0].strip() if forwarded else request.client.host if request.client else "127.0.0.1"
-        geo = await _geo_lookup(ip)
-        device_info = _parse_ua(ua)
-        await _db.admin_sessions.update_many(
-            {"user_id": uid, "current": True},
-            {"$set": {"current": False}},
-        )
-        doc = {
-            "user_id": uid, "ip": ip, "geo": geo, "device_info": device_info,
-            "user_agent": ua, "current": True,
-            "last_active": datetime.now(timezone.utc),
-            "created_at": datetime.now(timezone.utc),
-        }
-        await _db.admin_sessions.insert_one(doc)
-        # Auto-revoke: keep only the 5 most recent sessions
-        old_sessions = _db.admin_sessions.find({"user_id": uid}).sort("last_active", -1).skip(5)
-        async for old in old_sessions:
-            await _db.admin_sessions.delete_one({"_id": old["_id"]})
-            await _db.admin_audit_log.insert_one({
-                "user_id": uid, "action": "session.auto_revoked",
-                "target": str(old["_id"]), "created_at": datetime.now(timezone.utc),
-            })
+        raw = await request.body()
+        if raw:
+            parsed = json.loads(raw)
+            if isinstance(parsed, dict):
+                hints = {
+                    k: parsed[k] for k in (
+                        "timezone", "language", "platform", "screen",
+                        "hardware_concurrency", "public_ip",
+                    ) if parsed.get(k) not in (None, "")
+                }
     except Exception:
-        pass
-    return {"ok": True}
+        hints = {}
+    ua = request.headers.get("user-agent") or hints.get("user_agent") or ""
+    ip = _client_ip(request, hints.get("public_ip"))
+    geo = await _geo_lookup(ip)
+    device_info = _parse_ua(ua)
+    now = datetime.now(timezone.utc)
+    fingerprint = hashlib.sha256(f"{uid}|{ua}|{ip}".encode("utf-8")).hexdigest()[:32]
+    await _db.admin_sessions.update_many(
+        {"user_id": uid, "fingerprint": {"$ne": fingerprint}},
+        {"$set": {"current": False}},
+    )
+    existing = await _db.admin_sessions.find_one({"user_id": uid, "fingerprint": fingerprint})
+    if existing:
+        await _db.admin_sessions.update_one(
+            {"_id": existing["_id"]},
+            {"$set": {
+                "ip": ip, "geo": geo, "device_info": device_info,
+                "user_agent": ua, "client_hints": hints, "current": True,
+                "last_active": now,
+            }},
+        )
+    else:
+        await _db.admin_sessions.insert_one({
+            "user_id": uid, "fingerprint": fingerprint,
+            "ip": ip, "geo": geo, "device_info": device_info,
+            "user_agent": ua, "client_hints": hints, "current": True,
+            "last_active": now, "created_at": now,
+        })
+        await _db.admin_audit_log.insert_one({
+            "user_id": uid,
+            "action": "session.seen",
+            "target": f"{device_info.get('browser')} · {device_info.get('device')}",
+            "at": now,
+            "ip": ip,
+            "geo": geo,
+            "device_info": device_info,
+        })
+        # Keep a reasonable history; do not drop the live session.
+        old = _db.admin_sessions.find({"user_id": uid, "current": {"$ne": True}}).sort("last_active", -1).skip(40)
+        async for doc in old:
+            await _db.admin_sessions.delete_one({"_id": doc["_id"]})
+    return {"ok": True, "ip": ip, "geo": geo, "device_info": device_info}
 
 
 @router.delete("/admin/security/sessions/{session_id}")
 async def revoke_session(session_id: str, authorization: Optional[str] = Header(None)):
+    user = await _require_admin(authorization)
+    from bson import ObjectId
     try:
-        await _require_admin(authorization)
-        from bson import ObjectId
-        await _db.admin_sessions.delete_one({"_id": ObjectId(session_id)})
+        oid = ObjectId(session_id)
+    except Exception:
+        raise HTTPException(400, "Invalid session id")
+    result = await _db.admin_sessions.delete_one({"_id": oid, "user_id": str(user["_id"])})
+    if result.deleted_count:
         await _db.admin_audit_log.insert_one({
-            "user_id": "admin", "action": "session.revoked", "target": session_id,
+            "user_id": str(user["_id"]),
+            "action": "session.revoked",
+            "target": session_id,
             "at": datetime.now(timezone.utc),
         })
-    except Exception:
-        pass
-    return {"ok": True, "revoked": session_id}
+    return {"ok": True, "revoked": session_id, "deleted": result.deleted_count > 0}
 
 
 @router.get("/admin/security/sessions/analysis")
@@ -1358,7 +1489,12 @@ async def get_trusted_devices(authorization: Optional[str] = Header(None)):
                 "device": d.get("device_info", {}).get("device") or "Unknown",
                 "browser": d.get("device_info", {}).get("browser") or "Unknown",
                 "os": d.get("device_info", {}).get("os") or "",
-                "location": f"{d.get('geo', {}).get('city', 'Unknown')}, {d.get('geo', {}).get('country', '')}".strip(", ") or "Unknown",
+                "location": _fmt_location(d.get("geo") or {}),
+                "city": (d.get("geo") or {}).get("city") or "",
+                "region": (d.get("geo") or {}).get("regionName") or "",
+                "country": (d.get("geo") or {}).get("country") or "",
+                "isp": (d.get("geo") or {}).get("isp") or "",
+                "timezone": (d.get("geo") or {}).get("timezone") or "",
                 "ip": d.get("ip", ""),
                 "added_at": d.get("added_at").isoformat() if isinstance(d.get("added_at"), datetime) else "",
                 "added_ago": _timeago(d.get("added_at")) if isinstance(d.get("added_at"), datetime) else "—",
@@ -1375,8 +1511,16 @@ async def add_trusted_device(request: Request, authorization: Optional[str] = He
         user = await _require_admin(authorization)
         uid = str(user["_id"])
         ua = request.headers.get("user-agent", "")
-        forwarded = request.headers.get("x-forwarded-for", "")
-        ip = forwarded.split(",")[0].strip() if forwarded else request.client.host if request.client else "127.0.0.1"
+        hints: Dict[str, Any] = {}
+        try:
+            raw = await request.body()
+            if raw:
+                parsed = json.loads(raw)
+                if isinstance(parsed, dict):
+                    hints = {k: parsed[k] for k in ("public_ip", "timezone", "language", "platform", "screen") if parsed.get(k)}
+        except Exception:
+            hints = {}
+        ip = _client_ip(request, hints.get("public_ip"))
         geo = await _geo_lookup(ip)
         device_info = _parse_ua(ua)
         fingerprint = f"{device_info['device']}|{device_info['browser']}|{device_info['os']}"
@@ -1392,8 +1536,8 @@ async def add_trusted_device(request: Request, authorization: Optional[str] = He
                 "last_seen": datetime.now(timezone.utc),
             })
         await _db.admin_audit_log.insert_one({
-            "user_id": "admin", "action": "trusted_device.added", "target": fingerprint,
-            "at": datetime.now(timezone.utc),
+            "user_id": uid, "action": "trusted_device.added", "target": fingerprint,
+            "at": datetime.now(timezone.utc), "ip": ip, "geo": geo, "device_info": device_info,
         })
         return {"ok": True, "trusted": True}
     except Exception as e:
@@ -1404,11 +1548,11 @@ async def add_trusted_device(request: Request, authorization: Optional[str] = He
 async def remove_trusted_device(device_id: str, authorization: Optional[str] = Header(None)):
     """Remove a device from the trusted list."""
     try:
-        await _require_admin(authorization)
+        user = await _require_admin(authorization)
         from bson import ObjectId
-        result = await _db.trusted_devices.delete_one({"_id": ObjectId(device_id)})
+        result = await _db.trusted_devices.delete_one({"_id": ObjectId(device_id), "user_id": str(user["_id"])})
         await _db.admin_audit_log.insert_one({
-            "user_id": "admin", "action": "trusted_device.removed", "target": device_id,
+            "user_id": str(user["_id"]), "action": "trusted_device.removed", "target": device_id,
             "at": datetime.now(timezone.utc),
         })
         return {"ok": True, "removed": result.deleted_count > 0}
@@ -1440,22 +1584,29 @@ def _timeago(dt) -> str:
 @router.get("/admin/security/access-log")
 async def access_log(authorization: Optional[str] = Header(None)):
     user = await _require_admin(authorization)
-    cur = _db.admin_audit_log.find({"user_id": str(user["_id"])}).sort("at", -1).limit(20)
+    uid = str(user["_id"])
+    pipeline = [
+        {"$match": {"user_id": uid}},
+        {"$addFields": {"_when": {"$ifNull": ["$at", "$created_at"]}}},
+        {"$sort": {"_when": -1}},
+        {"$limit": 40},
+    ]
     out = []
-    async for r in cur:
+    async for r in _db.admin_audit_log.aggregate(pipeline):
+        when = r.get("_when") or r.get("at") or r.get("created_at")
+        geo = r.get("geo") or {}
+        info = r.get("device_info") or {}
         out.append({
-            "action":  r.get("action"),
-            "target":  r.get("target"),
-            "at":      (r.get("at") or datetime.now(timezone.utc)).isoformat(),
-            "ip":      r.get("ip") or "—",
+            "action": r.get("action"),
+            "target": r.get("target"),
+            "at": when.isoformat() if isinstance(when, datetime) else (when or datetime.now(timezone.utc).isoformat()),
+            "ip": r.get("ip") or "—",
+            "location": _fmt_location(geo) if geo else "",
+            "device": info.get("device") or "",
+            "browser": info.get("browser") or "",
+            "os": info.get("os") or "",
         })
-    if not out:
-        out = [
-            {"action": "session.login",         "target": "self",       "at": datetime.now(timezone.utc).isoformat(), "ip": "49.205.xx.xx"},
-            {"action": "college.approved",     "target": "IIT Delhi",   "at": datetime.now(timezone.utc).isoformat(), "ip": "49.205.xx.xx"},
-            {"action": "payout.processed",     "target": "₹4.2L",       "at": datetime.now(timezone.utc).isoformat(), "ip": "49.205.xx.xx"},
-        ]
-    return {"entries": out}
+    return {"entries": out, "server_time": datetime.now(timezone.utc).isoformat()}
 
 
 class PasswordChange(BaseModel):
