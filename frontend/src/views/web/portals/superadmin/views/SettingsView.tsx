@@ -3424,13 +3424,14 @@ const s = StyleSheet.create({
   // Toast
   toast: {
     ...(Platform.OS === 'web'
-      ? { position: 'fixed' as any, bottom: 24 }
+      ? { position: 'fixed' as any, bottom: 24, right: 24 }
       : { position: 'absolute' as any, bottom: 24 }),
-    alignSelf: 'center',
+    left: 'auto' as any,
+    alignSelf: 'flex-end',
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999,
     backgroundColor: 'rgba(16,185,129,0.18)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.35)',
-    zIndex: 9999, elevation: 9999,
+    maxWidth: 320, zIndex: 9999, elevation: 9999,
   },
   toastText: { color: SAC.green, fontFamily: FONTS.xbold, fontSize: 11.5 },
 

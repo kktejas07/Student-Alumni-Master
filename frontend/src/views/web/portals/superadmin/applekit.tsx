@@ -362,15 +362,15 @@ const k = StyleSheet.create({
 
   toast: {
     ...(Platform.OS === 'web'
-      ? { position: 'fixed' as any, bottom: 24 }
+      ? { position: 'fixed' as any, bottom: 24, right: 24 }
       : { position: 'absolute' as any, bottom: 24 }),
-    left: 0, right: 0,
-    alignSelf: 'center', alignItems: 'center', justifyContent: 'center',
+    left: 'auto' as any,
+    alignSelf: 'flex-end',
+    alignItems: 'center', justifyContent: 'center',
     flexDirection: 'row', gap: 6,
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999,
     backgroundColor: 'rgba(16,185,129,0.18)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.35)',
-    maxWidth: 220, marginHorizontal: 'auto' as any,
-    zIndex: 9999, elevation: 9999,
+    maxWidth: 320, zIndex: 9999, elevation: 9999,
   },
   toastError: {
     backgroundColor: 'rgba(239,68,68,0.18)', borderColor: 'rgba(239,68,68,0.45)',

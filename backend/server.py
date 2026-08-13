@@ -309,12 +309,13 @@ app.include_router(newsletter_router)
 # Static file serving for uploads (ECHO Showcase images & documents)
 import os
 from fastapi.staticfiles import StaticFiles
-os.makedirs("uploads/echo", exist_ok=True)
-os.makedirs("uploads/general", exist_ok=True)
-os.makedirs("uploads/coupons", exist_ok=True)
-os.makedirs("uploads/certificates", exist_ok=True)
-os.makedirs("uploads/newsletter", exist_ok=True)
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+_UPLOADS_DIR = str(ROOT_DIR / "uploads")
+os.makedirs(os.path.join(_UPLOADS_DIR, "echo"), exist_ok=True)
+os.makedirs(os.path.join(_UPLOADS_DIR, "general"), exist_ok=True)
+os.makedirs(os.path.join(_UPLOADS_DIR, "coupons"), exist_ok=True)
+os.makedirs(os.path.join(_UPLOADS_DIR, "certificates"), exist_ok=True)
+os.makedirs(os.path.join(_UPLOADS_DIR, "newsletter"), exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=_UPLOADS_DIR), name="uploads")
 
 
 # ----------------------------------------------------------------------------
@@ -348,7 +349,7 @@ async def upload_file(
         raise HTTPException(400, "Uploaded file is empty")
     # Sanitize folder name to prevent path traversal
     safe_folder = Path(folder).name if folder else "general"
-    upload_dir = Path("uploads") / safe_folder
+    upload_dir = ROOT_DIR / "uploads" / safe_folder
     try:
         upload_dir.mkdir(parents=True, exist_ok=True)
     except Exception as e:
