@@ -34,6 +34,7 @@ google-auth==2.49.1
 google-auth-httplib2==0.3.1
 google-genai==1.71.0
 google-generativeai==0.8.6
+google-analytics-data
 googleapis-common-protos
 grpcio
 grpcio-status

@@ -2582,6 +2582,10 @@ api_router.include_router(college_router)
 from auth_analytics import router as auth_analytics_router
 api_router.include_router(auth_analytics_router)
 
+# PostHog analytics proxy
+from posthog_proxy import router as posthog_proxy_router
+api_router.include_router(posthog_proxy_router)
+
 # AI Daily Brief (on-demand Claude integration)
 from ai_briefs import router as ai_briefs_router
 api_router.include_router(ai_briefs_router)

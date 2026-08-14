@@ -1830,40 +1830,9 @@ async def super_approvals(user: dict = Depends(require_role('admin'))):
 
 @router.get("/admin/super/analytics")
 async def super_analytics(user: dict = Depends(require_role('admin'))):
-    """Platform analytics — growth, retention, funnel, A/B."""
-    now = datetime.now(timezone.utc)
-    growth = []
-    for i in range(6, -1, -1):
-        ref = (now.replace(day=15) - timedelta(days=30 * i))
-        m_start = ref.replace(day=1)
-        m_end = (m_start + timedelta(days=32)).replace(day=1)
-        cnt = await _db.users.count_documents({"created_at": {"$gte": m_start, "$lt": m_end}})
-        growth.append({"m": m_start.strftime("%b"), "v": cnt + 14})  # +14 baseline for visualization
-
-    retention = [
-        {"w": "W1",  "v": 96}, {"w": "W2",  "v": 88}, {"w": "W3",  "v": 81},
-        {"w": "W4",  "v": 78}, {"w": "W6",  "v": 71}, {"w": "W8",  "v": 67}, {"w": "W12", "v": 62},
-    ]
-
-    total_users = await _db.users.count_documents({})
-    completed = await _db.users.count_documents({"onboarding_completed": True})
-    bookings_users = len(await _db.bookings.distinct("student_id"))
-    repeat_users = bookings_users // 2
-
-    funnel = [
-        {"label": "Signed up",            "v": total_users * 100,  "color": "#3B82F6"},
-        {"label": "Profile complete",     "v": completed * 100,    "color": "#A78BFA"},
-        {"label": "First mentor request", "v": bookings_users * 100, "color": "#FB923C"},
-        {"label": "First session done",   "v": int(bookings_users * 60),  "color": "#22C55E"},
-        {"label": "Repeat session",       "v": repeat_users * 60,  "color": "#FCD34D"},
-    ]
-
-    ab = [
-        {"id": 1, "name": "Onboarding flow v3 (3-step vs 5-step)", "winner": "3-step",        "uplift": "+18%", "conf": "97%"},
-        {"id": 2, "name": "Mentor card pricing display",            "winner": "Show ₹/hour",    "uplift": "+11%", "conf": "92%"},
-        {"id": 3, "name": "Push notif copy A vs B",                 "winner": "B (CTA-led)",    "uplift": "+24%", "conf": "99%"},
-    ]
-    return {"growth": growth, "retention": retention, "funnel": funnel, "ab": ab}
+    """Platform analytics — real data from MongoDB + Firebase + PostHog."""
+    from analytics import super_admin_full_analytics
+    return await super_admin_full_analytics(_db)
 
 
 @router.get("/admin/super/ai-insights")
