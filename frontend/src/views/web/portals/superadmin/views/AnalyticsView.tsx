@@ -8,14 +8,14 @@
  */
 import React, { useCallback, useState } from 'react';
 import {
-  View, Text, StyleSheet, Pressable, Platform, useWindowDimensions, ScrollView, TextInput,
+  View, Text, StyleSheet, Pressable, Platform, useWindowDimensions, ScrollView,
 } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   BarChart3, Users, TrendingUp, Activity, Calendar, Download, RefreshCw,
-  Globe, Monitor, Smartphone, ArrowUpRight, ArrowDownRight, Sparkles, Eye,
-  Clock, FileText, AlertTriangle, TrendingDown, Zap, Timer, Target,
+  Globe, Monitor, Smartphone, Sparkles, Eye,
+  Clock, FileText, AlertTriangle, Zap, Timer, Target,
 } from 'lucide-react-native';
 import { SAC, FONTS } from '../tokens';
 import { Card, KpiTile, GRAD, SecondaryButton, StatusPill, LoadingBox } from '../applekit';
@@ -142,12 +142,12 @@ export default function AnalyticsView() {
 
       {/* KPI Strip */}
       <View style={{ flexDirection: stack ? 'column' : 'row', gap: 12, flexWrap: 'wrap' }}>
-        <View style={{ flex: 1, minWidth: 140 }}><KpiTile Icon={Users} label="TOTAL SIGNUPS" value={fmt(d.kpis.total_signups)} delta={`${d.kpis.signups_mom_pct > 0 ? '+' : ''}${d.kpis.signups_mom_pct}% MoM`} deltaKind={d.kpis.signups_mom_pct >= 0 ? 'positive' : 'negative'} /></View>
-        <View style={{ flex: 1, minWidth: 140 }}><KpiTile Icon={Activity} label="ACTIVE (30d)" value={fmt(d.kpis.active_users_30d)} delta={`${d.engagement.avg_events_per_user} events/user`} deltaKind="positive" /></View>
-        <View style={{ flex: 1, minWidth: 140 }}><KpiTile Icon={TrendingUp} label="REVENUE MTD" value={fmtCurrency(d.kpis.revenue_mtd)} delta={`${fmtCurrency(d.kpis.revenue_ytd)} YTD`} deltaKind="positive" /></View>
+        <View style={{ flex: 1, minWidth: 140 }}><KpiTile Icon={Users} label="TOTAL SIGNUPS" value={fmt(d.kpis.total_signups)} delta={`${d.kpis.signups_mom_pct > 0 ? '+' : ''}${d.kpis.signups_mom_pct}% MoM`} deltaKind={d.kpis.signups_mom_pct >= 0 ? 'success' : 'danger'} /></View>
+        <View style={{ flex: 1, minWidth: 140 }}><KpiTile Icon={Activity} label="ACTIVE (30d)" value={fmt(d.kpis.active_users_30d)} delta={`${d.engagement.avg_events_per_user} events/user`} deltaKind="success" /></View>
+        <View style={{ flex: 1, minWidth: 140 }}><KpiTile Icon={TrendingUp} label="REVENUE MTD" value={fmtCurrency(d.kpis.revenue_mtd)} delta={`${fmtCurrency(d.kpis.revenue_ytd)} YTD`} deltaKind="success" /></View>
         <View style={{ flex: 1, minWidth: 140 }}><KpiTile Icon={Timer} label="AVG SESSION" value={fmtDuration(fb.session_duration.avg_duration_sec)} delta={`${fmt(fb.session_duration.total_sessions)} sessions`} deltaKind="neutral" /></View>
-        <View style={{ flex: 1, minWidth: 140 }}><KpiTile Icon={Target} label="ENGAGEMENT" value={`${fb.engagement.engagement_rate}%`} delta={`${fb.engagement.bounce_rate}% bounce`} deltaKind={fb.engagement.engagement_rate > 50 ? 'positive' : 'negative'} /></View>
-        <View style={{ flex: 1, minWidth: 140 }}><KpiTile Icon={AlertTriangle} label="ERRORS (30d)" value={String(d.errors.total_errors_30d)} delta={`${d.errors.auth_errors} auth`} deltaKind={d.errors.total_errors_30d > 50 ? 'negative' : 'positive'} /></View>
+        <View style={{ flex: 1, minWidth: 140 }}><KpiTile Icon={Target} label="ENGAGEMENT" value={`${fb.engagement.engagement_rate}%`} delta={`${fb.engagement.bounce_rate}% bounce`} deltaKind={fb.engagement.engagement_rate > 50 ? 'success' : 'danger'} /></View>
+        <View style={{ flex: 1, minWidth: 140 }}><KpiTile Icon={AlertTriangle} label="ERRORS (30d)" value={String(d.errors.total_errors_30d)} delta={`${d.errors.auth_errors} auth`} deltaKind={d.errors.total_errors_30d > 50 ? 'danger' : 'success'} /></View>
       </View>
 
       {/* Growth + Roles */}
@@ -203,7 +203,7 @@ function UserGrowthCard({ growth, predictions }: { growth: GrowthPoint[]; predic
     <Card style={{ padding: 20, gap: 12, height: 300 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#F3F4F6' }}>User Growth</Text>
-        <StatusPill kind={predictions.trend === 'growing' ? 'positive' : predictions.trend === 'declining' ? 'negative' : 'neutral'} label={`${predictions.growth_rate_pct > 0 ? '+' : ''}${predictions.growth_rate_pct}% trend`} />
+        <StatusPill kind={predictions.trend === 'growing' ? 'success' : predictions.trend === 'declining' ? 'danger' : 'neutral'} label={`${predictions.growth_rate_pct > 0 ? '+' : ''}${predictions.growth_rate_pct}% trend`} />
       </View>
       <View style={{ flex: 1, flexDirection: 'row', alignItems: 'flex-end', gap: 3, paddingTop: 10 }}>
         {growth.map((g, i) => {
