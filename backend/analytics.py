@@ -574,8 +574,10 @@ async def super_admin_full_analytics(db) -> Dict[str, Any]:
         "funnel": funnel,
         "recent_activity": recent_activity,
         "top_colleges": top_colleges,
-        # Firebase Analytics data
-        "firebase": await _get_firebase_data(),
+        # Firebase Analytics data (Google Analytics 4)
+        "firebase": await _get_firebase_data(db),
+        # PostHog Analytics data
+        "posthog": await _get_posthog_data(db),
         # Error tracking
         "errors": await _get_error_data(db),
         # Predictions
@@ -583,36 +585,48 @@ async def super_admin_full_analytics(db) -> Dict[str, Any]:
     }
 
 
-async def _get_firebase_data() -> Dict[str, Any]:
-    """Fetch all Firebase Analytics data."""
+async def _get_firebase_data(db) -> Dict[str, Any]:
+    """Fetch all Firebase / GA4 Analytics data. Config resolved from env + settings."""
     try:
         import firebase_analytics as fa
         import asyncio
         results = await asyncio.gather(
-            fa.get_realtime_active_users(),
-            fa.get_session_duration(30),
-            fa.get_active_hours(7),
-            fa.get_retention(30),
-            fa.get_page_views(30),
-            fa.get_engagement_metrics(30),
-            fa.get_acquisition(30),
-            fa.get_demographics(30),
+            fa.get_realtime_active_users(db=db),
+            fa.get_session_duration(30, db=db),
+            fa.get_active_hours(7, db=db),
+            fa.get_retention(30, db=db),
+            fa.get_page_views(30, db=db),
+            fa.get_engagement_metrics(30, db=db),
+            fa.get_acquisition(30, db=db),
+            fa.get_demographics(30, db=db),
+            fa.get_device_data(30, db=db),
+            fa.get_daily_active_users(30, db=db),
             return_exceptions=True,
         )
-        def _safe(r, default):
-            return r if not isinstance(r, Exception) else default
+        get = lambda i, default: (results[i] if not isinstance(results[i], Exception) else default)
         return {
-            "realtime_active": _safe(results[0], {"active_users": 0, "configured": False}),
-            "session_duration": _safe(results[1], {"avg_duration_sec": 0, "total_sessions": 0, "configured": False}),
-            "active_hours": _safe(results[2], {"hours": [], "configured": False}),
-            "retention": _safe(results[3], {"cohorts": [], "configured": False}),
-            "page_views": _safe(results[4], {"pages": [], "configured": False}),
-            "engagement": _safe(results[5], {"bounce_rate": 0, "engagement_rate": 0, "views_per_session": 0, "configured": False}),
-            "acquisition": _safe(results[6], {"sources": [], "configured": False}),
-            "demographics": _safe(results[7], {"countries": [], "cities": [], "configured": False}),
+            "realtime_active": get(0, {"active_users": 0, "configured": False}),
+            "session_duration": get(1, {"avg_duration_sec": 0, "total_sessions": 0, "configured": False}),
+            "active_hours": get(2, {"hours": [], "configured": False}),
+            "retention": get(3, {"cohorts": [], "configured": False}),
+            "page_views": get(4, {"pages": [], "configured": False}),
+            "engagement": get(5, {"bounce_rate": 0, "engagement_rate": 0, "views_per_session": 0, "configured": False}),
+            "acquisition": get(6, {"sources": [], "configured": False}),
+            "demographics": get(7, {"countries": [], "cities": [], "configured": False}),
+            "devices": get(8, {"by_os": [], "by_browser": [], "by_device": [], "configured": False}),
+            "daily_active": get(9, {"series": [], "configured": False}),
         }
     except Exception as e:
         return {"error": str(e), "configured": False}
+
+
+async def _get_posthog_data(db) -> Dict[str, Any]:
+    """Fetch all PostHog Analytics data (HogQL Query API)."""
+    try:
+        import posthog_analytics as ph
+        return await ph.fetch_posthog(db)
+    except Exception as e:
+        return {"configured": False, "reason": f"PostHog fetch failed: {str(e)[:200]}"}
 
 
 async def _get_error_data(db) -> Dict[str, Any]:

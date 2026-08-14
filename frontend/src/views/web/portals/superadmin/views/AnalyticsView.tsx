@@ -49,6 +49,23 @@ type FirebaseData = {
   engagement: { bounce_rate: number; engagement_rate: number; views_per_session: number; configured: boolean };
   acquisition: { sources: { source: string; sessions: number }[]; configured: boolean };
   demographics: { countries: { country: string; count: number }[]; cities: { city: string; country: string; count: number }[]; configured: boolean };
+  devices: { by_os: { label: string; value: number }[]; by_browser: { label: string; value: number }[]; by_device: { label: string; value: number }[]; configured: boolean };
+  daily_active: { series: { date: string; count: number }[]; configured: boolean };
+};
+type PostHogData = {
+  configured: boolean;
+  reason?: string;
+  host?: string;
+  project_id?: number;
+  realtime_active?: number;
+  totals_30d?: { events: number; users: number; pageviews: number };
+  daily_series?: { date: string; events: number; users: number }[];
+  top_events?: { event: string; count: number }[];
+  top_paths?: { path: string; views: number }[];
+  sources?: { source: string; sessions: number }[];
+  countries?: { country: string; count: number }[];
+  devices?: { by_os: { label: string; value: number }[]; by_browser: { label: string; value: number }[]; by_device: { label: string; value: number }[] };
+  sessions?: { sessions: number; users: number; has_session_data: boolean };
 };
 type ErrorData = { total_errors_30d: number; auth_errors: number; activity_errors: number; recent: { type: string; message: string; user: string; timestamp: string }[] };
 type Predictions = { next_3_months: { month: string; predicted_signups: number; cumulative: number }[]; trend: string; growth_rate_pct: number };
@@ -56,7 +73,7 @@ type AnalyticsData = {
   generated_at: string; kpis: KPIs; user_growth: GrowthPoint[];
   role_distribution: RoleDist[]; engagement: Engagement; devices: DeviceData;
   geography: GeoData; funnel: FunnelStage[]; recent_activity: ActivityItem[];
-  top_colleges: College[]; firebase: FirebaseData; errors: ErrorData; predictions: Predictions;
+  top_colleges: College[]; firebase: FirebaseData; posthog: PostHogData; errors: ErrorData; predictions: Predictions;
 };
 
 const FALLBACK: AnalyticsData = {
@@ -65,7 +82,8 @@ const FALLBACK: AnalyticsData = {
   engagement: { total_activity_events_30d: 0, unique_active_users_30d: 0, avg_events_per_user: 0, top_categories: [], daily_active_series: [] },
   devices: { by_os: [], by_browser: [], by_kind: [] }, geography: { countries: [], cities: [] },
   funnel: [], recent_activity: [], top_colleges: [],
-  firebase: { realtime_active: { active_users: 0, configured: false }, session_duration: { avg_duration_sec: 0, total_sessions: 0, configured: false }, active_hours: { hours: [], configured: false }, retention: { cohorts: [], configured: false }, page_views: { pages: [], configured: false }, engagement: { bounce_rate: 0, engagement_rate: 0, views_per_session: 0, configured: false }, acquisition: { sources: [], configured: false }, demographics: { countries: [], cities: [], configured: false } },
+  firebase: { realtime_active: { active_users: 0, configured: false }, session_duration: { avg_duration_sec: 0, total_sessions: 0, configured: false }, active_hours: { hours: [], configured: false }, retention: { cohorts: [], configured: false }, page_views: { pages: [], configured: false }, engagement: { bounce_rate: 0, engagement_rate: 0, views_per_session: 0, configured: false }, acquisition: { sources: [], configured: false }, demographics: { countries: [], cities: [], configured: false }, devices: { by_os: [], by_browser: [], by_device: [], configured: false }, daily_active: { series: [], configured: false } },
+  posthog: { configured: false, reason: '', realtime_active: 0, totals_30d: { events: 0, users: 0, pageviews: 0 }, daily_series: [], top_events: [], top_paths: [], sources: [], countries: [], devices: { by_os: [], by_browser: [], by_device: [] }, sessions: { sessions: 0, users: 0, has_session_data: false } },
   errors: { total_errors_30d: 0, auth_errors: 0, activity_errors: 0, recent: [] },
   predictions: { next_3_months: [], trend: 'stable', growth_rate_pct: 0 },
 };
@@ -84,6 +102,7 @@ export function AnalyticsView() {
   const { data, loading, refresh } = usePortalData<AnalyticsData>('/admin/super/analytics', FALLBACK, 15_000);
   const d = data || FALLBACK;
   const fb = d.firebase || FALLBACK.firebase;
+  const ph = d.posthog || FALLBACK.posthog;
 
   const handleExport = useCallback(() => {
     if (Platform.OS !== 'web' || !data) return;
@@ -162,6 +181,39 @@ export function AnalyticsView() {
       <View style={{ flexDirection: stack ? 'column' : 'row', gap: 14 }}>
         <View style={{ flex: 1 }}><ActiveHoursCard hours={fb.active_hours.hours} /></View>
         <View style={{ flex: 1 }}><RetentionCard cohorts={fb.retention.cohorts} /></View>
+      </View>
+
+      {/* PostHog Overview */}
+      <PostHogOverview ph={ph} />
+
+      {/* PostHog Trends */}
+      {ph.configured && (
+        <View style={{ flexDirection: stack ? 'column' : 'row', gap: 14 }}>
+          <View style={{ flex: 3 }}><PostHogTrendsCard ph={ph} /></View>
+          <View style={{ flex: 2 }}><PostHogEventsCard ph={ph} /></View>
+        </View>
+      )}
+
+      {/* PostHog Paths + Sources */}
+      {ph.configured && (
+        <View style={{ flexDirection: stack ? 'column' : 'row', gap: 14 }}>
+          <View style={{ flex: 1 }}><PostHogPathsCard ph={ph} /></View>
+          <View style={{ flex: 1 }}><PostHogSourcesCard ph={ph} /></View>
+        </View>
+      )}
+
+      {/* PostHog Countries + Devices */}
+      {ph.configured && (
+        <View style={{ flexDirection: stack ? 'column' : 'row', gap: 14 }}>
+          <View style={{ flex: 1 }}><PostHogCountriesCard ph={ph} /></View>
+          <View style={{ flex: 1 }}><PostHogDevicesCard ph={ph} /></View>
+        </View>
+      )}
+
+      {/* GA4 Daily Active + Devices */}
+      <View style={{ flexDirection: stack ? 'column' : 'row', gap: 14 }}>
+        <View style={{ flex: 1 }}><GaDailyCard series={fb.daily_active.series} /></View>
+        <View style={{ flex: 1 }}><GaDevicesCard devices={fb.devices} /></View>
       </View>
 
       {/* Page Views + Acquisition */}
@@ -610,6 +662,249 @@ function TopCollegesCard({ colleges }: { colleges: College[] }) {
         ))}
         {colleges.length === 0 && <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.dim, textAlign: 'center', padding: 20 }}>No college data yet</Text>}
       </ScrollView>
+    </Card>
+  );
+}
+
+// ── PostHog Cards ────────────────────────────────────────────────────────────
+
+function PostHogOverview({ ph }: { ph: PostHogData }) {
+  const t = ph.totals_30d || { events: 0, users: 0, pageviews: 0 };
+  const s = ph.sessions || { sessions: 0, users: 0, has_session_data: false };
+  return (
+    <Card style={{ padding: 20, gap: 12 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: 'rgba(29,74,255,0.15)', alignItems: 'center', justifyContent: 'center' }}>
+            <BarChart3 size={16} color="#1D4AFF" />
+          </View>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#F3F4F6' }}>PostHog Product Analytics</Text>
+        </View>
+        {ph.configured ? (
+          <StatusPill kind="success" label="LIVE" />
+        ) : (
+          <StatusPill kind="danger" label="NOT CONFIGURED" />
+        )}
+      </View>
+      {!ph.configured ? (
+        <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.dim, lineHeight: 18 }}>
+          {ph.reason || 'Connect PostHog to see product analytics. Add a personal API key (phx_) with query:read under Settings → Integrations → PostHog.'}
+        </Text>
+      ) : (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+          <View style={{ flex: 1, minWidth: 130, padding: 12, borderRadius: 10, backgroundColor: 'rgba(29,74,255,0.1)' }}>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 20, color: '#1D4AFF' }}>{ph.realtime_active ?? 0}</Text>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted }}>Active now (5m)</Text>
+          </View>
+          <View style={{ flex: 1, minWidth: 130, padding: 12, borderRadius: 10, backgroundColor: 'rgba(29,74,255,0.1)' }}>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 20, color: '#1D4AFF' }}>{fmt(t.events)}</Text>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted }}>Events (30d)</Text>
+          </View>
+          <View style={{ flex: 1, minWidth: 130, padding: 12, borderRadius: 10, backgroundColor: 'rgba(29,74,255,0.1)' }}>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 20, color: '#1D4AFF' }}>{fmt(t.users)}</Text>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted }}>Unique users (30d)</Text>
+          </View>
+          <View style={{ flex: 1, minWidth: 130, padding: 12, borderRadius: 10, backgroundColor: 'rgba(29,74,255,0.1)' }}>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 20, color: '#1D4AFF' }}>{fmt(t.pageviews)}</Text>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted }}>Pageviews (30d)</Text>
+          </View>
+          <View style={{ flex: 1, minWidth: 130, padding: 12, borderRadius: 10, backgroundColor: 'rgba(29,74,255,0.1)' }}>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 20, color: '#1D4AFF' }}>{s.has_session_data ? fmt(s.sessions) : '—'}</Text>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted }}>{s.has_session_data ? 'Sessions (30d)' : 'Sessions (no data)'}</Text>
+          </View>
+        </View>
+      )}
+    </Card>
+  );
+}
+
+function PostHogTrendsCard({ ph }: { ph: PostHogData }) {
+  const series = ph.daily_series || [];
+  const maxVal = Math.max(...series.map(d => d.events), ...series.map(d => d.users), 1);
+  return (
+    <Card style={{ padding: 20, gap: 12, height: 260 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#F3F4F6' }}>PostHog Daily Activity (30d)</Text>
+        <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.muted }}>events vs users</Text>
+      </View>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 2, height: 150, paddingTop: 8 }}>
+        {series.slice(-30).map((d, i) => (
+          <View key={i} style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 1 }}>
+              <View style={{ width: 4, height: Math.max(2, (d.events / maxVal) * 110), borderRadius: 2, backgroundColor: '#1D4AFF' }} />
+              <View style={{ width: 4, height: Math.max(2, (d.users / maxVal) * 110), borderRadius: 2, backgroundColor: '#A78BFA' }} />
+            </View>
+          </View>
+        ))}
+      </View>
+      <View style={{ flexDirection: 'row', gap: 14 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+          <View style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: '#1D4AFF' }} />
+          <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted }}>Events</Text>
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+          <View style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: '#A78BFA' }} />
+          <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted }}>Unique users</Text>
+        </View>
+      </View>
+    </Card>
+  );
+}
+
+function PostHogEventsCard({ ph }: { ph: PostHogData }) {
+  const events = ph.top_events || [];
+  const maxCount = Math.max(...events.map(e => e.count), 1);
+  return (
+    <Card style={{ padding: 20, gap: 12 }}>
+      <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#F3F4F6' }}>Top Events</Text>
+      {events.length > 0 ? events.slice(0, 8).map((e, i) => (
+        <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={{ height: 6, width: `${(e.count / maxCount) * 100}%`, maxWidth: 120, borderRadius: 3, backgroundColor: '#1D4AFF' }} />
+          <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted, flex: 1 }} numberOfLines={1}>{e.event}</Text>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#1D4AFF' }}>{fmt(e.count)}</Text>
+        </View>
+      )) : <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.dim }}>No event data</Text>}
+    </Card>
+  );
+}
+
+function PostHogPathsCard({ ph }: { ph: PostHogData }) {
+  const paths = ph.top_paths || [];
+  const maxViews = Math.max(...paths.map(p => p.views), 1);
+  return (
+    <Card style={{ padding: 20, gap: 12 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <FileText size={16} color="#1D4AFF" />
+        <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#F3F4F6' }}>Top Paths</Text>
+      </View>
+      {paths.length > 0 ? paths.slice(0, 8).map((p, i) => (
+        <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={{ height: 6, width: `${(p.views / maxViews) * 100}%`, maxWidth: 100, borderRadius: 3, backgroundColor: '#1D4AFF' }} />
+          <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted, flex: 1 }} numberOfLines={1}>{p.path}</Text>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#1D4AFF' }}>{fmt(p.views)}</Text>
+        </View>
+      )) : <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.dim }}>No pageview data</Text>}
+    </Card>
+  );
+}
+
+function PostHogSourcesCard({ ph }: { ph: PostHogData }) {
+  const sources = ph.sources || [];
+  const maxSessions = Math.max(...sources.map(s => s.sessions), 1);
+  return (
+    <Card style={{ padding: 20, gap: 12 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <Zap size={16} color="#1D4AFF" />
+        <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#F3F4F6' }}>Acquisition Sources</Text>
+      </View>
+      {sources.length > 0 ? sources.slice(0, 6).map((s, i) => (
+        <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={{ height: 6, width: `${(s.sessions / maxSessions) * 100}%`, maxWidth: 100, borderRadius: 3, backgroundColor: '#1D4AFF' }} />
+          <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted, flex: 1 }}>{s.source}</Text>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#1D4AFF' }}>{fmt(s.sessions)}</Text>
+        </View>
+      )) : <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.dim }}>No acquisition data</Text>}
+    </Card>
+  );
+}
+
+function PostHogCountriesCard({ ph }: { ph: PostHogData }) {
+  const countries = ph.countries || [];
+  const maxCount = Math.max(...countries.map(c => c.count), 1);
+  return (
+    <Card style={{ padding: 20, gap: 12 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <Globe size={16} color="#1D4AFF" />
+        <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#F3F4F6' }}>Top Countries</Text>
+      </View>
+      {countries.length > 0 ? countries.slice(0, 8).map((c, i) => (
+        <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={{ height: 6, width: `${(c.count / maxCount) * 100}%`, maxWidth: 100, borderRadius: 3, backgroundColor: '#1D4AFF' }} />
+          <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted, flex: 1 }}>{c.country}</Text>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#1D4AFF' }}>{fmt(c.count)}</Text>
+        </View>
+      )) : <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.dim }}>No geo data</Text>}
+    </Card>
+  );
+}
+
+function PostHogDevicesCard({ ph }: { ph: PostHogData }) {
+  const devices = ph.devices || { by_os: [], by_browser: [], by_device: [] };
+  const bars = (items: { label: string; value: number }[], color: string) => {
+    const max = Math.max(...items.map(i => i.value), 1);
+    return (
+      <View style={{ gap: 6 }}>
+        {items.slice(0, 5).map((item, i) => (
+          <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View style={{ height: 6, width: `${(item.value / max) * 100}%`, maxWidth: 100, borderRadius: 3, backgroundColor: color, opacity: 1 - i * 0.15 }} />
+            <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted, flex: 1 }}>{item.label}</Text>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color }}>{fmt(item.value)}</Text>
+          </View>
+        ))}
+      </View>
+    );
+  };
+  return (
+    <Card style={{ padding: 20, gap: 14 }}>
+      <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#F3F4F6' }}>PostHog Devices</Text>
+      {devices.by_device.length > 0 && (
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          {devices.by_device.slice(0, 3).map((d, i) => (
+            <View key={i} style={{ flex: 1, alignItems: 'center', padding: 10, borderRadius: 8, backgroundColor: 'rgba(29,74,255,0.1)' }}>
+              {d.label === 'Desktop' ? <Monitor size={16} color="#1D4AFF" /> : d.label === 'Mobile' ? <Smartphone size={16} color="#1D4AFF" /> : <Activity size={16} color="#1D4AFF" />}
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#F3F4F6', marginTop: 4 }}>{fmt(d.value)}</Text>
+              <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted }}>{d.label}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+      {devices.by_os.length > 0 && <View><Text style={{ fontFamily: FONTS.semi, fontSize: 10, color: SAC.dim, textTransform: 'uppercase', letterSpacing: 0.5 }}>By OS</Text>{bars(devices.by_os, '#1D4AFF')}</View>}
+      {devices.by_browser.length > 0 && <View><Text style={{ fontFamily: FONTS.semi, fontSize: 10, color: SAC.dim, textTransform: 'uppercase', letterSpacing: 0.5 }}>By Browser</Text>{bars(devices.by_browser, '#A78BFA')}</View>}
+    </Card>
+  );
+}
+
+// ── GA4 Extra Cards ──────────────────────────────────────────────────────────
+
+function GaDailyCard({ series }: { series: { date: string; count: number }[] }) {
+  const maxVal = Math.max(...series.map(s => s.count), 1);
+  return (
+    <Card style={{ padding: 20, gap: 12 }}>
+      <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#F3F4F6' }}>GA4 Daily Active Users</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 2, height: 120, paddingTop: 8 }}>
+        {series.slice(-30).map((s, i) => (
+          <View key={i} style={{ flex: 1, alignItems: 'center' }}>
+            <View style={{ width: '70%', height: Math.max(2, (s.count / maxVal) * 100), borderRadius: 2, backgroundColor: '#3B82F6' }} />
+          </View>
+        ))}
+      </View>
+      {series.length === 0 && <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.dim }}>Configure GA4 Property ID + service account to see daily active users</Text>}
+    </Card>
+  );
+}
+
+function GaDevicesCard({ devices }: { devices: FirebaseData['devices'] }) {
+  const bars = (items: { label: string; value: number }[], color: string) => {
+    const max = Math.max(...items.map(i => i.value), 1);
+    return (
+      <View style={{ gap: 6 }}>
+        {items.slice(0, 5).map((item, i) => (
+          <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View style={{ height: 6, width: `${(item.value / max) * 100}%`, maxWidth: 100, borderRadius: 3, backgroundColor: color, opacity: 1 - i * 0.15 }} />
+            <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted, flex: 1 }}>{item.label}</Text>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color }}>{fmt(item.value)}</Text>
+          </View>
+        ))}
+      </View>
+    );
+  };
+  return (
+    <Card style={{ padding: 20, gap: 14 }}>
+      <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#F3F4F6' }}>GA4 Devices</Text>
+      {devices.by_os.length > 0 && <View><Text style={{ fontFamily: FONTS.semi, fontSize: 10, color: SAC.dim, textTransform: 'uppercase', letterSpacing: 0.5 }}>By OS</Text>{bars(devices.by_os, '#3B82F6')}</View>}
+      {devices.by_browser.length > 0 && <View><Text style={{ fontFamily: FONTS.semi, fontSize: 10, color: SAC.dim, textTransform: 'uppercase', letterSpacing: 0.5 }}>By Browser</Text>{bars(devices.by_browser, '#A78BFA')}</View>}
+      {devices.by_device.length > 0 && <View><Text style={{ fontFamily: FONTS.semi, fontSize: 10, color: SAC.dim, textTransform: 'uppercase', letterSpacing: 0.5 }}>By Device</Text>{bars(devices.by_device, '#60A5FA')}</View>}
+      {devices.by_os.length === 0 && devices.by_browser.length === 0 && <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.dim }}>Configure GA4 to see device breakdown</Text>}
     </Card>
   );
 }

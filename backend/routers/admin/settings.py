@@ -366,7 +366,9 @@ MARKETPLACE = [
      "auth_fields": [_f("api_key","Personal Token","password","tfp_xxxxxxxx","From admin.typeform.com → Personal tokens")]},
     {"id": "posthog",         "name": "PostHog",         "category": "Analytics", "icon": "chart-bar",               "tint": "#1D4AFF", "description": "Product analytics + session replays.",              "auth_type": "api_key",
      "auth_fields": [_f("api_key","Project API Key","password","phc_xxxxxxxx","From posthog.com → Project Settings"),
-                     _f("host","Host","url","https://app.posthog.com")]},
+                     _f("personal_api_key","Personal API Key (read)","password","optional — phx_xxxxxxxx","Optional — needed for reading analytics. From posthog.com → Settings → Personal API Keys (query:read)"),
+                     _f("host","Host","url","https://us.posthog.com"),
+                     _f("project_id","Project ID","text","optional — auto-resolved from the personal API key")]},
     {"id": "mixpanel",        "name": "Mixpanel",        "category": "Analytics", "icon": "chart-line",              "tint": "#7856FF", "description": "Event-based product analytics.",                    "auth_type": "api_key",
      "auth_fields": [_f("project_token","Project Token","password","xxxxxxxx"),
                      _f("api_secret","API Secret","password")]},
@@ -876,6 +878,7 @@ DEFAULT_PLATFORM_CONTROLS = {
         {"key": "firebase_project_id","label": "Firebase Project ID","value": "", "type": "text", "help": "From Firebase Console → Project Settings"},
         {"key": "firebase_app_id","label": "Firebase App ID","value": "", "type": "text"},
         {"key": "firebase_service_account","label": "Firebase Service Account JSON","value": "", "type": "password", "help": "Paste full service account JSON from Firebase Console → Project Settings → Service Accounts → Generate New Private Key"},
+        {"key": "ga4_property_id","label": "Google Analytics 4 Property ID","value": "", "type": "text", "help": "From GA4 → Admin → Property Settings (used for the analytics dashboard — needs the GA4 Data API enabled)"},
     ],
 }
 
