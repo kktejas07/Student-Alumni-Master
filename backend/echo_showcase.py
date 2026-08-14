@@ -2518,7 +2518,8 @@ async def register_for_showcase(
 
     # Case-insensitive dedup — emails are normalized to lowercase so the same
     # person cannot register twice with different capitalisation.
-    reg_email = (payload.email or "").strip().lower()
+    from core.email_quality import require_ok
+    reg_email = require_ok(payload.email or "")
     user_key = str(user["_id"]) if user else (reg_email or (payload.phone or "").strip() or "anon")
     existing = await db.echo_registrations.find_one(
         {"slug": canonical_slug, "user_key": user_key}
@@ -2783,7 +2784,8 @@ async def create_payment_order(slug: str, payload: PaymentOrderSchema, request: 
             detail="Online payments are temporarily unavailable — please try again later",
         )
 
-    email = (payload.email or "").strip().lower()
+    from core.email_quality import require_ok
+    email = require_ok(payload.email or "")
     user_key = str(user["_id"]) if user else (email or (payload.phone or "").strip() or "anon")
 
     existing = await db.echo_registrations.find_one({"slug": canonical_slug, "user_key": user_key})
@@ -4178,6 +4180,8 @@ async def add_volunteer(slug: str, request: Request, admin=Depends(_require_admi
 
     if not email or "@" not in email:
         raise HTTPException(400, "Valid email required")
+    from core.email_quality import require_ok
+    email = require_ok(email)
     if role not in ("volunteer", "ambassador"):
         raise HTTPException(400, "Role must be 'volunteer' or 'ambassador'")
 

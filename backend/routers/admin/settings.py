@@ -434,10 +434,9 @@ async def list_tools(authorization: Optional[str] = Header(None)):
             "credentials_masked": masked,
             "installed_at": (i.get("installed_at").isoformat() if i and i.get("installed_at") else None),
         }
-        if t["id"] == "postal":
-            secret = await ensure_postal_webhook_secret()
+        if t["id"] == "postal" and i:
+            secret = (creds.get("webhook_secret") or "").strip() or await ensure_postal_webhook_secret()
             item["webhook_url"] = postal_webhook_url(secret)
-            item["webhook_secret"] = secret
         out.append(item)
     # group by category
     groups: Dict[str, List[dict]] = {}

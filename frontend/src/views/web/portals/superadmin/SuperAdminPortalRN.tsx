@@ -33,6 +33,7 @@ import { TalentPoolView } from './views/TalentPoolView';
 import { NewsletterView } from './views/NewsletterView';
 import { EchoShowcaseAdminView } from './views/EchoShowcaseAdminView';
 import { CertificatesView } from './views/CertificatesView';
+import { EmailQualityView } from './views/EmailQualityView';
 import { useAutoTour } from '@/src/views/web/tour/TourProvider';
 import { usePortalUrl } from '@/src/views/web/portals/portalUrl';
 
@@ -96,6 +97,7 @@ export function SuperAdminPortalRN() {
           {active === 'partners'    && <PartnersView {...subFor('partners')} />}
           {active === 'promotions'  && <PromotionsView />}
           {active === 'newsletter'  && <NewsletterView {...subFor('newsletter')} />}
+          {active === 'email-health' && <EmailQualityView />}
           {active === 'talent-pool' && <TalentPoolView />}
           {active === 'echo-showcase' && <EchoShowcaseAdminView {...subFor('echo-showcase')} />}
           {active === 'certificates' && <CertificatesView {...subFor('certificates')} />}

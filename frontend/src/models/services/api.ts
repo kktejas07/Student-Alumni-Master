@@ -476,6 +476,11 @@ export const api = {
   getNewsletterRecipientCount: () =>
     request<any>('/newsletter/admin/recipient-count'),
 
+  emailQualityReport: (q = '') =>
+    request<any>(`/admin/email-quality${q ? `?q=${encodeURIComponent(q)}` : ''}`),
+  unsuppressEmail: (email: string) =>
+    request<any>(`/admin/email-quality/suppressions?email=${encodeURIComponent(email)}`, { method: 'DELETE' }),
+
   // ── Newsletter image upload (shared /admin/upload endpoint) ───────────────
   uploadNewsletterImage: (file: File, folder = 'newsletter') => {
     const fd = new FormData();

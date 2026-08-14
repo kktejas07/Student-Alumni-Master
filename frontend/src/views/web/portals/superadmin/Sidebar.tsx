@@ -8,8 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import {
   LayoutDashboard, Building2, GraduationCap, UserCheck, Users, Calendar, CreditCard,
   BarChart3, CheckCircle, Sparkles, Settings, Workflow, ExternalLink, LogOut,
-  Upload, Handshake, Megaphone, UserPlus, Mail,
-  Award,
+  Upload, Handshake, Megaphone, UserPlus, Mail, Award, ShieldOff,
 } from 'lucide-react-native';
 import { SAC, FONTS } from './tokens';
 import { ADMIN } from './data';
@@ -43,7 +42,7 @@ export type SuperAdminNavId =
   | 'overview' | 'colleges' | 'students' | 'mentors' | 'alumni' | 'events'
   | 'payments' | 'analytics' | 'approvals' | 'ai-insights' | 'settings'
   | 'workflows' | 'imports' | 'partners' | 'promotions' | 'talent-pool' | 'echo-showcase'
-  | 'newsletter' | 'certificates';
+  | 'newsletter' | 'certificates' | 'email-health';
 import { SALogo } from '@/src/views/components';
 
 export const NAV: Array<{ id: SuperAdminNavId; label: string; Icon: any; count?: number; tag?: 'NEW' }> = [
@@ -58,8 +57,9 @@ export const NAV: Array<{ id: SuperAdminNavId; label: string; Icon: any; count?:
   { id: 'echo-showcase',   label: 'Echo Showcase',   Icon: Sparkles,    tag: 'NEW' },
   { id: 'partners',    label: 'Partners',    Icon: Handshake,   tag: 'NEW' },
   { id: 'promotions',  label: 'Promotions',  Icon: Megaphone,   tag: 'NEW' },
-  { id: 'newsletter',  label: 'Newsletter',  Icon: Mail,        tag: 'NEW' },
-  { id: 'certificates', label: 'Certificates', Icon: Award,     tag: 'NEW' },
+  { id: 'newsletter',   label: 'Newsletter',   Icon: Mail,        tag: 'NEW' },
+  { id: 'email-health', label: 'Email health', Icon: ShieldOff,   tag: 'NEW' },
+  { id: 'certificates', label: 'Certificates', Icon: Award,       tag: 'NEW' },
   { id: 'payments',    label: 'Payments',    Icon: CreditCard },
   { id: 'analytics',   label: 'Analytics',   Icon: BarChart3 },
   { id: 'approvals',   label: 'Approvals',   Icon: CheckCircle, count: 12 },

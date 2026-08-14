@@ -205,6 +205,7 @@ async def _lifespan(application):
     await _safe_create_index(db.certificates, "verification_code", unique=True)
     await _safe_create_index(db.certificates, "recipient_email")
     await _safe_create_index(db.email_suppressions, "email", unique=True)
+    await _safe_create_index(db.email_quality_events, [("created_at", -1)])
 
     # 3. Auto seed certificates on startup if count is 0
     try:
@@ -1790,7 +1791,8 @@ async def redeem_coupon(payload: dict, user: dict = Depends(get_current_user)):
 @api_router.post("/auth/send-verification")
 async def send_verification_email(payload: dict):
     """Send email verification link to the user's email address."""
-    email = (payload.get("email") or "").strip().lower()
+    from core.email_quality import require_ok
+    email = require_ok(payload.get("email") or "")
     if not email:
         raise HTTPException(400, "Email is required")
     user = await db.users.find_one({"email": email})
@@ -1858,7 +1860,8 @@ async def send_email_otp(payload: dict):
     or email verification. Stores a SHA-256 hash of the code (never plaintext)
     with a 10-minute expiry on the user record + email_verifications doc.
     """
-    email = (payload.get("email") or "").strip().lower()
+    from core.email_quality import require_ok
+    email = require_ok(payload.get("email") or "")
     if not email or "@" not in email:
         raise HTTPException(400, "A valid email is required")
 

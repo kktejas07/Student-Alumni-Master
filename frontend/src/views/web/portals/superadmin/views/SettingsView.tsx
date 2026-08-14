@@ -142,7 +142,6 @@ type Tool = {
   auth_fields?: Array<{ key: string; label: string; type: string; placeholder?: string; help?: string }>;
   credentials_masked?: Record<string, string>;
   webhook_url?: string;
-  webhook_secret?: string;
 };
 type Role = {
   id: string; key: string; name: string; description: string;
@@ -1054,11 +1053,13 @@ function ToolCard({ tool, busy, onConnect, onDisconnect }: {
         </View>
       </View>
       <Text style={s.toolDesc} numberOfLines={2}>{tool.description}</Text>
-      {tool.id === 'postal' && tool.webhook_url ? (
+      {tool.id === 'postal' && tool.installed && tool.webhook_url ? (
         <Pressable onPress={copyWebhook} style={{ marginTop: 8, padding: 8, borderRadius: 8, backgroundColor: 'rgba(124,58,237,0.12)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.3)' }}>
-          <Text style={{ color: '#C4B5FD', fontFamily: FONTS.semi, fontSize: 10.5, marginBottom: 4 }}>Postal webhook URL (tap to copy)</Text>
-          <Text style={{ color: '#E2E8F0', fontFamily: FONTS.med, fontSize: 10.5 }} numberOfLines={2}>
-            {copied ? 'Copied' : tool.webhook_url}
+          <Text style={{ color: '#C4B5FD', fontFamily: FONTS.semi, fontSize: 10.5, marginBottom: 4 }}>
+            {copied ? 'Copied webhook URL' : 'Tap to copy Postal webhook URL'}
+          </Text>
+          <Text style={{ color: '#94A3B8', fontFamily: FONTS.med, fontSize: 10.5 }}>
+            https://studentalumni.ai/api/webhooks/postal?token=••••
           </Text>
         </Pressable>
       ) : null}
@@ -1103,7 +1104,6 @@ function ConnectModal({ tool, onClose, onConnected }: {
   useEffect(() => {
     if (tool) {
       const next: Record<string, string> = {};
-      if (tool.id === 'postal' && tool.webhook_secret) next.webhook_secret = tool.webhook_secret;
       setCreds(next); setError(null); setShowSecret({}); setTest(null);
     }
   }, [tool]);
@@ -1161,9 +1161,12 @@ function ConnectModal({ tool, onClose, onConnected }: {
                 You can disconnect at any time.
               </Text>
             </View>
-            {tool.id === 'postal' && tool.webhook_url ? (
+            {tool.id === 'postal' ? (
               <View style={s.helpBox}>
-                <Text style={s.helpText}>Paste this URL in Postal → Webhooks:{'\n'}{tool.webhook_url}</Text>
+                <Text style={s.helpText}>
+                  After you connect, copy the webhook URL from the Postal card and paste it in Postal → Webhooks.
+                  The ?token= value must match the Webhook secret saved here. Leave the secret blank to auto-generate.
+                </Text>
               </View>
             ) : null}
 

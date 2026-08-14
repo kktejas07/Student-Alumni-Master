@@ -500,6 +500,12 @@ async def admin_import_talent_csv(
         })
         if not row.get("full_name"):
             errors.append({"row": i + 1, "field": "full_name", "message": "Name is required"})
+        email = (row.get("email") or "").strip()
+        if email:
+            from core.email_quality import reject_reason
+            why = reject_reason(email)
+            if why:
+                errors.append({"row": i + 1, "field": "email", "message": why})
 
     return {"ok": True, "total_rows": len(mapped_rows), "preview": preview, "errors": errors}
 
@@ -531,6 +537,11 @@ async def admin_commit_talent_csv(
         if not full_name and not email and not linkedin_url:
             skipped += 1
             continue
+        if email:
+            from core.email_quality import reject_reason
+            if reject_reason(email):
+                skipped += 1
+                continue
 
         skills = row.get("skills")
         if isinstance(skills, str):

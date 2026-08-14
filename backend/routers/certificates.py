@@ -13,6 +13,7 @@ from pydantic import BaseModel
 
 from core.db import db
 from core.email import send_email, render_html_email
+from core.email_quality import reject_reason, require_ok
 
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://studentalumni.ai")
 
@@ -488,6 +489,7 @@ class IssuePayload(BaseModel):
 @router.post("/issue")
 async def issue_certificate(payload: IssuePayload, user: dict = Depends(get_current_user)):
     """Issue a single platform certificate (auto SA-XXXX-XXXX code)."""
+    require_ok(payload.recipient_email)
     code = await _generate_code()
     verify_url = f"{FRONTEND_URL}/certificates/verify/{code}"
 
@@ -552,6 +554,8 @@ async def upload_certificate(
     code = await _generate_code()
     verify_url = f"{FRONTEND_URL}/certificates/verify/{code}"
     email = (recipient_email or "").strip().lower()
+    if email:
+        require_ok(email)
     name = (email.split("@")[0].replace(".", " ").title()) if email else "Certificate Holder"
 
     doc = {
@@ -610,6 +614,9 @@ async def upload_bulk_certificates(
         parts = base.split("__", 1)
         email = parts[0].strip().lower() if parts else ""
         file_title = parts[1].strip().replace("_", " ") if len(parts) > 1 else ""
+        if email and reject_reason(email):
+            errors.append({"filename": f.filename, "error": reject_reason(email)})
+            continue
 
         try:
             content = await f.read()
@@ -689,6 +696,8 @@ async def bulk_issue_certificates(payload: BulkPayload, user: dict = Depends(get
         email = (item.recipient_email or "").strip().lower()
         if not email or not item.title.strip():
             continue
+        if reject_reason(email):
+            continue
         code = await _generate_code()
         verify_url = f"{FRONTEND_URL}/certificates/verify/{code}"
         name = (email.split("@")[0].replace(".", " ").title()) if email else "Certificate Holder"
@@ -727,6 +736,8 @@ async def store_external_certificate(payload: ExternalPayload, user: dict = Depe
     code = await _generate_code()
     verify_url = f"{FRONTEND_URL}/certificates/verify/{code}"
     email = payload.recipient_email.strip().lower()
+    if email:
+        require_ok(email)
     name = (email.split("@")[0].replace(".", " ").title()) if email else "Certificate Holder"
 
     doc = {

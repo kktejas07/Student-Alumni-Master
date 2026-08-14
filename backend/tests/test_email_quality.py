@@ -14,6 +14,7 @@ def test_allows_normal_inboxes():
     assert reject_reason("priya.sharma@gmail.com") is None
     assert reject_reason("rahul@vnrvjiet.in") is None
     assert reject_reason("user@test.com") is None  # used by our pytest fixtures
+    assert reject_reason("test@snist.edu.in") is None  # college local, not public webmail
 
 
 def test_junk_local_plus_alias():

@@ -10,10 +10,10 @@ import os
 import re
 import time
 import asyncio
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Optional, Tuple
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 
 # Community list used by PyPI. Fetched automatically; fallback if offline.
@@ -44,6 +44,16 @@ _JUNK_LOCAL = {
 
 _JUNK_PREFIX = re.compile(r"^(test|testing|tester|fake|dummy|temp|tmp|asdf|qwerty)[0-9._-]*$")
 
+# Placeholder locals like test@ are only blocked on public webmail.
+# College inboxes (test@snist.edu.in) stay valid for events and fixtures.
+_CONSUMER = {
+    "gmail.com", "googlemail.com", "yahoo.com", "yahoo.co.in", "yahoo.in",
+    "ymail.com", "outlook.com", "hotmail.com", "live.com", "msn.com",
+    "icloud.com", "me.com", "mac.com", "proton.me", "protonmail.com",
+    "aol.com", "rediffmail.com", "zoho.com", "zohomail.com", "gmx.com",
+    "mail.com",
+}
+
 _domains: set[str] = set(_FALLBACK)
 _loaded_at = 0.0
 _lock = asyncio.Lock()
@@ -68,6 +78,11 @@ def _junk_local(local: str) -> bool:
     if base in _JUNK_LOCAL:
         return True
     return bool(_JUNK_PREFIX.match(base))
+
+
+def _consumer_mailbox(domain: str) -> bool:
+    d = domain.rstrip(".")
+    return any(d == s or d.endswith("." + s) for s in _CONSUMER)
 
 
 def _domain_blocked(domain: str) -> bool:
@@ -117,11 +132,24 @@ def reject_reason(email: str) -> Optional[str]:
     local, domain = _parts(e)
     if not local or not domain or "." not in domain:
         return "Invalid email address"
-    if _junk_local(local):
+    if _junk_local(local) and _consumer_mailbox(domain):
         return "This looks like a test or placeholder email. Use your real inbox."
     if _domain_blocked(domain):
         return "Temporary / disposable email addresses are not allowed."
     return None
+
+
+def require_ok(email: str) -> str:
+    """Raise HTTP 400 if junk/disposable. Returns the normalized address."""
+    e = _norm(email)
+    reason = reject_reason(e)
+    if reason:
+        try:
+            asyncio.get_running_loop().create_task(_log_event(e, reason, "form_block"))
+        except RuntimeError:
+            pass
+        raise HTTPException(status_code=400, detail=reason)
+    return e
 
 
 def _has_mx(domain: str) -> Optional[bool]:
@@ -170,6 +198,20 @@ async def is_suppressed(email: str) -> bool:
         return False
 
 
+async def _log_event(email: str, reason: str, kind: str, source: str = "") -> None:
+    try:
+        from core.db import db
+        await db.email_quality_events.insert_one({
+            "email": _norm(email),
+            "reason": (reason or "")[:400],
+            "kind": kind,
+            "source": source,
+            "created_at": datetime.now(timezone.utc),
+        })
+    except Exception:
+        pass
+
+
 async def suppress(email: str, reason: str, source: str = "postal") -> None:
     e = _norm(email)
     if not e or "@" not in e:
@@ -186,6 +228,7 @@ async def suppress(email: str, reason: str, source: str = "postal") -> None:
             }, "$setOnInsert": {"created_at": datetime.now(timezone.utc)}},
             upsert=True,
         )
+        await _log_event(e, reason or "hard_bounce", "bounce", source)
     except Exception as ex:
         print(f"[WARN] email suppress failed: {ex}")
 
@@ -195,8 +238,10 @@ async def allow_send(email: str) -> Tuple[bool, str]:
     await _refresh_list()
     reason = reject_reason(email)
     if reason:
+        await _log_event(email, reason, "skipped_send", "quality_gate")
         return False, reason
     if await is_suppressed(email):
+        await _log_event(email, "suppressed", "skipped_send", "suppression")
         return False, "Address is on the bounce suppression list"
     return True, ""
 
@@ -279,3 +324,58 @@ async def warmup() -> None:
         await ensure_postal_webhook_secret()
     except Exception:
         pass
+
+
+def _iso(v):
+    return v.isoformat() if hasattr(v, "isoformat") else v
+
+
+def _ser(doc: dict) -> dict:
+    out = {k: v for k, v in doc.items() if k != "_id"}
+    for k in ("created_at", "updated_at"):
+        if k in out:
+            out[k] = _iso(out[k])
+    return out
+
+
+async def _admin_user(request: Request) -> dict:
+    from core.deps import get_current_user
+    user = await get_current_user(request)
+    role = (user.get("role") or "").lower()
+    if role not in ("admin", "super_admin") and not user.get("is_super_admin"):
+        raise HTTPException(403, "Insufficient privileges")
+    return user
+
+
+@router.get("/admin/email-quality")
+async def email_quality_report(
+    q: str = Query(""),
+    _user: dict = Depends(_admin_user),
+):
+    from core.db import db
+    needle = (q or "").strip().lower()
+    filt: dict = {}
+    if needle:
+        filt["email"] = {"$regex": re.escape(needle)}
+    suppressed = await db.email_suppressions.find(filt).sort("updated_at", -1).to_list(500)
+    since = datetime.now(timezone.utc) - timedelta(days=7)
+    events = await db.email_quality_events.find(filt).sort("created_at", -1).to_list(200)
+    return {
+        "suppressed_count": await db.email_suppressions.count_documents({}),
+        "events_7d": await db.email_quality_events.count_documents({"created_at": {"$gte": since}}),
+        "suppressions": [_ser(d) for d in suppressed],
+        "events": [_ser(d) for d in events],
+    }
+
+
+@router.delete("/admin/email-quality/suppressions")
+async def unsuppress_email(
+    email: str = Query(...),
+    _user: dict = Depends(_admin_user),
+):
+    from core.db import db
+    e = _norm(email)
+    res = await db.email_suppressions.delete_one({"email": e})
+    if not res.deleted_count:
+        raise HTTPException(404, "Not on the suppression list")
+    return {"ok": True, "email": e}

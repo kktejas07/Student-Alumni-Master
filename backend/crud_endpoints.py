@@ -881,6 +881,8 @@ class UserInvite(BaseModel):
 async def invite_user(req: UserInvite):
     if req.role not in ("student", "mentor", "college", "admin"):
         raise HTTPException(400, "Invalid role")
+    from core.email_quality import require_ok
+    require_ok(req.email)
     existing = await _db.users.find_one({"email": req.email})
     if existing:
         raise HTTPException(409, "Email already exists")
