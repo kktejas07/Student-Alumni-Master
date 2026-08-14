@@ -22,4 +22,3 @@ export function initGlobalErrorLogger(): void {
     console.log('🛡️ [DEBUG] Global uncaught error & promise rejection listeners activated.');
   }
 }
-}
