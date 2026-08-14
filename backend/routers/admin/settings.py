@@ -894,6 +894,7 @@ DEFAULT_PLATFORM_CONTROLS = {
         {"key": "firebase_app_id","label": "Firebase App ID","value": "", "type": "text"},
         {"key": "firebase_service_account","label": "Firebase Service Account JSON","value": "", "type": "password", "help": "Paste full service account JSON from Firebase Console → Project Settings → Service Accounts → Generate New Private Key"},
         {"key": "ga4_property_id","label": "Google Analytics 4 Property ID","value": "", "type": "text", "help": "From GA4 → Admin → Property Settings (used for the analytics dashboard — needs the GA4 Data API enabled)"},
+        {"key": "ga4_service_account_json","label": "GA4 Service Account JSON","value": "", "type": "password", "help": "Optional — separate service account for GA4 analytics. If blank, falls back to Firebase Service Account JSON above."},
     ],
 }
 
