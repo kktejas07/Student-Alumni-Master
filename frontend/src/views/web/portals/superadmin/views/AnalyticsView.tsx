@@ -19,7 +19,7 @@ import {
 } from 'lucide-react-native';
 import { SAC, FONTS } from '../tokens';
 import { Card, KpiTile, GRAD, SecondaryButton, StatusPill, LoadingBox } from '../applekit';
-import { usePortalData } from '@/src/views/web/portals/portalUrl';
+import { usePortalData } from '@/src/lib/portalApi';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 type KPIs = {
