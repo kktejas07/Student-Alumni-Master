@@ -735,9 +735,22 @@ export default function EchoRegisterPage() {
                     <View style={s.secureBadge}><ShieldCheck size={12} color="#34D399" /><Text style={s.secureText}>Secure payment</Text></View>
                   ) : null}
                 </View>
-                {regCfg.max_seats ? (
-                  <View style={s.seatsRow}><Users size={12} color={PALETTE.muted} /><Text style={s.seatsText}>{regCfg.max_seats} seats available</Text></View>
-                ) : null}
+                {regCfg.max_seats ? (() => {
+                  const maxSeats = Number(regCfg.max_seats) || 0;
+                  const paidCount = Number(regCfg.paid_count) || 0;
+                  const totalCount = Number(regCfg.total_registrations) || 0;
+                  const isPaidEvent = fee > 0;
+                  const consumed = isPaidEvent
+                    ? Math.ceil(paidCount * 0.8)
+                    : totalCount;
+                  const remaining = Math.max(0, maxSeats - consumed);
+                  return (
+                    <View style={s.seatsRow}>
+                      <Users size={12} color={PALETTE.muted} />
+                      <Text style={s.seatsText}>{remaining} seats available</Text>
+                    </View>
+                  );
+                })() : null}
                 {regCfg.payment_note ? <Text style={s.note}>{regCfg.payment_note}</Text> : null}
               </View>
 
