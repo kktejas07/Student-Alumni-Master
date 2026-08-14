@@ -260,7 +260,10 @@ async def _lifespan(application):
         from workflow_automation import run_cron_workflows as _run_cron
         from newsletter import process_scheduled_campaigns as _process_sched
         from echo_showcase import sweep_expired_echo_payments as _sweep_echo_pay
+        from scripts.scrape_unstop_events import run_unstop_sync as _unstop_sync
+        
         async def _wf_cron_tick():
+            unstop_tick_counter = 0
             while True:
                 try:
                     await _run_cron()
@@ -276,6 +279,15 @@ async def _lifespan(application):
                         logger.info("ECHO payment sweep: %s", sweep_summary)
                 except Exception:
                     pass
+                # Sync Unstop events on startup and every 6 hours (360 minutes = 360 ticks)
+                if unstop_tick_counter % 360 == 0:
+                    try:
+                        logger.info("Starting background Unstop opportunity sync...")
+                        synced = await _unstop_sync()
+                        logger.info("Background Unstop sync completed: %d opportunities updated", synced)
+                    except Exception as _unstop_err:
+                        logger.warning("Background Unstop sync error: %s", _unstop_err)
+                unstop_tick_counter += 1
                 await asyncio.sleep(60)
         asyncio.create_task(_wf_cron_tick())
     except Exception as _e:
@@ -300,6 +312,11 @@ async def _lifespan(application):
 
 
 app = FastAPI(title="Student Alumni Platform API", lifespan=_lifespan)
+
+# App-wide HTTP Request/Response & Performance Logging Middleware
+from core.logging_middleware import AppLoggingMiddleware
+app.add_middleware(AppLoggingMiddleware)
+
 # SECURITY: CORSMiddleware is registered once at the bottom of this file,
 # configured from env vars (ALLOWED_ORIGINS). Do NOT add a second registration here.
 app.state.limiter = limiter

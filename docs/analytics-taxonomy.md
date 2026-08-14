@@ -1,6 +1,6 @@
 # StudentAlumni.ai — Analytics Taxonomy & Element ID Registry
 
-*Auto-generated from `src/analytics/constants/ids.ts` and `constants/events.ts`.*
+*Auto-generated from `src/analytics/constants/ids.ts` by `scripts/analytics-codegen.ts`.*
 
 Total Registered Elements: **63**
 
@@ -72,14 +72,13 @@ Total Registered Elements: **63**
 | `sa.onboarding.complete.btn.finish` | onboarding | complete | `btn` |
 | `sa.onboarding.profile.btn.resume-upload` | onboarding | profile | `btn` |
 
-## Standard Property Envelope (Auto-attached)
+## GA4 Custom Dimensions Reference
 
-| Property | Example | Notes |
-|---|---|---|
-| `element_id` | `sa.echo.register.btn.submit` | Click/Impression element ID |
-| `element_type` | `btn` | Derived from ID |
-| `element_label` | `Register Now` | Sanitized string (max 100) |
-| `screen` | `echo_registration` | Active screen |
-| `session_id` | `uuid-v4` | Shared session identifier |
-| `platform` | `web` / `ios` / `android` | Target platform |
-| `user_role` | `student` | Role, never identity |
+| Dimension Name | Scope | Parameter | Notes |
+|---|---|---|---|
+| `element_id` | Event | `element_id` | Registered canonical element ID |
+| `element_type` | Event | `element_type` | Derived from ID |
+| `surface` | Event | `surface` | Derived surface |
+| `area` | Event | `area` | Derived area |
+| `user_role` | User | `user_role` | Role of user |
+| `org_id` | User | `org_id` | College/Campus ID |
