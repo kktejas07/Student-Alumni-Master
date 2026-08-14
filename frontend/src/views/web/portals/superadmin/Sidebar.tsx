@@ -11,30 +11,20 @@ import {
   Upload, Handshake, Megaphone, UserPlus, Mail, Award, ShieldOff,
 } from 'lucide-react-native';
 import { SAC, FONTS } from './tokens';
-import { ADMIN } from './data';
-import { Av, Badge } from './atoms';
+import { Badge } from './atoms';
 import { GRAD } from './applekit';
 import { AgentKLauncher } from '@/src/views/web/agent-k/AgentKLauncher';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { displayName, displayInitials } from '@/src/lib/portalHome';
 
-/* Display info for the sidebar profile blocks — uses the real logged-in
- * user if available, falls back to ADMIN mock so legacy/storybook flows
- * still render. */
 function useAdminProfile() {
   const user = useAuthStore((s) => s.user);
-  if (!user) return ADMIN;
-  const full = [user.first_name, user.last_name].filter(Boolean).join(' ').trim();
-  const name = full || user.name || user.email || ADMIN.name;
-  const parts = name.split(' ').filter(Boolean);
-  const initials = parts.length >= 2
-    ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-    : (name[0] + (name[1] || '')).toUpperCase();
-  const role = String(user.role || '').toLowerCase();
+  const name = displayName(user);
   return {
     name,
-    email: user.email || ADMIN.email,
-    role: role === 'admin' ? 'Super Admin' : ADMIN.role,
-    initials,
+    email: user?.email || '',
+    role: 'Super Admin',
+    initials: displayInitials(user),
   };
 }
 

@@ -10,9 +10,9 @@ import {
   BarChart3, Sparkles, Briefcase, Trophy, User, ExternalLink, LogOut, Plus,
 } from 'lucide-react-native';
 import { CC, FONTS } from './tokens';
-import { COLLEGE } from './data';
 import { Av, Badge } from './atoms';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { displayName } from '@/src/lib/portalHome';
 import { request, api } from '@/src/models/services/api';
 import { AgentKLauncher } from '@/src/views/web/agent-k/AgentKLauncher';
 import { SALogo } from '@/src/views/components';
@@ -50,9 +50,9 @@ export function Sidebar({
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
 
-  const collegeName = user?.college_info?.institution_name || user?.school_info?.institution_name || COLLEGE.name;
-  const collegeInitials = user?.college_info?.institution_name || user?.school_info?.institution_name ? getInitials(collegeName) : COLLEGE.initials;
-  const collegeRank = user?.college_info?.accreditation || user?.college_info?.accreditations?.[0] || COLLEGE.rank;
+  const collegeName = user?.college_info?.institution_name || user?.school_info?.institution_name || displayName(user);
+  const collegeInitials = getInitials(collegeName);
+  const collegeRank = user?.college_info?.accreditation || user?.college_info?.accreditations?.[0] || '';
 
   const [counts, setCounts] = React.useState<Record<string, number>>({});
 

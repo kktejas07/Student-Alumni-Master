@@ -8,6 +8,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Platform, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { displayName, displayInitials } from '@/src/lib/portalHome';
 import { useRouter } from 'expo-router';
 import {
   LayoutDashboard, Sparkles, Briefcase, Users, Calendar, Wallet,
@@ -16,7 +17,6 @@ import {
 } from './iconShims';
 import { SC, FONTS } from './tokens';
 import { GRADS } from './gradients';
-import { STUDENT } from '../student/data';
 import { Av } from './atoms';
 import { FadeInView, PressScale, SparkIcon, PulseDot } from './motion';
 import { AgentKLauncher } from '@/src/views/web/agent-k/AgentKLauncher';
@@ -52,16 +52,15 @@ export function Sidebar({
 }: { active: StudentNavId; onNav: (id: StudentNavId) => void; onLogout: () => void }) {
   const router = useRouter();
   const user = useAuthStore((u) => u.user) as any;
-  const fullName = (user?.full_name || `${user?.first_name || ''} ${user?.last_name || ''}`).trim();
-  const name = fullName || STUDENT.name;
-  const initials = (name.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('') || STUDENT.initials).toUpperCase();
+  const name = displayName(user);
+  const initials = displayInitials(user);
   const photo = useAuthStore((s) => s.photoOverride) || user?.photo_data || user?.face_image_base64;
   const ai: any = user?.alumni_info || {};
   const subTitle =
     [ai.current_role, ai.current_company].filter(Boolean).join(' @ ') ||
     (ai.graduation_year ? `Class of ${ai.graduation_year}` :
      (user?.graduation_year ? `Class of ${user.graduation_year}` : 'Verified Alumni'));
-  const saId = user?.unique_id || STUDENT.saId;
+  const saId = user?.unique_id || '—';
 
   return (
     <View style={s.aside}>

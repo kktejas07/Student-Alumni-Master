@@ -19,9 +19,9 @@ import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-na
 import { useRouter } from 'expo-router';
 import { Bell, Search } from './iconShims';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { STUDENT } from './data';
-import { Av } from './atoms';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { displayName, displayInitials } from '@/src/lib/portalHome';
+import { Av } from './atoms';
 import { api } from '@/src/models/services/api';
 import { HelpMenu } from '@/src/views/web/help/HelpMenu';
 import { useTheme } from '@/src/theme/ThemeContext';
@@ -72,11 +72,9 @@ export function TopBar({
     }
   };
 
-  const fullName: string = (user?.full_name
-    || `${user?.first_name || ''} ${user?.last_name || ''}`).trim()
-    || STUDENT.name;
-  const firstName: string = fullName.split(' ')[0] || STUDENT.name.split(' ')[0];
-  const initials: string = (fullName.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('') || STUDENT.initials).toUpperCase();
+  const fullName: string = displayName(user);
+  const firstName: string = fullName.split(/[\s@]/)[0] || 'there';
+  const initials: string = displayInitials(user);
   const photo: string | undefined = useAuthStore((s) => s.photoOverride) || user?.photo_data || user?.face_image_base64;
 
   const onAvatarPressHandler = () => {

@@ -1761,12 +1761,21 @@ async function collectSessionHints() {
     if (typeof window !== 'undefined' && window.screen) {
       hints.screen = `${window.screen.width}x${window.screen.height}`;
     }
-    const ctrl = typeof AbortSignal !== 'undefined' && AbortSignal.timeout
-      ? AbortSignal.timeout(2500)
-      : undefined;
-    const r = await fetch('https://api.ipify.org?format=json', { signal: ctrl as any });
-    const d = await r.json();
-    if (d?.ip) hints.public_ip = d.ip;
+    let cached = '';
+    try { cached = sessionStorage.getItem('sa.public_ip') || ''; } catch {}
+    if (cached) {
+      hints.public_ip = cached;
+    } else {
+      const ctrl = typeof AbortSignal !== 'undefined' && AbortSignal.timeout
+        ? AbortSignal.timeout(2500)
+        : undefined;
+      const r = await fetch('https://api.ipify.org?format=json', { signal: ctrl as any });
+      const d = await r.json();
+      if (d?.ip) {
+        hints.public_ip = d.ip;
+        try { sessionStorage.setItem('sa.public_ip', d.ip); } catch {}
+      }
+    }
   } catch { /* geo still resolved server-side from proxy headers */ }
   return hints;
 }
@@ -1835,7 +1844,7 @@ function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
     })();
   }, []);
   useEffect(() => {
-    const id = setInterval(() => { load(); }, 12000);
+    const id = setInterval(() => { load(); }, 60000);
     const onFocus = () => { load(); };
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       window.addEventListener('focus', onFocus);

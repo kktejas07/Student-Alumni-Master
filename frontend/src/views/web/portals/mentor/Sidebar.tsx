@@ -6,13 +6,13 @@ import React from 'react';
 import { View, Text, Pressable, StyleSheet, Platform, ScrollView, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { displayName, displayInitials } from '@/src/lib/portalHome';
 import {
   Menu, LayoutDashboard, Users, Calendar, UserPlus, Network, Coins,
   Star as StarIcon, Plus, User as UserIcon, QrCode, ExternalLink, LogOut,
   Clock, Sparkles,
 } from 'lucide-react-native';
 import { MC, FONTS } from './tokens';
-import { MENTOR } from './data';
 import { AgentKLauncher } from '@/src/views/web/agent-k/AgentKLauncher';
 import { router } from 'expo-router';
 import { SALogo } from '@/src/views/components';
@@ -45,12 +45,12 @@ export function Sidebar({
   counts: { students: number; sessions: number; requests: number };
 }) {
   const user = useAuthStore((u) => u.user) as any;
-  const fullName = (user?.full_name || `${user?.first_name || ''} ${user?.last_name || ''}`).trim() || MENTOR.name;
-  const initials = (fullName.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('') || MENTOR.avatar).toUpperCase();
+  const fullName = displayName(user);
+  const initials = displayInitials(user);
   const photo = useAuthStore((s) => s.photoOverride) || user?.photo_data || user?.face_image_base64;
-  const role = user?.mentor_info?.current_role || user?.mentor_info?.job_title || user?.current_role || user?.headline || MENTOR.role;
+  const role = user?.mentor_info?.current_role || user?.mentor_info?.job_title || user?.current_role || user?.headline || 'Mentor';
   const jobTitle = role;
-  const company = user?.mentor_info?.current_company || user?.mentor_info?.organization || user?.current_company || MENTOR.company;
+  const company = user?.mentor_info?.current_company || user?.mentor_info?.organization || user?.current_company || '';
 
   const items = NAV_MAIN(counts);
   const w = collapsed ? 56 : 220;

@@ -8,6 +8,7 @@ import React, { useEffect } from 'react';
 import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
 import { Slot, useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { portalPathForRole } from '@/src/lib/portalHome';
 
 export default function SuperAdminLayoutRoute() {
   const router = useRouter();
@@ -26,7 +27,7 @@ export default function SuperAdminLayoutRoute() {
     }
     const role = String(user.role || '').toLowerCase();
     if (!['admin', 'super_admin'].includes(role)) {
-      router.replace('/login?redirect=/super-admin');
+      router.replace(portalPathForRole(role) as any);
     }
   }, [initialized, user]);
 

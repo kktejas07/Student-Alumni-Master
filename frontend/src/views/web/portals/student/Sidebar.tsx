@@ -19,6 +19,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Platform, Pressable, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { displayName, displayInitials } from '@/src/lib/portalHome';
 import { useSidebarStore } from '@/src/viewmodels/stores/sidebarStore';
 import {
   LayoutDashboard, Sparkles, Briefcase, Users, Calendar, Wallet,
@@ -32,7 +33,7 @@ import { useBreakpoint } from '@/src/theme/breakpoints';
 import { SP, RADII, FONT_FAMILY } from '@/src/theme/apple';
 import { GRADS } from './gradients';
 import { SC, PALETTE, TYPO } from './tokens';
-import { STUDENT } from './data';
+import { PALETTE, TYPO } from './tokens';
 import { Av } from './atoms';
 import { FadeInView, PressScale, SparkIcon, PulseDot } from './motion';
 import { AgentKLauncher } from '@/src/views/web/agent-k/AgentKLauncher';
@@ -201,14 +202,14 @@ export function Sidebar({
     if (active === 'echo-showcase' || active?.startsWith('echo-showcase:')) setEchoOpen(true);
   }, [active]);
 
-  const fullName: string = (user?.full_name || `${user?.first_name || ''} ${user?.last_name || ''}`).trim() || STUDENT.name;
-  const initials: string = (fullName.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('') || STUDENT.initials).toUpperCase();
+  const fullName: string = displayName(user);
+  const initials: string = displayInitials(user);
   const photo = useAuthStore((s) => s.photoOverride) || user?.photo_data || user?.face_image_base64;
   const gy = user?.graduation_year || (user?.school_info || {}).graduation_year;
   const yearLabel: string = (gy && Number(gy) === new Date().getFullYear()) ? 'Final Year'
     : (gy && Number(gy) === new Date().getFullYear() + 1) ? 'Pre-Final Year'
     : (gy ? `Class of ${gy}` : user?.school_info?.class_or_year || user?.year || 'Student');
-  const saId: string = user?.unique_id || STUDENT.saId;
+  const saId: string = user?.unique_id || '—';
 
   // Adaptive width: collapsed icon-rail on md, OR forced-collapsed via store toggle.
   const userCollapsed = useSidebarStore((s) => s.isCollapsed);

@@ -1,13 +1,39 @@
 /**
- * Main app — bottom tab navigation
+ * Native bottom tabs. On web these mobile screens are not used —
+ * send people to their portal instead of the Expo tab shell.
  */
-import { Tabs } from 'expo-router';
-import { Home, BookOpen, Users, Tag, User, Sparkles } from 'lucide-react-native';
-import { Colors, Typography } from '@/src/theme';
+import { useEffect } from 'react';
+import { Platform, View, ActivityIndicator } from 'react-native';
+import { Tabs, useRouter } from 'expo-router';
+import { Home, BookOpen, Users, User } from 'lucide-react-native';
+import { Colors } from '@/src/theme';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { portalPathForRole } from '@/src/lib/portalHome';
 
 const C = Colors.light;
 
 export default function TabsLayout() {
+  const router = useRouter();
+  const user = useAuthStore((s) => s.user);
+  const initialized = useAuthStore((s) => s.initialized);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !initialized) return;
+    if (!user) {
+      router.replace('/login');
+      return;
+    }
+    router.replace(portalPathForRole(user.role) as any);
+  }, [initialized, user, router]);
+
+  if (Platform.OS === 'web') {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#0a0f1e', alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator color="#A78BFA" />
+      </View>
+    );
+  }
+
   return (
     <Tabs
       screenOptions={{

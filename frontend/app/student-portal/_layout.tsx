@@ -8,6 +8,7 @@ import React, { useEffect } from 'react';
 import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
 import { Slot, useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { portalPathForRole, rolesForPortal } from '@/src/lib/portalHome';
 
 export default function StudentPortalLayoutRoute() {
   const router = useRouter();
@@ -15,8 +16,14 @@ export default function StudentPortalLayoutRoute() {
   const initialized = useAuthStore((s) => s.initialized);
 
   useEffect(() => {
-    if (initialized && !user) {
+    if (!initialized) return;
+    if (!user) {
       router.replace('/login');
+      return;
+    }
+    const role = String(user.role || '').toLowerCase();
+    if (!rolesForPortal('student').includes(role)) {
+      router.replace(portalPathForRole(role) as any);
     }
   }, [user, initialized, router]);
 

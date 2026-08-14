@@ -5,10 +5,11 @@ import React from 'react';
 import { View, Text, Pressable, TextInput, StyleSheet, Platform } from 'react-native';
 import { Search, Bell, X, CheckCircle2, AlertTriangle, Info } from 'lucide-react-native';
 import { SAC, FONTS } from './tokens';
-import { ADMIN } from './data';
 import { Av } from './atoms';
 import { HelpMenu } from '@/src/views/web/help/HelpMenu';
 import { useToast } from '@/src/views/components';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { displayInitials } from '@/src/lib/portalHome';
 
 function today(): string {
   return new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -22,6 +23,7 @@ const NOTIFICATIONS = [
 
 export function TopBar({ title = 'Overview' }: { title?: string }) {
   const toast = useToast();
+  const user = useAuthStore((s) => s.user);
   const [searchQuery, setSearchQuery] = React.useState('');
   const [notifOpen, setNotifOpen] = React.useState(false);
 
@@ -88,7 +90,7 @@ export function TopBar({ title = 'Overview' }: { title?: string }) {
 
       <HelpMenu portal="super_admin" />
 
-      <Av initials={ADMIN.initials} size={36} color={SAC.primaryD} />
+      <Av initials={displayInitials(user)} size={36} color={SAC.primaryD} />
     </View>
   );
 }

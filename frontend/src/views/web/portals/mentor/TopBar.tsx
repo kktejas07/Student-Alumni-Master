@@ -3,9 +3,9 @@ import { View, Text, TextInput, Pressable, StyleSheet, Platform } from 'react-na
 import { Search, Bell } from 'lucide-react-native';
 import { MC, FONTS } from './tokens';
 import { Av } from './atoms';
-import { MENTOR } from './data';
-import { HelpMenu } from '@/src/views/web/help/HelpMenu';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { displayName, displayInitials } from '@/src/lib/portalHome';
+import { HelpMenu } from '@/src/views/web/help/HelpMenu';
 
 export function TopBar({
   title, query, setQuery, notifCount = 4, onBellPress, onAvatarPress,
@@ -18,8 +18,8 @@ export function TopBar({
   onAvatarPress?: () => void;
 }) {
   const user = useAuthStore((u) => u.user) as any;
-  const fullName = (user?.full_name || `${user?.first_name || ''} ${user?.last_name || ''}`).trim() || MENTOR.name;
-  const initials = (fullName.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('') || MENTOR.avatar).toUpperCase();
+  const fullName = displayName(user);
+  const initials = displayInitials(user);
   const photo = useAuthStore((s) => s.photoOverride) || user?.photo_data || user?.face_image_base64;
 
   return (

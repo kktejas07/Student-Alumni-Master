@@ -2,9 +2,9 @@ import React, { useEffect } from 'react';
 import { View, Text, Pressable, TextInput, StyleSheet, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { displayName, displayInitials } from '@/src/lib/portalHome';
 import { Bell, Search } from './iconShims';
 import { SC, FONTS } from './tokens';
-import { STUDENT } from '../student/data';
 import { Av } from './atoms';
 import { HelpMenu } from '@/src/views/web/help/HelpMenu';
 import { AlumniPortalNavContext } from './AlumniPortalRN';
@@ -25,9 +25,9 @@ export function TopBar({
 } = {}) {
   const router = useRouter();
   const user = useAuthStore((u) => u.user);
-  const fullName = user?.full_name || STUDENT.name;
-  const firstName = fullName.split(' ')[0] || STUDENT.name.split(' ')[0];
-  const initials = fullName.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('').toUpperCase() || STUDENT.initials;
+  const fullName = displayName(user);
+  const firstName = fullName.split(/[\s@]/)[0] || 'there';
+  const initials = displayInitials(user);
   const photo = useAuthStore((s) => s.photoOverride) || user?.photo_data || user?.face_image_base64;
   const portalNav = React.useContext(AlumniPortalNavContext);
   const [q, setQ] = React.useState(portalNav?.searchQuery || '');
