@@ -312,6 +312,11 @@ async def _lifespan(application):
 
 
 app = FastAPI(title="Student Alumni Platform API", lifespan=_lifespan)
+
+# App-wide HTTP Request/Response & Performance Logging Middleware
+from core.logging_middleware import AppLoggingMiddleware
+app.add_middleware(AppLoggingMiddleware)
+
 # SECURITY: CORSMiddleware is registered once at the bottom of this file,
 # configured from env vars (ALLOWED_ORIGINS). Do NOT add a second registration here.
 app.state.limiter = limiter
