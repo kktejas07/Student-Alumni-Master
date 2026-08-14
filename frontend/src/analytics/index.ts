@@ -25,6 +25,7 @@ export { logger, setLogLevel, getLogLevel };
 
 // Export components
 export { AnalyticsRoot } from './components/AnalyticsRoot';
+export { AnalyticsErrorBoundary } from './components/AnalyticsErrorBoundary';
 export { Trackable } from './components/Trackable';
 export { TrackedCard } from './components/TrackedCard';
 export { TrackedPressable } from './components/TrackedPressable';

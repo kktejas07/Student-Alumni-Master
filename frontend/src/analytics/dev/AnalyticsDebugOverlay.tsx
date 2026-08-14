@@ -2,16 +2,16 @@
  * frontend/src/analytics/dev/AnalyticsDebugOverlay.tsx
  *
  * Enhanced floating debug panel for real-time analytics inspection in __DEV__.
+ * Includes Event Feed, Session Summary, and Element CTR (Impression-to-Click) Metrics.
  */
 
 import React, { useEffect, useState } from 'react';
 import { getSessionId } from '../core/context';
 import { dispatcher, QueuedEvent } from '../core/dispatcher';
-import { logger } from '../core/logger';
 
 export const AnalyticsDebugOverlay: React.FC = () => {
   const [open, setOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'log' | 'summary'>('log');
+  const [activeTab, setActiveTab] = useState<'log' | 'ctr' | 'summary'>('log');
   const [filterText, setFilterText] = useState('');
   const [events, setEvents] = useState<QueuedEvent[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<QueuedEvent | null>(null);
@@ -34,6 +34,26 @@ export const AnalyticsDebugOverlay: React.FC = () => {
       (ev.props.element_id && String(ev.props.element_id).toLowerCase().includes(search)) ||
       (ev.props.screen && String(ev.props.screen).toLowerCase().includes(search))
     );
+  });
+
+  // Calculate CTR metrics per element_id
+  const ctrMetrics: Record<string, { impressions: number; clicks: number }> = {};
+  events.forEach((ev) => {
+    const id = ev.props.element_id;
+    if (!id || typeof id !== 'string') return;
+    if (!ctrMetrics[id]) {
+      ctrMetrics[id] = { impressions: 0, clicks: 0 };
+    }
+    if (ev.event.includes('impression')) {
+      ctrMetrics[id].impressions += 1;
+    } else if (ev.event.includes('click')) {
+      ctrMetrics[id].clicks += 1;
+    }
+  });
+
+  const ctrList = Object.entries(ctrMetrics).map(([id, data]) => {
+    const ctr = data.impressions > 0 ? (data.clicks / data.impressions) * 100 : data.clicks > 0 ? 100 : 0;
+    return { id, ...data, ctr: ctr.toFixed(1) };
   });
 
   const handleClear = () => {
@@ -86,8 +106,8 @@ export const AnalyticsDebugOverlay: React.FC = () => {
       ) : (
         <div
           style={{
-            width: 420,
-            height: 520,
+            width: 440,
+            height: 540,
             background: '#0f172a',
             color: '#f8fafc',
             border: '1px solid #334155',
@@ -185,7 +205,7 @@ export const AnalyticsDebugOverlay: React.FC = () => {
               onClick={() => setActiveTab('log')}
               style={{
                 flex: 1,
-                padding: '6px 12px',
+                padding: '6px 8px',
                 background: activeTab === 'log' ? '#1e293b' : 'transparent',
                 color: activeTab === 'log' ? '#38bdf8' : '#94a3b8',
                 border: 'none',
@@ -193,13 +213,27 @@ export const AnalyticsDebugOverlay: React.FC = () => {
                 fontWeight: activeTab === 'log' ? 'bold' : 'normal',
               }}
             >
-              Event Feed ({filteredEvents.length})
+              Feed ({filteredEvents.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('ctr')}
+              style={{
+                flex: 1,
+                padding: '6px 8px',
+                background: activeTab === 'ctr' ? '#1e293b' : 'transparent',
+                color: activeTab === 'ctr' ? '#38bdf8' : '#94a3b8',
+                border: 'none',
+                cursor: 'pointer',
+                fontWeight: activeTab === 'ctr' ? 'bold' : 'normal',
+              }}
+            >
+              CTR Performance ({ctrList.length})
             </button>
             <button
               onClick={() => setActiveTab('summary')}
               style={{
                 flex: 1,
-                padding: '6px 12px',
+                padding: '6px 8px',
                 background: activeTab === 'summary' ? '#1e293b' : 'transparent',
                 color: activeTab === 'summary' ? '#38bdf8' : '#94a3b8',
                 border: 'none',
@@ -293,6 +327,35 @@ export const AnalyticsDebugOverlay: React.FC = () => {
                         {JSON.stringify(ev.props, null, 2)}
                       </pre>
                     )}
+                  </div>
+                ))
+              )
+            ) : activeTab === 'ctr' ? (
+              /* CTR Tab */
+              ctrList.length === 0 ? (
+                <div style={{ color: '#64748b', fontSize: 12, padding: 16, textAlign: 'center' }}>
+                  No element impressions or clicks tracked yet in this session.
+                </div>
+              ) : (
+                ctrList.map((item, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      padding: '8px 10px',
+                      marginBottom: 6,
+                      borderRadius: 6,
+                      background: '#1e293b',
+                      fontSize: 11,
+                    }}
+                  >
+                    <div style={{ fontWeight: 'bold', color: '#38bdf8', fontFamily: 'monospace', marginBottom: 4 }}>
+                      {item.id}
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#cbd5e1' }}>
+                      <span>Impressions: <strong>{item.impressions}</strong></span>
+                      <span>Clicks: <strong>{item.clicks}</strong></span>
+                      <span style={{ color: '#4ade80', fontWeight: 'bold' }}>CTR: {item.ctr}%</span>
+                    </div>
                   </div>
                 ))
               )
