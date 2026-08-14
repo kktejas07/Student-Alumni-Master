@@ -1638,7 +1638,7 @@ const EMPTY: any = {
     downloads: true, cta: true, registration: true,
   },
   registration: {
-    enabled: true, fee: 0, currency: 'INR', max_seats: 0,
+    enabled: true, fee: 0, currency: 'INR', max_seats: 0, seat_leverage: 0.8,
     deadline: '', payment_note: '', payment_url: '', poster_images: [],
     contact_phones: [],
   },
@@ -2104,6 +2104,11 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                   <View style={{ flex: 1, minWidth: 140 }}>
                     <FieldRow label="Max Seats (0 = unlimited)">
                       <Field value={String((form.registration || {}).max_seats ?? 0)} onChangeText={(v: string) => set('registration', { ...(form.registration || {}), max_seats: Number(v) || 0 })} placeholder="0" />
+                    </FieldRow>
+                  </View>
+                  <View style={{ flex: 1, minWidth: 140 }}>
+                    <FieldRow label="Seat Leverage (0.8 = 20% buffer)" hint="Fraction of registrations that consume seats. 0.8 means only 80% count — gives buffer for no-shows.">
+                      <Field value={String((form.registration || {}).seat_leverage ?? 0.8)} onChangeText={(v: string) => set('registration', { ...(form.registration || {}), seat_leverage: Math.min(1, Math.max(0, Number(v) || 0.8)) })} placeholder="0.8" />
                     </FieldRow>
                   </View>
                 </View>
