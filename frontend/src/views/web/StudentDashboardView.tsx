@@ -29,6 +29,7 @@ import {
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { request } from '@/src/models/services/api';
+import { useScreenAnalytics } from '@/src/analytics';
 import { UserBadgesInline } from './UserBadgesInline';
 import { StudentDashboardMobileView } from './StudentDashboardMobileView';
 import { PredictionTimeline } from './PredictionTimeline';
@@ -218,6 +219,7 @@ export type StudentDashboardViewProps = {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export function StudentDashboardView({ showTopBar = true, onOpenNotifications, onOpenProfile }: StudentDashboardViewProps) {
+  useScreenAnalytics('student_dashboard');
   const { width } = useWindowDimensions();
   const isWide = width >= 980;
   const router = useRouter();

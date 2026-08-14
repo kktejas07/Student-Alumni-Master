@@ -23,6 +23,8 @@ import {
 import { SunsetHero } from '@/src/components/ui/aurora-hero-bg-1';
 
 import { TYPO } from '@/src/views/web/portals/student/tokens';
+import { useScreenAnalytics } from '@/src/analytics';
+import { UnstopEventsShowcase } from '@/src/views/web/components/UnstopEventsShowcase';
 
 /* ── Brand Palette (violet dark) ──────────────────────────────────────── */
 const C = {
@@ -174,6 +176,7 @@ function AnimatedCounter({ target, suffix = '', prefix = '' }: { target: number;
 
 /* ── Main Export ───────────────────────────────────────────────────────── */
 export default function LandingPage() {
+  useScreenAnalytics('landing_page');
   useEffect(() => { if (Platform.OS === 'web') injectKeyframes(); }, []);
   const router = useRouter();
   const { width } = useWindowDimensions();
@@ -185,6 +188,7 @@ export default function LandingPage() {
         <Navbar router={router} desk={desk} />
         <Hero router={router} desk={desk} />
         <MarqueeSection />
+        <UnstopEventsShowcase />
         <StatsSection />
         <DashboardShowcase desk={desk} />
         <FeatureNarratives desk={desk} />
