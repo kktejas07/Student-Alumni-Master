@@ -2279,7 +2279,6 @@ async def get_claude_chat(session_id: str, system_message: str):
                 raise ValueError("Triggering bio fallback logic")
             
             try:
-                import g4f
                 from g4f.client import AsyncClient
                 
                 client = AsyncClient()
