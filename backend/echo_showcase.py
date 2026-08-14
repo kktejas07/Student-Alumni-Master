@@ -2046,6 +2046,60 @@ class AboutCard(BaseModel):
     description: Optional[str] = ""
     color: Optional[str] = None
 
+class SpeakerItem(BaseModel):
+    """A speaker/panelist on the showcase page.
+
+    Mirrors the reference site (echo.studentalumni.ai): a speaker card shows
+    photo, name, position · company, bio, and social links. Panel members are
+    rendered in a distinct 'Panel Members' section.
+    """
+    name: str
+    position: Optional[str] = ""       # e.g. "Chief AI Architect"
+    company: Optional[str] = ""        # e.g. "Google"
+    bio: Optional[str] = ""            # 1-2 line bio
+    photo_url: Optional[str] = None    # square headshot
+    linkedin_url: Optional[str] = None
+    twitter_url: Optional[str] = None
+    website_url: Optional[str] = None
+    is_panel_member: Optional[bool] = False   # True → shows under "Panel Members"
+    session_title: Optional[str] = ""        # keynote/panel/talk this speaker is part of
+    visible: Optional[bool] = True
+    sort_order: Optional[int] = 0
+
+class EventCategoryItem(BaseModel):
+    """One event track/category (e.g. hackathon problem statement category)."""
+    name: str
+    description: Optional[str] = ""
+    icon: Optional[str] = "brain"   # lucide icon key
+    color: Optional[str] = None
+
+class ScheduleItem(BaseModel):
+    """A time-boxed agenda entry on the schedule/timeline."""
+    time: Optional[str] = ""        # e.g. "10:00 AM"
+    title: str
+    description: Optional[str] = ""
+    session_type: Optional[str] = "session"  # keynote | panel | workshop | activity | break
+    speaker_names: Optional[List[str]] = []  # speaker names taking part
+    venue: Optional[str] = ""
+    day: Optional[int] = 1
+
+class PanelItem(BaseModel):
+    """A panel discussion topic + list of panelist names."""
+    topic: str
+    description: Optional[str] = ""
+    panelists: Optional[List[str]] = []
+
+class FaqItem(BaseModel):
+    question: str
+    answer: str
+
+class PrizePoolItem(BaseModel):
+    total: Optional[str] = ""
+    first: Optional[str] = ""
+    second: Optional[str] = ""
+    third: Optional[str] = ""
+    other_prizes: Optional[List[str]] = []
+
 class RegistrationConfig(BaseModel):
     enabled: Optional[bool] = True
     fee: Optional[float] = 0
@@ -2067,6 +2121,11 @@ DEFAULT_SECTIONS = {
     "gallery": True,
     "testimonials": True,
     "timeline": True,
+    "speakers": True,
+    "categories": True,
+    "schedule": True,
+    "panels": True,
+    "faqs": True,
     "partners": True,
     "sponsors": True,
     "videos": True,
@@ -2102,6 +2161,14 @@ class ShowcaseCreateSchema(BaseModel):
     about_cards: Optional[List[AboutCard]] = []
     testimonials: Optional[List[TestimonialItem]] = []
     timeline: Optional[List[TimelineItem]] = []
+    speakers: Optional[List[SpeakerItem]] = []
+    categories: Optional[List[EventCategoryItem]] = []
+    schedule: Optional[List[ScheduleItem]] = []
+    panels: Optional[List[PanelItem]] = []
+    faqs: Optional[List[FaqItem]] = []
+    eligibility: Optional[str] = ""
+    prize_pool: Optional[PrizePoolItem] = None
+    team_composition: Optional[str] = ""
     partners: Optional[List[PartnerItem]] = []
     sponsors: Optional[List[SponsorItem]] = []
     gallery: Optional[List[GalleryItem]] = []
@@ -2148,6 +2215,14 @@ class ShowcaseUpdateSchema(BaseModel):
     about_cards: Optional[List[AboutCard]] = None
     testimonials: Optional[List[TestimonialItem]] = None
     timeline: Optional[List[TimelineItem]] = None
+    speakers: Optional[List[SpeakerItem]] = None
+    categories: Optional[List[EventCategoryItem]] = None
+    schedule: Optional[List[ScheduleItem]] = None
+    panels: Optional[List[PanelItem]] = None
+    faqs: Optional[List[FaqItem]] = None
+    eligibility: Optional[str] = None
+    prize_pool: Optional[PrizePoolItem] = None
+    team_composition: Optional[str] = None
     partners: Optional[List[PartnerItem]] = None
     sponsors: Optional[List[SponsorItem]] = None
     gallery: Optional[List[GalleryItem]] = None
@@ -2215,6 +2290,38 @@ DEFAULT_SHOWCASE_SEED = {
         { "icon": "code", "title": "Hands-on Workshops", "description": "Practical learning and skill-building sessions" },
         { "icon": "network", "title": "Networking Sessions", "description": "Students connected with experts and alumni" }
     ],
+    "speakers": [
+        { "name": "Vijay Raghavan", "position": "Chief AI Architect", "company": "Google", "bio": "Leads large-scale ML systems and has mentored 100+ student teams.", "is_panel_member": True, "session_title": "AI at Scale — Keynote", "sort_order": 0, "visible": True },
+        { "name": "Sneha Reddy", "position": "VP Engineering", "company": "Microsoft", "bio": "Product leader behind developer tooling at Microsoft. Passionate about D&I in tech.", "is_panel_member": True, "session_title": "Careers in AI — Panel", "sort_order": 1, "visible": True },
+        { "name": "Arjun Mehta", "position": "Founder", "company": "BrightFuture Labs", "bio": "Serial entrepreneur building edtech for rural India.", "is_panel_member": False, "session_title": "Entrepreneurship 101", "sort_order": 2, "visible": True },
+        { "name": "Dr. Kavitha Nair", "position": "Professor", "company": "VNR VJIET", "bio": "Researcher in NLP and student mentor for AI-DS program.", "is_panel_member": False, "session_title": "Careers in AI — Panel", "sort_order": 3, "visible": True }
+    ],
+    "categories": [
+        { "name": "Healthcare & MedTech", "description": "Build AI solutions for diagnosis, telemedicine and wellness.", "icon": "heartpulse", "color": "#F43F5E" },
+        { "name": "EdTech & Learning", "description": "Personalised learning, accessibility and exam-prep tools.", "icon": "graduation-cap", "color": "#8B5CF6" },
+        { "name": "Climate & Sustainability", "description": "Track, reduce and offset carbon with smart systems.", "icon": "leaf", "color": "#10B981" },
+        { "name": "FinTech & Inclusion", "description": "Financial literacy, UPI innovation and rural banking.", "icon": "landmark", "color": "#F59E0B" },
+        { "name": "Smart Cities & Mobility", "description": "Traffic, public transport and safer campuses.", "icon": "bus", "color": "#3B82F6" }
+    ],
+    "schedule": [
+        { "time": "09:30 AM", "title": "Registration & Breakfast", "description": "Check-in with QR tickets and grab breakfast.", "session_type": "break", "day": 1 },
+        { "time": "10:00 AM", "title": "Keynote — AI at Scale", "description": "Vijay Raghavan kicks off the day.", "session_type": "keynote", "speaker_names": ["Vijay Raghavan"], "day": 1 },
+        { "time": "11:00 AM", "title": "Panel — Careers in AI", "description": "Industry veterans answer student questions.", "session_type": "panel", "speaker_names": ["Sneha Reddy", "Dr. Kavitha Nair"], "day": 1 },
+        { "time": "12:30 PM", "title": "Hackathon Build Sprint", "description": "Teams build on their problem categories.", "session_type": "workshop", "day": 1 },
+        { "time": "04:00 PM", "title": "Demo & Judging", "description": "Final demos, judging and prize distribution.", "session_type": "activity", "day": 1 }
+    ],
+    "panels": [
+        { "topic": "Careers in AI", "description": "How students can break into AI roles and what companies look for.", "panelists": ["Sneha Reddy", "Dr. Kavitha Nair", "Arjun Mehta"] },
+        { "topic": "From Campus to Company", "description": "Internships, placements and the alumni advantage.", "panelists": ["Vijay Raghavan", "Arjun Mehta"] }
+    ],
+    "faqs": [
+        { "question": "Who can participate?", "answer": "Any student from an affiliated college with a valid student ID. Individual and team (4–5) entries are welcome." },
+        { "question": "Is the event free?", "answer": "Yes — ECHO 2026 is free for college students. Food and certificates are included." },
+        { "question": "Do I need to know AI/ML to attend?", "answer": "No. The keynotes and workshops are beginner-friendly. You can join a team with mixed skills." }
+    ],
+    "eligibility": "Open to all undergrad and postgrad students. Teams of 4–5 encouraged; individual starts welcome.",
+    "prize_pool": { "total": "₹30,000", "first": "₹15,000", "second": "₹10,000", "third": "₹5,000", "other_prizes": ["Internship offers for top 3 teams"] },
+    "team_composition": "4–5 members, at least one member from each of design, coding and presentation.",
     "partners": [
         { "name": "Microsoft", "kind": "association", "logo_url": None },
         { "name": "Google", "kind": "association", "logo_url": None },
