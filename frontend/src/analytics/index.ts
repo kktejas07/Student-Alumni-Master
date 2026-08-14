@@ -15,8 +15,10 @@ import { AnalyticsEvent, ElementId, Primitive, UserTraits } from './types';
 // Export constants & registry
 export { EVENTS, ANALYTICS_IDS };
 
-// Export types
+// Export types & descriptor builder
 export * from './types';
+export { defineElement } from './types';
+export { ALL_ELEMENT_IDS } from './generated/element-ids';
 
 // Export logger helpers
 export { logger, setLogLevel, getLogLevel };

@@ -11,7 +11,8 @@
     "lint": "expo lint",
     "test": "jest",
     "analytics:docs": "npx ts-node scripts/gen-taxonomy.ts",
-    "analytics:check": "npx ts-node scripts/check-analytics.ts"
+    "analytics:check": "npx ts-node scripts/check-analytics.ts",
+    "analytics:build": "npx ts-node scripts/analytics-codegen.ts"
   },
   "jest": {
     "preset": "ts-jest",
