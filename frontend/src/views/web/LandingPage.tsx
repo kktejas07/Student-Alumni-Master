@@ -23,7 +23,7 @@ import {
 import { SunsetHero } from '@/src/components/ui/aurora-hero-bg-1';
 
 import { TYPO } from '@/src/views/web/portals/student/tokens';
-import { useScreenAnalytics } from '@/src/analytics';
+import { useScreenAnalytics, Trackable, ANALYTICS_IDS } from '@/src/analytics';
 import { UnstopEventsShowcase } from '@/src/views/web/components/UnstopEventsShowcase';
 
 /* ── Brand Palette (violet dark) ──────────────────────────────────────── */
@@ -212,26 +212,34 @@ function Navbar({ router, desk }: { router: any; desk: boolean }) {
   return (
     <View style={[nb.bar, sc && nb.barSc]}>
       <View style={nb.in}>
-        <Pressable onPress={() => router.push('/')} style={nb.br}>
-          <Image source={require('@/assets/images/sa-icon.png')} style={{ width: 22, height: 22 }} resizeMode="contain" />
-          <Text style={nb.brT}>Student<span style={{ color: C.primary }}>Alumni</span></Text>
-        </Pressable>
+        <Trackable id={ANALYTICS_IDS.global.sidebar.link.item} label="Brand Home" onPress={() => router.push('/')}>
+          <Pressable style={nb.br}>
+            <Image source={require('@/assets/images/sa-icon.png')} style={{ width: 22, height: 22 }} resizeMode="contain" />
+            <Text style={nb.brT}>Student<span style={{ color: C.primary }}>Alumni</span></Text>
+          </Pressable>
+        </Trackable>
         {desk && (
           <View style={nb.lk}>
             {['Platform', 'For Students', 'For Alumni'].map((l, i) => (
-              <Pressable key={l} onPress={() => {
-                if (l === 'Platform') router.push('/platform');
-                else if (l === 'For Students') router.push('/get-started');
-                else if (l === 'For Alumni') router.push('/alumni-portal');
-              }} style={({ hovered }: any) => [nb.lkI, hovered && { backgroundColor: C.primaryS }]}>
-                <Text style={[nb.lkT, { color: i === 0 ? C.primary : C.text2 }]}>{l}</Text>
-              </Pressable>
+              <Trackable key={l} id={ANALYTICS_IDS.global.sidebar.link.item} label={l} props={{ nav_target: l }}>
+                <Pressable onPress={() => {
+                  if (l === 'Platform') router.push('/platform');
+                  else if (l === 'For Students') router.push('/get-started');
+                  else if (l === 'For Alumni') router.push('/alumni-portal');
+                }} style={({ hovered }: any) => [nb.lkI, hovered && { backgroundColor: C.primaryS }]}>
+                  <Text style={[nb.lkT, { color: i === 0 ? C.primary : C.text2 }]}>{l}</Text>
+                </Pressable>
+              </Trackable>
             ))}
           </View>
         )}
         <View style={nb.ct}>
-          <Pressable onPress={() => router.push('/login')} style={({ hovered }: any) => [nb.si, hovered && { backgroundColor: C.primaryS }]}><Text style={nb.siT}>Sign in</Text></Pressable>
-          <Pressable onPress={() => router.push('/register')} style={({ hovered }: any) => [nb.cta, hovered && { backgroundColor: C.primaryD }]}><Text style={nb.ctaT}>Get started</Text></Pressable>
+          <Trackable id={ANALYTICS_IDS.auth.login.btn.submit} label="Sign in" onPress={() => router.push('/login')}>
+            <Pressable style={({ hovered }: any) => [nb.si, hovered && { backgroundColor: C.primaryS }]}><Text style={nb.siT}>Sign in</Text></Pressable>
+          </Trackable>
+          <Trackable id={ANALYTICS_IDS.marketing.home.btn.heroCta} label="Get started" onPress={() => router.push('/register')}>
+            <Pressable style={({ hovered }: any) => [nb.cta, hovered && { backgroundColor: C.primaryD }]}><Text style={nb.ctaT}>Get started</Text></Pressable>
+          </Trackable>
         </View>
       </View>
     </View>
@@ -286,13 +294,17 @@ function Hero({ router, desk }: { router: any; desk: boolean }) {
 
           <View style={{ alignSelf: desk ? 'auto' : 'center' }}>
             <View style={[hro.cr, { alignSelf: desk ? 'auto' : 'center' }]}>
-              <Pressable onPress={() => router.push('/register')} style={({ hovered }: any) => [{ paddingHorizontal: 24, paddingVertical: 13, borderRadius: 10, backgroundColor: C.primary, flexDirection: 'row', alignItems: 'center', gap: 6 }, hovered && { backgroundColor: C.primaryD, transform: [{ translateY: -1 }] as any }]}>
-                <Text style={{ color: '#fff', fontFamily: TYPO.body700, fontSize: 14 }}>Start free</Text>
-                <ArrowUpRight size={14} color="#fff" />
-              </Pressable>
-              <Pressable onPress={() => router.push('/login')} style={({ hovered }: any) => [{ paddingHorizontal: 22, paddingVertical: 13, borderRadius: 10, borderWidth: 1, borderColor: C.border }, hovered && { borderColor: C.borderH, backgroundColor: C.primaryS }]}>
-                <Text style={{ color: C.text2, fontFamily: TYPO.body600, fontSize: 13 }}>Sign in</Text>
-              </Pressable>
+              <Trackable id={ANALYTICS_IDS.marketing.home.btn.heroCta} label="Start free" props={{ cta_variant: 'hero_primary' }} onPress={() => router.push('/register')}>
+                <Pressable style={({ hovered }: any) => [{ paddingHorizontal: 24, paddingVertical: 13, borderRadius: 10, backgroundColor: C.primary, flexDirection: 'row', alignItems: 'center', gap: 6 }, hovered && { backgroundColor: C.primaryD, transform: [{ translateY: -1 }] as any }]}>
+                  <Text style={{ color: '#fff', fontFamily: TYPO.body700, fontSize: 14 }}>Start free</Text>
+                  <ArrowUpRight size={14} color="#fff" />
+                </Pressable>
+              </Trackable>
+              <Trackable id={ANALYTICS_IDS.auth.login.btn.submit} label="Sign in" props={{ cta_variant: 'hero_secondary' }} onPress={() => router.push('/login')}>
+                <Pressable style={({ hovered }: any) => [{ paddingHorizontal: 22, paddingVertical: 13, borderRadius: 10, borderWidth: 1, borderColor: C.border }, hovered && { borderColor: C.borderH, backgroundColor: C.primaryS }]}>
+                  <Text style={{ color: C.text2, fontFamily: TYPO.body600, fontSize: 13 }}>Sign in</Text>
+                </Pressable>
+              </Trackable>
             </View>
           </View>
 

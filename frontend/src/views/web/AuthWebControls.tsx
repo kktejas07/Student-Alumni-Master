@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { Colors as C } from '@/src/theme';
 import { useRoleTheme } from '@/src/views/auth/RoleTheme';
+import { Trackable, ANALYTICS_IDS } from '@/src/analytics';
 
 // ─── Field ───────────────────────────────────────────────────────────────────
 export function WebField({
@@ -95,21 +96,22 @@ export function WebPrimaryBtn({
   // Pull role-specific gradient colors from RoleThemeContext when available.
   const { primary, primaryL } = useRoleTheme();
   return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled || loading}
-      testID={testID}
-      style={({ hovered, pressed }: any) => [
-        controlStyles.primary,
-        { backgroundColor: primary, boxShadow: `0px 8px 18px ${primary}66` },
-        hovered && { backgroundColor: primaryL, transform: [{ translateY: -1 }], boxShadow: `0px 8px 22px ${primary}88` },
-        pressed && { transform: [{ scale: 0.985 }] },
-        (disabled || loading) && { opacity: 0.55 },
-        style,
-      ]}
-    >
-      <Text style={controlStyles.primaryText}>{loading ? 'Working…' : label}</Text>
-    </Pressable>
+    <Trackable id={ANALYTICS_IDS.auth.login.btn.submit} label={label} disabled={disabled || loading} onPress={onPress}>
+      <Pressable
+        disabled={disabled || loading}
+        testID={testID}
+        style={({ hovered, pressed }: any) => [
+          controlStyles.primary,
+          { backgroundColor: primary, boxShadow: `0px 8px 18px ${primary}66` },
+          hovered && { backgroundColor: primaryL, transform: [{ translateY: -1 }], boxShadow: `0px 8px 22px ${primary}88` },
+          pressed && { transform: [{ scale: 0.985 }] },
+          (disabled || loading) && { opacity: 0.55 },
+          style,
+        ]}
+      >
+        <Text style={controlStyles.primaryText}>{loading ? 'Working…' : label}</Text>
+      </Pressable>
+    </Trackable>
   );
 }
 
@@ -126,21 +128,22 @@ export function WebGhostBtn({
   loading?: boolean;
 }) {
   return (
-    <Pressable
-      onPress={onPress}
-      testID={testID}
-      disabled={disabled || loading}
-      style={({ hovered, pressed }: any) => [
-        controlStyles.ghost,
-        hovered && !disabled && !loading && controlStyles.ghostHover,
-        pressed && !disabled && !loading && { transform: [{ scale: 0.985 }] },
-        (disabled || loading) && { opacity: 0.5 },
-        style,
-      ]}
-    >
+    <Trackable id={ANALYTICS_IDS.auth.login.btn.sso} label={label} disabled={disabled || loading} onPress={onPress}>
+      <Pressable
+        testID={testID}
+        disabled={disabled || loading}
+        style={({ hovered, pressed }: any) => [
+          controlStyles.ghost,
+          hovered && !disabled && !loading && controlStyles.ghostHover,
+          pressed && !disabled && !loading && { transform: [{ scale: 0.985 }] },
+          (disabled || loading) && { opacity: 0.5 },
+          style,
+        ]}
+      >
       {leftIcon ? <View>{leftIcon}</View> : null}
       <Text style={controlStyles.ghostText}>{loading ? 'Working...' : label}</Text>
     </Pressable>
+    </Trackable>
   );
 }
 
