@@ -2426,7 +2426,7 @@ async def seed_echo_showcase(db: AsyncIOMotorDatabase):
 async def list_showcases(request: Request):
     db = _get_db(request)
     docs = await db.echo_showcases.find(
-        {"status": "published"},
+        {"status": "published", "source": {"$ne": "unstop"}},
         {"gallery": 0, "testimonials": 0, "timeline": 0}
     ).sort("date", -1).to_list(100)
 
