@@ -33,6 +33,9 @@ from typing import Any, Dict, List, Optional
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, Request, File, UploadFile, Query
 from motor.motor_asyncio import AsyncIOMotorDatabase
+import logging
+
+logger = logging.getLogger("studentalumni.echo_showcase")
 from pydantic import BaseModel, Field, field_validator
 
 from core.security import (
@@ -51,10 +54,13 @@ router = APIRouter(prefix="/api/echo", tags=["echo-showcase"])
 async def sync_unstop_opportunities():
     """Scrape and sync live hackathons, workshops, quizzes, and competitions from Unstop into ECHO showcases."""
     try:
+        logger.info("⚡ [UNSTOP SYNC] Manual trigger received. Scraping opportunities from Unstop...")
         from scripts.scrape_unstop_events import run_unstop_sync
         count = await run_unstop_sync()
+        logger.info(f"✨ [UNSTOP SYNC] Successfully synced {count} opportunities into DB.")
         return {"status": "success", "synced_count": count, "message": f"Successfully synced {count} opportunities from Unstop"}
     except Exception as e:
+        logger.error(f"💥 [UNSTOP SYNC ERROR] {str(e)}")
         raise HTTPException(status_code=500, detail=f"Unstop sync failed: {str(e)}")
 
 
