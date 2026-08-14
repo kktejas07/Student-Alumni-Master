@@ -43,7 +43,10 @@ async def _resolve_config(db=None) -> Dict[str, Any]:
             by_key = {s.get("key"): s.get("value") for s in settings}
             if not property_id:
                 property_id = (by_key.get("ga4_property_id") or "").strip()
-            sa_json = (by_key.get("firebase_service_account") or "").strip()
+            # Prefer dedicated GA4 service account; fall back to Firebase service account
+            sa_json = (by_key.get("ga4_service_account_json") or "").strip()
+            if not sa_json:
+                sa_json = (by_key.get("firebase_service_account") or "").strip()
     # Allow a full credentials JSON too
     if not sa_json and property_id:
         # Nothing extra; ADC / GOOGLE_APPLICATION_CREDENTIALS will be used by the SDK.
