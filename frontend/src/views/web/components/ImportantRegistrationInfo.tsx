@@ -10,6 +10,13 @@ function normalizePhoneForDialer(raw: string): string {
   return digits;
 }
 
+const DEFAULT_PHONES = [
+  '91214 95077',
+  '84669 65800',
+  '+91 6281 083 332',
+  '+91 63001 97713',
+];
+
 export function ImportantRegistrationInfo({ phones = [] }: { phones?: string[] }) {
   const { width } = useWindowDimensions();
   const isMobile = width < 500;
@@ -18,7 +25,8 @@ export function ImportantRegistrationInfo({ phones = [] }: { phones?: string[] }
     Linking.openURL(`tel:${normalizePhoneForDialer(number)}`);
   };
 
-  const validPhones = phones.filter((p) => p.trim().length > 0);
+  const rawPhones = phones && phones.length > 0 ? phones : DEFAULT_PHONES;
+  const validPhones = rawPhones.filter((p) => p && p.trim().length > 0);
 
   return (
     <View style={s.container}>
