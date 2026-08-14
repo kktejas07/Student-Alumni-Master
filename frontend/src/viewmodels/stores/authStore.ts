@@ -49,14 +49,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const token = await tokenStore.getAccess();
       if (token) {
         // eslint-disable-next-line no-console
-        console.log('🔑 [AUTH DEBUG] Access token restored from storage. Fetching profile...');
+        if (process.env.NODE_ENV !== 'production') console.log('🔑 [AUTH DEBUG] Access token restored from storage. Fetching profile...');
         const user = await api.me();
         // eslint-disable-next-line no-console
-        console.log(`🔑 [AUTH DEBUG] Auth initialized. User: ${user?.full_name} (${user?.role})`);
+        if (process.env.NODE_ENV !== 'production') console.log(`🔑 [AUTH DEBUG] Auth initialized. User: ${user?.full_name} (${user?.role})`);
         set({ user, initialized: true, loading: false });
       } else {
         // eslint-disable-next-line no-console
-        console.log('🔑 [AUTH DEBUG] No stored access token found. Guest mode.');
+        if (process.env.NODE_ENV !== 'production') console.log('🔑 [AUTH DEBUG] No stored access token found. Guest mode.');
         set({ initialized: true, loading: false });
       }
     } catch {
@@ -70,13 +70,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   login: async (email, password) => {
     set({ loading: true, error: null });
     // eslint-disable-next-line no-console
-    console.log(`🔑 [AUTH DEBUG] Attempting login for ${email}...`);
+    if (process.env.NODE_ENV !== 'production') console.log(`🔑 [AUTH DEBUG] Attempting login for ${email}...`);
     try {
       const res = await api.login(email, password);
       // 2FA challenge — caller must navigate to /two-fa-challenge
       if (res?.requires_2fa) {
         // eslint-disable-next-line no-console
-        console.log(`🔑 [AUTH DEBUG] 2FA required for ${email}. Challenge ID: ${res.challenge_id}`);
+        if (process.env.NODE_ENV !== 'production') console.log(`🔑 [AUTH DEBUG] 2FA required for ${email}. Challenge ID: ${res.challenge_id}`);
         set({ loading: false });
         return {
           ok: false,
@@ -88,7 +88,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
       await tokenStore.setTokens(res.access_token, res.refresh_token);
       // eslint-disable-next-line no-console
-      console.log(`🔑 [AUTH DEBUG] Login successful. Welcome ${res.user?.full_name}!`);
+      if (process.env.NODE_ENV !== 'production') console.log(`🔑 [AUTH DEBUG] Login successful. Welcome ${res.user?.full_name}!`);
       set({ user: res.user, loading: false });
       return { ok: true, user: res.user };
     } catch (e: any) {
