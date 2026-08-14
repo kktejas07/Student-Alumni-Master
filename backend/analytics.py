@@ -23,6 +23,20 @@ def _iso_day(dt: datetime) -> str:
     return dt.date().isoformat()
 
 
+def _iso(ts) -> str:
+    """Normalize a timestamp (datetime | str | None) to ISO string for feeds."""
+    if ts is None:
+        return ""
+    if isinstance(ts, str):
+        try:
+            return datetime.fromisoformat(ts.replace("Z", "+00:00")).isoformat()
+        except ValueError:
+            return ts
+    if isinstance(ts, datetime):
+        return ts.isoformat()
+    return str(ts)
+
+
 def _last_n_days(n: int) -> List[str]:
     today = datetime.now(timezone.utc).date()
     return [(today - timedelta(days=i)).isoformat() for i in range(n - 1, -1, -1)]
@@ -512,21 +526,21 @@ async def super_admin_full_analytics(db) -> Dict[str, Any]:
             "type": "signup",
             "title": f"{u.get('full_name') or 'User'} joined as {u.get('role', 'user')}",
             "subtitle": "",
-            "timestamp": (u.get("created_at") or now).isoformat(),
+            "timestamp": _iso(u.get("created_at") or now),
         })
     async for b in db.bookings.find({}).sort("created_at", -1).limit(5):
         recent_activity.append({
             "type": "booking",
             "title": f"New booking: {b.get('topic', 'Mentoring')}",
             "subtitle": b.get("status", ""),
-            "timestamp": (b.get("created_at") or now).isoformat(),
+            "timestamp": _iso(b.get("created_at") or now),
         })
     async for r in db.echo_registrations.find({}).sort("created_at", -1).limit(5):
         recent_activity.append({
             "type": "echo_reg",
             "title": f"Echo registration: {r.get('full_name', 'Attendee')}",
             "subtitle": r.get("showcase_title", ""),
-            "timestamp": (r.get("created_at") or now).isoformat(),
+            "timestamp": _iso(r.get("created_at") or now),
         })
     recent_activity.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
     recent_activity = recent_activity[:15]
