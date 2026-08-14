@@ -369,6 +369,8 @@ async def sweep_expired_echo_payments(db) -> dict:
             result["checked"] += 1
             created_raw = (reg.get("payment_order") or {}).get("created_at") or reg.get("created_at")
             created = _parse_iso(created_raw) if created_raw else now
+            if created is None:
+                created = now
             age_seconds = (now - created).total_seconds()
             reg_id = reg.get("id")
 
@@ -1844,7 +1846,7 @@ async def _store_invoice_and_email(db, reg: dict, showcase: Optional[dict], coup
             # 3) Ticket/Entry Pass PDF
             reg = reg  # already defined above
             ticket_url = f"https://studentalumni.ai/api/echo/tickets/{inv_ser.get('reg_id', '')}?email={urllib.parse.quote(email)}"
-            ticket_html = _ticket_email_block(reg, showcase, ticket_url)
+            ticket_html = _ticket_email_block(reg, showcase or {}, ticket_url)
             ticket_pdf = await generate_pdf_from_html(ticket_html)
             if ticket_pdf:
                 attachments.append({"filename": f"EntryPass-{inv_no}.pdf", "content": ticket_pdf})
@@ -2262,8 +2264,8 @@ DEFAULT_SHOWCASE_SEED = {
         "contact_phones": [
             "91214 95077",
             "84669 65800",
-            "+91 96527 14339",
-            "+91 83416 97598"
+            "+91 6281 083 332",
+            "+91 63001 97713"
         ],
     },
     "created_at": _now(),
@@ -2277,7 +2279,7 @@ async def seed_echo_showcase(db: AsyncIOMotorDatabase):
     try:
         seed_slug = str(DEFAULT_SHOWCASE_SEED.get("slug") or "vnr-echo-2026")
         seed_aliases = DEFAULT_SHOWCASE_SEED.get("aliases") or []
-        existing = await db.echo_showcases.find_one(_slug_query(str(seed_slug or "")))
+        existing = await db.echo_showcases.find_one(_slug_query(seed_slug or ""))
         if not existing and seed_aliases:
             existing = await db.echo_showcases.find_one(
                 {"aliases": {"$in": seed_aliases}}
@@ -3283,7 +3285,7 @@ async def admin_echo_registrations(
         s = _ser(r)
         payment = s.get("payment") or {}
         paid = payment.get("status") == "paid" and s.get("status") == "registered"
-        rid = s.get("id")
+        rid = str(s.get("id") or "")
         inv_rec = invoice_map.get(rid) or {}
         items.append({
             "id": s.get("id"),
