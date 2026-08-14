@@ -40,14 +40,14 @@ ENV EXPO_PUBLIC_BACKEND_URL=${EXPO_PUBLIC_BACKEND_URL} \
     EXPO_PUBLIC_POSTHOG_HOST=${EXPO_PUBLIC_POSTHOG_HOST} \
     EXPO_PUBLIC_ANALYTICS_ENABLED=${EXPO_PUBLIC_ANALYTICS_ENABLED} \
     CI=1 \
-    NODE_OPTIONS="--max-old-space-size=4096"
+    NODE_OPTIONS="--max-old-space-size=8192"
 
 WORKDIR /app
 
 RUN apk add --no-cache git python3 make g++ libc6-compat bash
 
 COPY package.json yarn.lock* ./
-RUN if [ -f yarn.lock ]; then yarn install --network-timeout 600000; \
+RUN if [ -f yarn.lock ]; then yarn install --network-timeout 600000 --ignore-engines; \
     else npm install --no-audit --no-fund; fi
 
 COPY . .
