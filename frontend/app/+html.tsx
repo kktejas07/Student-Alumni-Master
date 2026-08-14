@@ -58,6 +58,9 @@ export default function Root({ children }: PropsWithChildren) {
         <link rel="icon" href="/favicon.png" type="image/png" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON_LD }} />
+        {/* ========================================== */}
+        {/* 1. GOOGLE ANALYTICS (GA4)                   */}
+        {/* ========================================== */}
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-GTPG1F884T"></script>
         <script
           dangerouslySetInnerHTML={{
@@ -66,6 +69,23 @@ export default function Root({ children }: PropsWithChildren) {
               function gtag(){dataLayer.push(arguments);}
               gtag('js', new Date());
               gtag('config', 'G-GTPG1F884T');
+            `,
+          }}
+        />
+
+        {/* ========================================== */}
+        {/* 2. POSTHOG ANALYTICS (AUTOCAPTURE & REPLAY) */}
+        {/* ========================================== */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}var w=e;for(void 0!==a?w=e[a]=[]:a="posthog",w.people=w.people||[],w.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},w.people.toString=function(){return w.toString(1)+".people (stub)"},p="capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group identify_group setGroupProperties setGroupPropertiesOnce unregister_group set_config".split(" "),r=0;r<p.length;r++)g(w,p[r]);e._i.push([i,s,a])},e.__SV=1.0,(o=t.createElement("script")).type="text/javascript",o.async=!0,o.src="https://us-assets.i.posthog.com/static/array.js",(n=t.getElementsByTagName("script")[0]).parentNode.insertBefore(o,n))}(document,window.posthog||[]);
+              posthog.init('phc_ubQxwhfxGuzrEu5trKWiMgtADhR2RYKgZxT3SceDdWJG', {
+                api_host: 'https://us.i.posthog.com',
+                person_profiles: 'identified_only',
+                autocapture: true,
+                capture_pageview: true
+              });
             `,
           }}
         />
