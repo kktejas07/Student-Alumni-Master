@@ -1,39 +1,25 @@
 """
 Firebase Analytics Data API integration.
 Queries GA4 for real-time, historical, and behavioral analytics data.
-Requires: google-analytics-data package, Firebase service account, GA4 Property ID.
+
+Requires: google-analytics-data package, a GA4 property ID, and a Google
+service account (or GOOGLE_APPLICATION_CREDENTIALS / Application Default
+Credentials).
+
+Config resolution (highest priority first):
+  1. Env: FIREBASE_ANALYTICS_PROPERTY_ID + GOOGLE_APPLICATION_CREDENTIALS
+  2. platform_controls system_settings:
+       ga4_property_id            → GA4 property ID
+       firebase_service_account   → service account JSON (built into a client)
 """
 import os
+import json
 import logging
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
-PROPERTY_ID = os.environ.get("FIREBASE_ANALYTICS_PROPERTY_ID", "")
-
-
-def _client():
-    """Lazy-init the GA4 Data API client."""
-    try:
-        from google.analytics.data_v1beta import BetaAnalyticsDataClient
-        from google.analytics.data_v1beta.types import (
-            RunReportRequest, DateRange, Dimension, Metric,
-            OrderBy, FilterExpression, Filter, RunRealtimeReportRequest,
-        )
-        if PROPERTY_ID:
-            client = BetaAnalyticsDataClient()
-            return client, RunReportRequest, RunRealtimeReportRequest, DateRange, Dimension, Metric, OrderBy, FilterExpression, Filter
-    except Exception as e:
-        logger.warning(f"Firebase Analytics not available: {e}")
-    return None
-
-
-def _pid() -> str:
-    pid = PROPERTY_ID.strip()
-    if not pid:
-        return ""
-    return pid if pid.startswith("properties/") else f"properties/{pid}"
+_ENV_PROPERTY_ID = os.environ.get("FIREBASE_ANALYTICS_PROPERTY_ID", "")
 
 
 def _date_range(days: int):
@@ -43,14 +29,76 @@ def _date_range(days: int):
     return start, end
 
 
+async def _resolve_config(db=None) -> Dict[str, Any]:
+    """Resolve (property_id, service_account_json) from env then db settings."""
+    property_id = _ENV_PROPERTY_ID.strip()
+    sa_json = ""
+    if db is not None:
+        try:
+            doc = await db.platform_controls.find_one({"_id": "singleton"})
+        except Exception:
+            doc = None
+        if doc:
+            settings = doc.get("system_settings") or []
+            by_key = {s.get("key"): s.get("value") for s in settings}
+            if not property_id:
+                property_id = (by_key.get("ga4_property_id") or "").strip()
+            sa_json = (by_key.get("firebase_service_account") or "").strip()
+    # Allow a full credentials JSON too
+    if not sa_json and property_id:
+        # Nothing extra; ADC / GOOGLE_APPLICATION_CREDENTIALS will be used by the SDK.
+        pass
+    return {"property_id": property_id, "service_account_json": sa_json}
+
+
+def _build_client(property_id: str, sa_json: str):
+    """Build a BetaAnalyticsDataClient, preferring explicit service account JSON."""
+    from google.analytics.data_v1beta import BetaAnalyticsDataClient
+
+    if sa_json.strip():
+        try:
+            from google.oauth2 import service_account
+            info = json.loads(sa_json)
+            scopes = ["https://www.googleapis.com/auth/analytics.readonly"]
+            creds = service_account.Credentials.from_service_account_info(info, scopes=scopes)
+            return BetaAnalyticsDataClient(credentials=creds)
+        except Exception as e:
+            logger.warning(f"Failed to build GA4 client from service account JSON: {e}")
+    return BetaAnalyticsDataClient()
+
+
+async def _client(db=None):
+    """Lazy-init the GA4 Data API client using db-resolved config."""
+    try:
+        from google.analytics.data_v1beta.types import (
+            RunReportRequest, DateRange, Dimension, Metric,
+            OrderBy, FilterExpression, Filter, RunRealtimeReportRequest,
+        )
+        cfg = await _resolve_config(db)
+        if not cfg["property_id"]:
+            return None
+        client = _build_client(cfg["property_id"], cfg["service_account_json"])
+        return client, RunReportRequest, RunRealtimeReportRequest, DateRange, Dimension, Metric, OrderBy, FilterExpression, Filter, cfg["property_id"]
+    except Exception as e:
+        logger.warning(f"Firebase Analytics not available: {e}")
+    return None
+
+
+def _pid(property_id: str) -> str:
+    pid = (property_id or "").strip()
+    if not pid:
+        return ""
+    return pid if pid.startswith("properties/") else f"properties/{pid}"
+
+
 # ── Real-time ────────────────────────────────────────────────────────────────
 
-async def get_realtime_active_users() -> Dict[str, Any]:
-    result = _client()
+async def get_realtime_active_users(db=None) -> Dict[str, Any]:
+    result = await _client(db)
     if not result:
         return {"active_users": 0, "configured": False}
-    client, _, RTReq, _, Dim, Met, _, _, _ = result
-    p = _pid()
+    client, _, RTReq, _, Dim, Met, _, _, _, prop = result
+    p = _pid(prop)
     if not p:
         return {"active_users": 0, "configured": False}
     try:
@@ -65,12 +113,12 @@ async def get_realtime_active_users() -> Dict[str, Any]:
 
 # ── Page Views & Screen Views ────────────────────────────────────────────────
 
-async def get_page_views(days: int = 30) -> Dict[str, Any]:
-    result = _client()
+async def get_page_views(days: int = 30, db=None) -> Dict[str, Any]:
+    result = await _client(db)
     if not result:
         return {"pages": [], "configured": False}
-    client, Req, _, DR, Dim, Met, OB, _, _ = result
-    p = _pid()
+    client, Req, _, DR, Dim, Met, OB, _, _, prop = result
+    p = _pid(prop)
     if not p:
         return {"pages": [], "configured": False}
     try:
@@ -92,12 +140,12 @@ async def get_page_views(days: int = 30) -> Dict[str, Any]:
 
 # ── Session Duration ─────────────────────────────────────────────────────────
 
-async def get_session_duration(days: int = 30) -> Dict[str, Any]:
-    result = _client()
+async def get_session_duration(days: int = 30, db=None) -> Dict[str, Any]:
+    result = await _client(db)
     if not result:
         return {"avg_duration_sec": 0, "total_sessions": 0, "configured": False}
-    client, Req, _, DR, Dim, Met, _, _, _ = result
-    p = _pid()
+    client, Req, _, DR, Dim, Met, _, _, _, prop = result
+    p = _pid(prop)
     if not p:
         return {"avg_duration_sec": 0, "total_sessions": 0, "configured": False}
     try:
@@ -121,13 +169,13 @@ async def get_session_duration(days: int = 30) -> Dict[str, Any]:
 
 # ── Active Hours (hourly breakdown) ──────────────────────────────────────────
 
-async def get_active_hours(days: int = 7) -> Dict[str, Any]:
+async def get_active_hours(days: int = 7, db=None) -> Dict[str, Any]:
     """Get hourly activity breakdown for heat map visualization."""
-    result = _client()
+    result = await _client(db)
     if not result:
         return {"hours": [], "configured": False}
-    client, Req, _, DR, Dim, Met, OB, _, _ = result
-    p = _pid()
+    client, Req, _, DR, Dim, Met, OB, _, _, prop = result
+    p = _pid(prop)
     if not p:
         return {"hours": [], "configured": False}
     try:
@@ -151,18 +199,17 @@ async def get_active_hours(days: int = 7) -> Dict[str, Any]:
 
 # ── User Retention ───────────────────────────────────────────────────────────
 
-async def get_retention(days: int = 30) -> Dict[str, Any]:
+async def get_retention(days: int = 30, db=None) -> Dict[str, Any]:
     """Get user retention cohorts from GA4."""
-    result = _client()
+    result = await _client(db)
     if not result:
         return {"cohorts": [], "configured": False}
-    client, Req, _, DR, Dim, Met, OB, _, _ = result
-    p = _pid()
+    client, Req, _, DR, Dim, Met, OB, _, _, prop = result
+    p = _pid(prop)
     if not p:
         return {"cohorts": [], "configured": False}
     try:
         s, e = _date_range(days)
-        # Weekly retention cohorts
         req = Req(
             property=p, date_ranges=[DR(start_date=s, end_date=e)],
             dimensions=[Dim(name="cohort"), Dim(name="cohortWeek")],
@@ -185,18 +232,17 @@ async def get_retention(days: int = 30) -> Dict[str, Any]:
 
 # ── User Demographics ────────────────────────────────────────────────────────
 
-async def get_demographics(days: int = 30) -> Dict[str, Any]:
-    """Get user demographics (country, city, device, browser, OS) from GA4."""
-    result = _client()
+async def get_demographics(days: int = 30, db=None) -> Dict[str, Any]:
+    """Get user demographics (country, city) from GA4."""
+    result = await _client(db)
     if not result:
         return {"countries": [], "cities": [], "configured": False}
-    client, Req, _, DR, Dim, Met, OB, _, _ = result
-    p = _pid()
+    client, Req, _, DR, Dim, Met, OB, _, _, prop = result
+    p = _pid(prop)
     if not p:
         return {"countries": [], "cities": [], "configured": False}
     try:
         s, e = _date_range(days)
-        # Countries
         country_req = Req(
             property=p, date_ranges=[DR(start_date=s, end_date=e)],
             dimensions=[Dim(name="country")],
@@ -206,7 +252,6 @@ async def get_demographics(days: int = 30) -> Dict[str, Any]:
         )
         country_resp = client.run_report(country_req)
         countries = [{"country": r.dimension_values[0].value, "count": int(r.metric_values[0].value)} for r in country_resp.rows]
-        # Cities
         city_req = Req(
             property=p, date_ranges=[DR(start_date=s, end_date=e)],
             dimensions=[Dim(name="city"), Dim(name="country")],
@@ -224,12 +269,12 @@ async def get_demographics(days: int = 30) -> Dict[str, Any]:
 
 # ── Device / Browser / OS Breakdown ──────────────────────────────────────────
 
-async def get_device_data(days: int = 30) -> Dict[str, Any]:
-    result = _client()
+async def get_device_data(days: int = 30, db=None) -> Dict[str, Any]:
+    result = await _client(db)
     if not result:
         return {"by_os": [], "by_browser": [], "by_device": [], "configured": False}
-    client, Req, _, DR, Dim, Met, OB, _, _ = result
-    p = _pid()
+    client, Req, _, DR, Dim, Met, OB, _, _, prop = result
+    p = _pid(prop)
     if not p:
         return {"by_os": [], "by_browser": [], "by_device": [], "configured": False}
     try:
@@ -255,12 +300,12 @@ async def get_device_data(days: int = 30) -> Dict[str, Any]:
 
 # ── Acquisition Sources ──────────────────────────────────────────────────────
 
-async def get_acquisition(days: int = 30) -> Dict[str, Any]:
-    result = _client()
+async def get_acquisition(days: int = 30, db=None) -> Dict[str, Any]:
+    result = await _client(db)
     if not result:
         return {"sources": [], "configured": False}
-    client, Req, _, DR, Dim, Met, OB, _, _ = result
-    p = _pid()
+    client, Req, _, DR, Dim, Met, OB, _, _, prop = result
+    p = _pid(prop)
     if not p:
         return {"sources": [], "configured": False}
     try:
@@ -282,12 +327,12 @@ async def get_acquisition(days: int = 30) -> Dict[str, Any]:
 
 # ── Daily Active Users Time Series ───────────────────────────────────────────
 
-async def get_daily_active_users(days: int = 30) -> Dict[str, Any]:
-    result = _client()
+async def get_daily_active_users(days: int = 30, db=None) -> Dict[str, Any]:
+    result = await _client(db)
     if not result:
         return {"series": [], "configured": False}
-    client, Req, _, DR, Dim, Met, OB, _, _ = result
-    p = _pid()
+    client, Req, _, DR, Dim, Met, OB, _, _, prop = result
+    p = _pid(prop)
     if not p:
         return {"series": [], "configured": False}
     try:
@@ -311,12 +356,12 @@ async def get_daily_active_users(days: int = 30) -> Dict[str, Any]:
 
 # ── Bounce Rate & Engagement ─────────────────────────────────────────────────
 
-async def get_engagement_metrics(days: int = 30) -> Dict[str, Any]:
-    result = _client()
+async def get_engagement_metrics(days: int = 30, db=None) -> Dict[str, Any]:
+    result = await _client(db)
     if not result:
         return {"bounce_rate": 0, "engagement_rate": 0, "views_per_session": 0, "configured": False}
-    client, Req, _, DR, Dim, Met, _, _, _ = result
-    p = _pid()
+    client, Req, _, DR, Dim, Met, _, _, _, prop = result
+    p = _pid(prop)
     if not p:
         return {"bounce_rate": 0, "engagement_rate": 0, "views_per_session": 0, "configured": False}
     try:
