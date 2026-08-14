@@ -1,6 +1,6 @@
 """
 Firebase Analytics Data API integration.
-Queries GA4 for real-time and historical analytics data.
+Queries GA4 for real-time, historical, and behavioral analytics data.
 Requires: google-analytics-data package, Firebase service account, GA4 Property ID.
 """
 import os
@@ -11,7 +11,6 @@ from typing import Any, Dict, List, Optional
 logger = logging.getLogger(__name__)
 
 PROPERTY_ID = os.environ.get("FIREBASE_ANALYTICS_PROPERTY_ID", "")
-CREDS_PATH = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "")
 
 
 def _client():
@@ -30,202 +29,315 @@ def _client():
     return None
 
 
-def _parse_property_id() -> str:
-    """Normalize property ID to 'properties/XXXX' format."""
+def _pid() -> str:
     pid = PROPERTY_ID.strip()
     if not pid:
         return ""
-    if not pid.startswith("properties/"):
-        pid = f"properties/{pid}"
-    return pid
+    return pid if pid.startswith("properties/") else f"properties/{pid}"
 
+
+def _date_range(days: int):
+    from datetime import datetime, timedelta, timezone
+    end = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    start = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
+    return start, end
+
+
+# ── Real-time ────────────────────────────────────────────────────────────────
 
 async def get_realtime_active_users() -> Dict[str, Any]:
-    """Get real-time active users from GA4."""
     result = _client()
     if not result:
         return {"active_users": 0, "configured": False}
-    client, RunRealtimeReportRequest, _, _, Dimension, Metric, _, _, _ = result
-    pid = _parse_property_id()
-    if not pid:
+    client, _, RTReq, _, Dim, Met, _, _, _ = result
+    p = _pid()
+    if not p:
         return {"active_users": 0, "configured": False}
     try:
-        request = RunRealtimeReportRequest(
-            property=pid,
-            metrics=[Metric(name="activeUsers")],
-        )
-        response = client.run_realtime_report(request)
-        count = 0
-        for row in response.rows:
-            count += int(row.metric_values[0].value)
+        req = RTReq(property=p, metrics=[Met(name="activeUsers")])
+        resp = client.run_realtime_report(req)
+        count = sum(int(r.metric_values[0].value) for r in resp.rows)
         return {"active_users": count, "configured": True}
     except Exception as e:
         logger.warning(f"Firebase realtime query failed: {e}")
         return {"active_users": 0, "configured": True, "error": str(e)}
 
 
-async def get_user_acquisition(days: int = 30) -> Dict[str, Any]:
-    """Get user acquisition sources from GA4."""
+# ── Page Views & Screen Views ────────────────────────────────────────────────
+
+async def get_page_views(days: int = 30) -> Dict[str, Any]:
     result = _client()
     if not result:
-        return {"sources": [], "configured": False}
+        return {"pages": [], "configured": False}
     client, Req, _, DR, Dim, Met, OB, _, _ = result
-    pid = _parse_property_id()
-    if not pid:
-        return {"sources": [], "configured": False}
+    p = _pid()
+    if not p:
+        return {"pages": [], "configured": False}
     try:
-        end = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-        start = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
-        request = Req(
-            property=pid,
-            date_ranges=[DR(start_date=start, end_date=end)],
-            dimensions=[Dim(name="sessionSource")],
-            metrics=[Met(name="sessions")],
-            order_bys=[OB(metric=Met(name="sessions"), desc=True)],
-            limit=10,
+        s, e = _date_range(days)
+        req = Req(
+            property=p, date_ranges=[DR(start_date=s, end_date=e)],
+            dimensions=[Dim(name="pagePath")],
+            metrics=[Met(name="screenPageViews")],
+            order_bys=[OB(metric=Met(name="screenPageViews"), desc=True)],
+            limit=15,
         )
-        response = client.run_report(request)
-        sources = []
-        for row in response.rows:
-            sources.append({
-                "source": row.dimension_values[0].value,
-                "sessions": int(row.metric_values[0].value),
-            })
-        return {"sources": sources, "configured": True}
+        resp = client.run_report(req)
+        pages = [{"path": r.dimension_values[0].value, "views": int(r.metric_values[0].value)} for r in resp.rows]
+        return {"pages": pages, "configured": True}
     except Exception as e:
-        logger.warning(f"Firebase acquisition query failed: {e}")
-        return {"sources": [], "configured": True, "error": str(e)}
+        logger.warning(f"Firebase page views query failed: {e}")
+        return {"pages": [], "configured": True, "error": str(e)}
 
 
-async def get_geographic_data(days: int = 30) -> Dict[str, Any]:
-    """Get geographic distribution from GA4."""
+# ── Session Duration ─────────────────────────────────────────────────────────
+
+async def get_session_duration(days: int = 30) -> Dict[str, Any]:
+    result = _client()
+    if not result:
+        return {"avg_duration_sec": 0, "total_sessions": 0, "configured": False}
+    client, Req, _, DR, Dim, Met, _, _, _ = result
+    p = _pid()
+    if not p:
+        return {"avg_duration_sec": 0, "total_sessions": 0, "configured": False}
+    try:
+        s, e = _date_range(days)
+        req = Req(
+            property=p, date_ranges=[DR(start_date=s, end_date=e)],
+            metrics=[Met(name="averageSessionDuration"), Met(name="sessions")],
+        )
+        resp = client.run_report(req)
+        if resp.rows:
+            return {
+                "avg_duration_sec": round(float(resp.rows[0].metric_values[0].value), 1),
+                "total_sessions": int(resp.rows[0].metric_values[1].value),
+                "configured": True,
+            }
+        return {"avg_duration_sec": 0, "total_sessions": 0, "configured": True}
+    except Exception as e:
+        logger.warning(f"Firebase session duration query failed: {e}")
+        return {"avg_duration_sec": 0, "total_sessions": 0, "configured": True, "error": str(e)}
+
+
+# ── Active Hours (hourly breakdown) ──────────────────────────────────────────
+
+async def get_active_hours(days: int = 7) -> Dict[str, Any]:
+    """Get hourly activity breakdown for heat map visualization."""
+    result = _client()
+    if not result:
+        return {"hours": [], "configured": False}
+    client, Req, _, DR, Dim, Met, OB, _, _ = result
+    p = _pid()
+    if not p:
+        return {"hours": [], "configured": False}
+    try:
+        s, e = _date_range(days)
+        req = Req(
+            property=p, date_ranges=[DR(start_date=s, end_date=e)],
+            dimensions=[Dim(name="hour")],
+            metrics=[Met(name="activeUsers")],
+            order_bys=[OB(dimension=Dim(name="hour"))],
+        )
+        resp = client.run_report(req)
+        hours = []
+        for r in resp.rows:
+            h = int(r.dimension_values[0].value)
+            hours.append({"hour": h, "count": int(r.metric_values[0].value)})
+        return {"hours": hours, "configured": True}
+    except Exception as e:
+        logger.warning(f"Firebase active hours query failed: {e}")
+        return {"hours": [], "configured": True, "error": str(e)}
+
+
+# ── User Retention ───────────────────────────────────────────────────────────
+
+async def get_retention(days: int = 30) -> Dict[str, Any]:
+    """Get user retention cohorts from GA4."""
+    result = _client()
+    if not result:
+        return {"cohorts": [], "configured": False}
+    client, Req, _, DR, Dim, Met, OB, _, _ = result
+    p = _pid()
+    if not p:
+        return {"cohorts": [], "configured": False}
+    try:
+        s, e = _date_range(days)
+        # Weekly retention cohorts
+        req = Req(
+            property=p, date_ranges=[DR(start_date=s, end_date=e)],
+            dimensions=[Dim(name="cohort"), Dim(name="cohortWeek")],
+            metrics=[Met(name="cohortActiveUsers")],
+            order_bys=[OB(dimension=Dim(name="cohort"))],
+        )
+        resp = client.run_report(req)
+        cohorts = []
+        for r in resp.rows:
+            cohorts.append({
+                "cohort": r.dimension_values[0].value,
+                "week": r.dimension_values[1].value,
+                "users": int(r.metric_values[0].value),
+            })
+        return {"cohorts": cohorts, "configured": True}
+    except Exception as e:
+        logger.warning(f"Firebase retention query failed: {e}")
+        return {"cohorts": [], "configured": True, "error": str(e)}
+
+
+# ── User Demographics ────────────────────────────────────────────────────────
+
+async def get_demographics(days: int = 30) -> Dict[str, Any]:
+    """Get user demographics (country, city, device, browser, OS) from GA4."""
     result = _client()
     if not result:
         return {"countries": [], "cities": [], "configured": False}
     client, Req, _, DR, Dim, Met, OB, _, _ = result
-    pid = _parse_property_id()
-    if not pid:
+    p = _pid()
+    if not p:
         return {"countries": [], "cities": [], "configured": False}
     try:
-        end = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-        start = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
+        s, e = _date_range(days)
         # Countries
         country_req = Req(
-            property=pid,
-            date_ranges=[DR(start_date=start, end_date=end)],
+            property=p, date_ranges=[DR(start_date=s, end_date=e)],
             dimensions=[Dim(name="country")],
             metrics=[Met(name="activeUsers")],
             order_bys=[OB(metric=Met(name="activeUsers"), desc=True)],
             limit=15,
         )
         country_resp = client.run_report(country_req)
-        countries = []
-        for row in country_resp.rows:
-            countries.append({
-                "country": row.dimension_values[0].value,
-                "count": int(row.metric_values[0].value),
-            })
+        countries = [{"country": r.dimension_values[0].value, "count": int(r.metric_values[0].value)} for r in country_resp.rows]
         # Cities
         city_req = Req(
-            property=pid,
-            date_ranges=[DR(start_date=start, end_date=end)],
+            property=p, date_ranges=[DR(start_date=s, end_date=e)],
             dimensions=[Dim(name="city"), Dim(name="country")],
             metrics=[Met(name="activeUsers")],
             order_bys=[OB(metric=Met(name="activeUsers"), desc=True)],
             limit=10,
         )
         city_resp = client.run_report(city_req)
-        cities = []
-        for row in city_resp.rows:
-            cities.append({
-                "city": row.dimension_values[0].value,
-                "country": row.dimension_values[1].value,
-                "count": int(row.metric_values[0].value),
-            })
+        cities = [{"city": r.dimension_values[0].value, "country": r.dimension_values[1].value, "count": int(r.metric_values[0].value)} for r in city_resp.rows]
         return {"countries": countries, "cities": cities, "configured": True}
     except Exception as e:
-        logger.warning(f"Firebase geo query failed: {e}")
+        logger.warning(f"Firebase demographics query failed: {e}")
         return {"countries": [], "cities": [], "configured": True, "error": str(e)}
 
 
+# ── Device / Browser / OS Breakdown ──────────────────────────────────────────
+
 async def get_device_data(days: int = 30) -> Dict[str, Any]:
-    """Get device/browser/OS breakdown from GA4."""
     result = _client()
     if not result:
         return {"by_os": [], "by_browser": [], "by_device": [], "configured": False}
     client, Req, _, DR, Dim, Met, OB, _, _ = result
-    pid = _parse_property_id()
-    if not pid:
+    p = _pid()
+    if not p:
         return {"by_os": [], "by_browser": [], "by_device": [], "configured": False}
     try:
-        end = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-        start = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
-        # OS
-        os_req = Req(
-            property=pid,
-            date_ranges=[DR(start_date=start, end_date=end)],
-            dimensions=[Dim(name="operatingSystem")],
-            metrics=[Met(name="activeUsers")],
-            order_bys=[OB(metric=Met(name="activeUsers"), desc=True)],
-            limit=8,
-        )
-        os_resp = client.run_report(os_req)
-        by_os = [{"label": r.dimension_values[0].value, "value": int(r.metric_values[0].value)} for r in os_resp.rows]
-        # Browser
-        br_req = Req(
-            property=pid,
-            date_ranges=[DR(start_date=start, end_date=end)],
-            dimensions=[Dim(name="browser")],
-            metrics=[Met(name="activeUsers")],
-            order_bys=[OB(metric=Met(name="activeUsers"), desc=True)],
-            limit=8,
-        )
-        br_resp = client.run_report(br_req)
-        by_browser = [{"label": r.dimension_values[0].value, "value": int(r.metric_values[0].value)} for r in br_resp.rows]
-        # Device category
-        dev_req = Req(
-            property=pid,
-            date_ranges=[DR(start_date=start, end_date=end)],
-            dimensions=[Dim(name="deviceCategory")],
-            metrics=[Met(name="activeUsers")],
-            order_bys=[OB(metric=Met(name="activeUsers"), desc=True)],
-        )
-        dev_resp = client.run_report(dev_req)
-        by_device = [{"label": r.dimension_values[0].value, "value": int(r.metric_values[0].value)} for r in dev_resp.rows]
+        s, e = _date_range(days)
+        def _query(dim_name, limit=8):
+            req = Req(
+                property=p, date_ranges=[DR(start_date=s, end_date=e)],
+                dimensions=[Dim(name=dim_name)],
+                metrics=[Met(name="activeUsers")],
+                order_bys=[OB(metric=Met(name="activeUsers"), desc=True)],
+                limit=limit,
+            )
+            resp = client.run_report(req)
+            return [{"label": r.dimension_values[0].value, "value": int(r.metric_values[0].value)} for r in resp.rows]
+        by_os = _query("operatingSystem")
+        by_browser = _query("browser")
+        by_device = _query("deviceCategory")
         return {"by_os": by_os, "by_browser": by_browser, "by_device": by_device, "configured": True}
     except Exception as e:
         logger.warning(f"Firebase device query failed: {e}")
         return {"by_os": [], "by_browser": [], "by_device": [], "configured": True, "error": str(e)}
 
 
+# ── Acquisition Sources ──────────────────────────────────────────────────────
+
+async def get_acquisition(days: int = 30) -> Dict[str, Any]:
+    result = _client()
+    if not result:
+        return {"sources": [], "configured": False}
+    client, Req, _, DR, Dim, Met, OB, _, _ = result
+    p = _pid()
+    if not p:
+        return {"sources": [], "configured": False}
+    try:
+        s, e = _date_range(days)
+        req = Req(
+            property=p, date_ranges=[DR(start_date=s, end_date=e)],
+            dimensions=[Dim(name="sessionSource")],
+            metrics=[Met(name="sessions")],
+            order_bys=[OB(metric=Met(name="sessions"), desc=True)],
+            limit=10,
+        )
+        resp = client.run_report(req)
+        sources = [{"source": r.dimension_values[0].value, "sessions": int(r.metric_values[0].value)} for r in resp.rows]
+        return {"sources": sources, "configured": True}
+    except Exception as e:
+        logger.warning(f"Firebase acquisition query failed: {e}")
+        return {"sources": [], "configured": True, "error": str(e)}
+
+
+# ── Daily Active Users Time Series ───────────────────────────────────────────
+
 async def get_daily_active_users(days: int = 30) -> Dict[str, Any]:
-    """Get daily active users time series from GA4."""
     result = _client()
     if not result:
         return {"series": [], "configured": False}
     client, Req, _, DR, Dim, Met, OB, _, _ = result
-    pid = _parse_property_id()
-    if not pid:
+    p = _pid()
+    if not p:
         return {"series": [], "configured": False}
     try:
-        end = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-        start = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
-        request = Req(
-            property=pid,
-            date_ranges=[DR(start_date=start, end_date=end)],
+        s, e = _date_range(days)
+        req = Req(
+            property=p, date_ranges=[DR(start_date=s, end_date=e)],
             dimensions=[Dim(name="date")],
             metrics=[Met(name="activeUsers")],
             order_bys=[OB(dimension=Dim(name="date"))],
         )
-        response = client.run_report(request)
+        resp = client.run_report(req)
         series = []
-        for row in response.rows:
-            date_str = row.dimension_values[0].value
-            series.append({
-                "date": f"{date_str[:4]}-{date_str[4:6]}-{date_str[6:8]}",
-                "count": int(row.metric_values[0].value),
-            })
+        for r in resp.rows:
+            d = r.dimension_values[0].value
+            series.append({"date": f"{d[:4]}-{d[4:6]}-{d[6:8]}", "count": int(r.metric_values[0].value)})
         return {"series": series, "configured": True}
     except Exception as e:
         logger.warning(f"Firebase DAU query failed: {e}")
         return {"series": [], "configured": True, "error": str(e)}
+
+
+# ── Bounce Rate & Engagement ─────────────────────────────────────────────────
+
+async def get_engagement_metrics(days: int = 30) -> Dict[str, Any]:
+    result = _client()
+    if not result:
+        return {"bounce_rate": 0, "engagement_rate": 0, "views_per_session": 0, "configured": False}
+    client, Req, _, DR, Dim, Met, _, _, _ = result
+    p = _pid()
+    if not p:
+        return {"bounce_rate": 0, "engagement_rate": 0, "views_per_session": 0, "configured": False}
+    try:
+        s, e = _date_range(days)
+        req = Req(
+            property=p, date_ranges=[DR(start_date=s, end_date=e)],
+            metrics=[
+                Met(name="bounceRate"),
+                Met(name="engagementRate"),
+                Met(name="screenPageViewsPerSession"),
+            ],
+        )
+        resp = client.run_report(req)
+        if resp.rows:
+            return {
+                "bounce_rate": round(float(resp.rows[0].metric_values[0].value) * 100, 1),
+                "engagement_rate": round(float(resp.rows[0].metric_values[1].value) * 100, 1),
+                "views_per_session": round(float(resp.rows[0].metric_values[2].value), 1),
+                "configured": True,
+            }
+        return {"bounce_rate": 0, "engagement_rate": 0, "views_per_session": 0, "configured": True}
+    except Exception as e:
+        logger.warning(f"Firebase engagement query failed: {e}")
+        return {"bounce_rate": 0, "engagement_rate": 0, "views_per_session": 0, "configured": True, "error": str(e)}
