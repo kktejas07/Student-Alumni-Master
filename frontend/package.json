@@ -9,7 +9,9 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "test": "jest"
+    "test": "jest",
+    "analytics:docs": "npx ts-node scripts/gen-taxonomy.ts",
+    "analytics:check": "npx ts-node scripts/check-analytics.ts"
   },
   "jest": {
     "preset": "ts-jest",

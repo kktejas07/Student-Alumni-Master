@@ -47,6 +47,18 @@ from core.whatsapp import send_wa_message, send_wa_documents
 router = APIRouter(prefix="/api/echo", tags=["echo-showcase"])
 
 
+@router.post("/sync-unstop")
+async def sync_unstop_opportunities():
+    """Scrape and sync live hackathons, workshops, quizzes, and competitions from Unstop into ECHO showcases."""
+    try:
+        from scripts.scrape_unstop_events import run_unstop_sync
+        count = await run_unstop_sync()
+        return {"status": "success", "synced_count": count, "message": f"Successfully synced {count} opportunities from Unstop"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unstop sync failed: {str(e)}")
+
+
+
 
 # ── Ticket / pass templates ───────────────────────────────────────────────────
 # Selected per event via the super-admin CMS (Registration tab →
