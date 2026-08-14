@@ -50,6 +50,8 @@ async def _db_config(db) -> Dict[str, str]:
         host = (creds.get("host") or "").strip()
         if not host:
             host = "https://app.posthog.com"
+        # Normalize ingestion endpoints to API endpoints
+        host = host.replace(".i.posthog.com", ".posthog.com")
         return {
             "api_key": (creds.get("personal_api_key") or creds.get("api_key") or "").strip(),
             "host": host.rstrip("/"),
