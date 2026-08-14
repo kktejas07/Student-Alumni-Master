@@ -66,6 +66,7 @@
     "@lexical/rich-text": "^0.44.0",
     "@lexical/selection": "^0.44.0",
     "@lexical/utils": "^0.44.0",
+    "@playwright/test": "^1.62.1",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-navigation/bottom-tabs": "^7.3.10",
     "@react-navigation/elements": "^2.3.8",

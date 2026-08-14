@@ -69,7 +69,8 @@ type PageTab = 'all' | 'create' | 'drafts' | 'media' | 'registrations' | 'volunt
 type StatusFilter = 'all' | 'published' | 'draft' | 'archived';
 type FormTab =
   | 'general' | 'hero' | 'statistics' | 'about' | 'gallery'
-  | 'testimonials' | 'highlights' | 'sponsors' | 'videos' | 'downloads'
+  | 'testimonials' | 'highlights' | 'speakers' | 'categories' | 'schedule'
+  | 'panels' | 'faqs' | 'sponsors' | 'videos' | 'downloads'
   | 'sections' | 'registration' | 'seo' | 'publish';
 
 const PAGE_TABS: Array<{ id: PageTab; label: string; icon?: any }> = [
@@ -96,6 +97,11 @@ const FORM_TABS: Array<{ id: FormTab; label: string }> = [
   { id: 'gallery',      label: 'Gallery' },
   { id: 'testimonials', label: 'Testimonials' },
   { id: 'highlights',   label: 'Highlights' },
+  { id: 'speakers',     label: 'Speakers & Panel' },
+  { id: 'categories',   label: 'Categories' },
+  { id: 'schedule',     label: 'Schedule' },
+  { id: 'panels',       label: 'Panels' },
+  { id: 'faqs',         label: 'FAQs' },
   { id: 'sponsors',     label: 'Sponsors' },
   { id: 'videos',       label: 'Videos' },
   { id: 'downloads',    label: 'Downloads' },
@@ -982,6 +988,321 @@ function PosterEditor({ posters, onChange }: { posters: string[]; onChange: (p: 
   );
 }
 
+// ── Speakers Editor ──────────────────────────────────────────────────────────
+function SpeakersEditor({ speakers, onChange }: any) {
+  const update = (i: number, key: string, val: any) => {
+    const next = [...speakers];
+    next[i] = { ...next[i], [key]: val };
+    onChange(next);
+  };
+  const add = () => onChange([...speakers, {
+    name: '', position: '', company: '', bio: '', photo_url: null,
+    linkedin_url: '', twitter_url: '', website_url: '',
+    is_panel_member: false, session_title: '', visible: true, sort_order: speakers.length,
+  }]);
+  const remove = (i: number) => onChange(speakers.filter((_: any, j: number) => j !== i));
+
+  const handlePhotoUpload = async (i: number, file: File) => {
+    try {
+      const fd = new FormData();
+      fd.append('file', file, file.name);
+      const res = await api.uploadEchoMedia(fd);
+      if (res?.url) update(i, 'photo_url', res.url);
+    } catch { /* ignore */ }
+  };
+
+  return (
+    <View style={{ gap: 16 }}>
+      {speakers.map((t: any, i: number) => (
+        <View key={i} style={{
+          backgroundColor: 'rgba(255,255,255,0.03)',
+          borderRadius: 12, padding: 14, borderWidth: 1,
+          borderColor: t.visible !== false ? SAC.border : 'rgba(239,68,68,0.25)',
+          gap: 10,
+        }}>
+          {/* Header row */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: SAC.text }}>Speaker #{i + 1}</Text>
+            <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              {/* Panel member toggle */}
+              <Pressable
+                onPress={() => update(i, 'is_panel_member', !t.is_panel_member)}
+                style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1,
+                  borderColor: t.is_panel_member ? 'rgba(236,72,153,0.4)' : SAC.border,
+                  backgroundColor: t.is_panel_member ? 'rgba(236,72,153,0.10)' : 'transparent' }}
+              >
+                <Text style={{ fontFamily: FONTS.semi, fontSize: 11,
+                  color: t.is_panel_member ? '#F472B6' : SAC.muted }}>
+                  {t.is_panel_member ? 'Panel Member' : 'Speaker'}
+                </Text>
+              </Pressable>
+              {/* Visible toggle */}
+              <Pressable
+                onPress={() => update(i, 'visible', !t.visible)}
+                style={[cs.iconBtn, { paddingHorizontal: 10, width: 'auto' as any,
+                  borderColor: t.visible !== false ? 'rgba(16,185,129,0.35)' : 'rgba(239,68,68,0.35)',
+                  backgroundColor: t.visible !== false ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)' }]}
+              >
+                <Text style={{ fontFamily: FONTS.semi, fontSize: 11,
+                  color: t.visible !== false ? '#34D399' : '#F87171' }}>
+                  {t.visible !== false ? 'Visible' : 'Hidden'}
+                </Text>
+              </Pressable>
+              <Pressable onPress={() => remove(i)} style={[cs.iconBtn, { borderColor: 'rgba(239,68,68,0.30)' }]}>
+                <Trash2 size={13} color="#F87171" />
+              </Pressable>
+            </View>
+          </View>
+
+          {/* Photo + basic info row */}
+          <View style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start' }}>
+            {/* Photo upload */}
+            <View style={{ alignItems: 'center', gap: 6 }}>
+              <View style={{ width: 60, height: 60, borderRadius: 30, overflow: 'hidden',
+                backgroundColor: 'rgba(123,61,191,0.15)', borderWidth: 1, borderColor: SAC.border,
+                alignItems: 'center', justifyContent: 'center' }}>
+                {t.photo_url ? (
+                  <Image source={{ uri: resolveImageUrl(t.photo_url) }}
+                    style={{ width: 60, height: 60 }} resizeMode="cover" />
+                ) : (
+                  <Text style={{ fontFamily: FONTS.bold, fontSize: 18, color: GRAD.from }}>
+                    {(t.name || 'U')[0].toUpperCase()}
+                  </Text>
+                )}
+              </View>
+              {Platform.OS === 'web' && (
+                <label style={{ cursor: 'pointer' }}>
+                  <span style={{ backgroundColor: 'rgba(123,61,191,0.20)', color: GRAD.from,
+                    padding: '3px 8px', borderRadius: '6px', fontFamily: FONTS.semi, fontSize: '10px' }}>
+                    {t.photo_url ? 'Change' : 'Photo'}
+                  </span>
+                  <input type="file" accept="image/*" style={{ display: 'none' }}
+                    onChange={(e: any) => { const f = e.target.files?.[0]; if (f) handlePhotoUpload(i, f); }} />
+                </label>
+              )}
+            </View>
+
+            {/* Fields grid */}
+            <View style={{ flex: 1, gap: 6 }}>
+              <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+                <TextInput value={t.name || ''} onChangeText={(v) => update(i, 'name', v)}
+                  placeholder="Full Name" placeholderTextColor={SAC.dim} style={[fi.input, { flex: 1, minWidth: 100 }]} />
+              </View>
+              <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+                <TextInput value={t.position || ''} onChangeText={(v) => update(i, 'position', v)}
+                  placeholder="Position / Role (e.g. Chief AI Architect)" placeholderTextColor={SAC.dim} style={[fi.input, { flex: 1, minWidth: 120 }]} />
+                <TextInput value={t.company || ''} onChangeText={(v) => update(i, 'company', v)}
+                  placeholder="Company (e.g. Google)" placeholderTextColor={SAC.dim} style={[fi.input, { flex: 1, minWidth: 100 }]} />
+              </View>
+              <TextInput value={t.bio || ''} onChangeText={(v) => update(i, 'bio', v)}
+                placeholder="Short bio / intro (1–2 lines)" placeholderTextColor={SAC.dim} multiline numberOfLines={2}
+                style={[fi.input, { minHeight: 44, textAlignVertical: 'top' }]} />
+              <TextInput value={t.session_title || ''} onChangeText={(v) => update(i, 'session_title', v)}
+                placeholder="Assigned session (e.g. AI at Scale — Keynote)" placeholderTextColor={SAC.dim} style={fi.input} />
+              <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+                <TextInput value={t.linkedin_url || ''} onChangeText={(v) => update(i, 'linkedin_url', v)}
+                  placeholder="LinkedIn URL" placeholderTextColor={SAC.dim} style={[fi.input, { flex: 1, minWidth: 120 }]} />
+                <TextInput value={t.twitter_url || ''} onChangeText={(v) => update(i, 'twitter_url', v)}
+                  placeholder="Twitter / X URL" placeholderTextColor={SAC.dim} style={[fi.input, { flex: 1, minWidth: 120 }]} />
+                <TextInput value={t.website_url || ''} onChangeText={(v) => update(i, 'website_url', v)}
+                  placeholder="Website URL" placeholderTextColor={SAC.dim} style={[fi.input, { flex: 1, minWidth: 120 }]} />
+              </View>
+            </View>
+          </View>
+        </View>
+      ))}
+      <Pressable onPress={add}>
+        <Text style={{ color: GRAD.from, fontFamily: FONTS.semi, fontSize: 12.5 }}>+ Add Speaker</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+// ── Event Categories Editor ───────────────────────────────────────────────────
+function CategoriesEditor({ categories, onChange }: any) {
+  const update = (i: number, key: string, val: any) => {
+    const next = [...categories];
+    next[i] = { ...next[i], [key]: val };
+    onChange(next);
+  };
+  const add = () => onChange([...categories, { name: '', description: '', icon: 'brain', color: '#8B5CF6' }]);
+  const remove = (i: number) => onChange(categories.filter((_: any, j: number) => j !== i));
+  return (
+    <View style={{ gap: 8 }}>
+      {categories.map((c: any, i: number) => (
+        <View key={i} style={{ flexDirection: 'row', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+          <TextInput value={c.name || ''} onChangeText={(v) => update(i, 'name', v)}
+            placeholder="Category Name (e.g. Healthcare & MedTech)" placeholderTextColor={SAC.dim}
+            style={[fi.input, { flex: 1, minWidth: 160 }]} />
+          <TextInput value={c.icon || ''} onChangeText={(v) => update(i, 'icon', v)}
+            placeholder="Icon (brain/leaf/landmark)" placeholderTextColor={SAC.dim}
+            style={[fi.input, { flex: 0.4, minWidth: 100 }]} />
+          <TextInput value={c.description || ''} onChangeText={(v) => update(i, 'description', v)}
+            placeholder="Short description" placeholderTextColor={SAC.dim}
+            style={[fi.input, { flex: 1, minWidth: 160 }]} />
+          <Tip label="Remove"><Pressable onPress={() => remove(i)} style={cs.iconBtn}><X size={12} color="#F87171" /></Pressable></Tip>
+        </View>
+      ))}
+      <Pressable onPress={add}>
+        <Text style={{ color: GRAD.from, fontFamily: FONTS.semi, fontSize: 12.5 }}>+ Add Category</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+// ── Schedule Editor ──────────────────────────────────────────────────────────
+function ScheduleEditor({ schedule, onChange }: any) {
+  const update = (i: number, key: string, val: any) => {
+    const next = [...schedule];
+    next[i] = { ...next[i], [key]: val };
+    onChange(next);
+  };
+  const add = () => onChange([...schedule, { time: '', title: '', description: '', session_type: 'session', speaker_names: [], day: 1 }]);
+  const remove = (i: number) => onChange(schedule.filter((_: any, j: number) => j !== i));
+  const toggleType = (i: number, type: string) => update(i, 'session_type', type);
+
+  return (
+    <View style={{ gap: 12 }}>
+      {schedule.map((it: any, i: number) => (
+        <View key={i} style={{ backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: SAC.border, gap: 8 }}>
+          <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+            <TextInput value={it.time || ''} onChangeText={(v) => update(i, 'time', v)}
+              placeholder="10:00 AM" placeholderTextColor={SAC.dim} style={[fi.input, { flex: 0.5, minWidth: 90 }]} />
+            {/* session type */}
+            <View style={{ flexDirection: 'row', gap: 4, flexWrap: 'wrap', flex: 1 }}>
+              {['keynote', 'panel', 'workshop', 'activity', 'break', 'session'].map((tp) => (
+                <Pressable key={tp} onPress={() => toggleType(i, tp)}
+                  style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1,
+                    borderColor: (it.session_type || 'session') === tp ? GRAD.from : SAC.border,
+                    backgroundColor: (it.session_type || 'session') === tp ? 'rgba(123,61,191,0.15)' : 'transparent' }}>
+                  <Text style={{ fontFamily: FONTS.semi, fontSize: 10,
+                    color: (it.session_type || 'session') === tp ? GRAD.from : SAC.muted }}>
+                    {tp.charAt(0).toUpperCase() + tp.slice(1)}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            <Tip label="Move up"><Pressable onPress={() => {
+              if (i === 0) return;
+              const next = [...schedule];
+              [next[i - 1], next[i]] = [next[i], next[i - 1]];
+              onChange(next);
+            }} disabled={i === 0} style={[cs.iconBtn, { opacity: i === 0 ? 0.35 : 1 }]}>
+              <ChevronUp size={13} color="#CBD5E1" />
+            </Pressable></Tip>
+            <Tip label="Move down"><Pressable onPress={() => {
+              if (i === schedule.length - 1) return;
+              const next = [...schedule];
+              [next[i + 1], next[i]] = [next[i], next[i + 1]];
+              onChange(next);
+            }} disabled={i === schedule.length - 1} style={[cs.iconBtn, { opacity: i === schedule.length - 1 ? 0.35 : 1 }]}>
+              <ChevronDown size={13} color="#CBD5E1" />
+            </Pressable></Tip>
+            <Tip label="Remove"><Pressable onPress={() => remove(i)} style={[cs.iconBtn, { borderColor: 'rgba(239,68,68,0.30)' }]}>
+              <Trash2 size={13} color="#F87171" />
+            </Pressable></Tip>
+          </View>
+          <TextInput value={it.title || ''} onChangeText={(v) => update(i, 'title', v)}
+            placeholder="Session title (e.g. Keynote — AI at Scale)" placeholderTextColor={SAC.dim} style={fi.input} />
+          <TextInput value={it.description || ''} onChangeText={(v) => update(i, 'description', v)}
+            placeholder="Short description" placeholderTextColor={SAC.dim} multiline numberOfLines={2}
+            style={[fi.input, { minHeight: 44, textAlignVertical: 'top' }]} />
+        </View>
+      ))}
+      <Pressable onPress={add}>
+        <Text style={{ color: GRAD.from, fontFamily: FONTS.semi, fontSize: 12.5 }}>+ Add Schedule Entry</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+// ── Panels Editor ────────────────────────────────────────────────────────────
+function PanelsEditor({ panels, onChange }: any) {
+  const update = (i: number, key: string, val: any) => {
+    const next = [...panels];
+    next[i] = { ...next[i], [key]: val };
+    onChange(next);
+  };
+  const add = () => onChange([...panels, { topic: '', description: '', panelists: [] }]);
+  const remove = (i: number) => onChange(panels.filter((_: any, j: number) => j !== i));
+
+  return (
+    <View style={{ gap: 12 }}>
+      {panels.map((p: any, i: number) => (
+        <View key={i} style={{ backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: SAC.border, gap: 8 }}>
+          <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+            <TextInput value={p.topic || ''} onChangeText={(v) => update(i, 'topic', v)}
+              placeholder="Panel topic (e.g. Careers in AI)" placeholderTextColor={SAC.dim}
+              style={[fi.input, { flex: 1 }]} />
+            <Tip label="Remove"><Pressable onPress={() => remove(i)} style={[cs.iconBtn, { borderColor: 'rgba(239,68,68,0.30)' }]}>
+              <Trash2 size={13} color="#F87171" />
+            </Pressable></Tip>
+          </View>
+          <TextInput value={p.description || ''} onChangeText={(v) => update(i, 'description', v)}
+            placeholder="Short description of the discussion" placeholderTextColor={SAC.dim} multiline numberOfLines={2}
+            style={[fi.input, { minHeight: 44, textAlignVertical: 'top' }]} />
+          <View style={{ gap: 4 }}>
+            <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: SAC.muted }}>Panelists (names)</Text>
+            {(p.panelists || []).map((name: string, j: number) => (
+              <View key={j} style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+                <TextInput value={name} onChangeText={(v) => {
+                  const names = [...(p.panelists || [])];
+                  names[j] = v;
+                  update(i, 'panelists', names);
+                }} placeholder="Panelist name" placeholderTextColor={SAC.dim} style={[fi.input, { flex: 1 }]} />
+                <Pressable onPress={() => {
+                  const names = (p.panelists || []).filter((_: string, k: number) => k !== j);
+                  update(i, 'panelists', names);
+                }} style={{ padding: 4 }}>
+                  <X size={12} color="#F87171" />
+                </Pressable>
+              </View>
+            ))}
+            <Pressable onPress={() => update(i, 'panelists', [...(p.panelists || []), ''])} style={{ paddingVertical: 3 }}>
+              <Text style={{ color: GRAD.from, fontFamily: FONTS.semi, fontSize: 11.5 }}>+ Add Panelist</Text>
+            </Pressable>
+          </View>
+        </View>
+      ))}
+      <Pressable onPress={add}>
+        <Text style={{ color: GRAD.from, fontFamily: FONTS.semi, fontSize: 12.5 }}>+ Add Panel Discussion</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+// ── FAQs Editor ───────────────────────────────────────────────────────────────
+function FaqsEditor({ faqs, onChange }: any) {
+  const update = (i: number, key: string, val: string) => {
+    const next = [...faqs];
+    next[i] = { ...next[i], [key]: val };
+    onChange(next);
+  };
+  const add = () => onChange([...faqs, { question: '', answer: '' }]);
+  const remove = (i: number) => onChange(faqs.filter((_: any, j: number) => j !== i));
+  return (
+    <View style={{ gap: 12 }}>
+      {faqs.map((f: any, i: number) => (
+        <View key={i} style={{ backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: SAC.border, gap: 8 }}>
+          <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+            <TextInput value={f.question || ''} onChangeText={(v) => update(i, 'question', v)}
+              placeholder="Question" placeholderTextColor={SAC.dim} style={[fi.input, { flex: 1 }]} />
+            <Tip label="Remove"><Pressable onPress={() => remove(i)} style={[cs.iconBtn, { borderColor: 'rgba(239,68,68,0.30)' }]}>
+              <Trash2 size={13} color="#F87171" />
+            </Pressable></Tip>
+          </View>
+          <TextInput value={f.answer || ''} onChangeText={(v) => update(i, 'answer', v)}
+            placeholder="Answer" placeholderTextColor={SAC.dim} multiline numberOfLines={3}
+            style={[fi.input, { minHeight: 60, textAlignVertical: 'top' }]} />
+        </View>
+      ))}
+      <Pressable onPress={add}>
+        <Text style={{ color: GRAD.from, fontFamily: FONTS.semi, fontSize: 12.5 }}>+ Add FAQ</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 // ── Banner Carousel Editor ──────────────────────────────────────────────────
 function BannerCarouselEditor({ banners, onChange }: { banners: string[]; onChange: (b: string[]) => void }) {
   const [uploading, setUploading] = useState(false);
@@ -1631,10 +1952,13 @@ const EMPTY: any = {
     { icon: 'code', title: 'Hands-on Workshops', description: '' },
     { icon: 'network', title: 'Networking Sessions', description: '' },
   ],
+  speakers: [], categories: [], schedule: [], panels: [], faqs: [],
+  eligibility: '', prize_pool: null, team_composition: '',
   partners: [], sponsors: [], downloads: [], videos: [], gallery: [],
   sections: {
     hero: true, stats: true, about: true, gallery: true, testimonials: true,
-    timeline: true, partners: true, sponsors: true, videos: true,
+    timeline: true, speakers: true, categories: true, schedule: true,
+    panels: true, faqs: true, partners: true, sponsors: true, videos: true,
     downloads: true, cta: true, registration: true,
   },
   registration: {
@@ -1988,6 +2312,75 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
               </FieldRow>
             )}
 
+            {/* ── SPEAKERS TAB ── */}
+            {tab === 'speakers' && <>
+              <FieldRow label="Speakers & Panel Members" hint="Add speakers and panelists. Panel members render in a distinct 'Panel Members' section on the public page.">
+                <SpeakersEditor speakers={form.speakers || []} onChange={(v: any) => set('speakers', v)} />
+              </FieldRow>
+              <FieldRow label="Eligibility" hint="Who can participate — shown on the public page.">
+                <Field value={form.eligibility || ''} onChangeText={(v: string) => set('eligibility', v)} placeholder="Open to all undergrad and postgrad students…" multiline rows={2} />
+              </FieldRow>
+              <FieldRow label="Team Composition" hint="Team size / composition requirement.">
+                <Field value={form.team_composition || ''} onChangeText={(v: string) => set('team_composition', v)} placeholder="4–5 members…" />
+              </FieldRow>
+              <FieldRow label="Prize Pool" hint="Show prize amounts on the public page.">
+                <View style={{ gap: 8 }}>
+                  <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+                    <TextInput value={(form.prize_pool || {}).total || ''}
+                      onChangeText={(v: string) => set('prize_pool', { ...(form.prize_pool || {}), total: v })}
+                      placeholder="Total (e.g. ₹30,000)" placeholderTextColor={SAC.dim}
+                      style={[fi.input, { flex: 1, minWidth: 100 }]} />
+                    <TextInput value={(form.prize_pool || {}).first || ''}
+                      onChangeText={(v: string) => set('prize_pool', { ...(form.prize_pool || {}), first: v })}
+                      placeholder="1st Prize" placeholderTextColor={SAC.dim}
+                      style={[fi.input, { flex: 1, minWidth: 100 }]} />
+                  </View>
+                  <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+                    <TextInput value={(form.prize_pool || {}).second || ''}
+                      onChangeText={(v: string) => set('prize_pool', { ...(form.prize_pool || {}), second: v })}
+                      placeholder="2nd Prize" placeholderTextColor={SAC.dim}
+                      style={[fi.input, { flex: 1, minWidth: 100 }]} />
+                    <TextInput value={(form.prize_pool || {}).third || ''}
+                      onChangeText={(v: string) => set('prize_pool', { ...(form.prize_pool || {}), third: v })}
+                      placeholder="3rd Prize" placeholderTextColor={SAC.dim}
+                      style={[fi.input, { flex: 1, minWidth: 100 }]} />
+                  </View>
+                  <TextInput value={((form.prize_pool || {}).other_prizes || []).join(', ')}
+                    onChangeText={(v: string) => set('prize_pool', { ...(form.prize_pool || {}), other_prizes: v.split(',').map((s: string) => s.trim()).filter(Boolean) })}
+                    placeholder="Other prizes (comma-separated)" placeholderTextColor={SAC.dim}
+                    style={fi.input} />
+                </View>
+              </FieldRow>
+            </>}
+
+            {/* ── CATEGORIES TAB ── */}
+            {tab === 'categories' && (
+              <FieldRow label="Event Categories / Tracks" hint="Categories displayed as a grid on the public page (e.g. hackathon problem statements).">
+                <CategoriesEditor categories={form.categories || []} onChange={(v: any) => set('categories', v)} />
+              </FieldRow>
+            )}
+
+            {/* ── SCHEDULE TAB ── */}
+            {tab === 'schedule' && (
+              <FieldRow label="Event Schedule / Agenda" hint="Time-boxed agenda rows shown on the public page. Add cap-down to reorder.">
+                <ScheduleEditor schedule={form.schedule || []} onChange={(v: any) => set('schedule', v)} />
+              </FieldRow>
+            )}
+
+            {/* ── PANELS TAB ── */}
+            {tab === 'panels' && (
+              <FieldRow label="Panel Discussions" hint="Panel topics + panelist names shown on the public page.">
+                <PanelsEditor panels={form.panels || []} onChange={(v: any) => set('panels', v)} />
+              </FieldRow>
+            )}
+
+            {/* ── FAQs TAB ── */}
+            {tab === 'faqs' && (
+              <FieldRow label="Frequently Asked Questions" hint="Expandable Q&A shown at the bottom of the public page.">
+                <FaqsEditor faqs={form.faqs || []} onChange={(v: any) => set('faqs', v)} />
+              </FieldRow>
+            )}
+
             {/* ── SPONSORS TAB ── */}
             {tab === 'sponsors' && <>
               <FieldRow label="Event Sponsors" hint="Upload sponsor logos and set tier priority.">
@@ -2043,6 +2436,11 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                   { key: 'gallery', label: 'Photo Gallery', hint: 'Event photos grid + lightbox' },
                   { key: 'testimonials', label: 'Testimonials', hint: 'Student quotes with ratings' },
                   { key: 'timeline', label: 'Timeline / Highlights', hint: 'Event agenda cards' },
+                  { key: 'speakers', label: 'Speakers & Panel Members', hint: 'Speaker + panelist photo cards with bios' },
+                  { key: 'categories', label: 'Categories / Tracks', hint: 'Event category/track grid' },
+                  { key: 'schedule', label: 'Schedule / Agenda', hint: 'Time-boxed agenda rows' },
+                  { key: 'panels', label: 'Panel Discussions', hint: 'Panel topics + panelists' },
+                  { key: 'faqs', label: 'FAQs', hint: 'Expandable question & answers' },
                   { key: 'partners', label: 'Collaboration Partners', hint: 'In-association partner chips' },
                   { key: 'sponsors', label: 'Sponsors', hint: 'Sponsor logos with tiers' },
                   { key: 'videos', label: 'Videos', hint: 'YouTube / uploaded videos' },

@@ -20,7 +20,8 @@ import {
   ArrowLeft, Share2, Calendar, Clock, MapPin, Users, Mic2,
   BookOpen, Network, Star, ChevronRight, X, ZoomIn,
   Building2, Award, TrendingUp, Target, Zap, FileText, Download,
-  Ticket,
+  Ticket, Globe, Link2, HelpCircle, ChevronDown,
+  Trophy, PanelTop, CheckCircle2, ExternalLink,
 } from 'lucide-react-native';
 import { api, resolveImageUrl } from '@/src/models/services/api';
 import { PALETTE, SC, FONTS, TYPO } from '../tokens';
@@ -64,6 +65,14 @@ const DEFAULT_SHOWCASE: any = {
   partners: [],
   testimonials: [],
   timeline: [],
+  speakers: [],
+  categories: [],
+  schedule: [],
+  panels: [],
+  faqs: [],
+  eligibility: '',
+  prize_pool: null,
+  team_composition: '',
   gallery: [],
   cta_title: '',
   cta_subtitle: '',
@@ -200,9 +209,14 @@ function HeroBannerCarousel({ banners, data, isWide, onBack, canonicalSlug, show
       <View style={[bc.content, !isWide && { paddingHorizontal: 16 }]}>
         <View style={bc.contentInner}>
           {/* Status badge */}
-          <View style={[bc.statusBadge, { backgroundColor: statusCol.bg, borderColor: statusCol.border }]}>
-            <View style={[bc.statusDot, { backgroundColor: statusCol.dot }]} />
-            <Text style={[bc.statusText, { color: statusCol.text }]}>{statusKey.toUpperCase()}</Text>
+          <View style={bc.badgeLine}>
+            <View style={[bc.statusBadge, { backgroundColor: statusCol.bg, borderColor: statusCol.border }]}>
+              <View style={[bc.statusDot, { backgroundColor: statusCol.dot }]} />
+              <Text style={[bc.statusText, { color: statusCol.text }]}>{statusKey.toUpperCase()}</Text>
+            </View>
+            {data?.organizer_name ? (
+              <Text style={bc.eyebrow}>{data.organizer_name.toUpperCase()}</Text>
+            ) : null}
           </View>
 
           {/* Title */}
@@ -213,6 +227,14 @@ function HeroBannerCarousel({ banners, data, isWide, onBack, canonicalSlug, show
 
           {/* Subtitle */}
           {data?.subtitle ? <Text style={bc.subtitle}>{data.subtitle}</Text> : null}
+
+          {/* Registration deadline pill (matches reference amber pill) */}
+          {data?.registration?.deadline ? (
+            <View style={bc.deadlinePill}>
+              <Clock size={11} color="#FBBF24" />
+              <Text style={bc.deadlineText}>Registration closes: {data.registration.deadline}</Text>
+            </View>
+          ) : null}
 
           {/* Meta row */}
           <View style={bc.metaRow}>
@@ -290,10 +312,21 @@ const bc = StyleSheet.create({
   statusBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4,
-    borderRadius: 999, borderWidth: 1, marginBottom: 10,
+    borderRadius: 999, borderWidth: 1,
   },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
   statusText: { fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 0.6 },
+  badgeLine: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 10 },
+  eyebrow: {
+    fontFamily: TYPO.body500, fontSize: 11, letterSpacing: 1.6,
+    color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase' as any,
+  },
+  deadlinePill: {
+    flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
+    backgroundColor: 'rgba(245,158,11,0.16)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.35)',
+    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, marginTop: 10,
+  },
+  deadlineText: { fontFamily: FONTS.semi, fontSize: 11, color: '#FBBF24' },
   title: {
     fontFamily: TYPO.display800, fontSize: 30, color: '#fff',
     lineHeight: 36, letterSpacing: -0.5,
@@ -418,6 +451,242 @@ const tc = StyleSheet.create({
   meta: { fontFamily: TYPO.body400, fontSize: 11, color: PALETTE.muted },
 });
 
+// ── Speaker Card ────────────────────────────────────────────────────────────
+function SpeakerCard({ sp, panel = false }: { sp: any; panel?: boolean }) {
+  const accent = panel ? '#F472B6' : GRAD.from;
+  const photoUri = sp.photo_url ? resolveImageUrl(sp.photo_url) : null;
+  return (
+    <View style={[spk.card, panel && { borderColor: 'rgba(236,72,153,0.28)' }]}>
+      <View style={spk.top}>
+        <View style={[spk.avatar, { backgroundColor: (accent + '22') }]}>
+          {photoUri ? (
+            <Image source={{ uri: photoUri }} style={{ width: 52, height: 52, borderRadius: 26 }} resizeMode="cover" />
+          ) : (
+            <Text style={[spk.avatarText, { color: accent }]}>{(sp.name || 'U')[0]}</Text>
+          )}
+        </View>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={spk.name} numberOfLines={1}>{sp.name}</Text>
+          <Text style={spk.role} numberOfLines={1}>
+            {[sp.position, sp.company].filter(Boolean).join(' · ')}
+          </Text>
+          {sp.session_title ? (
+            <Text style={spk.session} numberOfLines={1}>🎙 {sp.session_title}</Text>
+          ) : null}
+        </View>
+      </View>
+      {sp.bio ? <Text style={spk.bio} numberOfLines={3}>{sp.bio}</Text> : null}
+      {(sp.linkedin_url || sp.twitter_url || sp.website_url) && (
+        <View style={spk.links}>
+          {sp.linkedin_url ? (
+            <Pressable onPress={() => Platform.OS === 'web' && window.open(sp.linkedin_url, '_blank')} style={[spk.linkBtn, { borderColor: accent + '44' }]}>
+              <Link2 size={12} color={accent} />
+            </Pressable>
+          ) : null}
+          {sp.twitter_url ? (
+            <Pressable onPress={() => Platform.OS === 'web' && window.open(sp.twitter_url, '_blank')} style={[spk.linkBtn, { borderColor: accent + '44' }]}>
+              <Globe size={12} color={accent} />
+            </Pressable>
+          ) : null}
+          {sp.website_url ? (
+            <Pressable onPress={() => Platform.OS === 'web' && window.open(sp.website_url, '_blank')} style={[spk.linkBtn, { borderColor: accent + '44' }]}>
+              <ExternalLink size={12} color={accent} />
+            </Pressable>
+          ) : null}
+        </View>
+      )}
+      {panel && (
+        <View style={[spk.pill, { backgroundColor: 'rgba(236,72,153,0.12)', borderColor: 'rgba(236,72,153,0.35)' }]}>
+          <PanelTop size={10} color="#F472B6" />
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#F472B6', letterSpacing: 0.4 }}>PANEL MEMBER</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+const spk = StyleSheet.create({
+  card: {
+    flex: 1, minWidth: 240, backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 14, borderWidth: 1, borderColor: PALETTE.glassBorder,
+    padding: 16, gap: 10,
+  },
+  top: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  avatar: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
+  avatarText: { fontFamily: TYPO.display800, fontSize: 20 },
+  name: { fontFamily: TYPO.display700, fontSize: 15, color: '#fff' },
+  role: { fontFamily: TYPO.body400, fontSize: 12, color: PALETTE.muted, marginTop: 1 },
+  session: { fontFamily: TYPO.body500, fontSize: 10.5, color: PALETTE.dim, marginTop: 2 },
+  bio: { fontFamily: TYPO.body400, fontSize: 12, color: PALETTE.muted, lineHeight: 18 },
+  links: { flexDirection: 'row', gap: 6 },
+  linkBtn: {
+    width: 28, height: 28, borderRadius: 14, borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  pill: {
+    flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start',
+    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 9, borderWidth: 1,
+  },
+});
+
+// ── Category Card ───────────────────────────────────────────────────────────
+function CategoryCard({ c }: { c: any }) {
+  const color = c.color || GRAD.from;
+  const IconMap: Record<string, any> = {
+    brain: Zap, leaf: Target, landmark: Building2, bus: Users, heartpulse: Award,
+    'graduation-cap': BookOpen, default: Zap,
+  };
+  const Icon = IconMap[c.icon] || IconMap.default;
+  return (
+    <View style={[cat.card, { borderColor: (color + '33') }]}>
+      <View style={[cat.iconWrap, { backgroundColor: (color + '1A') }]}>
+        <Icon size={18} color={color} />
+      </View>
+      <View style={{ flex: 1, gap: 3 }}>
+        <Text style={cat.name}>{c.name}</Text>
+        {c.description ? <Text style={cat.desc} numberOfLines={2}>{c.description}</Text> : null}
+      </View>
+    </View>
+  );
+}
+const cat = StyleSheet.create({
+  card: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12,
+    borderWidth: 1, padding: 14, minWidth: 240, flex: 1,
+  },
+  iconWrap: { width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  name: { fontFamily: TYPO.display700, fontSize: 13.5, color: '#fff' },
+  desc: { fontFamily: TYPO.body400, fontSize: 11.5, color: PALETTE.muted, lineHeight: 16 },
+});
+
+// ── Schedule Row ───────────────────────────────────────────────────────────
+function ScheduleRow({ it }: { it: any }) {
+  const type = it.session_type || 'session';
+  const badgeColMap: Record<string, any> = {
+    keynote: { bg: 'rgba(124,58,237,0.15)', text: '#A78BFA', label: 'KEYNOTE' },
+    panel: { bg: 'rgba(236,72,153,0.14)', text: '#F472B6', label: 'PANEL' },
+    workshop: { bg: 'rgba(16,185,129,0.13)', text: '#34D399', label: 'WORKSHOP' },
+    activity: { bg: 'rgba(245,158,11,0.13)', text: '#FBBF24', label: 'ACTIVITY' },
+    break: { bg: 'rgba(148,163,184,0.13)', text: '#94A3B8', label: 'BREAK' },
+    session: { bg: 'rgba(99,102,241,0.13)', text: '#A5B4FC', label: 'SESSION' },
+  };
+  const b = badgeColMap[type] || badgeColMap.session;
+  return (
+    <View style={sch.row}>
+      <View style={sch.timeCol}>
+        <Text style={sch.time}>{it.time || '—'}</Text>
+      </View>
+      <View style={sch.dot} />
+      <View style={sch.body}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <Text style={sch.title}>{it.title}</Text>
+          <View style={[sch.badge, { backgroundColor: b.bg }]}>
+            <Text style={[sch.badgeText, { color: b.text }]}>{b.label}</Text>
+          </View>
+        </View>
+        {it.description ? <Text style={sch.desc}>{it.description}</Text> : null}
+        {it.speaker_names && it.speaker_names.length > 0 ? (
+          <Text style={sch.speakers}>Speakers: {it.speaker_names.join(', ')}</Text>
+        ) : null}
+      </View>
+    </View>
+  );
+}
+const sch = StyleSheet.create({
+  row: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 10 },
+  timeCol: { width: 84, alignItems: 'flex-end', paddingTop: 2 },
+  time: { fontFamily: FONTS.bold, fontSize: 12.5, color: '#A78BFA' },
+  dot: {
+    width: 10, height: 10, borderRadius: 5, marginTop: 5,
+    backgroundColor: GRAD.from, borderWidth: 2, borderColor: (GRAD.from + '44'),
+  },
+  body: { flex: 1, gap: 3 },
+  title: { fontFamily: TYPO.display700, fontSize: 13.5, color: '#fff' },
+  badge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 },
+  badgeText: { fontFamily: FONTS.bold, fontSize: 9, letterSpacing: 0.4 },
+  desc: { fontFamily: TYPO.body400, fontSize: 12, color: PALETTE.muted, lineHeight: 17 },
+  speakers: { fontFamily: TYPO.body500, fontSize: 11, color: PALETTE.dim },
+});
+
+// ── Panel Card ─────────────────────────────────────────────────────────────
+function PanelCard({ p }: { p: any }) {
+  return (
+    <View style={pn.card}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+        <PanelTop size={15} color="#F472B6" />
+        <Text style={pn.topic}>{p.topic}</Text>
+      </View>
+      {p.description ? <Text style={pn.desc}>{p.description}</Text> : null}
+      {p.panelists && p.panelists.length > 0 && (
+        <View style={{ gap: 4, marginTop: 4 }}>
+          {p.panelists.filter(Boolean).map((name: string, i: number) => (
+            <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <CheckCircle2 size={11} color="#F472B6" />
+              <Text style={pn.panelist}>{name}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
+const pn = StyleSheet.create({
+  card: {
+    flex: 1, minWidth: 260, backgroundColor: 'rgba(236,72,153,0.05)',
+    borderRadius: 14, borderWidth: 1, borderColor: 'rgba(236,72,153,0.22)',
+    padding: 16, gap: 4,
+  },
+  topic: { fontFamily: TYPO.display700, fontSize: 14, color: '#fff', flex: 1 },
+  desc: { fontFamily: TYPO.body400, fontSize: 12, color: PALETTE.muted, lineHeight: 18 },
+  panelist: { fontFamily: TYPO.body500, fontSize: 12, color: 'rgba(255,255,255,0.8)' },
+});
+
+// ── FAQ Item ───────────────────────────────────────────────────────────────
+function FaqItem({ f, open, onToggle }: { f: any; open: boolean; onToggle: () => void }) {
+  return (
+    <View style={[fq.wrap, open && { borderColor: 'rgba(16,185,129,0.35)' }]}>
+      <Pressable onPress={onToggle} style={fq.head}>
+        <HelpCircle size={15} color="#34D399" />
+        <Text style={fq.q}>{f.question}</Text>
+        <ChevronDown size={15} color={PALETTE.muted} style={[open && { transform: [{ rotate: '180deg' }] }]} />
+      </Pressable>
+      {open && <Text style={fq.a}>{f.answer}</Text>}
+    </View>
+  );
+}
+const fq = StyleSheet.create({
+  wrap: {
+    backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12,
+    borderWidth: 1, borderColor: PALETTE.glassBorder, overflow: 'hidden',
+  },
+  head: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingHorizontal: 14, paddingVertical: 13,
+  },
+  q: { flex: 1, fontFamily: TYPO.display700, fontSize: 13, color: '#fff' },
+  a: { fontFamily: TYPO.body400, fontSize: 12.5, color: PALETTE.muted, lineHeight: 19, paddingHorizontal: 14, paddingBottom: 14 },
+});
+
+// ── Section Heading (icon chip + title, matching reference) ────────────────
+function SectionHeading({ icon, title, tint }: { icon: any; title: string; tint?: string }) {
+  const Icon = icon;
+  const t = tint || GRAD.from;
+  return (
+    <View style={sh.wrap}>
+      <View style={[sh.chip, { backgroundColor: (t + '1F') }]}>
+        <Icon size={16} color={t} />
+      </View>
+      <Text style={sh.title}>{title}</Text>
+    </View>
+  );
+}
+const sh = StyleSheet.create({
+  wrap: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 },
+  chip: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  title: { fontFamily: TYPO.display800, fontSize: 20, color: '#fff' },
+});
+
 // ── Gallery Placeholder Cell ────────────────────────────────────────────────
 function GalleryCell({ img, onPress, style }: { img: any; onPress: () => void; style: any }) {
   return (
@@ -444,6 +713,7 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
   const [loading, setLoading] = useState(true);
   const [lbOpen, setLbOpen] = useState(false);
   const [lbIndex, setLbIndex] = useState(0);
+  const [faqOpen, setFaqOpen] = useState<number | null>(0);
   const router = useRouter();
   const toast = useToast();
 
@@ -618,12 +888,17 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
           <View style={[s.heroInner, !isWide && { flexDirection: 'column' }]}>
             {/* Left content */}
             <View style={[s.heroLeft, !isWide && { width: '100%' }]}>
-              {/* Status badge */}
-              <View style={[s.statusBadge, { backgroundColor: statusCol.bg, borderColor: statusCol.border }]}>
-                <View style={[s.statusDot, { backgroundColor: statusCol.dot }]} />
-                <Text style={[s.statusText, { color: statusCol.text }]}>
-                  {statusKey.toUpperCase()}
-                </Text>
+              {/* Status badge + organizer eyebrow */}
+              <View style={s.heroBadgeLine}>
+                <View style={[s.statusBadge, { backgroundColor: statusCol.bg, borderColor: statusCol.border }]}>
+                  <View style={[s.statusDot, { backgroundColor: statusCol.dot }]} />
+                  <Text style={[s.statusText, { color: statusCol.text }]}>
+                    {statusKey.toUpperCase()}
+                  </Text>
+                </View>
+                {data?.organizer_name ? (
+                  <Text style={s.heroEyebrow}>{data.organizer_name.toUpperCase()}</Text>
+                ) : null}
               </View>
               {/* Title */}
               <Text style={s.heroTitle} numberOfLines={3}>
@@ -634,6 +909,13 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
               {data?.subtitle ? <Text style={s.heroSubtitle}>{data.subtitle}</Text> : null}
               {/* Description */}
               {data?.description ? <Text style={s.heroDesc} numberOfLines={4}>{data.description}</Text> : null}
+              {/* Registration deadline pill */}
+              {data?.registration?.deadline ? (
+                <View style={s.heroDeadlinePill}>
+                  <Clock size={11} color="#FBBF24" />
+                  <Text style={s.heroDeadlineText}>Registration closes: {data.registration.deadline}</Text>
+                </View>
+              ) : null}
               {/* Meta rows */}
               <View style={s.metaGroup}>
                 {data?.date ? (
@@ -644,6 +926,9 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
                 ) : null}
                 {data?.venue ? (
                   <View style={s.metaRow}><MapPin size={13} color={PALETTE.muted} /><Text style={s.metaText}>{data.venue}</Text></View>
+                ) : null}
+                {data?.prize_pool?.total ? (
+                  <View style={s.metaRow}><Trophy size={13} color="#F59E0B" /><Text style={s.metaText}>Prize Pool: {data.prize_pool.total}</Text></View>
                 ) : null}
               </View>
             </View>
@@ -820,6 +1105,134 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
         </FadeInView>
       )}
 
+      {/* ── SPEAKERS ────────────────────────────────────────────────────── */}
+      {showSection('speakers') && data?.speakers && data.speakers.some((sp: any) => sp.visible !== false) && (
+        <FadeInView delay={300}>
+          <View style={{ marginBottom: 18 }}>
+            <SectionHeading icon={Mic2} title="Meet our speakers" tint={GRAD.from} />
+          </View>
+          <View style={[s.speakerRow, !isWide && { flexDirection: 'column' }]}>
+            {(data.speakers || []).filter((sp: any) => sp.visible !== false && !sp.is_panel_member).map((sp: any, i: number) => (
+              <SpeakerCard key={i} sp={sp} />
+            ))}
+          </View>
+        </FadeInView>
+      )}
+
+      {/* ── PANEL MEMBERS ───────────────────────────────────────────────── */}
+      {showSection('speakers') && data?.speakers && data.speakers.some((sp: any) => sp.visible !== false && sp.is_panel_member) && (
+        <FadeInView delay={310}>
+          <View style={{ marginBottom: 18 }}>
+            <SectionHeading icon={PanelTop} title="Panel Members" tint="#F472B6" />
+          </View>
+          <View style={[s.speakerRow, !isWide && { flexDirection: 'column' }]}>
+            {(data.speakers || []).filter((sp: any) => sp.visible !== false && sp.is_panel_member).map((sp: any, i: number) => (
+              <SpeakerCard key={i} sp={sp} panel />
+            ))}
+          </View>
+        </FadeInView>
+      )}
+
+      {/* ── CATEGORIES / TRACKS ─────────────────────────────────────────── */}
+      {showSection('categories') && data?.categories && data.categories.length > 0 && (
+        <FadeInView delay={320}>
+          <View style={{ marginBottom: 18 }}>
+            <SectionHeading icon={Zap} title="Problem categories" tint={GRAD.from} />
+          </View>
+          <View style={s.catGrid}>
+            {data.categories.map((c: any, i: number) => <CategoryCard key={i} c={c} />)}
+          </View>
+        </FadeInView>
+      )}
+
+      {/* ── SCHEDULE ────────────────────────────────────────────────────── */}
+      {showSection('schedule') && data?.schedule && data.schedule.length > 0 && (
+        <FadeInView delay={330}>
+          <View style={{ marginBottom: 18 }}>
+            <SectionHeading icon={Calendar} title="Schedule" tint={GRAD.from} />
+          </View>
+          <GlassCard style={{ padding: 6, marginBottom: 16 }}>
+            {data.schedule.map((it: any, i: number) => (
+              <ScheduleRow key={i} it={it} />
+            ))}
+          </GlassCard>
+        </FadeInView>
+      )}
+
+      {/* ── PANELS ──────────────────────────────────────────────────────── */}
+      {showSection('panels') && data?.panels && data.panels.length > 0 && (
+        <FadeInView delay={340}>
+          <View style={{ marginBottom: 18 }}>
+            <SectionHeading icon={PanelTop} title="Panel discussions" tint="#F472B6" />
+          </View>
+          <View style={[s.speakerRow, !isWide && { flexDirection: 'column' }]}>
+            {data.panels.map((p: any, i: number) => <PanelCard key={i} p={p} />)}
+          </View>
+        </FadeInView>
+      )}
+
+      {/* ── ELIGIBILITY + PRIZE POOL ────────────────────────────────────── */}
+      {(showSection('about') && (data?.eligibility || data?.prize_pool || data?.team_composition)) && (
+        <FadeInView delay={345}>
+          <View style={s.infoRow}>
+            {data?.eligibility && (
+              <GlassCard style={[s.infoCard, !isWide && { width: '100%' }]} padding={18}>
+                <View style={s.infoHead}>
+                  <Users size={15} color={GRAD.from} />
+                  <Text style={s.infoTitle}>Who can participate</Text>
+                </View>
+                <Text style={s.infoText}>{data.eligibility}</Text>
+              </GlassCard>
+            )}
+            {data?.team_composition && (
+              <GlassCard style={[s.infoCard, !isWide && { width: '100%' }]} padding={18}>
+                <View style={s.infoHead}>
+                  <Users size={15} color={GRAD.from} />
+                  <Text style={s.infoTitle}>Team composition</Text>
+                </View>
+                <Text style={s.infoText}>{data.team_composition}</Text>
+              </GlassCard>
+            )}
+            {data?.prize_pool && (data.prize_pool.total || data.prize_pool.first) && (
+              <GlassCard style={[s.infoCard, !isWide && { width: '100%' }]} padding={18}>
+                <View style={s.infoHead}>
+                  <Trophy size={15} color="#F59E0B" />
+                  <Text style={s.infoTitle}>Prize pool</Text>
+                </View>
+                {data.prize_pool.total ? <Text style={[s.infoTitle, { color: '#FBBF24', marginBottom: 6 }]}>{data.prize_pool.total}</Text> : null}
+                <View style={{ gap: 3 }}>
+                  {data.prize_pool.first ? <Text style={s.infoText}>🥇 {data.prize_pool.first}</Text> : null}
+                  {data.prize_pool.second ? <Text style={s.infoText}>🥈 {data.prize_pool.second}</Text> : null}
+                  {data.prize_pool.third ? <Text style={s.infoText}>🥉 {data.prize_pool.third}</Text> : null}
+                </View>
+                {(data.prize_pool.other_prizes || []).filter(Boolean).length > 0 && (
+                  <Text style={[s.infoText, { marginTop: 6 }]}>+ {data.prize_pool.other_prizes.join(', ')}</Text>
+                )}
+              </GlassCard>
+            )}
+          </View>
+        </FadeInView>
+      )}
+
+      {/* ── FAQs ────────────────────────────────────────────────────────── */}
+      {showSection('faqs') && data?.faqs && data.faqs.length > 0 && (
+        <FadeInView delay={350}>
+          <View style={{ marginBottom: 18 }}>
+            <SectionHeading icon={HelpCircle} title="Frequently asked questions" tint="#10B981" />
+          </View>
+          <View style={{ gap: 10, marginBottom: 16 }}>
+            {data.faqs.map((f: any, i: number) => (
+              <FaqItem
+                key={i}
+                f={f}
+                open={faqOpen === i}
+                onToggle={() => setFaqOpen(faqOpen === i ? null : i)}
+              />
+            ))}
+          </View>
+        </FadeInView>
+      )}
+
       {/* ── SPONSORS ────────────────────────────────────────────────────── */}
       {showSection('sponsors') && data?.sponsors && data.sponsors.length > 0 && (
         <FadeInView delay={300}>
@@ -946,10 +1359,21 @@ const s = StyleSheet.create({
   heroImg: { width: '100%', height: '100%', borderTopRightRadius: 14, borderBottomRightRadius: 14 },
   statusBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
-    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1, marginBottom: 4,
+    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1,
   },
   statusDot: { width: 7, height: 7, borderRadius: 3.5 },
   statusText: { fontFamily: FONTS.bold, fontSize: 10.5, letterSpacing: 0.8 },
+  heroBadgeLine: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
+  heroEyebrow: {
+    fontFamily: TYPO.body500, fontSize: 11, letterSpacing: 1.6,
+    color: PALETTE.dim, textTransform: 'uppercase' as any,
+  },
+  heroDeadlinePill: {
+    flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
+    backgroundColor: 'rgba(245,158,11,0.15)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.35)',
+    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999,
+  },
+  heroDeadlineText: { fontFamily: FONTS.semi, fontSize: 11, color: '#FBBF24' },
   heroTitle: { fontFamily: TYPO.display800, fontSize: 32, color: '#fff', lineHeight: 40 },
   heroSubtitle: { fontFamily: TYPO.body600, fontSize: 15, color: PALETTE.muted },
   heroDesc: { fontFamily: TYPO.body400, fontSize: 13, color: PALETTE.muted, lineHeight: 20 },
@@ -1006,6 +1430,17 @@ const s = StyleSheet.create({
 
   // Testimonials
   testimonialsRow: { flexDirection: 'row', gap: 14, marginBottom: 16 },
+
+  // Speakers
+  speakerRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 16 },
+  catGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
+
+  // Info (eligibility / team / prizes)
+  infoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 16 },
+  infoCard: { flex: 1, minWidth: 220, gap: 8 },
+  infoHead: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  infoTitle: { fontFamily: TYPO.display700, fontSize: 14, color: '#fff' },
+  infoText: { fontFamily: TYPO.body400, fontSize: 12.5, color: PALETTE.muted, lineHeight: 19 },
 
   // Timeline
   timelineRow: { flexDirection: 'row', gap: 0, alignItems: 'flex-start', marginBottom: 16 },
