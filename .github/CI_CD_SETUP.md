@@ -61,7 +61,7 @@ MONGO_URL=mongodb+srv://user:pass@cluster.mongodb.net/?retryWrites=true&w=majori
 DB_NAME=studentalumniadmin
 JWT_SECRET=<random-64-char-string>
 FERNET_KEY=<generated-via-python-cryptography>
-ADMIN_EMAIL=admin@careerpath.app
+ADMIN_EMAIL=admin@studentalumni.ai
 ADMIN_PASSWORD=<strong-password>
 ALLOWED_ORIGINS=https://studentalumni.ai
 FRONTEND_URL=https://studentalumni.ai

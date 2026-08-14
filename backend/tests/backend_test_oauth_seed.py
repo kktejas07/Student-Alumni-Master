@@ -294,11 +294,11 @@ def test_personalization():
 # =============================================================================
 def test_admin_regression():
     print("\n=== 4. Regression — admin flows ===")
-    r = login("admin@careerpath.app", "Admin@12345")
+    r = login("admin@studentalumni.ai", "Admin@12345")
     if r.status_code == 200:
         body = r.json()
         ok = body["user"]["role"] == "admin"
-        log("Login admin@careerpath.app role=admin", ok,
+        log("Login admin@studentalumni.ai role=admin", ok,
             f"role={body['user']['role']}")
         admin_token = body["access_token"]
 

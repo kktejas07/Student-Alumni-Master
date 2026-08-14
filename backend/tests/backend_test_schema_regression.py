@@ -15,7 +15,7 @@ BASE = "https://hiring-mvvm.preview.emergentagent.com/api"
 
 STUDENT_EMAIL = "student@test.com"
 STUDENT_PASSWORD = "Student@123"
-ADMIN_EMAIL = "admin@careerpath.app"
+ADMIN_EMAIL = "admin@studentalumni.ai"
 ADMIN_PASSWORD = "Admin@12345"
 
 results = []

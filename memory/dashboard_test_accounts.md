@@ -173,7 +173,7 @@ Each persona has 3 dedicated accounts to test specific dashboard states.
 
 | Type | Email | Name |
 |------|-------|------|
-| **Super Admin** | `admin@careerpath.app` | Platform Admin (default) |
+| **Super Admin** | `admin@studentalumni.ai` | Platform Admin (default) |
 | Super Admin | `disha.menon1@admin.demo` | Disha Menon |
 | Super Admin | `vikram.sen2@admin.demo` | Vikram Sen |
 | Super Admin | `kavya.khurana3@admin.demo` | Kavya Khurana |

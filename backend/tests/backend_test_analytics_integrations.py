@@ -10,7 +10,7 @@ import requests
 BASE = "https://hiring-mvvm.preview.emergentagent.com/api"
 
 CREDS = {
-    "admin":   ("admin@careerpath.app", "Admin@12345"),
+    "admin":   ("admin@studentalumni.ai", "Admin@12345"),
     "mentor":  ("mentor01@test.com",    "TestPass@123"),
     "college": ("iith@university.in",   "TestPass@123"),
     "student": ("student@test.com",     "Student@123"),

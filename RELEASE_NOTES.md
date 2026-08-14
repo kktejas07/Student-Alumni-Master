@@ -141,8 +141,8 @@ Refs: CHANGELOG.md §0.16.0
 | Channel              | Identifier          | Version | Build #     |
 | -------------------- | ------------------- | ------- | ----------- |
 | `frontend` (NPM)     | `frontend`          | 0.18.2  | —           |
-| Expo iOS             | `com.careerpath.app`| 1.1.1   | 19          |
-| Expo Android         | `com.careerpath.app`| 1.1.1   | 19 (vc 19)  |
+| Expo iOS             | `com.studentalumni.ai`| 1.1.1   | 19          |
+| Expo Android         | `com.studentalumni.ai`| 1.1.1   | 19 (vc 19)  |
 | Splash backgroundColor + Android adaptive icon backgroundColor migrated from cream `#FDFBF7` → navy `#0a0f1e` to match the FinTax360 dark theme. |
 
 

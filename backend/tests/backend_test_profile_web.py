@@ -31,7 +31,7 @@ STUDENT_EMAIL = "student01@test.com"
 STUDENT_PASSWORD = "TestPass@123"
 MENTOR_EMAIL = "mentor01@test.com"
 MENTOR_PASSWORD = "TestPass@123"
-ADMIN_EMAIL = "admin@careerpath.app"
+ADMIN_EMAIL = "admin@studentalumni.ai"
 ADMIN_PASSWORD = "Admin@12345"
 
 PASS = "\033[92mPASS\033[0m"

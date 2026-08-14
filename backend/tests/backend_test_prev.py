@@ -93,7 +93,7 @@ seeded = [
     ("student01@test.com",            "TestPass@123"),
     ("mentor01@test.com",             "TestPass@123"),
     ("college01@test.com",            "TestPass@123"),
-    ("admin@careerpath.app",          "Admin@12345"),
+    ("admin@studentalumni.ai",          "Admin@12345"),
     ("booked1@persona.demo",          "TestPass@123"),  # was 500 before fix
     ("mentor-active1@persona.demo",   "TestPass@123"),
     ("college-high1@persona.demo",    "TestPass@123"),

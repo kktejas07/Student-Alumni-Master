@@ -118,7 +118,7 @@ export interface MemberIdCardProps {
   tier?: MemberTier;
   qrBase64?: string;            // "data:image/png;base64,..." or raw base64
   validFromYear?: number;       // default = current year
-  verifyBaseUrl?: string;       // default "studentalumni.app/verify"
+  verifyBaseUrl?: string;       // default "studentalumni.ai/verify"
   onTapHint?: () => void;       // optional callback when flipped
   testID?: string;
 }
@@ -129,7 +129,7 @@ export function MemberIdCard({
   tier = 'gold',
   qrBase64,
   validFromYear,
-  verifyBaseUrl = 'studentalumni.app/verify',
+  verifyBaseUrl = 'studentalumni.ai/verify',
   onTapHint,
   testID,
 }: MemberIdCardProps) {

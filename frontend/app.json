@@ -1,16 +1,17 @@
 {
   "expo": {
-    "name": "Career Path",
-    "slug": "frontend",
+    "name": "Student Alumni",
+    "slug": "studentalumni",
+    "description": "AI Career Platform for Students",
     "version": "1.1.1",
     "orientation": "portrait",
     "icon": "./assets/images/sa-icon.png",
-    "scheme": "frontend",
+    "scheme": "studentalumni",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.careerpath.app",
+      "bundleIdentifier": "com.studentalumni.ai",
       "buildNumber": "20",
       "infoPlist": {
         "NSCameraUsageDescription": "Capture your profile photo for your unique student ID.",
@@ -18,7 +19,7 @@
       }
     },
     "android": {
-      "package": "com.careerpath.app",
+      "package": "com.studentalumni.ai",
       "versionCode": 20,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/sa-adaptive-icon.png",

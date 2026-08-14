@@ -802,7 +802,7 @@ async def complete_onboarding(req: OnboardingRequest, user: dict = Depends(get_c
 
     # ---- Generate unique ID + QR code (idempotent — only on first onboarding) ----
     unique_id = user.get("unique_id") or generate_unique_id(role)
-    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.app").strip().rstrip("/")
+    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
     qr_payload = f"{frontend_url}/verify/{unique_id.split('-')[-1]}"
     qr_code = generate_qr_code(qr_payload)
 

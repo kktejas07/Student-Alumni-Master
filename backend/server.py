@@ -2466,7 +2466,7 @@ async def seed_admin():
     SECURITY: ADMIN_PASSWORD must be set in .env. A hardcoded fallback
     would allow attackers to predict admin credentials on unconfirmed deployments.
     """
-    admin_email = os.environ.get("ADMIN_EMAIL", "admin@careerpath.app")
+    admin_email = os.environ.get("ADMIN_EMAIL", "admin@studentalumni.ai")
     admin_password = os.environ.get("ADMIN_PASSWORD", "")
 
     if not admin_password:
@@ -2485,7 +2485,7 @@ async def seed_admin():
 
     existing = await db.users.find_one({"email": admin_email})
     if not existing:
-        frontend_url_env = (os.environ.get("FRONTEND_URL") or "https://studentalumni.app").strip().rstrip("/")
+        frontend_url_env = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
         await db.users.insert_one({
             "email": admin_email,
             "password_hash": hash_password(admin_password),

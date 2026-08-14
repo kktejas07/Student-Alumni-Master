@@ -49,7 +49,7 @@ _db = _mongo[os.environ["DB_NAME"]]
 random.seed(42)
 
 PROTECTED_EMAILS = {
-    "admin@careerpath.app", "student01@test.com", "mentor01@test.com",
+    "admin@studentalumni.ai", "student01@test.com", "mentor01@test.com",
     "college01@test.com", "alumni01@test.com", "iith@university.in",
 }
 

@@ -59,7 +59,7 @@ export function Dashboard() {
               <div className="flex-1 flex justify-center">
                 <div className="px-4 py-1.5 rounded-md bg-white/5 text-[10px] font-bold text-gray-500 tracking-wide flex items-center gap-2 border border-white/5">
                   <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
-                  studentalumni.app / overview
+                  studentalumni.ai / overview
                 </div>
               </div>
               <div className="w-[54px]"></div> {/* Spacer for balance */}

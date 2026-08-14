@@ -33,7 +33,7 @@ dotenv.config();
 // ── Config ────────────────────────────────────────────────────────────────────
 const BASE_URL: string = process.env['BASE_URL'] ?? 'http://localhost:8081';
 const API_URL: string  = process.env['API_URL']  ?? 'http://localhost:8000';
-const ADMIN_EMAIL: string    = process.env['ADMIN_EMAIL']    ?? 'admin@careerpath.app';
+const ADMIN_EMAIL: string    = process.env['ADMIN_EMAIL']    ?? 'admin@studentalumni.ai';
 const ADMIN_PASSWORD: string = process.env['ADMIN_PASSWORD'] ?? 'Admin@12345';
 
 // Path to a tiny test PNG (created inline if not present)

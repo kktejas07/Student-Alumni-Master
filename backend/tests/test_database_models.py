@@ -116,7 +116,7 @@ class TestUserCollection:
         """Test email validation pattern"""
         import re
         pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-        valid_emails = ["user@test.com", "admin@careerpath.app", "test.user@college.edu"]
+        valid_emails = ["user@test.com", "admin@studentalumni.ai", "test.user@college.edu"]
         invalid_emails = ["notanemail", "@missing.com", "user@.com"]
         for email in valid_emails:
             assert re.match(pattern, email), f"Valid email failed: {email}"

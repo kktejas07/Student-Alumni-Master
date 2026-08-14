@@ -595,7 +595,7 @@ async def download_expo_qr():
 import httpx
 from urllib.parse import urlparse
 
-_NOMINATIM_HEADERS = {"User-Agent": "StudentAlumni/1.0 (contact@studentalumni.app)"}
+_NOMINATIM_HEADERS = {"User-Agent": "StudentAlumni/1.0 (contact@studentalumni.ai)"}
 
 # In-memory cache (q+type → results) to avoid repeated Nominatim hits.
 # TTL ~ 30 min. Bounded size 256 entries.
@@ -1128,7 +1128,7 @@ async def _upsert_oauth_user(provider: str, email: str, full_name: str,
 
     # New OAuth user — create with onboarding NOT yet completed so the client
     uid = generate_unique_id(role or "student")
-    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.app").strip().rstrip("/")
+    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
     qr_code = generate_qr_code(
         f"{frontend_url}/verify/{uid.split('-')[-1]}"
     )

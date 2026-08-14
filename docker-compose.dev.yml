@@ -38,7 +38,7 @@ services:
       JWT_SECRET: dev-secret-change-me
       ALLOWED_ORIGINS: "*"
       FRONTEND_URL: "*"
-      ADMIN_EMAIL: admin@careerpath.app
+      ADMIN_EMAIL: admin@studentalumni.ai
       ADMIN_PASSWORD: ChangeMe@12345
       EMERGENT_LLM_KEY: ""
       FERNET_KEY: ""

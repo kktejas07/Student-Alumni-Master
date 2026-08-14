@@ -4,7 +4,8 @@
  * role-based auth flow. Safe to delete later.
  */
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
+import { Redirect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MentorDashboardView } from '@/src/views/web/MentorDashboardView';
 import { Sidebar, NavItem } from '@/src/views/web/platform/components';
@@ -25,6 +26,7 @@ const NAV: NavItem[] = [
 ];
 
 export default function MentorPreviewPage() {
+  if (Platform.OS === 'web') return <Redirect href="/welcome" />;
   return (
     <LinearGradient
       colors={['#071412', '#0A1F1A', '#0F2E26'] as any}

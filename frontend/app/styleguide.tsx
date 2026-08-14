@@ -29,8 +29,10 @@ import {
   AppleText, Card, Button, Modal, Sheet, Tabs, SegmentedControl, GlassTopbar, ScrollReveal,
 } from '@/src/motion/apple/components';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Redirect } from 'expo-router';
 
 export default function StyleguideRoute() {
+  if (Platform.OS === 'web') return <Redirect href="/welcome" />;
   return (
     <ThemeProvider>
       <Styleguide />

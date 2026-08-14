@@ -4,12 +4,14 @@
  *
  * URL: /dash-preview
  */
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
+import { Redirect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StudentDashboardView } from '@/src/views/web/StudentDashboardView';
 
 export default function DashPreview() {
+  if (Platform.OS === 'web') return <Redirect href="/welcome" />;
   return (
     <View style={{ flex: 1 }}>
       <LinearGradient

@@ -82,7 +82,7 @@ async def admin_client():
         from server import app
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
             resp = await ac.post("/api/auth/login", json={
-                "email": "admin@careerpath.app",
+                "email": "admin@studentalumni.ai",
                 "password": "Admin@12345",
             })
             if resp.status_code == 200:

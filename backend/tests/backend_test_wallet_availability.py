@@ -19,7 +19,7 @@ STUDENT_EMAIL = "realtime@studentalumni.in"
 STUDENT_PASS = "RealTime@2026"
 MENTOR_EMAIL = "mentor01@test.com"
 MENTOR_PASS = "TestPass@123"
-ADMIN_EMAIL = "admin@careerpath.app"
+ADMIN_EMAIL = "admin@studentalumni.ai"
 ADMIN_PASS = "Admin@12345"
 
 # Collect results

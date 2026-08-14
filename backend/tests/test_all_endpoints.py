@@ -45,7 +45,7 @@ async def auth_client(client):
 async def admin_client(client):
     """Login as admin and return client with admin token"""
     resp = await client.post("/api/auth/login", json={
-        "email": "admin@careerpath.app",
+        "email": "admin@studentalumni.ai",
         "password": "Admin@12345"
     })
     if resp.status_code == 200:
@@ -107,7 +107,7 @@ class TestAuthEndpoints:
     async def test_05_login_success(self, client):
         """POST /api/auth/login - Successful login"""
         resp = await client.post("/api/auth/login", json={
-            "email": "admin@careerpath.app",
+            "email": "admin@studentalumni.ai",
             "password": "Admin@12345"
         })
         assert resp.status_code == 200, f"Login failed: {resp.text}"
@@ -117,7 +117,7 @@ class TestAuthEndpoints:
     async def test_06_login_invalid_password(self, client):
         """POST /api/auth/login - Invalid password"""
         resp = await client.post("/api/auth/login", json={
-            "email": "admin@careerpath.app",
+            "email": "admin@studentalumni.ai",
             "password": "wrong_password_123"
         })
         assert resp.status_code == 401

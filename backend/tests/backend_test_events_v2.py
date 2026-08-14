@@ -30,7 +30,7 @@ CREDS = {
     "student2": ("student01@test.com", "TestPass@123"),
     "mentor":   ("mentor01@test.com", "TestPass@123"),
     "college":  ("iitb@university.in", "TestPass@123"),
-    "admin":    ("admin@careerpath.app", "Admin@12345"),
+    "admin":    ("admin@studentalumni.ai", "Admin@12345"),
 }
 
 # =========================================================================

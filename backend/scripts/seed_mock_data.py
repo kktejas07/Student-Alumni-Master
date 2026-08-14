@@ -50,9 +50,9 @@ COMMON_PWD = "TestPass@123"
 
 TEST_USERS: List[Dict[str, Any]] = [
     # ===== ADMINS =====
-    {"email": "admin@careerpath.app", "password": "Admin@12345", "full_name": "Platform Admin",
+    {"email": "admin@studentalumni.ai", "password": "Admin@12345", "full_name": "Platform Admin",
      "role": "admin", "is_super_admin": True, "_unique_prefix": "ADM"},
-    {"email": "admin2@careerpath.app", "password": COMMON_PWD, "full_name": "Senior Admin",
+    {"email": "admin2@studentalumni.ai", "password": COMMON_PWD, "full_name": "Senior Admin",
      "role": "admin", "_unique_prefix": "ADM"},
 
     # ===== UNIVERSITIES (tenant accounts) =====
@@ -570,7 +570,7 @@ async def upsert_user(email: str, password: str, full_name: str, role: str,
     if existing:
         return str(existing["_id"])
     uid = generate_unique_id(role)
-    frontend_url_env = (os.environ.get("FRONTEND_URL") or "https://studentalumni.app").strip().rstrip("/")
+    frontend_url_env = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
     user_doc: Dict[str, Any] = {
         "email": email,
         "password_hash": hash_password(password),
@@ -952,8 +952,8 @@ async def main():
     print("🔑 TEST CREDENTIALS")
     print("=" * 70)
     print(f"\nADMINS")
-    print(f"  admin@careerpath.app          / Admin@12345  (existing)")
-    print(f"  admin2@careerpath.app         / {COMMON_PWD}")
+    print(f"  admin@studentalumni.ai          / Admin@12345  (existing)")
+    print(f"  admin2@studentalumni.ai         / {COMMON_PWD}")
     print(f"\nUNIVERSITIES (role=college, tenant accounts)")
     print(f"  iith@university.in            / {COMMON_PWD}")
     print(f"  iitb@university.in            / {COMMON_PWD}")

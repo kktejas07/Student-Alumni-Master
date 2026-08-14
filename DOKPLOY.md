@@ -135,7 +135,7 @@ MONGO_URL=mongodb+srv://USER:PASSWORD@cluster.mongodb.net/?retryWrites=true&w=ma
 DB_NAME=studentalumniadmin
 JWT_SECRET=<openssl rand -hex 32>
 FERNET_KEY=<python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())">
-ADMIN_EMAIL=admin@careerpath.app
+ADMIN_EMAIL=admin@studentalumni.ai
 ADMIN_PASSWORD=<your-strong-password>
 ALLOWED_ORIGINS=https://studentalumni.ai
 FRONTEND_URL=https://studentalumni.ai

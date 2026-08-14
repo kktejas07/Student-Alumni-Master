@@ -2,20 +2,62 @@
 import { ScrollViewStyleReset } from "expo-router/html";
 import type { PropsWithChildren } from "react";
 
+const TITLE = "Student Alumni — AI Career Platform for Students";
+const DESCRIPTION =
+  "Student Alumni is an AI career platform for students, alumni, mentors, and colleges. Find mentors, campus events, internships, and a personalised career roadmap.";
+const URL = "https://studentalumni.ai";
+const OG_IMAGE = `${URL}/apple-touch-icon.png`;
+
+const JSON_LD = JSON.stringify({
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      name: "Student Alumni",
+      url: URL,
+      logo: `${URL}/favicon.png`,
+      sameAs: [URL],
+    },
+    {
+      "@type": "WebSite",
+      name: "Student Alumni",
+      url: URL,
+      description: DESCRIPTION,
+      potentialAction: {
+        "@type": "SearchAction",
+        target: `${URL}/welcome`,
+        "query-input": "required name=search_term_string",
+      },
+    },
+  ],
+});
+
 export default function Root({ children }: PropsWithChildren) {
   return (
     <html lang="en" style={{ height: "100%" }}>
       <head>
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
-        <meta
-          name="viewport"
-          content="width=device-width, initial-scale=1, shrink-to-fit=no"
-        />
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+        <title>{TITLE}</title>
+        <meta name="description" content={DESCRIPTION} />
+        <meta name="application-name" content="Student Alumni" />
+        <meta name="apple-mobile-web-app-title" content="Student Alumni" />
+        <link rel="canonical" href={URL} />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Student Alumni" />
+        <meta property="og:title" content={TITLE} />
+        <meta property="og:description" content={DESCRIPTION} />
+        <meta property="og:url" content={URL} />
+        <meta property="og:image" content={OG_IMAGE} />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={TITLE} />
+        <meta name="twitter:description" content={DESCRIPTION} />
+        <meta name="twitter:image" content={OG_IMAGE} />
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/favicon.png" type="image/png" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        {/* Google Analytics */}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON_LD }} />
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-GTPG1F884T"></script>
         <script
           dangerouslySetInnerHTML={{
@@ -27,12 +69,6 @@ export default function Root({ children }: PropsWithChildren) {
             `,
           }}
         />
-
-        {/*
-          Disable body scrolling on web to make ScrollView components work correctly.
-          If you want to enable scrolling, remove \`ScrollViewStyleReset\` and
-          set \`overflow: auto\` on the body style below.
-        */}
         <ScrollViewStyleReset />
         <style
           dangerouslySetInnerHTML={{
@@ -58,6 +94,17 @@ export default function Root({ children }: PropsWithChildren) {
           flexDirection: "column",
         }}
       >
+        <noscript>
+          <h1>Student Alumni</h1>
+          <p>{DESCRIPTION}</p>
+          <p>
+            <a href="https://studentalumni.ai/get-started">Get started</a>
+            {" · "}
+            <a href="https://studentalumni.ai/about">About</a>
+            {" · "}
+            <a href="https://studentalumni.ai/contact">Contact</a>
+          </p>
+        </noscript>
         {children}
       </body>
     </html>

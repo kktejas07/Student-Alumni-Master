@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+Disallow: /dash-preview
+Disallow: /mentor-preview
+Disallow: /styleguide
+Disallow: /login
+Disallow: /register
+Disallow: /super-admin
+Disallow: /student-portal
+Disallow: /alumni-portal
+Disallow: /mentor-portal
+Disallow: /college-portal
+Disallow: /admin
+Sitemap: https://studentalumni.ai/sitemap.xml
