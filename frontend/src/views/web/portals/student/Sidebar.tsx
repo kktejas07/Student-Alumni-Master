@@ -33,7 +33,6 @@ import { useBreakpoint } from '@/src/theme/breakpoints';
 import { SP, RADII, FONT_FAMILY } from '@/src/theme/apple';
 import { GRADS } from './gradients';
 import { SC, PALETTE, TYPO } from './tokens';
-import { PALETTE, TYPO } from './tokens';
 import { Av } from './atoms';
 import { FadeInView, PressScale, SparkIcon, PulseDot } from './motion';
 import { AgentKLauncher } from '@/src/views/web/agent-k/AgentKLauncher';
