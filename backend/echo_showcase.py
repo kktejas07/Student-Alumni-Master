@@ -2049,6 +2049,7 @@ class RegistrationConfig(BaseModel):
     fee: Optional[float] = 0
     currency: Optional[str] = "INR"
     max_seats: Optional[int] = 0
+    seat_leverage: Optional[float] = 0.8  # 0.0-1.0 — fraction of registrations that consume seats (0.8 = 20% buffer)
     deadline: Optional[str] = ""
     payment_note: Optional[str] = ""
     payment_url: Optional[str] = None  # External payment gateway link (e.g. Razorpay/Stripe) shown on the register page

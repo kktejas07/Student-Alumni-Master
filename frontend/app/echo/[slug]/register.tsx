@@ -739,10 +739,11 @@ export default function EchoRegisterPage() {
                   const maxSeats = Number(regCfg.max_seats) || 0;
                   const paidCount = Number(regCfg.paid_count) || 0;
                   const totalCount = Number(regCfg.total_registrations) || 0;
+                  const leverage = Number(regCfg.seat_leverage) || 0.8;
                   const isPaidEvent = fee > 0;
                   const consumed = isPaidEvent
-                    ? Math.ceil(paidCount * 0.8)
-                    : Math.ceil(totalCount * 0.8);
+                    ? Math.ceil(paidCount * leverage)
+                    : Math.ceil(totalCount * leverage);
                   const remaining = Math.max(0, maxSeats - consumed);
                   return (
                     <View style={s.seatsRow}>
