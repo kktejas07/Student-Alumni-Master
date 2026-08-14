@@ -86,6 +86,22 @@ async def _resolve_project_id(db) -> Optional[int]:
             return _CACHE["project_id"]
         except (TypeError, ValueError):
             pass
+    # Try @current first (works with personal API keys without project_access scope)
+    try:
+        async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+            resp = await client.post(
+                f"{cfg['host']}/api/projects/@current/query/",
+                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                json={"query": {"kind": "HogQLQuery", "query": "SELECT 1"}},
+            )
+        if resp.status_code == 200:
+            # @current works — extract project_id from the response URL or use 0 as sentinel
+            # We'll use @current directly in queries
+            _CACHE.update({"project_id": -1, "at": now})  # -1 = use @current
+            return _CACHE["project_id"]
+        logger.warning(f"PostHog @current probe failed HTTP {resp.status_code}: {resp.text[:200]}")
+    except Exception as e:
+        logger.warning(f"PostHog @current probe error: {e}")
     # Fall back to listing projects the key can access.
     try:
         async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
@@ -117,7 +133,8 @@ async def _hogql(db, sql: str) -> List[Dict[str, Any]]:
     pid = await _resolve_project_id(db)
     if pid is None:
         return []
-    url = f"{cfg['host']}/api/projects/{pid}/query/"
+    project_str = "@current" if pid == -1 else str(pid)
+    url = f"{cfg['host']}/api/projects/{project_str}/query/"
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
