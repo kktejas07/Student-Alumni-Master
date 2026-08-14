@@ -574,4 +574,106 @@ async def super_admin_full_analytics(db) -> Dict[str, Any]:
         "funnel": funnel,
         "recent_activity": recent_activity,
         "top_colleges": top_colleges,
+        # Firebase Analytics data
+        "firebase": await _get_firebase_data(),
+        # Error tracking
+        "errors": await _get_error_data(db),
+        # Predictions
+        "predictions": _compute_predictions(user_growth),
+    }
+
+
+async def _get_firebase_data() -> Dict[str, Any]:
+    """Fetch all Firebase Analytics data."""
+    try:
+        import firebase_analytics as fa
+        import asyncio
+        results = await asyncio.gather(
+            fa.get_realtime_active_users(),
+            fa.get_session_duration(30),
+            fa.get_active_hours(7),
+            fa.get_retention(30),
+            fa.get_page_views(30),
+            fa.get_engagement_metrics(30),
+            fa.get_acquisition(30),
+            fa.get_demographics(30),
+            return_exceptions=True,
+        )
+        def _safe(r, default):
+            return r if not isinstance(r, Exception) else default
+        return {
+            "realtime_active": _safe(results[0], {"active_users": 0, "configured": False}),
+            "session_duration": _safe(results[1], {"avg_duration_sec": 0, "total_sessions": 0, "configured": False}),
+            "active_hours": _safe(results[2], {"hours": [], "configured": False}),
+            "retention": _safe(results[3], {"cohorts": [], "configured": False}),
+            "page_views": _safe(results[4], {"pages": [], "configured": False}),
+            "engagement": _safe(results[5], {"bounce_rate": 0, "engagement_rate": 0, "views_per_session": 0, "configured": False}),
+            "acquisition": _safe(results[6], {"sources": [], "configured": False}),
+            "demographics": _safe(results[7], {"countries": [], "cities": [], "configured": False}),
+        }
+    except Exception as e:
+        return {"error": str(e), "configured": False}
+
+
+async def _get_error_data(db) -> Dict[str, Any]:
+    """Get error tracking data from MongoDB."""
+    now = datetime.now(timezone.utc)
+    thirty_days_ago = now - timedelta(days=30)
+    try:
+        # Count errors from auth_events (failed logins)
+        auth_errors = await db.auth_events.count_documents({
+            "event": {"$in": ["login_failure", "login_attempt"]},
+            "success": False,
+            "timestamp": {"$gte": thirty_days_ago},
+        })
+        # Count from activity_events (if any error type exists)
+        activity_errors = await db.activity_events.count_documents({
+            "category": "error",
+            "ts": {"$gte": thirty_days_ago},
+        })
+        # Recent errors
+        recent_errors = []
+        async for e in db.auth_events.find(
+            {"success": False, "timestamp": {"$gte": thirty_days_ago}},
+            {"event": 1, "reason": 1, "email": 1, "timestamp": 1}
+        ).sort("timestamp", -1).limit(10):
+            recent_errors.append({
+                "type": e.get("event", "unknown"),
+                "message": e.get("reason", "Unknown error"),
+                "user": e.get("email", ""),
+                "timestamp": (e.get("timestamp") or now).isoformat(),
+            })
+        return {
+            "total_errors_30d": auth_errors + activity_errors,
+            "auth_errors": auth_errors,
+            "activity_errors": activity_errors,
+            "recent": recent_errors,
+        }
+    except Exception:
+        return {"total_errors_30d": 0, "auth_errors": 0, "activity_errors": 0, "recent": []}
+
+
+def _compute_predictions(growth: List[Dict]) -> Dict[str, Any]:
+    """Simple linear trend prediction for next 3 months."""
+    if len(growth) < 3:
+        return {"next_3_months": [], "trend": "insufficient_data"}
+    counts = [g["count"] for g in growth]
+    # Simple moving average of last 3 months
+    avg_recent = sum(counts[-3:]) / 3
+    avg_prior = sum(counts[-6:-3]) / 3 if len(counts) >= 6 else avg_recent
+    growth_rate = (avg_recent - avg_prior) / max(avg_prior, 1)
+    predictions = []
+    cumulative = growth[-1]["cumulative"]
+    for i in range(1, 4):
+        predicted = max(0, round(avg_recent * (1 + growth_rate * i)))
+        cumulative += predicted
+        predictions.append({
+            "month": f"M+{i}",
+            "predicted_signups": predicted,
+            "cumulative": cumulative,
+        })
+    return {
+        "next_3_months": predictions,
+        "trend": "growing" if growth_rate > 0.05 else ("declining" if growth_rate < -0.05 else "stable"),
+        "growth_rate_pct": round(growth_rate * 100, 1),
     }
