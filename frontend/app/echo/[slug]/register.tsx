@@ -742,7 +742,7 @@ export default function EchoRegisterPage() {
                   const isPaidEvent = fee > 0;
                   const consumed = isPaidEvent
                     ? Math.ceil(paidCount * 0.8)
-                    : totalCount;
+                    : Math.ceil(totalCount * 0.8);
                   const remaining = Math.max(0, maxSeats - consumed);
                   return (
                     <View style={s.seatsRow}>
