@@ -635,6 +635,21 @@ async def _live_test(tool_id: str, creds: Dict[str, str]) -> tuple[bool, str]:
             if r.status_code == 404:
                 return (False, "OpenWA: session not found — check Session ID")
             return (False, f"OpenWA: HTTP {r.status_code}")
+        if tool_id == "posthog":
+            ph_key = (creds.get("personal_api_key") or api_key).strip()
+            ph_host = (creds.get("host") or "https://us.posthog.com").strip().rstrip("/")
+            if not ph_key:
+                return False, "PostHog: API key is required"
+            if ph_key.startswith("phc_"):
+                return (False, "PostHog: project key (phc_) cannot read analytics. Use a personal API key (phx_) with query:read scope.")
+            try:
+                async with _h.AsyncClient(timeout=timeout) as c:
+                    r = await c.get(f"{ph_host}/api/users/@me/", headers={"Authorization": f"Bearer {ph_key}"})
+                if r.status_code == 200:
+                    return (True, "Verified — PostHog personal API key accepted")
+                return (False, f"PostHog: HTTP {r.status_code}")
+            except Exception as e:
+                return (False, f"PostHog connection failed: {e}")
         # No live test implemented — accept after basic format checks
         return True, "Credentials look valid (no live check for this provider)"
     except Exception as e:
