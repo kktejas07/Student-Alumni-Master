@@ -63,7 +63,7 @@ export function AgentK3D() {
         >
           {/* SA Shield — gentle ±18° oscillation, SA always visible */}
           <motion.img
-            src="/sa-3d-shield.png"
+            src="/sa-3d-shield-independence.png"
             alt="Student Alumni 3D Shield Logo"
             animate={{ rotateY: [-18, 18, -18] }}
             transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
