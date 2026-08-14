@@ -2336,7 +2336,20 @@ async def get_showcase(slug: str, request: Request):
             await _require_admin(request)
         except HTTPException:
             raise HTTPException(status_code=404, detail="Showcase not found")
-    return _ser(doc)
+    result = _ser(doc)
+    # Attach live registration counts for seat display
+    slug_val = doc.get("slug", slug)
+    paid_count = await db.echo_registrations.count_documents({
+        "slug": slug_val, "payment.status": "paid",
+    })
+    total_count = await db.echo_registrations.count_documents({
+        "slug": slug_val,
+    })
+    reg_cfg = result.get("registration") or {}
+    reg_cfg["paid_count"] = paid_count
+    reg_cfg["total_registrations"] = total_count
+    result["registration"] = reg_cfg
+    return result
 
 
 # ── Registration (real payments only — Razorpay) ─────────────────────────────
