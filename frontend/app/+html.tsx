@@ -58,6 +58,9 @@ export default function Root({ children }: PropsWithChildren) {
         <link rel="icon" href="/favicon.png" type="image/png" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON_LD }} />
+        {/* ========================================== */}
+        {/* 1. GOOGLE ANALYTICS (GA4)                   */}
+        {/* ========================================== */}
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-GTPG1F884T"></script>
         <script
           dangerouslySetInnerHTML={{
@@ -69,7 +72,10 @@ export default function Root({ children }: PropsWithChildren) {
             `,
           }}
         />
-        {/* PostHog Analytics with Autocapture & Session Replay */}
+
+        {/* ========================================== */}
+        {/* 2. POSTHOG ANALYTICS (AUTOCAPTURE & REPLAY) */}
+        {/* ========================================== */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
