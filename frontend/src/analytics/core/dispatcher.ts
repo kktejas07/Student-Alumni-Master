@@ -13,6 +13,7 @@ import { PostHogProvider } from '../providers/posthog';
 import { AnalyticsProvider } from '../providers/types';
 import { UserTraits } from '../types';
 import { buildStandardEnvelope, hashUserId } from './context';
+import { logger } from './logger';
 import { sanitizeProps } from './sanitize';
 import { loadOfflineQueue, saveOfflineQueue } from './storage';
 import { validateEvent } from './validate';
@@ -112,6 +113,8 @@ class AnalyticsDispatcher {
     this.queue.push(queuedEvent);
     this.addToDebugLog(queuedEvent);
 
+    logger.debug('Track', `${event} (${elementId || 'generic'})`, sanitizedProps);
+
     // Conversion events or immediate events flush immediately
     const isConversion =
       event === EVENTS.SIGN_UP ||
@@ -203,6 +206,11 @@ class AnalyticsDispatcher {
 
   getDebugLog(): QueuedEvent[] {
     return [...this.recentEventsLog];
+  }
+
+  clearDebugLog(): void {
+    this.recentEventsLog = [];
+    logger.info('Debug', 'Debug log cleared.');
   }
 
   private async dispatchToProviders(event: string, props: Record<string, any>): Promise<void> {
