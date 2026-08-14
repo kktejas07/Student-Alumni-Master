@@ -32,12 +32,18 @@ _CACHE_TTL = 300
 # ── Credential resolution ────────────────────────────────────────────────────
 
 def _env_config() -> Dict[str, str]:
-    return {
-        "api_key": os.environ.get("POSTHOG_PERSONAL_API_KEY", "").strip()
-                or os.environ.get("POSTHOG_API_KEY", "").strip(),
-        "host": os.environ.get("POSTHOG_HOST", "https://us.i.posthog.com").strip(),
-        "project_id": os.environ.get("POSTHOG_PROJECT_ID", "").strip(),
-    }
+    """Read PostHog config from env vars. Only returns non-empty values."""
+    result: Dict[str, str] = {}
+    key = os.environ.get("POSTHOG_PERSONAL_API_KEY", "").strip() or os.environ.get("POSTHOG_API_KEY", "").strip()
+    if key:
+        result["api_key"] = key
+    host = os.environ.get("POSTHOG_HOST", "").strip()
+    if host:
+        result["host"] = host.replace(".i.posthog.com", ".posthog.com")
+    pid = os.environ.get("POSTHOG_PROJECT_ID", "").strip()
+    if pid:
+        result["project_id"] = pid
+    return result
 
 
 async def _db_config(db) -> Dict[str, str]:
