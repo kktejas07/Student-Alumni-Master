@@ -111,6 +111,7 @@ if (typeof window !== 'undefined') {
 }
 
 export default {
+  init: () => dispatcher.init().catch(() => {}),
   track,
   trackClick,
   trackImpression,
