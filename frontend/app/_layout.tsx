@@ -37,9 +37,11 @@ import { ConsentBanner } from '@/src/views/web/consent/ConsentBanner';
 import { TourProvider } from '@/src/views/web/tour/TourProvider';
 import { TourOverlay } from '@/src/views/web/tour/TourOverlay';
 import { AnnouncementPopup } from '@/src/views/web/components/AnnouncementPopup';
-import { LogBox } from 'react-native';
+import { LogBox, Platform } from 'react-native';
 
-LogBox.ignoreLogs(['6000ms timeout exceeded', 'fontfaceobserver']);
+if (Platform.OS !== 'web') {
+  LogBox.ignoreLogs(['6000ms timeout exceeded', 'fontfaceobserver']);
+}
 
 
 
