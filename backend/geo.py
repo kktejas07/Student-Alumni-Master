@@ -93,7 +93,7 @@ async def aggregate_geo_from_db(db, days: int = 90) -> Dict[str, Any]:
     geo_data = await resolve_ip_batch(unique_ips)
 
     # Aggregate by country and city
-    country_counts: Dict[str, int] = defaultdict(int)
+    country_data: Dict[str, Dict[str, Any]] = defaultdict(lambda: {"count": 0, "code": "??"})
     city_counts: Dict[str, Dict[str, Any]] = defaultdict(lambda: {"count": 0, "country_code": "??"})
 
     all_events = await db.auth_events.find(
@@ -104,15 +104,16 @@ async def aggregate_geo_from_db(db, days: int = 90) -> Dict[str, Any]:
     for doc in all_events:
         ip = doc.get("ip", "")
         geo = geo_data.get(ip, {"country": "Unknown", "country_code": "??", "city": "Unknown"})
-        country_counts[geo["country"]] += 1
+        country_data[geo["country"]]["count"] += 1
+        country_data[geo["country"]]["code"] = geo["country_code"]
         city_key = f"{geo['city']}"
         city_counts[city_key]["count"] += 1
         city_counts[city_key]["country_code"] = geo["country_code"]
 
-    total = sum(country_counts.values()) or 1
+    total = sum(d["count"] for d in country_data.values()) or 1
     countries = [
-        {"country": c, "count": n, "pct": round(n / total * 100, 1)}
-        for c, n in sorted(country_counts.items(), key=lambda x: -x[1])[:15]
+        {"country": c, "code": d["code"], "count": d["count"], "pct": round(d["count"] / total * 100, 1)}
+        for c, d in sorted(country_data.items(), key=lambda x: -x[1]["count"])[:15]
     ]
     cities = [
         {"city": city, "country_code": data["country_code"], "count": data["count"]}

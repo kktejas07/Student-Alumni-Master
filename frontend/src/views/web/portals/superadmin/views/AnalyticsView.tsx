@@ -20,6 +20,7 @@ import {
 import { SAC, FONTS } from '../tokens';
 import { Card, KpiTile, GRAD, SecondaryButton, StatusPill, LoadingBox } from '../applekit';
 import { usePortalData } from '@/src/lib/portalApi';
+import { WorldMap } from './WorldMap';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 type KPIs = {
@@ -36,7 +37,7 @@ type Engagement = {
   daily_active_series: { date: string; count: number }[];
 };
 type DeviceData = { by_os: { label: string; value: number; pct: number }[]; by_browser: { label: string; value: number; pct: number }[]; by_kind: { label: string; value: number; pct: number }[] };
-type GeoData = { countries: { country: string; count: number; pct: number }[]; cities: { city: string; country: string; count: number }[] };
+type GeoData = { countries: { country: string; code: string; count: number; pct: number }[]; cities: { city: string; country: string; count: number }[] };
 type FunnelStage = { label: string; v: number; color: string };
 type ActivityItem = { type: string; title: string; subtitle: string; timestamp: string };
 type College = { name: string; students: number; alumni: number; total: number };
@@ -48,7 +49,7 @@ type FirebaseData = {
   page_views: { pages: { path: string; views: number }[]; configured: boolean };
   engagement: { bounce_rate: number; engagement_rate: number; views_per_session: number; configured: boolean };
   acquisition: { sources: { source: string; sessions: number }[]; configured: boolean };
-  demographics: { countries: { country: string; count: number }[]; cities: { city: string; country: string; count: number }[]; configured: boolean };
+  demographics: { countries: { country: string; code: string; count: number }[]; cities: { city: string; country: string; count: number }[]; configured: boolean };
   devices: { by_os: { label: string; value: number }[]; by_browser: { label: string; value: number }[]; by_device: { label: string; value: number }[]; configured: boolean };
   daily_active: { series: { date: string; count: number }[]; configured: boolean };
 };
@@ -63,7 +64,7 @@ type PostHogData = {
   top_events?: { event: string; count: number }[];
   top_paths?: { path: string; views: number }[];
   sources?: { source: string; sessions: number }[];
-  countries?: { country: string; count: number }[];
+  countries?: { country: string; code: string; count: number }[];
   devices?: { by_os: { label: string; value: number }[]; by_browser: { label: string; value: number }[]; by_device: { label: string; value: number }[] };
   sessions?: { sessions: number; users: number; has_session_data: boolean };
 };
@@ -487,15 +488,20 @@ function GeographyCard({ geo }: { geo: GeoData }) {
         <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#F3F4F6' }}>Geographic Distribution</Text>
       </View>
       {geo.countries.length > 0 ? (
-        <View style={{ gap: 6 }}>
-          {geo.countries.slice(0, 8).map((c, i) => (
-            <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <View style={{ height: 6, width: `${c.pct}%`, maxWidth: 120, borderRadius: 3, backgroundColor: '#14B8A6', opacity: 1 - i * 0.1 }} />
-              <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.muted, flex: 1 }}>{c.country}</Text>
-              <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: '#14B8A6' }}>{c.count}</Text>
-            </View>
-          ))}
-        </View>
+        <>
+          <WorldMap data={geo.countries} title="" color="#14B8A6" />
+          {/* Top countries bar */}
+          <View style={{ gap: 4 }}>
+            <Text style={{ fontFamily: FONTS.semi, fontSize: 10, color: SAC.dim, textTransform: 'uppercase', letterSpacing: 0.5 }}>Top Countries</Text>
+            {geo.countries.slice(0, 6).map((c, i) => (
+              <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.muted, flex: 1 }}>{c.country}</Text>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: '#14B8A6' }}>{c.count}</Text>
+                <Text style={{ fontFamily: FONTS.med, fontSize: 9, color: SAC.dim }}>{c.pct}%</Text>
+              </View>
+            ))}
+          </View>
+        </>
       ) : (
         <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.dim }}>No geographic data yet</Text>
       )}
@@ -505,7 +511,7 @@ function GeographyCard({ geo }: { geo: GeoData }) {
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
             {geo.cities.slice(0, 5).map((c, i) => (
               <View key={i} style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(20,184,166,0.1)', borderWidth: 1, borderColor: 'rgba(20,184,166,0.2)' }}>
-                <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: '#14B8A6' }}>{c.city} ({c.country})</Text>
+                <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: '#14B8A6' }}>{c.city}</Text>
               </View>
             ))}
           </View>
@@ -810,20 +816,25 @@ function PostHogSourcesCard({ ph }: { ph: PostHogData }) {
 
 function PostHogCountriesCard({ ph }: { ph: PostHogData }) {
   const countries = ph.countries || [];
-  const maxCount = Math.max(...countries.map(c => c.count), 1);
   return (
     <Card style={{ padding: 20, gap: 12 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <Globe size={16} color="#1D4AFF" />
         <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#F3F4F6' }}>Top Countries</Text>
       </View>
-      {countries.length > 0 ? countries.slice(0, 8).map((c, i) => (
-        <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <View style={{ height: 6, width: `${(c.count / maxCount) * 100}%`, maxWidth: 100, borderRadius: 3, backgroundColor: '#1D4AFF' }} />
-          <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted, flex: 1 }}>{c.country}</Text>
-          <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#1D4AFF' }}>{fmt(c.count)}</Text>
-        </View>
-      )) : <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.dim }}>No geo data</Text>}
+      {countries.length > 0 ? (
+        <>
+          <WorldMap data={countries} title="" color="#1D4AFF" />
+          <View style={{ gap: 4 }}>
+            {countries.slice(0, 6).map((c, i) => (
+              <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted, flex: 1 }}>{c.country}</Text>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#1D4AFF' }}>{fmt(c.count)}</Text>
+              </View>
+            ))}
+          </View>
+        </>
+      ) : <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.dim }}>No geo data</Text>}
     </Card>
   );
 }

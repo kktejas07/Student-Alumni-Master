@@ -245,13 +245,13 @@ async def get_demographics(days: int = 30, db=None) -> Dict[str, Any]:
         s, e = _date_range(days)
         country_req = Req(
             property=p, date_ranges=[DR(start_date=s, end_date=e)],
-            dimensions=[Dim(name="country")],
+            dimensions=[Dim(name="country"), Dim(name="countryId")],
             metrics=[Met(name="activeUsers")],
             order_bys=[OB(metric=Met(name="activeUsers"), desc=True)],
             limit=15,
         )
         country_resp = client.run_report(country_req)
-        countries = [{"country": r.dimension_values[0].value, "count": int(r.metric_values[0].value)} for r in country_resp.rows]
+        countries = [{"country": r.dimension_values[0].value, "code": r.dimension_values[1].value, "count": int(r.metric_values[0].value)} for r in country_resp.rows]
         city_req = Req(
             property=p, date_ranges=[DR(start_date=s, end_date=e)],
             dimensions=[Dim(name="city"), Dim(name="country")],

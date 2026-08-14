@@ -246,14 +246,15 @@ async def _countries(db, limit: int = 12) -> List[Dict[str, Any]]:
     rows = await _safe(db, f"""
         SELECT
             COALESCE(properties.$geoip_country_name, 'Unknown') AS country,
+            COALESCE(properties.$geoip_country_code, '??') AS code,
             count() AS count
         FROM events
         WHERE timestamp > now() - INTERVAL 30 DAY
           AND properties.$geoip_country_name IS NOT NULL
-        GROUP BY country ORDER BY count DESC
+        GROUP BY country, code ORDER BY count DESC
         LIMIT {limit}
     """, [])
-    return [{"country": r.get("country") or "Unknown", "count": int(r.get("count") or 0)} for r in rows]
+    return [{"country": r.get("country") or "Unknown", "code": r.get("code") or "??", "count": int(r.get("count") or 0)} for r in rows]
 
 
 async def _devices(db) -> Dict[str, Any]:
