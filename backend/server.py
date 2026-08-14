@@ -204,6 +204,7 @@ async def _lifespan(application):
     # certificates share a code, and lookups stay O(1) at 400+ scale)
     await _safe_create_index(db.certificates, "verification_code", unique=True)
     await _safe_create_index(db.certificates, "recipient_email")
+    await _safe_create_index(db.email_suppressions, "email", unique=True)
 
     # 3. Auto seed certificates on startup if count is 0
     try:
@@ -279,6 +280,12 @@ async def _lifespan(application):
     except Exception as _e:
         logger.warning("Could not start Workflow cron: %s", _e)
 
+    try:
+        from core.email_quality import warmup as _email_warmup
+        asyncio.create_task(_email_warmup())
+    except Exception as _e:
+        logger.warning("Could not warm email quality list: %s", _e)
+
     yield  # ← application runs here
 
     # ── SHUTDOWN ─────────────────────────────────────────────────────────────
@@ -305,6 +312,8 @@ app.include_router(echo_router)
 # Newsletter sub-router
 from newsletter import router as newsletter_router
 app.include_router(newsletter_router)
+from core.email_quality import router as email_quality_router
+api_router.include_router(email_quality_router)
 
 # Static file serving for uploads (ECHO Showcase images & documents)
 import os

@@ -37,6 +37,7 @@ from core.models import UserRole, AuthResponse, UserResponse
 from core.security import serialize_user
 from core.deps import get_current_user
 from core.email import send_email
+from core.email_quality import assess
 from firebase_admin import credentials, initialize_app, auth as fb_auth
 
 router = APIRouter(tags=["auth"])
@@ -196,6 +197,9 @@ class OAuthCallback(BaseModel):
 async def register(request: Request, req: RegisterRequest):
     """Register a new user. Role is captured upfront — onboarding collects role-specific fields."""
     email = req.email.lower().strip()
+    blocked = await assess(email, mx=True)
+    if blocked:
+        raise HTTPException(400, blocked)
     if await db.users.find_one({"email": email}, {"_id": 1}):
         raise HTTPException(400, "Email already registered")
 
@@ -275,6 +279,9 @@ async def check_email(request: Request, req: CheckEmailRequest):
     email = req.email.lower().strip()
     user = await db.users.find_one({"email": email}, {"role": 1, "full_name": 1, "onboarding_completed": 1})
     if not user:
+        blocked = await assess(email, mx=False)
+        if blocked:
+            return {"exists": False, "blocked": True, "reason": blocked}
         return {"exists": False}
     return {
         "exists": True,

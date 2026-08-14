@@ -179,7 +179,10 @@ def _norm_email(v) -> str:
 
 
 def _valid_email(v: str) -> bool:
-    return bool(re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", v))
+    if not bool(re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", v)):
+        return False
+    from core.email_quality import reject_reason
+    return reject_reason(v) is None
 
 
 def _valid_linkedin(v: str) -> bool:

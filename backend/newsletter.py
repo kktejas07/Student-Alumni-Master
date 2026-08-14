@@ -85,6 +85,15 @@ async def _all_subscribers(db, limit: int = 100000) -> list:
         email = (u.get("email") or "").strip().lower()
         if not email or "@" not in email:
             continue
+        from core.email_quality import reject_reason
+        if reject_reason(email):
+            continue
+        try:
+            from core.email_quality import is_suppressed
+            if await is_suppressed(email):
+                continue
+        except Exception:
+            pass
         phone = decrypt_value(u.get("phone") or "") or ""
         if isinstance(phone, str):
             phone = phone.strip()

@@ -139,6 +139,13 @@ async def send_email(
     A failed delivery is never silently swallowed — it is logged at WARN/ERROR
     and recorded in the `email_failures` collection for admin visibility.
     """
+    from core.email_quality import allow_send
+    ok, why = await allow_send(to_email)
+    if not ok:
+        print(f"[WARN] Skipping send to {to_email}: {why}")
+        await _record_failure(to_email, subject, why)
+        return False
+
     postal = get_postal_config()
     if not postal:
         postal = await _get_postal_from_db()

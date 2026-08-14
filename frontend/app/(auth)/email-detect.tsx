@@ -84,6 +84,11 @@ export default function EmailDetect() {
         setLoading(false);
         return;
       }
+      if (data.blocked) {
+        setError(data.reason || 'Please use a real email address — temporary or test inboxes are not allowed.');
+        setLoading(false);
+        return;
+      }
       if (data.exists) {
         // Existing account — go to Login with email prefilled + role branding
         router.replace({

@@ -14,7 +14,7 @@ states. Wiring real OAuth flows can plug into this same row schema.
 """
 from __future__ import annotations
 from pathlib import Path
-import os, json, hashlib, re, ipaddress
+import os, json, hashlib, re, ipaddress, secrets
 from datetime import datetime, timezone
 from typing import Optional, Any, Dict, List
 from uuid import uuid4
@@ -239,6 +239,11 @@ MARKETPLACE = [
     {"id": "sendgrid",        "name": "SendGrid",        "category": "Email",     "icon": "email-fast-outline",      "tint": "#1A82E2", "description": "Transactional email delivery.",                    "auth_type": "api_key", "popular": True,
      "auth_fields": [_f("api_key","API Key","password","SG.xxxxxxxx.yyyyyyyy","From SendGrid → Settings → API Keys"),
                      _f("from_email","From Email","text","noreply@yourdomain.com")]},
+    {"id": "postal",          "name": "Postal",          "category": "Email",     "icon": "email-fast-outline",      "tint": "#7C3AED", "description": "Self-hosted Postal mail server. Bounce webhook auto-suppresses fake inboxes.", "auth_type": "api_key", "popular": True,
+     "auth_fields": [_f("api_url","Postal API URL","url","https://mail.yourdomain.com","Postal server origin, no trailing slash"),
+                     _f("server_api_key","Server API key","password","From Postal → Credentials → API Keys"),
+                     _f("from_email","From Email","text","Student Alumni <noreply@studentalumni.ai>"),
+                     _f("webhook_secret","Webhook secret","password","leave blank to auto-generate","optional · pasted as ?token= on the webhook URL")]},
     {"id": "aws-s3",          "name": "AWS S3",          "category": "Storage",   "icon": "cloud-outline",           "tint": "#FF9900", "description": "File storage for documents.",                      "auth_type": "api_key",
      "auth_fields": [_f("access_key_id","Access Key ID","text","AKIA..."),
                      _f("secret_access_key","Secret Access Key","password"),
@@ -379,6 +384,33 @@ MARKETPLACE = [
 ]
 
 
+def _public_base_url() -> str:
+    return (os.environ.get("PUBLIC_BASE_URL") or os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").rstrip("/")
+
+
+async def ensure_postal_webhook_secret() -> str:
+    env = (os.environ.get("POSTAL_WEBHOOK_SECRET") or "").strip()
+    if env:
+        return env
+    doc = await _db.settings.find_one({"id": "global"}) or {}
+    secret = (doc.get("postal_webhook_secret") or "").strip()
+    if secret:
+        return secret
+    it = await _db.installed_tools.find_one({"tool_id": "postal"})
+    creds = (it or {}).get("credentials") or {}
+    secret = (creds.get("webhook_secret") or "").strip()
+    if secret:
+        await _db.settings.update_one({"id": "global"}, {"$set": {"postal_webhook_secret": secret}}, upsert=True)
+        return secret
+    secret = "sa_wh_" + secrets.token_urlsafe(32)
+    await _db.settings.update_one({"id": "global"}, {"$set": {"postal_webhook_secret": secret}}, upsert=True)
+    return secret
+
+
+def postal_webhook_url(secret: str) -> str:
+    return f"{_public_base_url()}/api/webhooks/postal?token={secret}"
+
+
 @router.get("/marketplace/tools")
 async def list_tools(authorization: Optional[str] = Header(None)):
     user = await _resolve_user(authorization)
@@ -395,13 +427,18 @@ async def list_tools(authorization: Optional[str] = Header(None)):
         # mask any password-type fields
         pwd_keys = {f["key"] for f in t.get("auth_fields", []) if f.get("type") == "password"}
         masked = {k: ("••••" + str(v)[-4:] if v and k in pwd_keys else v) for k, v in creds.items()}
-        out.append({
+        item = {
             **t,
             "installed":   bool(i),
             "status":      i.get("status") if i else None,
             "credentials_masked": masked,
             "installed_at": (i.get("installed_at").isoformat() if i and i.get("installed_at") else None),
-        })
+        }
+        if t["id"] == "postal":
+            secret = await ensure_postal_webhook_secret()
+            item["webhook_url"] = postal_webhook_url(secret)
+            item["webhook_secret"] = secret
+        out.append(item)
     # group by category
     groups: Dict[str, List[dict]] = {}
     for t in out:
@@ -429,7 +466,16 @@ async def install_tool(body: InstallBody, authorization: Optional[str] = Header(
         raise HTTPException(404, "Tool not found")
 
     # Validate required credential fields if auth_fields declared
-    creds = body.credentials or {}
+    creds = dict(body.credentials or {})
+    if body.tool_id == "postal" and not (creds.get("webhook_secret") or "").strip():
+        creds["webhook_secret"] = await ensure_postal_webhook_secret()
+    elif body.tool_id == "postal":
+        await _db.settings.update_one(
+            {"id": "global"},
+            {"$set": {"postal_webhook_secret": creds["webhook_secret"].strip()}},
+            upsert=True,
+        )
+
     required = [f for f in tool.get("auth_fields", []) if not str(f.get("placeholder", "")).startswith("optional") and (f.get("help") or "").lower().find("optional") < 0]
     missing = [f["label"] for f in required if not creds.get(f["key"])]
     if tool.get("auth_fields") and missing:
@@ -552,6 +598,14 @@ async def _live_test(tool_id: str, creds: Dict[str, str]) -> tuple[bool, str]:
         if tool_id == "sendgrid":
             r = await _get("https://api.sendgrid.com/v3/user/profile", headers={"Authorization": f"Bearer {api_key}"})
             return (r.status_code == 200, "Verified — SendGrid key accepted" if r.status_code == 200 else f"SendGrid: HTTP {r.status_code}")
+        if tool_id == "postal":
+            base = (creds.get("api_url") or "").strip().rstrip("/")
+            key = (creds.get("server_api_key") or "").strip()
+            if not base or not key:
+                return False, "Postal API URL and server API key are required"
+            async with _h.AsyncClient(timeout=timeout) as c:
+                r = await c.get(base, headers={"X-Server-API-Key": key})
+            return (r.status_code < 500, f"Postal server reached (HTTP {r.status_code})")
         if tool_id == "github":
             r = await _get("https://api.github.com/user", headers={"Authorization": f"Bearer {api_key}"})
             return (r.status_code == 200, "Verified — GitHub token accepted" if r.status_code == 200 else f"GitHub: HTTP {r.status_code}")

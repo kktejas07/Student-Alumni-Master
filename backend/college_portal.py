@@ -612,6 +612,10 @@ async def upload_college_students(file: UploadFile = File(...), user: dict = Dep
         
         name = cleaned_row.get("name") or "Unknown Student"
         email = cleaned_row.get("email") or ""
+        if email:
+            from core.email_quality import reject_reason
+            if reject_reason(email):
+                continue
         dept = cleaned_row.get("department") or cleaned_row.get("dept") or "CSE"
         year = cleaned_row.get("year") or "1st"
         
