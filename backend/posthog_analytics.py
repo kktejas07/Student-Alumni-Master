@@ -63,10 +63,10 @@ async def _db_config(db) -> Dict[str, str]:
 
 
 async def _config(db) -> Dict[str, str]:
-    """Merge env + db config, preferring env."""
+    """Merge env + db config, preferring env (only non-empty values)."""
     merged = {"api_key": "", "host": "https://app.posthog.com", "project_id": ""}
-    merged.update(await _db_config(db))
-    merged.update(_env_config())
+    merged.update({k: v for k, v in (await _db_config(db)).items() if v})
+    merged.update({k: v for k, v in _env_config().items() if v})
     return merged
 
 
