@@ -752,6 +752,65 @@ async def my_events(email: Optional[str] = None):
     return {"items": out, "count": len(out)}
 
 
+@router.post("/student/events/{event_id}/register")
+async def register_student_event(event_id: str, body: Optional[Dict[str, Any]] = None, req: Optional[Request] = None):
+    body = body or {}
+    email = body.get("email") or body.get("student_email")
+    student = await _resolve_user("student", email)
+    student_id_str = str(student["_id"])
+
+    # Find event details in events_v2 or echo_showcases
+    ev = await _db.events_v2.find_one({"$or": [{"event_id": event_id}, {"slug": event_id}]})
+    if not ev:
+        ev = await _db.echo_showcases.find_one({"$or": [{"event_id": event_id}, {"slug": event_id}]})
+
+    event_title = (ev or {}).get("title") or body.get("event_title") or "Global Student Event"
+    
+    # Check existing registration
+    existing = await _db.event_registrations.find_one({
+        "event_id": event_id,
+        "$or": [{"student_id": student_id_str}, {"user_id": student_id_str}]
+    })
+    if existing and existing.get("status") in ("registered", "waitlisted"):
+        return {
+            "ok": True,
+            "already": True,
+            "status": existing.get("status", "registered"),
+            "confirmation_id": existing.get("confirmation_id") or f"REG-SA-{_short_id(existing['_id']).upper()}",
+            "event_title": event_title,
+        }
+
+    import secrets as _secrets
+    conf_id = "REG-SA-" + "".join(_secrets.choice("ABCDEFGHJKMNPQRSTUVWXYZ23456789") for _ in range(6))
+
+    doc = {
+        "event_id": event_id,
+        "event_title": event_title,
+        "student_id": student_id_str,
+        "user_id": student_id_str,
+        "student_email": student.get("email"),
+        "student_name": student.get("full_name") or student.get("name"),
+        "confirmation_id": conf_id,
+        "status": "registered",
+        "registered_at": _now(),
+        "created_at": _now(),
+    }
+    res = await _db.event_registrations.insert_one(doc)
+
+    await _db.users.update_one(
+        {"_id": student["_id"]},
+        {"$addToSet": {"registered_events": event_id}}
+    )
+
+    return {
+        "ok": True,
+        "status": "registered",
+        "confirmation_id": conf_id,
+        "event_title": event_title,
+        "registered_at": doc["registered_at"].isoformat(),
+    }
+
+
 @router.delete("/student/events/{event_id}/rsvp")
 async def cancel_rsvp(event_id: str, email: Optional[str] = None):
     student = await _resolve_user("student", email)

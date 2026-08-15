@@ -41,7 +41,7 @@ import { SALogo } from '@/src/views/components';
 import { api } from '@/src/models/services/api';
 
 export type StudentNavId =
-  | 'dashboard' | 'career-ai' | 'internships' | 'network' | 'events'
+  | 'dashboard' | 'career-ai' | 'internships' | 'network' | 'myevents' | 'events'
   | 'financial' | 'deals' | 'wallet' | 'higher-ed' | 'rentals' | 'courses' | 'profile'
   | 'my-bookings' | 'my-workshops' | 'echo-showcase' | string;
 
@@ -52,7 +52,7 @@ export const NAV: Array<{ id: StudentNavId; label: string; Icon: any; spark?: bo
   { id: 'network',         label: 'Network',            Icon: Users },
   { id: 'my-bookings',     label: 'My Bookings',        Icon: CalendarCheck },
   { id: 'my-tickets',      label: 'My Tickets',         Icon: Ticket },
-  { id: 'events',          label: 'Events',             Icon: Calendar },
+  { id: 'myevents',        label: 'My Events',          Icon: Calendar },
   { id: 'my-workshops',    label: 'My Workshops',       Icon: BookOpen },
   { id: 'courses',         label: 'Courses',            Icon: BookOpen },
   { id: 'financial',       label: 'Financial',          Icon: Wallet },

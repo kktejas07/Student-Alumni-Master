@@ -137,13 +137,13 @@ function PortalShell() {
                   {active === 'network'         && <NetworkView />}
                   {active === 'my-bookings'     && <MyBookingsView />}
                   {active === 'my-tickets'      && <MyTicketsView />}
-                  {active === 'events'          && <EventsView />}
+                  {(active === 'myevents' || active === 'events') && <EventsView />}
                   {active === 'my-workshops'    && <MyWorkshopsView />}
                   {(active === 'echo-showcase' || (![
-                    'dashboard', 'career-ai', 'internships', 'network', 'my-bookings', 'events',
+                    'dashboard', 'career-ai', 'internships', 'network', 'my-bookings', 'myevents', 'events',
                     'my-workshops', 'my-tickets', 'courses', 'financial', 'deals', 'wallet', 'higher-ed', 'rentals', 'profile'
                   ].includes(active))) && (
-                    <EchoShowcaseView slug={active === 'echo-showcase' ? undefined : active} onBack={() => handleNav('events')} />
+                    <EchoShowcaseView slug={active === 'echo-showcase' ? undefined : active} onBack={() => handleNav('myevents')} />
                   )}
                   {active === 'courses'         && <CoursesPage />}
                   {active === 'financial'       && <FinancialPage />}
