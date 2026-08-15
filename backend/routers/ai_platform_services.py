@@ -13,8 +13,13 @@ from services.platform_rag import PlatformRAGEngine
 from services.resume_agent import ATSResumeAgent
 from services.outreach_agent import AlumniOutreachAgent
 from services.syllabus_agent import MentorSyllabusAgent
+from core.rate_limiter import rate_limit_ai_requests
 
-router = APIRouter(prefix="/api/ai", tags=["ai-platform-services"])
+router = APIRouter(
+    prefix="/api/ai",
+    tags=["ai-platform-services"],
+    dependencies=[Depends(rate_limit_ai_requests)]
+)
 
 
 # 1. Semantic Search (Platform RAG)
