@@ -156,11 +156,19 @@ export function DropdownSelect({ label, value, options, onSelect }: DropdownSele
         {label}
       </Text>
       <Pressable
-        onPress={() => setOpen((o) => !o)}
+        onPress={() => {
+          trackClick('myevent_dropdown_toggle', { label, current_value: value });
+          analyticsLogger.debug('[EventsView DEBUG] Dropdown toggled', { label, value });
+          setOpen((o) => !o);
+        }}
+        accessibilityLabel={`Filter by ${label}: currently ${selectedOption?.label}`}
+        accessibilityHint="Tap to toggle dropdown options list"
+        testID={`dropdown-toggle-${label.toLowerCase().replace(/\s+/g, '-')}`}
+        accessibilityRole="combobox"
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          justifyContent: 'space-between',
+          justify.content: 'space-between',
           height: 38,
           paddingHorizontal: 12,
           borderRadius: 8,
@@ -201,9 +209,14 @@ export function DropdownSelect({ label, value, options, onSelect }: DropdownSele
                 <Pressable
                   key={opt.id}
                   onPress={() => {
+                    trackClick('myevent_dropdown_option_select', { label, option_id: opt.id, option_label: opt.label });
+                    analyticsLogger.debug('[EventsView DEBUG] Dropdown option selected', { label, id: opt.id });
                     onSelect(opt.id);
                     setOpen(false);
                   }}
+                  accessibilityLabel={`Select ${opt.label}`}
+                  accessibilityRole="option"
+                  testID={`dropdown-opt-${opt.id.toLowerCase().replace(/\s+/g, '-')}`}
                   style={{
                     paddingHorizontal: 12,
                     paddingVertical: 10,
@@ -251,11 +264,13 @@ export function EventsView() {
 
   const fetchEvents = useCallback(async (p: number) => {
     setEventsLoading(true);
+    analyticsLogger.debug('[EventsView DEBUG] Fetching events page', { page: p, sortBy });
     try {
       const res = await request<any>(`/student/events?page=${p}&per_page=24&sort_by=${sortBy}`);
       setEventsData(res);
       setEventsPages(res.pages || 1);
       setEventsPage(p);
+      analyticsLogger.debug('[EventsView DEBUG] Events page loaded', { total: res?.items?.length || 0 });
     } catch { setEventsData({ items: [] }); }
     finally { setEventsLoading(false); }
   }, [sortBy]);
@@ -312,11 +327,12 @@ export function EventsView() {
   return (
     <View style={{ flex: 1, position: 'relative' }}>
       {/* Background aesthetics with banner overlay */}
-      <View style={s.heroBannerWrap}>
+      <View style={s.heroBannerWrap} accessibilityRole="image" accessibilityLabel="My Events Hero Banner">
         <Image
           source={{ uri: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1600&auto=format&fit=crop&q=80' }}
           style={StyleSheet.absoluteFillObject}
           resizeMode="cover"
+          accessibilityLabel="Event hero banner background image"
         />
         <LinearGradient
           colors={['rgba(3,6,20,0.85)', 'rgba(3,6,20,0.98)']}
@@ -343,13 +359,32 @@ export function EventsView() {
         <MaterialCommunityIcons name="magnify" size={18} color="rgba(255,255,255,0.45)" style={{ marginRight: 8 }} />
         <TextInput
           value={searchQuery}
-          onChangeText={setSearchQuery}
+          onChangeText={(val) => {
+            setSearchQuery(val);
+            analyticsLogger.debug('[EventsView DEBUG] Search query changed', { query: val });
+          }}
+          onSubmitEditing={() => {
+            trackClick('myevent_search_submit', { query: searchQuery });
+          }}
           placeholder="Search global events by title, description, or mode..."
           placeholderTextColor="rgba(255,255,255,0.35)"
           style={s.searchInput}
+          accessibilityLabel="Search global open events"
+          accessibilityHint="Type to filter hackathons, workshops, and quizzes by keyword"
+          testID="myevent-search-input"
+          nativeID="myevent-search-input"
         />
         {!!searchQuery && (
-          <Pressable onPress={() => setSearchQuery('')} style={{ padding: 4 }}>
+          <Pressable
+            onPress={() => {
+              trackClick('myevent_search_clear');
+              setSearchQuery('');
+            }}
+            accessibilityLabel="Clear search input"
+            accessibilityHint="Resets the search query"
+            testID="myevent-search-clear-btn"
+            style={{ padding: 4 }}
+          >
             <MaterialCommunityIcons name="close-circle" size={16} color="rgba(255,255,255,0.4)" />
           </Pressable>
         )}
@@ -416,6 +451,10 @@ export function EventsView() {
                     analyticsLogger.debug('[EventsView DEBUG] Card clicked', { id: e.id, title: e.title });
                     setSelectedEvent(e);
                   }}
+                  accessibilityLabel={`Event: ${e.title}, Category: ${e.cat}, Mode: ${e.mode}`}
+                  accessibilityHint="Tap to open detailed event information and portal registration"
+                  accessibilityRole="button"
+                  testID={`myevent-card-${e.id}`}
                   style={{ flexGrow: 1, flexBasis: 300, maxWidth: 360 }}
                 >
                   <GlassCard
@@ -487,12 +526,22 @@ export function EventsView() {
                       <Text style={[s.spotsText, { color: spotsColor }]}>{e.spotsLeft} seats available</Text>
                       
                       {isReg ? (
-                        <View style={s.btnReg}>
+                        <View style={s.btnReg} accessibilityLabel={`Registered for ${e.title}`}>
                           <Check size={11} color="#10B981" style={{ marginRight: 3 }} />
                           <Text style={s.btnRegText}>Registered</Text>
                         </View>
                       ) : (
-                        <Pressable onPress={(eStop) => { eStop.stopPropagation(); onRegister(e); }}>
+                        <Pressable
+                          onPress={(eStop) => {
+                            eStop.stopPropagation();
+                            trackClick('myevent_card_register_click', { event_id: e.id, title: e.title });
+                            onRegister(e);
+                          }}
+                          accessibilityLabel={`Register for ${e.title}`}
+                          accessibilityHint="Submits RSVP registration on student portal"
+                          accessibilityRole="button"
+                          testID={`myevent-register-btn-${e.id}`}
+                        >
                           <LinearGradient
                             colors={['#7C3AED', '#6D28D9']}
                             start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
@@ -512,11 +561,33 @@ export function EventsView() {
 
           {eventsPages > 1 && (
             <View style={s.pagination}>
-              <Pressable style={[s.pageBtn, eventsPage <= 1 && { opacity: 0.4 }]} onPress={() => eventsPage > 1 && fetchEvents(eventsPage - 1)}>
+              <Pressable
+                style={[s.pageBtn, eventsPage <= 1 && { opacity: 0.4 }]}
+                onPress={() => {
+                  if (eventsPage > 1) {
+                    trackClick('myevent_pagination_prev', { page: eventsPage - 1 });
+                    fetchEvents(eventsPage - 1);
+                  }
+                }}
+                accessibilityLabel="Previous Page"
+                accessibilityRole="button"
+                testID="myevent-page-prev"
+              >
                 <Text style={s.pageBtnText}>Prev</Text>
               </Pressable>
               <Text style={s.pageInfo}>{eventsPage} / {eventsPages}</Text>
-              <Pressable style={[s.pageBtn, eventsPage >= eventsPages && { opacity: 0.4 }]} onPress={() => eventsPage < eventsPages && fetchEvents(eventsPage + 1)}>
+              <Pressable
+                style={[s.pageBtn, eventsPage >= eventsPages && { opacity: 0.4 }]}
+                onPress={() => {
+                  if (eventsPage < eventsPages) {
+                    trackClick('myevent_pagination_next', { page: eventsPage + 1 });
+                    fetchEvents(eventsPage + 1);
+                  }
+                }}
+                accessibilityLabel="Next Page"
+                accessibilityRole="button"
+                testID="myevent-page-next"
+              >
                 <Text style={s.pageBtnText}>Next</Text>
               </Pressable>
             </View>
@@ -533,19 +604,29 @@ export function EventsView() {
           onRequestClose={() => setSelectedEvent(null)}
         >
           <View style={s.modalOverlay}>
-            <View style={s.modalContainer}>
+            <View style={s.modalContainer} testID="myevent-modal-container">
               {/* Banner Image */}
               <View style={{ height: 180, position: 'relative', width: '100%' }}>
                 <Image
                   source={{ uri: selectedEvent.bannerUrl }}
                   style={{ width: '100%', height: '100%' }}
                   resizeMode="cover"
+                  accessibilityLabel={`Banner image for ${selectedEvent.title}`}
                 />
                 <LinearGradient
                   colors={['transparent', 'rgba(10,15,30,0.95)']}
                   style={StyleSheet.absoluteFillObject}
                 />
-                <Pressable onPress={() => setSelectedEvent(null)} style={s.closeModalBtn}>
+                <Pressable
+                  onPress={() => {
+                    trackClick('myevent_modal_close', { event_id: selectedEvent.id });
+                    setSelectedEvent(null);
+                  }}
+                  style={s.closeModalBtn}
+                  accessibilityLabel="Close event details modal"
+                  accessibilityRole="button"
+                  testID="myevent-modal-close-btn"
+                >
                   <X size={16} color="#fff" />
                 </Pressable>
                 <View style={{ position: 'absolute', bottom: 12, left: 16, right: 16 }}>
@@ -612,17 +693,34 @@ export function EventsView() {
 
               {/* Modal Footer */}
               <View style={s.modalFooter}>
-                <Pressable onPress={() => setSelectedEvent(null)} style={s.secondaryBtn}>
+                <Pressable
+                  onPress={() => {
+                    trackClick('myevent_modal_close_footer');
+                    setSelectedEvent(null);
+                  }}
+                  style={s.secondaryBtn}
+                  accessibilityLabel="Close event popup"
+                  accessibilityRole="button"
+                  testID="myevent-modal-close-footer-btn"
+                >
                   <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>Close</Text>
                 </Pressable>
 
                 {selectedEvent.registered || rsvpd.has(selectedEvent.id) ? (
-                  <View style={s.btnReg}>
+                  <View style={s.btnReg} accessibilityLabel="Registration Confirmed">
                     <Check size={12} color="#10B981" style={{ marginRight: 4 }} />
                     <Text style={s.btnRegText}>Registered ✓</Text>
                   </View>
                 ) : (
-                  <Pressable onPress={() => onRegister(selectedEvent)}>
+                  <Pressable
+                    onPress={() => {
+                      trackClick('myevent_modal_register_click', { event_id: selectedEvent.id });
+                      onRegister(selectedEvent);
+                    }}
+                    accessibilityLabel={`Confirm Portal Registration for ${selectedEvent.title}`}
+                    accessibilityRole="button"
+                    testID="myevent-modal-register-confirm-btn"
+                  >
                     <LinearGradient
                       colors={['#7C3AED', '#6D28D9']}
                       start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}

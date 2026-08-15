@@ -336,12 +336,17 @@ export function Sidebar({
               {echoGroup}
               <FadeInView delay={150 + i * 35} distance={8}>
                 <PressScale
-                  onPress={() => onNav(id)}
+                  onPress={() => {
+                    trackClick('student_sidebar_nav_click', { nav_id: id, label });
+                    analyticsLogger.debug('[Sidebar DEBUG] Nav item clicked', { id, label });
+                    onNav(id);
+                  }}
                   accessibilityRole="tab"
                   accessibilityLabel={label}
                   accessibilityState={{ selected: isActive }}
                   accessibilityHint={`Opens the ${label} section of the dashboard`}
                   nativeID={`student-nav-${id}`}
+                  testID={`student-nav-${id}`}
                 >
                   {isActive ? (
                     <LinearGradient
