@@ -116,6 +116,13 @@ async def run_unified_sync_task():
     except Exception as e:
         logger.error(f"Error syncing talent pool: {e}")
 
+    try:
+        from services.platform_rag import index_all_platform_data
+        rag_count = await index_all_platform_data(db)
+        logger.info(f"Sync completed: Platform RAG Vector Indexing ({rag_count} entities).")
+    except Exception as e:
+        logger.error(f"Error in Platform RAG background sync: {e}")
+
     logger.info("Completed unified background sync task.")
 
 
