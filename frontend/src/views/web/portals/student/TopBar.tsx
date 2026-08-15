@@ -129,21 +129,36 @@ export function TopBar({
           <FadeInView delay={120}>
             <View style={[s.searchBox, { backgroundColor: PALETTE.glassSoft, borderColor: PALETTE.glassBorder }]}>
               <Pressable
-                onPress={handleSearch}
+                onPress={() => {
+                  trackClick('topbar_search_submit_icon', { query: q });
+                  analyticsLogger.debug('[TopBar DEBUG] Search icon clicked', { query: q });
+                  handleSearch();
+                }}
                 style={Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}}
-                accessibilityLabel="Execute search"
+                accessibilityLabel="Execute dashboard search"
+                accessibilityHint="Executes global search query across platform"
+                testID="topbar-search-submit-btn"
+                accessibilityRole="button"
               >
                 <Search size={14} color={q.trim() ? PALETTE.text : PALETTE.dim} />
               </Pressable>
               <TextInput
                 value={q}
-                onChangeText={setQ}
-                onSubmitEditing={handleSearch}
+                onChangeText={(text) => {
+                  setQ(text);
+                  analyticsLogger.debug('[TopBar DEBUG] Global search query typing', { query: text });
+                }}
+                onSubmitEditing={() => {
+                  trackClick('topbar_search_submit_enter', { query: q });
+                  handleSearch();
+                }}
                 placeholder="Search anything…"
                 placeholderTextColor={PALETTE.dim}
                 style={[s.searchInput, { color: PALETTE.text, fontFamily: TYPO.body500 }]}
                 accessibilityLabel="Search the dashboard"
                 accessibilityHint="Type to find courses, mentors, jobs, deals, and more"
+                nativeID="topbar-global-search-input"
+                testID="topbar-global-search-input"
                 // @ts-ignore — RN-Web accepts these
                 aria-label="Search the dashboard"
               />
@@ -155,9 +170,15 @@ export function TopBar({
         <FadeInView delay={160}>
           <PressScale
             style={[s.iconBtn, { backgroundColor: PALETTE.glassSoft, borderColor: PALETTE.glassBorder }]}
-            onPress={cycleTheme}
+            onPress={() => {
+              trackClick('topbar_theme_toggle', { mode });
+              analyticsLogger.debug('[TopBar DEBUG] Theme toggle clicked', { currentMode: mode });
+              cycleTheme();
+            }}
             accessibilityLabel={`Theme: ${mode}. Tap to cycle.`}
             accessibilityHint="Switches between light, dark, and automatic"
+            testID="topbar-theme-toggle-btn"
+            accessibilityRole="button"
           >
             <ThemeMorphIcon mode={mode} color={PALETTE.text} />
           </PressScale>
@@ -166,9 +187,16 @@ export function TopBar({
         <FadeInView delay={180}>
           <PressScale
             style={[s.iconBtn, { backgroundColor: PALETTE.glassSoft, borderColor: PALETTE.glassBorder }]}
-            onPress={onBellPress || (() => router.push('/notifications'))}
+            onPress={() => {
+              trackClick('topbar_bell_notifications_click');
+              analyticsLogger.debug('[TopBar DEBUG] Bell notifications clicked');
+              if (onBellPress) onBellPress();
+              else router.push('/notifications');
+            }}
             accessibilityLabel="Notifications"
             accessibilityHint="Opens the notifications panel"
+            testID="topbar-notifications-btn"
+            accessibilityRole="button"
           >
             <Bell size={16} color={PALETTE.violet} />
             {unreadCount > 0 && (
@@ -181,8 +209,15 @@ export function TopBar({
 
         <FadeInView delay={200}>
           <PressScale
-            onPress={onAvatarPressHandler}
+            onPress={() => {
+              trackClick('topbar_avatar_profile_click');
+              analyticsLogger.debug('[TopBar DEBUG] Avatar profile clicked');
+              onAvatarPressHandler();
+            }}
             accessibilityLabel="View Profile Settings"
+            accessibilityHint="Opens user profile and account settings"
+            testID="topbar-user-avatar-btn"
+            accessibilityRole="button"
           >
             <Av initials={initials} size={36} color={theme.primary} photo={photo} />
           </PressScale>
