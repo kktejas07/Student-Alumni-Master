@@ -157,6 +157,16 @@ class TestAsyncPlatformRAGSync(unittest.TestCase):
                     self.courses = MockCollection([
                         {"_id": "3", "title": "Python Bootcamp", "summary": "Learn Python"}
                     ])
+                    self.users = MockCollection([
+                        {"_id": "4", "role": "mentor", "full_name": "Dr. Smith", "skills": ["AI", "ML"]},
+                        {"_id": "5", "role": "alumni", "full_name": "Jane Doe", "company": "Google"}
+                    ])
+                    self.deals = MockCollection([
+                        {"_id": "6", "title": "GitHub Student Pack", "partner": "GitHub"}
+                    ])
+                    self.rentals = MockCollection([
+                        {"_id": "7", "title": "Studio Flat", "location": "Bangalore"}
+                    ])
 
             mock_db = MockDB()
             count = await index_all_platform_data(mock_db)

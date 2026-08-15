@@ -253,6 +253,75 @@ async def index_all_platform_data(db) -> int:
     except Exception as e:
         logger.warning(f"[PlatformRAG] Error fetching courses for indexing: {e}")
 
+    # 4. Index Mentors
+    try:
+        async for mentor in db.users.find({"role": "mentor"}).limit(50):
+            skills = ", ".join(mentor.get("skills") or [])
+            company = (mentor.get("mentor_info") or {}).get("company") or mentor.get("company") or ""
+            designation = (mentor.get("mentor_info") or {}).get("designation") or mentor.get("designation") or ""
+            text = f"Mentor: {mentor.get('full_name')} | Role: {designation} at {company} | Expertise: {skills} | Bio: {mentor.get('bio') or ''}"
+            batch.append({
+                "text": text,
+                "metadata": {
+                    "entity_type": "mentor",
+                    "entity_id": str(mentor.get("_id")),
+                    "title": f"Mentor {mentor.get('full_name')}",
+                    "allowed_roles": ["student", "alumni", "college", "superadmin"]
+                }
+            })
+    except Exception as e:
+        logger.warning(f"[PlatformRAG] Error fetching mentors for indexing: {e}")
+
+    # 5. Index Alumni Profiles & Talent Pool
+    try:
+        async for alum in db.users.find({"role": "alumni"}).limit(50):
+            skills = ", ".join(alum.get("skills") or [])
+            company = (alum.get("alumni_info") or {}).get("company") or alum.get("company") or ""
+            text = f"Alumni: {alum.get('full_name')} | Company: {company} | Expertise: {skills} | Graduation: {(alum.get('school_info') or {}).get('graduation_year') or ''}"
+            batch.append({
+                "text": text,
+                "metadata": {
+                    "entity_type": "alumni",
+                    "entity_id": str(alum.get("_id")),
+                    "title": f"Alumni {alum.get('full_name')}",
+                    "allowed_roles": ["student", "alumni", "college", "superadmin"]
+                }
+            })
+    except Exception as e:
+        logger.warning(f"[PlatformRAG] Error fetching alumni for indexing: {e}")
+
+    # 6. Index Deals & Offers
+    try:
+        async for deal in db.deals.find({}).limit(50):
+            text = f"Deal: {deal.get('title')} | Partner: {deal.get('partner')} | Discount: {deal.get('discount')} | Category: {deal.get('category')}"
+            batch.append({
+                "text": text,
+                "metadata": {
+                    "entity_type": "deal",
+                    "entity_id": str(deal.get("_id")),
+                    "title": deal.get("title"),
+                    "allowed_roles": ["student", "alumni", "mentor", "college", "superadmin"]
+                }
+            })
+    except Exception as e:
+        logger.warning(f"[PlatformRAG] Error fetching deals for indexing: {e}")
+
+    # 7. Index Rentals Marketplace
+    try:
+        async for rental in db.rentals.find({}).limit(50):
+            text = f"Rental: {rental.get('title')} | Location: {rental.get('location')} | Rent: ₹{rental.get('rent_per_month')}/mo | Type: {rental.get('property_type')}"
+            batch.append({
+                "text": text,
+                "metadata": {
+                    "entity_type": "rental",
+                    "entity_id": str(rental.get("_id")),
+                    "title": rental.get("title"),
+                    "allowed_roles": ["student", "alumni", "superadmin"]
+                }
+            })
+    except Exception as e:
+        logger.warning(f"[PlatformRAG] Error fetching rentals for indexing: {e}")
+
     if batch:
         total_indexed = PlatformRAGEngine.index_entities(batch)
 
