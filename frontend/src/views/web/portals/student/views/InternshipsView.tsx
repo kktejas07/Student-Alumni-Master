@@ -38,6 +38,7 @@ import { request } from '@/src/models/services/api';
 import { useToast } from '@/src/views/components';
 import { StudentPortalNavContext } from '../StudentPortalNavContext';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { track, trackClick, trackScreen, logger as analyticsLogger } from '@/src/analytics';
 
 type Job = {
   job_id: string;
@@ -97,6 +98,7 @@ function CustomDropdown({
       {open && (
         <Pressable
           onPress={() => setOpen(false)}
+          accessibilityLabel="Close dropdown backdrop"
           style={{
             position: 'fixed' as any,
             top: 0,
@@ -108,7 +110,15 @@ function CustomDropdown({
         />
       )}
       <Pressable
-        onPress={() => setOpen(!open)}
+        onPress={() => {
+          trackClick('job_dropdown_toggle', { current_value: value });
+          analyticsLogger.debug('[InternshipsView DEBUG] Dropdown toggle pressed', { value });
+          setOpen(!open);
+        }}
+        accessibilityLabel={`Filter: ${value}`}
+        accessibilityHint="Tap to show filter dropdown options"
+        testID={`job-dropdown-toggle-${value.toLowerCase().replace(/\s+/g, '-')}`}
+        accessibilityRole="combobox"
         style={{
           flexDirection: 'row',
           alignItems: 'center',
