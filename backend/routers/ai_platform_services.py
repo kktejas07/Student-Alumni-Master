@@ -78,3 +78,30 @@ async def generate_syllabus(req: SyllabusReq):
         raise HTTPException(400, "Topic cannot be empty")
     res = MentorSyllabusAgent.generate_syllabus(req.topic, req.target_level or "Intermediate", req.duration_weeks or 4)
     return {"ok": True, "syllabus": res}
+
+
+# 5. AI Status & Availability Check
+@router.get("/status")
+async def get_ai_status():
+    from services.meta_agent import MetaAgentOrchestrator
+    return MetaAgentOrchestrator.check_ai_availability()
+
+
+# 6. Multi-Agent Workflow Dispatcher
+class WorkflowReq(BaseModel):
+    user_id: Optional[str] = "guest"
+    workflow_type: str
+    payload: Dict[str, Any]
+
+
+@router.post("/agent-workflow")
+async def dispatch_agent_workflow(req: WorkflowReq):
+    from services.meta_agent import MetaAgentOrchestrator
+    res = await MetaAgentOrchestrator.dispatch_workflow(
+        user_id=req.user_id or "guest",
+        workflow_type=req.workflow_type,
+        payload=req.payload
+    )
+    if not res.get("ok"):
+        raise HTTPException(400, res.get("error", "Workflow execution failed"))
+    return res
