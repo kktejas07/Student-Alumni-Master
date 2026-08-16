@@ -687,6 +687,39 @@ export function EventsView() {
                         Confirmation Code: {regDetails[selectedEvent.id] || 'REG-SA-CONFIRMED'}
                       </Text>
                     </View>
+                    <Pressable
+                      onPress={() => {
+                        const confId = regDetails[selectedEvent.id] || 'REG-SA-CONFIRMED';
+                        const titleEnc = encodeURIComponent(selectedEvent.title);
+                        const catEnc = encodeURIComponent(selectedEvent.cat || 'Event');
+                        const dateEnc = encodeURIComponent(selectedEvent.date || 'Upcoming');
+                        const modeEnc = encodeURIComponent(selectedEvent.mode || 'Online');
+                        const pdfUrl = `/api/pdf/event-pass/${confId}?title=${titleEnc}&category=${catEnc}&date_str=${dateEnc}&mode=${modeEnc}`;
+                        trackClick('myevent_download_pdf_pass', { event_id: selectedEvent.id, conf_id: confId });
+                        analyticsLogger.debug('[EventsView DEBUG] Downloading PDF Pass', { pdfUrl });
+                        if (Platform.OS === 'web') {
+                          window.open(pdfUrl, '_blank');
+                        }
+                      }}
+                      accessibilityLabel="Download Event Pass PDF"
+                      accessibilityHint="Downloads official PDF registration ticket pass"
+                      accessibilityRole="button"
+                      testID="myevent-download-pdf-btn"
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 4,
+                        backgroundColor: 'rgba(16,185,129,0.2)',
+                        borderWidth: 1,
+                        borderColor: '#10B981',
+                        paddingHorizontal: 10,
+                        paddingVertical: 6,
+                        borderRadius: 6,
+                      }}
+                    >
+                      <MaterialCommunityIcons name="file-pdf-box" size={16} color="#10B981" />
+                      <Text style={{ color: '#10B981', fontFamily: FONTS.bold, fontSize: 11 }}>Download PDF</Text>
+                    </Pressable>
                   </View>
                 )}
               </ScrollView>
