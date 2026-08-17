@@ -2504,7 +2504,10 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                     <FieldRow label="Registration Type" hint="Whether this is individual or team registration.">
                       <DarkDropdown
                         value={(form.registration || {}).registration_type || 'individual'}
-                        options={['individual', 'team']}
+                        options={[
+                          { value: 'individual', label: 'Individual' },
+                          { value: 'team', label: 'Team (up to 5)' }
+                        ]}
                         onChange={(v: string) => set('registration', { ...(form.registration || {}), registration_type: v })}
                         placeholder="Individual"
                         modalTitle="SELECT REGISTRATION TYPE"
