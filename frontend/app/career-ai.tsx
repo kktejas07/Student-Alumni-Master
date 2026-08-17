@@ -684,6 +684,7 @@ const s = StyleSheet.create({
   embeddedShell: {
     flex: 1,
     backgroundColor: 'transparent',
+    gap: SPACING.xxl,
     paddingBottom: 60,
   },
   contentContainer: {
@@ -703,7 +704,6 @@ const s = StyleSheet.create({
     justifyContent: 'space-between',
     flexWrap: 'wrap',
     gap: SPACING.md,
-    marginBottom: SPACING.sm,
   },
   headerLeft: {
     flex: 1,
