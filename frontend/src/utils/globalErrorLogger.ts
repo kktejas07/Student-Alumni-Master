@@ -5,6 +5,7 @@
  */
 
 import { Platform } from 'react-native';
+import { debugLog } from '@/src/utils/debugLog';
 
 export function initGlobalErrorLogger(): void {
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
@@ -22,6 +23,6 @@ export function initGlobalErrorLogger(): void {
     });
 
     // eslint-disable-next-line no-console
-    console.log('🛡️ [DEBUG] Global uncaught error & promise rejection listeners activated.');
+    debugLog('🛡️ [DEBUG] Global uncaught error & promise rejection listeners activated.');
   }
 }
