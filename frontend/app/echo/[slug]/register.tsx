@@ -1316,7 +1316,7 @@ export default function EchoRegisterPage() {
                     view your tickets anytime under <Text style={{ color: '#C4B5FD', fontFamily: FONTS.semi }}>My Tickets</Text>.
                   </Text>
                 </View>
-              </View>
+            </>
             </ScrollView>
           )}
         </View>
