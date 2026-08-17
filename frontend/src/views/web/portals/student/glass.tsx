@@ -595,8 +595,10 @@ const fab = StyleSheet.create({
   label: { color: '#fff', fontSize: 14, fontFamily: TYPO.body700, letterSpacing: 0.3 },
 });
 
+import { GlobalTopProgressBar } from '../../components/AppLoader';
+
 /* ─────────────────────────────────────────────────────────────────
- * RouteTransition — fade + 6px y-shift wrapper for view changes.
+ * RouteTransition — fade + 6px y-shift wrapper + top glowing progress bar.
  *                   Wrap each view's root with this.
  * ───────────────────────────────────────────────────────────────── */
 export function RouteTransition({ children, deps = [] }: {
@@ -605,20 +607,25 @@ export function RouteTransition({ children, deps = [] }: {
 }) {
   const opacity = useRef(new Animated.Value(0)).current;
   const ty = useRef(new Animated.Value(6)).current;
+  const [navigating, setNavigating] = React.useState(false);
 
   useEffect(() => {
+    setNavigating(true);
     opacity.setValue(0); ty.setValue(6);
     Animated.parallel([
-      Animated.timing(opacity, { toValue: 1, duration: 250,
+      Animated.timing(opacity, { toValue: 1, duration: 280,
         easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-      Animated.timing(ty,      { toValue: 0, duration: 250,
+      Animated.timing(ty,      { toValue: 0, duration: 280,
         easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-    ]).start();
+    ]).start(() => {
+      setNavigating(false);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 
   return (
     <Animated.View style={{ flex: 1, opacity, transform: [{ translateY: ty }] }}>
+      <GlobalTopProgressBar active={navigating} />
       {children}
     </Animated.View>
   );

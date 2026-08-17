@@ -13,6 +13,8 @@ import { SkeletonBlock } from '../motion';
 import { useToast } from '@/src/views/components';
 import { track, trackClick, trackScreen, logger as analyticsLogger } from '@/src/analytics';
 
+import { LiveDataLoader, SkeletonPulse } from '@/src/views/web/components/AppLoader';
+
 type Ev = {
   id: string;
   event_id?: string;
@@ -417,11 +419,13 @@ export function EventsView() {
       </View>
 
       {eventsLoading ? (
-        <View style={s.grid}>
-          {Array.from({ length: 6 }).map((_, idx) => (
-            <EventCardSkeleton key={idx} />
-          ))}
-        </View>
+        <LiveDataLoader loading={true} message="Fetching live events feed…">
+          <View style={s.grid}>
+            {Array.from({ length: 6 }).map((_, idx) => (
+              <EventCardSkeleton key={idx} />
+            ))}
+          </View>
+        </LiveDataLoader>
       ) : processedList.length === 0 ? (
         <View style={{ paddingVertical: 80, alignItems: 'center', justifyContent: 'center' }}>
           <MaterialCommunityIcons name="calendar-search" size={48} color="rgba(255,255,255,0.15)" />
