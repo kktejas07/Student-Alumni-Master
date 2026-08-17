@@ -9,7 +9,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, Pressable, StyleSheet, Platform, Modal, ScrollView, Image,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, usePathname } from 'expo-router';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { X, Calendar, MapPin, Clock, Sparkles, ArrowRight } from 'lucide-react-native';
@@ -63,6 +63,8 @@ const TONE_GRAD: Record<string, string[]> = {
 export function AnnouncementPopup() {
   if (Platform.OS !== 'web') return null;
   const router = useRouter();
+  const pathname = usePathname();
+  const isLanding = pathname === '/' || pathname === '/index' || pathname === '';
   const [open, setOpen] = useState(false);
   const [promos, setPromos] = useState<PromoItem[]>([]);
   const [events, setEvents] = useState<EventItem[]>([]);
@@ -70,6 +72,8 @@ export function AnnouncementPopup() {
   const [activePromoIdx, setActivePromoIdx] = useState(0);
 
   useEffect(() => {
+    // Landing page only — this popup is intentionally scoped to the front page.
+    if (!isLanding) return;
     let cancelled = false;
     const dismissed = readDismissed();
 
@@ -103,7 +107,7 @@ export function AnnouncementPopup() {
     })();
 
     return () => { cancelled = true; };
-  }, []);
+  }, [isLanding]);
 
   const onDismiss = useCallback(() => {
     const now = Date.now();
@@ -130,6 +134,7 @@ export function AnnouncementPopup() {
 
   if (!open || loading) return null;
   if (promos.length === 0 && events.length === 0) return null;
+  if (!isLanding) return null;
 
   const activePromo = promos[activePromoIdx] || null;
   const grad = activePromo ? (TONE_GRAD[activePromo.tone] || TONE_GRAD.violet) : TONE_GRAD.violet;
@@ -243,164 +248,169 @@ const s = StyleSheet.create({
   },
   card: {
     width: '100%',
-    maxWidth: 440,
-    maxHeight: '80vh',
-    backgroundColor: 'rgba(15,20,40,0.97)',
+    maxWidth: 620,
+    maxHeight: '82vh',
+    backgroundColor: 'rgba(13,18,38,0.97)',
     borderWidth: 1,
-    borderColor: 'rgba(167,139,250,0.18)',
-    borderRadius: 16,
+    borderColor: 'rgba(167,139,250,0.28)',
+    borderRadius: 22,
     overflow: 'hidden',
-    boxShadow: '0 24px 80px rgba(0,0,0,0.5), 0 0 40px rgba(124,58,237,0.12)',
+    boxShadow: '0 32px 110px rgba(0,0,0,0.6), 0 0 60px rgba(124,58,237,0.18)',
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
-    paddingBottom: 12,
+    padding: 20,
+    paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.06)',
+    borderBottomColor: 'rgba(255,255,255,0.07)',
+    backgroundColor: 'rgba(124,58,237,0.08)',
   },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
   headerTitle: {
-    color: '#E5E7EB',
+    color: '#F3F4F6',
     fontFamily: FONTS.bold,
-    fontSize: 14,
+    fontSize: 18,
   },
   closeBtn: {
-    padding: 4,
+    padding: 6,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.06)',
   },
   scrollArea: {
     flexGrow: 0,
     flexShrink: 1,
   },
   scrollContent: {
-    padding: 16,
-    gap: 16,
+    padding: 22,
+    gap: 20,
   },
   section: {
-    gap: 10,
+    gap: 12,
   },
   sectionTitle: {
     color: PALETTE.muted,
     fontFamily: FONTS.semi,
-    fontSize: 11,
+    fontSize: 12,
     textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    letterSpacing: 1,
   },
   badge: {
     alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 8,
     borderWidth: 1,
   },
   badgeText: {
     fontFamily: FONTS.bold,
-    fontSize: 10,
-    letterSpacing: 0.5,
+    fontSize: 12,
+    letterSpacing: 0.6,
   },
   promoImage: {
     width: '100%',
-    height: 160,
-    borderRadius: 10,
+    height: 220,
+    borderRadius: 14,
   },
   promoTitle: {
-    color: '#F3F4F6',
+    color: '#F9FAFB',
     fontFamily: FONTS.bold,
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: 24,
+    lineHeight: 30,
   },
   promoBody: {
     color: PALETTE.muted,
     fontFamily: FONTS.med,
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: 15,
+    lineHeight: 22,
   },
   ctaBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 10,
+    gap: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    borderRadius: 12,
     alignSelf: 'flex-start',
   },
   ctaBtnText: {
     color: '#fff',
     fontFamily: FONTS.bold,
-    fontSize: 13,
+    fontSize: 15,
   },
   dots: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 6,
-    marginTop: 4,
+    gap: 8,
+    marginTop: 6,
   },
   dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
     backgroundColor: 'rgba(255,255,255,0.2)',
   },
   eventCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    padding: 10,
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    gap: 16,
+    padding: 14,
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
-    borderRadius: 10,
+    borderColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 14,
   },
   eventImg: {
-    width: 52,
-    height: 52,
-    borderRadius: 8,
+    width: 76,
+    height: 76,
+    borderRadius: 12,
   },
   eventImgPlaceholder: {
-    backgroundColor: 'rgba(167,139,250,0.12)',
+    backgroundColor: 'rgba(167,139,250,0.14)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   eventInfo: {
     flex: 1,
-    gap: 3,
+    gap: 5,
   },
   eventTitle: {
-    color: '#E5E7EB',
+    color: '#F3F4F6',
     fontFamily: FONTS.semi,
-    fontSize: 13,
+    fontSize: 16,
   },
   eventMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
   },
   eventMetaText: {
     color: PALETTE.dim,
     fontFamily: FONTS.med,
-    fontSize: 11,
+    fontSize: 13,
   },
   cardFooter: {
-    padding: 12,
-    paddingTop: 8,
+    padding: 16,
+    paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.06)',
+    borderTopColor: 'rgba(255,255,255,0.07)',
     alignItems: 'center',
   },
   dismissBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.05)',
   },
   dismissBtnText: {
     color: PALETTE.dim,
     fontFamily: FONTS.med,
-    fontSize: 12,
+    fontSize: 14,
   },
 });
