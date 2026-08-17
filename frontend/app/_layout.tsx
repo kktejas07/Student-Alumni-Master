@@ -22,7 +22,7 @@ import {
   Manrope_700Bold,
   Manrope_800ExtraBold,
 } from '@expo-google-fonts/manrope';
-import { ActivityIndicator, Platform, View } from 'react-native';
+import { ActivityIndicator, LogBox, Platform, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
@@ -37,7 +37,6 @@ import { ConsentBanner } from '@/src/views/web/consent/ConsentBanner';
 import { TourProvider } from '@/src/views/web/tour/TourProvider';
 import { TourOverlay } from '@/src/views/web/tour/TourOverlay';
 import { AnnouncementPopup } from '@/src/views/web/components/AnnouncementPopup';
-import { LogBox, Platform } from 'react-native';
 
 if (Platform.OS !== 'web') {
   LogBox.ignoreLogs(['6000ms timeout exceeded', 'fontfaceobserver']);
