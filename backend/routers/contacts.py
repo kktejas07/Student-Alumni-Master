@@ -112,42 +112,98 @@ async def list_contacts(
     source: str = "",
     list_id: str = "",
     subscribed: str = "",
+    include_registered: str = "true",
     page: int = Query(1, ge=1),
     per_page: int = Query(50, ge=1, le=200),
     user=Depends(_require_admin),
 ):
-    """List contacts with search, filters, and pagination."""
+    """List contacts with search, filters, and pagination.
+    
+    By default includes both imported contacts AND registered users.
+    Set include_registered=false to only show imported contacts.
+    """
     db = _get_db(request)
     
-    query: Dict[str, Any] = {}
+    items = []
+    total = 0
     
+    # Fetch imported contacts
+    contact_query: Dict[str, Any] = {}
     if q:
-        query["$or"] = [
+        contact_query["$or"] = [
             {"name": {"$regex": q, "$options": "i"}},
             {"email": {"$regex": q, "$options": "i"}},
             {"phone": {"$regex": q, "$options": "i"}},
         ]
-    
     if source:
-        query["source"] = source
-    
+        contact_query["source"] = source
     if list_id:
-        query["lists"] = list_id
-    
+        contact_query["lists"] = list_id
     if subscribed:
-        query["subscribed"] = subscribed.lower() == "true"
+        contact_query["subscribed"] = subscribed.lower() == "true"
     
-    total = await db.contacts.count_documents(query)
+    imported_count = await db.contacts.count_documents(contact_query)
+    
+    # Also fetch registered users if requested
+    registered_users = []
+    if include_registered.lower() == "true":
+        user_query: Dict[str, Any] = {"email": {"$exists": True, "$ne": ""}}
+        if q:
+            user_query["$or"] = [
+                {"full_name": {"$regex": q, "$options": "i"}},
+                {"email": {"$regex": q, "$options": "i"}},
+            ]
+        
+        cursor_users = db.users.find(user_query).sort("created_at", -1).limit(500)
+        async for doc in cursor_users:
+            # Convert user to contact format
+            email = (doc.get("email") or "").strip().lower()
+            if not email:
+                continue
+            registered_users.append({
+                "_id": str(doc.get("_id", "")),
+                "name": doc.get("full_name") or email.split("@")[0].title(),
+                "email": email,
+                "phone": "",  # Phone is encrypted in users collection
+                "source": "registered",
+                "tags": [doc.get("role", "student")],
+                "lists": [],
+                "notes": "",
+                "subscribed": True,
+                "created_at": doc.get("created_at", ""),
+                "updated_at": doc.get("last_login") or doc.get("created_at", ""),
+                "is_registered_user": True,
+            })
+    
+    total = imported_count + len(registered_users)
+    
+    # Combine and paginate
     skip = (page - 1) * per_page
     
-    cursor = db.contacts.find(query).sort("created_at", -1).skip(skip).limit(per_page)
-    items = []
-    async for doc in cursor:
-        items.append(_ser(doc))
+    if source and source != "registered":
+        # Only show imported contacts
+        cursor = db.contacts.find(contact_query).sort("created_at", -1).skip(skip).limit(per_page)
+        async for doc in cursor:
+            items.append(_ser(doc))
+    elif source == "registered":
+        # Only show registered users
+        items = registered_users[skip:skip + per_page]
+    else:
+        # Show both - first imported, then registered
+        cursor = db.contacts.find(contact_query).sort("created_at", -1).skip(skip).limit(per_page)
+        async for doc in cursor:
+            items.append(_ser(doc))
+        
+        # If we need more items to fill the page, add registered users
+        if len(items) < per_page:
+            remaining = per_page - len(items)
+            items.extend(registered_users[skip:skip + remaining] if skip < len(registered_users) else [])
     
     return {
         "items": items,
         "total": total,
+        "imported_count": imported_count,
+        "registered_count": len(registered_users),
         "page": page,
         "per_page": per_page,
         "total_pages": (total + per_page - 1) // per_page,

@@ -55,6 +55,7 @@ type ContactList = {
 const PER_PAGE = 50;
 
 const SOURCE_COLORS: Record<string, string> = {
+  registered: '#10B981',
   manual: '#10B981',
   csv: '#3B82F6',
   import: '#8B5CF6',
@@ -94,6 +95,7 @@ export function ContactsView() {
       const params = new URLSearchParams({
         page: String(page),
         per_page: String(PER_PAGE),
+        include_registered: 'true',
       });
       if (q) params.set('q', q);
       if (sourceFilter) params.set('source', sourceFilter);
@@ -257,7 +259,7 @@ export function ContactsView() {
           </View>
         </View>
         <View style={{ flexDirection: 'row', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-          {['', 'manual', 'csv', 'echo', 'newsletter', 'website'].map(s => (
+          {['', 'registered', 'csv', 'manual', 'echo', 'newsletter', 'website'].map(s => (
             <Pressable
               key={s}
               onPress={() => { setSourceFilter(s); setPage(1); }}
@@ -446,7 +448,7 @@ function ImportModal({ visible, onClose, onImported }: { visible: boolean; onClo
   const [importing, setImporting] = useState(false);
   const [results, setResults] = useState<any[]>([]);
   const [currentFile, setCurrentFile] = useState(0);
-  const fileRef = useRef<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const apiBase = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
 
   const handleImport = async () => {
@@ -459,7 +461,6 @@ function ImportModal({ visible, onClose, onImported }: { visible: boolean; onClo
       const file = files[i];
       setCurrentFile(i);
       
-      // Validate file type
       const validTypes = ['.csv', '.xlsx', '.xls'];
       const fileExt = '.' + file.name.split('.').pop()?.toLowerCase();
       if (!validTypes.includes(fileExt)) {
@@ -495,9 +496,14 @@ function ImportModal({ visible, onClose, onImported }: { visible: boolean; onClo
     onImported();
   };
 
-  const handleFileChange = (e: any) => {
+  const handleFileSelect = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newFiles = Array.from(e.target.files || []) as File[];
     setFiles(prev => [...prev, ...newFiles]);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const removeFile = (index: number) => {
@@ -517,54 +523,64 @@ function ImportModal({ visible, onClose, onImported }: { visible: boolean; onClo
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <View style={st.modalOverlay}>
-        <View style={[st.modalBox, { maxWidth: 600 }]}>
-          <View style={st.modalHeader}>
-            <Text style={st.modalTitle}>Import Contacts</Text>
-            <Pressable onPress={onClose} style={st.modalCloseBtn}><X size={18} color={SAC.muted} /></Pressable>
+        <Pressable style={st.modalBackdrop} onPress={onClose} />
+        <View style={st.importModal}>
+          {/* Header */}
+          <View style={st.importHeader}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(124,58,237,0.15)', alignItems: 'center', justifyContent: 'center' }}>
+                <Upload size={18} color="#C4B5FD" />
+              </View>
+              <View>
+                <Text style={st.importTitle}>Import Contacts</Text>
+                <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.muted }}>CSV or XLSX files</Text>
+              </View>
+            </View>
+            <Pressable onPress={onClose} style={st.closeBtn}>
+              <X size={18} color={SAC.muted} />
+            </Pressable>
           </View>
 
-          <ScrollView style={{ padding: 20, gap: 16 }}>
+          {/* Content */}
+          <View style={st.importContent}>
             {!results.length ? (
               <>
-                <View style={st.uploadArea}>
-                  <Upload size={32} color={GRAD.from} />
-                  <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: SAC.text, marginTop: 8 }}>
-                    Select CSV or XLSX files
-                  </Text>
-                  <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted, marginTop: 4 }}>
-                    You can add multiple files. Columns: name, email, phone (email required)
-                  </Text>
-                  <input
-                    ref={fileRef}
-                    type="file"
-                    accept=".csv,.xlsx,.xls"
-                    multiple
-                    onChange={handleFileChange}
-                    style={{ marginTop: 12 }}
-                  />
-                </View>
+                {/* Upload Area */}
+                <Pressable onPress={handleFileSelect} style={st.uploadBtn}>
+                  <View style={st.uploadIconWrap}>
+                    <Upload size={24} color="#C4B5FD" />
+                  </View>
+                  <Text style={st.uploadBtnText}>Click to select files</Text>
+                  <Text style={st.uploadBtnSub}>CSV or XLSX format accepted</Text>
+                </Pressable>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv,.xlsx,.xls"
+                  multiple
+                  onChange={handleFileChange}
+                  style={{ display: 'none' }}
+                />
 
                 {/* File List */}
                 {files.length > 0 && (
-                  <View style={{ gap: 8 }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Text style={st.fieldLabel}>Selected Files ({files.length})</Text>
+                  <View style={st.fileListSection}>
+                    <View style={st.fileListHeader}>
+                      <Text style={st.fileListTitle}>{files.length} file{files.length > 1 ? 's' : ''} selected</Text>
                       <Pressable onPress={clearFiles}>
-                        <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: '#F87171' }}>Clear all</Text>
+                        <Text style={st.clearAllText}>Clear all</Text>
                       </Pressable>
                     </View>
                     {files.map((f, i) => (
                       <View key={i} style={st.fileItem}>
-                        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                          <FileText size={16} color={GRAD.from} />
-                          <View style={{ flex: 1 }}>
-                            <Text numberOfLines={1} style={{ fontFamily: FONTS.semi, fontSize: 12, color: SAC.text }}>{f.name}</Text>
-                            <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>
-                              {(f.size / 1024).toFixed(1)} KB
-                            </Text>
+                        <View style={st.fileInfo}>
+                          <FileText size={16} color="#C4B5FD" />
+                          <View style={{ flex: 1, marginLeft: 8 }}>
+                            <Text numberOfLines={1} style={st.fileName}>{f.name}</Text>
+                            <Text style={st.fileSize}>{(f.size / 1024).toFixed(1)} KB</Text>
                           </View>
                         </View>
-                        <Pressable onPress={() => removeFile(i)} style={st.removeFileBtn}>
+                        <Pressable onPress={() => removeFile(i)} style={st.removeBtn}>
                           <X size={14} color="#F87171" />
                         </Pressable>
                       </View>
@@ -572,10 +588,11 @@ function ImportModal({ visible, onClose, onImported }: { visible: boolean; onClo
                   </View>
                 )}
 
-                <View>
+                {/* Tags */}
+                <View style={st.fieldGroup}>
                   <Text style={st.fieldLabel}>Tags (optional)</Text>
                   <TextInput
-                    style={st.input}
+                    style={st.textInput}
                     value={tags}
                     onChangeText={setTags}
                     placeholder="e.g., hackathon, workshop"
@@ -584,70 +601,65 @@ function ImportModal({ visible, onClose, onImported }: { visible: boolean; onClo
                 </View>
               </>
             ) : (
-              <View style={{ gap: 12 }}>
-                <View style={st.resultBox}>
-                  <CheckCircle size={24} color="#10B981" />
-                  <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: SAC.text }}>
-                    Import Complete
-                  </Text>
+              /* Results */
+              <View style={st.resultsSection}>
+                <View style={st.successIcon}>
+                  <CheckCircle size={32} color="#10B981" />
                 </View>
+                <Text style={st.successTitle}>Import Complete</Text>
                 
-                {/* Summary */}
-                <View style={{ flexDirection: 'row', gap: 12 }}>
-                  <View style={[st.resultStats, { flex: 1 }]}>
-                    <Text style={st.resultStatLabel}>Total Imported</Text>
-                    <Text style={[st.resultStatValue, { color: '#10B981' }]}>{totalImported}</Text>
+                <View style={st.statsRow}>
+                  <View style={st.statBox}>
+                    <Text style={st.statValue}>{totalImported}</Text>
+                    <Text style={st.statLabel}>Imported</Text>
                   </View>
-                  <View style={[st.resultStats, { flex: 1 }]}>
-                    <Text style={st.resultStatLabel}>Total Skipped</Text>
-                    <Text style={[st.resultStatValue, { color: '#F59E0B' }]}>{totalSkipped}</Text>
+                  <View style={st.statBox}>
+                    <Text style={[st.statValue, { color: '#F59E0B' }]}>{totalSkipped}</Text>
+                    <Text style={st.statLabel}>Skipped</Text>
                   </View>
                 </View>
 
-                {/* Per-file results */}
-                <View style={{ gap: 8 }}>
-                  <Text style={st.fieldLabel}>File Results</Text>
+                <View style={st.fileResultsList}>
                   {results.map((r, i) => (
                     <View key={i} style={st.fileResultItem}>
-                      <View style={{ flex: 1 }}>
-                        <Text numberOfLines={1} style={{ fontFamily: FONTS.semi, fontSize: 12, color: SAC.text }}>
-                          {r.file}
-                        </Text>
-                        {r.error ? (
-                          <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: '#F87171' }}>{r.error}</Text>
-                        ) : (
-                          <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.dim }}>
-                            {r.imported} imported, {r.skipped} skipped
-                          </Text>
-                        )}
-                      </View>
                       {r.error ? (
                         <XCircle size={16} color="#F87171" />
                       ) : (
                         <CheckCircle size={16} color="#10B981" />
                       )}
+                      <View style={{ flex: 1, marginLeft: 8 }}>
+                        <Text numberOfLines={1} style={st.fileName}>{r.file}</Text>
+                        <Text style={st.fileResultText}>
+                          {r.error || `${r.imported} imported, ${r.skipped} skipped`}
+                        </Text>
+                      </View>
                     </View>
                   ))}
                 </View>
               </View>
             )}
-          </ScrollView>
+          </View>
 
-          <View style={st.modalFooter}>
+          {/* Footer */}
+          <View style={st.importFooter}>
             <SecondaryButton onPress={onClose}>
-              <Text style={st.secText}>{results.length ? 'Close' : 'Cancel'}</Text>
+              <Text style={st.secondaryBtnText}>{results.length ? 'Done' : 'Cancel'}</Text>
             </SecondaryButton>
             {!results.length && (
-              <GradientButton onPress={handleImport} disabled={files.length === 0 || importing} size="sm">
+              <GradientButton 
+                onPress={handleImport} 
+                disabled={files.length === 0 || importing} 
+                size="sm"
+              >
                 {importing ? (
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                     <ActivityIndicator size="small" color="#fff" />
-                    <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>
-                      Importing {currentFile + 1}/{files.length}
+                    <Text style={st.primaryBtnText}>
+                      {currentFile + 1}/{files.length}
                     </Text>
                   </View>
                 ) : (
-                  <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>
+                  <Text style={st.primaryBtnText}>
                     Import {files.length} file{files.length > 1 ? 's' : ''}
                   </Text>
                 )}
@@ -884,18 +896,76 @@ const st = StyleSheet.create({
   listChipActive: { borderColor: GRAD.from, backgroundColor: 'rgba(124,58,237,0.15)' },
   listChipText: { fontFamily: FONTS.med, fontSize: 12, color: SAC.muted },
   listChipTextActive: { color: '#C4B5FD' },
+  // Import Modal Styles
+  modalBackdrop: { ...StyleSheet.absoluteFillObject },
+  importModal: {
+    width: '100%', maxWidth: 480, backgroundColor: '#141A2D', borderRadius: 16,
+    borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)', maxHeight: '80vh',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 20 }, shadowOpacity: 0.5, shadowRadius: 40,
+  },
+  importHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    padding: 16, borderBottomWidth: 1, borderBottomColor: SAC.border,
+  },
+  importTitle: { fontFamily: FONTS.bold, fontSize: 15, color: SAC.text },
+  closeBtn: {
+    width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.06)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  importContent: { padding: 16, gap: 16 },
+  uploadBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    padding: 16, borderRadius: 12, backgroundColor: 'rgba(124,58,237,0.08)',
+    borderWidth: 1, borderStyle: 'dashed', borderColor: 'rgba(167,139,250,0.4)',
+  },
+  uploadIconWrap: {
+    width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(124,58,237,0.15)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  uploadBtnText: { fontFamily: FONTS.bold, fontSize: 13, color: SAC.text },
+  uploadBtnSub: { fontFamily: FONTS.med, fontSize: 11, color: SAC.muted, marginTop: 2 },
+  fileListSection: { gap: 8 },
+  fileListHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  fileListTitle: { fontFamily: FONTS.semi, fontSize: 12, color: SAC.text },
+  clearAllText: { fontFamily: FONTS.semi, fontSize: 11, color: '#F87171' },
   fileItem: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     padding: 10, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.04)',
-    borderWidth: 1, borderColor: SAC.border,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
   },
-  removeFileBtn: {
+  fileInfo: { flex: 1, flexDirection: 'row', alignItems: 'center' },
+  fileName: { fontFamily: FONTS.semi, fontSize: 12, color: SAC.text },
+  fileSize: { fontFamily: FONTS.med, fontSize: 10, color: SAC.dim },
+  removeBtn: {
     width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(239,68,68,0.1)',
     alignItems: 'center', justifyContent: 'center',
   },
-  fileResultItem: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    padding: 10, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.04)',
-    borderWidth: 1, borderColor: SAC.border,
+  fieldGroup: { gap: 6 },
+  textInput: {
+    backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, color: SAC.text,
+    fontFamily: FONTS.med, fontSize: 13,
   },
+  resultsSection: { alignItems: 'center', gap: 12 },
+  successIcon: { width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(16,185,129,0.15)', alignItems: 'center', justifyContent: 'center' },
+  successTitle: { fontFamily: FONTS.bold, fontSize: 16, color: SAC.text },
+  statsRow: { flexDirection: 'row', gap: 12, width: '100%' },
+  statBox: {
+    flex: 1, padding: 12, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', alignItems: 'center',
+  },
+  statValue: { fontFamily: FONTS.xbold, fontSize: 20, color: '#10B981' },
+  statLabel: { fontFamily: FONTS.semi, fontSize: 11, color: SAC.muted, marginTop: 4 },
+  fileResultsList: { width: '100%', gap: 8 },
+  fileResultItem: {
+    flexDirection: 'row', alignItems: 'center', padding: 10, borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+  },
+  fileResultText: { fontFamily: FONTS.med, fontSize: 11, color: SAC.dim, marginTop: 2 },
+  importFooter: {
+    flexDirection: 'row', justifyContent: 'flex-end', gap: 10,
+    padding: 16, borderTopWidth: 1, borderTopColor: SAC.border,
+  },
+  secondaryBtnText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
+  primaryBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
 });
