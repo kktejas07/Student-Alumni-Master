@@ -43,7 +43,7 @@ export function Hero() {
             className="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.08] text-white"
           >
             Your Intelligent <br />
-            <span className="font-extrabold text-white">Companion</span> for a <br />
+            <span className="font-extrabold text-purple-400">Companion</span> for a <br />
             Modern Career
           </motion.h1>
 
