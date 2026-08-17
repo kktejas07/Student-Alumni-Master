@@ -605,7 +605,7 @@ export default function EchoRegisterPage() {
           <View style={[s.posterCol, !isWide && s.posterColStack]}>
             <View style={s.posterWrap}>
               {activePoster ? (
-                <Image source={{ uri: resolveImageUrl(activePoster) }} style={s.poster} resizeMode="cover" />
+                <Image source={{ uri: resolveImageUrl(activePoster) }} style={s.poster} resizeMode="contain" />
               ) : (
                 <LinearGradient colors={['rgba(123,61,191,0.35)', 'rgba(95,37,159,0.55)', 'rgba(30,10,80,0.85)']} style={s.poster}>
                   <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1, gap: 10, padding: 20 }}>
@@ -834,7 +834,7 @@ export default function EchoRegisterPage() {
         <View style={[s.posterCol, !isWide && s.posterColStack]}>
           <View style={s.posterWrap}>
             {activePoster ? (
-              <Image source={{ uri: resolveImageUrl(activePoster) }} style={s.poster} resizeMode="cover" />
+              <Image source={{ uri: resolveImageUrl(activePoster) }} style={s.poster} resizeMode="contain" />
             ) : (
               <LinearGradient colors={['rgba(123,61,191,0.35)', 'rgba(95,37,159,0.55)', 'rgba(30,10,80,0.85)']} style={s.poster}>
                 <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1, gap: 10, padding: 20 }}>
