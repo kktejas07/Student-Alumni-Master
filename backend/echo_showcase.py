@@ -2597,6 +2597,28 @@ def _validate_phone_value(v: str) -> str:
     return v.strip()
 
 
+class TeamMemberSchema(BaseModel):
+    name: Optional[str] = ""
+    email: Optional[str] = ""
+    phone: Optional[str] = ""
+
+    @field_validator("email")
+    @classmethod
+    def _validate_email(cls, v):
+        if not v or not v.strip():
+            raise ValueError("Team member email is required")
+        import re
+        email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        if not re.match(email_regex, v.strip().lower()):
+            raise ValueError("Please enter a valid email address")
+        return v.strip().lower()
+
+    @field_validator("phone")
+    @classmethod
+    def _validate_phone(cls, v):
+        return _validate_phone_value(v or "")
+
+
 class RegisterSchema(BaseModel):
     full_name: Optional[str] = ""
     email: Optional[str] = ""
@@ -2612,6 +2634,20 @@ class RegisterSchema(BaseModel):
     terms_accepted: Optional[bool] = False
     terms_accepted_at: Optional[str] = ""
     whatsapp_opt_in: Optional[bool] = True
+    registration_type: Optional[str] = "individual"
+    team_size: Optional[int] = 1
+    team_members: Optional[List[TeamMemberSchema]] = []
+
+    @field_validator("email")
+    @classmethod
+    def _validate_email(cls, v):
+        if not v or not v.strip():
+            raise ValueError("Email is required")
+        import re
+        email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        if not re.match(email_regex, v.strip().lower()):
+            raise ValueError("Please enter a valid email address")
+        return v.strip().lower()
 
     @field_validator("phone")
     @classmethod
@@ -2653,6 +2689,36 @@ class RegisterSchema(BaseModel):
         if norm not in ("1", "2", "3", "4"):
             raise ValueError("Academic year must be 1, 2, 3, or 4")
         return norm
+
+    @field_validator("registration_type")
+    @classmethod
+    def _validate_registration_type(cls, v):
+        if v and v not in ("individual", "team"):
+            raise ValueError("Registration type must be 'individual' or 'team'")
+        return v or "individual"
+
+    @field_validator("team_size")
+    @classmethod
+    def _validate_team_size(cls, v, info):
+        reg_type = info.data.get("registration_type", "individual")
+        if reg_type == "team":
+            if not v or v < 2:
+                raise ValueError("Team size must be at least 2")
+            if v > 5:
+                raise ValueError("Team size cannot exceed 5")
+        return v or 1
+
+    @field_validator("team_members")
+    @classmethod
+    def _validate_team_members(cls, v, info):
+        reg_type = info.data.get("registration_type", "individual")
+        team_size = info.data.get("team_size", 1)
+        if reg_type == "team":
+            if not v or len(v) == 0:
+                raise ValueError("Team members are required for team registration")
+            if len(v) != team_size:
+                raise ValueError(f"Expected {team_size} team members, got {len(v)}")
+        return v or []
 
 
 @router.post("/showcases/{slug}/register")
@@ -2739,13 +2805,19 @@ async def register_for_showcase(
     # connected Razorpay gateway — there is no demo/mock auto-approve path, so
     # paid registration never issues a QR or invoice unless money was captured.
     gateway_cfg = await _razorpay_config(db)
-    auto_paid = fee <= 0
+    
+    # Calculate total fee for team registrations
+    team_size = payload.team_size or 1
+    registration_type = payload.registration_type or "individual"
+    total_fee = fee * team_size if registration_type == "team" else fee
+    
+    auto_paid = total_fee <= 0
 
     if auto_paid:
         payment = {
             "payment_id": f"PAY_{secrets.token_hex(8).upper()}",
             "gateway": "free",
-            "amount": fee,
+            "amount": total_fee,
             "currency": currency,
             "status": "paid",
             "paid_at": now_iso,
@@ -2760,7 +2832,7 @@ async def register_for_showcase(
         payment = {
             "payment_id": None,
             "gateway": "razorpay",
-            "amount": fee,
+            "amount": total_fee,
             "currency": currency,
             "status": "pending",
             "paid_at": None,
@@ -2769,6 +2841,19 @@ async def register_for_showcase(
 
     # 1) Event-side registration
     dob_val = payload.date_of_birth or payload.dob or ""
+    
+    # Prepare team members data
+    team_members_data = []
+    if registration_type == "team" and payload.team_members:
+        team_members_data = [
+            {
+                "name": m.name or "",
+                "email": m.email or "",
+                "phone": m.phone or "",
+            }
+            for m in payload.team_members
+        ]
+    
     reg = {
         "id": reg_id,
         "slug": canonical_slug,
@@ -2786,7 +2871,7 @@ async def register_for_showcase(
         "college": payload.college or showcase.get("college"),
         "hackwave_theme": payload.hackwave_theme or payload.theme or "",
         "theme": payload.hackwave_theme or payload.theme or "",
-        "fee": fee,
+        "fee": total_fee,
         "currency": currency,
         "payment": payment,
         "qr_code_base64": generate_qr_code(qr_payload) if auto_paid else None,
@@ -2796,6 +2881,9 @@ async def register_for_showcase(
         "terms_accepted": payload.terms_accepted or False,
         "terms_accepted_at": payload.terms_accepted_at or now_iso,
         "whatsapp_opt_in": payload.whatsapp_opt_in if payload.whatsapp_opt_in is not None else True,
+        "registration_type": registration_type,
+        "team_size": team_size,
+        "team_members": team_members_data,
     }
     await db.echo_registrations.insert_one(dict(reg))
     await _sync_user_profile_data(db, user, payload)
@@ -2881,6 +2969,20 @@ class PaymentOrderSchema(BaseModel):
     year: Optional[str] = ""
     college: Optional[str] = ""
     terms_accepted: Optional[bool] = False
+    registration_type: Optional[str] = "individual"
+    team_size: Optional[int] = 1
+    team_members: Optional[List[TeamMemberSchema]] = []
+
+    @field_validator("email")
+    @classmethod
+    def _validate_email(cls, v):
+        if not v or not v.strip():
+            raise ValueError("Email is required")
+        import re
+        email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        if not re.match(email_regex, v.strip().lower()):
+            raise ValueError("Please enter a valid email address")
+        return v.strip().lower()
 
     @field_validator("phone")
     @classmethod
@@ -2965,8 +3067,13 @@ async def create_payment_order(slug: str, payload: PaymentOrderSchema, request: 
     canonical_slug = showcase.get("slug") or slug
     fee = float(reg_cfg.get("fee", 0) or 0)
     currency = reg_cfg.get("currency", "INR")
+    
+    # Calculate total fee for team registrations
+    team_size = payload.team_size or 1
+    registration_type = payload.registration_type or "individual"
+    total_fee = fee * team_size if registration_type == "team" else fee
 
-    if fee <= 0:
+    if total_fee <= 0:
         raise HTTPException(status_code=400, detail="This event is free — register directly")
 
     if not (payload.full_name or "").strip() or not (payload.email or "").strip():
@@ -3008,7 +3115,7 @@ async def create_payment_order(slug: str, payload: PaymentOrderSchema, request: 
             return {
                 "already": False,
                 "order_id": order_id,
-                "amount": fee,
+                "amount": total_fee,
                 "currency": currency,
                 "key_id": cfg.get("key_id", ""),
                 "receipt": existing.get("id"),
@@ -3023,7 +3130,7 @@ async def create_payment_order(slug: str, payload: PaymentOrderSchema, request: 
 
     # Create the Razorpay order
     order = await _razorpay_create_order(
-        db, fee, currency, reg_id,
+        db, total_fee, currency, reg_id,
         {"slug": canonical_slug, "email": email, "name": payload.full_name},
     )
     if order is None:

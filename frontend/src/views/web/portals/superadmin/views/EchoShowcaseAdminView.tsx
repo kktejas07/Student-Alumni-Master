@@ -3087,10 +3087,36 @@ function RegistrationsPanel() {
                 <Text style={{ width: 100, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5, textAlign: 'center' }}>ACTIONS</Text>
               </View>
               {paged.map((r: any, i: number) => (
-                <View key={r.id || i} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 11, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' }}>
+                <View key={r.id || i} style={{ flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 11, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' }}>
                   <View style={{ width: 180, minWidth: 0 }}>
-                    <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 12.5, color: '#fff' }}>{r.full_name || '—'}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 12.5, color: '#fff' }}>{r.full_name || '—'}</Text>
+                      {r.registration_type === 'team' && (
+                        <View style={{ backgroundColor: 'rgba(124,58,237,0.25)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                          <Text style={{ fontFamily: FONTS.xbold, fontSize: 9, color: '#C4B5FD' }}>TEAM</Text>
+                        </View>
+                      )}
+                    </View>
                     <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10.5, color: SAC.dim }}>{r.email || r.phone || ''}</Text>
+                    {r.registration_type === 'team' && r.team_members?.length > 0 && (
+                      <View style={{ marginTop: 6, gap: 4 }}>
+                        {r.team_members.slice(0, 3).map((member: any, idx: number) => (
+                          <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                            <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: 'rgba(167,139,250,0.2)', alignItems: 'center', justifyContent: 'center' }}>
+                              <Text style={{ fontFamily: FONTS.xbold, fontSize: 8, color: '#C4B5FD' }}>{idx + 2}</Text>
+                            </View>
+                            <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 9.5, color: SAC.dim, flex: 1 }}>
+                              {member.name || member.email || '—'}
+                            </Text>
+                          </View>
+                        ))}
+                        {r.team_members.length > 3 && (
+                          <Text style={{ fontFamily: FONTS.med, fontSize: 9, color: SAC.dim }}>
+                            +{r.team_members.length - 3} more
+                          </Text>
+                        )}
+                      </View>
+                    )}
                   </View>
                   <View style={{ width: 200, minWidth: 0 }}>
                     <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 12, color: '#e5e7eb' }}>{r.event_title || r.slug || '—'}</Text>
@@ -3103,6 +3129,11 @@ function RegistrationsPanel() {
                     <Text style={{ fontFamily: FONTS.xbold, fontSize: 12.5, color: '#fff' }}>
                       {Number(r.fee || 0) > 0 ? `₹${Number(r.fee).toLocaleString('en-IN')}` : 'FREE'}
                     </Text>
+                    {r.registration_type === 'team' && r.team_size > 1 && (
+                      <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 9.5, color: SAC.dim }}>
+                        {r.team_size} members × ₹{Math.round(Number(r.fee || 0) / r.team_size)}
+                      </Text>
+                    )}
                     <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>{r.payment_id || ''}</Text>
                   </View>
                   <View style={{ width: 150, minWidth: 0 }}>

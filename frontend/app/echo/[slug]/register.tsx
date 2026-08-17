@@ -173,6 +173,16 @@ function DobPicker({ value, onChange }: { value: string; onChange: (iso: string)
   );
 }
 
+/* ── Email validation regex ─────────────────────────────────────────────── */
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+/* ── Team member type ──────────────────────────────────────────────────── */
+interface TeamMember {
+  name: string;
+  email: string;
+  phone: string;
+}
+
 export default function EchoRegisterPage() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const router = useRouter();
@@ -193,6 +203,12 @@ export default function EchoRegisterPage() {
   const [whatsappOptIn, setWhatsappOptIn] = useState(true);
   const [termsModalVisible, setTermsModalVisible] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
+
+  // Team registration state
+  const [registrationType, setRegistrationType] = useState<'individual' | 'team'>('individual');
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([
+    { name: '', email: '', phone: '' },
+  ]);
 
   const loadRazorpay = () =>
     new Promise<boolean>((resolve) => {
@@ -292,6 +308,29 @@ export default function EchoRegisterPage() {
 
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
+  // Team member management
+  const addTeamMember = () => {
+    if (teamMembers.length < 5) {
+      setTeamMembers([...teamMembers, { name: '', email: '', phone: '' }]);
+    }
+  };
+
+  const removeTeamMember = (index: number) => {
+    if (teamMembers.length > 1) {
+      setTeamMembers(teamMembers.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateTeamMember = (index: number, field: keyof TeamMember, value: string) => {
+    const updated = [...teamMembers];
+    updated[index] = { ...updated[index], [field]: value };
+    setTeamMembers(updated);
+  };
+
+  const validateEmail = (email: string): boolean => {
+    return EMAIL_REGEX.test(email.trim().toLowerCase());
+  };
+
   const regCfg = showcase?.registration || {};
   const fee = Number(regCfg.fee || 0);
   const currency = regCfg.currency || 'INR';
@@ -303,6 +342,10 @@ export default function EchoRegisterPage() {
     : (showcase?.gallery || []).map((g: any) => g.url).filter(Boolean);
   const activePoster = posters.length > 0 ? posters[posterIdx % posters.length] : (showcase?.hero_image_url || null);
 
+  // Calculate total fee based on registration type
+  const teamSize = registrationType === 'team' ? teamMembers.length : 1;
+  const totalFee = fee * teamSize;
+
   const openPayment = () => {
     if (Platform.OS === 'web') {
       window.open(paymentUrl, '_blank');
@@ -313,9 +356,10 @@ export default function EchoRegisterPage() {
 
   const onSubmit = async () => {
     const errs: Record<string, string> = {};
+    
+    // Validate primary registrant
     if (!form.full_name.trim()) errs.full_name = 'Please fill in your name.';
-    if (!form.email.trim() || !form.email.includes('@')) errs.email = 'Please enter a valid email address.';
-    // Phone is mandatory
+    if (!form.email.trim() || !validateEmail(form.email)) errs.email = 'Please enter a valid email address.';
     if (!form.phone.trim()) {
       errs.phone = 'Phone number is required.';
     } else {
@@ -331,6 +375,22 @@ export default function EchoRegisterPage() {
       } else if (d > new Date()) {
         errs.date_of_birth = 'Date of birth cannot be in the future.';
       }
+    }
+
+    // Validate team members if team registration
+    if (registrationType === 'team') {
+      teamMembers.forEach((member, idx) => {
+        if (!member.name.trim()) errs[`team_member_${idx}_name`] = `Team member ${idx + 1}: Name is required.`;
+        if (!member.email.trim() || !validateEmail(member.email)) errs[`team_member_${idx}_email`] = `Team member ${idx + 1}: Valid email is required.`;
+        if (!member.phone.trim()) {
+          errs[`team_member_${idx}_phone`] = `Team member ${idx + 1}: Phone is required.`;
+        } else {
+          const digits = member.phone.replace(/[^\d]/g, '');
+          if (digits.length < 7 || digits.length > 15) {
+            errs[`team_member_${idx}_phone`] = `Team member ${idx + 1}: Valid phone is required.`;
+          }
+        }
+      });
     }
 
     setFieldErrors(errs);
@@ -349,10 +409,29 @@ export default function EchoRegisterPage() {
     let keepLoading = true;
     try {
       const contact = { ...form, email: form.email.trim().toLowerCase() };
-      const regPayload = { ...contact, payment_method: fee > 0 ? 'online' : 'free', terms_accepted: termsAccepted, terms_accepted_at: new Date().toISOString(), whatsapp_opt_in: whatsappOptIn };
+      
+      // Prepare team members data
+      const teamMembersData = registrationType === 'team' 
+        ? teamMembers.map(m => ({
+            name: m.name.trim(),
+            email: m.email.trim().toLowerCase(),
+            phone: m.phone.trim(),
+          }))
+        : [];
+
+      const regPayload = { 
+        ...contact, 
+        registration_type: registrationType,
+        team_size: teamSize,
+        team_members: teamMembersData,
+        payment_method: totalFee > 0 ? 'online' : 'free', 
+        terms_accepted: termsAccepted, 
+        terms_accepted_at: new Date().toISOString(), 
+        whatsapp_opt_in: whatsappOptIn 
+      };
 
       // Free event → register directly.
-      if (fee <= 0) {
+      if (totalFee <= 0) {
         const res = await api.registerEchoShowcase(canonicalSlug, regPayload);
         const regObj = res.registration || res;
         setDone(regObj);
@@ -360,7 +439,14 @@ export default function EchoRegisterPage() {
       }
 
       // Paid event → create a payment order, then redirect to the gateway.
-      const order = await api.createEchoPaymentOrder(canonicalSlug, { ...contact, terms_accepted: termsAccepted, whatsapp_opt_in: whatsappOptIn });
+      const order = await api.createEchoPaymentOrder(canonicalSlug, { 
+        ...contact, 
+        registration_type: registrationType,
+        team_size: teamSize,
+        team_members: teamMembersData,
+        terms_accepted: termsAccepted, 
+        whatsapp_opt_in: whatsappOptIn 
+      });
 
       // Already paid → show the existing registration + invoice.
       if (order?.already) {
@@ -785,6 +871,29 @@ export default function EchoRegisterPage() {
             </View>
           ) : (
             <>
+              {/* Registration Type Toggle */}
+              <View style={s.feeCard}>
+                <Text style={[s.cardTitle, { marginBottom: 12 }]}>Registration Type</Text>
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <Pressable
+                    onPress={() => { setRegistrationType('individual'); setTeamMembers([{ name: form.full_name, email: form.email, phone: form.phone }]); }}
+                    style={[s.typeToggle, registrationType === 'individual' && s.typeToggleActive]}
+                  >
+                    <Text style={[s.typeToggleText, registrationType === 'individual' && s.typeToggleTextActive]}>
+                      👤 Individual
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => setRegistrationType('team')}
+                    style={[s.typeToggle, registrationType === 'team' && s.typeToggleActive]}
+                  >
+                    <Text style={[s.typeToggleText, registrationType === 'team' && s.typeToggleTextActive]}>
+                      👥 Team (up to 5)
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+
               {/* Fee panel */}
               <View style={s.feeCard}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -792,6 +901,11 @@ export default function EchoRegisterPage() {
                   <View style={{ flex: 1 }}>
                     <Text style={s.feeLabel}>Registration Fee</Text>
                     <Text style={s.feeValue}>{fee > 0 ? `${currency} ${fee}` : 'FREE'}</Text>
+                    {registrationType === 'team' && fee > 0 && (
+                      <Text style={[s.feeLabel, { marginTop: 4, textTransform: 'none', letterSpacing: 0, color: '#C4B5FD' }]}>
+                        × {teamSize} member{teamSize > 1 ? 's' : ''} = {currency} {totalFee}
+                      </Text>
+                    )}
                     {regCfg.registration_type ? (
                       <Text style={[s.feeLabel, { marginTop: 2, textTransform: 'none', letterSpacing: 0 }]}>
                         {regCfg.registration_type === 'team' ? '👥 Team Registration' : '👤 Individual Registration'}
@@ -913,6 +1027,68 @@ export default function EchoRegisterPage() {
                   />
                 </View>
 
+                {/* Team Members Section */}
+                {registrationType === 'team' && (
+                  <View style={s.teamSection}>
+                    <View style={s.teamHeader}>
+                      <Text style={s.teamTitle}>👥 Team Members</Text>
+                      <Text style={s.teamCount}>{teamMembers.length}/5 members</Text>
+                    </View>
+                    
+                    {teamMembers.map((member, idx) => (
+                      <View key={idx} style={s.teamMemberCard}>
+                        <View style={s.teamMemberHeader}>
+                          <Text style={s.teamMemberLabel}>Member {idx + 1} {idx === 0 && '(You)'}</Text>
+                          {idx > 0 && (
+                            <Pressable onPress={() => removeTeamMember(idx)} style={s.removeMemberBtn}>
+                              <Text style={s.removeMemberText}>✕ Remove</Text>
+                            </Pressable>
+                          )}
+                        </View>
+                        
+                        <Text style={s.teamMemberSublabel}>Name *</Text>
+                        <TextInput 
+                          style={[s.input, fieldErrors[`team_member_${idx}_name`] ? s.inputError : null]} 
+                          value={member.name} 
+                          onChangeText={(v) => updateTeamMember(idx, 'name', v)} 
+                          placeholder={`Member ${idx + 1} name`} 
+                          placeholderTextColor={PALETTE.dim} 
+                        />
+                        {fieldErrors[`team_member_${idx}_name`] ? <Text style={s.fieldErrText}>{fieldErrors[`team_member_${idx}_name`]}</Text> : null}
+                        
+                        <Text style={s.teamMemberSublabel}>Email *</Text>
+                        <TextInput 
+                          style={[s.input, fieldErrors[`team_member_${idx}_email`] ? s.inputError : null]} 
+                          value={member.email} 
+                          onChangeText={(v) => updateTeamMember(idx, 'email', v)} 
+                          placeholder={`member${idx + 1}@example.com`} 
+                          placeholderTextColor={PALETTE.dim} 
+                          keyboardType="email-address" 
+                          autoCapitalize="none" 
+                        />
+                        {fieldErrors[`team_member_${idx}_email`] ? <Text style={s.fieldErrText}>{fieldErrors[`team_member_${idx}_email`]}</Text> : null}
+                        
+                        <Text style={s.teamMemberSublabel}>Phone *</Text>
+                        <TextInput 
+                          style={[s.input, fieldErrors[`team_member_${idx}_phone`] ? s.inputError : null]} 
+                          value={member.phone} 
+                          onChangeText={(v) => updateTeamMember(idx, 'phone', v)} 
+                          placeholder={`+91 ...`} 
+                          placeholderTextColor={PALETTE.dim} 
+                          keyboardType="phone-pad" 
+                        />
+                        {fieldErrors[`team_member_${idx}_phone`] ? <Text style={s.fieldErrText}>{fieldErrors[`team_member_${idx}_phone`]}</Text> : null}
+                      </View>
+                    ))}
+                    
+                    {teamMembers.length < 5 && (
+                      <Pressable onPress={addTeamMember} style={s.addMemberBtn}>
+                        <Text style={s.addMemberText}>+ Add Team Member</Text>
+                      </Pressable>
+                    )}
+                  </View>
+                )}
+
                 {error ? <Text style={s.error}>{error}</Text> : null}
 
                 {/* Terms & Conditions checkbox */}
@@ -957,7 +1133,7 @@ export default function EchoRegisterPage() {
                         <Pressable onPress={termsAccepted ? openPayment : undefined} disabled={!termsAccepted} style={[s.payBtn, !termsAccepted && s.payBtnDisabled]}>
                           <ExternalLink size={16} color={termsAccepted ? '#fff' : 'rgba(255,255,255,0.4)'} />
                           <Text style={[s.payBtnText, !termsAccepted && s.payBtnTextDisabled]}>
-                            {fee > 0 ? `Pay ${currency} ${fee}` : 'Proceed'} — Payment Gateway
+                            {totalFee > 0 ? `Pay ${currency} ${totalFee}` : 'Proceed'} — Payment Gateway
                           </Text>
                         </Pressable>
                       </LinearGradient>
@@ -976,7 +1152,7 @@ export default function EchoRegisterPage() {
                           <>
                             <CreditCard size={16} color={termsAccepted ? '#fff' : 'rgba(255,255,255,0.4)'} />
                             <Text style={[s.payBtnText, !termsAccepted && s.payBtnTextDisabled]}>
-                              {fee > 0 ? `Pay ${currency} ${fee} via Razorpay` : 'Register Free'}
+                              {totalFee > 0 ? `Pay ${currency} ${totalFee} via Razorpay` : 'Register Free'}
                             </Text>
                           </>
                         )}
@@ -1475,5 +1651,110 @@ const s = StyleSheet.create({
     color: '#34D399',
     fontFamily: FONTS.semi,
     fontSize: 12,
+  },
+  // Team registration styles
+  typeToggle: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(167,139,250,0.3)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    alignItems: 'center',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  typeToggleActive: {
+    borderColor: GRAD.from,
+    backgroundColor: 'rgba(124,58,237,0.2)',
+  },
+  typeToggleText: {
+    color: PALETTE.muted,
+    fontFamily: FONTS.semi,
+    fontSize: 14,
+  },
+  typeToggleTextActive: {
+    color: '#fff',
+  },
+  teamSection: {
+    marginTop: 16,
+    padding: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(167,139,250,0.3)',
+    backgroundColor: 'rgba(124,58,237,0.08)',
+  },
+  teamHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  teamTitle: {
+    color: '#fff',
+    fontFamily: TYPO.display700,
+    fontSize: 16,
+  },
+  teamCount: {
+    color: '#C4B5FD',
+    fontFamily: FONTS.semi,
+    fontSize: 12,
+  },
+  teamMemberCard: {
+    marginBottom: 16,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(167,139,250,0.2)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  teamMemberHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  teamMemberLabel: {
+    color: '#fff',
+    fontFamily: FONTS.semi,
+    fontSize: 14,
+  },
+  teamMemberSublabel: {
+    color: '#94a3b8',
+    fontFamily: FONTS.semi,
+    fontSize: 11,
+    marginTop: 8,
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  removeMemberBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(239,68,68,0.4)',
+    backgroundColor: 'rgba(239,68,68,0.1)',
+  },
+  removeMemberText: {
+    color: '#F87171',
+    fontFamily: FONTS.semi,
+    fontSize: 12,
+  },
+  addMemberBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: 'rgba(167,139,250,0.4)',
+    backgroundColor: 'rgba(124,58,237,0.1)',
+  },
+  addMemberText: {
+    color: '#C4B5FD',
+    fontFamily: FONTS.semi,
+    fontSize: 13,
   },
 });
