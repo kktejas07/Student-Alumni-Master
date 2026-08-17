@@ -125,6 +125,7 @@ qdrant-client
 fastembed
 pymupdf
 python-docx
+fpdf2
 langchain-text-splitters
 tzlocal==5.3.1
 uritemplate==4.2.0

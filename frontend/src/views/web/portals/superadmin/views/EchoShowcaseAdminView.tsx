@@ -1962,7 +1962,7 @@ const EMPTY: any = {
     downloads: true, cta: true, registration: true,
   },
   registration: {
-    enabled: true, fee: 0, currency: 'INR', max_seats: 0, seat_leverage: 0.8,
+    enabled: true, fee: 0, currency: 'INR', registration_type: 'individual', max_seats: 0, seat_leverage: 0.8,
     deadline: '', payment_note: '', payment_url: '', poster_images: [],
     contact_phones: [],
   },
@@ -2499,6 +2499,19 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                       <Field value={(form.registration || {}).currency || 'INR'} onChangeText={(v: string) => set('registration', { ...(form.registration || {}), currency: v })} placeholder="INR" />
                     </FieldRow>
                   </View>
+                  <View style={{ flex: 1, minWidth: 140 }}>
+                    <FieldRow label="Registration Type" hint="Whether this is individual or team registration.">
+                      <DarkDropdown
+                        value={(form.registration || {}).registration_type || 'individual'}
+                        options={['individual', 'team']}
+                        onChange={(v: string) => set('registration', { ...(form.registration || {}), registration_type: v })}
+                        placeholder="Individual"
+                        modalTitle="SELECT REGISTRATION TYPE"
+                      />
+                    </FieldRow>
+                  </View>
+                </View>
+                <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
                   <View style={{ flex: 1, minWidth: 140 }}>
                     <FieldRow label="Max Seats (0 = unlimited)">
                       <Field value={String((form.registration || {}).max_seats ?? 0)} onChangeText={(v: string) => set('registration', { ...(form.registration || {}), max_seats: Number(v) || 0 })} placeholder="0" />

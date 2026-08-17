@@ -4,7 +4,8 @@ backend/services/event_agent.py
 AI Agent Scraping Pipeline for Global Events.
 Scrapes open events (Hackathons, Workshops, Quizzes, Competitions, Webinars, Fests)
 from global sources (Unstop, open portals, etc.) and transforms/upserts them
-into `echo_showcases` and `events_v2` collections in MongoDB.
+into the `events_v2` collection in MongoDB. `echo_showcases` is curated
+manually and must NOT be auto-populated by this agent.
 """
 
 import sys
@@ -188,14 +189,9 @@ Participate in this official global event! Enhance your skills, collaborate with
                 doc = self.transform_item(raw_item, cat_key)
                 slug = doc["slug"]
 
-                # 1. Upsert into echo_showcases
-                await db.echo_showcases.update_one(
-                    {"slug": slug},
-                    {"$set": doc},
-                    upsert=True,
-                )
-
-                # 2. Upsert into events_v2 for global search APIs
+                # Upsert into events_v2 for global search APIs.
+                # NOTE: echo_showcases is intentionally NOT written here —
+                # it is a curated collection (see module docstring).
                 await db.events_v2.update_one(
                     {"event_id": slug},
                     {"$set": doc},
