@@ -2665,6 +2665,14 @@ api_router.include_router(career_ai_router)
 from routers.certificates import router as certificates_router
 api_router.include_router(certificates_router)
 
+# AI Platform Services — Platform RAG Semantic Search & Automated AI Agents
+from routers.ai_platform_services import router as ai_platform_services_router
+api_router.include_router(ai_platform_services_router)
+
+# PDF Document Generation & Download Router
+from routers.pdf_routes import router as pdf_routes_router
+api_router.include_router(pdf_routes_router)
+
 app.include_router(api_router)
 
 

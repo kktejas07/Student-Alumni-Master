@@ -39,6 +39,7 @@ import { useToast } from '@/src/views/components';
 import { AdBanner } from '@/src/views/web/components/AdBanner';
 import { CouponBanner } from '@/src/views/web/components/CouponBanner';
 import { PartnerCards } from '@/src/views/web/components/PartnerCards';
+import { track, trackClick, trackScreen, logger as analyticsLogger } from '@/src/analytics';
 
 const KPI_ICONS = { matches: Briefcase, applications: Briefcase, courses: BookOpen, mentors: Users, score: TrendingUp, events: Calendar } as const;
 
@@ -58,6 +59,11 @@ export function DashboardView() {
   const toast = useToast();
   const portalNav = useContext(StudentPortalNavContext);
   const [activeTab, setActiveTab] = useState<'opportunities' | 'intelligence'>('opportunities');
+
+  React.useEffect(() => {
+    trackScreen('student_dashboard_view', { path: '/student/dashboard' });
+    analyticsLogger.debug('[DashboardView DEBUG] Dashboard view mounted');
+  }, []);
   // Authenticated user — drives per-user dashboard data.
   const authUser = useAuthStore((u) => u.user);
   const dashPath = authUser?.email

@@ -39,12 +39,7 @@ import { TourOverlay } from '@/src/views/web/tour/TourOverlay';
 import { AnnouncementPopup } from '@/src/views/web/components/AnnouncementPopup';
 import { initGlobalErrorLogger } from '@/src/utils/globalErrorLogger';
 
-try {
-  const { LogBox, Platform } = require('react-native');
-  if (Platform.OS !== 'web') {
-    LogBox.ignoreLogs(['6000ms timeout exceeded', 'fontfaceobserver']);
-  }
-} catch (_) {}
+LogBox.ignoreLogs(['6000ms timeout exceeded', 'fontfaceobserver']);
 if (typeof window !== 'undefined') {
   initGlobalErrorLogger();
 }
