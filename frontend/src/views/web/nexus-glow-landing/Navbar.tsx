@@ -91,13 +91,13 @@ export function Navbar() {
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled || mobileOpen
-          ? "py-2 bg-[#1c053a]/95 backdrop-blur-md border-b border-purple-800/40 shadow-2xl"
-          : "py-4 bg-[#1c053a]/60 backdrop-blur-sm border-b border-purple-800/20"
+          ? "py-2 bg-[#0C0C0D]/95 backdrop-blur-md border-b border-white/10 shadow-2xl"
+          : "py-4 bg-transparent border-b border-transparent"
         }`}
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div
-          className={`flex items-center justify-between transition-all duration-500 ${scrolled ? "px-4 sm:px-5 py-2" : "px-4 sm:px-5 py-2.5"
+          className={`flex items-center justify-between transition-all duration-500 ${scrolled ? "px-4 sm:px-5 py-2.5" : "px-4 sm:px-5 py-3"
             }`}
         >
           {/* Logo */}
@@ -111,21 +111,21 @@ export function Navbar() {
               style={{ width: 32, height: 32, borderRadius: 8 }}
               resizeMode="contain"
             />
-            <span className="text-base font-extrabold tracking-tight text-white">
+            <span className="text-sm font-bold tracking-wide text-white">
               StudentAlumni
             </span>
           </a>
 
           {/* Nav links (desktop only) */}
           {isLargeScreen && (
-            <nav className="flex items-center gap-1 bg-white/10 border border-white/15 rounded-full px-3 py-1.5 backdrop-blur-md">
+            <nav className="flex items-center gap-1 bg-[#121214] border border-white/5 rounded-full px-2 py-1.5">
               <a
                 href="/echo"
                 onClick={goToEcho}
                 className={`relative px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-colors duration-200 cursor-pointer ${
                   isEcho
-                    ? "text-white bg-white/20"
-                    : "text-purple-100/90 hover:text-white hover:bg-white/10"
+                    ? "text-white bg-white/10"
+                    : "text-gray-400 hover:text-white hover:bg-white/5"
                 }`}
               >
                 ECHO
@@ -135,8 +135,8 @@ export function Navbar() {
                 onClick={goToVerify}
                 className={`relative px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-colors duration-200 cursor-pointer ${
                   active === "Verify"
-                    ? "text-white bg-white/20"
-                    : "text-purple-100/90 hover:text-white hover:bg-white/10"
+                    ? "text-white bg-white/10"
+                    : "text-gray-400 hover:text-white hover:bg-white/5"
                 }`}
               >
                 Verify
@@ -151,8 +151,8 @@ export function Navbar() {
                     onClick={(e) => goToLandingSection(e, targetId)}
                     className={`relative px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-colors duration-200 cursor-pointer
                       ${isActive
-                        ? "text-white bg-white/20 font-bold"
-                        : "text-purple-100/90 hover:text-white hover:bg-white/10"
+                        ? "text-white bg-white/10"
+                        : "text-gray-400 hover:text-white hover:bg-white/5"
                       }
                     `}
                   >
@@ -176,7 +176,7 @@ export function Navbar() {
                     '/student-portal';
                   router.push(portalPath);
                 }}
-                className="text-xs font-semibold text-purple-200 hover:text-white transition-colors duration-200 cursor-pointer"
+                className="text-xs font-semibold text-green-400 hover:text-green-300 transition-colors duration-200 cursor-pointer"
               >
                 Dashboard
               </button>
@@ -184,7 +184,7 @@ export function Navbar() {
               width >= 420 && (
                 <button
                   onClick={() => router.push('/(auth)/login')}
-                  className="text-xs font-bold text-white hover:text-purple-200 transition-colors duration-200 cursor-pointer px-3 py-1.5"
+                  className="text-xs font-semibold text-gray-400 hover:text-white transition-colors duration-200 cursor-pointer"
                 >
                   Sign in
                 </button>
@@ -201,14 +201,14 @@ export function Navbar() {
                     '/student-portal';
                   router.push(portalPath);
                 }}
-                className="group relative overflow-hidden rounded-full bg-white px-5 py-2 text-xs font-extrabold text-[#3d096b] transition-all duration-300 hover:scale-105 hover:bg-purple-50 shadow-md cursor-pointer"
+                className="group relative overflow-hidden rounded-full bg-primary px-4 sm:px-5 py-2 text-xs font-bold text-primary-foreground transition-all duration-300 hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.4)] cursor-pointer"
               >
                 My Account
               </button>
             ) : (
               <button
                 onClick={() => { setMobileOpen(false); router.push('/get-started'); }}
-                className="group relative overflow-hidden rounded-full bg-white px-5 py-2 text-xs font-extrabold text-[#3d096b] transition-all duration-300 hover:scale-105 hover:bg-purple-50 shadow-md cursor-pointer"
+                className="group relative overflow-hidden rounded-full bg-primary px-4 sm:px-5 py-2 text-xs font-bold text-primary-foreground transition-all duration-300 hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.4)] cursor-pointer"
               >
                 Get Started
               </button>

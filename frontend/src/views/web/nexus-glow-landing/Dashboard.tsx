@@ -3,16 +3,16 @@ import { Sparkles, TrendingUp, CheckCircle2, Navigation } from "lucide-react-nat
 
 export function Dashboard() {
   return (
-    <section id="about-us" className="relative py-32 bg-[#0B061A] text-white z-10 border-b border-[#1E1238]">
+    <section id="about-us" className="relative py-32 overflow-hidden">
       <div className="mx-auto max-w-7xl px-6">
-        <div className="max-w-3xl mx-auto text-center mb-16">
+        <div className="max-w-3xl mx-auto text-center mb-20">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            className="inline-flex items-center gap-2 text-[11px] font-bold tracking-widest text-purple-200 bg-white/10 border border-white/20 px-4 py-1.5 rounded-full uppercase shadow-xs mb-6 backdrop-blur-md"
+            className="inline-flex items-center gap-2 text-[12px] font-bold tracking-widest text-primary drop-shadow-[0_0_8px_rgba(255,255,255,0.5)] uppercase mb-6"
           >
-            <Navigation className="w-3.5 h-3.5 text-purple-300" />
+            <Navigation className="w-3.5 h-3.5 text-primary" />
             Your Command Center
           </motion.div>
           
@@ -21,65 +21,67 @@ export function Dashboard() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-4xl md:text-6xl font-extrabold tracking-tight text-white leading-[1.08]"
+            className="text-5xl md:text-6xl font-medium tracking-tight text-white leading-[1.05]"
           >
-            The StudentAlumni Platform
+            One dashboard,
+            <br />
+            <span className="text-primary">infinite momentum.</span>
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="mt-6 text-lg text-purple-200/80 max-w-2xl mx-auto font-medium leading-relaxed"
+            className="mt-6 text-lg text-gray-400 max-w-2xl mx-auto font-medium"
           >
-            Track every application, mentor session, and milestone in a beautifully structured, deeply intelligent platform.
+            Track every application, mentor session, and milestone in a beautifully quiet, deeply intelligent interface.
           </motion.p>
         </div>
 
         <motion.div
-          initial={{ opacity: 0, y: 60, rotateX: 8 }}
+          initial={{ opacity: 0, y: 60, rotateX: 15 }}
           whileInView={{ opacity: 1, y: 0, rotateX: 0 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
           style={{ transformPerspective: 2000 }}
           className="relative mx-auto max-w-5xl group"
         >
-          {/* Mockup Container (Pure White Window Card like Apollo platform section) */}
-          <div className="relative rounded-3xl border border-[#E3E0F0] bg-white shadow-[0_25px_70px_rgba(0,0,0,0.35)] overflow-hidden transition-transform duration-700 hover:scale-[1.01]">
+          {/* Mockup Container */}
+          <div className="relative rounded-2xl border border-white/10 bg-[#0C0C0D] shadow-2xl overflow-hidden transition-transform duration-700 hover:scale-[1.02]">
             
-            {/* Window Bar */}
-            <div className="flex items-center justify-between border-b border-[#E3E0F0] bg-[#F8F9FC] px-6 py-3.5">
+            {/* macOS style Window Bar */}
+            <div className="flex items-center justify-between border-b border-white/5 bg-[#121214] px-6 py-3">
               <div className="flex items-center gap-2">
-                <div className="h-3 w-3 rounded-full bg-[#FF5F56]" />
-                <div className="h-3 w-3 rounded-full bg-[#FFBD2E]" />
-                <div className="h-3 w-3 rounded-full bg-[#27C93F]" />
+                <div className="h-3 w-3 rounded-full bg-white/10" />
+                <div className="h-3 w-3 rounded-full bg-white/10" />
+                <div className="h-3 w-3 rounded-full bg-white/10" />
               </div>
               <div className="flex-1 flex justify-center">
-                <div className="px-4 py-1.5 rounded-md bg-[#F3EBFB] text-[10px] font-bold text-[#6c0f8d] tracking-wide flex items-center gap-2 border border-[#E1CFFA]">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#6c0f8d] animate-pulse"></span>
+                <div className="px-4 py-1.5 rounded-md bg-white/5 text-[10px] font-bold text-gray-500 tracking-wide flex items-center gap-2 border border-white/5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
                   studentalumni.ai / overview
                 </div>
               </div>
-              <div className="w-[54px]"></div>
+              <div className="w-[54px]"></div> {/* Spacer for balance */}
             </div>
 
-            {/* Inner Content Area */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 p-6 md:p-8 bg-[#F8F9FC]">
+            {/* Dashboard Content */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 p-6 md:p-8 bg-[#0C0C0D]">
               
               {/* Sidebar */}
-              <div className="hidden md:flex flex-col col-span-3 rounded-xl bg-white border border-[#E3E0F0] p-4 shadow-sm">
-                <div className="text-[10px] font-bold uppercase tracking-widest text-[#9890B2] mb-4 px-2">Navigation</div>
+              <div className="hidden md:flex flex-col col-span-3 rounded-xl bg-[#121214] border border-white/5 p-4">
+                <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-4 px-2">Menu</div>
                 <div className="space-y-1">
                   {["Overview", "Agent K", "Mentors", "AI Roadmap"].map((m, i) => (
                     <div
                       key={m}
-                      className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-bold transition-colors cursor-pointer ${
+                      className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors cursor-pointer ${
                         i === 0 
-                          ? "bg-[#6c0f8d] text-white shadow-sm" 
-                          : "text-[#504A6B] hover:bg-[#F3EBFB] hover:text-[#6c0f8d]"
+                          ? "bg-white/10 text-white" 
+                          : "text-gray-500 hover:bg-white/5 hover:text-gray-300"
                       }`}
                     >
-                      <span className={`h-1.5 w-1.5 rounded-full ${i === 0 ? "bg-white" : "bg-slate-300"}`} />
+                      <span className={`h-1.5 w-1.5 rounded-full ${i === 0 ? "bg-primary shadow-[0_0_8px_rgba(255,255,255,0.8)]" : "bg-current opacity-40"}`} />
                       {m}
                     </div>
                   ))}
@@ -92,16 +94,16 @@ export function Dashboard() {
                 {/* Stats Row */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   {[
-                    { label: "Active Applications", val: "12", trend: "+3 this week", color: "text-[#110B29]" },
-                    { label: "Mentor Hours", val: "8.5h", trend: "+2h vs last mo", color: "text-[#110B29]" },
-                    { label: "Skill Badges", val: "2,450", trend: "Unlock Premium", color: "text-[#6c0f8d]" },
+                    { label: "Active Applications", val: "12", trend: "+3 this week", color: "text-white" },
+                    { label: "Mentor Hours", val: "8.5h", trend: "+2h vs last mo", color: "text-white" },
+                    { label: "Skill Badges", val: "2,450", trend: "Unlock Premium", color: "text-primary" },
                   ].map((s, i) => (
-                    <div key={s.label} className="rounded-xl border border-[#E3E0F0] bg-white p-5 hover:border-purple-300 transition-all shadow-sm">
-                      <div className="text-[10px] font-bold uppercase tracking-widest text-[#9890B2] mb-2">{s.label}</div>
+                    <div key={s.label} className="rounded-xl border border-white/5 bg-[#121214] p-5 hover:bg-[#18181B] hover:border-white/10 transition-colors">
+                      <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">{s.label}</div>
                       <div className="flex items-end justify-between">
-                        <div className={`text-3xl font-extrabold tracking-tight ${s.color}`}>{s.val}</div>
-                        <div className="flex items-center gap-1 text-[10px] font-bold text-[#6c0f8d] bg-[#F3EBFB] border border-[#E1CFFA] px-2 py-1 rounded-md">
-                          <TrendingUp className="h-3 w-3 text-[#6c0f8d]" />
+                        <div className={`text-3xl font-black tracking-tight ${s.color}`}>{s.val}</div>
+                        <div className="flex items-center gap-1 text-[10px] font-bold text-primary bg-primary/10 px-2 py-1 rounded-md">
+                          <TrendingUp className="h-3 w-3" />
                           {s.trend}
                         </div>
                       </div>
@@ -110,18 +112,18 @@ export function Dashboard() {
                 </div>
 
                 {/* Agent K Priority Panel */}
-                <div className="relative rounded-xl border border-[#E1CFFA] bg-gradient-to-r from-[#F3EBFB] to-[#FAF6FE] p-6 overflow-hidden shadow-sm">
-                  <div className="absolute top-0 right-0 p-8 opacity-10">
-                    <Sparkles className="w-24 h-24 text-[#6c0f8d]" />
+                <div className="relative rounded-xl border border-primary/20 bg-primary/5 p-6 overflow-hidden">
+                  <div className="absolute top-0 right-0 p-8 opacity-5">
+                    <Sparkles className="w-24 h-24 text-primary" />
                   </div>
                   
                   <div className="relative z-10 flex items-center gap-3 mb-6">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#6c0f8d] text-white shadow-md">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20">
                       <Sparkles className="h-5 w-5" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold text-[#110B29]">Agent K Priorities</h3>
-                      <p className="text-xs font-semibold text-[#6c0f8d]">Curated for you today</p>
+                      <h3 className="text-lg font-bold text-white">Agent K Priorities</h3>
+                      <p className="text-xs font-semibold text-primary">Curated for you today</p>
                     </div>
                   </div>
 
@@ -131,35 +133,35 @@ export function Dashboard() {
                       { text: "Prep 3 questions for tomorrow's mentor call with Sarah.", type: "task" },
                       { text: "Apply to 2 matched career opportunities closing this Friday.", type: "task" },
                     ].map((t, idx) => (
-                      <div key={idx} className="flex items-start gap-3 rounded-lg bg-white border border-[#E3E0F0] p-4 hover:border-purple-300 transition-colors cursor-pointer shadow-xs">
-                        <CheckCircle2 className={`h-5 w-5 mt-0.5 ${t.type === 'urgent' ? 'text-[#6c0f8d]' : 'text-slate-400'}`} />
-                        <span className="text-sm font-semibold text-[#332C4A] leading-relaxed">{t.text}</span>
+                      <div key={idx} className="flex items-start gap-3 rounded-lg bg-[#121214] border border-white/5 p-4 hover:border-white/10 transition-colors cursor-pointer">
+                        <CheckCircle2 className={`h-5 w-5 mt-0.5 ${t.type === 'urgent' ? 'text-primary' : 'text-gray-500'}`} />
+                        <span className="text-sm font-semibold text-gray-300 leading-relaxed">{t.text}</span>
                       </div>
                     ))}
                   </div>
                 </div>
 
                 {/* Roadmap Progress */}
-                <div className="rounded-xl border border-[#E3E0F0] bg-white p-6 shadow-sm">
+                <div className="rounded-xl border border-white/5 bg-[#121214] p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <span className="text-sm font-bold text-[#110B29]">Career Roadmap</span>
-                    <span className="px-3 py-1 rounded-full bg-[#F3EBFB] border border-[#E1CFFA] text-[10px] font-bold uppercase tracking-widest text-[#6c0f8d]">Year 3 · Sem 1</span>
+                    <span className="text-sm font-bold text-white">Career Roadmap</span>
+                    <span className="px-3 py-1 rounded-full bg-white/5 border border-white/5 text-[10px] font-bold uppercase tracking-widest text-gray-400">Year 3 · Sem 1</span>
                   </div>
                   
-                  <div className="relative h-2.5 w-full rounded-full bg-[#EAE8F5] overflow-hidden">
+                  <div className="relative h-2 w-full rounded-full bg-[#18181B] overflow-hidden">
                     <motion.div
                       initial={{ width: "0%" }}
                       whileInView={{ width: "65%" }}
                       viewport={{ once: true }}
                       transition={{ duration: 1.5, delay: 0.5, ease: "easeOut" }}
-                      className="absolute inset-y-0 left-0 bg-[#6c0f8d] rounded-full"
+                      className="absolute inset-y-0 left-0 bg-primary rounded-full shadow-[0_0_10px_rgba(255,255,255,0.5)]"
                     >
                     </motion.div>
                   </div>
                   
-                  <div className="mt-4 flex justify-between text-[10px] font-bold text-[#9890B2] uppercase tracking-wider">
+                  <div className="mt-4 flex justify-between text-[10px] font-bold text-gray-500 uppercase tracking-wider">
                     <span>Foundations</span>
-                    <span className="text-[#6c0f8d] font-extrabold">Opportunities</span>
+                    <span className="text-primary">Opportunities</span>
                     <span>Full-time</span>
                   </div>
                 </div>
