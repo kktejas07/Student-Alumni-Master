@@ -884,7 +884,6 @@ export default function EchoRegisterPage() {
               showsVerticalScrollIndicator={true}
               indicatorStyle="white"
             >
-            <>
               {/* Registration Type Toggle */}
               <View style={s.feeCard}>
                 <Text style={[s.cardTitle, { marginBottom: 12 }]}>Registration Type</Text>
@@ -1316,7 +1315,6 @@ export default function EchoRegisterPage() {
                     view your tickets anytime under <Text style={{ color: '#C4B5FD', fontFamily: FONTS.semi }}>My Tickets</Text>.
                   </Text>
                 </View>
-            </>
             </ScrollView>
           )}
         </View>
