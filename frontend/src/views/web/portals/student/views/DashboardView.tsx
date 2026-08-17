@@ -293,46 +293,6 @@ export function DashboardView() {
     >
       {Platform.OS !== 'web' && <Aurora intensity="strong" />}
 
-      {/* ── HAND-DRAWN SVG DOODLES SHOWCASE BANNER ── */}
-      <GlassCard radius={20} padding={20} style={{ borderLeftWidth: 4, borderLeftColor: '#8B5CF6', gap: 16 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-            <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: 'rgba(139, 92, 246, 0.15)', borderWidth: 1, borderColor: 'rgba(139, 92, 246, 0.3)', alignItems: 'center', justifyContent: 'center' }}>
-              <DoodleIllustration type="cap-doodle" color="#A78BFA" width={34} height={26} />
-            </View>
-            <View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Text style={{ fontFamily: FONTS.bold, fontSize: 18, color: '#FFFFFF' }}>Hand-Drawn SVG Doodles</Text>
-                <DoodleIllustration type="sparkle" color="#EC4899" width={22} height={22} />
-              </View>
-              <Text style={{ fontFamily: FONTS.med, fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 2 }}>
-                Custom SVG doodle illustrations providing hand-drawn accents across student & alumni portals.
-              </Text>
-              <DoodleIllustration type="underline" color="#8B5CF6" width={220} height={16} />
-            </View>
-          </View>
-        </View>
-
-        {/* Showcase All Doodle Samples with Labels */}
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 4, alignItems: 'center' }}>
-          {[
-            { type: 'idea', label: 'Idea', color: '#F59E0B' },
-            { type: 'star', label: 'Star', color: '#EAB308' },
-            { type: 'arrow', label: 'Arrow', color: '#3B82F6' },
-            { type: 'highlight-circle', label: 'Circle', color: '#10B981' },
-            { type: 'burst', label: 'Burst', color: '#EC4899' },
-            { type: 'cap-doodle', label: 'Grad Cap', color: '#A78BFA' },
-            { type: 'sparkle', label: 'Sparkle', color: '#F43F5E' },
-            { type: 'underline', label: 'Underline', color: '#8B5CF6' },
-          ].map((item) => (
-            <View key={item.type} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' }}>
-              <DoodleIllustration type={item.type as DoodleType} color={item.color} width={item.type === 'underline' ? 44 : 26} height={26} />
-              <Text style={{ fontFamily: FONTS.semibold, fontSize: 12, color: 'rgba(255,255,255,0.85)' }}>{item.label}</Text>
-            </View>
-          ))}
-        </View>
-      </GlassCard>
-
       {/* Ad Banner — rotating carousel from /ad/image */}
       <AdBanner />
       {/* Exclusive Coupons — below the ad banner */}
