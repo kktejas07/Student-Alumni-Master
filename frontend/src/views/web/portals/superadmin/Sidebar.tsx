@@ -48,7 +48,7 @@ export const NAV: Array<{ id: SuperAdminNavId; label: string; Icon: any; count?:
   { id: 'partners',    label: 'Partners',    Icon: Handshake,   tag: 'NEW' },
   { id: 'promotions',  label: 'Promotions',  Icon: Megaphone,   tag: 'NEW' },
   { id: 'newsletter',   label: 'Newsletter',   Icon: Mail,        tag: 'NEW' },
-  { id: 'contacts',     label: 'Contacts',     Icon: Users,       tag: 'NEW' },
+  { id: 'contacts',     label: 'Contacts Import', Icon: Upload,    tag: 'NEW' },
   { id: 'email-health', label: 'Email health', Icon: ShieldOff,   tag: 'NEW' },
   { id: 'certificates', label: 'Certificates', Icon: Award,       tag: 'NEW' },
   { id: 'payments',    label: 'Payments',    Icon: CreditCard },

@@ -878,6 +878,12 @@ export default function EchoRegisterPage() {
               </Text>
             </View>
           ) : (
+            <ScrollView 
+              style={{ flex: 1 }} 
+              contentContainerStyle={{ gap: 12, paddingBottom: 20 }} 
+              showsVerticalScrollIndicator={true}
+              indicatorStyle="white"
+            >
             <>
               {/* Registration Type Toggle */}
               <View style={s.feeCard}>
@@ -1311,7 +1317,7 @@ export default function EchoRegisterPage() {
                   </Text>
                 </View>
               </View>
-            </>
+            </ScrollView>
           )}
         </View>
       </View>
@@ -1324,18 +1330,26 @@ export default function EchoRegisterPage() {
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#0a0f1e' },
+  contentScrollView: {
+    flex: 1,
+    ...(Platform.OS === 'web' ? {
+      overflowY: 'auto' as any,
+      scrollbarWidth: 'thin' as any,
+      scrollbarColor: 'rgba(167,139,250,0.3) transparent' as any,
+    } : {}),
+  },
   pageBg: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
   pageBgOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(10,15,30,0.50)' },
   content: { padding: 16, maxWidth: 1400, width: '100%', alignSelf: 'center' },
   center: { alignItems: 'center', justifyContent: 'center', paddingVertical: 100, gap: 14 },
   centerText: { color: PALETTE.muted, fontFamily: FONTS.med, fontSize: 14 },
 
-  split: { flexDirection: 'row', gap: 20, alignItems: 'stretch' },
+  split: { flexDirection: 'row', gap: 20, alignItems: 'flex-start' },
   splitStack: { flexDirection: 'column', gap: 16 },
 
-  posterCol: { flex: 1.2, minWidth: 0, display: 'flex' as any },
-  posterColStack: { width: '100%' },
-  posterWrap: { position: 'relative', borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: PALETTE.glassBorder, width: '100%', flex: 1, minHeight: 300 },
+  posterCol: { flex: 1.2, minWidth: 0, maxHeight: 600 },
+  posterColStack: { width: '100%', maxHeight: 400 },
+  posterWrap: { position: 'relative', borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: PALETTE.glassBorder, width: '100%', height: '100%', minHeight: 400 },
   poster: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%', backgroundColor: '#0d1326' },
   posterNav: {
     position: 'absolute', top: '50%', marginTop: -20, width: 40, height: 40, borderRadius: 20,
@@ -1348,7 +1362,7 @@ const s = StyleSheet.create({
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.25)' },
   dotOn: { backgroundColor: GRAD.from, width: 22 },
 
-  formCol: { flex: 1, minWidth: 0, maxWidth: 520, display: 'flex' as any },
+  formCol: { flex: 1, minWidth: 0, maxWidth: 520, maxHeight: 600 },
   formColStack: { width: '100%' },
 
   backBtn: {
