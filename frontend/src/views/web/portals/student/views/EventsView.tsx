@@ -168,7 +168,7 @@ export function DropdownSelect({ label, value, options, onSelect }: DropdownSele
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          justifyContent: 'space-between',
+          justify.content: 'space-between',
           height: 38,
           paddingHorizontal: 12,
           borderRadius: 8,
