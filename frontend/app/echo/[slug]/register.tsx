@@ -792,6 +792,11 @@ export default function EchoRegisterPage() {
                   <View style={{ flex: 1 }}>
                     <Text style={s.feeLabel}>Registration Fee</Text>
                     <Text style={s.feeValue}>{fee > 0 ? `${currency} ${fee}` : 'FREE'}</Text>
+                    {regCfg.registration_type ? (
+                      <Text style={[s.feeLabel, { marginTop: 2, textTransform: 'none', letterSpacing: 0 }]}>
+                        {regCfg.registration_type === 'team' ? '👥 Team Registration' : '👤 Individual Registration'}
+                      </Text>
+                    ) : null}
                   </View>
                   {paymentUrl ? (
                     <View style={s.secureBadge}><ExternalLink size={12} color="#34D399" /><Text style={s.secureText}>Secure payment</Text></View>
@@ -1072,14 +1077,14 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#0a0f1e' },
   pageBg: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
   pageBgOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(10,15,30,0.50)' },
-  content: { padding: 20, maxWidth: 1100, width: '100%', alignSelf: 'center' },
+  content: { padding: 20, maxWidth: 1400, width: '100%', alignSelf: 'center' },
   center: { alignItems: 'center', justifyContent: 'center', paddingVertical: 100, gap: 14 },
   centerText: { color: PALETTE.muted, fontFamily: FONTS.med, fontSize: 14 },
 
   split: { flexDirection: 'row', gap: 20, alignItems: 'stretch' },
   splitStack: { flexDirection: 'column' },
 
-  posterCol: { flex: 1, minWidth: 0, gap: 12 },
+  posterCol: { flex: 1.2, minWidth: 0, gap: 12 },
   posterColStack: { width: '100%' },
   posterWrap: { position: 'relative', borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: PALETTE.glassBorder, width: '100%', flex: 1, minHeight: 300 },
   poster: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%', backgroundColor: '#0d1326' },
@@ -1094,7 +1099,7 @@ const s = StyleSheet.create({
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.25)' },
   dotOn: { backgroundColor: GRAD.from, width: 22 },
 
-  formCol: { width: 420, minWidth: 0 },
+  formCol: { flex: 1, minWidth: 380, maxWidth: 520 },
   formColStack: { width: '100%' },
 
   backBtn: {
