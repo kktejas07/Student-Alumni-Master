@@ -340,7 +340,7 @@ export default function EchoRegisterPage() {
   const activePoster = posters.length > 0 ? posters[posterIdx % posters.length] : (showcase?.hero_image_url || null);
 
   // Calculate total fee based on registration type
-  const teamSize = registrationType === 'team' ? teamMembers.length : 1;
+  const teamSize = registrationType === 'team' ? 1 + teamMembers.length : 1;
   const totalFee = fee * teamSize;
 
   const openPayment = () => {
