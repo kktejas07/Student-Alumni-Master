@@ -878,12 +878,7 @@ export default function EchoRegisterPage() {
               </Text>
             </View>
           ) : (
-            <ScrollView 
-              style={{ flex: 1 }} 
-              contentContainerStyle={{ gap: 12, paddingBottom: 20 }} 
-              showsVerticalScrollIndicator={true}
-              indicatorStyle="white"
-            >
+            <>
               {/* Registration Type Toggle */}
               <View style={s.feeCard}>
                 <Text style={[s.cardTitle, { marginBottom: 12 }]}>Registration Type</Text>
@@ -913,39 +908,14 @@ export default function EchoRegisterPage() {
                   <View style={s.feeIcon}><CreditCard size={18} color={GRAD.from} /></View>
                   <View style={{ flex: 1 }}>
                     <Text style={s.feeLabel}>Registration Fee</Text>
-                    {registrationType === 'team' && fee > 0 ? (
-                      // Team fee breakdown
-                      <View style={{ marginTop: 4 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                          <Text style={[s.feeValue, { fontSize: 16 }]}>{currency} {fee}</Text>
-                          <Text style={{ color: PALETTE.muted, fontFamily: FONTS.med, fontSize: 12 }}>per person</Text>
-                        </View>
-                        <View style={{ 
-                          flexDirection: 'row', alignItems: 'center', gap: 6, 
-                          marginTop: 8, paddingVertical: 8, paddingHorizontal: 12,
-                          backgroundColor: 'rgba(124,58,237,0.12)', borderRadius: 8,
-                          borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)',
-                        }}>
-                          <Users size={14} color="#C4B5FD" />
-                          <Text style={{ color: '#C4B5FD', fontFamily: FONTS.semi, fontSize: 12 }}>
-                            {teamSize} team member{teamSize > 1 ? 's' : ''}
-                          </Text>
-                          <Text style={{ color: PALETTE.muted, fontFamily: FONTS.med, fontSize: 12 }}>&#215;</Text>
-                          <Text style={{ color: '#C4B5FD', fontFamily: FONTS.semi, fontSize: 12 }}>
-                            {currency} {fee}
-                          </Text>
-                          <Text style={{ color: PALETTE.muted, fontFamily: FONTS.med, fontSize: 12 }}>=</Text>
-                          <Text style={{ color: '#fff', fontFamily: TYPO.display800, fontSize: 16, marginLeft: 4 }}>
-                            {currency} {totalFee}
-                          </Text>
-                        </View>
-                      </View>
-                    ) : (
-                      // Individual fee
-                      <Text style={s.feeValue}>{fee > 0 ? `${currency} ${fee}` : 'FREE'}</Text>
+                    <Text style={s.feeValue}>{fee > 0 ? `${currency} ${fee}` : 'FREE'}</Text>
+                    {registrationType === 'team' && fee > 0 && (
+                      <Text style={[s.feeLabel, { marginTop: 4, textTransform: 'none', letterSpacing: 0, color: '#C4B5FD' }]}>
+                        × {teamSize} member{teamSize > 1 ? 's' : ''} = {currency} {totalFee}
+                      </Text>
                     )}
                     {regCfg.registration_type ? (
-                      <Text style={[s.feeLabel, { marginTop: 6, textTransform: 'none', letterSpacing: 0 }]}>
+                      <Text style={[s.feeLabel, { marginTop: 2, textTransform: 'none', letterSpacing: 0 }]}>
                         {regCfg.registration_type === 'team' ? 'Team Registration' : 'Individual Registration'}
                       </Text>
                     ) : null}
@@ -1315,7 +1285,8 @@ export default function EchoRegisterPage() {
                     view your tickets anytime under <Text style={{ color: '#C4B5FD', fontFamily: FONTS.semi }}>My Tickets</Text>.
                   </Text>
                 </View>
-            </ScrollView>
+              </View>
+            </>
           )}
         </View>
       </View>
@@ -1328,26 +1299,18 @@ export default function EchoRegisterPage() {
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#0a0f1e' },
-  contentScrollView: {
-    flex: 1,
-    ...(Platform.OS === 'web' ? {
-      overflowY: 'auto' as any,
-      scrollbarWidth: 'thin' as any,
-      scrollbarColor: 'rgba(167,139,250,0.3) transparent' as any,
-    } : {}),
-  },
   pageBg: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
   pageBgOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(10,15,30,0.50)' },
   content: { padding: 16, maxWidth: 1400, width: '100%', alignSelf: 'center' },
   center: { alignItems: 'center', justifyContent: 'center', paddingVertical: 100, gap: 14 },
   centerText: { color: PALETTE.muted, fontFamily: FONTS.med, fontSize: 14 },
 
-  split: { flexDirection: 'row', gap: 20, alignItems: 'flex-start' },
+  split: { flexDirection: 'row', gap: 20, alignItems: 'stretch' },
   splitStack: { flexDirection: 'column', gap: 16 },
 
-  posterCol: { flex: 1.2, minWidth: 0, maxHeight: 600 },
-  posterColStack: { width: '100%', maxHeight: 400 },
-  posterWrap: { position: 'relative', borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: PALETTE.glassBorder, width: '100%', height: '100%', minHeight: 400 },
+  posterCol: { flex: 1.2, minWidth: 0, display: 'flex' as any },
+  posterColStack: { width: '100%' },
+  posterWrap: { position: 'relative', borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: PALETTE.glassBorder, width: '100%', flex: 1, minHeight: 300 },
   poster: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%', backgroundColor: '#0d1326' },
   posterNav: {
     position: 'absolute', top: '50%', marginTop: -20, width: 40, height: 40, borderRadius: 20,
@@ -1360,7 +1323,7 @@ const s = StyleSheet.create({
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.25)' },
   dotOn: { backgroundColor: GRAD.from, width: 22 },
 
-  formCol: { flex: 1, minWidth: 0, maxWidth: 520, maxHeight: 600 },
+  formCol: { flex: 1, minWidth: 0, maxWidth: 520, display: 'flex' as any },
   formColStack: { width: '100%' },
 
   backBtn: {
