@@ -753,7 +753,7 @@ async def my_events(email: Optional[str] = None):
 
 
 @router.post("/student/events/{event_id}/register")
-async def register_student_event(event_id: str, body: Optional[Dict[str, Any]] = None, req: Optional[Request] = None):
+async def register_student_event(event_id: str, body: Optional[Dict[str, Any]] = None, request: Request = None):
     body = body or {}
     email = body.get("email") or body.get("student_email")
     student = await _resolve_user("student", email)

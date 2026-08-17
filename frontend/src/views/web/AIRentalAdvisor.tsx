@@ -48,7 +48,7 @@ export default function AIRentalAdvisor({
     if (open && messages.length === 0) {
       setMessages([{
         role: 'assistant',
-        text: "Hi! I'm your SA Stay AI Assistant 🏠 Ask me anything about student housing, vehicle rentals, co-working spaces, or bookings near your campus!",
+        text: "Hi! I'm your SA Stay AI Assistant. Ask me anything about student housing, vehicle rentals, co-working spaces, or bookings near your campus!",
       }]);
     }
   }, [open]);
