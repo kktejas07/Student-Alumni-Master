@@ -207,9 +207,7 @@ export default function EchoRegisterPage() {
   // Team registration state
   const [registrationType, setRegistrationType] = useState<'individual' | 'team'>('individual');
   const [teamName, setTeamName] = useState('');
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([
-    { name: '', email: '', phone: '' },
-  ]);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
 
   const loadRazorpay = () =>
     new Promise<boolean>((resolve) => {
@@ -309,17 +307,15 @@ export default function EchoRegisterPage() {
 
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
-  // Team member management
+  // Team member management (primary registrant is separate, team members are additional)
   const addTeamMember = () => {
-    if (teamMembers.length < 5) {
+    if (teamMembers.length < 4) { // Max 4 additional members + primary = 5 total
       setTeamMembers([...teamMembers, { name: '', email: '', phone: '' }]);
     }
   };
 
   const removeTeamMember = (index: number) => {
-    if (teamMembers.length > 1) {
-      setTeamMembers(teamMembers.filter((_, i) => i !== index));
-    }
+    setTeamMembers(teamMembers.filter((_, i) => i !== index));
   };
 
   const updateTeamMember = (index: number, field: keyof TeamMember, value: string) => {
@@ -1044,7 +1040,7 @@ export default function EchoRegisterPage() {
                   <View style={s.teamSection}>
                     <View style={s.teamHeader}>
                       <Text style={s.teamTitle}>Team Registration</Text>
-                      <Text style={s.teamCount}>{teamMembers.length}/5 members</Text>
+                      <Text style={s.teamCount}>{1 + teamMembers.length}/5 members</Text>
                     </View>
                     
                     {/* Team Name Input */}
@@ -1064,17 +1060,38 @@ export default function EchoRegisterPage() {
                       </Text>
                     </View>
                     
-                    {/* Team Members List */}
-                    <Text style={[s.teamMemberSublabel, { marginBottom: 8, textTransform: 'none', letterSpacing: 0 }]}>Team Members</Text>
+                    {/* Primary Registrant (You) */}
+                    <View style={s.teamMemberCard}>
+                      <View style={s.teamMemberHeader}>
+                        <Text style={s.teamMemberLabel}>Member 1 (You)</Text>
+                      </View>
+                      <View style={{ gap: 8 }}>
+                        <View>
+                          <Text style={s.teamMemberSublabel}>Name</Text>
+                          <Text style={{ color: '#fff', fontFamily: FONTS.med, fontSize: 13 }}>{form.full_name || '—'}</Text>
+                        </View>
+                        <View>
+                          <Text style={s.teamMemberSublabel}>Email</Text>
+                          <Text style={{ color: '#fff', fontFamily: FONTS.med, fontSize: 13 }}>{form.email || '—'}</Text>
+                        </View>
+                        <View>
+                          <Text style={s.teamMemberSublabel}>Phone</Text>
+                          <Text style={{ color: '#fff', fontFamily: FONTS.med, fontSize: 13 }}>{form.phone || '—'}</Text>
+                        </View>
+                      </View>
+                    </View>
+                    
+                    {/* Additional Team Members */}
+                    {teamMembers.length > 0 && (
+                      <Text style={[s.teamMemberSublabel, { marginBottom: 8, marginTop: 8, textTransform: 'none', letterSpacing: 0 }]}>Additional Team Members</Text>
+                    )}
                     {teamMembers.map((member, idx) => (
                       <View key={idx} style={s.teamMemberCard}>
                         <View style={s.teamMemberHeader}>
-                          <Text style={s.teamMemberLabel}>Member {idx + 1} {idx === 0 && '(You)'}</Text>
-                          {idx > 0 && (
-                            <Pressable onPress={() => removeTeamMember(idx)} style={s.removeMemberBtn}>
-                              <Text style={s.removeMemberText}>✕ Remove</Text>
-                            </Pressable>
-                          )}
+                          <Text style={s.teamMemberLabel}>Member {idx + 2}</Text>
+                          <Pressable onPress={() => removeTeamMember(idx)} style={s.removeMemberBtn}>
+                            <Text style={s.removeMemberText}>Remove</Text>
+                          </Pressable>
                         </View>
                         
                         <Text style={s.teamMemberSublabel}>Name *</Text>
@@ -1082,7 +1099,7 @@ export default function EchoRegisterPage() {
                           style={[s.input, fieldErrors[`team_member_${idx}_name`] ? s.inputError : null]} 
                           value={member.name} 
                           onChangeText={(v) => updateTeamMember(idx, 'name', v)} 
-                          placeholder={`Member ${idx + 1} name`} 
+                          placeholder={`Member ${idx + 2} name`} 
                           placeholderTextColor={PALETTE.dim} 
                         />
                         {fieldErrors[`team_member_${idx}_name`] ? <Text style={s.fieldErrText}>{fieldErrors[`team_member_${idx}_name`]}</Text> : null}
@@ -1092,7 +1109,7 @@ export default function EchoRegisterPage() {
                           style={[s.input, fieldErrors[`team_member_${idx}_email`] ? s.inputError : null]} 
                           value={member.email} 
                           onChangeText={(v) => updateTeamMember(idx, 'email', v)} 
-                          placeholder={`member${idx + 1}@example.com`} 
+                          placeholder={`member${idx + 2}@example.com`} 
                           placeholderTextColor={PALETTE.dim} 
                           keyboardType="email-address" 
                           autoCapitalize="none" 
@@ -1112,7 +1129,7 @@ export default function EchoRegisterPage() {
                       </View>
                     ))}
                     
-                    {teamMembers.length < 5 && (
+                    {teamMembers.length < 4 && (
                       <Pressable onPress={addTeamMember} style={s.addMemberBtn}>
                         <Text style={s.addMemberText}>+ Add Team Member</Text>
                       </Pressable>
@@ -1288,12 +1305,12 @@ const s = StyleSheet.create({
   center: { alignItems: 'center', justifyContent: 'center', paddingVertical: 100, gap: 14 },
   centerText: { color: PALETTE.muted, fontFamily: FONTS.med, fontSize: 14 },
 
-  split: { flexDirection: 'row', gap: 20, alignItems: 'stretch' },
+  split: { flexDirection: 'row', gap: 20, alignItems: 'flex-start' },
   splitStack: { flexDirection: 'column', gap: 16 },
 
-  posterCol: { flex: 1.2, minWidth: 0, gap: 12 },
+  posterCol: { flex: 1.2, minWidth: 0, gap: 12, maxHeight: 600 },
   posterColStack: { width: '100%' },
-  posterWrap: { position: 'relative', borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: PALETTE.glassBorder, width: '100%', flex: 1, minHeight: 300 },
+  posterWrap: { position: 'relative', borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: PALETTE.glassBorder, width: '100%', height: '100%', minHeight: 300, maxHeight: 580 },
   poster: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%', backgroundColor: '#0d1326' },
   posterNav: {
     position: 'absolute', top: '50%', marginTop: -20, width: 40, height: 40, borderRadius: 20,
