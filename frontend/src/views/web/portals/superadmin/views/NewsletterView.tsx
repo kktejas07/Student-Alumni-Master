@@ -1025,8 +1025,28 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                         {(c.in_app_ok || 0) > 0 && (
                           <StatPill icon={Smartphone} label={`${c.in_app_ok} in-app`} kind="success" />
                         )}
-                        {((c.whatsapp_ok || 0) + (c.whatsapp_fail || 0)) > 0 && (
-                          <StatPill icon={MessageSquare} label={`${c.whatsapp_ok || 0} WhatsApp`} kind={c.whatsapp_fail ? 'warn' : 'success'} />
+                        {c.channels?.whatsapp && (
+                          <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
+                            <StatPill 
+                              icon={MessageSquare} 
+                              label={`${c.whatsapp_ok || 0} sent`} 
+                              kind={(c.whatsapp_fail || 0) > 0 ? 'warn' : 'success'} 
+                            />
+                            {(c.whatsapp_fail || 0) > 0 && (
+                              <StatPill 
+                                icon={MessageSquare} 
+                                label={`${c.whatsapp_fail || 0} failed`} 
+                                kind="danger" 
+                              />
+                            )}
+                            {c.whatsapp_no_phone > 0 && (
+                              <StatPill 
+                                icon={MessageSquare} 
+                                label={`${c.whatsapp_no_phone} no phone`} 
+                                kind="neutral" 
+                              />
+                            )}
+                          </View>
                         )}
                       </View>
                     )}
