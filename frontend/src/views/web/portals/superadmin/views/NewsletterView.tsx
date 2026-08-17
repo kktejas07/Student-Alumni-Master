@@ -102,13 +102,13 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
     hero_image: '',
     intro: '',
     body: '',
-    cta_text: 'Register Now',
-    cta_url: 'https://studentalumni.ai/echo',
+    cta_text: '',
+    cta_url: '',
     include_upcoming: true,
     send_email: true,
     send_push: true,
     send_in_app: true,
-    send_whatsapp: false,
+    send_whatsapp: true,
   });
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [events, setEvents] = useState<any[]>([]);
@@ -140,7 +140,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
   const [indUserQuery, setIndUserQuery] = useState('');
   const [indUserResults, setIndUserResults] = useState<any[]>([]);
   const [indSelectedUser, setIndSelectedUser] = useState<any>(null);
-  const [indForm, setIndForm] = useState({ title: '', body: '', cta_url: '', send_email: true, send_push: true, send_in_app: true, send_whatsapp: false });
+  const [indForm, setIndForm] = useState({ title: '', body: '', cta_url: '', send_email: true, send_push: true, send_in_app: true, send_whatsapp: true });
   const [indSending, setIndSending] = useState(false);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchSeqRef = useRef(0);
@@ -328,7 +328,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
     setForm({
       subject: '', hero_image: '', intro: '', body: '',
       cta_text: 'Register Now', cta_url: 'https://studentalumni.ai/echo',
-      include_upcoming: true, send_email: true, send_push: true, send_in_app: true, send_whatsapp: false,
+      include_upcoming: true, send_email: true, send_push: true, send_in_app: true, send_whatsapp: true,
     });
     flash('Edit cancelled');
   };
@@ -570,7 +570,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
       setIndSelectedUser(null);
       setIndUserQuery('');
       setIndUserResults([]);
-      setIndForm({ title: '', body: '', cta_url: '', send_email: true, send_push: true, send_in_app: true, send_whatsapp: false });
+      setIndForm({ title: '', body: '', cta_url: '', send_email: true, send_push: true, send_in_app: true, send_whatsapp: true });
     } catch (e: any) {
       flash(e?.message || 'Failed to send notification');
     } finally {
