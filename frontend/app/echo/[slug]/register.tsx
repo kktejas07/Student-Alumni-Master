@@ -1308,8 +1308,8 @@ const s = StyleSheet.create({
   split: { flexDirection: 'row', gap: 20, alignItems: 'stretch' },
   splitStack: { flexDirection: 'column', gap: 16 },
 
-  posterCol: { flex: 1.2, minWidth: 0, height: 1000 },
-  posterColStack: { width: '100%', height: 500 },
+  posterCol: { flex: 1.2, minWidth: 0, height: 1200 },
+  posterColStack: { width: '100%', height: 600 },
   posterWrap: { position: 'relative', borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: PALETTE.glassBorder, width: '100%', height: '100%' },
   poster: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%', backgroundColor: '#0d1326' },
   posterNav: {
@@ -1327,7 +1327,7 @@ const s = StyleSheet.create({
     flex: 1, 
     minWidth: 0, 
     maxWidth: 520, 
-    height: 1000,
+    height: 1200,
     ...(Platform.OS === 'web' ? { overflowY: 'auto' as any } : {}),
   },
   formColStack: { width: '100%' },
