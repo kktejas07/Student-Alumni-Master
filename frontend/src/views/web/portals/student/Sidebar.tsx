@@ -37,6 +37,7 @@ import { Av } from './atoms';
 import { FadeInView, PressScale, SparkIcon, PulseDot } from './motion';
 import { AgentKLauncher } from '@/src/views/web/agent-k/AgentKLauncher';
 import { SALogo } from '@/src/views/components';
+import { trackClick, logger as analyticsLogger } from '@/src/analytics';
 
 import { api } from '@/src/models/services/api';
 

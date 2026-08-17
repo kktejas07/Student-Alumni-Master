@@ -1,15 +1,21 @@
 // @ts-nocheck
 /**
  * /rentals — SA Stay (Rentals Marketplace)
- * Categories: Student Housing · Vehicles · Hotels & Stays · Coworking
- * Live data from /api/rentals/* with MongoDB-persisted bookings.
+ * Re-themed with Career AI visual aesthetics, background artwork, Lucide icons (no emojis),
+ * and a 2-step booking flow: View Details -> Proceed to Book.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, Pressable, ScrollView,
-  ActivityIndicator, TextInput, Modal, Platform, Linking,
+  ActivityIndicator, TextInput, Modal, Platform, Linking, ImageBackground,
 } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import {
+  Home, Car, Hotel, Building2, LayoutGrid, ShieldCheck, Star, Sparkles,
+  Tag, MapPin, Calendar, CheckCircle2, Info, User, Clock, ArrowRight, X,
+  ChevronRight, Search, Filter, Phone, Mail, Ticket, Award, Check, Eye,
+  Lock, MessageSquare, Flame, FileText, ArrowLeft, RefreshCw, Zap, Users,
+} from 'lucide-react-native';
 import FeaturePageShell, { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
 import { FAB } from '@/src/views/web/md3';
 import AIRentalAdvisor from '@/src/views/web/AIRentalAdvisor';
@@ -17,18 +23,17 @@ import { request } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useRouter } from 'expo-router';
 
-type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
-
 type Listing = {
   id: string; category: string; title: string; type: string;
   city: string; location: string;
   rent_inr: number; rent_label: string; orig_inr: number; orig_label: string;
   discount: string; amenities: string[]; rating: number; reviews: number;
-  beds: string; available: number; color: string; emoji: string;
+  beds: string; available: number; color: string; emoji?: string;
   perk?: string; verified?: boolean; featured?: boolean; tags?: string[];
+  description?: string; rules?: string[]; deposit_inr?: number;
 };
 
-type CategoryDef = { id: string; label: string; icon: IconName; color: string;
+type CategoryDef = { id: string; label: string; iconKey: string; color: string;
                      tagline: string; count: number };
 
 type Booking = {
@@ -44,20 +49,57 @@ type Booking = {
   days_until_checkout?: number | null;
 };
 
+/* ────────── Career AI Design Tokens ────────── */
 const C = {
-  text: '#fff', text2: 'rgba(255,255,255,0.72)', text3: 'rgba(255,255,255,0.46)',
-  border: 'rgba(255,255,255,0.10)', card: 'rgba(255,255,255,0.04)',
+  bg: '#0B0D1A',
+  bgCard: 'rgba(18, 22, 35, 0.75)',
+  bgCardHover: 'rgba(26, 30, 50, 0.90)',
+  border: 'rgba(255, 255, 255, 0.08)',
+  border2: 'rgba(255, 255, 255, 0.14)',
+  borderAccent: 'rgba(99, 102, 241, 0.25)',
+  text: '#F0EEFF',
+  text2: 'rgba(240, 238, 255, 0.80)',
+  textSub: 'rgba(240, 238, 255, 0.60)',
+  dim: 'rgba(240, 238, 255, 0.45)',
+  purple: '#4F46E5',
+  purple2: '#6366F1',
+  purpleL: '#818CF8',
+  purpleXL: '#A5B4FC',
+  teal: '#2DD4BF',
+  blue: '#60A5FA',
+  amber: '#F59E0B',
+  red: '#F87171',
+  green: '#34D399',
+  pink: '#F472B6',
 };
 
-const ALL_CAT: CategoryDef = { id: 'all', label: 'All Rentals', icon: 'view-grid',
-  color: '#C4B5FD', tagline: 'Everything in one place', count: 0 };
+const FT = {
+  reg: 'DMSans_400Regular',
+  med: 'DMSans_500Medium',
+  bold: 'DMSans_700Bold',
+  xbold: 'DMSans_800ExtraBold',
+};
+
+const ALL_CAT: CategoryDef = { id: 'all', label: 'All Rentals', iconKey: 'grid',
+  color: '#A5B4FC', tagline: 'Everything in one place', count: 0 };
+
+const getCategoryIcon = (catId: string, color: string = '#818CF8', size: number = 18) => {
+  switch (catId) {
+    case 'housing': return <Home size={size} color={color} />;
+    case 'vehicle': return <Car size={size} color={color} />;
+    case 'hotels': return <Hotel size={size} color={color} />;
+    case 'coworking': return <Building2 size={size} color={color} />;
+    default: return <LayoutGrid size={size} color={color} />;
+  }
+};
 
 const fmtINR = (n?: number) => '₹' + (n || 0).toLocaleString('en-IN');
 const fmtDate = (iso?: string) => {
   if (!iso) return '—';
-  try { return new Date(iso).toLocaleDateString('en-IN',
-    { day: '2-digit', month: 'short', year: 'numeric' }); }
-  catch { return '—'; }
+  try {
+    return new Date(iso).toLocaleDateString('en-IN',
+      { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch { return '—'; }
 };
 
 export default function RentalsPage() {
@@ -89,6 +131,8 @@ export default function RentalsPage() {
   const [aiChatOpen, setAiChatOpen] = useState(false);
   const [advisorOpen, setAdvisorOpen] = useState(false);
 
+  // Flow states: detailsFor -> bookingFor -> confirmedBooking
+  const [detailsFor, setDetailsFor] = useState<Listing | null>(null);
   const [bookingFor, setBookingFor] = useState<Listing | null>(null);
   const [confirmedBooking, setConfirmedBooking] = useState<Booking | null>(null);
 
@@ -123,21 +167,19 @@ export default function RentalsPage() {
   }, [listings]);
 
   const visibleListings = useMemo(() => listings, [listings]);
-
   const activeBookings = useMemo(() => bookings.filter(b => b.status === 'confirmed' || b.status === 'pending'), [bookings]);
   const currentStay = activeBookings[0] || bookings[0];
   const displayCount = activeBookings.length > 0 ? activeBookings.length : bookings.length;
 
   return (
     <FeaturePageShell
-      title="Find Your Perfect Stay"
-      subtitle="Verified housing, vehicles, hotels & coworking with exclusive SA discounts"
-      heroEmoji="🏠"
-      accent="#5F259F"
+      title="SA Stay Rentals Marketplace"
+      subtitle="Verified student housing, vehicles, stays & coworking with exclusive SA discounts"
+      accent="#6366F1"
       rightSlot={
         <View style={s.rightRow}>
           <Pressable onPress={() => setBookingsOpen(true)} style={s.bookingsPill}>
-            <MaterialCommunityIcons name="ticket-confirmation" size={13} color="#FCD34D" />
+            <Ticket size={13} color="#F59E0B" />
             <Text style={s.bookingsPillText}>My Bookings</Text>
             {bookings.length > 0 && (
               <View style={s.bookingsBadge}>
@@ -146,39 +188,58 @@ export default function RentalsPage() {
             )}
           </Pressable>
           <View style={s.verifyPill}>
-            <MaterialCommunityIcons name="shield-check" size={12} color="#86EFAC" />
+            <ShieldCheck size={13} color="#34D399" />
             <Text style={s.verifyText}>All SA Verified</Text>
           </View>
         </View>
       }
     >
-      {/* Stats */}
-      <View style={s.statsRow}>
-        <Stat label="TOTAL LISTINGS" value={String(stats.total)} sub="All categories"
-              color="#C4B5FD" icon="view-grid" />
-        <Stat label="SA VERIFIED" value={String(stats.verified)} sub="Guaranteed authenticity"
-              color="#22C55E" icon="check-decagram" />
-        <Stat label="FEATURED" value={String(stats.featured)} sub="Top picks of the month"
-              color="#F59E0B" icon="star-circle" />
-        <Stat label="MIN. DISCOUNT" value="18%" sub="Exclusive SA savings"
-              color="#5F259F" icon="tag-multiple" />
+      {/* ── Career AI Ambient Glass Hero Artwork Background Container ── */}
+      <View style={s.heroArtBox}>
+        <LinearGradient
+          colors={['rgba(99, 102, 241, 0.15)', 'rgba(45, 212, 191, 0.05)', 'transparent']}
+          style={StyleSheet.absoluteFillObject}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        />
+        <View style={s.heroArtContent}>
+          <View style={s.heroBadge}>
+            <Sparkles size={14} color="#A5B4FC" />
+            <Text style={s.heroBadgeText}>AI-MATCHED ACCOMMODATIONS & VEHICLES</Text>
+          </View>
+          <Text style={s.heroTitle}>Premium Stays & Mobility Near Campus</Text>
+          <Text style={s.heroSub}>
+            Explore verified student PGs, cars, scooters, hotels, and coworking desks. Tap any listing to view details and check live availability.
+          </Text>
+        </View>
       </View>
 
-      {/* Search + city */}
+      {/* KPI Stats Strip */}
+      <View style={s.statsRow}>
+        <Stat label="TOTAL LISTINGS" value={String(stats.total)} sub="All categories"
+              color="#A5B4FC" Icon={LayoutGrid} />
+        <Stat label="SA VERIFIED" value={String(stats.verified)} sub="Guaranteed authenticity"
+              color="#34D399" Icon={ShieldCheck} />
+        <Stat label="FEATURED" value={String(stats.featured)} sub="Top picks of the month"
+              color="#F59E0B" Icon={Star} />
+        <Stat label="SA DISCOUNTS" value="Up to 25%" sub="Exclusive member savings"
+              color="#6366F1" Icon={Tag} />
+      </View>
+
+      {/* Search + City filter */}
       <View style={s.filterRow}>
         <View style={s.searchBox}>
-          <MaterialCommunityIcons name="magnify" size={16} color={C.text3} />
+          <Search size={16} color={C.dim} />
           <TextInput
             style={s.searchInput}
-            placeholder="Search PG, city, vehicle, hotel…"
-            placeholderTextColor={C.text3}
+            placeholder="Search PG, city, vehicle, hotel, amenities…"
+            placeholderTextColor={C.dim}
             value={query}
             onChangeText={setQuery}
             returnKeyType="search"
           />
           {!!query && (
             <Pressable onPress={() => setQuery('')}>
-              <MaterialCommunityIcons name="close-circle" size={14} color={C.text3} />
+              <X size={14} color={C.dim} />
             </Pressable>
           )}
         </View>
@@ -188,11 +249,9 @@ export default function RentalsPage() {
             const active = city === cv;
             return (
               <Pressable key={cv} onPress={() => setCity(cv)}
-                style={[s.cityPill, active && { backgroundColor: '#5F259F33',
-                                                borderColor: '#5F259F' }]}>
-                <MaterialCommunityIcons name="map-marker" size={11}
-                  color={active ? '#C4B5FD' : C.text3} />
-                <Text style={[s.cityPillText, active && { color: '#C4B5FD' }]}>
+                style={[s.cityPill, active && s.cityPillActive]}>
+                <MapPin size={11} color={active ? '#A5B4FC' : C.dim} />
+                <Text style={[s.cityPillText, active && { color: '#A5B4FC' }]}>
                   {cv === 'all' ? 'All Cities' : cv}
                 </Text>
               </Pressable>
@@ -201,6 +260,7 @@ export default function RentalsPage() {
         </ScrollView>
       </View>
 
+      {/* Category Tabs */}
       <Text style={s.kicker}>BROWSE BY CATEGORY</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}
                   contentContainerStyle={{ gap: 8, paddingRight: 12 }}>
@@ -208,10 +268,8 @@ export default function RentalsPage() {
           const active = cat === c.id;
           return (
             <Pressable key={c.id} onPress={() => setCat(c.id)}
-              style={[s.tab, active && { backgroundColor: c.color + '22',
-                                         borderColor: c.color + '66' }]}>
-              <MaterialCommunityIcons name={c.icon} size={14}
-                color={active ? c.color : 'rgba(255,255,255,0.65)'} />
+              style={[s.tab, active && { backgroundColor: c.color + '22', borderColor: c.color + '66' }]}>
+              {getCategoryIcon(c.id, active ? c.color : C.textSub, 15)}
               <Text style={[s.tabText, active && { color: c.color }]}>
                 {c.label}
               </Text>
@@ -223,54 +281,57 @@ export default function RentalsPage() {
         })}
       </ScrollView>
 
-      {/* Grid */}
+      {/* Grid of Rentals */}
       {loading ? (
         <View style={s.loadingBox}>
-          <ActivityIndicator color="#C4B5FD" />
-          <Text style={s.loadingText}>Loading verified listings…</Text>
+          <ActivityIndicator color="#A5B4FC" size="large" />
+          <Text style={s.loadingText}>Fetching live verified rentals…</Text>
         </View>
       ) : visibleListings.length === 0 ? (
         <View style={s.emptyBox}>
-          <MaterialCommunityIcons name="home-search" size={40} color={C.text3} />
+          <Building2 size={40} color={C.dim} />
           <Text style={s.emptyTitle}>No listings match your filters</Text>
-          <Text style={s.emptySub}>Try clearing the search or switching city</Text>
+          <Text style={s.emptySub}>Try clearing the search query or switching city</Text>
         </View>
       ) : (
         <View style={s.grid}>
           {visibleListings.map((r) => (
-            <RentalCard key={r.id} r={r}
-              onBook={() => setBookingFor(r)} />
+            <RentalCard
+              key={r.id}
+              r={r}
+              onViewDetails={() => setDetailsFor(r)}
+            />
           ))}
         </View>
       )}
 
       {/* Advisor & My Bookings Block */}
-      <View style={{ marginTop: 18 }}>
+      <View style={{ marginTop: 24 }}>
         <View style={s.advisorRow}>
           {/* Advisor Card */}
-          <View style={[s.advisorCard, { borderColor: '#F472B655' }]}>
-            <View style={[s.advisorIconBox, { backgroundColor: '#F472B622', borderColor: '#F472B666' }]}>
-              <MaterialCommunityIcons name="account-tie-voice" size={20} color="#F472B6" />
+          <View style={[s.advisorCard, { borderColor: 'rgba(244, 114, 182, 0.3)' }]}>
+            <View style={[s.advisorIconBox, { backgroundColor: 'rgba(244, 114, 182, 0.15)', borderColor: 'rgba(244, 114, 182, 0.4)' }]}>
+              <PhoneCall size={20} color="#F472B6" />
             </View>
             <Text style={s.advisorTitle}>Talk to a Stay Advisor</Text>
             <Text style={s.advisorDesc}>
-              Looking for housing near campus, a road-trip car, or a group retreat? Our advisors curate options in 4 hours.
+              Need custom housing, road-trip rentals, or group bookings near your university? Our advisors curate verified options in 4 hours.
             </Text>
             <Pressable
-              style={[s.advisorCTA, { backgroundColor: '#F472B6' }]}
+              style={[s.advisorCTA, { backgroundColor: '#EC4899' }]}
               onPress={() => setAdvisorOpen(!advisorOpen)}
             >
-              <MaterialCommunityIcons name="phone-in-talk" size={14} color="#fff" />
+              <Phone size={14} color="#fff" />
               <Text style={s.advisorCTAText}>Connect with Advisor</Text>
             </Pressable>
             {advisorOpen && (
               <View style={s.advisorExpanded}>
                 <Pressable style={s.advisorLinkRow} onPress={() => Linking.openURL('tel:+919876543210').catch(() => {})}>
-                  <MaterialCommunityIcons name="phone" size={14} color="#F472B6" />
+                  <Phone size={14} color="#F472B6" />
                   <Text style={[s.advisorLinkText, { color: '#F472B6' }]}>+91 9876543210</Text>
                 </Pressable>
                 <Pressable style={s.advisorLinkRow} onPress={() => Linking.openURL('mailto:advisor@studentalumni.in?subject=Help with rentals').catch(() => {})}>
-                  <MaterialCommunityIcons name="email" size={14} color="#F472B6" />
+                  <Mail size={14} color="#F472B6" />
                   <Text style={[s.advisorLinkText, { color: '#F472B6' }]}>advisor@studentalumni.in</Text>
                 </Pressable>
                 <Text style={s.advisorNote}>Mon–Fri · 9am – 7pm IST · response within 4 hours</Text>
@@ -279,11 +340,11 @@ export default function RentalsPage() {
           </View>
 
           {/* My Bookings Card */}
-          <View style={[s.advisorCard, { borderColor: '#8B5CF655' }]}>
-            <View style={[s.advisorIconBox, { backgroundColor: '#8B5CF622', borderColor: '#8B5CF666' }]}>
-              <MaterialCommunityIcons name="ticket-confirmation" size={20} color="#8B5CF6" />
+          <View style={[s.advisorCard, { borderColor: 'rgba(139, 92, 246, 0.3)' }]}>
+            <View style={[s.advisorIconBox, { backgroundColor: 'rgba(139, 92, 246, 0.15)', borderColor: 'rgba(139, 92, 246, 0.4)' }]}>
+              <Ticket size={20} color="#8B5CF6" />
             </View>
-            <Text style={s.advisorTitle}>My Bookings</Text>
+            <Text style={s.advisorTitle}>My Active Bookings</Text>
             {bookings.length > 0 ? (
               <View style={{ gap: 6, flexGrow: 1 }}>
                 <Text style={s.advisorDesc} numberOfLines={1}>
@@ -294,45 +355,55 @@ export default function RentalsPage() {
                 </Text>
                 <Text style={s.advisorDesc}>
                   <Text style={{ fontWeight: '800', color: '#fff' }}>Status:</Text>{' '}
-                  <Text style={{ color: '#86EFAC', fontWeight: '800' }}>{currentStay.status?.toUpperCase() || 'UNKNOWN'}</Text>
+                  <Text style={{ color: '#34D399', fontWeight: '800' }}>{currentStay.status?.toUpperCase() || 'UNKNOWN'}</Text>
                 </Text>
                 {displayCount > 1 && (
-                  <Text style={[s.advisorDesc, { color: 'rgba(255,255,255,0.4)', marginTop: 2 }]}>
+                  <Text style={[s.advisorDesc, { color: C.dim, marginTop: 2 }]}>
                     + {displayCount - 1} more active booking(s)
                   </Text>
                 )}
               </View>
             ) : (
               <Text style={s.advisorDesc}>
-                No active stays or bookings found. Browse housing, hostels, or vehicles from the catalog above to book.
+                No active stays or bookings found. Browse housing, hostels, vehicles, or coworking desks from the catalog above.
               </Text>
             )}
             <Pressable
-              style={[s.advisorCTA, { backgroundColor: '#8B5CF6' }]}
+              style={[s.advisorCTA, { backgroundColor: '#6366F1' }]}
               onPress={() => setBookingsOpen(true)}
             >
-              <MaterialCommunityIcons name="ticket-confirmation" size={14} color="#fff" />
+              <Ticket size={14} color="#fff" />
               <Text style={s.advisorCTAText}>Show My Bookings</Text>
             </Pressable>
           </View>
         </View>
       </View>
 
-      {/* Booking sheet */}
+      {/* ── STEP 1: Listing Details Modal ("View Details") ── */}
+      <ListingDetailsModal
+        listing={detailsFor}
+        onClose={() => setDetailsFor(null)}
+        onProceedToBook={(r) => {
+          setDetailsFor(null);
+          setBookingFor(r);
+        }}
+      />
+
+      {/* ── STEP 2: Booking Form Modal ── */}
       <BookingModal
         listing={bookingFor}
         onClose={() => setBookingFor(null)}
         onSuccess={(b) => { setConfirmedBooking(b); setBookingFor(null); loadData(); }}
       />
 
-      {/* Confirmation */}
+      {/* Confirmation Modal */}
       <ConfirmationModal
         booking={confirmedBooking}
         onClose={() => setConfirmedBooking(null)}
         onViewBookings={() => { setConfirmedBooking(null); setBookingsOpen(true); }}
       />
 
-      {/* My bookings drawer */}
+      {/* My Bookings Drawer */}
       <BookingsDrawer
         open={bookingsOpen}
         bookings={bookings}
@@ -347,81 +418,89 @@ export default function RentalsPage() {
       />
 
       {/* MD3 Floating Action Button — open Stay AI Chat */}
-      <FAB icon="brain" label="Ask Stay AI" color="#5F259F"
+      <FAB icon="brain" label="Ask Stay AI" color="#6366F1"
             onPress={() => setAiChatOpen(true)} />
     </FeaturePageShell>
   );
 }
 
-/* ─── Card ──────────────────────────────────────────────────── */
-function RentalCard({ r, onBook }: { r: Listing; onBook: () => void }) {
+/* ─── Rental Card Component ─────────────────────────────────── */
+function RentalCard({ r, onViewDetails }: { r: Listing; onViewDetails: () => void }) {
   return (
-    <View style={[s.card, { borderColor: r.color + '44' }]}>
-      <View style={[s.cover,
-        { backgroundColor: r.color + '1F', borderColor: r.color + '33' }]}>
-        <Text style={s.coverEmoji}>{r.emoji}</Text>
+    <View style={[s.card, { borderColor: r.color + '33' }]}>
+      <View style={[s.cover, { backgroundColor: r.color + '1F', borderColor: r.color + '33' }]}>
+        <View style={s.coverCategoryBadge}>
+          {getCategoryIcon(r.category, '#FFFFFF', 20)}
+        </View>
+
         <View style={s.coverBadgeRow}>
           {r.verified && (
             <View style={s.badgeVerify}>
-              <MaterialCommunityIcons name="check-decagram" size={10} color="#86EFAC" />
+              <ShieldCheck size={11} color="#34D399" />
               <Text style={s.badgeVerifyText}>Verified</Text>
             </View>
           )}
           {r.featured && (
             <View style={s.badgeFeat}>
-              <MaterialCommunityIcons name="star-four-points" size={10} color="#FCD34D" />
+              <Star size={11} color="#F59E0B" />
               <Text style={s.badgeFeatText}>Featured</Text>
             </View>
           )}
         </View>
-        <View style={[s.discBadge, { backgroundColor: r.color + 'CC' }]}>
+        <View style={[s.discBadge, { backgroundColor: r.color + 'DD' }]}>
           <Text style={s.discText}>{r.discount} OFF</Text>
         </View>
       </View>
-      <View style={{ padding: 14, gap: 8 }}>
+
+      <View style={{ padding: 16, gap: 10 }}>
         <View>
           <Text style={s.title} numberOfLines={1}>{r.title}</Text>
           <View style={s.metaRow}>
-            <MaterialCommunityIcons name="map-marker" size={11} color={C.text3} />
+            <MapPin size={12} color={C.dim} />
             <Text style={s.loc} numberOfLines={1}>{r.location}</Text>
             <Text style={s.dot}>·</Text>
             <Text style={s.type}>{r.type}</Text>
           </View>
         </View>
 
+        {/* Amenities pills */}
         <View style={s.amenRow}>
           {(r.amenities || []).slice(0, 3).map((a, i) => (
-            <View key={i} style={s.amenChip}><Text style={s.amenText}>{a}</Text></View>
+            <View key={i} style={s.amenChip}>
+              <Check size={10} color="#A5B4FC" />
+              <Text style={s.amenText}>{a}</Text>
+            </View>
           ))}
         </View>
 
+        {/* Rating & Availability */}
         <View style={s.ratingRow}>
-          <MaterialCommunityIcons name="star" size={12} color="#FCD34D" />
+          <Star size={13} color="#F59E0B" fill="#F59E0B" />
           <Text style={s.ratingText}>{r.rating}</Text>
-          <Text style={s.ratingCount}>({r.reviews})</Text>
+          <Text style={s.ratingCount}>({r.reviews} reviews)</Text>
           <View style={{ flex: 1 }} />
           <Text style={s.available}>{r.available} left</Text>
         </View>
 
         {!!r.perk && (
-          <View style={[s.perkBar,
-            { borderColor: r.color + '55', backgroundColor: r.color + '18' }]}>
-            <MaterialCommunityIcons name="sparkles" size={10} color={r.color} />
+          <View style={[s.perkBar, { borderColor: r.color + '44', backgroundColor: r.color + '15' }]}>
+            <Sparkles size={11} color={r.color} />
             <Text style={[s.perkText, { color: r.color }]} numberOfLines={1}>
               {r.perk}
             </Text>
           </View>
         )}
 
+        {/* Price & Action Button */}
         <View style={s.priceRow}>
           <View>
             <Text style={s.priceOrig}>{r.orig_label}</Text>
             <Text style={[s.priceRent, { color: r.color }]}>{r.rent_label}</Text>
           </View>
-          <Pressable onPress={onBook}
+          <Pressable onPress={onViewDetails}
             style={[s.bookBtn, { backgroundColor: r.color }]}>
-            <MaterialCommunityIcons name="calendar-check" size={13} color="#fff" />
-            <Text style={s.bookText}>Book Now</Text>
+            <Eye size={13} color="#fff" />
+            <Text style={s.bookText}>View Details</Text>
           </Pressable>
         </View>
       </View>
@@ -429,7 +508,140 @@ function RentalCard({ r, onBook }: { r: Listing; onBook: () => void }) {
   );
 }
 
-/* ─── Booking Modal ─────────────────────────────────────────── */
+/* ─── STEP 1: Listing Details Modal ("View Details") ─────────── */
+function ListingDetailsModal({
+  listing, onClose, onProceedToBook,
+}: {
+  listing: Listing | null;
+  onClose: () => void;
+  onProceedToBook: (r: Listing) => void;
+}) {
+  if (!listing) return null;
+
+  return (
+    <Modal visible={!!listing} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={s.overlay}>
+        <View style={s.detailsSheet}>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {/* Header / Hero Cover */}
+            <View style={[s.detailsHero, { backgroundColor: listing.color + '22', borderColor: listing.color + '44' }]}>
+              <View style={s.detailsCategoryBox}>
+                {getCategoryIcon(listing.category, listing.color, 32)}
+              </View>
+              <Pressable onPress={onClose} style={s.detailsCloseBtn} hitSlop={12}>
+                <X size={18} color="#FFFFFF" />
+              </Pressable>
+
+              <View style={s.detailsBadgeContainer}>
+                {listing.verified && (
+                  <View style={s.badgeVerify}>
+                    <ShieldCheck size={11} color="#34D399" />
+                    <Text style={s.badgeVerifyText}>SA Verified</Text>
+                  </View>
+                )}
+                {listing.featured && (
+                  <View style={s.badgeFeat}>
+                    <Star size={11} color="#F59E0B" />
+                    <Text style={s.badgeFeatText}>Featured Pick</Text>
+                  </View>
+                )}
+                <View style={[s.discBadge, { backgroundColor: listing.color, position: 'relative', top: 0, right: 0 }]}>
+                  <Text style={s.discText}>{listing.discount} OFF</Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={{ padding: 20, gap: 16 }}>
+              {/* Title & Location */}
+              <View>
+                <Text style={s.detailsTitle}>{listing.title}</Text>
+                <View style={[s.metaRow, { marginTop: 6 }]}>
+                  <MapPin size={14} color="#A5B4FC" />
+                  <Text style={[s.loc, { fontSize: 13, color: C.text2 }]}>{listing.location}, {listing.city}</Text>
+                  <Text style={s.dot}>·</Text>
+                  <Text style={[s.type, { fontSize: 13, color: '#A5B4FC' }]}>{listing.type}</Text>
+                </View>
+              </View>
+
+              {/* Rating & Availability Grid */}
+              <View style={s.detailsStatsRow}>
+                <View style={s.detailsStatItem}>
+                  <Text style={s.detailsStatKey}>RATING</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                    <Star size={14} color="#F59E0B" fill="#F59E0B" />
+                    <Text style={s.detailsStatVal}>{listing.rating} ({listing.reviews} reviews)</Text>
+                  </View>
+                </View>
+                <View style={s.detailsStatItem}>
+                  <Text style={s.detailsStatKey}>AVAILABILITY</Text>
+                  <Text style={[s.detailsStatVal, { color: '#34D399' }]}>{listing.available} units remaining</Text>
+                </View>
+                <View style={s.detailsStatItem}>
+                  <Text style={s.detailsStatKey}>ACCOMMODATION</Text>
+                  <Text style={s.detailsStatVal}>{listing.beds || 'Standard'}</Text>
+                </View>
+              </View>
+
+              {/* Description & Perk */}
+              <View style={s.detailsSection}>
+                <Text style={s.sectionLabel}>ABOUT THIS PROPERTY</Text>
+                <Text style={s.detailsDesc}>
+                  {listing.description ||
+                    `Premium ${listing.category} listing located in ${listing.location}. Fully verified by StudentAlumni stay advisors with guaranteed high-speed internet, security, and student-friendly terms.`}
+                </Text>
+
+                {!!listing.perk && (
+                  <View style={[s.perkBar, { borderColor: listing.color + '44', backgroundColor: listing.color + '15', marginTop: 10 }]}>
+                    <Sparkles size={13} color={listing.color} />
+                    <Text style={[s.perkText, { color: listing.color, fontSize: 12 }]}>
+                      {listing.perk}
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              {/* Amenities List */}
+              <View style={s.detailsSection}>
+                <Text style={s.sectionLabel}>AMENITIES & INCLUSIONS</Text>
+                <View style={s.detailsAmenGrid}>
+                  {(listing.amenities || ['WiFi', 'AC', 'Security', 'Power Backup']).map((a, i) => (
+                    <View key={i} style={s.detailsAmenCell}>
+                      <CheckCircle2 size={13} color="#34D399" />
+                      <Text style={s.detailsAmenText}>{a}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+
+              {/* Price & Action */}
+              <View style={s.detailsFooterBox}>
+                <View>
+                  <Text style={s.priceOrig}>{listing.orig_label}</Text>
+                  <Text style={[s.priceRent, { color: listing.color, fontSize: 20 }]}>{listing.rent_label}</Text>
+                  <Text style={{ color: C.dim, fontSize: 11, fontFamily: FT.med }}>Inclusive of all SA discount perks</Text>
+                </View>
+
+                <Pressable
+                  onPress={() => onProceedToBook(listing)}
+                  style={[s.confirmBtn, { backgroundColor: listing.color, paddingHorizontal: 24 }]}
+                >
+                  <Calendar size={16} color="#fff" />
+                  <Text style={s.confirmBtnText}>Proceed to Book</Text>
+                </Pressable>
+              </View>
+
+              <Text style={s.fineprint}>
+                SA Verified Listing · Free Cancellation up to 24h before move-in date
+              </Text>
+            </View>
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+/* ─── STEP 2: Booking Sheet Modal ────────────────────────────── */
 function BookingModal({ listing, onClose, onSuccess }:
   { listing: Listing | null; onClose: () => void;
     onSuccess: (b: Booking) => void }) {
@@ -469,8 +681,7 @@ function BookingModal({ listing, onClose, onSuccess }:
   const origSubtotal = (listing?.orig_inr || 0) * units;
   const savings = Math.max(0, origSubtotal - subtotal);
   const fee = Math.round(subtotal * 0.04);
-  const deposit = listing && (listing.category === 'housing'
-                              || listing.category === 'coworking')
+  const deposit = listing && (listing.category === 'housing' || listing.category === 'coworking')
     ? listing.rent_inr : 0;
   const total = subtotal + fee + deposit;
 
@@ -490,47 +701,44 @@ function BookingModal({ listing, onClose, onSuccess }:
   };
 
   return (
-    <Modal visible={!!listing} transparent animationType="fade"
-           onRequestClose={onClose}>
+    <Modal visible={!!listing} transparent animationType="fade" onRequestClose={onClose}>
       <View style={s.overlay}>
         <View style={s.sheet}>
           {listing && (
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={s.sheetHeader}>
-                <View style={[s.sheetEmojiBox,
-                  { backgroundColor: listing.color + '22',
-                    borderColor: listing.color + '55' }]}>
-                  <Text style={{ fontSize: 26 }}>{listing.emoji}</Text>
+                <View style={[s.sheetIconBox, { backgroundColor: listing.color + '22', borderColor: listing.color + '55' }]}>
+                  {getCategoryIcon(listing.category, listing.color, 24)}
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={s.sheetTitle}>{listing.title}</Text>
                   <View style={s.metaRow}>
-                    <MaterialCommunityIcons name="map-marker" size={11} color={C.text3} />
+                    <MapPin size={11} color={C.dim} />
                     <Text style={s.loc} numberOfLines={1}>{listing.location}</Text>
                   </View>
                 </View>
                 <Pressable onPress={onClose} hitSlop={12}>
-                  <MaterialCommunityIcons name="close" size={20} color={C.text2} />
+                  <X size={20} color={C.text2} />
                 </Pressable>
               </View>
 
-              <Text style={s.sectionLabel}>STAY DETAILS</Text>
+              <Text style={s.sectionLabel}>STAY DATES & GUESTS</Text>
               <View style={s.fieldRow}>
                 <Field label={isMonthly ? 'Move-in date' : 'Check-in'}
-                       icon="calendar-arrow-right" value={checkIn} onChange={setCheckIn}
+                       Icon={Calendar} value={checkIn} onChange={setCheckIn}
                        placeholder="YYYY-MM-DD" />
                 <Field label={isMonthly ? 'End date' : 'Check-out'}
-                       icon="calendar-arrow-left" value={checkOut} onChange={setCheckOut}
+                       Icon={Calendar} value={checkOut} onChange={setCheckOut}
                        placeholder="YYYY-MM-DD" />
               </View>
               <View style={s.fieldRow}>
                 <Field label="Guests / Members"
-                       icon="account-multiple" value={guests} onChange={setGuests}
+                       Icon={Users} value={guests} onChange={setGuests}
                        keyboardType="numeric" />
                 <View style={{ flex: 1 }} />
               </View>
               <Field label="Notes for host (optional)"
-                     icon="note-text" value={notes} onChange={setNotes}
+                     Icon={FileText} value={notes} onChange={setNotes}
                      placeholder="Special requests, parking, late check-in…"
                      multiline />
 
@@ -540,7 +748,7 @@ function BookingModal({ listing, onClose, onSuccess }:
                      v={fmtINR(subtotal)} />
                 {savings > 0 && (
                   <Row k="SA member savings" v={`− ${fmtINR(savings)}`}
-                       valColor="#86EFAC" />
+                       valColor="#34D399" />
                 )}
                 <Row k="Service fee (4%)" v={fmtINR(fee)} />
                 {deposit > 0 && (
@@ -552,7 +760,7 @@ function BookingModal({ listing, onClose, onSuccess }:
 
               {err && (
                 <View style={s.errBox}>
-                  <MaterialCommunityIcons name="alert-circle" size={13} color="#FCA5A5" />
+                  <Info size={14} color="#F87171" />
                   <Text style={s.errText}>{err}</Text>
                 </View>
               )}
@@ -562,11 +770,10 @@ function BookingModal({ listing, onClose, onSuccess }:
                   <Text style={s.cancelBtnText}>Cancel</Text>
                 </Pressable>
                 <Pressable onPress={submit} disabled={busy}
-                  style={[s.confirmBtn,
-                    { backgroundColor: listing.color, opacity: busy ? 0.7 : 1 }]}>
+                  style={[s.confirmBtn, { backgroundColor: listing.color, opacity: busy ? 0.7 : 1 }]}>
                   {busy ? <ActivityIndicator color="#fff" size="small" /> : (
                     <>
-                      <MaterialCommunityIcons name="lock-check" size={14} color="#fff" />
+                      <Lock size={14} color="#fff" />
                       <Text style={s.confirmBtnText}>
                         Confirm Booking · {fmtINR(total)}
                       </Text>
@@ -586,20 +793,18 @@ function BookingModal({ listing, onClose, onSuccess }:
   );
 }
 
-function Field({ label, icon, value, onChange, placeholder,
-                 keyboardType, multiline }:
-  { label: string; icon: IconName; value: string;
+function Field({ label, Icon, value, onChange, placeholder, keyboardType, multiline }:
+  { label: string; Icon: any; value: string;
     onChange: (s: string) => void;
     placeholder?: string; keyboardType?: any; multiline?: boolean }) {
   return (
     <View style={{ flex: 1, gap: 6 }}>
       <Text style={s.fieldLabel}>{label}</Text>
-      <View style={[s.fieldBox, multiline && { height: 64, alignItems: 'flex-start',
-                                                paddingTop: 10 }]}>
-        <MaterialCommunityIcons name={icon} size={14} color={C.text3} />
+      <View style={[s.fieldBox, multiline && { height: 64, alignItems: 'flex-start', paddingTop: 10 }]}>
+        <Icon size={14} color={C.dim} />
         <TextInput style={[s.fieldInput, multiline && { textAlignVertical: 'top' }]}
                    placeholder={placeholder || ''}
-                   placeholderTextColor={C.text3}
+                   placeholderTextColor={C.dim}
                    value={value}
                    onChangeText={onChange}
                    keyboardType={keyboardType}
@@ -613,12 +818,10 @@ function Row({ k, v, bold, valColor }:
   { k: string; v: string; bold?: boolean; valColor?: string }) {
   return (
     <View style={s.tableRow}>
-      <Text style={[s.tableK, bold && { color: '#fff', fontFamily: 'DMSans_800ExtraBold' }]}>
+      <Text style={[s.tableK, bold && { color: '#fff', fontFamily: FT.xbold }]}>
         {k}
       </Text>
-      <Text style={[s.tableV,
-        bold && { fontFamily: 'DMSans_800ExtraBold', fontSize: 14 },
-        valColor ? { color: valColor } : null]}>
+      <Text style={[s.tableV, bold && { fontFamily: FT.xbold, fontSize: 14 }, valColor ? { color: valColor } : null]}>
         {v}
       </Text>
     </View>
@@ -629,21 +832,20 @@ function Row({ k, v, bold, valColor }:
 function ConfirmationModal({ booking, onClose, onViewBookings }:
   { booking: Booking | null; onClose: () => void; onViewBookings: () => void }) {
   return (
-    <Modal visible={!!booking} transparent animationType="fade"
-           onRequestClose={onClose}>
+    <Modal visible={!!booking} transparent animationType="fade" onRequestClose={onClose}>
       <View style={s.overlay}>
         <View style={s.confirmSheet}>
           {booking && (
             <>
               <View style={s.confirmIconBox}>
-                <MaterialCommunityIcons name="party-popper" size={42} color="#FCD34D" />
+                <Sparkles size={36} color="#F59E0B" />
               </View>
               <Text style={s.confirmHeading}>Booking Confirmed!</Text>
               <Text style={s.confirmSub}>
                 {booking.listing_snapshot?.title}
               </Text>
               <View style={s.confirmIdPill}>
-                <MaterialCommunityIcons name="ticket" size={11} color="#C4B5FD" />
+                <Ticket size={12} color="#A5B4FC" />
                 <Text style={s.confirmIdText}>{booking.booking_id}</Text>
               </View>
 
@@ -664,7 +866,7 @@ function ConfirmationModal({ booking, onClose, onViewBookings }:
                 </View>
                 <View style={s.confirmCell}>
                   <Text style={s.confirmCellLabel}>TOTAL</Text>
-                  <Text style={[s.confirmCellValue, { color: '#86EFAC' }]}>
+                  <Text style={[s.confirmCellValue, { color: '#34D399' }]}>
                     {fmtINR(booking.cost_breakdown?.total_inr)}
                   </Text>
                 </View>
@@ -672,7 +874,7 @@ function ConfirmationModal({ booking, onClose, onViewBookings }:
 
               {booking.cost_breakdown?.sa_savings_inr > 0 && (
                 <View style={s.savingsPill}>
-                  <MaterialCommunityIcons name="sparkles" size={12} color="#FCD34D" />
+                  <Sparkles size={12} color="#F59E0B" />
                   <Text style={s.savingsText}>
                     You saved {fmtINR(booking.cost_breakdown.sa_savings_inr)} via SA-ID
                   </Text>
@@ -680,8 +882,7 @@ function ConfirmationModal({ booking, onClose, onViewBookings }:
               )}
 
               <Pressable onPress={onViewBookings} style={s.confirmCTA}>
-                <MaterialCommunityIcons name="format-list-bulleted-square"
-                  size={14} color="#fff" />
+                <Ticket size={14} color="#fff" />
                 <Text style={s.confirmCTAText}>View My Bookings</Text>
               </Pressable>
               <Pressable onPress={onClose} style={s.confirmDismiss}>
@@ -695,7 +896,7 @@ function ConfirmationModal({ booking, onClose, onViewBookings }:
   );
 }
 
-/* ─── My bookings drawer ────────────────────────────────────── */
+/* ─── My Bookings Drawer ────────────────────────────────────── */
 function BookingsDrawer({ open, bookings, onClose, onCancelled }:
   { open: boolean; bookings: Booking[];
     onClose: () => void; onCancelled: () => void }) {
@@ -716,38 +917,33 @@ function BookingsDrawer({ open, bookings, onClose, onCancelled }:
         <View style={s.drawer}>
           <View style={s.drawerHeader}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <MaterialCommunityIcons name="ticket-confirmation"
-                size={18} color="#FCD34D" />
+              <Ticket size={18} color="#F59E0B" />
               <Text style={s.drawerTitle}>My Bookings</Text>
               <View style={s.drawerCountBadge}>
                 <Text style={s.drawerCountText}>{bookings.length}</Text>
               </View>
             </View>
             <Pressable onPress={onClose} hitSlop={12}>
-              <MaterialCommunityIcons name="close" size={20} color={C.text2} />
+              <X size={20} color={C.text2} />
             </Pressable>
           </View>
 
           {bookings.length === 0 ? (
             <View style={s.emptyDrawer}>
-              <MaterialCommunityIcons name="calendar-blank" size={40} color={C.text3} />
+              <Calendar size={40} color={C.dim} />
               <Text style={s.emptyTitle}>No bookings yet</Text>
               <Text style={s.emptySub}>
                 Book a stay, ride or workspace to see it here.
               </Text>
             </View>
           ) : (
-            <ScrollView contentContainerStyle={{ gap: 10, paddingBottom: 30 }}>
+            <ScrollView contentContainerStyle={{ gap: 12, paddingBottom: 30 }}>
               {bookings.map((b) => (
                 <View key={b.booking_id}
-                  style={[s.bookingCard,
-                    { borderColor: (b.listing_snapshot?.color || '#5F259F') + '55' }]}>
+                  style={[s.bookingCard, { borderColor: (b.listing_snapshot?.color || '#6366F1') + '44' }]}>
                   <View style={s.bookingTop}>
-                    <View style={[s.bookingEmoji,
-                      { backgroundColor: (b.listing_snapshot?.color || '#5F259F') + '22' }]}>
-                      <Text style={{ fontSize: 22 }}>
-                        {b.listing_snapshot?.emoji || '🏠'}
-                      </Text>
+                    <View style={[s.bookingIconBox, { backgroundColor: (b.listing_snapshot?.color || '#6366F1') + '22' }]}>
+                      {getCategoryIcon(b.listing_snapshot?.category || 'housing', b.listing_snapshot?.color || '#818CF8', 20)}
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={s.bookingTitle} numberOfLines={1}>
@@ -765,10 +961,10 @@ function BookingsDrawer({ open, bookings, onClose, onCancelled }:
                   </View>
 
                   <View style={s.bookingFacts}>
-                    <Fact icon="calendar-arrow-right" v={fmtDate(b.check_in)} />
-                    <Fact icon="calendar-arrow-left"  v={fmtDate(b.check_out)} />
-                    <Fact icon="account-multiple"     v={`${b.guests} guest${b.guests > 1 ? 's' : ''}`} />
-                    <Fact icon="cash"                 v={fmtINR(b.cost_breakdown?.total_inr)} bold />
+                    <Fact Icon={Calendar} v={fmtDate(b.check_in)} />
+                    <Fact Icon={Calendar} v={fmtDate(b.check_out)} />
+                    <Fact Icon={Users} v={`${b.guests} guest${b.guests > 1 ? 's' : ''}`} />
+                    <Fact Icon={Tag} v={fmtINR(b.cost_breakdown?.total_inr)} bold />
                   </View>
 
                   {b.status !== 'cancelled' && (
@@ -776,12 +972,12 @@ function BookingsDrawer({ open, bookings, onClose, onCancelled }:
                       {b.timeline?.map((t, i) => (
                         <View key={t.id} style={s.tlStep}>
                           <View style={[s.tlDot,
-                            t.status === 'done' && { backgroundColor: '#22C55E' },
-                            t.status === 'current' && { backgroundColor: '#FCD34D' },
-                            t.status === 'pending' && { backgroundColor: 'rgba(255,255,255,0.18)' }]} />
+                            t.status === 'done' && { backgroundColor: '#34D399' },
+                            t.status === 'current' && { backgroundColor: '#F59E0B' },
+                            t.status === 'pending' && { backgroundColor: C.dim }]} />
                           <Text style={[s.tlLabel,
-                            t.status === 'done' && { color: '#86EFAC' },
-                            t.status === 'current' && { color: '#FCD34D' }]}>
+                            t.status === 'done' && { color: '#34D399' },
+                            t.status === 'current' && { color: '#F59E0B' }]}>
                             {t.label}
                           </Text>
                           {i < b.timeline.length - 1 && <View style={s.tlBar} />}
@@ -796,11 +992,10 @@ function BookingsDrawer({ open, bookings, onClose, onCancelled }:
                         disabled={busyId === b.booking_id}
                         style={s.cancelLinkBtn}>
                         {busyId === b.booking_id ? (
-                          <ActivityIndicator size="small" color="#FCA5A5" />
+                          <ActivityIndicator size="small" color="#F87171" />
                         ) : (
                           <>
-                            <MaterialCommunityIcons name="cancel"
-                              size={12} color="#FCA5A5" />
+                            <X size={12} color="#F87171" />
                             <Text style={s.cancelLinkText}>Cancel booking</Text>
                           </>
                         )}
@@ -817,41 +1012,24 @@ function BookingsDrawer({ open, bookings, onClose, onCancelled }:
   );
 }
 
-function Fact({ icon, v, bold }: { icon: IconName; v: string; bold?: boolean }) {
+function Fact({ Icon, v, bold }: { Icon: any; v: string; bold?: boolean }) {
   return (
     <View style={s.factCell}>
-      <MaterialCommunityIcons name={icon} size={11} color={C.text3} />
-      <Text style={[s.factText, bold && { color: '#86EFAC',
-                                          fontFamily: 'DMSans_800ExtraBold' }]}>
+      <Icon size={11} color={C.dim} />
+      <Text style={[s.factText, bold && { color: '#34D399', fontFamily: FT.xbold }]}>
         {v}
       </Text>
     </View>
   );
 }
 
-const statusStyle = (status: string) => {
-  if (status === 'confirmed')
-    return { color: '#86EFAC', backgroundColor: 'rgba(34,197,94,0.18)',
-             borderColor: 'rgba(34,197,94,0.45)' };
-  if (status === 'pending')
-    return { color: '#FCD34D', backgroundColor: 'rgba(252,211,77,0.18)',
-             borderColor: 'rgba(252,211,77,0.45)' };
-  if (status === 'cancelled')
-    return { color: '#FCA5A5', backgroundColor: 'rgba(239,68,68,0.18)',
-             borderColor: 'rgba(239,68,68,0.45)' };
-  return { color: '#C4B5FD', backgroundColor: 'rgba(196,181,253,0.18)',
-           borderColor: 'rgba(196,181,253,0.45)' };
-};
-
-/* ─── Stat ───────────────────────────────────────────────────── */
-function Stat({ label, value, sub, color, icon }:
-  { label: string; value: string; sub: string; color: string; icon: IconName }) {
+function Stat({ label, value, sub, color, Icon }:
+  { label: string; value: string; sub: string; color: string; Icon: any }) {
   return (
     <View style={s.statCard}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <View style={[s.statIcon,
-          { backgroundColor: color + '22', borderColor: color + '55' }]}>
-          <MaterialCommunityIcons name={icon} size={14} color={color} />
+        <View style={[s.statIcon, { backgroundColor: color + '22', borderColor: color + '55' }]}>
+          <Icon size={14} color={color} />
         </View>
         <Text style={s.statLabel}>{label}</Text>
       </View>
@@ -861,286 +1039,334 @@ function Stat({ label, value, sub, color, icon }:
   );
 }
 
-/* ─── Styles ────────────────────────────────────────────────── */
+const statusStyle = (status: string) => {
+  if (status === 'confirmed')
+    return { color: '#34D399', backgroundColor: 'rgba(52, 211, 153, 0.15)', borderColor: 'rgba(52, 211, 153, 0.35)' };
+  if (status === 'pending')
+    return { color: '#F59E0B', backgroundColor: 'rgba(245, 158, 11, 0.15)', borderColor: 'rgba(245, 158, 11, 0.35)' };
+  if (status === 'cancelled')
+    return { color: '#F87171', backgroundColor: 'rgba(248, 113, 113, 0.15)', borderColor: 'rgba(248, 113, 113, 0.35)' };
+  return { color: '#A5B4FC', backgroundColor: 'rgba(165, 180, 252, 0.15)', borderColor: 'rgba(165, 180, 252, 0.35)' };
+};
+
+/* ────────── Career AI Styles ────────── */
 const s = StyleSheet.create({
   rightRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   bookingsPill: { flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999,
-    backgroundColor: 'rgba(252,211,77,0.14)',
-    borderColor: 'rgba(252,211,77,0.45)', borderWidth: 1,
-    ...({ cursor: 'pointer' } as any) },
-  bookingsPillText: { color: '#FCD34D', fontFamily: 'DMSans_800ExtraBold', fontSize: 10.5 },
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    borderColor: 'rgba(245, 158, 11, 0.35)', borderWidth: 1,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  bookingsPillText: { color: '#F59E0B', fontFamily: FT.xbold, fontSize: 11 },
   bookingsBadge: { paddingHorizontal: 6, height: 16, borderRadius: 999,
-    backgroundColor: '#FCD34D', alignItems: 'center', justifyContent: 'center' },
-  bookingsBadgeText: { color: '#1F2937', fontFamily: 'DMSans_800ExtraBold', fontSize: 9 },
+    backgroundColor: '#F59E0B', alignItems: 'center', justifyContent: 'center' },
+  bookingsBadgeText: { color: '#0B0D1A', fontFamily: FT.xbold, fontSize: 9 },
 
   verifyPill: { flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999,
-    backgroundColor: 'rgba(34,197,94,0.14)',
-    borderColor: 'rgba(34,197,94,0.40)', borderWidth: 1 },
-  verifyText: { color: '#86EFAC', fontFamily: 'DMSans_800ExtraBold', fontSize: 10.5 },
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
+    backgroundColor: 'rgba(52, 211, 153, 0.12)',
+    borderColor: 'rgba(52, 211, 153, 0.35)', borderWidth: 1 },
+  verifyText: { color: '#34D399', fontFamily: FT.xbold, fontSize: 11 },
 
+  /* Hero Artwork Box */
+  heroArtBox: {
+    borderRadius: 16, overflow: 'hidden', borderWidth: 1,
+    borderColor: C.border2, backgroundColor: C.bgCard,
+    marginBottom: 16, position: 'relative',
+  },
+  heroArtContent: { padding: 20, gap: 8 },
+  heroBadge: { flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
+    backgroundColor: 'rgba(99, 102, 241, 0.20)', alignSelf: 'flex-start',
+    borderWidth: 1, borderColor: 'rgba(99, 102, 241, 0.35)' },
+  heroBadgeText: { color: '#A5B4FC', fontFamily: FT.xbold, fontSize: 10, letterSpacing: 0.8 },
+  heroTitle: { color: C.text, fontFamily: FT.xbold, fontSize: 22 },
+  heroSub: { color: C.textSub, fontFamily: FT.med, fontSize: 13, lineHeight: 19, maxWidth: 720 },
+
+  /* Stats */
   statsRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
-  statCard: { flex: 1, minWidth: 180, padding: 14, borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.03)', borderColor: C.border,
+  statCard: { flex: 1, minWidth: 180, padding: 14, borderRadius: 14,
+    backgroundColor: C.bgCard, borderColor: C.border,
     borderWidth: 1, gap: 6 },
-  statIcon: { width: 28, height: 28, borderRadius: 7, borderWidth: 1,
+  statIcon: { width: 30, height: 30, borderRadius: 8, borderWidth: 1,
     alignItems: 'center', justifyContent: 'center' },
-  statLabel: { color: C.text3, fontFamily: 'DMSans_800ExtraBold',
+  statLabel: { color: C.dim, fontFamily: FT.xbold,
     fontSize: 10, letterSpacing: 1, flex: 1 },
-  statValue: { fontFamily: 'DMSans_800ExtraBold', fontSize: 24, marginTop: 2 },
-  statSub: { color: C.text3, fontFamily: 'DMSans_500Medium', fontSize: 11 },
+  statValue: { fontFamily: FT.xbold, fontSize: 24, marginTop: 2 },
+  statSub: { color: C.dim, fontFamily: FT.med, fontSize: 11 },
 
-  filterRow: { gap: 8, marginTop: 6 },
-  searchBox: { flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 12, height: 38, borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.04)', borderColor: C.border,
+  filterRow: { gap: 10, marginTop: 10 },
+  searchBox: { flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingHorizontal: 14, height: 42, borderRadius: 12,
+    backgroundColor: C.bgCard, borderColor: C.border2,
     borderWidth: 1 },
-  searchInput: { flex: 1, color: '#fff', fontFamily: 'DMSans_500Medium',
-    fontSize: 13, ...(Platform.OS === 'web' ? { outlineStyle: 'none' as any } : {}) },
-  cityPill: { flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.04)', borderColor: C.border,
-    borderWidth: 1, ...({ cursor: 'pointer' } as any) },
-  cityPillText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 11 },
+  searchInput: { flex: 1, color: C.text, fontFamily: FT.med,
+    fontSize: 13.5, ...(Platform.OS === 'web' ? { outlineStyle: 'none' as any } : {}) },
+  cityPill: { flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999,
+    backgroundColor: C.bgCard, borderColor: C.border,
+    borderWidth: 1, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  cityPillActive: { backgroundColor: 'rgba(99, 102, 241, 0.20)', borderColor: '#6366F1' },
+  cityPillText: { color: C.textSub, fontFamily: FT.bold, fontSize: 11.5 },
 
-  kicker: { color: C.text3, fontFamily: 'DMSans_800ExtraBold',
-    fontSize: 11, letterSpacing: 1.2, marginTop: 6 },
+  kicker: { color: C.dim, fontFamily: FT.xbold,
+    fontSize: 11, letterSpacing: 1.2, marginTop: 12 },
 
   tab: { flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.04)', borderColor: C.border,
-    borderWidth: 1, ...({ cursor: 'pointer' } as any) },
-  tabText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 12 },
-  tabCount: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.07)' },
-  tabCountText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 10 },
+    paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12,
+    backgroundColor: C.bgCard, borderColor: C.border,
+    borderWidth: 1, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  tabText: { color: C.textSub, fontFamily: FT.bold, fontSize: 12.5 },
+  tabCount: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)' },
+  tabCountText: { color: '#fff', fontFamily: FT.xbold, fontSize: 10 },
 
-  loadingBox: { paddingVertical: 40, alignItems: 'center', gap: 10 },
-  loadingText: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12 },
-  emptyBox: { paddingVertical: 40, alignItems: 'center', gap: 8 },
-  emptyTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 14, marginTop: 4 },
-  emptySub: { color: C.text3, fontFamily: 'DMSans_500Medium', fontSize: 12 },
+  loadingBox: { paddingVertical: 50, alignItems: 'center', gap: 12 },
+  loadingText: { color: C.textSub, fontFamily: FT.med, fontSize: 13 },
+  emptyBox: { paddingVertical: 50, alignItems: 'center', gap: 10 },
+  emptyTitle: { color: '#fff', fontFamily: FT.xbold, fontSize: 15, marginTop: 4 },
+  emptySub: { color: C.dim, fontFamily: FT.med, fontSize: 12.5 },
 
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
-  card: { flexGrow: 1, flexBasis: 300, maxWidth: 360, borderRadius: 14,
-    borderWidth: 1, backgroundColor: 'rgba(255,255,255,0.02)', overflow: 'hidden' },
-  cover: { height: 130, borderBottomWidth: 1, alignItems: 'center',
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
+  card: { flexGrow: 1, flexBasis: 300, maxWidth: 360, borderRadius: 16,
+    borderWidth: 1, backgroundColor: C.bgCard, overflow: 'hidden' },
+  cover: { height: 110, borderBottomWidth: 1, alignItems: 'center',
     justifyContent: 'center', position: 'relative' },
-  coverEmoji: { fontSize: 44 },
-  coverBadgeRow: { position: 'absolute', top: 10, left: 10,
-    flexDirection: 'row', gap: 5 },
+  coverCategoryBadge: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.10)',
+    alignItems: 'center', justifyContent: 'center' },
+  coverBadgeRow: { position: 'absolute', top: 10, left: 10, flexDirection: 'row', gap: 6 },
   badgeVerify: { flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 7, paddingVertical: 3, borderRadius: 999,
-    backgroundColor: 'rgba(34,197,94,0.20)',
-    borderColor: 'rgba(34,197,94,0.40)', borderWidth: 1 },
-  badgeVerifyText: { color: '#86EFAC', fontFamily: 'DMSans_800ExtraBold', fontSize: 9 },
+    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999,
+    backgroundColor: 'rgba(52, 211, 153, 0.15)',
+    borderColor: 'rgba(52, 211, 153, 0.35)', borderWidth: 1 },
+  badgeVerifyText: { color: '#34D399', fontFamily: FT.xbold, fontSize: 9.5 },
   badgeFeat: { flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 7, paddingVertical: 3, borderRadius: 999,
-    backgroundColor: 'rgba(252,211,77,0.18)',
-    borderColor: 'rgba(252,211,77,0.40)', borderWidth: 1 },
-  badgeFeatText: { color: '#FCD34D', fontFamily: 'DMSans_800ExtraBold', fontSize: 9 },
+    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999,
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    borderColor: 'rgba(245, 158, 11, 0.35)', borderWidth: 1 },
+  badgeFeatText: { color: '#F59E0B', fontFamily: FT.xbold, fontSize: 9.5 },
   discBadge: { position: 'absolute', top: 10, right: 10,
-    paddingHorizontal: 9, paddingVertical: 4, borderRadius: 6 },
-  discText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold',
-    fontSize: 10.5, letterSpacing: 0.4 },
+    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+  discText: { color: '#fff', fontFamily: FT.xbold, fontSize: 10.5, letterSpacing: 0.4 },
 
-  title: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 14 },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 },
-  loc: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11, flex: 1 },
-  dot: { color: C.text3, fontSize: 11 },
-  type: { color: C.text3, fontFamily: 'DMSans_600SemiBold', fontSize: 11 },
+  title: { color: C.text, fontFamily: FT.xbold, fontSize: 14.5 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
+  loc: { color: C.textSub, fontFamily: FT.med, fontSize: 11.5, flex: 1 },
+  dot: { color: C.dim, fontSize: 11 },
+  type: { color: C.purpleL, fontFamily: FT.bold, fontSize: 11.5 },
 
-  amenRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 5 },
-  amenChip: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6,
+  amenRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  amenChip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6,
     backgroundColor: 'rgba(255,255,255,0.05)',
-    borderColor: 'rgba(255,255,255,0.09)', borderWidth: 1 },
-  amenText: { color: C.text2, fontFamily: 'DMSans_600SemiBold', fontSize: 10 },
+    borderColor: C.border, borderWidth: 1 },
+  amenText: { color: C.textSub, fontFamily: FT.bold, fontSize: 10.5 },
 
-  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  ratingText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 12 },
-  ratingCount: { color: C.text3, fontFamily: 'DMSans_500Medium', fontSize: 10.5 },
-  available: { color: '#86EFAC', fontFamily: 'DMSans_700Bold', fontSize: 10.5 },
+  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  ratingText: { color: '#fff', fontFamily: FT.xbold, fontSize: 12.5 },
+  ratingCount: { color: C.dim, fontFamily: FT.med, fontSize: 11 },
+  available: { color: '#34D399', fontFamily: FT.bold, fontSize: 11 },
 
   perkBar: { flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8, borderWidth: 1 },
-  perkText: { flex: 1, fontFamily: 'DMSans_700Bold', fontSize: 11 },
+  perkText: { flex: 1, fontFamily: FT.bold, fontSize: 11 },
 
   priceRow: { flexDirection: 'row', alignItems: 'flex-end',
-    justifyContent: 'space-between', marginTop: 2 },
-  priceOrig: { color: C.text3, fontFamily: 'DMSans_500Medium',
-    fontSize: 11, textDecorationLine: 'line-through' },
-  priceRent: { fontFamily: 'DMSans_800ExtraBold', fontSize: 16, marginTop: 1 },
-  bookBtn: { flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 14, height: 34, borderRadius: 999,
-    justifyContent: 'center', ...({ cursor: 'pointer' } as any) },
-  bookText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold',
-    fontSize: 11.5, letterSpacing: 0.3 },
+    justifyContent: 'space-between', marginTop: 4 },
+  priceOrig: { color: C.dim, fontFamily: FT.med,
+    fontSize: 11.5, textDecorationLine: 'line-through' },
+  priceRent: { fontFamily: FT.xbold, fontSize: 17, marginTop: 1 },
+  bookBtn: { flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 14, height: 36, borderRadius: 999,
+    justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  bookText: { color: '#fff', fontFamily: FT.xbold,
+    fontSize: 12, letterSpacing: 0.3 },
 
-  /* Modal */
-  overlay: { flex: 1, backgroundColor: 'rgba(7,2,15,0.78)',
+  /* Modal Base */
+  overlay: { flex: 1, backgroundColor: 'rgba(7, 9, 20, 0.85)',
     justifyContent: 'center', alignItems: 'center', padding: 16 },
-  sheet: { width: '100%', maxWidth: 540, maxHeight: '92%',
-    backgroundColor: '#13031F', borderRadius: 18, padding: 18,
-    borderColor: 'rgba(255,255,255,0.10)', borderWidth: 1 },
-  sheetHeader: { flexDirection: 'row', alignItems: 'center', gap: 12,
-    marginBottom: 14 },
-  sheetEmojiBox: { width: 52, height: 52, borderRadius: 12,
-    borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  sheetTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 16 },
 
-  sectionLabel: { color: C.text3, fontFamily: 'DMSans_800ExtraBold',
-    fontSize: 10, letterSpacing: 1.2, marginTop: 14, marginBottom: 8 },
+  /* STEP 1: Details Sheet */
+  detailsSheet: { width: '100%', maxWidth: 580, maxHeight: '92%',
+    backgroundColor: '#0F1222', borderRadius: 20,
+    borderColor: C.border2, borderWidth: 1, overflow: 'hidden' },
+  detailsHero: { height: 130, padding: 16, justifyContent: 'space-between',
+    position: 'relative', borderBottomWidth: 1 },
+  detailsCategoryBox: { width: 56, height: 56, borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
+  detailsCloseBtn: { position: 'absolute', top: 14, right: 14, width: 32, height: 32,
+    borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.10)', alignItems: 'center', justifyContent: 'center',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  detailsBadgeContainer: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  detailsTitle: { color: C.text, fontFamily: FT.xbold, fontSize: 20 },
+  detailsStatsRow: { flexDirection: 'row', gap: 12, padding: 12, borderRadius: 12,
+    backgroundColor: C.bgCard, borderColor: C.border, borderWidth: 1 },
+  detailsStatItem: { flex: 1 },
+  detailsStatKey: { color: C.dim, fontFamily: FT.xbold, fontSize: 9.5, letterSpacing: 0.8 },
+  detailsStatVal: { color: C.text, fontFamily: FT.bold, fontSize: 12.5, marginTop: 2 },
+  detailsSection: { gap: 8 },
+  detailsDesc: { color: C.textSub, fontFamily: FT.med, fontSize: 13, lineHeight: 20 },
+  detailsAmenGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  detailsAmenCell: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6,
+    borderRadius: 8, backgroundColor: C.bgCard, borderColor: C.border, borderWidth: 1 },
+  detailsAmenText: { color: C.text2, fontFamily: FT.bold, fontSize: 11.5 },
+  detailsFooterBox: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    padding: 16, borderRadius: 14, backgroundColor: C.bgCard, borderColor: C.borderAccent, borderWidth: 1, marginTop: 6 },
+
+  /* STEP 2: Booking Sheet */
+  sheet: { width: '100%', maxWidth: 540, maxHeight: '92%',
+    backgroundColor: '#0F1222', borderRadius: 20, padding: 20,
+    borderColor: C.border2, borderWidth: 1 },
+  sheetHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
+  sheetIconBox: { width: 48, height: 48, borderRadius: 12,
+    borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  sheetTitle: { color: C.text, fontFamily: FT.xbold, fontSize: 16.5 },
+
+  sectionLabel: { color: C.dim, fontFamily: FT.xbold,
+    fontSize: 10.5, letterSpacing: 1.2, marginTop: 12, marginBottom: 6 },
   fieldRow: { flexDirection: 'row', gap: 10, marginBottom: 10 },
-  fieldLabel: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 11 },
-  fieldBox: { flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 10, height: 40, borderRadius: 9,
-    backgroundColor: 'rgba(255,255,255,0.04)', borderColor: C.border, borderWidth: 1 },
-  fieldInput: { flex: 1, color: '#fff', fontFamily: 'DMSans_500Medium',
+  fieldLabel: { color: C.textSub, fontFamily: FT.bold, fontSize: 11.5 },
+  fieldBox: { flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingHorizontal: 12, height: 42, borderRadius: 10,
+    backgroundColor: C.bgCard, borderColor: C.border, borderWidth: 1 },
+  fieldInput: { flex: 1, color: C.text, fontFamily: FT.med,
     fontSize: 13, ...(Platform.OS === 'web' ? { outlineStyle: 'none' as any } : {}) },
 
-  priceTable: { gap: 7, padding: 14, borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.03)', borderColor: C.border, borderWidth: 1 },
-  tableRow: { flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center' },
-  tableK: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12, flex: 1 },
-  tableV: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12 },
-  priceDivider: { height: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginVertical: 4 },
+  priceTable: { gap: 8, padding: 14, borderRadius: 12,
+    backgroundColor: C.bgCard, borderColor: C.border, borderWidth: 1 },
+  tableRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  tableK: { color: C.textSub, fontFamily: FT.med, fontSize: 12.5, flex: 1 },
+  tableV: { color: C.text, fontFamily: FT.bold, fontSize: 12.5 },
+  priceDivider: { height: 1, backgroundColor: C.border, marginVertical: 4 },
 
-  errBox: { flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8,
-    backgroundColor: 'rgba(239,68,68,0.14)',
-    borderColor: 'rgba(239,68,68,0.40)', borderWidth: 1, marginTop: 12 },
-  errText: { color: '#FCA5A5', fontFamily: 'DMSans_600SemiBold', fontSize: 11.5 },
+  errBox: { flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10,
+    backgroundColor: 'rgba(248, 113, 113, 0.15)',
+    borderColor: 'rgba(248, 113, 113, 0.40)', borderWidth: 1, marginTop: 12 },
+  errText: { color: '#F87171', fontFamily: FT.bold, fontSize: 12 },
 
-  actionRow: { flexDirection: 'row', gap: 10, marginTop: 14 },
-  cancelBtn: { paddingHorizontal: 18, height: 44, borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.04)', borderColor: C.border,
+  actionRow: { flexDirection: 'row', gap: 10, marginTop: 16 },
+  cancelBtn: { paddingHorizontal: 20, height: 44, borderRadius: 12,
+    backgroundColor: C.bgCard, borderColor: C.border,
     borderWidth: 1, alignItems: 'center', justifyContent: 'center',
-    ...({ cursor: 'pointer' } as any) },
-  cancelBtnText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 13 },
-  confirmBtn: { flex: 1, height: 44, borderRadius: 10, flexDirection: 'row',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  cancelBtnText: { color: C.textSub, fontFamily: FT.bold, fontSize: 13 },
+  confirmBtn: { flex: 1, height: 44, borderRadius: 12, flexDirection: 'row',
     alignItems: 'center', justifyContent: 'center', gap: 8,
-    ...({ cursor: 'pointer' } as any) },
-  confirmBtnText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 13 },
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  confirmBtnText: { color: '#fff', fontFamily: FT.xbold, fontSize: 13.5 },
 
-  fineprint: { color: C.text3, fontFamily: 'DMSans_500Medium', fontSize: 10.5,
-    textAlign: 'center', marginTop: 10 },
+  fineprint: { color: C.dim, fontFamily: FT.med, fontSize: 10.5,
+    textAlign: 'center', marginTop: 12 },
 
-  /* Confirmation */
-  confirmSheet: { width: '100%', maxWidth: 460, backgroundColor: '#13031F',
-    borderRadius: 18, padding: 22, borderColor: 'rgba(252,211,77,0.30)',
+  /* Confirmation Modal */
+  confirmSheet: { width: '100%', maxWidth: 460, backgroundColor: '#0F1222',
+    borderRadius: 20, padding: 24, borderColor: 'rgba(245, 158, 11, 0.35)',
     borderWidth: 1, alignItems: 'center' },
-  confirmIconBox: { width: 76, height: 76, borderRadius: 999,
-    backgroundColor: 'rgba(252,211,77,0.16)',
-    borderColor: 'rgba(252,211,77,0.45)', borderWidth: 1,
+  confirmIconBox: { width: 72, height: 72, borderRadius: 999,
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    borderColor: 'rgba(245, 158, 11, 0.40)', borderWidth: 1,
     alignItems: 'center', justifyContent: 'center' },
-  confirmHeading: { color: '#fff', fontFamily: 'DMSans_800ExtraBold',
+  confirmHeading: { color: C.text, fontFamily: FT.xbold,
     fontSize: 20, marginTop: 14 },
-  confirmSub: { color: C.text2, fontFamily: 'DMSans_500Medium',
+  confirmSub: { color: C.textSub, fontFamily: FT.med,
     fontSize: 13, textAlign: 'center', marginTop: 4 },
-  confirmIdPill: { flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999,
-    backgroundColor: 'rgba(196,181,253,0.14)',
-    borderColor: 'rgba(196,181,253,0.40)', borderWidth: 1, marginTop: 10 },
-  confirmIdText: { color: '#C4B5FD', fontFamily: 'DMSans_800ExtraBold', fontSize: 11 },
+  confirmIdPill: { flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
+    backgroundColor: 'rgba(165, 180, 252, 0.15)',
+    borderColor: 'rgba(165, 180, 252, 0.35)', borderWidth: 1, marginTop: 12 },
+  confirmIdText: { color: '#A5B4FC', fontFamily: FT.xbold, fontSize: 11.5 },
   confirmGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10,
     marginTop: 16, width: '100%' },
-  confirmCell: { flexBasis: '48%', flexGrow: 1, padding: 11, borderRadius: 9,
-    backgroundColor: 'rgba(255,255,255,0.04)', borderColor: C.border, borderWidth: 1 },
-  confirmCellLabel: { color: C.text3, fontFamily: 'DMSans_800ExtraBold',
-    fontSize: 9, letterSpacing: 1 },
-  confirmCellValue: { color: '#fff', fontFamily: 'DMSans_800ExtraBold',
+  confirmCell: { flexBasis: '48%', flexGrow: 1, padding: 12, borderRadius: 10,
+    backgroundColor: C.bgCard, borderColor: C.border, borderWidth: 1 },
+  confirmCellLabel: { color: C.dim, fontFamily: FT.xbold,
+    fontSize: 9.5, letterSpacing: 1 },
+  confirmCellValue: { color: C.text, fontFamily: FT.xbold,
     fontSize: 13, marginTop: 4 },
   savingsPill: { flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999,
-    backgroundColor: 'rgba(252,211,77,0.14)',
-    borderColor: 'rgba(252,211,77,0.45)', borderWidth: 1, marginTop: 14 },
-  savingsText: { color: '#FCD34D', fontFamily: 'DMSans_800ExtraBold', fontSize: 11.5 },
-  confirmCTA: { flexDirection: 'row', alignItems: 'center', gap: 7,
-    paddingHorizontal: 18, height: 42, borderRadius: 10,
-    backgroundColor: '#5F259F', alignSelf: 'stretch', justifyContent: 'center',
-    marginTop: 16, ...({ cursor: 'pointer' } as any) },
-  confirmCTAText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 13 },
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999,
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    borderColor: 'rgba(245, 158, 11, 0.40)', borderWidth: 1, marginTop: 14 },
+  savingsText: { color: '#F59E0B', fontFamily: FT.xbold, fontSize: 12 },
+  confirmCTA: { flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingHorizontal: 20, height: 44, borderRadius: 12,
+    backgroundColor: '#6366F1', alignSelf: 'stretch', justifyContent: 'center',
+    marginTop: 16, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  confirmCTAText: { color: '#fff', fontFamily: FT.xbold, fontSize: 13.5 },
   confirmDismiss: { paddingVertical: 8, alignSelf: 'stretch',
-    alignItems: 'center', marginTop: 4, ...({ cursor: 'pointer' } as any) },
-  confirmDismissText: { color: C.text3, fontFamily: 'DMSans_700Bold', fontSize: 12 },
+    alignItems: 'center', marginTop: 4, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  confirmDismissText: { color: C.dim, fontFamily: FT.bold, fontSize: 12.5 },
 
-  /* Bookings drawer */
+  /* Bookings Drawer */
   drawer: { width: '100%', maxWidth: 600, maxHeight: '92%',
-    backgroundColor: '#13031F', borderRadius: 18, padding: 18,
-    borderColor: 'rgba(255,255,255,0.10)', borderWidth: 1 },
+    backgroundColor: '#0F1222', borderRadius: 20, padding: 20,
+    borderColor: C.border2, borderWidth: 1 },
   drawerHeader: { flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'space-between', marginBottom: 14 },
-  drawerTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 16 },
-  drawerCountBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999,
-    backgroundColor: 'rgba(196,181,253,0.18)',
-    borderColor: 'rgba(196,181,253,0.40)', borderWidth: 1 },
-  drawerCountText: { color: '#C4B5FD', fontFamily: 'DMSans_800ExtraBold', fontSize: 10.5 },
-  emptyDrawer: { paddingVertical: 60, alignItems: 'center', gap: 6 },
+    justifyContent: 'space-between', marginBottom: 16 },
+  drawerTitle: { color: C.text, fontFamily: FT.xbold, fontSize: 17 },
+  drawerCountBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999,
+    backgroundColor: 'rgba(165, 180, 252, 0.15)',
+    borderColor: 'rgba(165, 180, 252, 0.35)', borderWidth: 1 },
+  drawerCountText: { color: '#A5B4FC', fontFamily: FT.xbold, fontSize: 11 },
+  emptyDrawer: { paddingVertical: 60, alignItems: 'center', gap: 8 },
 
-  bookingCard: { padding: 14, borderRadius: 12, borderWidth: 1,
-    backgroundColor: 'rgba(255,255,255,0.03)' },
+  bookingCard: { padding: 16, borderRadius: 14, borderWidth: 1,
+    backgroundColor: C.bgCard },
   bookingTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  bookingEmoji: { width: 44, height: 44, borderRadius: 10,
+  bookingIconBox: { width: 44, height: 44, borderRadius: 12,
     alignItems: 'center', justifyContent: 'center' },
-  bookingTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 13.5 },
-  bookingMeta: { color: C.text3, fontFamily: 'DMSans_500Medium',
-    fontSize: 11, marginTop: 2 },
-  statusPill: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999,
-    borderWidth: 1 },
-  statusText: { fontFamily: 'DMSans_800ExtraBold', fontSize: 9, letterSpacing: 0.6 },
+  bookingTitle: { color: C.text, fontFamily: FT.xbold, fontSize: 14 },
+  bookingMeta: { color: C.dim, fontFamily: FT.med, fontSize: 11.5, marginTop: 2 },
+  statusPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, borderWidth: 1 },
+  statusText: { fontFamily: FT.xbold, fontSize: 9.5, letterSpacing: 0.6 },
 
-  bookingFacts: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
-  factCell: { flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 8, paddingVertical: 5, borderRadius: 6,
+  bookingFacts: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
+  factCell: { flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 9, paddingVertical: 5, borderRadius: 6,
     backgroundColor: 'rgba(255,255,255,0.05)' },
-  factText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 11 },
+  factText: { color: C.textSub, fontFamily: FT.bold, fontSize: 11.5 },
 
   bookingTimeline: { marginTop: 12, gap: 4 },
   tlStep: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  tlDot: { width: 8, height: 8, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.18)' },
-  tlBar: { width: 1, height: 8, backgroundColor: 'rgba(255,255,255,0.10)',
-    marginLeft: 3 },
-  tlLabel: { color: C.text3, fontFamily: 'DMSans_600SemiBold', fontSize: 10.5 },
+  tlDot: { width: 8, height: 8, borderRadius: 999, backgroundColor: C.dim },
+  tlBar: { width: 1, height: 8, backgroundColor: C.border, marginLeft: 3 },
+  tlLabel: { color: C.dim, fontFamily: FT.bold, fontSize: 11 },
 
-  bookingActionRow: { flexDirection: 'row', justifyContent: 'flex-end',
-    marginTop: 10 },
-  cancelLinkBtn: { flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 7,
-    backgroundColor: 'rgba(239,68,68,0.10)',
-    borderColor: 'rgba(239,68,68,0.30)', borderWidth: 1,
-    ...({ cursor: 'pointer' } as any) },
-  cancelLinkText: { color: '#FCA5A5', fontFamily: 'DMSans_700Bold', fontSize: 11 },
+  bookingActionRow: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 12 },
+  cancelLinkBtn: { flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8,
+    backgroundColor: 'rgba(248, 113, 113, 0.12)',
+    borderColor: 'rgba(248, 113, 113, 0.35)', borderWidth: 1,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  cancelLinkText: { color: '#F87171', fontFamily: FT.bold, fontSize: 11.5 },
 
-  advisorRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, alignItems: 'stretch' },
+  advisorRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, alignItems: 'stretch' },
   advisorCard: {
-    flex: 1, minWidth: 260,
-    padding: 18, borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderWidth: 1, gap: 10,
+    flex: 1, minWidth: 270,
+    padding: 20, borderRadius: 16,
+    backgroundColor: C.bgCard,
+    borderWidth: 1, gap: 12,
     flexDirection: 'column',
   },
   advisorIconBox: {
-    width: 40, height: 40, borderRadius: 12,
+    width: 44, height: 44, borderRadius: 14,
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 1,
   },
-  advisorTitle: { color: '#fff', fontSize: 15, fontWeight: '800', marginTop: 4, fontFamily: 'DMSans_800ExtraBold' },
-  advisorDesc: { color: 'rgba(255,255,255,0.70)', fontSize: 12.5, lineHeight: 18, fontFamily: 'DMSans_500Medium' },
+  advisorTitle: { color: C.text, fontSize: 16, fontFamily: FT.xbold, marginTop: 2 },
+  advisorDesc: { color: C.textSub, fontSize: 13, lineHeight: 19, fontFamily: FT.med },
   advisorCTA: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    paddingVertical: 11, borderRadius: 8, marginTop: 'auto',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    paddingVertical: 12, borderRadius: 10, marginTop: 'auto',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  advisorCTAText: { color: '#fff', fontSize: 12.5, fontWeight: '800', fontFamily: 'DMSans_800ExtraBold' },
+  advisorCTAText: { color: '#fff', fontSize: 13, fontFamily: FT.xbold },
   advisorExpanded: {
-    marginTop: 6, paddingTop: 10,
-    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)',
-    gap: 8,
+    marginTop: 8, paddingTop: 12,
+    borderTopWidth: 1, borderTopColor: C.border,
+    gap: 10,
   },
-  advisorLinkRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  advisorLinkText: { fontSize: 12.5, fontWeight: '600', fontFamily: 'DMSans_700Bold' },
-  advisorNote: { color: 'rgba(255,255,255,0.45)', fontSize: 11, fontStyle: 'italic', marginTop: 4, fontFamily: 'DMSans_500Medium' },
+  advisorLinkRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  advisorLinkText: { fontSize: 13, fontFamily: FT.bold },
+  advisorNote: { color: C.dim, fontSize: 11, fontStyle: 'italic', marginTop: 2, fontFamily: FT.med },
 });

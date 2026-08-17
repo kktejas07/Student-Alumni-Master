@@ -36,6 +36,7 @@ import {
   ArrowRight, Sparkles, Users, Calendar,
   Mail, ChevronRight, Star, MessageSquare,
 } from 'lucide-react-native';
+import { DoodleIllustration } from '@/src/components/ui';
 
 import {
   FadeInView, PressScale, ParallaxCard, ShimmerGradient,
@@ -249,6 +250,7 @@ function Hero({ isDesktop, router }: { isDesktop: boolean; router: ReturnType<ty
 
       <RevealOnScroll distance={16} duration={600} style={{ alignItems: 'center', maxWidth: 920 }}>
         <View style={hero.pill}>
+          <DoodleIllustration type="sparkle" color="#EC4899" width={20} height={20} />
           <View style={hero.pillDot} />
           <Text style={hero.pillText}>AI-backed student success network</Text>
         </View>
@@ -259,13 +261,16 @@ function Hero({ isDesktop, router }: { isDesktop: boolean; router: ReturnType<ty
           gap={55}
           style={[hero.headline, { fontSize: isDesktop ? 72 : 44, lineHeight: isDesktop ? 76 : 50 }]}
         />
-        <SplitHeadline
-          text="students and alumni."
-          baseDelay={480}
-          gap={65}
-          style={[hero.headline, { fontSize: isDesktop ? 72 : 44, lineHeight: isDesktop ? 76 : 50, marginTop: isDesktop ? -6 : -2 }]}
-          wordStyle={hero.headlineGradient}
-        />
+        <View style={{ alignItems: 'center' }}>
+          <SplitHeadline
+            text="students and alumni."
+            baseDelay={480}
+            gap={65}
+            style={[hero.headline, { fontSize: isDesktop ? 72 : 44, lineHeight: isDesktop ? 76 : 50, marginTop: isDesktop ? -6 : -2 }]}
+            wordStyle={hero.headlineGradient}
+          />
+          <DoodleIllustration type="underline" color="#8B5CF6" width={isDesktop ? 280 : 180} height={22} />
+        </View>
 
         <Text style={[hero.sub, { maxWidth: 720, fontSize: isDesktop ? 18 : 16 }]}>
           Mentors, events and AI coaching — built to help you launch faster, learn smarter and stay connected.
