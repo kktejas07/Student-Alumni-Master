@@ -13,7 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import {
   Home, Car, Hotel, Building2, LayoutGrid, ShieldCheck, Star, Sparkles,
   Tag, MapPin, Calendar, CheckCircle2, Info, User, Clock, ArrowRight, X,
-  ChevronRight, Search, Filter, Phone, Mail, Ticket, Award, Check, Eye,
+  ChevronRight, Search, Filter, Phone, PhoneCall, Mail, Ticket, Award, Check, Eye,
   Lock, MessageSquare, Flame, FileText, ArrowLeft, RefreshCw, Zap, Users,
 } from 'lucide-react-native';
 import FeaturePageShell, { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
