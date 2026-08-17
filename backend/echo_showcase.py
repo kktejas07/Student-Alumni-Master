@@ -57,7 +57,7 @@ async def sync_unstop_opportunities():
         logger.info("⚡ [UNSTOP SYNC] Manual trigger received. Scraping opportunities from Unstop...")
         from scripts.scrape_unstop_events import run_unstop_sync
         count = await run_unstop_sync()
-        logger.info(f"✨ [UNSTOP SYNC] Successfully synced {count} opportunities into DB.")
+        logger.info(f"[UNSTOP SYNC] Successfully synced {count} opportunities into DB.")
         return {"status": "success", "synced_count": count, "message": f"Successfully synced {count} opportunities from Unstop"}
     except Exception as e:
         logger.error(f"💥 [UNSTOP SYNC ERROR] {str(e)}")
@@ -563,7 +563,7 @@ async def _send_registration_confirmation(db, reg: dict, showcase: dict, team_na
         if team_name:
             team_info_block = f"""
             <div style="margin:0 0 18px 0;padding:16px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:12px;">
-              <h3 style="margin:0 0 6px 0;color:#6d28d9;font-size:15px;">👥 Team Registration</h3>
+              <h3 style="margin:0 0 6px 0;color:#6d28d9;font-size:15px;">Team Registration</h3>
               <p style="margin:0 0 8px 0;color:#4c1d95;font-size:13px;">
                 You're registered as the team captain for team <strong>{team_name}</strong>.
               </p>
@@ -605,7 +605,7 @@ async def _send_registration_confirmation(db, reg: dict, showcase: dict, team_na
             </table>
             {ticket_block}
             <div style="margin:20px 0;padding:16px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:12px;">
-              <h3 style="margin:0 0 6px 0;color:#6d28d9;font-size:15px;">📘 Official Event Handbook Attached</h3>
+              <h3 style="margin:0 0 6px 0;color:#6d28d9;font-size:15px;">Official Event Handbook Attached</h3>
               <p style="margin:0 0 12px 0;color:#4c1d95;font-size:13px;">
                 Find full details on schedule, 5 hackathon tracks, meals, rules, and rewards in the attached <strong>HackWave_3.0_Event_Handbook.pdf</strong>.
               </p>

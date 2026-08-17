@@ -20,7 +20,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import {
   ArrowLeft, Calendar, MapPin, Clock, Ticket, CreditCard,
   Check, ShieldCheck, Users, ChevronLeft, ChevronRight, ExternalLink,
-  ChevronDown, FileText, Share2, Link2, X,
+  ChevronDown, FileText, Share2, Link2, X, MessageCircle, Send,
 } from 'lucide-react-native';
 import { api, resolveImageUrl } from '@/src/models/services/api';
 import { PALETTE, FONTS, TYPO } from '@/src/views/web/portals/student/tokens';
@@ -43,11 +43,11 @@ const BRANCHES = [
 ];
 
 export const HACKWAVE_THEME_OPTIONS = [
-  { value: 'AI That Solves a Real Problem', label: '🎯 AI That Solves a Real Problem' },
-  { value: 'Beyond the Chatbot', label: '🚀 Beyond the Chatbot' },
-  { value: 'AI for Builders', label: '🛠️ AI for Builders' },
-  { value: 'Autonomous AI Workflows', label: '🤖 Autonomous AI Workflows' },
-  { value: 'Build the Unexpected', label: '✨ Build the Unexpected' },
+  { value: 'AI That Solves a Real Problem', label: 'AI That Solves a Real Problem' },
+  { value: 'Beyond the Chatbot', label: 'Beyond the Chatbot' },
+  { value: 'AI for Builders', label: 'AI for Builders' },
+  { value: 'Autonomous AI Workflows', label: 'Autonomous AI Workflows' },
+  { value: 'Build the Unexpected', label: 'Build the Unexpected' },
 ];
 
 /* ── Dark-glass dropdown matching the register form's inputs ────────────── */
@@ -745,7 +745,7 @@ export default function EchoRegisterPage() {
                   <Pressable
                     onPress={() => {
                       const url = typeof window !== 'undefined' ? window.location.href : 'http://localhost:8081/echo/snist/register';
-                      const text = encodeURIComponent(`🚀 Register for ${showcase?.title || 'SNIST Hackwave 3.0'} — National Level AI Hackathon!\n\nLink: ${url}`);
+                      const text = encodeURIComponent(`Register for ${showcase?.title || 'SNIST Hackwave 3.0'} — National Level AI Hackathon!\n\nLink: ${url}`);
                       const waUrl = `https://api.whatsapp.com/send?text=${text}`;
                       if (Platform.OS === 'web' && typeof window !== 'undefined') window.open(waUrl, '_blank');
                       else Linking.openURL(waUrl);
@@ -753,7 +753,7 @@ export default function EchoRegisterPage() {
                     }}
                     style={[s.shareOptionBtn, { backgroundColor: 'rgba(37,211,102,0.15)', borderColor: 'rgba(37,211,102,0.4)' }]}
                   >
-                    <Text style={{ fontSize: 18 }}>🟢</Text>
+                    <MessageCircle size={18} color="#25D366" />
                     <Text style={[s.shareOptionText, { color: '#25D366' }]}>Share on WhatsApp</Text>
                   </Pressable>
 
@@ -761,7 +761,7 @@ export default function EchoRegisterPage() {
                   <Pressable
                     onPress={() => {
                       const url = typeof window !== 'undefined' ? window.location.href : 'http://localhost:8081/echo/snist/register';
-                      const text = encodeURIComponent(`🚀 Register for ${showcase?.title || 'SNIST Hackwave 3.0'} — National Level AI Hackathon!`);
+                      const text = encodeURIComponent(`Register for ${showcase?.title || 'SNIST Hackwave 3.0'} — National Level AI Hackathon!`);
                       const tgUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${text}`;
                       if (Platform.OS === 'web' && typeof window !== 'undefined') window.open(tgUrl, '_blank');
                       else Linking.openURL(tgUrl);
@@ -769,7 +769,7 @@ export default function EchoRegisterPage() {
                     }}
                     style={[s.shareOptionBtn, { backgroundColor: 'rgba(0,136,204,0.15)', borderColor: 'rgba(0,136,204,0.4)' }]}
                   >
-                    <Text style={{ fontSize: 18 }}>✈️</Text>
+                    <Send size={18} color="#38BDF8" />
                     <Text style={[s.shareOptionText, { color: '#38BDF8' }]}>Share on Telegram</Text>
                   </Pressable>
 
@@ -892,7 +892,7 @@ export default function EchoRegisterPage() {
                     style={[s.typeToggle, registrationType === 'individual' && s.typeToggleActive]}
                   >
                     <Text style={[s.typeToggleText, registrationType === 'individual' && s.typeToggleTextActive]}>
-                      👤 Individual
+                      Individual
                     </Text>
                   </Pressable>
                   <Pressable
@@ -900,7 +900,7 @@ export default function EchoRegisterPage() {
                     style={[s.typeToggle, registrationType === 'team' && s.typeToggleActive]}
                   >
                     <Text style={[s.typeToggleText, registrationType === 'team' && s.typeToggleTextActive]}>
-                      👥 Team (up to 5)
+                      Team (up to 5)
                     </Text>
                   </Pressable>
                 </View>
@@ -920,7 +920,7 @@ export default function EchoRegisterPage() {
                     )}
                     {regCfg.registration_type ? (
                       <Text style={[s.feeLabel, { marginTop: 2, textTransform: 'none', letterSpacing: 0 }]}>
-                        {regCfg.registration_type === 'team' ? '👥 Team Registration' : '👤 Individual Registration'}
+                        {regCfg.registration_type === 'team' ? 'Team Registration' : 'Individual Registration'}
                       </Text>
                     ) : null}
                   </View>
@@ -1043,7 +1043,7 @@ export default function EchoRegisterPage() {
                 {registrationType === 'team' && (
                   <View style={s.teamSection}>
                     <View style={s.teamHeader}>
-                      <Text style={s.teamTitle}>👥 Team Registration</Text>
+                      <Text style={s.teamTitle}>Team Registration</Text>
                       <Text style={s.teamCount}>{teamMembers.length}/5 members</Text>
                     </View>
                     
