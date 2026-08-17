@@ -450,6 +450,15 @@ function ImportModal({ visible, onClose, onImported }: { visible: boolean; onClo
 
   const handleImport = async () => {
     if (!file) return;
+    
+    // Validate file type
+    const validTypes = ['.csv', '.xlsx', '.xls'];
+    const fileExt = '.' + file.name.split('.').pop()?.toLowerCase();
+    if (!validTypes.includes(fileExt)) {
+      flash('Please select a CSV or XLSX file');
+      return;
+    }
+    
     setImporting(true);
     try {
       const formData = new FormData();
@@ -469,7 +478,7 @@ function ImportModal({ visible, onClose, onImported }: { visible: boolean; onClo
       if (!res.ok) throw new Error(data.detail || 'Import failed');
 
       setResult(data);
-      flash(`Imported ${data.imported} contacts`);
+      flash(`Imported ${data.imported} contacts from ${data.file_type?.toUpperCase() || 'file'}`);
       onImported();
     } catch (e: any) {
       flash(e?.message || 'Import failed');
@@ -490,7 +499,7 @@ function ImportModal({ visible, onClose, onImported }: { visible: boolean; onClo
       <View style={st.modalOverlay}>
         <View style={st.modalBox}>
           <View style={st.modalHeader}>
-            <Text style={st.modalTitle}>Import Contacts from CSV</Text>
+            <Text style={st.modalTitle}>Import Contacts</Text>
             <Pressable onPress={onClose} style={st.modalCloseBtn}><X size={18} color={SAC.muted} /></Pressable>
           </View>
 
@@ -500,7 +509,7 @@ function ImportModal({ visible, onClose, onImported }: { visible: boolean; onClo
                 <View style={st.uploadArea}>
                   <Upload size={32} color={GRAD.from} />
                   <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: SAC.text, marginTop: 8 }}>
-                    Select CSV file
+                    Select CSV or XLSX file
                   </Text>
                   <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted, marginTop: 4 }}>
                     Columns: name, email, phone (email required)
@@ -508,7 +517,7 @@ function ImportModal({ visible, onClose, onImported }: { visible: boolean; onClo
                   <input
                     ref={fileRef}
                     type="file"
-                    accept=".csv"
+                    accept=".csv,.xlsx,.xls"
                     onChange={handleFileChange}
                     style={{ marginTop: 12 }}
                   />

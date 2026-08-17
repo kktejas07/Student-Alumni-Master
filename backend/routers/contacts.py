@@ -232,40 +232,77 @@ async def bulk_delete_contacts(payload: Dict[str, List[str]], request: Request, 
 # ── CSV Import ────────────────────────────────────────────────────────────────
 
 @router.post("/contacts/import")
-async def import_contacts_csv(
+async def import_contacts(
     request: Request,
     file: UploadFile = File(...),
     source: str = "csv",
     tags: str = "",
     user=Depends(_require_admin),
 ):
-    """Import contacts from a CSV file.
+    """Import contacts from a CSV or XLSX file.
     
-    Expected CSV columns: name, email, phone (email is required)
+    Expected columns: name, email, phone (email is required)
+    Supports both .csv and .xlsx formats.
     """
     db = _get_db(request)
     
-    if not file.filename.endswith('.csv'):
-        raise HTTPException(status_code=400, detail="File must be a CSV")
+    filename = file.filename or ""
+    is_csv = filename.lower().endswith('.csv')
+    is_xlsx = filename.lower().endswith('.xlsx') or filename.lower().endswith('.xls')
+    
+    if not is_csv and not is_xlsx:
+        raise HTTPException(status_code=400, detail="File must be a CSV or XLSX file")
     
     content = await file.read()
-    try:
-        text = content.decode('utf-8')
-    except UnicodeDecodeError:
+    rows = []
+    
+    if is_csv:
+        # Parse CSV
         try:
-            text = content.decode('latin-1')
-        except:
-            raise HTTPException(status_code=400, detail="Could not decode file. Please use UTF-8 encoding.")
+            text = content.decode('utf-8')
+        except UnicodeDecodeError:
+            try:
+                text = content.decode('latin-1')
+            except:
+                raise HTTPException(status_code=400, detail="Could not decode file. Please use UTF-8 encoding.")
+        
+        reader = csv.DictReader(io.StringIO(text))
+        for row in reader:
+            rows.append(row)
+    else:
+        # Parse XLSX
+        import openpyxl
+        wb = openpyxl.load_workbook(io.BytesIO(content), read_only=True, data_only=True)
+        ws = wb.active
+        
+        if ws is None:
+            raise HTTPException(status_code=400, detail="Excel file is empty")
+        
+        # Get headers from first row
+        headers = []
+        for cell in next(ws.iter_rows(min_row=1, max_row=1)):
+            headers.append(str(cell.value or "").strip().lower())
+        
+        # Parse data rows
+        for row in ws.iter_rows(min_row=2, values_only=True):
+            row_dict = {}
+            for i, value in enumerate(row):
+                if i < len(headers) and headers[i]:
+                    row_dict[headers[i]] = str(value or "").strip()
+            rows.append(row_dict)
+        
+        wb.close()
     
-    reader = csv.DictReader(io.StringIO(text))
-    
-    # Normalize column names
+    # Process rows
     imported = 0
     skipped = 0
     errors = []
     tag_list = [t.strip() for t in tags.split(",") if t.strip()]
     
-    for i, row in enumerate(reader, start=2):
+    import re
+    email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    
+    for i, row in enumerate(rows, start=2):
         # Try to find email in common column names
         email = (
             row.get("email", "").strip().lower() or
@@ -281,8 +318,6 @@ async def import_contacts_csv(
             continue
         
         # Validate email
-        import re
-        email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
         if not re.match(email_regex, email):
             skipped += 1
             errors.append(f"Row {i}: Invalid email '{email}'")
@@ -334,6 +369,7 @@ async def import_contacts_csv(
         "skipped": skipped,
         "errors": errors[:10],  # Return first 10 errors
         "total_rows": imported + skipped,
+        "file_type": "xlsx" if is_xlsx else "csv",
     }
 
 
