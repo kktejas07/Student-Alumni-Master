@@ -1305,10 +1305,10 @@ const s = StyleSheet.create({
   center: { alignItems: 'center', justifyContent: 'center', paddingVertical: 100, gap: 14 },
   centerText: { color: PALETTE.muted, fontFamily: FONTS.med, fontSize: 14 },
 
-  split: { flexDirection: 'row', gap: 20, alignItems: 'flex-start' },
+  split: { flexDirection: 'row', gap: 20, alignItems: 'stretch' },
   splitStack: { flexDirection: 'column', gap: 16 },
 
-  posterCol: { flex: 1.2, minWidth: 0, gap: 12 },
+  posterCol: { flex: 1.2, minWidth: 0, display: 'flex' as any },
   posterColStack: { width: '100%' },
   posterWrap: { position: 'relative', borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: PALETTE.glassBorder, width: '100%', flex: 1, minHeight: 300 },
   poster: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%', backgroundColor: '#0d1326' },
@@ -1323,7 +1323,7 @@ const s = StyleSheet.create({
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.25)' },
   dotOn: { backgroundColor: GRAD.from, width: 22 },
 
-  formCol: { flex: 1, minWidth: 0, maxWidth: 520 },
+  formCol: { flex: 1, minWidth: 0, maxWidth: 520, display: 'flex' as any },
   formColStack: { width: '100%' },
 
   backBtn: {
