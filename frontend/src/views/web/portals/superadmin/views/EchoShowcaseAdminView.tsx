@@ -3276,79 +3276,120 @@ function RegistrationsPanel() {
         <Modal visible={true} transparent animationType="fade" onRequestClose={() => setDetailRow(null)}>
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.72)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
             <View style={{
-              width: '100%', maxWidth: 480, padding: 24, gap: 16,
+              width: '100%', maxWidth: 680, padding: 24, gap: 16,
               backgroundColor: '#141A2D',
               borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)',
               borderRadius: 16,
               shadowColor: '#000', shadowOffset: { width: 0, height: 18 }, shadowOpacity: 0.55, shadowRadius: 30,
               elevation: 12,
+              maxHeight: '85vh',
             }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: SAC.text }}>Registration Details</Text>
-                <Pressable onPress={() => setDetailRow(null)} style={{ padding: 4 }}><X size={18} color={SAC.muted} /></Pressable>
-              </View>
-              <View style={{ gap: 10 }}>
-                {[
-                  ['Name', detailRow.full_name],
-                  ['Email', detailRow.email],
-                  ['Phone', detailRow.phone],
-                  ['College', detailRow.college],
-                  ['Branch', detailRow.branch],
-                  ['Event', detailRow.event_title || detailRow.slug],
-                  ['Fee', Number(detailRow.fee || 0) > 0 ? `₹${Number(detailRow.fee).toLocaleString('en-IN')}` : 'FREE'],
-                  ['Payment Status', (detailRow.payment_status || '—').toUpperCase()],
-                  ['Payment ID', detailRow.payment_id],
-                  ['Failed At', detailRow.failed_at ? new Date(detailRow.failed_at).toLocaleString() : null],
-                  ['Failed Reason', detailRow.failed_reason],
-                  ['Reminder Sent', detailRow.reminder_sent_at ? new Date(detailRow.reminder_sent_at).toLocaleString() : null],
-                  ['Ticket / Pass Issued', detailRow.ticket_issued ? 'Yes — QR pass generated' : 'No — not issued until payment confirmed'],
-                  ['Invoice', detailRow.invoice_issued ? (detailRow.invoice_no || 'Yes') : 'No — not issued until payment confirmed'],
-                  ['SA Account', detailRow.has_account ? 'Yes' : 'No'],
-                  ['Checked In', detailRow.checked_in_at ? new Date(detailRow.checked_in_at).toLocaleString() : 'No'],
-                ].map(([label, value]) => (
-                  <View key={label} style={{ flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)', paddingBottom: 8 }}>
-                    <Text style={{ fontFamily: FONTS.semi, fontSize: 12, color: SAC.muted }}>{label}</Text>
-                    <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.text, textAlign: 'right', maxWidth: 260 }}>{value || '—'}</Text>
-                  </View>
-                ))}
-                <View style={{ borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)', paddingBottom: 8 }}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <Text style={{ fontFamily: FONTS.semi, fontSize: 12, color: SAC.muted }}>Session Coupons</Text>
-                    <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.text }}>
-                      {(detailRow.coupons || []).length > 0 ? `${detailRow.coupons.length} issued` : 'None'}
-                    </Text>
-                  </View>
-                  {(detailRow.coupons || []).length > 0 && (
-                    <View style={{ gap: 5 }}>
-                      {(detailRow.coupons || []).map((c: any, ci: number) => (
-                        <View key={ci} style={{
-                          flexDirection: 'row', alignItems: 'center', gap: 8,
-                          backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 7,
-                          paddingHorizontal: 9, paddingVertical: 6,
-                          borderWidth: 1, borderColor: c.used ? 'rgba(16,185,129,0.30)' : 'rgba(167,139,250,0.25)',
-                        }}>
-                          <View style={{ flex: 1 }}>
-                            <Text style={{ fontFamily: FONTS.bold, fontSize: 11.5, color: SAC.text }}>
-                              {c.session_name || c.session_key}
-                            </Text>
-                            <Text style={{ fontFamily: FONTS.med, fontSize: 9.5, color: SAC.dim }}>
-                              {c.session_day > 1 ? `Day ${c.session_day} · ` : ''}{c.coupon_code || ''}
-                            </Text>
-                          </View>
-                          <View style={{
-                            borderRadius: 5, paddingHorizontal: 7, paddingVertical: 3,
-                            backgroundColor: c.used ? 'rgba(16,185,129,0.15)' : 'rgba(167,139,250,0.15)',
-                          }}>
-                            <Text style={{ fontFamily: FONTS.bold, fontSize: 9, color: c.used ? '#34D399' : '#A78BFA' }}>
-                              {c.used ? 'USED' : 'ACTIVE'}
-                            </Text>
-                          </View>
-                        </View>
-                      ))}
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: SAC.text }}>Registration Details</Text>
+                  {detailRow.registration_type === 'team' && (
+                    <View style={{ backgroundColor: 'rgba(124,58,237,0.25)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 }}>
+                      <Text style={{ fontFamily: FONTS.xbold, fontSize: 10, color: '#C4B5FD' }}>TEAM</Text>
                     </View>
                   )}
                 </View>
+                <Pressable onPress={() => setDetailRow(null)} style={{ padding: 4 }}><X size={18} color={SAC.muted} /></Pressable>
               </View>
+
+              {/* 2-Column Grid Layout */}
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+                {[
+                  { label: 'Name', value: detailRow.full_name, col: true },
+                  { label: 'Email', value: detailRow.email, col: true },
+                  { label: 'Phone', value: detailRow.phone, col: true },
+                  { label: 'College', value: detailRow.college, col: true },
+                  { label: 'Branch', value: detailRow.branch, col: false },
+                  { label: 'Year', value: detailRow.year, col: false },
+                  { label: 'Event', value: detailRow.event_title || detailRow.slug, col: true },
+                  { label: 'Fee', value: Number(detailRow.fee || 0) > 0 ? `₹${Number(detailRow.fee).toLocaleString('en-IN')}` : 'FREE', col: false },
+                  { label: 'Payment Status', value: (detailRow.payment_status || '—').toUpperCase(), col: false },
+                  { label: 'Payment ID', value: detailRow.payment_id, col: true },
+                  { label: 'Team Name', value: detailRow.team_name, col: detailRow.registration_type === 'team' },
+                  { label: 'Team Size', value: detailRow.team_size > 1 ? `${detailRow.team_size} members` : null, col: detailRow.registration_type === 'team' },
+                  { label: 'Ticket / Pass', value: detailRow.ticket_issued ? 'Issued — QR pass generated' : 'Not issued', col: true },
+                  { label: 'Invoice', value: detailRow.invoice_issued ? (detailRow.invoice_no || 'Issued') : 'Not issued', col: true },
+                  { label: 'SA Account', value: detailRow.has_account ? 'Yes' : 'No', col: false },
+                  { label: 'Checked In', value: detailRow.checked_in_at ? new Date(detailRow.checked_in_at).toLocaleString() : 'No', col: false },
+                  { label: 'Registered', value: detailRow.registered_at ? new Date(detailRow.registered_at).toLocaleString() : '—', col: true },
+                  { label: 'Reminder Sent', value: detailRow.reminder_sent_at ? new Date(detailRow.reminder_sent_at).toLocaleString() : null, col: true },
+                ].filter(item => item.value).map((item) => (
+                  <View key={item.label} style={{ 
+                    width: item.col ? '100%' : '48%', 
+                    minWidth: item.col ? '100%' : 140,
+                    backgroundColor: 'rgba(255,255,255,0.03)', 
+                    borderRadius: 8, 
+                    padding: 10,
+                    borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
+                  }}>
+                    <Text style={{ fontFamily: FONTS.semi, fontSize: 10, color: SAC.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>{item.label}</Text>
+                    <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.text }}>{item.value || '—'}</Text>
+                  </View>
+                ))}
+              </View>
+
+              {/* Team Members (if team registration) */}
+              {detailRow.registration_type === 'team' && detailRow.team_members?.length > 0 && (
+                <View style={{ backgroundColor: 'rgba(124,58,237,0.08)', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: 'rgba(167,139,250,0.2)' }}>
+                  <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text, marginBottom: 10 }}>Team Members ({detailRow.team_members.length})</Text>
+                  <View style={{ gap: 8 }}>
+                    {detailRow.team_members.map((member: any, idx: number) => (
+                      <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 10 }}>
+                        <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(124,58,237,0.25)', alignItems: 'center', justifyContent: 'center' }}>
+                          <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: '#C4B5FD' }}>{idx + 2}</Text>
+                        </View>
+                        <View style={{ flex: 1, minWidth: 0 }}>
+                          <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>{member.name || '—'}</Text>
+                          <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>{member.email || ''} {member.phone ? `· ${member.phone}` : ''}</Text>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {/* Session Coupons */}
+              {(detailRow.coupons || []).length > 0 && (
+                <View style={{ backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
+                    <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>Session Coupons</Text>
+                    <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.dim }}>{detailRow.coupons.length} issued</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                    {(detailRow.coupons || []).map((c: any, ci: number) => (
+                      <View key={ci} style={{
+                        flexDirection: 'row', alignItems: 'center', gap: 8,
+                        backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 7,
+                        paddingHorizontal: 10, paddingVertical: 8,
+                        borderWidth: 1, borderColor: c.used ? 'rgba(16,185,129,0.30)' : 'rgba(167,139,250,0.25)',
+                        minWidth: 140,
+                      }}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: SAC.text }}>
+                            {c.session_name || c.session_key}
+                          </Text>
+                          <Text style={{ fontFamily: FONTS.med, fontSize: 9, color: SAC.dim }}>
+                            {c.session_day > 1 ? `Day ${c.session_day} · ` : ''}{c.coupon_code || ''}
+                          </Text>
+                        </View>
+                        <View style={{
+                          borderRadius: 5, paddingHorizontal: 7, paddingVertical: 3,
+                          backgroundColor: c.used ? 'rgba(16,185,129,0.15)' : 'rgba(167,139,250,0.15)',
+                        }}>
+                          <Text style={{ fontFamily: FONTS.bold, fontSize: 9, color: c.used ? '#34D399' : '#A78BFA' }}>
+                            {c.used ? 'USED' : 'ACTIVE'}
+                          </Text>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+
               <GradientButton onPress={() => setDetailRow(null)} size="sm" style={{ alignSelf: 'flex-end' }}>
                 <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>Close</Text>
               </GradientButton>
