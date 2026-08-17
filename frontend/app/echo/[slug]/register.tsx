@@ -908,14 +908,39 @@ export default function EchoRegisterPage() {
                   <View style={s.feeIcon}><CreditCard size={18} color={GRAD.from} /></View>
                   <View style={{ flex: 1 }}>
                     <Text style={s.feeLabel}>Registration Fee</Text>
-                    <Text style={s.feeValue}>{fee > 0 ? `${currency} ${fee}` : 'FREE'}</Text>
-                    {registrationType === 'team' && fee > 0 && (
-                      <Text style={[s.feeLabel, { marginTop: 4, textTransform: 'none', letterSpacing: 0, color: '#C4B5FD' }]}>
-                        × {teamSize} member{teamSize > 1 ? 's' : ''} = {currency} {totalFee}
-                      </Text>
+                    {registrationType === 'team' && fee > 0 ? (
+                      // Team fee breakdown
+                      <View style={{ marginTop: 4 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                          <Text style={[s.feeValue, { fontSize: 16 }]}>{currency} {fee}</Text>
+                          <Text style={{ color: PALETTE.muted, fontFamily: FONTS.med, fontSize: 12 }}>per person</Text>
+                        </View>
+                        <View style={{ 
+                          flexDirection: 'row', alignItems: 'center', gap: 6, 
+                          marginTop: 8, paddingVertical: 8, paddingHorizontal: 12,
+                          backgroundColor: 'rgba(124,58,237,0.12)', borderRadius: 8,
+                          borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)',
+                        }}>
+                          <Users size={14} color="#C4B5FD" />
+                          <Text style={{ color: '#C4B5FD', fontFamily: FONTS.semi, fontSize: 12 }}>
+                            {teamSize} team member{teamSize > 1 ? 's' : ''}
+                          </Text>
+                          <Text style={{ color: PALETTE.muted, fontFamily: FONTS.med, fontSize: 12 }}>&#215;</Text>
+                          <Text style={{ color: '#C4B5FD', fontFamily: FONTS.semi, fontSize: 12 }}>
+                            {currency} {fee}
+                          </Text>
+                          <Text style={{ color: PALETTE.muted, fontFamily: FONTS.med, fontSize: 12 }}>=</Text>
+                          <Text style={{ color: '#fff', fontFamily: TYPO.display800, fontSize: 16, marginLeft: 4 }}>
+                            {currency} {totalFee}
+                          </Text>
+                        </View>
+                      </View>
+                    ) : (
+                      // Individual fee
+                      <Text style={s.feeValue}>{fee > 0 ? `${currency} ${fee}` : 'FREE'}</Text>
                     )}
                     {regCfg.registration_type ? (
-                      <Text style={[s.feeLabel, { marginTop: 2, textTransform: 'none', letterSpacing: 0 }]}>
+                      <Text style={[s.feeLabel, { marginTop: 6, textTransform: 'none', letterSpacing: 0 }]}>
                         {regCfg.registration_type === 'team' ? 'Team Registration' : 'Individual Registration'}
                       </Text>
                     ) : null}
