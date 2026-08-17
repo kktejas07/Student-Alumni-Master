@@ -1284,12 +1284,12 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#0a0f1e' },
   pageBg: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
   pageBgOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(10,15,30,0.50)' },
-  content: { padding: 20, maxWidth: 1400, width: '100%', alignSelf: 'center' },
+  content: { padding: 16, maxWidth: 1400, width: '100%', alignSelf: 'center' },
   center: { alignItems: 'center', justifyContent: 'center', paddingVertical: 100, gap: 14 },
   centerText: { color: PALETTE.muted, fontFamily: FONTS.med, fontSize: 14 },
 
   split: { flexDirection: 'row', gap: 20, alignItems: 'stretch' },
-  splitStack: { flexDirection: 'column' },
+  splitStack: { flexDirection: 'column', gap: 16 },
 
   posterCol: { flex: 1.2, minWidth: 0, gap: 12 },
   posterColStack: { width: '100%' },
@@ -1306,7 +1306,7 @@ const s = StyleSheet.create({
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.25)' },
   dotOn: { backgroundColor: GRAD.from, width: 22 },
 
-  formCol: { flex: 1, minWidth: 380, maxWidth: 520 },
+  formCol: { flex: 1, minWidth: 0, maxWidth: 520 },
   formColStack: { width: '100%' },
 
   backBtn: {
@@ -1322,34 +1322,34 @@ const s = StyleSheet.create({
 
   heroBanner: {
     position: 'relative', borderRadius: 18, overflow: 'hidden',
-    marginBottom: 20, minHeight: 200,
+    marginBottom: 16, minHeight: 180,
     borderWidth: 1, borderColor: 'rgba(167,139,250,0.2)',
   },
   heroBannerStack: { width: '100%' },
   heroBannerImg: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
   heroBannerOverlay: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
-  heroBannerContent: { position: 'relative', padding: 28, gap: 8, zIndex: 2 },
+  heroBannerContent: { position: 'relative', padding: 20, gap: 8, zIndex: 2 },
 
-  header: { borderRadius: 18, padding: 24, gap: 8, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)' },
+  header: { borderRadius: 18, padding: 16, gap: 8, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)' },
   headerBadge: {
     flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 6,
     backgroundColor: 'rgba(124,58,237,0.25)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 14,
   },
   headerBadgeText: { color: '#C4B5FD', fontFamily: TYPO.display700, fontSize: 10, letterSpacing: 1 },
-  headerTitle: { color: '#fff', fontFamily: TYPO.display800, fontSize: 26 },
-  headerOrg: { color: PALETTE.muted, fontFamily: FONTS.med, fontSize: 13 },
+  headerTitle: { color: '#fff', fontFamily: TYPO.display800, fontSize: 22 },
+  headerOrg: { color: PALETTE.muted, fontFamily: FONTS.med, fontSize: 12 },
   metaCol: { gap: 6, marginTop: 6 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   metaText: { color: PALETTE.muted, fontFamily: FONTS.med, fontSize: 12.5 },
 
   feeCard: {
     backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 14, borderWidth: 1,
-    borderColor: PALETTE.glassBorder, padding: 16, gap: 10, marginBottom: 14,
+    borderColor: PALETTE.glassBorder, padding: 14, gap: 10, marginBottom: 12,
   },
-  feeIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(124,58,237,0.18)', alignItems: 'center', justifyContent: 'center' },
+  feeIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(124,58,237,0.18)', alignItems: 'center', justifyContent: 'center' },
   feeLabel: { color: PALETTE.muted, fontFamily: FONTS.med, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.6 },
-  feeValue: { color: '#fff', fontFamily: TYPO.display800, fontSize: 22 },
-  secureBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(16,185,129,0.12)', borderRadius: 10, paddingHorizontal: 9, paddingVertical: 4 },
+  feeValue: { color: '#fff', fontFamily: TYPO.display800, fontSize: 20 },
+  secureBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(16,185,129,0.12)', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4 },
   secureText: { color: '#34D399', fontFamily: FONTS.semi, fontSize: 10 },
   seatsRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   seatsText: { color: PALETTE.muted, fontFamily: FONTS.med, fontSize: 11.5 },
@@ -1357,9 +1357,9 @@ const s = StyleSheet.create({
 
   formCard: {
     backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 14, borderWidth: 1,
-    borderColor: PALETTE.glassBorder, padding: 20, gap: 8,
+    borderColor: PALETTE.glassBorder, padding: 16, gap: 8,
   },
-  cardTitle: { color: '#fff', fontFamily: TYPO.display700, fontSize: 16, marginBottom: 6 },
+  cardTitle: { color: '#fff', fontFamily: TYPO.display700, fontSize: 15, marginBottom: 6 },
   label: { color: '#94a3b8', fontFamily: FONTS.semi, fontSize: 11, marginTop: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
   input: {
     backgroundColor: 'rgba(255,255,255,0.06)', borderColor: PALETTE.glassBorder, borderWidth: 1,
@@ -1398,21 +1398,22 @@ const s = StyleSheet.create({
   inputError: { borderColor: '#F87171' },
   fieldErrText: { color: '#F87171', fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
   error: { color: '#F87171', fontFamily: FONTS.med, fontSize: 12.5, marginTop: 6 },
-  payBtnWrap: { borderRadius: 12, marginTop: 18, overflow: 'hidden' },
+  payBtnWrap: { borderRadius: 12, marginTop: 16, overflow: 'hidden' },
   payBtnDisabledWrap: { opacity: 0.45 },
   payBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    paddingVertical: 15,
+    paddingVertical: 14,
+    minHeight: 48,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   payBtnDisabled: {
     ...(Platform.OS === 'web' ? ({ cursor: 'not-allowed' } as any) : {}),
   },
-  payBtnText: { color: '#fff', fontFamily: TYPO.display700, fontSize: 15 },
+  payBtnText: { color: '#fff', fontFamily: TYPO.display700, fontSize: 14 },
   payBtnTextDisabled: { color: 'rgba(255,255,255,0.45)' },
 
   termsRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 18, marginBottom: 4,
+    flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 16, marginBottom: 4,
   },
   checkbox: {
     width: 20, height: 20, borderRadius: 5, borderWidth: 1.5,
@@ -1643,11 +1644,13 @@ const s = StyleSheet.create({
   },
   handbookBar: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 10,
     marginVertical: 10,
   },
   handbookBtn: {
     flex: 1,
+    minWidth: 140,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1656,7 +1659,7 @@ const s = StyleSheet.create({
     borderColor: 'rgba(167,139,250,0.3)',
     borderWidth: 1,
     borderRadius: 12,
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 12,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
@@ -1674,8 +1677,9 @@ const s = StyleSheet.create({
     borderColor: 'rgba(52,211,153,0.3)',
     borderWidth: 1,
     borderRadius: 12,
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 14,
+    minWidth: 120,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   shareBtnInlineText: {
