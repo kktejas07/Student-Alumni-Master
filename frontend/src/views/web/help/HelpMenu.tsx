@@ -18,6 +18,7 @@ import { useRouter } from 'expo-router';
 import { useTour } from '@/src/views/web/tour/TourProvider';
 import { TOURS, TourKey } from '@/src/views/web/tour/tours.config';
 import { NX } from '@/src/theme/nexus';
+import { track, trackClick, logger as analyticsLogger } from '@/src/analytics';
 
 export function HelpMenu({ portal }: { portal: TourKey }) {
   const router = useRouter();
@@ -42,8 +43,16 @@ export function HelpMenu({ portal }: { portal: TourKey }) {
   return (
     <View ref={ref} style={s.wrap}>
       <Pressable
-        onPress={() => setOpen(!open)}
+        onPress={() => {
+          trackClick('help_menu_toggle', { portal });
+          analyticsLogger.debug('[HelpMenu DEBUG] Toggle help menu', { portal });
+          setOpen(!open);
+        }}
         nativeID="help-menu"
+        testID="help-menu-toggle-btn"
+        accessibilityLabel="Help menu"
+        accessibilityHint="Opens help options, guided tour, and privacy policy links"
+        accessibilityRole="button"
         style={({ hovered }: any) => [
           s.btn,
           open && { borderColor: accent + '88', backgroundColor: accent + '15' },
@@ -54,11 +63,19 @@ export function HelpMenu({ portal }: { portal: TourKey }) {
       </Pressable>
 
       {open && (
-        <View style={s.menu}>
+        <View style={s.menu} testID="help-menu-dropdown">
           <Text style={s.menuLbl}>HELP</Text>
 
           <Pressable
-            onPress={() => { setOpen(false); replay(portal); }}
+            onPress={() => {
+              trackClick('help_menu_replay_tour', { portal });
+              analyticsLogger.debug('[HelpMenu DEBUG] Replay tour clicked', { portal });
+              setOpen(false);
+              replay(portal);
+            }}
+            accessibilityLabel={seen ? 'Replay guided tour' : 'Take guided tour'}
+            testID="help-menu-tour-btn"
+            accessibilityRole="button"
             style={({ hovered }: any) => [s.item, hovered && Platform.OS === 'web' && { backgroundColor: 'rgba(255,255,255,0.04)' }]}
           >
             <View style={[s.itemIcon, { backgroundColor: accent + '15', borderColor: accent + '40' }]}>

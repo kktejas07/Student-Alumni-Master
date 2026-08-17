@@ -37,11 +37,12 @@ import { Av } from './atoms';
 import { FadeInView, PressScale, SparkIcon, PulseDot } from './motion';
 import { AgentKLauncher } from '@/src/views/web/agent-k/AgentKLauncher';
 import { SALogo } from '@/src/views/components';
+import { trackClick, logger as analyticsLogger } from '@/src/analytics';
 
 import { api } from '@/src/models/services/api';
 
 export type StudentNavId =
-  | 'dashboard' | 'career-ai' | 'internships' | 'network' | 'events'
+  | 'dashboard' | 'career-ai' | 'internships' | 'network' | 'myevents' | 'events'
   | 'financial' | 'deals' | 'wallet' | 'higher-ed' | 'rentals' | 'courses' | 'profile'
   | 'my-bookings' | 'my-workshops' | 'echo-showcase' | string;
 
@@ -52,7 +53,7 @@ export const NAV: Array<{ id: StudentNavId; label: string; Icon: any; spark?: bo
   { id: 'network',         label: 'Network',            Icon: Users },
   { id: 'my-bookings',     label: 'My Bookings',        Icon: CalendarCheck },
   { id: 'my-tickets',      label: 'My Tickets',         Icon: Ticket },
-  { id: 'events',          label: 'Events',             Icon: Calendar },
+  { id: 'myevents',        label: 'My Events',          Icon: Calendar },
   { id: 'my-workshops',    label: 'My Workshops',       Icon: BookOpen },
   { id: 'courses',         label: 'Courses',            Icon: BookOpen },
   { id: 'financial',       label: 'Financial',          Icon: Wallet },
@@ -336,12 +337,17 @@ export function Sidebar({
               {echoGroup}
               <FadeInView delay={150 + i * 35} distance={8}>
                 <PressScale
-                  onPress={() => onNav(id)}
+                  onPress={() => {
+                    trackClick('student_sidebar_nav_click', { nav_id: id, label });
+                    analyticsLogger.debug('[Sidebar DEBUG] Nav item clicked', { id, label });
+                    onNav(id);
+                  }}
                   accessibilityRole="tab"
                   accessibilityLabel={label}
                   accessibilityState={{ selected: isActive }}
                   accessibilityHint={`Opens the ${label} section of the dashboard`}
                   nativeID={`student-nav-${id}`}
+                  testID={`student-nav-${id}`}
                 >
                   {isActive ? (
                     <LinearGradient

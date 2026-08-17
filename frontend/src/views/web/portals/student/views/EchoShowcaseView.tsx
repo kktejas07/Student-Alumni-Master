@@ -13,7 +13,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, Pressable, Platform,
-  ActivityIndicator, useWindowDimensions, Modal, Image,
+  ActivityIndicator, useWindowDimensions, Modal, Image, Linking,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
@@ -197,6 +197,21 @@ function HeroBannerCarousel({ banners, data, isWide, onBack, canonicalSlug, show
             </LinearGradient>
           </Pressable>
         )}
+        <PressScale
+          onPress={() => {
+            const base = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8002';
+            if (Platform.OS === 'web') {
+              window.open(`${base}/api/echo/handbook/download`, '_blank');
+            } else {
+              Linking.openURL(`${base}/api/echo/handbook/download`);
+            }
+          }}
+        >
+          <View style={[bc.shareBtn, { backgroundColor: 'rgba(124,58,237,0.45)', borderColor: '#A78BFA' }]}>
+            <FileText size={13} color="#fff" />
+            <Text style={bc.btnText}>Event Handbook (PDF)</Text>
+          </View>
+        </PressScale>
         <PressScale onPress={onShare}>
           <View style={bc.shareBtn}>
             <Share2 size={13} color="#fff" />
@@ -714,6 +729,7 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
   const [lbOpen, setLbOpen] = useState(false);
   const [lbIndex, setLbIndex] = useState(0);
   const [faqOpen, setFaqOpen] = useState<number | null>(0);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
   const router = useRouter();
   const toast = useToast();
 
@@ -822,17 +838,7 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
                 router.push(`/echo/${canonicalSlug}/register` as any);
               }
             }}
-            onShare={() => {
-              const url = typeof window !== 'undefined' ? window.location.href : '';
-              const text = `Check out ${data?.title || 'this event'}!`;
-              if (Platform.OS === 'web' && navigator.share) {
-                navigator.share({ title: data?.title, text, url }).catch(() => {});
-              } else if (Platform.OS === 'web' && navigator.clipboard) {
-                navigator.clipboard.writeText(`${text}\n${url}`).then(() => {
-                  toast.success('Link copied');
-                }).catch(() => {});
-              }
-            }}
+            onShare={() => setShareModalOpen(true)}
           />
         </FadeInView>
       )}
@@ -866,17 +872,7 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
                 </LinearGradient>
               </Pressable>
             )}
-            <PressScale onPress={() => {
-              const url = typeof window !== 'undefined' ? window.location.href : '';
-              const text = `Check out ${data?.title || 'this event'}!`;
-              if (Platform.OS === 'web' && navigator.share) {
-                navigator.share({ title: data?.title, text, url }).catch(() => {});
-              } else if (Platform.OS === 'web' && navigator.clipboard) {
-                navigator.clipboard.writeText(`${text}\n${url}`).then(() => {
-                  toast.success('Link copied');
-                }).catch(() => {});
-              }
-            }}>
+            <PressScale onPress={() => setShareModalOpen(true)}>
               <View style={s.floatingBtn}>
                 <Share2 size={13} color="#fff" />
                 <Text style={s.floatingBtnText}>Share</Text>
@@ -1306,6 +1302,76 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
         </LinearGradient>
       </FadeInView>
       )}
+
+      {/* ── SHARE MODAL ─────────────────────────────────────────────────── */}
+      {shareModalOpen && (
+        <Modal transparent animationType="fade" onRequestClose={() => setShareModalOpen(false)}>
+          <Pressable style={s.shareModalOverlay} onPress={() => setShareModalOpen(false)}>
+            <Pressable style={s.shareModalCard} onPress={(e) => e.stopPropagation()}>
+              <View style={s.shareModalHeader}>
+                <Text style={s.shareModalTitle}>SHARE EVENT</Text>
+                <Pressable onPress={() => setShareModalOpen(false)} style={{ padding: 4 }}>
+                  <X size={18} color="#fff" />
+                </Pressable>
+              </View>
+
+              <Text style={s.shareModalSub}>
+                Share <Text style={{ color: '#fff', fontFamily: FONTS.bold }}>{data?.title || 'SNIST Hackwave 3.0'}</Text> with your friends & teammates:
+              </Text>
+
+              <View style={{ gap: 10, marginTop: 8 }}>
+                {/* WhatsApp */}
+                <Pressable
+                  onPress={() => {
+                    const url = typeof window !== 'undefined' ? window.location.href : 'http://localhost:8081/echo/snist';
+                    const text = encodeURIComponent(`🚀 Join ${data?.title || 'SNIST Hackwave 3.0'} — National Level AI Hackathon!\n\nRegister now: ${url}`);
+                    const waUrl = `https://api.whatsapp.com/send?text=${text}`;
+                    if (Platform.OS === 'web' && typeof window !== 'undefined') window.open(waUrl, '_blank');
+                    else Linking.openURL(waUrl);
+                    setShareModalOpen(false);
+                  }}
+                  style={[s.shareOptionBtn, { backgroundColor: 'rgba(37,211,102,0.15)', borderColor: 'rgba(37,211,102,0.4)' }]}
+                >
+                  <Text style={{ fontSize: 18 }}>🟢</Text>
+                  <Text style={[s.shareOptionText, { color: '#25D366' }]}>Share on WhatsApp</Text>
+                </Pressable>
+
+                {/* Telegram */}
+                <Pressable
+                  onPress={() => {
+                    const url = typeof window !== 'undefined' ? window.location.href : 'http://localhost:8081/echo/snist';
+                    const text = encodeURIComponent(`🚀 Join ${data?.title || 'SNIST Hackwave 3.0'} — National Level AI Hackathon!`);
+                    const tgUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${text}`;
+                    if (Platform.OS === 'web' && typeof window !== 'undefined') window.open(tgUrl, '_blank');
+                    else Linking.openURL(tgUrl);
+                    setShareModalOpen(false);
+                  }}
+                  style={[s.shareOptionBtn, { backgroundColor: 'rgba(0,136,204,0.15)', borderColor: 'rgba(0,136,204,0.4)' }]}
+                >
+                  <Text style={{ fontSize: 18 }}>✈️</Text>
+                  <Text style={[s.shareOptionText, { color: '#38BDF8' }]}>Share on Telegram</Text>
+                </Pressable>
+
+                {/* Copy Link */}
+                <Pressable
+                  onPress={() => {
+                    const url = typeof window !== 'undefined' ? window.location.href : 'http://localhost:8081/echo/snist';
+                    if (typeof window !== 'undefined' && navigator.clipboard) {
+                      navigator.clipboard.writeText(url);
+                      toast.success('Event link copied to clipboard!');
+                    }
+                    setShareModalOpen(false);
+                  }}
+                  style={[s.shareOptionBtn, { backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.15)' }]}
+                >
+                  <Link2 size={16} color="#A78BFA" />
+                  <Text style={[s.shareOptionText, { color: '#fff' }]}>Copy Event Link</Text>
+                </Pressable>
+              </View>
+            </Pressable>
+          </Pressable>
+        </Modal>
+      )}
     </View>
   );
 }
@@ -1481,4 +1547,28 @@ const s = StyleSheet.create({
   },
   ctaBtnFull: { alignSelf: 'stretch', alignItems: 'center', marginTop: 4 },
   ctaBtnText: { fontFamily: FONTS.bold, fontSize: 13, color: '#fff' },
+
+  // Share Modal
+  shareModalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.75)',
+    alignItems: 'center', justifyContent: 'center', padding: 20,
+  },
+  shareModalCard: {
+    width: '100%', maxWidth: 420, backgroundColor: '#0d1326',
+    borderRadius: 18, borderWidth: 1, borderColor: PALETTE.glassBorder,
+    padding: 20, gap: 12,
+  },
+  shareModalHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)',
+    paddingBottom: 12,
+  },
+  shareModalTitle: { color: '#C4B5FD', fontFamily: TYPO.display700, fontSize: 13, letterSpacing: 0.8 },
+  shareModalSub: { color: PALETTE.muted, fontFamily: FONTS.med, fontSize: 13, lineHeight: 18 },
+  shareOptionBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12, borderWidth: 1,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  shareOptionText: { fontFamily: FONTS.semibold, fontSize: 14, flex: 1 },
 });

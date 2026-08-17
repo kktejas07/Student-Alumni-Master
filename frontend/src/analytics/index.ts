@@ -2,22 +2,30 @@
  * frontend/src/analytics/index.ts
  *
  * Public API for StudentAlumni.ai Unified Analytics.
- * Single call-site for tracking events, user identification, components, and hooks.
+ * Single call-site for tracking events, user identification, components, hooks, and debug logging.
  */
 
 import { EVENTS } from './constants/events';
 import { ANALYTICS_IDS } from './constants/ids';
+import { getSessionId } from './core/context';
 import { dispatcher } from './core/dispatcher';
+import { getLogLevel, logger, setLogLevel } from './core/logger';
 import { AnalyticsEvent, ElementId, Primitive, UserTraits } from './types';
 
 // Export constants & registry
 export { EVENTS, ANALYTICS_IDS };
 
-// Export types
+// Export types & descriptor builder
 export * from './types';
+export { defineElement } from './types';
+export { ALL_ELEMENT_IDS } from './generated/element-ids';
+
+// Export logger helpers
+export { logger, setLogLevel, getLogLevel };
 
 // Export components
 export { AnalyticsRoot } from './components/AnalyticsRoot';
+export { AnalyticsErrorBoundary } from './components/AnalyticsErrorBoundary';
 export { Trackable } from './components/Trackable';
 export { TrackedCard } from './components/TrackedCard';
 export { TrackedPressable } from './components/TrackedPressable';
@@ -67,7 +75,43 @@ export async function flush(): Promise<void> {
   await dispatcher.flush();
 }
 
+// Debug Helpers
+export function getDebugLog() {
+  return dispatcher.getDebugLog();
+}
+
+export function clearDebugLog() {
+  dispatcher.clearDebugLog();
+}
+
+export function dumpDebugSummary() {
+  const log = dispatcher.getDebugLog();
+  logger.info(
+    'Summary',
+    `Session: ${getSessionId()} | Total Dispatched Events: ${log.length}`,
+    {
+      sessionId: getSessionId(),
+      eventCount: log.length,
+      recentEvents: log.slice(0, 10),
+    }
+  );
+}
+
+// Attach dev helper to window in browser
+if (typeof window !== 'undefined') {
+  (window as any).__STUDENT_ALUMNI_ANALYTICS__ = {
+    track,
+    trackClick,
+    identify,
+    getDebugLog,
+    clearDebugLog,
+    dumpDebugSummary,
+    setLogLevel,
+  };
+}
+
 export default {
+  init: () => dispatcher.init().catch(() => {}),
   track,
   trackClick,
   trackImpression,
@@ -76,6 +120,11 @@ export default {
   setUserProperties,
   reset,
   flush,
+  getDebugLog,
+  clearDebugLog,
+  dumpDebugSummary,
+  setLogLevel,
+  logger,
   EVENTS,
   ANALYTICS_IDS,
 };

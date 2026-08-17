@@ -1,7 +1,7 @@
 /**
  * frontend/src/analytics/types.ts
  *
- * Core TypeScript definitions for the unified analytics layer.
+ * Core TypeScript definitions and element descriptor builder for the unified analytics layer.
  */
 
 import { EVENTS } from './constants/events';
@@ -94,9 +94,9 @@ export interface UserTraits {
 
 export interface ElementDescriptor {
   id: string;
-  type: ElementKind;
-  surface: SurfaceType;
-  area: string;
+  type?: ElementKind;
+  surface?: SurfaceType;
+  area?: string;
   label?: string;
   events?: AnalyticsEvent[];
   emits?: AnalyticsEvent;
@@ -112,4 +112,24 @@ export interface ElementDescriptor {
     removeAfter: string;
   };
   aliases?: string[];
+}
+
+/**
+ * Descriptor Registry Builder (Part 8.2)
+ * One defineElement() call per interactive element for type safety, lifecycle tracking, and codegen.
+ */
+export function defineElement<T extends ElementDescriptor>(descriptor: T): Required<Pick<ElementDescriptor, 'id' | 'type' | 'surface' | 'area'>> & T {
+  const parts = descriptor.id.split('.');
+  const derivedSurface = (parts[1] || 'global') as SurfaceType;
+  const derivedArea = parts[2] || 'general';
+  const derivedType = (parts[3] || 'btn') as ElementKind;
+
+  return {
+    surface: derivedSurface,
+    area: derivedArea,
+    type: derivedType,
+    events: [EVENTS.ELEMENT_CLICK],
+    pii: 'none',
+    ...descriptor,
+  };
 }

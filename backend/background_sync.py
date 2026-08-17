@@ -90,6 +90,13 @@ async def run_unified_sync_task():
     except Exception as e:
         logger.error(f"Error fetching events: {e}")
 
+    try:
+        from services.event_agent import run_global_event_agent
+        synced_count = await run_global_event_agent(db)
+        logger.info(f"Sync completed: AI Global Event Agent ({synced_count} events).")
+    except Exception as e:
+        logger.error(f"Error in AI Event Agent background sync: {e}")
+
     # Pass the db instance from server module
     try:
         await sync_courses_to_db(db)
@@ -108,6 +115,13 @@ async def run_unified_sync_task():
         logger.info("Sync completed: Talent Pool LinkedIn enrichment.")
     except Exception as e:
         logger.error(f"Error syncing talent pool: {e}")
+
+    try:
+        from services.platform_rag import index_all_platform_data
+        rag_count = await index_all_platform_data(db)
+        logger.info(f"Sync completed: Platform RAG Vector Indexing ({rag_count} entities).")
+    except Exception as e:
+        logger.error(f"Error in Platform RAG background sync: {e}")
 
     logger.info("Completed unified background sync task.")
 
@@ -185,8 +199,18 @@ def start_sync_scheduler():
             coalesce=True,
             next_run_time=datetime.now(timezone.utc) + timedelta(minutes=1),
         )
+        from services.event_agent import run_global_event_agent
+        _sync_scheduler.add_job(
+            run_global_event_agent,
+            IntervalTrigger(minutes=30),
+            id="thirty_min_ai_event_agent_sync",
+            replace_existing=True,
+            max_instances=1,
+            coalesce=True,
+            next_run_time=datetime.now(timezone.utc) + timedelta(seconds=10),
+        )
         _sync_scheduler.start()
-        logger.info("Unified sync scheduler started (interval=10m)")
+        logger.info("Unified sync scheduler started (interval=10m/30m AI Event Agent)")
     except Exception as e:
         logger.error(f"Failed to start sync scheduler: {e}")
 

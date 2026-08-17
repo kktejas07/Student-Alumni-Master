@@ -29,6 +29,7 @@ import {
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { request } from '@/src/models/services/api';
+import { useScreenAnalytics, Trackable, ANALYTICS_IDS } from '@/src/analytics';
 import { UserBadgesInline } from './UserBadgesInline';
 import { StudentDashboardMobileView } from './StudentDashboardMobileView';
 import { PredictionTimeline } from './PredictionTimeline';
@@ -218,6 +219,7 @@ export type StudentDashboardViewProps = {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export function StudentDashboardView({ showTopBar = true, onOpenNotifications, onOpenProfile }: StudentDashboardViewProps) {
+  useScreenAnalytics('student_dashboard');
   const { width } = useWindowDimensions();
   const isWide = width >= 980;
   const router = useRouter();
@@ -650,10 +652,12 @@ export function StudentDashboardView({ showTopBar = true, onOpenNotifications, o
               </View>
               <View style={s.qaGrid}>
                 {QUICK_ACTIONS_NAV.map((qa) => (
-                  <Pressable key={qa.id} onPress={() => handleNav(qa.id)} testID={`dash-qa-${qa.id}`} style={({ hovered, pressed }: any) => [s.qaTile, hovered && { backgroundColor: qa.color + '22', borderColor: qa.color + '44', transform: [{ translateY: -1 }] }, pressed && { transform: [{ scale: 0.97 }] }]}>
-                    <qa.Icon size={16} color={qa.color} />
-                    <Text style={s.qaLabel}>{qa.label}</Text>
-                  </Pressable>
+                  <Trackable key={qa.id} id={ANALYTICS_IDS.global.sidebar.link.item} label={qa.label} props={{ action_id: qa.id }} onPress={() => handleNav(qa.id)}>
+                    <Pressable testID={`dash-qa-${qa.id}`} style={({ hovered, pressed }: any) => [s.qaTile, hovered && { backgroundColor: qa.color + '22', borderColor: qa.color + '44', transform: [{ translateY: -1 }] }, pressed && { transform: [{ scale: 0.97 }] }]}>
+                      <qa.Icon size={16} color={qa.color} />
+                      <Text style={s.qaLabel}>{qa.label}</Text>
+                    </Pressable>
+                  </Trackable>
                 ))}
               </View>
             </View>

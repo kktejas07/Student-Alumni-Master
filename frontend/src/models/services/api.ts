@@ -91,6 +91,11 @@ export async function request<T>(
   options: { method?: string; body?: any; auth?: boolean } = {},
 ): Promise<T> {
   const { method = 'GET', body, auth = true } = options;
+  const t0 = typeof Date !== 'undefined' ? Date.now() : 0;
+  const fullUrl = `${BASE_URL}/api${path}`;
+
+  // eslint-disable-next-line no-console
+  console.log(`👉 [API REQ] ${method} ${fullUrl}`);
 
   // Token-readiness retry: AsyncStorage may not have surfaced the saved
   // token on first paint after navigation/page reload. Wait briefly so
@@ -115,54 +120,70 @@ export async function request<T>(
   }
   if (auth && token) headers['Authorization'] = `Bearer ${token}`;
 
-  const res = await fetch(`${BASE_URL}/api${path}`, {
-    method,
-    headers,
-    body: body ? (isFormData ? body : JSON.stringify(body)) : undefined,
-  });
-
-  const text = await res.text();
-  let data: any;
   try {
-    data = text ? JSON.parse(text) : {};
-  } catch {
-    data = { raw: text };
-  }
+    const res = await fetch(fullUrl, {
+      method,
+      headers,
+      body: body ? (isFormData ? body : JSON.stringify(body)) : undefined,
+    });
 
-  // On 401, exchange the refresh token for a fresh access token and retry
-  // once. If the refresh fails (expired/revoked), fall through to the error
-  // path below.
-  if (res.status === 401 && auth) {
-    const fresh = await refreshAccessToken();
-    if (fresh) {
-      const r2 = await fetch(`${BASE_URL}/api${path}`, {
-        method,
-        headers: { ...headers, Authorization: `Bearer ${fresh}` },
-        body: body ? (isFormData ? body : JSON.stringify(body)) : undefined,
-      });
-      const t = await r2.text();
-      let d: any;
-      try { d = t ? JSON.parse(t) : {}; } catch { d = { raw: t }; }
-      if (r2.ok) return d as T;
-      const detail2 = d?.detail;
-      const msg2 = typeof detail2 === 'string'
-        ? detail2
-        : detail2?.msg || `Request failed (${r2.status})`;
-      throw new Error(msg2);
+    const duration = t0 ? Date.now() - t0 : 0;
+
+    const text = await res.text();
+    let data: any;
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch {
+      data = { raw: text };
     }
-  }
 
-  if (!res.ok) {
-    const detail = data?.detail;
-    const msg =
-      typeof detail === 'string'
-        ? detail
-        : Array.isArray(detail)
-          ? detail.map((d: any) => d?.msg || JSON.stringify(d)).join(' ')
-          : detail?.msg || `Request failed (${res.status})`;
-    throw new Error(msg);
+    // On 401, exchange the refresh token for a fresh access token and retry once.
+    if (res.status === 401 && auth) {
+      const fresh = await refreshAccessToken();
+      if (fresh) {
+        const r2 = await fetch(fullUrl, {
+          method,
+          headers: { ...headers, Authorization: `Bearer ${fresh}` },
+          body: body ? (isFormData ? body : JSON.stringify(body)) : undefined,
+        });
+        const t = await r2.text();
+        let d: any;
+        try { d = t ? JSON.parse(t) : {}; } catch { d = { raw: t }; }
+        if (r2.ok) {
+          // eslint-disable-next-line no-console
+          console.log(`👈 [API RES] ${r2.status} OK (${Date.now() - t0}ms) ${method} ${fullUrl}`);
+          return d as T;
+        }
+        const detail2 = d?.detail;
+        const msg2 = typeof detail2 === 'string'
+          ? detail2
+          : detail2?.msg || `Request failed (${r2.status})`;
+        throw new Error(msg2);
+      }
+    }
+
+    if (!res.ok) {
+      const detail = data?.detail;
+      const msg =
+        typeof detail === 'string'
+          ? detail
+          : Array.isArray(detail)
+            ? detail.map((d: any) => d?.msg || JSON.stringify(d)).join(' ')
+            : detail?.msg || `Request failed (${res.status})`;
+      // eslint-disable-next-line no-console
+      console.warn(`⚠️ [API WARN] ${res.status} (${duration}ms) ${method} ${fullUrl} - ${msg}`);
+      throw new Error(msg);
+    }
+
+    // eslint-disable-next-line no-console
+    console.log(`👈 [API RES] ${res.status} OK (${duration}ms) ${method} ${fullUrl}`);
+    return data as T;
+  } catch (err: any) {
+    const duration = t0 ? Date.now() - t0 : 0;
+    // eslint-disable-next-line no-console
+    console.error(`💥 [API ERR] (${duration}ms) ${method} ${fullUrl}`, err?.message || err);
+    throw err;
   }
-  return data as T;
 }
 
 export const api = {
@@ -387,8 +408,8 @@ export const api = {
     }),
 
   // ── ECHO Showcase ──────────────────────────────────────────────────────────
-  listEchoShowcases: () => request<any>('/echo/showcases'),
-  getEchoShowcase: (slug: string) => request<any>(`/echo/showcases/${slug}`),
+  listEchoShowcases: () => request<any>('/echo/showcases', { auth: false }),
+  getEchoShowcase: (slug: string) => request<any>(`/echo/showcases/${slug}`, { auth: false }),
   registerEchoShowcase: (slug: string, payload: any) =>
     request<any>(`/echo/showcases/${slug}/register`, { method: 'POST', body: payload }),
   myEchoRegistration: (slug: string) =>

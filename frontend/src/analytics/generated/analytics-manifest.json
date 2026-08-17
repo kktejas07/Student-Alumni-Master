@@ -1,0 +1,384 @@
+{
+  "generatedAt": "2026-08-14T21:34:58.834Z",
+  "totalElements": 63,
+  "elements": [
+    {
+      "id": "sa.global.sidebar.link.item",
+      "surface": "global",
+      "area": "sidebar",
+      "type": "link"
+    },
+    {
+      "id": "sa.global.sidebar.icon.collapse",
+      "surface": "global",
+      "area": "sidebar",
+      "type": "icon"
+    },
+    {
+      "id": "sa.global.topbar.menu.profile",
+      "surface": "global",
+      "area": "topbar",
+      "type": "menu"
+    },
+    {
+      "id": "sa.global.topbar.menu.role-switch",
+      "surface": "global",
+      "area": "topbar",
+      "type": "menu"
+    },
+    {
+      "id": "sa.global.topbar.icon.notifications",
+      "surface": "global",
+      "area": "topbar",
+      "type": "icon"
+    },
+    {
+      "id": "sa.global.topbar.input.search",
+      "surface": "global",
+      "area": "topbar",
+      "type": "input"
+    },
+    {
+      "id": "sa.global.topbar.toggle.theme",
+      "surface": "global",
+      "area": "topbar",
+      "type": "toggle"
+    },
+    {
+      "id": "sa.global.notifications.row.item",
+      "surface": "global",
+      "area": "notifications",
+      "type": "row"
+    },
+    {
+      "id": "sa.global.tabbar.tab.item",
+      "surface": "global",
+      "area": "tabbar",
+      "type": "tab"
+    },
+    {
+      "id": "sa.global.toast.btn.action",
+      "surface": "global",
+      "area": "toast",
+      "type": "btn"
+    },
+    {
+      "id": "sa.global.modal.icon.close",
+      "surface": "global",
+      "area": "modal",
+      "type": "icon"
+    },
+    {
+      "id": "sa.marketing.home.banner.promo",
+      "surface": "marketing",
+      "area": "home",
+      "type": "banner"
+    },
+    {
+      "id": "sa.marketing.home.icon.carousel-next",
+      "surface": "marketing",
+      "area": "home",
+      "type": "icon"
+    },
+    {
+      "id": "sa.marketing.home.btn.hero-cta",
+      "surface": "marketing",
+      "area": "home",
+      "type": "btn"
+    },
+    {
+      "id": "sa.marketing.checkout.btn.coupon-apply",
+      "surface": "marketing",
+      "area": "checkout",
+      "type": "btn"
+    },
+    {
+      "id": "sa.marketing.checkout.btn.coupon-remove",
+      "surface": "marketing",
+      "area": "checkout",
+      "type": "btn"
+    },
+    {
+      "id": "sa.marketing.pricing.card.plan",
+      "surface": "marketing",
+      "area": "pricing",
+      "type": "card"
+    },
+    {
+      "id": "sa.echo.list.card.event",
+      "surface": "echo",
+      "area": "list",
+      "type": "card"
+    },
+    {
+      "id": "sa.echo.detail.btn.view-details",
+      "surface": "echo",
+      "area": "detail",
+      "type": "btn"
+    },
+    {
+      "id": "sa.echo.detail.btn.add-calendar",
+      "surface": "echo",
+      "area": "detail",
+      "type": "btn"
+    },
+    {
+      "id": "sa.echo.detail.icon.share",
+      "surface": "echo",
+      "area": "detail",
+      "type": "icon"
+    },
+    {
+      "id": "sa.echo.register.btn.start",
+      "surface": "echo",
+      "area": "register",
+      "type": "btn"
+    },
+    {
+      "id": "sa.echo.register.btn.submit",
+      "surface": "echo",
+      "area": "register",
+      "type": "btn"
+    },
+    {
+      "id": "sa.echo.register.chip.team-size",
+      "surface": "echo",
+      "area": "register",
+      "type": "chip"
+    },
+    {
+      "id": "sa.echo.register.card.track",
+      "surface": "echo",
+      "area": "register",
+      "type": "card"
+    },
+    {
+      "id": "sa.echo.payment.chip.method",
+      "surface": "echo",
+      "area": "payment",
+      "type": "chip"
+    },
+    {
+      "id": "sa.echo.leaderboard.row.team",
+      "surface": "echo",
+      "area": "leaderboard",
+      "type": "row"
+    },
+    {
+      "id": "sa.verify.form.btn.submit",
+      "surface": "verify",
+      "area": "form",
+      "type": "btn"
+    },
+    {
+      "id": "sa.verify.form.input.cert-id",
+      "surface": "verify",
+      "area": "form",
+      "type": "input"
+    },
+    {
+      "id": "sa.profile.btn.share-member-id",
+      "surface": "profile",
+      "area": "btn",
+      "type": "share-member-id"
+    },
+    {
+      "id": "sa.profile.btn.cert-download",
+      "surface": "profile",
+      "area": "btn",
+      "type": "cert-download"
+    },
+    {
+      "id": "sa.profile.card.certificate",
+      "surface": "profile",
+      "area": "card",
+      "type": "certificate"
+    },
+    {
+      "id": "sa.agentk.sidebar.btn.new-chat",
+      "surface": "agentk",
+      "area": "sidebar",
+      "type": "btn"
+    },
+    {
+      "id": "sa.agentk.composer.btn.send",
+      "surface": "agentk",
+      "area": "composer",
+      "type": "btn"
+    },
+    {
+      "id": "sa.agentk.composer.btn.stop",
+      "surface": "agentk",
+      "area": "composer",
+      "type": "btn"
+    },
+    {
+      "id": "sa.agentk.composer.icon.attach",
+      "surface": "agentk",
+      "area": "composer",
+      "type": "icon"
+    },
+    {
+      "id": "sa.agentk.composer.menu.model",
+      "surface": "agentk",
+      "area": "composer",
+      "type": "menu"
+    },
+    {
+      "id": "sa.agentk.settings.btn.byok-submit",
+      "surface": "agentk",
+      "area": "settings",
+      "type": "btn"
+    },
+    {
+      "id": "sa.agentk.message.icon.copy",
+      "surface": "agentk",
+      "area": "message",
+      "type": "icon"
+    },
+    {
+      "id": "sa.agentk.message.icon.feedback",
+      "surface": "agentk",
+      "area": "message",
+      "type": "icon"
+    },
+    {
+      "id": "sa.agentk.message.btn.regenerate",
+      "surface": "agentk",
+      "area": "message",
+      "type": "btn"
+    },
+    {
+      "id": "sa.agentk.empty.chip.suggestion",
+      "surface": "agentk",
+      "area": "empty",
+      "type": "chip"
+    },
+    {
+      "id": "sa.network.card.btn.connect",
+      "surface": "network",
+      "area": "card",
+      "type": "btn"
+    },
+    {
+      "id": "sa.network.card.icon.message",
+      "surface": "network",
+      "area": "card",
+      "type": "icon"
+    },
+    {
+      "id": "sa.network.list.card.person",
+      "surface": "network",
+      "area": "list",
+      "type": "card"
+    },
+    {
+      "id": "sa.network.requests.btn.accept",
+      "surface": "network",
+      "area": "requests",
+      "type": "btn"
+    },
+    {
+      "id": "sa.mentor.profile.btn.book-session",
+      "surface": "mentor",
+      "area": "profile",
+      "type": "btn"
+    },
+    {
+      "id": "sa.mentor.booking.btn.confirm",
+      "surface": "mentor",
+      "area": "booking",
+      "type": "btn"
+    },
+    {
+      "id": "sa.mentor.list.card.profile",
+      "surface": "mentor",
+      "area": "list",
+      "type": "card"
+    },
+    {
+      "id": "sa.mentor.calendar.slot.select",
+      "surface": "mentor",
+      "area": "calendar",
+      "type": "slot"
+    },
+    {
+      "id": "sa.jobs.detail.btn.apply",
+      "surface": "jobs",
+      "area": "detail",
+      "type": "btn"
+    },
+    {
+      "id": "sa.jobs.list.card.job",
+      "surface": "jobs",
+      "area": "list",
+      "type": "card"
+    },
+    {
+      "id": "sa.jobs.list.btn.load-more",
+      "surface": "jobs",
+      "area": "list",
+      "type": "btn"
+    },
+    {
+      "id": "sa.jobs.card.icon.save",
+      "surface": "jobs",
+      "area": "card",
+      "type": "icon"
+    },
+    {
+      "id": "sa.jobs.filters.btn.apply",
+      "surface": "jobs",
+      "area": "filters",
+      "type": "btn"
+    },
+    {
+      "id": "sa.auth.login.btn.submit",
+      "surface": "auth",
+      "area": "login",
+      "type": "btn"
+    },
+    {
+      "id": "sa.auth.login.btn.sso",
+      "surface": "auth",
+      "area": "login",
+      "type": "btn"
+    },
+    {
+      "id": "sa.auth.signup.btn.submit",
+      "surface": "auth",
+      "area": "signup",
+      "type": "btn"
+    },
+    {
+      "id": "sa.onboarding.role.card.select",
+      "surface": "onboarding",
+      "area": "role",
+      "type": "card"
+    },
+    {
+      "id": "sa.onboarding.campus.input.select",
+      "surface": "onboarding",
+      "area": "campus",
+      "type": "input"
+    },
+    {
+      "id": "sa.onboarding.step.btn.skip",
+      "surface": "onboarding",
+      "area": "step",
+      "type": "btn"
+    },
+    {
+      "id": "sa.onboarding.complete.btn.finish",
+      "surface": "onboarding",
+      "area": "complete",
+      "type": "btn"
+    },
+    {
+      "id": "sa.onboarding.profile.btn.resume-upload",
+      "surface": "onboarding",
+      "area": "profile",
+      "type": "btn"
+    }
+  ]
+}

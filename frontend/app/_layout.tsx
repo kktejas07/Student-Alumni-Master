@@ -31,15 +31,17 @@ import { PaperProvider, MD3LightTheme, configureFonts } from 'react-native-paper
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { Colors } from '@/src/theme';
 import { ToastProvider, ConfirmProvider } from '@/src/views/components';
-import analytics from '@/src/lib/analytics';
+import analytics, { AnalyticsRoot, AnalyticsErrorBoundary } from '@/src/analytics';
 import { AgentKQuickLauncher } from '@/src/views/web/agent-k/AgentKQuickLauncher';
 import { ConsentBanner } from '@/src/views/web/consent/ConsentBanner';
 import { TourProvider } from '@/src/views/web/tour/TourProvider';
 import { TourOverlay } from '@/src/views/web/tour/TourOverlay';
 import { AnnouncementPopup } from '@/src/views/web/components/AnnouncementPopup';
+import { initGlobalErrorLogger } from '@/src/utils/globalErrorLogger';
 
-if (Platform.OS !== 'web') {
-  LogBox.ignoreLogs(['6000ms timeout exceeded', 'fontfaceobserver']);
+LogBox.ignoreLogs(['6000ms timeout exceeded', 'fontfaceobserver']);
+if (typeof window !== 'undefined') {
+  initGlobalErrorLogger();
 }
 
 
@@ -148,43 +150,47 @@ export default function RootLayout() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <PaperProvider theme={SAPaperTheme}>
-        <SafeAreaProvider>
-          <ToastProvider>
-            <ConfirmProvider>
-            <TourProvider>
-              <StatusBar style="light" />
-              <Stack
-                screenOptions={{
-                  headerShown: false,
-                  contentStyle: { backgroundColor: Colors.background },
-                  animation: 'slide_from_right',
-                  animationDuration: 280,
-                }}
-              >
-                <Stack.Screen 
-                  name="profile/[id]" 
-                  options={{ 
-                    presentation: 'transparentModal', 
-                    animation: 'fade',
-                    contentStyle: { backgroundColor: 'transparent' }
-                  }} 
-                />
-              </Stack>
-              {/* Agent K — global Cmd/Ctrl+K quick launcher modal */}
-              <AgentKQuickLauncher />
-              {/* Phase B — privacy & cookie consent banner (web only) */}
-              <ConsentBanner />
-              {/* Phase B — product tour spotlight overlay (web only) */}
-              <TourOverlay />
-              {/* Global announcement popup (web only, feature-flagged via backend) */}
-              <AnnouncementPopup />
-            </TourProvider>
-            </ConfirmProvider>
-          </ToastProvider>
-        </SafeAreaProvider>
-      </PaperProvider>
-    </GestureHandlerRootView>
+    <AnalyticsErrorBoundary screenName="root_layout">
+      <AnalyticsRoot>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <PaperProvider theme={SAPaperTheme}>
+            <SafeAreaProvider>
+              <ToastProvider>
+                <ConfirmProvider>
+                <TourProvider>
+                  <StatusBar style="light" />
+                  <Stack
+                    screenOptions={{
+                      headerShown: false,
+                      contentStyle: { backgroundColor: Colors.background },
+                      animation: 'slide_from_right',
+                      animationDuration: 280,
+                    }}
+                  >
+                    <Stack.Screen 
+                      name="profile/[id]" 
+                      options={{ 
+                        presentation: 'transparentModal', 
+                        animation: 'fade',
+                        contentStyle: { backgroundColor: 'transparent' }
+                      }} 
+                    />
+                  </Stack>
+                  {/* Agent K — global Cmd/Ctrl+K quick launcher modal */}
+                  <AgentKQuickLauncher />
+                  {/* Phase B — privacy & cookie consent banner (web only) */}
+                  <ConsentBanner />
+                  {/* Phase B — product tour spotlight overlay (web only) */}
+                  <TourOverlay />
+                  {/* Global announcement popup (web only, feature-flagged via backend) */}
+                  <AnnouncementPopup />
+                </TourProvider>
+                </ConfirmProvider>
+              </ToastProvider>
+            </SafeAreaProvider>
+          </PaperProvider>
+        </GestureHandlerRootView>
+      </AnalyticsRoot>
+    </AnalyticsErrorBoundary>
   );
 }
