@@ -1296,7 +1296,7 @@ const s = StyleSheet.create({
   couponControlsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justify.content: 'space-between',
+    justifyContent: 'space-between',
     gap: 12,
     flexWrap: 'wrap',
   },
@@ -1359,7 +1359,7 @@ const s = StyleSheet.create({
   couponCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justify.content: 'space-between',
+    justifyContent: 'space-between',
   },
   couponBrandBadge: {
     paddingHorizontal: 10,
@@ -1404,7 +1404,7 @@ const s = StyleSheet.create({
   voucherCodeBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    justify.content: 'space-between',
+    justifyContent: 'space-between',
     backgroundColor: 'rgba(0,0,0,0.40)',
     borderColor: 'rgba(129, 140, 248, 0.30)',
     borderWidth: 1,
@@ -1443,7 +1443,7 @@ const s = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    justify.content: 'center',
+    justifyContent: 'center',
     gap: 6,
     backgroundColor: C.purple2,
     paddingVertical: 8,
@@ -1470,7 +1470,7 @@ const s = StyleSheet.create({
   },
   emptyBox: {
     alignItems: 'center',
-    justify.content: 'center',
+    justifyContent: 'center',
     paddingVertical: 40,
     gap: 10,
     backgroundColor: C.bgCard,
@@ -1491,7 +1491,7 @@ const s = StyleSheet.create({
   redeemCatalogFooter: {
     flexDirection: 'row',
     alignItems: 'center',
-    justify.content: 'space-between',
+    justifyContent: 'space-between',
     marginTop: 8,
     paddingTop: 10,
     borderTopWidth: 1,
@@ -1600,7 +1600,7 @@ const s = StyleSheet.create({
   calcRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justify.content: 'space-between',
+    justifyContent: 'space-between',
   },
   calcLabel: {
     color: C.textSub,
@@ -1617,7 +1617,7 @@ const s = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 10,
     alignItems: 'center',
-    justify.content: 'center',
+    justifyContent: 'center',
     marginTop: 6,
   },
   submitActionText: {
