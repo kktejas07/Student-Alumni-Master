@@ -1245,7 +1245,7 @@ const s = StyleSheet.create({
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justify.content: 'space-between',
+    justifyContent: 'space-between',
   },
   sectionTitle: {
     color: C.purpleXL,
