@@ -206,6 +206,7 @@ export default function EchoRegisterPage() {
 
   // Team registration state
   const [registrationType, setRegistrationType] = useState<'individual' | 'team'>('individual');
+  const [teamName, setTeamName] = useState('');
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([
     { name: '', email: '', phone: '' },
   ]);
@@ -379,6 +380,15 @@ export default function EchoRegisterPage() {
 
     // Validate team members if team registration
     if (registrationType === 'team') {
+      // Validate team name
+      if (!teamName.trim()) {
+        errs.team_name = 'Team name is required for team registration.';
+      } else if (teamName.trim().length < 2) {
+        errs.team_name = 'Team name must be at least 2 characters.';
+      } else if (teamName.trim().length > 50) {
+        errs.team_name = 'Team name must be 50 characters or less.';
+      }
+      
       teamMembers.forEach((member, idx) => {
         if (!member.name.trim()) errs[`team_member_${idx}_name`] = `Team member ${idx + 1}: Name is required.`;
         if (!member.email.trim() || !validateEmail(member.email)) errs[`team_member_${idx}_email`] = `Team member ${idx + 1}: Valid email is required.`;
@@ -422,6 +432,7 @@ export default function EchoRegisterPage() {
       const regPayload = { 
         ...contact, 
         registration_type: registrationType,
+        team_name: teamName.trim(),
         team_size: teamSize,
         team_members: teamMembersData,
         payment_method: totalFee > 0 ? 'online' : 'free', 
@@ -442,6 +453,7 @@ export default function EchoRegisterPage() {
       const order = await api.createEchoPaymentOrder(canonicalSlug, { 
         ...contact, 
         registration_type: registrationType,
+        team_name: teamName.trim(),
         team_size: teamSize,
         team_members: teamMembersData,
         terms_accepted: termsAccepted, 
@@ -1031,10 +1043,29 @@ export default function EchoRegisterPage() {
                 {registrationType === 'team' && (
                   <View style={s.teamSection}>
                     <View style={s.teamHeader}>
-                      <Text style={s.teamTitle}>👥 Team Members</Text>
+                      <Text style={s.teamTitle}>👥 Team Registration</Text>
                       <Text style={s.teamCount}>{teamMembers.length}/5 members</Text>
                     </View>
                     
+                    {/* Team Name Input */}
+                    <View style={{ marginBottom: 16 }}>
+                      <Text style={s.teamMemberSublabel}>Team Name * (unique for this event)</Text>
+                      <TextInput 
+                        style={[s.input, fieldErrors.team_name ? s.inputError : null]} 
+                        value={teamName} 
+                        onChangeText={setTeamName} 
+                        placeholder="e.g., Code Warriors, AI Innovators" 
+                        placeholderTextColor={PALETTE.dim}
+                        maxLength={50}
+                      />
+                      {fieldErrors.team_name ? <Text style={s.fieldErrText}>{fieldErrors.team_name}</Text> : null}
+                      <Text style={{ color: PALETTE.dim, fontFamily: FONTS.med, fontSize: 11, marginTop: 4 }}>
+                        2-50 characters. Must be unique for this event.
+                      </Text>
+                    </View>
+                    
+                    {/* Team Members List */}
+                    <Text style={[s.teamMemberSublabel, { marginBottom: 8, textTransform: 'none', letterSpacing: 0 }]}>Team Members</Text>
                     {teamMembers.map((member, idx) => (
                       <View key={idx} style={s.teamMemberCard}>
                         <View style={s.teamMemberHeader}>

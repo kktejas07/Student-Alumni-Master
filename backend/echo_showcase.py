@@ -539,11 +539,13 @@ async def _assert_registration_open(db, showcase: dict) -> None:
             raise HTTPException(status_code=400, detail="Sorry — this event has reached full capacity")
 
 
-async def _send_registration_confirmation(db, reg: dict, showcase: dict) -> None:
+async def _send_registration_confirmation(db, reg: dict, showcase: dict, team_name: str = None) -> None:
     """Email a confirmation (with QR) for FREE or confirmed registrations.
 
     Paid registrations get a payment invoice via _store_invoice_and_email; this
     covers the free/no-charge path so every attendee receives an email receipt.
+    
+    If team_name is provided, includes team info in the email.
     """
     try:
         email = (reg.get("email") or "").strip()
@@ -555,7 +557,24 @@ async def _send_registration_confirmation(db, reg: dict, showcase: dict) -> None
         ticket_url = f"https://studentalumni.ai/api/echo/tickets/{reg_id}?email={urllib.parse.quote(email)}"
         handbook_url = f"http://localhost:8002/api/echo/handbook/download"
         ticket_block = _ticket_email_block(reg, showcase, ticket_url)
-        subject = f"Your Entry Pass & Event Handbook — {title}"
+        
+        # Team info block
+        team_info_block = ""
+        if team_name:
+            team_info_block = f"""
+            <div style="margin:0 0 18px 0;padding:16px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:12px;">
+              <h3 style="margin:0 0 6px 0;color:#6d28d9;font-size:15px;">👥 Team Registration</h3>
+              <p style="margin:0 0 8px 0;color:#4c1d95;font-size:13px;">
+                You're registered as the team captain for team <strong>{team_name}</strong>.
+              </p>
+              <p style="margin:0;color:#4c1d95;font-size:12px;">
+                Your team members will receive separate confirmation emails with their entry passes.
+              </p>
+            </div>
+            """
+            subject = f"Team '{team_name}' Registration Confirmed — {title}"
+        else:
+            subject = f"Your Entry Pass & Event Handbook — {title}"
 
         # Attach Handbook PDF if present
         attachments = []
@@ -574,6 +593,7 @@ async def _send_registration_confirmation(db, reg: dict, showcase: dict) -> None
             <h2 style="margin:0 0 14px 0;color:#111827;">You're registered!</h2>
             <p style="margin:0 0 18px 0;color:#374151;">Thank you for registering for <strong>{title}</strong>.
             Here is your entry pass — scan the QR at the venue for check-in.</p>
+            {team_info_block}
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
               style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;margin:0 0 18px 0;">
               <tr><td style="padding:12px 16px;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.4px;">Registration ID</td>
@@ -661,6 +681,54 @@ async def _send_wa_payment_reminder(db, reg: dict, showcase: Optional[dict]) -> 
         await send_wa_message(phone=phone, text=text, kind="reminder", reg_id=reg.get("id") or "", opt_in=_wa_opt_in(reg))
     except Exception as e:
         print(f"[ECHO] WhatsApp payment reminder error: {e}")
+
+
+async def _send_team_member_confirmation(db, member_reg: dict, showcase: dict, primary_reg: dict, team_name: str) -> None:
+    """Send confirmation email to a team member with team info."""
+    try:
+        email = (member_reg.get("email") or "").strip()
+        if not email:
+            return
+        title = member_reg.get("showcase_title") or showcase.get("title") or "Event Registration"
+        reg_id = member_reg.get("id") or ""
+        primary_name = primary_reg.get("full_name") or "Team Captain"
+        member_name = member_reg.get("full_name") or "Team Member"
+        
+        import urllib.parse
+        ticket_url = f"https://studentalumni.ai/api/echo/tickets/{reg_id}?email={urllib.parse.quote(email)}"
+        
+        body = render_html_email(
+            f"""
+            <h2 style="margin:0 0 14px 0;color:#111827;">You're registered as a team member!</h2>
+            <p style="margin:0 0 18px 0;color:#374151;">You've been added to team <strong>{team_name}</strong> for <strong>{title}</strong> by {primary_name}.</p>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+              style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;margin:0 0 18px 0;">
+              <tr><td style="padding:12px 16px;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.4px;">Team Name</td>
+                  <td style="padding:12px 16px;text-align:right;color:#7C3AED;font-weight:700;">{team_name}</td></tr>
+              <tr><td style="padding:12px 16px;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.4px;">Your Name</td>
+                  <td style="padding:12px 16px;text-align:right;color:#111827;font-weight:700;">{member_name}</td></tr>
+              <tr><td style="padding:12px 16px;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.4px;">Event</td>
+                  <td style="padding:12px 16px;text-align:right;color:#111827;font-weight:700;">{title}</td></tr>
+              <tr><td style="padding:12px 16px;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.4px;">Registration ID</td>
+                  <td style="padding:12px 16px;text-align:right;color:#111827;font-weight:700;">{reg_id}</td></tr>
+            </table>
+            <p style="margin:0 0 18px 0;color:#374151;">
+              Your team captain <strong>{primary_name}</strong> has paid for the entire team. 
+              You're all set to attend!
+            </p>
+            <a href="{ticket_url}"
+               style="display:inline-block;padding:12px 26px;background:#7C3AED;color:#fff;text-decoration:none;border-radius:10px;font-weight:600;">View Your Entry Pass</a>
+            <p style="margin:18px 0 22px 0;color:#374151;">
+              Show this pass at the venue for check-in. You can also view it from your dashboard under <strong>My Tickets</strong>.
+            </p>
+            <a href="https://studentalumni.ai/dashboard"
+               style="display:inline-block;padding:12px 26px;background:#7C3AED;color:#fff;text-decoration:none;border-radius:10px;font-weight:600;">Open My Dashboard</a>
+            """
+        )
+        subject = f"You're in team '{team_name}' — {title}"
+        await send_email(email, subject, body)
+    except Exception as e:
+        print(f"[ECHO] Team member confirmation email error: {e}")
 
 
 async def _send_wa_payment_failed(db, reg: dict, showcase: Optional[dict], reason: str = "payment session expired") -> None:
@@ -2635,6 +2703,7 @@ class RegisterSchema(BaseModel):
     terms_accepted_at: Optional[str] = ""
     whatsapp_opt_in: Optional[bool] = True
     registration_type: Optional[str] = "individual"
+    team_name: Optional[str] = ""
     team_size: Optional[int] = 1
     team_members: Optional[List[TeamMemberSchema]] = []
 
@@ -2707,6 +2776,19 @@ class RegisterSchema(BaseModel):
             if v > 5:
                 raise ValueError("Team size cannot exceed 5")
         return v or 1
+
+    @field_validator("team_name")
+    @classmethod
+    def _validate_team_name(cls, v, info):
+        reg_type = info.data.get("registration_type", "individual")
+        if reg_type == "team":
+            if not v or not v.strip():
+                raise ValueError("Team name is required for team registration")
+            if len(v.strip()) < 2:
+                raise ValueError("Team name must be at least 2 characters")
+            if len(v.strip()) > 50:
+                raise ValueError("Team name must be 50 characters or less")
+        return v.strip() if v else ""
 
     @field_validator("team_members")
     @classmethod
@@ -2793,6 +2875,19 @@ async def register_for_showcase(
     )
     if existing:
         return _ser(existing)
+
+    # Team name uniqueness check — team names must be unique per event
+    registration_type = payload.registration_type or "individual"
+    team_name = (payload.team_name or "").strip()
+    if registration_type == "team" and team_name:
+        existing_team = await db.echo_registrations.find_one(
+            {"slug": canonical_slug, "team_name": {"$regex": f"^{re.escape(team_name)}$", "$options": "i"}}
+        )
+        if existing_team:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Team name '{team_name}' is already taken for this event. Please choose a different name."
+            )
 
     reg_id = secrets.token_hex(6)
     now_iso = datetime.now(timezone.utc).isoformat()
@@ -2882,32 +2977,58 @@ async def register_for_showcase(
         "terms_accepted_at": payload.terms_accepted_at or now_iso,
         "whatsapp_opt_in": payload.whatsapp_opt_in if payload.whatsapp_opt_in is not None else True,
         "registration_type": registration_type,
+        "team_name": team_name,
         "team_size": team_size,
         "team_members": team_members_data,
     }
     await db.echo_registrations.insert_one(dict(reg))
     await _sync_user_profile_data(db, user, payload)
 
-    # 2) StudentAlumni-side: provision an SA account for the attendee (idempotent,
-    #    by email), then mirror the registration into their SA account so it shows
-    #    under "My events" with a check-in QR. The welcome email is only sent when
-    #    a brand-new SA account was created by this registration.
+    # 2) StudentAlumni-side: provision SA accounts for ALL attendees
+    #    (primary registrant + team members), then send confirmation emails.
     if auto_paid:
+        # Provision account for primary registrant
         sa_user, created, temp_password = await _provision_sa_account(db, reg, showcase)
         if sa_user:
             await _mirror_to_event_registration(db, reg, showcase, sa_user)
         if created and temp_password:
             await _send_sa_welcome_email(reg, showcase, temp_password)
 
+        # Provision accounts for team members and send individual confirmations
+        if registration_type == "team" and team_members_data:
+            for idx, member in enumerate(team_members_data):
+                member_email = (member.get("email") or "").strip().lower()
+                if not member_email:
+                    continue
+                
+                # Create a member-specific registration record for account provisioning
+                member_reg = dict(reg)
+                member_reg["email"] = member_email
+                member_reg["full_name"] = member.get("name", "")
+                member_reg["phone"] = member.get("phone", "")
+                member_reg["id"] = f"{reg_id}_m{idx + 1}"  # Unique ID for team member
+                
+                # Provision SA account for team member
+                member_sa_user, member_created, member_password = await _provision_sa_account(db, member_reg, showcase)
+                if member_sa_user:
+                    await _mirror_to_event_registration(db, member_reg, showcase, member_sa_user)
+                if member_created and member_password:
+                    await _send_sa_welcome_email(member_reg, showcase, member_password)
+                
+                # Send confirmation email to team member with team info
+                await _send_team_member_confirmation(db, member_reg, showcase, reg, team_name)
+
     # Free/confirmed registrations get a confirmation email (with QR).
     # Paid registrations on this path are impossible — they must pay first.
     invoice = None
     confirmation_sent = False
     if auto_paid:
-        # Generate session coupons
+        # Generate session coupons for primary registrant
         sessions = showcase.get("sessions") or []
         coupons = await _generate_coupons_for_registration(db, canonical_slug, reg_id, sessions)
-        await _send_registration_confirmation(db, reg, showcase)
+        
+        # Send confirmation to primary registrant (with team info if applicable)
+        await _send_registration_confirmation(db, reg, showcase, team_name if registration_type == "team" else None)
         await _send_wa_confirmation(db, reg, showcase, coupons)
         confirmation_sent = True
 
