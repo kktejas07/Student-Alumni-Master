@@ -21,7 +21,7 @@ export default function EchoIndexPage() {
     let mounted = true;
     api.listEchoShowcases()
       .then((res) => { if (mounted) setItems(res?.items || []); })
-      .catch(() => {})
+      .catch((err) => { console.error('[ECHO EVENTS FETCH ERROR]', err); })
       .finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
   }, []);

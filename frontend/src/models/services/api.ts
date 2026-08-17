@@ -408,8 +408,8 @@ export const api = {
     }),
 
   // ── ECHO Showcase ──────────────────────────────────────────────────────────
-  listEchoShowcases: () => request<any>('/echo/showcases'),
-  getEchoShowcase: (slug: string) => request<any>(`/echo/showcases/${slug}`),
+  listEchoShowcases: () => request<any>('/echo/showcases', { auth: false }),
+  getEchoShowcase: (slug: string) => request<any>(`/echo/showcases/${slug}`, { auth: false }),
   registerEchoShowcase: (slug: string, payload: any) =>
     request<any>(`/echo/showcases/${slug}/register`, { method: 'POST', body: payload }),
   myEchoRegistration: (slug: string) =>
