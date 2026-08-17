@@ -31,19 +31,34 @@ interface Props {
 export const HorizontalRoadmap = memo(function HorizontalRoadmap({
   milestones, targetRole = 'your goal', onSelectMilestone, onViewAll,
 }: Props) {
-  // Take up to 5 steps for the horizontal display
-  const displaySteps = milestones.slice(0, 5);
-
-  // If fewer than 5, pad with default milestone items
+  // Standard 5-step milestone defaults
   const DEFAULT_STEPS = [
-    { id: 'step-1', title: 'Complete Profile', progress: '+5%', status: 'completed' },
-    { id: 'step-2', title: 'Build Your Resume', progress: '60%', status: 'current' },
-    { id: 'step-3', title: 'Build Portfolio', progress: '0%', status: 'next' },
-    { id: 'step-4', title: 'Network with Alumni', progress: 'Locked', status: 'upcoming' },
-    { id: 'step-5', title: 'Practice Interviews', progress: 'Locked', status: 'upcoming' },
+    { id: 'step-1', title: 'Complete Profile', progress: '+5%', completed: true },
+    { id: 'step-2', title: 'Build Your Resume', progress: '60%', completed: false },
+    { id: 'step-3', title: 'Build Portfolio', progress: '0%', completed: false },
+    { id: 'step-4', title: 'Network with Alumni', progress: 'Locked', completed: false },
+    { id: 'step-5', title: 'Practice Interviews', progress: 'Locked', completed: false },
   ];
 
-  const firstPendingIdx = milestones.findIndex(m => !m.completed);
+  // Pre-process and order steps so completed steps appear first in linear progression
+  const rawSteps = (milestones && milestones.length > 0) ? milestones : DEFAULT_STEPS;
+
+  const sortedSteps = [...rawSteps].sort((a, b) => {
+    if (a.completed && !b.completed) return -1;
+    if (!a.completed && b.completed) return 1;
+    return 0;
+  });
+
+  const displaySteps = sortedSteps.slice(0, 5);
+
+  // If fewer than 5 steps provided, fill up to 5 with DEFAULT_STEPS placeholders
+  while (displaySteps.length < 5) {
+    const nextDefault = DEFAULT_STEPS[displaySteps.length];
+    if (nextDefault) displaySteps.push(nextDefault as any);
+    else break;
+  }
+
+  const firstPendingIdx = displaySteps.findIndex(m => !m.completed);
 
   return (
     <View style={s.card}>
@@ -65,7 +80,7 @@ export const HorizontalRoadmap = memo(function HorizontalRoadmap({
 
         <View style={s.stepsRow}>
           {displaySteps.map((m, idx) => {
-            const isCompleted = m.completed;
+            const isCompleted = idx < (firstPendingIdx >= 0 ? firstPendingIdx : displaySteps.length);
             const isCurrent = idx === (firstPendingIdx >= 0 ? firstPendingIdx : displaySteps.length - 1);
             const isNext = idx === firstPendingIdx + 1;
             const isUpcoming = idx > firstPendingIdx + 1;
@@ -77,7 +92,7 @@ export const HorizontalRoadmap = memo(function HorizontalRoadmap({
             let statusColor = COLORS.dim;
             let nodeBg = 'rgba(255,255,255,0.06)';
             let nodeBorder = 'rgba(255,255,255,0.12)';
-            let progressBadge = defaultStep.progress;
+            let progressBadge = defaultStep.progress || 'Locked';
 
             if (isCompleted) {
               statusLabel = 'Completed';
