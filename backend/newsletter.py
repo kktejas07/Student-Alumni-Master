@@ -784,6 +784,7 @@ async def execute_campaign(db, campaign: dict):
         in_app_ok = 0
         whatsapp_ok = 0
         whatsapp_fail = 0
+        whatsapp_no_phone = 0
         attempts = []
 
         for sub in subscribers:
@@ -870,6 +871,7 @@ async def execute_campaign(db, campaign: dict):
                         whatsapp_fail += 1
                         attempt["whatsapp"] = "fail"
                 else:
+                    whatsapp_no_phone += 1
                     attempt["whatsapp"] = "no_phone"
 
             attempts.append(attempt)
@@ -882,6 +884,7 @@ async def execute_campaign(db, campaign: dict):
                         "push_ok": push_ok, "push_fail": push_fail,
                         "in_app_ok": in_app_ok,
                         "whatsapp_ok": whatsapp_ok, "whatsapp_fail": whatsapp_fail,
+                        "whatsapp_no_phone": whatsapp_no_phone,
                     }},
                 )
 
@@ -897,6 +900,7 @@ async def execute_campaign(db, campaign: dict):
                 "in_app_ok": in_app_ok,
                 "whatsapp_ok": whatsapp_ok,
                 "whatsapp_fail": whatsapp_fail,
+                "whatsapp_no_phone": whatsapp_no_phone,
                 "attempts": attempts,
                 "completed_at": _now()
             }}
