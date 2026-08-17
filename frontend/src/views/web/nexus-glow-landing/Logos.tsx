@@ -28,20 +28,20 @@ export function Logos() {
   const loopIndustryLogos = [...industryLogos, ...industryLogos];
 
   return (
-    <section id="partners" className="relative overflow-hidden py-14 gap-10 flex flex-col">
+    <section id="partners" className="relative overflow-hidden py-14 gap-10 flex flex-col bg-[#090514] z-10 border-b border-purple-900/30">
       {/* Edge fades */}
-      <div className="pointer-events-none absolute inset-y-0 left-0 w-24 md:w-40 bg-gradient-to-r from-[#0C0C0D] to-transparent z-10" />
-      <div className="pointer-events-none absolute inset-y-0 right-0 w-24 md:w-40 bg-gradient-to-l from-[#0C0C0D] to-transparent z-10" />
+      <div className="pointer-events-none absolute inset-y-0 left-0 w-24 md:w-40 bg-gradient-to-r from-[#090514] to-transparent z-10" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-24 md:w-40 bg-gradient-to-l from-[#090514] to-transparent z-10" />
 
       {/* Row 1: OUR COLLEGE COLLABORATIONS */}
       <div className="relative mx-auto max-w-7xl px-6 w-full">
         <div className="flex items-center gap-4 md:gap-10">
           {/* Highlighted Left Title Badge */}
-          <div className="shrink-0 z-20 px-3 py-2 md:px-4 md:py-2.5 rounded-xl border border-primary/40 bg-primary/15 backdrop-blur-md shadow-[0_0_20px_rgba(124,58,237,0.4)]">
-            <p className="text-[10px] sm:text-xs md:text-sm lg:text-base font-black uppercase tracking-widest text-primary drop-shadow-[0_0_10px_rgba(167,139,250,0.8)] whitespace-nowrap">
+          <div className="shrink-0 z-20 px-3.5 py-2 md:px-4 md:py-2.5 rounded-xl border border-purple-500/40 bg-purple-500/20 backdrop-blur-md shadow-[0_0_20px_rgba(124,58,237,0.4)]">
+            <p className="text-[10px] sm:text-xs md:text-sm lg:text-base font-black uppercase tracking-widest text-purple-300 drop-shadow-[0_0_10px_rgba(167,139,250,0.8)] whitespace-nowrap">
               COLLEGES
             </p>
-            <p className="hidden sm:block text-[10px] md:text-sm lg:text-base font-black uppercase tracking-widest text-primary drop-shadow-[0_0_10px_rgba(167,139,250,0.8)] whitespace-nowrap">
+            <p className="hidden sm:block text-[10px] md:text-sm lg:text-base font-black uppercase tracking-widest text-purple-300 drop-shadow-[0_0_10px_rgba(167,139,250,0.8)] whitespace-nowrap">
               COLLABORATIONS
             </p>
           </div>
@@ -55,7 +55,7 @@ export function Logos() {
               {loopCollegeLogos.map((logo, i) => (
                 <div
                   key={`col-${logo.name}-${i}`}
-                  className="shrink-0 flex items-center justify-center h-16 w-36 md:h-20 md:w-44 rounded-2xl bg-white p-3.5 shadow-md border border-white/10 overflow-hidden opacity-95 hover:opacity-100 hover:scale-105 transition-all duration-200"
+                  className="shrink-0 flex items-center justify-center h-16 w-36 md:h-20 md:w-44 rounded-2xl bg-white p-3.5 shadow-md border border-purple-100/50 overflow-hidden opacity-95 hover:opacity-100 hover:scale-105 transition-all duration-200"
                 >
                   <img
                     src={logo.src}
@@ -73,11 +73,11 @@ export function Logos() {
       <div className="relative mx-auto max-w-7xl px-6 w-full mt-4">
         <div className="flex items-center gap-4 md:gap-10">
           {/* Highlighted Left Title Badge */}
-          <div className="shrink-0 z-20 px-3 py-2 md:px-4 md:py-2.5 rounded-xl border border-cyan-500/40 bg-cyan-500/15 backdrop-blur-md shadow-[0_0_20px_rgba(6,182,212,0.35)]">
-            <p className="text-[10px] sm:text-xs md:text-sm lg:text-base font-black uppercase tracking-widest text-cyan-300 drop-shadow-[0_0_10px_rgba(6,182,212,0.8)] whitespace-nowrap">
+          <div className="shrink-0 z-20 px-3.5 py-2 md:px-4 md:py-2.5 rounded-xl border border-purple-400/40 bg-purple-400/15 backdrop-blur-md shadow-[0_0_20px_rgba(168,85,247,0.35)]">
+            <p className="text-[10px] sm:text-xs md:text-sm lg:text-base font-black uppercase tracking-widest text-purple-300 drop-shadow-[0_0_10px_rgba(192,132,252,0.8)] whitespace-nowrap">
               INDUSTRY
             </p>
-            <p className="hidden sm:block text-[10px] md:text-sm lg:text-base font-black uppercase tracking-widest text-cyan-300 drop-shadow-[0_0_10px_rgba(6,182,212,0.8)] whitespace-nowrap">
+            <p className="hidden sm:block text-[10px] md:text-sm lg:text-base font-black uppercase tracking-widest text-purple-300 drop-shadow-[0_0_10px_rgba(192,132,252,0.8)] whitespace-nowrap">
               COLLABORATIONS
             </p>
           </div>
@@ -91,7 +91,7 @@ export function Logos() {
               {loopIndustryLogos.map((logo, i) => (
                 <div
                   key={`ind-${logo.name}-${i}`}
-                  className="shrink-0 flex items-center justify-center h-16 w-36 md:h-20 md:w-44 rounded-2xl bg-white p-3.5 shadow-md border border-white/10 overflow-hidden opacity-95 hover:opacity-100 hover:scale-105 transition-all duration-200"
+                  className="shrink-0 flex items-center justify-center h-16 w-36 md:h-20 md:w-44 rounded-2xl bg-white p-3.5 shadow-md border border-purple-100/50 overflow-hidden opacity-95 hover:opacity-100 hover:scale-105 transition-all duration-200"
                 >
                   <img
                     src={logo.src}

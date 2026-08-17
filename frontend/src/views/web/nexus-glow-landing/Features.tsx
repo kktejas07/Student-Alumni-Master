@@ -62,9 +62,7 @@ const features = [
 
 export function Features() {
   return (
-    <section id="features" className="relative py-32 overflow-hidden">
-      {/* Dark overlay to ensure text is readable over the bright stars */}
-      <div className="absolute inset-0 bg-[#0C0C0D]/40 pointer-events-none z-0" />
+    <section id="features" className="relative py-32 bg-slate-50/95 border-y border-slate-200/60 text-slate-900 z-10">
       <div className="mx-auto max-w-7xl px-6 relative z-10">
         {/* heading */}
         <div className="max-w-3xl">
@@ -72,9 +70,9 @@ export function Features() {
             initial={{ opacity: 0, y: 10 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="inline-flex items-center gap-2 text-[12px] font-bold tracking-widest text-primary drop-shadow-[0_0_8px_rgba(255,255,255,0.5)] uppercase"
+            className="inline-flex items-center gap-2 text-[11px] font-bold tracking-widest text-purple-700 bg-purple-100/80 border border-purple-200/80 px-3.5 py-1.5 rounded-full uppercase shadow-xs"
           >
-            <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+            <span className="h-2 w-2 rounded-full bg-purple-600 animate-pulse" />
             Everything you need
           </motion.div>
           <motion.h2
@@ -82,24 +80,24 @@ export function Features() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.7, delay: 0.1 }}
-            className="mt-4 text-5xl md:text-6xl font-medium tracking-tight text-white leading-[1.02]"
+            className="mt-5 text-4xl md:text-6xl font-extrabold tracking-tight text-slate-900 leading-[1.08]"
           >
             A complete career OS, <br />
-            <span className="text-primary">built for students.</span>
+            <span className="text-purple-600">built for students.</span>
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 10 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="mt-6 text-lg text-gray-400 max-w-xl font-medium"
+            className="mt-6 text-lg text-slate-600 max-w-xl font-medium leading-relaxed"
           >
             Everything from your first job match to your full-time offer in one intelligent platform.
           </motion.p>
         </div>
 
         {/* bento grid */}
-        <div className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {features.map((f, i) => {
             const Icon = f.icon;
             return (
@@ -109,25 +107,25 @@ export function Features() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-60px" }}
                 transition={{ duration: 0.6, delay: i * 0.07, ease: [0.22, 1, 0.36, 1] }}
-                className={`group relative overflow-hidden rounded-2xl border border-white/5 bg-[#121214] p-8 cursor-pointer hover:bg-[#18181B] hover:border-primary/30 transition-all duration-300 ${f.span}`}
+                className={`group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-8 cursor-pointer shadow-[0_4px_20px_rgba(124,58,237,0.04)] hover:shadow-[0_12px_32px_rgba(124,58,237,0.12)] hover:border-purple-300/80 transition-all duration-300 ${f.span}`}
               >
                 {/* hover glow overlay */}
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
                 {/* card number */}
-                <div className="absolute top-6 right-7 text-[12px] font-black text-white/5 tracking-widest select-none">
+                <div className="absolute top-6 right-7 text-[12px] font-black text-slate-300 tracking-widest select-none">
                   {f.num}
                 </div>
 
                 {/* icon */}
-                <div className={`inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary shadow-[0_0_15px_rgba(255,255,255,0.1)] group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300`}>
-                  <Icon className="h-6 w-6" strokeWidth={2.5} />
+                <div className={`inline-flex h-12 w-12 items-center justify-center rounded-xl bg-purple-50 border border-purple-100 text-purple-600 shadow-sm group-hover:bg-purple-600 group-hover:text-white transition-all duration-300`}>
+                  <Icon className="h-6 w-6" strokeWidth={2.2} />
                 </div>
 
-                <h3 className="mt-6 text-2xl font-bold tracking-tight text-white group-hover:text-primary transition-colors duration-300">
+                <h3 className="mt-6 text-2xl font-bold tracking-tight text-slate-900 group-hover:text-purple-600 transition-colors duration-300">
                   {f.title}
                 </h3>
-                <p className="mt-3 text-[15px] leading-relaxed text-gray-400 font-medium">
+                <p className="mt-3 text-[15px] leading-relaxed text-slate-600 font-medium">
                   {f.desc}
                 </p>
               </motion.div>
