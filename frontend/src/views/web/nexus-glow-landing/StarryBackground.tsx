@@ -188,9 +188,9 @@ export function StarryBackground() {
     const render = () => {
       // Clear canvas with deep space gradient
       const bgGradient = ctx.createLinearGradient(0, 0, 0, height);
-      bgGradient.addColorStop(0, "#030614");
-      bgGradient.addColorStop(0.5, "rgba(10, 17, 40, 1)");
-      bgGradient.addColorStop(1, "#040816");
+      bgGradient.addColorStop(0, "#1c053a");
+      bgGradient.addColorStop(0.5, "#380961");
+      bgGradient.addColorStop(1, "#6c0f8d");
       ctx.fillStyle = bgGradient;
       ctx.fillRect(0, 0, width, height);
 

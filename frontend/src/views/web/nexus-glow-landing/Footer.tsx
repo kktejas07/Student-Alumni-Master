@@ -61,7 +61,7 @@ export function Footer() {
   }, [isLanding]);
 
   return (
-    <footer className="relative border-t border-purple-900/40 bg-[#070312] text-white pt-20 pb-10 z-10">
+    <footer className="relative border-t border-[#20073e] bg-[#070312] text-white pt-20 pb-10 z-10">
       {/* Subtle top purple glow */}
       <div
         aria-hidden
@@ -77,13 +77,13 @@ export function Footer() {
               <img
                 src="/sa-icon.png"
                 alt="StudentAlumni Logo"
-                className="h-8 w-8 object-contain shrink-0 drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]"
+                className="h-8 w-8 object-contain shrink-0 drop-shadow-[0_0_10px_rgba(255,255,255,0.4)]"
               />
               <span className="text-lg font-black tracking-tight text-white">
                 StudentAlumni
               </span>
             </div>
-            <p className="mt-4 text-sm font-medium text-purple-200/80 max-w-xs leading-relaxed">
+            <p className="mt-4 text-sm font-medium text-[#a69cbe] max-w-xs leading-relaxed">
               The intelligent career companion built for the{" "}
               <span className="font-bold text-white">next generation</span> of students.
             </p>
@@ -94,7 +94,7 @@ export function Footer() {
                 <a
                   key={s}
                   href="#"
-                  className="inline-flex items-center px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest border border-purple-500/20 bg-purple-950/40 text-purple-300 hover:text-white hover:border-purple-400 hover:bg-purple-600/30 transition-all duration-200"
+                  className="inline-flex items-center px-3.5 py-1.5 rounded-full text-[10px] font-extrabold uppercase tracking-widest border border-white/20 bg-white/10 text-white hover:bg-white hover:text-[#070312] transition-all duration-200"
                 >
                   {s}
                 </a>
@@ -105,7 +105,7 @@ export function Footer() {
           {/* Nav columns */}
           {cols.map((c) => (
             <div key={c.title}>
-              <div className="text-[11px] uppercase tracking-widest font-bold text-purple-400">
+              <div className="text-[11px] uppercase tracking-widest font-bold text-white">
                 {c.title}
               </div>
               <ul className="mt-5 space-y-3">
@@ -118,7 +118,7 @@ export function Footer() {
                           goToLandingSection(e, item.href.substring(1));
                         }
                       }}
-                      className="text-sm font-medium text-purple-200/80 hover:text-white hover:translate-x-0.5 inline-block transition-all duration-150"
+                      className="text-sm font-medium text-[#a69cbe] hover:text-white hover:translate-x-0.5 inline-block transition-all duration-150"
                     >
                       {item.label}
                     </a>
@@ -130,8 +130,8 @@ export function Footer() {
         </div>
 
         {/* Bottom bar */}
-        <div className="mt-16 pt-8 border-t border-purple-900/30 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-xs font-bold text-purple-300/60 tracking-wide">
+        <div className="mt-16 pt-8 border-t border-[#20073e] flex flex-col md:flex-row items-center justify-between gap-4">
+          <p className="text-xs font-bold text-[#a69cbe] tracking-wide">
             © 2026 <span className="text-white">StudentAlumni</span>. All rights reserved.
           </p>
 
