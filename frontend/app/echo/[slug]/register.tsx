@@ -20,7 +20,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import {
   ArrowLeft, Calendar, MapPin, Clock, Ticket, CreditCard,
   Check, ShieldCheck, Users, ChevronLeft, ChevronRight, ExternalLink,
-  ChevronDown,
+  ChevronDown, FileText, Share2, Link2, X,
 } from 'lucide-react-native';
 import { api, resolveImageUrl } from '@/src/models/services/api';
 import { PALETTE, FONTS, TYPO } from '@/src/views/web/portals/student/tokens';
@@ -40,6 +40,14 @@ const BRANCHES = [
   'CSE', 'IT', 'ECE', 'EEE', 'MECH', 'CIVIL',
   'AIML', 'CSDS', 'CST', 'AIDS', 'CSE (AI & ML)',
   'EIE', 'Others',
+];
+
+export const HACKWAVE_THEME_OPTIONS = [
+  { value: 'AI That Solves a Real Problem', label: '🎯 AI That Solves a Real Problem' },
+  { value: 'Beyond the Chatbot', label: '🚀 Beyond the Chatbot' },
+  { value: 'AI for Builders', label: '🛠️ AI for Builders' },
+  { value: 'Autonomous AI Workflows', label: '🤖 Autonomous AI Workflows' },
+  { value: 'Build the Unexpected', label: '✨ Build the Unexpected' },
 ];
 
 /* ── Dark-glass dropdown matching the register form's inputs ────────────── */
@@ -175,7 +183,7 @@ export default function EchoRegisterPage() {
   const [loading, setLoading] = useState(true);
   const [existing, setExisting] = useState<any>(null);
 
-  const [form, setForm] = useState({ full_name: '', email: '', phone: '', date_of_birth: '', branch: '', year: '', college: '' });
+  const [form, setForm] = useState({ full_name: '', email: '', phone: '', date_of_birth: '', branch: '', year: '', college: '', hackwave_theme: '' });
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState<any>(null);
@@ -184,6 +192,7 @@ export default function EchoRegisterPage() {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [whatsappOptIn, setWhatsappOptIn] = useState(true);
   const [termsModalVisible, setTermsModalVisible] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
 
   const loadRazorpay = () =>
     new Promise<boolean>((resolve) => {
@@ -251,23 +260,7 @@ export default function EchoRegisterPage() {
   };
 
   const shareTicket = async (regId?: string) => {
-    if (!regId || typeof window === 'undefined') return;
-    const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
-    const url = `${base}/api/echo/tickets/${regId}`;
-    const text = `My entry pass for ${showcase?.title || 'the event'}: ${url}`;
-    try {
-      const nav = (navigator as any);
-      if (nav.share) {
-        await nav.share({ title: `Entry Pass — ${showcase?.title || 'Event'}`, text, url });
-        return;
-      }
-    } catch { /* user cancelled share sheet — fall through to copy */ }
-    try {
-      await navigator.clipboard.writeText(url);
-      setError('Ticket link copied to clipboard — share it anywhere!');
-    } catch {
-      setError('Could not share the ticket. Long-press the link to copy it.');
-    }
+    setShareModalOpen(true);
   };
 
   useEffect(() => {
@@ -470,6 +463,7 @@ export default function EchoRegisterPage() {
       { label: 'Name', value: reg.full_name || reg.name || '—' },
       { label: 'Email', value: reg.email || '—' },
       { label: 'Phone', value: reg.phone || '—' },
+      { label: 'Hackwave 3.0 Track', value: reg.hackwave_theme || reg.theme || '—' },
       { label: 'College', value: reg.college || showcase.college || '—' },
       { label: 'Branch', value: reg.branch || '—' },
       { label: 'Year', value: reg.year || '—' },
@@ -631,6 +625,76 @@ export default function EchoRegisterPage() {
         </View>
         <EchoFooter />
         </ScrollView>
+
+        {/* Share Modal */}
+        {shareModalOpen && (
+          <Modal transparent animationType="fade" onRequestClose={() => setShareModalOpen(false)}>
+            <Pressable style={s.modalOverlay} onPress={() => setShareModalOpen(false)}>
+              <Pressable style={s.modalBox} onPress={(e) => e.stopPropagation()}>
+                <View style={s.modalHeader}>
+                  <Text style={s.modalTitle}>SHARE EVENT</Text>
+                  <Pressable onPress={() => setShareModalOpen(false)} style={s.modalCloseBtn}>
+                    <Text style={s.modalCloseText}>✕</Text>
+                  </Pressable>
+                </View>
+
+                <Text style={[s.modalBody, { marginVertical: 8 }]}>
+                  Share <Text style={{ color: '#fff', fontFamily: FONTS.semi }}>{showcase?.title || 'SNIST Hackwave 3.0'}</Text> with your friends & teammates:
+                </Text>
+
+                <View style={{ gap: 10, marginTop: 8 }}>
+                  {/* WhatsApp */}
+                  <Pressable
+                    onPress={() => {
+                      const url = typeof window !== 'undefined' ? window.location.href : 'http://localhost:8081/echo/snist/register';
+                      const text = encodeURIComponent(`🚀 Register for ${showcase?.title || 'SNIST Hackwave 3.0'} — National Level AI Hackathon!\n\nLink: ${url}`);
+                      const waUrl = `https://api.whatsapp.com/send?text=${text}`;
+                      if (Platform.OS === 'web' && typeof window !== 'undefined') window.open(waUrl, '_blank');
+                      else Linking.openURL(waUrl);
+                      setShareModalOpen(false);
+                    }}
+                    style={[s.shareOptionBtn, { backgroundColor: 'rgba(37,211,102,0.15)', borderColor: 'rgba(37,211,102,0.4)' }]}
+                  >
+                    <Text style={{ fontSize: 18 }}>🟢</Text>
+                    <Text style={[s.shareOptionText, { color: '#25D366' }]}>Share on WhatsApp</Text>
+                  </Pressable>
+
+                  {/* Telegram */}
+                  <Pressable
+                    onPress={() => {
+                      const url = typeof window !== 'undefined' ? window.location.href : 'http://localhost:8081/echo/snist/register';
+                      const text = encodeURIComponent(`🚀 Register for ${showcase?.title || 'SNIST Hackwave 3.0'} — National Level AI Hackathon!`);
+                      const tgUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${text}`;
+                      if (Platform.OS === 'web' && typeof window !== 'undefined') window.open(tgUrl, '_blank');
+                      else Linking.openURL(tgUrl);
+                      setShareModalOpen(false);
+                    }}
+                    style={[s.shareOptionBtn, { backgroundColor: 'rgba(0,136,204,0.15)', borderColor: 'rgba(0,136,204,0.4)' }]}
+                  >
+                    <Text style={{ fontSize: 18 }}>✈️</Text>
+                    <Text style={[s.shareOptionText, { color: '#38BDF8' }]}>Share on Telegram</Text>
+                  </Pressable>
+
+                  {/* Copy Link */}
+                  <Pressable
+                    onPress={() => {
+                      const url = typeof window !== 'undefined' ? window.location.href : 'http://localhost:8081/echo/snist/register';
+                      if (typeof window !== 'undefined' && navigator.clipboard) {
+                        navigator.clipboard.writeText(url);
+                        setError('Registration page link copied to clipboard!');
+                      }
+                      setShareModalOpen(false);
+                    }}
+                    style={[s.shareOptionBtn, { backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.15)' }]}
+                  >
+                    <Link2 size={16} color="#A78BFA" />
+                    <Text style={[s.shareOptionText, { color: '#fff' }]}>Copy Registration Link</Text>
+                  </Pressable>
+                </View>
+              </Pressable>
+            </Pressable>
+          </Modal>
+        )}
       </View>
     );
   }
@@ -755,6 +819,29 @@ export default function EchoRegisterPage() {
                 {regCfg.payment_note ? <Text style={s.note}>{regCfg.payment_note}</Text> : null}
               </View>
 
+              {/* Handbook Download & Share Action Bar */}
+              <View style={s.handbookBar}>
+                <Pressable
+                  onPress={() => {
+                    const base = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8002';
+                    if (Platform.OS === 'web') {
+                      window.open(`${base}/api/echo/handbook/download`, '_blank');
+                    } else {
+                      Linking.openURL(`${base}/api/echo/handbook/download`);
+                    }
+                  }}
+                  style={s.handbookBtn}
+                >
+                  <FileText size={15} color="#C4B5FD" />
+                  <Text style={s.handbookBtnText}>Download Event Handbook (PDF)</Text>
+                </Pressable>
+
+                <Pressable onPress={() => shareTicket(showcase?.id || canonicalSlug)} style={s.shareBtnInline}>
+                  <Share2 size={15} color="#34D399" />
+                  <Text style={s.shareBtnInlineText}>Share Event</Text>
+                </Pressable>
+              </View>
+
               {/* Form */}
               <View style={s.formCard}>
                 <Text style={s.cardTitle}>Registration Details</Text>
@@ -797,6 +884,18 @@ export default function EchoRegisterPage() {
                     placeholder="Select your current year"
                     error={fieldErrors.year}
                     modalTitle="SELECT CURRENT YEAR"
+                  />
+                </View>
+
+                <View style={{ zIndex: 35, position: 'relative', marginTop: 4 }}>
+                  <DarkDropdown
+                    label="Hackwave 3.0 Track / Theme (Optional — can update on event day)"
+                    value={form.hackwave_theme}
+                    options={HACKWAVE_THEME_OPTIONS}
+                    onChange={(v) => set('hackwave_theme', v)}
+                    placeholder="Select theme (Optional — can choose on event day)"
+                    error={fieldErrors.hackwave_theme}
+                    modalTitle="SELECT HACKWAVE 3.0 THEME"
                   />
                 </View>
 
@@ -1329,5 +1428,47 @@ const s = StyleSheet.create({
     color: '#C4B5FD',
     fontFamily: TYPO.display700,
     fontSize: 13.5,
+  },
+  handbookBar: {
+    flexDirection: 'row',
+    gap: 10,
+    marginVertical: 10,
+  },
+  handbookBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(124,58,237,0.12)',
+    borderColor: 'rgba(167,139,250,0.3)',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  handbookBtnText: {
+    color: '#C4B5FD',
+    fontFamily: FONTS.semi,
+    fontSize: 12,
+  },
+  shareBtnInline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(52,211,153,0.1)',
+    borderColor: 'rgba(52,211,153,0.3)',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  shareBtnInlineText: {
+    color: '#34D399',
+    fontFamily: FONTS.semi,
+    fontSize: 12,
   },
 });

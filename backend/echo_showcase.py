@@ -553,8 +553,22 @@ async def _send_registration_confirmation(db, reg: dict, showcase: dict) -> None
         reg_id = reg.get("id") or ""
         import urllib.parse
         ticket_url = f"https://studentalumni.ai/api/echo/tickets/{reg_id}?email={urllib.parse.quote(email)}"
+        handbook_url = f"http://localhost:8002/api/echo/handbook/download"
         ticket_block = _ticket_email_block(reg, showcase, ticket_url)
-        subject = f"Your Entry Pass — {title}"
+        subject = f"Your Entry Pass & Event Handbook — {title}"
+
+        # Attach Handbook PDF if present
+        attachments = []
+        pdf_file = Path(__file__).parent / "static" / "HackWave_3.0_Event_Handbook.pdf"
+        if pdf_file.exists():
+            try:
+                attachments.append({
+                    "filename": "HackWave_3.0_Event_Handbook.pdf",
+                    "content": pdf_file.read_bytes(),
+                })
+            except Exception as _pdf_err:
+                print(f"[ECHO] Handbook PDF attach error: {_pdf_err}")
+
         body = render_html_email(
             f"""
             <h2 style="margin:0 0 14px 0;color:#111827;">You're registered!</h2>
@@ -570,6 +584,14 @@ async def _send_registration_confirmation(db, reg: dict, showcase: dict) -> None
                   <td style="padding:12px 16px;text-align:right;color:#111827;font-weight:700;">{reg.get('full_name')}</td></tr>
             </table>
             {ticket_block}
+            <div style="margin:20px 0;padding:16px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:12px;">
+              <h3 style="margin:0 0 6px 0;color:#6d28d9;font-size:15px;">📘 Official Event Handbook Attached</h3>
+              <p style="margin:0 0 12px 0;color:#4c1d95;font-size:13px;">
+                Find full details on schedule, 5 hackathon tracks, meals, rules, and rewards in the attached <strong>HackWave_3.0_Event_Handbook.pdf</strong>.
+              </p>
+              <a href="{handbook_url}"
+                 style="display:inline-block;padding:8px 16px;background:#7C3AED;color:#fff;text-decoration:none;border-radius:8px;font-weight:600;font-size:13px;">Download Event Handbook PDF</a>
+            </div>
             <p style="margin:0 0 22px 0;color:#374151;">
               You can view your ticket anytime from your dashboard under <strong>My Tickets</strong>.
             </p>
@@ -577,7 +599,7 @@ async def _send_registration_confirmation(db, reg: dict, showcase: dict) -> None
                style="display:inline-block;padding:12px 26px;background:#7C3AED;color:#fff;text-decoration:none;border-radius:10px;font-weight:600;">Open My Dashboard</a>
             """
         )
-        await send_email(email, subject, body)
+        await send_email(email, subject, body, attachments=attachments)
     except Exception as e:
         print(f"[ECHO] Confirmation email error: {e}")
 
@@ -2421,6 +2443,21 @@ async def seed_echo_showcase(db: AsyncIOMotorDatabase):
         print(f"[ECHO CMS] Seed warning: {e}")
 
 
+# ── Public handbook download endpoint ─────────────────────────────────────
+from fastapi.responses import FileResponse
+
+@router.get("/handbook")
+@router.get("/handbook/download")
+async def download_handbook():
+    pdf_file = Path(__file__).parent / "static" / "HackWave_3.0_Event_Handbook.pdf"
+    if not pdf_file.exists():
+        raise HTTPException(status_code=404, detail="Event handbook PDF not found")
+    return FileResponse(
+        path=str(pdf_file),
+        filename="HackWave_3.0_Event_Handbook.pdf",
+        media_type="application/pdf"
+    )
+
 # ── Public endpoints ─────────────────────────────────────────────────────────
 @router.get("/showcases")
 async def list_showcases(request: Request):
@@ -2447,12 +2484,33 @@ async def get_showcase(slug: str, request: Request):
     doc = await db.echo_showcases.find_one(_slug_query(slug))
     if not doc:
         # Auto-seed the default showcase on first hit so a fresh DB serves content,
-        # but only when the requested slug is the seed's canonical slug/alias.
+        # but only when the requested slug is the seed's canonical slug/alias or hackwave.
         seed_slug = DEFAULT_SHOWCASE_SEED.get("slug")
         seed_aliases = DEFAULT_SHOWCASE_SEED.get("aliases") or []
-        if slug == seed_slug or slug in seed_aliases:
+        if slug in (seed_slug, *seed_aliases, "hackwave-3.0", "hackwave-3", "hackwave", "snist"):
             await seed_echo_showcase(db)
             doc = await db.echo_showcases.find_one(_slug_query(slug))
+            if not doc and slug in ("hackwave-3.0", "hackwave-3", "hackwave", "snist"):
+                hw_doc = dict(DEFAULT_SHOWCASE_SEED)
+                hw_doc["_id"] = ObjectId()
+                hw_doc["slug"] = slug if slug == "snist" else "hackwave-3.0"
+                hw_doc["aliases"] = ["hackwave-3.0", "hackwave-3", "hackwave", "snist"]
+                hw_doc["title"] = "SNIST Hackwave 3.0 — AI Flagship Hackathon" if slug == "snist" else "Hackwave 3.0 — AI Flagship Hackathon"
+                hw_doc["college"] = "Sreenidhi Institute of Science and Technology (SNIST)" if slug == "snist" else "VNR VJIET"
+                hw_doc["organizer_name"] = "SNIST Student Alumni" if slug == "snist" else "VNR Student Alumni"
+                hw_doc["description"] = "Build next-generation AI systems, autonomous agent workflows, and innovative builder tools in 24 hours at SNIST."
+                hw_doc["status"] = "published"
+                hw_doc["categories"] = [
+                    {"name": "AI That Solves a Real Problem", "description": "Build an AI application that solves a meaningful, real-world problem with high value.", "icon": "target", "color": "#F43F5E"},
+                    {"name": "Beyond the Chatbot", "description": "Reimagine AI interaction via voice, visual, workflows, and automation.", "icon": "rocket", "color": "#8B5CF6"},
+                    {"name": "AI for Builders", "description": "Developer and creator tools that remove friction and accelerate workflows.", "icon": "wrench", "color": "#3B82F6"},
+                    {"name": "Autonomous AI Workflows", "description": "Multi-step reasoning, tool-using autonomous agent systems.", "icon": "cpu", "color": "#10B981"},
+                    {"name": "Build the Unexpected", "description": "Original, creative, and ambitious concepts that surprise and delight.", "icon": "sparkles", "color": "#F59E0B"},
+                ]
+                hw_doc["created_at"] = _now()
+                hw_doc["updated_at"] = _now()
+                await db.echo_showcases.insert_one(hw_doc)
+                doc = await db.echo_showcases.find_one(_slug_query(slug))
 
     if not doc:
         raise HTTPException(status_code=404, detail="Showcase not found")
@@ -2548,6 +2606,8 @@ class RegisterSchema(BaseModel):
     branch: Optional[str] = ""
     year: Optional[str] = ""
     college: Optional[str] = ""
+    hackwave_theme: Optional[str] = ""
+    theme: Optional[str] = ""
     payment_method: Optional[str] = ""
     terms_accepted: Optional[bool] = False
     terms_accepted_at: Optional[str] = ""
@@ -2724,6 +2784,8 @@ async def register_for_showcase(
         "branch": payload.branch,
         "year": payload.year,
         "college": payload.college or showcase.get("college"),
+        "hackwave_theme": payload.hackwave_theme or payload.theme or "",
+        "theme": payload.hackwave_theme or payload.theme or "",
         "fee": fee,
         "currency": currency,
         "payment": payment,
