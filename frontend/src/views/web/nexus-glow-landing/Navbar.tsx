@@ -201,14 +201,14 @@ export function Navbar() {
                     '/student-portal';
                   router.push(portalPath);
                 }}
-                className="group relative overflow-hidden rounded-full bg-primary px-4 sm:px-5 py-2 text-xs font-bold text-primary-foreground transition-all duration-300 hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.4)] cursor-pointer"
+                className="group relative overflow-hidden rounded-full bg-purple-600 px-4 sm:px-5 py-2 text-xs font-bold text-white transition-all duration-300 hover:scale-105 hover:bg-purple-500 hover:shadow-[0_0_20px_rgba(124,58,237,0.5)] cursor-pointer"
               >
                 My Account
               </button>
             ) : (
               <button
                 onClick={() => { setMobileOpen(false); router.push('/get-started'); }}
-                className="group relative overflow-hidden rounded-full bg-primary px-4 sm:px-5 py-2 text-xs font-bold text-primary-foreground transition-all duration-300 hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.4)] cursor-pointer"
+                className="group relative overflow-hidden rounded-full bg-purple-600 px-4 sm:px-5 py-2 text-xs font-bold text-white transition-all duration-300 hover:scale-105 hover:bg-purple-500 hover:shadow-[0_0_20px_rgba(124,58,237,0.5)] cursor-pointer"
               >
                 Get Started
               </button>

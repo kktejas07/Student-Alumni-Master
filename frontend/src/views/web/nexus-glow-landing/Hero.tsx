@@ -27,10 +27,9 @@ export function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7 }}
-            className="inline-flex items-center gap-2 text-[11px] font-bold tracking-[0.15em] uppercase mb-8"
-            style={{ color: "#4f46e5" }}
+            className="inline-flex items-center gap-2 text-[11px] font-bold tracking-[0.15em] uppercase mb-8 text-purple-300 bg-purple-500/20 border border-purple-400/30 px-4 py-1.5 rounded-full shadow-sm"
           >
-            <Sparkles className="h-3.5 w-3.5" color="#4f46e5" />
+            <Sparkles className="h-3.5 w-3.5 text-purple-400" />
             <span>AI Career Platform for Students</span>
           </motion.div>
 
@@ -41,7 +40,7 @@ export function Hero() {
             className="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.08] text-white"
           >
             Your Intelligent <br />
-            <span className="font-extrabold text-white">Companion</span> for a <br />
+            <span className="font-extrabold text-purple-400">Companion</span> for a <br />
             Modern Career
           </motion.h1>
 
@@ -49,7 +48,7 @@ export function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.9, delay: 0.25 }}
-            className="mt-6 text-base md:text-xl text-gray-300 leading-relaxed font-medium max-w-xl"
+            className="mt-6 text-base md:text-xl text-purple-100/80 leading-relaxed font-medium max-w-xl"
           >
             Meet Agent K your always-on career copilot. Connect with mentors, discover events and career opportunities, polish your resume, and follow a personalized roadmap built for the way students actually work today.
           </motion.p>
@@ -63,19 +62,19 @@ export function Hero() {
           >
             <button
               onClick={() => router.push('/get-started')}
-              className="group inline-flex items-center gap-2 rounded-lg px-8 py-4 text-sm font-bold text-white transition-all duration-300 hover:scale-105 cursor-pointer"
+              className="group inline-flex items-center gap-2 rounded-xl px-8 py-4 text-sm font-bold text-white transition-all duration-300 hover:scale-105 cursor-pointer"
               style={{
-                backgroundColor: "#4f46e5",
-                boxShadow: "0 0 20px rgba(79, 70, 229, 0.4)",
-                border: "1px solid rgba(129, 140, 248, 0.3)",
+                backgroundColor: "#7c3aed",
+                boxShadow: "0 0 25px rgba(124, 58, 237, 0.5)",
+                border: "1px solid rgba(167, 139, 250, 0.4)",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = "#4338ca";
-                e.currentTarget.style.boxShadow = "0 0 30px rgba(79, 70, 229, 0.7)";
+                e.currentTarget.style.backgroundColor = "#6d28d9";
+                e.currentTarget.style.boxShadow = "0 0 35px rgba(124, 58, 237, 0.8)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "#4f46e5";
-                e.currentTarget.style.boxShadow = "0 0 20px rgba(79, 70, 229, 0.4)";
+                e.currentTarget.style.backgroundColor = "#7c3aed";
+                e.currentTarget.style.boxShadow = "0 0 25px rgba(124, 58, 237, 0.5)";
               }}
             >
               <span>Start now</span>
