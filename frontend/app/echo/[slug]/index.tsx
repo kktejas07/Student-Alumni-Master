@@ -33,8 +33,8 @@ const s = StyleSheet.create({
     backgroundColor: '#0a0f1e',
   },
   content: {
-    padding: 20,
-    maxWidth: 1200,
+    padding: 16,
+    maxWidth: 1400,
     alignSelf: 'center',
     width: '100%',
   },

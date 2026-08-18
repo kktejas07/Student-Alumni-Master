@@ -102,13 +102,13 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
     hero_image: '',
     intro: '',
     body: '',
-    cta_text: 'Register Now',
-    cta_url: 'https://studentalumni.ai/echo',
+    cta_text: '',
+    cta_url: '',
     include_upcoming: true,
     send_email: true,
     send_push: true,
     send_in_app: true,
-    send_whatsapp: false,
+    send_whatsapp: true,
   });
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [events, setEvents] = useState<any[]>([]);
@@ -140,7 +140,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
   const [indUserQuery, setIndUserQuery] = useState('');
   const [indUserResults, setIndUserResults] = useState<any[]>([]);
   const [indSelectedUser, setIndSelectedUser] = useState<any>(null);
-  const [indForm, setIndForm] = useState({ title: '', body: '', cta_url: '', send_email: true, send_push: true, send_in_app: true, send_whatsapp: false });
+  const [indForm, setIndForm] = useState({ title: '', body: '', cta_url: '', send_email: true, send_push: true, send_in_app: true, send_whatsapp: true });
   const [indSending, setIndSending] = useState(false);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchSeqRef = useRef(0);
@@ -328,7 +328,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
     setForm({
       subject: '', hero_image: '', intro: '', body: '',
       cta_text: 'Register Now', cta_url: 'https://studentalumni.ai/echo',
-      include_upcoming: true, send_email: true, send_push: true, send_in_app: true, send_whatsapp: false,
+      include_upcoming: true, send_email: true, send_push: true, send_in_app: true, send_whatsapp: true,
     });
     flash('Edit cancelled');
   };
@@ -570,7 +570,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
       setIndSelectedUser(null);
       setIndUserQuery('');
       setIndUserResults([]);
-      setIndForm({ title: '', body: '', cta_url: '', send_email: true, send_push: true, send_in_app: true, send_whatsapp: false });
+      setIndForm({ title: '', body: '', cta_url: '', send_email: true, send_push: true, send_in_app: true, send_whatsapp: true });
     } catch (e: any) {
       flash(e?.message || 'Failed to send notification');
     } finally {
@@ -907,7 +907,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                 backgroundColor: '#f3f4f6',
               } as any}
               title="Email Preview"
-              sandbox="allow-same-origin"
+              sandbox="allow-same-origin allow-scripts"
             />
           ) : (
             <View style={st.previewFrame}>
@@ -1025,8 +1025,28 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                         {(c.in_app_ok || 0) > 0 && (
                           <StatPill icon={Smartphone} label={`${c.in_app_ok} in-app`} kind="success" />
                         )}
-                        {((c.whatsapp_ok || 0) + (c.whatsapp_fail || 0)) > 0 && (
-                          <StatPill icon={MessageSquare} label={`${c.whatsapp_ok || 0} WhatsApp`} kind={c.whatsapp_fail ? 'warn' : 'success'} />
+                        {c.channels?.whatsapp && (
+                          <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
+                            <StatPill 
+                              icon={MessageSquare} 
+                              label={`${c.whatsapp_ok || 0} sent`} 
+                              kind={(c.whatsapp_fail || 0) > 0 ? 'warn' : 'success'} 
+                            />
+                            {(c.whatsapp_fail || 0) > 0 && (
+                              <StatPill 
+                                icon={MessageSquare} 
+                                label={`${c.whatsapp_fail || 0} failed`} 
+                                kind="danger" 
+                              />
+                            )}
+                            {c.whatsapp_no_phone > 0 && (
+                              <StatPill 
+                                icon={MessageSquare} 
+                                label={`${c.whatsapp_no_phone} no phone`} 
+                                kind="neutral" 
+                              />
+                            )}
+                          </View>
                         )}
                       </View>
                     )}

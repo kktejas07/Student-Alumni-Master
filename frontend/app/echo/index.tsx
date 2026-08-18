@@ -21,7 +21,7 @@ export default function EchoIndexPage() {
     let mounted = true;
     api.listEchoShowcases()
       .then((res) => { if (mounted) setItems(res?.items || []); })
-      .catch(() => {})
+      .catch((err) => { console.error('[ECHO EVENTS FETCH ERROR]', err); })
       .finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
   }, []);
@@ -114,8 +114,8 @@ export default function EchoIndexPage() {
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#0a0f1e' },
-  content: { padding: 20, maxWidth: 1200, width: '100%', alignSelf: 'center' },
-  hero: { borderRadius: 18, padding: 28, marginBottom: 24, gap: 10 },
+  content: { padding: 16, maxWidth: 1400, width: '100%', alignSelf: 'center' },
+  hero: { borderRadius: 18, padding: 20, marginBottom: 20, gap: 10 },
   heroBadge: {
     flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 6,
     backgroundColor: 'rgba(37,99,235,0.25)', borderColor: 'rgba(37,99,235,0.4)',
@@ -126,16 +126,16 @@ const s = StyleSheet.create({
   heroSub: { color: 'rgba(255,255,255,0.7)', fontFamily: 'DMSans_500Medium', fontSize: 14, lineHeight: 21, maxWidth: 640 },
   center: { alignItems: 'center', justifyContent: 'center', paddingVertical: 80, gap: 12 },
   centerText: { color: 'rgba(255,255,255,0.6)', fontFamily: 'DMSans_500Medium', fontSize: 13 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   card: {
     width: '31.5%', minWidth: 280, flexGrow: 1, borderRadius: 16, overflow: 'hidden',
     backgroundColor: '#0d1326', borderWidth: 1, borderColor: 'rgba(37,99,235,0.2)',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  cardImg: { width: '100%', height: 150 },
+  cardImg: { width: '100%', height: 140 },
   cardImgFallback: { alignItems: 'center', justifyContent: 'center' },
-  cardBody: { padding: 16, gap: 8 },
-  badgeRow: { flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' },
+  cardBody: { padding: 14, gap: 6 },
+  badgeRow: { flexDirection: 'row', gap: 6, alignItems: 'center', flexWrap: 'wrap' },
   statusBadge: {
     backgroundColor: 'rgba(245,158,11,0.14)', borderColor: 'rgba(245,158,11,0.35)',
     borderWidth: 1, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10,

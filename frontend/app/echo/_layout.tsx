@@ -5,6 +5,7 @@ export default function EchoLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="scan" />
+      <Stack.Screen name="admin" />
       <Stack.Screen name="[slug]" />
     </Stack>
   );
