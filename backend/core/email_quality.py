@@ -360,7 +360,20 @@ async def email_quality_report(
     suppressed = await db.email_suppressions.find(filt).sort("updated_at", -1).to_list(500)
     since = datetime.now(timezone.utc) - timedelta(days=7)
     events = await db.email_quality_events.find(filt).sort("created_at", -1).to_list(200)
+    
+    # Count total emails from both users and talent_pool
+    users_count = await db.users.count_documents({"email": {"$regex": r"@", "$options": "i"}})
+    talent_count = 0
+    try:
+        talent_count = await db.talent_pool.count_documents({"email": {"$regex": r"@", "$options": "i"}})
+    except:
+        pass
+    total_emails = users_count + talent_count
+    
     return {
+        "total_emails": total_emails,
+        "users_count": users_count,
+        "talent_count": talent_count,
         "suppressed_count": await db.email_suppressions.count_documents({}),
         "events_7d": await db.email_quality_events.count_documents({"created_at": {"$gte": since}}),
         "suppressions": [_ser(d) for d in suppressed],
@@ -379,6 +392,49 @@ async def unsuppress_email(
     if not res.deleted_count:
         raise HTTPException(404, "Not on the suppression list")
     return {"ok": True, "email": e}
+
+
+@router.delete("/admin/email-quality/suppressions/bulk")
+async def bulk_unsuppress_emails(
+    emails: List[str] = Query(..., description="List of emails to restore"),
+    _user: dict = Depends(_admin_user),
+):
+    """Restore multiple suppressed emails at once."""
+    from core.db import db
+    
+    restored = 0
+    not_found = []
+    
+    for email in emails:
+        e = _norm(email)
+        res = await db.email_suppressions.delete_one({"email": e})
+        if res.deleted_count:
+            restored += 1
+        else:
+            not_found.append(e)
+    
+    return {
+        "ok": True, 
+        "restored": restored, 
+        "not_found": not_found,
+        "message": f"Restored {restored} emails"
+    }
+
+
+@router.delete("/admin/email-quality/suppressions/all")
+async def unsuppress_all_emails(
+    _user: dict = Depends(_admin_user),
+):
+    """Restore ALL suppressed emails. Use with caution."""
+    from core.db import db
+    
+    result = await db.email_suppressions.delete_many({})
+    
+    return {
+        "ok": True,
+        "deleted": result.deleted_count,
+        "message": f"Restored {result.deleted_count} emails"
+    }
 
 
 @router.get("/admin/email-quality/audit")

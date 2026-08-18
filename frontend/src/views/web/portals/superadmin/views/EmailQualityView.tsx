@@ -80,6 +80,7 @@ export function EmailQualityView() {
   const [auditResults, setAuditResults] = useState<any>(null);
   const [auditing, setAuditing] = useState(false);
   const [showAudit, setShowAudit] = useState(false);
+  const [selectedSuppressions, setSelectedSuppressions] = useState<Set<string>>(new Set());
 
   const load = useCallback(async (needle = q) => {
     setLoading(true);
@@ -89,17 +90,9 @@ export function EmailQualityView() {
       setEvents7d(data?.events_7d || 0);
       setSuppressions(data?.suppressions || []);
       setEvents(data?.events || []);
-      
-      // Get user stats for email health calculation
-      try {
-        const userStats: any = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL || ''}/api/admin/users/list?limit=1`, {
-          headers: { Authorization: `Bearer ${await getToken()}` },
-        }).then(r => r.json());
-        const total = userStats?.counts?.all || 0;
-        setTotalUsers(total);
-        setValidEmails(total - (data?.suppressed_count || 0));
-        setInvalidEmails(data?.suppressed_count || 0);
-      } catch {}
+      setTotalUsers(data?.total_emails || 0);
+      setValidEmails((data?.total_emails || 0) - (data?.suppressed_count || 0));
+      setInvalidEmails(data?.suppressed_count || 0);
     } catch (e: any) {
       flash(e?.message || 'Could not load email health', 'error');
     } finally {
@@ -148,6 +141,62 @@ export function EmailQualityView() {
     } catch (e: any) {
       flash(e?.message || 'Could not restore', 'error');
     }
+  };
+
+  const restoreSelected = async () => {
+    if (selectedSuppressions.size === 0) return;
+    const ok = await confirm({
+      title: `Restore ${selectedSuppressions.size} emails?`,
+      message: 'These emails will be removed from the bounce list.',
+      confirmText: 'Restore All',
+    });
+    if (!ok) return;
+    try {
+      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const token = await getToken();
+      const params = new URLSearchParams();
+      selectedSuppressions.forEach(email => params.append('emails', email));
+      await fetch(`${base}/api/admin/email-quality/suppressions/bulk?${params}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      flash(`Restored ${selectedSuppressions.size} emails`);
+      setSelectedSuppressions(new Set());
+      load();
+    } catch (e: any) {
+      flash(e?.message || 'Could not restore', 'error');
+    }
+  };
+
+  const restoreAll = async () => {
+    const ok = await confirm({
+      title: 'Restore ALL suppressed emails?',
+      message: 'This will remove ALL emails from the bounce list. Only do this if you are sure all emails are valid.',
+      confirmText: 'Restore All',
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const token = await getToken();
+      await fetch(`${base}/api/admin/email-quality/suppressions/all`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      flash('All suppressed emails restored');
+      load();
+    } catch (e: any) {
+      flash(e?.message || 'Could not restore', 'error');
+    }
+  };
+
+  const toggleSelectSuppression = (email: string) => {
+    setSelectedSuppressions(prev => {
+      const next = new Set(prev);
+      if (next.has(email)) next.delete(email);
+      else next.add(email);
+      return next;
+    });
   };
 
   const deliveryRate = totalUsers > 0 ? ((validEmails / totalUsers) * 100).toFixed(1) : '0';
@@ -340,7 +389,20 @@ export function EmailQualityView() {
       <Card>
         <View style={st.cardHeader}>
           <SectionLabel>SUPPRESSED EMAILS</SectionLabel>
-          <StatusPill kind="warn" label={`${suppressions.length} shown`} />
+          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+            <StatusPill kind="warn" label={`${suppressions.length} shown`} />
+            {selectedSuppressions.size > 0 && (
+              <Pressable onPress={restoreSelected} style={st.restoreAllBtn}>
+                <Undo2 size={12} color="#6EE7B7" />
+                <Text style={st.restoreAllText}>Restore {selectedSuppressions.size}</Text>
+              </Pressable>
+            )}
+            {suppressions.length > 0 && (
+              <Pressable onPress={restoreAll} style={st.restoreAllBtnDanger}>
+                <Text style={st.restoreAllTextDanger}>Restore All</Text>
+              </Pressable>
+            )}
+          </View>
         </View>
         <View style={{ marginTop: 12, gap: 8 }}>
           {loading && suppressions.length === 0 ? (
@@ -354,7 +416,13 @@ export function EmailQualityView() {
             </View>
           ) : (
             suppressions.map((row, i) => (
-              <View key={row.email || i} style={st.listRow}>
+              <View key={row.email || i} style={[st.listRow, selectedSuppressions.has(row.email || '') && st.listRowSelected]}>
+                <Pressable 
+                  onPress={() => toggleSelectSuppression(row.email || '')}
+                  style={[st.checkbox, selectedSuppressions.has(row.email || '') && st.checkboxChecked]}
+                >
+                  {selectedSuppressions.has(row.email || '') && <CheckCircle size={12} color="#fff" />}
+                </Pressable>
                 <View style={[st.rowIcon, { backgroundColor: 'rgba(239,68,68,0.1)' }]}>
                   <Ban size={14} color="#EF4444" />
                 </View>
@@ -484,6 +552,22 @@ const st = StyleSheet.create({
   },
   restoreText: { color: '#6EE7B7', fontFamily: FONTS.bold, fontSize: 12 },
   
+  // Selection & Restore
+  listRowSelected: { backgroundColor: 'rgba(124,58,237,0.08)', borderColor: 'rgba(167,139,250,0.3)' },
+  checkbox: { width: 20, height: 20, borderRadius: 4, borderWidth: 1.5, borderColor: 'rgba(167,139,250,0.5)', alignItems: 'center', justifyContent: 'center' },
+  checkboxChecked: { backgroundColor: GRAD.from, borderColor: GRAD.from },
+  restoreAllBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
+    borderWidth: 1, borderColor: 'rgba(110,231,183,0.35)', backgroundColor: 'rgba(110,231,183,0.1)',
+  },
+  restoreAllText: { color: '#6EE7B7', fontFamily: FONTS.bold, fontSize: 11 },
+  restoreAllBtnDanger: {
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
+    borderWidth: 1, borderColor: 'rgba(239,68,68,0.35)', backgroundColor: 'rgba(239,68,68,0.1)',
+  },
+  restoreAllTextDanger: { color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 11 },
+
   // Audit
   auditScoreRow: { flexDirection: 'row', alignItems: 'center', gap: 16, padding: 16, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.03)' },
   auditScoreCircle: { width: 64, height: 64, borderRadius: 32, borderWidth: 3, alignItems: 'center', justifyContent: 'center' },
