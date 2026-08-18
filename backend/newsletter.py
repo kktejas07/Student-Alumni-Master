@@ -74,71 +74,197 @@ def _unsub_token(email: str) -> str:
     return hmac.new(secret.encode("utf-8"), email.strip().lower().encode("utf-8"), hashlib.sha256).hexdigest()[:16]
 
 
-async def _all_subscribers(db, limit: int = 100000) -> list:
-    """All users and talent pool profiles with a valid email for newsletter delivery.
+async def _all_subscribers(db, audience: str = "all", limit: int = 200000) -> list:
+    """Resolve subscribers across the database according to target audience:
+    - 'all': Whole database (directory contacts, registered users, talent pool, and event attendees)
+    - 'directory': Platform users and imported directory contacts (db.users)
+    - 'students': db.users with category in ['student', 'masters']
+    - 'alumni': db.users with category == 'alumni'
+    - 'mentors': db.users with category == 'mentor'
+    - 'talent_pool': Recruiting candidate profiles (db.talent_pool)
+    - 'events': Event attendees (db.echo_registrations)
     
-    Fetches from:
-    1. users collection (platform users who can login)
-    2. talent_pool collection (candidates for recruiting)
-    
-    Deduplicates by email.
+    Deduplicates by lowercase email and normalized phone number.
     """
     from core.security import decrypt_value
+    from core.whatsapp import strip_phone
+    from core.email_quality import reject_reason
 
     subscribers: list = []
     seen_emails = set()
-    
-    # 1. Get platform users
-    cur = db.users.find(
-        {"email": {"$regex": r"@", "$options": "i"}},
-        {"_id": 1, "email": 1, "phone": 1},
-    ).limit(limit)
-    async for u in cur:
-        email = (u.get("email") or "").strip().lower()
-        if not email or "@" not in email or email in seen_emails:
-            continue
-        from core.email_quality import reject_reason
-        if reject_reason(email):
-            continue
-        try:
-            from core.email_quality import is_suppressed
-            if await is_suppressed(email):
-                continue
-        except Exception:
-            pass
-        phone = decrypt_value(u.get("phone") or "") or ""
-        if isinstance(phone, str):
-            phone = phone.strip()
-        else:
-            phone = ""
-        seen_emails.add(email)
-        subscribers.append({"_id": str(u["_id"]), "email": email, "phone": phone, "source": "user"})
-    
-    # 2. Get talent pool profiles
-    try:
-        cur_talent = db.talent_pool.find(
-            {"email": {"$regex": r"@", "$options": "i"}, "is_active": True},
-            {"_id": 1, "email": 1, "phone": 1, "full_name": 1},
+    seen_phones = set()
+
+    audience = (audience or "all").lower().strip()
+
+    # 1. Platform Directory & Users (db.users)
+    if audience in ("all", "directory", "students", "student", "alumni", "mentors", "mentor", "masters"):
+        user_query = {"unsubscribed": {"$ne": True}}
+        if audience in ("students", "student"):
+            user_query["category"] = {"$in": ["student", "masters"]}
+        elif audience == "alumni":
+            user_query["category"] = "alumni"
+        elif audience in ("mentors", "mentor"):
+            user_query["category"] = "mentor"
+        elif audience == "masters":
+            user_query["category"] = "masters"
+
+        cur = db.users.find(
+            user_query,
+            {"_id": 1, "email": 1, "phone": 1, "first_name": 1, "last_name": 1, "name": 1, "category": 1,
+             "location": 1, "country": 1, "city": 1, "current_location": 1, "college_location": 1},
         ).limit(limit)
-        async for t in cur_talent:
-            email = (t.get("email") or "").strip().lower()
-            if not email or "@" not in email or email in seen_emails:
+
+        async for u in cur:
+            email = (u.get("email") or "").strip().lower()
+            raw_p = u.get("phone")
+            phone = ""
+            if raw_p:
+                try:
+                    dec = decrypt_value(raw_p) or ""
+                    phone = str(dec).strip() if isinstance(dec, str) else ""
+                except Exception:
+                    phone = str(raw_p).strip()
+
+            p_digits = strip_phone(phone)
+            # Filter suppressed or invalid emails if email is present
+            if email:
+                if "@" not in email or reject_reason(email):
+                    email = ""
+                else:
+                    try:
+                        from core.email_quality import is_suppressed
+                        if await is_suppressed(email):
+                            email = ""
+                    except Exception:
+                        pass
+
+            if not email and not p_digits:
                 continue
-            from core.email_quality import reject_reason
-            if reject_reason(email):
+
+            # Deduplication
+            if email and email in seen_emails:
                 continue
-            try:
-                from core.email_quality import is_suppressed
-                if await is_suppressed(email):
-                    continue
-            except Exception:
-                pass
-            phone = (t.get("phone") or "").strip()
-            seen_emails.add(email)
-            subscribers.append({"_id": str(t["_id"]), "email": email, "phone": phone, "source": "talent_pool"})
-    except Exception:
-        pass  # talent_pool collection might not exist
-    
+            if p_digits and p_digits in seen_phones:
+                continue
+
+            if email:
+                seen_emails.add(email)
+            if p_digits:
+                seen_phones.add(p_digits)
+
+            location = (u.get("location") or u.get("country") or u.get("city") or u.get("current_location") or u.get("college_location") or "").strip()
+            name = (u.get("name") or f"{u.get('first_name', '')} {u.get('last_name', '')}").strip()
+            subscribers.append({
+                "_id": str(u["_id"]),
+                "email": email,
+                "phone": phone,
+                "location": location,
+                "name": name or "Member",
+                "source": "users",
+                "category": u.get("category", "user"),
+            })
+
+    # 2. Talent Pool Candidates (db.talent_pool)
+    if audience in ("all", "talent_pool", "candidates"):
+        cur_talent = db.talent_pool.find(
+            {},
+            {"_id": 1, "email": 1, "phone": 1, "full_name": 1, "name": 1, "location": 1, "country": 1, "city": 1},
+        ).limit(limit)
+
+        async for cand in cur_talent:
+            email = (cand.get("email") or "").strip().lower()
+            raw_p = cand.get("phone")
+            phone = ""
+            if raw_p:
+                try:
+                    dec = decrypt_value(raw_p) or ""
+                    phone = str(dec).strip() if isinstance(dec, str) else ""
+                except Exception:
+                    phone = str(raw_p).strip()
+            p_digits = strip_phone(phone)
+
+            if email:
+                if "@" not in email or reject_reason(email):
+                    email = ""
+                else:
+                    try:
+                        from core.email_quality import is_suppressed
+                        if await is_suppressed(email):
+                            email = ""
+                    except Exception:
+                        pass
+
+            if not email and not p_digits:
+                continue
+            if email and email in seen_emails:
+                continue
+            if p_digits and p_digits in seen_phones:
+                continue
+
+            if email:
+                seen_emails.add(email)
+            if p_digits:
+                seen_phones.add(p_digits)
+
+            location = (cand.get("location") or cand.get("country") or cand.get("city") or "").strip()
+            name = (cand.get("full_name") or cand.get("name") or "Candidate").strip()
+            subscribers.append({
+                "_id": str(cand["_id"]),
+                "email": email,
+                "phone": phone,
+                "location": location,
+                "name": name,
+                "source": "talent_pool",
+                "category": "candidate",
+            })
+
+    # 3. Echo / Event Attendees (db.echo_registrations)
+    if audience in ("all", "events", "echo_registrations"):
+        cur_echo = db.echo_registrations.find(
+            {},
+            {"_id": 1, "email": 1, "phone": 1, "whatsapp_phone": 1, "name": 1, "full_name": 1, "location": 1, "country": 1, "city": 1, "college": 1},
+        ).limit(limit)
+
+        async for reg in cur_echo:
+            email = (reg.get("email") or "").strip().lower()
+            phone = (reg.get("whatsapp_phone") or reg.get("phone") or "").strip()
+            p_digits = strip_phone(phone)
+
+            if email:
+                if "@" not in email or reject_reason(email):
+                    email = ""
+                else:
+                    try:
+                        from core.email_quality import is_suppressed
+                        if await is_suppressed(email):
+                            email = ""
+                    except Exception:
+                        pass
+
+            if not email and not p_digits:
+                continue
+            if email and email in seen_emails:
+                continue
+            if p_digits and p_digits in seen_phones:
+                continue
+
+            if email:
+                seen_emails.add(email)
+            if p_digits:
+                seen_phones.add(p_digits)
+
+            location = (reg.get("location") or reg.get("country") or reg.get("city") or reg.get("college") or "").strip()
+            name = (reg.get("name") or reg.get("full_name") or "Attendee").strip()
+            subscribers.append({
+                "_id": str(reg["_id"]),
+                "email": email,
+                "phone": phone,
+                "location": location,
+                "name": name,
+                "source": "events",
+                "category": "event_attendee",
+            })
+
     return subscribers
 
 
@@ -185,32 +311,29 @@ def _upcoming_events_html(events: list) -> str:
     cards = []
     for ev in events:
         title = ev.get("title") or ev.get("slug")
-        college = ev.get("college") or "Student Alumni Cell"
+        college = ev.get("college") or "Student Alumni Network"
         when = ev.get("date") or ""
         venue = ev.get("venue") or ""
         slug = (ev.get("slug") or "").strip()
         link = f"{os.environ.get('FRONTEND_URL', 'https://studentalumni.ai').rstrip('/')}/echo/{slug}" if slug else ""
         img = _make_absolute_url(ev.get("hero_image_url") or ev.get("poster_image") or "")
-        img_html = f"<img src='{img}' alt='' style='width:100%;height:auto;display:block;border-radius:10px 10px 0 0;' />" if img else ""
-        badge = "FREE ENTRY" if float((ev.get("registration") or {}).get("fee") or 0) <= 0 else f"₹{float((ev.get('registration') or {}).get('fee') or 0):,.0f} ENTRY"
-        title_html = f"<a href='{link}' style='color:#111827;text-decoration:none;'>{title}</a>" if link else f"<div style='font-size:16px;font-weight:700;color:#111827;'>{title}</div>"
+        img_html = f"<img src='{img}' alt='' style='width:100%;height:auto;max-height:220px;object-fit:cover;display:block;border-radius:12px 12px 0 0;' />" if img else ""
+        fee_val = float((ev.get("registration") or {}).get("fee") or 0)
+        badge = "✨ FREE ENTRY" if fee_val <= 0 else f"🎟️ ₹{fee_val:,.0f} ENTRY"
+        title_html = f"<a href='{link}' style='color:#111827;text-decoration:none;font-size:16px;font-weight:700;'>{title}</a>" if link else f"<div style='font-size:16px;font-weight:700;color:#111827;'>{title}</div>"
         cards.append(
             f"""
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
               <tr>
-                <td style="background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+                <td>
                   {img_html}
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                    <tr>
-                      <td style="padding:16px 18px;">
-                        <div style="font-size:11px;font-weight:700;color:#7C3AED;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px;">{badge}</div>
-                        {title_html}
-                        <div style="font-size:12.5px;color:#6b7280;margin-top:6px;">{college}{' · ' + when if when else ''}</div>
-                        <div style="font-size:12.5px;color:#6b7280;">{venue}</div>
-                        {f"<div style='margin-top:10px;'><a href='{link}' style='display:inline-block;padding:8px 18px;background:#7C3AED;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:700;font-size:12px;'>View Event</a></div>" if link else ""}
-                      </td>
-                    </tr>
-                  </table>
+                  <div style="padding:16px 18px;">
+                    <div style="display:inline-block;padding:3px 8px;background:#F5F3FF;border:1px solid #DDD6FE;border-radius:6px;font-size:11px;font-weight:700;color:#7C3AED;letter-spacing:.3px;margin-bottom:8px;">{badge}</div>
+                    <div>{title_html}</div>
+                    <div style="font-size:13px;color:#4B5563;margin-top:6px;line-height:1.4;">📅 {when or 'Date TBA'}{' · 📍 ' + venue if venue else ''}</div>
+                    <div style="font-size:12px;color:#9CA3AF;margin-top:2px;">🏛️ {college}</div>
+                    {f"<div style='margin-top:12px;'><a href='{link}' style='display:inline-block;padding:8px 18px;background:#7C3AED;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;font-size:12.5px;box-shadow:0 2px 4px rgba(124,58,237,0.2);'>View Event & Register →</a></div>" if link else ""}
+                  </div>
                 </td>
               </tr>
             </table>
@@ -247,29 +370,31 @@ def build_newsletter_html(
     # Reject blob/data URLs — they only work in the browser, not in email clients
     safe_hero = hero_image if _is_server_url(hero_image) else ""
     hero_html = (
-        f"<img src='{_make_absolute_url(safe_hero)}' alt='' style='width:100%;height:auto;display:block;border-radius:12px;margin:0 0 20px 0;' />"
+        f"<img src='{_make_absolute_url(safe_hero)}' alt='' style='width:100%;height:auto;max-height:360px;object-fit:cover;display:block;border-radius:12px;margin:0 0 20px 0;box-shadow:0 2px 8px rgba(0,0,0,0.08);' />"
         if safe_hero else ""
     )
     intro_html = (
-        f"<p style='margin:0 0 14px 0;color:#374151;font-size:15px;'>{intro}</p>" if intro else ""
+        f"<p style='margin:0 0 16px 0;color:#374151;font-size:16px;line-height:1.6;font-weight:500;'>{intro}</p>" if intro else ""
     )
     body_html = (
-        f"<div style='margin:0 0 18px 0;color:#374151;font-size:15px;line-height:1.65;'>{body}</div>"
+        f"<div style='margin:0 0 20px 0;color:#374151;font-size:15px;line-height:1.7;'>{body}</div>"
         if body else ""
     )
     events_html = _upcoming_events_html(upcoming_events)
     events_section = (
         f"""
-        <h3 style="margin:24px 0 12px 0;color:#111827;font-size:17px;">Upcoming Events</h3>
-        {events_html}
+        <div style="margin:28px 0 12px 0;">
+          <h3 style="margin:0 0 14px 0;color:#111827;font-size:18px;font-weight:700;display:flex;align-items:center;">🔥 Featured Upcoming Events</h3>
+          {events_html}
+        </div>
         """
         if events_html else ""
     )
     cta_html = (
         f"""
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:18px 0 6px 0;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0 12px 0;">
           <tr><td align="center">
-            <a href="{cta_url}" style="display:inline-block;padding:13px 32px;background:#7C3AED;color:#ffffff;text-decoration:none;border-radius:10px;font-weight:700;font-size:15px;">{cta_text}</a>
+            <a href="{cta_url}" style="display:inline-block;padding:14px 36px;background:#7C3AED;background:linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%);color:#ffffff;text-decoration:none;border-radius:10px;font-weight:700;font-size:15px;box-shadow:0 4px 12px rgba(124,58,237,0.3);letter-spacing:.3px;">{cta_text} →</a>
           </td></tr>
         </table>
         """
@@ -280,12 +405,12 @@ def build_newsletter_html(
     send_date = datetime.now(_tz.utc).strftime("%B %d, %Y")
 
     content = f"""
-    <!-- Subject header -->
+    <!-- Proforma Subject Header -->
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;border-bottom:2px solid #7C3AED;padding-bottom:18px;">
       <tr>
         <td>
-          <p style="margin:0 0 6px 0;font-size:11px;font-weight:700;color:#7C3AED;letter-spacing:1.5px;text-transform:uppercase;">Newsletter &nbsp;·&nbsp; {send_date}</p>
-          <h2 style="margin:0;font-size:22px;font-weight:800;color:#111827;line-height:1.3;">{subject}</h2>
+          <div style="display:inline-block;padding:4px 10px;background:#F3E8FF;border-radius:20px;font-size:11px;font-weight:700;color:#7C3AED;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">COMMUNITY NEWSLETTER &nbsp;·&nbsp; {send_date}</div>
+          <h1 style="margin:4px 0 0 0;font-size:24px;font-weight:800;color:#111827;line-height:1.3;letter-spacing:-0.5px;">{subject}</h1>
         </td>
       </tr>
     </table>
@@ -300,6 +425,7 @@ def build_newsletter_html(
 
 class SendNewsletterSchema(BaseModel):
     subject: str
+    audience: Optional[str] = "all"  # all | directory | students | alumni | mentors | talent_pool | events
     hero_image: Optional[str] = ""
     intro: Optional[str] = ""
     body: Optional[str] = ""
@@ -316,6 +442,7 @@ class SendNewsletterSchema(BaseModel):
 
 class DraftNewsletterSchema(BaseModel):
     subject: str
+    audience: Optional[str] = "all"
     hero_image: Optional[str] = ""
     intro: Optional[str] = ""
     body: Optional[str] = ""
@@ -341,6 +468,7 @@ async def save_draft(payload: DraftNewsletterSchema, request: Request, user=Depe
     campaign = {
         "campaign_id": campaign_id,
         "subject": payload.subject,
+        "audience": payload.audience or "all",
         "hero_image": _sanitize_hero_url(payload.hero_image or ""),
         "intro": payload.intro or "",
         "body": payload.body or "",
@@ -379,11 +507,22 @@ async def cleanup_blob_urls(request: Request, _=Depends(require_role("admin", "s
 
 
 @router.get("/admin/recipient-count")
-async def recipient_count(request: Request, _=Depends(require_role("admin", "super_admin"))):
-    """Return the number of subscribers who would receive a newsletter."""
+async def recipient_count(
+    request: Request,
+    audience: str = Query("all"),
+    _=Depends(require_role("admin", "super_admin")),
+):
+    """Return the total, email-eligible, and whatsapp-eligible subscriber counts."""
     db = _get_db(request)
-    subscribers = await _all_subscribers(db)
-    return {"count": len(subscribers)}
+    subscribers = await _all_subscribers(db, audience=audience)
+    email_count = sum(1 for s in subscribers if s.get("email"))
+    whatsapp_count = sum(1 for s in subscribers if s.get("phone"))
+    return {
+        "count": len(subscribers),
+        "email_count": email_count,
+        "whatsapp_count": whatsapp_count,
+        "audience": audience,
+    }
 
 
 @router.get("/admin/campaigns")
@@ -457,6 +596,7 @@ async def get_campaign(campaign_id: str, request: Request, _=Depends(require_rol
 
 class UpdateCampaignSchema(BaseModel):
     subject: Optional[str] = None
+    audience: Optional[str] = None
     hero_image: Optional[str] = None
     intro: Optional[str] = None
     body: Optional[str] = None
@@ -481,7 +621,7 @@ async def update_campaign(campaign_id: str, payload: UpdateCampaignSchema, reque
         raise HTTPException(status_code=400, detail="Only scheduled or draft campaigns can be edited")
 
     update = {}
-    for field in ("subject", "hero_image", "intro", "body", "cta_text", "cta_url"):
+    for field in ("subject", "audience", "hero_image", "intro", "body", "cta_text", "cta_url"):
         val = getattr(payload, field, None)
         if val is not None:
             update[field] = _sanitize_hero_url(val) if field == "hero_image" else val
@@ -621,7 +761,7 @@ async def send_test_email(payload: TestNewsletterSchema, request: Request, _=Dep
     per_html = (
         base_html
         + f"<div style='text-align:center;margin-top:14px;'>"
-        f"<a href='#' style='color:#9ca3af;font-size:11px;text-decoration:underline;'>Unsubscribe (Mock Link for Test)</a></div>"
+        f"<span style='color:#9ca3af;font-size:11px;'>This is a preview test sent to {payload.test_email}</span></div>"
     )
 
     sent = await send_email(payload.test_email, "[TEST] " + payload.subject, per_html)
@@ -633,7 +773,7 @@ async def send_test_email(payload: TestNewsletterSchema, request: Request, _=Dep
 
 @router.post("/admin/send-test-whatsapp")
 async def send_test_whatsapp(payload: TestWhatsAppSchema, request: Request, _=Depends(require_role("admin", "super_admin"))):
-    """Send a test WhatsApp message to a single phone number."""
+    """Send a test WhatsApp message to a single phone number with automatic text fallback."""
     from core.whatsapp import send_wa_message, send_wa_image, get_openwa_config
     config = await get_openwa_config()
     if not config:
@@ -643,29 +783,30 @@ async def send_test_whatsapp(payload: TestWhatsAppSchema, request: Request, _=De
         raise HTTPException(status_code=400, detail="Phone number is required")
     subject = (payload.subject or "").strip() or "Newsletter Preview"
     body_text = _strip_html((payload.body or "").strip() or subject)
-    wa_text = f"*{subject}*\n\n{body_text}"
+    wa_text = f"✨ *{subject}*\n\n{body_text}"
     if payload.cta_url:
-        wa_text += f"\n\n{payload.cta_url}"
+        wa_text += f"\n\n🔗 *Action Link:* {payload.cta_url}"
 
     hero_url = _make_absolute_url((payload.hero_image or "").strip())
     if hero_url:
         img_result = await send_wa_image(phone=phone, image_url=hero_url, caption=wa_text, kind="newsletter_test")
         if img_result.get("status") == "sent":
-            return {"ok": True, "message": f"Test WhatsApp sent to {phone}"}
+            return {"ok": True, "message": f"Test WhatsApp sent successfully to {phone}"}
+        # Fallback to direct text if image call didn't deliver
         text_result = await send_wa_message(phone=phone, text=wa_text, kind="newsletter_test")
         if text_result.get("status") == "sent":
-            return {"ok": True, "message": f"Test WhatsApp sent to {phone} (text only — image failed)"}
-        raise HTTPException(status_code=500, detail=f"WhatsApp send failed: {img_result.get('reason') or text_result.get('reason', 'unknown')}")
+            return {"ok": True, "message": f"Test WhatsApp sent to {phone} (Text delivered, image omitted)"}
+        raise HTTPException(status_code=500, detail=f"WhatsApp delivery failed: {img_result.get('reason') or text_result.get('reason', 'unknown')}")
     else:
         result = await send_wa_message(phone=phone, text=wa_text, kind="newsletter_test")
         if result.get("status") == "sent":
-            return {"ok": True, "message": f"Test WhatsApp sent to {phone}"}
+            return {"ok": True, "message": f"Test WhatsApp sent successfully to {phone}"}
         reason = result.get("reason", "unknown")
         if reason == "not_configured":
             raise HTTPException(status_code=503, detail="OpenWA gateway not configured — connect it in Settings > Integrations first")
         if reason == "invalid_phone":
             raise HTTPException(status_code=400, detail="Invalid phone number format")
-        raise HTTPException(status_code=500, detail=f"WhatsApp send failed: {reason}")
+        raise HTTPException(status_code=500, detail=f"WhatsApp delivery failed: {reason}")
 
 
 async def _platform_tz(db) -> Any:
@@ -712,7 +853,7 @@ async def _parse_send_at(db, value: str) -> datetime:
 
 @router.post("/admin/send")
 async def send_newsletter(payload: SendNewsletterSchema, request: Request, user=Depends(require_role("admin", "super_admin"))):
-    """Compose a newsletter and send it via selected channels (email, push, in-app)."""
+    """Compose a newsletter and send it via selected channels (email, push, in-app, WhatsApp)."""
     if not (payload.subject or "").strip():
         raise HTTPException(status_code=400, detail="Subject is required")
     if not (payload.cta_url or "").strip() and not (payload.body or "").strip():
@@ -723,10 +864,11 @@ async def send_newsletter(payload: SendNewsletterSchema, request: Request, user=
     db = _get_db(request)
     campaign_id = secrets.token_hex(8)
     created_by = (user or {}).get("email") or "admin"
+    audience = payload.audience or "all"
 
-    subscribers = await _all_subscribers(db)
+    subscribers = await _all_subscribers(db, audience=audience)
     if not subscribers:
-        raise HTTPException(status_code=400, detail="No subscribed user emails found")
+        raise HTTPException(status_code=400, detail=f"No subscribers found for target audience: {audience}")
 
     # If scheduling in the future
     if payload.send_at:
@@ -739,6 +881,7 @@ async def send_newsletter(payload: SendNewsletterSchema, request: Request, user=
         campaign = {
             "campaign_id": campaign_id,
             "subject": payload.subject,
+            "audience": audience,
             "hero_image": payload.hero_image or "",
             "intro": payload.intro or "",
             "body": payload.body or "",
@@ -770,6 +913,7 @@ async def send_newsletter(payload: SendNewsletterSchema, request: Request, user=
     campaign = {
         "campaign_id": campaign_id,
         "subject": payload.subject,
+        "audience": audience,
         "hero_image": payload.hero_image or "",
         "intro": payload.intro or "",
         "body": payload.body or "",
@@ -790,6 +934,8 @@ async def send_newsletter(payload: SendNewsletterSchema, request: Request, user=
         "push_ok": 0,
         "push_fail": 0,
         "in_app_ok": 0,
+        "whatsapp_ok": 0,
+        "whatsapp_fail": 0,
         "attempts": [],
         "created_at": _now(),
         "created_by": created_by,
@@ -802,7 +948,7 @@ async def send_newsletter(payload: SendNewsletterSchema, request: Request, user=
         "ok": True,
         "campaign_id": campaign_id,
         "recipients": len(subscribers),
-        "message": "Campaign sending started in the background",
+        "message": f"Campaign broadcast started to {len(subscribers)} recipients across selected channels",
     }
 
 
@@ -822,7 +968,8 @@ async def execute_campaign(db, campaign: dict):
             except Exception:
                 pass  # upcoming remains []
 
-        subscribers = await _all_subscribers(db)
+        audience = campaign.get("audience", "all")
+        subscribers = await _all_subscribers(db, audience=audience)
         if not subscribers:
             await db.email_campaigns.update_one(
                 {"campaign_id": campaign_id},
@@ -932,9 +1079,9 @@ async def execute_campaign(db, campaign: dict):
                     hero_url = _make_absolute_url((campaign.get("hero_image") or "").strip())
                     try:
                         if hero_url:
-                            wa_result = await _wa_img(phone=phone, image_url=hero_url, caption=wa_text, kind="newsletter")
+                            wa_result = await _wa_img(phone=phone, image_url=hero_url, caption=wa_text, kind="newsletter", location=sub.get("location"))
                         else:
-                            wa_result = await _wa_msg(phone=phone, text=wa_text, kind="newsletter")
+                            wa_result = await _wa_msg(phone=phone, text=wa_text, kind="newsletter", location=sub.get("location"))
                         if wa_result.get("status") == "sent":
                             whatsapp_ok += 1
                             attempt["whatsapp"] = "ok"
