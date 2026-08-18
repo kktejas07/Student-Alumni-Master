@@ -283,18 +283,6 @@ async def update_contact(contact_id: str, payload: ContactUpdate, request: Reque
     return {"ok": True}
 
 
-@router.delete("/contacts/{contact_id}")
-async def delete_contact(contact_id: str, request: Request, user=Depends(_require_admin)):
-    """Delete a contact."""
-    db = _get_db(request)
-    
-    result = await db.contacts.delete_one({"_id": ObjectId(contact_id)})
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Contact not found")
-    
-    return {"ok": True}
-
-
 @router.delete("/contacts/bulk")
 async def bulk_delete_contacts(payload: Dict[str, List[str]], request: Request, user=Depends(_require_admin)):
     """Bulk delete contacts by IDs."""
@@ -307,6 +295,37 @@ async def bulk_delete_contacts(payload: Dict[str, List[str]], request: Request, 
     result = await db.contacts.delete_many({"_id": {"$in": [ObjectId(id) for id in ids]}})
     
     return {"ok": True, "deleted": result.deleted_count}
+
+
+# ── Cleanup: Delete Contacts Collection ────────────────────────────────────────
+
+@router.delete("/contacts/cleanup")
+async def cleanup_contacts(request: Request, user=Depends(_require_admin)):
+    """Delete the contacts collection after migration.
+    
+    WARNING: This is irreversible. Only use after confirming migration is complete.
+    """
+    db = _get_db(request)
+    
+    result = await db.contacts.delete_many({})
+    
+    return {
+        "ok": True,
+        "deleted": result.deleted_count,
+        "message": f"Deleted {result.deleted_count} contacts. Newsletter will now only use users collection."
+    }
+
+
+@router.delete("/contacts/{contact_id}")
+async def delete_contact(contact_id: str, request: Request, user=Depends(_require_admin)):
+    """Delete a contact."""
+    db = _get_db(request)
+    
+    result = await db.contacts.delete_one({"_id": ObjectId(contact_id)})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Contact not found")
+    
+    return {"ok": True}
 
 
 # ── CSV Import ────────────────────────────────────────────────────────────────
@@ -730,23 +749,4 @@ async def migrate_contacts_to_users(request: Request, user=Depends(_require_admi
         "skipped": skipped,
         "errors": errors[:10],
         "message": f"Migrated {migrated} contacts to users. {skipped} skipped (duplicate or no email)."
-    }
-
-
-# ── Cleanup: Delete Contacts Collection ────────────────────────────────────────
-
-@router.delete("/contacts/cleanup")
-async def cleanup_contacts(request: Request, user=Depends(_require_admin)):
-    """Delete the contacts collection after migration.
-    
-    WARNING: This is irreversible. Only use after confirming migration is complete.
-    """
-    db = _get_db(request)
-    
-    result = await db.contacts.delete_many({})
-    
-    return {
-        "ok": True,
-        "deleted": result.deleted_count,
-        "message": f"Deleted {result.deleted_count} contacts. Newsletter will now only use users collection."
     }
