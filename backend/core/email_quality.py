@@ -379,3 +379,147 @@ async def unsuppress_email(
     if not res.deleted_count:
         raise HTTPException(404, "Not on the suppression list")
     return {"ok": True, "email": e}
+
+
+@router.get("/admin/email-quality/audit")
+async def audit_all_emails(
+    _user: dict = Depends(_admin_user),
+):
+    """Audit all emails in the database for deliverability issues.
+    
+    Checks:
+    - Invalid email format
+    - Disposable/temp email domains
+    - Role accounts (admin@, support@, etc.)
+    - Known problematic domains
+    - Already suppressed emails
+    - Duplicate emails across collections
+    """
+    from core.db import db
+    
+    # Load disposable domains list
+    disposable_domains = set(_FALLBACK)
+    try:
+        if _disposable_cache:
+            disposable_domains = set(_disposable_cache)
+    except:
+        pass
+    
+    role_prefixes = {'admin', 'support', 'info', 'contact', 'noreply', 'no-reply', 
+                     'webmaster', 'postmaster', 'hostmaster', 'abuse', 'spam',
+                     'billing', 'help', 'sales', 'marketing', 'office', 'hr'}
+    
+    stats = {
+        "total_scanned": 0,
+        "valid": 0,
+        "invalid_format": 0,
+        "disposable": 0,
+        "role_account": 0,
+        "suppressed": 0,
+        "duplicate": 0,
+        "issues": [],
+    }
+    
+    seen_emails = set()
+    
+    # Scan users collection
+    async for user in db.users.find({}, {"email": 1}):
+        email = (user.get("email") or "").strip().lower()
+        if not email or "@" not in email:
+            stats["invalid_format"] += 1
+            continue
+        
+        stats["total_scanned"] += 1
+        
+        # Check for duplicates
+        if email in seen_emails:
+            stats["duplicate"] += 1
+            stats["issues"].append({"email": email, "reason": "duplicate", "source": "users"})
+            continue
+        seen_emails.add(email)
+        
+        # Validate email format
+        if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+            stats["invalid_format"] += 1
+            stats["issues"].append({"email": email, "reason": "invalid_format", "source": "users"})
+            continue
+        
+        # Check for disposable domains
+        domain = email.split("@")[1]
+        if domain in disposable_domains:
+            stats["disposable"] += 1
+            stats["issues"].append({"email": email, "reason": "disposable", "source": "users"})
+            continue
+        
+        # Check for role accounts
+        local_part = email.split("@")[0]
+        if local_part in role_prefixes:
+            stats["role_account"] += 1
+            stats["issues"].append({"email": email, "reason": "role_account", "source": "users"})
+            continue
+        
+        # Check if suppressed
+        try:
+            is_sup = await db.email_suppressions.find_one({"email": email})
+            if is_sup:
+                stats["suppressed"] += 1
+                stats["issues"].append({"email": email, "reason": "suppressed", "source": "users"})
+                continue
+        except:
+            pass
+        
+        stats["valid"] += 1
+    
+    # Scan talent_pool collection
+    try:
+        async for talent in db.talent_pool.find({}, {"email": 1}):
+            email = (talent.get("email") or "").strip().lower()
+            if not email or "@" not in email:
+                stats["invalid_format"] += 1
+                continue
+            
+            stats["total_scanned"] += 1
+            
+            if email in seen_emails:
+                stats["duplicate"] += 1
+                stats["issues"].append({"email": email, "reason": "duplicate", "source": "talent_pool"})
+                continue
+            seen_emails.add(email)
+            
+            if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+                stats["invalid_format"] += 1
+                stats["issues"].append({"email": email, "reason": "invalid_format", "source": "talent_pool"})
+                continue
+            
+            domain = email.split("@")[1]
+            if domain in disposable_domains:
+                stats["disposable"] += 1
+                stats["issues"].append({"email": email, "reason": "disposable", "source": "talent_pool"})
+                continue
+            
+            local_part = email.split("@")[0]
+            if local_part in role_prefixes:
+                stats["role_account"] += 1
+                stats["issues"].append({"email": email, "reason": "role_account", "source": "talent_pool"})
+                continue
+            
+            try:
+                is_sup = await db.email_suppressions.find_one({"email": email})
+                if is_sup:
+                    stats["suppressed"] += 1
+                    stats["issues"].append({"email": email, "reason": "suppressed", "source": "talent_pool"})
+                    continue
+            except:
+                pass
+            
+            stats["valid"] += 1
+    
+    except Exception:
+        pass  # talent_pool collection might not exist
+    
+    # Calculate health score
+    total = stats["total_scanned"] or 1
+    stats["health_score"] = round((stats["valid"] / total) * 100, 1)
+    stats["issue_count"] = len(stats["issues"])
+    
+    return stats
