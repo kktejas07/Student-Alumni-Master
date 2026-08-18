@@ -999,4 +999,5 @@ async def list_users(
         "mentor":  await _db.users.count_documents({"category": "mentor"}),
         "pending_approval": await _db.users.count_documents({"approved": False, "created_by": {"$in": ["import", "manual"]}}),
     }
-    return {"items": items, "total": total, "counts": counts}
+    pages = max(1, (total + limit - 1) // limit) if limit > 0 else 1
+    return {"items": items, "total": total, "pages": pages, "counts": counts}
