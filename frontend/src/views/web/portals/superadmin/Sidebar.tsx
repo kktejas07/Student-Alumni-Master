@@ -32,7 +32,7 @@ export type SuperAdminNavId =
   | 'overview' | 'colleges' | 'students' | 'mentors' | 'alumni' | 'events'
   | 'payments' | 'analytics' | 'approvals' | 'ai-insights' | 'settings'
   | 'workflows' | 'imports' | 'partners' | 'promotions' | 'talent-pool' | 'echo-showcase'
-  | 'newsletter' | 'certificates' | 'email-health' | 'contacts';
+  | 'newsletter' | 'certificates' | 'email-health';
 import { SALogo } from '@/src/views/components';
 
 export const NAV: Array<{ id: SuperAdminNavId; label: string; Icon: any; count?: number; tag?: 'NEW' }> = [
@@ -48,7 +48,6 @@ export const NAV: Array<{ id: SuperAdminNavId; label: string; Icon: any; count?:
   { id: 'partners',    label: 'Partners',    Icon: Handshake,   tag: 'NEW' },
   { id: 'promotions',  label: 'Promotions',  Icon: Megaphone,   tag: 'NEW' },
   { id: 'newsletter',   label: 'Newsletter',   Icon: Mail,        tag: 'NEW' },
-  { id: 'contacts',     label: 'Contacts Import', Icon: Upload,    tag: 'NEW' },
   { id: 'email-health', label: 'Email health', Icon: ShieldOff,   tag: 'NEW' },
   { id: 'certificates', label: 'Certificates', Icon: Award,       tag: 'NEW' },
   { id: 'payments',    label: 'Payments',    Icon: CreditCard },

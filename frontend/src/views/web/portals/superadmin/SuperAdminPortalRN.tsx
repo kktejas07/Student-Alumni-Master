@@ -31,7 +31,6 @@ import { PartnersView } from './views/PartnersView';
 import { PromotionsView } from './views/PromotionsView';
 import { TalentPoolView } from './views/TalentPoolView';
 import { NewsletterView } from './views/NewsletterView';
-import { ContactsView } from './views/ContactsView';
 import { EchoShowcaseAdminView } from './views/EchoShowcaseAdminView';
 import { CertificatesView } from './views/CertificatesView';
 import { EmailQualityView } from './views/EmailQualityView';
@@ -98,7 +97,6 @@ export function SuperAdminPortalRN() {
           {active === 'partners'    && <PartnersView {...subFor('partners')} />}
           {active === 'promotions'  && <PromotionsView />}
           {active === 'newsletter'  && <NewsletterView {...subFor('newsletter')} />}
-          {active === 'contacts'    && <ContactsView />}
           {active === 'email-health' && <EmailQualityView />}
           {active === 'talent-pool' && <TalentPoolView />}
           {active === 'echo-showcase' && <EchoShowcaseAdminView {...subFor('echo-showcase')} />}
