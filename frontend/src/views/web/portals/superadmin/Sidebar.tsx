@@ -42,7 +42,7 @@ export const NAV: Array<{ id: SuperAdminNavId; label: string; Icon: any; count?:
   { id: 'mentors',     label: 'Mentors',     Icon: UserCheck },
   { id: 'alumni',      label: 'Alumni',      Icon: Users },
   { id: 'talent-pool', label: 'Talent Pool', Icon: UserPlus,    tag: 'NEW' },
-  { id: 'imports',     label: 'Imports',     Icon: Upload,      tag: 'NEW' },
+  { id: 'imports',     label: 'Import Contacts', Icon: Upload,    tag: 'NEW' },
   { id: 'events',          label: 'Events',          Icon: Calendar },
   { id: 'echo-showcase',   label: 'Echo Showcase',   Icon: Sparkles,    tag: 'NEW' },
   { id: 'partners',    label: 'Partners',    Icon: Handshake,   tag: 'NEW' },

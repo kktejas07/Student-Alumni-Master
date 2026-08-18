@@ -68,6 +68,16 @@ export function ImportsView({ sub, onSub }: { sub?: string; onSub?: (s: string) 
   const { toast, flash, hide } = useToast();
   const [refreshKey, setRefreshKey] = useState(0);
   const [profileId, setProfileId] = useState<string | null>(null);
+  const [stats, setStats] = useState<any>(null);
+
+  const loadStats = useCallback(async () => {
+    try {
+      const r = await request<any>('/admin/users/list?limit=1');
+      setStats(r);
+    } catch {}
+  }, []);
+
+  useEffect(() => { loadStats(); }, [loadStats, refreshKey]);
 
   const tabs = [
     { id: 'upload',  label: 'Upload',       icon: Upload },
@@ -76,27 +86,77 @@ export function ImportsView({ sub, onSub }: { sub?: string; onSub?: (s: string) 
     { id: 'history', label: 'History',      icon: History },
   ] as const;
 
+  const counts = stats?.counts || {};
+
   return (
     <View style={{ gap: 14 }}>
       <Card>
         <View style={s.headRow}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <IconBox size={38}><FileSpreadsheet size={18} color={GRAD.to} /></IconBox>
+            <IconBox size={38}><Users size={18} color={GRAD.to} /></IconBox>
             <View>
-              <Text style={s.title}>Imports</Text>
+              <Text style={s.title}>Import Contacts</Text>
               <Text style={s.sub}>
-                Upload spreadsheets or add users manually. The system auto-classifies
-                each profile into Student, Master's, Alumni or Mentor, then routes
-                them into the matching directory view.
+                Manage all users and contacts. Upload spreadsheets, add manually,
+                or browse existing profiles. Send email invites to unregistered contacts.
               </Text>
             </View>
           </View>
         </View>
       </Card>
 
+      {/* Stats Row */}
+      <View style={s.statsRow}>
+        <View style={s.statCard}>
+          <View style={[s.statIcon, { backgroundColor: 'rgba(59,130,246,0.15)' }]}>
+            <Users size={18} color="#3B82F6" />
+          </View>
+          <View>
+            <Text style={s.statValue}>{counts.all || 0}</Text>
+            <Text style={s.statLabel}>Total Users</Text>
+          </View>
+        </View>
+        <View style={s.statCard}>
+          <View style={[s.statIcon, { backgroundColor: 'rgba(16,185,129,0.15)' }]}>
+            <GraduationCap size={18} color="#10B981" />
+          </View>
+          <View>
+            <Text style={s.statValue}>{counts.student || 0}</Text>
+            <Text style={s.statLabel}>Students</Text>
+          </View>
+        </View>
+        <View style={s.statCard}>
+          <View style={[s.statIcon, { backgroundColor: 'rgba(245,158,11,0.15)' }]}>
+            <Sparkles size={18} color="#F59E0B" />
+          </View>
+          <View>
+            <Text style={s.statValue}>{counts.mentor || 0}</Text>
+            <Text style={s.statLabel}>Mentors</Text>
+          </View>
+        </View>
+        <View style={s.statCard}>
+          <View style={[s.statIcon, { backgroundColor: 'rgba(139,92,246,0.15)' }]}>
+            <UserCheck size={18} color="#8B5CF6" />
+          </View>
+          <View>
+            <Text style={s.statValue}>{counts.alumni || 0}</Text>
+            <Text style={s.statLabel}>Alumni</Text>
+          </View>
+        </View>
+        <View style={s.statCard}>
+          <View style={[s.statIcon, { backgroundColor: 'rgba(239,68,68,0.15)' }]}>
+            <AlertTriangle size={18} color="#EF4444" />
+          </View>
+          <View>
+            <Text style={s.statValue}>{counts.pending_approval || 0}</Text>
+            <Text style={s.statLabel}>Pending</Text>
+          </View>
+        </View>
+      </View>
+
       <TopTabs<TabId> tabs={tabs as any} active={tab} onChange={setTab} />
 
-      {tab === 'upload'  && <UploadTab onSaved={flash} onSwitchTab={setTab} bump={() => setRefreshKey((k) => k + 1)} />}
+      {tab === 'upload'  && <UploadTab onSaved={flash} onSwitchTab={setTab} bump={() => { setRefreshKey((k) => k + 1); loadStats(); }} />}
       {tab === 'manual'  && <ManualTab onSaved={flash} />}
       {tab === 'browse'  && <BrowseTab onOpen={setProfileId} onAction={flash} key={refreshKey} />}
       {tab === 'history' && <HistoryTab key={refreshKey} />}
@@ -1161,6 +1221,21 @@ const s = StyleSheet.create({
   sub:   { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 720 },
   muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
   err: { color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 12 },
+  
+  // Stats row
+  statsRow: {
+    flexDirection: 'row', gap: 10, flexWrap: 'wrap',
+  },
+  statCard: {
+    flex: 1, minWidth: 120, flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: SAC.cardSolid, borderRadius: 12, borderWidth: 1, borderColor: SAC.border,
+    padding: 12,
+  },
+  statIcon: {
+    width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center',
+  },
+  statValue: { fontFamily: FONTS.xbold, fontSize: 18, color: '#fff' },
+  statLabel: { fontFamily: FONTS.med, fontSize: 11, color: SAC.muted, marginTop: 2 },
 
   catBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
@@ -1256,6 +1331,7 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   selectedHalo: {
+    height: '100%',
     borderRadius: 22, borderWidth: 2, borderColor: GRAD.to,
     ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 0 4px rgba(251,146,60,0.18)' } as any) : {}),
   },
