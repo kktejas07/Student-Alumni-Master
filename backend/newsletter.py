@@ -73,21 +73,27 @@ def _unsub_token(email: str) -> str:
 
 
 async def _all_subscribers(db, limit: int = 100000) -> list:
-    """All users with a valid email for newsletter delivery.
+    """All users and talent pool profiles with a valid email for newsletter delivery.
     
-    Fetches from users collection only (contacts merged into users).
+    Fetches from:
+    1. users collection (platform users who can login)
+    2. talent_pool collection (candidates for recruiting)
+    
+    Deduplicates by email.
     """
     from core.security import decrypt_value
 
     subscribers: list = []
+    seen_emails = set()
     
+    # 1. Get platform users
     cur = db.users.find(
         {"email": {"$regex": r"@", "$options": "i"}},
         {"_id": 1, "email": 1, "phone": 1},
     ).limit(limit)
     async for u in cur:
         email = (u.get("email") or "").strip().lower()
-        if not email or "@" not in email:
+        if not email or "@" not in email or email in seen_emails:
             continue
         from core.email_quality import reject_reason
         if reject_reason(email):
@@ -103,7 +109,33 @@ async def _all_subscribers(db, limit: int = 100000) -> list:
             phone = phone.strip()
         else:
             phone = ""
-        subscribers.append({"_id": str(u["_id"]), "email": email, "phone": phone})
+        seen_emails.add(email)
+        subscribers.append({"_id": str(u["_id"]), "email": email, "phone": phone, "source": "user"})
+    
+    # 2. Get talent pool profiles
+    try:
+        cur_talent = db.talent_pool.find(
+            {"email": {"$regex": r"@", "$options": "i"}, "is_active": True},
+            {"_id": 1, "email": 1, "phone": 1, "full_name": 1},
+        ).limit(limit)
+        async for t in cur_talent:
+            email = (t.get("email") or "").strip().lower()
+            if not email or "@" not in email or email in seen_emails:
+                continue
+            from core.email_quality import reject_reason
+            if reject_reason(email):
+                continue
+            try:
+                from core.email_quality import is_suppressed
+                if await is_suppressed(email):
+                    continue
+            except Exception:
+                pass
+            phone = (t.get("phone") or "").strip()
+            seen_emails.add(email)
+            subscribers.append({"_id": str(t["_id"]), "email": email, "phone": phone, "source": "talent_pool"})
+    except Exception:
+        pass  # talent_pool collection might not exist
     
     return subscribers
 
