@@ -1446,4 +1446,43 @@ async def list_users(
         "pending_approval": await _db.users.count_documents({"approved": False, "created_by": {"$in": ["import", "manual"]}, "archived": {"$ne": True}}),
         "registered": await _db.users.count_documents({"$or": [{"password_hash": {"$exists": True, "$ne": None}}, {"auth_provider": {"$exists": True, "$ne": None}}], "archived": {"$ne": True}}),
     }
-    return {"items": items, "total": total, "counts": counts}
+    pages = max(1, (total + limit - 1) // limit) if limit > 0 else 1
+    return {"items": items, "total": total, "pages": pages, "counts": counts}
+
+
+# ─── Categorize uncategorized users as students ───────────────────────────────
+
+@router.post("/admin/users/categorize-uncategorized")
+async def categorize_uncategorized_users(authorization: Optional[str] = Header(None)):
+    """Move all users without a category/role to 'student'.
+    
+    This fixes the issue where imported users don't appear in the stats
+    because they have no category assigned.
+    """
+    await _require_admin(authorization)
+    
+    # Update users with no category or role
+    result = await _db.users.update_many(
+        {
+            "$or": [
+                {"category": {"$exists": False}},
+                {"category": None},
+                {"category": ""},
+                {"role": {"$exists": False}},
+                {"role": None},
+                {"role": ""},
+            ]
+        },
+        {
+            "$set": {
+                "category": "student",
+                "role": "student",
+            }
+        }
+    )
+    
+    return {
+        "ok": True,
+        "updated": result.modified_count,
+        "message": f"Categorized {result.modified_count} users as students"
+    }

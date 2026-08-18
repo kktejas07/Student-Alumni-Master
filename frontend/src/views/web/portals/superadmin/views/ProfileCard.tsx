@@ -238,28 +238,16 @@ export function ProfileCard(props: ProfileCardProps) {
         ) : null}
 
         {/* APPROVE / REMOVE */}
-        {(showApprove || showRemove) ? (
+        {showApprove ? (
           <View style={s.adminRow}>
-            {showApprove ? (
-              <Pressable
-                accessibilityLabel={`Approve profile of ${fullName}`}
-                onPress={(e: any) => { e?.stopPropagation?.(); onApprove?.(user.id); }}
-                style={s.approveBtn}
-              >
-                <ShieldCheck size={12} color={PC.statusActive} />
-                <Text style={[s.approveText, { color: PC.statusActive }]}>Approve</Text>
-              </Pressable>
-            ) : null}
-            {showRemove ? (
-              <Pressable
-                accessibilityLabel={`Remove profile of ${fullName}`}
-                onPress={(e: any) => { e?.stopPropagation?.(); onRemove?.(user.id); }}
-                style={s.removeBtn}
-              >
-                <Trash2 size={12} color={'#FCA5A5'} />
-                <Text style={[s.approveText, { color: '#FCA5A5' }]}>Remove</Text>
-              </Pressable>
-            ) : null}
+            <Pressable
+              accessibilityLabel={`Approve profile of ${fullName}`}
+              onPress={(e: any) => { e?.stopPropagation?.(); onApprove?.(user.id); }}
+              style={s.approveBtn}
+            >
+              <ShieldCheck size={12} color={PC.statusActive} />
+              <Text style={[s.approveText, { color: PC.statusActive }]}>Approve</Text>
+            </Pressable>
           </View>
         ) : null}
 
@@ -279,6 +267,16 @@ export function ProfileCard(props: ProfileCardProps) {
               <Text style={s.viewBtnText}>View Profile</Text>
             </LinearGradient>
           </Pressable>
+
+          {showRemove ? (
+            <Pressable
+              accessibilityLabel={`Remove profile of ${fullName}`}
+              onPress={(e: any) => { e?.stopPropagation?.(); onRemove?.(user.id); }}
+              style={[s.socialBtn, { backgroundColor: PC.dangerBg, borderColor: 'rgba(239,68,68,0.30)', borderWidth: 1 }]}
+            >
+              <Trash2 size={16} color={'#FCA5A5'} />
+            </Pressable>
+          ) : null}
 
           {socials?.linkedinUrl ? (
             <Pressable
@@ -358,6 +356,7 @@ export function ProfileCardSkeleton() {
 /* ─── Styles ─────────────────────────────────────────────────────── */
 const s = StyleSheet.create({
   card: {
+    height: '100%',
     borderRadius: 20, borderWidth: 1, borderColor: PC.cardBorder,
     backgroundColor: PC.cardBgFrom,
     ...(Platform.OS === 'web'
@@ -371,7 +370,7 @@ const s = StyleSheet.create({
       ? ({ boxShadow: '0 0 0 1px rgba(251,146,60,0.18), 0 18px 44px rgba(0,0,0,0.55)' } as any) : {}),
   },
   cardFocus: { borderColor: PC.accent, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
-  cardInner: { padding: 22, borderRadius: 20 },
+  cardInner: { padding: 22, borderRadius: 20, flex: 1 },
 
   newPill: {
     position: 'absolute', top: 14, right: 14,
@@ -451,7 +450,7 @@ const s = StyleSheet.create({
   },
   approveText: { fontFamily: FONTS.xbold, fontSize: 11 },
 
-  actionRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16 },
+  actionRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 'auto', paddingTop: 16 },
   viewBtn: {
     height: 44, borderRadius: 12,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
