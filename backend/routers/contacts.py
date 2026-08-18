@@ -435,8 +435,12 @@ async def import_contacts(
         education_institution = get_field(row, "education_institution", "Education Institution", "school", "School", "university")
         profile_url = get_field(row, "profile_url", "Profile URL", "linkedin", "LinkedIn", "profile", "url")
         
-        # Check for existing contact
-        existing = await db.contacts.find_one({"email": email})
+        # Check for existing contact OR user (skip duplicates)
+        existing_contact = await db.contacts.find_one({"email": email})
+        existing_user = await db.users.find_one({"email": email})
+        if existing_contact or existing_user:
+            skipped += 1
+            continue
         
         contact_data = {
             "name": name,
@@ -642,4 +646,107 @@ async def contact_stats(request: Request, user=Depends(_require_admin)):
         "unsubscribed": unsubscribed,
         "sources": sources,
         "lists": lists,
+    }
+
+
+# ── Migration: Contacts → Users ───────────────────────────────────────────────
+
+@router.post("/contacts/migrate-to-users")
+async def migrate_contacts_to_users(request: Request, user=Depends(_require_admin)):
+    """Migrate all contacts to the users collection.
+    
+    - Creates user accounts for contacts that don't have one
+    - Skips duplicates (email already exists in users)
+    - Makes email mandatory
+    - Returns migration stats
+    """
+    db = _get_db(request)
+    
+    migrated = 0
+    skipped = 0
+    errors = []
+    
+    # Get all contacts
+    cursor = db.contacts.find({})
+    async for contact in cursor:
+        email = (contact.get("email") or "").strip().lower()
+        
+        # Skip if no email
+        if not email:
+            skipped += 1
+            continue
+        
+        # Check if user already exists
+        existing_user = await db.users.find_one({"email": email})
+        if existing_user:
+            skipped += 1
+            continue
+        
+        # Create user from contact
+        try:
+            from core.security import hash_password
+            
+            # Generate temp password
+            import secrets as _secrets
+            temp_password = _secrets.token_urlsafe(12)
+            
+            # Determine role from tags or default to student
+            tags = contact.get("tags", [])
+            role = "student"
+            if "mentor" in tags:
+                role = "mentor"
+            elif "alumni" in tags:
+                role = "alumni"
+            
+            user_doc = {
+                "email": email,
+                "password_hash": hash_password(temp_password),
+                "full_name": contact.get("name") or email.split("@")[0].title(),
+                "first_name": contact.get("first_name") or "",
+                "last_name": contact.get("last_name") or "",
+                "phone": contact.get("phone") or "",
+                "role": role,
+                "category": role,
+                "company": contact.get("current_company") or "",
+                "designation": contact.get("current_title") or "",
+                "location": contact.get("location") or "",
+                "college": contact.get("education_institution") or "",
+                "degree": contact.get("education_degree") or "",
+                "linkedin_url": contact.get("profile_url") or "",
+                "created_at": datetime.now(timezone.utc),
+                "created_by": "migration",
+                "approved": True,
+            }
+            
+            await db.users.insert_one(user_doc)
+            migrated += 1
+            
+        except Exception as e:
+            errors.append(f"Failed to migrate {email}: {str(e)}")
+    
+    return {
+        "ok": True,
+        "migrated": migrated,
+        "skipped": skipped,
+        "errors": errors[:10],
+        "message": f"Migrated {migrated} contacts to users. {skipped} skipped (duplicate or no email)."
+    }
+
+
+# ── Cleanup: Delete Contacts Collection ────────────────────────────────────────
+
+@router.delete("/contacts/cleanup")
+async def cleanup_contacts(request: Request, user=Depends(_require_admin)):
+    """Delete the contacts collection after migration.
+    
+    WARNING: This is irreversible. Only use after confirming migration is complete.
+    """
+    db = _get_db(request)
+    
+    result = await db.contacts.delete_many({})
+    
+    return {
+        "ok": True,
+        "deleted": result.deleted_count,
+        "message": f"Deleted {result.deleted_count} contacts. Newsletter will now only use users collection."
     }

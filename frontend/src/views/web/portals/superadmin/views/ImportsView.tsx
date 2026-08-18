@@ -574,22 +574,25 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
   const [data, setData] = useState<any>(null);
   const [busy, setBusy] = useState(false);
   const [showPendingOnly, setShowPendingOnly] = useState(false);
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(25);
   /* Bulk selection */
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [bulkBusy, setBulkBusy] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (pageNum = page, limit = perPage) => {
     setBusy(true);
     try {
-      const r = await request<any>(`/admin/users/list?category=${cat}&q=${encodeURIComponent(q)}&limit=200`);
+      const offset = (pageNum - 1) * limit;
+      const r = await request<any>(`/admin/users/list?category=${cat}&q=${encodeURIComponent(q)}&limit=${limit}&offset=${offset}`);
       setData(r);
     } catch (e: any) {
-      // Token may not be ready on first paint — retry once after a short delay
       if (/401|Not authenticated/i.test(String(e?.message || ''))) {
         await new Promise((r) => setTimeout(r, 600));
         try {
-          const r = await request<any>(`/admin/users/list?category=${cat}&q=${encodeURIComponent(q)}&limit=200`);
+          const offset = (pageNum - 1) * limit;
+          const r = await request<any>(`/admin/users/list?category=${cat}&q=${encodeURIComponent(q)}&limit=${limit}&offset=${offset}`);
           setData(r);
           return;
         } catch {}
@@ -597,8 +600,11 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
       console.warn('Imports browse load failed', e);
       setData({ items: [], total: 0, counts: {} });
     } finally { setBusy(false); }
-  }, [cat, q]);
+  }, [cat, q, page, perPage]);
+  
   useEffect(() => { load(); }, [load]);
+  
+  const totalPages = data ? Math.ceil((data.total || 0) / perPage) : 1;
 
   const counts = data?.counts || {};
   const tabs = [
@@ -784,9 +790,42 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
               </View>
             ))}
           </View>
-          <Text style={[s.muted, { textAlign: 'center', paddingVertical: 8 }]}>
-            Showing {items.length} of {data?.total || 0} · newest first
-          </Text>
+          
+          {/* Pagination */}
+          <View style={s.paginationRow}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text style={s.muted}>Show</Text>
+              {[10, 25, 50].map(n => (
+                <Pressable
+                  key={n}
+                  onPress={() => { setPerPage(n); setPage(1); }}
+                  style={[s.perPageBtn, perPage === n && s.perPageBtnActive]}
+                >
+                  <Text style={[s.perPageText, perPage === n && s.perPageTextActive]}>{n}</Text>
+                </Pressable>
+              ))}
+              <Text style={s.muted}>per page</Text>
+            </View>
+            <Text style={s.muted}>
+              Showing {((page - 1) * perPage) + 1}–{Math.min(page * perPage, data?.total || 0)} of {data?.total || 0}
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 6 }}>
+              <Pressable
+                onPress={() => setPage(Math.max(1, page - 1))}
+                disabled={page <= 1}
+                style={[s.pageBtn, page <= 1 && s.pageBtnDisabled]}
+              >
+                <Text style={s.pageBtnText}>Prev</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setPage(Math.min(totalPages, page + 1))}
+                disabled={page >= totalPages}
+                style={[s.pageBtn, page >= totalPages && s.pageBtnDisabled]}
+              >
+                <Text style={s.pageBtnText}>Next</Text>
+              </Pressable>
+            </View>
+          </View>
         </>
       )}
 
