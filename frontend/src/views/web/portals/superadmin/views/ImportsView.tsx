@@ -180,6 +180,9 @@ function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => vo
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [files, setFiles] = useState<File[]>([]);
+  const [currentFileIdx, setCurrentFileIdx] = useState(0);
+  const [importResults, setImportResults] = useState<any[]>([]);
 
   // Web-only file picker hookup
   useEffect(() => {
@@ -187,8 +190,10 @@ function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => vo
     const el = fileRef.current;
     if (!el) return;
     const handler = async (e: any) => {
-      const f = e.target.files?.[0];
-      if (f) await uploadFile(f);
+      const newFiles = Array.from(e.target.files || []) as File[];
+      if (newFiles.length > 0) {
+        setFiles(prev => [...prev, ...newFiles]);
+      }
     };
     el.addEventListener('change', handler);
     return () => el.removeEventListener('change', handler);
@@ -217,6 +222,60 @@ function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => vo
     } finally { setBusy(false); }
   };
 
+  const uploadAllFiles = async () => {
+    if (files.length === 0) return;
+    setBusy(true); setError(null); setImportResults([]); setData(null); setResult(null);
+    const results = [];
+    
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      setCurrentFileIdx(i);
+      try {
+        const form = new FormData();
+        form.append('file', file);
+        const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+        const token = (await tokenStore.getAccess()) || '';
+        const resp = await fetch(base + '/api/admin/imports/upload', {
+          method: 'POST',
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          body: form,
+        });
+        if (!resp.ok) {
+          const t = await resp.text();
+          results.push({ file: file.name, error: `Upload failed: ${t}` });
+          continue;
+        }
+        const json = await resp.json();
+        
+        // Auto-commit this file
+        const commitResp = await request<any>('/admin/imports/commit', {
+          method: 'POST',
+          body: { cache_id: json.cache_id, mapping: json.auto_mapping, skip_invalid: skipInvalid },
+        });
+        results.push({ file: file.name, ...commitResp });
+      } catch (e: any) {
+        results.push({ file: file.name, error: String(e?.message || e) });
+      }
+    }
+    
+    setImportResults(results);
+    setFiles([]);
+    setBusy(false);
+    onSaved(`Imported ${results.length} files`);
+    bump();
+  };
+
+  const removeFile = (index: number) => {
+    setFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const clearFiles = () => {
+    setFiles([]);
+    setImportResults([]);
+    setData(null);
+    setResult(null);
+  };
+
   const onPick = () => {
     if (Platform.OS === 'web' && fileRef.current) {
       fileRef.current.click();
@@ -230,8 +289,10 @@ function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => vo
     onDrop: async (e: any) => {
       e.preventDefault();
       setDragOver(false);
-      const f = e.dataTransfer?.files?.[0];
-      if (f) await uploadFile(f);
+      const newFiles = Array.from(e.dataTransfer?.files || []) as File[];
+      if (newFiles.length > 0) {
+        setFiles(prev => [...prev, ...newFiles]);
+      }
     },
   } : {};
 
@@ -254,7 +315,7 @@ function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => vo
   return (
     <View style={{ gap: 14 }}>
       {/* Drop zone */}
-      {!data && (
+      {!data && !result && importResults.length === 0 && (
         <View
           // @ts-ignore web-only
           {...dropProps}
@@ -263,19 +324,88 @@ function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => vo
           <LinearGradient colors={GRAD.soft} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.dropIcon}>
             <Upload size={22} color={GRAD.to} />
           </LinearGradient>
-          <Text style={s.dropTitle}>Drop your spreadsheet here</Text>
-          <Text style={s.dropSub}>Supports .xlsx, .xls, and .csv · max 10 MB</Text>
+          <Text style={s.dropTitle}>Drop your spreadsheets here</Text>
+          <Text style={s.dropSub}>Supports .xlsx, .xls, and .csv · Multiple files supported</Text>
           <GradientButton onPress={onPick}>
             <FileSpreadsheet size={13} color="#fff" />
-            <Text style={s.btnText}>Choose file</Text>
+            <Text style={s.btnText}>Choose files</Text>
           </GradientButton>
           {Platform.OS === 'web' && (
             // @ts-ignore native input
-            <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" style={{ display: 'none' }} />
+            <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" multiple style={{ display: 'none' }} />
           )}
           {busy && <View style={{ marginTop: 12 }}><ActivityIndicator color={GRAD.to} /></View>}
           {error && <Text style={[s.err, { marginTop: 12 }]}>{error}</Text>}
         </View>
+      )}
+
+      {/* File list for batch import */}
+      {files.length > 0 && !data && !result && importResults.length === 0 && (
+        <Card>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <Text style={s.fileName}>{files.length} file{files.length > 1 ? 's' : ''} selected</Text>
+            <Pressable onPress={clearFiles} style={s.clearBtn}>
+              <Text style={s.clearBtnText}>Clear all</Text>
+            </Pressable>
+          </View>
+          <View style={{ gap: 8 }}>
+            {files.map((f, i) => (
+              <View key={i} style={s.fileRow}>
+                <FileSpreadsheet size={16} color={GRAD.to} />
+                <View style={{ flex: 1, marginLeft: 8 }}>
+                  <Text numberOfLines={1} style={s.fileName}>{f.name}</Text>
+                  <Text style={s.muted}>{(f.size / 1024).toFixed(1)} KB</Text>
+                </View>
+                {busy && currentFileIdx === i && <ActivityIndicator size="small" color={GRAD.to} />}
+                <Pressable onPress={() => removeFile(i)} style={s.removeFileBtn}>
+                  <X size={14} color="#F87171" />
+                </Pressable>
+              </View>
+            ))}
+          </View>
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+            <GradientButton onPress={uploadAllFiles} disabled={busy} style={{ flex: 1 }}>
+              {busy ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <>
+                  <Upload size={13} color="#fff" />
+                  <Text style={s.btnText}>Import All ({files.length} files)</Text>
+                </>
+              )}
+            </GradientButton>
+            <SecondaryButton onPress={clearFiles}>
+              <Text style={s.secText}>Cancel</Text>
+            </SecondaryButton>
+          </View>
+        </Card>
+      )}
+
+      {/* Import results */}
+      {importResults.length > 0 && (
+        <Card>
+          <Text style={s.fileName}>Import Results</Text>
+          <View style={{ gap: 8, marginTop: 12 }}>
+            {importResults.map((r, i) => (
+              <View key={i} style={s.fileRow}>
+                {r.error ? (
+                  <AlertTriangle size={16} color="#F87171" />
+                ) : (
+                  <CheckCircle2 size={16} color="#10B981" />
+                )}
+                <View style={{ flex: 1, marginLeft: 8 }}>
+                  <Text numberOfLines={1} style={s.fileName}>{r.file}</Text>
+                  <Text style={s.muted}>
+                    {r.error || `${r.added || 0} added, ${r.updated || 0} updated, ${r.skipped || 0} skipped`}
+                  </Text>
+                </View>
+              </View>
+            ))}
+          </View>
+          <SecondaryButton onPress={clearFiles} style={{ marginTop: 12 }}>
+            <Text style={s.secText}>Import More</Text>
+          </SecondaryButton>
+        </Card>
       )}
 
       {/* Preview + commit */}
@@ -1322,6 +1452,21 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   toggleBtnText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11 },
+  
+  // File list
+  fileRow: {
+    flexDirection: 'row', alignItems: 'center', padding: 10, borderRadius: 8,
+    backgroundColor: SAC.cardSolid, borderWidth: 1, borderColor: SAC.border,
+  },
+  clearBtn: {
+    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6,
+    borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)', backgroundColor: 'rgba(239,68,68,0.1)',
+  },
+  clearBtnText: { color: '#F87171', fontFamily: FONTS.bold, fontSize: 11 },
+  removeFileBtn: {
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: 'rgba(239,68,68,0.1)', alignItems: 'center', justifyContent: 'center',
+  },
   
   // Pagination
   paginationRow: {
