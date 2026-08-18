@@ -363,7 +363,7 @@ export const AnalyticsDebugOverlay: React.FC = () => {
               /* Summary Tab */
               <div style={{ padding: 8, fontSize: 12, lineHeight: 1.6 }}>
                 <div style={{ background: '#1e293b', padding: 10, borderRadius: 6, marginBottom: 8 }}>
-                  <div style={{ color: '#94a3b8', fontSize: 10, uppercase: true }}>Session ID</div>
+                  <div style={{ color: '#94a3b8', fontSize: 10, textTransform: 'uppercase' }}>Session ID</div>
                   <div style={{ fontFamily: 'monospace', color: '#38bdf8', fontSize: 11 }}>{getSessionId()}</div>
                 </div>
 

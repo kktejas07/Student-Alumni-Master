@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Bot, Users, CalendarDays, Gift, Briefcase, FileText, Map } from "lucide-react-native";
+import { Bot, Users, CalendarDays, Gift, Briefcase, FileText, Map } from "lucide-react";
 
 const features = [
   {

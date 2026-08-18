@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Star, Quote, HeartPulse } from "lucide-react-native";
+import { Star, Quote, HeartPulse } from "lucide-react";
 
 const reviews = [
   {

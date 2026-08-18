@@ -106,7 +106,7 @@ export const AuthInput = React.forwardRef<TextInput, {
   testID?: string;
   accessibilityLabel?: string;
   accessibilityHint?: string;
-}>((props, ref) => {
+}>(function AuthInput(props, ref) {
   const {
     label, value, onChangeText, placeholder, secureTextEntry,
     keyboardType, autoCapitalize, hint, error, leftIcon, rightSlot,

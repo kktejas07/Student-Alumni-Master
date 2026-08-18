@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowUpRight, Sparkles } from "lucide-react-native";
+import { ArrowUpRight, Sparkles } from "lucide-react";
 import { useRouter } from "expo-router";
 import { AgentK3D } from "./AgentK3D";
 import { useBreakpoint } from "@/src/theme/breakpoints";

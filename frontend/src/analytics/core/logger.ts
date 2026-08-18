@@ -34,8 +34,9 @@ function shouldLog(level: LogLevel): boolean {
 }
 
 export const logger = {
-  debug(tag: string, message: string, payload?: any) {
+  debug(tag: string, ...args: any[]) {
     if (!shouldLog('debug')) return;
+    const [message, payload] = args.length === 1 ? ['', args[0]] : [args[0] ?? '', args[1]];
     // eslint-disable-next-line no-console
     console.groupCollapsed(
       `%c[Analytics:${tag}]%c ${message}`,
@@ -50,8 +51,9 @@ export const logger = {
     console.groupEnd();
   },
 
-  info(tag: string, message: string, payload?: any) {
+  info(tag: string, ...args: any[]) {
     if (!shouldLog('info')) return;
+    const [message, payload] = args.length === 1 ? ['', args[0]] : [args[0] ?? '', args[1]];
     // eslint-disable-next-line no-console
     console.log(
       `%c[Analytics:${tag}]%c ${message}`,
@@ -61,8 +63,9 @@ export const logger = {
     );
   },
 
-  warn(tag: string, message: string, payload?: any) {
+  warn(tag: string, ...args: any[]) {
     if (!shouldLog('warn')) return;
+    const [message, payload] = args.length === 1 ? ['', args[0]] : [args[0] ?? '', args[1]];
     // eslint-disable-next-line no-console
     console.warn(
       `%c[Analytics:${tag}:WARN]%c ${message}`,
@@ -72,14 +75,15 @@ export const logger = {
     );
   },
 
-  error(tag: string, message: string, error?: any) {
+  error(tag: string, ...args: any[]) {
     if (!shouldLog('error')) return;
+    const [message, payload] = args.length === 1 ? ['', args[0]] : [args[0] ?? '', args[1]];
     // eslint-disable-next-line no-console
     console.error(
       `%c[Analytics:${tag}:ERROR]%c ${message}`,
       'background:#dc2626;color:#fee2e2;padding:2px 6px;border-radius:3px;font-weight:bold;',
       'color:#fca5a5;',
-      error || ''
+      payload || ''
     );
   },
 };
