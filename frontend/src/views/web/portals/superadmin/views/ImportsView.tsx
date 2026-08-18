@@ -494,18 +494,18 @@ function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => vo
             <View style={{ padding: 18, paddingBottom: 4 }}>
               <SectionLabel>PREVIEW · first {(data.preview || []).length} rows</SectionLabel>
             </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={true}>
-              <View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={true} contentContainerStyle={{ flexGrow: 1 }}>
+              <View style={{ flex: 1, minWidth: 1450 }}>
                 <View style={s.tableHead}>
                   <Text style={[s.th, { width: 50 }]}>Row</Text>
                   <Text style={[s.th, { width: 100 }]}>Category</Text>
-                  <Text style={[s.th, { width: 200 }]}>Name</Text>
-                  <Text style={[s.th, { width: 240 }]}>Email</Text>
-                  <Text style={[s.th, { width: 200 }]}>College</Text>
-                  <Text style={[s.th, { width: 160 }]}>Degree</Text>
+                  <Text style={[s.th, { flex: 1.5, minWidth: 200 }]}>Name</Text>
+                  <Text style={[s.th, { flex: 1.5, minWidth: 240 }]}>Email</Text>
+                  <Text style={[s.th, { flex: 1.5, minWidth: 200 }]}>College</Text>
+                  <Text style={[s.th, { flex: 1.5, minWidth: 160 }]}>Degree</Text>
                   <Text style={[s.th, { width: 80 }]}>Exp (yr)</Text>
-                  <Text style={[s.th, { width: 240 }]}>Rule fired</Text>
-                  <Text style={[s.th, { width: 180 }]}>Validation</Text>
+                  <Text style={[s.th, { flex: 1.5, minWidth: 240 }]}>Rule fired</Text>
+                  <Text style={[s.th, { flex: 1, minWidth: 180 }]}>Validation</Text>
                 </View>
                 {(data.preview || []).slice(0, 30).map((p: any, i: number) => {
                   const hasErr = (p.errors || []).length > 0;
@@ -513,13 +513,13 @@ function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => vo
                     <View key={i} style={[s.tableRow, hasErr && s.tableRowErr]}>
                       <Text style={[s.td, { width: 50, color: SAC.dim }]}>{p.row}</Text>
                       <View style={{ width: 100 }}>{p.category && <CategoryBadge cat={p.category} small />}</View>
-                      <Text numberOfLines={1} style={[s.td, { width: 200 }]}>{p.full_name || '—'}</Text>
-                      <Text numberOfLines={1} style={[s.td, { width: 240, color: SAC.muted }]}>{p.email || '—'}</Text>
-                      <Text numberOfLines={1} style={[s.td, { width: 200, color: SAC.muted }]}>{p.college || '—'}</Text>
-                      <Text numberOfLines={1} style={[s.td, { width: 160, color: SAC.muted }]}>{p.degree || '—'}</Text>
+                      <Text numberOfLines={1} style={[s.td, { flex: 1.5, minWidth: 200 }]}>{p.full_name || '—'}</Text>
+                      <Text numberOfLines={1} style={[s.td, { flex: 1.5, minWidth: 240, color: SAC.muted }]}>{p.email || '—'}</Text>
+                      <Text numberOfLines={1} style={[s.td, { flex: 1.5, minWidth: 200, color: SAC.muted }]}>{p.college || '—'}</Text>
+                      <Text numberOfLines={1} style={[s.td, { flex: 1.5, minWidth: 160, color: SAC.muted }]}>{p.degree || '—'}</Text>
                       <Text style={[s.td, { width: 80 }]}>{(p.experience_years ?? 0).toString()}</Text>
-                      <Text numberOfLines={1} style={[s.td, { width: 240, color: SAC.muted }]}>{p.category_rule || '—'}</Text>
-                      <View style={{ width: 180 }}>
+                      <Text numberOfLines={1} style={[s.td, { flex: 1.5, minWidth: 240, color: SAC.muted }]}>{p.category_rule || '—'}</Text>
+                      <View style={{ flex: 1, minWidth: 180 }}>
                         {hasErr ? (
                           <StatusPill kind="danger" label={(p.errors || []).join(', ')} />
                         ) : (
