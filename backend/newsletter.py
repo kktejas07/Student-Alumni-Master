@@ -112,10 +112,11 @@ async def _all_subscribers(db, limit: int = 100000) -> list:
         seen_emails.add(email)
         subscribers.append({"_id": str(u["_id"]), "email": email, "phone": phone, "source": "registered"})
     
-    # 2. Get imported contacts (subscribed only)
+    # 2. Get ALL imported contacts (subscribed or not)
+    # Imported contacts are considered opted-in since admin imported them
     cursor_contacts = db.contacts.find(
-        {"email": {"$regex": r"@", "$options": "i"}, "subscribed": True},
-        {"_id": 1, "email": 1, "phone": 1, "source": 1},
+        {"email": {"$regex": r"@", "$options": "i"}},
+        {"_id": 1, "email": 1, "phone": 1, "source": 1, "subscribed": 1},
     ).limit(limit)
     async for c in cursor_contacts:
         email = (c.get("email") or "").strip().lower()
