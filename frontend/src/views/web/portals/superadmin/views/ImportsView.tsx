@@ -1322,6 +1322,30 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   toggleBtnText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11 },
+  
+  // Pagination
+  paginationRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingVertical: 12, paddingHorizontal: 14, borderTopWidth: 1, borderTopColor: SAC.border,
+    flexWrap: 'wrap', gap: 10,
+  },
+  perPageBtn: {
+    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6,
+    borderWidth: 1, borderColor: SAC.border, backgroundColor: SAC.cardSolid,
+    ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
+  },
+  perPageBtnActive: {
+    borderColor: GRAD.from, backgroundColor: 'rgba(124,58,237,0.15)',
+  },
+  perPageText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11 },
+  perPageTextActive: { color: '#C4B5FD' },
+  pageBtn: {
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8,
+    borderWidth: 1, borderColor: SAC.border, backgroundColor: SAC.cardSolid,
+    ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
+  },
+  pageBtnDisabled: { opacity: 0.4 },
+  pageBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
 
   /* selection mode */
   selectBox: {
