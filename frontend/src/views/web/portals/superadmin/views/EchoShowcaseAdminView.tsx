@@ -3147,13 +3147,14 @@ function RegistrationsPanel() {
                   </View>
                   <View style={{ width: 120, minWidth: 0 }}>
                     {r.payment_status === 'paid' ? (
-                      <Text style={{ fontFamily: FONTS.xbold, fontSize: 10, color: '#86EFAC' }}>
-                        {r.coupons_issued > 0 ? `Ticket +${r.coupons_issued}` : 'Ticket'}
-                      </Text>
-                        <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 9.5, color: SAC.dim }}>
-                          {r.invoice_issued ? (r.invoice_no || 'Invoice issued') : 'No invoice'}
+                      <>
+                        <Text style={{ fontFamily: FONTS.xbold, fontSize: 10, color: '#86EFAC' }}>
+                          {r.coupons_issued > 0 ? `Ticket +${r.coupons_issued}` : 'Ticket'}
                         </Text>
-                      </>
+                          <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 9.5, color: SAC.dim }}>
+                            {r.invoice_issued ? (r.invoice_no || 'Invoice issued') : 'No invoice'}
+                          </Text>
+                        </>
                     ) : r.payment_status === 'pending' ? (
                       <Text style={{ fontFamily: FONTS.med, fontSize: 10.5, color: '#FCD34D' }}>
                         Nothing — awaiting payment
