@@ -181,7 +181,7 @@ export const UnstopEventsShowcase: React.FC = () => {
               key={item.slug}
               id="sa.echo.list.card.event"
               label={item.title}
-              props={{ echo_id: item.slug, unstop_url: item.external_url, category: item.category }}
+              analyticsProps={{ echo_id: item.slug, unstop_url: item.external_url, category: item.category }}
               style={{
                 background: '#fff',
                 border: '1px solid #e2e8f0',
@@ -191,7 +191,7 @@ export const UnstopEventsShowcase: React.FC = () => {
                 display: 'flex',
                 flexDirection: 'column',
                 transition: 'transform 0.2s ease',
-              }}
+              } as any}
             >
               <div style={{ position: 'relative', height: 160, background: '#0f172a', overflow: 'hidden' }}>
                 <img

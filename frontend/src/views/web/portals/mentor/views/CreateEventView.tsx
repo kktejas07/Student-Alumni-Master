@@ -850,7 +850,7 @@ export function CreateEventView() {
             </View>
 
             {/* Preview Column right */}
-            <View style={{ width: stack ? '100%' : 340, gap: 16, position: Platform.OS === 'web' ? 'sticky' : 'relative', top: 20 }}>
+            <View style={{ width: stack ? '100%' : 340, gap: 16, position: Platform.OS === 'web' ? 'sticky' : 'relative', top: 20 } as any}>
               
               {/* Dynamic Live Preview Card */}
               <View style={s.previewCard}>

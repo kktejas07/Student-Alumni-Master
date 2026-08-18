@@ -51,11 +51,16 @@ export default function GeneratingExperience() {
   // Beat animation state
   const [activeBeat, setActiveBeat] = useState(-1);
   const progressAnim = useRef(new Animated.Value(0)).current;
-  const beatOpacities = BEATS.map(() => useRef(new Animated.Value(0)).current);
-  const beatScales   = BEATS.map(() => useRef(new Animated.Value(0.85)).current);
-
-  // Icon row activation (left-to-right)
-  const iconAnims = BEATS.map(() => useRef(new Animated.Value(0)).current);
+  const [beatAnims] = useState(() =>
+    BEATS.map(() => ({
+      opacity: new Animated.Value(0),
+      scale: new Animated.Value(0.85),
+      icon: new Animated.Value(0),
+    }))
+  );
+  const beatOpacities = beatAnims.map((b) => b.opacity);
+  const beatScales = beatAnims.map((b) => b.scale);
+  const iconAnims = beatAnims.map((b) => b.icon);
 
   useEffect(() => {
     // ── Background data prefetch (silent) ────────────────────────────────────

@@ -849,7 +849,7 @@ function DownloadsEditor({ downloads, onChange }: any) {
           </View>
           {dl.file_url && (
             <Text style={{ fontFamily: FONTS.med, fontSize: 10.5, color: SAC.muted }} numberOfLines={1}>
-              📎 {dl.file_url}
+               {dl.file_url}
             </Text>
           )}
         </View>
@@ -3077,112 +3077,100 @@ function RegistrationsPanel() {
           </View>
         ) : (
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={{ minWidth: 860 }}>
+            <View style={{ minWidth: 950 }}>
               {/* Header */}
               <View style={{ flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 14, backgroundColor: 'rgba(255,255,255,0.04)', borderBottomWidth: 1, borderBottomColor: SAC.border }}>
                 <Text style={{ width: 180, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>ATTENDEE</Text>
-                <Text style={{ width: 200, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>EVENT</Text>
-                <Text style={{ width: 150, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>COLLEGE / BRANCH</Text>
-                <Text style={{ width: 150, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>AMOUNT</Text>
-                <Text style={{ width: 150, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>PAYMENT</Text>
-                <Text style={{ width: 130, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>ISSUED</Text>
-                <Text style={{ width: 120, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>SA ACCOUNT</Text>
-                <Text style={{ width: 150, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>DATE</Text>
-                <Text style={{ width: 100, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5, textAlign: 'center' }}>ACTIONS</Text>
+                <Text style={{ width: 70, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>TYPE</Text>
+                <Text style={{ width: 180, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>EVENT</Text>
+                <Text style={{ width: 120, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>AMOUNT</Text>
+                <Text style={{ width: 120, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>PAYMENT</Text>
+                <Text style={{ width: 120, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>STATUS</Text>
+                <Text style={{ width: 120, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>DATE</Text>
+                <Text style={{ width: 80, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5, textAlign: 'center' }}>ACTIONS</Text>
               </View>
               {paged.map((r: any, i: number) => (
                 <View key={r.id || i} style={{ flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 11, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' }}>
                   <View style={{ width: 180, minWidth: 0 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 12.5, color: '#fff' }}>{r.full_name || '—'}</Text>
-                      {r.registration_type === 'team' && (
-                        <View style={{ backgroundColor: 'rgba(124,58,237,0.25)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
-                          <Text style={{ fontFamily: FONTS.xbold, fontSize: 9, color: '#C4B5FD' }}>TEAM</Text>
-                        </View>
-                      )}
-                    </View>
+                    <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 12.5, color: '#fff' }}>{r.full_name || '—'}</Text>
                     <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10.5, color: SAC.dim }}>{r.email || r.phone || ''}</Text>
                     {r.registration_type === 'team' && r.team_members?.length > 0 && (
                       <View style={{ marginTop: 6, gap: 4 }}>
-                        {r.team_members.slice(0, 3).map((member: any, idx: number) => (
+                        {r.team_members.slice(0, 2).map((member: any, idx: number) => (
                           <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                            <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: 'rgba(167,139,250,0.2)', alignItems: 'center', justifyContent: 'center' }}>
-                              <Text style={{ fontFamily: FONTS.xbold, fontSize: 8, color: '#C4B5FD' }}>{idx + 2}</Text>
+                            <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: 'rgba(167,139,250,0.2)', alignItems: 'center', justifyContent: 'center' }}>
+                              <Text style={{ fontFamily: FONTS.xbold, fontSize: 7, color: '#C4B5FD' }}>{idx + 2}</Text>
                             </View>
-                            <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 9.5, color: SAC.dim, flex: 1 }}>
+                            <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 9, color: SAC.dim, flex: 1 }}>
                               {member.name || member.email || '—'}
                             </Text>
                           </View>
                         ))}
-                        {r.team_members.length > 3 && (
-                          <Text style={{ fontFamily: FONTS.med, fontSize: 9, color: SAC.dim }}>
-                            +{r.team_members.length - 3} more
+                        {r.team_members.length > 2 && (
+                          <Text style={{ fontFamily: FONTS.med, fontSize: 8, color: SAC.dim }}>
+                            +{r.team_members.length - 2} more
                           </Text>
                         )}
                       </View>
                     )}
                   </View>
-                  <View style={{ width: 200, minWidth: 0 }}>
+                  <View style={{ width: 70 }}>
+                    <View style={{ 
+                      backgroundColor: r.registration_type === 'team' ? 'rgba(124,58,237,0.15)' : 'rgba(52,211,153,0.15)',
+                      paddingHorizontal: 6, paddingVertical: 3, borderRadius: 6,
+                      borderWidth: 1, borderColor: r.registration_type === 'team' ? 'rgba(124,58,237,0.3)' : 'rgba(52,211,153,0.3)',
+                    }}>
+                      <Text style={{ fontFamily: FONTS.xbold, fontSize: 9, color: r.registration_type === 'team' ? '#C4B5FD' : '#6EE7B7' }}>
+                        {r.registration_type === 'team' ? 'TEAM' : 'IND'}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={{ width: 180, minWidth: 0 }}>
                     <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 12, color: '#e5e7eb' }}>{r.event_title || r.slug || '—'}</Text>
+                    <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>{r.college || ''}</Text>
                   </View>
-                  <View style={{ width: 150, minWidth: 0 }}>
-                    <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 12, color: '#e5e7eb' }}>{r.college || '—'}</Text>
-                    <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10.5, color: SAC.dim }}>{[r.branch, r.year].filter(Boolean).join(' · ')}</Text>
-                  </View>
-                  <View style={{ width: 150, minWidth: 0 }}>
-                    <Text style={{ fontFamily: FONTS.xbold, fontSize: 12.5, color: '#fff' }}>
+                  <View style={{ width: 120, minWidth: 0 }}>
+                    <Text style={{ fontFamily: FONTS.xbold, fontSize: 12, color: '#fff' }}>
                       {Number(r.fee || 0) > 0 ? `₹${Number(r.fee).toLocaleString('en-IN')}` : 'FREE'}
                     </Text>
                     {r.registration_type === 'team' && r.team_size > 1 && (
-                      <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 9.5, color: SAC.dim }}>
-                        {r.team_size} members × ₹{Math.round(Number(r.fee || 0) / r.team_size)}
-                      </Text>
-                    )}
-                    <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>{r.payment_id || ''}</Text>
-                  </View>
-                  <View style={{ width: 150, minWidth: 0 }}>
-                    <StatusPill
-                      kind={r.payment_status === 'paid' ? 'success' : r.payment_status === 'pending' ? 'warn' : r.payment_status === 'failed' ? 'danger' : 'neutral'}
-                      label={(r.payment_status || '—').toUpperCase()}
-                    />
-                    {r.failed_reason ? (
-                      <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 9.5, color: '#FCA5A5', marginTop: 3 }}>
-                        {r.failed_reason}
-                      </Text>
-                    ) : null}
-                  </View>
-                  <View style={{ width: 130, minWidth: 0 }}>
-                    {r.payment_status === 'paid' ? (
-                      <>
-                        <Text style={{ fontFamily: FONTS.xbold, fontSize: 10.5, color: '#86EFAC' }}>
-                          {r.coupons_issued > 0 ? `Ticket + ${r.coupons_issued} coupon${r.coupons_issued > 1 ? 's' : ''}` : 'Ticket'}
-                        </Text>
-                        <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 9.5, color: SAC.dim }}>
-                          {r.invoice_issued ? (r.invoice_no || 'Invoice issued') : 'No invoice'}
-                        </Text>
-                      </>
-                    ) : r.payment_status === 'pending' ? (
-                      <Text style={{ fontFamily: FONTS.med, fontSize: 10.5, color: '#FCD34D' }}>
-                        Nothing — awaiting payment
-                      </Text>
-                    ) : (
-                      <Text style={{ fontFamily: FONTS.med, fontSize: 10.5, color: '#FCA5A5' }}>
-                        Nothing — not issued
+                      <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 9, color: SAC.dim }}>
+                        {r.team_size} ppl
                       </Text>
                     )}
                   </View>
                   <View style={{ width: 120, minWidth: 0 }}>
                     <StatusPill
-                      kind={r.has_account ? 'success' : 'neutral'}
-                      label={r.has_account ? 'Yes' : 'No'}
+                      kind={r.payment_status === 'paid' ? 'success' : r.payment_status === 'pending' ? 'warn' : r.payment_status === 'failed' ? 'danger' : 'neutral'}
+                      label={(r.payment_status || '—').toUpperCase()}
                     />
                   </View>
-                  <View style={{ width: 150, minWidth: 0 }}>
-                    <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.dim }}>
-                      {(r.registered_at || '').slice(0, 16).replace('T', ' ') || '—'}
+                  <View style={{ width: 120, minWidth: 0 }}>
+                    {r.payment_status === 'paid' ? (
+                      <>
+                        <Text style={{ fontFamily: FONTS.xbold, fontSize: 10, color: '#86EFAC' }}>
+                          {r.coupons_issued > 0 ? `Ticket +${r.coupons_issued}` : 'Ticket'}
+                        </Text>
+                          <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 9.5, color: SAC.dim }}>
+                            {r.invoice_issued ? (r.invoice_no || 'Invoice issued') : 'No invoice'}
+                          </Text>
+                        </>
+                    ) : r.payment_status === 'pending' ? (
+                      <Text style={{ fontFamily: FONTS.med, fontSize: 10.5, color: '#FCD34D' }}>
+                        Nothing — awaiting payment
+                      </Text>
+                    ) : (
+                      <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: '#FCA5A5' }}>
+                        Not issued
+                      </Text>
+                    )}
+                  </View>
+                  <View style={{ width: 120, minWidth: 0 }}>
+                    <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>
+                      {(r.registered_at || '').slice(0, 10) || '—'}
                     </Text>
                   </View>
-                  <View style={{ width: 100, flexDirection: 'row', gap: 6, justifyContent: 'center' }}>
+                  <View style={{ width: 80, flexDirection: 'row', gap: 4, justifyContent: 'center' }}>
                     <IconAction icon={<Eye size={14} color="#818CF8" />} label="View" color="#818CF8" onPress={() => setDetailRow(r)} />
                     {r.payment_status === 'pending' && (
                       <>

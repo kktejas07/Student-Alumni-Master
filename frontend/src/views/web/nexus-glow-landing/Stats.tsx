@@ -1,6 +1,6 @@
 import { motion, useInView, useMotionValue, animate } from "framer-motion";
 import { useEffect, useRef } from "react";
-import { TrendingUp, Users, Building2, Award } from "lucide-react-native";
+import { TrendingUp, Users, Building2, Award } from "lucide-react";
 
 function Counter({ to, suffix = "" }: { to: number; suffix?: string }) {
   const ref = useRef<HTMLSpanElement>(null);
