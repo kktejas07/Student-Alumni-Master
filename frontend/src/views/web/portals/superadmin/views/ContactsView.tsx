@@ -322,8 +322,8 @@ export function ContactsView() {
             </Text>
           </View>
         ) : (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={{ minWidth: 1000 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
+            <View style={{ minWidth: 1000, flex: 1 }}>
               {/* Header */}
               <View style={st.tableHeader}>
                 <Pressable onPress={selectAll} style={{ width: 36, alignItems: 'center' }}>
@@ -331,9 +331,9 @@ export function ContactsView() {
                     {selected.size === contacts.length && <Check size={12} color="#fff" />}
                   </View>
                 </Pressable>
-                <Text style={[st.headerCell, { width: 240 }]}>CONTACT</Text>
-                <Text style={[st.headerCell, { width: 160 }]}>COMPANY</Text>
-                <Text style={[st.headerCell, { width: 120 }]}>LOCATION</Text>
+                <Text style={[st.headerCell, { flex: 1.5, minWidth: 240 }]}>CONTACT</Text>
+                <Text style={[st.headerCell, { flex: 1, minWidth: 160 }]}>COMPANY</Text>
+                <Text style={[st.headerCell, { flex: 1, minWidth: 120 }]}>LOCATION</Text>
                 <Text style={[st.headerCell, { width: 90 }]}>SOURCE</Text>
                 <Text style={[st.headerCell, { width: 80 }]}>STATUS</Text>
                 <Text style={[st.headerCell, { width: 100, textAlign: 'center' }]}>ACTIONS</Text>
@@ -353,7 +353,7 @@ export function ContactsView() {
                     </Pressable>
                     
                     {/* Contact */}
-                    <Pressable onPress={() => setShowDetail(c)} style={{ width: 240, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <Pressable onPress={() => setShowDetail(c)} style={{ flex: 1.5, minWidth: 240, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                       <View style={[st.avatar, { backgroundColor: `${SOURCE_COLORS[c.source] || '#6B7280'}20` }]}>
                         <SourceIcon size={16} color={SOURCE_COLORS[c.source] || '#9CA3AF'} />
                       </View>
@@ -367,7 +367,7 @@ export function ContactsView() {
                     </Pressable>
                     
                     {/* Company */}
-                    <View style={{ width: 160, minWidth: 0 }}>
+                    <View style={{ flex: 1, minWidth: 160 }}>
                       {c.current_company ? (
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                           <Building2 size={12} color={SAC.dim} />
@@ -379,7 +379,7 @@ export function ContactsView() {
                     </View>
                     
                     {/* Location */}
-                    <View style={{ width: 120, minWidth: 0 }}>
+                    <View style={{ flex: 1, minWidth: 120 }}>
                       {c.location ? (
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                           <MapPin size={12} color={SAC.dim} />
