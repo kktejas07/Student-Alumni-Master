@@ -3280,7 +3280,7 @@ function RegistrationsPanel() {
         <Modal visible={true} transparent animationType="fade" onRequestClose={() => setDetailRow(null)}>
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.72)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
             <View style={{
-              width: '100%', maxWidth: 680, padding: 24, gap: 16,
+              width: '100%', maxWidth: 680,
               backgroundColor: '#141A2D',
               borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)',
               borderRadius: 16,
@@ -3288,7 +3288,8 @@ function RegistrationsPanel() {
               elevation: 12,
               maxHeight: '85vh',
             }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              {/* Fixed Header */}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)' }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                   <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: SAC.text }}>Registration Details</Text>
                   {detailRow.registration_type === 'team' && (
@@ -3300,6 +3301,8 @@ function RegistrationsPanel() {
                 <Pressable onPress={() => setDetailRow(null)} style={{ padding: 4 }}><X size={18} color={SAC.muted} /></Pressable>
               </View>
 
+              {/* Scrollable Content */}
+              <ScrollView style={{ maxHeight: '60vh' }} contentContainerStyle={{ padding: 20, gap: 16 }}>
               {/* 2-Column Grid Layout */}
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
                 {[
@@ -3393,10 +3396,14 @@ function RegistrationsPanel() {
                   </View>
                 </View>
               )}
+              </ScrollView>
 
-              <GradientButton onPress={() => setDetailRow(null)} size="sm" style={{ alignSelf: 'flex-end' }}>
-                <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>Close</Text>
-              </GradientButton>
+              {/* Fixed Footer */}
+              <View style={{ padding: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' }}>
+                <GradientButton onPress={() => setDetailRow(null)} size="sm" style={{ alignSelf: 'flex-end' }}>
+                  <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>Close</Text>
+                </GradientButton>
+              </View>
             </View>
           </View>
         </Modal>
