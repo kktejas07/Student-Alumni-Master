@@ -246,7 +246,7 @@ export default function RegisterScreen() {
                       p = p.split('').sort(() => Math.random() - 0.5).join('');
                       setPwd(p); setShowPwd(true); setErrors((e) => ({ ...e, pwd: '' }));
                     }}
-                    style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(124,58,237,0.28)' }}
+                    style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(37,99,235,0.28)' }}
                     testID="register-generate-password"
                     accessible={true}
                     accessibilityRole="button"
@@ -284,9 +284,9 @@ const s = StyleSheet.create({
   backText: { color: '#374151', fontFamily: FONTS.med, fontSize: 13 },
 
   head: { marginBottom: 22 },
-  roleStripe: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 10, backgroundColor: 'rgba(124,58,237,0.10)', borderWidth: 1, borderColor: 'rgba(124,58,237,0.25)', marginBottom: 18, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  roleStripe: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 10, backgroundColor: 'rgba(37,99,235,0.10)', borderWidth: 1, borderColor: 'rgba(37,99,235,0.25)', marginBottom: 18, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   roleEmoji: { fontSize: 14 },
-  roleText: { color: '#7C3AED', fontFamily: FONTS.bold, fontSize: 12 },
+  roleText: { color: '#2563EB', fontFamily: FONTS.bold, fontSize: 12 },
 
   title: { color: '#111827', fontFamily: FONTS.xbold, fontSize: 30, letterSpacing: -0.6, marginBottom: 6 },
   sub: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 15 },
@@ -295,7 +295,7 @@ const s = StyleSheet.create({
   link: { color: '#6B7280', ...(Platform.OS === 'web' ? ({ textDecorationLine: 'underline', cursor: 'pointer' } as any) : {}) },
 
   signin: { textAlign: 'center', color: '#6B7280', fontFamily: FONTS.med, fontSize: 13, marginTop: 18 },
-  signinLink: { color: '#7C3AED', fontFamily: FONTS.bold, ...(Platform.OS === 'web' ? ({ textDecorationLine: 'underline', cursor: 'pointer' } as any) : {}) },
+  signinLink: { color: '#2563EB', fontFamily: FONTS.bold, ...(Platform.OS === 'web' ? ({ textDecorationLine: 'underline', cursor: 'pointer' } as any) : {}) },
 
   fieldLabel: { color: '#374151', fontFamily: FONTS.bold, fontSize: 13, marginBottom: 8 },
   fieldErr: { color: '#EF4444', fontFamily: FONTS.med, fontSize: 12, marginTop: -8, marginBottom: 6 },

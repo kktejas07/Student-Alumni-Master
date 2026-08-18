@@ -126,7 +126,7 @@ export default function TwoFASetup() {
             <View style={styles.qrFrame}>
               <FakeQR />
               <View style={styles.qrLogo}>
-                <Text style={{ color: '#7C3AED', fontFamily: 'DMSans_700Bold', fontSize: 11 }}>SA</Text>
+                <Text style={{ color: '#2563EB', fontFamily: 'DMSans_700Bold', fontSize: 11 }}>SA</Text>
               </View>
             </View>
           </View>
@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
 
   heroIcon: {
     width: 72, height: 72, borderRadius: 20,
-    backgroundColor: 'rgba(124,58,237,0.28)',
+    backgroundColor: 'rgba(37,99,235,0.28)',
     borderWidth: 1, borderColor: 'rgba(196,181,253,0.28)',
     alignItems: 'center', justifyContent: 'center',
   },
@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 32, height: 32, borderRadius: 8,
     backgroundColor: '#FFFFFF',
-    borderWidth: 2, borderColor: '#7C3AED',
+    borderWidth: 2, borderColor: '#2563EB',
     alignItems: 'center', justifyContent: 'center',
   },
 
@@ -435,7 +435,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   manualKeyVal: {
-    color: '#C4B5FD',
+    color: '#93C5FD',
     fontFamily: 'DMSans_500Medium',
     fontSize: 13,
     letterSpacing: 1.5,
@@ -501,7 +501,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
   },
-  codeText: { color: '#C4B5FD', fontFamily: 'DMSans_700Bold', fontSize: 14, letterSpacing: 1.2 },
+  codeText: { color: '#93C5FD', fontFamily: 'DMSans_700Bold', fontSize: 14, letterSpacing: 1.2 },
 
   actionBtn: {
     flexDirection: 'row',

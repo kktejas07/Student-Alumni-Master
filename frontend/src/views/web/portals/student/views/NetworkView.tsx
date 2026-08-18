@@ -586,7 +586,7 @@ export function NetworkView() {
       <View style={{ gap: 8, marginBottom: 16 }}>
         <View style={s.searchRowContainer}>
           <View style={s.searchContainerFlex}>
-            <Search size={16} color={SC.dim} style={{ marginRight: 8 }} />
+            <Search size={16} color="#64748B" style={{ marginRight: 8 }} />
             <TextInput
               value={searchQuery}
               onChangeText={(val) => {
@@ -599,12 +599,12 @@ export function NetworkView() {
               }}
               onSubmitEditing={() => handleDatabaseSearch()}
               placeholder="Filter displayed accounts or search DB..."
-              placeholderTextColor={SC.dim}
+              placeholderTextColor="#94A3B8"
               style={s.searchInput}
             />
             {searchQuery ? (
               <Pressable onPress={() => { setSearchQuery(''); setQ(''); setDbSearchStatus('idle'); setDbStatusMsg(''); }} style={{ padding: 4 }}>
-                <X size={14} color={SC.dim} />
+                <X size={14} color="#64748B" />
               </Pressable>
             ) : null}
           </View>
@@ -1299,7 +1299,7 @@ export function NetworkView() {
                         ) : (
                           <Pressable 
                             onPress={() => handleConnect(pickedPerson.id, pickedPerson.name)} 
-                            style={[s.connectBtnLarge, { flex: 1, backgroundColor: 'transparent', borderWidth: 1, borderColor: 'rgba(167,139,250,0.4)' }]}
+                            style={[s.connectBtnLarge, { flex: 1, backgroundColor: 'transparent', borderWidth: 1, borderColor: 'rgba(37,99,235,0.4)' }]}
                           >
                             <UserPlus size={16} color={SC.accentBright} style={{ marginRight: 6 }} />
                             <Text style={{ color: SC.accentBright, fontFamily: FONTS.xbold, fontSize: 14 }}>Connect</Text>
@@ -1531,12 +1531,16 @@ const s = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.25)',
-    borderColor: SC.border,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
     borderWidth: 1,
     borderRadius: 10,
     paddingHorizontal: 12,
     height: 42,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
   },
   dbSearchBtn: {
     flexDirection: 'row',
@@ -1580,17 +1584,21 @@ const s = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.25)',
-    borderColor: SC.border,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
     borderWidth: 1,
     borderRadius: 10,
     paddingHorizontal: 12,
     height: 42,
-    marginBottom: 20
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
   },
   searchInput: {
     flex: 1,
-    color: '#1C1C1E',
+    color: '#0F172A',
     fontFamily: FONTS.med,
     fontSize: 13,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {})
@@ -1772,7 +1780,7 @@ const s = StyleSheet.create({
     height: 32,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(167,139,250,0.3)',
+    borderColor: 'rgba(37,99,235,0.3)',
     backgroundColor: 'transparent',
     ...({ cursor: 'pointer' } as any)
   },
@@ -1962,7 +1970,7 @@ const s = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(167,139,250,0.25)',
+    borderColor: 'rgba(37,99,235,0.25)',
     backgroundColor: 'rgba(255,255,255,0.02)',
     alignItems: 'center',
     justifyContent: 'center',

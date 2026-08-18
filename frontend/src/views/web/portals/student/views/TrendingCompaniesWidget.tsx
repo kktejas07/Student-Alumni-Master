@@ -25,7 +25,7 @@ interface TrendingCompany {
 }
 
 const FT = { med: 'DMSans_500Medium', bold: 'DMSans_700Bold', xbold: 'DMSans_800ExtraBold' };
-const PALETTE = ['#F59E0B', '#3B82F6', '#10B981', '#A78BFA', '#EC4899', '#F97316', '#06B6D4', '#84CC16'];
+const PALETTE = ['#F59E0B', '#3B82F6', '#10B981', '#60A5FA', '#EC4899', '#F97316', '#06B6D4', '#84CC16'];
 function pickColor(seed: string): string {
   let h = 0;
   for (const c of seed) h = (h * 31 + c.charCodeAt(0)) >>> 0;
@@ -57,13 +57,13 @@ export function TrendingCompaniesWidget() {
   return (
     <View style={s.card}>
       <LinearGradient
-        colors={['rgba(167,139,250,0.10)', 'rgba(167,139,250,0)']}
+        colors={['rgba(37,99,235,0.10)', 'rgba(37,99,235,0)']}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
         style={s.headerStrip}
       >
         <View style={s.headerLeft}>
           <View style={s.iconDisc}>
-            <MaterialCommunityIcons name="trending-up" size={16} color="#A78BFA" />
+            <MaterialCommunityIcons name="trending-up" size={16} color="#60A5FA" />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={s.title}>Trending Companies</Text>
@@ -71,13 +71,13 @@ export function TrendingCompaniesWidget() {
           </View>
         </View>
         <Pressable onPress={load} style={s.refreshBtn} testID="trending-refresh">
-          <MaterialCommunityIcons name="refresh" size={13} color="#C4B5FD" />
+          <MaterialCommunityIcons name="refresh" size={13} color="#93C5FD" />
         </Pressable>
       </LinearGradient>
 
       {loading ? (
         <View style={s.loadingBox}>
-          <ActivityIndicator size="small" color="#A78BFA" />
+          <ActivityIndicator size="small" color="#60A5FA" />
           <Text style={s.loadingTxt}>Crunching the latest postings…</Text>
         </View>
       ) : items.length === 0 ? (
@@ -97,7 +97,7 @@ export function TrendingCompaniesWidget() {
                   router.push(`/student-portal?tab=internships&q=${encodeURIComponent(c.company)}` as any);
                 }
               }}
-              style={({ hovered }: any) => [s.row, hovered && { backgroundColor: 'rgba(167,139,250,0.06)' }]}
+              style={({ hovered }: any) => [s.row, hovered && { backgroundColor: 'rgba(37,99,235,0.06)' }]}
               testID={`trending-${i}`}
             >
               <View style={[s.logoBox, { backgroundColor: pickColor(c.company) }]}>
@@ -134,11 +134,11 @@ export function TrendingCompaniesWidget() {
             router.push('/student-portal?tab=internships' as any);
           }
         }}
-        style={({ hovered }: any) => [s.viewAll, hovered && { backgroundColor: 'rgba(167,139,250,0.10)' }]}
+        style={({ hovered }: any) => [s.viewAll, hovered && { backgroundColor: 'rgba(37,99,235,0.10)' }]}
         testID="trending-view-all"
       >
         <Text style={s.viewAllText}>Browse all internships & jobs</Text>
-        <MaterialCommunityIcons name="arrow-right" size={13} color="#C4B5FD" />
+        <MaterialCommunityIcons name="arrow-right" size={13} color="#93C5FD" />
       </Pressable>
     </View>
   );
@@ -160,17 +160,17 @@ const s = StyleSheet.create({
   headerLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
   iconDisc: {
     width: 32, height: 32, borderRadius: 999,
-    backgroundColor: 'rgba(167,139,250,0.18)',
-    borderColor: 'rgba(167,139,250,0.40)', borderWidth: 1,
+    backgroundColor: 'rgba(37,99,235,0.18)',
+    borderColor: 'rgba(37,99,235,0.40)', borderWidth: 1,
     alignItems: 'center', justifyContent: 'center',
   },
-  title: { color: '#1C1C1E', fontFamily: FT.xbold, fontSize: 13.5 },
+  title: { color: '#FFFFFF', fontFamily: FT.xbold, fontSize: 13.5 },
   sub: { color: 'rgba(255,255,255,0.55)', fontFamily: FT.med, fontSize: 11, marginTop: 1 },
   refreshBtn: {
     width: 28, height: 28, borderRadius: 8,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(167,139,250,0.10)',
-    borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1,
+    backgroundColor: 'rgba(37,99,235,0.10)',
+    borderColor: 'rgba(37,99,235,0.30)', borderWidth: 1,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   grid: { paddingVertical: 4 },
@@ -183,8 +183,8 @@ const s = StyleSheet.create({
     width: 32, height: 32, borderRadius: 8,
     alignItems: 'center', justifyContent: 'center',
   },
-  logoText: { color: '#1C1C1E', fontFamily: FT.xbold, fontSize: 13 },
-  companyName: { color: '#1C1C1E', fontFamily: FT.bold, fontSize: 12.5 },
+  logoText: { color: '#FFFFFF', fontFamily: FT.xbold, fontSize: 13 },
+  companyName: { color: '#FFFFFF', fontFamily: FT.bold, fontSize: 12.5 },
   companyMeta: { color: 'rgba(255,255,255,0.55)', fontFamily: FT.med, fontSize: 10.5, maxWidth: 140 },
   dot: { color: 'rgba(255,255,255,0.30)', fontFamily: FT.med, fontSize: 10 },
   via: { color: 'rgba(255,255,255,0.45)', fontFamily: FT.med, fontSize: 10, fontStyle: 'italic' },
@@ -212,5 +212,5 @@ const s = StyleSheet.create({
     borderTopColor: 'rgba(255,255,255,0.06)', borderTopWidth: 1,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  viewAllText: { color: '#C4B5FD', fontFamily: FT.bold, fontSize: 12 },
+  viewAllText: { color: '#93C5FD', fontFamily: FT.bold, fontSize: 12 },
 });

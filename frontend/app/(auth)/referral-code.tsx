@@ -124,8 +124,8 @@ const s = StyleSheet.create({
   giftWrap: { alignItems: 'center', marginBottom: 20 },
   giftCircle: {
     width: 72, height: 72, borderRadius: 36,
-    backgroundColor: 'rgba(124,58,237,0.18)',
-    borderColor: 'rgba(124,58,237,0.4)', borderWidth: 1.5,
+    backgroundColor: 'rgba(37,99,235,0.18)',
+    borderColor: 'rgba(37,99,235,0.4)', borderWidth: 1.5,
     alignItems: 'center', justifyContent: 'center',
   },
   head: { marginBottom: 20, alignItems: 'center' },

@@ -395,9 +395,9 @@ const s = StyleSheet.create({
   backText: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 13 },
 
   head: { marginBottom: 22 },
-  roleStripe: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 10, backgroundColor: 'rgba(124,58,237,0.10)', borderWidth: 1, borderColor: 'rgba(124,58,237,0.25)', marginBottom: 18 },
+  roleStripe: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 10, backgroundColor: 'rgba(37,99,235,0.10)', borderWidth: 1, borderColor: 'rgba(37,99,235,0.25)', marginBottom: 18 },
   roleEmoji: { fontSize: 14 },
-  roleText: { color: '#7C3AED', fontFamily: FONTS.bold, fontSize: 12 },
+  roleText: { color: '#2563EB', fontFamily: FONTS.bold, fontSize: 12 },
   title: { color: '#111827', fontFamily: FONTS.xbold, fontSize: 30, letterSpacing: -0.6, marginBottom: 6 },
   sub: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 15 },
 
@@ -407,9 +407,9 @@ const s = StyleSheet.create({
   dividerText: { color: '#9CA3AF', fontFamily: FONTS.med, fontSize: 11.5, letterSpacing: 0.4, textTransform: 'uppercase' },
 
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 14 },
-  forgot: { color: '#7C3AED', fontFamily: FONTS.bold, fontSize: 13, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  forgot: { color: '#2563EB', fontFamily: FONTS.bold, fontSize: 13, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
 
   signup: { textAlign: 'center', color: '#374151', fontFamily: FONTS.med, fontSize: 13, marginTop: 18 },
-  signupLink: { color: '#7C3AED', fontFamily: FONTS.bold, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  signupLink: { color: '#2563EB', fontFamily: FONTS.bold, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
 
 });

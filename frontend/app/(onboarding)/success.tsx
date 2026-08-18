@@ -22,7 +22,7 @@ export default function OnboardingSuccess() {
       title={
         <>
           Welcome to{'\n'}
-          <Text style={{ color: '#C4B5FD' }}>your career platform</Text>
+          <Text style={{ color: '#93C5FD' }}>your career platform</Text>
         </>
       }
       primaryLabel="Go to my dashboard →"
@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   cardIdBox: {
-    backgroundColor: 'rgba(124,58,237,0.14)',
+    backgroundColor: 'rgba(37,99,235,0.14)',
     borderColor: 'rgba(196,181,253,0.30)',
   },
   cardIdText: {
@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   qrPlaceholder: { alignItems: 'center', justifyContent: 'center' },
-  qrPlaceholderText: { color: '#7C3AED', fontFamily: 'DMSans_500Medium' },
+  qrPlaceholderText: { color: '#2563EB', fontFamily: 'DMSans_500Medium' },
 
   aiCard: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 12,

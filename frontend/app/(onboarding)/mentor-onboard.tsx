@@ -49,7 +49,7 @@ type Archetype = {
   tint: string;
 };
 const ARCHETYPES: Archetype[] = [
-  { id: 'career_coach',     title: 'Career Coach',       desc: 'Help navigate career paths & transitions',     Icon: Compass,       tint: '#A78BFA' },
+  { id: 'career_coach',     title: 'Career Coach',       desc: 'Help navigate career paths & transitions',     Icon: Compass,       tint: '#60A5FA' },
   { id: 'it_software',      title: 'Tech Guru',          desc: 'Deep technical skills & system design',         Icon: CodeIcon,      tint: '#60A5FA' },
   { id: 'startup_advisor',  title: 'Startup Advisor',    desc: 'Entrepreneurship, fundraising & PMF',           Icon: Rocket,        tint: '#FB923C' },
   { id: 'interview_prep',   title: 'Interview Prep',     desc: 'Mock interviews, DSA, system design rounds',    Icon: MessageSquare, tint: '#34D399' },
@@ -628,11 +628,11 @@ export default function MentorOnboard() {
 const s = StyleSheet.create({
   stepRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 18, gap: 4 },
   dot: { width: 24, height: 24, borderRadius: 12, borderWidth: 1.5, borderColor: '#E5E7EB', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F9FAFB' },
-  dotActive: { borderColor: '#B07FDF', backgroundColor: '#7C3AED' },
+  dotActive: { borderColor: '#B07FDF', backgroundColor: '#2563EB' },
   dotText: { color: '#9CA3AF', fontFamily: FONTS.bold, fontSize: 10 },
   dotTextActive: { color: '#FFFFFF' },
   line: { flex: 1, height: 1.5, backgroundColor: '#E5E7EB' },
-  lineActive: { backgroundColor: '#7C3AED' },
+  lineActive: { backgroundColor: '#2563EB' },
   title: { color: '#111827', fontFamily: FONTS.bold, fontSize: 26, marginBottom: 6, textAlign: 'center' },
   sub: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 13.5, textAlign: 'center', marginBottom: 18 },
   section: { color: '#6B7280', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', marginTop: 4, marginBottom: 6 },
@@ -731,5 +731,5 @@ const s = StyleSheet.create({
 
   navRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 16 },
   backBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E5E7EB', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  generatingText: { color: '#A78BFA', fontFamily: FONTS.med, fontSize: 12, textAlign: 'center', marginTop: 6 },
+  generatingText: { color: '#60A5FA', fontFamily: FONTS.med, fontSize: 12, textAlign: 'center', marginTop: 6 },
 });

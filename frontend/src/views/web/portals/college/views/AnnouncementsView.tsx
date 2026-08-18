@@ -7,7 +7,7 @@ import { useToast } from '@/src/views/components';
 
 type Ann = { id: string; title: string; body: string; audience: string; tag: string; pinned: boolean; author: string; posted_at: string | null };
 const FALLBACK = { items: [] as Ann[] };
-const TAG_COLORS: Record<string, string> = { placement: '#22D3EE', event: '#34D399', career: '#FBBF24', general: '#A78BFA', hiring: '#EC4899' };
+const TAG_COLORS: Record<string, string> = { placement: '#22D3EE', event: '#34D399', career: '#FBBF24', general: '#60A5FA', hiring: '#EC4899' };
 
 export function AnnouncementsView() {
   const toast = useToast();
@@ -55,7 +55,7 @@ export function AnnouncementsView() {
     <View style={{ flexDirection: 'row', gap: 16, flexWrap: 'wrap' }}>
       <View style={{ flex: 2, minWidth: 320, gap: 10 }}>
         {ANN.map((a) => {
-          const color = TAG_COLORS[a.tag] || '#A78BFA';
+          const color = TAG_COLORS[a.tag] || '#60A5FA';
           return (
             <View key={a.id} style={[s.card, a.pinned && { borderColor: CC.border2 }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>

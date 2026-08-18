@@ -62,7 +62,7 @@ export function StudentDashboardMobileView({
               {notifCount > 0 && <View style={styles.notifDot}><Text style={styles.notifDotText}>{notifCount}</Text></View>}
             </Pressable>
             <Pressable onPress={onOpenProfile} style={styles.avatar}>
-              <LinearGradient colors={['#A78BFA', '#7C3AED']} style={StyleSheet.absoluteFill} />
+              <LinearGradient colors={['#60A5FA', '#2563EB']} style={StyleSheet.absoluteFill} />
               <Text style={styles.avatarText}>{userName.substring(0, 2).toUpperCase()}</Text>
             </Pressable>
           </View>
@@ -71,7 +71,7 @@ export function StudentDashboardMobileView({
         {/* ─── Live Jobs Carousel ────────────────────────────────────── */}
         <View>
           <Text style={styles.sectionTitle}>LIVE JOBS & INTERNSHIPS</Text>
-          {jobsLoading ? <ActivityIndicator color="#A78BFA" /> : (
+          {jobsLoading ? <ActivityIndicator color="#60A5FA" /> : (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.carouselWrap}>
               {jobs.map((job: any, i: number) => (
                 <Pressable key={i} style={styles.glassCard} onPress={() => onActionPress?.(`job-${job.job_id}`)}>

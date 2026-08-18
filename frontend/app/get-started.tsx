@@ -84,5 +84,5 @@ const s = StyleSheet.create({
 
   signinRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, marginTop: 22 },
   signinText: { color: '#374151', fontFamily: FONTS.med, fontSize: 13 },
-  signinLink: { color: '#7C3AED', fontFamily: FONTS.bold, fontSize: 13, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  signinLink: { color: '#2563EB', fontFamily: FONTS.bold, fontSize: 13, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
 });

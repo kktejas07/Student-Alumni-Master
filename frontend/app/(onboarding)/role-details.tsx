@@ -391,10 +391,10 @@ export default function RoleDetailsScreen() {
 const styles = StyleSheet.create({
   section: { color: '#6B7280', fontFamily: 'DMSans_700Bold', fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', marginTop: 4, marginBottom: 8 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
-  infoText: { color: '#C4B5FD', fontFamily: 'DMSans_500Medium', fontSize: 13, lineHeight: 19 },
+  infoText: { color: '#93C5FD', fontFamily: 'DMSans_500Medium', fontSize: 13, lineHeight: 19 },
   toggleCard: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: 'rgba(124,58,237,0.10)',
+    backgroundColor: 'rgba(37,99,235,0.10)',
     borderColor: 'rgba(196,181,253,0.20)',
     borderWidth: 1,
     borderRadius: 12,

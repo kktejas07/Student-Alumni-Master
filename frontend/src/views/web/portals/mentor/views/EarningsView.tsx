@@ -668,7 +668,7 @@ export function EarningsView({ demoMode = false, setDemoMode }: { demoMode?: boo
                 style={s.forecastHeader}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Sparkles size={14} color={demoMode ? '#A78BFA' : MC.muted} />
+                  <Sparkles size={14} color={demoMode ? '#60A5FA' : MC.muted} />
                   <Text style={[s.forecastTitle, !demoMode && { color: MC.muted }]}>AI Tax Summary — What do I owe?</Text>
                 </View>
                 {showTaxSummary ? <ChevronUp size={16} color={MC.muted} /> : <ChevronDown size={16} color={MC.muted} />}

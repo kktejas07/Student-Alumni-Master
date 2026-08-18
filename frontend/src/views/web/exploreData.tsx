@@ -22,7 +22,7 @@ export const COURSES_HERO: ExploreHeroTile[] = [
     subtitle: '12-week roadmap with mentors, projects & free certifications.',
     cta: 'Start free',
     emoji: '🤖',
-    gradient: ['#5F259F', '#7C3AED', '#B07FDF'],
+    gradient: ['#5F259F', '#2563EB', '#B07FDF'],
     span: 2,
   },
   {
@@ -92,7 +92,7 @@ export const INTERNSHIPS_HERO: ExploreHeroTile[] = [
     subtitle: '42 roles match your career path & skills.',
     cta: 'See matches',
     emoji: '🎯',
-    gradient: ['#7C3AED', '#B07FDF', '#EC4899'],
+    gradient: ['#2563EB', '#B07FDF', '#EC4899'],
     span: 2,
   },
   {

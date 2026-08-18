@@ -32,11 +32,11 @@ export default function EchoIndexPage() {
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: ECHO_TOP_PADDING }}>
       <View style={s.content}>
       <LinearGradient
-        colors={['rgba(124,58,237,0.28)', 'rgba(30,10,80,0.4)', '#0a0f1e']}
+        colors={['rgba(37,99,235,0.28)', 'rgba(30,10,80,0.4)', '#0a0f1e']}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={s.hero}
       >        <View style={s.heroBadge}>
-          <Sparkles size={14} color="#C4B5FD" />
+          <Sparkles size={14} color="#93C5FD" />
           <Text style={s.heroBadgeText}>ECHO EVENTS</Text>
         </View>
         <Text style={s.heroTitle}>Explore ECHO Events by College</Text>
@@ -48,7 +48,7 @@ export default function EchoIndexPage() {
 
       {loading ? (
         <View style={s.center}>
-          <ActivityIndicator size="large" color="#A78BFA" />
+          <ActivityIndicator size="large" color="#60A5FA" />
           <Text style={s.centerText}>Loading events…</Text>
         </View>
       ) : items.length === 0 ? (
@@ -66,7 +66,7 @@ export default function EchoIndexPage() {
                 />
               ) : (
                 <LinearGradient
-                  colors={['#7C3AED', '#4C1D95']}
+                  colors={['#2563EB', '#4C1D95']}
                   style={[s.cardImg, s.cardImgFallback]}
                 >
                   <Sparkles size={28} color="#fff" />
@@ -81,7 +81,7 @@ export default function EchoIndexPage() {
                   ) : null}
                   {sc.college ? (
                     <View style={s.collegeBadge}>
-                      <Building2 size={11} color="#C4B5FD" />
+                      <Building2 size={11} color="#93C5FD" />
                       <Text style={s.collegeText}>{sc.college}</Text>
                     </View>
                   ) : null}
@@ -98,7 +98,7 @@ export default function EchoIndexPage() {
                 </View>
                 <View style={s.cardFooter}>
                   <Text style={s.viewText}>View event</Text>
-                  <ArrowRight size={14} color="#A78BFA" />
+                  <ArrowRight size={14} color="#60A5FA" />
                 </View>
               </View>
             </Pressable>
@@ -118,10 +118,10 @@ const s = StyleSheet.create({
   hero: { borderRadius: 18, padding: 28, marginBottom: 24, gap: 10 },
   heroBadge: {
     flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 6,
-    backgroundColor: 'rgba(124,58,237,0.25)', borderColor: 'rgba(167,139,250,0.4)',
+    backgroundColor: 'rgba(37,99,235,0.25)', borderColor: 'rgba(37,99,235,0.4)',
     borderWidth: 1, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20,
   },
-  heroBadgeText: { color: '#C4B5FD', fontFamily: 'DMSans_800ExtraBold', fontSize: 11, letterSpacing: 1.2 },
+  heroBadgeText: { color: '#93C5FD', fontFamily: 'DMSans_800ExtraBold', fontSize: 11, letterSpacing: 1.2 },
   heroTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 30, lineHeight: 38 },
   heroSub: { color: 'rgba(255,255,255,0.7)', fontFamily: 'DMSans_500Medium', fontSize: 14, lineHeight: 21, maxWidth: 640 },
   center: { alignItems: 'center', justifyContent: 'center', paddingVertical: 80, gap: 12 },
@@ -129,7 +129,7 @@ const s = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
   card: {
     width: '31.5%', minWidth: 280, flexGrow: 1, borderRadius: 16, overflow: 'hidden',
-    backgroundColor: '#0d1326', borderWidth: 1, borderColor: 'rgba(167,139,250,0.2)',
+    backgroundColor: '#0d1326', borderWidth: 1, borderColor: 'rgba(37,99,235,0.2)',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   cardImg: { width: '100%', height: 150 },
@@ -141,13 +141,13 @@ const s = StyleSheet.create({
     borderWidth: 1, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10,
   },
   statusText: { color: '#FCD34D', fontFamily: 'DMSans_700Bold', fontSize: 10, letterSpacing: 0.6 },
-  collegeBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, backgroundColor: 'rgba(124,58,237,0.2)' },
-  collegeText: { color: '#C4B5FD', fontFamily: 'DMSans_700Bold', fontSize: 10 },
+  collegeBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, backgroundColor: 'rgba(37,99,235,0.2)' },
+  collegeText: { color: '#93C5FD', fontFamily: 'DMSans_700Bold', fontSize: 10 },
   cardTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 18 },
   cardSub: { color: 'rgba(255,255,255,0.6)', fontFamily: 'DMSans_400Regular', fontSize: 12.5, lineHeight: 18 },
   metaRow: { gap: 5, marginTop: 2 },
   meta: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   metaText: { color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_500Medium', fontSize: 11 },
   cardFooter: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 },
-  viewText: { color: '#A78BFA', fontFamily: 'DMSans_700Bold', fontSize: 12.5 },
+  viewText: { color: '#60A5FA', fontFamily: 'DMSans_700Bold', fontSize: 12.5 },
 });

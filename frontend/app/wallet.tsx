@@ -33,24 +33,24 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useRouter } from 'expo-router';
 import { useToast } from '@/src/views/components';
 
-/* ────────── Design Tokens (Matching Career AI) ────────── */
+/* ────────── Design Tokens (Navy Blue Palette) ────────── */
 const C = {
-  bg: '#0B0D1A',
-  bgCard: 'rgba(18, 22, 35, 0.75)',
-  bgCardH: 'rgba(26, 30, 50, 0.90)',
-  border: 'rgba(255, 255, 255, 0.08)',
-  border2: 'rgba(255, 255, 255, 0.14)',
-  text: '#F0EEFF',
-  text2: 'rgba(240, 238, 255, 0.80)',
-  textSub: 'rgba(240, 238, 255, 0.60)',
-  dim: 'rgba(240, 238, 255, 0.45)',
-  purple: '#4F46E5',
-  purple2: '#6366F1',
-  purpleL: '#818CF8',
-  purpleXL: '#A5B4FC',
-  teal: '#2DD4BF',
-  blue: '#60A5FA',
-  amber: '#F59E0B',
+  bg: '#0A1628',          // deep navy page background
+  bgCard: '#0F2347',      // navy card background
+  bgCardH: '#162E5A',     // navy card hover
+  border: '#1E3A6E',      // navy border
+  border2: '#2A4F8F',     // slightly lighter navy border
+  text: '#FFFFFF',
+  text2: '#E8F0FF',
+  textSub: '#94B4E0',     // muted blue-grey on navy
+  dim: '#6B8CC4',         // dimmed text on navy
+  purple: '#60A5FA',      // accent blue (kept vibrant)
+  purple2: '#3B82F6',     // primary action blue
+  purpleL: '#93C5FD',     // lighter accent
+  purpleXL: '#DBEAFE',    // very light for labels
+  teal: '#34D399',
+  blue: '#3B82F6',
+  amber: '#FBBF24',
   red: '#F87171',
   green: '#34D399',
   pink: '#F472B6',
@@ -477,10 +477,10 @@ export default function WalletScreen() {
       {/* ══════════════ 2. KPI METRICS STRIP (4 Cards) ══════════════ */}
       <View style={s.kpiRow}>
         {/* Card 1: Balance */}
-        <View style={[s.kpiCard, { borderColor: 'rgba(129, 140, 248, 0.35)' }]}>
+        <View style={[s.kpiCard, { borderColor: 'rgba(96, 165, 250, 0.40)' }]}>
           <View style={s.kpiTopRow}>
             <Text style={s.kpiLabel}>WALLET BALANCE</Text>
-            <View style={[s.kpiIconBox, { backgroundColor: 'rgba(129, 140, 248, 0.15)' }]}>
+            <View style={[s.kpiIconBox, { backgroundColor: 'rgba(96, 165, 250, 0.15)' }]}>
               <Wallet size={16} color={C.purpleL} />
             </View>
           </View>
@@ -489,23 +489,23 @@ export default function WalletScreen() {
         </View>
 
         {/* Card 2: Rewards Level */}
-        <View style={[s.kpiCard, { borderColor: 'rgba(245, 158, 11, 0.35)' }]}>
+        <View style={[s.kpiCard, { borderColor: 'rgba(56, 189, 248, 0.40)' }]}>
           <View style={s.kpiTopRow}>
             <Text style={s.kpiLabel}>REWARDS TIER</Text>
-            <View style={[s.kpiIconBox, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
+            <View style={[s.kpiIconBox, { backgroundColor: 'rgba(56, 189, 248, 0.15)' }]}>
               <Award size={16} color={C.amber} />
             </View>
           </View>
-          <Text style={s.kpiValue}>Level 3 Gold</Text>
-          <Text style={s.kpiSubText}>7,500 pts to Platinum</Text>
+          <Text style={s.kpiValue}>Level 3 Cobalt</Text>
+          <Text style={s.kpiSubText}>7,500 pts to Sapphire</Text>
         </View>
 
         {/* Card 3: Active Coupons */}
-        <Pressable onPress={() => setTab('coupons')} style={[s.kpiCard, { borderColor: 'rgba(52, 211, 153, 0.35)' }]}>
+        <Pressable onPress={() => setTab('coupons')} style={[s.kpiCard, { borderColor: 'rgba(96, 165, 250, 0.40)' }]}>
           <View style={s.kpiTopRow}>
             <Text style={s.kpiLabel}>MY COUPONS</Text>
-            <View style={[s.kpiIconBox, { backgroundColor: 'rgba(52, 211, 153, 0.15)' }]}>
-              <Tag size={16} color={C.green} />
+            <View style={[s.kpiIconBox, { backgroundColor: 'rgba(96, 165, 250, 0.15)' }]}>
+              <Tag size={16} color={C.purpleL} />
             </View>
           </View>
           <Text style={s.kpiValue}>{activeCount} Active</Text>
@@ -513,11 +513,11 @@ export default function WalletScreen() {
         </Pressable>
 
         {/* Card 4: Lifetime Savings */}
-        <View style={[s.kpiCard, { borderColor: 'rgba(96, 165, 250, 0.35)' }]}>
+        <View style={[s.kpiCard, { borderColor: 'rgba(56, 189, 248, 0.40)' }]}>
           <View style={s.kpiTopRow}>
             <Text style={s.kpiLabel}>TOTAL SAVED</Text>
-            <View style={[s.kpiIconBox, { backgroundColor: 'rgba(96, 165, 250, 0.15)' }]}>
-              <Zap size={16} color={C.blue} />
+            <View style={[s.kpiIconBox, { backgroundColor: 'rgba(56, 189, 248, 0.15)' }]}>
+              <Zap size={16} color={C.teal} />
             </View>
           </View>
           <Text style={s.kpiValue}>{fmtINR(4850)}</Text>
@@ -542,7 +542,7 @@ export default function WalletScreen() {
               onPress={() => setTab(t.id as any)}
               style={[s.tabItem, isActive && s.tabItemActive]}
             >
-              <IconComp size={15} color={isActive ? '#FFF' : C.textSub} />
+              <IconComp size={15} color={isActive ? '#FFF' : '#64748B'} />
               <Text style={[s.tabText, isActive && s.tabTextActive]}>{t.label}</Text>
             </Pressable>
           );
@@ -556,7 +556,7 @@ export default function WalletScreen() {
         <View style={{ gap: 24 }}>
           {/* Top Hero Balance Card */}
           <LinearGradient
-            colors={['rgba(79, 70, 229, 0.40)', 'rgba(24, 18, 48, 0.85)', 'rgba(18, 22, 35, 0.95)']}
+            colors={['rgba(30, 58, 110, 0.70)', 'rgba(15, 35, 71, 0.90)', 'rgba(10, 22, 40, 0.98)']}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
             style={s.heroCard}
           >
@@ -594,14 +594,119 @@ export default function WalletScreen() {
 
           {/* Money Coach & Recent Activity */}
           <View style={s.twoColRow}>
-            {/* Money Coach Assistant */}
+            {/* Money Coach Assistant — Inline Preview Panel */}
             <View style={s.colCard}>
               <View style={s.cardHeader}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <Sparkles size={16} color={C.purpleL} />
                   <Text style={s.sectionTitle}>MONEY COACH AI</Text>
                 </View>
+                <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(52,211,153,0.15)' }}>
+                  <Text style={{ color: C.green, fontSize: 10, fontFamily: 'DMSans_700Bold' }}>● LIVE</Text>
+                </View>
               </View>
+
+              {/* Greeting Banner */}
+              <View style={{
+                backgroundColor: 'rgba(59,130,246,0.10)',
+                borderColor: 'rgba(59,130,246,0.25)',
+                borderWidth: 1,
+                borderRadius: 12,
+                padding: 14,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 12,
+              }}>
+                <View style={{ width: 40, height: 40, borderRadius: 999, backgroundColor: '#2563EB', alignItems: 'center', justifyContent: 'center' }}>
+                  <Sparkles size={18} color="#FFF" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: '#FFF', fontSize: 13, fontFamily: 'DMSans_700Bold' }}>
+                    Hi {studentName}! 👋 I'm your Money Coach.
+                  </Text>
+                  <Text style={{ color: C.textSub, fontSize: 11.5, fontFamily: 'DMSans_400Regular', marginTop: 2 }}>
+                    Ask me anything about your credits, savings, or spending patterns.
+                  </Text>
+                </View>
+              </View>
+
+              {/* Quick Insights */}
+              <View style={{ gap: 8 }}>
+                <Text style={{ color: C.purpleXL, fontSize: 10.5, fontFamily: 'DMSans_700Bold', letterSpacing: 0.8 }}>QUICK INSIGHTS</Text>
+                {[
+                  { icon: TrendingUp, color: '#34D399', text: `You've earned ${fmtCredits(data?.lifetime_earned || 42500)} total credits. Keep going!` },
+                  { icon: Star,       color: '#FBBF24', text: 'Complete your profile to unlock 500 bonus credits this week.' },
+                  { icon: Zap,        color: '#60A5FA', text: `You're ${7500} pts away from Sapphire tier — attend 1 event to fast-track.` },
+                ].map((tip, i) => (
+                  <View key={i} style={{
+                    flexDirection: 'row', alignItems: 'center', gap: 10,
+                    backgroundColor: 'rgba(255,255,255,0.03)',
+                    borderColor: 'rgba(255,255,255,0.06)', borderWidth: 1,
+                    borderRadius: 10, padding: 10,
+                  }}>
+                    <tip.icon size={15} color={tip.color} />
+                    <Text style={{ flex: 1, color: C.text2, fontSize: 12, fontFamily: 'DMSans_400Regular', lineHeight: 17 }}>
+                      {tip.text}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+
+              {/* Slash Command Chips */}
+              <View style={{ gap: 6 }}>
+                <Text style={{ color: C.purpleXL, fontSize: 10.5, fontFamily: 'DMSans_700Bold', letterSpacing: 0.8 }}>TRY A COMMAND</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                  {[
+                    { cmd: '/credit-plan', label: '🚀 Credit Plan' },
+                    { cmd: '/spend',       label: '📊 Spending' },
+                    { cmd: '/forecast',    label: '📅 Forecast' },
+                    { cmd: '/save 5000',   label: '🐷 Save ₹5K' },
+                    { cmd: '/cashback',    label: '💳 Cashback' },
+                    { cmd: '/tax',         label: '🧾 Tax Summary' },
+                  ].map((chip) => (
+                    <Pressable
+                      key={chip.cmd}
+                      onPress={() => {
+                        if (Platform.OS === 'web') {
+                          window.dispatchEvent(new CustomEvent('open-money-coach', { detail: { cmd: chip.cmd } }));
+                        }
+                      }}
+                      style={({ hovered }: any) => ({
+                        paddingHorizontal: 12, paddingVertical: 6,
+                        borderRadius: 999,
+                        backgroundColor: hovered ? 'rgba(59,130,246,0.18)' : 'rgba(59,130,246,0.08)',
+                        borderColor: 'rgba(59,130,246,0.30)', borderWidth: 1,
+                        cursor: 'pointer',
+                      } as any)}
+                    >
+                      <Text style={{ color: C.purpleL, fontSize: 11.5, fontFamily: 'DMSans_700Bold' }}>
+                        {chip.label}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+
+              {/* Open Coach CTA */}
+              <Pressable
+                onPress={() => {
+                  if (Platform.OS === 'web') {
+                    window.dispatchEvent(new CustomEvent('open-money-coach', { detail: {} }));
+                  }
+                }}
+                style={({ hovered }: any) => ({
+                  flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  backgroundColor: hovered ? '#2563EB' : '#1D4ED8',
+                  borderRadius: 12, paddingVertical: 12, marginTop: 4,
+                  cursor: 'pointer',
+                } as any)}
+              >
+                <Sparkles size={15} color="#FFF" />
+                <Text style={{ color: '#FFF', fontSize: 13, fontFamily: 'DMSans_700Bold' }}>
+                  Open Money Coach Chat
+                </Text>
+                <ChevronRight size={15} color="#FFF" />
+              </Pressable>
               <MoneyCoach />
             </View>
 
@@ -665,17 +770,17 @@ export default function WalletScreen() {
 
             {/* Search Input */}
             <View style={s.searchWrap}>
-              <Search size={14} color={C.textSub} style={{ marginRight: 6 }} />
+              <Search size={15} color={C.purpleL} style={{ marginRight: 8 }} />
               <TextInput
                 value={couponSearch}
                 onChangeText={setCouponSearch}
                 placeholder="Search by brand or code..."
-                placeholderTextColor={C.dim}
+                placeholderTextColor="#94A3B8"
                 style={s.searchInput}
               />
               {!!couponSearch && (
                 <Pressable onPress={() => setCouponSearch('')}>
-                  <X size={14} color={C.textSub} />
+                  <X size={15} color={C.purpleL} />
                 </Pressable>
               )}
             </View>
@@ -683,9 +788,9 @@ export default function WalletScreen() {
 
           {/* Section 1: My Redeemed Coupons Grid */}
           <View>
-            <View style={{ marginBottom: 12 }}>
-              <Text style={s.sectionTitle}>MY REDEEMED COUPONS</Text>
-              <Text style={{ color: C.textSub, fontSize: 13, marginTop: 2 }}>
+            <View style={s.couponSectionHeader}>
+              <Text style={s.couponSectionTitle}>MY REDEEMED COUPONS</Text>
+              <Text style={s.couponSectionSub}>
                 Copy your unique voucher code and click "Use Now" to apply on partner websites.
               </Text>
             </View>
@@ -752,10 +857,10 @@ export default function WalletScreen() {
           </View>
 
           {/* Section 2: Catalog of Redeemable Partner Coupons */}
-          <View style={{ marginTop: 16 }}>
-            <View style={{ marginBottom: 14 }}>
-              <Text style={s.sectionTitle}>REDEEM NEW PARTNER COUPONS</Text>
-              <Text style={{ color: C.textSub, fontSize: 13, marginTop: 2 }}>
+          <View style={{ marginTop: 20 }}>
+            <View style={s.couponSectionHeader}>
+              <Text style={s.couponSectionTitle}>REDEEM NEW PARTNER COUPONS</Text>
+              <Text style={s.couponSectionSub}>
                 Use your SA Credits balance to unlock exclusive discounts & free passes.
               </Text>
             </View>
@@ -1030,11 +1135,11 @@ const s = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(129, 140, 248, 0.35)',
-    backgroundColor: 'rgba(129, 140, 248, 0.08)',
+    borderColor: 'rgba(59, 130, 246, 0.35)',
+    backgroundColor: 'rgba(59, 130, 246, 0.08)',
   },
   regenBtnHover: {
-    backgroundColor: 'rgba(129, 140, 248, 0.18)',
+    backgroundColor: 'rgba(59, 130, 246, 0.18)',
   },
   regenBtnText: {
     color: C.purpleL,
@@ -1097,6 +1202,9 @@ const s = StyleSheet.create({
     color: '#FFF',
     fontFamily: FT.xbold,
     fontSize: 22,
+    textShadowColor: 'rgba(255,255,255,0.4)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   kpiSubText: {
     color: C.textSub,
@@ -1108,37 +1216,42 @@ const s = StyleSheet.create({
   tabBarRow: {
     flexDirection: 'row',
     gap: 8,
-    backgroundColor: 'rgba(18, 22, 35, 0.60)',
-    borderColor: C.border,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
     borderWidth: 1,
     borderRadius: 14,
     padding: 6,
     flexWrap: 'wrap',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
   },
   tabItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
     borderRadius: 10,
   },
   tabItemActive: {
-    backgroundColor: C.purple2,
+    backgroundColor: '#2563EB',
   },
   tabText: {
-    color: C.textSub,
+    color: '#475569',
     fontFamily: FT.bold,
     fontSize: 13,
   },
   tabTextActive: {
-    color: '#FFF',
+    color: '#FFFFFF',
+    fontFamily: FT.xbold,
   },
 
   /* Hero Card */
   heroCard: {
     borderRadius: 16,
-    borderColor: 'rgba(129, 140, 248, 0.30)',
+    borderColor: 'rgba(30, 58, 110, 0.60)',
     borderWidth: 1,
     padding: 24,
     overflow: 'hidden',
@@ -1158,6 +1271,9 @@ const s = StyleSheet.create({
     color: '#FFF',
     fontFamily: FT.xbold,
     fontSize: 38,
+    textShadowColor: 'rgba(255,255,255,0.4)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   heroBalanceSub: {
     color: C.text2,
@@ -1305,40 +1421,64 @@ const s = StyleSheet.create({
     gap: 8,
   },
   filterChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
     borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderColor: C.border,
-    borderWidth: 1,
+    backgroundColor: '#0F2347',
+    borderColor: '#2A4F8F',
+    borderWidth: 1.5,
   },
   filterChipActive: {
-    backgroundColor: C.purple2,
-    borderColor: C.purpleL,
+    backgroundColor: '#2563EB',
+    borderColor: '#60A5FA',
+    borderWidth: 1.5,
   },
   filterChipText: {
-    color: C.textSub,
+    color: '#FFFFFF',
     fontFamily: FT.bold,
-    fontSize: 12,
+    fontSize: 13,
+    letterSpacing: 0.2,
   },
   filterChipTextActive: {
-    color: '#FFF',
+    color: '#FFFFFF',
+    fontFamily: FT.xbold,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   searchWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: C.border,
-    borderWidth: 1,
+    backgroundColor: '#0B1A33',
+    borderColor: '#3B82F6',
+    borderWidth: 1.5,
     borderRadius: 10,
-    paddingHorizontal: 12,
-    height: 38,
-    minWidth: 220,
+    paddingHorizontal: 14,
+    height: 40,
+    minWidth: 250,
   },
   searchInput: {
     flex: 1,
-    color: '#FFF',
+    color: '#FFFFFF',
+    fontFamily: FT.med,
     fontSize: 13,
+  },
+  couponSectionHeader: {
+    marginBottom: 14,
+    gap: 4,
+  },
+  couponSectionTitle: {
+    color: '#0F172A',
+    fontFamily: FT.xbold,
+    fontSize: 17,
+    letterSpacing: 1.1,
+    textTransform: 'uppercase',
+  },
+  couponSectionSub: {
+    color: '#475569',
+    fontFamily: FT.med,
+    fontSize: 14,
+    lineHeight: 20,
   },
 
   /* Coupons Grid */
@@ -1395,6 +1535,9 @@ const s = StyleSheet.create({
     color: '#FFF',
     fontFamily: FT.bold,
     fontSize: 15,
+    textShadowColor: 'rgba(255,255,255,0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   couponExpiry: {
     color: C.textSub,
@@ -1406,7 +1549,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: 'rgba(0,0,0,0.40)',
-    borderColor: 'rgba(129, 140, 248, 0.30)',
+    borderColor: 'rgba(30, 58, 110, 0.60)',
     borderWidth: 1,
     borderRadius: 10,
     paddingHorizontal: 12,
@@ -1423,7 +1566,7 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(129, 140, 248, 0.15)',
+    backgroundColor: 'rgba(59, 130, 246, 0.15)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
@@ -1578,7 +1721,7 @@ const s = StyleSheet.create({
   },
   methodBoxActive: {
     borderColor: C.purpleL,
-    backgroundColor: 'rgba(129, 140, 248, 0.12)',
+    backgroundColor: 'rgba(59, 130, 246, 0.12)',
   },
   methodText: {
     color: C.textSub,

@@ -144,7 +144,7 @@ function EmptyState() {
   return (
     <View style={styles.empty}>
       <View style={styles.emptyIconWrap}>
-        <Bell size={36} color="#A78BFA" />
+        <Bell size={36} color="#60A5FA" />
       </View>
       <Text style={[Typography.h3, { color: '#F4F4F8', marginTop: 12 }]}>You're all caught up</Text>
       <Text style={[Typography.body, { color: '#A1A6B7', marginTop: 6, textAlign: 'center' }]}>
@@ -221,7 +221,7 @@ function iconForType(type?: string, title?: string) {
     case 'event':
       return { Icon: Trophy, tint: { bg: 'rgba(139, 92, 246, 0.18)', fg: '#8B5CF6' } };
     default:
-      return { Icon: Bell, tint: { bg: 'rgba(139, 92, 246, 0.18)', fg: '#A78BFA' } };
+      return { Icon: Bell, tint: { bg: 'rgba(139, 92, 246, 0.18)', fg: '#60A5FA' } };
   }
 }
 

@@ -10,8 +10,8 @@ const C = {
   text2: '#A1A6B7',
   text3: '#6E7388',
   primary: '#8B5CF6',
-  primaryD: '#7C3AED',
-  primaryL: '#A78BFA',
+  primaryD: '#2563EB',
+  primaryL: '#60A5FA',
   primaryS: 'rgba(139,92,246,0.12)',
 };
 

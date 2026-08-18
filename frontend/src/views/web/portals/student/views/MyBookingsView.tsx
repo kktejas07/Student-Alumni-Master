@@ -295,7 +295,7 @@ const s = StyleSheet.create({
   sub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4 },
   sectionTitle: { color: SC.muted, fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 1, marginBottom: 8 },
   card: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 12, padding: 14 },
-  iconBox: { width: 38, height: 38, borderRadius: 10, backgroundColor: 'rgba(167,139,250,0.10)', borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  iconBox: { width: 38, height: 38, borderRadius: 10, backgroundColor: 'rgba(37,99,235,0.10)', borderColor: 'rgba(37,99,235,0.30)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   topic: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 13.5 },
   meta: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
   dot: { color: SC.dim, fontFamily: FONTS.med, fontSize: 11 },

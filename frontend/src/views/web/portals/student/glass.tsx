@@ -198,7 +198,7 @@ export function GlassCard({
     Object.assign(base, {
       backdropFilter: `blur(${blurAmount}px) saturate(180%)`,
       WebkitBackdropFilter: `blur(${blurAmount}px) saturate(180%)`,
-      boxShadow: glow || hover ? PALETTE.violetGlow : PALETTE.glassShadow,
+      boxShadow: PALETTE.violetGlow,
       transitionProperty: 'transform, box-shadow, border-color',
       transitionDuration: '220ms',
       transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)',
@@ -642,7 +642,7 @@ export function glassStyle(opts: { strong?: boolean; blur?: number } = {}) {
       borderColor: PALETTE.glassBorder,
       backdropFilter: `blur(${blur}px) saturate(180%)`,
       WebkitBackdropFilter: `blur(${blur}px) saturate(180%)`,
-      boxShadow: PALETTE.glassShadow,
+      boxShadow: PALETTE.violetGlow,
     } as any;
   }
   return {
@@ -666,10 +666,10 @@ export function glassStyle(opts: { strong?: boolean; blur?: number } = {}) {
 type StatusTone = 'success' | 'warning' | 'danger' | 'neutral';
 
 const STATUS_PALETTE: Record<StatusTone, { bg: string; fg: string; bd: string }> = {
-  success: { bg: 'rgba(16,185,129,0.10)', fg: '#34D399', bd: 'rgba(16,185,129,0.20)' },
-  warning: { bg: 'rgba(245,158,11,0.10)', fg: '#FBBF24', bd: 'rgba(245,158,11,0.20)' },
-  danger:  { bg: 'rgba(239,68,68,0.10)',  fg: '#F87171', bd: 'rgba(239,68,68,0.20)'  },
-  neutral: { bg: 'rgba(255,255,255,0.05)', fg: 'rgba(255,255,255,0.70)', bd: 'rgba(255,255,255,0.10)' },
+  success: { bg: 'rgba(16,185,129,0.12)', fg: '#059669', bd: 'rgba(16,185,129,0.25)' },
+  warning: { bg: 'rgba(245,158,11,0.12)', fg: '#D97706', bd: 'rgba(245,158,11,0.25)' },
+  danger:  { bg: 'rgba(239,68,68,0.12)',  fg: '#DC2626', bd: 'rgba(239,68,68,0.25)'  },
+  neutral: { bg: '#F1F5F9',               fg: '#475569', bd: 'rgba(203,213,225,0.8)' },
 };
 
 export function StatusChip({
@@ -703,7 +703,7 @@ export function StatusChip({
 /* ─────────────────────────────────────────────────────────────────
  * Kicker — uppercase eyebrow label. The spec calls it the
  *          "hierarchy label" — text-xs font-semibold tracking-[0.2em]
- *          uppercase text-white/50. Use ABOVE section/card titles.
+ *          uppercase. Use ABOVE section/card titles.
  *
  *   <Kicker>Today's brief</Kicker>
  *   <h2>Your career intelligence</h2>
@@ -711,7 +711,7 @@ export function StatusChip({
 export function Kicker({ children, color }: { children: React.ReactNode; color?: string }) {
   return (
     <Text style={{
-      color: color ?? 'rgba(255,255,255,0.50)',
+      color: color ?? '#2563EB',
       fontFamily: TYPO.body600,
       fontSize: 11,
       letterSpacing: 2.4,                // ~0.2em on 12px

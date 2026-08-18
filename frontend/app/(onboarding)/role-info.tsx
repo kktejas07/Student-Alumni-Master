@@ -78,7 +78,7 @@ export default function RoleInfo() {
       title={
         <>
           Let's set up your{' '}
-          <Text style={{ color: '#C4B5FD' }}>{content.highlight}</Text>
+          <Text style={{ color: '#93C5FD' }}>{content.highlight}</Text>
         </>
       }
       subtitle={content.subtitle}
@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
   tileIcon: {
     width: 40, height: 40,
     borderRadius: 11,
-    backgroundColor: 'rgba(124,58,237,0.18)',
+    backgroundColor: 'rgba(37,99,235,0.18)',
     borderWidth: 1,
     borderColor: 'rgba(196,181,253,0.22)',
     alignItems: 'center',

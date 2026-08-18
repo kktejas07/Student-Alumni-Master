@@ -153,7 +153,7 @@ export function AnalyticsView() {
                         cx={p.x}
                         cy={p.y}
                         r={9}
-                        fill="#A78BFA"
+                        fill="#60A5FA"
                         opacity={0.3}
                       />
                     )}
@@ -161,7 +161,7 @@ export function AnalyticsView() {
                       cx={p.x}
                       cy={p.y}
                       r={p.year === 2026 ? 5.5 : 4}
-                      fill={p.year === 2026 ? "#A78BFA" : "#3B82F6"}
+                      fill={p.year === 2026 ? "#60A5FA" : "#3B82F6"}
                       stroke={CC.card}
                       strokeWidth={2}
                     />
@@ -248,7 +248,7 @@ export function AnalyticsView() {
                         cx={p.x}
                         cy={p.y}
                         r="9"
-                        fill="#A78BFA"
+                        fill="#60A5FA"
                         opacity="0.3"
                       />
                     )}
@@ -256,7 +256,7 @@ export function AnalyticsView() {
                       cx={p.x}
                       cy={p.y}
                       r={p.year === 2026 ? 5.5 : 4}
-                      fill={p.year === 2026 ? "#A78BFA" : "#3B82F6"}
+                      fill={p.year === 2026 ? "#60A5FA" : "#3B82F6"}
                       stroke={CC.card}
                       strokeWidth={2}
                     />
@@ -468,9 +468,9 @@ const s = StyleSheet.create({
   recRank: { width: 24, alignItems: 'center' },
   recRankText: { color: CC.muted, fontFamily: FONTS.xbold, fontSize: 12 },
   recLogo: { width: 32, height: 32, borderRadius: 999,
-    backgroundColor: 'rgba(167,139,250,0.18)',
+    backgroundColor: 'rgba(37,99,235,0.18)',
     alignItems: 'center', justifyContent: 'center' },
-  recLogoText: { color: '#C4B5FD', fontFamily: FONTS.xbold, fontSize: 14 },
+  recLogoText: { color: '#93C5FD', fontFamily: FONTS.xbold, fontSize: 14 },
   recName: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12.5, flexShrink: 1 },
   hirePill: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999,
     backgroundColor: 'rgba(16,185,129,0.14)',

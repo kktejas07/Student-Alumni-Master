@@ -43,7 +43,7 @@ export type Promotion = {
 };
 
 const TONE_GRAD: Record<PromoTone, [string, string]> = {
-  violet:  ['#A78BFA', '#7C3AED'],
+  violet:  ['#60A5FA', '#2563EB'],
   blue:    ['#60A5FA', '#2563EB'],
   indigo:  ['#818CF8', '#4F46E5'],
   teal:    ['#5EEAD4', '#0D9488'],
@@ -53,7 +53,7 @@ const TONE_GRAD: Record<PromoTone, [string, string]> = {
 };
 
 const TONE_TINT: Record<PromoTone, string> = {
-  violet:  'rgba(167,139,250,0.22)',
+  violet:  'rgba(37,99,235,0.22)',
   blue:    'rgba(96,165,250,0.22)',
   indigo:  'rgba(129,140,248,0.22)',
   teal:    'rgba(94,234,212,0.22)',

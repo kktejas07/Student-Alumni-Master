@@ -54,7 +54,7 @@ type Partner = {
 };
 
 const CAT_META: Record<PartnerCategory, { label: string; color: string; Icon: any }> = {
-  college: { label: 'Academic',       color: '#A78BFA', Icon: GraduationCap },
+  college: { label: 'Academic',       color: '#60A5FA', Icon: GraduationCap },
   company: { label: 'Collaboration',  color: '#3B82F6', Icon: Building2 },
   sponsor: { label: 'Sponsor',        color: '#F59E0B', Icon: Sparkles },
 };

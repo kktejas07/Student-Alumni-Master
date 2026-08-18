@@ -1268,7 +1268,7 @@ function RolesTab({ onSaved }: { onSaved: (s?: string) => void }) {
       super_admin:  '#FB923C', // orange
       platform_admin: '#3B82F6', // blue
       college_admin:'#10B981', // green
-      support:      '#A78BFA', // purple
+      support:      '#60A5FA', // purple
       mentor:       '#06B6D4', // cyan
     };
     return palette[key] || '#94A3B8';
@@ -2478,7 +2478,7 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
       <View style={s.featGrid}>
         <FeatureCard icon={ShieldCheck} tint={SAC.green}    title="Verified Identity"   text="Your admin status is verified by the platform." />
         <FeatureCard icon={Building2}   tint="#3B82F6"      title="Platform Authority"  text={`Recognised across all ${data.colleges_count || 48} colleges.`} />
-        <FeatureCard icon={QrCode}      tint="#A78BFA"      title="Instant Share"       text="Share QR at events or board meetings." />
+        <FeatureCard icon={QrCode}      tint="#60A5FA"      title="Instant Share"       text="Share QR at events or board meetings." />
         <FeatureCard icon={Lock}        tint={GRAD_TO}      title="Secure Access"       text="Cryptographically signed and tamper-proof." />
       </View>
     </Animated.View>
@@ -2813,7 +2813,7 @@ function BrandingTab({ onSaved }: { onSaved: (s?: string) => void }) {
         <BrandingField label="Website" value={website} onChange={setWebsite} placeholder="https://studentalumni.ai" />
 
         <Pressable onPress={save} disabled={saving} style={{
-          backgroundColor: '#7C3AED', borderRadius: 10, paddingVertical: 14, alignItems: 'center', cursor: 'pointer', opacity: saving ? 0.6 : 1,
+          backgroundColor: '#2563EB', borderRadius: 10, paddingVertical: 14, alignItems: 'center', cursor: 'pointer', opacity: saving ? 0.6 : 1,
         }}>
           <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#fff' }}>{saving ? 'Saving...' : 'Save Branding'}</Text>
         </Pressable>
@@ -2828,7 +2828,7 @@ function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
   const [defaultTemplate, setDefaultTemplate] = useState('aurora');
   const [invoiceTemplate, setInvoiceTemplate] = useState('modern');
   const [emailStyle, setEmailStyle] = useState('modern');
-  const [brandColor, setBrandColor] = useState('#7C3AED');
+  const [brandColor, setBrandColor] = useState('#2563EB');
   const [brandName, setBrandName] = useState('Student Alumni');
   const [emailFooter, setEmailFooter] = useState('Student Alumni Cell — Empowering the next generation of leaders.');
   const [saving, setSaving] = useState(false);
@@ -2848,7 +2848,7 @@ function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
           setDefaultTemplate(d.default_ticket_template || 'aurora');
           setInvoiceTemplate(d.default_invoice_template || 'modern');
           setEmailStyle(d.default_email_style || 'modern');
-          setBrandColor(d.email_brand_color || '#7C3AED');
+          setBrandColor(d.email_brand_color || '#2563EB');
           setBrandName(d.brand_name || 'Student Alumni');
           setEmailFooter(d.email_footer || '');
         }
@@ -2911,24 +2911,24 @@ function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
         {options.map((tpl) => (
           <Pressable key={tpl.id} onPress={() => onChange(tpl.id)} style={{
             width: 160, borderRadius: 10, borderWidth: 2,
-            borderColor: value === tpl.id ? '#7C3AED' : 'rgba(255,255,255,0.08)',
-            backgroundColor: value === tpl.id ? 'rgba(124,58,237,0.08)' : 'rgba(255,255,255,0.02)',
+            borderColor: value === tpl.id ? '#2563EB' : 'rgba(255,255,255,0.08)',
+            backgroundColor: value === tpl.id ? 'rgba(37,99,235,0.08)' : 'rgba(255,255,255,0.02)',
             padding: 14, cursor: 'pointer',
           }}>
             <View style={{ height: 6, borderRadius: 3, marginBottom: 10, background: tpl.gradient }} />
-            <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: value === tpl.id ? '#C4B5FD' : '#e2e8f0' }}>{tpl.name}</Text>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: value === tpl.id ? '#93C5FD' : '#e2e8f0' }}>{tpl.name}</Text>
             <Text style={{ fontFamily: FONTS.medium, fontSize: 11, color: '#64748b', marginTop: 3 }}>{tpl.desc}</Text>
           </Pressable>
         ))}
       </View>
       <Pressable onPress={() => fetchPreview(previewType, value)} style={{
         flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
-        backgroundColor: 'rgba(124,58,237,0.12)', borderRadius: 8,
-        paddingHorizontal: 14, paddingVertical: 7, borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)',
+        backgroundColor: 'rgba(37,99,235,0.12)', borderRadius: 8,
+        paddingHorizontal: 14, paddingVertical: 7, borderWidth: 1, borderColor: 'rgba(37,99,235,0.25)',
         cursor: 'pointer', marginTop: 4,
       }}>
-        <Eye size={13} color="#A78BFA" />
-        <Text style={{ fontFamily: FONTS.semibold, fontSize: 12, color: '#C4B5FD' }}>Preview Template</Text>
+        <Eye size={13} color="#60A5FA" />
+        <Text style={{ fontFamily: FONTS.semibold, fontSize: 12, color: '#93C5FD' }}>Preview Template</Text>
       </Pressable>
     </View>
   );
@@ -2951,10 +2951,10 @@ function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
         {subTabs.map((t) => (
           <Pressable key={t.id} onPress={() => setSubTab(t.id)} style={{
             paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, borderWidth: 1, cursor: 'pointer',
-            borderColor: subTab === t.id ? '#7C3AED' : 'rgba(255,255,255,0.08)',
-            backgroundColor: subTab === t.id ? 'rgba(124,58,237,0.12)' : 'rgba(255,255,255,0.02)',
+            borderColor: subTab === t.id ? '#2563EB' : 'rgba(255,255,255,0.08)',
+            backgroundColor: subTab === t.id ? 'rgba(37,99,235,0.12)' : 'rgba(255,255,255,0.02)',
           }}>
-            <Text style={{ fontFamily: FONTS.semibold, fontSize: 12, color: subTab === t.id ? '#C4B5FD' : '#94a3b8' }}>{t.label}</Text>
+            <Text style={{ fontFamily: FONTS.semibold, fontSize: 12, color: subTab === t.id ? '#93C5FD' : '#94a3b8' }}>{t.label}</Text>
           </Pressable>
         ))}
       </View>
@@ -2976,7 +2976,7 @@ function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
           <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#f1f5f9' }}>Invoice Templates</Text>
           <Text style={{ fontFamily: FONTS.medium, fontSize: 12, color: '#94a3b8' }}>Default invoice style for paid registrations.</Text>
           <TemplatePicker label="Default Invoice" previewType="invoice" value={invoiceTemplate} onChange={setInvoiceTemplate} options={[
-            { id: 'modern', name: 'Modern', desc: 'Gradient header, card layout', gradient: 'linear-gradient(135deg,#7C3AED,#5B21B6)' },
+            { id: 'modern', name: 'Modern', desc: 'Gradient header, card layout', gradient: 'linear-gradient(135deg,#2563EB,#1E40AF)' },
             { id: 'minimal', name: 'Minimal', desc: 'Clean white, thin borders', gradient: 'linear-gradient(135deg,#f8fafc,#e2e8f0)' },
             { id: 'classic', name: 'Classic', desc: 'Dark header, traditional', gradient: 'linear-gradient(135deg,#0f172a,#1e293b)' },
           ]} />
@@ -2988,7 +2988,7 @@ function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
           <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#f1f5f9' }}>Email Templates</Text>
           <Text style={{ fontFamily: FONTS.medium, fontSize: 12, color: '#94a3b8' }}>Style for transactional emails.</Text>
           <TemplatePicker label="Email Style" previewType="pass" value={emailStyle} onChange={setEmailStyle} options={[
-            { id: 'modern', name: 'Modern', desc: 'Purple gradient header', gradient: 'linear-gradient(135deg,#7C3AED,#5B21B6)' },
+            { id: 'modern', name: 'Modern', desc: 'Purple gradient header', gradient: 'linear-gradient(135deg,#2563EB,#1E40AF)' },
             { id: 'minimal', name: 'Minimal', desc: 'Clean, no gradient', gradient: 'linear-gradient(135deg,#f8fafc,#e2e8f0)' },
             { id: 'professional', name: 'Professional', desc: 'Dark header, corporate', gradient: 'linear-gradient(135deg,#0f172a,#334155)' },
           ]} />
@@ -3017,7 +3017,7 @@ function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
               <input type="color" value={brandColor} onChange={(e: any) => setBrandColor(e.target.value)}
                 style={{ width: 44, height: 40, border: 'none', borderRadius: 8, cursor: 'pointer', background: 'transparent' }} />
-              <TextInput value={brandColor} onChangeText={setBrandColor} placeholder="#7C3AED"
+              <TextInput value={brandColor} onChangeText={setBrandColor} placeholder="#2563EB"
                 placeholderTextColor="#475569"
                 style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 12, color: '#e2e8f0', fontFamily: FONTS.medium, fontSize: 13 }} />
             </View>
@@ -3032,7 +3032,7 @@ function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
       )}
 
       <Pressable onPress={save} disabled={saving} style={{
-        backgroundColor: '#7C3AED', borderRadius: 10, paddingVertical: 14, alignItems: 'center', cursor: 'pointer', opacity: saving ? 0.6 : 1,
+        backgroundColor: '#2563EB', borderRadius: 10, paddingVertical: 14, alignItems: 'center', cursor: 'pointer', opacity: saving ? 0.6 : 1,
       }}>
         <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#fff' }}>{saving ? 'Saving...' : 'Save All Settings'}</Text>
       </Pressable>

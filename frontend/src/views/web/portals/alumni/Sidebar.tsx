@@ -157,7 +157,7 @@ export function Sidebar({
 
 const s = StyleSheet.create({
   aside: {
-    width: 240, height: '100%' as any, backgroundColor: '#5D3FD3',
+    width: 240, height: '100%' as any, backgroundColor: '#0F172A',
     borderRightWidth: 1, borderRightColor: 'rgba(255,255,255,0.1)',
     paddingHorizontal: 12, paddingTop: 14, paddingBottom: 12,
   },
@@ -171,7 +171,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 4, paddingVertical: 8, marginBottom: 10,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  statusDotWrap: { position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, backgroundColor: '#5D3FD3', alignItems: 'center', justifyContent: 'center' },
+  statusDotWrap: { position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, backgroundColor: '#0F172A', alignItems: 'center', justifyContent: 'center' },
   profileName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13 },
   profileYear: { color: 'rgba(255,255,255,0.7)', fontFamily: FONTS.med, fontSize: 11 },
 
