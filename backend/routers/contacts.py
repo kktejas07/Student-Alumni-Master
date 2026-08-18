@@ -39,6 +39,18 @@ class ContactCreate(BaseModel):
     tags: List[str] = []
     lists: List[str] = []
     notes: str = ""
+    # Extended fields from Excel
+    first_name: str = ""
+    last_name: str = ""
+    location: str = ""
+    zip_code: str = ""
+    headline: str = ""
+    current_title: str = ""
+    current_company: str = ""
+    position_start_date: str = ""
+    education_degree: str = ""
+    education_institution: str = ""
+    profile_url: str = ""
 
     @field_validator("email")
     @classmethod
@@ -60,6 +72,18 @@ class ContactUpdate(BaseModel):
     lists: Optional[List[str]] = None
     notes: Optional[str] = None
     subscribed: Optional[bool] = None
+    # Extended fields
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    location: Optional[str] = None
+    zip_code: Optional[str] = None
+    headline: Optional[str] = None
+    current_title: Optional[str] = None
+    current_company: Optional[str] = None
+    position_start_date: Optional[str] = None
+    education_degree: Optional[str] = None
+    education_institution: Optional[str] = None
+    profile_url: Optional[str] = None
 
 
 class ContactListCreate(BaseModel):
@@ -351,6 +375,7 @@ async def import_contacts(
     
     # Process rows
     imported = 0
+    updated = 0
     skipped = 0
     errors = []
     tag_list = [t.strip() for t in tags.split(",") if t.strip()]
@@ -358,15 +383,20 @@ async def import_contacts(
     import re
     email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
     
+    def get_field(row, *keys, default=""):
+        """Get value from row using multiple possible column names."""
+        for key in keys:
+            val = row.get(key, "").strip()
+            if val:
+                return val
+        return default
+    
     for i, row in enumerate(rows, start=2):
-        # Try to find email in common column names
-        email = (
-            row.get("email", "").strip().lower() or
-            row.get("Email", "").strip().lower() or
-            row.get("EMAIL", "").strip().lower() or
-            row.get("email_address", "").strip().lower() or
-            row.get("Email Address", "").strip().lower()
-        )
+        # Get email (required)
+        email = get_field(row, 
+            "email", "Email", "EMAIL", "email_address", "Email Address",
+            "e-mail", "E-Mail", "email address"
+        ).lower()
         
         if not email:
             skipped += 1
@@ -379,52 +409,80 @@ async def import_contacts(
             errors.append(f"Row {i}: Invalid email '{email}'")
             continue
         
-        # Check for duplicate
-        existing = await db.contacts.find_one({"email": email})
-        if existing:
-            skipped += 1
-            continue
+        # Get name fields
+        first_name = get_field(row, "first_name", "First Name", "first name", "firstname")
+        last_name = get_field(row, "last_name", "Last Name", "last name", "lastname")
         
-        # Get name from common column names
+        # Combine first + last name, or use name/full_name
         name = (
-            row.get("name", "").strip() or
-            row.get("Name", "").strip() or
-            row.get("full_name", "").strip() or
-            row.get("Full Name", "").strip() or
+            f"{first_name} {last_name}".strip() if first_name or last_name else
+            get_field(row, "name", "Name", "full_name", "Full Name", "full name") or
             email.split("@")[0].title()
         )
         
-        # Get phone from common column names
-        phone = (
-            row.get("phone", "").strip() or
-            row.get("Phone", "").strip() or
-            row.get("phone_number", "").strip() or
-            row.get("Phone Number", "").strip() or
-            ""
+        # Get other fields
+        phone = get_field(row, 
+            "phone", "Phone", "phone_number", "Phone Number", 
+            "phone number", "mobile", "Mobile", "mobile_number"
         )
+        location = get_field(row, "location", "Location", "general_location", "General Location", "city", "City")
+        zip_code = get_field(row, "zip_code", "ZIP Code", "zip", "ZIP", "zipcode", "postal_code")
+        headline = get_field(row, "headline", "Headline", "title", "Title")
+        current_title = get_field(row, "current_title", "Current Title", "job_title", "Job Title", "position")
+        current_company = get_field(row, "current_company", "Current Company", "company", "Company", "organization")
+        position_start_date = get_field(row, "position_start_date", "Position Start Date", "start_date", "Start Date")
+        education_degree = get_field(row, "education_degree", "Education Degree", "degree", "Degree")
+        education_institution = get_field(row, "education_institution", "Education Institution", "school", "School", "university")
+        profile_url = get_field(row, "profile_url", "Profile URL", "linkedin", "LinkedIn", "profile", "url")
         
-        contact = {
+        # Check for existing contact
+        existing = await db.contacts.find_one({"email": email})
+        
+        contact_data = {
             "name": name,
             "email": email,
             "phone": phone,
+            "first_name": first_name,
+            "last_name": last_name,
+            "location": location,
+            "zip_code": zip_code,
+            "headline": headline,
+            "current_title": current_title,
+            "current_company": current_company,
+            "position_start_date": position_start_date,
+            "education_degree": education_degree,
+            "education_institution": education_institution,
+            "profile_url": profile_url,
             "source": source,
             "tags": tag_list,
-            "lists": [],
-            "notes": "",
-            "subscribed": True,
-            "created_at": _now(),
             "updated_at": _now(),
         }
         
-        await db.contacts.insert_one(dict(contact))
-        imported += 1
+        if existing:
+            # Update existing contact with new data (merge)
+            update_data = {k: v for k, v in contact_data.items() if v}  # Only update non-empty fields
+            update_data["updated_at"] = _now()
+            await db.contacts.update_one(
+                {"_id": existing["_id"]},
+                {"$set": update_data}
+            )
+            updated += 1
+        else:
+            # Create new contact
+            contact_data["lists"] = []
+            contact_data["notes"] = ""
+            contact_data["subscribed"] = True
+            contact_data["created_at"] = _now()
+            await db.contacts.insert_one(dict(contact_data))
+            imported += 1
     
     return {
         "ok": True,
         "imported": imported,
+        "updated": updated,
         "skipped": skipped,
-        "errors": errors[:10],  # Return first 10 errors
-        "total_rows": imported + skipped,
+        "errors": errors[:10],
+        "total_rows": imported + updated + skipped,
         "file_type": "xlsx" if is_xlsx else "csv",
     }
 
