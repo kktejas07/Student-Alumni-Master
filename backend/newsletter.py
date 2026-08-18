@@ -73,17 +73,27 @@ def _unsub_token(email: str) -> str:
 
 
 async def _all_subscribers(db, limit: int = 100000) -> list:
-    """All registered users with a valid email. Every user is auto-subscribed."""
+    """All registered users AND imported contacts with a valid email.
+    
+    Combines:
+    1. Registered users from users collection
+    2. Imported contacts from contacts collection (subscribed=True)
+    
+    Deduplicates by email.
+    """
     from core.security import decrypt_value
 
     subscribers: list = []
+    seen_emails = set()
+    
+    # 1. Get registered users
     cur = db.users.find(
         {"email": {"$regex": r"@", "$options": "i"}},
         {"_id": 1, "email": 1, "phone": 1},
     ).limit(limit)
     async for u in cur:
         email = (u.get("email") or "").strip().lower()
-        if not email or "@" not in email:
+        if not email or "@" not in email or email in seen_emails:
             continue
         from core.email_quality import reject_reason
         if reject_reason(email):
@@ -99,7 +109,37 @@ async def _all_subscribers(db, limit: int = 100000) -> list:
             phone = phone.strip()
         else:
             phone = ""
-        subscribers.append({"_id": str(u["_id"]), "email": email, "phone": phone})
+        seen_emails.add(email)
+        subscribers.append({"_id": str(u["_id"]), "email": email, "phone": phone, "source": "registered"})
+    
+    # 2. Get ALL imported contacts (subscribed or not)
+    # Imported contacts are considered opted-in since admin imported them
+    cursor_contacts = db.contacts.find(
+        {"email": {"$regex": r"@", "$options": "i"}},
+        {"_id": 1, "email": 1, "phone": 1, "source": 1, "subscribed": 1},
+    ).limit(limit)
+    async for c in cursor_contacts:
+        email = (c.get("email") or "").strip().lower()
+        if not email or "@" not in email or email in seen_emails:
+            continue
+        from core.email_quality import reject_reason
+        if reject_reason(email):
+            continue
+        try:
+            from core.email_quality import is_suppressed
+            if await is_suppressed(email):
+                continue
+        except Exception:
+            pass
+        phone = (c.get("phone") or "").strip()
+        seen_emails.add(email)
+        subscribers.append({
+            "_id": str(c["_id"]),
+            "email": email,
+            "phone": phone,
+            "source": c.get("source", "imported"),
+        })
+    
     return subscribers
 
 
