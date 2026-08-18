@@ -160,7 +160,7 @@ export const HorizontalRoadmap = memo(function HorizontalRoadmap({
 
 const s = StyleSheet.create({
   card: {
-    backgroundColor: 'rgba(18, 22, 35, 0.75)',
+    backgroundColor: '#0A0A2A',
     borderColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 1,
     borderRadius: RADIUS.card,

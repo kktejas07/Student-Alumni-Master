@@ -43,7 +43,7 @@ export function ProfileView() {
         <View style={s.card}>
           <Text style={s.cardTitle}>Accreditations</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 12 }}>
-            {[{ l:'AICTE',c:'#A78BFA' }, { l:'Autonomous',c:'#22C55E' }].map((x) => (
+            {[{ l:'AICTE',c:'#60A5FA' }, { l:'Autonomous',c:'#22C55E' }].map((x) => (
               <View key={x.l} style={[s.accBox, { borderColor: x.c + '60' }]}>
                 <Award size={20} color={x.c} />
                 <Text style={s.accLabel}>{x.l}</Text>

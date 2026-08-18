@@ -7,7 +7,7 @@ import { usePortalData } from '@/src/lib/portalApi';
 const FALLBACK = { stages: { shortlisted: [] as any[], interviewing: [] as any[], offered: [] as any[], joined: [] as any[] } };
 
 const COLUMNS = [
-  { id:'shortlisted',  label:'Shortlisted',  color:'#A78BFA' },
+  { id:'shortlisted',  label:'Shortlisted',  color:'#60A5FA' },
   { id:'interviewing', label:'Interviewing', color:'#FBBF24' },
   { id:'offered',      label:'Offered',      color:'#22C55E' },
   { id:'joined',       label:'Joined',       color:'#22D3EE' },

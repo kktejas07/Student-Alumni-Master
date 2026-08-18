@@ -325,7 +325,7 @@ const s = StyleSheet.create({
   briefTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 14 },
   briefSub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 1 },
   briefCta: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 34, borderRadius: 10, backgroundColor: SC.primary, ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
-  briefCtaText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
+  briefCtaText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12 },
 
   liveStrip: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
@@ -420,9 +420,9 @@ const s = StyleSheet.create({
   completionLabel: { color: 'rgba(255,255,255,0.85)', fontFamily: FONTS.xbold, fontSize: 11.5, letterSpacing: 0.5 },
   completionScorePill: { backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 },
   completionScoreText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 11 },
-  completionTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 14, marginTop: 4 },
+  completionTitle: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 14, marginTop: 4 },
   missingChip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.10)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
   missingText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 10.5 },
-  completeCta: { paddingHorizontal: 18, height: 40, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.92)', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
-  completeCtaText: { color: SC.primaryD, fontFamily: FONTS.xbold, fontSize: 12.5 },
+  completeCta: { paddingHorizontal: 18, height: 40, borderRadius: 10, backgroundColor: '#6366F1', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
+  completeCtaText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12.5 },
 });

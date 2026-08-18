@@ -950,7 +950,7 @@ export function NetworkView() {
           <View style={{ gap: 8, marginBottom: 16 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <View style={[s.searchContainer, { flex: 1, marginBottom: 0 }]}>
-                <Search size={14} color={MC.dim} style={{ marginRight: 10 }} />
+                <Search size={14} color="#64748B" style={{ marginRight: 10 }} />
                 <TextInput
                   value={searchQuery}
                   onChangeText={(val) => {
@@ -962,12 +962,12 @@ export function NetworkView() {
                   }}
                   onSubmitEditing={() => handleDatabaseSearch()}
                   placeholder="Filter displayed accounts or search DB..."
-                  placeholderTextColor={MC.dim}
+                  placeholderTextColor="#94A3B8"
                   style={s.searchInput}
                 />
                 {searchQuery ? (
                   <Pressable onPress={() => { setSearchQuery(''); setDbSearchStatus('idle'); setDbStatusMsg(''); }} style={{ padding: 4 }}>
-                    <X size={14} color={MC.dim} />
+                    <X size={14} color="#64748B" />
                   </Pressable>
                 ) : null}
               </View>
@@ -1700,17 +1700,21 @@ const s = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.20)',
-    borderColor: MC.border,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
     borderWidth: 1,
     borderRadius: 10,
     paddingHorizontal: 12,
     height: 40,
-    marginBottom: 10
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
   },
   searchInput: {
     flex: 1,
-    color: '#1C1C1E',
+    color: '#0F172A',
     fontFamily: FONTS.med,
     fontSize: 13,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {})

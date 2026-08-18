@@ -70,7 +70,7 @@ export default function CareerPathScreen() {
               testID={`career-path-${p.id}`}
               style={({ hovered, pressed }: any) => [
                 styles.pathTile,
-                hovered && !active && { borderColor: 'rgba(196,181,253,0.30)', backgroundColor: 'rgba(124,58,237,0.10)' },
+                hovered && !active && { borderColor: 'rgba(196,181,253,0.30)', backgroundColor: 'rgba(37,99,235,0.10)' },
                 active && styles.pathTileActive,
                 pressed && { transform: [{ scale: 0.99 }] },
               ]}
@@ -113,7 +113,7 @@ export default function CareerPathScreen() {
           testID="skill-add-btn"
           style={({ hovered, pressed }: any) => [
             styles.addBtn,
-            hovered && { backgroundColor: 'rgba(124,58,237,0.30)' },
+            hovered && { backgroundColor: 'rgba(37,99,235,0.30)' },
             pressed && { transform: [{ scale: 0.97 }] },
           ]}
         >
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
     gap: 6,
     ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
   },
-  pathTileActive: { borderColor: '#7C3AED', backgroundColor: 'rgba(124,58,237,0.16)' },
+  pathTileActive: { borderColor: '#2563EB', backgroundColor: 'rgba(37,99,235,0.16)' },
   pathTitle: { color: '#1F2937', fontFamily: 'DMSans_700Bold', fontSize: 15, marginTop: 6 },
   pathDesc: { color: 'rgba(255,255,255,0.50)', fontFamily: 'DMSans_400Regular', fontSize: 12, lineHeight: 17 },
   h3: { color: '#111827', fontFamily: 'DMSans_700Bold', fontSize: 16, marginTop: 4, marginBottom: 4 },
@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
   addBtn: {
     paddingHorizontal: 18, paddingVertical: 13,
     borderRadius: 12,
-    backgroundColor: 'rgba(124,58,237,0.20)',
+    backgroundColor: 'rgba(37,99,235,0.20)',
     borderColor: 'rgba(196,181,253,0.32)',
     borderWidth: 1,
     marginBottom: 14,

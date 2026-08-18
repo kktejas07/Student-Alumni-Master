@@ -248,7 +248,7 @@ function iconForType(type?: string) {
   if (t.startsWith('connection_accepted') || t.startsWith('connection_active')) {
     return { glyph: 'account-check-outline', color: '#10B981' };
   }
-  return { glyph: 'bell-outline', color: '#A78BFA' };
+  return { glyph: 'bell-outline', color: '#60A5FA' };
 }
 
 function getActionText(type?: string): string {

@@ -155,7 +155,7 @@ export function DashboardView({
           style={({ hovered }: any) => [s.briefBtn, hovered && { backgroundColor: 'rgba(252,211,77,0.20)' }, briefLoading && { opacity: 0.6 }]}
         >
           <Sparkles size={14} color="#fff" />
-          <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 11.5 }}>
+          <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 11.5 }}>
             {briefLoading ? 'Generating…' : (briefText ? 'Regenerate' : 'Generate AI Brief')}
           </Text>
         </Pressable>
@@ -357,7 +357,7 @@ const s = StyleSheet.create({
   eventMeta: { color: CC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },
 
   createBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 14, height: 38, borderRadius: 10, backgroundColor: CC.primary, ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
-  createBtnText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12.5 },
+  createBtnText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12.5 },
 
   activityRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
   activityIcon: { width: 32, height: 32, borderRadius: 8, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
@@ -380,9 +380,9 @@ const s = StyleSheet.create({
   completionLabel: { color: 'rgba(255,255,255,0.85)', fontFamily: FONTS.xbold, fontSize: 11.5, letterSpacing: 0.5 },
   completionScorePill: { backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 },
   completionScoreText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 11 },
-  completionTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 14, marginTop: 4 },
+  completionTitle: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 14, marginTop: 4 },
   missingChip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.10)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
   missingText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 10.5 },
-  completeCta: { paddingHorizontal: 18, height: 40, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.92)', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
+  completeCta: { paddingHorizontal: 18, height: 40, borderRadius: 10, backgroundColor: '#6366F1', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
   completeCtaText: { color: CC.primaryD, fontFamily: FONTS.xbold, fontSize: 12.5 },
 });

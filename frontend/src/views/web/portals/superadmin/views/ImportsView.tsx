@@ -39,7 +39,7 @@ import { useSubTab } from '@/src/views/web/portals/portalUrl';
  * ────────────────────────────────────────────────────────────────── */
 const CAT = {
   student: { color: '#3B82F6', label: 'Student',  icon: GraduationCap },
-  masters: { color: '#A78BFA', label: "Master's", icon: Briefcase },
+  masters: { color: '#60A5FA', label: "Master's", icon: Briefcase },
   alumni:  { color: '#10B981', label: 'Alumni',   icon: UserCheck },
   mentor:  { color: '#F59E0B', label: 'Mentor',   icon: Sparkles },
 } as const;

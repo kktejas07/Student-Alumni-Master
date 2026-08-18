@@ -15,7 +15,7 @@
  *
  * Usage:
  *   import { Sparkles, Wallet } from '../iconShims';
- *   <Sparkles size={14} color="#A78BFA" />
+ *   <Sparkles size={14} color="#60A5FA" />
  *
  * All shimmed icons accept the same props as lucide's:
  *   { size?: number; color?: string; fill?: string; style?: any }

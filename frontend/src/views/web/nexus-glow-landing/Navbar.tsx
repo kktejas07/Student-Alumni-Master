@@ -168,8 +168,8 @@ export function Navbar() {
             {isLoggedIn ? (
               <button
                 onClick={() => {
-                  const role = user?.role || 'student';
-                  const portalPath = role === 'super_admin' ? '/super-admin' :
+                  const role = (user?.role || 'student') as string;
+                  const portalPath = (role === 'super_admin' || role === 'admin') ? '/super-admin' :
                     role === 'mentor' ? '/mentor-portal' :
                     role === 'alumni' ? '/alumni-portal' :
                     role === 'college' ? '/college-portal' :
@@ -193,8 +193,8 @@ export function Navbar() {
             {isLoggedIn ? (
               <button
                 onClick={() => {
-                  const role = user?.role || 'student';
-                  const portalPath = role === 'super_admin' ? '/super-admin' :
+                  const role = (user?.role || 'student') as string;
+                  const portalPath = (role === 'super_admin' || role === 'admin') ? '/super-admin' :
                     role === 'mentor' ? '/mentor-portal' :
                     role === 'alumni' ? '/alumni-portal' :
                     role === 'college' ? '/college-portal' :
@@ -274,8 +274,8 @@ export function Navbar() {
                 <>
                   <button
                     onClick={() => {
-                      const role = user?.role || 'student';
-                      const portalPath = role === 'super_admin' ? '/super-admin' :
+                      const role = (user?.role || 'student') as string;
+                      const portalPath = (role === 'super_admin' || role === 'admin') ? '/super-admin' :
                         role === 'mentor' ? '/mentor-portal' :
                         role === 'alumni' ? '/alumni-portal' :
                         role === 'college' ? '/college-portal' :

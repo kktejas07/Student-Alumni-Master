@@ -116,7 +116,7 @@ export const AuthInput = React.forwardRef<TextInput, {
   
   const [focused, setFocused] = React.useState(false);
   const { primary } = useRoleTheme();
-  const focusBg = primary ? `${primary}10` : 'rgba(124,58,237,0.06)';
+  const focusBg = primary ? `${primary}10` : 'rgba(37,99,235,0.06)';
   return (
     <View style={inp.wrap}>
       {label ? <Text style={inp.label}>{typeof label === 'string' ? label : String(label ?? '')}</Text> : null}
@@ -156,7 +156,7 @@ const inp = StyleSheet.create({
   wrap: { width: '100%' },
   label: { color: '#374151', fontFamily: FONTS.bold, fontSize: 13, marginBottom: 8 },
   row: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, height: 48 },
-  rowOn: { borderColor: AC.primary, backgroundColor: 'rgba(124,58,237,0.06)' },
+  rowOn: { borderColor: AC.primary, backgroundColor: 'rgba(37,99,235,0.06)' },
   rowErr: { borderColor: AC.red },
   input: { flex: 1, color: '#111827', fontFamily: FONTS.med, fontSize: 14, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
   hint: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 11.5, marginTop: 6 },

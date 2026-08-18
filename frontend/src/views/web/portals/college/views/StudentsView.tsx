@@ -66,7 +66,7 @@ const ss = StyleSheet.create({
     paddingVertical: 9,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  menuItemActive: { backgroundColor: 'rgba(167,139,250,0.18)' },
+  menuItemActive: { backgroundColor: 'rgba(37,99,235,0.18)' },
   menuText: { color: '#aaa', fontFamily: FONTS.med, fontSize: 12.5 },
 });
 
@@ -624,10 +624,10 @@ function FilterPills({ label, value, onChange, options }:
           return (
             <Pressable key={o.id} onPress={() => onChange(o.id)}
               style={[s.pill, active && {
-                backgroundColor: 'rgba(167,139,250,0.18)',
-                borderColor: 'rgba(167,139,250,0.50)' }]}>
+                backgroundColor: 'rgba(37,99,235,0.18)',
+                borderColor: 'rgba(37,99,235,0.50)' }]}>
               <Text style={[s.pillText,
-                active && { color: '#C4B5FD' }]}>{o.label}</Text>
+                active && { color: '#93C5FD' }]}>{o.label}</Text>
             </Pressable>
           );
         })}

@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   kicker: {
-    color: '#C4B5FD', fontFamily: FONT, fontSize: 11,
+    color: '#93C5FD', fontFamily: FONT, fontSize: 11,
     fontWeight: '700', letterSpacing: 1.4,
   },
   betaPill: {
@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: '100%', width: '40%',
-    ...(Platform.OS === 'web' ? ({ background: 'linear-gradient(90deg, #7C3AED, #22D3EE)' } as any)
+    ...(Platform.OS === 'web' ? ({ background: 'linear-gradient(90deg, #2563EB, #22D3EE)' } as any)
       : { backgroundColor: NX.purple }),
   },
 
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     width: 48, height: 48, borderRadius: 24,
     alignItems: 'center', justifyContent: 'center',
     ...(Platform.OS === 'web' ? ({
-      boxShadow: '0 0 16px -4px rgba(124,58,237,0.6)',
+      boxShadow: '0 0 16px -4px rgba(37,99,235,0.6)',
     } as any) : {}),
   },
 });

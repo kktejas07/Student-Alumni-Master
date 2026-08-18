@@ -704,7 +704,7 @@ const styles = StyleSheet.create({
   backText: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11.5, lineHeight: 16 },
 
   heroBody: { flexDirection: 'row', alignItems: 'flex-start', gap: 18, paddingTop: 16 },
-  avatar: { width: 88, height: 88, borderRadius: 44, overflow: 'hidden', backgroundColor: 'rgba(167,139,250,0.20)', alignItems: 'center', justifyContent: 'center', borderWidth: 2 },
+  avatar: { width: 88, height: 88, borderRadius: 44, overflow: 'hidden', backgroundColor: 'rgba(37,99,235,0.20)', alignItems: 'center', justifyContent: 'center', borderWidth: 2 },
   avatarText: { fontFamily: 'DMSans_800ExtraBold', fontSize: 30 },
   avatarCheck: { position: 'absolute', right: 3, bottom: 3, width: 20, height: 20, borderRadius: 10, backgroundColor: C.green, alignItems: 'center', justifyContent: 'center', borderColor: C.bg, borderWidth: 2, zIndex: 3 },
   onlineDot: { position: 'absolute', right: 6, bottom: 6, width: 14, height: 14, borderRadius: 7, backgroundColor: C.green, borderColor: C.bg, borderWidth: 2, zIndex: 3 },
@@ -735,7 +735,7 @@ const styles = StyleSheet.create({
 
   tabBar: { borderTopColor: C.border, borderTopWidth: 1, borderBottomColor: C.border, borderBottomWidth: 1, paddingVertical: 8 },
   tab: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, backgroundColor: 'transparent', ...({ cursor: 'pointer' } as any) },
-  tabActive: { backgroundColor: 'rgba(167,139,250,0.16)' },
+  tabActive: { backgroundColor: 'rgba(37,99,235,0.16)' },
   tabText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 12, lineHeight: 16 },
 
   body: { paddingTop: 18, paddingBottom: 24, gap: 14 },
@@ -752,7 +752,7 @@ const styles = StyleSheet.create({
   rowLabel: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 12 },
   rowValue: { color: C.text, fontFamily: 'DMSans_500Medium', fontSize: 12, maxWidth: 240 },
   rowDim: { color: C.text3, fontFamily: 'DMSans_400Regular', fontSize: 11.5 },
-  linkBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 7, backgroundColor: 'rgba(167,139,250,0.10)', borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1, ...({ cursor: 'pointer' } as any) },
+  linkBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 7, backgroundColor: 'rgba(37,99,235,0.10)', borderColor: 'rgba(37,99,235,0.30)', borderWidth: 1, ...({ cursor: 'pointer' } as any) },
   linkText: { color: C.purple, fontFamily: 'DMSans_700Bold', fontSize: 11 },
   privacy: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 7, backgroundColor: 'rgba(255,255,255,0.04)', borderColor: C.border, borderWidth: 1 },
   privacyText: { color: C.text3, fontFamily: 'DMSans_700Bold', fontSize: 10 },

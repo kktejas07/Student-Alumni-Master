@@ -8,12 +8,12 @@
  *  • respects existing children's borderRadius & padding (it acts as outer)
  *
  * Usage:
- *   <HoverGlowCard tint="#A78BFA" radius={14}>
+ *   <HoverGlowCard tint="#60A5FA" radius={14}>
  *     <YourCardContent />
  *   </HoverGlowCard>
  *
  * Tints (recommended palette):
- *   purple #A78BFA   teal #2DD4BF   amber #F59E0B   green #10B981
+ *   purple #60A5FA   teal #2DD4BF   amber #F59E0B   green #10B981
  */
 import { useState, useRef, useEffect } from 'react';
 import { Pressable, View, StyleSheet, Animated, Platform, ViewStyle, StyleProp } from 'react-native';
@@ -36,7 +36,7 @@ const INTENSITY = {
 } as const;
 
 export function HoverGlowCard({
-  children, tint = '#A78BFA', radius = 14, intensity = 'medium',
+  children, tint = '#60A5FA', radius = 14, intensity = 'medium',
   onPress, testID, style, disabled = false,
 }: Props) {
   const [hovered, setHovered] = useState(false);

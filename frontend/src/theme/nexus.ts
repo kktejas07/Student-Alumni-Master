@@ -61,14 +61,14 @@ export const NX = {
 // primary CTA / chip / active-rail / hover-border colour shifts per
 // portal so users can tell which portal they're in at a glance.
 export const PORTAL_ACCENTS = {
-  // Student — Indigo
-  student: { primary: '#6366F1', primaryD: '#4F46E5', primaryL: '#818CF8', accent: '#6366F1', accentSoft: 'rgba(99,102,241,0.18)' },
-  // Alumni — Indigo
-  alumni:  { primary: '#6366F1', primaryD: '#4F46E5', primaryL: '#818CF8', accent: '#6366F1', accentSoft: 'rgba(99,102,241,0.18)' },
-  // College — Indigo
-  college: { primary: '#6366F1', primaryD: '#4F46E5', primaryL: '#818CF8', accent: '#6366F1', accentSoft: 'rgba(99,102,241,0.18)' },
-  // Mentor — Indigo
-  mentor:  { primary: '#6366F1', primaryD: '#4F46E5', primaryL: '#818CF8', accent: '#6366F1', accentSoft: 'rgba(99,102,241,0.18)' },
+  // Student — Royal Blue
+  student: { primary: '#2563EB', primaryD: '#1D4ED8', primaryL: '#3B82F6', accent: '#2563EB', accentSoft: 'rgba(37,99,235,0.15)' },
+  // Alumni — Royal Blue
+  alumni:  { primary: '#2563EB', primaryD: '#1D4ED8', primaryL: '#3B82F6', accent: '#2563EB', accentSoft: 'rgba(37,99,235,0.15)' },
+  // College — Royal Blue
+  college: { primary: '#2563EB', primaryD: '#1D4ED8', primaryL: '#3B82F6', accent: '#2563EB', accentSoft: 'rgba(37,99,235,0.15)' },
+  // Mentor — Royal Blue
+  mentor:  { primary: '#2563EB', primaryD: '#1D4ED8', primaryL: '#3B82F6', accent: '#2563EB', accentSoft: 'rgba(37,99,235,0.15)' },
   // Super Admin — Amber (NexusOS / Apple HIG warmth)
   admin:   { primary: '#F59E0B', primaryD: '#D97706', primaryL: '#FBBF24', accent: '#F59E0B', accentSoft: 'rgba(245,158,11,0.18)' },
 } as const;

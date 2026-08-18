@@ -426,7 +426,7 @@ const [newWorkflow, setNewWorkflow] = useState({ name: '', trigger: '', event_tr
               {/* Color */}
               <View style={{ gap: 6 }}>
                 <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-                  {['#22C55E', '#EF4444', '#F97316', '#A78BFA', '#3B82F6', '#EC4899', '#14B8A6', '#F59E0B'].map((c) => (
+                  {['#22C55E', '#EF4444', '#F97316', '#60A5FA', '#3B82F6', '#EC4899', '#14B8A6', '#F59E0B'].map((c) => (
                     <Pressable key={c} onPress={() => setEditWf((p) => p ? { ...p, color: c } : null)} style={[s.colorSwatch, { backgroundColor: c }, editWf?.color === c && s.colorSwatchActive]} />
                   ))}
                 </View>

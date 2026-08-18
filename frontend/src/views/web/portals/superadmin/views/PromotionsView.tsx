@@ -58,7 +58,7 @@ type Promotion = {
 };
 
 const TONE_PREVIEW: Record<PromoTone, { from: string; to: string; label: string }> = {
-  violet:  { from: '#A78BFA', to: '#7C3AED', label: 'Violet'  },
+  violet:  { from: '#60A5FA', to: '#2563EB', label: 'Violet'  },
   blue:    { from: '#60A5FA', to: '#2563EB', label: 'Blue'    },
   indigo:  { from: '#818CF8', to: '#4F46E5', label: 'Indigo'  },
   teal:    { from: '#5EEAD4', to: '#0D9488', label: 'Teal'    },

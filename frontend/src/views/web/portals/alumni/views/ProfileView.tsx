@@ -4,11 +4,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { QrCode, Award, MapPin, GraduationCap, Github, Linkedin, ExternalLink } from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { Av, Badge } from '../atoms';
-import { STUDENT } from '../data';
+import { STUDENT } from '../../student/data';
 
 const BADGES = [
   { id: 1, label: 'Top Performer',   color: '#FCD34D' },
-  { id: 2, label: '10 Sessions',     color: '#A78BFA' },
+  { id: 2, label: '10 Sessions',     color: '#60A5FA' },
   { id: 3, label: 'Profile Verified',color: '#22C55E' },
   { id: 4, label: 'Hackathon Winner',color: '#F59E0B' },
 ];
@@ -83,7 +83,7 @@ const s = StyleSheet.create({
   name: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 20 },
   meta: { color: SC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
   editBtn: { paddingHorizontal: 14, height: 32, borderRadius: 8, borderWidth: 1, borderColor: SC.border2, backgroundColor: SC.card, alignItems: 'center', justifyContent: 'center' },
-  rowIcon: { width: 26, height: 26, borderRadius: 8, backgroundColor: 'rgba(167,139,250,0.10)', alignItems: 'center', justifyContent: 'center' },
+  rowIcon: { width: 26, height: 26, borderRadius: 8, backgroundColor: 'rgba(37,99,235,0.10)', alignItems: 'center', justifyContent: 'center' },
   rowLabel: { color: SC.muted, fontFamily: FONTS.bold, fontSize: 11, width: 80 },
   rowValue: { color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
   badgeBox: { width: 100, alignItems: 'center', padding: 12, borderRadius: 12, borderWidth: 1, backgroundColor: SC.card, gap: 6 },

@@ -165,7 +165,7 @@ function PendingView({
     <View>
       <View style={{ alignItems: 'center', marginBottom: 24 }}>
         <Animated.View style={[styles.iconHero, { transform: [{ translateY: floatY }] }]}>
-          <Mail size={36} color="#C4B5FD" />
+          <Mail size={36} color="#93C5FD" />
         </Animated.View>
       </View>
       <Text style={styles.h1}>Verify your email address</Text>
@@ -226,7 +226,7 @@ function PendingView({
 function VerifyingView() {
   return (
     <View style={{ alignItems: 'center', paddingVertical: 60 }}>
-      <ActivityIndicator size="large" color="#A78BFA" />
+      <ActivityIndicator size="large" color="#60A5FA" />
       <Text style={[styles.h1, { marginTop: 22, fontSize: 17 }]}>Verifying your email…</Text>
       <Text style={[styles.sub, { textAlign: 'center', marginTop: 4 }]}>This will only take a moment.</Text>
     </View>
@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
   backText: { color: 'rgba(255,255,255,0.75)', fontFamily: 'DMSans_500Medium', fontSize: 13 },
   iconHero: {
     width: 100, height: 100, borderRadius: 28,
-    backgroundColor: 'rgba(124,58,237,0.22)',
+    backgroundColor: 'rgba(37,99,235,0.22)',
     borderWidth: 1.5,
     borderColor: 'rgba(196,181,253,0.28)',
     alignItems: 'center',
@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 24,
   },
-  emailHi: { color: '#C4B5FD', fontFamily: 'DMSans_700Bold' },
+  emailHi: { color: '#93C5FD', fontFamily: 'DMSans_700Bold' },
 
   statusCard: {
     backgroundColor: 'rgba(255,255,255,0.04)',
@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
   timerFill: { width: '77%', height: '100%', borderRadius: 2, backgroundColor: '#FCD34D' },
 
   changeEmailText: { color: 'rgba(255,255,255,0.4)', fontFamily: 'DMSans_400Regular', fontSize: 13 },
-  changeEmailLink: { color: '#C4B5FD', fontFamily: 'DMSans_700Bold' },
+  changeEmailLink: { color: '#93C5FD', fontFamily: 'DMSans_700Bold' },
 
   successRing: {
     width: 88, height: 88, borderRadius: 44,

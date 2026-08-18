@@ -45,12 +45,12 @@ import {
 type Variant = 'savedJobs' | 'bookings' | 'applications' | 'workshops' | 'network' | 'generic';
 
 const VARIANT_META: Record<Variant, { label: string; tint: string; tintSoft: string; Icon: any }> = {
-  savedJobs:    { label: 'No saved jobs',    tint: '#A78BFA', tintSoft: 'rgba(167,139,250,0.18)', Icon: Bookmark },
+  savedJobs:    { label: 'No saved jobs',    tint: '#60A5FA', tintSoft: 'rgba(37,99,235,0.18)', Icon: Bookmark },
   bookings:     { label: 'No bookings yet',  tint: '#22D3EE', tintSoft: 'rgba(34,211,238,0.15)',  Icon: Calendar },
   applications: { label: 'No applications',  tint: '#F59E0B', tintSoft: 'rgba(245,158,11,0.15)',  Icon: FileText },
   workshops:    { label: 'No workshops',     tint: '#EC4899', tintSoft: 'rgba(236,72,153,0.15)',  Icon: GraduationCap },
   network:      { label: 'Network is empty', tint: '#34D399', tintSoft: 'rgba(52,211,153,0.15)',  Icon: Users },
-  generic:      { label: 'Nothing here yet', tint: '#A78BFA', tintSoft: 'rgba(167,139,250,0.18)', Icon: Sparkles },
+  generic:      { label: 'Nothing here yet', tint: '#60A5FA', tintSoft: 'rgba(37,99,235,0.18)', Icon: Sparkles },
 };
 
 /* ─── Empty State ──────────────────────────────────────────────────────── */
@@ -146,7 +146,7 @@ function SavedJobsIllu() {
   return (
     <View style={s.illuBox}>
       <Animated.View style={[StyleSheet.absoluteFill, aRing]}>
-        <Sparkle x={20} y={16} color="#A78BFA" />
+        <Sparkle x={20} y={16} color="#60A5FA" />
         <Sparkle x={92} y={20} color="#FCD34D" delay={400} size={5} />
         <Sparkle x={102} y={88} color="#34D399" delay={800} />
         <Sparkle x={12} y={92} color="#F472B6" delay={1200} size={5} />
@@ -255,7 +255,7 @@ function NetworkIllu() {
   }, [orbit]);
   const aRing = useAnimatedStyle(() => ({ transform: [{ rotate: `${orbit.value * 360}deg` }] }));
   const initials = ['AR', 'PS', 'KM', 'NV'];
-  const colors = ['#A78BFA', '#34D399', '#FCD34D', '#F472B6'];
+  const colors = ['#60A5FA', '#34D399', '#FCD34D', '#F472B6'];
   return (
     <View style={s.illuBox}>
       <View style={s.illuCenter}>
@@ -295,15 +295,15 @@ function GenericIllu() {
           <Sparkles size={32} color="#fff" />
         </LinearGradient>
       </Animated.View>
-      <Sparkle x={18} y={20} color="#A78BFA" />
-      <Sparkle x={94} y={22} color="#C4B5FD" delay={300} size={5} />
+      <Sparkle x={18} y={20} color="#60A5FA" />
+      <Sparkle x={94} y={22} color="#93C5FD" delay={300} size={5} />
       <Sparkle x={100} y={88} color="#FCD34D" delay={600} />
     </View>
   );
 }
 
 /* ─── Atoms ────────────────────────────────────────────────────────────── */
-function Sparkle({ x, y, color = '#A78BFA', delay = 0, size = 6 }: { x: number; y: number; color?: string; delay?: number; size?: number }) {
+function Sparkle({ x, y, color = '#60A5FA', delay = 0, size = 6 }: { x: number; y: number; color?: string; delay?: number; size?: number }) {
   const v = useSharedValue(0);
   useEffect(() => {
     v.value = withDelay(delay, withRepeat(
@@ -347,7 +347,7 @@ function TrailDot({ color, offset }: { color: string; offset: number }) {
 function Confetti() {
   const pieces = [
     { x: 14, color: '#FCD34D', delay: 0,   rot: -20 },
-    { x: 38, color: '#A78BFA', delay: 0.2, rot: 14 },
+    { x: 38, color: '#60A5FA', delay: 0.2, rot: 14 },
     { x: 64, color: '#34D399', delay: 0.4, rot: -8 },
     { x: 92, color: '#F472B6', delay: 0.1, rot: 22 },
     { x: 110, color: '#FCA5A5', delay: 0.3, rot: -14 },
