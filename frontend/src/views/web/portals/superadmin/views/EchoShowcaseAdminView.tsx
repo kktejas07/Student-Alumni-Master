@@ -849,7 +849,7 @@ function DownloadsEditor({ downloads, onChange }: any) {
           </View>
           {dl.file_url && (
             <Text style={{ fontFamily: FONTS.med, fontSize: 10.5, color: SAC.muted }} numberOfLines={1}>
-              📎 {dl.file_url}
+               {dl.file_url}
             </Text>
           )}
         </View>

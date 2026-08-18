@@ -487,7 +487,7 @@ function SignatureEditorModal({ visible, initial, onClose, onSaved }: {
     },
     {
       id: 'friendly', label: 'Friendly',
-      body: 'Cheers,\n{{name}} ✨\n{{org}}',
+      body: 'Cheers,\n{{name}}\n{{org}}',
     },
   ];
 
