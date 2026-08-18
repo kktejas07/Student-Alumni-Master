@@ -77,6 +77,9 @@ export function EmailQualityView() {
   const [totalUsers, setTotalUsers] = useState(0);
   const [validEmails, setValidEmails] = useState(0);
   const [invalidEmails, setInvalidEmails] = useState(0);
+  const [auditResults, setAuditResults] = useState<any>(null);
+  const [auditing, setAuditing] = useState(false);
+  const [showAudit, setShowAudit] = useState(false);
 
   const load = useCallback(async (needle = q) => {
     setLoading(true);
@@ -110,6 +113,26 @@ export function EmailQualityView() {
   };
 
   useEffect(() => { load(''); }, []);
+
+  const runAudit = async () => {
+    setAuditing(true);
+    setAuditResults(null);
+    try {
+      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const token = await getToken();
+      const res = await fetch(`${base}/api/admin/email-quality/audit`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Audit failed');
+      const data = await res.json();
+      setAuditResults(data);
+      flash(`Audit complete: ${data.valid} valid, ${data.issue_count} issues found`);
+    } catch (e: any) {
+      flash(e?.message || 'Audit failed', 'error');
+    } finally {
+      setAuditing(false);
+    }
+  };
 
   const restore = async (email: string) => {
     const ok = await confirm({
@@ -208,6 +231,96 @@ export function EmailQualityView() {
           <Text style={st.healthLabel}>{validEmails} deliverable</Text>
           <Text style={st.healthLabel}>{invalidEmails} suppressed</Text>
         </View>
+      </Card>
+
+      {/* Audit Section */}
+      <Card>
+        <View style={st.cardHeader}>
+          <SectionLabel>EMAIL AUDIT</SectionLabel>
+          <SecondaryButton onPress={runAudit} disabled={auditing}>
+            {auditing ? <ActivityIndicator size="small" color={SAC.muted} /> : <Search size={12} color={SAC.muted} />}
+            <Text style={st.secText}>{auditing ? 'Auditing...' : 'Run Audit'}</Text>
+          </SecondaryButton>
+        </View>
+        <Text style={[st.muted, { marginTop: 8 }]}>
+          Scan all emails in the database for deliverability issues before sending newsletters.
+        </Text>
+        
+        {auditResults && (
+          <View style={{ marginTop: 16, gap: 12 }}>
+            {/* Health Score */}
+            <View style={st.auditScoreRow}>
+              <View style={[st.auditScoreCircle, { borderColor: auditResults.health_score > 90 ? '#10B981' : auditResults.health_score > 70 ? '#F59E0B' : '#EF4444' }]}>
+                <Text style={[st.auditScoreValue, { color: auditResults.health_score > 90 ? '#10B981' : auditResults.health_score > 70 ? '#F59E0B' : '#EF4444' }]}>
+                  {auditResults.health_score}%
+                </Text>
+              </View>
+              <View>
+                <Text style={st.auditScoreLabel}>Email Health Score</Text>
+                <Text style={st.muted}>{auditResults.total_scanned} emails scanned</Text>
+              </View>
+            </View>
+
+            {/* Audit Stats */}
+            <View style={st.auditStatsGrid}>
+              <View style={st.auditStatItem}>
+                <CheckCircle size={16} color="#10B981" />
+                <Text style={st.auditStatValue}>{auditResults.valid}</Text>
+                <Text style={st.auditStatLabel}>Valid</Text>
+              </View>
+              <View style={st.auditStatItem}>
+                <XCircle size={16} color="#EF4444" />
+                <Text style={st.auditStatValue}>{auditResults.invalid_format}</Text>
+                <Text style={st.auditStatLabel}>Invalid Format</Text>
+              </View>
+              <View style={st.auditStatItem}>
+                <Ban size={16} color="#EC4899" />
+                <Text style={st.auditStatValue}>{auditResults.disposable}</Text>
+                <Text style={st.auditStatLabel}>Disposable</Text>
+              </View>
+              <View style={st.auditStatItem}>
+                <Mail size={16} color="#8B5CF6" />
+                <Text style={st.auditStatValue}>{auditResults.role_account}</Text>
+                <Text style={st.auditStatLabel}>Role Accounts</Text>
+              </View>
+              <View style={st.auditStatItem}>
+                <AlertTriangle size={16} color="#F59E0B" />
+                <Text style={st.auditStatValue}>{auditResults.suppressed}</Text>
+                <Text style={st.auditStatLabel}>Suppressed</Text>
+              </View>
+              <View style={st.auditStatItem}>
+                <Users size={16} color="#6B7280" />
+                <Text style={st.auditStatValue}>{auditResults.duplicate}</Text>
+                <Text style={st.auditStatLabel}>Duplicates</Text>
+              </View>
+            </View>
+
+            {/* Issues List */}
+            {auditResults.issues.length > 0 && (
+              <View>
+                <Text style={[st.muted, { marginBottom: 8 }]}>
+                  {auditResults.issues.length} issues found that may affect deliverability:
+                </Text>
+                <View style={{ maxHeight: 200, overflow: 'hidden' }}>
+                  {auditResults.issues.slice(0, 20).map((issue: any, i: number) => (
+                    <View key={i} style={st.auditIssueRow}>
+                      <View style={[st.issueBadge, { backgroundColor: `${kindColor(issue.reason)}20` }]}>
+                        <Text style={[st.issueBadgeText, { color: kindColor(issue.reason) }]}>
+                          {kindLabel(issue.reason)}
+                        </Text>
+                      </View>
+                      <Text numberOfLines={1} style={st.issueEmail}>{issue.email}</Text>
+                      <Text style={st.issueSource}>{issue.source}</Text>
+                    </View>
+                  ))}
+                  {auditResults.issues.length > 20 && (
+                    <Text style={st.muted}>...and {auditResults.issues.length - 20} more</Text>
+                  )}
+                </View>
+              </View>
+            )}
+          </View>
+        )}
       </Card>
 
       {/* Search */}
@@ -371,6 +484,29 @@ const st = StyleSheet.create({
   },
   restoreText: { color: '#6EE7B7', fontFamily: FONTS.bold, fontSize: 12 },
   
+  // Audit
+  auditScoreRow: { flexDirection: 'row', alignItems: 'center', gap: 16, padding: 16, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.03)' },
+  auditScoreCircle: { width: 64, height: 64, borderRadius: 32, borderWidth: 3, alignItems: 'center', justifyContent: 'center' },
+  auditScoreValue: { fontFamily: FONTS.xbold, fontSize: 18 },
+  auditScoreLabel: { fontFamily: FONTS.bold, fontSize: 14, color: '#fff' },
+  auditStatsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  auditStatItem: {
+    flex: 1, minWidth: 80, flexDirection: 'row', alignItems: 'center', gap: 6,
+    padding: 10, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
+  },
+  auditStatValue: { fontFamily: FONTS.bold, fontSize: 14, color: '#fff' },
+  auditStatLabel: { fontFamily: FONTS.med, fontSize: 10, color: SAC.muted },
+  auditIssueRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 8, padding: 8,
+    borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.02)',
+    marginBottom: 4,
+  },
+  issueBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  issueBadgeText: { fontFamily: FONTS.bold, fontSize: 9 },
+  issueEmail: { flex: 1, fontFamily: FONTS.med, fontSize: 11, color: '#fff' },
+  issueSource: { fontFamily: FONTS.med, fontSize: 10, color: SAC.dim },
+
   // Tips
   tipRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   tipText: { flex: 1, color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, lineHeight: 18 },
