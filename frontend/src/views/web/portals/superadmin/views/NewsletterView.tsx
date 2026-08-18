@@ -907,7 +907,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                 backgroundColor: '#f3f4f6',
               } as any}
               title="Email Preview"
-              sandbox="allow-same-origin"
+              sandbox="allow-same-origin allow-scripts"
             />
           ) : (
             <View style={st.previewFrame}>
