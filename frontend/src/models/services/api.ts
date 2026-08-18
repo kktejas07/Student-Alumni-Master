@@ -495,8 +495,8 @@ export const api = {
     request<any>('/newsletter/admin/campaigns'),
   newsletterUpcomingEvents: () =>
     request<any>('/newsletter/admin/upcoming-events'),
-  getNewsletterRecipientCount: () =>
-    request<any>('/newsletter/admin/recipient-count'),
+  getNewsletterRecipientCount: (audience = 'all') =>
+    request<any>(`/newsletter/admin/recipient-count?audience=${encodeURIComponent(audience)}`),
 
   emailQualityReport: (q = '') =>
     request<any>(`/admin/email-quality${q ? `?q=${encodeURIComponent(q)}` : ''}`),

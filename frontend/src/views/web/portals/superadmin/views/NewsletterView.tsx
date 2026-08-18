@@ -99,6 +99,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
   const { toast, flash, hide } = useToast();
   const [form, setForm] = useState({
     subject: '',
+    audience: 'all',
     hero_image: '',
     intro: '',
     body: '',
@@ -134,6 +135,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
   const [loadingEdit, setLoadingEdit] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [recipientCount, setRecipientCount] = useState<number | null>(null);
+  const [recipientBreakdown, setRecipientBreakdown] = useState<{ count: number; email_count: number; whatsapp_count: number; audience: string } | null>(null);
   const [loadingRecipientCount, setLoadingRecipientCount] = useState(false);
 
   // Individual notification state
@@ -145,6 +147,26 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchSeqRef = useRef(0);
 
+  const fetchRecipientCount = useCallback(async (aud?: string) => {
+    const targetAud = aud || form.audience || 'all';
+    setLoadingRecipientCount(true);
+    try {
+      const res = await api.getNewsletterRecipientCount(targetAud);
+      setRecipientCount(res?.count ?? 0);
+      setRecipientBreakdown({
+        count: res?.count ?? 0,
+        email_count: res?.email_count ?? 0,
+        whatsapp_count: res?.whatsapp_count ?? 0,
+        audience: targetAud,
+      });
+    } catch {
+      setRecipientCount(null);
+      setRecipientBreakdown(null);
+    } finally {
+      setLoadingRecipientCount(false);
+    }
+  }, [form.audience]);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -154,14 +176,16 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
       ]);
       setCampaigns(c?.items || []);
       setEvents(e?.items || []);
+      await fetchRecipientCount(form.audience);
     } catch {
       /* silent — campaigns list is non-critical */
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetchRecipientCount, form.audience]);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { fetchRecipientCount(form.audience); }, [form.audience, fetchRecipientCount]);
 
   const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
   const previewHtml = useMemo(() => buildPreviewHtml(form, events), [form, events]);
@@ -281,14 +305,13 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
     if (!campaignId) return;
     setLoadingEdit(true);
     try {
-      console.log('[Newsletter] startEdit fetching campaign:', campaignId);
       const c: any = await api.getNewsletterCampaign(campaignId);
-      console.log('[Newsletter] startEdit got campaign:', c);
       if (!c || !c.subject) {
         console.warn('[Newsletter] startEdit: campaign returned empty or missing subject');
       }
       setForm({
         subject: c?.subject || '',
+        audience: c?.audience || 'all',
         hero_image: (c?.hero_image && !c?.hero_image.startsWith('blob:') && !c?.hero_image.startsWith('data:')) ? c?.hero_image : '',
         intro: c?.intro || '',
         body: c?.body || '',
@@ -310,9 +333,9 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
       }
       setEditingCampaign(c);
       setActiveTab('bulk');
+      fetchRecipientCount(c?.audience || 'all');
       flash(`Editing "${c?.subject || 'campaign'}"`);
     } catch (e: any) {
-      console.error('[Newsletter] startEdit error:', e);
       flash(e?.message || 'Failed to load campaign', 'error');
     } finally {
       setLoadingEdit(false);
@@ -326,10 +349,11 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
     setScheduleTime('12:00');
     setRecipientCount(null);
     setForm({
-      subject: '', hero_image: '', intro: '', body: '',
+      subject: '', audience: 'all', hero_image: '', intro: '', body: '',
       cta_text: 'Register Now', cta_url: 'https://studentalumni.ai/echo',
       include_upcoming: true, send_email: true, send_push: true, send_in_app: true, send_whatsapp: false,
     });
+    fetchRecipientCount('all');
     flash('Edit cancelled');
   };
 
@@ -362,6 +386,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
       const clean = sanitizePayload(form);
       const res: any = await api.updateNewsletterCampaign(editingCampaign.campaign_id, {
         subject: clean.subject,
+        audience: clean.audience || 'all',
         hero_image: clean.hero_image,
         intro: clean.intro,
         body: clean.body,
@@ -417,6 +442,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
       const clean = sanitizePayload(form);
       const r: any = await api.sendNewsletter({
         subject: clean.subject,
+        audience: clean.audience || 'all',
         hero_image: clean.hero_image,
         intro: clean.intro,
         body: clean.body,
@@ -477,6 +503,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
       if (editingCampaign) {
         const res: any = await api.updateNewsletterCampaign(editingCampaign.campaign_id, {
           subject: clean.subject,
+          audience: clean.audience || 'all',
           hero_image: clean.hero_image,
           intro: clean.intro,
           body: clean.body,
@@ -492,6 +519,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
       } else {
         const res: any = await api.saveNewsletterDraft({
           subject: clean.subject,
+          audience: clean.audience || 'all',
           hero_image: clean.hero_image,
           intro: clean.intro,
           body: clean.body,
@@ -510,18 +538,6 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
       flash(e?.message || 'Failed to save draft', 'error');
     } finally {
       setSavingDraft(false);
-    }
-  };
-
-  const fetchRecipientCount = async () => {
-    setLoadingRecipientCount(true);
-    try {
-      const res = await api.getNewsletterRecipientCount();
-      setRecipientCount(res?.count ?? 0);
-    } catch {
-      setRecipientCount(null);
-    } finally {
-      setLoadingRecipientCount(false);
     }
   };
 
@@ -634,10 +650,57 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                 </View>
               )}
               <View style={{ marginTop: 12, gap: 12 }}>
-                <Field label="Subject *" hint="Appears in the email subject line.">
+                {/* Target Audience Scope */}
+                <View style={st.channelSection}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
+                    <Text style={st.channelLabel}>TARGET AUDIENCE</Text>
+                    {loadingRecipientCount ? (
+                      <ActivityIndicator size="small" color={GRAD.from} />
+                    ) : (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(124,58,237,0.12)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(124,58,237,0.3)' }}>
+                        <Users size={12} color="#A78BFA" />
+                        <Text style={{ fontSize: 11.5, fontFamily: FONTS.semi, color: '#DDD6FE' }}>
+                          {recipientBreakdown?.count ?? recipientCount ?? 0} total · {recipientBreakdown?.email_count ?? 0} emails · {recipientBreakdown?.whatsapp_count ?? 0} WhatsApp
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                  <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+                    {[
+                      { id: 'all', label: 'Whole Database (All Contacts & Prospects)', icon: '🌐' },
+                      { id: 'directory', label: 'Platform Users & Directory', icon: '👥' },
+                      { id: 'students', label: 'Students', icon: '🎓' },
+                      { id: 'alumni', label: 'Alumni', icon: '💼' },
+                      { id: 'mentors', label: 'Mentors', icon: '🌟' },
+                      { id: 'talent_pool', label: 'Talent Pool Candidates', icon: '🎯' },
+                      { id: 'events', label: 'Event Attendees', icon: '🎟️' },
+                    ].map((aud) => {
+                      const active = (form.audience || 'all') === aud.id;
+                      return (
+                        <Pressable
+                          key={aud.id}
+                          onPress={() => {
+                            set('audience', aud.id);
+                            fetchRecipientCount(aud.id);
+                          }}
+                          style={[
+                            st.channelPill,
+                            active && { backgroundColor: 'rgba(124,58,237,0.28)', borderColor: '#7C3AED', transform: [{ scale: 1.02 }] },
+                          ]}
+                        >
+                          <Text style={{ fontSize: 11.5, fontFamily: active ? FONTS.bold : FONTS.med, color: active ? '#fff' : SAC.muted }}>
+                            {aud.icon} {aud.label}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                <Field label="Subject *" hint="Appears in the email subject line & WhatsApp bold title.">
                   <TextInput style={st.input} value={form.subject} onChangeText={(v) => set('subject', v)} placeholder="e.g. Join us at ECHO 2026!" placeholderTextColor={SAC.dim} />
                 </Field>
-                <Field label="Hero Image" hint="Upload a banner/poster, or paste a direct image URL. Shown full-width at the top of the email.">
+                <Field label="Hero Image" hint="Upload a banner/poster, or paste a direct image URL. Shown full-width at top of email and as WhatsApp image header.">
                   <View style={{ gap: 8 }}>
                     {form.hero_image ? (
                       <View style={{ borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: SAC.border }}>
@@ -774,7 +837,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                     <View style={{ flex: 1 }}>
                       <GradientButton onPress={editingCampaign ? doUpdate : doSend} loading={sending}>
                         <Send size={13} color="#fff" /><Text style={st.btnText}>
-                          {editingCampaign ? 'Save Changes' : sendImmediately ? "Send to all users" : "Schedule Campaign"}
+                          {editingCampaign ? 'Save Changes' : sendImmediately ? "Send to Audience" : "Schedule Campaign"}
                         </Text>
                       </GradientButton>
                     </View>
@@ -783,7 +846,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                 ) : (
                   <View style={{ flexDirection: 'row', gap: 10, flex: 1 }}>
                     <View style={{ flex: 1 }}>
-                      <GradientButton onPress={() => { setConfirming(true); fetchRecipientCount(); }}>
+                      <GradientButton onPress={() => { setConfirming(true); fetchRecipientCount(form.audience); }}>
                         <Send size={13} color="#fff" /><Text style={st.btnText}>
                           {editingCampaign ? 'Save Changes' : sendImmediately ? "Send Newsletter" : "Schedule Newsletter"}
                         </Text>
@@ -802,8 +865,8 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                     {editingCampaign
                       ? "This will update the scheduled campaign with your current content and reschedule it to the time shown. Recipients won't be notified twice."
                       : sendImmediately
-                        ? `This will notify ${loadingRecipientCount ? '...' : recipientCount ?? 'all'} registered user${(recipientCount ?? 0) !== 1 ? 's' : ''} via selected channels. Make sure your content looks right.`
-                        : `This will schedule the newsletter to be sent automatically on ${scheduleDate} at ${scheduleTime} UTC.`}
+                        ? `This will broadcast to ${loadingRecipientCount ? '...' : (recipientBreakdown?.count ?? recipientCount ?? 'all')} contacts in ${form.audience === 'all' ? 'the whole database' : form.audience} (${recipientBreakdown?.email_count ?? 0} emails, ${recipientBreakdown?.whatsapp_count ?? 0} WhatsApp numbers) via selected channels.`
+                        : `This will schedule the newsletter to be sent automatically on ${scheduleDate} at ${scheduleTime} UTC to ${form.audience === 'all' ? 'the whole database' : form.audience}.`}
                   </Text>
                 </View>
               )}
