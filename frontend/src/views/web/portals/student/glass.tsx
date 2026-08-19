@@ -177,9 +177,9 @@ export function GlassCard({
   useEffect(() => {
     Animated.parallel([
       Animated.timing(opacity, { toValue: 1, duration: 350,
-        delay, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        delay, easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' }),
       Animated.timing(ty,      { toValue: 0, duration: 350,
-        delay, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        delay, easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' }),
     ]).start();
   }, [delay, opacity, ty]);
 
@@ -508,9 +508,9 @@ export function AiCopilotFab({
   useEffect(() => {
     Animated.parallel([
       Animated.timing(opacity, { toValue: 1, duration: 380, delay: 220,
-        easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' }),
       Animated.timing(ty, { toValue: 0, duration: 380, delay: 220,
-        easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' }),
     ]).start();
   }, [opacity, ty]);
 
@@ -614,9 +614,9 @@ export function RouteTransition({ children, deps = [] }: {
     opacity.setValue(0); ty.setValue(6);
     Animated.parallel([
       Animated.timing(opacity, { toValue: 1, duration: 280,
-        easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' }),
       Animated.timing(ty,      { toValue: 0, duration: 280,
-        easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' }),
     ]).start(() => {
       setNavigating(false);
     });

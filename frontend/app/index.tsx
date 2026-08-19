@@ -36,12 +36,12 @@ export default function Index() {
   useEffect(() => {
     Animated.sequence([
       Animated.parallel([
-        Animated.spring(scale, { toValue: 1, friction: 5, tension: 65, useNativeDriver: true }),
-        Animated.timing(opacity, { toValue: 1, duration: 700, easing: Easing.out(Easing.ease), useNativeDriver: true }),
+        Animated.spring(scale, { toValue: 1, friction: 5, tension: 65, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.timing(opacity, { toValue: 1, duration: 700, easing: Easing.out(Easing.ease), useNativeDriver: Platform.OS !== 'web' }),
       ]),
       Animated.parallel([
-        Animated.timing(tagOpacity, { toValue: 1, duration: 500, useNativeDriver: true }),
-        Animated.timing(dotsTrans, { toValue: 0, duration: 500, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        Animated.timing(tagOpacity, { toValue: 1, duration: 500, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.timing(dotsTrans, { toValue: 0, duration: 500, easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' }),
       ]),
     ]).start();
   }, [scale, opacity, tagOpacity, dotsTrans]);
@@ -129,8 +129,8 @@ function BouncingDot({ delay }: { delay: number }) {
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(y, { toValue: -8, duration: 360, delay, easing: Easing.out(Easing.ease), useNativeDriver: true }),
-        Animated.timing(y, { toValue: 0, duration: 360, easing: Easing.in(Easing.ease), useNativeDriver: true }),
+        Animated.timing(y, { toValue: -8, duration: 360, delay, easing: Easing.out(Easing.ease), useNativeDriver: Platform.OS !== 'web' }),
+        Animated.timing(y, { toValue: 0, duration: 360, easing: Easing.in(Easing.ease), useNativeDriver: Platform.OS !== 'web' }),
       ]),
     );
     loop.start();
