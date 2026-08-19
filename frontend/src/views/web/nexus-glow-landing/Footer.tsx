@@ -61,7 +61,7 @@ export function Footer() {
   }, [isLanding]);
 
   return (
-    <footer className="relative border-t border-white/5 bg-[#0C0C0D] pt-20 pb-10">
+    <footer className="relative border-t border-white/5 bg-[#0A0A2A] pt-20 pb-10">
       {/* Subtle top glow */}
       <div
         aria-hidden
@@ -131,7 +131,7 @@ export function Footer() {
 
         {/* Bottom bar */}
         <div className="mt-16 pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-xs font-bold text-gray-300 tracking-wide">
+          <p className="text-xs font-bold text-white tracking-wide">
             © 2026 <span className="text-white">StudentAlumni</span>. All rights reserved.
           </p>
 

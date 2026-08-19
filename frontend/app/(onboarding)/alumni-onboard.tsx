@@ -62,7 +62,7 @@ type NextChapterPath = {
   id: string; title: string; desc: string; Icon: any; tint: string;
 };
 const NEXT_CHAPTER: NextChapterPath[] = [
-  { id: 'become_mentor',    title: 'Become a Mentor',          desc: 'Guide students & earn by sharing expertise',     Icon: UsersRound,    tint: '#A78BFA' },
+  { id: 'become_mentor',    title: 'Become a Mentor',          desc: 'Guide students & earn by sharing expertise',     Icon: UsersRound,    tint: '#60A5FA' },
   { id: 'level_up_career',  title: 'Level Up My Career',       desc: 'Get promoted, switch or explore new companies', Icon: TrendingUp,    tint: '#60A5FA' },
   { id: 'build_startup',    title: 'Build a Startup',          desc: 'Launch your venture or join as an early hire',  Icon: Rocket,        tint: '#FB923C' },
   { id: 'higher_education', title: 'Higher Education',         desc: 'MBA, MS, PhD or executive programmes abroad',   Icon: BookOpen,      tint: '#34D399' },
@@ -620,5 +620,5 @@ const s = StyleSheet.create({
 
   navRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 16 },
   backBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E5E7EB', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  generatingText: { color: '#A78BFA', fontFamily: FONTS.med, fontSize: 12, textAlign: 'center', marginTop: 6 },
+  generatingText: { color: '#60A5FA', fontFamily: FONTS.med, fontSize: 12, textAlign: 'center', marginTop: 6 },
 });

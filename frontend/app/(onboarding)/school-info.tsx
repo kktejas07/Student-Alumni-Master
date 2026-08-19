@@ -412,8 +412,8 @@ export default function SchoolInfoScreen() {
           <Switch
             value={!!school_info.address_manual}
             onValueChange={toggleManualAddress}
-            trackColor={{ false: '#E5E7EB', true: 'rgba(124,58,237,0.55)' }}
-            thumbColor={school_info.address_manual ? '#A78BFA' : '#9CA3AF'}
+            trackColor={{ false: '#E5E7EB', true: 'rgba(37,99,235,0.55)' }}
+            thumbColor={school_info.address_manual ? '#60A5FA' : '#9CA3AF'}
             testID="school-address-toggle"
           />
         </View>

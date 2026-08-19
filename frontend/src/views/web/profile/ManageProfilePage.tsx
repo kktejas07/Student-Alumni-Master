@@ -97,7 +97,7 @@ export function ManageProfilePage({ draft, setDraft, badges, onCertChange, showT
             const Icon = v.icon; const isSel = visibility === v.key;
             return (
               <Pressable key={v.key} onPress={() => setDraft((d: any) => ({ ...d, profile_visibility: v.key }))} style={[st.visRow, isSel && st.visRowSel]} testID={`pf-vis-${v.key}`}>
-                <View style={[st.visIcon, isSel && { backgroundColor: 'rgba(167,139,250,0.18)', borderColor: C.purple }]}>
+                <View style={[st.visIcon, isSel && { backgroundColor: 'rgba(37,99,235,0.18)', borderColor: C.purple }]}>
                   <Icon size={15} color={isSel ? C.purple : C.text2} />
                 </View>
                 <View style={{ flex: 1, minWidth: 0 }}>
@@ -184,30 +184,31 @@ const st = StyleSheet.create({
   visRow: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
     padding: 14, borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderColor: 'rgba(255,255,255,0.09)', borderWidth: 1,
+    backgroundColor: '#FFFFFF',
+    borderColor: 'rgba(0,0,0,0.10)', borderWidth: 1,
+    ...(Platform.OS === 'web' ? { boxShadow: '0 1px 4px rgba(0,0,0,0.06)' } as any : { elevation: 1 }),
     ...({ cursor: 'pointer' } as any),
   },
-  visRowSel: { backgroundColor: 'rgba(167,139,250,0.10)', borderColor: 'rgba(167,139,250,0.45)' },
-  visIcon: { width: 36, height: 36, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.10)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  visTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13 },
-  visDesc: { color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_400Regular', fontSize: 11.5, marginTop: 2 },
-  selDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#A78BFA' },
+  visRowSel: { backgroundColor: 'rgba(37,99,235,0.07)', borderColor: '#2563EB', borderWidth: 1.5 },
+  visIcon: { width: 36, height: 36, borderRadius: 9, backgroundColor: 'rgba(37,99,235,0.06)', borderColor: 'rgba(37,99,235,0.20)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  visTitle: { color: '#111827', fontFamily: 'DMSans_700Bold', fontSize: 13.5 },
+  visDesc: { color: '#475569', fontFamily: 'DMSans_500Medium', fontSize: 12, marginTop: 2 },
+  selDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#2563EB' },
 
-  uploadBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 32, borderRadius: 8, backgroundColor: '#A78BFA', ...({ cursor: 'pointer' } as any) },
+  uploadBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 32, borderRadius: 8, backgroundColor: '#2563EB', ...({ cursor: 'pointer' } as any) },
   uploadBtnText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12 },
 
   empty: { alignItems: 'center', paddingVertical: 24, gap: 10 },
-  emptyText: { color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_400Regular', fontSize: 12, textAlign: 'center', paddingHorizontal: 30 },
+  emptyText: { color: '#64748B', fontFamily: 'DMSans_500Medium', fontSize: 12, textAlign: 'center', paddingHorizontal: 30 },
 
-  docRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 11, backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.09)', borderWidth: 1 },
-  docIcon: { width: 34, height: 34, borderRadius: 8, backgroundColor: 'rgba(34,211,238,0.10)', alignItems: 'center', justifyContent: 'center' },
-  docName: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12.5 },
-  docMeta: { color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_500Medium', fontSize: 11, marginTop: 2 },
-  activePill: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: 'rgba(16,185,129,0.18)', borderColor: 'rgba(16,185,129,0.40)', borderWidth: 1 },
-  activePillText: { color: '#34D399', fontFamily: 'DMSans_700Bold', fontSize: 9, letterSpacing: 0.5 },
-  iconBtn: { width: 28, height: 28, borderRadius: 7, backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.09)', borderWidth: 1, alignItems: 'center', justifyContent: 'center', ...({ cursor: 'pointer' } as any) },
+  docRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 11, backgroundColor: '#FFFFFF', borderColor: 'rgba(0,0,0,0.10)', borderWidth: 1, ...(Platform.OS === 'web' ? { boxShadow: '0 1px 4px rgba(0,0,0,0.06)' } as any : { elevation: 1 }) },
+  docIcon: { width: 34, height: 34, borderRadius: 8, backgroundColor: 'rgba(34,211,238,0.12)', alignItems: 'center', justifyContent: 'center' },
+  docName: { color: '#111827', fontFamily: 'DMSans_700Bold', fontSize: 12.5 },
+  docMeta: { color: '#475569', fontFamily: 'DMSans_500Medium', fontSize: 11, marginTop: 2 },
+  activePill: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: 'rgba(16,185,129,0.12)', borderColor: 'rgba(16,185,129,0.40)', borderWidth: 1 },
+  activePillText: { color: '#10B981', fontFamily: 'DMSans_700Bold', fontSize: 9, letterSpacing: 0.5 },
+  iconBtn: { width: 28, height: 28, borderRadius: 7, backgroundColor: '#FFFFFF', borderColor: 'rgba(0,0,0,0.12)', borderWidth: 1, alignItems: 'center', justifyContent: 'center', ...({ cursor: 'pointer' } as any) },
 
   badgeChip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: 'rgba(245,158,11,0.10)', borderColor: 'rgba(245,158,11,0.30)', borderWidth: 1 },
-  badgeChipText: { color: '#FCD34D', fontFamily: 'DMSans_700Bold', fontSize: 11 },
+  badgeChipText: { color: '#D97706', fontFamily: 'DMSans_700Bold', fontSize: 11 },
 });

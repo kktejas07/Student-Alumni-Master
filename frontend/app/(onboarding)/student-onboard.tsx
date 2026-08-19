@@ -373,7 +373,7 @@ export default function StudentOnboard() {
                 const active = edu === e.id;
                 return (
                   <Pressable key={e.id} style={[s.card, active && s.cardActive]} onPress={() => setEdu(e.id)}>
-                    <Icon size={22} color={active ? '#7C3AED' : '#9CA3AF'} />
+                    <Icon size={22} color={active ? '#2563EB' : '#9CA3AF'} />
                     <Text style={[s.cardLabel, active && s.cardLabelActive]}>{e.label}</Text>
                     {active && <CheckCircle2 size={14} color="#B07FDF" style={{ marginLeft: 'auto' } as any} />}
                   </Pressable>
@@ -458,13 +458,13 @@ export default function StudentOnboard() {
                   >
                     <View style={s.pathTileTop}>
                       <View style={{ marginTop: 2, marginRight: 2 }}>
-                        <p.icon size={24} color={active ? '#7C3AED' : '#9CA3AF'} />
+                        <p.icon size={24} color={active ? '#2563EB' : '#9CA3AF'} />
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={[s.pathTitle, active && s.pathTitleActive]}>{p.title}</Text>
                         <Text style={s.pathDesc}>{p.desc}</Text>
                       </View>
-                      {active && <CheckCircle2 size={16} color="#7C3AED" />}
+                      {active && <CheckCircle2 size={16} color="#2563EB" />}
                     </View>
                     {/* "You'll receive" preview */}
                     <Text style={[s.section, { marginTop: 4, marginBottom: 2 }]}>You'll receive</Text>
@@ -612,9 +612,9 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 10,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  cardActive: { borderColor: '#7C3AED', backgroundColor: '#F3E8FF' },
+  cardActive: { borderColor: '#2563EB', backgroundColor: '#F3E8FF' },
   cardLabel: { flex: 1, color: '#4B5563', fontFamily: FONTS.med, fontSize: 13 },
-  cardLabelActive: { color: '#7C3AED' },
+  cardLabelActive: { color: '#2563EB' },
 
   // Career path tiles
   pathTile: {
@@ -624,11 +624,11 @@ const s = StyleSheet.create({
     padding: 14, gap: 10,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transition: 'all 160ms' } as any) : {}),
   },
-  pathTileActive: { borderColor: '#7C3AED', backgroundColor: '#F3E8FF' },
+  pathTileActive: { borderColor: '#2563EB', backgroundColor: '#F3E8FF' },
   pathTileTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   pathEmoji: { fontSize: 26, marginTop: 2 },
   pathTitle: { color: '#374151', fontFamily: FONTS.bold, fontSize: 15 },
-  pathTitleActive: { color: '#7C3AED' },
+  pathTitleActive: { color: '#2563EB' },
   pathDesc: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 12, marginTop: 2, lineHeight: 16 },
   pathUnlocks: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   pathUnlockChip: {
@@ -638,12 +638,12 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: '#E5E7EB',
   },
   pathUnlockChipActive: {
-    color: '#6D28D9',
+    color: '#1D4ED8',
     backgroundColor: '#EDE9FE',
-    borderColor: '#C4B5FD',
+    borderColor: '#93C5FD',
   },
   feedbackText: {
-    color: '#7C3AED', fontFamily: FONTS.med, fontSize: 12,
+    color: '#2563EB', fontFamily: FONTS.med, fontSize: 12,
     textAlign: 'center', marginTop: 4,
   },
 
@@ -656,16 +656,16 @@ const s = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  optRowActive: { borderColor: '#7C3AED', backgroundColor: '#F3E8FF' },
+  optRowActive: { borderColor: '#2563EB', backgroundColor: '#F3E8FF' },
   radio: {
     width: 18, height: 18, borderRadius: 9,
     borderWidth: 1.5, borderColor: '#9CA3AF',
     alignItems: 'center', justifyContent: 'center',
   },
-  radioActive: { borderColor: '#7C3AED' },
-  radioDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#7C3AED' },
+  radioActive: { borderColor: '#2563EB' },
+  radioDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#2563EB' },
   optLabel: { color: '#4B5563', fontFamily: FONTS.med, fontSize: 14 },
-  optLabelActive: { color: '#7C3AED' },
+  optLabelActive: { color: '#2563EB' },
   helper: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 18, marginBottom: 8 },
 
   // Photo
@@ -681,7 +681,7 @@ const s = StyleSheet.create({
   smallBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999,
-    backgroundColor: '#7C3AED', borderWidth: 1, borderColor: '#7C3AED',
+    backgroundColor: '#2563EB', borderWidth: 1, borderColor: '#2563EB',
   },
   smallBtnText: { color: '#4C1D95', fontFamily: FONTS.bold, fontSize: 12 },
   confirmBtn: {
@@ -702,7 +702,7 @@ const s = StyleSheet.create({
     color: '#111827', fontFamily: FONTS.med, fontSize: 13.5, minHeight: 90,
     ...(Platform.OS === 'web' ? ({ outlineWidth: 0 } as any) : {}),
   },
-  generatingText: { color: '#7C3AED', fontFamily: FONTS.med, fontSize: 12, textAlign: 'center', marginTop: 4 },
+  generatingText: { color: '#2563EB', fontFamily: FONTS.med, fontSize: 12, textAlign: 'center', marginTop: 4 },
 
   // Badge + Review
   badgeCircle: {
@@ -710,7 +710,7 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     backgroundColor: '#F3E8FF', marginTop: 4,
   },
-  badgeTier: { color: '#7C3AED', fontFamily: FONTS.bold, fontSize: 11, marginTop: 4, letterSpacing: 1 },
+  badgeTier: { color: '#2563EB', fontFamily: FONTS.bold, fontSize: 11, marginTop: 4, letterSpacing: 1 },
   verifiedPill: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, paddingVertical: 5, borderRadius: 999,
@@ -738,10 +738,10 @@ const s = StyleSheet.create({
   },
   validationPill: {
     marginTop: 12, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10,
-    backgroundColor: '#F3E8FF', borderWidth: 1, borderColor: '#C4B5FD',
+    backgroundColor: '#F3E8FF', borderWidth: 1, borderColor: '#93C5FD',
   },
   validationText: {
-    color: '#6D28D9', fontFamily: FONTS.med, fontSize: 12.5,
+    color: '#1D4ED8', fontFamily: FONTS.med, fontSize: 12.5,
   },
   previewCard: {
     width: '100%', padding: 16, borderRadius: 16,
@@ -749,7 +749,7 @@ const s = StyleSheet.create({
     alignSelf: 'stretch', gap: 12,
   },
   previewTitle: {
-    color: '#7C3AED', fontFamily: FONTS.bold, fontSize: 10.5, letterSpacing: 1,
+    color: '#2563EB', fontFamily: FONTS.bold, fontSize: 10.5, letterSpacing: 1,
   },
   previewRow: { gap: 2 },
   previewLabel: {

@@ -63,12 +63,7 @@ export function CollegePortalRN() {
 
   return (
     <View style={s.shell}>
-      <LinearGradient
-        pointerEvents="none"
-        colors={['#030614', '#040816']}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFillObject as any}
-      />
+
 
       <Sidebar active={active} onNav={setActive} onLogout={onLogout} />
       <View style={{ flex: 1, minWidth: 0, flexDirection: 'row' }}>

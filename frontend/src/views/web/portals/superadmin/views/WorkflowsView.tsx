@@ -241,7 +241,7 @@ const [newWorkflow, setNewWorkflow] = useState({ name: '', trigger: '', event_tr
             <View style={[s.modalHero, { borderBottomWidth: 1, borderBottomColor: SAC.border, paddingVertical: 14, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', gap: 12 }]}>
               <View style={[s.dot, { width: 10, height: 40, borderRadius: 3, backgroundColor: viewWf?.color }]} />
               <View style={{ flex: 1 }}>
-                <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 }}>{viewWf?.name}</Text>
+                <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 16 }}>{viewWf?.name}</Text>
                 <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 }}>
                   Trigger: {viewWf?.trigger || '—'}
                 </Text>
@@ -349,7 +349,7 @@ const [newWorkflow, setNewWorkflow] = useState({ name: '', trigger: '', event_tr
           <Animated.View entering={FadeInDown.duration(200)} style={[s.modalCard, { maxWidth: 520 }]}>
             <View style={[s.modalHero, { borderBottomWidth: 1, borderBottomColor: SAC.border, paddingVertical: 14, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', gap: 12 }]}>
               <IconBox size={32}><Pencil size={15} color={GRAD.to} /></IconBox>
-              <View style={{ flex: 1 }}><Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 }}>Edit workflow</Text><Text style={s.muted}>Update name, trigger, steps, and color.</Text></View>
+              <View style={{ flex: 1 }}><Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 15 }}>Edit workflow</Text><Text style={s.muted}>Update name, trigger, steps, and color.</Text></View>
               <Pressable onPress={() => setEditWf(null)}><X size={16} color={SAC.muted} /></Pressable>
             </View>
             <ScrollView style={{ maxHeight: 480, padding: 18, gap: 14 }}>
@@ -426,7 +426,7 @@ const [newWorkflow, setNewWorkflow] = useState({ name: '', trigger: '', event_tr
               {/* Color */}
               <View style={{ gap: 6 }}>
                 <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-                  {['#22C55E', '#EF4444', '#F97316', '#A78BFA', '#3B82F6', '#EC4899', '#14B8A6', '#F59E0B'].map((c) => (
+                  {['#22C55E', '#EF4444', '#F97316', '#60A5FA', '#3B82F6', '#EC4899', '#14B8A6', '#F59E0B'].map((c) => (
                     <Pressable key={c} onPress={() => setEditWf((p) => p ? { ...p, color: c } : null)} style={[s.colorSwatch, { backgroundColor: c }, editWf?.color === c && s.colorSwatchActive]} />
                   ))}
                 </View>
@@ -448,7 +448,7 @@ const [newWorkflow, setNewWorkflow] = useState({ name: '', trigger: '', event_tr
               <View style={[s.iconCircle, { backgroundColor: 'rgba(239,68,68,0.12)', borderColor: 'rgba(239,68,68,0.3)', borderWidth: 1 }]}>
                 <Trash2 size={22} color={SAC.red} />
               </View>
-              <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 16, textAlign: 'center' }}>Delete "{deleteWf?.name}"?</Text>
+              <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 16, textAlign: 'center' }}>Delete "{deleteWf?.name}"?</Text>
               <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, textAlign: 'center', lineHeight: 18 }}>
                 This will permanently delete this workflow and its run history. This cannot be undone.
               </Text>
@@ -474,30 +474,30 @@ const [newWorkflow, setNewWorkflow] = useState({ name: '', trigger: '', event_tr
 const s = StyleSheet.create({
   banner: { flexDirection: 'row', gap: 12, padding: 14, marginBottom: 14, borderRadius: 14, backgroundColor: 'rgba(249,115,22,0.06)', borderColor: SAC.border2, borderWidth: 1, alignItems: 'center' },
   bIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(249,115,22,0.15)', borderColor: 'rgba(249,115,22,0.30)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  bTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
+  bTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 13 },
   bSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 4, lineHeight: 17 },
   cta: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 36, borderRadius: 10, backgroundColor: SAC.primary, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  ctaText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
+  ctaText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12 },
   muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
-  btnText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
+  btnText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12 },
   secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
   modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', alignItems: 'center', justifyContent: 'center', padding: 20, ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(8px)' } as any) : {}) },
   modalCard: { width: '100%', maxWidth: 560, maxHeight: '92%', backgroundColor: SAC.bg2, borderRadius: 16, borderWidth: 1, borderColor: SAC.border2, overflow: 'hidden', ...(Platform.OS === 'web' ? ({ boxShadow: '0 24px 60px rgba(0,0,0,0.7)' } as any) : {}) },
   modalHero: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, backgroundColor: SAC.card },
-  modalTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
-  input: { flex: 1, color: '#fff', fontFamily: FONTS.med, fontSize: 13, backgroundColor: SAC.cardSolid, borderRadius: 9, borderWidth: 1, borderColor: SAC.border, paddingHorizontal: 12, paddingVertical: 10, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
+  modalTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 15 },
+  input: { flex: 1, color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 13, backgroundColor: SAC.cardSolid, borderRadius: 9, borderWidth: 1, borderColor: SAC.border, paddingHorizontal: 12, paddingVertical: 10, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
   label: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
   hint: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11 },
   sectionLabel: { color: SAC.dim, fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 1.4, marginBottom: 8 },
 
   card: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 12 },
   dot: { width: 4, alignSelf: 'stretch', borderRadius: 2 },
-  name: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13.5 },
+  name: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 13.5 },
   trigger: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
   dotSep: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11.5 },
   step: { color: SAC.dim, fontFamily: FONTS.bold, fontSize: 10.5, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 5, backgroundColor: 'rgba(255,255,255,0.04)' },
   noSteps: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11, fontStyle: 'italic' },
-  statRuns: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
+  statRuns: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 13 },
   statSuccess: { fontFamily: FONTS.bold, fontSize: 11 },
   lastRun: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 10 },
   iconBtn: { width: 28, height: 28, borderRadius: 7, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: SAC.border, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
@@ -518,13 +518,13 @@ const s = StyleSheet.create({
   stepNum: { width: 22, height: 22, borderRadius: 6, backgroundColor: SAC.cardSolid, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: SAC.border },
   stepName: { flex: 1, color: SAC.text, fontFamily: FONTS.med, fontSize: 13 },
   statCard: { backgroundColor: SAC.cardSolid, borderRadius: 10, borderWidth: 1, borderColor: SAC.border, padding: 12, alignItems: 'center' },
-  statVal: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 22 },
+  statVal: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 22 },
   statLbl: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 10.5, marginTop: 4 },
   logCard: { backgroundColor: SAC.cardSolid, borderRadius: 8, borderWidth: 1, borderColor: SAC.border, padding: 10 },
   logDate: { fontFamily: FONTS.bold, fontSize: 11.5 },
   logStep: { fontFamily: FONTS.med, fontSize: 11 },
   runBtnLarge: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 9, backgroundColor: SAC.primary, borderWidth: 1, borderColor: SAC.primary + '55', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  runTextLarge: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
+  runTextLarge: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12 },
 
   stepEditRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   stepNumSmall: { width: 20, height: 20, borderRadius: 6, backgroundColor: SAC.cardSolid, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: SAC.border, color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11, textAlign: 'center', overflow: 'hidden' },
@@ -538,5 +538,5 @@ const s = StyleSheet.create({
   cancelBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 9, borderWidth: 1, borderColor: SAC.border, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   cancelText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
   deleteBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 9, backgroundColor: SAC.red, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  deleteBtnText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
+  deleteBtnText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12 },
 });

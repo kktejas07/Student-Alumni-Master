@@ -54,20 +54,20 @@ const AI_PROVIDERS: ProviderMeta[] = [
 const EMAIL_PROVIDERS: ProviderMeta[] = [
   { id: 'gmail',   label: 'Gmail',   sub: 'Receive session reminders & alerts',          Icon: Mail, iconBg: 'rgba(239,68,68,0.18)',  iconColor: '#F87171' },
   { id: 'outlook', label: 'Outlook', sub: 'Microsoft · Office 365 / Hotmail',            Icon: Mail, iconBg: 'rgba(59,130,246,0.20)', iconColor: '#60A5FA' },
-  { id: 'icloud',  label: 'iCloud Mail', sub: 'Apple iCloud / @icloud.com / @me.com',    Icon: Mail, iconBg: 'rgba(255,255,255,0.10)', iconColor: '#E5E5E5' },
+  { id: 'icloud',  label: 'iCloud Mail', sub: 'Apple iCloud / @icloud.com / @me.com',    Icon: Mail, iconBg: 'rgba(0,0,0,0.06)', iconColor: '#475569' },
 ];
 
 const VIDEO_PROVIDERS: ProviderMeta[] = [
   { id: 'google_meet', label: 'Google Meet',     sub: 'Auto-generate Meet links for bookings',  Icon: Video, iconBg: 'rgba(20,184,166,0.18)', iconColor: '#5EEAD4' },
   { id: 'zoom',        label: 'Zoom',            sub: 'Host sessions on Zoom with auto links', Icon: Video, iconBg: 'rgba(59,130,246,0.20)', iconColor: '#60A5FA' },
-  { id: 'ms_teams',    label: 'Microsoft Teams', sub: 'Schedule and host via Microsoft Teams', Icon: Video, iconBg: 'rgba(124,58,237,0.18)', iconColor: '#C4B5FD' },
+  { id: 'ms_teams',    label: 'Microsoft Teams', sub: 'Schedule and host via Microsoft Teams', Icon: Video, iconBg: 'rgba(37,99,235,0.18)', iconColor: '#93C5FD' },
 ];
 
 const CAL_PROVIDERS: ProviderMeta[] = [
   { id: 'google_calendar',  label: 'Google Calendar',  sub: 'Auto-add bookings to your calendar', Icon: Calendar, iconBg: 'rgba(34,197,94,0.18)',  iconColor: '#22C55E' },
   { id: 'outlook_calendar', label: 'Outlook Calendar', sub: 'Microsoft 365 calendar sync',        Icon: Calendar, iconBg: 'rgba(59,130,246,0.20)', iconColor: '#60A5FA' },
-  { id: 'notion',           label: 'Notion',           sub: 'Auto-create session notes in Notion',Icon: BookOpen, iconBg: 'rgba(255,255,255,0.10)', iconColor: '#E5E5E5' },
-  { id: 'slack',            label: 'Slack',            sub: 'Get session reminders on Slack',     Icon: Bell,     iconBg: 'rgba(167,139,250,0.20)', iconColor: '#C4B5FD' },
+  { id: 'notion',           label: 'Notion',           sub: 'Auto-create session notes in Notion',Icon: BookOpen, iconBg: 'rgba(0,0,0,0.06)', iconColor: '#475569' },
+  { id: 'slack',            label: 'Slack',            sub: 'Get session reminders on Slack',     Icon: Bell,     iconBg: 'rgba(37,99,235,0.20)', iconColor: '#93C5FD' },
 ];
 
 interface Connected {
@@ -163,7 +163,7 @@ export function IntegrationsView() {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Text style={st.label}>{p.label}</Text>
             {c && <Pill color="#10B981" text="Connected" Icon={CheckCircle2} />}
-            {isDefault && <Pill color="#A78BFA" text="Default"   Icon={Star} />}
+            {isDefault && <Pill color="#60A5FA" text="Default"   Icon={Star} />}
           </View>
           <Text style={st.sub} numberOfLines={1}>
             {c ? (c.email || c.account_label || 'Linked') : p.sub}
@@ -178,7 +178,7 @@ export function IntegrationsView() {
                 style={st.btnGhost}
                 testID={`integ-set-default-${p.id}`}
               >
-                <Star size={12} color="#C4B5FD" />
+                <Star size={12} color="#93C5FD" />
                 <Text style={st.btnGhostText}>Make default</Text>
               </Pressable>
             )}
@@ -259,7 +259,7 @@ export function IntegrationsView() {
                 style={[st.platformChip, active && st.platformChipActive, !isOn && { opacity: 0.45 }]}
                 testID={`integ-default-${p.id}`}
               >
-                <Video size={13} color={active ? '#0F2922' : '#fff'} />
+                <Video size={13} color={active ? '#0F2922' : '#475569'} />
                 <Text style={[st.platformChipText, active && { color: '#0F2922' }]}>{p.label}</Text>
                 {active && <CheckCircle2 size={12} color="#0F2922" />}
               </Pressable>
@@ -299,12 +299,11 @@ function Pill({ color, text, Icon }: { color: string; text: string; Icon: any })
 }
 
 const C = {
-  bg: '#0F0B1A',
-  card: 'rgba(255,255,255,0.04)',
-  border: 'rgba(255,255,255,0.08)',
-  border2: 'rgba(255,255,255,0.18)',
-  text: '#fff',
-  text2: 'rgba(255,255,255,0.65)',
+  text2: '#475569',
+  card: '#FFFFFF',
+  border: 'rgba(0,0,0,0.10)',
+  border2: 'rgba(0,0,0,0.20)',
+  text: '#000',
   teal: '#5EEAD4',
 };
 
@@ -315,32 +314,34 @@ const st = StyleSheet.create({
     backgroundColor: 'rgba(20,184,166,0.06)',
     borderColor: 'rgba(20,184,166,0.30)', borderWidth: 1,
   },
-  bannerTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 15 },
-  bannerSub:   { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12, marginTop: 3, lineHeight: 17 },
+  bannerTitle: { color: '#111827', fontFamily: 'DMSans_700Bold', fontSize: 15 },
+  bannerSub:   { color: '#334155', fontFamily: 'DMSans_500Medium', fontSize: 12, marginTop: 3, lineHeight: 17 },
 
   card: {
     backgroundColor: C.card, borderColor: C.border, borderWidth: 1,
     borderRadius: 14, padding: 16,
+    ...(Platform.OS === 'web' ? { boxShadow: '0 2px 8px rgba(0,0,0,0.06)' } as any : { elevation: 2 }),
   },
-  sectionTitle: { color: C.text2, fontFamily: 'DMSans_800ExtraBold', fontSize: 11, letterSpacing: 1.0 },
-  sectionSub:   { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11.5, marginTop: 2 },
+  sectionTitle: { color: '#111827', fontFamily: 'DMSans_800ExtraBold', fontSize: 11, letterSpacing: 1.0 },
+  sectionSub:   { color: '#475569', fontFamily: 'DMSans_500Medium', fontSize: 11.5, marginTop: 2 },
 
   row: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     paddingVertical: 12, paddingHorizontal: 12, borderRadius: 10,
-    backgroundColor: 'rgba(0,0,0,0.18)',
-    borderColor: C.border, borderWidth: 1,
+    backgroundColor: '#FFFFFF',
+    borderColor: 'rgba(0,0,0,0.09)', borderWidth: 1,
+    ...(Platform.OS === 'web' ? { boxShadow: '0 1px 3px rgba(0,0,0,0.05)' } as any : { elevation: 1 }),
   },
   iconBox: { width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  label: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13.5 },
-  sub:   { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11.5, marginTop: 2 },
+  label: { color: '#111827', fontFamily: 'DMSans_700Bold', fontSize: 13.5 },
+  sub:   { color: '#475569', fontFamily: 'DMSans_500Medium', fontSize: 11.5, marginTop: 2 },
 
   input: {
     width: 200,
     height: 34, borderRadius: 8, paddingHorizontal: 10,
-    color: '#fff', fontFamily: 'DMSans_500Medium', fontSize: 12.5,
-    backgroundColor: 'rgba(0,0,0,0.30)',
-    borderColor: C.border, borderWidth: 1,
+    color: '#111827', fontFamily: 'DMSans_500Medium', fontSize: 12.5,
+    backgroundColor: '#F8FAFC',
+    borderColor: 'rgba(0,0,0,0.15)', borderWidth: 1,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
   },
 
@@ -355,20 +356,20 @@ const st = StyleSheet.create({
   btnGhost: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 10, height: 30, borderRadius: 8,
-    backgroundColor: 'rgba(167,139,250,0.10)',
-    borderColor: 'rgba(167,139,250,0.32)', borderWidth: 1,
+    backgroundColor: 'rgba(37,99,235,0.08)',
+    borderColor: 'rgba(37,99,235,0.28)', borderWidth: 1,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  btnGhostText: { color: '#C4B5FD', fontFamily: 'DMSans_700Bold', fontSize: 11 },
+  btnGhostText: { color: '#2563EB', fontFamily: 'DMSans_700Bold', fontSize: 11 },
 
   btnDanger: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 10, height: 30, borderRadius: 8,
-    backgroundColor: 'rgba(239,68,68,0.08)',
-    borderColor: 'rgba(239,68,68,0.40)', borderWidth: 1,
+    backgroundColor: 'rgba(239,68,68,0.06)',
+    borderColor: 'rgba(239,68,68,0.35)', borderWidth: 1,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  btnDangerText: { color: '#FCA5A5', fontFamily: 'DMSans_700Bold', fontSize: 11 },
+  btnDangerText: { color: '#EF4444', fontFamily: 'DMSans_700Bold', fontSize: 11 },
 
   pill: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
@@ -380,15 +381,15 @@ const st = StyleSheet.create({
   platformChip: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: C.border2, borderWidth: 1,
+    backgroundColor: '#FFFFFF',
+    borderColor: 'rgba(0,0,0,0.12)', borderWidth: 1,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   platformChipActive: {
     backgroundColor: C.teal,
     borderColor: C.teal,
   },
-  platformChipText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12 },
+  platformChipText: { color: '#334155', fontFamily: 'DMSans_700Bold', fontSize: 12 },
 });
 
 export default IntegrationsView;

@@ -71,7 +71,7 @@ function QRScanner({ onScan, onClose }: { onScan: (code: string) => void; onClos
         <div ref={containerRef} id="qr-reader" style={{ width: '100%' }} />
       </View>
       <View style={qrStyles.bottomHint}>
-        <Camera size={18} color="#A78BFA" />
+        <Camera size={18} color="#60A5FA" />
         <Text style={qrStyles.bottomText}>Point camera at the attendee's coupon QR code</Text>
       </View>
     </View>
@@ -267,8 +267,8 @@ export default function EchoScanPage() {
             <Text style={s.backText}>Back to ECHO</Text>
           </Pressable>
 
-          <LinearGradient colors={['rgba(124,58,237,0.30)', 'rgba(30,10,80,0.5)']} style={s.header}>
-            <View style={s.headerIcon}><ScanLine size={24} color="#C4B5FD" /></View>
+          <LinearGradient colors={['rgba(37,99,235,0.30)', 'rgba(30,10,80,0.5)']} style={s.header}>
+            <View style={s.headerIcon}><ScanLine size={24} color="#93C5FD" /></View>
             <Text style={s.headerTitle}>Coupon Scanner</Text>
             <Text style={s.headerSub}>Scan QR codes or enter coupon codes manually</Text>
           </LinearGradient>
@@ -276,7 +276,7 @@ export default function EchoScanPage() {
           {/* Mode selector */}
           <View style={s.modeRow}>
             <Pressable onPress={() => setCameraOpen(true)} style={s.modeBtn}>
-              <Camera size={18} color="#A78BFA" />
+              <Camera size={18} color="#60A5FA" />
               <Text style={s.modeBtnText}>Scan with Camera</Text>
             </Pressable>
             <Pressable onPress={() => inputRef.current?.focus()} style={[s.modeBtn, { backgroundColor: 'rgba(255,255,255,0.04)' }]}>
@@ -307,7 +307,7 @@ export default function EchoScanPage() {
           {recent.length > 0 && (
             <View style={s.statsBar}>
               <View style={s.statItem}>
-                <Ticket size={14} color="#A78BFA" />
+                <Ticket size={14} color="#60A5FA" />
                 <Text style={s.statText}>{recent.length} scanned</Text>
               </View>
               <View style={[s.statDot, { backgroundColor: '#10B981' }]} />
@@ -388,20 +388,20 @@ const s = StyleSheet.create({
     marginBottom: 4,
   },
   backText: { color: '#fff', fontFamily: 'DMSans_500Medium', fontSize: 13 },
-  header: { borderRadius: 18, padding: 24, gap: 10, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)' },
-  headerIcon: { width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(124,58,237,0.2)', alignItems: 'center', justifyContent: 'center' },
+  header: { borderRadius: 18, padding: 24, gap: 10, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(37,99,235,0.25)' },
+  headerIcon: { width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(37,99,235,0.2)', alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontFamily: 'DMSans_800ExtraBold', fontSize: 22, color: '#fff' },
   headerSub: { fontFamily: 'DMSans_500Medium', fontSize: 13, color: 'rgba(255,255,255,0.6)', textAlign: 'center' },
   modeRow: { flexDirection: 'row', gap: 10 },
   modeBtn: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    paddingVertical: 14, borderRadius: 12, backgroundColor: 'rgba(124,58,237,0.15)',
-    borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)',
+    paddingVertical: 14, borderRadius: 12, backgroundColor: 'rgba(37,99,235,0.15)',
+    borderWidth: 1, borderColor: 'rgba(37,99,235,0.25)',
   },
-  modeBtnText: { fontFamily: 'DMSans_700Bold', fontSize: 14, color: '#C4B5FD' },
+  modeBtnText: { fontFamily: 'DMSans_700Bold', fontSize: 14, color: '#93C5FD' },
   inputCard: {
     flexDirection: 'row', gap: 10, backgroundColor: 'rgba(255,255,255,0.04)',
-    borderRadius: 14, borderWidth: 1, borderColor: 'rgba(167,139,250,0.2)', padding: 12,
+    borderRadius: 14, borderWidth: 1, borderColor: 'rgba(37,99,235,0.2)', padding: 12,
   },
   input: {
     flex: 1, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 10,
@@ -410,7 +410,7 @@ const s = StyleSheet.create({
     textTransform: 'uppercase',
   },
   scanBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#7C3AED',
+    flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#2563EB',
     borderRadius: 12, paddingHorizontal: 20, paddingVertical: 14,
   },
   scanBtnText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 14 },
@@ -431,7 +431,7 @@ const s = StyleSheet.create({
   resultDetails: { marginTop: 8, gap: 4 },
   resultDetail: { fontFamily: 'DMSans_500Medium', fontSize: 12, color: 'rgba(255,255,255,0.5)', textAlign: 'center' },
   recentCard: { backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 16, gap: 8 },
-  recentTitle: { fontFamily: 'DMSans_700Bold', fontSize: 13, color: '#A78BFA', marginBottom: 4 },
+  recentTitle: { fontFamily: 'DMSans_700Bold', fontSize: 13, color: '#60A5FA', marginBottom: 4 },
   recentRow: {
     flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8,
     borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)', borderLeftWidth: 3, paddingLeft: 10,

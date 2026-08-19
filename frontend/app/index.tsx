@@ -100,7 +100,7 @@ export default function Index() {
         style={StyleSheet.absoluteFill}
       />
       {/* Decorative orbs */}
-      <View pointerEvents="none" style={[styles.orb, { top: '-15%', right: '-25%', backgroundColor: 'rgba(124,58,237,0.45)' }]} />
+      <View pointerEvents="none" style={[styles.orb, { top: '-15%', right: '-25%', backgroundColor: 'rgba(37,99,235,0.45)' }]} />
       <View pointerEvents="none" style={[styles.orb, { bottom: '-15%', left: '-25%', backgroundColor: 'rgba(236,72,153,0.30)' }]} />
 
       <View style={styles.center}>

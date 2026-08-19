@@ -20,7 +20,7 @@ function MobileBrand() {
     <Pressable onPress={() => router.push('/')}>
       <LinearGradient colors={[AC.brandFrom, AC.brandTo] as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={ms.bar}>
         <Svg width={28} height={33} viewBox="0 0 200 240" fill="none">
-          <Path d="M100 4L196 36L196 120Q196 190 100 236Q4 190 4 120L4 36Z" fill="#7C3AED" />
+          <Path d="M100 4L196 36L196 120Q196 190 100 236Q4 190 4 120L4 36Z" fill="#2563EB" />
           <SvgText x="100" y="158" textAnchor="middle" fontFamily="DM Sans" fontWeight="700" fontSize="88" fill="#FFFFFF" letterSpacing="-4">SA</SvgText>
         </Svg>
         <View>

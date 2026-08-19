@@ -19,21 +19,21 @@ export const NX = {
   // Deep backgrounds — FinTax360 Jewel-glass navy palette
   // (Previously near-black #07070A; now matches the Student portal's
   //  body gradient #0a0f1e → #131938 with elevated surfaces.)
-  bg:        '#0a0f1e',
-  surface1:  '#0E1428',
-  surface2:  'rgba(20, 26, 45, 0.55)',   // glass card fill — frosted
-  surface3:  'rgba(30, 38, 60, 0.72)',   // hover / elevated glass
-  surface4:  'rgba(40, 50, 78, 0.85)',   // deepest elevation
+  bg:        '#F8F9FA',
+  surface1:  '#FFFFFF',
+  surface2:  '#FFFFFF',   // solid white card fill
+  surface3:  '#F4F5F7',   // hover / elevated card
+  surface4:  '#E5E7EB',   // deepest elevation
 
-  // Dividers / strokes — neutral white (per Jewel spec)
-  border:    'rgba(255,255,255,0.08)',
-  borderHi:  'rgba(255,255,255,0.14)',
-  borderLo:  'rgba(255,255,255,0.04)',
+  // Dividers / strokes — light gray
+  border:    'rgba(0,0,0,0.06)',
+  borderHi:  'rgba(0,0,0,0.12)',
+  borderLo:  'rgba(0,0,0,0.03)',
 
   // Text scale (primary → secondary → tertiary)
-  textP:     '#F8FAFC',
-  textS:     'rgba(255,255,255,0.70)',
-  textT:     'rgba(255,255,255,0.50)',
+  textP:     '#1C1C1E',
+  textS:     '#71717A',
+  textT:     '#A1A1AA',
 
   // Brand accents (used across portals)
   blue:      '#3B82F6',
@@ -42,16 +42,16 @@ export const NX = {
   cyanSoft:  'rgba(34,211,238,0.15)',
   purple:    '#8B5CF6',
   purpleSoft:'rgba(139,92,246,0.15)',
-  amber:     '#F59E0B',
-  amberSoft: 'rgba(245,158,11,0.15)',
+  amber:     '#FBBF24',
+  amberSoft: 'rgba(251,191,36,0.18)',
 
   // Status colours
-  success:   '#10B981',
-  successBg: 'rgba(16,185,129,0.12)',
+  success:   '#22C55E',
+  successBg: 'rgba(34,197,94,0.15)',
   danger:    '#EF4444',
   dangerBg:  'rgba(239,68,68,0.12)',
-  warning:   '#F59E0B',
-  warningBg: 'rgba(245,158,11,0.12)',
+  warning:   '#FBBF24',
+  warningBg: 'rgba(251,191,36,0.15)',
   info:      '#3B82F6',
   infoBg:    'rgba(59,130,246,0.12)',
 } as const;
@@ -61,14 +61,14 @@ export const NX = {
 // primary CTA / chip / active-rail / hover-border colour shifts per
 // portal so users can tell which portal they're in at a glance.
 export const PORTAL_ACCENTS = {
-  // Student — Indigo
-  student: { primary: '#6366F1', primaryD: '#4F46E5', primaryL: '#818CF8', accent: '#6366F1', accentSoft: 'rgba(99,102,241,0.18)' },
-  // Alumni — Indigo
-  alumni:  { primary: '#6366F1', primaryD: '#4F46E5', primaryL: '#818CF8', accent: '#6366F1', accentSoft: 'rgba(99,102,241,0.18)' },
-  // College — Indigo
-  college: { primary: '#6366F1', primaryD: '#4F46E5', primaryL: '#818CF8', accent: '#6366F1', accentSoft: 'rgba(99,102,241,0.18)' },
-  // Mentor — Indigo
-  mentor:  { primary: '#6366F1', primaryD: '#4F46E5', primaryL: '#818CF8', accent: '#6366F1', accentSoft: 'rgba(99,102,241,0.18)' },
+  // Student — Royal Blue
+  student: { primary: '#2563EB', primaryD: '#1D4ED8', primaryL: '#3B82F6', accent: '#2563EB', accentSoft: 'rgba(37,99,235,0.15)' },
+  // Alumni — Royal Blue
+  alumni:  { primary: '#2563EB', primaryD: '#1D4ED8', primaryL: '#3B82F6', accent: '#2563EB', accentSoft: 'rgba(37,99,235,0.15)' },
+  // College — Royal Blue
+  college: { primary: '#2563EB', primaryD: '#1D4ED8', primaryL: '#3B82F6', accent: '#2563EB', accentSoft: 'rgba(37,99,235,0.15)' },
+  // Mentor — Royal Blue
+  mentor:  { primary: '#2563EB', primaryD: '#1D4ED8', primaryL: '#3B82F6', accent: '#2563EB', accentSoft: 'rgba(37,99,235,0.15)' },
   // Super Admin — Amber (NexusOS / Apple HIG warmth)
   admin:   { primary: '#F59E0B', primaryD: '#D97706', primaryL: '#FBBF24', accent: '#F59E0B', accentSoft: 'rgba(245,158,11,0.18)' },
 } as const;
@@ -101,9 +101,9 @@ export const NX_RADIUS = { xs: 6, sm: 8, md: 10, lg: 14, xl: 18, xxl: 22, pill: 
 // ── Shadow / glass recipes ──────────────────────────────────
 export const NX_SHADOW = {
   card: Platform.select({
-    ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 24 } as const,
-    android: { elevation: 6 } as const,
-    default: { boxShadow: '0 8px 24px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.04)' } as any,
+    ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.05, shadowRadius: 30 } as const,
+    android: { elevation: 2 } as const,
+    default: { boxShadow: '0 10px 30px rgba(0,0,0,0.05)' } as any,
   }),
   glow: (color: string) => Platform.select({
     ios: { shadowColor: color, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.45, shadowRadius: 18 } as const,

@@ -63,12 +63,7 @@ export function SuperAdminPortalRN() {
   return (
     <View style={s.shell}>
       {/* FinTax360 Jewel-glass canvas */}
-      <LinearGradient
-        pointerEvents="none"
-        colors={['#0a0f1e', '#131938']}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFillObject as any}
-      />
+
       <AnimatedAurora intensity="normal" />
       <GridOverlay />
 

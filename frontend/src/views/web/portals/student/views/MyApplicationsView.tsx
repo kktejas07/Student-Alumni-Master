@@ -60,11 +60,11 @@ export function MyApplicationsView() {
 }
 
 const s = StyleSheet.create({
-  h1: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4 },
+  h1: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4 },
   sub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 12, padding: 14 },
-  iconBox: { width: 38, height: 38, borderRadius: 10, backgroundColor: 'rgba(167,139,250,0.10)', borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  title: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13.5 },
+  iconBox: { width: 38, height: 38, borderRadius: 10, backgroundColor: 'rgba(37,99,235,0.10)', borderColor: 'rgba(37,99,235,0.30)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  title: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 13.5 },
   meta: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 3 },
   statusPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 6, borderWidth: 1 },
   statusPending: { backgroundColor: 'rgba(251,191,36,0.10)', borderColor: 'rgba(251,191,36,0.30)' },

@@ -56,7 +56,7 @@ const FEATURES: Feature[] = [
   { id: 'alumni_network',     label: 'Alumni network access',      Icon: UsersRound,    tint: '#FB923C' },
   { id: 'mentor_connections', label: 'Mentor connections',         Icon: Users,         tint: '#F59E0B' },
   { id: 'industry_tieups',    label: 'Industry tie-ups',           Icon: Building2,     tint: '#34D399' },
-  { id: 'event_management',   label: 'Event management',           Icon: CalendarDays,  tint: '#A78BFA' },
+  { id: 'event_management',   label: 'Event management',           Icon: CalendarDays,  tint: '#60A5FA' },
   { id: 'job_portal',         label: 'Job portal integration',     Icon: BookOpen,      tint: '#F472B6' },
 ];
 
@@ -640,5 +640,5 @@ const s = StyleSheet.create({
 
   navRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 16 },
   backBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E5E7EB', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  generatingText: { color: '#A78BFA', fontFamily: FONTS.med, fontSize: 12, textAlign: 'center', marginTop: 6 },
+  generatingText: { color: '#60A5FA', fontFamily: FONTS.med, fontSize: 12, textAlign: 'center', marginTop: 6 },
 });

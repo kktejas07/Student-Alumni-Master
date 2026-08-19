@@ -83,11 +83,11 @@ export function AgentKLauncher({ collapsed = false }: { collapsed?: boolean }) {
       accessibilityLabel="Agent K · Run automations"
       style={({ hovered }: any) => ([
         styles.outer,
-        hovered && Platform.OS === 'web' ? { borderColor: 'rgba(124,58,237,0.55)', transform: [{ translateY: -1 }] } as any : null,
+        hovered && Platform.OS === 'web' ? { borderColor: 'rgba(255,255,255,0.4)', transform: [{ translateY: -1 }] } as any : null,
       ])}
     >
       <LinearGradient
-        colors={['rgba(124,58,237,0.16)', 'rgba(34,211,238,0.10)'] as any}
+        colors={['rgba(255,255,255,0.15)', 'rgba(255,255,255,0.05)'] as any}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={styles.gradient}
       >
@@ -133,13 +133,15 @@ const styles = StyleSheet.create({
     margin: 12,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(124,58,237,0.35)',
+    borderColor: 'rgba(255,255,255,0.15)',
+    borderTopColor: 'rgba(255,255,255,0.35)',
     overflow: 'hidden',
     ...(Platform.OS === 'web' ? ({
       cursor: 'pointer',
+      backdropFilter: 'blur(12px)',
       transitionProperty: 'border-color, transform, box-shadow',
       transitionDuration: '200ms',
-      boxShadow: '0 0 24px -8px rgba(124,58,237,0.4)',
+      boxShadow: '0 8px 32px 0 rgba(0,0,0,0.15)',
     } as any) : {}),
   },
   gradient: { padding: 14, gap: 6 },
@@ -150,7 +152,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   kicker: {
-    color: '#C4B5FD', fontFamily: FONT, fontSize: 11,
+    color: '#93C5FD', fontFamily: FONT, fontSize: 11,
     fontWeight: '700', letterSpacing: 1.4,
   },
   betaPill: {
@@ -177,7 +179,7 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: '100%', width: '40%',
-    ...(Platform.OS === 'web' ? ({ background: 'linear-gradient(90deg, #7C3AED, #22D3EE)' } as any)
+    ...(Platform.OS === 'web' ? ({ background: 'linear-gradient(90deg, #2563EB, #22D3EE)' } as any)
       : { backgroundColor: NX.purple }),
   },
 
@@ -193,7 +195,7 @@ const styles = StyleSheet.create({
     width: 48, height: 48, borderRadius: 24,
     alignItems: 'center', justifyContent: 'center',
     ...(Platform.OS === 'web' ? ({
-      boxShadow: '0 0 16px -4px rgba(124,58,237,0.6)',
+      boxShadow: '0 0 16px -4px rgba(37,99,235,0.6)',
     } as any) : {}),
   },
 });
