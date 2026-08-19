@@ -1677,6 +1677,22 @@ export function BGVAccountVerticalsView() {
                       <Text style={st.checkText}>Identity & Authenticity: <Text style={{ color: '#34D399' }}>PASSED</Text></Text>
                     </View>
                     <View style={st.checkItem}>
+                      <ShieldCheck size={15} color="#34D399" />
+                      <Text style={st.checkText}>
+                        Aadhaar (UIDAI): <Text style={{ color: bgvCardModal.candidate_info?.aadhaar_verified ? '#34D399' : '#FBBF24' }}>
+                          {bgvCardModal.candidate_info?.aadhaar_masked || '•••• •••• ••••'} ({bgvCardModal.candidate_info?.aadhaar_verified ? 'VERIFIED' : 'SECURED'})
+                        </Text>
+                      </Text>
+                    </View>
+                    <View style={st.checkItem}>
+                      <Globe size={15} color="#A78BFA" />
+                      <Text style={st.checkText}>
+                        DigiLocker / NAD: <Text style={{ color: bgvCardModal.candidate_info?.digilocker_verified ? '#C4B5FD' : '#94A3B8' }}>
+                          {bgvCardModal.candidate_info?.digilocker_verified ? `LINKED (${bgvCardModal.candidate_info?.digilocker_doc_count || 3} DOCS)` : 'NOT LINKED'}
+                        </Text>
+                      </Text>
+                    </View>
+                    <View style={st.checkItem}>
                       <CheckCircle2 size={15} color="#34D399" />
                       <Text style={st.checkText}>Academic Institution: <Text style={{ color: '#E2E8F0' }}>{bgvCardModal.candidate_info?.college}</Text></Text>
                     </View>

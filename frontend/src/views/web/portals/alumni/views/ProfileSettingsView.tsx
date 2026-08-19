@@ -187,6 +187,7 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
       'photo_data','face_image_base64','institution','branch','graduation_year','cgpa','stream','department','class_or_year','year_of_study',
       'interests','skills','projects','linkedin_url','github_url','portfolio_url','profile_visibility',
       'section_toggles','primary_skill','preferences',
+      'aadhaar_number','aadhaar_masked','aadhaar_verified','digilocker_id','digilocker_verified','digilocker_doc_count','digilocker_uri','digilocker_linked_at'
     ];
     return watched.some((k) => JSON.stringify((draft as any)[k] ?? null) !== JSON.stringify((user as any)[k] ?? null));
   }, [draft, user]);
@@ -217,6 +218,7 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
         'photo_data','face_image_base64','institution','branch','graduation_year','cgpa','stream','department','class_or_year','year_of_study','year','board_or_university',
         'interests','skills','projects','linkedin_url','github_url','portfolio_url','profile_visibility',
         'section_toggles','primary_skill','preferences',
+        'aadhaar_number','aadhaar_masked','aadhaar_verified','digilocker_id','digilocker_verified','digilocker_doc_count','digilocker_uri','digilocker_linked_at'
       ];
       watched.forEach((k) => {
         if (JSON.stringify((draft as any)[k] ?? null) !== JSON.stringify((user as any)[k] ?? null)) {
