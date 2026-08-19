@@ -6,7 +6,7 @@ import React, { useRef } from 'react';
 import { View, Text, StyleSheet, Pressable, TextInput, Animated, Easing, Platform } from 'react-native';
 import Svg, { Path, Text as SvgText } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
-import { LucideIcon } from 'lucide-react-native';
+import type { LucideIcon } from 'lucide-react-native';
 import { SA, SAGradients } from './tokens';
 import { SALogo } from '@/src/views/components';
 
