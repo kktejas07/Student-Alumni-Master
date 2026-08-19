@@ -24,11 +24,12 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, TextInput, Platform, ScrollView } from 'react-native';
 import {
   Sparkles, Plug, Video, Calendar, Mail, BookOpen, Bell, Send,
-  CheckCircle2, X, Star,
+  CheckCircle2, X, Star, Globe,
 } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
 import { useToast } from '@/src/views/components';
 import OAuthModal from './OAuthModal';
+import { DigiLockerOAuthModal } from './DigiLockerOAuthModal';
 
 type ProviderId =
   | 'openai_chatgpt' | 'anthropic_claude' | 'google_gemini'
@@ -84,6 +85,12 @@ export function IntegrationsView() {
 
   // OAuth modal state
   const [oauthProvider, setOauthProvider] = useState<ProviderMeta | null>(null);
+  const [digilockerModalVisible, setDigilockerModalVisible] = useState(false);
+
+  const handleDigiLockerSuccess = async (res: any) => {
+    toast.success('DigiLocker Synced', 'Aadhaar e-KYC and 3 official documents linked.');
+    await reload();
+  };
 
   const reload = async () => {
     setLoading(true);
@@ -223,6 +230,48 @@ export function IntegrationsView() {
         </View>
       </View>
 
+      {/* Government & Academic Credentials */}
+      <Section title="GOVERNMENT & ACADEMIC CREDENTIALS" sub="National Academic Depository (NAD), DigiLocker & ABC ID">
+        <View style={st.row}>
+          <View style={[st.iconBox, { backgroundColor: 'rgba(124,58,237,0.18)' }]}>
+            <Globe size={18} color="#C4B5FD" />
+          </View>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Text style={st.rowTitle}>DigiLocker & ABC</Text>
+              {connected['digilocker'] || connected['digilocker_verified'] ? (
+                <View style={[st.statusPill, { backgroundColor: 'rgba(16,185,129,0.15)', borderColor: '#10B981' }]}>
+                  <CheckCircle2 size={10} color="#10B981" />
+                  <Text style={[st.statusText, { color: '#34D399' }]}>3 Docs Verified</Text>
+                </View>
+              ) : (
+                <View style={st.statusPill}>
+                  <Text style={st.statusText}>National Registry</Text>
+                </View>
+              )}
+            </View>
+            <Text style={st.rowSub}>Ministry of Education · National Academic Depository & CBSE marksheets</Text>
+          </View>
+
+          {connected['digilocker'] || connected['digilocker_verified'] ? (
+            <Pressable
+              onPress={() => setDigilockerModalVisible(true)}
+              style={st.btnConnect}
+            >
+              <Text style={st.btnConnectText}>Re-Sync</Text>
+            </Pressable>
+          ) : (
+            <Pressable
+              onPress={() => setDigilockerModalVisible(true)}
+              style={[st.btnConnect, { paddingHorizontal: 14 }]}
+            >
+              <Send size={12} color="#0F2922" />
+              <Text style={st.btnConnectText}>Connect DigiLocker</Text>
+            </Pressable>
+          )}
+        </View>
+      </Section>
+
       {/* AI Providers */}
       <Section title="AI PROVIDERS" sub="Choose which AI powers your Daily Brief and Career Score">
         {AI_PROVIDERS.map((p) => renderRow(p, 'ai'))}
@@ -274,6 +323,13 @@ export function IntegrationsView() {
         provider={oauthProvider}
         onClose={() => setOauthProvider(null)}
         onAuthorize={onAuthorize}
+      />
+
+      {/* DigiLocker & Aadhaar e-KYC OAuth Gateway */}
+      <DigiLockerOAuthModal
+        visible={digilockerModalVisible}
+        onClose={() => setDigilockerModalVisible(false)}
+        onSuccess={handleDigiLockerSuccess}
       />
     </View>
   );

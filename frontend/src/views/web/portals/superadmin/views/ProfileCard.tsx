@@ -77,6 +77,10 @@ export type ProfileCardProps = {
     category: ProfileCardCategory;
     isNew?: boolean;          // newly imported, not yet approved
     approved?: boolean;
+    aadhaarMasked?: string;
+    aadhaarVerified?: boolean;
+    digilockerVerified?: boolean;
+    digilockerDocCount?: number;
   };
   goals?: string[];
   progress?: {
@@ -213,6 +217,26 @@ export function ProfileCard(props: ProfileCardProps) {
                 ) : null}
               </View>
             ) : null}
+          </View>
+        ) : null}
+
+        {/* IDENTITY & DIGILOCKER BADGES */}
+        {(user.aadhaarMasked || user.aadhaarVerified || user.digilockerVerified) ? (
+          <View style={[s.tagRow, { marginTop: 4, marginBottom: 2 }]}>
+            {(user.aadhaarMasked || user.aadhaarVerified) && (
+              <View style={[s.tag, { backgroundColor: user.aadhaarVerified ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)', borderColor: user.aadhaarVerified ? 'rgba(16,185,129,0.35)' : 'rgba(245,158,11,0.35)' }]}>
+                <Text style={[s.tagText, { color: user.aadhaarVerified ? '#34D399' : '#FBBF24', fontSize: 10, fontWeight: '700' }]}>
+                  {user.aadhaarVerified ? '✓ UIDAI' : 'Aadhaar'}: {user.aadhaarMasked || '•••• 1234'}
+                </Text>
+              </View>
+            )}
+            {user.digilockerVerified && (
+              <View style={[s.tag, { backgroundColor: 'rgba(124,58,237,0.15)', borderColor: 'rgba(124,58,237,0.40)' }]}>
+                <Text style={[s.tagText, { color: '#C4B5FD', fontSize: 10, fontWeight: '700' }]}>
+                  ⚡ DigiLocker ({user.digilockerDocCount || 3} Docs)
+                </Text>
+              </View>
+            )}
           </View>
         ) : null}
 
