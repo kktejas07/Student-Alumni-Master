@@ -68,6 +68,16 @@ export function ImportsView({ sub, onSub }: { sub?: string; onSub?: (s: string) 
   const { toast, flash, hide } = useToast();
   const [refreshKey, setRefreshKey] = useState(0);
   const [profileId, setProfileId] = useState<string | null>(null);
+  const [stats, setStats] = useState<any>(null);
+
+  const loadStats = useCallback(async () => {
+    try {
+      const r = await request<any>('/admin/users/list?limit=1');
+      setStats(r);
+    } catch {}
+  }, []);
+
+  useEffect(() => { loadStats(); }, [loadStats, refreshKey]);
 
   const tabs = [
     { id: 'browse',  label: 'Contacts Database', icon: Users },
@@ -76,12 +86,14 @@ export function ImportsView({ sub, onSub }: { sub?: string; onSub?: (s: string) 
     { id: 'history', label: 'Upload History',    icon: History },
   ] as const;
 
+  const counts = stats?.counts || {};
+
   return (
     <View style={{ gap: 14 }}>
       <Card>
         <View style={s.headRow}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <IconBox size={38}><FileSpreadsheet size={18} color={GRAD.to} /></IconBox>
+            <IconBox size={38}><Users size={18} color={GRAD.to} /></IconBox>
             <View>
               <Text style={s.title}>Contacts & Imports Database</Text>
               <Text style={s.sub}>
@@ -92,6 +104,55 @@ export function ImportsView({ sub, onSub }: { sub?: string; onSub?: (s: string) 
           </View>
         </View>
       </Card>
+
+      {/* Stats Row */}
+      <View style={s.statsRow}>
+        <View style={s.statCard}>
+          <View style={[s.statIcon, { backgroundColor: 'rgba(59,130,246,0.15)' }]}>
+            <Users size={18} color="#3B82F6" />
+          </View>
+          <View>
+            <Text style={s.statValue}>{counts.all || 0}</Text>
+            <Text style={s.statLabel}>Total Users</Text>
+          </View>
+        </View>
+        <View style={s.statCard}>
+          <View style={[s.statIcon, { backgroundColor: 'rgba(16,185,129,0.15)' }]}>
+            <GraduationCap size={18} color="#10B981" />
+          </View>
+          <View>
+            <Text style={s.statValue}>{counts.student || 0}</Text>
+            <Text style={s.statLabel}>Students</Text>
+          </View>
+        </View>
+        <View style={s.statCard}>
+          <View style={[s.statIcon, { backgroundColor: 'rgba(245,158,11,0.15)' }]}>
+            <Sparkles size={18} color="#F59E0B" />
+          </View>
+          <View>
+            <Text style={s.statValue}>{counts.mentor || 0}</Text>
+            <Text style={s.statLabel}>Mentors</Text>
+          </View>
+        </View>
+        <View style={s.statCard}>
+          <View style={[s.statIcon, { backgroundColor: 'rgba(139,92,246,0.15)' }]}>
+            <UserCheck size={18} color="#8B5CF6" />
+          </View>
+          <View>
+            <Text style={s.statValue}>{counts.alumni || 0}</Text>
+            <Text style={s.statLabel}>Alumni</Text>
+          </View>
+        </View>
+        <View style={s.statCard}>
+          <View style={[s.statIcon, { backgroundColor: 'rgba(239,68,68,0.15)' }]}>
+            <AlertTriangle size={18} color="#EF4444" />
+          </View>
+          <View>
+            <Text style={s.statValue}>{counts.pending_approval || 0}</Text>
+            <Text style={s.statLabel}>Pending</Text>
+          </View>
+        </View>
+      </View>
 
       <TopTabs<TabId> tabs={tabs as any} active={tab} onChange={setTab} />
 
@@ -119,6 +180,9 @@ function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => vo
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [files, setFiles] = useState<File[]>([]);
+  const [currentFileIdx, setCurrentFileIdx] = useState(0);
+  const [importResults, setImportResults] = useState<any[]>([]);
 
   // Web-only file picker hookup
   useEffect(() => {
@@ -126,8 +190,10 @@ function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => vo
     const el = fileRef.current;
     if (!el) return;
     const handler = async (e: any) => {
-      const f = e.target.files?.[0];
-      if (f) await uploadFile(f);
+      const newFiles = Array.from(e.target.files || []) as File[];
+      if (newFiles.length > 0) {
+        setFiles(prev => [...prev, ...newFiles]);
+      }
     };
     el.addEventListener('change', handler);
     return () => el.removeEventListener('change', handler);
@@ -156,6 +222,60 @@ function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => vo
     } finally { setBusy(false); }
   };
 
+  const uploadAllFiles = async () => {
+    if (files.length === 0) return;
+    setBusy(true); setError(null); setImportResults([]); setData(null); setResult(null);
+    const results = [];
+    
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      setCurrentFileIdx(i);
+      try {
+        const form = new FormData();
+        form.append('file', file);
+        const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+        const token = (await tokenStore.getAccess()) || '';
+        const resp = await fetch(base + '/api/admin/imports/upload', {
+          method: 'POST',
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          body: form,
+        });
+        if (!resp.ok) {
+          const t = await resp.text();
+          results.push({ file: file.name, error: `Upload failed: ${t}` });
+          continue;
+        }
+        const json = await resp.json();
+        
+        // Auto-commit this file
+        const commitResp = await request<any>('/admin/imports/commit', {
+          method: 'POST',
+          body: { cache_id: json.cache_id, mapping: json.auto_mapping, skip_invalid: skipInvalid },
+        });
+        results.push({ file: file.name, ...commitResp });
+      } catch (e: any) {
+        results.push({ file: file.name, error: String(e?.message || e) });
+      }
+    }
+    
+    setImportResults(results);
+    setFiles([]);
+    setBusy(false);
+    onSaved(`Imported ${results.length} files`);
+    bump();
+  };
+
+  const removeFile = (index: number) => {
+    setFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const clearFiles = () => {
+    setFiles([]);
+    setImportResults([]);
+    setData(null);
+    setResult(null);
+  };
+
   const onPick = () => {
     if (Platform.OS === 'web' && fileRef.current) {
       fileRef.current.click();
@@ -169,8 +289,10 @@ function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => vo
     onDrop: async (e: any) => {
       e.preventDefault();
       setDragOver(false);
-      const f = e.dataTransfer?.files?.[0];
-      if (f) await uploadFile(f);
+      const newFiles = Array.from(e.dataTransfer?.files || []) as File[];
+      if (newFiles.length > 0) {
+        setFiles(prev => [...prev, ...newFiles]);
+      }
     },
   } : {};
 
@@ -193,7 +315,7 @@ function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => vo
   return (
     <View style={{ gap: 14 }}>
       {/* Drop zone */}
-      {!data && (
+      {!data && !result && importResults.length === 0 && (
         <View
           // @ts-ignore web-only
           {...dropProps}
@@ -206,7 +328,7 @@ function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => vo
           <Text style={s.dropSub}>Supports .xlsx, .xls, .csv, .pdf, .docx · max 500 MB</Text>
           <GradientButton onPress={onPick}>
             <FileSpreadsheet size={13} color="#fff" />
-            <Text style={s.btnText}>Choose file</Text>
+            <Text style={s.btnText}>Choose files</Text>
           </GradientButton>
           {Platform.OS === 'web' && (
             // @ts-ignore native input
@@ -215,6 +337,75 @@ function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => vo
           {busy && <View style={{ marginTop: 12 }}><ActivityIndicator color={GRAD.to} /></View>}
           {error && <Text style={[s.err, { marginTop: 12 }]}>{error}</Text>}
         </View>
+      )}
+
+      {/* File list for batch import */}
+      {files.length > 0 && !data && !result && importResults.length === 0 && (
+        <Card>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <Text style={s.fileName}>{files.length} file{files.length > 1 ? 's' : ''} selected</Text>
+            <Pressable onPress={clearFiles} style={s.clearBtn}>
+              <Text style={s.clearBtnText}>Clear all</Text>
+            </Pressable>
+          </View>
+          <View style={{ gap: 8 }}>
+            {files.map((f, i) => (
+              <View key={i} style={s.fileRow}>
+                <FileSpreadsheet size={16} color={GRAD.to} />
+                <View style={{ flex: 1, marginLeft: 8 }}>
+                  <Text numberOfLines={1} style={s.fileName}>{f.name}</Text>
+                  <Text style={s.muted}>{(f.size / 1024).toFixed(1)} KB</Text>
+                </View>
+                {busy && currentFileIdx === i && <ActivityIndicator size="small" color={GRAD.to} />}
+                <Pressable onPress={() => removeFile(i)} style={s.removeFileBtn}>
+                  <X size={14} color="#F87171" />
+                </Pressable>
+              </View>
+            ))}
+          </View>
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+            <GradientButton onPress={uploadAllFiles} disabled={busy} style={{ flex: 1 }}>
+              {busy ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <>
+                  <Upload size={13} color="#fff" />
+                  <Text style={s.btnText}>Import All ({files.length} files)</Text>
+                </>
+              )}
+            </GradientButton>
+            <SecondaryButton onPress={clearFiles}>
+              <Text style={s.secText}>Cancel</Text>
+            </SecondaryButton>
+          </View>
+        </Card>
+      )}
+
+      {/* Import results */}
+      {importResults.length > 0 && (
+        <Card>
+          <Text style={s.fileName}>Import Results</Text>
+          <View style={{ gap: 8, marginTop: 12 }}>
+            {importResults.map((r, i) => (
+              <View key={i} style={s.fileRow}>
+                {r.error ? (
+                  <AlertTriangle size={16} color="#F87171" />
+                ) : (
+                  <CheckCircle2 size={16} color="#10B981" />
+                )}
+                <View style={{ flex: 1, marginLeft: 8 }}>
+                  <Text numberOfLines={1} style={s.fileName}>{r.file}</Text>
+                  <Text style={s.muted}>
+                    {r.error || `${r.added || 0} added, ${r.updated || 0} updated, ${r.skipped || 0} skipped`}
+                  </Text>
+                </View>
+              </View>
+            ))}
+          </View>
+          <SecondaryButton onPress={clearFiles} style={{ marginTop: 12 }}>
+            <Text style={s.secText}>Import More</Text>
+          </SecondaryButton>
+        </Card>
       )}
 
       {/* Preview + commit */}
@@ -303,18 +494,18 @@ function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => vo
             <View style={{ padding: 18, paddingBottom: 4 }}>
               <SectionLabel>PREVIEW · first {(data.preview || []).length} rows</SectionLabel>
             </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={true}>
-              <View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={true} contentContainerStyle={{ flexGrow: 1 }}>
+              <View style={{ flex: 1, minWidth: 1450 }}>
                 <View style={s.tableHead}>
                   <Text style={[s.th, { width: 50 }]}>Row</Text>
                   <Text style={[s.th, { width: 100 }]}>Category</Text>
-                  <Text style={[s.th, { width: 200 }]}>Name</Text>
-                  <Text style={[s.th, { width: 240 }]}>Email</Text>
-                  <Text style={[s.th, { width: 200 }]}>College</Text>
-                  <Text style={[s.th, { width: 160 }]}>Degree</Text>
+                  <Text style={[s.th, { flex: 1.5, minWidth: 200 }]}>Name</Text>
+                  <Text style={[s.th, { flex: 1.5, minWidth: 240 }]}>Email</Text>
+                  <Text style={[s.th, { flex: 1.5, minWidth: 200 }]}>College</Text>
+                  <Text style={[s.th, { flex: 1.5, minWidth: 160 }]}>Degree</Text>
                   <Text style={[s.th, { width: 80 }]}>Exp (yr)</Text>
-                  <Text style={[s.th, { width: 240 }]}>Rule fired</Text>
-                  <Text style={[s.th, { width: 180 }]}>Validation</Text>
+                  <Text style={[s.th, { flex: 1.5, minWidth: 240 }]}>Rule fired</Text>
+                  <Text style={[s.th, { flex: 1, minWidth: 180 }]}>Validation</Text>
                 </View>
                 {(data.preview || []).slice(0, 30).map((p: any, i: number) => {
                   const hasErr = (p.errors || []).length > 0;
@@ -322,13 +513,13 @@ function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => vo
                     <View key={i} style={[s.tableRow, hasErr && s.tableRowErr]}>
                       <Text style={[s.td, { width: 50, color: SAC.dim }]}>{p.row}</Text>
                       <View style={{ width: 100 }}>{p.category && <CategoryBadge cat={p.category} small />}</View>
-                      <Text numberOfLines={1} style={[s.td, { width: 200 }]}>{p.full_name || '—'}</Text>
-                      <Text numberOfLines={1} style={[s.td, { width: 240, color: SAC.muted }]}>{p.email || '—'}</Text>
-                      <Text numberOfLines={1} style={[s.td, { width: 200, color: SAC.muted }]}>{p.college || '—'}</Text>
-                      <Text numberOfLines={1} style={[s.td, { width: 160, color: SAC.muted }]}>{p.degree || '—'}</Text>
+                      <Text numberOfLines={1} style={[s.td, { flex: 1.5, minWidth: 200 }]}>{p.full_name || '—'}</Text>
+                      <Text numberOfLines={1} style={[s.td, { flex: 1.5, minWidth: 240, color: SAC.muted }]}>{p.email || '—'}</Text>
+                      <Text numberOfLines={1} style={[s.td, { flex: 1.5, minWidth: 200, color: SAC.muted }]}>{p.college || '—'}</Text>
+                      <Text numberOfLines={1} style={[s.td, { flex: 1.5, minWidth: 160, color: SAC.muted }]}>{p.degree || '—'}</Text>
                       <Text style={[s.td, { width: 80 }]}>{(p.experience_years ?? 0).toString()}</Text>
-                      <Text numberOfLines={1} style={[s.td, { width: 240, color: SAC.muted }]}>{p.category_rule || '—'}</Text>
-                      <View style={{ width: 180 }}>
+                      <Text numberOfLines={1} style={[s.td, { flex: 1.5, minWidth: 240, color: SAC.muted }]}>{p.category_rule || '—'}</Text>
+                      <View style={{ flex: 1, minWidth: 180 }}>
                         {hasErr ? (
                           <StatusPill kind="danger" label={(p.errors || []).join(', ')} />
                         ) : (
@@ -609,7 +800,7 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [bulkBusy, setBulkBusy] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (pageNum = page, limit = perPage) => {
     setBusy(true);
     try {
       const r = await request<any>(`/admin/users/list?category=${cat}&account_filter=${accountFilter}&q=${encodeURIComponent(q)}&limit=200`);
@@ -628,6 +819,8 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
     } finally { setBusy(false); }
   }, [cat, accountFilter, q]);
   useEffect(() => { load(); }, [load]);
+  
+  const totalPages = data ? Math.ceil((data.total || 0) / perPage) : 1;
 
   const counts = data?.counts || {};
   const totalDisplay = counts.all ?? 0;
@@ -1320,9 +1513,42 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
               </View>
             ))}
           </View>
-          <Text style={[s.muted, { textAlign: 'center', paddingVertical: 8 }]}>
-            Showing {items.length} of {data?.total || 0} · newest first
-          </Text>
+          
+          {/* Pagination */}
+          <View style={s.paginationRow}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text style={s.muted}>Show</Text>
+              {[10, 25, 50].map(n => (
+                <Pressable
+                  key={n}
+                  onPress={() => { setPerPage(n); setPage(1); }}
+                  style={[s.perPageBtn, perPage === n && s.perPageBtnActive]}
+                >
+                  <Text style={[s.perPageText, perPage === n && s.perPageTextActive]}>{n}</Text>
+                </Pressable>
+              ))}
+              <Text style={s.muted}>per page</Text>
+            </View>
+            <Text style={s.muted}>
+              Showing {((page - 1) * perPage) + 1}–{Math.min(page * perPage, data?.total || 0)} of {data?.total || 0}
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 6 }}>
+              <Pressable
+                onPress={() => setPage(Math.max(1, page - 1))}
+                disabled={page <= 1}
+                style={[s.pageBtn, page <= 1 && s.pageBtnDisabled]}
+              >
+                <Text style={s.pageBtnText}>Prev</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setPage(Math.min(totalPages, page + 1))}
+                disabled={page >= totalPages}
+                style={[s.pageBtn, page >= totalPages && s.pageBtnDisabled]}
+              >
+                <Text style={s.pageBtnText}>Next</Text>
+              </Pressable>
+            </View>
+          </View>
         </>
       )}
 
@@ -1721,6 +1947,21 @@ const s = StyleSheet.create({
   sub:   { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 720 },
   muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
   err: { color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 12 },
+  
+  // Stats row
+  statsRow: {
+    flexDirection: 'row', gap: 10, flexWrap: 'wrap',
+  },
+  statCard: {
+    flex: 1, minWidth: 120, flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: SAC.cardSolid, borderRadius: 12, borderWidth: 1, borderColor: SAC.border,
+    padding: 12,
+  },
+  statIcon: {
+    width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center',
+  },
+  statValue: { fontFamily: FONTS.xbold, fontSize: 18, color: '#fff' },
+  statLabel: { fontFamily: FONTS.med, fontSize: 11, color: SAC.muted, marginTop: 2 },
 
   catBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
@@ -1813,6 +2054,45 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   toggleBtnText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11 },
+  
+  // File list
+  fileRow: {
+    flexDirection: 'row', alignItems: 'center', padding: 10, borderRadius: 8,
+    backgroundColor: SAC.cardSolid, borderWidth: 1, borderColor: SAC.border,
+  },
+  clearBtn: {
+    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6,
+    borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)', backgroundColor: 'rgba(239,68,68,0.1)',
+  },
+  clearBtnText: { color: '#F87171', fontFamily: FONTS.bold, fontSize: 11 },
+  removeFileBtn: {
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: 'rgba(239,68,68,0.1)', alignItems: 'center', justifyContent: 'center',
+  },
+  
+  // Pagination
+  paginationRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingVertical: 12, paddingHorizontal: 14, borderTopWidth: 1, borderTopColor: SAC.border,
+    flexWrap: 'wrap', gap: 10,
+  },
+  perPageBtn: {
+    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6,
+    borderWidth: 1, borderColor: SAC.border, backgroundColor: SAC.cardSolid,
+    ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
+  },
+  perPageBtnActive: {
+    borderColor: GRAD.from, backgroundColor: 'rgba(124,58,237,0.15)',
+  },
+  perPageText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11 },
+  perPageTextActive: { color: '#C4B5FD' },
+  pageBtn: {
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8,
+    borderWidth: 1, borderColor: SAC.border, backgroundColor: SAC.cardSolid,
+    ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
+  },
+  pageBtnDisabled: { opacity: 0.4 },
+  pageBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
 
   /* selection mode */
   selectBox: {
@@ -1822,6 +2102,7 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   selectedHalo: {
+    height: '100%',
     borderRadius: 22, borderWidth: 2, borderColor: GRAD.to,
     ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 0 4px rgba(251,146,60,0.18)' } as any) : {}),
   },

@@ -85,7 +85,7 @@ export const PhoneInput = React.forwardRef<RNTextInput, {
   helper?: string;
   onSubmitEditing?: () => void;
   blurOnSubmit?: boolean;
-}>((props, ref) => {
+}>(function PhoneInput(props, ref) {
   const { label, value, onChangeText, placeholder = '98765 43210', testID, helper, onSubmitEditing, blurOnSubmit } = props;
   const parsed = parsePhone(value);
   const [country, setCountry] = useState<Country>(parsed.country);

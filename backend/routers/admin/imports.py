@@ -1446,4 +1446,3 @@ async def list_users(
         "pending_approval": await _db.users.count_documents({"approved": False, "created_by": {"$in": ["import", "manual"]}, "archived": {"$ne": True}}),
         "registered": await _db.users.count_documents({"$or": [{"password_hash": {"$exists": True, "$ne": None}}, {"auth_provider": {"$exists": True, "$ne": None}}], "archived": {"$ne": True}}),
     }
-    return {"items": items, "total": total, "counts": counts}

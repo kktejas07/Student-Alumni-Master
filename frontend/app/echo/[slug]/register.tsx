@@ -340,7 +340,7 @@ export default function EchoRegisterPage() {
   const activePoster = posters.length > 0 ? posters[posterIdx % posters.length] : (showcase?.hero_image_url || null);
 
   // Calculate total fee based on registration type
-  const teamSize = registrationType === 'team' ? teamMembers.length : 1;
+  const teamSize = registrationType === 'team' ? 1 + teamMembers.length : 1;
   const totalFee = fee * teamSize;
 
   const openPayment = () => {
@@ -605,7 +605,7 @@ export default function EchoRegisterPage() {
           <View style={[s.posterCol, !isWide && s.posterColStack]}>
             <View style={s.posterWrap}>
               {activePoster ? (
-                <Image source={{ uri: resolveImageUrl(activePoster) }} style={s.poster} resizeMode="cover" />
+                <Image source={{ uri: resolveImageUrl(activePoster) }} style={s.poster} resizeMode="contain" />
               ) : (
                 <LinearGradient colors={['rgba(123,61,191,0.35)', 'rgba(95,37,159,0.55)', 'rgba(30,10,80,0.85)']} style={s.poster}>
                   <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1, gap: 10, padding: 20 }}>
@@ -834,7 +834,7 @@ export default function EchoRegisterPage() {
         <View style={[s.posterCol, !isWide && s.posterColStack]}>
           <View style={s.posterWrap}>
             {activePoster ? (
-              <Image source={{ uri: resolveImageUrl(activePoster) }} style={s.poster} resizeMode="cover" />
+              <Image source={{ uri: resolveImageUrl(activePoster) }} style={s.poster} resizeMode="contain" />
             ) : (
               <LinearGradient colors={['rgba(123,61,191,0.35)', 'rgba(95,37,159,0.55)', 'rgba(30,10,80,0.85)']} style={s.poster}>
                 <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1, gap: 10, padding: 20 }}>
@@ -1305,12 +1305,12 @@ const s = StyleSheet.create({
   center: { alignItems: 'center', justifyContent: 'center', paddingVertical: 100, gap: 14 },
   centerText: { color: PALETTE.muted, fontFamily: FONTS.med, fontSize: 14 },
 
-  split: { flexDirection: 'row', gap: 20, alignItems: 'flex-start' },
+  split: { flexDirection: 'row', gap: 20, alignItems: 'stretch' },
   splitStack: { flexDirection: 'column', gap: 16 },
 
-  posterCol: { flex: 1.2, minWidth: 0, gap: 12 },
-  posterColStack: { width: '100%' },
-  posterWrap: { position: 'relative', borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: PALETTE.glassBorder, width: '100%', flex: 1, minHeight: 300 },
+  posterCol: { flex: 1.2, minWidth: 0, height: 1200 },
+  posterColStack: { width: '100%', height: 600 },
+  posterWrap: { position: 'relative', borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: PALETTE.glassBorder, width: '100%', height: '100%' },
   poster: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%', backgroundColor: '#0d1326' },
   posterNav: {
     position: 'absolute', top: '50%', marginTop: -20, width: 40, height: 40, borderRadius: 20,
@@ -1323,7 +1323,13 @@ const s = StyleSheet.create({
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.25)' },
   dotOn: { backgroundColor: GRAD.from, width: 22 },
 
-  formCol: { flex: 1, minWidth: 0, maxWidth: 520 },
+  formCol: { 
+    flex: 1, 
+    minWidth: 0, 
+    maxWidth: 520, 
+    height: 1200,
+    ...(Platform.OS === 'web' ? { overflowY: 'auto' as any } : {}),
+  },
   formColStack: { width: '100%' },
 
   backBtn: {

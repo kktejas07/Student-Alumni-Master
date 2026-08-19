@@ -22,8 +22,6 @@ import {
 } from './consentStore';
 
 export function ConsentBanner() {
-  // Web-only. (Native apps don't render the cookie banner.)
-  if (Platform.OS !== 'web') return null;
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const isAuthed = !!user;
@@ -94,6 +92,8 @@ export function ConsentBanner() {
     }
   };
 
+  // Web-only. (Native apps don't render the cookie banner.)
+  if (Platform.OS !== 'web') return null;
   if (!open) return null;
 
   return (

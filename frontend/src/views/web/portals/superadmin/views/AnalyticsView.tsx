@@ -616,7 +616,7 @@ function PredictionsCard({ predictions }: { predictions: Predictions }) {
       )}
       <View style={{ marginTop: 4, padding: 8, borderRadius: 6, backgroundColor: 'rgba(167,139,250,0.05)' }}>
         <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted }}>
-          {predictions.trend === 'growing' ? '📈 User growth is accelerating. Consider scaling infrastructure.' : predictions.trend === 'declining' ? '📉 Growth is slowing. Review acquisition channels.' : '📊 Growth is stable. Focus on retention and engagement.'}
+                     {predictions.trend === 'growing' ? 'User growth is accelerating. Consider scaling infrastructure.' : predictions.trend === 'declining' ? '📉 Growth is slowing. Review acquisition channels.' : '📊 Growth is stable. Focus on retention and engagement.'}
         </Text>
       </View>
     </Card>

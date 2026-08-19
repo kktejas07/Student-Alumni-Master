@@ -25,10 +25,28 @@ import {
   GRAD, GradientButton, SecondaryButton, Card, IconBox, SectionLabel,
   StatusPill, Toast, useToast, KpiTile,
 } from '../applekit';
-import { api, resolveImageUrl } from '@/src/models/services/api';
+import { api, request, resolveImageUrl } from '@/src/models/services/api';
 import HtmlRenderer from '@/src/views/web/policy/HtmlRenderer';
 import { useSubTab } from '@/src/views/web/portals/portalUrl';
 import LexicalEditor from './LexicalEditor';
+
+function fmtInTz(value: string, tz: string, kind: 'date' | 'time'): string {
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return '';
+  const map: Record<string, string> = {};
+  new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  }).formatToParts(d).forEach((p) => { map[p.type] = p.value; });
+  if (map.hour === '24') map.hour = '00';
+  return kind === 'date' ? `${map.year}-${map.month}-${map.day}` : `${map.hour}:${map.minute}`;
+}
+
+function tzNowStamp(tz: string): string {
+  const now = new Date().toISOString();
+  return `${fmtInTz(now, tz, 'date')}T${fmtInTz(now, tz, 'time')}`;
+}
 
 type Campaign = {
   campaign_id: string;
@@ -43,6 +61,8 @@ type Campaign = {
   in_app_ok?: number;
   whatsapp_ok?: number;
   whatsapp_fail?: number;
+  whatsapp_no_phone?: number;
+  channels?: { whatsapp?: boolean };
   status?: string;
   created_at?: string;
   completed_at?: string;
@@ -103,13 +123,13 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
     hero_image: '',
     intro: '',
     body: '',
-    cta_text: 'Register Now',
-    cta_url: 'https://studentalumni.ai/echo',
+    cta_text: '',
+    cta_url: '',
     include_upcoming: true,
     send_email: true,
     send_push: true,
     send_in_app: true,
-    send_whatsapp: false,
+    send_whatsapp: true,
   });
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [events, setEvents] = useState<any[]>([]);
@@ -124,6 +144,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
   const [sendImmediately, setSendImmediately] = useState(true);
   const [scheduleDate, setScheduleDate] = useState('');
   const [scheduleTime, setScheduleTime] = useState('12:00');
+  const [platformTz, setPlatformTz] = useState('Asia/Kolkata');
   const [testEmail, setTestEmail] = useState('');
   const [testPhone, setTestPhone] = useState('');
   const [testSending, setTestSending] = useState(false);
@@ -142,7 +163,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
   const [indUserQuery, setIndUserQuery] = useState('');
   const [indUserResults, setIndUserResults] = useState<any[]>([]);
   const [indSelectedUser, setIndSelectedUser] = useState<any>(null);
-  const [indForm, setIndForm] = useState({ title: '', body: '', cta_url: '', send_email: true, send_push: true, send_in_app: true, send_whatsapp: false });
+  const [indForm, setIndForm] = useState({ title: '', body: '', cta_url: '', send_email: true, send_push: true, send_in_app: true, send_whatsapp: true });
   const [indSending, setIndSending] = useState(false);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchSeqRef = useRef(0);
@@ -324,10 +345,9 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
         send_whatsapp: c?.send_whatsapp ?? false,
       });
       if (c?.send_at) {
-        const dt = new Date(c.send_at);
         setSendImmediately(false);
-        setScheduleDate(dt.toISOString().slice(0, 10));
-        setScheduleTime(`${String(dt.getUTCHours()).padStart(2, '0')}:${String(dt.getUTCMinutes()).padStart(2, '0')}`);
+        setScheduleDate(fmtInTz(c.send_at, platformTz, 'date'));
+        setScheduleTime(fmtInTz(c.send_at, platformTz, 'time'));
       } else {
         setSendImmediately(true);
       }
@@ -351,7 +371,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
     setForm({
       subject: '', audience: 'all', hero_image: '', intro: '', body: '',
       cta_text: 'Register Now', cta_url: 'https://studentalumni.ai/echo',
-      include_upcoming: true, send_email: true, send_push: true, send_in_app: true, send_whatsapp: false,
+      include_upcoming: true, send_email: true, send_push: true, send_in_app: true, send_whatsapp: true,
     });
     fetchRecipientCount('all');
     flash('Edit cancelled');
@@ -368,13 +388,13 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
         return;
       }
       try {
-        const parsed = new Date(`${scheduleDate}T${scheduleTime}:00`);
-        if (isNaN(parsed.getTime())) throw new Error('Invalid Date/Time values');
-        if (parsed <= new Date()) {
-          flash('Scheduled time must be in the future', 'error');
+        const naive = `${scheduleDate}T${scheduleTime}:00`;
+        if (isNaN(new Date(naive).getTime())) throw new Error('Invalid Date/Time values');
+        if (`${scheduleDate}T${scheduleTime}` <= tzNowStamp(platformTz)) {
+          flash(`Scheduled time must be in the future (${platformTz})`, 'error');
           return;
         }
-        send_at = parsed.toISOString();
+        send_at = naive;
       } catch {
         flash('Invalid Date or Time format. Use YYYY-MM-DD and HH:MM', 'error');
         return;
@@ -421,15 +441,15 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
         return;
       }
       try {
-        const parsed = new Date(`${scheduleDate}T${scheduleTime}:00`);
-        if (isNaN(parsed.getTime())) {
+        const naive = `${scheduleDate}T${scheduleTime}:00`;
+        if (isNaN(new Date(naive).getTime())) {
           throw new Error('Invalid Date/Time values');
         }
-        if (parsed <= new Date()) {
-          flash('Scheduled time must be in the future', 'error');
+        if (`${scheduleDate}T${scheduleTime}` <= tzNowStamp(platformTz)) {
+          flash(`Scheduled time must be in the future (${platformTz})`, 'error');
           return;
         }
-        send_at = parsed.toISOString();
+        send_at = naive;
       } catch {
         flash('Invalid Date or Time format. Use YYYY-MM-DD and HH:MM', 'error');
         return;
@@ -586,7 +606,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
       setIndSelectedUser(null);
       setIndUserQuery('');
       setIndUserResults([]);
-      setIndForm({ title: '', body: '', cta_url: '', send_email: true, send_push: true, send_in_app: true, send_whatsapp: false });
+      setIndForm({ title: '', body: '', cta_url: '', send_email: true, send_push: true, send_in_app: true, send_whatsapp: true });
     } catch (e: any) {
       flash(e?.message || 'Failed to send notification');
     } finally {
@@ -809,7 +829,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                     <Pressable onPress={() => setSendImmediately(true)} style={[st.tab, sendImmediately && st.tabActive, { flex: 1, paddingVertical: 8, justifyContent: 'center' }]}>
                       <Text style={[st.tabText, sendImmediately && st.tabTextActive, { textAlign: 'center' }]}>Send Immediately</Text>
                     </Pressable>
-                    <Pressable onPress={() => { setSendImmediately(false); if (!scheduleDate) { const tom = new Date(); tom.setDate(tom.getDate() + 1); setScheduleDate(tom.toISOString().split('T')[0]); } }} style={[st.tab, !sendImmediately && st.tabActive, { flex: 1, paddingVertical: 8, justifyContent: 'center' }]}>
+                    <Pressable onPress={() => { setSendImmediately(false); if (!scheduleDate) { const tom = new Date(Date.now() + 24 * 3600 * 1000); setScheduleDate(fmtInTz(tom.toISOString(), platformTz, 'date')); } }} style={[st.tab, !sendImmediately && st.tabActive, { flex: 1, paddingVertical: 8, justifyContent: 'center' }]}>
                       <Text style={[st.tabText, !sendImmediately && st.tabTextActive, { textAlign: 'center' }]}>Schedule Send</Text>
                     </Pressable>
                   </View>
@@ -823,7 +843,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                       </Field>
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Field label="Schedule Time (UTC) *" hint="Format: HH:MM (24h)">
+                      <Field label={`Schedule Time (${platformTz}) *`} hint="Format: HH:MM (24h)">
                         <TextInput style={st.input} value={scheduleTime} onChangeText={setScheduleTime} placeholder="e.g. 14:30" placeholderTextColor={SAC.dim} />
                       </Field>
                     </View>
@@ -970,7 +990,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                 backgroundColor: '#f3f4f6',
               } as any}
               title="Email Preview"
-              sandbox="allow-same-origin"
+              sandbox="allow-same-origin allow-scripts"
             />
           ) : (
             <View style={st.previewFrame}>
@@ -1044,7 +1064,7 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                 : 'neutral';
               const statusLabel = c.status === 'completed' ? 'Sent'
                 : c.status === 'sent' ? 'Sent'
-                : c.status === 'scheduled' ? `Scheduled · ${c.send_at?.slice(5, 16).replace('T', ' ') || ''}`
+                : c.status === 'scheduled' ? `Scheduled · ${fmtInTz(c.send_at || '', platformTz, 'date')} ${fmtInTz(c.send_at || '', platformTz, 'time')} ${platformTz}`
                 : c.status === 'sending' ? 'Sending…'
                 : c.status === 'draft' ? 'Draft'
                 : c.status === 'cancelled' ? 'Cancelled'
@@ -1065,11 +1085,11 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                   </IconBox>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text numberOfLines={1} style={st.campTitle}>
-                      {c.individual ? '📢 ' : ''}{c.subject}
+                      {c.individual ? '[IND] ' : ''}{c.subject}
                     </Text>
                     <Text numberOfLines={1} style={st.campMeta}>
                       {c.status === 'scheduled'
-                        ? `Scheduled for ${c.send_at?.slice(0, 16).replace('T', ' ')} UTC`
+                        ? `Scheduled for ${fmtInTz(c.send_at || '', platformTz, 'date')} at ${fmtInTz(c.send_at || '', platformTz, 'time')} ${platformTz}`
                         : c.status === 'sending'
                         ? 'Sending in progress…'
                         : c.status === 'draft'
@@ -1088,8 +1108,28 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                         {(c.in_app_ok || 0) > 0 && (
                           <StatPill icon={Smartphone} label={`${c.in_app_ok} in-app`} kind="success" />
                         )}
-                        {((c.whatsapp_ok || 0) + (c.whatsapp_fail || 0)) > 0 && (
-                          <StatPill icon={MessageSquare} label={`${c.whatsapp_ok || 0} WhatsApp`} kind={c.whatsapp_fail ? 'warn' : 'success'} />
+                        {c.channels?.whatsapp && (
+                          <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
+                            <StatPill 
+                              icon={MessageSquare} 
+                              label={`${c.whatsapp_ok || 0} sent`} 
+                              kind={(c.whatsapp_fail || 0) > 0 ? 'warn' : 'success'} 
+                            />
+                            {(c.whatsapp_fail || 0) > 0 && (
+                              <StatPill 
+                                icon={MessageSquare} 
+                                label={`${c.whatsapp_fail || 0} failed`} 
+                                kind="danger" 
+                              />
+                            )}
+                            {c.whatsapp_no_phone > 0 && (
+                              <StatPill 
+                                icon={MessageSquare} 
+                                label={`${c.whatsapp_no_phone} no phone`} 
+                                kind="neutral" 
+                              />
+                            )}
+                          </View>
                         )}
                       </View>
                     )}
@@ -1151,14 +1191,17 @@ function ChannelPill({ icon: Icon, label, active, onToggle }: { icon: any; label
   );
 }
 
-function StatPill({ icon: Icon, label, kind = 'success' }: { icon: any; label: string; kind?: 'success' | 'warn' }) {
-  const bg = kind === 'warn' ? 'rgba(251,191,36,0.12)' : 'rgba(34,197,94,0.12)';
-  const border = kind === 'warn' ? 'rgba(251,191,36,0.30)' : 'rgba(34,197,94,0.30)';
-  const color = kind === 'warn' ? '#FCD34D' : '#4ADE80';
+function StatPill({ icon: Icon, label, kind = 'success' }: { icon: any; label: string; kind?: 'success' | 'warn' | 'danger' | 'neutral' }) {
+  const palette = {
+    success: { bg: 'rgba(34,197,94,0.12)', border: 'rgba(34,197,94,0.30)', color: '#4ADE80' },
+    warn: { bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.30)', color: '#FCD34D' },
+    danger: { bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.30)', color: '#F87171' },
+    neutral: { bg: 'rgba(148,163,184,0.12)', border: 'rgba(148,163,184,0.30)', color: '#94A3B8' },
+  }[kind];
   return (
-    <View style={[st.channelPill, { backgroundColor: bg, borderColor: border, paddingHorizontal: 8, paddingVertical: 3 }]}>
-      <Icon size={11} color={color} />
-      <Text style={{ color, fontFamily: FONTS.bold, fontSize: 10.5 }}>{label}</Text>
+    <View style={[st.channelPill, { backgroundColor: palette.bg, borderColor: palette.border, paddingHorizontal: 8, paddingVertical: 3 }]}>
+      <Icon size={11} color={palette.color} />
+      <Text style={{ color: palette.color, fontFamily: FONTS.bold, fontSize: 10.5 }}>{label}</Text>
     </View>
   );
 }

@@ -23,6 +23,8 @@ import secrets
 from datetime import datetime, timezone, date, timedelta
 from typing import Any, Dict, Optional
 
+import pytz
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 
@@ -640,14 +642,10 @@ async def update_campaign(campaign_id: str, payload: UpdateCampaignSchema, reque
 
     if payload.send_at:
         try:
-            dt_send = datetime.fromisoformat(payload.send_at.replace("Z", "+00:00"))
-            if dt_send.tzinfo is None:
-                dt_send = dt_send.replace(tzinfo=timezone.utc)
-            if dt_send <= datetime.now(timezone.utc):
-                raise HTTPException(status_code=400, detail="Scheduled send time must be in the future")
-            update["send_at"] = dt_send.isoformat()
-        except ValueError:
-            raise HTTPException(status_code=400, detail="Invalid date format. Use ISO format (e.g., YYYY-MM-DDTHH:MM:SSZ)")
+            dt_send = await _parse_send_at(db, payload.send_at)
+        except HTTPException:
+            raise
+        update["send_at"] = dt_send.isoformat()
 
     if not update:
         raise HTTPException(status_code=400, detail="No changes provided")
@@ -833,14 +831,11 @@ async def send_newsletter(payload: SendNewsletterSchema, request: Request, user=
     # If scheduling in the future
     if payload.send_at:
         try:
-            dt_send = datetime.fromisoformat(payload.send_at.replace("Z", "+00:00"))
-            if dt_send.tzinfo is None:
-                dt_send = dt_send.replace(tzinfo=timezone.utc)
-            if dt_send <= datetime.now(timezone.utc):
-                raise HTTPException(status_code=400, detail="Scheduled send time must be in the future")
-        except ValueError:
-            raise HTTPException(status_code=400, detail="Invalid date format. Use ISO format (e.g., YYYY-MM-DDTHH:MM:SSZ)")
-
+            dt_send = await _parse_send_at(db, payload.send_at)
+        except HTTPException:
+            raise
+        tz = await _platform_tz(db)
+        local_send = dt_send.astimezone(tz)
         campaign = {
             "campaign_id": campaign_id,
             "subject": payload.subject,
@@ -869,7 +864,7 @@ async def send_newsletter(payload: SendNewsletterSchema, request: Request, user=
             "ok": True,
             "campaign_id": campaign_id,
             "recipients": len(subscribers),
-            "message": f"Campaign scheduled successfully for {dt_send.strftime('%Y-%m-%d %H:%M:%S UTC')}",
+            "message": f"Campaign scheduled successfully for {local_send.strftime('%Y-%m-%d %H:%M')} ({tz})",
         }
 
     # Immediate send (runs in background task so API client receives fast response)
@@ -968,6 +963,7 @@ async def execute_campaign(db, campaign: dict):
         in_app_ok = 0
         whatsapp_ok = 0
         whatsapp_fail = 0
+        whatsapp_no_phone = 0
         attempts = []
 
         for sub in subscribers:
@@ -1054,6 +1050,7 @@ async def execute_campaign(db, campaign: dict):
                         whatsapp_fail += 1
                         attempt["whatsapp"] = "fail"
                 else:
+                    whatsapp_no_phone += 1
                     attempt["whatsapp"] = "no_phone"
 
             attempts.append(attempt)
@@ -1066,6 +1063,7 @@ async def execute_campaign(db, campaign: dict):
                         "push_ok": push_ok, "push_fail": push_fail,
                         "in_app_ok": in_app_ok,
                         "whatsapp_ok": whatsapp_ok, "whatsapp_fail": whatsapp_fail,
+                        "whatsapp_no_phone": whatsapp_no_phone,
                     }},
                 )
 
@@ -1081,6 +1079,7 @@ async def execute_campaign(db, campaign: dict):
                 "in_app_ok": in_app_ok,
                 "whatsapp_ok": whatsapp_ok,
                 "whatsapp_fail": whatsapp_fail,
+                "whatsapp_no_phone": whatsapp_no_phone,
                 "attempts": attempts,
                 "completed_at": _now()
             }}

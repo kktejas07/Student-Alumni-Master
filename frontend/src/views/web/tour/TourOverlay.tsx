@@ -46,8 +46,6 @@ function measureTarget(selector: string): Rect | null {
 }
 
 export function TourOverlay() {
-  if (Platform.OS !== 'web') return null;
-
   const { active, stepIdx, next, back, skip, complete } = useTour();
   const [rect, setRect] = useState<Rect | null>(null);
   const [viewport, setViewport] = useState({
@@ -86,6 +84,7 @@ export function TourOverlay() {
     return () => { cancelled = true; };
   }, [step, active]);
 
+  if (Platform.OS !== 'web') return null;
   if (!active || !cfg || !step) return null;
 
   // Pick a tooltip position that fits in the viewport.

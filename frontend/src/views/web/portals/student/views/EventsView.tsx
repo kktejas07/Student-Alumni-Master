@@ -217,7 +217,7 @@ export function DropdownSelect({ label, value, options, onSelect }: DropdownSele
                     setOpen(false);
                   }}
                   accessibilityLabel={`Select ${opt.label}`}
-                  accessibilityRole="option"
+                  accessibilityRole={'option' as any}
                   testID={`dropdown-opt-${opt.id.toLowerCase().replace(/\s+/g, '-')}`}
                   style={{
                     paddingHorizontal: 12,

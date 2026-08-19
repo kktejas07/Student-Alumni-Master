@@ -319,6 +319,11 @@ app.include_router(echo_router)
 # Newsletter sub-router
 from newsletter import router as newsletter_router
 app.include_router(newsletter_router)
+
+# Contacts sub-router
+from routers.contacts import router as contacts_router
+app.include_router(contacts_router)
+
 from core.email_quality import router as email_quality_router
 api_router.include_router(email_quality_router)
 
