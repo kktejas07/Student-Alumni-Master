@@ -1,16 +1,16 @@
 """
-backend/routers/bgv.py — SuperAdmin Account Verticals & Background Verification (BGV) Engine.
+backend/routers/bgv.py — SuperAdmin Account Verticals, LinkedIn/Country Intelligence & BGV Engine.
 
 Provides:
   1. Account Verticals Classification & Analytics:
      - Real Accounts (Verified active platform users)
      - Test Accounts (Identified sandbox, mock, and @test.com accounts with purge/flag controls)
      - Unregistered Records (Imported directory records, talent pool candidates, event attendees)
-  2. BGV & Identifier Triplets Engine:
-     - BGV ID (Background Verification ID: BGV-2026-XXXXX / BGV-PRE-XXXXX)
-     - SA ID (Student Alumni Account ID: SA-STU-XXXXX / SA-ALU-XXXXX / SA-DIR-XXXXX)
-     - Certificate Series ID (e.g., CERT-SNIST-2026-XXXX or linked credentials)
-  3. Public & Admin BGV Verification Dossier API
+  2. Geographic & Country Segregation & Analysis (India, US, UK, UAE, Canada, Germany, Singapore, etc.)
+  3. LinkedIn Profile Intelligence & Handle Resolution
+  4. Standardized BGV & Identifier Triplets Engine (BGV ID, SA ID, Certificate Series ID)
+  5. Recurring Monthly Claim / Registration Email Notification Engine for Unregistered Accounts
+  6. Public & Admin BGV Verification Dossier API
 """
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ import re
 import os
 import hashlib
 import secrets
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Optional, List, Dict, Any
 
 from fastapi import APIRouter, HTTPException, Query, Body, Header
@@ -38,9 +38,178 @@ TEST_DOMAINS = {
 }
 TEST_KEYWORDS = ["test", "dummy", "mock", "tester", "sample", "demo", "placeholder"]
 
+COUNTRY_FLAGS = {
+    "India": "🇮🇳",
+    "United States": "🇺🇸",
+    "United Kingdom": "🇬🇧",
+    "United Arab Emirates": "🇦🇪",
+    "Canada": "🇨🇦",
+    "Germany": "🇩🇪",
+    "Singapore": "🇸🇬",
+    "Australia": "🇦🇺",
+    "Saudi Arabia": "🇸🇦",
+    "Ireland": "🇮🇪",
+    "France": "🇫🇷",
+    "Netherlands": "🇳🇱",
+    "Other": "🌐"
+}
+
+COUNTRY_CODES = {
+    "India": "IN",
+    "United States": "US",
+    "United Kingdom": "GB",
+    "United Arab Emirates": "AE",
+    "Canada": "CA",
+    "Germany": "DE",
+    "Singapore": "SG",
+    "Australia": "AU",
+    "Saudi Arabia": "SA",
+    "Ireland": "IE",
+    "France": "FR",
+    "Netherlands": "NL",
+    "Other": "XX"
+}
+
 
 def _clean_str(v: Any) -> str:
     return str(v or "").strip()
+
+
+def normalize_country_name(c: str) -> str:
+    val = _clean_str(c).lower()
+    if not val:
+        return "India"
+    if any(k in val for k in ["india", "bharat", "telangana", "andhra", "hyderabad", "bangalore", "mumbai", "delhi"]):
+        return "India"
+    if any(k in val for k in ["usa", "united states", "america", "us", "california", "texas", "new york"]):
+        return "United States"
+    if any(k in val for k in ["uk", "united kingdom", "england", "london", "great britain"]):
+        return "United Kingdom"
+    if any(k in val for k in ["uae", "dubai", "abu dhabi", "emirates", "united arab emirates"]):
+        return "United Arab Emirates"
+    if any(k in val for k in ["canada", "toronto", "ontario", "vancouver"]):
+        return "Canada"
+    if any(k in val for k in ["germany", "deutschland", "berlin", "munich"]):
+        return "Germany"
+    if "singapore" in val:
+        return "Singapore"
+    if any(k in val for k in ["australia", "sydney", "melbourne"]):
+        return "Australia"
+    if any(k in val for k in ["saudi", "ksa", "riyadh"]):
+        return "Saudi Arabia"
+    if any(k in val for k in ["ireland", "dublin"]):
+        return "Ireland"
+    return c.title() if len(c) > 2 else "Other"
+
+
+def infer_country(doc: Dict[str, Any]) -> tuple[str, str, str]:
+    """
+    Returns (country_name, country_code, country_flag).
+    Analyzes explicit country field, location, city, phone code, email domain, etc.
+    """
+    explicit = _clean_str(doc.get("country")).strip()
+    if explicit:
+        norm = normalize_country_name(explicit)
+        return norm, COUNTRY_CODES.get(norm, "XX"), COUNTRY_FLAGS.get(norm, "🌐")
+        
+    loc = _clean_str(doc.get("location") or doc.get("city") or doc.get("state")).lower()
+    phone = _clean_str(doc.get("phone") or doc.get("mobile") or doc.get("whatsapp"))
+    email = _clean_str(doc.get("email") or doc.get("recipient_email")).lower()
+    
+    # Phone prefix checks
+    if phone.startswith("+91") or (phone.startswith("91") and len(phone) == 12):
+        return "India", "IN", "🇮🇳"
+    if phone.startswith("+1") or (phone.startswith("1") and len(phone) == 11):
+        return "United States", "US", "🇺🇸"
+    if phone.startswith("+44"):
+        return "United Kingdom", "GB", "🇬🇧"
+    if phone.startswith("+971"):
+        return "United Arab Emirates", "AE", "🇦🇪"
+    if phone.startswith("+65"):
+        return "Singapore", "SG", "🇸🇬"
+    if phone.startswith("+61"):
+        return "Australia", "AU", "🇦🇺"
+    if phone.startswith("+49"):
+        return "Germany", "DE", "🇩🇪"
+    if phone.startswith("+966"):
+        return "Saudi Arabia", "SA", "🇸🇦"
+    if phone.startswith("+353"):
+        return "Ireland", "IE", "🇮🇪"
+
+    # Location keywords
+    if any(k in loc for k in ["india", "hyderabad", "bangalore", "bengaluru", "mumbai", "delhi", "chennai", "pune", "telangana", "andhra", "karnataka", "maharashtra", "tamil nadu", "gurgaon", "noida", "kolkata", "snist"]):
+        return "India", "IN", "🇮🇳"
+    if any(k in loc for k in ["usa", "united states", "america", "california", "new york", "texas", "san francisco", "seattle", "chicago", "boston", "austin", "los angeles", "ny", "ca"]):
+        return "United States", "US", "🇺🇸"
+    if any(k in loc for k in ["uk", "united kingdom", "london", "england", "manchester", "scotland"]):
+        return "United Kingdom", "GB", "🇬🇧"
+    if any(k in loc for k in ["uae", "dubai", "abu dhabi", "sharjah", "emirates"]):
+        return "United Arab Emirates", "AE", "🇦🇪"
+    if any(k in loc for k in ["canada", "toronto", "vancouver", "ontario", "montreal"]):
+        return "Canada", "CA", "🇨🇦"
+    if any(k in loc for k in ["germany", "berlin", "munich", "frankfurt"]):
+        return "Germany", "DE", "🇩🇪"
+    if "singapore" in loc:
+        return "Singapore", "SG", "🇸🇬"
+    if any(k in loc for k in ["australia", "sydney", "melbourne", "brisbane"]):
+        return "Australia", "AU", "🇦🇺"
+
+    # Email domain analysis
+    if email.endswith(".in") or email.endswith(".co.in"):
+        return "India", "IN", "🇮🇳"
+    if email.endswith(".uk") or email.endswith(".co.uk"):
+        return "United Kingdom", "GB", "🇬🇧"
+    if email.endswith(".ca"):
+        return "Canada", "CA", "🇨🇦"
+    if email.endswith(".au") or email.endswith(".com.au"):
+        return "Australia", "AU", "🇦🇺"
+    if email.endswith(".ae"):
+        return "United Arab Emirates", "AE", "🇦🇪"
+    if email.endswith(".de"):
+        return "Germany", "DE", "🇩🇪"
+    if email.endswith(".sg"):
+        return "Singapore", "SG", "🇸🇬"
+
+    # Institutional affiliation fallback
+    college = _clean_str(doc.get("college") or doc.get("college_name") or (doc.get("school_info") or {}).get("college_name")).lower()
+    if college and any(k in college for k in ["snist", "sreenidhi", "jntu", "osmania", "cbit", "vbit", "iit", "nit", "bits", "vnr"]):
+        return "India", "IN", "🇮🇳"
+        
+    return ("India" if not loc else "Other"), ("IN" if not loc else "XX"), ("🇮🇳" if not loc else "🌐")
+
+
+def extract_linkedin(doc: Dict[str, Any]) -> tuple[str, str]:
+    """
+    Extracts (linkedin_url, linkedin_handle) from document.
+    """
+    raw = doc.get("linkedin_url") or doc.get("linkedin") or doc.get("linkedin_profile") or (doc.get("social_links") or {}).get("linkedin") or ""
+    if not raw:
+        bio = _clean_str(doc.get("bio") or doc.get("notes") or doc.get("headline") or doc.get("about"))
+        m = re.search(r"linkedin\.com/in/([a-zA-Z0-9_-]+)", bio)
+        if m:
+            raw = f"https://www.linkedin.com/in/{m.group(1)}"
+            
+    if not raw:
+        return "", ""
+        
+    raw = str(raw).strip()
+    if not raw.startswith("http://") and not raw.startswith("https://"):
+        if "linkedin.com" in raw:
+            raw = "https://" + raw.lstrip("/")
+        else:
+            raw = f"https://www.linkedin.com/in/{raw.lstrip('@')}"
+            
+    m = re.search(r"linkedin\.com/in/([a-zA-Z0-9_-]+)", raw)
+    handle = m.group(1) if m else raw.rstrip("/").split("/")[-1]
+    return raw, handle
+
+
+def build_claim_url(base_url: str, sa_id: str, email: str, bgv_id: str) -> str:
+    """Constructs a deterministic, personalized claim and activation URL."""
+    clean_base = (base_url or "https://studentalumni.ai/claim").rstrip("/")
+    token_seed = f"CLAIM|{sa_id}|{email}|{bgv_id}|2026"
+    claim_token = hashlib.sha256(token_seed.encode("utf-8")).hexdigest()[:24]
+    return f"{clean_base}?token={claim_token}&sa_id={sa_id}&email={email}&bgv_id={bgv_id}"
 
 
 def is_test_account(doc: Dict[str, Any]) -> bool:
@@ -183,55 +352,163 @@ async def resolve_user_certificate_series(
     return out
 
 
+def generate_claim_email_html(
+    name: str,
+    sa_id: str,
+    bgv_id: str,
+    claim_url: str,
+    college: str = "",
+    role: str = "Member",
+    custom_message: str = ""
+) -> str:
+    """Renders a premier, responsive HTML claim notification email."""
+    first_name = name.split()[0] if name else "Member"
+    role_label = role.replace("_", " ").title()
+    college_label = college or "Accredited University Partner"
+    
+    body = f"""
+    <div style="padding: 24px; background: #ffffff; border-radius: 12px; border: 1px solid #e5e7eb;">
+      <h2 style="margin: 0 0 12px 0; color: #111827; font-size: 22px; font-weight: 700;">
+        Hello {first_name}, Your Verified Profile is Ready! 🎓
+      </h2>
+      <p style="margin: 0 0 16px 0; color: #4b5563; font-size: 15px; line-height: 1.6;">
+        You have an official directory profile pre-registered on the <strong>Student Alumni Network</strong> affiliated with <strong>{college_label}</strong>.
+      </p>
+      
+      <!-- ID Triplet Box -->
+      <div style="margin: 20px 0; padding: 18px; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;">
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 6px 0; color: #64748b; font-size: 13px; font-weight: 600;">Student Alumni ID:</td>
+            <td style="padding: 6px 0; text-align: right; font-family: monospace; font-size: 14px; font-weight: 700; color: #7c3aed;">{sa_id}</td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #64748b; font-size: 13px; font-weight: 600;">Background Verification ID:</td>
+            <td style="padding: 6px 0; text-align: right; font-family: monospace; font-size: 14px; font-weight: 700; color: #059669;">{bgv_id}</td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #64748b; font-size: 13px; font-weight: 600;">Affiliation Role:</td>
+            <td style="padding: 6px 0; text-align: right; font-size: 13px; font-weight: 600; color: #1e293b;">{role_label}</td>
+          </tr>
+        </table>
+      </div>
+
+      <p style="margin: 0 0 20px 0; color: #4b5563; font-size: 14px; line-height: 1.6;">
+        Claiming your profile unlocks access to your digital credential wallet, verified alumni directory, mentorship connections, and official event passes.
+      </p>
+
+      <!-- CTA Button -->
+      <div style="text-align: center; margin: 28px 0 20px 0;">
+        <a href="{claim_url}" style="display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%); color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 700; border-radius: 8px; box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);">
+          Claim & Activate Account →
+        </a>
+      </div>
+
+      <p style="margin: 20px 0 0 0; color: #9ca3af; font-size: 12px; text-align: center; line-height: 1.4;">
+        If button does not work, copy and paste this direct link into your browser:<br/>
+        <a href="{claim_url}" style="color: #7c3aed; word-break: break-all;">{claim_url}</a>
+      </p>
+    </div>
+    """
+    return render_html_email(body)
+
+
 # =========================================================================
-# SuperAdmin Endpoints: Analytics & Verticals List
+# SuperAdmin Endpoints: Analytics & Country/LinkedIn Distribution
 # =========================================================================
 
 @router.get("/admin/analytics")
 async def get_accounts_analytics():
     """
-    Computes real-time distribution across Real Accounts, Test Accounts,
-    and Unregistered Records across users, talent pool, and event registrations.
+    Computes real-time distribution across:
+      - Real Accounts, Test Accounts, Unregistered Records
+      - Country-based breakdown (India, USA, UK, UAE, etc.)
+      - LinkedIn Profile coverage
+      - Monthly Claim Reminders eligibility & status
     """
-    user_cursor = db.users.find({}, {"password_hash": 1, "is_test": 1, "email": 1, "name": 1, "role": 1, "unregistered": 1, "is_imported_contact": 1, "status": 1, "bgv_id": 1, "sa_id": 1, "created_at": 1})
-    all_users = await user_cursor.to_list(length=10000)
-    
-    talent_cursor = db.talent_pool.find({}, {"email": 1, "name": 1, "is_test": 1, "bgv_id": 1, "sa_id": 1})
-    all_talent = await talent_cursor.to_list(length=10000)
-    
-    echo_cursor = db.echo_registrations.find({}, {"email": 1, "name": 1, "is_test": 1, "bgv_id": 1, "sa_id": 1})
-    all_echo = await echo_cursor.to_list(length=10000)
+    proj = {
+        "password_hash": 1, "is_test": 1, "email": 1, "name": 1, "role": 1,
+        "unregistered": 1, "is_imported_contact": 1, "status": 1, "bgv_id": 1,
+        "sa_id": 1, "created_at": 1, "country": 1, "location": 1, "city": 1,
+        "phone": 1, "mobile": 1, "whatsapp": 1, "linkedin_url": 1, "linkedin": 1,
+        "last_claim_reminder_at": 1, "claim_reminders_count": 1
+    }
+    all_users = await db.users.find({}, proj).to_list(length=10000)
+    all_talent = await db.talent_pool.find({}, proj).to_list(length=10000)
+    all_echo = await db.echo_registrations.find({}, proj).to_list(length=10000)
     
     real_count = 0
     test_count = 0
     unregistered_count = 0
     bgv_verified_count = 0
     
+    country_counts: Dict[str, int] = {}
+    has_linkedin_count = 0
+    reminders_due_count = 0
+    reminders_sent_total = 0
+    
+    now = datetime.now(timezone.utc)
+    thirty_days_ago = now - timedelta(days=30)
+    
+    all_combined = []
     for u in all_users:
         vert = determine_vertical(u, "users")
+        all_combined.append((u, vert, "users"))
+    for t in all_talent:
+        vert = "test" if is_test_account(t) else "unregistered"
+        all_combined.append((t, vert, "talent_pool"))
+    for e in all_echo:
+        vert = "test" if is_test_account(e) else "unregistered"
+        all_combined.append((e, vert, "echo_registrations"))
+        
+    for doc, vert, col_name in all_combined:
         if vert == "real":
             real_count += 1
-            if u.get("bgv_id") or u.get("is_bgv_verified"):
+            if doc.get("bgv_id") or doc.get("is_bgv_verified"):
                 bgv_verified_count += 1
         elif vert == "test":
             test_count += 1
         else:
             unregistered_count += 1
+            # Check reminder eligibility
+            last_rem = doc.get("last_claim_reminder_at")
+            if not last_rem:
+                reminders_due_count += 1
+            else:
+                try:
+                    dt = datetime.fromisoformat(str(last_rem).replace("Z", "+00:00"))
+                    if dt < thirty_days_ago:
+                        reminders_due_count += 1
+                except Exception:
+                    reminders_due_count += 1
+                    
+        reminders_sent_total += int(doc.get("claim_reminders_count") or 0)
             
-    for t in all_talent:
-        if is_test_account(t):
-            test_count += 1
-        else:
-            unregistered_count += 1
+        # Geographic analysis
+        c_name, c_code, c_flag = infer_country(doc)
+        country_counts[c_name] = country_counts.get(c_name, 0) + 1
+        
+        # LinkedIn analysis
+        link, _ = extract_linkedin(doc)
+        if link:
+            has_linkedin_count += 1
             
-    for e in all_echo:
-        if is_test_account(e):
-            test_count += 1
-        else:
-            unregistered_count += 1
-            
-    total_records = real_count + test_count + unregistered_count
+    total_records = len(all_combined)
     cert_count = await db.certificates.count_documents({})
+    
+    # Sort top countries
+    top_countries = []
+    for c_name, count in sorted(country_counts.items(), key=lambda x: x[1], reverse=True)[:8]:
+        top_countries.append({
+            "country": c_name,
+            "code": COUNTRY_CODES.get(c_name, "XX"),
+            "flag": COUNTRY_FLAGS.get(c_name, "🌐"),
+            "count": count,
+            "percentage": round((count / total_records * 100) if total_records > 0 else 0, 1)
+        })
+        
+    # Check monthly reminder settings
+    settings_doc = await db.settings.find_one({"id": "bgv_monthly_reminders"}) or {}
     
     return {
         "total_records": total_records,
@@ -254,39 +531,60 @@ async def get_accounts_analytics():
             "bgv_verified_profiles": bgv_verified_count,
             "total_certificates_issued": cert_count,
             "pre_bgv_eligible": unregistered_count
+        },
+        "linkedin_metrics": {
+            "has_linkedin": has_linkedin_count,
+            "missing_linkedin": max(0, total_records - has_linkedin_count),
+            "percentage": round((has_linkedin_count / total_records * 100) if total_records > 0 else 0, 1)
+        },
+        "country_distribution": top_countries,
+        "monthly_reminders": {
+            "enabled": settings_doc.get("auto_reminders_enabled", True),
+            "interval_days": settings_doc.get("interval_days", 30),
+            "total_unregistered": unregistered_count,
+            "due_for_monthly_reminder": reminders_due_count,
+            "total_reminders_sent": reminders_sent_total,
+            "last_cycle_run_at": settings_doc.get("last_cycle_run_at")
         }
     }
 
 
+# =========================================================================
+# Accounts Listing with Country & LinkedIn Filters
+# =========================================================================
+
 @router.get("/admin/list")
 async def list_accounts_by_vertical(
     vertical: str = Query("all", regex="^(all|real|test|unregistered)$"),
-    q: str = Query("", description="Search term for name, email, roll number, sa_id, bgv_id"),
+    country: str = Query("all", description="Filter by Country name (e.g. India, United States, or all)"),
+    has_linkedin: str = Query("all", regex="^(all|yes|no)$"),
+    q: str = Query("", description="Search term for name, email, roll number, sa_id, bgv_id, country"),
     page: int = Query(1, ge=1),
     limit: int = Query(25, ge=1, le=100)
 ):
     """
-    Returns enriched account list with SA ID, BGV ID, and Certificate Series details,
-    filtered by account vertical ('real', 'test', 'unregistered', 'all').
+    Returns enriched account list with SA ID, BGV ID, LinkedIn URLs, Country Geolocation,
+    and Monthly Claim reminder status, filtered by vertical, country, and LinkedIn presence.
     """
     query_str = _clean_str(q).lower()
+    norm_country_filter = normalize_country_name(country).lower() if country != "all" else "all"
+    
+    settings_doc = await db.settings.find_one({"id": "bgv_monthly_reminders"}) or {}
+    claim_base_url = settings_doc.get("claim_base_url") or "https://studentalumni.ai/claim"
     
     proj = {
         "password_hash": 1, "is_test": 1, "email": 1, "name": 1, "first_name": 1, "last_name": 1,
         "role": 1, "category": 1, "college": 1, "college_name": 1, "degree": 1, "graduation_year": 1,
         "batch": 1, "roll_number": 1, "roll_no": 1, "phone": 1, "mobile": 1, "whatsapp": 1,
         "location": 1, "city": 1, "country": 1, "unregistered": 1, "is_imported_contact": 1,
-        "bgv_id": 1, "sa_id": 1, "created_at": 1, "school_info": 1
+        "bgv_id": 1, "sa_id": 1, "created_at": 1, "school_info": 1,
+        "linkedin_url": 1, "linkedin": 1, "linkedin_profile": 1, "social_links": 1, "bio": 1,
+        "last_claim_reminder_at": 1, "claim_reminders_count": 1, "claim_status": 1
     }
     
-    user_cursor = db.users.find({}, proj).sort("_id", -1)
-    users_raw = await user_cursor.to_list(length=3000)
-    
-    talent_cursor = db.talent_pool.find({}, proj).sort("_id", -1)
-    talent_raw = await talent_cursor.to_list(length=1000)
-    
-    echo_cursor = db.echo_registrations.find({}, proj).sort("_id", -1)
-    echo_raw = await echo_cursor.to_list(length=1000)
+    users_raw = await db.users.find({}, proj).sort("_id", -1).to_list(length=3000)
+    talent_raw = await db.talent_pool.find({}, proj).sort("_id", -1).to_list(length=1000)
+    echo_raw = await db.echo_registrations.find({}, proj).sort("_id", -1).to_list(length=1000)
     
     items = []
     seen_emails = set()
@@ -303,6 +601,16 @@ async def list_accounts_by_vertical(
         if vertical != "all" and vert != vertical:
             continue
             
+        c_name, c_code, c_flag = infer_country(u)
+        if norm_country_filter != "all" and c_name.lower() != norm_country_filter:
+            continue
+            
+        linkedin_url, linkedin_handle = extract_linkedin(u)
+        if has_linkedin == "yes" and not linkedin_url:
+            continue
+        if has_linkedin == "no" and linkedin_url:
+            continue
+            
         name = _clean_str(u.get("name") or f"{u.get('first_name', '')} {u.get('last_name', '')}")
         role = _clean_str(u.get("role") or u.get("category") or "student")
         college = _clean_str(u.get("college") or u.get("college_name") or (u.get("school_info") or {}).get("college_name"))
@@ -310,12 +618,13 @@ async def list_accounts_by_vertical(
         grad_year = _clean_str(u.get("graduation_year") or (u.get("school_info") or {}).get("graduation_year") or u.get("batch"))
         roll_no = _clean_str(u.get("roll_number") or (u.get("school_info") or {}).get("roll_number"))
         phone = _clean_str(u.get("phone") or u.get("mobile"))
-        location = _clean_str(u.get("location") or u.get("city") or u.get("country"))
+        location = _clean_str(u.get("location") or u.get("city") or c_name)
         
         sa_id = generate_sa_id(u, role, "users")
         bgv_id = generate_bgv_id(u, is_registered=(vert == "real"))
+        claim_url = build_claim_url(claim_base_url, sa_id, email, bgv_id)
         
-        match_text = f"{name} {email} {phone} {college} {roll_no} {sa_id} {bgv_id}".lower()
+        match_text = f"{name} {email} {phone} {college} {roll_no} {sa_id} {bgv_id} {c_name} {linkedin_handle}".lower()
         if query_str and query_str not in match_text:
             continue
             
@@ -331,11 +640,19 @@ async def list_accounts_by_vertical(
             "graduation_year": grad_year,
             "roll_number": roll_no,
             "location": location,
+            "country": c_name,
+            "country_code": c_code,
+            "country_flag": c_flag,
+            "linkedin_url": linkedin_url,
+            "linkedin_handle": linkedin_handle,
             "vertical": vert,
             "is_registered": vert == "real",
             "is_test": vert == "test",
             "sa_id": sa_id,
             "bgv_id": bgv_id,
+            "claim_url": claim_url,
+            "last_claim_reminder_at": u.get("last_claim_reminder_at"),
+            "claim_reminders_count": int(u.get("claim_reminders_count") or 0),
             "created_at": str(u.get("created_at") or ""),
             "quality_score": 95 if vert == "real" else (50 if vert == "test" else 75),
             "status": "Active Member" if vert == "real" else ("Sandbox Test" if vert == "test" else "Claimable Record")
@@ -354,18 +671,29 @@ async def list_accounts_by_vertical(
             if vertical != "all" and vert != vertical:
                 continue
                 
+            c_name, c_code, c_flag = infer_country(t)
+            if norm_country_filter != "all" and c_name.lower() != norm_country_filter:
+                continue
+                
+            linkedin_url, linkedin_handle = extract_linkedin(t)
+            if has_linkedin == "yes" and not linkedin_url:
+                continue
+            if has_linkedin == "no" and linkedin_url:
+                continue
+                
             name = _clean_str(t.get("name") or f"{t.get('first_name', '')} {t.get('last_name', '')}")
             college = _clean_str(t.get("college") or t.get("institution"))
             degree = _clean_str(t.get("degree") or t.get("qualification"))
             grad_year = _clean_str(t.get("graduation_year") or t.get("batch"))
             phone = _clean_str(t.get("phone") or t.get("mobile"))
-            location = _clean_str(t.get("location") or t.get("city"))
+            location = _clean_str(t.get("location") or t.get("city") or c_name)
             roll_no = _clean_str(t.get("roll_number"))
             
             sa_id = generate_sa_id(t, "candidate", "talent_pool")
             bgv_id = generate_bgv_id(t, is_registered=False)
+            claim_url = build_claim_url(claim_base_url, sa_id, email, bgv_id)
             
-            match_text = f"{name} {email} {phone} {college} {sa_id} {bgv_id}".lower()
+            match_text = f"{name} {email} {phone} {college} {sa_id} {bgv_id} {c_name} {linkedin_handle}".lower()
             if query_str and query_str not in match_text:
                 continue
                 
@@ -381,11 +709,19 @@ async def list_accounts_by_vertical(
                 "graduation_year": grad_year,
                 "roll_number": roll_no,
                 "location": location,
+                "country": c_name,
+                "country_code": c_code,
+                "country_flag": c_flag,
+                "linkedin_url": linkedin_url,
+                "linkedin_handle": linkedin_handle,
                 "vertical": vert,
                 "is_registered": False,
                 "is_test": vert == "test",
                 "sa_id": sa_id,
                 "bgv_id": bgv_id,
+                "claim_url": claim_url,
+                "last_claim_reminder_at": t.get("last_claim_reminder_at"),
+                "claim_reminders_count": int(t.get("claim_reminders_count") or 0),
                 "created_at": str(t.get("created_at") or ""),
                 "quality_score": 50 if vert == "test" else 78,
                 "status": "Talent Candidate (Unregistered)"
@@ -404,6 +740,16 @@ async def list_accounts_by_vertical(
             if vertical != "all" and vert != vertical:
                 continue
                 
+            c_name, c_code, c_flag = infer_country(e)
+            if norm_country_filter != "all" and c_name.lower() != norm_country_filter:
+                continue
+                
+            linkedin_url, linkedin_handle = extract_linkedin(e)
+            if has_linkedin == "yes" and not linkedin_url:
+                continue
+            if has_linkedin == "no" and linkedin_url:
+                continue
+                
             name = _clean_str(e.get("name") or e.get("full_name"))
             college = _clean_str(e.get("college") or e.get("college_name"))
             phone = _clean_str(e.get("phone") or e.get("whatsapp"))
@@ -411,8 +757,9 @@ async def list_accounts_by_vertical(
             
             sa_id = generate_sa_id(e, "event_attendee", "echo_registrations")
             bgv_id = generate_bgv_id(e, is_registered=False)
+            claim_url = build_claim_url(claim_base_url, sa_id, email, bgv_id)
             
-            match_text = f"{name} {email} {phone} {college} {sa_id} {bgv_id}".lower()
+            match_text = f"{name} {email} {phone} {college} {sa_id} {bgv_id} {c_name} {linkedin_handle}".lower()
             if query_str and query_str not in match_text:
                 continue
                 
@@ -427,12 +774,20 @@ async def list_accounts_by_vertical(
                 "degree": "",
                 "graduation_year": "",
                 "roll_number": roll_no,
-                "location": _clean_str(e.get("location")),
+                "location": _clean_str(e.get("location") or c_name),
+                "country": c_name,
+                "country_code": c_code,
+                "country_flag": c_flag,
+                "linkedin_url": linkedin_url,
+                "linkedin_handle": linkedin_handle,
                 "vertical": vert,
                 "is_registered": False,
                 "is_test": vert == "test",
                 "sa_id": sa_id,
                 "bgv_id": bgv_id,
+                "claim_url": claim_url,
+                "last_claim_reminder_at": e.get("last_claim_reminder_at"),
+                "claim_reminders_count": int(e.get("claim_reminders_count") or 0),
                 "created_at": str(e.get("created_at") or ""),
                 "quality_score": 50 if vert == "test" else 70,
                 "status": "Event Attendee (Unregistered)"
@@ -464,6 +819,498 @@ async def list_accounts_by_vertical(
 
 
 # =========================================================================
+# Monthly Email Reminders for Unregistered Accounts Engine
+# =========================================================================
+
+class MonthlyReminderSettingsPayload(BaseModel):
+    auto_reminders_enabled: bool = True
+    interval_days: int = 30
+    claim_base_url: str = "https://studentalumni.ai/claim"
+    subject_template: str = "Claim & Activate Your Verified Student Alumni Account ({sa_id})"
+    test_email: Optional[str] = None
+
+
+@router.get("/admin/monthly-reminders/status")
+async def get_monthly_reminders_status():
+    """Returns the current configuration and execution metrics for monthly claim notifications."""
+    settings_doc = await db.settings.find_one({"id": "bgv_monthly_reminders"}) or {}
+    
+    now = datetime.now(timezone.utc)
+    interval_days = int(settings_doc.get("interval_days", 30))
+    cutoff = now - timedelta(days=interval_days)
+    
+    # Count eligible unregistered users
+    users = await db.users.find({}, {"password_hash": 1, "is_test": 1, "email": 1, "unregistered": 1, "last_claim_reminder_at": 1}).to_list(length=10000)
+    talent = await db.talent_pool.find({}, {"is_test": 1, "email": 1, "last_claim_reminder_at": 1}).to_list(length=10000)
+    
+    unreg_total = 0
+    due_count = 0
+    for u in users:
+        if determine_vertical(u, "users") == "unregistered":
+            unreg_total += 1
+            last_rem = u.get("last_claim_reminder_at")
+            if not last_rem:
+                due_count += 1
+            else:
+                try:
+                    dt = datetime.fromisoformat(str(last_rem).replace("Z", "+00:00"))
+                    if dt < cutoff:
+                        due_count += 1
+                except Exception:
+                    due_count += 1
+                    
+    for t in talent:
+        if not is_test_account(t):
+            unreg_total += 1
+            last_rem = t.get("last_claim_reminder_at")
+            if not last_rem:
+                due_count += 1
+            else:
+                try:
+                    dt = datetime.fromisoformat(str(last_rem).replace("Z", "+00:00"))
+                    if dt < cutoff:
+                        due_count += 1
+                except Exception:
+                    due_count += 1
+
+    return {
+        "ok": True,
+        "auto_reminders_enabled": settings_doc.get("auto_reminders_enabled", True),
+        "interval_days": interval_days,
+        "claim_base_url": settings_doc.get("claim_base_url", "https://studentalumni.ai/claim"),
+        "subject_template": settings_doc.get("subject_template", "Claim & Activate Your Verified Student Alumni Account ({sa_id})"),
+        "total_unregistered_targets": unreg_total,
+        "due_for_monthly_cycle": due_count,
+        "last_cycle_run_at": settings_doc.get("last_cycle_run_at"),
+        "last_dispatched_count": settings_doc.get("last_dispatched_count", 0)
+    }
+
+
+@router.post("/admin/monthly-reminders/settings")
+async def update_monthly_reminders_settings(payload: MonthlyReminderSettingsPayload):
+    """Updates settings for monthly automated claim notifications."""
+    data = {
+        "id": "bgv_monthly_reminders",
+        "auto_reminders_enabled": payload.auto_reminders_enabled,
+        "interval_days": payload.interval_days,
+        "claim_base_url": payload.claim_base_url.strip().rstrip("/"),
+        "subject_template": payload.subject_template.strip(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.settings.update_one({"id": "bgv_monthly_reminders"}, {"$set": data}, upsert=True)
+    
+    # If test email provided, dispatch sample email
+    if payload.test_email:
+        sample_sa = "SA-STU-DEMO01"
+        sample_bgv = "BGV-2026-DEMO01"
+        sample_url = build_claim_url(payload.claim_base_url, sample_sa, payload.test_email, sample_bgv)
+        html = generate_claim_email_html(
+            name="Sample Candidate",
+            sa_id=sample_sa,
+            bgv_id=sample_bgv,
+            claim_url=sample_url,
+            college="Sreenidhi Institute of Science and Technology",
+            role="Student"
+        )
+        subject = payload.subject_template.replace("{sa_id}", sample_sa).replace("{name}", "Sample Candidate")
+        await send_email(to_email=payload.test_email, subject=f"[TEST PREVIEW] {subject}", html_content=html)
+        
+    return {"ok": True, "message": "Monthly reminder settings saved successfully."}
+
+
+class RunMonthlyRemindersPayload(BaseModel):
+    dry_run: bool = False
+    limit: Optional[int] = 500
+
+
+@router.post("/admin/monthly-reminders/run")
+async def run_monthly_claim_reminders(payload: RunMonthlyRemindersPayload = Body(default_factory=RunMonthlyRemindersPayload)):
+    """
+    Executes the monthly claim reminder email broadcast for all eligible unregistered records.
+    Only users who haven't registered and haven't received a reminder in the last 30 days are emailed.
+    """
+    settings_doc = await db.settings.find_one({"id": "bgv_monthly_reminders"}) or {}
+    claim_base_url = settings_doc.get("claim_base_url") or "https://studentalumni.ai/claim"
+    subject_tmpl = settings_doc.get("subject_template") or "Claim & Activate Your Verified Student Alumni Account ({sa_id})"
+    interval_days = int(settings_doc.get("interval_days", 30))
+    
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(days=interval_days)
+    
+    users = await db.users.find({}, {
+        "password_hash": 1, "is_test": 1, "email": 1, "name": 1, "first_name": 1, "last_name": 1,
+        "role": 1, "category": 1, "college": 1, "college_name": 1, "unregistered": 1,
+        "is_imported_contact": 1, "sa_id": 1, "bgv_id": 1, "last_claim_reminder_at": 1, "claim_reminders_count": 1
+    }).to_list(length=10000)
+    
+    talent = await db.talent_pool.find({}, {
+        "is_test": 1, "email": 1, "name": 1, "first_name": 1, "last_name": 1,
+        "college": 1, "institution": 1, "sa_id": 1, "bgv_id": 1,
+        "last_claim_reminder_at": 1, "claim_reminders_count": 1
+    }).to_list(length=10000)
+    
+    eligible_recipients = []
+    
+    for u in users:
+        if determine_vertical(u, "users") != "unregistered":
+            continue
+        email = _clean_str(u.get("email")).lower()
+        if not email or "@" not in email or any(d in email for d in TEST_DOMAINS):
+            continue
+            
+        last_rem = u.get("last_claim_reminder_at")
+        is_due = False
+        if not last_rem:
+            is_due = True
+        else:
+            try:
+                dt = datetime.fromisoformat(str(last_rem).replace("Z", "+00:00"))
+                if dt < cutoff:
+                    is_due = True
+            except Exception:
+                is_due = True
+                
+        if is_due:
+            name = _clean_str(u.get("name") or f"{u.get('first_name', '')} {u.get('last_name', '')}") or "Member"
+            role = _clean_str(u.get("role") or u.get("category") or "student")
+            college = _clean_str(u.get("college") or u.get("college_name"))
+            sa_id = generate_sa_id(u, role, "users")
+            bgv_id = generate_bgv_id(u, is_registered=False)
+            claim_url = build_claim_url(claim_base_url, sa_id, email, bgv_id)
+            
+            eligible_recipients.append({
+                "id": str(u["_id"]),
+                "collection": "users",
+                "name": name,
+                "email": email,
+                "role": role,
+                "college": college,
+                "sa_id": sa_id,
+                "bgv_id": bgv_id,
+                "claim_url": claim_url,
+                "current_count": int(u.get("claim_reminders_count") or 0)
+            })
+
+    for t in talent:
+        if is_test_account(t):
+            continue
+        email = _clean_str(t.get("email")).lower()
+        if not email or "@" not in email or any(d in email for d in TEST_DOMAINS):
+            continue
+            
+        last_rem = t.get("last_claim_reminder_at")
+        is_due = False
+        if not last_rem:
+            is_due = True
+        else:
+            try:
+                dt = datetime.fromisoformat(str(last_rem).replace("Z", "+00:00"))
+                if dt < cutoff:
+                    is_due = True
+            except Exception:
+                is_due = True
+                
+        if is_due:
+            name = _clean_str(t.get("name") or f"{t.get('first_name', '')} {t.get('last_name', '')}") or "Candidate"
+            college = _clean_str(t.get("college") or t.get("institution"))
+            sa_id = generate_sa_id(t, "candidate", "talent_pool")
+            bgv_id = generate_bgv_id(t, is_registered=False)
+            claim_url = build_claim_url(claim_base_url, sa_id, email, bgv_id)
+            
+            eligible_recipients.append({
+                "id": str(t["_id"]),
+                "collection": "talent_pool",
+                "name": name,
+                "email": email,
+                "role": "candidate",
+                "college": college,
+                "sa_id": sa_id,
+                "bgv_id": bgv_id,
+                "claim_url": claim_url,
+                "current_count": int(t.get("claim_reminders_count") or 0)
+            })
+
+    target_list = eligible_recipients[: (payload.limit or 500)]
+    
+    if payload.dry_run:
+        return {
+            "ok": True,
+            "dry_run": True,
+            "eligible_count": len(eligible_recipients),
+            "target_count": len(target_list),
+            "sample_recipients": target_list[:5]
+        }
+        
+    sent_count = 0
+    failed_count = 0
+    iso_now = now.isoformat()
+    
+    for r in target_list:
+        try:
+            subj = subject_tmpl.replace("{sa_id}", r["sa_id"]).replace("{name}", r["name"])
+            html = generate_claim_email_html(
+                name=r["name"],
+                sa_id=r["sa_id"],
+                bgv_id=r["bgv_id"],
+                claim_url=r["claim_url"],
+                college=r["college"],
+                role=r["role"]
+            )
+            success = await send_email(to_email=r["email"], subject=subj, html_content=html)
+            if success:
+                sent_count += 1
+                col = getattr(db, r["collection"])
+                try:
+                    oid = ObjectId(r["id"])
+                    await col.update_one(
+                        {"_id": oid},
+                        {"$set": {
+                            "last_claim_reminder_at": iso_now,
+                            "claim_status": "reminder_dispatched",
+                            "sa_id": r["sa_id"],
+                            "bgv_id": r["bgv_id"]
+                        }, "$inc": {"claim_reminders_count": 1}}
+                    )
+                except Exception:
+                    await col.update_one(
+                        {"id": r["id"]},
+                        {"$set": {
+                            "last_claim_reminder_at": iso_now,
+                            "claim_status": "reminder_dispatched",
+                            "sa_id": r["sa_id"],
+                            "bgv_id": r["bgv_id"]
+                        }, "$inc": {"claim_reminders_count": 1}}
+                    )
+            else:
+                failed_count += 1
+        except Exception as e:
+            failed_count += 1
+            print(f"[BGV] Reminder dispatch error for {r['email']}: {e}")
+
+    await db.settings.update_one(
+        {"id": "bgv_monthly_reminders"},
+        {"$set": {
+            "last_cycle_run_at": iso_now,
+            "last_dispatched_count": sent_count,
+            "last_dispatched_failed": failed_count
+        }},
+        upsert=True
+    )
+
+    return {
+        "ok": True,
+        "dispatched_count": sent_count,
+        "failed_count": failed_count,
+        "total_eligible": len(eligible_recipients),
+        "message": f"Successfully sent {sent_count} monthly claim notification emails."
+    }
+
+
+class SendSingleClaimEmailPayload(BaseModel):
+    id: str
+    collection: str = "users"
+    custom_url: Optional[str] = None
+    email: Optional[str] = None
+
+
+@router.post("/admin/monthly-reminders/send-single")
+async def send_single_claim_email(payload: SendSingleClaimEmailPayload):
+    """Sends an immediate personalized profile claim email notification to a specific unregistered record."""
+    col_name = payload.collection if payload.collection in ["users", "talent_pool", "echo_registrations"] else "users"
+    col = getattr(db, col_name)
+    
+    doc = None
+    try:
+        doc = await col.find_one({"_id": ObjectId(payload.id)})
+    except Exception:
+        doc = await col.find_one({"id": payload.id})
+        
+    if not doc:
+        raise HTTPException(404, "Target account record not found")
+        
+    email = payload.email or _clean_str(doc.get("email")).lower()
+    if not email or "@" not in email:
+        raise HTTPException(400, "Record does not have a valid email address")
+        
+    name = _clean_str(doc.get("name") or f"{doc.get('first_name', '')} {doc.get('last_name', '')}") or "Member"
+    role = _clean_str(doc.get("role") or doc.get("category") or "student")
+    college = _clean_str(doc.get("college") or doc.get("college_name") or (doc.get("school_info") or {}).get("college_name"))
+    
+    sa_id = generate_sa_id(doc, role, col_name)
+    bgv_id = generate_bgv_id(doc, is_registered=False)
+    
+    settings_doc = await db.settings.find_one({"id": "bgv_monthly_reminders"}) or {}
+    claim_base_url = payload.custom_url or settings_doc.get("claim_base_url") or "https://studentalumni.ai/claim"
+    claim_url = build_claim_url(claim_base_url, sa_id, email, bgv_id)
+    
+    subject = f"Claim & Activate Your Verified Student Alumni Profile ({sa_id})"
+    html = generate_claim_email_html(
+        name=name,
+        sa_id=sa_id,
+        bgv_id=bgv_id,
+        claim_url=claim_url,
+        college=college,
+        role=role
+    )
+    
+    success = await send_email(to_email=email, subject=subject, html_content=html)
+    if not success:
+        raise HTTPException(500, f"Email delivery failed for {email}. Please verify postal/smtp settings.")
+        
+    iso_now = datetime.now(timezone.utc).isoformat()
+    try:
+        await col.update_one(
+            {"_id": doc["_id"]},
+            {"$set": {
+                "last_claim_reminder_at": iso_now,
+                "claim_status": "reminder_dispatched",
+                "sa_id": sa_id,
+                "bgv_id": bgv_id
+            }, "$inc": {"claim_reminders_count": 1}}
+        )
+    except Exception:
+        pass
+        
+    return {
+        "ok": True,
+        "email": email,
+        "sa_id": sa_id,
+        "bgv_id": bgv_id,
+        "claim_url": claim_url,
+        "message": f"Claim invitation sent successfully to {email}"
+    }
+
+
+# =========================================================================
+# Profile Update & Auto-Enrichment (LinkedIn & Country) Endpoints
+# =========================================================================
+
+class UpdateProfilePayload(BaseModel):
+    id: str
+    collection: str = "users"
+    name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    country: Optional[str] = None
+    location: Optional[str] = None
+    linkedin_url: Optional[str] = None
+    college: Optional[str] = None
+    degree: Optional[str] = None
+    graduation_year: Optional[str] = None
+    roll_number: Optional[str] = None
+
+
+@router.post("/admin/update-profile")
+async def update_account_profile(payload: UpdateProfilePayload):
+    """Updates an individual's LinkedIn profile, Country, location, and contact information."""
+    col_name = payload.collection if payload.collection in ["users", "talent_pool", "echo_registrations"] else "users"
+    col = getattr(db, col_name)
+    
+    update_data: Dict[str, Any] = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    
+    if payload.name is not None:
+        update_data["name"] = payload.name.strip()
+    if payload.email is not None:
+        update_data["email"] = payload.email.strip().lower()
+    if payload.phone is not None:
+        update_data["phone"] = payload.phone.strip()
+        update_data["mobile"] = payload.phone.strip()
+    if payload.country is not None:
+        update_data["country"] = normalize_country_name(payload.country)
+    if payload.location is not None:
+        update_data["location"] = payload.location.strip()
+    if payload.linkedin_url is not None:
+        raw_li = payload.linkedin_url.strip()
+        if raw_li and not raw_li.startswith("http"):
+            if "linkedin.com" in raw_li:
+                raw_li = "https://" + raw_li.lstrip("/")
+            else:
+                raw_li = f"https://www.linkedin.com/in/{raw_li.lstrip('@')}"
+        update_data["linkedin_url"] = raw_li
+        update_data["linkedin"] = raw_li
+    if payload.college is not None:
+        update_data["college"] = payload.college.strip()
+    if payload.degree is not None:
+        update_data["degree"] = payload.degree.strip()
+    if payload.graduation_year is not None:
+        update_data["graduation_year"] = payload.graduation_year.strip()
+    if payload.roll_number is not None:
+        update_data["roll_number"] = payload.roll_number.strip()
+        
+    try:
+        oid = ObjectId(payload.id)
+        res = await col.update_one({"_id": oid}, {"$set": update_data})
+    except Exception:
+        res = await col.update_one({"id": payload.id}, {"$set": update_data})
+        
+    if res.matched_count == 0:
+        raise HTTPException(404, "Profile record not found")
+        
+    return {"ok": True, "message": "Profile updated successfully."}
+
+
+@router.post("/admin/enrich-profiles")
+async def auto_enrich_profiles():
+    """
+    Scans all database profiles to:
+      1. Normalize & backfill Country information from phone, location, and metadata
+      2. Extract & standardize LinkedIn URLs and handles
+      3. Ensure consistent ID triplets (SA ID and BGV ID)
+    """
+    enriched_users = 0
+    enriched_talent = 0
+    
+    users = await db.users.find({}).to_list(length=5000)
+    for u in users:
+        updates = {}
+        # Country
+        if not u.get("country"):
+            c_name, _, _ = infer_country(u)
+            updates["country"] = c_name
+            
+        # LinkedIn
+        li_url, _ = extract_linkedin(u)
+        if li_url and not u.get("linkedin_url"):
+            updates["linkedin_url"] = li_url
+            
+        # IDs
+        if not u.get("sa_id"):
+            updates["sa_id"] = generate_sa_id(u, u.get("role", "student"), "users")
+        if not u.get("bgv_id"):
+            updates["bgv_id"] = generate_bgv_id(u, is_registered=is_registered_account(u, "users"))
+            
+        if updates:
+            await db.users.update_one({"_id": u["_id"]}, {"$set": updates})
+            enriched_users += 1
+            
+    talent = await db.talent_pool.find({}).to_list(length=5000)
+    for t in talent:
+        updates = {}
+        if not t.get("country"):
+            c_name, _, _ = infer_country(t)
+            updates["country"] = c_name
+        li_url, _ = extract_linkedin(t)
+        if li_url and not t.get("linkedin_url"):
+            updates["linkedin_url"] = li_url
+        if not t.get("sa_id"):
+            updates["sa_id"] = generate_sa_id(t, "candidate", "talent_pool")
+        if not t.get("bgv_id"):
+            updates["bgv_id"] = generate_bgv_id(t, is_registered=False)
+            
+        if updates:
+            await db.talent_pool.update_one({"_id": t["_id"]}, {"$set": updates})
+            enriched_talent += 1
+            
+    return {
+        "ok": True,
+        "enriched_users": enriched_users,
+        "enriched_talent": enriched_talent,
+        "total_enriched": enriched_users + enriched_talent,
+        "message": f"Successfully enriched {enriched_users + enriched_talent} records with Geolocation & LinkedIn."
+    }
+
+
+# =========================================================================
 # Admin Action: Toggle Test Status & Purge Test Data
 # =========================================================================
 
@@ -476,10 +1323,7 @@ class ToggleTestPayload(BaseModel):
 @router.post("/admin/toggle-test")
 async def toggle_test_status(payload: ToggleTestPayload):
     """Toggles the 'is_test' flag on a user, talent profile, or event attendee."""
-    col_name = payload.collection
-    if col_name not in ["users", "talent_pool", "echo_registrations"]:
-        col_name = "users"
-        
+    col_name = payload.collection if payload.collection in ["users", "talent_pool", "echo_registrations"] else "users"
     col = getattr(db, col_name)
     try:
         oid = ObjectId(payload.id)
@@ -595,7 +1439,6 @@ async def lookup_bgv_record(
                 talent_match = await db.talent_pool.find_one({"email": cert_match["recipient_email"]})
 
     if not user_match and not talent_match and not cert_match:
-        # Fallback: Match dynamically computed deterministic SA ID / BGV ID
         proj_lookup = {
             "password_hash": 1, "email": 1, "name": 1, "first_name": 1, "last_name": 1,
             "role": 1, "unregistered": 1, "is_test": 1, "college": 1, "college_name": 1,
@@ -638,10 +1481,12 @@ async def lookup_bgv_record(
         degree = _clean_str(target_doc.get("degree") or (target_doc.get("school_info") or {}).get("degree"))
         grad_year = _clean_str(target_doc.get("graduation_year") or (target_doc.get("school_info") or {}).get("graduation_year") or target_doc.get("batch"))
         roll_no = _clean_str(target_doc.get("roll_number") or (target_doc.get("school_info") or {}).get("roll_number"))
-        location = _clean_str(target_doc.get("location") or target_doc.get("city") or target_doc.get("country"))
+        c_name, c_code, c_flag = infer_country(target_doc)
+        location = _clean_str(target_doc.get("location") or target_doc.get("city") or c_name)
         is_reg = is_registered_account(target_doc, collection_name)
         sa_id = generate_sa_id(target_doc, role, collection_name)
         bgv_id = generate_bgv_id(target_doc, is_registered=is_reg)
+        linkedin_url, linkedin_handle = extract_linkedin(target_doc)
     else:
         email = _clean_str(cert_match.get("recipient_email")).lower()
         name = _clean_str(cert_match.get("recipient_name"))
@@ -651,10 +1496,12 @@ async def lookup_bgv_record(
         degree = _clean_str(cert_match.get("degree") or "Engineering / Technology")
         grad_year = _clean_str(cert_match.get("batch") or "2026")
         roll_no = _clean_str(cert_match.get("roll_number"))
+        c_name, c_code, c_flag = "India", "IN", "🇮🇳"
         location = _clean_str(cert_match.get("location") or "India")
         is_reg = False
         sa_id = cert_match.get("sa_id") or f"SA-DIR-{hashlib.sha256(email.encode('utf-8')).hexdigest()[:6].upper()}"
         bgv_id = f"BGV-PRE-{hashlib.sha256(email.encode('utf-8')).hexdigest()[:6].upper()}"
+        linkedin_url, linkedin_handle = "", ""
 
     cert_series_list = await resolve_user_certificate_series(
         email=email,
@@ -689,6 +1536,11 @@ async def lookup_bgv_record(
             "phone": phone,
             "role": role,
             "location": location or "Verified Location",
+            "country": c_name,
+            "country_code": c_code,
+            "country_flag": c_flag,
+            "linkedin_url": linkedin_url,
+            "linkedin_handle": linkedin_handle,
             "college": college or "Accredited University Partner",
             "degree": degree or "Bachelor of Technology",
             "graduation_year": grad_year or "2026",

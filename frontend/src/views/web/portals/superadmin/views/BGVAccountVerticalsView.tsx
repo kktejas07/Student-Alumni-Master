@@ -1,13 +1,15 @@
 // @ts-nocheck
 /**
  * BGVAccountVerticalsView.tsx
- * SuperAdmin — Account Verticals (Real vs Test vs Unregistered) & Background Verification (BGV) Engine.
+ * SuperAdmin — Account Verticals (Real vs Test vs Unregistered), Country/LinkedIn Intelligence, & BGV Engine.
  *
  * Implements:
  *   1. Account Verticals Analysis (Real accounts, Test accounts, Unregistered directory records)
- *   2. Standardized Identifiers (BGV ID, Student Alumni SA ID, Certificate Series ID)
- *   3. Interactive BGV Verification Portal & Digital Holographic Card Widget
- *   4. Actions: Toggle Test Status, Purge Sandbox Data, Send Claim Invites, Backfill IDs.
+ *   2. Geographic Segregation & Country Breakdown (India, USA, UK, UAE, Canada, Germany, Singapore, etc.)
+ *   3. LinkedIn Profile Intelligence, Handle Resolution, & Direct Access Badges
+ *   4. Standardized Identifiers (BGV ID, Student Alumni SA ID, Certificate Series ID)
+ *   5. Automated Monthly Claim & Activation Email Notification Engine for Unregistered Accounts
+ *   6. Profile Editing, Auto-Enrichment, and Interactive Holographic Verification Dossier
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -19,6 +21,7 @@ import {
   CheckCircle2, AlertTriangle, Trash2, RefreshCw, Copy, Check, ExternalLink,
   Award, FileText, QrCode, Mail, Phone, MapPin, Building2, Eye, ArrowRight,
   Filter, Shield, UserX, UserPlus, Send, Download, Sparkle, HelpCircle,
+  Globe, Linkedin, Edit3, Clock, BellRing, Settings2, PlayCircle,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SAC, FONTS } from '../tokens';
@@ -29,9 +32,24 @@ import {
 import { api, request } from '@/src/models/services/api';
 
 type VerticalType = 'all' | 'real' | 'test' | 'unregistered';
+type LinkedInFilterType = 'all' | 'yes' | 'no';
+
+const TOP_COUNTRIES = [
+  { id: 'all', label: 'All Countries', flag: '🌐' },
+  { id: 'India', label: 'India', flag: '🇮🇳' },
+  { id: 'United States', label: 'United States', flag: '🇺🇸' },
+  { id: 'United Kingdom', label: 'United Kingdom', flag: '🇬🇧' },
+  { id: 'United Arab Emirates', label: 'UAE', flag: '🇦🇪' },
+  { id: 'Canada', label: 'Canada', flag: '🇨🇦' },
+  { id: 'Germany', label: 'Germany', flag: '🇩🇪' },
+  { id: 'Singapore', label: 'Singapore', flag: '🇸🇬' },
+  { id: 'Australia', label: 'Australia', flag: '🇦🇺' },
+];
 
 export function BGVAccountVerticalsView() {
   const [vertical, setVertical] = useState<VerticalType>('all');
+  const [countryFilter, setCountryFilter] = useState<string>('all');
+  const [linkedInFilter, setLinkedInFilter] = useState<LinkedInFilterType>('all');
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
   const [data, setData] = useState<any>(null);
@@ -50,6 +68,34 @@ export function BGVAccountVerticalsView() {
   const [purgeModal, setPurgeModal] = useState(false);
   const [purgeBusy, setPurgeBusy] = useState(false);
   const [backfillBusy, setBackfillBusy] = useState(false);
+  const [enrichBusy, setEnrichBusy] = useState(false);
+
+  // Monthly Reminders Modal & State
+  const [remindersModal, setRemindersModal] = useState(false);
+  const [remindersStatus, setRemindersStatus] = useState<any>(null);
+  const [remindersBusy, setRemindersBusy] = useState(false);
+  const [remindersBaseUrl, setRemindersBaseUrl] = useState('https://studentalumni.ai/claim');
+  const [remindersSubject, setRemindersSubject] = useState('Claim & Activate Your Verified Student Alumni Account ({sa_id})');
+  const [remindersInterval, setRemindersInterval] = useState('30');
+  const [remindersAutoEnabled, setRemindersAutoEnabled] = useState(true);
+  const [testEmailAddress, setTestEmailAddress] = useState('');
+  const [singleSendingId, setSingleSendingId] = useState<string | null>(null);
+
+  // Profile Edit Modal State
+  const [editProfileModal, setEditProfileModal] = useState<any>(null);
+  const [editForm, setEditForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    country: 'India',
+    location: '',
+    linkedin_url: '',
+    college: '',
+    degree: '',
+    graduation_year: '',
+    roll_number: '',
+  });
+  const [editBusy, setEditBusy] = useState(false);
 
   const { toast, flash, hide } = useToast();
 
@@ -67,10 +113,10 @@ export function BGVAccountVerticalsView() {
   }, []);
 
   // Load accounts list
-  const loadList = useCallback(async (p = 1, vert = vertical, search = q) => {
+  const loadList = useCallback(async (p = 1, vert = vertical, search = q, ctry = countryFilter, li = linkedInFilter) => {
     setBusy(true);
     try {
-      const res = await api.listAccountsByVertical(vert, search, p, 25);
+      const res = await api.listAccountsByVertical(vert, search, p, 25, ctry, li);
       setData(res);
       setPage(p);
     } catch (e: any) {
@@ -79,15 +125,32 @@ export function BGVAccountVerticalsView() {
     } finally {
       setBusy(false);
     }
-  }, [vertical, q, flash]);
+  }, [vertical, q, countryFilter, linkedInFilter, flash]);
+
+  // Load reminders configuration
+  const loadRemindersStatus = useCallback(async () => {
+    try {
+      const res = await api.getMonthlyRemindersStatus();
+      setRemindersStatus(res);
+      if (res) {
+        setRemindersBaseUrl(res.claim_base_url || 'https://studentalumni.ai/claim');
+        setRemindersSubject(res.subject_template || 'Claim & Activate Your Verified Student Alumni Account ({sa_id})');
+        setRemindersInterval(String(res.interval_days || 30));
+        setRemindersAutoEnabled(res.auto_reminders_enabled !== false);
+      }
+    } catch (e) {
+      console.warn('Failed to load reminder settings', e);
+    }
+  }, []);
 
   useEffect(() => {
     loadAnalytics();
-  }, [loadAnalytics]);
+    loadRemindersStatus();
+  }, [loadAnalytics, loadRemindersStatus]);
 
   useEffect(() => {
-    loadList(1, vertical, q);
-  }, [vertical, q]);
+    loadList(1, vertical, q, countryFilter, linkedInFilter);
+  }, [vertical, q, countryFilter, linkedInFilter]);
 
   // Handle BGV Lookup
   const handleLookup = async (identifier?: string) => {
@@ -119,7 +182,7 @@ export function BGVAccountVerticalsView() {
         is_test: nextState,
       });
       flash(`Marked ${item.name} as ${nextState ? 'Test Account' : 'Real Account'}`, 'success');
-      loadList(page, vertical, q);
+      loadList(page, vertical, q, countryFilter, linkedInFilter);
       loadAnalytics();
     } catch (e: any) {
       flash(e?.message || 'Failed to update status', 'error');
@@ -133,11 +196,120 @@ export function BGVAccountVerticalsView() {
       const res = await api.backfillBGVIdentifiers();
       flash(`Successfully backfilled ${res.total_backfilled} BGV & SA IDs`, 'success');
       loadAnalytics();
-      loadList(page, vertical, q);
+      loadList(page, vertical, q, countryFilter, linkedInFilter);
     } catch (e: any) {
       flash(e?.message || 'Backfill failed', 'error');
     } finally {
       setBackfillBusy(false);
+    }
+  };
+
+  // Auto-Enrich Geolocation & LinkedIn
+  const handleAutoEnrich = async () => {
+    setEnrichBusy(true);
+    try {
+      const res = await api.autoEnrichProfiles();
+      flash(res.message || 'Auto-enrichment completed', 'success');
+      loadAnalytics();
+      loadList(page, vertical, q, countryFilter, linkedInFilter);
+    } catch (e: any) {
+      flash(e?.message || 'Auto-enrichment failed', 'error');
+    } finally {
+      setEnrichBusy(false);
+    }
+  };
+
+  // Save Monthly Reminders Settings
+  const handleSaveRemindersSettings = async () => {
+    setRemindersBusy(true);
+    try {
+      await api.updateMonthlyRemindersSettings({
+        auto_reminders_enabled: remindersAutoEnabled,
+        interval_days: parseInt(remindersInterval, 10) || 30,
+        claim_base_url: remindersBaseUrl,
+        subject_template: remindersSubject,
+        test_email: testEmailAddress || undefined,
+      });
+      flash('Monthly reminder settings saved successfully', 'success');
+      loadRemindersStatus();
+      loadAnalytics();
+    } catch (e: any) {
+      flash(e?.message || 'Failed to save settings', 'error');
+    } finally {
+      setRemindersBusy(false);
+    }
+  };
+
+  // Run Batch Monthly Reminders Broadcast
+  const handleRunMonthlyRemindersBroadcast = async () => {
+    setRemindersBusy(true);
+    try {
+      const res = await api.runMonthlyReminders({ limit: 500 });
+      flash(`Dispatched ${res.dispatched_count} monthly claim notification emails!`, 'success');
+      loadRemindersStatus();
+      loadAnalytics();
+      loadList(page, vertical, q, countryFilter, linkedInFilter);
+    } catch (e: any) {
+      flash(e?.message || 'Broadcast failed', 'error');
+    } finally {
+      setRemindersBusy(false);
+    }
+  };
+
+  // Send Single Claim Email
+  const handleSendSingleClaim = async (item: any) => {
+    setSingleSendingId(item.id);
+    try {
+      const res = await api.sendSingleClaimEmail({
+        id: item.id,
+        collection: item.collection || 'users',
+        email: item.email,
+      });
+      flash(`Claim notification email sent to ${item.email}`, 'success');
+      loadList(page, vertical, q, countryFilter, linkedInFilter);
+      loadAnalytics();
+    } catch (e: any) {
+      flash(e?.message || 'Failed to send claim email', 'error');
+    } finally {
+      setSingleSendingId(null);
+    }
+  };
+
+  // Open Edit Profile Modal
+  const openEditModal = (item: any) => {
+    setEditProfileModal(item);
+    setEditForm({
+      name: item.name || '',
+      email: item.email || '',
+      phone: item.phone || '',
+      country: item.country || 'India',
+      location: item.location || '',
+      linkedin_url: item.linkedin_url || '',
+      college: item.college || '',
+      degree: item.degree || '',
+      graduation_year: item.graduation_year || '',
+      roll_number: item.roll_number || '',
+    });
+  };
+
+  // Save Edited Profile
+  const handleSaveProfile = async () => {
+    if (!editProfileModal) return;
+    setEditBusy(true);
+    try {
+      await api.updateAccountProfile({
+        id: editProfileModal.id,
+        collection: editProfileModal.collection || 'users',
+        ...editForm,
+      });
+      flash('Profile updated successfully', 'success');
+      setEditProfileModal(null);
+      loadList(page, vertical, q, countryFilter, linkedInFilter);
+      loadAnalytics();
+    } catch (e: any) {
+      flash(e?.message || 'Failed to update profile', 'error');
+    } finally {
+      setEditBusy(false);
     }
   };
 
@@ -149,7 +321,7 @@ export function BGVAccountVerticalsView() {
       flash(`Purged ${res.total_purged} test accounts from database`, 'success');
       setPurgeModal(false);
       loadAnalytics();
-      loadList(1, vertical, q);
+      loadList(1, vertical, q, countryFilter, linkedInFilter);
     } catch (e: any) {
       flash(e?.message || 'Purge failed', 'error');
     } finally {
@@ -177,13 +349,32 @@ export function BGVAccountVerticalsView() {
       {/* Top Header & Fast Actions */}
       <View style={st.headerRow}>
         <View>
-          <Text style={st.title}>Account Verticals & BGV Engine</Text>
+          <Text style={st.title}>Account Verticals, Geolocation & BGV Engine</Text>
           <Text style={st.subtitle}>
-            Categorize Real vs Test vs Unregistered records · Universal BGV ID, SA ID, & Certificate Series Verification
+            Real vs Test vs Unregistered Records · Country Segregation · LinkedIn Intelligence · Monthly Claim Automation
           </Text>
         </View>
 
         <View style={st.actionButtonsRow}>
+          <Pressable
+            style={st.btnReminders}
+            onPress={() => setRemindersModal(true)}
+          >
+            <BellRing size={15} color="#FBCFE8" />
+            <Text style={st.btnRemindersText}>Monthly Claim Reminders</Text>
+          </Pressable>
+
+          <Pressable
+            style={[st.btnSecondary, enrichBusy && { opacity: 0.6 }]}
+            onPress={handleAutoEnrich}
+            disabled={enrichBusy}
+          >
+            <Sparkles size={15} color="#A78BFA" />
+            <Text style={[st.btnSecondaryText, { color: '#C4B5FD' }]}>
+              {enrichBusy ? 'Enriching...' : 'Auto-Enrich Country & LinkedIn'}
+            </Text>
+          </Pressable>
+
           <Pressable
             style={[st.btnSecondary, backfillBusy && { opacity: 0.6 }]}
             onPress={handleBackfill}
@@ -252,76 +443,66 @@ export function BGVAccountVerticalsView() {
           </View>
           <Text style={st.kpiValue}>{analytics?.unregistered_records?.count || 0}</Text>
           <Text style={st.kpiLabel}>Unregistered Records</Text>
-          <Text style={st.kpiDesc}>Directory contacts, talent pool & event attendees in database</Text>
+          <Text style={st.kpiDesc}>
+            {analytics?.monthly_reminders?.due_for_monthly_reminder || 0} due for monthly claim reminder
+          </Text>
         </Card>
 
-        <Card style={[st.kpiCard, { borderColor: 'rgba(236, 72, 153, 0.35)' }]}>
+        <Card style={[st.kpiCard, { borderColor: 'rgba(56, 189, 248, 0.35)' }]}>
           <View style={st.kpiTop}>
-            <View style={[st.kpiIconWrap, { backgroundColor: 'rgba(236, 72, 153, 0.15)' }]}>
-              <ShieldCheck size={20} color="#F472B6" />
+            <View style={[st.kpiIconWrap, { backgroundColor: 'rgba(56, 189, 248, 0.15)' }]}>
+              <Linkedin size={20} color="#38BDF8" />
             </View>
-            <View style={[st.kpiBadge, { backgroundColor: 'rgba(236, 72, 153, 0.2)' }]}>
-              <Text style={[st.kpiBadgeText, { color: '#F472B6' }]}>100% Verifiable</Text>
+            <View style={[st.kpiBadge, { backgroundColor: 'rgba(56, 189, 248, 0.2)' }]}>
+              <Text style={[st.kpiBadgeText, { color: '#38BDF8' }]}>
+                {analytics?.linkedin_metrics?.percentage || 0}% Linked
+              </Text>
             </View>
           </View>
           <Text style={st.kpiValue}>
-            {analytics?.bgv_metrics?.total_certificates_issued || 0}
+            {analytics?.linkedin_metrics?.has_linkedin || 0}
           </Text>
-          <Text style={st.kpiLabel}>Certificate Series Issued</Text>
-          <Text style={st.kpiDesc}>SHA-256 authenticated credentials tied to BGV & SA IDs</Text>
+          <Text style={st.kpiLabel}>LinkedIn Profiles Connected</Text>
+          <Text style={st.kpiDesc}>
+            {analytics?.linkedin_metrics?.missing_linkedin || 0} profiles missing LinkedIn URL
+          </Text>
         </Card>
       </View>
 
-      {/* Visual Vertical Distribution Bar */}
-      <View style={st.distBarCard}>
-        <View style={st.distBarHeader}>
-          <Text style={st.distBarTitle}>Database Composition Breakdown</Text>
-          <Text style={st.distBarTotal}>Total Monitored: {analytics?.total_records || 0} entities</Text>
-        </View>
-        <View style={st.distTrack}>
-          <View
-            style={[
-              st.distSegment,
-              {
-                width: `${analytics?.real_accounts?.percentage || 0}%`,
-                backgroundColor: '#10B981',
-              },
-            ]}
-          />
-          <View
-            style={[
-              st.distSegment,
-              {
-                width: `${analytics?.test_accounts?.percentage || 0}%`,
-                backgroundColor: '#F59E0B',
-              },
-            ]}
-          />
-          <View
-            style={[
-              st.distSegment,
-              {
-                width: `${analytics?.unregistered_records?.percentage || 0}%`,
-                backgroundColor: '#6366F1',
-              },
-            ]}
-          />
-        </View>
-        <View style={st.distLegend}>
-          <View style={st.distLegendItem}>
-            <View style={[st.distDot, { backgroundColor: '#10B981' }]} />
-            <Text style={st.distLegendText}>Real Accounts ({analytics?.real_accounts?.count || 0})</Text>
+      {/* Country Geographic Breakdown Bar & Distribution */}
+      {analytics?.country_distribution?.length > 0 && (
+        <Card style={st.countryDistCard}>
+          <View style={st.countryDistTop}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Globe size={18} color="#60A5FA" />
+              <Text style={st.countryDistTitle}>Country & Geographic Profile Segregation</Text>
+            </View>
+            <Text style={st.countryDistSub}>Live multi-country directory telemetry</Text>
           </View>
-          <View style={st.distLegendItem}>
-            <View style={[st.distDot, { backgroundColor: '#F59E0B' }]} />
-            <Text style={st.distLegendText}>Test Accounts ({analytics?.test_accounts?.count || 0})</Text>
+
+          <View style={st.countryChipsRow}>
+            {analytics.country_distribution.map((c: any, idx: number) => {
+              const isSelected = countryFilter.toLowerCase() === c.country.toLowerCase();
+              return (
+                <Pressable
+                  key={idx}
+                  style={[st.countryChip, isSelected && st.countryChipSelected]}
+                  onPress={() => {
+                    setCountryFilter(isSelected ? 'all' : c.country);
+                    setPage(1);
+                  }}
+                >
+                  <Text style={st.countryChipFlag}>{c.flag}</Text>
+                  <Text style={[st.countryChipName, isSelected && st.countryChipNameSelected]}>{c.country}</Text>
+                  <View style={[st.countryChipCount, isSelected && st.countryChipCountSelected]}>
+                    <Text style={st.countryChipCountText}>{c.count}</Text>
+                  </View>
+                </Pressable>
+              );
+            })}
           </View>
-          <View style={st.distLegendItem}>
-            <View style={[st.distDot, { backgroundColor: '#6366F1' }]} />
-            <Text style={st.distLegendText}>Unregistered Directory Data ({analytics?.unregistered_records?.count || 0})</Text>
-          </View>
-        </View>
-      </View>
+        </Card>
+      )}
 
       {/* BGV Universal Search & Verification Bar */}
       <Card style={st.bgvSearchWidget}>
@@ -366,7 +547,7 @@ export function BGVAccountVerticalsView() {
         </View>
       </Card>
 
-      {/* Segmented Verticals Tabs & Table */}
+      {/* Segmented Verticals Tabs, Filters & Table */}
       <View style={st.tableSection}>
         <View style={st.filterRow}>
           {/* Vertical Selectors */}
@@ -395,6 +576,29 @@ export function BGVAccountVerticalsView() {
             })}
           </View>
 
+          {/* LinkedIn Filter Pills */}
+          <View style={st.liFilterGroup}>
+            <Pressable
+              style={[st.liFilterBtn, linkedInFilter === 'all' && st.liFilterBtnActive]}
+              onPress={() => { setLinkedInFilter('all'); setPage(1); }}
+            >
+              <Text style={[st.liFilterText, linkedInFilter === 'all' && st.liFilterTextActive]}>All Profiles</Text>
+            </Pressable>
+            <Pressable
+              style={[st.liFilterBtn, linkedInFilter === 'yes' && st.liFilterBtnActive]}
+              onPress={() => { setLinkedInFilter('yes'); setPage(1); }}
+            >
+              <Linkedin size={12} color={linkedInFilter === 'yes' ? '#38BDF8' : '#64748B'} />
+              <Text style={[st.liFilterText, linkedInFilter === 'yes' && st.liFilterTextActive]}>Has LinkedIn</Text>
+            </Pressable>
+            <Pressable
+              style={[st.liFilterBtn, linkedInFilter === 'no' && st.liFilterBtnActive]}
+              onPress={() => { setLinkedInFilter('no'); setPage(1); }}
+            >
+              <Text style={[st.liFilterText, linkedInFilter === 'no' && st.liFilterTextActive]}>No LinkedIn</Text>
+            </Pressable>
+          </View>
+
           {/* Quick Search in table */}
           <View style={st.tableSearchWrap}>
             <Search size={16} color="#64748B" style={{ marginLeft: 12 }} />
@@ -405,7 +609,7 @@ export function BGVAccountVerticalsView() {
                 setQ(v);
                 setPage(1);
               }}
-              placeholder="Search table by name, email, roll no, college..."
+              placeholder="Search table by name, email, roll no, college, country..."
               placeholderTextColor="#64748B"
             />
             {q ? (
@@ -419,12 +623,12 @@ export function BGVAccountVerticalsView() {
         {/* Data Table */}
         <Card style={st.tableCard}>
           <View style={st.tableHeader}>
-            <Text style={[st.th, { flex: 2.2 }]}>Candidate & Contact</Text>
+            <Text style={[st.th, { flex: 2.2 }]}>Candidate & Country</Text>
             <Text style={[st.th, { flex: 1.4 }]}>Vertical & Role</Text>
-            <Text style={[st.th, { flex: 1.8 }]}>SA ID / BGV ID</Text>
-            <Text style={[st.th, { flex: 2.0 }]}>Institution & Academic</Text>
-            <Text style={[st.th, { flex: 1.2 }]}>Cert Series</Text>
-            <Text style={[st.th, { flex: 1.8, textAlign: 'right' }]}>Actions</Text>
+            <Text style={[st.th, { flex: 1.7 }]}>SA ID / BGV ID</Text>
+            <Text style={[st.th, { flex: 1.5 }]}>LinkedIn & Geolocation</Text>
+            <Text style={[st.th, { flex: 1.8 }]}>Institution & Academic</Text>
+            <Text style={[st.th, { flex: 2.0, textAlign: 'right' }]}>Actions & Claim</Text>
           </View>
 
           {busy ? (
@@ -436,19 +640,26 @@ export function BGVAccountVerticalsView() {
             <View style={{ padding: 50, alignItems: 'center' }}>
               <Users size={40} color="#475569" />
               <Text style={{ color: '#E2E8F0', marginTop: 12, fontSize: 15, fontWeight: '600' }}>No records found</Text>
-              <Text style={{ color: '#64748B', marginTop: 4, fontSize: 13 }}>Try adjusting your vertical filter or search term</Text>
+              <Text style={{ color: '#64748B', marginTop: 4, fontSize: 13 }}>Try adjusting your vertical filter, country, or search term</Text>
             </View>
           ) : (
             items.map((item: any, idx: number) => {
               const isReal = item.vertical === 'real';
               const isTest = item.vertical === 'test';
               const isUnreg = item.vertical === 'unregistered';
+              const isSendingThis = singleSendingId === item.id;
 
               return (
                 <View key={item.id || idx} style={st.tableRow}>
-                  {/* Candidate Name & Email */}
+                  {/* Candidate Name & Contact */}
                   <View style={{ flex: 2.2 }}>
-                    <Text style={st.tdName}>{item.name}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Text style={st.tdName}>{item.name}</Text>
+                      <View style={st.countryBadge}>
+                        <Text style={{ fontSize: 12 }}>{item.country_flag || '🇮🇳'}</Text>
+                        <Text style={st.countryBadgeText}>{item.country || 'India'}</Text>
+                      </View>
+                    </View>
                     <Text style={st.tdEmail}>{item.email || 'No email'}</Text>
                     {item.phone ? <Text style={st.tdSub}>{item.phone}</Text> : null}
                   </View>
@@ -474,7 +685,7 @@ export function BGVAccountVerticalsView() {
                   </View>
 
                   {/* SA ID & BGV ID */}
-                  <View style={{ flex: 1.8, justifyContent: 'center' }}>
+                  <View style={{ flex: 1.7, justifyContent: 'center' }}>
                     <Pressable
                       style={st.idChip}
                       onPress={() => copyToClipboard(item.sa_id, `sa-${item.id}`)}
@@ -494,34 +705,85 @@ export function BGVAccountVerticalsView() {
                     </Pressable>
                   </View>
 
+                  {/* LinkedIn & Geolocation */}
+                  <View style={{ flex: 1.5, justifyContent: 'center' }}>
+                    {item.linkedin_url ? (
+                      <Pressable
+                        style={st.linkedInChip}
+                        onPress={() => {
+                          if (Platform.OS === 'web' && typeof window !== 'undefined') {
+                            window.open(item.linkedin_url, '_blank');
+                          }
+                        }}
+                      >
+                        <Linkedin size={13} color="#38BDF8" />
+                        <Text style={st.linkedInChipText} numberOfLines={1}>
+                          {item.linkedin_handle || 'LinkedIn Profile'}
+                        </Text>
+                        <ExternalLink size={11} color="#38BDF8" />
+                      </Pressable>
+                    ) : (
+                      <Pressable
+                        style={st.addLinkedInChip}
+                        onPress={() => openEditModal(item)}
+                      >
+                        <Linkedin size={12} color="#64748B" />
+                        <Text style={st.addLinkedInChipText}>+ Add LinkedIn</Text>
+                      </Pressable>
+                    )}
+                    <Text style={st.tdLocation} numberOfLines={1}>
+                      📍 {item.location || item.country || 'Global'}
+                    </Text>
+                  </View>
+
                   {/* Institution & Academic */}
-                  <View style={{ flex: 2.0, justifyContent: 'center' }}>
+                  <View style={{ flex: 1.8, justifyContent: 'center' }}>
                     <Text style={st.tdCollege} numberOfLines={1}>{item.college || 'Universal Registry'}</Text>
                     <Text style={st.tdSub}>
                       {[item.degree, item.graduation_year].filter(Boolean).join(' · ') || 'Degree In Progress'}
                     </Text>
-                  </View>
-
-                  {/* Cert Series */}
-                  <View style={{ flex: 1.2, justifyContent: 'center' }}>
                     {item.certificates_count > 0 ? (
                       <View style={st.certPill}>
-                        <Award size={12} color="#FBBF24" />
-                        <Text style={st.certPillText}>{item.certificates_count} Series</Text>
+                        <Award size={11} color="#FBBF24" />
+                        <Text style={st.certPillText}>{item.certificates_count} Certs</Text>
                       </View>
-                    ) : (
-                      <Text style={{ color: '#475569', fontSize: 11 }}>None Issued</Text>
-                    )}
+                    ) : null}
                   </View>
 
-                  {/* Actions */}
-                  <View style={{ flex: 1.8, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 6 }}>
+                  {/* Actions & Claim */}
+                  <View style={{ flex: 2.0, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    {isUnreg && (
+                      <Pressable
+                        style={[st.claimEmailBtn, isSendingThis && { opacity: 0.6 }]}
+                        onPress={() => handleSendSingleClaim(item)}
+                        disabled={isSendingThis}
+                      >
+                        {isSendingThis ? (
+                          <ActivityIndicator size="small" color="#F472B6" />
+                        ) : (
+                          <>
+                            <Mail size={12} color="#F472B6" />
+                            <Text style={st.claimEmailBtnText}>
+                              {item.claim_reminders_count > 0 ? `Claim #${item.claim_reminders_count}` : 'Send Claim'}
+                            </Text>
+                          </>
+                        )}
+                      </Pressable>
+                    )}
+
                     <Pressable
                       style={st.verifyBtn}
                       onPress={() => handleLookup(item.bgv_id || item.sa_id || item.email)}
                     >
-                      <ShieldCheck size={13} color="#93C5FD" />
-                      <Text style={st.verifyBtnText}>BGV Card</Text>
+                      <ShieldCheck size={12} color="#93C5FD" />
+                      <Text style={st.verifyBtnText}>BGV</Text>
+                    </Pressable>
+
+                    <Pressable
+                      style={st.editBtn}
+                      onPress={() => openEditModal(item)}
+                    >
+                      <Edit3 size={12} color="#CBD5E1" />
                     </Pressable>
 
                     <Pressable
@@ -529,7 +791,7 @@ export function BGVAccountVerticalsView() {
                       onPress={() => handleToggleTest(item)}
                     >
                       <Text style={[st.testToggleBtnText, isTest && { color: '#F87171' }]}>
-                        {isTest ? 'Mark Real' : 'Mark Test'}
+                        {isTest ? 'Real' : 'Test'}
                       </Text>
                     </Pressable>
                   </View>
@@ -562,6 +824,287 @@ export function BGVAccountVerticalsView() {
           </View>
         </Card>
       </View>
+
+      {/* ================================================================= */}
+      {/* Monthly Claim Reminders Control Modal                             */}
+      {/* ================================================================= */}
+      {remindersModal && (
+        <Modal
+          visible={true}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setRemindersModal(false)}
+        >
+          <View style={st.modalOverlay}>
+            <Animated.View entering={FadeInUp.duration(200)} style={st.remindersModalCard}>
+              <View style={st.bgvModalHeader}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <BellRing size={22} color="#F472B6" />
+                  <View>
+                    <Text style={st.bgvModalHeaderTitle}>Monthly Claim Reminders Engine</Text>
+                    <Text style={{ color: '#94A3B8', fontSize: 12 }}>
+                      Automatically send monthly activation emails with claim URL until unregistered users create accounts
+                    </Text>
+                  </View>
+                </View>
+                <Pressable onPress={() => setRemindersModal(false)} style={st.closeModalBtn}>
+                  <Text style={{ color: '#94A3B8', fontSize: 16 }}>✕</Text>
+                </Pressable>
+              </View>
+
+              <ScrollView style={{ maxHeight: 520, paddingHorizontal: 4 }}>
+                {/* Metrics Banner */}
+                <View style={st.remindersMetricsBanner}>
+                  <View style={st.reminderMetricBox}>
+                    <Text style={st.reminderMetricVal}>{remindersStatus?.total_unregistered_targets || 0}</Text>
+                    <Text style={st.reminderMetricLbl}>Unregistered Targets</Text>
+                  </View>
+                  <View style={st.reminderMetricBox}>
+                    <Text style={[st.reminderMetricVal, { color: '#F472B6' }]}>{remindersStatus?.due_for_monthly_cycle || 0}</Text>
+                    <Text style={st.reminderMetricLbl}>Due This 30-Day Cycle</Text>
+                  </View>
+                  <View style={st.reminderMetricBox}>
+                    <Text style={[st.reminderMetricVal, { color: '#34D399' }]}>{remindersStatus?.last_dispatched_count || 0}</Text>
+                    <Text style={st.reminderMetricLbl}>Sent in Last Cycle</Text>
+                  </View>
+                </View>
+
+                {/* Form Fields */}
+                <View style={st.formGroup}>
+                  <Text style={st.formLabel}>Claim & Activation Base URL:</Text>
+                  <TextInput
+                    style={st.formInput}
+                    value={remindersBaseUrl}
+                    onChangeText={setRemindersBaseUrl}
+                    placeholder="https://studentalumni.ai/claim"
+                    placeholderTextColor="#64748B"
+                  />
+                  <Text style={st.formHint}>
+                    Appends personalized tokens (?token=...&sa_id=...&email=...) for one-click account creation
+                  </Text>
+                </View>
+
+                <View style={st.formGroup}>
+                  <Text style={st.formLabel}>Email Subject Line Template:</Text>
+                  <TextInput
+                    style={st.formInput}
+                    value={remindersSubject}
+                    onChangeText={setRemindersSubject}
+                    placeholder="Claim & Activate Your Verified Student Alumni Account ({sa_id})"
+                    placeholderTextColor="#64748B"
+                  />
+                  <Text style={st.formHint}>Supports tags: {'{sa_id}'}, {'{name}'}</Text>
+                </View>
+
+                <View style={{ flexDirection: 'row', gap: 16 }}>
+                  <View style={[st.formGroup, { flex: 1 }]}>
+                    <Text style={st.formLabel}>Reminder Cadence (Days):</Text>
+                    <TextInput
+                      style={st.formInput}
+                      value={remindersInterval}
+                      onChangeText={setRemindersInterval}
+                      keyboardType="numeric"
+                      placeholder="30"
+                      placeholderTextColor="#64748B"
+                    />
+                  </View>
+                  <View style={[st.formGroup, { flex: 1 }]}>
+                    <Text style={st.formLabel}>Send Test Preview To Email:</Text>
+                    <TextInput
+                      style={st.formInput}
+                      value={testEmailAddress}
+                      onChangeText={setTestEmailAddress}
+                      placeholder="admin@example.com"
+                      placeholderTextColor="#64748B"
+                    />
+                  </View>
+                </View>
+
+                {/* Broadcast Action Box */}
+                <View style={st.broadcastActionBox}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={st.broadcastTitle}>Execute Monthly Reminder Broadcast Now</Text>
+                    <Text style={st.broadcastDesc}>
+                      Dispatches personalized claim emails to all {remindersStatus?.due_for_monthly_cycle || 0} unregistered users due this cycle.
+                    </Text>
+                  </View>
+                  <Pressable
+                    style={[st.broadcastBtn, remindersBusy && { opacity: 0.6 }]}
+                    onPress={handleRunMonthlyRemindersBroadcast}
+                    disabled={remindersBusy}
+                  >
+                    <PlayCircle size={16} color="#FFFFFF" />
+                    <Text style={st.broadcastBtnText}>
+                      {remindersBusy ? 'Sending...' : 'Broadcast Cycle Now'}
+                    </Text>
+                  </Pressable>
+                </View>
+              </ScrollView>
+
+              {/* Modal Footer */}
+              <View style={st.modalFooterRow}>
+                <Pressable
+                  style={st.purgeCancelBtn}
+                  onPress={() => setRemindersModal(false)}
+                >
+                  <Text style={st.purgeCancelBtnText}>Close</Text>
+                </Pressable>
+                <Pressable
+                  style={[st.btnSaveSettings, remindersBusy && { opacity: 0.6 }]}
+                  onPress={handleSaveRemindersSettings}
+                  disabled={remindersBusy}
+                >
+                  <Text style={st.btnSaveSettingsText}>
+                    {remindersBusy ? 'Saving...' : 'Save Settings'}
+                  </Text>
+                </Pressable>
+              </View>
+            </Animated.View>
+          </View>
+        </Modal>
+      )}
+
+      {/* ================================================================= */}
+      {/* Edit Profile Modal (LinkedIn, Country, Geolocation)               */}
+      {/* ================================================================= */}
+      {editProfileModal && (
+        <Modal
+          visible={true}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setEditProfileModal(null)}
+        >
+          <View style={st.modalOverlay}>
+            <Animated.View entering={FadeInUp.duration(200)} style={st.editModalCard}>
+              <View style={st.bgvModalHeader}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Edit3 size={20} color="#38BDF8" />
+                  <Text style={st.bgvModalHeaderTitle}>Edit Profile & Geolocation</Text>
+                </View>
+                <Pressable onPress={() => setEditProfileModal(null)} style={st.closeModalBtn}>
+                  <Text style={{ color: '#94A3B8', fontSize: 16 }}>✕</Text>
+                </Pressable>
+              </View>
+
+              <ScrollView style={{ maxHeight: 480 }}>
+                <View style={st.formGroup}>
+                  <Text style={st.formLabel}>Full Name:</Text>
+                  <TextInput
+                    style={st.formInput}
+                    value={editForm.name}
+                    onChangeText={(v) => setEditForm({ ...editForm, name: v })}
+                    placeholder="Full Name"
+                    placeholderTextColor="#64748B"
+                  />
+                </View>
+
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+                  <View style={[st.formGroup, { flex: 1 }]}>
+                    <Text style={st.formLabel}>Email Address:</Text>
+                    <TextInput
+                      style={st.formInput}
+                      value={editForm.email}
+                      onChangeText={(v) => setEditForm({ ...editForm, email: v })}
+                      placeholder="email@example.com"
+                      placeholderTextColor="#64748B"
+                    />
+                  </View>
+                  <View style={[st.formGroup, { flex: 1 }]}>
+                    <Text style={st.formLabel}>Phone / Mobile:</Text>
+                    <TextInput
+                      style={st.formInput}
+                      value={editForm.phone}
+                      onChangeText={(v) => setEditForm({ ...editForm, phone: v })}
+                      placeholder="+91..."
+                      placeholderTextColor="#64748B"
+                    />
+                  </View>
+                </View>
+
+                {/* Country and Geolocation */}
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+                  <View style={[st.formGroup, { flex: 1 }]}>
+                    <Text style={st.formLabel}>Country:</Text>
+                    <TextInput
+                      style={st.formInput}
+                      value={editForm.country}
+                      onChangeText={(v) => setEditForm({ ...editForm, country: v })}
+                      placeholder="India / United States..."
+                      placeholderTextColor="#64748B"
+                    />
+                  </View>
+                  <View style={[st.formGroup, { flex: 1 }]}>
+                    <Text style={st.formLabel}>City / Location:</Text>
+                    <TextInput
+                      style={st.formInput}
+                      value={editForm.location}
+                      onChangeText={(v) => setEditForm({ ...editForm, location: v })}
+                      placeholder="Hyderabad, Telangana"
+                      placeholderTextColor="#64748B"
+                    />
+                  </View>
+                </View>
+
+                {/* LinkedIn Profile */}
+                <View style={st.formGroup}>
+                  <Text style={st.formLabel}>LinkedIn Profile URL or Handle:</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <TextInput
+                      style={st.formInput}
+                      value={editForm.linkedin_url}
+                      onChangeText={(v) => setEditForm({ ...editForm, linkedin_url: v })}
+                      placeholder="https://linkedin.com/in/username"
+                      placeholderTextColor="#64748B"
+                    />
+                  </View>
+                </View>
+
+                {/* Academic Information */}
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+                  <View style={[st.formGroup, { flex: 1.5 }]}>
+                    <Text style={st.formLabel}>College / Institution:</Text>
+                    <TextInput
+                      style={st.formInput}
+                      value={editForm.college}
+                      onChangeText={(v) => setEditForm({ ...editForm, college: v })}
+                      placeholder="SNIST"
+                      placeholderTextColor="#64748B"
+                    />
+                  </View>
+                  <View style={[st.formGroup, { flex: 1 }]}>
+                    <Text style={st.formLabel}>Roll Number:</Text>
+                    <TextInput
+                      style={st.formInput}
+                      value={editForm.roll_number}
+                      onChangeText={(v) => setEditForm({ ...editForm, roll_number: v })}
+                      placeholder="25071A05C3"
+                      placeholderTextColor="#64748B"
+                    />
+                  </View>
+                </View>
+              </ScrollView>
+
+              <View style={st.modalFooterRow}>
+                <Pressable
+                  style={st.purgeCancelBtn}
+                  onPress={() => setEditProfileModal(null)}
+                >
+                  <Text style={st.purgeCancelBtnText}>Cancel</Text>
+                </Pressable>
+                <Pressable
+                  style={[st.btnSaveSettings, editBusy && { opacity: 0.6 }]}
+                  onPress={handleSaveProfile}
+                  disabled={editBusy}
+                >
+                  <Text style={st.btnSaveSettingsText}>
+                    {editBusy ? 'Saving...' : 'Save Profile Changes'}
+                  </Text>
+                </Pressable>
+              </View>
+            </Animated.View>
+          </View>
+        </Modal>
+      )}
 
       {/* ================================================================= */}
       {/* Interactive Digital BGV Verification Card Modal                   */}
@@ -614,11 +1157,19 @@ export function BGVAccountVerticalsView() {
                       </Text>
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={st.holoCandidateName}>{bgvCardModal.candidate_info?.name}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Text style={st.holoCandidateName}>{bgvCardModal.candidate_info?.name}</Text>
+                        <Text style={{ fontSize: 15 }}>{bgvCardModal.candidate_info?.country_flag || '🇮🇳'}</Text>
+                      </View>
                       <Text style={st.holoCandidateSub}>
-                        {bgvCardModal.candidate_info?.role?.toUpperCase()} · {bgvCardModal.candidate_info?.location}
+                        {bgvCardModal.candidate_info?.role?.toUpperCase()} · {bgvCardModal.candidate_info?.location} ({bgvCardModal.candidate_info?.country || 'India'})
                       </Text>
                       <Text style={st.holoCandidateEmail}>{bgvCardModal.candidate_info?.email}</Text>
+                      {bgvCardModal.candidate_info?.linkedin_url ? (
+                        <Text style={{ color: '#38BDF8', fontSize: 12, marginTop: 2 }}>
+                          LinkedIn: {bgvCardModal.candidate_info?.linkedin_url}
+                        </Text>
+                      ) : null}
                     </View>
                   </View>
 
@@ -650,7 +1201,7 @@ export function BGVAccountVerticalsView() {
                   <View style={st.checksGrid}>
                     <View style={st.checkItem}>
                       <CheckCircle2 size={15} color="#34D399" />
-                      <Text style={st.checkText}>Identity & Record Authenticity: <Text style={{ color: '#34D399' }}>PASSED</Text></Text>
+                      <Text style={st.checkText}>Identity & Authenticity: <Text style={{ color: '#34D399' }}>PASSED</Text></Text>
                     </View>
                     <View style={st.checkItem}>
                       <CheckCircle2 size={15} color="#34D399" />
@@ -659,8 +1210,8 @@ export function BGVAccountVerticalsView() {
                     <View style={st.checkItem}>
                       <CheckCircle2 size={15} color="#34D399" />
                       <Text style={st.checkText}>
-                        Linked Certificate Series: <Text style={{ color: '#FBBF24' }}>
-                          {bgvCardModal.identifiers?.all_certificate_series?.length || 0} Verified Credentials
+                        Linked Credentials: <Text style={{ color: '#FBBF24' }}>
+                          {bgvCardModal.identifiers?.all_certificate_series?.length || 0} Series Verified
                         </Text>
                       </Text>
                     </View>
@@ -778,6 +1329,23 @@ const st = StyleSheet.create({
   actionButtonsRow: {
     flexDirection: 'row',
     gap: 10,
+    flexWrap: 'wrap',
+  },
+  btnReminders: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    backgroundColor: 'rgba(219, 39, 119, 0.2)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(244, 114, 182, 0.4)',
+  },
+  btnRemindersText: {
+    color: '#FBCFE8',
+    fontSize: 13,
+    fontWeight: '600',
   },
   btnSecondary: {
     flexDirection: 'row',
@@ -820,23 +1388,23 @@ const st = StyleSheet.create({
   kpiCard: {
     flex: 1,
     minWidth: 220,
-    padding: 16,
-    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
     borderRadius: 12,
+    padding: 16,
     borderWidth: 1,
   },
   kpiTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   kpiIconWrap: {
     width: 36,
     height: 36,
     borderRadius: 8,
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
   },
   kpiBadge: {
     paddingHorizontal: 8,
@@ -845,104 +1413,120 @@ const st = StyleSheet.create({
   },
   kpiBadgeText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   kpiValue: {
     color: '#FFFFFF',
     fontSize: 26,
-    fontWeight: '800',
+    fontWeight: '700',
+    fontFamily: FONTS.bold,
   },
   kpiLabel: {
-    color: '#E2E8F0',
-    fontSize: 14,
+    color: '#F1F5F9',
+    fontSize: 13,
     fontWeight: '600',
     marginTop: 2,
   },
   kpiDesc: {
-    color: '#64748B',
+    color: '#94A3B8',
     fontSize: 11,
     marginTop: 4,
-    lineHeight: 15,
+    lineHeight: 14,
   },
-  distBarCard: {
-    backgroundColor: 'rgba(15, 23, 42, 0.55)',
-    borderRadius: 10,
-    padding: 14,
+  countryDistCard: {
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(148, 163, 184, 0.15)',
-    marginBottom: 20,
+    borderColor: 'rgba(96, 165, 250, 0.25)',
   },
-  distBarHeader: {
+  countryDistTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    alignItems: 'center',
+    marginBottom: 12,
   },
-  distBarTitle: {
-    color: '#E2E8F0',
-    fontSize: 13,
-    fontWeight: '600',
+  countryDistTitle: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
-  distBarTotal: {
+  countryDistSub: {
     color: '#94A3B8',
     fontSize: 12,
   },
-  distTrack: {
-    height: 8,
-    backgroundColor: 'rgba(30, 41, 59, 0.8)',
-    borderRadius: 4,
+  countryChipsRow: {
     flexDirection: 'row',
-    overflow: 'hidden',
-  },
-  distSegment: {
-    height: '100%',
-  },
-  distLegend: {
-    flexDirection: 'row',
-    gap: 18,
-    marginTop: 10,
+    gap: 8,
     flexWrap: 'wrap',
   },
-  distLegendItem: {
+  countryChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(30, 41, 59, 0.8)',
+    borderWidth: 1,
+    borderColor: 'rgba(148, 163, 184, 0.2)',
   },
-  distDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  countryChipSelected: {
+    backgroundColor: 'rgba(59, 130, 246, 0.25)',
+    borderColor: '#3B82F6',
   },
-  distLegendText: {
-    color: '#94A3B8',
+  countryChipFlag: {
+    fontSize: 14,
+  },
+  countryChipName: {
+    color: '#CBD5E1',
     fontSize: 12,
+    fontWeight: '600',
+  },
+  countryChipNameSelected: {
+    color: '#93C5FD',
+    fontWeight: '700',
+  },
+  countryChipCount: {
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+  },
+  countryChipCountSelected: {
+    backgroundColor: 'rgba(59, 130, 246, 0.4)',
+  },
+  countryChipCountText: {
+    color: '#94A3B8',
+    fontSize: 10,
+    fontWeight: '700',
   },
   bgvSearchWidget: {
-    backgroundColor: 'rgba(30, 27, 75, 0.45)',
+    backgroundColor: 'rgba(30, 27, 75, 0.5)',
+    borderRadius: 14,
+    padding: 18,
+    marginBottom: 20,
     borderWidth: 1,
     borderColor: 'rgba(167, 139, 250, 0.35)',
-    borderRadius: 14,
-    padding: 20,
-    marginBottom: 22,
   },
   bgvWidgetTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
-    marginBottom: 16,
+    gap: 12,
+    marginBottom: 14,
   },
   bgvWidgetIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
+    width: 44,
+    height: 44,
+    borderRadius: 10,
     backgroundColor: 'rgba(167, 139, 250, 0.15)',
-    alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(167, 139, 250, 0.3)',
+    alignItems: 'center',
   },
   bgvWidgetTitle: {
     color: '#FFFFFF',
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '700',
   },
   bgvWidgetSubtitle: {
@@ -953,54 +1537,51 @@ const st = StyleSheet.create({
   bgvInputRow: {
     flexDirection: 'row',
     gap: 10,
-    flexWrap: 'wrap',
   },
   bgvInputWrap: {
     flex: 1,
-    minWidth: 260,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(15, 23, 42, 0.8)',
-    borderRadius: 10,
+    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: 'rgba(167, 139, 250, 0.3)',
   },
   bgvTextInput: {
     flex: 1,
-    height: 44,
+    paddingVertical: 10,
     paddingHorizontal: 12,
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 13,
   },
   bgvSearchBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     backgroundColor: '#7C3AED',
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    height: 44,
-    justifyContent: 'center',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 8,
   },
   bgvSearchBtnText: {
     color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
   },
   tableSection: {
-    marginTop: 4,
+    marginTop: 10,
   },
   filterRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 14,
+    marginBottom: 12,
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 10,
   },
   tabGroup: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(15, 23, 42, 0.7)',
+    backgroundColor: 'rgba(15, 23, 42, 0.8)',
     borderRadius: 8,
     padding: 3,
     borderWidth: 1,
@@ -1019,30 +1600,62 @@ const st = StyleSheet.create({
   tabBtnText: {
     color: '#94A3B8',
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   tabBtnTextActive: {
     color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  liFilterGroup: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(15, 23, 42, 0.8)',
+    borderRadius: 8,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(148, 163, 184, 0.15)',
+    alignItems: 'center',
+    gap: 2,
+  },
+  liFilterBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  liFilterBtnActive: {
+    backgroundColor: 'rgba(56, 189, 248, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.4)',
+  },
+  liFilterText: {
+    color: '#94A3B8',
+    fontSize: 11,
     fontWeight: '600',
+  },
+  liFilterTextActive: {
+    color: '#38BDF8',
+    fontWeight: '700',
   },
   tableSearchWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(15, 23, 42, 0.7)',
+    backgroundColor: 'rgba(15, 23, 42, 0.85)',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(148, 163, 184, 0.15)',
-    width: 280,
+    borderColor: 'rgba(148, 163, 184, 0.2)',
+    minWidth: 260,
   },
   tableSearchInput: {
-    flex: 1,
-    height: 36,
+    paddingVertical: 7,
     paddingHorizontal: 10,
     color: '#FFFFFF',
-    fontSize: 13,
+    fontSize: 12,
+    flex: 1,
   },
   tableCard: {
-    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    backgroundColor: 'rgba(15, 23, 42, 0.85)',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(148, 163, 184, 0.15)',
@@ -1050,134 +1663,203 @@ const st = StyleSheet.create({
   },
   tableHeader: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: 'rgba(30, 41, 59, 0.6)',
+    paddingHorizontal: 16,
+    backgroundColor: 'rgba(30, 41, 59, 0.5)',
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(148, 163, 184, 0.15)',
   },
   th: {
     color: '#94A3B8',
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   tableRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    paddingVertical: 12,
     paddingHorizontal: 16,
-    paddingVertical: 13,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(148, 163, 184, 0.08)',
+    alignItems: 'center',
   },
   tdName: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  countryBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+  },
+  countryBadgeText: {
+    color: '#94A3B8',
+    fontSize: 10,
     fontWeight: '600',
   },
   tdEmail: {
     color: '#94A3B8',
-    fontSize: 12,
-    marginTop: 1,
+    fontSize: 11,
+    marginTop: 2,
   },
   tdSub: {
     color: '#64748B',
     fontSize: 11,
-    marginTop: 1,
+  },
+  tdSubRole: {
+    color: '#64748B',
+    fontSize: 10,
+    textTransform: 'capitalize',
+    marginTop: 2,
   },
   verticalBadge: {
     alignSelf: 'flex-start',
-    paddingHorizontal: 8,
+    paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: 5,
     borderWidth: 1,
   },
   verticalBadgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  tdSubRole: {
-    color: '#94A3B8',
-    fontSize: 11,
-    marginTop: 2,
-    textTransform: 'capitalize',
+    fontSize: 10,
+    fontWeight: '700',
   },
   idChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(30, 41, 59, 0.8)',
-    paddingHorizontal: 7,
-    paddingVertical: 3,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
     borderRadius: 4,
     alignSelf: 'flex-start',
   },
   idChipLabel: {
-    color: '#93C5FD',
+    color: '#94A3B8',
     fontSize: 10,
     fontWeight: '700',
   },
   idChipValue: {
     color: '#E2E8F0',
     fontSize: 11,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    fontFamily: 'monospace',
+    fontWeight: '600',
+  },
+  linkedInChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+    alignSelf: 'flex-start',
+  },
+  linkedInChipText: {
+    color: '#38BDF8',
+    fontSize: 10,
+    fontWeight: '600',
+    maxWidth: 90,
+  },
+  addLinkedInChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    alignSelf: 'flex-start',
+  },
+  addLinkedInChipText: {
+    color: '#64748B',
+    fontSize: 10,
+  },
+  tdLocation: {
+    color: '#64748B',
+    fontSize: 10,
+    marginTop: 3,
   },
   tdCollege: {
-    color: '#E2E8F0',
-    fontSize: 13,
-    fontWeight: '500',
+    color: '#CBD5E1',
+    fontSize: 12,
+    fontWeight: '600',
   },
   certPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 5,
+    gap: 3,
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
     alignSelf: 'flex-start',
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.3)',
+    marginTop: 2,
   },
   certPillText: {
     color: '#FBBF24',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  claimEmailBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 6,
+    backgroundColor: 'rgba(219, 39, 119, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(244, 114, 182, 0.3)',
+  },
+  claimEmailBtnText: {
+    color: '#F472B6',
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   verifyBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(59, 130, 246, 0.15)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
     borderRadius: 6,
+    backgroundColor: 'rgba(59, 130, 246, 0.15)',
     borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.3)',
+    borderColor: 'rgba(96, 165, 250, 0.3)',
   },
   verifyBtnText: {
     color: '#93C5FD',
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  editBtn: {
+    padding: 6,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
   },
   testToggleBtn: {
-    paddingHorizontal: 8,
-    paddingVertical: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 5,
     borderRadius: 6,
-    backgroundColor: 'rgba(148, 163, 184, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
   testToggleBtnText: {
     color: '#94A3B8',
     fontSize: 11,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   paginationRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: 'rgba(15, 23, 42, 0.8)',
+    padding: 12,
+    backgroundColor: 'rgba(30, 41, 59, 0.3)',
   },
   paginationText: {
     color: '#94A3B8',
@@ -1186,58 +1868,56 @@ const st = StyleSheet.create({
   pageBtn: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: 'rgba(30, 41, 59, 0.8)',
     borderRadius: 6,
+    backgroundColor: 'rgba(30, 41, 59, 0.8)',
     borderWidth: 1,
     borderColor: 'rgba(148, 163, 184, 0.2)',
   },
   pageBtnText: {
     color: '#E2E8F0',
     fontSize: 12,
+    fontWeight: '600',
   },
-
-  // Modal Styles
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.75)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 16,
+    padding: 20,
   },
   bgvModalCard: {
     width: '100%',
-    maxWidth: 680,
+    maxWidth: 640,
     backgroundColor: '#0F172A',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(167, 139, 250, 0.4)',
-    overflow: 'hidden',
+    borderColor: 'rgba(167, 139, 250, 0.35)',
+    padding: 20,
     maxHeight: '90%',
   },
   bgvModalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
+    marginBottom: 16,
+    paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(148, 163, 184, 0.15)',
-    backgroundColor: 'rgba(15, 23, 42, 0.9)',
   },
   bgvModalHeaderTitle: {
     color: '#FFFFFF',
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '700',
   },
   closeModalBtn: {
     padding: 6,
   },
   hologramCard: {
-    margin: 16,
     borderRadius: 14,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(167, 139, 250, 0.3)',
+    borderColor: 'rgba(124, 58, 237, 0.4)',
+    marginBottom: 16,
   },
   hologramGrad: {
     padding: 20,
@@ -1249,13 +1929,13 @@ const st = StyleSheet.create({
     marginBottom: 16,
   },
   holoOrgName: {
-    color: '#FFFFFF',
-    fontSize: 13,
+    color: '#A78BFA',
+    fontSize: 12,
     fontWeight: '800',
     letterSpacing: 1,
   },
   holoSubtitle: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 9,
     letterSpacing: 0.8,
     marginTop: 2,
@@ -1264,34 +1944,31 @@ const st = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: 3,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.4)',
+    borderColor: 'rgba(16, 185, 129, 0.3)',
   },
   trustBadgeText: {
     color: '#34D399',
     fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+    fontWeight: '800',
   },
   holoCandidateRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     gap: 14,
+    alignItems: 'center',
     marginBottom: 16,
   },
   holoAvatarBox: {
     width: 48,
     height: 48,
     borderRadius: 10,
-    backgroundColor: 'rgba(99, 102, 241, 0.3)',
-    alignItems: 'center',
+    backgroundColor: '#6366F1',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(99, 102, 241, 0.5)',
+    alignItems: 'center',
   },
   holoAvatarText: {
     color: '#FFFFFF',
@@ -1300,113 +1977,107 @@ const st = StyleSheet.create({
   },
   holoCandidateName: {
     color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
   },
   holoCandidateSub: {
-    color: '#C4B5FD',
+    color: '#94A3B8',
     fontSize: 11,
     marginTop: 2,
-    fontWeight: '600',
   },
   holoCandidateEmail: {
-    color: '#94A3B8',
+    color: '#60A5FA',
     fontSize: 11,
     marginTop: 1,
   },
   identifierGrid: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    borderRadius: 8,
+    padding: 10,
     marginBottom: 16,
-    flexWrap: 'wrap',
   },
   idBox: {
     flex: 1,
-    minWidth: 140,
-    backgroundColor: 'rgba(0, 0, 0, 0.35)',
-    padding: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   idBoxLabel: {
     color: '#94A3B8',
-    fontSize: 10,
-    fontWeight: '600',
+    fontSize: 9,
+    fontWeight: '700',
     textTransform: 'uppercase',
   },
   idBoxValue: {
     fontSize: 12,
+    fontFamily: 'monospace',
     fontWeight: '700',
-    marginTop: 4,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    marginTop: 2,
   },
   checksGrid: {
-    backgroundColor: 'rgba(0, 0, 0, 0.25)',
-    borderRadius: 8,
-    padding: 12,
-    gap: 8,
+    gap: 6,
     marginBottom: 16,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
   },
   checkItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   checkText: {
     color: '#94A3B8',
-    fontSize: 12,
+    fontSize: 11,
   },
   holoFooter: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: 'rgba(255, 255, 255, 0.08)',
+    gap: 8,
   },
   footerUrlLabel: {
     color: '#64748B',
-    fontSize: 10,
+    fontSize: 9,
   },
   footerUrlValue: {
     color: '#93C5FD',
     fontSize: 11,
+    fontFamily: 'monospace',
   },
   copyUrlBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 4,
     backgroundColor: 'rgba(59, 130, 246, 0.2)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 6,
   },
   copyUrlBtnText: {
     color: '#93C5FD',
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   modalCertsSection: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+    marginTop: 10,
   },
   modalCertsSectionTitle: {
-    color: '#E2E8F0',
+    color: '#FFFFFF',
     fontSize: 13,
-    fontWeight: '600',
-    marginBottom: 10,
+    fontWeight: '700',
+    marginBottom: 8,
   },
   modalCertItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    backgroundColor: 'rgba(30, 41, 59, 0.5)',
+    gap: 10,
+    backgroundColor: 'rgba(30, 41, 59, 0.6)',
     padding: 10,
     borderRadius: 8,
     marginBottom: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(148, 163, 184, 0.1)',
   },
   modalCertTitle: {
     color: '#FFFFFF',
@@ -1416,39 +2087,160 @@ const st = StyleSheet.create({
   modalCertSeries: {
     color: '#94A3B8',
     fontSize: 10,
-    marginTop: 2,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    marginTop: 1,
   },
   certValidBadge: {
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    backgroundColor: 'rgba(16, 185, 129, 0.2)',
     paddingHorizontal: 6,
-    paddingVertical: 3,
+    paddingVertical: 2,
     borderRadius: 4,
   },
   certValidBadgeText: {
     color: '#34D399',
     fontSize: 9,
+    fontWeight: '800',
+  },
+  remindersModalCard: {
+    width: '100%',
+    maxWidth: 620,
+    backgroundColor: '#0F172A',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(244, 114, 182, 0.35)',
+    padding: 20,
+    maxHeight: '90%',
+  },
+  remindersMetricsBanner: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 16,
+  },
+  reminderMetricBox: {
+    flex: 1,
+    backgroundColor: 'rgba(30, 41, 59, 0.7)',
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+  },
+  reminderMetricVal: {
+    color: '#FFFFFF',
+    fontSize: 20,
     fontWeight: '700',
   },
-
-  // Purge Modal
+  reminderMetricLbl: {
+    color: '#94A3B8',
+    fontSize: 10,
+    marginTop: 2,
+    textAlign: 'center',
+  },
+  broadcastActionBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: 'rgba(219, 39, 119, 0.12)',
+    borderRadius: 10,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(244, 114, 182, 0.3)',
+    marginTop: 14,
+    marginBottom: 10,
+  },
+  broadcastTitle: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  broadcastDesc: {
+    color: '#FBCFE8',
+    fontSize: 11,
+    marginTop: 2,
+  },
+  broadcastBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#DB2777',
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 8,
+  },
+  broadcastBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  formGroup: {
+    marginBottom: 12,
+  },
+  formLabel: {
+    color: '#CBD5E1',
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  formInput: {
+    backgroundColor: 'rgba(30, 41, 59, 0.8)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(148, 163, 184, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    color: '#FFFFFF',
+    fontSize: 13,
+    flex: 1,
+  },
+  formHint: {
+    color: '#64748B',
+    fontSize: 10,
+    marginTop: 3,
+  },
+  modalFooterRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+    marginTop: 16,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(148, 163, 184, 0.15)',
+  },
+  btnSaveSettings: {
+    backgroundColor: '#7C3AED',
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 8,
+  },
+  btnSaveSettingsText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  editModalCard: {
+    width: '100%',
+    maxWidth: 560,
+    backgroundColor: '#0F172A',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.35)',
+    padding: 20,
+    maxHeight: '90%',
+  },
   purgeModalCard: {
     width: '100%',
-    maxWidth: 420,
+    maxWidth: 440,
     backgroundColor: '#0F172A',
-    borderRadius: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.35)',
     padding: 24,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.4)',
   },
   purgeIconWrap: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 14,
   },
   purgeModalTitle: {
@@ -1473,25 +2265,27 @@ const st = StyleSheet.create({
   purgeCancelBtn: {
     flex: 1,
     paddingVertical: 10,
-    backgroundColor: 'rgba(30, 41, 59, 0.8)',
     borderRadius: 8,
+    backgroundColor: 'rgba(30, 41, 59, 0.8)',
+    borderWidth: 1,
+    borderColor: 'rgba(148, 163, 184, 0.2)',
     alignItems: 'center',
   },
   purgeCancelBtnText: {
-    color: '#94A3B8',
+    color: '#E2E8F0',
     fontSize: 13,
     fontWeight: '600',
   },
   purgeConfirmBtn: {
     flex: 1,
     paddingVertical: 10,
-    backgroundColor: '#EF4444',
     borderRadius: 8,
+    backgroundColor: '#EF4444',
     alignItems: 'center',
   },
   purgeConfirmBtnText: {
     color: '#FFFFFF',
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });

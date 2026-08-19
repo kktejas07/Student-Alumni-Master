@@ -519,8 +519,8 @@ export const api = {
   // ── BGV & Account Verticals ──────────────────────────────────────────────
   getAccountAnalytics: () =>
     request<any>('/bgv/admin/analytics'),
-  listAccountsByVertical: (vertical = 'all', q = '', page = 1, limit = 25) =>
-    request<any>(`/bgv/admin/list?vertical=${encodeURIComponent(vertical)}&q=${encodeURIComponent(q)}&page=${page}&limit=${limit}`),
+  listAccountsByVertical: (vertical = 'all', q = '', page = 1, limit = 25, country = 'all', has_linkedin = 'all') =>
+    request<any>(`/bgv/admin/list?vertical=${encodeURIComponent(vertical)}&q=${encodeURIComponent(q)}&page=${page}&limit=${limit}&country=${encodeURIComponent(country)}&has_linkedin=${encodeURIComponent(has_linkedin)}`),
   toggleAccountTestStatus: (payload: { id: string; collection?: string; is_test: boolean }) =>
     request<any>('/bgv/admin/toggle-test', { method: 'POST', body: payload }),
   purgeTestAccounts: (confirm = true) =>
@@ -529,6 +529,18 @@ export const api = {
     request<any>(`/bgv/lookup?identifier=${encodeURIComponent(identifier)}`),
   backfillBGVIdentifiers: () =>
     request<any>('/bgv/admin/backfill', { method: 'POST', body: {} }),
+  getMonthlyRemindersStatus: () =>
+    request<any>('/bgv/admin/monthly-reminders/status'),
+  updateMonthlyRemindersSettings: (payload: { auto_reminders_enabled?: boolean; interval_days?: number; claim_base_url?: string; subject_template?: string; test_email?: string }) =>
+    request<any>('/bgv/admin/monthly-reminders/settings', { method: 'POST', body: payload }),
+  runMonthlyReminders: (payload?: { dry_run?: boolean; limit?: number }) =>
+    request<any>('/bgv/admin/monthly-reminders/run', { method: 'POST', body: payload || {} }),
+  sendSingleClaimEmail: (payload: { id: string; collection?: string; custom_url?: string; email?: string }) =>
+    request<any>('/bgv/admin/monthly-reminders/send-single', { method: 'POST', body: payload }),
+  updateAccountProfile: (payload: { id: string; collection?: string; name?: string; email?: string; phone?: string; country?: string; location?: string; linkedin_url?: string; college?: string; degree?: string; graduation_year?: string; roll_number?: string }) =>
+    request<any>('/bgv/admin/update-profile', { method: 'POST', body: payload }),
+  autoEnrichProfiles: () =>
+    request<any>('/bgv/admin/enrich-profiles', { method: 'POST', body: {} }),
 };
 
 export function resolveImageUrl(url?: string | null): string {
