@@ -14,13 +14,12 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View, Text, Pressable, StyleSheet, Platform, Modal, ScrollView, TextInput, ActivityIndicator,
 } from 'react-native';
-import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import {
   ShieldCheck, ShieldAlert, Users, UserCheck, GraduationCap, Sparkles, Search,
   CheckCircle2, AlertTriangle, Trash2, RefreshCw, Copy, Check, ExternalLink,
   Award, FileText, QrCode, Mail, Phone, MapPin, Building2, Eye, ArrowRight,
   Filter, Shield, UserX, UserPlus, Send, Download, Sparkle, HelpCircle,
-  Globe, Linkedin, Edit3, Clock, BellRing, Settings2, PlayCircle, Layers,
+  Globe, Link2, Edit3, Clock, BellRing, Settings2, PlayCircle, Layers,
   CheckSquare, XCircle, AlertCircle, Bookmark, Cpu, Zap, Database, CheckCircle,
   Printer,
 } from 'lucide-react-native';
@@ -31,6 +30,37 @@ import {
   SearchField, StatusPill, Toast, useToast, EmptyState, LoadingBox, KpiTile,
 } from '../applekit';
 import { api, request } from '@/src/models/services/api';
+
+/** LinkedIn 'in' badge glyph component — bulletproof web-safe fallback */
+function LinkedinGlyph({ size = 13, color = '#38BDF8' }: { size?: number; color?: string }) {
+  const isMuted = color === '#64748B' || color === '#94A3B8';
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: 2,
+        backgroundColor: isMuted ? 'rgba(100, 116, 139, 0.2)' : '#0A66C2',
+        borderWidth: isMuted ? 1 : 0,
+        borderColor: '#64748B',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <Text
+        style={{
+          color: isMuted ? '#64748B' : '#FFFFFF',
+          fontSize: Math.max(7, Math.floor(size * 0.65)),
+          fontWeight: '900',
+          lineHeight: size * 0.9,
+          textAlign: 'center',
+        }}
+      >
+        in
+      </Text>
+    </View>
+  );
+}
 
 type BGVMainTab = 'directory' | 'scanner' | 'fake_unis' | 'api_register' | 'reminders';
 type VerticalType = 'all' | 'real' | 'test' | 'unregistered';
@@ -535,7 +565,7 @@ export function BGVAccountVerticalsView() {
       {/* TAB 1: Directory & Verticals View                                 */}
       {/* ================================================================= */}
       {bgvTab === 'directory' && (
-        <Animated.View entering={FadeInDown.duration(200)}>
+        <View>
           {/* KPI Analytics Cards */}
           <View style={st.kpiGrid}>
             <Card style={[st.kpiCard, { borderColor: 'rgba(16, 185, 129, 0.35)' }]}>
@@ -724,7 +754,7 @@ export function BGVAccountVerticalsView() {
                   style={[st.liFilterBtn, linkedInFilter === 'yes' && st.liFilterBtnActive]}
                   onPress={() => { setLinkedInFilter('yes'); setPage(1); }}
                 >
-                  <Linkedin size={12} color={linkedInFilter === 'yes' ? '#38BDF8' : '#64748B'} />
+                  <LinkedinGlyph size={12} color={linkedInFilter === 'yes' ? '#38BDF8' : '#64748B'} />
                   <Text style={[st.liFilterText, linkedInFilter === 'yes' && st.liFilterTextActive]}>Has LinkedIn</Text>
                 </Pressable>
                 <Pressable
@@ -852,7 +882,7 @@ export function BGVAccountVerticalsView() {
                               }
                             }}
                           >
-                            <Linkedin size={13} color="#38BDF8" />
+                            <LinkedinGlyph size={12} color="#38BDF8" />
                             <Text style={st.linkedInChipText} numberOfLines={1}>
                               {item.linkedin_handle || 'LinkedIn Profile'}
                             </Text>
@@ -863,7 +893,7 @@ export function BGVAccountVerticalsView() {
                             style={st.addLinkedInChip}
                             onPress={() => openEditModal(item)}
                           >
-                            <Linkedin size={12} color="#64748B" />
+                            <LinkedinGlyph size={11} color="#64748B" />
                             <Text style={st.addLinkedInChipText}>+ Add LinkedIn</Text>
                           </Pressable>
                         )}
@@ -978,14 +1008,14 @@ export function BGVAccountVerticalsView() {
               </View>
             </Card>
           </View>
-        </Animated.View>
+        </View>
       )}
 
       {/* ================================================================= */}
       {/* TAB 2: 5-Tier BGV Candidate Scanner Workbench                     */}
       {/* ================================================================= */}
       {bgvTab === 'scanner' && (
-        <Animated.View entering={FadeInDown.duration(200)}>
+        <View>
           <Card style={st.workbenchCard}>
             <View style={st.workbenchHeader}>
               <View style={st.workbenchIcon}>
@@ -1174,14 +1204,14 @@ export function BGVAccountVerticalsView() {
               </View>
             )}
           </Card>
-        </Animated.View>
+        </View>
       )}
 
       {/* ================================================================= */}
       {/* TAB 3: UGC Fake Universities Blacklist Explorer                   */}
       {/* ================================================================= */}
       {bgvTab === 'fake_unis' && (
-        <Animated.View entering={FadeInDown.duration(200)}>
+        <View>
           <Card style={st.workbenchCard}>
             <View style={st.workbenchHeader}>
               <View style={[st.workbenchIcon, { backgroundColor: 'rgba(239, 68, 68, 0.15)' }]}>
@@ -1233,14 +1263,14 @@ export function BGVAccountVerticalsView() {
               </View>
             )}
           </Card>
-        </Animated.View>
+        </View>
       )}
 
       {/* ================================================================= */}
       {/* TAB 4: API Register & Verifiers Matrix (Tier 0, 1, 2)             */}
       {/* ================================================================= */}
       {bgvTab === 'api_register' && (
-        <Animated.View entering={FadeInDown.duration(200)}>
+        <View>
           <Card style={st.workbenchCard}>
             <View style={st.workbenchHeader}>
               <View style={[st.workbenchIcon, { backgroundColor: 'rgba(167, 139, 250, 0.15)' }]}>
@@ -1286,14 +1316,14 @@ export function BGVAccountVerticalsView() {
               </View>
             ))}
           </Card>
-        </Animated.View>
+        </View>
       )}
 
       {/* ================================================================= */}
       {/* TAB 5: Monthly Claim Automation Control Dashboard                 */}
       {/* ================================================================= */}
       {bgvTab === 'reminders' && (
-        <Animated.View entering={FadeInDown.duration(200)}>
+        <View>
           <Card style={st.workbenchCard}>
             <View style={st.workbenchHeader}>
               <View style={[st.workbenchIcon, { backgroundColor: 'rgba(219, 39, 119, 0.15)' }]}>
@@ -1406,7 +1436,7 @@ export function BGVAccountVerticalsView() {
               </Pressable>
             </View>
           </Card>
-        </Animated.View>
+        </View>
       )}
 
       {/* ================================================================= */}
@@ -1420,7 +1450,7 @@ export function BGVAccountVerticalsView() {
           onRequestClose={() => setEditProfileModal(null)}
         >
           <View style={st.modalOverlay}>
-            <Animated.View entering={FadeInUp.duration(200)} style={st.editModalCard}>
+            <View style={st.editModalCard}>
               <View style={st.bgvModalHeader}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <Edit3 size={20} color="#38BDF8" />
@@ -1544,7 +1574,7 @@ export function BGVAccountVerticalsView() {
                   </Text>
                 </Pressable>
               </View>
-            </Animated.View>
+            </View>
           </View>
         </Modal>
       )}
@@ -1560,7 +1590,7 @@ export function BGVAccountVerticalsView() {
           onRequestClose={() => setBgvCardModal(null)}
         >
           <View style={st.modalOverlay}>
-            <Animated.View entering={FadeInUp.duration(200)} style={st.bgvModalCard}>
+            <View style={st.bgvModalCard}>
               {/* Modal Top Bar */}
               <View style={st.bgvModalHeader}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -1707,7 +1737,7 @@ export function BGVAccountVerticalsView() {
                   ))}
                 </View>
               )}
-            </Animated.View>
+            </View>
           </View>
         </Modal>
       )}
