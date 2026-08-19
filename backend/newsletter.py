@@ -809,48 +809,6 @@ async def send_test_whatsapp(payload: TestWhatsAppSchema, request: Request, _=De
         raise HTTPException(status_code=500, detail=f"WhatsApp delivery failed: {reason}")
 
 
-async def _platform_tz(db) -> Any:
-    """Resolve the configured platform timezone (Super Admin settings → default_tz)."""
-    tz_name = "Asia/Kolkata"
-    try:
-        doc = await db.platform_controls.find_one({"_id": "singleton"})
-        for it in (doc or {}).get("system_settings") or []:
-            if it.get("key") == "default_tz" and it.get("value"):
-                tz_name = it["value"]
-                break
-    except Exception:
-        pass
-    try:
-        return pytz.timezone(tz_name)
-    except Exception:
-        return pytz.timezone("Asia/Kolkata")
-
-
-async def _parse_send_at(db, value: str) -> datetime:
-    """Parse a user-supplied send_at into a future UTC datetime.
-
-    Values with an explicit offset (e.g. '...Z' / '+05:30') are normalized to
-    their UTC instant. Naive values are interpreted in the configured platform
-    timezone so the Super Admin's chosen schedule time is honored regardless of
-    the browser's local timezone.
-    """
-    try:
-        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid date format. Use ISO format (e.g., YYYY-MM-DDTHH:MM:SSZ)")
-    if dt.tzinfo is None:
-        try:
-            dt = (await _platform_tz(db)).localize(dt)
-        except Exception:
-            raise HTTPException(status_code=400, detail="Scheduled time falls in a DST gap/ambiguity for the configured timezone")
-    else:
-        dt = dt.astimezone(timezone.utc)
-    dt_utc = dt.astimezone(timezone.utc)
-    if dt_utc <= datetime.now(timezone.utc):
-        raise HTTPException(status_code=400, detail="Scheduled send time must be in the future")
-    return dt_utc
-
-
 @router.post("/admin/send")
 async def send_newsletter(payload: SendNewsletterSchema, request: Request, user=Depends(require_role("admin", "super_admin"))):
     """Compose a newsletter and send it via selected channels (email, push, in-app, WhatsApp)."""

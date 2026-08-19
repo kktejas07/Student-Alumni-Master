@@ -2667,6 +2667,10 @@ api_router.include_router(ai_platform_services_router)
 from routers.pdf_routes import router as pdf_routes_router
 api_router.include_router(pdf_routes_router)
 
+# SuperAdmin Account Verticals & Background Verification (BGV) Router
+from routers.bgv import router as bgv_router
+api_router.include_router(bgv_router)
+
 app.include_router(api_router)
 
 

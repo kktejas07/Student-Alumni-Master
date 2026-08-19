@@ -34,6 +34,7 @@ import { NewsletterView } from './views/NewsletterView';
 import { EchoShowcaseAdminView } from './views/EchoShowcaseAdminView';
 import { CertificatesView } from './views/CertificatesView';
 import { EmailQualityView } from './views/EmailQualityView';
+import { BGVAccountVerticalsView } from './views/BGVAccountVerticalsView';
 import { useAutoTour } from '@/src/views/web/tour/TourProvider';
 import { usePortalUrl } from '@/src/views/web/portals/portalUrl';
 
@@ -82,6 +83,7 @@ export function SuperAdminPortalRN() {
         >
           <PromoBanner portal="super_admin" />
           {active === 'overview'    && <OverviewView onNavigate={(id) => go(id as SuperAdminNavId)} />}
+          {active === 'bgv'         && <BGVAccountVerticalsView />}
           {active === 'colleges'    && <CollegesView {...subFor('colleges')} />}
           {active === 'students'    && <StudentsView />}
           {active === 'mentors'     && <MentorsView />}

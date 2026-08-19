@@ -208,15 +208,6 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
   useEffect(() => { load(); }, [load]);
   useEffect(() => { fetchRecipientCount(form.audience); }, [form.audience, fetchRecipientCount]);
 
-  useEffect(() => {
-    request<any>('/admin/platform-controls')
-      .then((r: any) => {
-        const tz = (r?.system_settings || []).find((s: any) => s.key === 'default_tz')?.value;
-        if (tz) setPlatformTz(tz);
-      })
-      .catch(() => { /* fall back to UTC */ });
-  }, []);
-
   const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
   const previewHtml = useMemo(() => buildPreviewHtml(form, events), [form, events]);
 
