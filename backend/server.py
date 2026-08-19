@@ -2671,6 +2671,10 @@ api_router.include_router(pdf_routes_router)
 from routers.bgv import router as bgv_router
 api_router.include_router(bgv_router)
 
+# BGV Free & Semi-Paid API Integrations Register Router
+from routers.bgv_integrations import router as bgv_integrations_router
+api_router.include_router(bgv_integrations_router)
+
 app.include_router(api_router)
 
 

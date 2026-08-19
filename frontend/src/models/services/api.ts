@@ -541,6 +541,16 @@ export const api = {
     request<any>('/bgv/admin/update-profile', { method: 'POST', body: payload }),
   autoEnrichProfiles: () =>
     request<any>('/bgv/admin/enrich-profiles', { method: 'POST', body: {} }),
+  getBGVProvidersRegister: () =>
+    request<any>('/bgv/integrations/providers'),
+  listFakeUniversities: (q = '') =>
+    request<any>(`/bgv/integrations/fake-universities?q=${encodeURIComponent(q)}`),
+  verifyDegreeInstitution: (payload: { college: string }) =>
+    request<any>('/bgv/integrations/verify-degree-institution', { method: 'POST', body: payload }),
+  screenWatchlist: (payload: { name: string; dob?: string; country?: string }) =>
+    request<any>('/bgv/integrations/screen-watchlist', { method: 'POST', body: payload }),
+  runComprehensiveBGVScan: (payload: { name: string; email?: string; college?: string; degree?: string; pan?: string; uan?: string; country?: string; dob?: string; location?: string }) =>
+    request<any>('/bgv/integrations/scan', { method: 'POST', body: payload }),
 };
 
 export function resolveImageUrl(url?: string | null): string {

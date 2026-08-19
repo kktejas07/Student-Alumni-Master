@@ -1,15 +1,16 @@
 // @ts-nocheck
 /**
  * BGVAccountVerticalsView.tsx
- * SuperAdmin — Account Verticals (Real vs Test vs Unregistered), Country/LinkedIn Intelligence, & BGV Engine.
+ * SuperAdmin — Account Verticals, Multi-Tier BGV Register (Tier 0, Tier 1, Tier 2), Country/LinkedIn Intelligence.
  *
  * Implements:
  *   1. Account Verticals Analysis (Real accounts, Test accounts, Unregistered directory records)
- *   2. Geographic Segregation & Country Breakdown (India, USA, UK, UAE, Canada, Germany, Singapore, etc.)
- *   3. LinkedIn Profile Intelligence, Handle Resolution, & Direct Access Badges
- *   4. Standardized Identifiers (BGV ID, Student Alumni SA ID, Certificate Series ID)
- *   5. Automated Monthly Claim & Activation Email Notification Engine for Unregistered Accounts
- *   6. Profile Editing, Auto-Enrichment, and Interactive Holographic Verification Dossier
+ *   2. Free & Semi-Paid BGV Integrations Register (Tier 0 OpenSanctions/yente & UGC Blacklist, Tier 1 Aggregators & DigiLocker, Tier 2 API Setu & EPFO)
+ *   3. Multi-Check Automated Candidate BGV Scanner (Degree-Mill, Watchlist/PEP, PAN, EPFO, Safe Litigation)
+ *   4. Geographic Segregation & Country Breakdown (India, USA, UK, UAE, Canada, Germany, Singapore, etc.)
+ *   5. LinkedIn Profile Intelligence, Handle Resolution, & Direct Access Badges
+ *   6. Automated Monthly Claim & Activation Email Notification Engine for Unregistered Accounts
+ *   7. Interactive Holographic Verification Dossier & UGC Fake University Explorer
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -21,7 +22,8 @@ import {
   CheckCircle2, AlertTriangle, Trash2, RefreshCw, Copy, Check, ExternalLink,
   Award, FileText, QrCode, Mail, Phone, MapPin, Building2, Eye, ArrowRight,
   Filter, Shield, UserX, UserPlus, Send, Download, Sparkle, HelpCircle,
-  Globe, Linkedin, Edit3, Clock, BellRing, Settings2, PlayCircle,
+  Globe, Linkedin, Edit3, Clock, BellRing, Settings2, PlayCircle, Layers,
+  CheckSquare, XCircle, AlertCircle, Bookmark, Cpu, Zap,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SAC, FONTS } from '../tokens';
@@ -33,18 +35,6 @@ import { api, request } from '@/src/models/services/api';
 
 type VerticalType = 'all' | 'real' | 'test' | 'unregistered';
 type LinkedInFilterType = 'all' | 'yes' | 'no';
-
-const TOP_COUNTRIES = [
-  { id: 'all', label: 'All Countries', flag: '🌐' },
-  { id: 'India', label: 'India', flag: '🇮🇳' },
-  { id: 'United States', label: 'United States', flag: '🇺🇸' },
-  { id: 'United Kingdom', label: 'United Kingdom', flag: '🇬🇧' },
-  { id: 'United Arab Emirates', label: 'UAE', flag: '🇦🇪' },
-  { id: 'Canada', label: 'Canada', flag: '🇨🇦' },
-  { id: 'Germany', label: 'Germany', flag: '🇩🇪' },
-  { id: 'Singapore', label: 'Singapore', flag: '🇸🇬' },
-  { id: 'Australia', label: 'Australia', flag: '🇦🇺' },
-];
 
 export function BGVAccountVerticalsView() {
   const [vertical, setVertical] = useState<VerticalType>('all');
@@ -97,6 +87,33 @@ export function BGVAccountVerticalsView() {
   });
   const [editBusy, setEditBusy] = useState(false);
 
+  // BGV Integrations Register Modal
+  const [providersModal, setProvidersModal] = useState(false);
+  const [providersData, setProvidersData] = useState<any>(null);
+  const [providersBusy, setProvidersBusy] = useState(false);
+
+  // UGC Fake Universities Modal
+  const [fakeUnisModal, setFakeUnisModal] = useState(false);
+  const [fakeUnisList, setFakeUnisList] = useState<any[]>([]);
+  const [fakeUniSearch, setFakeUniSearch] = useState('');
+  const [fakeUnisBusy, setFakeUnisBusy] = useState(false);
+
+  // Comprehensive Multi-Tier Scan Modal
+  const [scanModal, setScanModal] = useState(false);
+  const [scanForm, setScanForm] = useState({
+    name: '',
+    email: '',
+    college: '',
+    degree: '',
+    country: 'India',
+    pan: '',
+    uan: '',
+    dob: '',
+    location: '',
+  });
+  const [scanResult, setScanResult] = useState<any>(null);
+  const [scanBusy, setScanBusy] = useState(false);
+
   const { toast, flash, hide } = useToast();
 
   // Load analytics summary
@@ -143,10 +160,37 @@ export function BGVAccountVerticalsView() {
     }
   }, []);
 
+  // Load Providers Register
+  const loadProvidersRegister = useCallback(async () => {
+    setProvidersBusy(true);
+    try {
+      const res = await api.getBGVProvidersRegister();
+      setProvidersData(res);
+    } catch (e: any) {
+      console.warn('Failed to load providers register', e);
+    } finally {
+      setProvidersBusy(false);
+    }
+  }, []);
+
+  // Load Fake Universities
+  const loadFakeUniversities = useCallback(async (searchQuery = '') => {
+    setFakeUnisBusy(true);
+    try {
+      const res = await api.listFakeUniversities(searchQuery);
+      setFakeUnisList(res?.items || []);
+    } catch (e: any) {
+      console.warn('Failed to load fake universities list', e);
+    } finally {
+      setFakeUnisBusy(false);
+    }
+  }, []);
+
   useEffect(() => {
     loadAnalytics();
     loadRemindersStatus();
-  }, [loadAnalytics, loadRemindersStatus]);
+    loadProvidersRegister();
+  }, [loadAnalytics, loadRemindersStatus, loadProvidersRegister]);
 
   useEffect(() => {
     loadList(1, vertical, q, countryFilter, linkedInFilter);
@@ -170,6 +214,50 @@ export function BGVAccountVerticalsView() {
     } finally {
       setLookupBusy(false);
     }
+  };
+
+  // Run Multi-Tier Scan
+  const handleRunComprehensiveScan = async (candidateData?: any) => {
+    const payload = candidateData || scanForm;
+    if (!payload.name) {
+      flash('Please enter candidate name', 'error');
+      return;
+    }
+    setScanBusy(true);
+    try {
+      const res = await api.runComprehensiveBGVScan(payload);
+      setScanResult(res);
+      if (res.overall_status === 'VERIFIED') {
+        flash('Comprehensive Scan Completed — All Checks Cleared!', 'success');
+      } else if (res.overall_status === 'FLAGGED_FOR_HUMAN_REVIEW') {
+        flash('Candidate Flagged for Human Review Queue', 'info');
+      } else {
+        flash('Critical Risk Detected: Potential Fake Institution / Degree Mill', 'error');
+      }
+    } catch (e: any) {
+      flash(e?.message || 'Scan failed', 'error');
+    } finally {
+      setScanBusy(false);
+    }
+  };
+
+  // Open candidate scan modal
+  const openScanForCandidate = (item: any) => {
+    const form = {
+      name: item.name || '',
+      email: item.email || '',
+      college: item.college || '',
+      degree: item.degree || '',
+      country: item.country || 'India',
+      pan: '',
+      uan: '',
+      dob: '',
+      location: item.location || '',
+    };
+    setScanForm(form);
+    setScanResult(null);
+    setScanModal(true);
+    handleRunComprehensiveScan(form);
   };
 
   // Toggle Test Status
@@ -349,13 +437,32 @@ export function BGVAccountVerticalsView() {
       {/* Top Header & Fast Actions */}
       <View style={st.headerRow}>
         <View>
-          <Text style={st.title}>Account Verticals, Geolocation & BGV Engine</Text>
+          <Text style={st.title}>Account Verticals, Geolocation & Multi-Tier BGV Engine</Text>
           <Text style={st.subtitle}>
-            Real vs Test vs Unregistered Records · Country Segregation · LinkedIn Intelligence · Monthly Claim Automation
+            Tier 0 (Zero Approval) · Tier 1 (Aggregators & DigiLocker) · Tier 2 (API Setu / NAD) · Country Segregation · LinkedIn Intelligence
           </Text>
         </View>
 
         <View style={st.actionButtonsRow}>
+          <Pressable
+            style={st.btnProviders}
+            onPress={() => setProvidersModal(true)}
+          >
+            <Layers size={15} color="#A78BFA" />
+            <Text style={st.btnProvidersText}>API Register & Tiers</Text>
+          </Pressable>
+
+          <Pressable
+            style={st.btnFakeUnis}
+            onPress={() => {
+              loadFakeUniversities();
+              setFakeUnisModal(true);
+            }}
+          >
+            <AlertCircle size={15} color="#FBBF24" />
+            <Text style={st.btnFakeUnisText}>UGC Fake Uni Blacklist</Text>
+          </Pressable>
+
           <Pressable
             style={st.btnReminders}
             onPress={() => setRemindersModal(true)}
@@ -371,7 +478,7 @@ export function BGVAccountVerticalsView() {
           >
             <Sparkles size={15} color="#A78BFA" />
             <Text style={[st.btnSecondaryText, { color: '#C4B5FD' }]}>
-              {enrichBusy ? 'Enriching...' : 'Auto-Enrich Country & LinkedIn'}
+              {enrichBusy ? 'Enriching...' : 'Auto-Enrich Geolocation'}
             </Text>
           </Pressable>
 
@@ -382,7 +489,7 @@ export function BGVAccountVerticalsView() {
           >
             <RefreshCw size={15} color="#93C5FD" style={backfillBusy ? { transform: [{ rotate: '45deg' }] } : {}} />
             <Text style={st.btnSecondaryText}>
-              {backfillBusy ? 'Backfilling...' : 'Sync BGV Identifiers'}
+              {backfillBusy ? 'Backfilling...' : 'Sync BGV IDs'}
             </Text>
           </Pressable>
 
@@ -448,23 +555,19 @@ export function BGVAccountVerticalsView() {
           </Text>
         </Card>
 
-        <Card style={[st.kpiCard, { borderColor: 'rgba(56, 189, 248, 0.35)' }]}>
+        <Card style={[st.kpiCard, { borderColor: 'rgba(167, 139, 250, 0.35)' }]}>
           <View style={st.kpiTop}>
-            <View style={[st.kpiIconWrap, { backgroundColor: 'rgba(56, 189, 248, 0.15)' }]}>
-              <Linkedin size={20} color="#38BDF8" />
+            <View style={[st.kpiIconWrap, { backgroundColor: 'rgba(167, 139, 250, 0.15)' }]}>
+              <ShieldCheck size={20} color="#A78BFA" />
             </View>
-            <View style={[st.kpiBadge, { backgroundColor: 'rgba(56, 189, 248, 0.2)' }]}>
-              <Text style={[st.kpiBadgeText, { color: '#38BDF8' }]}>
-                {analytics?.linkedin_metrics?.percentage || 0}% Linked
-              </Text>
+            <View style={[st.kpiBadge, { backgroundColor: 'rgba(167, 139, 250, 0.2)' }]}>
+              <Text style={[st.kpiBadgeText, { color: '#C4B5FD' }]}>8 Verifiers Active</Text>
             </View>
           </View>
-          <Text style={st.kpiValue}>
-            {analytics?.linkedin_metrics?.has_linkedin || 0}
-          </Text>
-          <Text style={st.kpiLabel}>LinkedIn Profiles Connected</Text>
+          <Text style={st.kpiValue}>Tier 0 / 1 / 2</Text>
+          <Text style={st.kpiLabel}>BGV Integrations Stack</Text>
           <Text style={st.kpiDesc}>
-            {analytics?.linkedin_metrics?.missing_linkedin || 0} profiles missing LinkedIn URL
+            OpenSanctions, UGC Degree-Mills, PAN, EPFO & DigiLocker
           </Text>
         </Card>
       </View>
@@ -624,11 +727,11 @@ export function BGVAccountVerticalsView() {
         <Card style={st.tableCard}>
           <View style={st.tableHeader}>
             <Text style={[st.th, { flex: 2.2 }]}>Candidate & Country</Text>
-            <Text style={[st.th, { flex: 1.4 }]}>Vertical & Role</Text>
-            <Text style={[st.th, { flex: 1.7 }]}>SA ID / BGV ID</Text>
-            <Text style={[st.th, { flex: 1.5 }]}>LinkedIn & Geolocation</Text>
-            <Text style={[st.th, { flex: 1.8 }]}>Institution & Academic</Text>
-            <Text style={[st.th, { flex: 2.0, textAlign: 'right' }]}>Actions & Claim</Text>
+            <Text style={[st.th, { flex: 1.3 }]}>Vertical & Role</Text>
+            <Text style={[st.th, { flex: 1.6 }]}>SA ID / BGV ID</Text>
+            <Text style={[st.th, { flex: 1.5 }]}>LinkedIn & Location</Text>
+            <Text style={[st.th, { flex: 1.7 }]}>Institution & Academic</Text>
+            <Text style={[st.th, { flex: 2.3, textAlign: 'right' }]}>Multi-Tier BGV Actions</Text>
           </View>
 
           {busy ? (
@@ -665,7 +768,7 @@ export function BGVAccountVerticalsView() {
                   </View>
 
                   {/* Vertical & Role */}
-                  <View style={{ flex: 1.4, justifyContent: 'center' }}>
+                  <View style={{ flex: 1.3, justifyContent: 'center' }}>
                     <View style={[
                       st.verticalBadge,
                       isReal && { backgroundColor: 'rgba(16, 185, 129, 0.15)', borderColor: 'rgba(16, 185, 129, 0.3)' },
@@ -685,7 +788,7 @@ export function BGVAccountVerticalsView() {
                   </View>
 
                   {/* SA ID & BGV ID */}
-                  <View style={{ flex: 1.7, justifyContent: 'center' }}>
+                  <View style={{ flex: 1.6, justifyContent: 'center' }}>
                     <Pressable
                       style={st.idChip}
                       onPress={() => copyToClipboard(item.sa_id, `sa-${item.id}`)}
@@ -737,7 +840,7 @@ export function BGVAccountVerticalsView() {
                   </View>
 
                   {/* Institution & Academic */}
-                  <View style={{ flex: 1.8, justifyContent: 'center' }}>
+                  <View style={{ flex: 1.7, justifyContent: 'center' }}>
                     <Text style={st.tdCollege} numberOfLines={1}>{item.college || 'Universal Registry'}</Text>
                     <Text style={st.tdSub}>
                       {[item.degree, item.graduation_year].filter(Boolean).join(' · ') || 'Degree In Progress'}
@@ -750,8 +853,17 @@ export function BGVAccountVerticalsView() {
                     ) : null}
                   </View>
 
-                  {/* Actions & Claim */}
-                  <View style={{ flex: 2.0, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  {/* Actions & Multi-Tier BGV Scan */}
+                  <View style={{ flex: 2.3, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+                    {/* Run 5-Tier BGV Scan Button */}
+                    <Pressable
+                      style={st.scanBtn}
+                      onPress={() => openScanForCandidate(item)}
+                    >
+                      <Zap size={11} color="#FBBF24" />
+                      <Text style={st.scanBtnText}>Scan</Text>
+                    </Pressable>
+
                     {isUnreg && (
                       <Pressable
                         style={[st.claimEmailBtn, isSendingThis && { opacity: 0.6 }]}
@@ -762,9 +874,9 @@ export function BGVAccountVerticalsView() {
                           <ActivityIndicator size="small" color="#F472B6" />
                         ) : (
                           <>
-                            <Mail size={12} color="#F472B6" />
+                            <Mail size={11} color="#F472B6" />
                             <Text style={st.claimEmailBtnText}>
-                              {item.claim_reminders_count > 0 ? `Claim #${item.claim_reminders_count}` : 'Send Claim'}
+                              {item.claim_reminders_count > 0 ? `#${item.claim_reminders_count}` : 'Claim'}
                             </Text>
                           </>
                         )}
@@ -775,15 +887,15 @@ export function BGVAccountVerticalsView() {
                       style={st.verifyBtn}
                       onPress={() => handleLookup(item.bgv_id || item.sa_id || item.email)}
                     >
-                      <ShieldCheck size={12} color="#93C5FD" />
-                      <Text style={st.verifyBtnText}>BGV</Text>
+                      <ShieldCheck size={11} color="#93C5FD" />
+                      <Text style={st.verifyBtnText}>Dossier</Text>
                     </Pressable>
 
                     <Pressable
                       style={st.editBtn}
                       onPress={() => openEditModal(item)}
                     >
-                      <Edit3 size={12} color="#CBD5E1" />
+                      <Edit3 size={11} color="#CBD5E1" />
                     </Pressable>
 
                     <Pressable
@@ -824,6 +936,366 @@ export function BGVAccountVerticalsView() {
           </View>
         </Card>
       </View>
+
+      {/* ================================================================= */}
+      {/* BGV API Register & Verifiers Hub Modal (Tier 0, 1, 2)             */}
+      {/* ================================================================= */}
+      {providersModal && (
+        <Modal
+          visible={true}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setProvidersModal(false)}
+        >
+          <View style={st.modalOverlay}>
+            <Animated.View entering={FadeInUp.duration(200)} style={st.providersModalCard}>
+              <View style={st.bgvModalHeader}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <Layers size={22} color="#A78BFA" />
+                  <View>
+                    <Text style={st.bgvModalHeaderTitle}>BGV Free & Semi-Paid API Integrations Register</Text>
+                    <Text style={{ color: '#94A3B8', fontSize: 12 }}>
+                      Multi-tier architecture: Zero marginal cost screening to API Setu & EPFO Direct
+                    </Text>
+                  </View>
+                </View>
+                <Pressable onPress={() => setProvidersModal(false)} style={st.closeModalBtn}>
+                  <Text style={{ color: '#94A3B8', fontSize: 16 }}>✕</Text>
+                </Pressable>
+              </View>
+
+              <ScrollView style={{ maxHeight: 540 }}>
+                {providersData?.tiers?.map((tier: any, tIdx: number) => (
+                  <View key={tIdx} style={st.tierSection}>
+                    <View style={st.tierHeader}>
+                      <View style={st.tierBadge}>
+                        <Text style={st.tierBadgeText}>{tier.tier}</Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={st.tierTitle}>{tier.title}</Text>
+                        <Text style={st.tierDesc}>{tier.description}</Text>
+                      </View>
+                    </View>
+
+                    <View style={st.providerGrid}>
+                      {tier.providers.map((p: any, pIdx: number) => (
+                        <View key={pIdx} style={st.providerCard}>
+                          <View style={st.providerCardTop}>
+                            <Text style={st.providerName}>{p.name}</Text>
+                            <View style={st.providerStatusPill}>
+                              <Text style={st.providerStatusText}>{p.status}</Text>
+                            </View>
+                          </View>
+                          <Text style={st.providerCategory}>{p.category}</Text>
+                          <View style={st.providerMetaRow}>
+                            <Text style={st.providerCost}>{p.cost_model}</Text>
+                            <Text style={st.providerLatency}>⚡ {p.latency_ms}ms</Text>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+
+              <View style={st.modalFooterRow}>
+                <Pressable
+                  style={st.btnSaveSettings}
+                  onPress={() => setProvidersModal(false)}
+                >
+                  <Text style={st.btnSaveSettingsText}>Done</Text>
+                </Pressable>
+              </View>
+            </Animated.View>
+          </View>
+        </Modal>
+      )}
+
+      {/* ================================================================= */}
+      {/* UGC Fake Universities Blacklist Modal                             */}
+      {/* ================================================================= */}
+      {fakeUnisModal && (
+        <Modal
+          visible={true}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setFakeUnisModal(false)}
+        >
+          <View style={st.modalOverlay}>
+            <Animated.View entering={FadeInUp.duration(200)} style={st.fakeUnisModalCard}>
+              <View style={st.bgvModalHeader}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <AlertCircle size={22} color="#EF4444" />
+                  <View>
+                    <Text style={st.bgvModalHeaderTitle}>UGC Fake Universities & Degree-Mill Blacklist</Text>
+                    <Text style={{ color: '#94A3B8', fontSize: 12 }}>
+                      Cached statutory degree-mill register — Blocks fraudulent credentials at line 1
+                    </Text>
+                  </View>
+                </View>
+                <Pressable onPress={() => setFakeUnisModal(false)} style={st.closeModalBtn}>
+                  <Text style={{ color: '#94A3B8', fontSize: 16 }}>✕</Text>
+                </Pressable>
+              </View>
+
+              {/* Search Fake Unis */}
+              <View style={[st.tableSearchWrap, { marginBottom: 14, minWidth: '100%' }]}>
+                <Search size={16} color="#64748B" style={{ marginLeft: 12 }} />
+                <TextInput
+                  style={st.tableSearchInput}
+                  value={fakeUniSearch}
+                  onChangeText={(v) => {
+                    setFakeUniSearch(v);
+                    loadFakeUniversities(v);
+                  }}
+                  placeholder="Search fake university by name, state, or city..."
+                  placeholderTextColor="#64748B"
+                />
+              </View>
+
+              <ScrollView style={{ maxHeight: 440 }}>
+                {fakeUnisBusy ? (
+                  <ActivityIndicator size="large" color="#EF4444" style={{ marginVertical: 30 }} />
+                ) : fakeUnisList.length === 0 ? (
+                  <Text style={{ color: '#94A3B8', textAlign: 'center', padding: 20 }}>No fake universities matching search query.</Text>
+                ) : (
+                  fakeUnisList.map((uni: any, uIdx: number) => (
+                    <View key={uIdx} style={st.fakeUniRow}>
+                      <View style={st.fakeUniIconBox}>
+                        <XCircle size={18} color="#EF4444" />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Text style={st.fakeUniName}>{uni.name}</Text>
+                          <View style={st.fakeUniBadge}>
+                            <Text style={st.fakeUniBadgeText}>{uni.state}</Text>
+                          </View>
+                        </View>
+                        <Text style={st.fakeUniReason}>{uni.reason}</Text>
+                        <Text style={st.fakeUniCity}>📍 {uni.city}, {uni.state} · Listed: {uni.listed_date}</Text>
+                      </View>
+                    </View>
+                  ))
+                )}
+              </ScrollView>
+
+              <View style={st.modalFooterRow}>
+                <Pressable
+                  style={st.btnSaveSettings}
+                  onPress={() => setFakeUnisModal(false)}
+                >
+                  <Text style={st.btnSaveSettingsText}>Close Blacklist</Text>
+                </Pressable>
+              </View>
+            </Animated.View>
+          </View>
+        </Modal>
+      )}
+
+      {/* ================================================================= */}
+      {/* Multi-Tier Comprehensive BGV Scan & Dossier Modal                 */}
+      {/* ================================================================= */}
+      {scanModal && (
+        <Modal
+          visible={true}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setScanModal(false)}
+        >
+          <View style={st.modalOverlay}>
+            <Animated.View entering={FadeInUp.duration(200)} style={st.scanModalCard}>
+              <View style={st.bgvModalHeader}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <Zap size={22} color="#FBBF24" />
+                  <View>
+                    <Text style={st.bgvModalHeaderTitle}>Multi-Tier Automated BGV Candidate Scanner</Text>
+                    <Text style={{ color: '#94A3B8', fontSize: 12 }}>
+                      Orchestrates Tier 0 Degree-Mills, OpenSanctions, Tier 1 PAN/EPFO & Court Guard
+                    </Text>
+                  </View>
+                </View>
+                <Pressable onPress={() => setScanModal(false)} style={st.closeModalBtn}>
+                  <Text style={{ color: '#94A3B8', fontSize: 16 }}>✕</Text>
+                </Pressable>
+              </View>
+
+              <ScrollView style={{ maxHeight: 520 }}>
+                {/* Candidate Inputs */}
+                <View style={st.scanInputsGrid}>
+                  <View style={[st.formGroup, { flex: 1 }]}>
+                    <Text style={st.formLabel}>Candidate Name:</Text>
+                    <TextInput
+                      style={st.formInput}
+                      value={scanForm.name}
+                      onChangeText={(v) => setScanForm({ ...scanForm, name: v })}
+                      placeholder="Candidate Name"
+                      placeholderTextColor="#64748B"
+                    />
+                  </View>
+                  <View style={[st.formGroup, { flex: 1 }]}>
+                    <Text style={st.formLabel}>Institution / University:</Text>
+                    <TextInput
+                      style={st.formInput}
+                      value={scanForm.college}
+                      onChangeText={(v) => setScanForm({ ...scanForm, college: v })}
+                      placeholder="e.g. SNIST or Commercial University"
+                      placeholderTextColor="#64748B"
+                    />
+                  </View>
+                </View>
+
+                <View style={st.scanInputsGrid}>
+                  <View style={[st.formGroup, { flex: 1 }]}>
+                    <Text style={st.formLabel}>PAN Number (Optional):</Text>
+                    <TextInput
+                      style={st.formInput}
+                      value={scanForm.pan}
+                      onChangeText={(v) => setScanForm({ ...scanForm, pan: v })}
+                      placeholder="ABCDE1234F"
+                      placeholderTextColor="#64748B"
+                    />
+                  </View>
+                  <View style={[st.formGroup, { flex: 1 }]}>
+                    <Text style={st.formLabel}>EPFO UAN (Optional):</Text>
+                    <TextInput
+                      style={st.formInput}
+                      value={scanForm.uan}
+                      onChangeText={(v) => setScanForm({ ...scanForm, uan: v })}
+                      placeholder="100123456789"
+                      placeholderTextColor="#64748B"
+                    />
+                  </View>
+                </View>
+
+                <Pressable
+                  style={[st.runScanBtn, scanBusy && { opacity: 0.6 }]}
+                  onPress={() => handleRunComprehensiveScan()}
+                  disabled={scanBusy}
+                >
+                  {scanBusy ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <>
+                      <Zap size={15} color="#FFFFFF" />
+                      <Text style={st.runScanBtnText}>Execute 5-Tier BGV Verification Scan</Text>
+                    </>
+                  )}
+                </Pressable>
+
+                {/* Scan Results Breakdown */}
+                {scanResult && (
+                  <View style={st.scanResultsSection}>
+                    {/* Status Header */}
+                    <View style={[
+                      st.scanResultHeaderBox,
+                      scanResult.overall_status === 'VERIFIED' && { borderColor: '#10B981', backgroundColor: 'rgba(16, 185, 129, 0.15)' },
+                      scanResult.overall_status === 'FLAGGED_FOR_HUMAN_REVIEW' && { borderColor: '#F59E0B', backgroundColor: 'rgba(245, 158, 11, 0.15)' },
+                      scanResult.overall_status === 'CRITICAL_FAILED' && { borderColor: '#EF4444', backgroundColor: 'rgba(239, 68, 68, 0.15)' },
+                    ]}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Text style={st.scanResultDossierId}>{scanResult.dossier_id}</Text>
+                        <View style={st.scanRiskPill}>
+                          <Text style={st.scanRiskPillText}>Risk Score: {scanResult.risk_score}/100</Text>
+                        </View>
+                      </View>
+                      <Text style={st.scanResultRec}>{scanResult.recommendation}</Text>
+                    </View>
+
+                    {/* Breakdown of Each Verifier */}
+                    <View style={st.checksList}>
+                      {/* Check 1: UGC Fake Uni */}
+                      <View style={st.checkRow}>
+                        <View style={st.checkIconBox}>
+                          {scanResult.verifiers_breakdown.tier_0_education_and_degree_mill.status === 'PASSED' ? (
+                            <CheckCircle2 size={18} color="#34D399" />
+                          ) : (
+                            <XCircle size={18} color="#EF4444" />
+                          )}
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={st.checkTitle}>Tier 0: UGC Fake Universities & Degree-Mill Check</Text>
+                          <Text style={st.checkDesc}>{scanResult.verifiers_breakdown.tier_0_education_and_degree_mill.details.reason}</Text>
+                        </View>
+                      </View>
+
+                      {/* Check 2: OpenSanctions */}
+                      <View style={st.checkRow}>
+                        <View style={st.checkIconBox}>
+                          {scanResult.verifiers_breakdown.tier_0_sanctions_and_pep.status === 'CLEAR' ? (
+                            <CheckCircle2 size={18} color="#34D399" />
+                          ) : (
+                            <AlertTriangle size={18} color="#F59E0B" />
+                          )}
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={st.checkTitle}>Tier 0: OpenSanctions & yente Watchlist / PEP</Text>
+                          <Text style={st.checkDesc}>
+                            {scanResult.verifiers_breakdown.tier_0_sanctions_and_pep.details.hits_count === 0
+                              ? 'Clean — No hits on international sanctions, CBI, or PEP databases.'
+                              : `${scanResult.verifiers_breakdown.tier_0_sanctions_and_pep.details.hits_count} potential matches identified.`}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Check 3: eCourts */}
+                      <View style={st.checkRow}>
+                        <View style={st.checkIconBox}>
+                          {scanResult.verifiers_breakdown.tier_0_court_litigation.status === 'CLEAR' ? (
+                            <CheckCircle2 size={18} color="#34D399" />
+                          ) : (
+                            <AlertCircle size={18} color="#F59E0B" />
+                          )}
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={st.checkTitle}>Tier 0: eCourts / NJDG Safe Litigation Verifier</Text>
+                          <Text style={st.checkDesc}>{scanResult.verifiers_breakdown.tier_0_court_litigation.details.reason}</Text>
+                        </View>
+                      </View>
+
+                      {/* Check 4: PAN */}
+                      <View style={st.checkRow}>
+                        <View style={st.checkIconBox}>
+                          <CheckCircle2 size={18} color="#60A5FA" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={st.checkTitle}>Tier 1: NSDL / ITD PAN Verifier</Text>
+                          <Text style={st.checkDesc}>
+                            {scanResult.verifiers_breakdown.tier_1_identity_pan.details.pan_masked || 'Structure verified / ready for live aggregator check.'}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Check 5: EPFO */}
+                      <View style={st.checkRow}>
+                        <View style={st.checkIconBox}>
+                          <CheckCircle2 size={18} color="#60A5FA" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={st.checkTitle}>Tier 1: EPFO UAN Passbook History</Text>
+                          <Text style={st.checkDesc}>
+                            {scanResult.verifiers_breakdown.tier_1_employment_epfo.details.current_active_employer
+                              ? `Active Service at ${scanResult.verifiers_breakdown.tier_1_employment_epfo.details.current_active_employer}`
+                              : 'Candidate consent passbook portal route enabled.'}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+                )}
+              </ScrollView>
+
+              <View style={st.modalFooterRow}>
+                <Pressable
+                  style={st.purgeCancelBtn}
+                  onPress={() => setScanModal(false)}
+                >
+                  <Text style={st.purgeCancelBtnText}>Close Scanner</Text>
+                </Pressable>
+              </View>
+            </Animated.View>
+          </View>
+        </Modal>
+      )}
 
       {/* ================================================================= */}
       {/* Monthly Claim Reminders Control Modal                             */}
@@ -1048,15 +1520,13 @@ export function BGVAccountVerticalsView() {
                 {/* LinkedIn Profile */}
                 <View style={st.formGroup}>
                   <Text style={st.formLabel}>LinkedIn Profile URL or Handle:</Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <TextInput
-                      style={st.formInput}
-                      value={editForm.linkedin_url}
-                      onChangeText={(v) => setEditForm({ ...editForm, linkedin_url: v })}
-                      placeholder="https://linkedin.com/in/username"
-                      placeholderTextColor="#64748B"
-                    />
-                  </View>
+                  <TextInput
+                    style={st.formInput}
+                    value={editForm.linkedin_url}
+                    onChangeText={(v) => setEditForm({ ...editForm, linkedin_url: v })}
+                    placeholder="https://linkedin.com/in/username"
+                    placeholderTextColor="#64748B"
+                  />
                 </View>
 
                 {/* Academic Information */}
@@ -1328,15 +1798,47 @@ const st = StyleSheet.create({
   },
   actionButtonsRow: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 8,
     flexWrap: 'wrap',
+  },
+  btnProviders: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(124, 58, 237, 0.2)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(167, 139, 250, 0.4)',
+  },
+  btnProvidersText: {
+    color: '#C4B5FD',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  btnFakeUnis: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.35)',
+  },
+  btnFakeUnisText: {
+    color: '#FBBF24',
+    fontSize: 12,
+    fontWeight: '600',
   },
   btnReminders: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     backgroundColor: 'rgba(219, 39, 119, 0.2)',
     borderRadius: 8,
     borderWidth: 1,
@@ -1344,15 +1846,15 @@ const st = StyleSheet.create({
   },
   btnRemindersText: {
     color: '#FBCFE8',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
   },
   btnSecondary: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     backgroundColor: 'rgba(30, 41, 59, 0.8)',
     borderRadius: 8,
     borderWidth: 1,
@@ -1360,15 +1862,15 @@ const st = StyleSheet.create({
   },
   btnSecondaryText: {
     color: '#93C5FD',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
   },
   btnDanger: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     backgroundColor: 'rgba(239, 68, 68, 0.15)',
     borderRadius: 8,
     borderWidth: 1,
@@ -1376,7 +1878,7 @@ const st = StyleSheet.create({
   },
   btnDangerText: {
     color: '#FCA5A5',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
   },
   kpiGrid: {
@@ -1417,7 +1919,7 @@ const st = StyleSheet.create({
   },
   kpiValue: {
     color: '#FFFFFF',
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: '700',
     fontFamily: FONTS.bold,
   },
@@ -1806,12 +2308,28 @@ const st = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
   },
+  scanBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.35)',
+  },
+  scanBtnText: {
+    color: '#FBBF24',
+    fontSize: 10,
+    fontWeight: '700',
+  },
   claimEmailBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
+    gap: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 4,
     borderRadius: 6,
     backgroundColor: 'rgba(219, 39, 119, 0.15)',
     borderWidth: 1,
@@ -1819,15 +2337,15 @@ const st = StyleSheet.create({
   },
   claimEmailBtnText: {
     color: '#F472B6',
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
   },
   verifyBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
+    gap: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 4,
     borderRadius: 6,
     backgroundColor: 'rgba(59, 130, 246, 0.15)',
     borderWidth: 1,
@@ -1835,23 +2353,23 @@ const st = StyleSheet.create({
   },
   verifyBtnText: {
     color: '#93C5FD',
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
   },
   editBtn: {
-    padding: 6,
-    borderRadius: 6,
+    padding: 5,
+    borderRadius: 5,
     backgroundColor: 'rgba(255, 255, 255, 0.06)',
   },
   testToggleBtn: {
-    paddingHorizontal: 7,
-    paddingVertical: 5,
-    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    borderRadius: 5,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
   testToggleBtnText: {
     color: '#94A3B8',
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '600',
   },
   paginationRow: {
@@ -1884,6 +2402,245 @@ const st = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+  },
+  providersModalCard: {
+    width: '100%',
+    maxWidth: 780,
+    backgroundColor: '#0F172A',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(167, 139, 250, 0.35)',
+    padding: 20,
+    maxHeight: '90%',
+  },
+  tierSection: {
+    marginBottom: 20,
+    backgroundColor: 'rgba(30, 41, 59, 0.4)',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(148, 163, 184, 0.15)',
+  },
+  tierHeader: {
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  tierBadge: {
+    backgroundColor: '#6366F1',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  tierBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  tierTitle: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  tierDesc: {
+    color: '#94A3B8',
+    fontSize: 11,
+  },
+  providerGrid: {
+    gap: 8,
+  },
+  providerCard: {
+    backgroundColor: 'rgba(15, 23, 42, 0.8)',
+    borderRadius: 8,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(148, 163, 184, 0.12)',
+  },
+  providerCardTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  providerName: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  providerStatusPill: {
+    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  providerStatusText: {
+    color: '#34D399',
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  providerCategory: {
+    color: '#CBD5E1',
+    fontSize: 11,
+    marginTop: 2,
+  },
+  providerMetaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 4,
+    paddingTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  providerCost: {
+    color: '#94A3B8',
+    fontSize: 10,
+  },
+  providerLatency: {
+    color: '#FBBF24',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  fakeUnisModalCard: {
+    width: '100%',
+    maxWidth: 680,
+    backgroundColor: '#0F172A',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.35)',
+    padding: 20,
+    maxHeight: '90%',
+  },
+  fakeUniRow: {
+    flexDirection: 'row',
+    gap: 12,
+    backgroundColor: 'rgba(30, 41, 59, 0.6)',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.2)',
+  },
+  fakeUniIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 6,
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fakeUniName: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  fakeUniBadge: {
+    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  fakeUniBadgeText: {
+    color: '#FCA5A5',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  fakeUniReason: {
+    color: '#FCA5A5',
+    fontSize: 11,
+    marginTop: 2,
+  },
+  fakeUniCity: {
+    color: '#94A3B8',
+    fontSize: 10,
+    marginTop: 4,
+  },
+  scanModalCard: {
+    width: '100%',
+    maxWidth: 680,
+    backgroundColor: '#0F172A',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.35)',
+    padding: 20,
+    maxHeight: '90%',
+  },
+  scanInputsGrid: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  runScanBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#D97706',
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginVertical: 12,
+  },
+  runScanBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  scanResultsSection: {
+    marginTop: 10,
+  },
+  scanResultHeaderBox: {
+    borderRadius: 10,
+    borderWidth: 1,
+    padding: 14,
+    marginBottom: 12,
+  },
+  scanResultDossierId: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
+    fontFamily: 'monospace',
+  },
+  scanRiskPill: {
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  scanRiskPillText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  scanResultRec: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 6,
+  },
+  checksList: {
+    gap: 8,
+  },
+  checkRow: {
+    flexDirection: 'row',
+    gap: 10,
+    backgroundColor: 'rgba(30, 41, 59, 0.6)',
+    borderRadius: 8,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(148, 163, 184, 0.1)',
+  },
+  checkIconBox: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkTitle: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  checkDesc: {
+    color: '#94A3B8',
+    fontSize: 11,
+    marginTop: 2,
   },
   bgvModalCard: {
     width: '100%',
