@@ -29,13 +29,13 @@ import { SC, FONTS } from './tokens';
  * Gradient palette — Brand PURPLE (consistent identity)
  * ───────────────────────────────────────────────────────────────── */
 export const GRAD = {
-  from: '#7B3DBF',                                // purple 500
-  to:   '#5F259F',                                // purple 700
-  deep: '#3D1468',                                // purple 900
-  soft: ['rgba(123,61,191,0.22)', 'rgba(95,37,159,0.10)'] as const,
-  ring: 'rgba(123,61,191,0.32)',
-  ringSoft: 'rgba(123,61,191,0.12)',
-  hero: ['#7B3DBF', '#5F259F', '#EC4899'] as const,
+  from: '#2563EB',                                // blue 600
+  to:   '#1E40AF',                                // blue 800
+  deep: '#1E3A8A',                                // blue 900
+  soft: ['rgba(37,99,235,0.22)', 'rgba(30,64,175,0.10)'] as const,
+  ring: 'rgba(37,99,235,0.32)',
+  ringSoft: 'rgba(37,99,235,0.12)',
+  hero: ['#2563EB', '#1E40AF', '#EC4899'] as const,
 } as const;
 
 /* ─────────────────────────────────────────────────────────────────
@@ -131,7 +131,7 @@ const PILL = {
   warn:    { bg: 'rgba(245,158,11,0.14)', bc: 'rgba(245,158,11,0.34)', c: '#FBBF24' },
   info:    { bg: 'rgba(59,130,246,0.14)', bc: 'rgba(59,130,246,0.32)', c: '#93C5FD' },
   danger:  { bg: 'rgba(239,68,68,0.14)',  bc: 'rgba(239,68,68,0.32)',  c: '#FCA5A5' },
-  brand:   { bg: 'rgba(123,61,191,0.16)', bc: 'rgba(123,61,191,0.40)', c: '#93C5FD' },
+  brand:   { bg: 'rgba(37,99,235,0.16)', bc: 'rgba(37,99,235,0.40)', c: '#93C5FD' },
   neutral: { bg: 'rgba(255,255,255,0.06)',bc: 'rgba(255,255,255,0.14)',c: SC.muted },
 } as const;
 export type PillKind = keyof typeof PILL;
@@ -282,18 +282,18 @@ const TOAST_PALETTE: Record<ToastKind, {
   },
   info: {
     Icon: Info,
-    accent: '#A78BFA',
+    accent: '#93C5FD',
     iconColor: '#DDD6FE',
-    iconBg: 'rgba(124,58,237,0.18)',
+    iconBg: 'rgba(37,99,235,0.18)',
     border: 'rgba(167,139,250,0.4)',
     bg: 'rgba(14, 10, 24, 0.94)',
   },
   pending: {
     Icon: Loader,
-    accent: '#8B5CF6',
+    accent: '#3B82F6',
     iconColor: '#C4B5FD',
-    iconBg: 'rgba(139,92,246,0.18)',
-    border: 'rgba(139,92,246,0.4)',
+    iconBg: 'rgba(37,99,235,0.18)',
+    border: 'rgba(37,99,235,0.4)',
     bg: 'rgba(14, 10, 24, 0.94)',
   },
 };

@@ -446,8 +446,8 @@ export function GradientButton({
         style={[gb.btn, { height: h, paddingHorizontal: px,
           ...(Platform.OS === 'web' ? ({
             boxShadow: hover
-              ? '0 14px 36px rgba(139,92,246,0.45), 0 0 0 1px rgba(139,92,246,0.30)'
-              : '0 8px 24px rgba(139,92,246,0.30), 0 0 0 1px rgba(139,92,246,0.20)',
+              ? '0 14px 36px rgba(37,99,235,0.45), 0 0 0 1px rgba(37,99,235,0.30)'
+              : '0 8px 24px rgba(37,99,235,0.30), 0 0 0 1px rgba(37,99,235,0.20)',
             transitionProperty: 'transform, box-shadow',
             transitionDuration: '180ms',
             transform: hover ? 'translateY(-1px)' : 'translateY(0)',
@@ -550,8 +550,8 @@ export function AiCopilotFab({
               fab.btn,
               Platform.OS === 'web' && ({
                 boxShadow: hover
-                  ? '0 18px 44px rgba(139,92,246,0.55), 0 0 0 1px rgba(139,92,246,0.42)'
-                  : '0 12px 32px rgba(139,92,246,0.40), 0 0 0 1px rgba(139,92,246,0.28)',
+                  ? '0 18px 44px rgba(37,99,235,0.55), 0 0 0 1px rgba(37,99,235,0.42)'
+                  : '0 12px 32px rgba(37,99,235,0.40), 0 0 0 1px rgba(37,99,235,0.28)',
                 transitionProperty: 'transform, box-shadow',
                 transitionDuration: '180ms',
                 transform: hover ? 'scale(1.08)' : pressed ? 'scale(0.96)' : 'scale(1)',

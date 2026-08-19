@@ -24,7 +24,7 @@ import { Sidebar, StudentNavId } from './Sidebar';
 import { TopBar } from './TopBar';
 import { AnimatedAurora, GridOverlay, RouteTransition, AiCopilotFab } from './glass';
 import { StudentNotificationsPanel } from './views/NotificationsPanel';
-import { PALETTE } from './tokens';
+import { PALETTE, SC } from './tokens';
 import { LinearGradient } from 'expo-linear-gradient';
 import { DashboardFooter } from '../../components/SponsorStrip';
 import { PromoBanner } from '../../components/PromoBanner';
@@ -160,7 +160,7 @@ function PortalShell() {
 
         {/* Mobile bottom-tab bar (phone only) */}
         {bp.isPhone && (
-          <View style={[s.mobileNav, { borderTopColor: 'rgba(167,139,250,0.15)' }]}>
+          <View style={[s.mobileNav, { borderTopColor: 'rgba(59,130,246,0.15)' }]}>
             {[
               { id: 'dashboard', Icon: LayoutDashboard, label: 'Home' },
               { id: 'career-ai', Icon: Sparkles, label: 'AI' },
@@ -173,7 +173,7 @@ function PortalShell() {
                 onPress={() => handleNav(id)}
                 style={[s.navItem, active === id && s.navItemActive]}
               >
-                <Icon size={20} color={active === id ? '#A78BFA' : 'rgba(255,255,255,0.4)'} />
+                <Icon size={20} color={active === id ? '#60A5FA' : 'rgba(255,255,255,0.4)'} />
                 <Text style={[s.navLabel, active === id && s.navLabelActive]}>{label}</Text>
               </Pressable>
             ))}
@@ -195,11 +195,11 @@ function PortalShell() {
 }
 
 const s = StyleSheet.create({
-  shell: { flex: 1, flexDirection: 'row', height: '100%' as any },
+  shell: { flex: 1, flexDirection: 'row', backgroundColor: SC.bg, height: '100%' as any },
   mobileNav: {
     flexDirection: 'row',
     borderTopWidth: 1,
-    borderTopColor: 'rgba(167,139,250,0.15)',
+    borderTopColor: 'rgba(59,130,246,0.15)',
     backgroundColor: 'rgba(10,15,30,0.95)',
     paddingBottom: 8,
     paddingTop: 6,
@@ -233,7 +233,7 @@ const s = StyleSheet.create({
     textAlign: 'center',
   },
   navLabelActive: {
-    color: '#A78BFA',
+    color: '#60A5FA',
     fontFamily: 'DMSans_700Bold',
   },
 });

@@ -104,9 +104,9 @@ function EchoNavGroup({
             borderRadius: 8, minHeight: 40,
             justifyContent: collapsed ? 'center' : 'flex-start',
             backgroundColor: isChildActive && !isOpen
-              ? 'rgba(99,102,241,0.12)'
+              ? 'rgba(59,130,246,0.12)'
               : hovered && Platform.OS === 'web'
-              ? 'rgba(99,102,241,0.06)'
+              ? 'rgba(59,130,246,0.06)'
               : 'transparent',
           },
           Platform.OS === 'web' ? { cursor: 'pointer' } as any : {},
@@ -122,7 +122,7 @@ function EchoNavGroup({
               ECHO Showcase
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <View style={{ backgroundColor: 'rgba(99,102,241,0.30)', borderRadius: 10, paddingHorizontal: 5, paddingVertical: 2 }}>
+              <View style={{ backgroundColor: 'rgba(59,130,246,0.30)', borderRadius: 10, paddingHorizontal: 5, paddingVertical: 2 }}>
                 <Text style={{ fontFamily: TYPO.body700, fontSize: 9, color: '#A5B4FC', letterSpacing: 0.5 }}>CMS</Text>
               </View>
               {isOpen
@@ -227,19 +227,19 @@ export function Sidebar({
   // Token resolution
   // The sidebar is a vibrant solid purple.
   const C = {
-    bg:      '#5D3FD3',       // Solid vibrant purple
+    bg:      '#0F172A',
     border:  'rgba(255,255,255,0.1)',
     text:    '#FFFFFF',
     textSec: 'rgba(255,255,255,0.7)',
     textTer: 'rgba(255,255,255,0.5)',
     cardBg:  'rgba(255,255,255,0.1)',
-    accent:  '#FFFFFF',
-    danger:  '#FF6B6B',
+    accent:  '#60A5FA',
+    danger:  '#FCA5A5',
   };
 
   // Web-only effect for the rail.
   const railGlass = Platform.OS === 'web' ? ({
-    boxShadow: '4px 0 40px rgba(93,63,211,0.20)',
+    boxShadow: 'none',
   } as any) : {};
 
   return (
@@ -248,7 +248,7 @@ export function Sidebar({
       <FadeInView delay={20}>
         <View style={[s.brand, collapsed && { justifyContent: 'center' }]} nativeID="student-brand">
           <Pressable onPress={() => collapsed && toggleCollapse()} style={collapsed && Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}}>
-            <SALogo size={32} variant="gradient" />
+            <SALogo size={32} variant="glass" />
           </Pressable>
           {!collapsed && (
             <View style={{ flex: 1, minWidth: 0 }}>
@@ -349,12 +349,11 @@ export function Sidebar({
                 >
                   {isActive ? (
                     <LinearGradient
-                      colors={[PALETTE.violet, PALETTE.violetD] as any}
+                      colors={['#3B82F6', '#2563EB'] as any}
                       start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                      style={[s.navItem, s.navItemActive, collapsed && { justifyContent: 'center', paddingHorizontal: 0 },
-                              Platform.OS === 'web' ? ({ boxShadow: PALETTE.violetGlow } as any) : {}]}
+                      style={[s.navItem, s.navItemActive, collapsed && { justifyContent: 'center', paddingHorizontal: 0 }]}
                     >
-                      {spark ? <SparkIcon Icon={Icon} size={16} color="#fff" /> : <Icon size={16} color="#fff" />}
+                      {spark ? <SparkIcon Icon={Icon} size={16} color="#0F172A" /> : <Icon size={16} color="#0F172A" />}
                       {!collapsed && <Text style={[s.navLabel, s.navLabelActive]} numberOfLines={1}>{label}</Text>}
                       {!collapsed && <View style={s.activeDot} />}
                     </LinearGradient>
@@ -427,12 +426,12 @@ const s = StyleSheet.create({
   },
   navItemActive: {
     ...(Platform.OS === 'web' ? ({
-      boxShadow: '0 6px 18px rgba(95,37,159,0.45), inset 0 1px 0 rgba(255,255,255,0.18)',
-    } as any) : { shadowColor: '#5F259F', shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } as any }),
+      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.18)',
+    } as any) : {}),
   },
   navLabel: { fontFamily: TYPO.body600, fontSize: 13, flex: 1 },
-  navLabelActive: { color: '#fff' },
-  activeDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#fff', opacity: 0.9 },
+  navLabelActive: { color: '#0F172A' },
+  activeDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#0F172A', opacity: 0.9 },
 
   logoutRow: {
     flexDirection: 'row', alignItems: 'center', gap: SP.sm,

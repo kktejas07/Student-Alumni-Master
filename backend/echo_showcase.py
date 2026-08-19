@@ -2406,7 +2406,7 @@ DEFAULT_SHOWCASE_SEED = {
     ],
     "categories": [
         { "name": "Healthcare & MedTech", "description": "Build AI solutions for diagnosis, telemedicine and wellness.", "icon": "heartpulse", "color": "#F43F5E" },
-        { "name": "EdTech & Learning", "description": "Personalised learning, accessibility and exam-prep tools.", "icon": "graduation-cap", "color": "#8B5CF6" },
+        { "name": "EdTech & Learning", "description": "Personalised learning, accessibility and exam-prep tools.", "icon": "graduation-cap", "color": "#2563EB" },
         { "name": "Climate & Sustainability", "description": "Track, reduce and offset carbon with smart systems.", "icon": "leaf", "color": "#10B981" },
         { "name": "FinTech & Inclusion", "description": "Financial literacy, UPI innovation and rural banking.", "icon": "landmark", "color": "#F59E0B" },
         { "name": "Smart Cities & Mobility", "description": "Traffic, public transport and safer campuses.", "icon": "bus", "color": "#3B82F6" }

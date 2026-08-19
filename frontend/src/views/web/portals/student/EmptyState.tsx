@@ -94,7 +94,7 @@ export function EmptyState({
             accessibilityLabel={cta.label}
           >
             <LinearGradient
-              colors={GRADS.brand as any}
+              colors={['#1E3A8A', '#3B82F6']}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
               style={s.ctaGrad}
             >
@@ -152,7 +152,7 @@ function SavedJobsIllu() {
         <Sparkle x={12} y={92} color="#F472B6" delay={1200} size={5} />
       </Animated.View>
       <Animated.View style={[s.illuCenter, aBookmark]}>
-        <LinearGradient colors={GRADS.brand as any} style={s.illuPlate}>
+        <LinearGradient colors={['#1E3A8A', '#3B82F6']} style={s.illuPlate}>
           <Bookmark size={34} color="#fff" />
         </LinearGradient>
       </Animated.View>
@@ -176,15 +176,15 @@ function BookingsIllu() {
   return (
     <View style={s.illuBox}>
       <Animated.View style={[s.illuCenter, aCal]}>
-        <LinearGradient colors={['#0E7490', '#22D3EE']} style={s.illuPlate}>
+        <LinearGradient colors={['#1E3A8A', '#3B82F6']} style={s.illuPlate}>
           <Calendar size={34} color="#fff" />
         </LinearGradient>
       </Animated.View>
       <Animated.View style={[s.illuClock, aHand]}>
         <View style={s.clockHand} />
       </Animated.View>
-      <Sparkle x={20} y={20} color="#22D3EE" />
-      <Sparkle x={94} y={22} color="#67E8F9" delay={500} size={5} />
+      <Sparkle x={20} y={20} color="#3B82F6" />
+      <Sparkle x={94} y={22} color="#93C5FD" delay={500} size={5} />
     </View>
   );
 }
@@ -212,15 +212,15 @@ function ApplicationsIllu() {
         <Svg width={56} height={56} viewBox="0 0 56 56">
           <Defs>
             <SvgLG id="plane" x1="0" y1="0" x2="1" y2="1">
-              <Stop offset="0" stopColor="#F59E0B" />
-              <Stop offset="1" stopColor="#FBBF24" />
+              <Stop offset="0" stopColor="#3B82F6" />
+              <Stop offset="1" stopColor="#60A5FA" />
             </SvgLG>
           </Defs>
           <Path d="M4 28 L52 6 L42 50 L26 32 Z" fill="url(#plane)" />
-          <Path d="M26 32 L42 50 L34 36 Z" fill="#B45309" />
+          <Path d="M26 32 L42 50 L34 36 Z" fill="#1E3A8A" />
         </Svg>
       </Animated.View>
-      <Trail color="#F59E0B" />
+      <Trail color="#3B82F6" />
     </View>
   );
 }
@@ -238,7 +238,7 @@ function WorkshopsIllu() {
   return (
     <View style={s.illuBox}>
       <Animated.View style={[s.illuCenter, aCap]}>
-        <LinearGradient colors={['#9D174D', '#EC4899']} style={s.illuPlate}>
+        <LinearGradient colors={['#1E3A8A', '#3B82F6']} style={s.illuPlate}>
           <GraduationCap size={36} color="#fff" />
         </LinearGradient>
       </Animated.View>
@@ -259,7 +259,7 @@ function NetworkIllu() {
   return (
     <View style={s.illuBox}>
       <View style={s.illuCenter}>
-        <LinearGradient colors={['#065F46', '#34D399']} style={s.illuPlate}>
+        <LinearGradient colors={['#1E3A8A', '#3B82F6']} style={s.illuPlate}>
           <Users size={32} color="#fff" />
         </LinearGradient>
       </View>
@@ -291,7 +291,7 @@ function GenericIllu() {
   return (
     <View style={s.illuBox}>
       <Animated.View style={[s.illuCenter, aIcon]}>
-        <LinearGradient colors={GRADS.brand as any} style={s.illuPlate}>
+        <LinearGradient colors={['#1E3A8A', '#3B82F6']} style={s.illuPlate}>
           <Sparkles size={32} color="#fff" />
         </LinearGradient>
       </Animated.View>
@@ -420,8 +420,8 @@ const s = StyleSheet.create({
   illuBox: { width: 130, height: 130, position: 'relative' },
   illuCenter: { position: 'absolute', left: 35, top: 35, width: 60, height: 60, alignItems: 'center', justifyContent: 'center' },
   illuPlate: { width: 60, height: 60, borderRadius: 16, alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ boxShadow: '0 12px 32px rgba(95,37,159,0.40)' } as any) : {}) },
-  illuClock: { position: 'absolute', left: 95, top: 22, width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: '#67E8F9', alignItems: 'center', justifyContent: 'center' },
-  clockHand: { width: 1.5, height: 9, backgroundColor: '#67E8F9', position: 'absolute', top: 1 },
+  illuClock: { position: 'absolute', left: 95, top: 22, width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: '#93C5FD', alignItems: 'center', justifyContent: 'center' },
+  clockHand: { width: 1.5, height: 9, backgroundColor: '#93C5FD', position: 'absolute', top: 1 },
   orbitDot: { position: 'absolute', width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: SC.bg2 },
   orbitText: { color: '#000', fontFamily: FONTS.xbold, fontSize: 9 },
 

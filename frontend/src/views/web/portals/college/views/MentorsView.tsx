@@ -74,7 +74,7 @@ export function MentorsView() {
 }
 const s = StyleSheet.create({
   tab: { flexDirection: 'row', gap: 8, paddingHorizontal: 14, height: 36, borderRadius: 10, borderBottomWidth: 2, borderBottomColor: 'transparent', alignItems: 'center' },
-  tabOn: { borderBottomColor: CC.primary, backgroundColor: 'rgba(99,102,241,0.10)' },
+  tabOn: { borderBottomColor: CC.primary, backgroundColor: 'rgba(59,130,246,0.10)' },
   count: { backgroundColor: 'rgba(255,255,255,0.06)', paddingHorizontal: 7, paddingVertical: 1, borderRadius: 6 },
   countText: { color: CC.muted, fontFamily: FONTS.xbold, fontSize: 10 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: CC.card, borderColor: CC.border, borderWidth: 1, borderRadius: 12, padding: 14 },

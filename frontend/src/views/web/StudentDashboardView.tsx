@@ -38,13 +38,13 @@ import { GoalSimulator } from './GoalSimulator';
 
 // ─── Design Tokens ─────────────────────────────────────────────────────────
 const C = {
-  card:   'rgba(255,255,255,0.05)',
-  cardH:  'rgba(255,255,255,0.09)',
-  border: 'rgba(255,255,255,0.08)',
+  card:   '#FFFFFF',
+  cardH:  '#F8F9FA',
+  border: 'rgba(0,0,0,0.08)',
   purple: '#2563EB', purpleL: '#60A5FA', purpleXL: '#93C5FD',
-  teal: '#2DD4BF', green: '#34D399', amber: '#F59E0B',
-  blue: '#60A5FA', pink: '#F472B6',
-  text: 'rgba(255,255,255,0.55)', dim: 'rgba(255,255,255,0.28)',
+  teal: '#0D9488', green: '#10B981', amber: '#F59E0B',
+  blue: '#3B82F6', pink: '#DB2777',
+  text: '#4B5563', dim: '#9CA3AF',
 };
 const FT = { bold: 'DMSans_700Bold', semi: 'DMSans_600SemiBold', med: 'DMSans_500Medium', reg: 'DMSans_400Regular' };
 
@@ -305,7 +305,7 @@ export function StudentDashboardView({ showTopBar = true, onOpenNotifications, o
       {/* ERROR */}
       {!loading && error && (
         <View style={[s.card, { alignItems: 'center', padding: 32 }]}>
-          <Text style={{ color: '#fff', fontFamily: FT.semi, marginBottom: 12 }}>Failed to load dashboard</Text>
+          <Text style={{ color: '#1C1C1E', fontFamily: FT.semi, marginBottom: 12 }}>Failed to load dashboard</Text>
           <Pressable onPress={refresh} style={s.primaryBtn}>
             <RefreshCw size={13} color="#fff" />
             <Text style={s.primaryBtnText}>Retry</Text>
@@ -379,7 +379,7 @@ export function StudentDashboardView({ showTopBar = true, onOpenNotifications, o
                   ...({ cursor: 'pointer', transitionDuration: '150ms', whiteSpace: 'nowrap' } as any),
                 }, hovered && { backgroundColor: ins.color + '28' }]}>
                   <InsightIcon name={ins.icon} color={ins.color} size={12} />
-                  <Text style={{ color: '#fff', fontFamily: isPriority ? FT.semi : FT.med, fontSize: 12, flexShrink: 0 }} numberOfLines={1}>{ins.text}</Text>
+                  <Text style={{ color: '#1C1C1E', fontFamily: isPriority ? FT.semi : FT.med, fontSize: 12, flexShrink: 0 }} numberOfLines={1}>{ins.text}</Text>
                 </Pressable>
               );
             })}
@@ -415,12 +415,12 @@ export function StudentDashboardView({ showTopBar = true, onOpenNotifications, o
                 <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
                   <View style={{ flex: 1, minWidth: 140, backgroundColor: '#F87171' + '14', borderColor: '#F87171' + '44', borderWidth: 1, borderRadius: 10, padding: 10 }}>
                     <Text style={{ color: '#F87171', fontFamily: FT.bold, fontSize: 9, letterSpacing: 0.8, marginBottom: 4 }}>WEAKEST</Text>
-                    <Text style={{ color: '#fff', fontFamily: FT.semi, fontSize: 12.5 }}>{coach.weakest_category}</Text>
+                    <Text style={{ color: '#1C1C1E', fontFamily: FT.semi, fontSize: 12.5 }}>{coach.weakest_category}</Text>
                     <Text style={{ color: '#F87171', fontFamily: FT.bold, fontSize: 11, marginTop: 2 }}>{coach.weakest_score}%</Text>
                   </View>
                   <View style={{ flex: 1, minWidth: 140, backgroundColor: C.green + '14', borderColor: C.green + '44', borderWidth: 1, borderRadius: 10, padding: 10 }}>
                     <Text style={{ color: C.green, fontFamily: FT.bold, fontSize: 9, letterSpacing: 0.8, marginBottom: 4 }}>STRONGEST</Text>
-                    <Text style={{ color: '#fff', fontFamily: FT.semi, fontSize: 12.5 }}>{coach.strongest_category}</Text>
+                    <Text style={{ color: '#1C1C1E', fontFamily: FT.semi, fontSize: 12.5 }}>{coach.strongest_category}</Text>
                     <Text style={{ color: C.green, fontFamily: FT.bold, fontSize: 11, marginTop: 2 }}>{coach.strongest_score}%</Text>
                   </View>
                 </View>
@@ -434,7 +434,7 @@ export function StudentDashboardView({ showTopBar = true, onOpenNotifications, o
                     </View>
                     <Text style={{ color: C.text, fontFamily: FT.bold, fontSize: 10, letterSpacing: 0.8 }}>HIGHEST IMPACT ACTION</Text>
                   </View>
-                  <Text style={{ color: '#fff', fontFamily: FT.bold, fontSize: 15, marginBottom: 4 }}>{coach.top_action.title}</Text>
+                  <Text style={{ color: '#1C1C1E', fontFamily: FT.bold, fontSize: 15, marginBottom: 4 }}>{coach.top_action.title}</Text>
                   <Text style={{ color: C.text, fontFamily: FT.reg, fontSize: 12, lineHeight: 17, marginBottom: 10 }}>{coach.top_action.reason}</Text>
                   {/* WHY expand */}
                   <Pressable onPress={() => setCoachExpanded(!coachExpanded)} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6 }}>
@@ -732,7 +732,7 @@ export function StudentDashboardView({ showTopBar = true, onOpenNotifications, o
                         </View>
                         <View style={{ flex: 1, minWidth: 0 }}>
                           <Text style={{ color: mm.color, fontFamily: FT.bold, fontSize: 9, letterSpacing: 0.8 }}>NEXT STEP</Text>
-                          <Text style={{ color: '#fff', fontFamily: FT.semi, fontSize: 12, marginTop: 2 }} numberOfLines={2}>{roadmap.next_milestone!.title}</Text>
+                          <Text style={{ color: '#1C1C1E', fontFamily: FT.semi, fontSize: 12, marginTop: 2 }} numberOfLines={2}>{roadmap.next_milestone!.title}</Text>
                         </View>
                       </View>
                     );
@@ -791,7 +791,7 @@ export function StudentDashboardView({ showTopBar = true, onOpenNotifications, o
                           <Text style={{ color: col, fontFamily: FT.bold, fontSize: 9, letterSpacing: 0.4 }}>{(ev.category || 'Event').toUpperCase()}</Text>
                         </View>
                         <View style={{ flex: 1, minWidth: 0 }}>
-                          <Text style={{ color: '#fff', fontFamily: FT.semi, fontSize: 12.5 }} numberOfLines={2}>{ev.title}</Text>
+                          <Text style={{ color: '#1C1C1E', fontFamily: FT.semi, fontSize: 12.5 }} numberOfLines={2}>{ev.title}</Text>
                           <Text style={{ color: C.text, fontFamily: FT.reg, fontSize: 10.5, marginTop: 2 }}>{[ev.date_str, ev.time_str, ev.mode].filter(Boolean).join(' · ')}</Text>
                         </View>
                       </Pressable>

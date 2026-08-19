@@ -85,7 +85,7 @@ export function AnalyticsView() {
                   delta={(data?.kpi.median_yoy || '') + ' YoY'} color="green" />
         <KpiCard Icon={Users} label="Highest Offer"
                   value={data?.kpi.top_offer || '—'}
-                  delta="Single biggest" color="purple" />
+                  delta="Single biggest" color="blue" />
         <KpiCard Icon={Trophy} label="Placement Rate"
                   value={data?.kpi.placement || '—'}
                   delta="↑ 4% YoY" color="amber" />

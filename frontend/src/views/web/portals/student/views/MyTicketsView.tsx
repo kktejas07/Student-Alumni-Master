@@ -184,7 +184,7 @@ export function MyTicketsView() {
                         onPress={() => setPreviewCoupon(c)}
                         style={[s.couponChip, c.used && s.couponChipUsed]}
                       >
-                        <Ticket size={18} color={c.session_locked ? '#F59E0B' : c.used ? '#10B981' : '#A78BFA'} />
+                        <Ticket size={18} color={c.session_locked ? '#F59E0B' : c.used ? '#10B981' : '#60A5FA'} />
                         <View style={{ flex: 1 }}>
                           <Text style={[s.couponName, c.used && s.couponNameUsed]} numberOfLines={1}>
                             {c.session_name || c.session_key}
@@ -227,7 +227,7 @@ export function MyTicketsView() {
                     }}
                     style={({ hovered }: any) => [s.secondaryBtn, { borderColor: 'rgba(167,139,250,0.30)' }, hovered && { opacity: 0.85 }]}
                   >
-                    <QrCode size={12} color="#A78BFA" />
+                    <QrCode size={12} color="#60A5FA" />
                     <Text style={[s.secondaryBtnText, { color: '#C4B5FD' }]}>All Coupons</Text>
                   </Pressable>
                 ) : null}
@@ -256,7 +256,7 @@ export function MyTicketsView() {
                 </Pressable>
               </View>
               <View style={{ alignItems: 'center', gap: 12 }}>
-                <Ticket size={40} color={previewCoupon.session_locked ? '#F59E0B' : '#A78BFA'} />
+                <Ticket size={40} color={previewCoupon.session_locked ? '#F59E0B' : '#60A5FA'} />
                 <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 24, letterSpacing: previewCoupon.session_locked ? 3 : 2 }}>
                   {previewCoupon.session_locked ? '****-****-****' : previewCoupon.coupon_code}
                 </Text>
@@ -301,17 +301,17 @@ export function MyTicketsView() {
 }
 
 const s = StyleSheet.create({
-  h1: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4 },
+  h1: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4 },
   sub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4 },
   iconBox: { width: 38, height: 38, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  title: { color: '#fff', fontFamily: FONTS.bold, fontSize: 14 },
+  title: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 14 },
   meta: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 3 },
   paidPill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999, borderWidth: 1 },
   paidText: { fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 0.6 },
   sectionTitle: { color: SC.muted, fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 0.8, marginBottom: 2 },
   couponChip: {
     flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8,
-    borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.04)', borderWidth: 1, borderColor: 'rgba(0,0,0,0.08)',
     minWidth: 140,
   },
   couponChipUsed: { opacity: 0.5 },

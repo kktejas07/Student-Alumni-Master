@@ -219,7 +219,7 @@ export function DashboardView() {
     {
       title: 'Application Submitted', sub: 'Stripe • Software Engineer Intern',
       amount: '+1', amountTone: 'positive', time: '12m ago',
-      icon: 'briefcase-check-outline', tint: '#7B3DBF', bgTint: 'rgba(123,61,191,0.16)',
+      icon: 'briefcase-check-outline', tint: '#60A5FA', bgTint: 'rgba(59,130,246,0.16)',
     },
     {
       title: 'Mentor Session Booked', sub: 'Aarav Sharma • Wed 4:00 PM',
@@ -240,7 +240,7 @@ export function DashboardView() {
       label: k?.applications?.label || 'Applications Sent',
       value: String(k?.applications?.value ?? 18),
       numeric: Number(k?.applications?.value ?? 18),
-      icon: 'briefcase-outline', accent: '#7B3DBF',
+      icon: 'briefcase-outline', accent: '#60A5FA',
       trend: k?.applications?.trend || { value: '12.5%', positive: true },
       spark: (k?.applications?.spark as number[]) || FALLBACK_SPARK_APPS,
     },
@@ -267,7 +267,7 @@ export function DashboardView() {
       kind: 'ring',
       label: k?.completion?.label || 'Profile Completion',
       value: 'On Track',
-      icon: 'account-check-outline', accent: '#7B3DBF',
+      icon: 'account-check-outline', accent: '#60A5FA',
       ringPct: Number(
         k?.completion?.ringPct ??
         (typeof PROFILE_COMPLETION?.score === 'number' ? PROFILE_COMPLETION.score : 78),
@@ -305,7 +305,7 @@ export function DashboardView() {
         {/* Profile Strength Card */}
         <View style={[glassStyle(), s.kpiCardMockup]}>
           <View style={s.kpiCardLeft}>
-            <Text style={[s.kpiTitleText, { color: '#C084FC' }]}>Profile Strength</Text>
+            <Text style={[s.kpiTitleText, { color: '#60A5FA' }]}>Profile Strength</Text>
             <Text style={s.kpiValText}>{stats.profile_strength}%</Text>
             <Text style={s.kpiSubText}>{stats.profile_subtext}</Text>
           </View>
@@ -320,13 +320,13 @@ export function DashboardView() {
         {/* Applications Card */}
         <View style={[glassStyle(), s.kpiCardMockup]}>
           <View style={s.kpiCardLeft}>
-            <Text style={[s.kpiTitleText, { color: '#818CF8' }]}>Applications</Text>
+            <Text style={[s.kpiTitleText, { color: '#60A5FA' }]}>Applications</Text>
             <Text style={s.kpiValText}>{stats.applications}</Text>
             <Text style={s.kpiSubText}>{stats.applications_subtext}</Text>
           </View>
           <View style={s.kpiCardRight}>
-            <View style={[s.kpiIconBox, { backgroundColor: 'rgba(99, 102, 241, 0.15)', borderColor: 'rgba(99, 102, 241, 0.3)' }]}>
-              <Briefcase size={15} color="#818CF8" />
+            <View style={[s.kpiIconBox, { backgroundColor: 'rgba(59, 130, 246, 0.15)', borderColor: 'rgba(59, 130, 246, 0.3)' }]}>
+              <Briefcase size={15} color="#60A5FA" />
             </View>
           </View>
         </View>
@@ -334,13 +334,13 @@ export function DashboardView() {
         {/* Network Card */}
         <View style={[glassStyle(), s.kpiCardMockup]}>
           <View style={s.kpiCardLeft}>
-            <Text style={[s.kpiTitleText, { color: '#C084FC' }]}>Network</Text>
+            <Text style={[s.kpiTitleText, { color: '#60A5FA' }]}>Network</Text>
             <Text style={s.kpiValText}>{stats.network}</Text>
             <Text style={s.kpiSubText}>{stats.network_subtext}</Text>
           </View>
           <View style={s.kpiCardRight}>
-            <View style={[s.kpiIconBox, { backgroundColor: 'rgba(192, 132, 252, 0.15)', borderColor: 'rgba(192, 132, 252, 0.3)' }]}>
-              <Users size={15} color="#C084FC" />
+            <View style={[s.kpiIconBox, { backgroundColor: 'rgba(59, 130, 246, 0.15)', borderColor: 'rgba(59, 130, 246, 0.3)' }]}>
+              <Users size={15} color="#60A5FA" />
             </View>
           </View>
         </View>
@@ -348,13 +348,13 @@ export function DashboardView() {
         {/* Events Card */}
         <View style={[glassStyle(), s.kpiCardMockup]}>
           <View style={s.kpiCardLeft}>
-            <Text style={[s.kpiTitleText, { color: '#F87171' }]}>Events</Text>
+            <Text style={[s.kpiTitleText, { color: '#60A5FA' }]}>Events</Text>
             <Text style={s.kpiValText}>{stats.events}</Text>
             <Text style={s.kpiSubText}>{stats.events_subtext}</Text>
           </View>
           <View style={s.kpiCardRight}>
-            <View style={[s.kpiIconBox, { backgroundColor: 'rgba(248, 113, 113, 0.15)', borderColor: 'rgba(248, 113, 113, 0.3)' }]}>
-              <Calendar size={15} color="#F87171" />
+            <View style={[s.kpiIconBox, { backgroundColor: 'rgba(59, 130, 246, 0.15)', borderColor: 'rgba(59, 130, 246, 0.3)' }]}>
+              <Calendar size={15} color="#60A5FA" />
             </View>
           </View>
         </View>
@@ -381,10 +381,10 @@ export function DashboardView() {
       {activeTab === 'opportunities' && (
         <View style={{ flexDirection: 'column', gap: 20 }}>
         {/* Jobs Section */}
-        <View style={[glassStyle(), s.mockupSection, { borderColor: 'rgba(139, 92, 246, 0.25)' }]}>
+        <View style={[glassStyle(), s.mockupSection, { borderColor: 'rgba(59, 130, 246, 0.25)' }]}>
           <View style={s.sectionHeader}>
             <View style={s.sectionHeaderTitle}>
-              <View style={[s.sectionIconBox, { backgroundColor: 'rgba(139, 92, 246, 0.2)' }]}>
+              <View style={[s.sectionIconBox, { backgroundColor: 'rgba(59, 130, 246, 0.2)' }]}>
                 <Briefcase size={16} color="#60A5FA" />
               </View>
               <View style={{ flex: 1, minWidth: 0 }}>
@@ -394,7 +394,7 @@ export function DashboardView() {
             </View>
             <Pressable 
               onPress={() => portalNav?.navigate('internships')}
-              style={s.seeAllBtnPurple}
+              style={s.seeAllBtnBlue}
             >
               <Text style={s.seeAllBtnText}>View all Jobs</Text>
               <ArrowRight size={12} color="#fff" style={{ marginLeft: 6 }} />
@@ -457,9 +457,9 @@ export function DashboardView() {
                         </Pressable>
                         <Pressable 
                           onPress={() => handleApplyJob(item)}
-                          style={[s.applyBtn, isApplied && { backgroundColor: 'rgba(16, 185, 129, 0.2)', borderColor: 'rgba(16, 185, 129, 0.4)' }]}
+                          style={[s.applyBtn, isApplied && { backgroundColor: 'rgba(59, 130, 246, 0.2)', borderColor: 'rgba(59, 130, 246, 0.4)' }]}
                         >
-                          <Text style={[s.applyBtnText, isApplied && { color: '#34D399' }]}>
+                          <Text style={[s.applyBtnText, isApplied && { color: '#60A5FA' }]}>
                             {isApplied ? 'Applied' : 'Apply'}
                           </Text>
                         </Pressable>
@@ -533,11 +533,11 @@ export function DashboardView() {
         </View>
 
         {/* Mentors Section */}
-        <View style={[glassStyle(), s.mockupSection, { borderColor: 'rgba(16, 185, 129, 0.25)' }]}>
+        <View style={[glassStyle(), s.mockupSection, { borderColor: 'rgba(59, 130, 246, 0.25)' }]}>
           <View style={s.sectionHeader}>
             <View style={s.sectionHeaderTitle}>
-              <View style={[s.sectionIconBox, { backgroundColor: 'rgba(16, 185, 129, 0.2)' }]}>
-                <Users size={16} color="#34D399" />
+              <View style={[s.sectionIconBox, { backgroundColor: 'rgba(59, 130, 246, 0.2)' }]}>
+                <Users size={16} color="#60A5FA" />
               </View>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={s.sectionTitleText}>Mentors</Text>
@@ -546,7 +546,7 @@ export function DashboardView() {
             </View>
             <Pressable 
               onPress={() => portalNav?.navigate('network')}
-              style={s.seeAllBtnGreen}
+              style={s.seeAllBtnBlue}
             >
               <Text style={s.seeAllBtnText}>View all Mentors</Text>
               <ArrowRight size={12} color="#fff" style={{ marginLeft: 6 }} />
@@ -631,7 +631,7 @@ export function DashboardView() {
             title={momentumTitle}
             subtitle={momentumSubtitle}
             data={intel?.momentum || FALLBACK_AUDIENCE}
-            color="#7B3DBF"
+            color="#60A5FA"
           />
           <ActivityCard
             delay={480}
@@ -749,8 +749,8 @@ const s = StyleSheet.create({
     padding: 22,
     overflow: 'hidden',
     ...(Platform.OS === 'web' ? ({
-      // Subtle radial accent to match standalone NexusOS spec
-      backgroundImage: 'radial-gradient(circle at 90% 0%, rgba(6,182,212,0.06) 0%, rgba(7,7,10,0) 50%), radial-gradient(circle at 10% 100%, rgba(168,85,247,0.05) 0%, rgba(7,7,10,0) 60%)',
+      // Subtle radial accent using pure blue to match navy theme
+      backgroundImage: 'radial-gradient(circle at 90% 0%, rgba(59,130,246,0.08) 0%, rgba(11,17,32,0) 50%), radial-gradient(circle at 10% 100%, rgba(96,165,250,0.06) 0%, rgba(11,17,32,0) 60%)',
       boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
     } as any) : {}),
   },
@@ -761,7 +761,7 @@ const s = StyleSheet.create({
     backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 14,
     paddingVertical: 14, paddingHorizontal: 18,
   },
-  briefIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: 'rgba(123,61,191,0.18)', alignItems: 'center', justifyContent: 'center' },
+  briefIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: 'rgba(59,130,246,0.18)', alignItems: 'center', justifyContent: 'center' },
   briefTitle: { color: SC.text, fontFamily: FONTS.xbold, fontSize: 14 },
   briefSub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 1 },
   briefCta: { borderRadius: 10, overflow: 'hidden', ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
@@ -941,7 +941,7 @@ const s = StyleSheet.create({
     height: 30,
     borderRadius: 15,
     borderWidth: 3,
-    borderColor: 'rgba(192, 132, 252, 0.25)',
+    borderColor: 'rgba(59, 130, 246, 0.25)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -951,7 +951,7 @@ const s = StyleSheet.create({
     height: 30,
     borderRadius: 15,
     borderWidth: 3,
-    borderColor: '#C084FC',
+    borderColor: '#60A5FA',
     borderLeftColor: 'transparent',
     borderBottomColor: 'transparent',
   },
@@ -1126,18 +1126,18 @@ const s = StyleSheet.create({
     fontSize: 12,
   },
   bookSessionBtn: {
-    borderColor: '#10B981',
+    borderColor: '#3B82F6',
     borderWidth: 1,
     width: 105,
     height: 34,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.05)',
+    backgroundColor: 'rgba(59, 130, 246, 0.05)',
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
   },
   bookSessionBtnText: {
-    color: '#34D399',
+    color: '#60A5FA',
     fontFamily: FONTS.bold,
     fontSize: 11.5,
   },
@@ -1182,8 +1182,8 @@ const s = StyleSheet.create({
     } as any) : {}),
   },
   tabButtonActive: {
-    backgroundColor: 'rgba(123, 61, 191, 0.25)',
-    borderColor: 'rgba(123, 61, 191, 0.4)',
+    backgroundColor: 'rgba(59, 130, 246, 0.25)',
+    borderColor: 'rgba(59, 130, 246, 0.4)',
   },
   tabText: {
     color: SC.muted,

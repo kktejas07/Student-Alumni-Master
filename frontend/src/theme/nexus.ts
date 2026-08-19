@@ -40,8 +40,8 @@ export const NX = {
   blueSoft:  'rgba(59,130,246,0.15)',
   cyan:      '#22D3EE',
   cyanSoft:  'rgba(34,211,238,0.15)',
-  purple:    '#8B5CF6',
-  purpleSoft:'rgba(139,92,246,0.15)',
+  purple:    '#3B82F6',
+  purpleSoft:'rgba(59,130,246,0.15)',
   amber:     '#FBBF24',
   amberSoft: 'rgba(251,191,36,0.18)',
 
@@ -129,11 +129,11 @@ export const nxWebTransition = (props = 'background-color, border-color, transfo
     transitionTimingFunction: NX_MOTION.ease,
   } as any) : {});
 
-export const nxRadialGlow = (a = 0.06, b = 0.05) =>
+export const nxRadialGlow = (a = 0.07, b = 0.05) =>
   (Platform.OS === 'web' ? ({
     backgroundImage:
-      `radial-gradient(circle at 90% 0%, rgba(6,182,212,${a}) 0%, rgba(7,7,10,0) 50%),` +
-      ` radial-gradient(circle at 10% 100%, rgba(168,85,247,${b}) 0%, rgba(7,7,10,0) 60%)`,
+      `radial-gradient(circle at 90% 0%, rgba(59,130,246,${a}) 0%, rgba(15,23,42,0) 50%),` +
+      ` radial-gradient(circle at 10% 100%, rgba(96,165,250,${b}) 0%, rgba(15,23,42,0) 60%)`,
   } as any) : {});
 
 // ── Glass surface helpers ────────────────────────────────────

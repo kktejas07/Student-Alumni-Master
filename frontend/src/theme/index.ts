@@ -1,42 +1,39 @@
 /**
  * Student Alumni - Brand Theme
- * Purple + Glass + Gradient design system
- * Based on official brand sheet specifications
+ * Blue + Glass + Gradient design system
  */
 import { Platform } from 'react-native';
 const Palette = {
-  brandPurple: '#5F259F',
-  deepPurple: '#3D1468',
-  midPurple: '#7B3DBF',
-  lightPurple: '#B07FDF',
-  palePurple: '#EDE0F7',
-  paleLavender: '#F7F1FB',
+  brandPurple: '#1D4ED8',    // → Royal Blue
+  deepPurple:  '#1E3A8A',    // → Dark Navy Blue
+  midPurple:   '#2563EB',    // → Primary Blue
+  lightPurple: '#93C5FD',    // → Light Blue
+  palePurple:  '#EFF6FF',    // → Pale Blue
+  paleLavender:'#F0F9FF',    // → Light Sky Blue
   white: '#FFFFFF',
   ink: '#1A1A2E',
 
   // Functional
-  background: '#F7F1FB',
+  background: '#F8FAFC',
   surface: '#FFFFFF',
-  surfaceMuted: '#EDE0F7',
+  surfaceMuted: '#EFF6FF',
   textPrimary: '#1A1A2E',
-  textSecondary: '#52527A',
-  textMuted: '#8B8BA8',
+  textSecondary: '#334155',
+  textMuted: '#64748B',
   textOnPurple: '#FFFFFF',
-  textOnPurpleMuted: 'rgba(255,255,255,0.78)',
+  textOnPurpleMuted: 'rgba(255,255,255,0.85)',
   border: 'rgba(26,26,46,0.08)',
   borderStrong: 'rgba(26,26,46,0.16)',
-  borderOnPurple: 'rgba(255,255,255,0.18)',
-  borderOnPurpleStrong: 'rgba(255,255,255,0.28)',
+  borderOnPurple: 'rgba(255,255,255,0.20)',
+  borderOnPurpleStrong: 'rgba(255,255,255,0.30)',
 
-  // Semantic — accessibility-first. Use brand purple for primary actions,
-  // a calmer amber/orange for warnings, and a SUBDUED red only where strictly necessary.
-  // (Per Material Design 3 guidance: prefer brand colors for emphasis, reserve red for destructive actions.)
-  success: '#0F9D58',     // Material green — WCAG AA on white
-  danger: '#B3261E',      // Material error red — only for destructive / form errors
-  dangerSoft: '#FCE8E6',  // Soft pink fill for error containers (low intensity)
-  warning: '#E8A317',     // Amber warning — accessible on white
+  // Semantic
+  success: '#0F9D58',
+  danger: '#B3261E',
+  dangerSoft: '#FCE8E6',
+  warning: '#E8A317',
   warningSoft: '#FEF3C7',
-  info: '#1A73E8',        // Material blue — links / info
+  info: '#1A73E8',
   infoSoft: '#E8F0FE',
 
   // Glass
@@ -44,33 +41,33 @@ const Palette = {
   glassFillStrong: 'rgba(255,255,255,0.18)',
   glassFillLight: 'rgba(255,255,255,0.55)',
 
-  // Backward-compat accent aliases (from previous Neo-Brutalist theme).
-  // Mapped to brand-aligned purples / soft accents.
+  // Backward-compat accent aliases — all mapped to blue family
   accentYellow: '#FFD166',
-  accentMint: '#06D6A0',
-  accentPink: '#EF476F',
-  accentBlue: '#7B3DBF',
-  accentPurple: '#5F259F',
+  accentMint:   '#06D6A0',
+  accentPink:   '#EF476F',
+  accentBlue:   '#2563EB',
+  accentPurple: '#1D4ED8',
   accentOrange: '#FFB454',
-  primary: '#5F259F',
-  primaryText: '#FFFFFF',
-  shadow: '#3D1468',
+  primary:      '#2563EB',
+  primaryText:  '#FFFFFF',
+  shadow:       '#1E3A8A',
 };
 
 // Export with backward-compat `.light` accessor for older screens.
 export const Colors = { ...Palette, light: { ...Palette } };
 
-/** Linear gradient stops, ready for expo-linear-gradient */
+/** Linear gradient stops — blue family */
 export const Gradients = {
-  hero: ['#3D1468', '#5F259F', '#7B3DBF'] as const, // top → bottom
-  heroDiagonal: ['#3D1468', '#5F259F'] as const,
-  card: ['#5F259F', '#7B3DBF'] as const,
-  cardSoft: ['#7B3DBF', '#B07FDF'] as const,
-  splash: ['#3D1468', '#5F259F', '#B07FDF'] as const,
-  splashRadial: ['#7B3DBF', '#3D1468'] as const,
-  accent: ['#B07FDF', '#7B3DBF'] as const,
-  pale: ['#F7F1FB', '#EDE0F7'] as const,
+  hero:         ['#1E3A8A', '#1D4ED8', '#3B82F6'] as const,
+  heroDiagonal: ['#1E3A8A', '#2563EB'] as const,
+  card:         ['#1D4ED8', '#3B82F6'] as const,
+  cardSoft:     ['#3B82F6', '#93C5FD'] as const,
+  splash:       ['#1E3A8A', '#1D4ED8', '#93C5FD'] as const,
+  splashRadial: ['#3B82F6', '#1E3A8A'] as const,
+  accent:       ['#93C5FD', '#3B82F6'] as const,
+  pale:         ['#F0F9FF', '#EFF6FF'] as const,
 };
+
 
 export const Spacing = {
   xs: 4,

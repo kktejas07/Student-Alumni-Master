@@ -159,7 +159,7 @@ const s = StyleSheet.create({
   avWrap: { borderRadius: 999, borderWidth: 2, padding: 2 },
   nameBold: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 14 },
   
-  rolePillAlumni: { backgroundColor: 'rgba(167, 139, 250, 0.1)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(167, 139, 250, 0.2)' },
+  rolePillAlumni: { backgroundColor: 'rgba(59, 130, 246, 0.1)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(59, 130, 246, 0.2)' },
   rolePillAlumniText: { color: '#60A5FA', fontSize: 10, fontFamily: FONTS.bold },
   
   subtitleLine: { color: CC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 4 },

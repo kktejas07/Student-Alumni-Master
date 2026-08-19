@@ -75,8 +75,8 @@ const catAccentMap: Record<string, string> = {
   'codethon': '#14B8A6',
   'workshop': '#F59E0B',
   'quiz': '#10B981',
-  'competition': '#8B5CF6',
-  'tech talk': '#6366F1',
+  'competition': '#60A5FA',
+  'tech talk': '#60A5FA',
   'webinar': '#14B8A6',
   'fest': '#EC4899',
   'spotlight': '#EC4899',
@@ -104,8 +104,8 @@ const enrichEvent = (e: Ev) => {
     if (!tags.length) tags = ['Workshop', 'Hands-on', 'Live Learning'];
   }
 
-  const badgeColor = catColorMap[catLower] || 'purple';
-  const accentColor = catAccentMap[catLower] || '#8B5CF6';
+  const badgeColor = catColorMap[catLower] || 'blue';
+  const accentColor = catAccentMap[catLower] || '#60A5FA';
   const bannerUrl = e.banner_url || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200";
   const orgName = e.organizer_name || "Global Student Partner";
 
@@ -176,7 +176,7 @@ export function DropdownSelect({ label, value, options, onSelect }: DropdownSele
           borderRadius: 8,
           backgroundColor: 'rgba(255,255,255,0.03)',
           borderWidth: 1,
-          borderColor: open ? '#6366F1' : 'rgba(255,255,255,0.08)',
+          borderColor: open ? '#3B82F6' : 'rgba(255,255,255,0.08)',
           // @ts-ignore
           cursor: 'pointer',
         }}
@@ -222,14 +222,14 @@ export function DropdownSelect({ label, value, options, onSelect }: DropdownSele
                   style={{
                     paddingHorizontal: 12,
                     paddingVertical: 10,
-                    backgroundColor: isSel ? 'rgba(139, 92, 246, 0.12)' : 'transparent',
+                    backgroundColor: isSel ? 'rgba(59, 130, 246, 0.12)' : 'transparent',
                     borderBottomWidth: 1,
                     borderBottomColor: 'rgba(255,255,255,0.04)',
                     // @ts-ignore
                     cursor: 'pointer',
                   }}
                 >
-                  <Text style={{ color: isSel ? '#A78BFA' : '#fff', fontSize: 12, fontFamily: isSel ? FONTS.bold : FONTS.med }}>
+                  <Text style={{ color: isSel ? '#60A5FA' : '#fff', fontSize: 12, fontFamily: isSel ? FONTS.bold : FONTS.med }}>
                     {opt.label}
                   </Text>
                 </Pressable>
@@ -547,7 +547,7 @@ export function EventsView() {
                           testID={`myevent-register-btn-${e.id}`}
                         >
                           <LinearGradient
-                            colors={['#7C3AED', '#6D28D9']}
+                            colors={['#2563EB', '#1E3A8A']}
                             start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
                             style={s.btnRegister}
                           >
@@ -643,7 +643,7 @@ export function EventsView() {
 
               {/* Modal Body */}
               <ScrollView style={{ padding: 16, maxHeight: 380 }}>
-                <Text style={{ color: '#A78BFA', fontFamily: FONTS.bold, fontSize: 13, marginBottom: 8 }}>
+                <Text style={{ color: '#60A5FA', fontFamily: FONTS.bold, fontSize: 13, marginBottom: 8 }}>
                   Organized by {selectedEvent.orgName}
                 </Text>
 
@@ -759,7 +759,7 @@ export function EventsView() {
                     testID="myevent-modal-register-confirm-btn"
                   >
                     <LinearGradient
-                      colors={['#7C3AED', '#6D28D9']}
+                      colors={['#2563EB', '#1E3A8A']}
                       start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
                       style={s.modalRegisterBtn}
                     >
@@ -783,7 +783,7 @@ const s = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(124,58,237,0.3)',
+    borderColor: 'rgba(37,99,235,0.3)',
     minHeight: 110,
     justifyContent: 'center',
   },
@@ -916,7 +916,7 @@ const s = StyleSheet.create({
     backgroundColor: '#0F1528',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(124,58,237,0.3)',
+    borderColor: 'rgba(37,99,235,0.3)',
     overflow: 'hidden',
   },
   closeModalBtn: {
@@ -936,9 +936,9 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(99,102,241,0.1)',
+    backgroundColor: 'rgba(59,130,246,0.1)',
     borderWidth: 1,
-    borderColor: 'rgba(99,102,241,0.25)',
+    borderColor: 'rgba(59,130,246,0.25)',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,

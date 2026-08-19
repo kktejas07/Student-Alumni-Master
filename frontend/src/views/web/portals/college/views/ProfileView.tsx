@@ -85,7 +85,7 @@ const s = StyleSheet.create({
   cardTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 14 },
   name: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 20 },
   editBtn: { paddingHorizontal: 14, height: 32, borderRadius: 8, borderWidth: 1, borderColor: CC.border2, backgroundColor: CC.card, alignItems: 'center', justifyContent: 'center' },
-  rowIcon: { width: 26, height: 26, borderRadius: 8, backgroundColor: 'rgba(99,102,241,0.10)', alignItems: 'center', justifyContent: 'center' },
+  rowIcon: { width: 26, height: 26, borderRadius: 8, backgroundColor: 'rgba(59,130,246,0.10)', alignItems: 'center', justifyContent: 'center' },
   rowLabel: { color: CC.muted, fontFamily: FONTS.bold, fontSize: 11, width: 90 },
   rowValue: { color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
   accBox: { width: 110, alignItems: 'center', padding: 12, borderRadius: 12, borderWidth: 1, backgroundColor: CC.card, gap: 6 },

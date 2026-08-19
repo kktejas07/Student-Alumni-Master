@@ -112,6 +112,7 @@ export default function Root({ children }: PropsWithChildren) {
           overflow: "hidden",
           display: "flex",
           flexDirection: "column",
+          backgroundColor: "#0F172A",
         }}
       >
         <noscript>

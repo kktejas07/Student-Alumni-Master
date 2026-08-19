@@ -129,7 +129,7 @@ export function DashboardView({
         <View style={{ flex: 1, minWidth: 0 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
             <Text style={s.briefTitle}>AI Daily Briefing</Text>
-            <Badge label="Powered by Claude" color="purple" />
+            <Badge label="Powered by Claude" color="blue" />
           </View>
           <Text style={s.briefBody}>
             {briefText || (
@@ -383,6 +383,6 @@ const s = StyleSheet.create({
   completionTitle: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 14, marginTop: 4 },
   missingChip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.10)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
   missingText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 10.5 },
-  completeCta: { paddingHorizontal: 18, height: 40, borderRadius: 10, backgroundColor: '#6366F1', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
-  completeCtaText: { color: CC.primaryD, fontFamily: FONTS.xbold, fontSize: 12.5 },
+  completeCta: { paddingHorizontal: 18, height: 40, borderRadius: 10, backgroundColor: CC.primary, alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
+  completeCtaText: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 12.5 },
 });

@@ -259,7 +259,7 @@ function iconForType(type?: string) {
     return { glyph: 'star-outline', color: '#F59E0B' };
   }
   if (t.startsWith('event')) {
-    return { glyph: 'trophy-outline', color: '#6366F1' };
+    return { glyph: 'trophy-outline', color: '#60A5FA' };
   }
   if (t.startsWith('connection_request') || t.startsWith('connection_pending')) {
     return { glyph: 'account-plus-outline', color: '#EC4899' };

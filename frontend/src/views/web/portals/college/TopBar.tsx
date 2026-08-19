@@ -80,7 +80,7 @@ export function TopBar({
         onPress={onProfilePress}
         style={Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}}
       >
-        <Av initials={initials} size={34} color="#6366F1" photo={photo} />
+        <Av initials={initials} size={34} color="#2563EB" photo={photo} />
       </Pressable>
 
       <HelpMenu portal="college" />
@@ -112,7 +112,7 @@ const s = StyleSheet.create({
   numPill: { position: 'absolute', top: -4, right: -4, minWidth: 16, height: 16, paddingHorizontal: 4, borderRadius: 8, backgroundColor: CC.accent, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: CC.bg2 },
   numText: { color: '#1E1B4B', fontFamily: FONTS.xbold, fontSize: 9 },
 
-  addCta: { borderRadius: 10, overflow: 'hidden', ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms', boxShadow: '0px 4px 14px rgba(99,102,241,0.40)' } as any) : {}) },
-  addCtaInner: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 34 },
-  addCtaText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12, letterSpacing: 0.2 },
+  addCta: { borderRadius: 10, overflow: 'hidden', ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms', boxShadow: '0px 4px 14px rgba(37,99,235,0.35)' } as any) : {}) },
+  addCtaInner: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 34, backgroundColor: CC.primary },
+  addCtaText: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 12, letterSpacing: 0.2 },
 });

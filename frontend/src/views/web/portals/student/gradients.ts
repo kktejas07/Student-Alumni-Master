@@ -11,7 +11,7 @@ type G3 = readonly [string, string, string];
 export const GRADS = {
   // Brand identity — purple gradient (consistent across dark & light)
   brand:    ['#7B3DBF', '#5F259F'] as G2,                  // purple 500 → 700
-  brandSoft:['#A78BFA', '#C4B5FD'] as G2,                  // soft lavender
+  brandSoft:['#60A5FA', '#93C5FD'] as G2,                  // soft lavender
   brandHero:['#7B3DBF', '#5F259F', '#EC4899'] as G3,       // purple → magenta
   brandGlow:['rgba(123,61,191,0.55)', 'rgba(7,7,10,0.0)'] as G2,
 
@@ -19,7 +19,7 @@ export const GRADS = {
   silver:   ['#94A3B8', '#CBD5E1'] as G2,
   gold:     ['#F59E0B', '#FBBF24'] as G2,
   goldDeep: ['#B45309', '#F59E0B', '#FCD34D'] as G3,
-  platinum: ['#A78BFA', '#C4B5FD'] as G2,
+  platinum: ['#60A5FA', '#93C5FD'] as G2,
 
   success:  ['#15803D', '#10B981'] as G2,
   successSoft: ['rgba(16,185,129,0.18)', 'rgba(16,185,129,0.04)'] as G2,
@@ -30,7 +30,7 @@ export const GRADS = {
   amber:    ['#B45309', '#F59E0B'] as G2,
   amberSoft:['rgba(245,158,11,0.18)', 'rgba(245,158,11,0.04)'] as G2,
 
-  premium:  ['#7B3DBF', '#A78BFA', '#FCD34D'] as G3,
+  premium:  ['#1E3A8A', '#3B82F6', '#FCD34D'] as G3,
   glass:    ['rgba(123,61,191,0.10)', 'rgba(7,7,10,0.06)'] as G2,
   glassDark:['rgba(123,61,191,0.18)', 'rgba(7,7,10,0.6)'] as G2,
   card:     ['rgba(20,16,33,0.85)', 'rgba(7,7,10,0.85)'] as G2,

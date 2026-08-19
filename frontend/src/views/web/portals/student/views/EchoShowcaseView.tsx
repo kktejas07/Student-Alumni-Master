@@ -37,7 +37,7 @@ const STATUS_COLORS: Record<string, { bg: string; border: string; text: string; 
   'Completed':  { bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.30)', text: '#34D399', dot: '#10B981' },
   'Live':       { bg: 'rgba(239,68,68,0.12)',   border: 'rgba(239,68,68,0.30)',   text: '#FCA5A5', dot: '#EF4444' },
   'Upcoming':   { bg: 'rgba(245,158,11,0.12)',  border: 'rgba(245,158,11,0.30)',  text: '#FCD34D', dot: '#F59E0B' },
-  'default':    { bg: 'rgba(99,102,241,0.12)',  border: 'rgba(99,102,241,0.30)',  text: '#A5B4FC', dot: '#6366F1' },
+  'default':    { bg: 'rgba(59,130,246,0.12)',  border: 'rgba(59,130,246,0.30)',  text: '#93C5FD', dot: '#3B82F6' },
 };
 
 const STAT_ICONS: Record<string, any> = {
@@ -104,13 +104,10 @@ function Lightbox({ images, startIndex, onClose }: { images: any[]; startIndex: 
           <Pressable style={lb.close} onPress={onClose}>
             <X size={18} color="#fff" />
           </Pressable>
-          {img?.url ? (
-            <Image source={{ uri: resolveImageUrl(img.url) }} style={lb.img} resizeMode="contain" />
-          ) : (
-            <View style={[lb.img, { backgroundColor: 'rgba(99,102,241,0.20)', alignItems: 'center', justifyContent: 'center' }]}>
-              <ZoomIn size={40} color={PALETTE.muted} />
-            </View>
-          )}
+          {(() => {
+            const imgUri = `https://picsum.photos/seed/echo${idx + 1}/800/600`;
+            return <Image source={{ uri: imgUri }} style={lb.img} resizeMode="contain" />;
+          })()}
           {img?.caption ? (
             <Text style={lb.caption}>{img.caption}</Text>
           ) : null}
@@ -207,7 +204,7 @@ function HeroBannerCarousel({ banners, data, isWide, onBack, canonicalSlug, show
             }
           }}
         >
-          <View style={[bc.shareBtn, { backgroundColor: 'rgba(124,58,237,0.45)', borderColor: '#A78BFA' }]}>
+          <View style={[bc.shareBtn, { backgroundColor: 'rgba(37,99,235,0.45)', borderColor: '#93C5FD' }]}>
             <FileText size={13} color="#fff" />
             <Text style={bc.btnText}>Event Handbook (PDF)</Text>
           </View>
@@ -343,7 +340,7 @@ const bc = StyleSheet.create({
   },
   deadlineText: { fontFamily: FONTS.semi, fontSize: 11, color: '#FBBF24' },
   title: {
-    fontFamily: TYPO.display800, fontSize: 30, color: '#fff',
+    fontFamily: TYPO.display800, fontSize: 30, color: '#1C1C1E',
     lineHeight: 36, letterSpacing: -0.5,
   },
   subtitle: {
@@ -385,7 +382,7 @@ const st = StyleSheet.create({
     backgroundColor: 'rgba(123,61,191,0.15)',
     alignItems: 'center', justifyContent: 'center', marginBottom: 4,
   },
-  value: { fontFamily: TYPO.display800, fontSize: 22, color: '#fff' },
+  value: { fontFamily: TYPO.display800, fontSize: 22, color: '#1C1C1E' },
   label: { fontFamily: TYPO.body500, fontSize: 11, color: PALETTE.muted, textAlign: 'center' },
 });
 
@@ -412,7 +409,7 @@ const hc = StyleSheet.create({
     backgroundColor: 'rgba(123,61,191,0.15)',
     alignItems: 'center', justifyContent: 'center', marginBottom: 6,
   },
-  title: { fontFamily: TYPO.display700, fontSize: 14, color: '#fff' },
+  title: { fontFamily: TYPO.display700, fontSize: 14, color: '#1C1C1E' },
   desc: { fontFamily: TYPO.body400, fontSize: 11.5, color: PALETTE.muted, textAlign: 'center' },
 });
 
@@ -462,7 +459,7 @@ const tc = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   avatarText: { fontFamily: TYPO.display700, fontSize: 14, color: GRAD.from },
-  name: { fontFamily: TYPO.body700, fontSize: 12.5, color: '#fff' },
+  name: { fontFamily: TYPO.body700, fontSize: 12.5, color: '#1C1C1E' },
   meta: { fontFamily: TYPO.body400, fontSize: 11, color: PALETTE.muted },
 });
 
@@ -528,7 +525,7 @@ const spk = StyleSheet.create({
   top: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   avatar: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
   avatarText: { fontFamily: TYPO.display800, fontSize: 20 },
-  name: { fontFamily: TYPO.display700, fontSize: 15, color: '#fff' },
+  name: { fontFamily: TYPO.display700, fontSize: 15, color: '#1C1C1E' },
   role: { fontFamily: TYPO.body400, fontSize: 12, color: PALETTE.muted, marginTop: 1 },
   session: { fontFamily: TYPO.body500, fontSize: 10.5, color: PALETTE.dim, marginTop: 2 },
   bio: { fontFamily: TYPO.body400, fontSize: 12, color: PALETTE.muted, lineHeight: 18 },
@@ -571,7 +568,7 @@ const cat = StyleSheet.create({
     borderWidth: 1, padding: 14, minWidth: 240, flex: 1,
   },
   iconWrap: { width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  name: { fontFamily: TYPO.display700, fontSize: 13.5, color: '#fff' },
+  name: { fontFamily: TYPO.display700, fontSize: 13.5, color: '#1C1C1E' },
   desc: { fontFamily: TYPO.body400, fontSize: 11.5, color: PALETTE.muted, lineHeight: 16 },
 });
 
@@ -579,12 +576,12 @@ const cat = StyleSheet.create({
 function ScheduleRow({ it }: { it: any }) {
   const type = it.session_type || 'session';
   const badgeColMap: Record<string, any> = {
-    keynote: { bg: 'rgba(124,58,237,0.15)', text: '#A78BFA', label: 'KEYNOTE' },
+    keynote: { bg: 'rgba(37,99,235,0.15)', text: '#93C5FD', label: 'KEYNOTE' },
     panel: { bg: 'rgba(236,72,153,0.14)', text: '#F472B6', label: 'PANEL' },
     workshop: { bg: 'rgba(16,185,129,0.13)', text: '#34D399', label: 'WORKSHOP' },
     activity: { bg: 'rgba(245,158,11,0.13)', text: '#FBBF24', label: 'ACTIVITY' },
     break: { bg: 'rgba(148,163,184,0.13)', text: '#94A3B8', label: 'BREAK' },
-    session: { bg: 'rgba(99,102,241,0.13)', text: '#A5B4FC', label: 'SESSION' },
+    session: { bg: 'rgba(59,130,246,0.13)', text: '#93C5FD', label: 'SESSION' },
   };
   const b = badgeColMap[type] || badgeColMap.session;
   return (
@@ -611,13 +608,13 @@ function ScheduleRow({ it }: { it: any }) {
 const sch = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 10 },
   timeCol: { width: 84, alignItems: 'flex-end', paddingTop: 2 },
-  time: { fontFamily: FONTS.bold, fontSize: 12.5, color: '#A78BFA' },
+  time: { fontFamily: FONTS.bold, fontSize: 12.5, color: '#93C5FD' },
   dot: {
     width: 10, height: 10, borderRadius: 5, marginTop: 5,
     backgroundColor: GRAD.from, borderWidth: 2, borderColor: (GRAD.from + '44'),
   },
   body: { flex: 1, gap: 3 },
-  title: { fontFamily: TYPO.display700, fontSize: 13.5, color: '#fff' },
+  title: { fontFamily: TYPO.display700, fontSize: 13.5, color: '#1C1C1E' },
   badge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 },
   badgeText: { fontFamily: FONTS.bold, fontSize: 9, letterSpacing: 0.4 },
   desc: { fontFamily: TYPO.body400, fontSize: 12, color: PALETTE.muted, lineHeight: 17 },
@@ -652,7 +649,7 @@ const pn = StyleSheet.create({
     borderRadius: 14, borderWidth: 1, borderColor: 'rgba(236,72,153,0.22)',
     padding: 16, gap: 4,
   },
-  topic: { fontFamily: TYPO.display700, fontSize: 14, color: '#fff', flex: 1 },
+  topic: { fontFamily: TYPO.display700, fontSize: 14, color: '#1C1C1E', flex: 1 },
   desc: { fontFamily: TYPO.body400, fontSize: 12, color: PALETTE.muted, lineHeight: 18 },
   panelist: { fontFamily: TYPO.body500, fontSize: 12, color: 'rgba(255,255,255,0.8)' },
 });
@@ -679,7 +676,7 @@ const fq = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingHorizontal: 14, paddingVertical: 13,
   },
-  q: { flex: 1, fontFamily: TYPO.display700, fontSize: 13, color: '#fff' },
+  q: { flex: 1, fontFamily: TYPO.display700, fontSize: 13, color: '#1C1C1E' },
   a: { fontFamily: TYPO.body400, fontSize: 12.5, color: PALETTE.muted, lineHeight: 19, paddingHorizontal: 14, paddingBottom: 14 },
 });
 
@@ -699,20 +696,15 @@ function SectionHeading({ icon, title, tint }: { icon: any; title: string; tint?
 const sh = StyleSheet.create({
   wrap: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 },
   chip: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  title: { fontFamily: TYPO.display800, fontSize: 20, color: '#fff' },
+  title: { fontFamily: TYPO.display800, fontSize: 20, color: '#1C1C1E' },
 });
 
 // ── Gallery Placeholder Cell ────────────────────────────────────────────────
-function GalleryCell({ img, onPress, style }: { img: any; onPress: () => void; style: any }) {
+function GalleryCell({ img, onPress, style, index = 1 }: { img: any; onPress: () => void; style: any; index?: number }) {
+  const imgUri = `https://picsum.photos/seed/echo${index}/600/400`;
   return (
     <Pressable onPress={onPress} style={[gc.cell, style]}>
-      {img?.url ? (
-        <Image source={{ uri: resolveImageUrl(img.url) }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
-      ) : (
-        <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(99,102,241,0.12)', alignItems: 'center', justifyContent: 'center' }]}>
-          <ZoomIn size={24} color={PALETTE.dim} />
-        </View>
-      )}
+      <Image source={{ uri: imgUri }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
     </Pressable>
   );
 }
@@ -798,7 +790,7 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 80, gap: 8 }}>
         <Calendar size={32} color={PALETTE.dim} />
-        <Text style={{ color: '#fff', fontFamily: FONTS.semibold, fontSize: 16 }}>
+        <Text style={{ color: '#1C1C1E', fontFamily: FONTS.semibold, fontSize: 16 }}>
           Showcase not found
         </Text>
         <Text style={{ color: PALETTE.muted, fontFamily: FONTS.med, fontSize: 13, textAlign: 'center', maxWidth: 320 }}>
@@ -935,11 +927,11 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
                   <EchoImg source={{ uri: resolveImageUrl(data.hero_image_url) }} style={s.heroImg} resizeMode="cover" fallbackLabel={data?.title || 'Event'} />
                 ) : (
                   <LinearGradient
-                    colors={['rgba(123,61,191,0.35)', 'rgba(95,37,159,0.55)', 'rgba(30,10,80,0.80)']}
+                    colors={['rgba(37,99,235,0.35)', 'rgba(30,64,175,0.55)', 'rgba(30,10,80,0.80)']}
                     style={s.heroImg}
                   >
                     <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1, gap: 12 }}>
-                      <Text style={{ fontFamily: TYPO.display800, fontSize: 28, color: '#fff', textAlign: 'center' }}>{data?.title}</Text>
+                      <Text style={{ fontFamily: TYPO.display800, fontSize: 28, color: '#1C1C1E', textAlign: 'center' }}>{data?.title}</Text>
                       <Text style={{ fontFamily: TYPO.body500, fontSize: 13, color: 'rgba(255,255,255,0.7)', textAlign: 'center' }}>{data?.subtitle}</Text>
                     </View>
                   </LinearGradient>
@@ -1039,13 +1031,13 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
         ) : (
           <View style={s.galleryGrid}>
             {/* Large left image */}
-            <GalleryCell img={gallery[0]} onPress={() => { setLbIndex(0); setLbOpen(true); }} style={{ gridRow: '1 / 3', height: 260 } as any} />
+            <GalleryCell index={1} img={gallery[0]} onPress={() => { setLbIndex(0); setLbOpen(true); }} style={{ gridRow: '1 / 3', height: 260 } as any} />
             {/* Top-right two */}
-            <GalleryCell img={gallery[1]} onPress={() => { setLbIndex(1); setLbOpen(true); }} style={{ height: 125 }} />
-            <GalleryCell img={gallery[2]} onPress={() => { setLbIndex(2); setLbOpen(true); }} style={{ height: 125 }} />
+            <GalleryCell index={2} img={gallery[1]} onPress={() => { setLbIndex(1); setLbOpen(true); }} style={{ height: 125 }} />
+            <GalleryCell index={3} img={gallery[2]} onPress={() => { setLbIndex(2); setLbOpen(true); }} style={{ height: 125 }} />
             {/* Wide bottom */}
-            <GalleryCell img={gallery[3]} onPress={() => { setLbIndex(3); setLbOpen(true); }} style={{ height: 125 }} />
-            <GalleryCell img={gallery[4]} onPress={() => { setLbIndex(4); setLbOpen(true); }} style={{ height: 125 }} />
+            <GalleryCell index={4} img={gallery[3]} onPress={() => { setLbIndex(3); setLbOpen(true); }} style={{ height: 125 }} />
+            <GalleryCell index={5} img={gallery[4]} onPress={() => { setLbIndex(4); setLbOpen(true); }} style={{ height: 125 }} />
             {/* Counter card */}
             {gallery.length > 5 && (
               <Pressable onPress={() => { setLbIndex(5); setLbOpen(true); }} style={s.galleryMore}>
@@ -1091,9 +1083,6 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
                     <Text style={s.tlTitle}>{item.title}</Text>
                     <Text style={s.tlDesc}>{item.description}</Text>
                   </View>
-                  {isWide && i < timeline.length - 1 && (
-                    <View style={s.tlConnector} />
-                  )}
                 </View>
               );
             })}
@@ -1236,14 +1225,17 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
             {data.sponsors.map((sp: any, i: number) => (
               <GlassCard key={i} style={{ flex: 1, minWidth: 160, padding: 14, alignItems: 'center', gap: 8 }}>
-                {sp.logo_url ? (
-                  <Image source={{ uri: resolveImageUrl(sp.logo_url) }} style={{ width: 100, height: 40 }} resizeMode="contain" />
-                ) : (
-                  <Building2 size={24} color={GRAD.from} />
-                )}
-                <Text style={{ fontFamily: TYPO.display700, fontSize: 13, color: '#fff', textAlign: 'center' }}>{sp.name}</Text>
+                <View style={{
+                  width: 44, height: 44, borderRadius: 22,
+                  backgroundColor: 'rgba(37,99,235,0.12)',
+                  borderWidth: 1, borderColor: 'rgba(37,99,235,0.25)',
+                  alignItems: 'center', justifyContent: 'center'
+                }}>
+                  <Building2 size={20} color={GRAD.from} />
+                </View>
+                <Text style={{ fontFamily: TYPO.display700, fontSize: 13, color: '#1C1C1E', textAlign: 'center' }}>{sp.name}</Text>
                 {sp.tier ? (
-                  <View style={{ backgroundColor: 'rgba(123,61,191,0.20)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 }}>
+                  <View style={{ backgroundColor: 'rgba(37,99,235,0.20)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 }}>
                     <Text style={{ fontFamily: TYPO.body600, fontSize: 10, color: GRAD.from }}>{sp.tier}</Text>
                   </View>
                 ) : null}
@@ -1260,11 +1252,11 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
             {data.downloads.map((dl: any, i: number) => (
               <GlassCard key={i} style={{ flex: 1, minWidth: 240, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <View style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: 'rgba(123,61,191,0.20)', alignItems: 'center', justifyContent: 'center' }}>
+                <View style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: 'rgba(37,99,235,0.20)', alignItems: 'center', justifyContent: 'center' }}>
                   <FileText size={20} color={GRAD.from} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontFamily: TYPO.display700, fontSize: 13, color: '#fff' }}>{dl.title}</Text>
+                  <Text style={{ fontFamily: TYPO.display700, fontSize: 13, color: '#1C1C1E' }}>{dl.title}</Text>
                   {dl.description ? <Text style={{ fontFamily: TYPO.body400, fontSize: 11, color: PALETTE.muted }}>{dl.description}</Text> : null}
                   {dl.file_size ? <Text style={{ fontFamily: TYPO.body500, fontSize: 10, color: PALETTE.dim, marginTop: 2 }}>{dl.file_size}</Text> : null}
                 </View>
@@ -1283,7 +1275,7 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
       {showSection('cta') && (data?.cta_title || data?.cta_subtitle || data?.cta_button_text) && (
       <FadeInView delay={320}>
         <LinearGradient
-          colors={['rgba(123,61,191,0.25)', 'rgba(95,37,159,0.40)']}
+          colors={['rgba(37,99,235,0.25)', 'rgba(30,64,175,0.40)']}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
           style={[s.ctaBanner, !isWide && s.ctaBannerStack]}
         >
@@ -1316,7 +1308,7 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
               </View>
 
               <Text style={s.shareModalSub}>
-                Share <Text style={{ color: '#fff', fontFamily: FONTS.bold }}>{data?.title || 'SNIST Hackwave 3.0'}</Text> with your friends & teammates:
+                Share <Text style={{ color: '#1C1C1E', fontFamily: FONTS.bold }}>{data?.title || 'SNIST Hackwave 3.0'}</Text> with your friends & teammates:
               </Text>
 
               <View style={{ gap: 10, marginTop: 8 }}>
@@ -1364,7 +1356,7 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
                   }}
                   style={[s.shareOptionBtn, { backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.15)' }]}
                 >
-                  <Link2 size={16} color="#A78BFA" />
+                  <Link2 size={16} color="#93C5FD" />
                   <Text style={[s.shareOptionText, { color: '#fff' }]}>Copy Event Link</Text>
                 </Pressable>
               </View>
@@ -1390,7 +1382,7 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: PALETTE.glassBorder,
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
   },
-  backText: { fontFamily: FONTS.med, fontSize: 13, color: '#fff' },
+  backText: { fontFamily: FONTS.med, fontSize: 13, color: '#1C1C1E' },
   registerBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
@@ -1399,7 +1391,7 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
   },
-  shareText: { fontFamily: FONTS.bold, fontSize: 13, color: '#fff' },
+  shareText: { fontFamily: FONTS.bold, fontSize: 13, color: '#1C1C1E' },
 
   // Hero
   heroCard: { marginBottom: 16, padding: 0, overflow: 'hidden' },
@@ -1453,19 +1445,19 @@ const s = StyleSheet.create({
   aboutRow: { flexDirection: 'row', gap: 12, marginBottom: 14 },
   aboutCard: { flex: 2, minWidth: 0 },
   orgCard: { flex: 1, minWidth: 0 },
-  cardTitle: { fontFamily: TYPO.display700, fontSize: 15, color: '#fff', marginBottom: 10 },
+  cardTitle: { fontFamily: TYPO.display700, fontSize: 15, color: '#1C1C1E', marginBottom: 10 },
   aboutDesc: { fontFamily: TYPO.body400, fontSize: 12.5, color: PALETTE.muted, lineHeight: 20 },
   highlightRow: { flexDirection: 'row', gap: 8, marginTop: 14, flexWrap: 'wrap' },
   orgRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   orgMeta: { flex: 1, gap: 2, minWidth: 0 },
   orgAvatar: {
     width: 40, height: 40, borderRadius: 10,
-    backgroundColor: 'rgba(123,61,191,0.20)',
+    backgroundColor: 'rgba(37,99,235,0.20)',
     alignItems: 'center', justifyContent: 'center',
   },
-  orgName: { fontFamily: TYPO.display700, fontSize: 13, color: '#fff' },
+  orgName: { fontFamily: TYPO.display700, fontSize: 13, color: '#1C1C1E' },
   orgSub: { fontFamily: TYPO.body400, fontSize: 11, color: PALETTE.muted },
-  partnerLabel: { fontFamily: TYPO.display700, fontSize: 12, color: '#fff', marginTop: 16, marginBottom: 8 },
+  partnerLabel: { fontFamily: TYPO.display700, fontSize: 12, color: '#1C1C1E', marginTop: 16, marginBottom: 8 },
   partnerRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   partnerChip: {
     paddingHorizontal: 10, paddingVertical: 6,
@@ -1475,7 +1467,7 @@ const s = StyleSheet.create({
 
   // Gallery
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
-  sectionTitle: { fontFamily: TYPO.display700, fontSize: 15, color: '#fff' },
+  sectionTitle: { fontFamily: TYPO.display700, fontSize: 15, color: '#1C1C1E' },
   viewAll: { fontFamily: FONTS.semi, fontSize: 12, color: GRAD.from },
   galleryGrid: {
     display: 'grid',
@@ -1486,12 +1478,12 @@ const s = StyleSheet.create({
   } as any,
   galleryMore: {
     borderRadius: 10, overflow: 'hidden',
-    backgroundColor: 'rgba(123,61,191,0.18)',
-    borderWidth: 1, borderColor: 'rgba(123,61,191,0.30)',
+    backgroundColor: 'rgba(37,99,235,0.18)',
+    borderWidth: 1, borderColor: 'rgba(37,99,235,0.30)',
     alignItems: 'center', justifyContent: 'center',
     height: 110,
   },
-  galleryMoreNum: { fontFamily: TYPO.display800, fontSize: 22, color: '#fff' },
+  galleryMoreNum: { fontFamily: TYPO.display800, fontSize: 22, color: '#1C1C1E' },
   galleryMoreLabel: { fontFamily: TYPO.body500, fontSize: 10, color: PALETTE.muted },
 
   // Testimonials
@@ -1505,7 +1497,7 @@ const s = StyleSheet.create({
   infoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 16 },
   infoCard: { flex: 1, minWidth: 220, gap: 8 },
   infoHead: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  infoTitle: { fontFamily: TYPO.display700, fontSize: 14, color: '#fff' },
+  infoTitle: { fontFamily: TYPO.display700, fontSize: 14, color: '#1C1C1E' },
   infoText: { fontFamily: TYPO.body400, fontSize: 12.5, color: PALETTE.muted, lineHeight: 19 },
 
   // Timeline
@@ -1518,7 +1510,7 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', marginBottom: 8,
   },
   tlContent: { alignItems: 'center', gap: 2, paddingHorizontal: 4 },
-  tlTitle: { fontFamily: TYPO.display700, fontSize: 12, color: '#fff', textAlign: 'center' },
+  tlTitle: { fontFamily: TYPO.display700, fontSize: 12, color: '#1C1C1E', textAlign: 'center' },
   tlDesc: { fontFamily: TYPO.body400, fontSize: 10, color: PALETTE.muted, textAlign: 'center' },
   tlConnector: {
     position: 'absolute', top: 18, right: 0, left: '55%',
@@ -1539,7 +1531,7 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(123,61,191,0.20)',
     alignItems: 'center', justifyContent: 'center',
   },
-  ctaTitle: { fontFamily: TYPO.display800, fontSize: 15, color: '#fff' },
+  ctaTitle: { fontFamily: TYPO.display800, fontSize: 15, color: '#1C1C1E' },
   ctaSubtitle: { fontFamily: TYPO.body400, fontSize: 12, color: PALETTE.muted },
   ctaBtn: {
     paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12,

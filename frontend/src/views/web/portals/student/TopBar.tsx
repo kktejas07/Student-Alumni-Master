@@ -27,7 +27,7 @@ import { HelpMenu } from '@/src/views/web/help/HelpMenu';
 import { useTheme } from '@/src/theme/ThemeContext';
 import { useBreakpoint } from '@/src/theme/breakpoints';
 import { SP, RADII, FONT_FAMILY } from '@/src/theme/apple';
-import { GlassTopbar } from '@/src/motion/apple/components';
+
 import { FadeInView, PressScale, PulseDot } from './motion';
 import { PALETTE, TYPO } from './tokens';
 import { StudentPortalNavContext } from './StudentPortalNavContext';
@@ -102,15 +102,15 @@ export function TopBar({
   const showSearch = bp.atLeast('lg');
 
   return (
-    <GlassTopbar scrolled={scrolled} style={{
+    <View style={{
       height: bp.isPhone ? 56 : 64,
       paddingHorizontal: bp.isPhone ? SP.base : SP.lg,
-      backgroundColor: PALETTE.glassSoft,
-      borderBottomColor: PALETTE.glassBorder,
-      // @ts-expect-error web-only
-      backdropFilter: 'blur(20px) saturate(180%)',
-      WebkitBackdropFilter: 'blur(20px) saturate(160%)',
-    } as any}>
+      backgroundColor: PALETTE.bg1,
+      borderBottomWidth: 1,
+      borderBottomColor: 'rgba(0,0,0,0.06)',
+      zIndex: 10,
+      justifyContent: 'center',
+    }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: SP.md, flex: 1 }}>
         <FadeInView delay={20} style={{ flex: 1, minWidth: 0 }}>
           <Text style={{ fontFamily: TYPO.display700, fontSize: bp.isPhone ? 16 : 18, color: PALETTE.text, letterSpacing: -0.5 }}>
@@ -127,7 +127,7 @@ export function TopBar({
 
         {showSearch && (
           <FadeInView delay={120}>
-            <View style={[s.searchBox, { backgroundColor: PALETTE.glassSoft, borderColor: PALETTE.glassBorder }]}>
+            <View style={[s.searchBox, { backgroundColor: PALETTE.bg2, borderColor: 'rgba(0,0,0,0.06)' }]}>
               <Pressable
                 onPress={() => {
                   trackClick('topbar_search_submit_icon', { query: q });
@@ -169,7 +169,7 @@ export function TopBar({
         {/* Theme toggle — sun ↔ moon morph (Apple-style rotation + scale) */}
         <FadeInView delay={160}>
           <PressScale
-            style={[s.iconBtn, { backgroundColor: PALETTE.glassSoft, borderColor: PALETTE.glassBorder }]}
+            style={[s.iconBtn, { backgroundColor: PALETTE.bg2, borderColor: 'rgba(0,0,0,0.06)' }]}
             onPress={() => {
               trackClick('topbar_theme_toggle', { mode });
               analyticsLogger.debug('[TopBar DEBUG] Theme toggle clicked', { currentMode: mode });
@@ -186,7 +186,7 @@ export function TopBar({
 
         <FadeInView delay={180}>
           <PressScale
-            style={[s.iconBtn, { backgroundColor: PALETTE.glassSoft, borderColor: PALETTE.glassBorder }]}
+            style={[s.iconBtn, { backgroundColor: PALETTE.bg2, borderColor: 'rgba(0,0,0,0.06)' }]}
             onPress={() => {
               trackClick('topbar_bell_notifications_click');
               analyticsLogger.debug('[TopBar DEBUG] Bell notifications clicked');
@@ -198,7 +198,7 @@ export function TopBar({
             testID="topbar-notifications-btn"
             accessibilityRole="button"
           >
-            <Bell size={16} color={PALETTE.violet} />
+            <Bell size={16} color={PALETTE.blue} />
             {unreadCount > 0 && (
               <View style={[s.bellDotWrap, { backgroundColor: PALETTE.bg1 }]}>
                 <PulseDot size={7} color={PALETTE.rose} />
@@ -225,7 +225,7 @@ export function TopBar({
 
         <HelpMenu portal="student" />
       </View>
-    </GlassTopbar>
+    </View>
   );
 }
 

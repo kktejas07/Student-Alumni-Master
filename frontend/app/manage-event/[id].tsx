@@ -109,8 +109,8 @@ export default function ManageEvent() {
             {/* Quick Stats Banner */}
             <View style={s.statsRow}>
               <GlassCard radius={14} padding={16} style={s.statBox}>
-                <View style={[s.iconWrap, { backgroundColor: 'rgba(139, 92, 246, 0.15)', borderColor: 'rgba(139, 92, 246, 0.3)' }]}>
-                  <Users size={18} color={PALETTE.violet} />
+                <View style={[s.iconWrap, { backgroundColor: 'rgba(59, 130, 246, 0.15)', borderColor: 'rgba(59, 130, 246, 0.3)' }]}>
+                  <Users size={18} color={PALETTE.blue} />
                 </View>
                 <Text style={s.statVal}>{event.attendee_count || 0}</Text>
                 <Text style={s.statLabel}>Registered</Text>
@@ -266,8 +266,8 @@ const s = StyleSheet.create({
   btn: { flex: 1, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   btnOutline: { backgroundColor: 'transparent', borderColor: 'rgba(255,255,255,0.2)' },
   btnOutlineText: { color: PALETTE.text, fontFamily: FONTS.bold, fontSize: 15 },
-  btnSolid: { backgroundColor: PALETTE.violet, borderColor: PALETTE.violet },
-  btnSolidText: { color: PALETTE.text, fontFamily: FONTS.bold, fontSize: 15 },
+  btnSolid: { backgroundColor: PALETTE.blue, borderColor: PALETTE.blue },
+  btnSolidText: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 15 },
 
   attendeeDesc: { color: SC.muted, fontFamily: FONTS.med, fontSize: 14, lineHeight: 22 },
 

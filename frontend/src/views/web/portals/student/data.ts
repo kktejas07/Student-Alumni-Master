@@ -33,7 +33,7 @@ export const RECOMMENDED_MENTORS = [
 ];
 
 export const UPCOMING_EVENTS = [
-  { id: 1, title: 'HackIndia 2026',           date: 'May 10–12', mode: 'Hybrid', kind: 'free' as const, accent: '#A78BFA' },
+  { id: 1, title: 'HackIndia 2026',           date: 'May 10–12', mode: 'Hybrid', kind: 'free' as const, accent: '#60A5FA' },
   { id: 2, title: 'DSA Championship S4',      date: 'May 15',    mode: 'Online', kind: 'free' as const, accent: '#34D399' },
   { id: 3, title: 'System Design Masterclass',date: 'May 18',    mode: 'Online', kind: 'paid' as const, price: 499, accent: '#FCD34D' },
 ];

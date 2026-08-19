@@ -22,10 +22,10 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 // ── Tokens ───────────────────────────────────────────
 export const NX = {
-  bg:        '#07070A',
-  surface1:  '#0E0E12',
-  surface2:  '#121218',
-  surface3:  '#1A1A22',
+  bg:        '#0B1120',
+  surface1:  '#0F172A',
+  surface2:  '#1E293B',
+  surface3:  '#334155',
   border:    'rgba(255,255,255,0.06)',
   borderHi:  'rgba(255,255,255,0.10)',
 
@@ -35,7 +35,7 @@ export const NX = {
 
   blue:      '#3B82F6',
   cyan:      '#06B6D4',
-  purple:    '#A855F7',
+  purple:    '#60A5FA',
   amber:     '#F59E0B',
 
   success:   '#10B981',
