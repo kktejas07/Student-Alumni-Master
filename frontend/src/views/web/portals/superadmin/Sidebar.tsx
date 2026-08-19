@@ -8,7 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import {
   LayoutDashboard, Building2, GraduationCap, UserCheck, Users, Calendar, CreditCard,
   BarChart3, CheckCircle, Sparkles, Settings, Workflow, ExternalLink, LogOut,
-  Upload, Handshake, Megaphone, UserPlus, Mail, Award, ShieldOff,
+  Upload, Handshake, Megaphone, UserPlus, Mail, Award, ShieldOff, ShieldCheck,
 } from 'lucide-react-native';
 import { SAC, FONTS } from './tokens';
 import { Badge } from './atoms';
@@ -29,7 +29,7 @@ function useAdminProfile() {
 }
 
 export type SuperAdminNavId =
-  | 'overview' | 'colleges' | 'students' | 'mentors' | 'alumni' | 'events'
+  | 'overview' | 'bgv' | 'colleges' | 'students' | 'mentors' | 'alumni' | 'events'
   | 'payments' | 'analytics' | 'approvals' | 'ai-insights' | 'settings'
   | 'workflows' | 'imports' | 'partners' | 'promotions' | 'talent-pool' | 'echo-showcase'
   | 'newsletter' | 'certificates' | 'email-health';
@@ -37,6 +37,7 @@ import { SALogo } from '@/src/views/components';
 
 export const NAV: Array<{ id: SuperAdminNavId; label: string; Icon: any; count?: number; tag?: 'NEW' }> = [
   { id: 'overview',    label: 'Overview',    Icon: LayoutDashboard },
+  { id: 'bgv',         label: 'BGV & Accounts', Icon: ShieldCheck,  tag: 'NEW' },
   { id: 'colleges',    label: 'Colleges',    Icon: Building2 },
   { id: 'students',    label: 'Students',    Icon: GraduationCap },
   { id: 'mentors',     label: 'Mentors',     Icon: UserCheck },

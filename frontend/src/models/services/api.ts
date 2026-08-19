@@ -515,6 +515,20 @@ export const api = {
     request<any>(`/newsletter/admin/search-users?q=${encodeURIComponent(q)}`),
   sendIndividualNotification: (payload: any) =>
     request<any>('/newsletter/admin/send-individual', { method: 'POST', body: payload }),
+
+  // ── BGV & Account Verticals ──────────────────────────────────────────────
+  getAccountAnalytics: () =>
+    request<any>('/bgv/admin/analytics'),
+  listAccountsByVertical: (vertical = 'all', q = '', page = 1, limit = 25) =>
+    request<any>(`/bgv/admin/list?vertical=${encodeURIComponent(vertical)}&q=${encodeURIComponent(q)}&page=${page}&limit=${limit}`),
+  toggleAccountTestStatus: (payload: { id: string; collection?: string; is_test: boolean }) =>
+    request<any>('/bgv/admin/toggle-test', { method: 'POST', body: payload }),
+  purgeTestAccounts: (confirm = true) =>
+    request<any>('/bgv/admin/purge-test', { method: 'POST', body: { confirm } }),
+  lookupBGVRecord: (identifier: string) =>
+    request<any>(`/bgv/lookup?identifier=${encodeURIComponent(identifier)}`),
+  backfillBGVIdentifiers: () =>
+    request<any>('/bgv/admin/backfill', { method: 'POST', body: {} }),
 };
 
 export function resolveImageUrl(url?: string | null): string {
