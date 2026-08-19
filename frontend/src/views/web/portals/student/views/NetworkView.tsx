@@ -442,8 +442,6 @@ export function NetworkView() {
           company: company || college,
           mutual: req.mutual || 0,
           tags: req.skills || req.interests || [],
-          linkedin: req.linkedin_url || req.linkedin || "",
-          github: req.github_url || req.github || "",
           connectionState: "connected",
         };
       };
@@ -530,7 +528,7 @@ export function NetworkView() {
           .map((part: string) => part[0] || "")
           .join("")
           .toUpperCase();
-      const color = p.color || "#2563EB";
+      const color = p.color || "#6366F1";
 
       let tag = "Student";
       if (kind === "alumni") tag = "Alumni";
@@ -570,7 +568,7 @@ export function NetworkView() {
             )
           : [],
         mutual: p.mutual || (sumChars(p.id || "") % 18) + 4,
-        linkedin: p.linkedin_url || p.linkedin || "",
+        linkedin: p.linkedin || "linkedin.com",
         github: p.github || "github.com",
         connectionState: p.connection_state || "none",
         kind,
@@ -769,7 +767,7 @@ export function NetworkView() {
       <View style={{ gap: 8, marginBottom: 16 }}>
         <View style={s.searchRowContainer}>
           <View style={s.searchContainerFlex}>
-            <Search size={16} color="#64748B" style={{ marginRight: 8 }} />
+            <Search size={16} color={SC.dim} style={{ marginRight: 8 }} />
             <TextInput
               value={searchQuery}
               onChangeText={(val) => {
@@ -782,7 +780,7 @@ export function NetworkView() {
               }}
               onSubmitEditing={() => handleDatabaseSearch()}
               placeholder="Filter displayed accounts or search DB..."
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={SC.dim}
               style={s.searchInput}
             />
             {searchQuery ? (
@@ -795,7 +793,7 @@ export function NetworkView() {
                 }}
                 style={{ padding: 4 }}
               >
-                <X size={14} color="#64748B" />
+                <X size={14} color={SC.dim} />
               </Pressable>
             ) : null}
           </View>
@@ -1321,9 +1319,8 @@ export function NetworkView() {
                           <View style={{ flexDirection: "row", gap: 6 }}>
                             <Pressable
                               onPress={() =>
-                                toast.info(
-                                  "Starting chat",
-                                  `Opening messages with ${person.name}`,
+                                alert(
+                                  `Starting message chat with ${person.name}`,
                                 )
                               }
                               style={[
@@ -1346,10 +1343,7 @@ export function NetworkView() {
                                         ? person.linkedin
                                         : `https://${person.linkedin}`,
                                     )
-                                  : toast.info(
-                                      "Link Unavailable",
-                                      "This user has not connected this social profile yet.",
-                                    )
+                                  : alert("No link provided")
                               }
                               style={[
                                 s.iconSquareBtn,
@@ -1371,10 +1365,7 @@ export function NetworkView() {
                                           ? person.github
                                           : `https://${person.github}`,
                                       )
-                                    : toast.info(
-                                        "Link Unavailable",
-                                        "This user has not connected this social profile yet.",
-                                      )
+                                    : alert("No link provided")
                                 }
                                 style={[
                                   s.iconSquareBtn,
@@ -1798,10 +1789,7 @@ export function NetworkView() {
                                 ? person.linkedin
                                 : `https://${person.linkedin}`,
                             )
-                          : toast.info(
-                              "Link Unavailable",
-                              "This user has not connected this social profile yet.",
-                            )
+                          : alert("No link provided")
                       }
                       style={s.iconBtn}
                     >
@@ -1903,10 +1891,7 @@ export function NetworkView() {
                                   ? m.linkedin
                                   : `https://${m.linkedin}`,
                               )
-                            : toast.info(
-                                "Link Unavailable",
-                                "This user has not connected this social profile yet.",
-                              )
+                            : alert("No link provided")
                         }
                         style={s.iconBtn}
                       >
@@ -1921,10 +1906,7 @@ export function NetworkView() {
                                     ? m.github
                                     : `https://${m.github}`,
                                 )
-                              : toast.info(
-                                  "Link Unavailable",
-                                  "This user has not connected this social profile yet.",
-                                )
+                              : alert("No link provided")
                           }
                           style={s.iconBtn}
                         >
@@ -2164,10 +2146,7 @@ export function NetworkView() {
                                         ? pickedPerson.linkedin
                                         : `https://${pickedPerson.linkedin}`,
                                     )
-                                  : toast.info(
-                                      "Link Unavailable",
-                                      "This user has not connected this social profile yet.",
-                                    )
+                                  : alert("No link provided")
                               }
                               style={s.socialIconBtn}
                             >
@@ -2183,10 +2162,7 @@ export function NetworkView() {
                                         ? pickedPerson.github
                                         : `https://${pickedPerson.github}`,
                                     )
-                                  : toast.info(
-                                      "Link Unavailable",
-                                      "This user has not connected this social profile yet.",
-                                    )
+                                  : alert("No link provided")
                               }
                               style={s.socialIconBtn}
                             >
@@ -2416,7 +2392,7 @@ export function NetworkView() {
                                   flex: 1,
                                   backgroundColor: "transparent",
                                   borderWidth: 1,
-                                  borderColor: "rgba(37,99,235,0.4)",
+                                  borderColor: "rgba(167,139,250,0.4)",
                                 },
                               ]}
                             >
@@ -2623,7 +2599,7 @@ export function NetworkView() {
                         <View
                           key={t}
                           style={{
-                            backgroundColor: "rgba(37,99,235,0.12)",
+                            backgroundColor: "rgba(139,92,246,0.12)",
                             paddingHorizontal: 10,
                             paddingVertical: 4,
                             borderRadius: 999,
@@ -2880,16 +2856,12 @@ const s = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    borderColor: "#E2E8F0",
+    backgroundColor: "rgba(0,0,0,0.25)",
+    borderColor: SC.border,
     borderWidth: 1,
     borderRadius: 10,
     paddingHorizontal: 12,
     height: 42,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
   },
   dbSearchBtn: {
     flexDirection: "row",
@@ -2933,21 +2905,17 @@ const s = StyleSheet.create({
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    borderColor: "#E2E8F0",
+    backgroundColor: "rgba(0,0,0,0.25)",
+    borderColor: SC.border,
     borderWidth: 1,
     borderRadius: 10,
     paddingHorizontal: 12,
     height: 42,
     marginBottom: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
   },
   searchInput: {
     flex: 1,
-    color: "#0F172A",
+    color: "#1C1C1E",
     fontFamily: FONTS.med,
     fontSize: 13,
     ...(Platform.OS === "web" ? ({ outlineStyle: "none" } as any) : {}),
@@ -3049,7 +3017,7 @@ const s = StyleSheet.create({
     fontSize: 9.5,
   },
   badgeAlumni: {
-    backgroundColor: "rgba(37,99,235,0.12)",
+    backgroundColor: "rgba(139,92,246,0.12)",
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
@@ -3126,7 +3094,7 @@ const s = StyleSheet.create({
     height: 32,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "rgba(37,99,235,0.3)",
+    borderColor: "rgba(167,139,250,0.3)",
     backgroundColor: "transparent",
     ...({ cursor: "pointer" } as any),
   },
@@ -3316,7 +3284,7 @@ const s = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "rgba(37,99,235,0.25)",
+    borderColor: "rgba(167,139,250,0.25)",
     backgroundColor: "#F1F5F9",
     alignItems: "center",
     justifyContent: "center",
@@ -3400,7 +3368,7 @@ const s = StyleSheet.create({
     ...({ cursor: "pointer" } as any),
   },
   dayCardActive: {
-    backgroundColor: "rgba(37,99,235,0.15)",
+    backgroundColor: "rgba(139,92,246,0.15)",
     borderColor: SC.primary,
     borderWidth: 1.5,
   },
@@ -3439,7 +3407,7 @@ const s = StyleSheet.create({
     ...({ cursor: "pointer" } as any),
   },
   slotChipActive: {
-    backgroundColor: "rgba(37,99,235,0.20)",
+    backgroundColor: "rgba(139,92,246,0.20)",
     borderColor: SC.primary,
     borderWidth: 1,
   },

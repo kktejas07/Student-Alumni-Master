@@ -600,7 +600,7 @@ export function FeedbackView({ demoMode = false, setDemoMode }: { demoMode?: boo
       ) : (
         <View style={[s.card, { alignItems: 'center', paddingVertical: 40 }]}>
           <Star size={48} color={MC.dim} style={{ marginBottom: 12 }} />
-          <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: '#1C1C1E', marginBottom: 4 }}>No student reviews yet</Text>
+          <Text style={[s.cardTitle, { marginBottom: 4 }]}>No student reviews yet</Text>
           <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 13, textAlign: 'center', paddingHorizontal: 20 }}>
             Reviews and student feedback will appear here after you conduct mentoring sessions.
           </Text>
@@ -709,11 +709,6 @@ const s = StyleSheet.create({
     fontSize: 10,
     letterSpacing: 1,
     marginBottom: 4,
-  },
-  cardTitle: {
-    color: '#fff',
-    fontFamily: FONTS.bold,
-    fontSize: 13,
   },
   hugeValue: {
     color: '#1C1C1E',

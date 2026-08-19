@@ -26,7 +26,7 @@
  *   PUT        /api/admin/security/password
  *   GET        /api/admin/digital-id
  */
-import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   View, Text, Pressable, StyleSheet, Switch, Platform, Modal,
   TextInput, ScrollView, ActivityIndicator, Image,
@@ -37,18 +37,17 @@ import {
   ExternalLink, RotateCcw, Monitor, Smartphone, AlertTriangle, KeyRound,
   ChevronRight, QrCode, Building2, ShieldCheck, Search, Sparkles, CheckCircle2,
   Mail, Users as UsersIcon, ArrowLeft, Clock, MapPin, Globe, Wifi, Activity, FileText,
-  Maximize2, Minimize2, Upload,
+  Maximize2, Minimize2,
 } from 'lucide-react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Linking from 'expo-linking';
 import { SAC, FONTS } from '../tokens';
-import { Card, Toast } from '../applekit';
+import { Card } from '../applekit';
 import { request } from '@/src/models/services/api';
 import LexicalEditor from './LexicalEditor';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
-import { useSubTab } from '@/src/views/web/portals/portalUrl';
 
 /* ─────────────────────────────────────────────────────────────────
  * Provider docs map — used by the "How to get credentials" link in
@@ -141,7 +140,6 @@ type Tool = {
   installed: boolean; status?: string | null; installed_at?: string | null;
   auth_fields?: Array<{ key: string; label: string; type: string; placeholder?: string; help?: string }>;
   credentials_masked?: Record<string, string>;
-  webhook_url?: string;
 };
 type Role = {
   id: string; key: string; name: string; description: string;
@@ -218,29 +216,27 @@ const DEFAULT_SYSTEM_OPTIONS: Record<string, { value: string; label: string }[]>
 };
 
 /* ─────────────────────────────────────────────────────────────────
+ * Toast (Auto-save confirmation)
+ * ───────────────────────────────────────────────────────────────── */
+function Toast({ text, visible }: { text: string; visible: boolean }) {
+  if (!visible) return null;
+  return (
+    <Animated.View entering={FadeIn.duration(180)} style={s.toast} pointerEvents="none">
+      <Check size={12} color={SAC.green} />
+      <Text style={s.toastText}>{text}</Text>
+    </Animated.View>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────
  * Main view
  * ───────────────────────────────────────────────────────────────── */
-export function SettingsView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
-  const [tab, setTab] = useSubTab<TabId>(
-    ['profile', 'platform', 'integrations', 'roles', 'notifications', 'security', 'digital-id', 'pages', 'templates', 'branding'],
-    'profile',
-    { sub, onSub },
-  );
-  const [toast, setToast] = useState({ visible: false, text: 'Saved', kind: 'success' as 'success' | 'error' | 'warning' | 'info' | 'pending' });
-  const toastTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-  const hideToast = () => setToast((t) => ({ ...t, visible: false }));
-  const flashToast = (text = 'Saved', kind?: 'success' | 'error' | 'warning' | 'info' | 'pending') => {
-    const t = (text || '').toLowerCase();
-    const resolved = kind || (
-      /(fail|error|invalid|required|denied|unable)/.test(t) ? 'error'
-        : /(warn|caution)/.test(t) ? 'warning'
-          : /(pending|loading|sending|processing)/.test(t) ? 'pending'
-            : /(info|note|editing)/.test(t) ? 'info'
-              : 'success'
-    );
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-    setToast({ visible: true, text, kind: resolved });
-    toastTimer.current = setTimeout(hideToast, 5000);
+export function SettingsView() {
+  const [tab, setTab] = useState<TabId>('profile');
+  const [toast, setToast] = useState({ visible: false, text: 'Saved' });
+  const flashToast = (text = 'Saved') => {
+    setToast({ visible: true, text });
+    setTimeout(() => setToast((t) => ({ ...t, visible: false })), 1500);
   };
 
   return (
@@ -258,7 +254,7 @@ export function SettingsView({ sub, onSub }: { sub?: string; onSub?: (s: string)
         {tab === 'templates'     && <TemplatesTab onSaved={flashToast} />}
         {tab === 'branding'      && <BrandingTab onSaved={flashToast} />}
       </View>
-      <Toast text={toast.text} visible={toast.visible} kind={toast.kind} onDismiss={hideToast} />
+      <Toast text={toast.text} visible={toast.visible} />
     </View>
   );
 }
@@ -487,7 +483,7 @@ function SignatureEditorModal({ visible, initial, onClose, onSaved }: {
     },
     {
       id: 'friendly', label: 'Friendly',
-      body: 'Cheers,\n{{name}}\n{{org}}',
+      body: 'Cheers,\n{{name}} ✨\n{{org}}',
     },
   ];
 
@@ -1021,17 +1017,6 @@ function IntegrationsTab({ onSaved }: { onSaved: (s?: string) => void }) {
 function ToolCard({ tool, busy, onConnect, onDisconnect }: {
   tool: Tool; busy: boolean; onConnect: () => void; onDisconnect: () => void;
 }) {
-  const [copied, setCopied] = useState(false);
-  const copyWebhook = async () => {
-    if (!tool.webhook_url) return;
-    try {
-      if (typeof navigator !== 'undefined' && navigator.clipboard) {
-        await navigator.clipboard.writeText(tool.webhook_url);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      }
-    } catch {}
-  };
   return (
     <View style={s.toolCard}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -1053,16 +1038,6 @@ function ToolCard({ tool, busy, onConnect, onDisconnect }: {
         </View>
       </View>
       <Text style={s.toolDesc} numberOfLines={2}>{tool.description}</Text>
-      {tool.id === 'postal' && tool.installed && tool.webhook_url ? (
-        <Pressable onPress={copyWebhook} style={{ marginTop: 8, padding: 8, borderRadius: 8, backgroundColor: 'rgba(124,58,237,0.12)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.3)' }}>
-          <Text style={{ color: '#C4B5FD', fontFamily: FONTS.semi, fontSize: 10.5, marginBottom: 4 }}>
-            {copied ? 'Copied webhook URL' : 'Tap to copy Postal webhook URL'}
-          </Text>
-          <Text style={{ color: '#94A3B8', fontFamily: FONTS.med, fontSize: 10.5 }}>
-            https://studentalumni.ai/api/webhooks/postal?token=••••
-          </Text>
-        </Pressable>
-      ) : null}
       <View style={{ flex: 1 }} />
       {tool.installed ? (
         <Pressable onPress={onDisconnect} disabled={busy} style={[s.toolBtnSec, busy && { opacity: 0.5 }]}>
@@ -1102,10 +1077,7 @@ function ConnectModal({ tool, onClose, onConnected }: {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (tool) {
-      const next: Record<string, string> = {};
-      setCreds(next); setError(null); setShowSecret({}); setTest(null);
-    }
+    if (tool) { setCreds({}); setError(null); setShowSecret({}); setTest(null); }
   }, [tool]);
 
   if (!tool) return null;
@@ -1161,14 +1133,6 @@ function ConnectModal({ tool, onClose, onConnected }: {
                 You can disconnect at any time.
               </Text>
             </View>
-            {tool.id === 'postal' ? (
-              <View style={s.helpBox}>
-                <Text style={s.helpText}>
-                  After you connect, copy the webhook URL from the Postal card and paste it in Postal → Webhooks.
-                  The ?token= value must match the Webhook secret saved here. Leave the secret blank to auto-generate.
-                </Text>
-              </View>
-            ) : null}
 
             {fields.length === 0 ? (
               <Text style={s.muted}>No credentials required — click Connect to enable.</Text>
@@ -1268,7 +1232,7 @@ function RolesTab({ onSaved }: { onSaved: (s?: string) => void }) {
       super_admin:  '#FB923C', // orange
       platform_admin: '#3B82F6', // blue
       college_admin:'#10B981', // green
-      support:      '#60A5FA', // purple
+      support:      '#A78BFA', // purple
       mentor:       '#06B6D4', // cyan
     };
     return palette[key] || '#94A3B8';
@@ -1649,7 +1613,7 @@ function DeleteRoleModal({ role, onClose, onDeleted }: {
           </View>
           <View style={{ padding: 20, gap: 10 }}>
             <Text style={s.modalLabel}>
-              You're about to delete <Text style={{ color: '#fff', fontFamily: FONTS.xbold }}>{role.name}</Text>.
+              You're about to delete <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold }}>{role.name}</Text>.
             </Text>
             <Text style={s.muted}>
               {role.user_count > 0
@@ -1690,8 +1654,7 @@ function NotificationsTab({ onSaved }: { onSaved: (s?: string) => void }) {
   const toggle = async (key: string, channel: string, value: boolean) => {
     if (!prefs) return;
     setPrefs(prefs.map((p) => p.key === key ? { ...p, [channel]: value } : p));
-    try { await request('/admin/notifications/preferences', { method: 'PATCH', body: { key, channel, value } }); onSaved('Saved'); }
-    catch (e: any) { onSaved(e?.message || 'Failed to save preference'); }
+    try { await request('/admin/notifications/preferences', { method: 'PATCH', body: { key, channel, value } }); onSaved('Saved'); } catch {}
   };
 
   if (!prefs) return <Loading />;
@@ -1747,51 +1710,6 @@ function NotificationsTab({ onSaved }: { onSaved: (s?: string) => void }) {
 /* ═════════════════════════════════════════════════════════════════
  * TAB 6 — Security
  * ═══════════════════════════════════════════════════════════════ */
-async function collectSessionHints() {
-  const hints: Record<string, any> = {};
-  try {
-    if (typeof navigator !== 'undefined') {
-      hints.language = navigator.language;
-      hints.platform = (navigator as any).userAgentData?.platform || navigator.platform;
-      hints.hardware_concurrency = (navigator as any).hardwareConcurrency;
-    }
-    if (typeof Intl !== 'undefined') {
-      hints.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    }
-    if (typeof window !== 'undefined' && window.screen) {
-      hints.screen = `${window.screen.width}x${window.screen.height}`;
-    }
-    let cached = '';
-    try { cached = sessionStorage.getItem('sa.public_ip') || ''; } catch {}
-    if (cached) {
-      hints.public_ip = cached;
-    } else {
-      const ctrl = typeof AbortSignal !== 'undefined' && AbortSignal.timeout
-        ? AbortSignal.timeout(2500)
-        : undefined;
-      const r = await fetch('https://api.ipify.org?format=json', { signal: ctrl as any });
-      const d = await r.json();
-      if (d?.ip) {
-        hints.public_ip = d.ip;
-        try { sessionStorage.setItem('sa.public_ip', d.ip); } catch {}
-      }
-    }
-  } catch { /* geo still resolved server-side from proxy headers */ }
-  return hints;
-}
-
-function liveAgo(iso?: string) {
-  if (!iso) return '—';
-  const t = new Date(iso).getTime();
-  if (Number.isNaN(t)) return '—';
-  const secs = Math.max(0, Math.floor((Date.now() - t) / 1000));
-  if (secs < 20) return 'Just now';
-  if (secs < 60) return `${secs}s ago`;
-  if (secs < 3600) return `${Math.floor(secs / 60)}m ago`;
-  if (secs < 86400) return `${Math.floor(secs / 3600)}h ago`;
-  return `${Math.floor(secs / 86400)}d ago`;
-}
-
 function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
   const [twoFa, setTwoFa] = useState(false);
   const [twoFaLoading, setTwoFaLoading] = useState(false);
@@ -1810,16 +1728,13 @@ function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
   const [log, setLog] = useState<any[]>([]);
   const [pwdErr, setPwdErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [liveAt, setLiveAt] = useState<Date | null>(null);
-  const [liveBusy, setLiveBusy] = useState(false);
 
   const load = useCallback(async () => {
-    setLiveBusy(true);
     try {
-      const hints = await collectSessionHints();
-      await request('/admin/security/sessions/record', { method: 'POST', body: hints }).catch(() => {});
+      // Record current session (fire & forget)
+      request('/admin/security/sessions/record', { method: 'POST' }).catch(() => {});
       const [sessR, logR, analysisR, tdR] = await Promise.all([
-        request<any>(`/admin/security/sessions${showAllSessions ? '?all=true' : ''}`),
+        request<any>('/admin/security/sessions'),
         request<any>('/admin/security/access-log'),
         request<any>('/admin/security/sessions/analysis').catch(() => null),
         request<any>('/admin/security/trusted-devices').catch(() => null),
@@ -1829,33 +1744,13 @@ function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
       setLog(logR?.entries || []);
       setAnalysis(analysisR || null);
       setTrustedDevices(tdR?.trusted_devices || []);
-      setLiveAt(new Date());
     } catch {}
-    finally { setLiveBusy(false); }
-  }, [showAllSessions]);
-
-  useEffect(() => { load(); }, [load]);
-  useEffect(() => {
-    (async () => {
-      try {
-        const r = await request<{ enabled: boolean }>('/admin/security/2fa/status');
-        setTwoFa(r?.enabled ?? false);
-      } catch {}
-    })();
+    try {
+      const r = await request<{ enabled: boolean }>('/admin/security/2fa/status');
+      setTwoFa(r?.enabled ?? false);
+    } catch {}
   }, []);
-  useEffect(() => {
-    const id = setInterval(() => { load(); }, 60000);
-    const onFocus = () => { load(); };
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      window.addEventListener('focus', onFocus);
-    }
-    return () => {
-      clearInterval(id);
-      if (Platform.OS === 'web' && typeof window !== 'undefined') {
-        window.removeEventListener('focus', onFocus);
-      }
-    };
-  }, [load]);
+  useEffect(() => { load(); }, [load]);
 
   const onToggle2fa = async (value: boolean) => {
     if (value) {
@@ -1926,8 +1821,7 @@ function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
 
   const revoke = async (id: string) => {
     setSessions(sessions.filter((sx) => sx.id !== id));
-    try { await request(`/admin/security/sessions/${id}`, { method: 'DELETE' }); onSaved('Session revoked'); }
-    catch (e: any) { onSaved(e?.message || 'Failed to revoke session'); }
+    try { await request(`/admin/security/sessions/${id}`, { method: 'DELETE' }); onSaved('Session revoked'); } catch {}
   };
 
   return (
@@ -2032,22 +1926,15 @@ function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
 
         {/* ACCESS LOG */}
         <View style={s.card}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-            <Text style={s.sectionLabel}>ACCESS LOG</Text>
-            <Text style={[s.muted, { fontSize: 10.5 }]}>
-              {liveBusy ? 'Refreshing…' : liveAt ? `Live · ${liveAt.toLocaleTimeString()}` : ''}
-            </Text>
-          </View>
+          <Text style={s.sectionLabel}>ACCESS LOG</Text>
           <View style={{ marginTop: 12, gap: 10 }}>
-            {log.length === 0 && <Text style={s.muted}>No activity recorded yet. Open this page from a signed-in admin session to start the live log.</Text>}
+            {log.length === 0 && <Text style={s.muted}>No activity yet.</Text>}
             {log.map((it, i) => (
-              <View key={`${it.at}-${i}`} style={s.logRow}>
+              <View key={i} style={s.logRow}>
                 <View style={s.logDot} />
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Text style={s.logAction}>{prettyAction(it.action)} {it.target && it.target !== 'self' && `: ${it.target}`}</Text>
-                  <Text style={s.muted}>
-                    {[it.ip, it.location, it.browser || it.device, it.at ? new Date(it.at).toLocaleString() : null].filter(Boolean).join(' · ')}
-                  </Text>
+                  <Text style={s.muted}>{it.ip} · {new Date(it.at).toLocaleString()}</Text>
                 </View>
               </View>
             ))}
@@ -2058,21 +1945,11 @@ function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
       {/* ACTIVE SESSIONS + ANALYSIS */}
       <View style={{ flex: 1, minWidth: 320, gap: 14 }}>
         <View style={s.card}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-            <Text style={s.sectionLabel}>ACTIVE SESSIONS</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <View style={[s.dotGreen, liveBusy && { backgroundColor: '#FBBF24' }]} />
-              <Text style={[s.muted, { fontSize: 10.5 }]}>{liveBusy ? 'Updating' : 'Live · 12s'}</Text>
-            </View>
-          </View>
+          <Text style={s.sectionLabel}>ACTIVE SESSIONS</Text>
           <View style={{ marginTop: 12, gap: 8 }}>
-            {sessions.length === 0 && <Text style={s.muted}>No sessions recorded yet.</Text>}
             {sessions.map((sess) => {
-              const isMobile = /iphone|ipad|android|phone/i.test(`${sess.device || ''} ${sess.os || ''}`);
+              const isMobile = (sess.device || '').toLowerCase().includes('iphone') || (sess.device || '').toLowerCase().includes('android');
               const Icon = isMobile ? Smartphone : Monitor;
-              const coords = (sess.lat != null && sess.lon != null && sess.lat !== 0)
-                ? `${Number(sess.lat).toFixed(3)}, ${Number(sess.lon).toFixed(3)}`
-                : '';
               return (
                 <View key={sess.id} style={s.sessRow}>
                   <View style={[s.sessIcon, sess.current && { borderColor: GRAD_TO, backgroundColor: 'rgba(251,146,60,0.12)' }]}>
@@ -2081,39 +1958,21 @@ function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                       <Text style={s.toggleTitle}>{sess.browser} · {sess.device}</Text>
-                      {sess.os ? <Text style={s.muted}>{sess.os}</Text> : null}
+                      {sess.os && <Text style={s.muted}>{sess.os}</Text>}
                     </View>
-                    <View style={{ gap: 2, marginTop: 4 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 5 }}>
-                        <MapPin size={11} color={SAC.muted} style={{ marginTop: 2 }} />
-                        <Text style={[s.muted, { flex: 1 }]}>{sess.location}</Text>
-                      </View>
-                      {sess.ip ? (
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                          <Wifi size={11} color={SAC.muted} />
-                          <Text style={s.muted}>IP {sess.ip}{sess.isp ? ` · ${sess.isp}` : ''}{sess.asn ? ` · ${sess.asn}` : ''}</Text>
-                        </View>
-                      ) : null}
-                      {(sess.timezone || sess.language || sess.screen) ? (
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                          <Globe size={11} color={SAC.muted} />
-                          <Text style={s.muted}>
-                            {[sess.timezone, sess.language, sess.screen, coords].filter(Boolean).join(' · ')}
-                          </Text>
-                        </View>
-                      ) : coords ? (
-                        <Text style={s.muted}>{coords}</Text>
-                      ) : null}
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                        <Clock size={11} color={SAC.muted} />
-                        <Text style={s.muted}>Last active {liveAgo(sess.last_active_raw) || sess.last_active}</Text>
-                      </View>
+                    <View style={{ gap: 1, marginTop: 2 }}>
+                      <Text style={s.muted} numberOfLines={1}>
+                        <MapPin size={10} color={SAC.muted} /> {sess.location}
+                        {sess.isp ? ` · ${sess.isp}` : ''}
+                        {sess.ip ? ` · IP: ${sess.ip}` : ''}
+                      </Text>
+                      <Text style={s.muted}>{sess.last_active}</Text>
                     </View>
                   </View>
                   {sess.current ? (
                     <View style={s.activeChip}>
                       <View style={s.dotGreen} />
-                      <Text style={s.activeChipText}>This device</Text>
+                      <Text style={s.activeChipText}>Active</Text>
                     </View>
                   ) : (
                     <Pressable onPress={() => revoke(sess.id)} style={s.revokeBtn}>
@@ -2157,8 +2016,7 @@ function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
           <Pressable
             onPress={async () => {
               try {
-                const hints = await collectSessionHints();
-                const r = await request<any>('/admin/security/trusted-devices', { method: 'POST', body: hints });
+                const r = await request<any>('/admin/security/trusted-devices', { method: 'POST' });
                 if (r?.trusted) {
                   const td = await request<any>('/admin/security/trusted-devices');
                   setTrustedDevices(td?.trusted_devices || []);
@@ -2185,7 +2043,7 @@ function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={s.toggleTitle}>{d.browser} · {d.device}</Text>
-                    <Text style={s.muted}>{[d.location, d.ip && `IP ${d.ip}`, d.isp].filter(Boolean).join(' · ')}</Text>
+                    <Text style={s.muted} numberOfLines={1}>{d.location}{d.ip ? ` · IP: ${d.ip}` : ''}</Text>
                   </View>
                   <Text style={s.muted}>{d.added_ago}</Text>
                   <Pressable
@@ -2224,7 +2082,7 @@ function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
                   {analysis.locations.slice(0, 4).map((loc: any, i: number) => (
                     <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 }}>
                       <Globe size={11} color={SAC.muted} />
-                      <Text style={{ color: '#fff', fontFamily: FONTS.med, fontSize: 12 }}>{[loc.city, loc.country].filter(Boolean).join(', ') || 'Unknown'}</Text>
+                      <Text style={{ color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 12 }}>{loc.city}{loc.country ? `, ${loc.country}` : ''}</Text>
                       <Text style={{ color: SAC.dim, fontFamily: FONTS.med, fontSize: 10.5 }}>{loc.count} session{loc.count === 1 ? '' : 's'}</Text>
                     </View>
                   ))}
@@ -2244,7 +2102,7 @@ function MiniStat({ icon: Icon, label, value }: { icon: any; label: string; valu
       <Icon size={12} color={GRAD_TO} />
       <View>
         <Text style={{ color: SAC.dim, fontFamily: FONTS.xbold, fontSize: 9, letterSpacing: 0.6 }}>{label.toUpperCase()}</Text>
-        <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 }}>{value}</Text>
+        <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 13 }}>{value}</Text>
       </View>
     </View>
   );
@@ -2274,11 +2132,6 @@ function PasswordField({ icon: Icon, value, onChange, placeholder, show, onToggl
 function prettyAction(a: string) {
   const map: Record<string, string> = {
     'session.login': 'Logged in',
-    'session.seen': 'Session recorded',
-    'session.revoked': 'Session revoked',
-    'session.auto_revoked': 'Session auto-revoked',
-    'trusted_device.added': 'Trusted this device',
-    'trusted_device.removed': 'Removed trusted device',
     'security.password_changed': 'Changed password',
     'integration.connected': 'Connected integration',
     'integration.disconnected': 'Disconnected integration',
@@ -2478,7 +2331,7 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
       <View style={s.featGrid}>
         <FeatureCard icon={ShieldCheck} tint={SAC.green}    title="Verified Identity"   text="Your admin status is verified by the platform." />
         <FeatureCard icon={Building2}   tint="#3B82F6"      title="Platform Authority"  text={`Recognised across all ${data.colleges_count || 48} colleges.`} />
-        <FeatureCard icon={QrCode}      tint="#60A5FA"      title="Instant Share"       text="Share QR at events or board meetings." />
+        <FeatureCard icon={QrCode}      tint="#A78BFA"      title="Instant Share"       text="Share QR at events or board meetings." />
         <FeatureCard icon={Lock}        tint={GRAD_TO}      title="Secure Access"       text="Cryptographically signed and tamper-proof." />
       </View>
     </Animated.View>
@@ -2527,7 +2380,7 @@ function PagesTab({ onSaved }: { onSaved: (s?: string) => void }) {
             <ArrowLeft size={16} color="#fff" />
             <Text style={s.linkBtnText}>Back</Text>
           </Pressable>
-          <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 18 }}>{editing.title}</Text>
+          <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 18 }}>{editing.title}</Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <Text style={{ color: '#94a3b8', fontFamily: FONTS.med, fontSize: 12 }}>Route: {editing.route}</Text>
@@ -2596,7 +2449,7 @@ function PagesTab({ onSaved }: { onSaved: (s?: string) => void }) {
         {pages.map((p) => (
           <View key={p.key} style={s.toolCard}>
             <View style={{ flex: 1, gap: 4 }}>
-              <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 }}>{p.title}</Text>
+              <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 14 }}>{p.title}</Text>
               <Text style={{ color: '#64748b', fontFamily: FONTS.med, fontSize: 11 }}>{p.route}</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
                 <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: p.active ? '#22c55e' : '#ef4444' }} />
@@ -2620,46 +2473,9 @@ function PagesTab({ onSaved }: { onSaved: (s?: string) => void }) {
 }
 
 
-function BrandingField({
-  label,
-  value,
-  onChange,
-  placeholder,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder: string;
-}) {
-  return (
-    <View style={{ gap: 6 }}>
-      <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: SAC.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</Text>
-      <TextInput
-        value={value}
-        onChangeText={onChange}
-        placeholder={placeholder}
-        placeholderTextColor="#475569"
-        style={{
-          backgroundColor: 'rgba(255,255,255,0.06)',
-          borderRadius: 8,
-          borderWidth: 1,
-          borderColor: 'rgba(255,255,255,0.08)',
-          padding: 12,
-          color: '#e2e8f0',
-          fontSize: 13,
-        }}
-      />
-    </View>
-  );
-}
-
 function BrandingTab({ onSaved }: { onSaved: (s?: string) => void }) {
   const [logoUrl, setLogoUrl] = useState('');
   const [faviconUrl, setFaviconUrl] = useState('');
-  const logoRef = useRef<any>(null);
-  const faviconRef = useRef<any>(null);
-  const [logoUploading, setLogoUploading] = useState(false);
-  const [faviconUploading, setFaviconUploading] = useState(false);
   const [brandName, setBrandName] = useState('StudentAlumni');
   const [copyright, setCopyright] = useState('2026 StudentAlumni. All rights reserved.');
   const [address, setAddress] = useState('');
@@ -2674,7 +2490,7 @@ function BrandingTab({ onSaved }: { onSaved: (s?: string) => void }) {
         const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
         const { tokenStore } = await import('@/src/models/services/api');
         const token = await tokenStore.getAccess();
-        const resp = await fetch(`${base}/api/echo/admin/branding`, {
+        const resp = await fetch(`${base}/api/admin/branding`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         if (resp.ok) {
@@ -2698,7 +2514,7 @@ function BrandingTab({ onSaved }: { onSaved: (s?: string) => void }) {
       const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
       const { tokenStore } = await import('@/src/models/services/api');
       const token = await tokenStore.getAccess();
-      const resp = await fetch(`${base}/api/echo/admin/branding`, {
+      const resp = await fetch(`${base}/api/admin/branding`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({
@@ -2715,29 +2531,14 @@ function BrandingTab({ onSaved }: { onSaved: (s?: string) => void }) {
     }
   };
 
-  const uploadBrandingFile = async (file: File, kind: 'logo' | 'favicon') => {
-    if (!file) return;
-    if (kind === 'logo') setLogoUploading(true); else setFaviconUploading(true);
-    try {
-      if (Platform.OS === 'web' && typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function') {
-        const preview = URL.createObjectURL(file);
-        if (kind === 'logo') setLogoUrl(preview); else setFaviconUrl(preview);
-      }
-      const fd = new FormData();
-      fd.append('file', file, file.name);
-      const res: any = await request<any>(`/admin/upload?folder=${encodeURIComponent('branding')}`, { method: 'POST', body: fd });
-      if (res?.url) {
-        if (kind === 'logo') setLogoUrl(res.url); else setFaviconUrl(res.url);
-        onSaved(kind === 'logo' ? 'Logo uploaded' : 'Favicon uploaded');
-      } else {
-        throw new Error('Upload returned no URL');
-      }
-    } catch (err: any) {
-      onSaved(`Upload failed: ${err?.message || 'Unknown error'}`);
-    } finally {
-      if (kind === 'logo') setLogoUploading(false); else setFaviconUploading(false);
-    }
-  };
+  const Field = ({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder: string }) => (
+    <View style={{ gap: 6 }}>
+      <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: SAC.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</Text>
+      <TextInput value={value} onChangeText={onChange} placeholder={placeholder}
+        placeholderTextColor="#475569"
+        style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 12, color: '#e2e8f0', fontSize: 13 }} />
+    </View>
+  );
 
   return (
     <View style={{ gap: 16 }}>
@@ -2747,73 +2548,27 @@ function BrandingTab({ onSaved }: { onSaved: (s?: string) => void }) {
           Configure logo, favicon, and contact information displayed across the platform.
         </Text>
 
-        <BrandingField label="Brand Name" value={brandName} onChange={setBrandName} placeholder="StudentAlumni" />
-        <BrandingField label="Logo URL" value={logoUrl} onChange={setLogoUrl} placeholder="https://example.com/logo.png" />
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <Pressable
-            onPress={() => logoRef.current?.click?.()}
-            disabled={logoUploading}
-            style={{
-              backgroundColor: 'rgba(124,58,237,0.15)', borderWidth: 1, borderColor: 'rgba(124,58,237,0.4)',
-              borderRadius: 8, paddingHorizontal: 12, paddingVertical: 9, flexDirection: 'row', alignItems: 'center', gap: 6,
-              cursor: 'pointer', opacity: logoUploading ? 0.6 : 1,
-            }}
-          >
-            <Upload size={14} color="#A78BFA" />
-            <Text style={{ fontFamily: FONTS.semi, fontSize: 12, color: '#A78BFA' }}>
-              {logoUploading ? 'Uploading logo…' : 'Upload logo file'}
-            </Text>
-          </Pressable>
-          <Text style={{ fontFamily: FONTS.med, fontSize: 10.5, color: SAC.muted }}>
-            PNG/JPG/WebP up to 5 MB{logoUrl ? ' — or paste a URL above' : ''}
-          </Text>
-          {Platform.OS === 'web' && (
-            <input ref={logoRef} type="file" accept="image/png,image/jpeg,image/jpg,image/webp,image/gif" style={{ display: 'none' }}
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadBrandingFile(f, 'logo'); }} />
-          )}
-        </View>
-        <BrandingField label="Favicon URL" value={faviconUrl} onChange={setFaviconUrl} placeholder="https://example.com/favicon.png" />
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <Pressable
-            onPress={() => faviconRef.current?.click?.()}
-            disabled={faviconUploading}
-            style={{
-              backgroundColor: 'rgba(124,58,237,0.15)', borderWidth: 1, borderColor: 'rgba(124,58,237,0.4)',
-              borderRadius: 8, paddingHorizontal: 12, paddingVertical: 9, flexDirection: 'row', alignItems: 'center', gap: 6,
-              cursor: 'pointer', opacity: faviconUploading ? 0.6 : 1,
-            }}
-          >
-            <Upload size={14} color="#A78BFA" />
-            <Text style={{ fontFamily: FONTS.semi, fontSize: 12, color: '#A78BFA' }}>
-              {faviconUploading ? 'Uploading favicon…' : 'Upload favicon file'}
-            </Text>
-          </Pressable>
-          <Text style={{ fontFamily: FONTS.med, fontSize: 10.5, color: SAC.muted }}>
-            PNG/JPG/WebP up to 5 MB{faviconUrl ? ' — or paste a URL above' : ''}
-          </Text>
-          {Platform.OS === 'web' && (
-            <input ref={faviconRef} type="file" accept="image/png,image/jpeg,image/jpg,image/webp,image/gif" style={{ display: 'none' }}
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadBrandingFile(f, 'favicon'); }} />
-          )}
-        </View>
-        {(logoUrl || faviconUrl) ? (
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            {logoUrl ? <Image source={{ uri: logoUrl }} style={{ width: 48, height: 48, borderRadius: 10 }} resizeMode="contain" /> : null}
-            {faviconUrl ? <Image source={{ uri: faviconUrl }} style={{ width: 48, height: 48, borderRadius: 10 }} resizeMode="contain" /> : null}
+        <Field label="Brand Name" value={brandName} onChange={setBrandName} placeholder="StudentAlumni" />
+        <Field label="Logo URL" value={logoUrl} onChange={setLogoUrl} placeholder="https://example.com/logo.png" />
+        <Field label="Favicon URL" value={faviconUrl} onChange={setFaviconUrl} placeholder="https://example.com/favicon.png" />
+
+        {logoUrl ? (
+          <View style={{ padding: 16, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.04)', alignItems: 'center' }}>
+            <Image source={{ uri: logoUrl }} style={{ width: 64, height: 64, borderRadius: 12 }} resizeMode="contain" />
           </View>
         ) : null}
 
         <View style={{ height: 1, backgroundColor: SAC.border, marginVertical: 4 }} />
         <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: SAC.text }}>Contact & Legal</Text>
 
-        <BrandingField label="Copyright" value={copyright} onChange={setCopyright} placeholder="2026 StudentAlumni. All rights reserved." />
-        <BrandingField label="Address" value={address} onChange={setAddress} placeholder="123 Main St, City, Country" />
-        <BrandingField label="Phone" value={phone} onChange={setPhone} placeholder="+91 98765 43210" />
-        <BrandingField label="Email" value={email} onChange={setEmail} placeholder="contact@studentalumni.ai" />
-        <BrandingField label="Website" value={website} onChange={setWebsite} placeholder="https://studentalumni.ai" />
+        <Field label="Copyright" value={copyright} onChange={setCopyright} placeholder="2026 StudentAlumni. All rights reserved." />
+        <Field label="Address" value={address} onChange={setAddress} placeholder="123 Main St, City, Country" />
+        <Field label="Phone" value={phone} onChange={setPhone} placeholder="+91 98765 43210" />
+        <Field label="Email" value={email} onChange={setEmail} placeholder="contact@studentalumni.ai" />
+        <Field label="Website" value={website} onChange={setWebsite} placeholder="https://studentalumni.ai" />
 
         <Pressable onPress={save} disabled={saving} style={{
-          backgroundColor: '#2563EB', borderRadius: 10, paddingVertical: 14, alignItems: 'center', cursor: 'pointer', opacity: saving ? 0.6 : 1,
+          backgroundColor: '#7C3AED', borderRadius: 10, paddingVertical: 14, alignItems: 'center', cursor: 'pointer', opacity: saving ? 0.6 : 1,
         }}>
           <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#fff' }}>{saving ? 'Saving...' : 'Save Branding'}</Text>
         </Pressable>
@@ -2828,7 +2583,7 @@ function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
   const [defaultTemplate, setDefaultTemplate] = useState('aurora');
   const [invoiceTemplate, setInvoiceTemplate] = useState('modern');
   const [emailStyle, setEmailStyle] = useState('modern');
-  const [brandColor, setBrandColor] = useState('#2563EB');
+  const [brandColor, setBrandColor] = useState('#7C3AED');
   const [brandName, setBrandName] = useState('Student Alumni');
   const [emailFooter, setEmailFooter] = useState('Student Alumni Cell — Empowering the next generation of leaders.');
   const [saving, setSaving] = useState(false);
@@ -2848,7 +2603,7 @@ function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
           setDefaultTemplate(d.default_ticket_template || 'aurora');
           setInvoiceTemplate(d.default_invoice_template || 'modern');
           setEmailStyle(d.default_email_style || 'modern');
-          setBrandColor(d.email_brand_color || '#2563EB');
+          setBrandColor(d.email_brand_color || '#7C3AED');
           setBrandName(d.brand_name || 'Student Alumni');
           setEmailFooter(d.email_footer || '');
         }
@@ -2911,24 +2666,24 @@ function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
         {options.map((tpl) => (
           <Pressable key={tpl.id} onPress={() => onChange(tpl.id)} style={{
             width: 160, borderRadius: 10, borderWidth: 2,
-            borderColor: value === tpl.id ? '#2563EB' : 'rgba(255,255,255,0.08)',
-            backgroundColor: value === tpl.id ? 'rgba(37,99,235,0.08)' : 'rgba(255,255,255,0.02)',
+            borderColor: value === tpl.id ? '#7C3AED' : 'rgba(255,255,255,0.08)',
+            backgroundColor: value === tpl.id ? 'rgba(124,58,237,0.08)' : 'rgba(255,255,255,0.02)',
             padding: 14, cursor: 'pointer',
           }}>
             <View style={{ height: 6, borderRadius: 3, marginBottom: 10, background: tpl.gradient }} />
-            <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: value === tpl.id ? '#93C5FD' : '#e2e8f0' }}>{tpl.name}</Text>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: value === tpl.id ? '#C4B5FD' : '#e2e8f0' }}>{tpl.name}</Text>
             <Text style={{ fontFamily: FONTS.medium, fontSize: 11, color: '#64748b', marginTop: 3 }}>{tpl.desc}</Text>
           </Pressable>
         ))}
       </View>
       <Pressable onPress={() => fetchPreview(previewType, value)} style={{
         flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
-        backgroundColor: 'rgba(37,99,235,0.12)', borderRadius: 8,
-        paddingHorizontal: 14, paddingVertical: 7, borderWidth: 1, borderColor: 'rgba(37,99,235,0.25)',
+        backgroundColor: 'rgba(124,58,237,0.12)', borderRadius: 8,
+        paddingHorizontal: 14, paddingVertical: 7, borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)',
         cursor: 'pointer', marginTop: 4,
       }}>
-        <Eye size={13} color="#60A5FA" />
-        <Text style={{ fontFamily: FONTS.semibold, fontSize: 12, color: '#93C5FD' }}>Preview Template</Text>
+        <Eye size={13} color="#A78BFA" />
+        <Text style={{ fontFamily: FONTS.semibold, fontSize: 12, color: '#C4B5FD' }}>Preview Template</Text>
       </Pressable>
     </View>
   );
@@ -2951,10 +2706,10 @@ function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
         {subTabs.map((t) => (
           <Pressable key={t.id} onPress={() => setSubTab(t.id)} style={{
             paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, borderWidth: 1, cursor: 'pointer',
-            borderColor: subTab === t.id ? '#2563EB' : 'rgba(255,255,255,0.08)',
-            backgroundColor: subTab === t.id ? 'rgba(37,99,235,0.12)' : 'rgba(255,255,255,0.02)',
+            borderColor: subTab === t.id ? '#7C3AED' : 'rgba(255,255,255,0.08)',
+            backgroundColor: subTab === t.id ? 'rgba(124,58,237,0.12)' : 'rgba(255,255,255,0.02)',
           }}>
-            <Text style={{ fontFamily: FONTS.semibold, fontSize: 12, color: subTab === t.id ? '#93C5FD' : '#94a3b8' }}>{t.label}</Text>
+            <Text style={{ fontFamily: FONTS.semibold, fontSize: 12, color: subTab === t.id ? '#C4B5FD' : '#94a3b8' }}>{t.label}</Text>
           </Pressable>
         ))}
       </View>
@@ -2976,7 +2731,7 @@ function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
           <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#f1f5f9' }}>Invoice Templates</Text>
           <Text style={{ fontFamily: FONTS.medium, fontSize: 12, color: '#94a3b8' }}>Default invoice style for paid registrations.</Text>
           <TemplatePicker label="Default Invoice" previewType="invoice" value={invoiceTemplate} onChange={setInvoiceTemplate} options={[
-            { id: 'modern', name: 'Modern', desc: 'Gradient header, card layout', gradient: 'linear-gradient(135deg,#2563EB,#1E40AF)' },
+            { id: 'modern', name: 'Modern', desc: 'Gradient header, card layout', gradient: 'linear-gradient(135deg,#7C3AED,#5B21B6)' },
             { id: 'minimal', name: 'Minimal', desc: 'Clean white, thin borders', gradient: 'linear-gradient(135deg,#f8fafc,#e2e8f0)' },
             { id: 'classic', name: 'Classic', desc: 'Dark header, traditional', gradient: 'linear-gradient(135deg,#0f172a,#1e293b)' },
           ]} />
@@ -2988,7 +2743,7 @@ function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
           <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#f1f5f9' }}>Email Templates</Text>
           <Text style={{ fontFamily: FONTS.medium, fontSize: 12, color: '#94a3b8' }}>Style for transactional emails.</Text>
           <TemplatePicker label="Email Style" previewType="pass" value={emailStyle} onChange={setEmailStyle} options={[
-            { id: 'modern', name: 'Modern', desc: 'Purple gradient header', gradient: 'linear-gradient(135deg,#2563EB,#1E40AF)' },
+            { id: 'modern', name: 'Modern', desc: 'Purple gradient header', gradient: 'linear-gradient(135deg,#7C3AED,#5B21B6)' },
             { id: 'minimal', name: 'Minimal', desc: 'Clean, no gradient', gradient: 'linear-gradient(135deg,#f8fafc,#e2e8f0)' },
             { id: 'professional', name: 'Professional', desc: 'Dark header, corporate', gradient: 'linear-gradient(135deg,#0f172a,#334155)' },
           ]} />
@@ -3017,7 +2772,7 @@ function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
               <input type="color" value={brandColor} onChange={(e: any) => setBrandColor(e.target.value)}
                 style={{ width: 44, height: 40, border: 'none', borderRadius: 8, cursor: 'pointer', background: 'transparent' }} />
-              <TextInput value={brandColor} onChangeText={setBrandColor} placeholder="#2563EB"
+              <TextInput value={brandColor} onChangeText={setBrandColor} placeholder="#7C3AED"
                 placeholderTextColor="#475569"
                 style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 12, color: '#e2e8f0', fontFamily: FONTS.medium, fontSize: 13 }} />
             </View>
@@ -3032,7 +2787,7 @@ function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
       )}
 
       <Pressable onPress={save} disabled={saving} style={{
-        backgroundColor: '#2563EB', borderRadius: 10, paddingVertical: 14, alignItems: 'center', cursor: 'pointer', opacity: saving ? 0.6 : 1,
+        backgroundColor: '#7C3AED', borderRadius: 10, paddingVertical: 14, alignItems: 'center', cursor: 'pointer', opacity: saving ? 0.6 : 1,
       }}>
         <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#fff' }}>{saving ? 'Saving...' : 'Save All Settings'}</Text>
       </Pressable>
@@ -3091,7 +2846,7 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10,
   },
-  tabActiveText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12.5 },
+  tabActiveText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12.5 },
   tabInactive: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10,
@@ -3106,7 +2861,7 @@ const s = StyleSheet.create({
   cardHeadRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap',
   },
-  cardTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
+  cardTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 15 },
   cardSub:   { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
   sectionLabel: { color: SAC.muted, fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 1.8 },
 
@@ -3124,11 +2879,11 @@ const s = StyleSheet.create({
     width: 72, height: 72, borderRadius: 18,
     alignItems: 'center', justifyContent: 'center',
   },
-  avatarText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 24 },
-  h1: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 18 },
+  avatarText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 24 },
+  h1: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 18 },
   subtle: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5 },
   pillGrad: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
-  pillGradText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 0.4 },
+  pillGradText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 0.4 },
   pillGreen: { backgroundColor: 'rgba(16,185,129,0.15)', borderColor: 'rgba(16,185,129,0.30)', borderWidth: 1, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999 },
   pillGreenText: { color: SAC.green, fontFamily: FONTS.xbold, fontSize: 10.5 },
   pillNeutral: { backgroundColor: SAC.cardSolid, borderColor: SAC.border, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999 },
@@ -3136,16 +2891,16 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ fontFamily: '"JetBrains Mono", "SF Mono", monospace' } as any) : {}),
   },
   label: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 10.5 },
-  valueText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
+  valueText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 13 },
   valueGrad: { color: GRAD_TO, fontFamily: FONTS.xbold, fontSize: 12.5 },
   muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },
   dotGreen: { width: 8, height: 8, borderRadius: 4, backgroundColor: SAC.green },
 
   fieldRow: { flexDirection: 'row', alignItems: 'center', gap: 12, justifyContent: 'space-between' },
   fieldLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12, width: 130 },
-  fieldValue: { color: '#fff', fontFamily: FONTS.med, fontSize: 13, flex: 1, textAlign: 'right' },
+  fieldValue: { color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 13, flex: 1, textAlign: 'right' },
   input: {
-    color: '#fff', fontFamily: FONTS.med, fontSize: 13,
+    color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 13,
     backgroundColor: SAC.cardSolid, borderRadius: 9, borderWidth: 1, borderColor: SAC.border,
     paddingHorizontal: 12, paddingVertical: 10, flex: 1,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
@@ -3161,7 +2916,7 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 12,
     paddingVertical: 11, paddingHorizontal: 4,
   },
-  toggleTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13, flex: 1, marginRight: 8 },
+  toggleTitle: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 13, flex: 1, marginRight: 8 },
   toggleDesc: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },
   systemRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -3207,7 +2962,7 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(245,158,11,0.12)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.30)',
     alignItems: 'center', justifyContent: 'center',
   },
-  pickerTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
+  pickerTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 15 },
   pickerSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
   credentialBody: {
     padding: 16,
@@ -3317,7 +3072,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 8,
   },
   searchInput: {
-    flex: 1, color: '#fff', fontFamily: FONTS.med, fontSize: 13,
+    flex: 1, color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 13,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
   },
   popularToggle: {
@@ -3337,7 +3092,7 @@ const s = StyleSheet.create({
     borderRadius: 14, borderWidth: 1, borderColor: SAC.border,
     backgroundColor: SAC.cardSolid,
   },
-  emptyTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 },
+  emptyTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 14 },
   emptySub: {
     color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, textAlign: 'center',
     maxWidth: 360, lineHeight: 17,
@@ -3365,7 +3120,7 @@ const s = StyleSheet.create({
   },
   catPillActive: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999, marginRight: 6 },
   catPillText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
-  catPillActiveText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 11.5 },
+  catPillActiveText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 11.5 },
   catLabel: { color: SAC.dim, fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 1.6, marginBottom: 10 },
   toolGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   toolCard: {
@@ -3375,13 +3130,13 @@ const s = StyleSheet.create({
   toolIcon: {
     width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1,
   },
-  toolName: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
+  toolName: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 13 },
   toolDesc: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 10, lineHeight: 15.5, minHeight: 30 },
   toolBtnGrad: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
     paddingVertical: 8, borderRadius: 8,
   },
-  toolBtnText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
+  toolBtnText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12 },
   toolBtnSec: {
     marginTop: 10, alignItems: 'center', justifyContent: 'center',
     paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: SAC.border,
@@ -3404,7 +3159,7 @@ const s = StyleSheet.create({
     position: 'absolute', top: 10, right: 10,
     paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5,
   },
-  popPillText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 8.5, letterSpacing: 0.6 },
+  popPillText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 8.5, letterSpacing: 0.6 },
 
   // Roles
   roleGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 16 },
@@ -3418,7 +3173,7 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   roleBadgeText: { fontFamily: FONTS.xbold, fontSize: 13.5 },
-  roleName: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13.5 },
+  roleName: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 13.5 },
   permLine: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, flex: 1 },
   sysPill: { backgroundColor: 'rgba(251,146,60,0.16)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(251,146,60,0.40)' },
   sysPillText: { color: '#FB923C', fontFamily: FONTS.xbold, fontSize: 8.5, letterSpacing: 0.8 },
@@ -3445,11 +3200,11 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   sessRow: {
-    flexDirection: 'row', alignItems: 'flex-start', gap: 12,
+    flexDirection: 'row', alignItems: 'center', gap: 12,
     paddingVertical: 12, paddingHorizontal: 12, borderRadius: 10,
     backgroundColor: 'rgba(255,255,255,0.02)', borderWidth: 1, borderColor: SAC.border,
   },
-  sessIcon: { width: 32, height: 32, marginTop: 2, borderRadius: 8, backgroundColor: SAC.cardSolid, borderWidth: 1, borderColor: SAC.border, alignItems: 'center', justifyContent: 'center' },
+  sessIcon: { width: 32, height: 32, borderRadius: 8, backgroundColor: SAC.cardSolid, borderWidth: 1, borderColor: SAC.border, alignItems: 'center', justifyContent: 'center' },
   activeChip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999, backgroundColor: 'rgba(16,185,129,0.12)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.30)' },
   activeChipText: { color: SAC.green, fontFamily: FONTS.xbold, fontSize: 10.5 },
   revokeBtn: {
@@ -3460,7 +3215,7 @@ const s = StyleSheet.create({
   revokeBtnText: { color: SAC.red, fontFamily: FONTS.xbold, fontSize: 11 },
   logRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 4 },
   logDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: GRAD_TO, marginTop: 5 },
-  logAction: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
+  logAction: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12.5 },
 
   trustBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
@@ -3496,7 +3251,7 @@ const s = StyleSheet.create({
   idFlipHint: { color: 'rgba(31,17,7,0.7)', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.3 },
   idFlipHintDark: { color: 'rgba(251,191,36,0.7)', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.3 },
   flipOrg: { color: 'rgba(251,191,36,0.9)', fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 2, textAlign: 'center' },
-  flipTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4, textAlign: 'center' },
+  flipTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4, textAlign: 'center' },
   flipSub: { color: 'rgba(255,255,255,0.6)', fontFamily: FONTS.med, fontSize: 12, textAlign: 'center', marginTop: 2 },
   flipDataLabel: { color: 'rgba(251,191,36,0.7)', fontFamily: FONTS.bold, fontSize: 9, letterSpacing: 1.4 },
   flipQrData: { color: 'rgba(255,255,255,0.85)', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.5, textAlign: 'center' },
@@ -3506,21 +3261,21 @@ const s = StyleSheet.create({
     backgroundColor: SAC.cardSolid, borderWidth: 1, borderColor: SAC.border,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '150ms' } as any) : {}),
   },
-  idActionText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
+  idActionText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12 },
   featGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 8 },
   featCard: {
     flex: 1, minWidth: 220, padding: 16, borderRadius: 12,
     backgroundColor: SAC.card, borderWidth: 1, borderColor: SAC.border, gap: 8,
   },
   featIcon: { width: 34, height: 34, borderRadius: 9, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
-  featTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
+  featTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 13 },
 
   // Primary buttons
   primaryBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 14, paddingVertical: 9, borderRadius: 9,
   },
-  primaryBtnText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
+  primaryBtnText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12 },
   secondaryBtn: {
     paddingHorizontal: 14, paddingVertical: 9, borderRadius: 9,
     borderWidth: 1, borderColor: SAC.border, backgroundColor: 'transparent',
@@ -3553,7 +3308,7 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 12,
     padding: 18, borderBottomWidth: 1, borderBottomColor: SAC.border,
   },
-  modalTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 },
+  modalTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 16 },
   modalSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
   modalClose: { width: 28, height: 28, borderRadius: 7, alignItems: 'center', justifyContent: 'center',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
@@ -3587,13 +3342,22 @@ const s = StyleSheet.create({
   },
   errorText: { color: SAC.red, fontFamily: FONTS.bold, fontSize: 12 },
 
+  // Toast
+  toast: {
+    position: 'absolute', bottom: 24, alignSelf: 'center',
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999,
+    backgroundColor: 'rgba(16,185,129,0.18)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.35)',
+  },
+  toastText: { color: SAC.green, fontFamily: FONTS.xbold, fontSize: 11.5 },
+
   // Signature editor
   sigPreview: {
     backgroundColor: SAC.cardSolid, borderRadius: 10, borderWidth: 1, borderColor: SAC.border,
     padding: 14, marginTop: 14, gap: 2,
   },
   sigPreviewLine:      { color: SAC.text,  fontFamily: FONTS.med,   fontSize: 12.5, lineHeight: 17 },
-  sigPreviewLineFirst: { color: '#fff',    fontFamily: FONTS.xbold, fontSize: 13 },
+  sigPreviewLineFirst: { color: '#1C1C1E',    fontFamily: FONTS.xbold, fontSize: 13 },
   sigEditor: {
     minHeight: 130, paddingHorizontal: 12, paddingTop: 10,
     color: SAC.text, fontFamily: FONTS.med, fontSize: 13,
@@ -3620,7 +3384,7 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   roleDetailBackText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
-  roleDetailTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 18 },
+  roleDetailTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 18 },
   roleDetailSub:   { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
   roleStatRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap', marginBottom: 14 },
   roleStat: {
@@ -3629,7 +3393,7 @@ const s = StyleSheet.create({
     paddingVertical: 12, paddingHorizontal: 14,
   },
   roleStatLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 10.5, letterSpacing: 0.4 },
-  roleStatValue: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 22, marginTop: 4 },
+  roleStatValue: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 22, marginTop: 4 },
   roleUserRow: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     padding: 11, borderRadius: 10, backgroundColor: SAC.cardSolid,
@@ -3653,7 +3417,7 @@ const previewStyles = StyleSheet.create({
     overflow: 'hidden',
   },
   title: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: 'DMSans_700Bold, DMSansBold, sans-serif',
     fontSize: 26,
     paddingHorizontal: 24,

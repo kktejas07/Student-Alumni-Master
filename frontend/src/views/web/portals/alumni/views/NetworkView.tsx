@@ -356,8 +356,6 @@ export function NetworkView() {
           company: company || college,
           mutual: req.mutual || 0,
           tags: req.skills || req.interests || [],
-          linkedin: req.linkedin_url || req.linkedin || '',
-          github: req.github_url || req.github || '',
           connectionState: 'connected'
         };
       };
@@ -458,8 +456,8 @@ export function NetworkView() {
         batch: p.batch || 2026,
         tags: p.tags ? p.tags.filter((t: string) => t !== 'Mentor' && t !== 'Alumni' && t !== 'Student') : [],
         mutual: p.mutual || ((sumChars(p.id || '') % 18) + 4),
-        linkedin: p.linkedin_url || p.linkedin || '',
-        github: p.github_url || p.github || '',
+        linkedin: p.linkedin || 'linkedin.com',
+        github: p.github || 'github.com',
         connectionState: p.connection_state || 'none',
         kind,
         rating,
@@ -586,7 +584,7 @@ export function NetworkView() {
       <View style={{ gap: 8, marginBottom: 16 }}>
         <View style={s.searchRowContainer}>
           <View style={s.searchContainerFlex}>
-            <Search size={16} color="#64748B" style={{ marginRight: 8 }} />
+            <Search size={16} color={SC.dim} style={{ marginRight: 8 }} />
             <TextInput
               value={searchQuery}
               onChangeText={(val) => {
@@ -599,12 +597,12 @@ export function NetworkView() {
               }}
               onSubmitEditing={() => handleDatabaseSearch()}
               placeholder="Filter displayed accounts or search DB..."
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={SC.dim}
               style={s.searchInput}
             />
             {searchQuery ? (
               <Pressable onPress={() => { setSearchQuery(''); setQ(''); setDbSearchStatus('idle'); setDbStatusMsg(''); }} style={{ padding: 4 }}>
-                <X size={14} color="#64748B" />
+                <X size={14} color={SC.dim} />
               </Pressable>
             ) : null}
           </View>
@@ -843,14 +841,14 @@ export function NetworkView() {
                           </Pressable>
 
                           <View style={{ flexDirection: 'row', gap: 6 }}>
-                            <Pressable onPress={() => toast.info('Starting chat', `Opening messages with ${person.name}`)} style={[s.iconSquareBtn, { height: 32, width: 32, borderColor: '#EF444433', backgroundColor: 'rgba(239, 68, 68, 0.05)' }]}>
+                            <Pressable onPress={() => alert(`Starting message chat with ${person.name}`)} style={[s.iconSquareBtn, { height: 32, width: 32, borderColor: '#EF444433', backgroundColor: 'rgba(239, 68, 68, 0.05)' }]}>
                               <User size={13} color="#EF4444" />
                             </Pressable>
-                            <Pressable onPress={() => person.linkedin ? Linking.openURL(person.linkedin.startsWith('http') ? person.linkedin : `https://${person.linkedin}`) : toast.info('Link Unavailable', 'This user has not connected this social profile yet.')} style={[s.iconSquareBtn, { height: 32, width: 32, backgroundColor: '#0A66C2' }]}>
+                            <Pressable onPress={() => person.linkedin ? Linking.openURL(person.linkedin.startsWith('http') ? person.linkedin : `https://${person.linkedin}`) : alert('No link provided')} style={[s.iconSquareBtn, { height: 32, width: 32, backgroundColor: '#0A66C2' }]}>
                               <LinkedinGlyph size={13} color="#fff" />
                             </Pressable>
                             {person.github && (
-                              <Pressable onPress={() => person.github ? Linking.openURL(person.github.startsWith('http') ? person.github : `https://${person.github}`) : toast.info('Link Unavailable', 'This user has not connected this social profile yet.')} style={[s.iconSquareBtn, { height: 32, width: 32, backgroundColor: '#24292e' }]}>
+                              <Pressable onPress={() => person.github ? Linking.openURL(person.github.startsWith('http') ? person.github : `https://${person.github}`) : alert('No link provided')} style={[s.iconSquareBtn, { height: 32, width: 32, backgroundColor: '#24292e' }]}>
                                 <Code size={13} color="#fff" />
                               </Pressable>
                             )}
@@ -1055,7 +1053,7 @@ export function NetworkView() {
                   )}
 
                   <View style={{ flexDirection: 'row', gap: 4 }}>
-                    <Pressable onPress={() => person.linkedin ? Linking.openURL(person.linkedin.startsWith('http') ? person.linkedin : `https://${person.linkedin}`) : toast.info('Link Unavailable', 'This user has not connected this social profile yet.')} style={s.iconBtn}>
+                    <Pressable onPress={() => person.linkedin ? Linking.openURL(person.linkedin.startsWith('http') ? person.linkedin : `https://${person.linkedin}`) : alert('No link provided')} style={s.iconBtn}>
                       <Linkedin size={12} color={SC.muted} />
                     </Pressable>
                   </View>
@@ -1106,11 +1104,11 @@ export function NetworkView() {
                     
                     {/* Top-Right Social Links. */}
                     <View style={{ flexDirection: 'row', gap: 4, alignSelf: 'flex-start' }}>
-                      <Pressable onPress={() => m.linkedin ? Linking.openURL(m.linkedin.startsWith('http') ? m.linkedin : `https://${m.linkedin}`) : toast.info('Link Unavailable', 'This user has not connected this social profile yet.')} style={s.iconBtn}>
+                      <Pressable onPress={() => m.linkedin ? Linking.openURL(m.linkedin.startsWith('http') ? m.linkedin : `https://${m.linkedin}`) : alert('No link provided')} style={s.iconBtn}>
                         <Linkedin size={12} color={SC.muted} />
                       </Pressable>
                       {m.github && (
-                        <Pressable onPress={() => m.github ? Linking.openURL(m.github.startsWith('http') ? m.github : `https://${m.github}`) : toast.info('Link Unavailable', 'This user has not connected this social profile yet.')} style={s.iconBtn}>
+                        <Pressable onPress={() => m.github ? Linking.openURL(m.github.startsWith('http') ? m.github : `https://${m.github}`) : alert('No link provided')} style={s.iconBtn}>
                           <Github size={12} color={SC.muted} />
                         </Pressable>
                       )}
@@ -1223,7 +1221,7 @@ export function NetworkView() {
                       <View style={{ flexDirection: 'row', gap: 6, alignSelf: 'flex-start' }}>
                         {pickedPerson.linkedin && (
                           <Pressable 
-                            onPress={() => pickedPerson.linkedin ? Linking.openURL(pickedPerson.linkedin.startsWith('http') ? pickedPerson.linkedin : `https://${pickedPerson.linkedin}`) : toast.info('Link Unavailable', 'This user has not connected this social profile yet.')} 
+                            onPress={() => pickedPerson.linkedin ? Linking.openURL(pickedPerson.linkedin.startsWith('http') ? pickedPerson.linkedin : `https://${pickedPerson.linkedin}`) : alert('No link provided')} 
                             style={s.socialIconBtn}
                           >
                             <Linkedin size={14} color="#fff" />
@@ -1231,7 +1229,7 @@ export function NetworkView() {
                         )}
                         {pickedPerson.github && (
                           <Pressable 
-                            onPress={() => pickedPerson.github ? Linking.openURL(pickedPerson.github.startsWith('http') ? pickedPerson.github : `https://${pickedPerson.github}`) : toast.info('Link Unavailable', 'This user has not connected this social profile yet.')} 
+                            onPress={() => pickedPerson.github ? Linking.openURL(pickedPerson.github.startsWith('http') ? pickedPerson.github : `https://${pickedPerson.github}`) : alert('No link provided')} 
                             style={s.socialIconBtn}
                           >
                             <Github size={14} color="#fff" />
@@ -1299,7 +1297,7 @@ export function NetworkView() {
                         ) : (
                           <Pressable 
                             onPress={() => handleConnect(pickedPerson.id, pickedPerson.name)} 
-                            style={[s.connectBtnLarge, { flex: 1, backgroundColor: 'transparent', borderWidth: 1, borderColor: 'rgba(37,99,235,0.4)' }]}
+                            style={[s.connectBtnLarge, { flex: 1, backgroundColor: 'transparent', borderWidth: 1, borderColor: 'rgba(167,139,250,0.4)' }]}
                           >
                             <UserPlus size={16} color={SC.accentBright} style={{ marginRight: 6 }} />
                             <Text style={{ color: SC.accentBright, fontFamily: FONTS.xbold, fontSize: 14 }}>Connect</Text>
@@ -1531,16 +1529,12 @@ const s = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E2E8F0',
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    borderColor: SC.border,
     borderWidth: 1,
     borderRadius: 10,
     paddingHorizontal: 12,
     height: 42,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
   },
   dbSearchBtn: {
     flexDirection: 'row',
@@ -1584,21 +1578,17 @@ const s = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E2E8F0',
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    borderColor: SC.border,
     borderWidth: 1,
     borderRadius: 10,
     paddingHorizontal: 12,
     height: 42,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
+    marginBottom: 20
   },
   searchInput: {
     flex: 1,
-    color: '#0F172A',
+    color: '#1C1C1E',
     fontFamily: FONTS.med,
     fontSize: 13,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {})
@@ -1660,22 +1650,10 @@ const s = StyleSheet.create({
     maxWidth: 460,
     minHeight: 220,
     justifyContent: 'space-between',
-    backgroundColor: SC.card,
     borderColor: SC.border,
     borderWidth: 1,
     borderRadius: 16,
-    padding: 16,
-    ...(Platform.OS === 'web' ? ({
-      boxShadow: '0 4px 16px rgba(0,0,0,0.08), 0 12px 40px rgba(0,0,0,0.06)',
-      transitionProperty: 'box-shadow, transform',
-      transitionDuration: '200ms',
-    } as any) : {
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 10 },
-      shadowOpacity: 0.1,
-      shadowRadius: 20,
-      elevation: 6,
-    }),
+    padding: 16
   },
   cardHead: {
     flexDirection: 'row',
@@ -1792,7 +1770,7 @@ const s = StyleSheet.create({
     height: 32,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(37,99,235,0.3)',
+    borderColor: 'rgba(167,139,250,0.3)',
     backgroundColor: 'transparent',
     ...({ cursor: 'pointer' } as any)
   },
@@ -1982,7 +1960,7 @@ const s = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(37,99,235,0.25)',
+    borderColor: 'rgba(167,139,250,0.25)',
     backgroundColor: 'rgba(255,255,255,0.02)',
     alignItems: 'center',
     justifyContent: 'center',

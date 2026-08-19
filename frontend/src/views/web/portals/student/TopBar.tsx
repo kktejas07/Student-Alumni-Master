@@ -19,15 +19,15 @@ import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-na
 import { useRouter } from 'expo-router';
 import { Bell, Search } from './iconShims';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useAuthStore } from '@/src/viewmodels/stores/authStore';
-import { displayName, displayInitials } from '@/src/lib/portalHome';
+import { STUDENT } from './data';
 import { Av } from './atoms';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { api } from '@/src/models/services/api';
 import { HelpMenu } from '@/src/views/web/help/HelpMenu';
 import { useTheme } from '@/src/theme/ThemeContext';
 import { useBreakpoint } from '@/src/theme/breakpoints';
 import { SP, RADII, FONT_FAMILY } from '@/src/theme/apple';
-
+import { GlassTopbar } from '@/src/motion/apple/components';
 import { FadeInView, PressScale, PulseDot } from './motion';
 import { PALETTE, TYPO } from './tokens';
 import { StudentPortalNavContext } from './StudentPortalNavContext';
@@ -72,9 +72,11 @@ export function TopBar({
     }
   };
 
-  const fullName: string = displayName(user);
-  const firstName: string = fullName.split(/[\s@]/)[0] || 'there';
-  const initials: string = displayInitials(user);
+  const fullName: string = (user?.full_name
+    || `${user?.first_name || ''} ${user?.last_name || ''}`).trim()
+    || STUDENT.name;
+  const firstName: string = fullName.split(' ')[0] || STUDENT.name.split(' ')[0];
+  const initials: string = (fullName.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('') || STUDENT.initials).toUpperCase();
   const photo: string | undefined = useAuthStore((s) => s.photoOverride) || user?.photo_data || user?.face_image_base64;
 
   const onAvatarPressHandler = () => {
@@ -102,15 +104,15 @@ export function TopBar({
   const showSearch = bp.atLeast('lg');
 
   return (
-    <View style={{
+    <GlassTopbar scrolled={scrolled} style={{
       height: bp.isPhone ? 56 : 64,
       paddingHorizontal: bp.isPhone ? SP.base : SP.lg,
-      backgroundColor: PALETTE.bg1,
-      borderBottomWidth: 1,
-      borderBottomColor: 'rgba(0,0,0,0.06)',
-      zIndex: 10,
-      justifyContent: 'center',
-    }}>
+      backgroundColor: PALETTE.glassSoft,
+      borderBottomColor: PALETTE.glassBorder,
+      // @ts-expect-error web-only
+      backdropFilter: 'blur(20px) saturate(180%)',
+      WebkitBackdropFilter: 'blur(20px) saturate(160%)',
+    } as any}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: SP.md, flex: 1 }}>
         <FadeInView delay={20} style={{ flex: 1, minWidth: 0 }}>
           <Text style={{ fontFamily: TYPO.display700, fontSize: bp.isPhone ? 16 : 18, color: PALETTE.text, letterSpacing: -0.5 }}>
@@ -127,38 +129,23 @@ export function TopBar({
 
         {showSearch && (
           <FadeInView delay={120}>
-            <View style={[s.searchBox, { backgroundColor: PALETTE.bg2, borderColor: 'rgba(0,0,0,0.06)' }]}>
+            <View style={[s.searchBox, { backgroundColor: PALETTE.glassSoft, borderColor: PALETTE.glassBorder }]}>
               <Pressable
-                onPress={() => {
-                  trackClick('topbar_search_submit_icon', { query: q });
-                  analyticsLogger.debug('[TopBar DEBUG] Search icon clicked', { query: q });
-                  handleSearch();
-                }}
+                onPress={handleSearch}
                 style={Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}}
-                accessibilityLabel="Execute dashboard search"
-                accessibilityHint="Executes global search query across platform"
-                testID="topbar-search-submit-btn"
-                accessibilityRole="button"
+                accessibilityLabel="Execute search"
               >
                 <Search size={14} color={q.trim() ? PALETTE.text : PALETTE.dim} />
               </Pressable>
               <TextInput
                 value={q}
-                onChangeText={(text) => {
-                  setQ(text);
-                  analyticsLogger.debug('[TopBar DEBUG] Global search query typing', { query: text });
-                }}
-                onSubmitEditing={() => {
-                  trackClick('topbar_search_submit_enter', { query: q });
-                  handleSearch();
-                }}
+                onChangeText={setQ}
+                onSubmitEditing={handleSearch}
                 placeholder="Search anything…"
                 placeholderTextColor={PALETTE.dim}
                 style={[s.searchInput, { color: PALETTE.text, fontFamily: TYPO.body500 }]}
                 accessibilityLabel="Search the dashboard"
                 accessibilityHint="Type to find courses, mentors, jobs, deals, and more"
-                nativeID="topbar-global-search-input"
-                testID="topbar-global-search-input"
                 // @ts-ignore — RN-Web accepts these
                 aria-label="Search the dashboard"
               />
@@ -169,16 +156,10 @@ export function TopBar({
         {/* Theme toggle — sun ↔ moon morph (Apple-style rotation + scale) */}
         <FadeInView delay={160}>
           <PressScale
-            style={[s.iconBtn, { backgroundColor: PALETTE.bg2, borderColor: 'rgba(0,0,0,0.06)' }]}
-            onPress={() => {
-              trackClick('topbar_theme_toggle', { mode });
-              analyticsLogger.debug('[TopBar DEBUG] Theme toggle clicked', { currentMode: mode });
-              cycleTheme();
-            }}
+            style={[s.iconBtn, { backgroundColor: PALETTE.glassSoft, borderColor: PALETTE.glassBorder }]}
+            onPress={cycleTheme}
             accessibilityLabel={`Theme: ${mode}. Tap to cycle.`}
             accessibilityHint="Switches between light, dark, and automatic"
-            testID="topbar-theme-toggle-btn"
-            accessibilityRole="button"
           >
             <ThemeMorphIcon mode={mode} color={PALETTE.text} />
           </PressScale>
@@ -186,19 +167,12 @@ export function TopBar({
 
         <FadeInView delay={180}>
           <PressScale
-            style={[s.iconBtn, { backgroundColor: PALETTE.bg2, borderColor: 'rgba(0,0,0,0.06)' }]}
-            onPress={() => {
-              trackClick('topbar_bell_notifications_click');
-              analyticsLogger.debug('[TopBar DEBUG] Bell notifications clicked');
-              if (onBellPress) onBellPress();
-              else router.push('/notifications');
-            }}
+            style={[s.iconBtn, { backgroundColor: PALETTE.glassSoft, borderColor: PALETTE.glassBorder }]}
+            onPress={onBellPress || (() => router.push('/notifications'))}
             accessibilityLabel="Notifications"
             accessibilityHint="Opens the notifications panel"
-            testID="topbar-notifications-btn"
-            accessibilityRole="button"
           >
-            <Bell size={16} color={PALETTE.blue} />
+            <Bell size={16} color={PALETTE.violet} />
             {unreadCount > 0 && (
               <View style={[s.bellDotWrap, { backgroundColor: PALETTE.bg1 }]}>
                 <PulseDot size={7} color={PALETTE.rose} />
@@ -209,15 +183,8 @@ export function TopBar({
 
         <FadeInView delay={200}>
           <PressScale
-            onPress={() => {
-              trackClick('topbar_avatar_profile_click');
-              analyticsLogger.debug('[TopBar DEBUG] Avatar profile clicked');
-              onAvatarPressHandler();
-            }}
+            onPress={onAvatarPressHandler}
             accessibilityLabel="View Profile Settings"
-            accessibilityHint="Opens user profile and account settings"
-            testID="topbar-user-avatar-btn"
-            accessibilityRole="button"
           >
             <Av initials={initials} size={36} color={theme.primary} photo={photo} />
           </PressScale>
@@ -225,7 +192,7 @@ export function TopBar({
 
         <HelpMenu portal="student" />
       </View>
-    </View>
+    </GlassTopbar>
   );
 }
 

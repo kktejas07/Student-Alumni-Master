@@ -15,7 +15,6 @@ import { View, Text, Pressable, StyleSheet, useWindowDimensions, Platform, Activ
 import { useRouter } from 'expo-router';
 import { StudentPortalNavContext } from '../StudentPortalNavContext';
 import { LinearGradient } from 'expo-linear-gradient';
-import { DoodleIllustration, type DoodleType } from '@/src/components/ui';
 import {
   Sparkles, Briefcase, BookOpen, Users, TrendingUp, Calendar, MapPin,
   Star, ArrowRight, Check, ExternalLink, Bookmark, BookmarkCheck, MessageSquare, GraduationCap, IndianRupee,
@@ -40,7 +39,6 @@ import { useToast } from '@/src/views/components';
 import { AdBanner } from '@/src/views/web/components/AdBanner';
 import { CouponBanner } from '@/src/views/web/components/CouponBanner';
 import { PartnerCards } from '@/src/views/web/components/PartnerCards';
-import { track, trackClick, trackScreen, logger as analyticsLogger } from '@/src/analytics';
 
 const KPI_ICONS = { matches: Briefcase, applications: Briefcase, courses: BookOpen, mentors: Users, score: TrendingUp, events: Calendar } as const;
 
@@ -60,11 +58,6 @@ export function DashboardView() {
   const toast = useToast();
   const portalNav = useContext(StudentPortalNavContext);
   const [activeTab, setActiveTab] = useState<'opportunities' | 'intelligence'>('opportunities');
-
-  React.useEffect(() => {
-    trackScreen('student_dashboard_view', { path: '/student/dashboard' });
-    analyticsLogger.debug('[DashboardView DEBUG] Dashboard view mounted');
-  }, []);
   // Authenticated user — drives per-user dashboard data.
   const authUser = useAuthStore((u) => u.user);
   const dashPath = authUser?.email
@@ -219,12 +212,12 @@ export function DashboardView() {
     {
       title: 'Application Submitted', sub: 'Stripe • Software Engineer Intern',
       amount: '+1', amountTone: 'positive', time: '12m ago',
-      icon: 'briefcase-check-outline', tint: '#60A5FA', bgTint: 'rgba(59,130,246,0.16)',
+      icon: 'briefcase-check-outline', tint: '#7B3DBF', bgTint: 'rgba(123,61,191,0.16)',
     },
     {
       title: 'Mentor Session Booked', sub: 'Aarav Sharma • Wed 4:00 PM',
       amount: null, amountTone: null, time: '1h ago',
-      icon: 'account-tie-voice-outline', tint: '#60A5FA', bgTint: 'rgba(37,99,235,0.18)',
+      icon: 'account-tie-voice-outline', tint: '#A78BFA', bgTint: 'rgba(167,139,250,0.18)',
     },
   ];
 
@@ -240,7 +233,7 @@ export function DashboardView() {
       label: k?.applications?.label || 'Applications Sent',
       value: String(k?.applications?.value ?? 18),
       numeric: Number(k?.applications?.value ?? 18),
-      icon: 'briefcase-outline', accent: '#60A5FA',
+      icon: 'briefcase-outline', accent: '#7B3DBF',
       trend: k?.applications?.trend || { value: '12.5%', positive: true },
       spark: (k?.applications?.spark as number[]) || FALLBACK_SPARK_APPS,
     },
@@ -249,7 +242,7 @@ export function DashboardView() {
       label: k?.views?.label || 'Mentor Interactions',
       value: String(k?.views?.value ?? 234),
       numeric: Number(k?.views?.value ?? 234),
-      icon: 'eye-outline', accent: '#60A5FA',
+      icon: 'eye-outline', accent: '#A78BFA',
       trend: k?.views?.trend || { value: '8.2%', positive: true },
       spark: (k?.views?.spark as number[]) || FALLBACK_SPARK_VIEWS,
     },
@@ -259,7 +252,7 @@ export function DashboardView() {
       value: `${k?.match?.value ?? 81}%`,
       numeric: Number(k?.match?.value ?? 81),
       suffix: k?.match?.suffix || '%',
-      icon: 'lightning-bolt', accent: '#93C5FD',
+      icon: 'lightning-bolt', accent: '#C4B5FD',
       trend: k?.match?.trend || { value: '4.1%', positive: true },
       spark: (k?.match?.spark as number[]) || FALLBACK_SPARK_MATCH,
     },
@@ -267,7 +260,7 @@ export function DashboardView() {
       kind: 'ring',
       label: k?.completion?.label || 'Profile Completion',
       value: 'On Track',
-      icon: 'account-check-outline', accent: '#60A5FA',
+      icon: 'account-check-outline', accent: '#7B3DBF',
       ringPct: Number(
         k?.completion?.ringPct ??
         (typeof PROFILE_COMPLETION?.score === 'number' ? PROFILE_COMPLETION.score : 78),
@@ -305,7 +298,7 @@ export function DashboardView() {
         {/* Profile Strength Card */}
         <View style={[glassStyle(), s.kpiCardMockup]}>
           <View style={s.kpiCardLeft}>
-            <Text style={[s.kpiTitleText, { color: '#60A5FA' }]}>Profile Strength</Text>
+            <Text style={[s.kpiTitleText, { color: '#C084FC' }]}>Profile Strength</Text>
             <Text style={s.kpiValText}>{stats.profile_strength}%</Text>
             <Text style={s.kpiSubText}>{stats.profile_subtext}</Text>
           </View>
@@ -320,13 +313,13 @@ export function DashboardView() {
         {/* Applications Card */}
         <View style={[glassStyle(), s.kpiCardMockup]}>
           <View style={s.kpiCardLeft}>
-            <Text style={[s.kpiTitleText, { color: '#60A5FA' }]}>Applications</Text>
+            <Text style={[s.kpiTitleText, { color: '#818CF8' }]}>Applications</Text>
             <Text style={s.kpiValText}>{stats.applications}</Text>
             <Text style={s.kpiSubText}>{stats.applications_subtext}</Text>
           </View>
           <View style={s.kpiCardRight}>
-            <View style={[s.kpiIconBox, { backgroundColor: 'rgba(59, 130, 246, 0.15)', borderColor: 'rgba(59, 130, 246, 0.3)' }]}>
-              <Briefcase size={15} color="#60A5FA" />
+            <View style={[s.kpiIconBox, { backgroundColor: 'rgba(99, 102, 241, 0.15)', borderColor: 'rgba(99, 102, 241, 0.3)' }]}>
+              <Briefcase size={15} color="#818CF8" />
             </View>
           </View>
         </View>
@@ -334,13 +327,13 @@ export function DashboardView() {
         {/* Network Card */}
         <View style={[glassStyle(), s.kpiCardMockup]}>
           <View style={s.kpiCardLeft}>
-            <Text style={[s.kpiTitleText, { color: '#60A5FA' }]}>Network</Text>
+            <Text style={[s.kpiTitleText, { color: '#C084FC' }]}>Network</Text>
             <Text style={s.kpiValText}>{stats.network}</Text>
             <Text style={s.kpiSubText}>{stats.network_subtext}</Text>
           </View>
           <View style={s.kpiCardRight}>
-            <View style={[s.kpiIconBox, { backgroundColor: 'rgba(59, 130, 246, 0.15)', borderColor: 'rgba(59, 130, 246, 0.3)' }]}>
-              <Users size={15} color="#60A5FA" />
+            <View style={[s.kpiIconBox, { backgroundColor: 'rgba(192, 132, 252, 0.15)', borderColor: 'rgba(192, 132, 252, 0.3)' }]}>
+              <Users size={15} color="#C084FC" />
             </View>
           </View>
         </View>
@@ -348,13 +341,13 @@ export function DashboardView() {
         {/* Events Card */}
         <View style={[glassStyle(), s.kpiCardMockup]}>
           <View style={s.kpiCardLeft}>
-            <Text style={[s.kpiTitleText, { color: '#60A5FA' }]}>Events</Text>
+            <Text style={[s.kpiTitleText, { color: '#F87171' }]}>Events</Text>
             <Text style={s.kpiValText}>{stats.events}</Text>
             <Text style={s.kpiSubText}>{stats.events_subtext}</Text>
           </View>
           <View style={s.kpiCardRight}>
-            <View style={[s.kpiIconBox, { backgroundColor: 'rgba(59, 130, 246, 0.15)', borderColor: 'rgba(59, 130, 246, 0.3)' }]}>
-              <Calendar size={15} color="#60A5FA" />
+            <View style={[s.kpiIconBox, { backgroundColor: 'rgba(248, 113, 113, 0.15)', borderColor: 'rgba(248, 113, 113, 0.3)' }]}>
+              <Calendar size={15} color="#F87171" />
             </View>
           </View>
         </View>
@@ -381,11 +374,11 @@ export function DashboardView() {
       {activeTab === 'opportunities' && (
         <View style={{ flexDirection: 'column', gap: 20 }}>
         {/* Jobs Section */}
-        <View style={[glassStyle(), s.mockupSection, { borderColor: 'rgba(59, 130, 246, 0.25)' }]}>
+        <View style={[glassStyle(), s.mockupSection, { borderColor: 'rgba(139, 92, 246, 0.25)' }]}>
           <View style={s.sectionHeader}>
             <View style={s.sectionHeaderTitle}>
-              <View style={[s.sectionIconBox, { backgroundColor: 'rgba(59, 130, 246, 0.2)' }]}>
-                <Briefcase size={16} color="#60A5FA" />
+              <View style={[s.sectionIconBox, { backgroundColor: 'rgba(139, 92, 246, 0.2)' }]}>
+                <Briefcase size={16} color="#A78BFA" />
               </View>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={s.sectionTitleText}>Jobs</Text>
@@ -394,7 +387,7 @@ export function DashboardView() {
             </View>
             <Pressable 
               onPress={() => portalNav?.navigate('internships')}
-              style={s.seeAllBtnBlue}
+              style={s.seeAllBtnPurple}
             >
               <Text style={s.seeAllBtnText}>View all Jobs</Text>
               <ArrowRight size={12} color="#fff" style={{ marginLeft: 6 }} />
@@ -450,16 +443,16 @@ export function DashboardView() {
                       <View style={s.itemActionCol}>
                         <Pressable onPress={() => handleSaveJob(item)} style={s.bookmarkBtn}>
                           {isSaved ? (
-                            <BookmarkCheck size={14} color="#60A5FA" />
+                            <BookmarkCheck size={14} color="#A78BFA" />
                           ) : (
-                            <Bookmark size={14} color="#60A5FA" />
+                            <Bookmark size={14} color="#A78BFA" />
                           )}
                         </Pressable>
                         <Pressable 
                           onPress={() => handleApplyJob(item)}
-                          style={[s.applyBtn, isApplied && { backgroundColor: 'rgba(59, 130, 246, 0.2)', borderColor: 'rgba(59, 130, 246, 0.4)' }]}
+                          style={[s.applyBtn, isApplied && { backgroundColor: 'rgba(16, 185, 129, 0.2)', borderColor: 'rgba(16, 185, 129, 0.4)' }]}
                         >
-                          <Text style={[s.applyBtnText, isApplied && { color: '#60A5FA' }]}>
+                          <Text style={[s.applyBtnText, isApplied && { color: '#34D399' }]}>
                             {isApplied ? 'Applied' : 'Apply'}
                           </Text>
                         </Pressable>
@@ -533,11 +526,11 @@ export function DashboardView() {
         </View>
 
         {/* Mentors Section */}
-        <View style={[glassStyle(), s.mockupSection, { borderColor: 'rgba(59, 130, 246, 0.25)' }]}>
+        <View style={[glassStyle(), s.mockupSection, { borderColor: 'rgba(16, 185, 129, 0.25)' }]}>
           <View style={s.sectionHeader}>
             <View style={s.sectionHeaderTitle}>
-              <View style={[s.sectionIconBox, { backgroundColor: 'rgba(59, 130, 246, 0.2)' }]}>
-                <Users size={16} color="#60A5FA" />
+              <View style={[s.sectionIconBox, { backgroundColor: 'rgba(16, 185, 129, 0.2)' }]}>
+                <Users size={16} color="#34D399" />
               </View>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={s.sectionTitleText}>Mentors</Text>
@@ -546,7 +539,7 @@ export function DashboardView() {
             </View>
             <Pressable 
               onPress={() => portalNav?.navigate('network')}
-              style={s.seeAllBtnBlue}
+              style={s.seeAllBtnGreen}
             >
               <Text style={s.seeAllBtnText}>View all Mentors</Text>
               <ArrowRight size={12} color="#fff" style={{ marginLeft: 6 }} />
@@ -631,7 +624,7 @@ export function DashboardView() {
             title={momentumTitle}
             subtitle={momentumSubtitle}
             data={intel?.momentum || FALLBACK_AUDIENCE}
-            color="#60A5FA"
+            color="#7B3DBF"
           />
           <ActivityCard
             delay={480}
@@ -662,11 +655,11 @@ export function DashboardView() {
             </View>
             <Text style={s.modalText}>
               We redirected you to the recruiter's page for{" "}
-              <Text style={{ fontFamily: FONTS.bold, color: '#FFFFFF' }}>
+              <Text style={{ fontFamily: FONTS.bold, color: '#1C1C1E' }}>
                 {applyModalJob?.role || applyModalJob?.title || 'the role'}
               </Text>{" "}
               at{" "}
-              <Text style={{ fontFamily: FONTS.bold, color: '#FFFFFF' }}>
+              <Text style={{ fontFamily: FONTS.bold, color: '#1C1C1E' }}>
                 {applyModalJob?.company || 'the company'}
               </Text>.
             </Text>
@@ -749,8 +742,8 @@ const s = StyleSheet.create({
     padding: 22,
     overflow: 'hidden',
     ...(Platform.OS === 'web' ? ({
-      // Subtle radial accent using pure blue to match navy theme
-      backgroundImage: 'radial-gradient(circle at 90% 0%, rgba(59,130,246,0.08) 0%, rgba(11,17,32,0) 50%), radial-gradient(circle at 10% 100%, rgba(96,165,250,0.06) 0%, rgba(11,17,32,0) 60%)',
+      // Subtle radial accent to match standalone NexusOS spec
+      backgroundImage: 'radial-gradient(circle at 90% 0%, rgba(6,182,212,0.06) 0%, rgba(7,7,10,0) 50%), radial-gradient(circle at 10% 100%, rgba(168,85,247,0.05) 0%, rgba(7,7,10,0) 60%)',
       boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
     } as any) : {}),
   },
@@ -761,12 +754,12 @@ const s = StyleSheet.create({
     backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 14,
     paddingVertical: 14, paddingHorizontal: 18,
   },
-  briefIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: 'rgba(59,130,246,0.18)', alignItems: 'center', justifyContent: 'center' },
+  briefIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: 'rgba(123,61,191,0.18)', alignItems: 'center', justifyContent: 'center' },
   briefTitle: { color: SC.text, fontFamily: FONTS.xbold, fontSize: 14 },
   briefSub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 1 },
   briefCta: { borderRadius: 10, overflow: 'hidden', ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
   gradCta: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 34, borderRadius: 10 },
-  briefCtaText: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 12 },
+  briefCtaText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
 
   liveStrip: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
@@ -793,7 +786,7 @@ const s = StyleSheet.create({
   tierChip: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 9, paddingVertical: 4, borderRadius: 6,
-    backgroundColor: 'rgba(37,99,235,0.10)', borderColor: 'rgba(37,99,235,0.30)', borderWidth: 1,
+    backgroundColor: 'rgba(167,139,250,0.10)', borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1,
   },
   tierChipText: { fontFamily: FONTS.bold, fontSize: 11 },
 
@@ -821,7 +814,7 @@ const s = StyleSheet.create({
 
   matchRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: '#F8FAFC', borderColor: 'rgba(0,0,0,0.06)', borderWidth: 1, borderRadius: 12,
+    backgroundColor: SC.glassBg, borderColor: SC.glassBorder, borderWidth: 1, borderRadius: 12,
     paddingHorizontal: 14, paddingVertical: 12,
     ...(Platform.OS === 'web' ? ({
       cursor: 'pointer', transitionDuration: '160ms',
@@ -831,15 +824,15 @@ const s = StyleSheet.create({
     } as any) : {}),
   },
   companyLogo: { width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  companyLogoText: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 14 },
-  matchRole: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 13.5 },
+  companyLogoText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 14 },
+  matchRole: { color: SC.text, fontFamily: FONTS.bold, fontSize: 13.5 },
   matchCompany: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
   matchDot: { color: SC.dim, fontFamily: FONTS.med, fontSize: 11 },
   matchPill: { paddingHorizontal: 9, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(34,197,94,0.15)', borderColor: 'rgba(34,197,94,0.30)', borderWidth: 1 },
   matchPillText: { color: '#86EFAC', fontFamily: FONTS.bold, fontSize: 11 },
 
   mentorCard: {
-    backgroundColor: '#F8FAFC', borderColor: 'rgba(0,0,0,0.06)', borderWidth: 1, borderRadius: 12,
+    backgroundColor: SC.glassBg, borderColor: SC.glassBorder, borderWidth: 1, borderRadius: 12,
     padding: 14,
     ...(Platform.OS === 'web' ? ({
       backdropFilter: 'blur(18px) saturate(140%)',
@@ -856,7 +849,7 @@ const s = StyleSheet.create({
 
   eventCard: {
     flex: 1, minWidth: 220,
-    backgroundColor: '#F8FAFC', borderColor: 'rgba(0,0,0,0.06)', borderWidth: 1, borderRadius: 12,
+    backgroundColor: SC.glassBg, borderColor: SC.glassBorder, borderWidth: 1, borderRadius: 12,
     padding: 14,
     ...(Platform.OS === 'web' ? ({
       cursor: 'pointer', transitionDuration: '160ms',
@@ -873,14 +866,14 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 16,
     borderRadius: 16, padding: 18,
   },
-  completionLabel: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 11.5, letterSpacing: 0.5 },
+  completionLabel: { color: SC.text, fontFamily: FONTS.xbold, fontSize: 11.5, letterSpacing: 0.5 },
   completionScorePill: { backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 },
   completionScoreText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 11 },
-  completionTitle: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 14, marginTop: 4 },
+  completionTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 14, marginTop: 4 },
   missingChip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.10)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
   missingText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 10.5 },
-  completeCta: { paddingHorizontal: 18, height: 40, borderRadius: 10, backgroundColor: SC.primaryD, alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
-  completeCtaText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12.5 },
+  completeCta: { paddingHorizontal: 18, height: 40, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.92)', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
+  completeCtaText: { color: SC.primaryD, fontFamily: FONTS.xbold, fontSize: 12.5 },
   kpiRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -895,7 +888,7 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: SC.glassBg,
     borderColor: SC.glassBorder,
     borderWidth: 1,
     ...(Platform.OS === 'web' ? ({
@@ -941,7 +934,7 @@ const s = StyleSheet.create({
     height: 30,
     borderRadius: 15,
     borderWidth: 3,
-    borderColor: 'rgba(59, 130, 246, 0.25)',
+    borderColor: 'rgba(192, 132, 252, 0.25)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -951,7 +944,7 @@ const s = StyleSheet.create({
     height: 30,
     borderRadius: 15,
     borderWidth: 3,
-    borderColor: '#60A5FA',
+    borderColor: '#C084FC',
     borderLeftColor: 'transparent',
     borderBottomColor: 'transparent',
   },
@@ -962,7 +955,7 @@ const s = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   mockupSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(10, 8, 22, 0.65)',
     borderWidth: 1,
     borderRadius: 18,
     padding: 20,
@@ -1005,7 +998,7 @@ const s = StyleSheet.create({
     marginTop: 2,
   },
   seeAllBtnPurple: {
-    backgroundColor: '#1D4ED8',
+    backgroundColor: '#6D28D9',
     paddingHorizontal: 14,
     height: 34,
     borderRadius: 8,
@@ -1035,7 +1028,7 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
   },
   seeAllBtnText: {
-    color: '#FFFFFF',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
     fontSize: 11.5,
   },
@@ -1060,7 +1053,7 @@ const s = StyleSheet.create({
     fontSize: 16,
   },
   itemMainText: {
-    color: '#FFFFFF',
+    color: SC.text,
     fontFamily: FONTS.bold,
     fontSize: 13.5,
   },
@@ -1092,13 +1085,13 @@ const s = StyleSheet.create({
     height: 34,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.06)',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
   },
   applyBtn: {
-    backgroundColor: '#1D4ED8',
+    backgroundColor: '#6D28D9',
     width: 76,
     height: 34,
     borderRadius: 8,
@@ -1107,7 +1100,7 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
   },
   applyBtnText: {
-    color: '#FFFFFF',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
     fontSize: 12,
   },
@@ -1121,23 +1114,23 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
   },
   continueBtnText: {
-    color: '#FFFFFF',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
     fontSize: 12,
   },
   bookSessionBtn: {
-    borderColor: '#3B82F6',
+    borderColor: '#10B981',
     borderWidth: 1,
     width: 105,
     height: 34,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(59, 130, 246, 0.05)',
+    backgroundColor: 'rgba(16, 185, 129, 0.05)',
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
   },
   bookSessionBtnText: {
-    color: '#60A5FA',
+    color: '#34D399',
     fontFamily: FONTS.bold,
     fontSize: 11.5,
   },
@@ -1146,21 +1139,21 @@ const s = StyleSheet.create({
     height: 34,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.06)',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
   },
   divider: {
     height: 1,
-    backgroundColor: 'rgba(0,0,0,0.06)',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
     marginVertical: 2,
   },
   tabContainer: {
     flexDirection: 'row',
     alignSelf: 'flex-start',
-    backgroundColor: '#F8FAFC',
-    borderColor: 'rgba(0,0,0,0.06)',
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 1,
     borderRadius: 14,
     padding: 4,
@@ -1182,8 +1175,8 @@ const s = StyleSheet.create({
     } as any) : {}),
   },
   tabButtonActive: {
-    backgroundColor: 'rgba(59, 130, 246, 0.25)',
-    borderColor: 'rgba(59, 130, 246, 0.4)',
+    backgroundColor: 'rgba(123, 61, 191, 0.25)',
+    borderColor: 'rgba(123, 61, 191, 0.4)',
   },
   tabText: {
     color: SC.muted,
@@ -1213,7 +1206,7 @@ function formatSalary(j: any): string {
 }
 
 function pickColor(seed: string): string {
-  const COLOR_PALETTE = ['#F59E0B', '#3B82F6', '#10B981', '#60A5FA', '#EC4899', '#F97316', '#06B6D4', '#84CC16'];
+  const COLOR_PALETTE = ['#F59E0B', '#3B82F6', '#10B981', '#A78BFA', '#EC4899', '#F97316', '#06B6D4', '#84CC16'];
   let h = 0; for (const c of seed) h = (h * 31 + c.charCodeAt(0)) >>> 0;
   return COLOR_PALETTE[h % COLOR_PALETTE.length];
 }
@@ -1239,10 +1232,10 @@ function getStableMockData(jobId: string, company: string, jobType: string) {
   // Inject modal styles directly into s
   Object.assign(s, StyleSheet.create({
     modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', alignItems: 'center', justifyContent: 'center', padding: 20, zIndex: 99999 },
-    modalCard: { width: '100%', maxWidth: 480, backgroundColor: '#FFFFFF', borderColor: 'rgba(0,0,0,0.08)', borderWidth: 1, borderRadius: 16, padding: 22 },
+    modalCard: { width: '100%', maxWidth: 480, backgroundColor: '#111827', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderRadius: 16, padding: 22 },
     modalHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
-    modalIconDisc: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(37,99,235,0.16)', borderColor: 'rgba(37,99,235,0.40)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-    modalTitle: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 17, letterSpacing: -0.3 },
+    modalIconDisc: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(124,58,237,0.16)', borderColor: 'rgba(124,58,237,0.40)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+    modalTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 17, letterSpacing: -0.3 },
     modalText: { color: SC.muted, fontFamily: FONTS.med, fontSize: 13, lineHeight: 18, marginBottom: 12 },
     modalSubtext: { color: SC.dim, fontFamily: FONTS.med, fontSize: 12, lineHeight: 16, marginBottom: 20 },
     modalBtnRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10 },

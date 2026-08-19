@@ -318,9 +318,7 @@ export function NetworkView() {
           tag,
           kind: role,
           company: c.college || '',
-          mutual: c.mutual || ((sumChars(c.id || '') % 12) + 2),
-          linkedin: c.linkedin_url || c.linkedin || '',
-          github: c.github_url || c.github || ''
+          mutual: c.mutual || ((sumChars(c.id || '') % 12) + 2)
         };
       }));
     } catch (e) {
@@ -601,7 +599,6 @@ export function NetworkView() {
 
       await loadRequests();
       await loadDiscover();
-      toast.success('Connection request sent', `Invite sent to ${connectPerson.name}.`);
     } catch (e: any) {
       toast.error('Could not connect', e.message || 'Please try again.');
       setConnectPerson(null);
@@ -813,16 +810,16 @@ export function NetworkView() {
                           </Pressable>
 
                           <View style={{ flexDirection: 'row', gap: 6 }}>
-                            <Pressable onPress={() => toast.info('Scheduling session', `Opening scheduler for ${student.name}`)} style={[s.iconSquareBtn, { borderColor: '#EF444433', backgroundColor: 'rgba(239, 68, 68, 0.05)' }]}>
+                            <Pressable onPress={() => alert(`Starting session schedule with ${student.name}`)} style={[s.iconSquareBtn, { borderColor: '#EF444433', backgroundColor: 'rgba(239, 68, 68, 0.05)' }]}>
                               <User size={13} color="#EF4444" />
                             </Pressable>
                             {student.linkedin && (
-                              <Pressable onPress={() => student.linkedin ? Linking.openURL(student.linkedin.startsWith('http') ? student.linkedin : `https://${student.linkedin}`) : toast.info('Link Unavailable', 'This user has not connected this social profile yet.')} style={[s.iconSquareBtn, { backgroundColor: '#0A66C2' }]}>
+                              <Pressable onPress={() => student.linkedin ? Linking.openURL(student.linkedin.startsWith('http') ? student.linkedin : `https://${student.linkedin}`) : alert('No link provided')} style={[s.iconSquareBtn, { backgroundColor: '#0A66C2' }]}>
                                 <LinkedinGlyph size={13} color="#fff" />
                               </Pressable>
                             )}
                             {student.github && (
-                              <Pressable onPress={() => student.github ? Linking.openURL(student.github.startsWith('http') ? student.github : `https://${student.github}`) : toast.info('Link Unavailable', 'This user has not connected this social profile yet.')} style={[s.iconSquareBtn, { backgroundColor: '#24292e' }]}>
+                              <Pressable onPress={() => student.github ? Linking.openURL(student.github.startsWith('http') ? student.github : `https://${student.github}`) : alert('No link provided')} style={[s.iconSquareBtn, { backgroundColor: '#24292e' }]}>
                                 <Code size={13} color="#fff" />
                               </Pressable>
                             )}
@@ -904,14 +901,14 @@ export function NetworkView() {
                           </Pressable>
 
                           <View style={{ flexDirection: 'row', gap: 6 }}>
-                            <Pressable onPress={() => toast.info('Starting chat', `Opening messages with ${person.name}`)} style={[s.iconSquareBtn, { borderColor: '#EF444433', backgroundColor: 'rgba(239, 68, 68, 0.05)' }]}>
+                            <Pressable onPress={() => alert(`Starting message chat with ${person.name}`)} style={[s.iconSquareBtn, { borderColor: '#EF444433', backgroundColor: 'rgba(239, 68, 68, 0.05)' }]}>
                               <User size={13} color="#EF4444" />
                             </Pressable>
-                            <Pressable onPress={() => person.linkedin ? Linking.openURL(person.linkedin.startsWith('http') ? person.linkedin : `https://${person.linkedin}`) : toast.info('Link Unavailable', 'This user has not connected this social profile yet.')} style={[s.iconSquareBtn, { backgroundColor: '#0A66C2' }]}>
+                            <Pressable onPress={() => person.linkedin ? Linking.openURL(person.linkedin.startsWith('http') ? person.linkedin : `https://${person.linkedin}`) : alert('No link provided')} style={[s.iconSquareBtn, { backgroundColor: '#0A66C2' }]}>
                               <LinkedinGlyph size={13} color="#fff" />
                             </Pressable>
                             {person.github && (
-                              <Pressable onPress={() => person.github ? Linking.openURL(person.github.startsWith('http') ? person.github : `https://${person.github}`) : toast.info('Link Unavailable', 'This user has not connected this social profile yet.')} style={[s.iconSquareBtn, { backgroundColor: '#24292e' }]}>
+                              <Pressable onPress={() => person.github ? Linking.openURL(person.github.startsWith('http') ? person.github : `https://${person.github}`) : alert('No link provided')} style={[s.iconSquareBtn, { backgroundColor: '#24292e' }]}>
                                 <Code size={13} color="#fff" />
                               </Pressable>
                             )}
@@ -950,7 +947,7 @@ export function NetworkView() {
           <View style={{ gap: 8, marginBottom: 16 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <View style={[s.searchContainer, { flex: 1, marginBottom: 0 }]}>
-                <Search size={14} color="#64748B" style={{ marginRight: 10 }} />
+                <Search size={14} color={MC.dim} style={{ marginRight: 10 }} />
                 <TextInput
                   value={searchQuery}
                   onChangeText={(val) => {
@@ -962,12 +959,12 @@ export function NetworkView() {
                   }}
                   onSubmitEditing={() => handleDatabaseSearch()}
                   placeholder="Filter displayed accounts or search DB..."
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={MC.dim}
                   style={s.searchInput}
                 />
                 {searchQuery ? (
                   <Pressable onPress={() => { setSearchQuery(''); setDbSearchStatus('idle'); setDbStatusMsg(''); }} style={{ padding: 4 }}>
-                    <X size={14} color="#64748B" />
+                    <X size={14} color={MC.dim} />
                   </Pressable>
                 ) : null}
               </View>
@@ -1180,14 +1177,14 @@ export function NetworkView() {
                           </Pressable>
 
                           <View style={{ flexDirection: 'row', gap: 6 }}>
-                            <Pressable onPress={() => toast.info('Starting chat', `Opening messages with ${person.name}`)} style={[s.iconSquareBtn, { height: 32, width: 32, borderColor: '#EF444433', backgroundColor: 'rgba(239, 68, 68, 0.05)' }]}>
+                            <Pressable onPress={() => alert(`Starting message chat with ${person.name}`)} style={[s.iconSquareBtn, { height: 32, width: 32, borderColor: '#EF444433', backgroundColor: 'rgba(239, 68, 68, 0.05)' }]}>
                               <User size={13} color="#EF4444" />
                             </Pressable>
-                            <Pressable onPress={() => person.linkedin ? Linking.openURL(person.linkedin.startsWith('http') ? person.linkedin : `https://${person.linkedin}`) : toast.info('Link Unavailable', 'This user has not connected this social profile yet.')} style={[s.iconSquareBtn, { height: 32, width: 32, backgroundColor: '#0A66C2' }]}>
+                            <Pressable onPress={() => person.linkedin ? Linking.openURL(person.linkedin.startsWith('http') ? person.linkedin : `https://${person.linkedin}`) : alert('No link provided')} style={[s.iconSquareBtn, { height: 32, width: 32, backgroundColor: '#0A66C2' }]}>
                               <LinkedinGlyph size={13} color="#fff" />
                             </Pressable>
                             {person.github && (
-                              <Pressable onPress={() => person.github ? Linking.openURL(person.github.startsWith('http') ? person.github : `https://${person.github}`) : toast.info('Link Unavailable', 'This user has not connected this social profile yet.')} style={[s.iconSquareBtn, { height: 32, width: 32, backgroundColor: '#24292e' }]}>
+                              <Pressable onPress={() => person.github ? Linking.openURL(person.github.startsWith('http') ? person.github : `https://${person.github}`) : alert('No link provided')} style={[s.iconSquareBtn, { height: 32, width: 32, backgroundColor: '#24292e' }]}>
                                 <Code size={13} color="#fff" />
                               </Pressable>
                             )}
@@ -1429,7 +1426,7 @@ export function NetworkView() {
                       <View style={{ flexDirection: 'row', gap: 6, alignSelf: 'flex-start' }}>
                         {pickedPerson.linkedin && (
                           <Pressable 
-                            onPress={() => pickedPerson.linkedin ? Linking.openURL(pickedPerson.linkedin.startsWith('http') ? pickedPerson.linkedin : `https://${pickedPerson.linkedin}`) : toast.info('Link Unavailable', 'This user has not connected this social profile yet.')} 
+                            onPress={() => pickedPerson.linkedin ? Linking.openURL(pickedPerson.linkedin.startsWith('http') ? pickedPerson.linkedin : `https://${pickedPerson.linkedin}`) : alert('No link provided')} 
                             style={s.socialIconBtn}
                           >
                             <LinkedinGlyph size={14} color="#fff" />
@@ -1437,7 +1434,7 @@ export function NetworkView() {
                         )}
                         {pickedPerson.github && (
                           <Pressable 
-                            onPress={() => pickedPerson.github ? Linking.openURL(pickedPerson.github.startsWith('http') ? pickedPerson.github : `https://${pickedPerson.github}`) : toast.info('Link Unavailable', 'This user has not connected this social profile yet.')} 
+                            onPress={() => pickedPerson.github ? Linking.openURL(pickedPerson.github.startsWith('http') ? pickedPerson.github : `https://${pickedPerson.github}`) : alert('No link provided')} 
                             style={s.socialIconBtn}
                           >
                             <Code size={14} color="#fff" />
@@ -1700,21 +1697,17 @@ const s = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E2E8F0',
+    backgroundColor: 'rgba(0,0,0,0.20)',
+    borderColor: MC.border,
     borderWidth: 1,
     borderRadius: 10,
     paddingHorizontal: 12,
     height: 40,
-    marginBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
+    marginBottom: 10
   },
   searchInput: {
     flex: 1,
-    color: '#0F172A',
+    color: '#1C1C1E',
     fontFamily: FONTS.med,
     fontSize: 13,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {})

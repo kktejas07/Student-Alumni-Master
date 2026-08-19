@@ -9,7 +9,6 @@ import { GlassCard } from '../glass';
 import { EmptyState } from '../EmptyState';
 import { usePortalData, postPortal } from '@/src/lib/portalApi';
 import { useCurrentUser } from '@/src/lib/useCurrentUser';
-import { useToast } from '@/src/views/components';
 
 type WS = {
   id: string; title: string; fee_inr: number; weeks: number; status: string;
@@ -24,7 +23,6 @@ const POPULAR_WORKSHOPS = [
 ];
 
 export function MyWorkshopsView() {
-  const toast = useToast();
   const { email } = useCurrentUser('workshop1@persona.demo');
   const { data, refresh } = usePortalData<{ items: WS[]; count: number }>(
     `/student/my-workshops?email=${encodeURIComponent(email)}`,
@@ -41,11 +39,8 @@ export function MyWorkshopsView() {
         body: { student_email: email, registration_id: id, action },
       });
       refresh();
-      toast.success(
-        action === 'complete' ? 'Workshop completed' : action === 'start' ? 'Workshop started' : 'Progress updated',
-      );
-    } catch (e: any) {
-      toast.error('Update failed', e?.message || 'Please try again.');
+    } catch (e) {
+      console.error(e);
     } finally {
       setUpdatingId(null);
     }
@@ -58,9 +53,8 @@ export function MyWorkshopsView() {
         body: { student_email: email, workshop_title: title, fee_inr: fee, weeks: weeks },
       });
       refresh();
-      toast.success('Enrolled', `You’re now enrolled in ${title}.`);
-    } catch (e: any) {
-      toast.error('Enrollment failed', e?.message || 'Please try again.');
+    } catch (e) {
+      console.error(e);
     } finally {
       setEnrollingTitle(null);
     }
@@ -243,9 +237,9 @@ const s = StyleSheet.create({
   sub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4 },
   sectionTitle: { color: SC.muted, fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 1, marginBottom: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 12, padding: 14 },
-  iconBox: { width: 38, height: 38, borderRadius: 10, backgroundColor: 'rgba(37,99,235,0.10)', borderColor: 'rgba(37,99,235,0.30)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  title: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 13.5 },
-  meta: { color: '#D1D5DB', fontFamily: FONTS.med, fontSize: 11.5, marginTop: 3 },
+  iconBox: { width: 38, height: 38, borderRadius: 10, backgroundColor: 'rgba(167,139,250,0.10)', borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  title: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 13.5 },
+  meta: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 3 },
   statusPill: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 6, borderWidth: 1 },
   statusPending: { backgroundColor: 'rgba(251,191,36,0.10)', borderColor: 'rgba(251,191,36,0.30)' },
   statusRegistered: { backgroundColor: 'rgba(96,165,250,0.10)', borderColor: 'rgba(96,165,250,0.30)' },
@@ -263,8 +257,8 @@ const s = StyleSheet.create({
     padding: 10,
     marginTop: 4,
   },
-  trackingLabel: { color: '#D1D5DB', fontFamily: FONTS.bold, fontSize: 11 },
-  trackingPct: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 11 },
+  trackingLabel: { color: SC.muted, fontFamily: FONTS.bold, fontSize: 11 },
+  trackingPct: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 11 },
   progressBarBg: { height: 6, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden' },
   progressBarFill: { height: '100%', backgroundColor: SC.accentBright },
 
@@ -273,36 +267,21 @@ const s = StyleSheet.create({
   timelineStep: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.2)' },
   dotDone: { backgroundColor: '#10B981', ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 6px #10B981' } as any) : {}) } as any,
-  stepText: { color: '#9CA3AF', fontFamily: FONTS.med, fontSize: 10.5 },
-  stepTextDone: { color: '#FFFFFF', fontFamily: FONTS.bold },
+  stepText: { color: SC.muted, fontFamily: FONTS.med, fontSize: 10.5 },
+  stepTextDone: { color: '#1C1C1E', fontFamily: FONTS.bold },
 
   // Simulator Buttons Row Styles
   actionRow: { flexDirection: 'row', gap: 8, justifyContent: 'flex-end', marginTop: 4 },
   actionBtn: { paddingHorizontal: 12, height: 28, borderRadius: 6, justifyContent: 'center', alignItems: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  btnText: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 11.5 },
-  startBtn: { 
-    backgroundColor: 'rgba(59, 130, 246, 0.25)', 
-    borderColor: 'rgba(59, 130, 246, 0.6)', 
-    borderWidth: 1,
-    ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 10px rgba(59, 130, 246, 0.4)' } as any) : {})
-  },
-  nextBtn: { 
-    backgroundColor: 'rgba(245, 158, 11, 0.25)', 
-    borderColor: 'rgba(245, 158, 11, 0.6)', 
-    borderWidth: 1,
-    ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 10px rgba(245, 158, 11, 0.4)' } as any) : {})
-  },
-  completeBtn: { 
-    backgroundColor: 'rgba(16, 185, 129, 0.25)', 
-    borderColor: 'rgba(16, 185, 129, 0.6)', 
-    borderWidth: 1,
-    ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 10px rgba(16, 185, 129, 0.4)' } as any) : {})
-  },
+  btnText: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 11.5 },
+  startBtn: { backgroundColor: 'rgba(167,139,250,0.2)', borderColor: 'rgba(167,139,250,0.4)', borderWidth: 1 },
+  nextBtn: { backgroundColor: 'rgba(251,191,36,0.15)', borderColor: 'rgba(251,191,36,0.3)', borderWidth: 1 },
+  completeBtn: { backgroundColor: 'rgba(16,185,129,0.15)', borderColor: 'rgba(16,185,129,0.3)', borderWidth: 1 },
 
   // Explore Catalog Styles
-  exploreTitle: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 14 },
-  exploreMeta: { color: '#9CA3AF', fontFamily: FONTS.med, fontSize: 12 },
-  exploreDesc: { color: 'rgba(255,255,255,0.7)', fontFamily: FONTS.med, fontSize: 12, lineHeight: 16, marginTop: 4 },
+  exploreTitle: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 14 },
+  exploreMeta: { color: SC.muted, fontFamily: FONTS.med, fontSize: 12 },
+  exploreDesc: { color: 'rgba(255,255,255,0.6)', fontFamily: FONTS.med, fontSize: 12, lineHeight: 16, marginTop: 4 },
 });
 
 

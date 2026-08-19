@@ -489,7 +489,7 @@ const s = StyleSheet.create({
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 20 },
   statCard: {
     flex: 1, flexBasis: 180, minWidth: 180,
-    backgroundColor: '#F8FAFC', borderColor: MC.border, borderWidth: 1,
+    backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1,
     borderRadius: 14, padding: 16,
   },
   statIcon: {
@@ -502,7 +502,7 @@ const s = StyleSheet.create({
 
   /* Card boxes */
   cardBox: {
-    backgroundColor: '#F8FAFC', borderColor: MC.border, borderWidth: 1,
+    backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1,
     borderRadius: 14, padding: 18,
   },
   cardHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
@@ -538,11 +538,11 @@ const s = StyleSheet.create({
   widget: { borderRadius: 14, borderWidth: 1, borderColor: MC.border, padding: 16 },
   widgetCard: {
     borderRadius: 14, borderWidth: 1, borderColor: MC.border,
-    backgroundColor: '#F8FAFC', padding: 16,
+    backgroundColor: MC.card, padding: 16,
   },
   widgetKicker: { color: MC.muted, fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 1, marginBottom: 10 },
   widgetKickerDark: { color: 'rgba(255,255,255,0.5)', fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 1 },
-  widgetBigDark: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 28, letterSpacing: -0.5, marginBottom: 8 },
+  widgetBigDark: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 28, letterSpacing: -0.5, marginBottom: 8 },
   widgetBigLight: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 34, letterSpacing: -1, marginVertical: 8 },
   miniTrack: { height: 3, borderRadius: 2, backgroundColor: 'rgba(20,184,166,0.20)', overflow: 'hidden', marginBottom: 8 },
   withdrawBtn: {

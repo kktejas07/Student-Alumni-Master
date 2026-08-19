@@ -10,9 +10,9 @@ import {
   BarChart3, Sparkles, Briefcase, Trophy, User, ExternalLink, LogOut, Plus,
 } from 'lucide-react-native';
 import { CC, FONTS } from './tokens';
+import { COLLEGE } from './data';
 import { Av, Badge } from './atoms';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
-import { displayName } from '@/src/lib/portalHome';
 import { request, api } from '@/src/models/services/api';
 import { AgentKLauncher } from '@/src/views/web/agent-k/AgentKLauncher';
 import { SALogo } from '@/src/views/components';
@@ -50,9 +50,9 @@ export function Sidebar({
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
 
-  const collegeName = user?.college_info?.institution_name || user?.school_info?.institution_name || displayName(user);
-  const collegeInitials = getInitials(collegeName);
-  const collegeRank = user?.college_info?.accreditation || user?.college_info?.accreditations?.[0] || '';
+  const collegeName = user?.college_info?.institution_name || user?.school_info?.institution_name || COLLEGE.name;
+  const collegeInitials = user?.college_info?.institution_name || user?.school_info?.institution_name ? getInitials(collegeName) : COLLEGE.initials;
+  const collegeRank = user?.college_info?.accreditation || user?.college_info?.accreditations?.[0] || COLLEGE.rank;
 
   const [counts, setCounts] = React.useState<Record<string, number>>({});
 
@@ -88,15 +88,20 @@ export function Sidebar({
       </View>
 
       {/* College card */}
-      <View style={[s.collegeCard, { alignItems: 'center' }]}>
-        <Text style={[s.collegeName, { textAlign: 'center' }]}>{collegeName}</Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 3 }}>
-          <Text style={s.collegeRole}>Admin ·</Text>
-          <Badge label={collegeRank} color="cyan" />
+      <View style={s.collegeCard}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <Av photo={user?.college_logo_data || user?.college_info?.logo || user?.school_info?.logo || null} initials={collegeInitials} size={40} color="#6366F1" />
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={s.collegeName}>{collegeName}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 }}>
+              <Text style={s.collegeRole}>Admin ·</Text>
+              <Badge label={collegeRank} color="cyan" />
+            </View>
+          </View>
         </View>
-    </View>
+      </View>
 
-    {/* Admin card pill */}
+      {/* Admin card pill */}
       <Pressable
         onPress={() => router.push('/id-card')}
         style={({ hovered }: any) => [s.idCardPill, hovered && { backgroundColor: CC.cardH }]}
@@ -153,7 +158,7 @@ export function Sidebar({
 
 const s = StyleSheet.create({
   aside: {
-    width: 240, height: '100%' as any, backgroundColor: '#1E3A8A',
+    width: 240, height: '100%' as any, backgroundColor: '#5D3FD3',
     borderRightWidth: 1, borderRightColor: 'rgba(255,255,255,0.1)',
     paddingHorizontal: 12, paddingTop: 14, paddingBottom: 12,
   },
@@ -183,11 +188,11 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}),
   },
   navItemActive: { backgroundColor: CC.primary },
-  navItemHover: { backgroundColor: 'rgba(59,130,246,0.15)' },
+  navItemHover: { backgroundColor: 'rgba(99,102,241,0.10)' },
   navLabel: { color: 'rgba(255,255,255,0.7)', fontFamily: FONTS.bold, fontSize: 12.5, flex: 1 },
   navLabelActive: { color: '#fff' },
-  countPill: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6, backgroundColor: 'rgba(59,130,246,0.25)', minWidth: 20, alignItems: 'center' },
-  countText: { color: '#93C5FD', fontFamily: FONTS.xbold, fontSize: 10 },
+  countPill: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6, backgroundColor: 'rgba(99,102,241,0.20)', minWidth: 20, alignItems: 'center' },
+  countText: { color: CC.accentBright, fontFamily: FONTS.xbold, fontSize: 10 },
 
   logoutRow: {
     flexDirection: 'row', alignItems: 'center', gap: 8,

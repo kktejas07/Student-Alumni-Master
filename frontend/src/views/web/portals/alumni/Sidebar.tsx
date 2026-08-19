@@ -8,7 +8,6 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Platform, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
-import { displayName, displayInitials } from '@/src/lib/portalHome';
 import { useRouter } from 'expo-router';
 import {
   LayoutDashboard, Sparkles, Briefcase, Users, Calendar, Wallet,
@@ -17,6 +16,7 @@ import {
 } from './iconShims';
 import { SC, FONTS } from './tokens';
 import { GRADS } from './gradients';
+import { STUDENT } from '../student/data';
 import { Av } from './atoms';
 import { FadeInView, PressScale, SparkIcon, PulseDot } from './motion';
 import { AgentKLauncher } from '@/src/views/web/agent-k/AgentKLauncher';
@@ -52,15 +52,16 @@ export function Sidebar({
 }: { active: StudentNavId; onNav: (id: StudentNavId) => void; onLogout: () => void }) {
   const router = useRouter();
   const user = useAuthStore((u) => u.user) as any;
-  const name = displayName(user);
-  const initials = displayInitials(user);
+  const fullName = (user?.full_name || `${user?.first_name || ''} ${user?.last_name || ''}`).trim();
+  const name = fullName || STUDENT.name;
+  const initials = (name.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('') || STUDENT.initials).toUpperCase();
   const photo = useAuthStore((s) => s.photoOverride) || user?.photo_data || user?.face_image_base64;
   const ai: any = user?.alumni_info || {};
   const subTitle =
     [ai.current_role, ai.current_company].filter(Boolean).join(' @ ') ||
     (ai.graduation_year ? `Class of ${ai.graduation_year}` :
      (user?.graduation_year ? `Class of ${user.graduation_year}` : 'Verified Alumni'));
-  const saId = user?.unique_id || '—';
+  const saId = user?.unique_id || STUDENT.saId;
 
   return (
     <View style={s.aside}>
@@ -77,10 +78,20 @@ export function Sidebar({
 
       {/* Alumni profile card */}
       <FadeInView delay={70}>
-        <View style={[s.profileCard, { alignItems: 'center', ...(Platform.OS === 'web' ? { cursor: 'default' } : {}) }]}>
-          <Text numberOfLines={1} style={[s.profileName, { textAlign: 'center' }]}>{name}</Text>
-          <Text numberOfLines={1} style={[s.profileYear, { textAlign: 'center', marginTop: 2 }]}>{subTitle}</Text>
-        </View>
+        <PressScale onPress={() => onNav('profile')} style={s.profileCard}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <View style={{ position: 'relative' }}>
+              <Av initials={initials} size={40} color={SC.primaryL} photo={photo} />
+              <View style={s.statusDotWrap}>
+                <PulseDot size={10} color="#22C55E" />
+              </View>
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text numberOfLines={1} style={s.profileName}>{name}</Text>
+              <Text numberOfLines={1} style={s.profileYear}>{subTitle}</Text>
+            </View>
+          </View>
+        </PressScale>
       </FadeInView>
 
       {/* Alumni card pill */}
@@ -157,7 +168,7 @@ export function Sidebar({
 
 const s = StyleSheet.create({
   aside: {
-    width: 240, height: '100%' as any, backgroundColor: '#0F172A',
+    width: 240, height: '100%' as any, backgroundColor: '#5D3FD3',
     borderRightWidth: 1, borderRightColor: 'rgba(255,255,255,0.1)',
     paddingHorizontal: 12, paddingTop: 14, paddingBottom: 12,
   },
@@ -171,7 +182,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 4, paddingVertical: 8, marginBottom: 10,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  statusDotWrap: { position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, backgroundColor: '#0F172A', alignItems: 'center', justifyContent: 'center' },
+  statusDotWrap: { position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, backgroundColor: '#5D3FD3', alignItems: 'center', justifyContent: 'center' },
   profileName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13 },
   profileYear: { color: 'rgba(255,255,255,0.7)', fontFamily: FONTS.med, fontSize: 11 },
 

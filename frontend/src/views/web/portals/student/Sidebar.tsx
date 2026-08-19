@@ -19,7 +19,6 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Platform, Pressable, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
-import { displayName, displayInitials } from '@/src/lib/portalHome';
 import { useSidebarStore } from '@/src/viewmodels/stores/sidebarStore';
 import {
   LayoutDashboard, Sparkles, Briefcase, Users, Calendar, Wallet,
@@ -33,16 +32,16 @@ import { useBreakpoint } from '@/src/theme/breakpoints';
 import { SP, RADII, FONT_FAMILY } from '@/src/theme/apple';
 import { GRADS } from './gradients';
 import { SC, PALETTE, TYPO } from './tokens';
+import { STUDENT } from './data';
 import { Av } from './atoms';
 import { FadeInView, PressScale, SparkIcon, PulseDot } from './motion';
 import { AgentKLauncher } from '@/src/views/web/agent-k/AgentKLauncher';
 import { SALogo } from '@/src/views/components';
-import { trackClick, logger as analyticsLogger } from '@/src/analytics';
 
 import { api } from '@/src/models/services/api';
 
 export type StudentNavId =
-  | 'dashboard' | 'career-ai' | 'internships' | 'network' | 'myevents' | 'events'
+  | 'dashboard' | 'career-ai' | 'internships' | 'network' | 'events'
   | 'financial' | 'deals' | 'wallet' | 'higher-ed' | 'rentals' | 'courses' | 'profile'
   | 'my-bookings' | 'my-workshops' | 'echo-showcase' | string;
 
@@ -53,7 +52,7 @@ export const NAV: Array<{ id: StudentNavId; label: string; Icon: any; spark?: bo
   { id: 'network',         label: 'Network',            Icon: Users },
   { id: 'my-bookings',     label: 'My Bookings',        Icon: CalendarCheck },
   { id: 'my-tickets',      label: 'My Tickets',         Icon: Ticket },
-  { id: 'myevents',        label: 'My Events',          Icon: Calendar },
+  { id: 'events',          label: 'Events',             Icon: Calendar },
   { id: 'my-workshops',    label: 'My Workshops',       Icon: BookOpen },
   { id: 'courses',         label: 'Courses',            Icon: BookOpen },
   { id: 'financial',       label: 'Financial',          Icon: Wallet },
@@ -104,9 +103,9 @@ function EchoNavGroup({
             borderRadius: 8, minHeight: 40,
             justifyContent: collapsed ? 'center' : 'flex-start',
             backgroundColor: isChildActive && !isOpen
-              ? 'rgba(59,130,246,0.12)'
+              ? 'rgba(99,102,241,0.12)'
               : hovered && Platform.OS === 'web'
-              ? 'rgba(59,130,246,0.06)'
+              ? 'rgba(99,102,241,0.06)'
               : 'transparent',
           },
           Platform.OS === 'web' ? { cursor: 'pointer' } as any : {},
@@ -122,7 +121,7 @@ function EchoNavGroup({
               ECHO Showcase
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <View style={{ backgroundColor: 'rgba(59,130,246,0.30)', borderRadius: 10, paddingHorizontal: 5, paddingVertical: 2 }}>
+              <View style={{ backgroundColor: 'rgba(99,102,241,0.30)', borderRadius: 10, paddingHorizontal: 5, paddingVertical: 2 }}>
                 <Text style={{ fontFamily: TYPO.body700, fontSize: 9, color: '#A5B4FC', letterSpacing: 0.5 }}>CMS</Text>
               </View>
               {isOpen
@@ -157,7 +156,7 @@ function EchoNavGroup({
               >
                 {isSelected ? (
                   <LinearGradient
-                    colors={[PALETTE.violet, PALETTE.violetD] as any}
+                    colors={['#3B82F6', '#2563EB'] as any}
                     start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
                     style={{
                       flexDirection: 'row', alignItems: 'center', gap: 8,
@@ -202,14 +201,14 @@ export function Sidebar({
     if (active === 'echo-showcase' || active?.startsWith('echo-showcase:')) setEchoOpen(true);
   }, [active]);
 
-  const fullName: string = displayName(user);
-  const initials: string = displayInitials(user);
+  const fullName: string = (user?.full_name || `${user?.first_name || ''} ${user?.last_name || ''}`).trim() || STUDENT.name;
+  const initials: string = (fullName.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('') || STUDENT.initials).toUpperCase();
   const photo = useAuthStore((s) => s.photoOverride) || user?.photo_data || user?.face_image_base64;
   const gy = user?.graduation_year || (user?.school_info || {}).graduation_year;
   const yearLabel: string = (gy && Number(gy) === new Date().getFullYear()) ? 'Final Year'
     : (gy && Number(gy) === new Date().getFullYear() + 1) ? 'Pre-Final Year'
     : (gy ? `Class of ${gy}` : user?.school_info?.class_or_year || user?.year || 'Student');
-  const saId: string = user?.unique_id || '—';
+  const saId: string = user?.unique_id || STUDENT.saId;
 
   // Adaptive width: collapsed icon-rail on md, OR forced-collapsed via store toggle.
   const userCollapsed = useSidebarStore((s) => s.isCollapsed);
@@ -227,19 +226,19 @@ export function Sidebar({
   // Token resolution
   // The sidebar is a vibrant solid purple.
   const C = {
-    bg:      '#0F172A',
+    bg:      '#5D3FD3',       // Solid vibrant purple
     border:  'rgba(255,255,255,0.1)',
     text:    '#FFFFFF',
     textSec: 'rgba(255,255,255,0.7)',
     textTer: 'rgba(255,255,255,0.5)',
     cardBg:  'rgba(255,255,255,0.1)',
-    accent:  '#60A5FA',
-    danger:  '#FCA5A5',
+    accent:  '#FFFFFF',
+    danger:  '#FF6B6B',
   };
 
   // Web-only effect for the rail.
   const railGlass = Platform.OS === 'web' ? ({
-    boxShadow: 'none',
+    boxShadow: '4px 0 40px rgba(93,63,211,0.20)',
   } as any) : {};
 
   return (
@@ -248,7 +247,7 @@ export function Sidebar({
       <FadeInView delay={20}>
         <View style={[s.brand, collapsed && { justifyContent: 'center' }]} nativeID="student-brand">
           <Pressable onPress={() => collapsed && toggleCollapse()} style={collapsed && Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}}>
-            <SALogo size={32} variant="glass" />
+            <SALogo size={32} variant="gradient" />
           </Pressable>
           {!collapsed && (
             <View style={{ flex: 1, minWidth: 0 }}>
@@ -283,10 +282,20 @@ export function Sidebar({
       {/* Profile card */}
       {!collapsed && (
         <FadeInView delay={70}>
-          <View style={[s.profileCard, { alignItems: 'center', ...(Platform.OS === 'web' ? { cursor: 'default' } : {}) }]}>
-            <Text numberOfLines={1} style={[s.profileName, { color: C.text, textAlign: 'center' }]}>{fullName}</Text>
-            <Text style={[s.profileYear, { color: C.textSec, textAlign: 'center', marginTop: 2 }]}>{yearLabel}</Text>
-          </View>
+          <PressScale onPress={() => onNav('profile')} style={s.profileCard}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: SP.md }}>
+              <View style={{ position: 'relative' }}>
+                <Av initials={initials} size={40} color={C.accent} photo={photo} />
+                <View style={[s.statusDotWrap, { backgroundColor: C.bg }]}>
+                  <PulseDot size={10} color={theme.green} />
+                </View>
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text numberOfLines={1} style={[s.profileName, { color: C.text }]}>{fullName}</Text>
+                <Text style={[s.profileYear, { color: C.textSec }]}>{yearLabel}</Text>
+              </View>
+            </View>
+          </PressScale>
         </FadeInView>
       )}
 
@@ -335,25 +344,21 @@ export function Sidebar({
               {echoGroup}
               <FadeInView delay={150 + i * 35} distance={8}>
                 <PressScale
-                  onPress={() => {
-                    trackClick('student_sidebar_nav_click', { nav_id: id, label });
-                    analyticsLogger.debug('[Sidebar DEBUG] Nav item clicked', { id, label });
-                    onNav(id);
-                  }}
+                  onPress={() => onNav(id)}
                   accessibilityRole="tab"
                   accessibilityLabel={label}
                   accessibilityState={{ selected: isActive }}
                   accessibilityHint={`Opens the ${label} section of the dashboard`}
                   nativeID={`student-nav-${id}`}
-                  testID={`student-nav-${id}`}
                 >
                   {isActive ? (
                     <LinearGradient
                       colors={['#3B82F6', '#2563EB'] as any}
                       start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                      style={[s.navItem, s.navItemActive, collapsed && { justifyContent: 'center', paddingHorizontal: 0 }]}
+                      style={[s.navItem, s.navItemActive, collapsed && { justifyContent: 'center', paddingHorizontal: 0 },
+                              Platform.OS === 'web' ? ({ boxShadow: PALETTE.violetGlow } as any) : {}]}
                     >
-                      {spark ? <SparkIcon Icon={Icon} size={16} color="#0F172A" /> : <Icon size={16} color="#0F172A" />}
+                      {spark ? <SparkIcon Icon={Icon} size={16} color="#fff" /> : <Icon size={16} color="#fff" />}
                       {!collapsed && <Text style={[s.navLabel, s.navLabelActive]} numberOfLines={1}>{label}</Text>}
                       {!collapsed && <View style={s.activeDot} />}
                     </LinearGradient>
@@ -426,8 +431,8 @@ const s = StyleSheet.create({
   },
   navItemActive: {
     ...(Platform.OS === 'web' ? ({
-      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.18)',
-    } as any) : {}),
+      boxShadow: '0 6px 18px rgba(95,37,159,0.45), inset 0 1px 0 rgba(255,255,255,0.18)',
+    } as any) : { shadowColor: '#5F259F', shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } as any }),
   },
   navLabel: { fontFamily: TYPO.body600, fontSize: 13, flex: 1 },
   navLabelActive: { color: '#0F172A' },
