@@ -7,7 +7,8 @@
  *   3. 🏛️ UGC Fake Universities Blacklist Explorer
  *   4. 🔌 Free & Semi-Paid API Integrations Register (Tier 0, Tier 1, Tier 2)
  *   5. 📬 Monthly Claim Reminders & Activation Automation
- *   6. 🛡️ Interactive Digital BGV Verification Holographic Cards
+ *   6. 🛡️ Interactive Digital Holographic Verification Card with Official SA Stamp & QR Code
+ *   7. 📄 Official Cryptographic PDF BGV Dossier Generator & One-Click Download
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -21,6 +22,7 @@ import {
   Filter, Shield, UserX, UserPlus, Send, Download, Sparkle, HelpCircle,
   Globe, Linkedin, Edit3, Clock, BellRing, Settings2, PlayCircle, Layers,
   CheckSquare, XCircle, AlertCircle, Bookmark, Cpu, Zap, Database, CheckCircle,
+  Printer,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SAC, FONTS } from '../tokens';
@@ -35,7 +37,7 @@ type VerticalType = 'all' | 'real' | 'test' | 'unregistered';
 type LinkedInFilterType = 'all' | 'yes' | 'no';
 
 export function BGVAccountVerticalsView() {
-  const [bgvTab, setBgvTab] = useState<BGGVMainTab>('directory');
+  const [bgvTab, setBgvTab] = useState<BGVMainTab>('directory');
   const [vertical, setVertical] = useState<VerticalType>('all');
   const [countryFilter, setCountryFilter] = useState<string>('all');
   const [linkedInFilter, setLinkedInFilter] = useState<LinkedInFilterType>('all');
@@ -52,6 +54,7 @@ export function BGVAccountVerticalsView() {
   const [lookupBusy, setLookupBusy] = useState(false);
   const [bgvCardModal, setBgvCardModal] = useState<any>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [pdfDownloading, setPdfDownloading] = useState(false);
 
   // Purge & Backfill modals
   const [purgeModal, setPurgeModal] = useState(false);
@@ -209,6 +212,29 @@ export function BGVAccountVerticalsView() {
       flash(e?.message || `No verification record found for "${term}"`, 'error');
     } finally {
       setLookupBusy(false);
+    }
+  };
+
+  // Trigger PDF Report Download
+  const handleDownloadPdf = async (identifier: string) => {
+    if (!identifier) return;
+    setPdfDownloading(true);
+    try {
+      const targetUrl = `/bgv/report/pdf/${encodeURIComponent(identifier)}`;
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        const link = document.createElement('a');
+        link.href = targetUrl;
+        link.download = `BGV_Report_${identifier}.pdf`;
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        flash('Official Stamped BGV PDF Report Downloaded!', 'success');
+      }
+    } catch (e: any) {
+      flash('Failed to download PDF report', 'error');
+    } finally {
+      setPdfDownloading(false);
     }
   };
 
@@ -435,7 +461,7 @@ export function BGVAccountVerticalsView() {
         <View>
           <Text style={st.title}>Background Verification (BGV) & Account Intelligence Hub</Text>
           <Text style={st.subtitle}>
-            Multi-Tier Verifiers (Tier 0 / 1 / 2) · UGC Degree-Mill Blacklist · Automated Scanner · Monthly Claim Automation
+            Multi-Tier Verifiers (Tier 0 / 1 / 2) · UGC Degree-Mill Blacklist · Automated Scanner · Stamped PDF Reports with QR Code
           </Text>
         </View>
 
@@ -737,8 +763,8 @@ export function BGVAccountVerticalsView() {
                 <Text style={[st.th, { flex: 1.3 }]}>Vertical & Role</Text>
                 <Text style={[st.th, { flex: 1.6 }]}>SA ID / BGV ID</Text>
                 <Text style={[st.th, { flex: 1.5 }]}>LinkedIn & Location</Text>
-                <Text style={[st.th, { flex: 1.7 }]}>Institution & Academic</Text>
-                <Text style={[st.th, { flex: 2.3, textAlign: 'right' }]}>Multi-Tier BGV Actions</Text>
+                <Text style={[st.th, { flex: 1.6 }]}>Institution & Academic</Text>
+                <Text style={[st.th, { flex: 2.4, textAlign: 'right' }]}>Multi-Tier BGV Actions</Text>
               </View>
 
               {busy ? (
@@ -847,7 +873,7 @@ export function BGVAccountVerticalsView() {
                       </View>
 
                       {/* Institution & Academic */}
-                      <View style={{ flex: 1.7, justifyContent: 'center' }}>
+                      <View style={{ flex: 1.6, justifyContent: 'center' }}>
                         <Text style={st.tdCollege} numberOfLines={1}>{item.college || 'Universal Registry'}</Text>
                         <Text style={st.tdSub}>
                           {[item.degree, item.graduation_year].filter(Boolean).join(' · ') || 'Degree In Progress'}
@@ -861,7 +887,7 @@ export function BGVAccountVerticalsView() {
                       </View>
 
                       {/* Actions & Multi-Tier BGV Scan */}
-                      <View style={{ flex: 2.3, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+                      <View style={{ flex: 2.4, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
                         {/* Run 5-Tier BGV Scan Button */}
                         <Pressable
                           style={st.scanBtn}
@@ -869,6 +895,15 @@ export function BGVAccountVerticalsView() {
                         >
                           <Zap size={11} color="#FBBF24" />
                           <Text style={st.scanBtnText}>Scan</Text>
+                        </Pressable>
+
+                        {/* Download PDF Button */}
+                        <Pressable
+                          style={st.pdfBtn}
+                          onPress={() => handleDownloadPdf(item.bgv_id || item.sa_id || item.email)}
+                        >
+                          <Download size={11} color="#34D399" />
+                          <Text style={st.pdfBtnText}>PDF</Text>
                         </Pressable>
 
                         {isUnreg && (
@@ -1051,6 +1086,15 @@ export function BGVAccountVerticalsView() {
                     </View>
                   </View>
                   <Text style={st.scanResultRec}>{scanResult.recommendation}</Text>
+                  
+                  {/* Download Stamped PDF from Scanner */}
+                  <Pressable
+                    style={st.downloadPdfBannerBtn}
+                    onPress={() => handleDownloadPdf(scanResult.candidate?.name || 'Candidate')}
+                  >
+                    <Download size={15} color="#FFFFFF" />
+                    <Text style={st.downloadPdfBannerBtnText}>Download Stamped BGV Dossier (PDF)</Text>
+                  </Pressable>
                 </View>
 
                 {/* Individual Verifiers */}
@@ -1616,21 +1660,31 @@ export function BGVAccountVerticalsView() {
                     </View>
                   </View>
 
-                  {/* Footer & Public URL */}
+                  {/* Footer & Actions */}
                   <View style={st.holoFooter}>
                     <View style={{ flex: 1 }}>
-                      <Text style={st.footerUrlLabel}>Public Verification Link:</Text>
+                      <Text style={st.footerUrlLabel}>Public QR Verification Link:</Text>
                       <Text style={st.footerUrlValue}>{bgvCardModal.public_verification_url}</Text>
                     </View>
-                    <Pressable
-                      style={st.copyUrlBtn}
-                      onPress={() => copyToClipboard(bgvCardModal.public_verification_url, 'card-url')}
-                    >
-                      <Copy size={13} color="#93C5FD" />
-                      <Text style={st.copyUrlBtnText}>
-                        {copiedKey === 'card-url' ? 'Copied!' : 'Copy URL'}
-                      </Text>
-                    </Pressable>
+                    <View style={{ flexDirection: 'row', gap: 6 }}>
+                      <Pressable
+                        style={st.downloadPdfBtn}
+                        onPress={() => handleDownloadPdf(bgvCardModal.identifiers?.bgv_id || bgvCardModal.candidate_info?.email)}
+                      >
+                        <Download size={13} color="#34D399" />
+                        <Text style={st.downloadPdfBtnText}>Download PDF</Text>
+                      </Pressable>
+
+                      <Pressable
+                        style={st.copyUrlBtn}
+                        onPress={() => copyToClipboard(bgvCardModal.public_verification_url, 'card-url')}
+                      >
+                        <Copy size={13} color="#93C5FD" />
+                        <Text style={st.copyUrlBtnText}>
+                          {copiedKey === 'card-url' ? 'Copied!' : 'Copy URL'}
+                        </Text>
+                      </Pressable>
+                    </View>
                   </View>
                 </LinearGradient>
               </View>
@@ -2288,6 +2342,22 @@ const st = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
   },
+  pdfBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.35)',
+  },
+  pdfBtnText: {
+    color: '#34D399',
+    fontSize: 10,
+    fontWeight: '700',
+  },
   claimEmailBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2550,6 +2620,21 @@ const st = StyleSheet.create({
     fontWeight: '600',
     marginTop: 6,
   },
+  downloadPdfBannerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#10B981',
+    paddingVertical: 8,
+    borderRadius: 6,
+    marginTop: 10,
+  },
+  downloadPdfBannerBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
   checksList: {
     gap: 8,
   },
@@ -2728,6 +2813,7 @@ const st = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: 'rgba(255, 255, 255, 0.08)',
     gap: 8,
+    flexWrap: 'wrap',
   },
   footerUrlLabel: {
     color: '#64748B',
@@ -2737,6 +2823,22 @@ const st = StyleSheet.create({
     color: '#93C5FD',
     fontSize: 11,
     fontFamily: 'monospace',
+  },
+  downloadPdfBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.4)',
+  },
+  downloadPdfBtnText: {
+    color: '#34D399',
+    fontSize: 11,
+    fontWeight: '700',
   },
   copyUrlBtn: {
     flexDirection: 'row',

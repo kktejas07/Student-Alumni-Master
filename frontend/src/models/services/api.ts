@@ -551,6 +551,10 @@ export const api = {
     request<any>('/bgv/integrations/screen-watchlist', { method: 'POST', body: payload }),
   runComprehensiveBGVScan: (payload: { name: string; email?: string; college?: string; degree?: string; pan?: string; uan?: string; country?: string; dob?: string; location?: string }) =>
     request<any>('/bgv/integrations/scan', { method: 'POST', body: payload }),
+  getPublicBGVRecord: (identifier: string) =>
+    request<any>(`/bgv/verify-public/${encodeURIComponent(identifier)}`),
+  downloadBGVReportPdf: (identifier: string) =>
+    request<any>(`/bgv/report/pdf/${encodeURIComponent(identifier)}`),
 };
 
 export function resolveImageUrl(url?: string | null): string {
