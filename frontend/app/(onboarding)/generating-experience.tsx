@@ -84,15 +84,15 @@ export default function GeneratingExperience() {
         // Fade in + scale the text block
         Animated.parallel([
           Animated.timing(beatOpacities[i], {
-            toValue: 1, duration: 350, useNativeDriver: true,
+            toValue: 1, duration: 350, useNativeDriver: Platform.OS !== 'web',
           }),
           Animated.spring(beatScales[i], {
-            toValue: 1, friction: 5, useNativeDriver: true,
+            toValue: 1, friction: 5, useNativeDriver: Platform.OS !== 'web',
           }),
         ]).start();
         // Glow the icon in the row
         Animated.timing(iconAnims[i], {
-          toValue: 1, duration: 300, useNativeDriver: true,
+          toValue: 1, duration: 300, useNativeDriver: Platform.OS !== 'web',
         }).start();
       }, beat.delay);
       return () => clearTimeout(timer);

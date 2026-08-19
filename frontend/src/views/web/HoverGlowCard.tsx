@@ -48,7 +48,7 @@ export function HoverGlowCard({
     Animated.timing(lift, {
       toValue: hovered || pressed ? 1 : 0,
       duration: 160,
-      useNativeDriver: true,
+      useNativeDriver: Platform.OS !== 'web',
     }).start();
   }, [hovered, pressed, lift]);
 
