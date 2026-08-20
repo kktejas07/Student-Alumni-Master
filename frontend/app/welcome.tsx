@@ -24,8 +24,8 @@ export default function Welcome() {
   useEffect(() => {
     if (Platform.OS === 'web') return;
     Animated.parallel([
-      Animated.timing(fade, { toValue: 1, duration: 800, useNativeDriver: Platform.OS !== 'web' }),
-      Animated.timing(slide, { toValue: 0, duration: 800, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(fade, { toValue: 1, duration: 800, useNativeDriver: true }),
+      Animated.timing(slide, { toValue: 0, duration: 800, useNativeDriver: true }),
     ]).start();
   }, []);
 

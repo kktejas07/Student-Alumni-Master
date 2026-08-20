@@ -211,6 +211,40 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
   const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
   const previewHtml = useMemo(() => buildPreviewHtml(form, events), [form, events]);
 
+  const [aiDrafting, setAiDrafting] = useState(false);
+  const [aiDraftResult, setAiDraftResult] = useState<any>(null);
+
+  const runAiDraftNewsletter = async () => {
+    setAiDrafting(true);
+    try {
+      const res: any = await request('/api/newsletter/admin/ai-draft', {
+        method: 'POST',
+        auth: true,
+        body: {
+          audience: form.audience || 'all',
+          edition_theme: 'Weekly Career & ECHO 2026 Platform Digest',
+          tone: 'engaging'
+        }
+      });
+      if (res?.subject) {
+        setForm((f) => ({
+          ...f,
+          subject: res.subject,
+          intro: res.intro,
+          body: res.body_html,
+          cta_text: res.cta_label || 'Explore Opportunities & Events',
+          cta_url: res.cta_url || 'https://studentalumni.ai/students/dashboard',
+        }));
+        setAiDraftResult(res);
+        flash(`AI drafted briefing with ${res.realtime_data_summary?.live_jobs_count || 0} live jobs and ${res.realtime_data_summary?.upcoming_events_count || 0} ECHO hackathons!`);
+      }
+    } catch (e: any) {
+      flash(e?.message || 'AI drafting failed', 'error');
+    } finally {
+      setAiDrafting(false);
+    }
+  };
+
   const sanitizePayload = (f: typeof form) => ({
     ...f,
     hero_image: (f.hero_image && !f.hero_image.startsWith('blob:') && !f.hero_image.startsWith('data:'))
@@ -670,6 +704,87 @@ export function NewsletterView({ sub, onSub }: { sub?: string; onSub?: (s: strin
                 </View>
               )}
               <View style={{ marginTop: 12, gap: 12 }}>
+                {/* AI Agent Platform Digest Generator */}
+                <View style={{
+                  padding: 14, borderRadius: 12,
+                  backgroundColor: 'rgba(99,102,241,0.08)',
+                  borderColor: 'rgba(99,102,241,0.3)',
+                  borderWidth: 1, gap: 10
+                }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <View style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: 'rgba(99,102,241,0.2)', alignItems: 'center', justifyContent: 'center' }}>
+                        <Megaphone size={14} color="#A78BFA" />
+                      </View>
+                      <View>
+                        <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13 }}>AI Live Platform Digest Drafter</Text>
+                        <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 }}>Ingests real-time jobs, hackathons, and member updates</Text>
+                      </View>
+                    </View>
+
+                    <Pressable
+                      onPress={runAiDraftNewsletter}
+                      disabled={aiDrafting}
+                      style={{
+                        flexDirection: 'row', alignItems: 'center', gap: 6,
+                        backgroundColor: '#7C3AED', paddingHorizontal: 12, paddingVertical: 6,
+                        borderRadius: 8, opacity: aiDrafting ? 0.6 : 1
+                      }}
+                    >
+                      {aiDrafting ? <ActivityIndicator size="small" color="#fff" /> : (
+                        <>
+                          <RefreshCw size={12} color="#fff" />
+                          <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>Draft with AI (Live Data)</Text>
+                        </>
+                      )}
+                    </Pressable>
+                  </View>
+
+                  {/* AI Results & A/B Subject Variants */}
+                  {aiDraftResult && (
+                    <View style={{ gap: 8, paddingTop: 6, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <View style={{ backgroundColor: 'rgba(16,185,129,0.2)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 }}>
+                          <Text style={{ color: '#34D399', fontFamily: FONTS.bold, fontSize: 10.5 }}>
+                            🛡️ Spam Risk: {aiDraftResult.deliverability?.spam_risk_level} ({aiDraftResult.deliverability?.spam_score}/10)
+                          </Text>
+                        </View>
+                        <View style={{ backgroundColor: 'rgba(124,58,237,0.2)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 }}>
+                          <Text style={{ color: '#DDD6FE', fontFamily: FONTS.bold, fontSize: 10.5 }}>
+                            💼 {aiDraftResult.realtime_data_summary?.live_jobs_count} Live Jobs
+                          </Text>
+                        </View>
+                        <View style={{ backgroundColor: 'rgba(245,158,11,0.2)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 }}>
+                          <Text style={{ color: '#FCD34D', fontFamily: FONTS.bold, fontSize: 10.5 }}>
+                            🚀 {aiDraftResult.realtime_data_summary?.upcoming_events_count} ECHO Hackathons
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* A/B Subject Variant Pills */}
+                      <Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 10.5 }}>A/B Subject Variants (click to use):</Text>
+                      <View style={{ gap: 4 }}>
+                        {aiDraftResult.subject_variants?.map((v: string, idx: number) => (
+                          <Pressable
+                            key={idx}
+                            onPress={() => set('subject', v)}
+                            style={{
+                              padding: 6, borderRadius: 6,
+                              backgroundColor: form.subject === v ? 'rgba(124,58,237,0.3)' : 'rgba(0,0,0,0.25)',
+                              borderColor: form.subject === v ? '#7C3AED' : SAC.border,
+                              borderWidth: 1
+                            }}
+                          >
+                            <Text style={{ color: form.subject === v ? '#fff' : '#cbd5e1', fontSize: 11.5, fontFamily: FONTS.med }}>
+                              {form.subject === v ? '✓ ' : ''}{v}
+                            </Text>
+                          </Pressable>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+                </View>
+
                 {/* Target Audience Scope */}
                 <View style={st.channelSection}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
