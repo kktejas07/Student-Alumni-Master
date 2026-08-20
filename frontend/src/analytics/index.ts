@@ -36,7 +36,17 @@ export { useFormAnalytics } from './hooks/useFormAnalytics';
 export { useImpression } from './hooks/useImpression';
 export { useListAnalytics } from './hooks/useListAnalytics';
 export { useScreenAnalytics } from './hooks/useScreenAnalytics';
-export { useTrackedPress } from './hooks/useTrackedPress';
+// Export visitor tracking engine (Unregistered + Registered telemetry)
+export {
+  initVisitorTracking,
+  sendVisitorHeartbeat,
+  trackVisitorEvent,
+  identifyVisitor,
+  getVisitorId,
+  getVisitorSessionId,
+  getHardwareSpecs,
+  getHardwareFingerprint,
+} from './web/visitorTracker';
 
 // Public API Functions
 

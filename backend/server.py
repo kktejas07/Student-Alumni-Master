@@ -2625,6 +2625,10 @@ api_router.include_router(college_router)
 from auth_analytics import router as auth_analytics_router
 api_router.include_router(auth_analytics_router)
 
+# Visitor analytics & telemetry engine (Unregistered + Registered visitors)
+from visitor_analytics import router as visitor_analytics_router
+api_router.include_router(visitor_analytics_router)
+
 # PostHog analytics proxy
 from posthog_proxy import router as posthog_proxy_router
 api_router.include_router(posthog_proxy_router)

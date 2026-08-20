@@ -399,6 +399,13 @@ async def super_admin_full_analytics(db) -> Dict[str, Any]:
     revenue_ytd_result = await db.echo_registrations.aggregate(revenue_ytd_pipeline).to_list(1)
     revenue_ytd = int(revenue_ytd_result[0]["total"]) if revenue_ytd_result else 0
 
+    # === Real-time & Guest Visitor Intelligence ===
+    five_min_ago = now - timedelta(minutes=5)
+    live_visitors_count = await db.visitor_sessions.count_documents({"last_heartbeat": {"$gte": five_min_ago}})
+    live_guests_count = await db.visitor_sessions.count_documents({"last_heartbeat": {"$gte": five_min_ago}, "is_registered": {"$ne": True}})
+    total_tracked_visitors_30d = await db.visitor_sessions.count_documents({"last_heartbeat": {"$gte": thirty_days_ago}})
+    unregistered_visitors_30d = await db.visitor_sessions.count_documents({"last_heartbeat": {"$gte": thirty_days_ago}, "is_registered": {"$ne": True}})
+
     # === User Growth (12 months) ===
     user_growth = []
     cumulative = await db.users.count_documents({"created_at": {"$lt": now - timedelta(days=365)}})
@@ -588,6 +595,15 @@ async def super_admin_full_analytics(db) -> Dict[str, Any]:
         "funnel": funnel,
         "recent_activity": recent_activity,
         "top_colleges": top_colleges,
+        # Real-time Visitor & Guest Telemetry
+        "visitor_telemetry": {
+            "live_visitors_count": live_visitors_count,
+            "live_guests_count": live_guests_count,
+            "live_registered_count": live_visitors_count - live_guests_count,
+            "total_tracked_visitors_30d": total_tracked_visitors_30d,
+            "unregistered_visitors_30d": unregistered_visitors_30d,
+            "guest_percentage_30d": round((unregistered_visitors_30d / max(total_tracked_visitors_30d, 1)) * 100, 1),
+        },
         # Firebase Analytics data (Google Analytics 4)
         "firebase": await _get_firebase_data(db),
         # PostHog Analytics data
