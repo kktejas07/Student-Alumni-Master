@@ -1294,3 +1294,21 @@ async def send_individual_notification(
     await db.email_campaigns.insert_one(campaign)
     result["message"] = f"Notification sent to {user_doc.get('full_name') or user_email}"
     return result
+
+
+# ─── Newsletter AI Agents ──────────────────────────────────────────────
+from services.agents.newsletter_ai_agent import (
+    newsletter_ai_agent,
+    NewsletterDraftRequest,
+    NewsletterDraftResponse,
+)
+
+@router.post("/admin/ai-draft", response_model=NewsletterDraftResponse)
+async def ai_draft_newsletter(
+    req: NewsletterDraftRequest = Body(...),
+    user: dict = Depends(require_role("super_admin", "admin", "superadmin")),
+    db=Depends(_get_db)
+):
+    """AI Agent: Ingests real-time jobs, events, and alumni data to synthesize ready-to-send newsletters."""
+    return await newsletter_ai_agent.draft_live_newsletter(req, db)
+

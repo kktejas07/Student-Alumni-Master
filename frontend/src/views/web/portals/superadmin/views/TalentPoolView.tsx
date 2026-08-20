@@ -78,6 +78,40 @@ export function TalentPoolView() {
     setPromoteModalVisible(true);
   };
 
+  // ── AI Scraping Agent State ──
+  const [aiModalVisible, setAiModalVisible] = useState(false);
+  const [aiInput, setAiInput] = useState('');
+  const [aiNotes, setAiNotes] = useState('');
+  const [aiScraping, setAiScraping] = useState(false);
+  const [aiCandidateResult, setAiCandidateResult] = useState<any>(null);
+
+  const handleRunAiScrape = async () => {
+    if (!aiInput.trim()) {
+      setMessage('Please enter a LinkedIn/GitHub URL or resume text');
+      return;
+    }
+    setAiScraping(true);
+    try {
+      const res: any = await request('/admin/talent-pool/ai/scrape-and-store', {
+        method: 'POST',
+        body: {
+          url_or_text: aiInput.trim(),
+          recruiter_notes: aiNotes.trim() || undefined,
+          save_to_db: true,
+        },
+      });
+      if (res?.candidate) {
+        setAiCandidateResult(res.candidate);
+        setMessage(`AI Scraper Agent: ${res.candidate.full_name} (${res.candidate.current_role}) successfully stored!`);
+        fetchProfiles(page);
+      }
+    } catch (e: any) {
+      setMessage('AI Scraping failed: ' + (e?.message || ''));
+    } finally {
+      setAiScraping(false);
+    }
+  };
+
   const handlePromoteCandidate = async () => {
     if (!candidateToPromote) return;
     setPromoting(true);
@@ -218,6 +252,18 @@ export function TalentPoolView() {
           <Text style={s.sub}>{total} unified candidate and contact profiles</Text>
         </View>
         <View style={s.headerActions}>
+          <Pressable
+            style={[s.btn, { backgroundColor: '#7C3AED', borderColor: '#8B5CF6', borderWidth: 1 }]}
+            onPress={() => {
+              setAiInput('');
+              setAiNotes('');
+              setAiCandidateResult(null);
+              setAiModalVisible(true);
+            }}
+          >
+            <Sparkles size={14} color="#fff" />
+            <Text style={s.btnText}>Scrape with AI</Text>
+          </Pressable>
           <Pressable style={[s.btn, s.btnOutline]} onPress={onSyncLinkedIn} disabled={syncing}>
             {syncing ? <ActivityIndicator size="small" color="#fff" /> : null}
             <Text style={s.btnText}>{syncing ? 'Syncing...' : 'Sync LinkedIn'}</Text>
@@ -797,6 +843,94 @@ export function TalentPoolView() {
                 </Pressable>
               </View>
             </View>
+          </Animated.View>
+        </View>
+      </Modal>
+
+      {/* AI Talent Scraper Modal */}
+      <Modal visible={aiModalVisible} transparent animationType="fade" onRequestClose={() => setAiModalVisible(false)}>
+        <View style={s.modalBg}>
+          <Animated.View entering={FadeInDown.duration(200)} style={[s.modalCard, { maxWidth: 580 }]}>
+            <LinearGradient colors={['#7C3AED', '#4F46E5']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.modalHero}>
+              <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' }}>
+                <Sparkles size={20} color="#fff" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.modalTitle}>AI Talent Web Scraper & Ingestion Agent</Text>
+                <Text style={s.modalRole}>Extracts skills, work history, and links from LinkedIn, GitHub, or Resumes</Text>
+              </View>
+              <Pressable onPress={() => setAiModalVisible(false)} style={s.modalCloseBtn}>
+                <X size={16} color="#fff" />
+              </Pressable>
+            </LinearGradient>
+
+            <ScrollView style={{ padding: 18, maxHeight: 480 }} contentContainerStyle={{ gap: 14 }}>
+              <View style={{ gap: 6 }}>
+                <Text style={s.modalSectionLabel}>LINKEDIN / GITHUB / PORTFOLIO URL OR RESUME TEXT *</Text>
+                <TextInput
+                  value={aiInput}
+                  onChangeText={setAiInput}
+                  placeholder="e.g. https://linkedin.com/in/username or https://github.com/developer"
+                  placeholderTextColor={SAC.muted}
+                  multiline
+                  style={[s.searchInput, { minHeight: 70, borderRadius: 8, padding: 10, textAlignVertical: 'top' as any }]}
+                />
+              </View>
+
+              <View style={{ gap: 6 }}>
+                <Text style={s.modalSectionLabel}>RECRUITER / SCREENING NOTES (OPTIONAL)</Text>
+                <TextInput
+                  value={aiNotes}
+                  onChangeText={setAiNotes}
+                  placeholder="e.g. Top hackathon finalist, strong system design background"
+                  placeholderTextColor={SAC.muted}
+                  style={[s.searchInput, { borderRadius: 8, padding: 10 }]}
+                />
+              </View>
+
+              {/* Candidate Result Card */}
+              {aiCandidateResult && (
+                <View style={{ padding: 14, borderRadius: 12, backgroundColor: 'rgba(124,58,237,0.1)', borderColor: '#7C3AED', borderWidth: 1, gap: 8 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 14 }}>{aiCandidateResult.full_name}</Text>
+                    <View style={{ backgroundColor: 'rgba(16,185,129,0.2)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
+                      <Text style={{ color: '#34D399', fontFamily: FONTS.bold, fontSize: 11 }}>{aiCandidateResult.seniority} Level</Text>
+                    </View>
+                  </View>
+                  <Text style={{ color: '#DDD6FE', fontFamily: FONTS.med, fontSize: 12 }}>
+                    {aiCandidateResult.current_role} at {aiCandidateResult.current_company} · {aiCandidateResult.experience_years} yrs exp
+                  </Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>
+                    {aiCandidateResult.skills?.map((sk: string, idx: number) => (
+                      <View key={idx} style={{ backgroundColor: 'rgba(124,58,237,0.25)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 }}>
+                        <Text style={{ color: '#C4B5FD', fontSize: 10.5, fontFamily: FONTS.bold }}>{sk}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
+                <Pressable
+                  onPress={() => setAiModalVisible(false)}
+                  style={[s.btn, { backgroundColor: 'rgba(255,255,255,0.06)' }]}
+                >
+                  <Text style={s.btnText}>Close</Text>
+                </Pressable>
+                <Pressable
+                  onPress={handleRunAiScrape}
+                  disabled={aiScraping}
+                  style={[s.btn, { backgroundColor: '#7C3AED' }]}
+                >
+                  {aiScraping ? <ActivityIndicator size="small" color="#fff" /> : (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Sparkles size={14} color="#fff" />
+                      <Text style={s.btnText}>Scrape & Store</Text>
+                    </View>
+                  )}
+                </Pressable>
+              </View>
+            </ScrollView>
           </Animated.View>
         </View>
       </Modal>

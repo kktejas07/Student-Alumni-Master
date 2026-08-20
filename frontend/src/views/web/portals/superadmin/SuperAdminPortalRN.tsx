@@ -24,6 +24,7 @@ import { PaymentsView } from './views/PaymentsView';
 import { AnalyticsView } from './views/AnalyticsView';
 import { ApprovalsView } from './views/ApprovalsView';
 import { AIInsightsView } from './views/AIInsightsView';
+import { AutonomousAgentsView } from './views/AutonomousAgentsView';
 import { SettingsView } from './views/SettingsView';
 import { WorkflowsView } from './views/WorkflowsView';
 import { ImportsView } from './views/ImportsView';
@@ -83,6 +84,7 @@ export function SuperAdminPortalRN() {
         >
           <PromoBanner portal="super_admin" />
           {active === 'overview'    && <OverviewView onNavigate={(id) => go(id as SuperAdminNavId)} />}
+          {active === 'agents'      && <AutonomousAgentsView />}
           {active === 'bgv'         && <BGVAccountVerticalsView />}
           {active === 'colleges'    && <CollegesView {...subFor('colleges')} />}
           {active === 'students'    && <StudentsView />}

@@ -836,3 +836,36 @@ async def delete_certificate(code: str, user: dict = Depends(get_current_user)):
                 pass
 
     return {"ok": True, "deleted": ident}
+
+
+# ─── Certificate AI Agents ──────────────────────────────────────────────
+from services.agents.certificate_ai_agent import (
+    certificate_ai_agent,
+    CitationDraftRequest,
+    CitationDraftResponse,
+    TamperAnalysisRequest,
+    TamperAnalysisResponse,
+    SkillExtractionRequest,
+    SkillExtractionResponse,
+)
+
+@router.post("/ai/draft-citation", response_model=CitationDraftResponse)
+async def ai_draft_citation(req: CitationDraftRequest, user: dict = Depends(get_current_user)):
+    """Agent 1: Ingests participant/project details to automatically draft tailored citation text."""
+    _require_admin(user)
+    return await certificate_ai_agent.draft_citation(req)
+
+
+@router.post("/ai/detect-fraud", response_model=TamperAnalysisResponse)
+async def ai_detect_fraud(req: TamperAnalysisRequest, user: dict = Depends(get_current_user)):
+    """Agent 2: Inspects certificate metadata & integrity to calculate authenticity trust scores."""
+    _require_admin(user)
+    return await certificate_ai_agent.detect_tamper(req)
+
+
+@router.post("/ai/extract-skills-badges", response_model=SkillExtractionResponse)
+async def ai_extract_skills_badges(req: SkillExtractionRequest, user: dict = Depends(get_current_user)):
+    """Agent 3: Analyzes certificate achievements to extract competencies and award user badges."""
+    _require_admin(user)
+    return await certificate_ai_agent.extract_skills_and_sync_badges(req, db)
+

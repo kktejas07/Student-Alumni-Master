@@ -238,19 +238,19 @@ export function IntegrationsView() {
           </View>
           <View style={{ flex: 1, minWidth: 0 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Text style={st.rowTitle}>DigiLocker & ABC</Text>
+              <Text style={st.label}>DigiLocker & ABC</Text>
               {connected['digilocker'] || connected['digilocker_verified'] ? (
-                <View style={[st.statusPill, { backgroundColor: 'rgba(16,185,129,0.15)', borderColor: '#10B981' }]}>
+                <View style={[st.pill, { backgroundColor: 'rgba(16,185,129,0.15)', borderColor: '#10B981' }]}>
                   <CheckCircle2 size={10} color="#10B981" />
-                  <Text style={[st.statusText, { color: '#34D399' }]}>3 Docs Verified</Text>
+                  <Text style={[st.pillText, { color: '#34D399' }]}>3 Docs Verified</Text>
                 </View>
               ) : (
-                <View style={st.statusPill}>
-                  <Text style={st.statusText}>National Registry</Text>
+                <View style={st.pill}>
+                  <Text style={st.pillText}>National Registry</Text>
                 </View>
               )}
             </View>
-            <Text style={st.rowSub}>Ministry of Education · National Academic Depository & CBSE marksheets</Text>
+            <Text style={st.sub}>Ministry of Education · National Academic Depository & CBSE marksheets</Text>
           </View>
 
           {connected['digilocker'] || connected['digilocker_verified'] ? (
