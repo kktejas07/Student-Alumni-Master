@@ -36,6 +36,7 @@ import { EchoShowcaseAdminView } from './views/EchoShowcaseAdminView';
 import { CertificatesView } from './views/CertificatesView';
 import { EmailQualityView } from './views/EmailQualityView';
 import { BGVAccountVerticalsView } from './views/BGVAccountVerticalsView';
+import { VisitorIntelligenceView } from './views/VisitorIntelligenceView';
 import { useAutoTour } from '@/src/views/web/tour/TourProvider';
 import { usePortalUrl } from '@/src/views/web/portals/portalUrl';
 
@@ -83,9 +84,10 @@ export function SuperAdminPortalRN() {
           showsVerticalScrollIndicator={false}
         >
           <PromoBanner portal="super_admin" />
-          {active === 'overview'    && <OverviewView onNavigate={(id) => go(id as SuperAdminNavId)} />}
-          {active === 'agents'      && <AutonomousAgentsView />}
-          {active === 'bgv'         && <BGVAccountVerticalsView />}
+          {active === 'overview'        && <OverviewView onNavigate={(id) => go(id as SuperAdminNavId)} />}
+          {active === 'visitor-radar'   && <VisitorIntelligenceView />}
+          {active === 'agents'          && <AutonomousAgentsView />}
+          {active === 'bgv'             && <BGVAccountVerticalsView />}
           {active === 'colleges'    && <CollegesView {...subFor('colleges')} />}
           {active === 'students'    && <StudentsView />}
           {active === 'mentors'     && <MentorsView />}
