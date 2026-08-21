@@ -190,6 +190,13 @@ def start_sync_scheduler():
         return
     try:
         _sync_scheduler = AsyncIOScheduler(timezone=pytz.UTC)
+        from services.event_agent import run_global_event_agent
+        
+        # In development, don't run these heavy tasks immediately at startup
+        next_run = None
+        if os.getenv("ENV", "").lower() != "development":
+            next_run = datetime.now(timezone.utc) + timedelta(seconds=10)
+
         _sync_scheduler.add_job(
             run_unified_sync_task,
             IntervalTrigger(minutes=10),
@@ -197,9 +204,9 @@ def start_sync_scheduler():
             replace_existing=True,
             max_instances=1,
             coalesce=True,
-            next_run_time=datetime.now(timezone.utc) + timedelta(minutes=1),
+            next_run_time=next_run if next_run else None,
         )
-        from services.event_agent import run_global_event_agent
+        
         _sync_scheduler.add_job(
             run_global_event_agent,
             IntervalTrigger(minutes=30),
@@ -207,7 +214,7 @@ def start_sync_scheduler():
             replace_existing=True,
             max_instances=1,
             coalesce=True,
-            next_run_time=datetime.now(timezone.utc) + timedelta(seconds=10),
+            next_run_time=next_run if next_run else None,
         )
         _sync_scheduler.start()
         logger.info("Unified sync scheduler started (interval=10m/30m AI Event Agent)")

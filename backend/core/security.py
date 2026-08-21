@@ -206,7 +206,7 @@ def serialize_user(user: dict) -> dict:
         "unique_id": user.get("unique_id"),
         "qr_code_base64": user.get("qr_code_base64"),
         "school_info":  _safe_block(SchoolInfo,  user.get("school_info")),
-        "career_path":  user.get("career_path"),
+        "career_path":  user.get("career_path") if user.get("career_path") in ["job", "higher_education", "startup", "business"] else None,
         "student_info": _safe_block(StudentInfo, user.get("student_info")),
         "alumni_info":  _safe_block(AlumniInfo,  user.get("alumni_info")),
         "mentor_info":  _safe_block(MentorInfo,  user.get("mentor_info")),
