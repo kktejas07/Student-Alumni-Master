@@ -2014,17 +2014,21 @@ async def _fulfill_team_members(db, reg: dict, showcase: Optional[dict]) -> List
                 "college": member.get("college") or reg.get("college") or (showcase or {}).get("college") or "",
                 "hackwave_theme": reg.get("hackwave_theme") or reg.get("theme") or "",
                 "theme": reg.get("hackwave_theme") or reg.get("theme") or "",
-                "fee": 0,
+                "fee": reg.get("fee") or 0,
+                "team_fee": reg.get("fee") or 0,
                 "currency": reg.get("currency") or "INR",
                 "payment": {
                     "provider": (reg.get("payment") or {}).get("provider") or "razorpay",
                     "payment_id": (reg.get("payment") or {}).get("payment_id") or "team_covered",
                     "order_id": (reg.get("payment") or {}).get("order_id") or "",
-                    "amount": 0,
+                    "amount": float(reg.get("fee") or (reg.get("payment") or {}).get("amount") or 0),
                     "currency": reg.get("currency") or "INR",
                     "status": "paid",
                     "paid_at": (reg.get("payment") or {}).get("paid_at") or now_iso,
-                    "method": (reg.get("payment") or {}).get("method") or "team_leader",
+                    "method": "team_pass",
+                    "is_team_pass": True,
+                    "team_leader_name": reg.get("full_name") or "",
+                    "team_leader_email": reg.get("email") or "",
                 },
                 "qr_code_base64": generate_qr_code(qr_payload),
                 "registered_at": reg.get("registered_at") or now_iso,
@@ -2047,12 +2051,28 @@ async def _fulfill_team_members(db, reg: dict, showcase: Optional[dict]) -> List
         # 1) Provision SA Student account (creates account if new & generates password)
         sa_user, created, temp_password = await _provision_sa_account(db, member_reg_ser, showcase)
         if sa_user:
+            sa_uid = sa_user.get("unique_id") or str(sa_user["_id"])
             member_reg_ser["user_id"] = str(sa_user["_id"])
+            member_reg_ser["sa_unique_id"] = sa_uid
+            member["sa_unique_id"] = sa_uid
+            member["sa_user_id"] = str(sa_user["_id"])
+            member["has_account"] = True
+            member["reg_id"] = member_reg_id
+            member["ticket_issued"] = True
+            member["payment_status"] = "paid"
+            member["payment_reference"] = f"Covered under Team Pass (Paid by {reg.get('full_name')})"
+            
             await db.echo_registrations.update_one(
                 {"id": member_reg_id},
-                {"$set": {"user_id": str(sa_user["_id"])}}
+                {"$set": {"user_id": str(sa_user["_id"]), "sa_unique_id": sa_uid}}
             )
             await _mirror_to_event_registration(db, member_reg_ser, showcase, sa_user)
+        else:
+            member["reg_id"] = member_reg_id
+            member["ticket_issued"] = True
+            member["has_account"] = False
+            member["payment_status"] = "paid"
+            member["payment_reference"] = f"Covered under Team Pass (Paid by {reg.get('full_name')})"
             
         # Send welcome email with login credentials if newly created
         if created and temp_password:
@@ -2074,6 +2094,16 @@ async def _fulfill_team_members(db, reg: dict, showcase: Optional[dict]) -> List
             print(f"[ECHO] Team member WA error: {_wa_err}")
             
         fulfilled_members.append(member_reg_ser)
+
+    # Update parent registration with enriched team members metadata
+    if reg.get("_id"):
+        try:
+            await db.echo_registrations.update_one(
+                {"_id": reg["_id"]},
+                {"$set": {"team_members": team_members}}
+            )
+        except Exception as _parent_err:
+            print(f"[ECHO] Error updating parent team_members metadata: {_parent_err}")
 
     return fulfilled_members
 

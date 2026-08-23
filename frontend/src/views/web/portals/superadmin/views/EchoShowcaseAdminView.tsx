@@ -3415,9 +3415,27 @@ function RegistrationsPanel() {
                     <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>{r.college || ''}</Text>
                   </View>
                   <View style={{ width: 120, minWidth: 0, paddingTop: 2 }}>
-                    <Text style={{ fontFamily: FONTS.xbold, fontSize: 12, color: '#fff' }}>
-                      {Number(r.fee || 0) > 0 ? `₹${Number(r.fee).toLocaleString('en-IN')}` : 'FREE'}
-                    </Text>
+                    {r.is_team_member ? (
+                      <View>
+                        <Text style={{ fontFamily: FONTS.xbold, fontSize: 11.5, color: '#C4B5FD' }}>
+                          Team Pass
+                        </Text>
+                        <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 9, color: SAC.dim, marginTop: 1 }}>
+                          {r.team_leader_name ? `Paid by ${r.team_leader_name.split(' ')[0]}` : 'Covered in Team'}
+                        </Text>
+                      </View>
+                    ) : (
+                      <View>
+                        <Text style={{ fontFamily: FONTS.xbold, fontSize: 12, color: '#fff' }}>
+                          {Number(r.fee || 0) > 0 ? `₹${Number(r.fee).toLocaleString('en-IN')}` : 'FREE'}
+                        </Text>
+                        {isTeam && (r.team_size > 1 || (r.team_members?.length || 0) > 0) && (
+                          <Text style={{ fontFamily: FONTS.med, fontSize: 9.5, color: '#A78BFA', marginTop: 1 }}>
+                            {(r.team_size || (r.team_members?.length + 1))} Passes
+                          </Text>
+                        )}
+                      </View>
+                    )}
                   </View>
                   <View style={{ width: 120, minWidth: 0 }}>
                     <StatusPill
@@ -3620,32 +3638,73 @@ function RegistrationsPanel() {
 
                             {/* Team Members (if team registration) */}
               {detailRow.registration_type === 'team' && (
-                <View style={{ backgroundColor: 'rgba(124,58,237,0.08)', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: 'rgba(167,139,250,0.2)' }}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                    <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>Team Members ({(detailRow.team_members || []).length})</Text>
+                <View style={{ backgroundColor: 'rgba(124,58,237,0.08)', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)', gap: 12 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Text style={{ fontFamily: FONTS.bold, fontSize: 13.5, color: '#fff' }}>
+                          Team: {detailRow.team_name || 'Team Registration'}
+                        </Text>
+                        <View style={{ backgroundColor: 'rgba(124,58,237,0.3)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
+                          <Text style={{ fontFamily: FONTS.xbold, fontSize: 10, color: '#DDD6FE' }}>
+                            {((detailRow.team_members?.length || 0) + 1)} Passes Total
+                          </Text>
+                        </View>
+                      </View>
+                      <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: '#C4B5FD', marginTop: 2 }}>
+                        1 Captain Pass ({detailRow.full_name}) + {(detailRow.team_members || []).length} Teammate Passes · {fmtAmt(detailRow.fee)} Paid
+                      </Text>
+                    </View>
                     {!editingTeamReg ? (
-                      <Pressable onPress={() => handleEditTeam(detailRow)} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(124,58,237,0.15)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 }}>
+                      <Pressable onPress={() => handleEditTeam(detailRow)} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(124,58,237,0.2)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.4)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6 }}>
                         <Pencil size={12} color="#C4B5FD" />
-                        <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#C4B5FD' }}>Edit</Text>
+                        <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: '#C4B5FD' }}>Edit Members</Text>
                       </Pressable>
                     ) : null}
                   </View>
                   
                   {!editingTeamReg ? (
                     <View style={{ gap: 8 }}>
-                      {(detailRow.team_members || []).map((member: any, idx: number) => (
-                        <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 10 }}>
-                          <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(124,58,237,0.25)', alignItems: 'center', justifyContent: 'center' }}>
-                            <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: '#C4B5FD' }}>{idx + 2}</Text>
+                      {(detailRow.team_members || []).map((member: any, idx: number) => {
+                        const memberRegId = member.reg_id || `${detailRow.id || detailRow._id}_M${idx + 1}`;
+                        const saId = member.sa_unique_id || `SA-STU-${(member.email || '').split('@')[0]}`;
+                        return (
+                          <View key={idx} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
+                            <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(124,58,237,0.3)', alignItems: 'center', justifyContent: 'center', marginTop: 2 }}>
+                              <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: '#C4B5FD' }}>{idx + 2}</Text>
+                            </View>
+                            <View style={{ flex: 1, minWidth: 0 }}>
+                              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+                                <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#fff' }} numberOfLines={1}>
+                                  {member.name || `Team Member ${idx + 2}`}
+                                </Text>
+                                <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+                                  <View style={{ backgroundColor: 'rgba(52,211,153,0.15)', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 5, borderWidth: 1, borderColor: 'rgba(52,211,153,0.3)' }}>
+                                    <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#34D399' }}>Account Active</Text>
+                                  </View>
+                                  <View style={{ backgroundColor: 'rgba(124,58,237,0.2)', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 5, borderWidth: 1, borderColor: 'rgba(167,139,250,0.3)' }}>
+                                    <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#C4B5FD' }}>Pass Active</Text>
+                                  </View>
+                                </View>
+                              </View>
+                              <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.dim, marginTop: 2 }}>
+                                {member.email || '—'} {member.phone ? `• ${member.phone}` : ''}
+                              </Text>
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 6, flexWrap: 'wrap' }}>
+                                <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: '#94A3B8' }}>
+                                  SA ID: <Text style={{ color: '#E2E8F0', fontFamily: FONTS.bold }}>{saId}</Text>
+                                </Text>
+                                <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: '#94A3B8' }}>
+                                  Pass ID: <Text style={{ color: '#E2E8F0', fontFamily: FONTS.bold }}>{memberRegId}</Text>
+                                </Text>
+                                <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: '#34D399' }}>
+                                  • Covered under Team Pass
+                                </Text>
+                              </View>
+                            </View>
                           </View>
-                          <View style={{ flex: 1, minWidth: 0 }}>
-                            <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: SAC.text }} numberOfLines={1}>
-                              {member.name || `Team Member ${idx + 2} (Details Needed)`}
-                            </Text>
-                            {member.email ? <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.dim }}>{member.email} {member.phone ? `• ${member.phone}` : ''}</Text> : null}
-                          </View>
-                        </View>
-                      ))}
+                        );
+                      })}
                     </View>
                   ) : (
                     <View style={{ gap: 12 }}>
