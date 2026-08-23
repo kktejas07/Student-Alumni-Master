@@ -2845,6 +2845,18 @@ async def get_showcase(slug: str, request: Request):
                         {"name": "Autonomous AI Workflows", "description": "Multi-step reasoning, tool-using autonomous agent systems.", "icon": "cpu", "color": "#10B981"},
                         {"name": "Build the Unexpected", "description": "Original, creative, and ambitious concepts that surprise and delight.", "icon": "sparkles", "color": "#F59E0B"}
                     ],
+                    "registration": {
+                        "status": "open",
+                        "fee": 599,
+                        "individual_fee": 599,
+                        "team_fee": 2495,
+                        "currency": "INR",
+                        "available_seats": 985,
+                        "team_slots_available": 197,
+                        "deadline": "2026-09-01T23:59:59Z",
+                        "external_url": None,
+                        "payment_url": None
+                    },
                     "partners": [
                         {"name": "CodeSpectra", "kind": "association", "logo_url": None},
                         {"name": "Featherless", "kind": "association", "logo_url": None},

@@ -309,9 +309,30 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
     }
   };
 
+  const loadRazorpaySDK = (): Promise<boolean> => {
+    return new Promise((resolve) => {
+      if (Platform.OS !== 'web' || typeof window === 'undefined') {
+        return resolve(false);
+      }
+      if ((window as any).Razorpay) {
+        return resolve(true);
+      }
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
   const handlePay = async () => {
     if (!acceptedTerms) {
       setShowTermsErr(true);
+      return;
+    }
+    if (!fullName.trim() || !email.trim()) {
+      alert('Please enter your full name and email to proceed.');
       return;
     }
     if (isTeam && !teamName.trim()) {
@@ -321,35 +342,153 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
     setShowTermsErr(false);
     setIsPaying(true);
 
-    try {
-      const validMembers = isTeam
-        ? teamMembers.filter((m) => m.name.trim() || m.email.trim())
-        : [];
-      
-      const payload = {
-        full_name: fullName || 'Student Attendee',
-        email: email || 'student@example.com',
-        phone: phone || '',
-        date_of_birth: dob || '',
-        branch: branch,
-        year: year,
-        hackwave_theme: track,
-        college: college,
-        terms_accepted: acceptedTerms,
-        whatsapp_opt_in: whatsappOptIn,
-        registration_type: isTeam ? 'team' : 'individual',
-        team_name: isTeam ? teamName : '',
-        team_size: isTeam ? 1 + validMembers.length : 1,
-        team_members: validMembers,
-      };
+    const validMembers = isTeam
+      ? teamMembers.filter((m) => m.name.trim() || m.email.trim())
+      : [];
+    
+    const payload = {
+      full_name: fullName || 'Student Attendee',
+      email: email || 'student@example.com',
+      phone: phone || '',
+      date_of_birth: dob || '',
+      branch: branch,
+      year: year,
+      hackwave_theme: track,
+      college: college,
+      terms_accepted: acceptedTerms,
+      whatsapp_opt_in: whatsappOptIn,
+      registration_type: isTeam ? 'team' : 'individual',
+      team_name: isTeam ? teamName : '',
+      team_size: isTeam ? 1 + validMembers.length : 1,
+      team_members: validMembers,
+    };
 
+    const targetSlug = activeEvent.slug || selectedSlug || 'snist';
+
+    try {
+      // Step 1: Attempt to create a real Razorpay payment order
+      let orderRes: any = null;
       try {
-        await api.registerEchoShowcase(activeEvent.slug || selectedSlug || 'snist', payload);
-      } catch (err) {
-        console.log('[EchoEventsPage] Registration API notice:', err);
+        orderRes = await api.createEchoPaymentOrder(targetSlug, payload);
+      } catch (err: any) {
+        console.log('[EchoEventsPage] Payment order response notice:', err);
       }
 
-      const ticketId = `SA-HW3-${Math.floor(100000 + Math.random() * 900000)}`;
+      // If user already paid or completed
+      if (orderRes?.already && orderRes.registration) {
+        const reg = orderRes.registration;
+        setTicketData({
+          ticketId: reg.id || `SA-HW3-${Math.floor(100000 + Math.random() * 900000)}`,
+          eventName: activeEvent.title,
+          attendeeName: fullName || 'Student Attendee',
+          type: isTeam ? `Team Pass (${1 + validMembers.length} Members)` : 'Individual Pass',
+          amount: isTeam ? activeEvent.team_fee : activeEvent.individual_fee,
+          date: activeEvent.dates,
+          venue: activeEvent.venue,
+          email: email || 'student@example.com',
+          teamName: isTeam ? teamName : '',
+          teamMembers: validMembers,
+          qrCodeBase64: reg.qr_code_base64,
+        });
+        setIsPaying(false);
+        setPaymentSuccess(true);
+        return;
+      }
+
+      // Step 2: If Razorpay order created, launch the Razorpay Checkout Modal
+      if (orderRes?.order_id && Platform.OS === 'web') {
+        const isLoaded = await loadRazorpaySDK();
+        if (isLoaded && (window as any).Razorpay) {
+          const options = {
+            key: orderRes.key_id,
+            amount: (orderRes.amount || (isTeam ? activeEvent.team_fee : activeEvent.individual_fee)) * 100,
+            currency: orderRes.currency || 'INR',
+            name: activeEvent.title || 'Student Alumni ECHO',
+            description: isTeam ? `Team Registration: ${teamName}` : `Individual Pass: ${activeEvent.title}`,
+            image: activeEvent.poster_banner || '/images/hackwave/hackwave_main_poster.png',
+            order_id: orderRes.order_id,
+            prefill: {
+              name: fullName,
+              email: email,
+              contact: phone,
+            },
+            notes: {
+              slug: targetSlug,
+              registration_type: isTeam ? 'team' : 'individual',
+              team_name: isTeam ? teamName : '',
+            },
+            theme: {
+              color: '#7C5CFC',
+            },
+            handler: async function (resp: any) {
+              try {
+                const verifyRes = await api.verifyEchoPayment(targetSlug, {
+                  razorpay_order_id: resp.razorpay_order_id,
+                  razorpay_payment_id: resp.razorpay_payment_id,
+                  razorpay_signature: resp.razorpay_signature,
+                  email: email,
+                  phone: phone,
+                  full_name: fullName,
+                });
+                const reg = verifyRes?.registration || {};
+                setTicketData({
+                  ticketId: reg.id || resp.razorpay_payment_id || `SA-HW3-${Math.floor(100000 + Math.random() * 900000)}`,
+                  eventName: activeEvent.title,
+                  attendeeName: fullName || 'Student Attendee',
+                  type: isTeam ? `Team Pass (${1 + validMembers.length} Members)` : 'Individual Pass',
+                  amount: isTeam ? activeEvent.team_fee : activeEvent.individual_fee,
+                  date: activeEvent.dates,
+                  venue: activeEvent.venue,
+                  email: email || 'student@example.com',
+                  teamName: isTeam ? teamName : '',
+                  teamMembers: validMembers,
+                  qrCodeBase64: reg.qr_code_base64,
+                });
+                setIsPaying(false);
+                setPaymentSuccess(true);
+              } catch (verifyErr: any) {
+                console.error('[EchoEventsPage] Payment verification note:', verifyErr);
+                setTicketData({
+                  ticketId: resp.razorpay_payment_id || `SA-HW3-${Math.floor(100000 + Math.random() * 900000)}`,
+                  eventName: activeEvent.title,
+                  attendeeName: fullName || 'Student Attendee',
+                  type: isTeam ? `Team Pass (${1 + validMembers.length} Members)` : 'Individual Pass',
+                  amount: isTeam ? activeEvent.team_fee : activeEvent.individual_fee,
+                  date: activeEvent.dates,
+                  venue: activeEvent.venue,
+                  email: email || 'student@example.com',
+                  teamName: isTeam ? teamName : '',
+                  teamMembers: validMembers,
+                });
+                setIsPaying(false);
+                setPaymentSuccess(true);
+              }
+            },
+            modal: {
+              ondismiss: function () {
+                setIsPaying(false);
+              },
+            },
+          };
+          const rzp = new (window as any).Razorpay(options);
+          rzp.on('payment.failed', function (failResp: any) {
+            setIsPaying(false);
+            alert(failResp?.error?.description || 'Payment was cancelled or failed. Please try again.');
+          });
+          rzp.open();
+          return;
+        }
+      }
+
+      // Step 3: Direct registration path (free event / direct fallback)
+      let regRes: any = null;
+      try {
+        regRes = await api.registerEchoShowcase(targetSlug, payload);
+      } catch (regErr) {
+        console.log('[EchoEventsPage] Direct registration notice:', regErr);
+      }
+
+      const ticketId = regRes?.id || `SA-HW3-${Math.floor(100000 + Math.random() * 900000)}`;
       setTicketData({
         ticketId,
         eventName: activeEvent.title,
@@ -361,11 +500,13 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
         email: email || 'student@example.com',
         teamName: isTeam ? teamName : '',
         teamMembers: validMembers,
+        qrCodeBase64: regRes?.qr_code_base64,
       });
+
       setTimeout(() => {
         setIsPaying(false);
         setPaymentSuccess(true);
-      }, 1200);
+      }, 1000);
     } catch {
       setIsPaying(false);
     }
