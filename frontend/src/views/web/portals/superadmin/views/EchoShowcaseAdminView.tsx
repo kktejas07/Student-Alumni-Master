@@ -3077,11 +3077,12 @@ function RegistrationsPanel() {
           </View>
         ) : (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
-            <View style={{ minWidth: 950, flex: 1 }}>
+            <View style={{ minWidth: 1050, flex: 1 }}>
               {/* Header */}
               <View style={{ flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 14, backgroundColor: 'rgba(255,255,255,0.04)', borderBottomWidth: 1, borderBottomColor: SAC.border }}>
                 <Text style={{ flex: 1.5, minWidth: 180, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>ATTENDEE</Text>
                 <Text style={{ width: 70, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>TYPE</Text>
+                <Text style={{ width: 50, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>SIZE</Text>
                 <Text style={{ flex: 1.5, minWidth: 180, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>EVENT</Text>
                 <Text style={{ width: 120, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>AMOUNT</Text>
                 <Text style={{ width: 120, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>PAYMENT</Text>
@@ -3133,19 +3134,19 @@ function RegistrationsPanel() {
                       </Text>
                     </View>
                   </View>
+                  <View style={{ width: 50, paddingTop: 4 }}>
+                    <Text style={{ fontFamily: FONTS.xbold, fontSize: 11, color: '#e5e7eb' }}>
+                      {isTeam ? (r.team_size > 1 ? r.team_size : 1) : 1}
+                    </Text>
+                  </View>
                   <View style={{ flex: 1.5, minWidth: 180 }}>
                     <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 12, color: '#e5e7eb' }}>{r.event_title || r.slug || '—'}</Text>
                     <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>{r.college || ''}</Text>
                   </View>
-                  <View style={{ width: 120, minWidth: 0 }}>
+                  <View style={{ width: 120, minWidth: 0, paddingTop: 2 }}>
                     <Text style={{ fontFamily: FONTS.xbold, fontSize: 12, color: '#fff' }}>
                       {Number(r.fee || 0) > 0 ? `₹${Number(r.fee).toLocaleString('en-IN')}` : 'FREE'}
                     </Text>
-                    {isTeam && r.team_size > 1 && (
-                      <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 9, color: SAC.dim }}>
-                        {r.team_size} ppl
-                      </Text>
-                    )}
                   </View>
                   <View style={{ width: 120, minWidth: 0 }}>
                     <StatusPill
