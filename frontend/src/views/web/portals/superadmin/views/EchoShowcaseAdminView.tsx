@@ -3048,6 +3048,56 @@ function RegistrationsPanel() {
     }
   };
 
+  const [broadcastSummary, setBroadcastSummary] = useState<any>(null);
+  const [broadcastModal, setBroadcastModal] = useState<any>(null);
+  const [broadcasting, setBroadcasting] = useState(false);
+
+  const loadBroadcastSummary = async () => {
+    try {
+      const summary = await api.adminEchoBroadcastSummary(eventSlug === 'all' ? undefined : eventSlug);
+      setBroadcastSummary(summary);
+    } catch (_) {}
+  };
+
+  useEffect(() => {
+    loadBroadcastSummary();
+  }, [eventSlug]);
+
+  const openBroadcast = (targetGroup: 'pending_unpaid' | 'confirmed_paid' | 'unregistered_students') => {
+    const selectedEvent = uniqueEvents.find((e: any) => e.slug === eventSlug);
+    const eventName = selectedEvent?.title || 'SNIST HackWave 3.0';
+    let defaultSubj = '';
+    if (targetGroup === 'pending_unpaid') {
+      defaultSubj = `Action Required: Complete your payment & pass for ${eventName}`;
+    } else if (targetGroup === 'confirmed_paid') {
+      defaultSubj = `Important Event Notice & Schedule Updates — ${eventName}`;
+    } else {
+      defaultSubj = `🚀 Invitation: Register your team for ${eventName}`;
+    }
+    setBroadcastModal({
+      target_group: targetGroup,
+      subject: defaultSubj,
+      custom_message: '',
+      slug: eventSlug === 'all' ? undefined : eventSlug,
+    });
+  };
+
+  const submitBroadcast = async () => {
+    if (!broadcastModal) return;
+    setBroadcasting(true);
+    try {
+      const res = await api.adminEchoBroadcastSend(broadcastModal);
+      flash(res?.message || `Successfully sent broadcast!`);
+      setBroadcastModal(null);
+      await load();
+      await loadBroadcastSummary();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to send broadcast');
+    } finally {
+      setBroadcasting(false);
+    }
+  };
+
   const filtered = rows.filter((r) => {
     const s = q.toLowerCase();
     const matchQ = !s
@@ -3107,6 +3157,117 @@ function RegistrationsPanel() {
           </Text>
         </Pressable>
       </View>
+
+      {/* Segmented Audience Broadcasts & Notices */}
+      <Card style={{ marginBottom: 18, backgroundColor: 'rgba(15,23,42,0.65)', borderColor: 'rgba(255,255,255,0.08)' }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
+          <View>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: '#fff' }}>Targeted Broadcasts &amp; Notices</Text>
+            <Text style={{ fontFamily: FONTS.reg, fontSize: 12, color: SAC.muted, marginTop: 2 }}>
+              Differentiate communication between unpaid cart registrants, confirmed attendees, and platform students
+            </Text>
+          </View>
+          <StatusPill kind="info" label="Multi-Channel Notifications" />
+        </View>
+
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+          {/* Card 1: Unpaid / Pending Recovery */}
+          <View style={{
+            flex: 1, minWidth: 260,
+            backgroundColor: 'rgba(245,158,11,0.05)',
+            borderWidth: 1, borderColor: 'rgba(245,158,11,0.25)',
+            borderRadius: 12, padding: 14, justifyContent: 'space-between', gap: 12,
+          }}>
+            <View>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 13.5, color: '#FCD34D' }}>Unpaid Registrants</Text>
+                <View style={{ backgroundColor: 'rgba(245,158,11,0.2)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
+                  <Text style={{ fontFamily: FONTS.xbold, fontSize: 11, color: '#FBBF24' }}>
+                    {broadcastSummary?.pending_unpaid ?? pending.length} Pending
+                  </Text>
+                </View>
+              </View>
+              <Text style={{ fontFamily: FONTS.reg, fontSize: 11.5, color: 'rgba(255,255,255,0.65)', lineHeight: 16 }}>
+                Users with Student Alumni accounts whose registration payment is incomplete. Sends direct payment resume link &amp; event handbook.
+              </Text>
+            </View>
+            <Pressable
+              onPress={() => openBroadcast('pending_unpaid')}
+              style={{
+                flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+                backgroundColor: '#D97706', borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12, cursor: 'pointer',
+              }}
+            >
+              <Send size={13} color="#fff" />
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Send Payment Recovery Notice</Text>
+            </Pressable>
+          </View>
+
+          {/* Card 2: Confirmed Attendees */}
+          <View style={{
+            flex: 1, minWidth: 260,
+            backgroundColor: 'rgba(16,185,129,0.05)',
+            borderWidth: 1, borderColor: 'rgba(52,211,153,0.25)',
+            borderRadius: 12, padding: 14, justifyContent: 'space-between', gap: 12,
+          }}>
+            <View>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 13.5, color: '#6EE7B7' }}>Confirmed Attendees</Text>
+                <View style={{ backgroundColor: 'rgba(16,185,129,0.2)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
+                  <Text style={{ fontFamily: FONTS.xbold, fontSize: 11, color: '#34D399' }}>
+                    {broadcastSummary?.confirmed_paid ?? paid.length} Confirmed
+                  </Text>
+                </View>
+              </View>
+              <Text style={{ fontFamily: FONTS.reg, fontSize: 11.5, color: 'rgba(255,255,255,0.65)', lineHeight: 16 }}>
+                Attendees and teammates with active QR entry passes. Sends official timetable, track rules, meal pass guide &amp; handbook.
+              </Text>
+            </View>
+            <Pressable
+              onPress={() => openBroadcast('confirmed_paid')}
+              style={{
+                flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+                backgroundColor: '#059669', borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12, cursor: 'pointer',
+              }}
+            >
+              <Mail size={13} color="#fff" />
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Send Event Notice &amp; Updates</Text>
+            </Pressable>
+          </View>
+
+          {/* Card 3: Platform Students */}
+          <View style={{
+            flex: 1, minWidth: 260,
+            backgroundColor: 'rgba(99,102,241,0.05)',
+            borderWidth: 1, borderColor: 'rgba(129,140,248,0.25)',
+            borderRadius: 12, padding: 14, justifyContent: 'space-between', gap: 12,
+          }}>
+            <View>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 13.5, color: '#A5B4FC' }}>Platform Students</Text>
+                <View style={{ backgroundColor: 'rgba(99,102,241,0.2)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
+                  <Text style={{ fontFamily: FONTS.xbold, fontSize: 11, color: '#818CF8' }}>
+                    {broadcastSummary?.unregistered_students ?? 0} Unregistered
+                  </Text>
+                </View>
+              </View>
+              <Text style={{ fontFamily: FONTS.reg, fontSize: 11.5, color: 'rgba(255,255,255,0.65)', lineHeight: 16 }}>
+                Active Student Alumni members who have not registered for this event yet. Sends invitation newsletter with direct register link.
+              </Text>
+            </View>
+            <Pressable
+              onPress={() => openBroadcast('unregistered_students')}
+              style={{
+                flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+                backgroundColor: '#6366F1', borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12, cursor: 'pointer',
+              }}
+            >
+              <Zap size={13} color="#fff" />
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Send Event Invitation</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Card>
 
       {/* Per-event revenue */}
       {revenue.events?.length > 0 && (
@@ -3254,9 +3415,27 @@ function RegistrationsPanel() {
                     <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>{r.college || ''}</Text>
                   </View>
                   <View style={{ width: 120, minWidth: 0, paddingTop: 2 }}>
-                    <Text style={{ fontFamily: FONTS.xbold, fontSize: 12, color: '#fff' }}>
-                      {Number(r.fee || 0) > 0 ? `₹${Number(r.fee).toLocaleString('en-IN')}` : 'FREE'}
-                    </Text>
+                    {r.is_team_member ? (
+                      <View>
+                        <Text style={{ fontFamily: FONTS.xbold, fontSize: 11.5, color: '#C4B5FD' }}>
+                          Team Pass
+                        </Text>
+                        <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 9, color: SAC.dim, marginTop: 1 }}>
+                          {r.team_leader_name ? `Paid by ${r.team_leader_name.split(' ')[0]}` : 'Covered in Team'}
+                        </Text>
+                      </View>
+                    ) : (
+                      <View>
+                        <Text style={{ fontFamily: FONTS.xbold, fontSize: 12, color: '#fff' }}>
+                          {Number(r.fee || 0) > 0 ? `₹${Number(r.fee).toLocaleString('en-IN')}` : 'FREE'}
+                        </Text>
+                        {isTeam && (r.team_size > 1 || (r.team_members?.length || 0) > 0) && (
+                          <Text style={{ fontFamily: FONTS.med, fontSize: 9.5, color: '#A78BFA', marginTop: 1 }}>
+                            {(r.team_size || (r.team_members?.length + 1))} Passes
+                          </Text>
+                        )}
+                      </View>
+                    )}
                   </View>
                   <View style={{ width: 120, minWidth: 0 }}>
                     <StatusPill
@@ -3459,32 +3638,73 @@ function RegistrationsPanel() {
 
                             {/* Team Members (if team registration) */}
               {detailRow.registration_type === 'team' && (
-                <View style={{ backgroundColor: 'rgba(124,58,237,0.08)', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: 'rgba(167,139,250,0.2)' }}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                    <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>Team Members ({(detailRow.team_members || []).length})</Text>
+                <View style={{ backgroundColor: 'rgba(124,58,237,0.08)', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)', gap: 12 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Text style={{ fontFamily: FONTS.bold, fontSize: 13.5, color: '#fff' }}>
+                          Team: {detailRow.team_name || 'Team Registration'}
+                        </Text>
+                        <View style={{ backgroundColor: 'rgba(124,58,237,0.3)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
+                          <Text style={{ fontFamily: FONTS.xbold, fontSize: 10, color: '#DDD6FE' }}>
+                            {((detailRow.team_members?.length || 0) + 1)} Passes Total
+                          </Text>
+                        </View>
+                      </View>
+                      <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: '#C4B5FD', marginTop: 2 }}>
+                        1 Captain Pass ({detailRow.full_name}) + {(detailRow.team_members || []).length} Teammate Passes · {fmtAmt(detailRow.fee)} Paid
+                      </Text>
+                    </View>
                     {!editingTeamReg ? (
-                      <Pressable onPress={() => handleEditTeam(detailRow)} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(124,58,237,0.15)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 }}>
+                      <Pressable onPress={() => handleEditTeam(detailRow)} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(124,58,237,0.2)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.4)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6 }}>
                         <Pencil size={12} color="#C4B5FD" />
-                        <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#C4B5FD' }}>Edit</Text>
+                        <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: '#C4B5FD' }}>Edit Members</Text>
                       </Pressable>
                     ) : null}
                   </View>
                   
                   {!editingTeamReg ? (
                     <View style={{ gap: 8 }}>
-                      {(detailRow.team_members || []).map((member: any, idx: number) => (
-                        <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 10 }}>
-                          <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(124,58,237,0.25)', alignItems: 'center', justifyContent: 'center' }}>
-                            <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: '#C4B5FD' }}>{idx + 2}</Text>
+                      {(detailRow.team_members || []).map((member: any, idx: number) => {
+                        const memberRegId = member.reg_id || `${detailRow.id || detailRow._id}_M${idx + 1}`;
+                        const saId = member.sa_unique_id || `SA-STU-${(member.email || '').split('@')[0]}`;
+                        return (
+                          <View key={idx} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
+                            <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(124,58,237,0.3)', alignItems: 'center', justifyContent: 'center', marginTop: 2 }}>
+                              <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: '#C4B5FD' }}>{idx + 2}</Text>
+                            </View>
+                            <View style={{ flex: 1, minWidth: 0 }}>
+                              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+                                <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#fff' }} numberOfLines={1}>
+                                  {member.name || `Team Member ${idx + 2}`}
+                                </Text>
+                                <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+                                  <View style={{ backgroundColor: 'rgba(52,211,153,0.15)', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 5, borderWidth: 1, borderColor: 'rgba(52,211,153,0.3)' }}>
+                                    <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#34D399' }}>Account Active</Text>
+                                  </View>
+                                  <View style={{ backgroundColor: 'rgba(124,58,237,0.2)', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 5, borderWidth: 1, borderColor: 'rgba(167,139,250,0.3)' }}>
+                                    <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#C4B5FD' }}>Pass Active</Text>
+                                  </View>
+                                </View>
+                              </View>
+                              <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.dim, marginTop: 2 }}>
+                                {member.email || '—'} {member.phone ? `• ${member.phone}` : ''}
+                              </Text>
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 6, flexWrap: 'wrap' }}>
+                                <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: '#94A3B8' }}>
+                                  SA ID: <Text style={{ color: '#E2E8F0', fontFamily: FONTS.bold }}>{saId}</Text>
+                                </Text>
+                                <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: '#94A3B8' }}>
+                                  Pass ID: <Text style={{ color: '#E2E8F0', fontFamily: FONTS.bold }}>{memberRegId}</Text>
+                                </Text>
+                                <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: '#34D399' }}>
+                                  • Covered under Team Pass
+                                </Text>
+                              </View>
+                            </View>
                           </View>
-                          <View style={{ flex: 1, minWidth: 0 }}>
-                            <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: SAC.text }} numberOfLines={1}>
-                              {member.name || `Team Member ${idx + 2} (Details Needed)`}
-                            </Text>
-                            {member.email ? <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.dim }}>{member.email} {member.phone ? `• ${member.phone}` : ''}</Text> : null}
-                          </View>
-                        </View>
-                      ))}
+                        );
+                      })}
                     </View>
                   ) : (
                     <View style={{ gap: 12 }}>
@@ -3620,6 +3840,114 @@ function RegistrationsPanel() {
                 ) : <View />}
                 <GradientButton onPress={() => setDetailRow(null)} size="sm">
                   <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>Close</Text>
+                </GradientButton>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      {/* Broadcast / Notice Modal */}
+      {broadcastModal && (
+        <Modal visible={true} transparent animationType="fade" onRequestClose={() => setBroadcastModal(null)}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+            <View style={{
+              width: '100%', maxWidth: 620,
+              backgroundColor: '#141A2D',
+              borderWidth: 1, borderColor: 'rgba(124,58,237,0.3)',
+              borderRadius: 16,
+              shadowColor: '#000', shadowOffset: { width: 0, height: 18 }, shadowOpacity: 0.6, shadowRadius: 32,
+              elevation: 12, overflow: 'hidden',
+            }}>
+              {/* Header */}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 18, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: '#fff' }}>
+                    {broadcastModal.target_group === 'pending_unpaid' && 'Send Payment Recovery Notice'}
+                    {broadcastModal.target_group === 'confirmed_paid' && 'Send Attendee Notice & Handbook'}
+                    {broadcastModal.target_group === 'unregistered_students' && 'Send Event Invitation Newsletter'}
+                  </Text>
+                </View>
+                <Pressable onPress={() => setBroadcastModal(null)} style={{ padding: 4 }}><X size={18} color={SAC.muted} /></Pressable>
+              </View>
+
+              {/* Body */}
+              <ScrollView style={{ padding: 20, maxHeight: '65vh' }} contentContainerStyle={{ gap: 14 }}>
+                {/* Target Audience Pill */}
+                <View style={{ padding: 12, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' }}>
+                  <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>Target Segment</Text>
+                  <Text style={{ fontFamily: FONTS.bold, fontSize: 13.5, color: '#E2E8F0', marginTop: 2 }}>
+                    {broadcastModal.target_group === 'pending_unpaid' && `Pending Unpaid Registrants (${broadcastSummary?.pending_unpaid ?? pending.length} users)`}
+                    {broadcastModal.target_group === 'confirmed_paid' && `Confirmed Active Attendees (${broadcastSummary?.confirmed_paid ?? paid.length} users)`}
+                    {broadcastModal.target_group === 'unregistered_students' && `Platform Students (${broadcastSummary?.unregistered_students ?? 0} users)`}
+                  </Text>
+                </View>
+
+                {/* Email Subject */}
+                <View>
+                  <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted, marginBottom: 6 }}>Email Subject Line</Text>
+                  <TextInput
+                    value={broadcastModal.subject}
+                    onChangeText={(t) => setBroadcastModal((prev: any) => ({ ...prev, subject: t }))}
+                    placeholder="Enter email subject..."
+                    placeholderTextColor="rgba(255,255,255,0.3)"
+                    style={{
+                      backgroundColor: 'rgba(255,255,255,0.06)',
+                      borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
+                      borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10,
+                      color: '#fff', fontSize: 13.5, fontFamily: FONTS.reg,
+                    }}
+                  />
+                </View>
+
+                {/* Custom Message Body */}
+                <View>
+                  <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted, marginBottom: 6 }}>
+                    Custom Announcement / Note <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>(Optional)</Text>
+                  </Text>
+                  <TextInput
+                    value={broadcastModal.custom_message}
+                    onChangeText={(t) => setBroadcastModal((prev: any) => ({ ...prev, custom_message: t }))}
+                    placeholder="Add an optional message or highlight for recipients..."
+                    placeholderTextColor="rgba(255,255,255,0.3)"
+                    multiline
+                    numberOfLines={4}
+                    style={{
+                      backgroundColor: 'rgba(255,255,255,0.06)',
+                      borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
+                      borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10,
+                      color: '#fff', fontSize: 13, fontFamily: FONTS.reg, minHeight: 90, textAlignVertical: 'top',
+                    }}
+                  />
+                </View>
+
+                {/* Included Assets info */}
+                <View style={{ padding: 12, backgroundColor: 'rgba(124,58,237,0.08)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(124,58,237,0.2)' }}>
+                  <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#C4B5FD' }}>✓ Automatic Attachments &amp; Links Included:</Text>
+                  <Text style={{ fontFamily: FONTS.reg, fontSize: 11.5, color: '#DDD6FE', marginTop: 4, lineHeight: 16 }}>
+                    • Attached PDF: <strong style={{ color: '#fff' }}>HackWave_3.0_Event_Handbook.pdf</strong><br/>
+                    • Personalized pass registration / checkout / ticket links<br/>
+                    • Real-time payment verification and QR entry credentials
+                  </Text>
+                </View>
+              </ScrollView>
+
+              {/* Footer */}
+              <View style={{ padding: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)', flexDirection: 'row', justifyContent: 'flex-end', gap: 10 }}>
+                <SecondaryButton onPress={() => setBroadcastModal(null)} size="sm">
+                  <Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>Cancel</Text>
+                </SecondaryButton>
+                <GradientButton
+                  onPress={submitBroadcast}
+                  disabled={broadcasting}
+                  size="sm"
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Send size={13} color="#fff" />
+                    <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>
+                      {broadcasting ? 'Sending Broadcast...' : 'Send Broadcast'}
+                    </Text>
+                  </View>
                 </GradientButton>
               </View>
             </View>

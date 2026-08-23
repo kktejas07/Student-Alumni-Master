@@ -295,8 +295,8 @@ async def test_register_dedup_lowercase(patch_deps, fake_db):
     db.echo_showcases.docs = [_showcase(fee=0)]
     req = FakeRequest()
 
-    await es.register_for_showcase("echo-tech-2026", es.RegisterSchema(full_name="A", email="a@b.co", phone="+919876543210", terms_accepted=True), req)
-    again = await es.register_for_showcase("echo-tech-2026", es.RegisterSchema(full_name="A", email="A@B.CO", phone="+919876543210", terms_accepted=True), req)
+    await es.register_for_showcase("echo-tech-2026", es.RegisterSchema(full_name="A", email="a@b.co", terms_accepted=True), req)
+    again = await es.register_for_showcase("echo-tech-2026", es.RegisterSchema(full_name="A", email="A@B.CO", terms_accepted=True), req)
 
     assert len(db.echo_registrations.docs) == 1
     assert again.get("id") == db.echo_registrations.docs[0]["id"]
@@ -494,7 +494,7 @@ async def test_free_registration_provisions_sa_account(patch_deps, fake_db, monk
     sent = []
     monkeypatch.setattr(
         es, "send_email",
-        lambda to, subj, *a, **kw: sent.append((to, subj)) or asyncio.sleep(0) or True,
+        lambda to, subj, body, *a, **k: sent.append((to, subj)) or asyncio.sleep(0) or True,
     )
 
     db = fake_db
@@ -506,6 +506,7 @@ async def test_free_registration_provisions_sa_account(patch_deps, fake_db, monk
         FakeRequest(),
     )
     assert out["payment"]["status"] == "paid"
+    assert out.get("qr_code_base64") is not None
 
     # A brand-new SA student account was created
     users = db.users.docs
@@ -534,7 +535,7 @@ async def test_provision_sa_account_idempotent_and_existing(patch_deps, fake_db,
     sent = []
     monkeypatch.setattr(
         es, "send_email",
-        lambda to, subj, *a, **kw: sent.append((to, subj)) or asyncio.sleep(0) or True,
+        lambda to, subj, body: sent.append((to, subj)) or asyncio.sleep(0) or True,
     )
     db = fake_db
 
