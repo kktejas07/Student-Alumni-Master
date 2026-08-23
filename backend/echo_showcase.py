@@ -3835,6 +3835,10 @@ async def admin_mark_registration_failed(reg_id: str, request: Request, _=Depend
 
 
 # ── Ticket verification / check-in (venue staff) ─────────────────────────────
+class AdminUpdateTeamSchema(BaseModel):
+    team_members: List[dict] = []
+    team_name: Optional[str] = None
+
 class TicketVerifySchema(BaseModel):
     ticket: str  # raw QR scan payload or a bare registration id
 
@@ -3868,15 +3872,12 @@ def _parse_ticket(ticket: str) -> dict:
 
 
 @router.put("/admin/registrations/{reg_id}/team")
-async def admin_update_team_members(reg_id: str, request: Request, payload: dict, _=Depends(_require_admin)):
+async def admin_update_team_members(reg_id: str, request: Request, payload: AdminUpdateTeamSchema, _=Depends(_require_admin)):
     """Super-admin: update the team members for a registration and provision their SA accounts."""
     db = _get_db(request)
 
-    team_members = payload.get("team_members", [])
-    team_name = payload.get("team_name")
-    
-    if not isinstance(team_members, list):
-        raise HTTPException(400, "team_members must be a list")
+    team_members = payload.team_members
+    team_name = payload.team_name
     
     reg = await db.echo_registrations.find_one({"id": reg_id})
     if not reg:
