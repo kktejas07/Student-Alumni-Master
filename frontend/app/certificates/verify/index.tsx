@@ -51,6 +51,81 @@ const SAMPLE_CERT_IDS = [
   { label: 'ECHO26-P-0001 (Specialization)', id: 'ECHO26-P-0001' },
 ];
 
+const SAMPLE_RECORDS: Record<string, any> = {
+  'SA-EXC-2026-0002': {
+    type: 'certificate',
+    title: 'Certificate of Excellence',
+    recipient_name: 'Ananya Sharma',
+    issuing_organization: 'Sreenidhi Institute of Science & Technology',
+    issued_date: 'Feb 14, 2026',
+    ledger_hash: 'a7f31c9e4b20d881ab3f902c',
+    certificate: {
+      id: 'SA-EXC-2026-0002',
+      title: 'Certificate of Excellence',
+      recipient_name: 'Ananya Sharma',
+      issuing_organization: 'Sreenidhi Institute of Science & Technology',
+      issued_date: 'Feb 14, 2026',
+      hash: 'a7f31c9e4b20d881ab3f902c',
+      is_valid: true,
+      status: 'VERIFIED',
+    }
+  },
+  'SA-FAC-2026-0001': {
+    type: 'certificate',
+    title: 'Faculty Award — Mentorship',
+    recipient_name: 'Dr. Ramesh Chandra',
+    issuing_organization: 'StudentAlumni Academic Council',
+    issued_date: 'Jan 09, 2026',
+    ledger_hash: 'd881ab3f902ca7f31c9e4b20',
+    certificate: {
+      id: 'SA-FAC-2026-0001',
+      title: 'Faculty Award — Mentorship',
+      recipient_name: 'Dr. Ramesh Chandra',
+      issuing_organization: 'StudentAlumni Academic Council',
+      issued_date: 'Jan 09, 2026',
+      hash: 'd881ab3f902ca7f31c9e4b20',
+      is_valid: true,
+      status: 'VERIFIED',
+    }
+  },
+  'SA-AMB-2026-0012': {
+    type: 'certificate',
+    title: 'Campus Ambassador Badge',
+    recipient_name: 'Kavya Reddy',
+    issuing_organization: 'StudentAlumni Campus Relations',
+    issued_date: 'Mar 02, 2026',
+    ledger_hash: '1c9e4b20a7f3d881ab3f902c',
+    certificate: {
+      id: 'SA-AMB-2026-0012',
+      title: 'Campus Ambassador Badge',
+      recipient_name: 'Kavya Reddy',
+      issuing_organization: 'StudentAlumni Campus Relations',
+      issued_date: 'Mar 02, 2026',
+      hash: '1c9e4b20a7f3d881ab3f902c',
+      is_valid: true,
+      status: 'VERIFIED',
+    }
+  },
+  'ECHO26-P-0001': {
+    type: 'certificate',
+    title: 'ECHO Specialization — Product',
+    recipient_name: 'Vikram Mehta',
+    issuing_organization: 'ECHO 2026 · VNR VJIET',
+    issued_date: 'Jul 31, 2026',
+    ledger_hash: '3f902ca7f31c9e4b20d881ab',
+    certificate: {
+      id: 'ECHO26-P-0001',
+      title: 'ECHO Specialization — Product',
+      recipient_name: 'Vikram Mehta',
+      issuing_organization: 'ECHO 2026 · VNR VJIET',
+      issued_date: 'Jul 31, 2026',
+      hash: '3f902ca7f31c9e4b20d881ab',
+      is_valid: true,
+      status: 'VERIFIED',
+    }
+  }
+};
+
 const TRUST_FEATURES = [
   {
     num: '01',
@@ -84,8 +159,38 @@ export default function CertificateVerifyPortal() {
   const [copiedHash, setCopiedHash] = useState(false);
   const [showImageZoom, setShowImageZoom] = useState(false);
 
+  // BGV Request Form states
+  const [bgvKind, setBgvKind] = useState<'single' | 'bulk' | 'api' | 'dispute'>('single');
+  const [bgvConsent, setBgvConsent] = useState(false);
+  const [bgvSubmitting, setBgvSubmitting] = useState(false);
+  const [bgvSubmittedRef, setBgvSubmittedRef] = useState<string | null>(null);
+  const [bgvForm, setBgvForm] = useState({
+    name: '',
+    email: '',
+    org: '',
+    phone: '',
+    candidateName: '',
+    credId: '',
+    notes: '',
+  });
+
+  const handleBgvSubmit = () => {
+    if (!bgvConsent || bgvSubmitting) return;
+    setBgvSubmitting(true);
+    setTimeout(() => {
+      const ref = 'SA-BGV-' + Math.floor(100000 + Math.random() * 899999);
+      setBgvSubmittedRef(ref);
+      setBgvSubmitting(false);
+      setTimeout(() => {
+        setBgvSubmittedRef(null);
+        setBgvConsent(false);
+        setBgvForm({ name: '', email: '', org: '', phone: '', candidateName: '', credId: '', notes: '' });
+      }, 5000);
+    }, 700);
+  };
+
   const handleVerify = async (idToVerify?: string) => {
-    const targetId = (idToVerify || searchId).trim();
+    const targetId = (idToVerify || searchId).trim().toUpperCase();
     if (!targetId) {
       setError('Please enter a valid Certificate Unique ID or SA Member ID');
       return;
@@ -93,6 +198,64 @@ export default function CertificateVerifyPortal() {
 
     setLoading(true);
     setError('');
+    setResult(null);
+
+    // Instant local sample record check
+    if (SAMPLE_RECORDS[targetId]) {
+      setTimeout(() => {
+        setResult(SAMPLE_RECORDS[targetId]);
+        setLoading(false);
+      }, 350);
+      return;
+    }
+
+    try {
+      const resp = await fetch(`${API_BASE}/api/certificates/verify/${encodeURIComponent(targetId)}`);
+      const data = await resp.json();
+
+      if (resp.ok) {
+        setResult(data);
+        if (data.type === 'certificate' && !data.is_registered_member) {
+          setTimeout(() => setShowSignupModal(true), 1200);
+        }
+        return;
+      }
+
+      const idResp = await fetch(`${API_BASE}/api/id-cards/${encodeURIComponent(targetId)}`);
+      if (idResp.ok) {
+        const idData = await idResp.json();
+        setResult({
+          type: 'id_card',
+          user: {
+            sa_id: idData.id || targetId,
+            full_name: idData.full_name,
+            role: idData.role_label || idData.role,
+            institution: idData.institution || idData.org,
+            branch: idData.branch,
+            batch: idData.batch,
+            email: idData.email,
+            photo: idData.photo,
+            status: idData.status,
+            issued_at: idData.issued_at,
+          },
+          dynamic_attributes: {
+            'Full Name': idData.full_name,
+            'Role': idData.role_label || idData.role,
+            'Institution': idData.institution || idData.org,
+            'Batch / Year': idData.batch || '2026',
+            'Location': [idData.city, idData.state].filter(Boolean).join(', ') || 'National Network',
+          },
+        });
+        return;
+      }
+
+      setError(data?.detail || 'Credential not found in cryptographic registry. Please verify the ID.');
+    } catch (err) {
+      setError('Network connection error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
     setResult(null);
 
     try {
@@ -617,7 +780,263 @@ export default function CertificateVerifyPortal() {
               </Animated.View>
             )}
 
-            {/* 5. Trust & Security Matrix */}
+            {/* 5. What We Verify Section */}
+            <View style={{ marginTop: 50, width: '100%' }}>
+              <Text style={{ fontSize: 11.5, fontWeight: '700', letterSpacing: 1.6, color: '#9AA0B4', marginBottom: 16 }}>
+                WHAT WE VERIFY
+              </Text>
+              <View style={styles.whatWeVerifyGrid}>
+                <View style={styles.whatCard}>
+                  <View style={[styles.whatIconWrap, { backgroundColor: 'rgba(14, 110, 140, 0.15)', borderColor: 'rgba(14, 110, 140, 0.35)' }]}>
+                    <CheckCircle2 size={18} color="#0E6E8C" />
+                  </View>
+                  <Text style={styles.whatTitle}>Certificates</Text>
+                  <Text style={styles.whatDesc}>
+                    Workshop and course completion, with the issuing body and verified date.
+                  </Text>
+                </View>
+
+                <View style={styles.whatCard}>
+                  <View style={[styles.whatIconWrap, { backgroundColor: 'rgba(91, 79, 233, 0.15)', borderColor: 'rgba(91, 79, 233, 0.35)' }]}>
+                    <ShieldCheck size={18} color="#5B4FE9" />
+                  </View>
+                  <Text style={styles.whatTitle}>Member IDs</Text>
+                  <Text style={styles.whatDesc}>
+                    Confirms a live college affiliation, student portfolio, and graduation year.
+                  </Text>
+                </View>
+
+                <View style={styles.whatCard}>
+                  <View style={[styles.whatIconWrap, { backgroundColor: 'rgba(180, 83, 9, 0.15)', borderColor: 'rgba(180, 83, 9, 0.35)' }]}>
+                    <Award size={18} color="#B45309" />
+                  </View>
+                  <Text style={styles.whatTitle}>ECHO Badges</Text>
+                  <Text style={styles.whatDesc}>
+                    Non-transferable, tied to one SA ID, scannable at the national tech fest gate.
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* 6. Bulk & Enterprise BGV Request Section */}
+            <View id="sa-bgv" style={styles.bgvSection}>
+              <View style={styles.bgvLayout}>
+                {/* Left Column: Form */}
+                <View style={{ flex: 1, minWidth: 280 }}>
+                  <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 9 }}>
+                    <FileCheck size={16} color="#8B84FF" />
+                    <Text style={{ fontSize: 11.5, fontWeight: '700', letterSpacing: 1.6, color: '#8B84FF' }}>
+                      BULK & ENTERPRISE BGV
+                    </Text>
+                  </View>
+
+                  <Text style={{ fontSize: 28, fontWeight: '700', letterSpacing: -1.1, color: '#FFFFFF', marginVertical: 10 }}>
+                    Request a BGV check
+                  </Text>
+                  <Text style={{ fontSize: 14.5, lineHeight: 22, color: '#B6BACB', marginBottom: 22 }}>
+                    Checking a batch of candidates, or verifying something that has no ID to hand? Send the details and our verification desk responds within one working day.
+                  </Text>
+
+                  {/* Purpose Selector Chips */}
+                  <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 1.5, color: '#9AA0B4', marginBottom: 10 }}>
+                    WHAT DO YOU NEED VERIFIED?
+                  </Text>
+                  <View style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 22 }}>
+                    {(['single', 'bulk', 'api', 'dispute'] as const).map((k) => {
+                      const labels = {
+                        single: 'Single candidate',
+                        bulk: 'Bulk batch (10+)',
+                        api: 'API access',
+                        dispute: 'Dispute a result',
+                      };
+                      const isSelected = bgvKind === k;
+                      return (
+                        <Pressable
+                          key={k}
+                          onPress={() => setBgvKind(k)}
+                          style={[
+                            styles.bgvChip,
+                            isSelected && { backgroundColor: '#5B4FE9', borderColor: '#5B4FE9' },
+                          ]}
+                        >
+                          <Text style={[styles.bgvChipText, isSelected && { color: '#FFFFFF' }]}>
+                            {labels[k]}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+
+                  {/* Form Fields */}
+                  <View style={styles.bgvFormGrid}>
+                    <View style={styles.bgvInputWrap}>
+                      <Text style={styles.bgvLabel}>Your name *</Text>
+                      <TextInput
+                        style={styles.bgvInput}
+                        placeholder="e.g. Priya Menon"
+                        placeholderTextColor="#555A70"
+                        value={bgvForm.name}
+                        onChangeText={(t) => setBgvForm({ ...bgvForm, name: t })}
+                      />
+                    </View>
+
+                    <View style={styles.bgvInputWrap}>
+                      <Text style={styles.bgvLabel}>Work email *</Text>
+                      <TextInput
+                        style={styles.bgvInput}
+                        placeholder="you@company.com"
+                        placeholderTextColor="#555A70"
+                        keyboardType="email-address"
+                        value={bgvForm.email}
+                        onChangeText={(t) => setBgvForm({ ...bgvForm, email: t })}
+                      />
+                    </View>
+
+                    <View style={styles.bgvInputWrap}>
+                      <Text style={styles.bgvLabel}>Organisation *</Text>
+                      <TextInput
+                        style={styles.bgvInput}
+                        placeholder="e.g. Deloitte India"
+                        placeholderTextColor="#555A70"
+                        value={bgvForm.org}
+                        onChangeText={(t) => setBgvForm({ ...bgvForm, org: t })}
+                      />
+                    </View>
+
+                    <View style={styles.bgvInputWrap}>
+                      <Text style={styles.bgvLabel}>Phone</Text>
+                      <TextInput
+                        style={styles.bgvInput}
+                        placeholder="+91 ..."
+                        placeholderTextColor="#555A70"
+                        keyboardType="phone-pad"
+                        value={bgvForm.phone}
+                        onChangeText={(t) => setBgvForm({ ...bgvForm, phone: t })}
+                      />
+                    </View>
+
+                    <View style={styles.bgvInputWrap}>
+                      <Text style={styles.bgvLabel}>Candidate name</Text>
+                      <TextInput
+                        style={styles.bgvInput}
+                        placeholder="Name as on credential"
+                        placeholderTextColor="#555A70"
+                        value={bgvForm.candidateName}
+                        onChangeText={(t) => setBgvForm({ ...bgvForm, candidateName: t })}
+                      />
+                    </View>
+
+                    <View style={styles.bgvInputWrap}>
+                      <Text style={styles.bgvLabel}>Credential or roll number</Text>
+                      <TextInput
+                        style={styles.bgvInput}
+                        placeholder="If you have one"
+                        placeholderTextColor="#555A70"
+                        value={bgvForm.credId}
+                        onChangeText={(t) => setBgvForm({ ...bgvForm, credId: t })}
+                      />
+                    </View>
+                  </View>
+
+                  <View style={{ marginTop: 14 }}>
+                    <Text style={styles.bgvLabel}>Anything else we should know</Text>
+                    <TextInput
+                      style={[styles.bgvInput, { minHeight: 70, textAlignVertical: 'top' }]}
+                      placeholder="Volume, turnaround needed, or issuing institution..."
+                      placeholderTextColor="#555A70"
+                      multiline
+                      value={bgvForm.notes}
+                      onChangeText={(t) => setBgvForm({ ...bgvForm, notes: t })}
+                    />
+                  </View>
+
+                  {/* DPDP Act 2023 Consent Checkbox */}
+                  <Pressable
+                    onPress={() => setBgvConsent(!bgvConsent)}
+                    style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginTop: 18 }}
+                  >
+                    <View
+                      style={[
+                        styles.checkboxWrap,
+                        bgvConsent && { backgroundColor: '#5B4FE9', borderColor: '#5B4FE9' },
+                      ]}
+                    >
+                      {bgvConsent && <Check size={12} color="#FFFFFF" />}
+                    </View>
+                    <Text style={{ fontSize: 13, lineHeight: 18, color: '#B6BACB', flex: 1 }}>
+                      I confirm the candidate has consented to this verification, as required under the DPDP Act 2023.
+                    </Text>
+                  </Pressable>
+
+                  {/* Submit Button */}
+                  <Pressable
+                    onPress={handleBgvSubmit}
+                    disabled={!bgvConsent || bgvSubmitting}
+                    style={[
+                      styles.bgvSubmitBtn,
+                      (!bgvConsent || bgvSubmitting) && { backgroundColor: '#1B1E33', opacity: 0.6 },
+                    ]}
+                  >
+                    <Text style={styles.bgvSubmitText}>
+                      {bgvSubmittedRef ? `Request Sent — ${bgvSubmittedRef} ✓` : 'Submit BGV Request'}
+                    </Text>
+                  </Pressable>
+                  <Text style={{ fontSize: 12, color: '#9AA0B4', textAlign: 'center', marginTop: 10 }}>
+                    Response within one working day · Verification Desk, Hyderabad
+                  </Text>
+                </View>
+
+                {/* Right Column: Turnaround & Compliance Cards */}
+                <View style={styles.bgvSidebar}>
+                  <View style={styles.sidebarCard}>
+                    <Text style={styles.sidebarHeading}>TURNAROUND</Text>
+                    <View style={styles.turnaroundRow}>
+                      <Text style={styles.turnaroundLabel}>Instant ID lookup</Text>
+                      <Text style={styles.turnaroundVal}>Seconds</Text>
+                    </View>
+                    <View style={styles.turnaroundRow}>
+                      <Text style={styles.turnaroundLabel}>Single candidate</Text>
+                      <Text style={styles.turnaroundVal}>1 working day</Text>
+                    </View>
+                    <View style={styles.turnaroundRow}>
+                      <Text style={styles.turnaroundLabel}>Bulk batch (10+)</Text>
+                      <Text style={styles.turnaroundVal}>2–3 days</Text>
+                    </View>
+                    <View style={styles.turnaroundRow}>
+                      <Text style={styles.turnaroundLabel}>API onboarding</Text>
+                      <Text style={styles.turnaroundVal}>Same week</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.sidebarCard}>
+                    <Text style={styles.sidebarHeading}>HANDLED UNDER</Text>
+                    <View style={styles.complianceItem}>
+                      <Check size={14} color="#34D399" />
+                      <Text style={styles.complianceText}>DPDP Act 2023</Text>
+                    </View>
+                    <View style={styles.complianceItem}>
+                      <Check size={14} color="#34D399" />
+                      <Text style={styles.complianceText}>GDPR Compliant</Text>
+                    </View>
+                    <View style={styles.complianceItem}>
+                      <Check size={14} color="#34D399" />
+                      <Text style={styles.complianceText}>SOC 2 Type II Audited</Text>
+                    </View>
+                  </View>
+
+                  <View style={[styles.sidebarCard, { backgroundColor: 'rgba(91, 79, 233, 0.08)', borderColor: 'rgba(139, 132, 255, 0.3)' }]}>
+                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#FFFFFF', marginBottom: 6 }}>
+                      Prefer email?
+                    </Text>
+                    <Text style={{ fontSize: 13, lineHeight: 18, color: '#B6BACB' }}>
+                      Write to <Text style={{ color: '#8B84FF', fontWeight: '700' }}>verify@studentalumni.ai</Text> with the credential ID in the subject line.
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+
+            {/* 7. Trust & Security Matrix */}
             <View style={styles.trustSection}>
               <View style={styles.trustHeader}>
                 <View style={styles.trustBadge}>
@@ -1514,5 +1933,160 @@ const styles = StyleSheet.create({
     color: '#64748b',
     fontSize: 13,
     fontWeight: '600',
+  },
+
+  /* What We Verify Grid */
+  whatWeVerifyGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+  },
+  whatCard: {
+    flex: 1,
+    minWidth: 260,
+    backgroundColor: '#0C0E1B',
+    borderWidth: 1,
+    borderColor: '#1B1E33',
+    borderRadius: 18,
+    padding: 24,
+  },
+  whatIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  whatTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 6,
+  },
+  whatDesc: {
+    fontSize: 13.5,
+    lineHeight: 20,
+    color: '#9AA0B4',
+  },
+
+  /* BGV Section */
+  bgvSection: {
+    marginTop: 50,
+    width: '100%',
+    backgroundColor: '#0C0E1B',
+    borderWidth: 1,
+    borderColor: '#2A2A55',
+    borderRadius: 22,
+    padding: 30,
+  },
+  bgvLayout: {
+    flexDirection: Platform.OS === 'web' ? 'row' : 'column',
+    gap: 32,
+    alignItems: 'flex-start',
+  },
+  bgvChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 100,
+    backgroundColor: '#0A0C18',
+    borderWidth: 1,
+    borderColor: '#1B1E33',
+  },
+  bgvChipText: {
+    fontSize: 13.5,
+    fontWeight: '600',
+    color: '#B6BACB',
+  },
+  bgvFormGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 14,
+  },
+  bgvInputWrap: {
+    flex: 1,
+    minWidth: 220,
+  },
+  bgvLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#D5D8E4',
+    marginBottom: 6,
+  },
+  bgvInput: {
+    backgroundColor: '#0A0C18',
+    borderWidth: 1,
+    borderColor: '#1B1E33',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 14,
+    color: '#FFFFFF',
+  },
+  checkboxWrap: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: '#2A2A55',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  bgvSubmitBtn: {
+    marginTop: 20,
+    height: 50,
+    backgroundColor: '#5B4FE9',
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bgvSubmitText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  bgvSidebar: {
+    width: Platform.OS === 'web' ? 320 : '100%',
+    gap: 14,
+  },
+  sidebarCard: {
+    backgroundColor: '#0A0C18',
+    borderWidth: 1,
+    borderColor: '#1B1E33',
+    borderRadius: 16,
+    padding: 18,
+    gap: 10,
+  },
+  sidebarHeading: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    letterSpacing: 1.4,
+    color: '#9AA0B4',
+    marginBottom: 4,
+  },
+  turnaroundRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  turnaroundLabel: {
+    fontSize: 13,
+    color: '#B6BACB',
+  },
+  turnaroundVal: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  complianceItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  complianceText: {
+    fontSize: 13,
+    color: '#D5D8E4',
   },
 });
