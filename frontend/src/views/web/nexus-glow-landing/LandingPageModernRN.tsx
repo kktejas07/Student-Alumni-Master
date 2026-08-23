@@ -1,339 +1,965 @@
 // @ts-nocheck
 /**
- * LandingPageModernRN — 1:1 Exact Match of the New Landing Page Specification
- * "Your Intelligent Companion for a Modern Career"
+ * LandingPageModernRN — 1:1 Complete React Native / Web Implementation
+ * of the Master Landing Page Specification: "Student Alumni Landing Motion v2".
+ *
+ * Includes:
+ *  - 3D Animated Hero Shield with ambient purple/violet glow and 3D sway animation
+ *  - Dual Marquee Tickers (Colleges + Industry partners) with seamless scroll
+ *  - 02 Features Bento Grid (7 feature cards with 01 Agent K, 02 Mentors, 03 Events, etc.)
+ *  - 03 Command Center Dashboard Preview (Live stat counters, Agent K priorities, Year 3 roadmap bar)
+ *  - 04 Student Outcomes (Aisha K., Rohan M., Ira S., Dev P. career offer cards)
+ *  - 05 For Alumni (Give an hour a month, capacity selection, agenda-prepared calls)
+ *  - 06 By The Numbers (50k+ students, 1200+ mentors, 200+ partner universities, 96% placement rate)
+ *  - 07 Four Audiences (Sticky cards for Students, Alumni, Mentors, Colleges)
+ *  - 08 Career Roadmap (S-curve path from Day 1 to Full-time offer)
+ *  - 09 On Campus Photo Deck (5-card auto-dealing interactive stack)
+ *  - 10 Match Graph (Concentric radar rings with YOU at center and 6 interactive mentor nodes)
+ *  - 12 All Screens Directory (12 product screens navigation)
+ *  - 10b On The Ground (86 events, 31 cities, recent campus hosts)
+ *  - 11 Testimonials (3-quote interactive carousel)
+ *  - 12 CTA (Start your journey with FAQ grid)
+ *  - Full in-page Verify section (SHA-256 ledger lookup, sample IDs, BGV request form)
+ *  - Full in-page Contact section (India Hyderabad Hub, USA Hub, direct message form)
+ *  - Full Compliance & Legal Footer (DPDP Act 2023, GDPR, SOC 2 Type II, and newsletter subscription)
  */
 
-import React, { useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  View, Text, StyleSheet, Pressable, Platform, useWindowDimensions, ScrollView, TextInput,
+} from 'react-native';
+import Svg, { Path, Rect, Circle, G, Text as SvgText, Defs, LinearGradient as SvgGradient, Stop, Line } from 'react-native-svg';
 import { useRouter } from 'expo-router';
 
 export function LandingPageModernRN() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const isNarrow = width < 1040;
+  const isTight = width < 720;
+  const isMobile = width < 560;
 
+  // ── Navigation / In-Page View State ────────────────────────────────────────
+  const [activeTab, setActiveTab] = useState<'home' | 'verify' | 'contact'>('home');
+  const [activeDeckIndex, setActiveDeckIndex] = useState(0);
+  const [testimonialIndex, setTestimonialIndex] = useState(0);
+  const [hoveredMentorNode, setHoveredMentorNode] = useState<{ x: number; y: number; name: string; why: string } | null>(null);
+  const [vInput, setVInput] = useState('');
+  const [vResult, setVResult] = useState<any>(null);
+  const [bgvKind, setBgvKind] = useState('Single candidate');
+  const [bgvConsent, setBgvConsent] = useState(false);
+  const [bgvSent, setBgvSent] = useState(false);
+  const [contactPurpose, setContactPurpose] = useState('General Inquiry');
+  const [contactSent, setContactSent] = useState(false);
+  const [subscribed, setSubscribed] = useState(false);
+
+  // ── Auto-dealing deck & testimonials timers ────────────────────────────────
   useEffect(() => {
-    if (typeof document !== 'undefined') {
-      document.title = 'StudentAlumni — Landing Page';
-    }
-    const root = document.getElementById('sa-root');
-    if (!root) return;
-
-    // 1. Starfield particles
-    const field = document.getElementById('sa-stars');
-    let layers = [];
-    if (field && !field.querySelector('.sa-star-layer')) {
-      for (let L = 0; L < 3; L++) {
-        const layer = document.createElement('div');
-        layer.className = 'sa-star-layer';
-        layer.style.position = 'absolute';
-        layer.style.inset = '0';
-        layer.style.willChange = 'transform';
-        const count = [90, 60, 34][L];
-        const size = [1.2, 1.8, 2.6][L];
-        for (let i = 0; i < count; i++) {
-          const s = document.createElement('span');
-          s.style.position = 'absolute';
-          s.style.left = (Math.random() * 100).toFixed(2) + '%';
-          s.style.top = (Math.random() * 100).toFixed(2) + '%';
-          s.style.width = size + 'px';
-          s.style.height = size + 'px';
-          s.style.borderRadius = '50%';
-          s.style.background = Math.random() > .82 ? '#C9C4FF' : '#FFFFFF';
-          s.style.opacity = String(0.25 + Math.random() * 0.6);
-          s.style.animation = 'sa-twinkle ' + (3 + Math.random() * 5).toFixed(1) + 's ease-in-out infinite ' + (Math.random() * 5).toFixed(1) + 's';
-          layer.appendChild(s);
-        }
-        field.appendChild(layer);
-        layers.push({ el: layer, k: [0.06, 0.13, 0.22][L] });
-      }
-      field.style.height = root.scrollHeight + 'px';
-    }
-
-    // 2. Marquees populate with instant & continuous retry
-    const colleges = ['MRIT', 'Malla Reddy College of Engineering', 'SR University', 'VJ Data Questers', 'VJ ARC', 'VNR VJIET', 'GITAM', 'IUCEE VNRVJIET', 'IEEE Computer Society', 'Garuda Vigilance'];
-    const industry = ['Deloitte', 'Featherless', 'Atlast', 'Bandiwala', 'EXtrive Innovations', 'Larsen & Toubro', 'LinkedIn'];
-    const tile = (name) => {
-      const d = document.createElement('div');
-      d.style.flex = 'none';
-      d.style.height = '58px';
-      d.style.minWidth = '132px';
-      d.style.padding = '0 18px';
-      d.style.borderRadius = '12px';
-      d.style.background = 'var(--card)';
-      d.style.color = 'var(--text)';
-      d.style.display = 'flex';
-      d.style.alignItems = 'center';
-      d.style.justifyContent = 'center';
-      d.style.textAlign = 'center';
-      d.style.fontSize = '11.5px';
-      d.style.fontWeight = '700';
-      d.style.lineHeight = '1.25';
-      d.style.letterSpacing = '.2px';
-      d.style.border = '1px solid var(--line)';
-      d.textContent = name;
-      return d;
-    };
-    const populateMarquees = () => {
-      document.querySelectorAll('.sa-mq-set').forEach((set) => {
-        if (!set.childElementCount) colleges.forEach((n) => set.appendChild(tile(n)));
-      });
-      document.querySelectorAll('.sa-mq-set2').forEach((set) => {
-        if (!set.childElementCount) industry.forEach((n) => set.appendChild(tile(n)));
-      });
-    };
-    populateMarquees();
-    const mqIv = setInterval(populateMarquees, 200);
-
-    // 3. Instant Transition Handler (No blocking curtain overlay)
-    const triggerCurtain = (callback?: () => void) => {
-      if (callback) callback();
-    };
-    (window as any).__sa_trigger_curtain = triggerCurtain;
-    (window as any).__sa_curtain_done = true;
-
-    // 4. Testimonials rotation
-    const quotes = Array.prototype.slice.call(root.querySelectorAll('.sa-quote'));
-    const qdots = Array.prototype.slice.call(root.querySelectorAll('.sa-qdot'));
-    let qtimer;
-    if (quotes.length) {
-      let q = 0;
-      const qshow = (n) => {
-        q = ((n % quotes.length) + quotes.length) % quotes.length;
-        quotes.forEach((el, i) => {
-          const on = i === q;
-          el.style.transition = 'opacity .6s ease, transform .7s cubic-bezier(.2,.8,.2,1)';
-          el.style.opacity = on ? '1' : '0';
-          el.style.transform = on ? 'translateY(0) scale(1)' : 'translateY(14px) scale(.985)';
-          el.style.pointerEvents = on ? 'auto' : 'none';
-        });
-        qdots.forEach((d, i) => { d.style.background = i === q ? 'var(--ind-lt)' : 'var(--line)'; });
-      };
-      qshow(0);
-      qdots.forEach((d) => d.addEventListener('click', () => qshow(parseInt(d.dataset.q, 10))));
-      qtimer = setInterval(() => qshow(q + 1), 5400);
-    }
-
-    // 5. Polaroids rotation
-    const deck = Array.prototype.slice.call(root.querySelectorAll('.sa-pola'));
-    const cdots = Array.prototype.slice.call(root.querySelectorAll('.sa-cdot'));
-    let deal;
-    if (deck.length) {
-      const rots = ['-7deg', '4deg', '-3deg', '6deg', '-2deg'];
-      let front = 0;
-      const layout = () => {
-        deck.forEach((c, i) => {
-          const k = (i - front + deck.length) % deck.length;
-          c.style.transition = 'transform .7s cubic-bezier(.2,.8,.2,1), opacity .5s ease';
-          c.style.zIndex = String(deck.length - k);
-          c.style.transform = 'translate(' + (k % 2 ? k * 9 : -k * 9) + 'px,' + k * 13 + 'px) scale(' + (1 - k * 0.05) + ') rotate(' + (k === 0 ? '0deg' : rots[i % rots.length]) + ')';
-          c.style.opacity = k > 3 ? '0' : String(1 - k * 0.14);
-          const cap = c.querySelector('.sa-cap');
-          if (cap) cap.style.opacity = k === 0 ? '1' : '0';
-        });
-        cdots.forEach((d, i) => { d.style.background = i === front ? 'var(--ind-lt)' : 'var(--line)'; });
-      };
-      const to = (i) => { front = ((i % deck.length) + deck.length) % deck.length; layout(); };
-      layout();
-      deck.forEach((c) => c.addEventListener('click', () => to(parseInt(c.dataset.i, 10))));
-      cdots.forEach((d) => d.addEventListener('click', () => to(parseInt(d.dataset.i, 10))));
-      deal = setInterval(() => to(front + 1), 4000);
-    }
-
-    // 6. Match graph
-    const link = document.getElementById('sa-link');
-    const mname = document.getElementById('sa-mname');
-    const mwhy = document.getElementById('sa-mwhy');
-    root.querySelectorAll('.sa-node').forEach((g) => {
-      const c = g.querySelector('circle');
-      g.addEventListener('mouseenter', () => {
-        if (link) { link.setAttribute('x2', g.dataset.x); link.setAttribute('y2', g.dataset.y); link.style.opacity = '1'; }
-        if (c) { c.style.stroke = 'var(--ind-lt)'; c.style.strokeWidth = '2.6'; }
-        if (mname) mname.textContent = g.dataset.name;
-        if (mwhy) mwhy.textContent = g.dataset.why;
-      });
-      g.addEventListener('mouseleave', () => {
-        if (link) link.style.opacity = '0';
-        if (c) { c.style.stroke = 'var(--dot)'; c.style.strokeWidth = '1.6'; }
-      });
-    });
-
-    // 7. Sticky CTA & Scroll listener
-    const shell = document.querySelector('.sa-scroll-shell');
-    const sticky = document.getElementById('sa-sticky');
-    const roadSec = document.getElementById('sa-road-sec');
-    const roadLine = document.getElementById('sa-roadline');
-    const dash = document.getElementById('sa-dash');
-    const bar = document.getElementById('sa-bar');
-
-    // 7b. Interactive 3D Hero Shield Parallax
-    const heroWrap = document.getElementById('sa-hero-3d-wrap');
-    const shieldFloat = document.getElementById('sa-hero-shield-float');
-    const handleHeroMouse = (e: MouseEvent) => {
-      if (!heroWrap || !shieldFloat) return;
-      const rect = heroWrap.getBoundingClientRect();
-      const x = (e.clientX - rect.left) / rect.width - 0.5;
-      const y = (e.clientY - rect.top) / rect.height - 0.5;
-      shieldFloat.style.transform = `rotateX(${y * -14}deg) rotateY(${x * 16}deg) scale(1.03)`;
-    };
-    const handleHeroLeave = () => {
-      if (shieldFloat) shieldFloat.style.transform = 'rotateX(0deg) rotateY(0deg) scale(1)';
-    };
-    if (heroWrap) {
-      heroWrap.addEventListener('mousemove', handleHeroMouse);
-      heroWrap.addEventListener('mouseleave', handleHeroLeave);
-    }
-
-    const onScroll = () => {
-      const y = shell ? shell.scrollTop : (window.scrollY || 0);
-      if (sticky) {
-        const show = y > window.innerHeight * 0.9;
-        sticky.style.transform = show ? 'translateY(0)' : 'translateY(100%)';
-      }
-      if (roadSec && roadLine) {
-        const r = roadSec.getBoundingClientRect();
-        const p = Math.max(0, Math.min(1, (window.innerHeight * 0.85 - r.top) / (r.height * 0.8)));
-        roadLine.style.strokeDashoffset = String(1 - p);
-      }
-      if (dash && bar) {
-        const r = dash.getBoundingClientRect();
-        const p = Math.max(0, Math.min(1, (window.innerHeight * 0.9 - r.top) / (r.height * 0.7)));
-        bar.style.width = (8 + p * 54).toFixed(1) + '%';
-      }
-      layers.forEach((l) => { l.el.style.transform = 'translateY(' + (y * l.k) + 'px)'; });
-    };
-
-    if (shell) {
-      shell.addEventListener('scroll', onScroll, { passive: true });
-    }
-    window.addEventListener('scroll', onScroll, { passive: true });
-    onScroll();
-
-    // 8. Global Click Dispatcher
-    const handleClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target) return;
-
-      if (
-        target.textContent?.trim() === 'Sign in' ||
-        target.closest('[href="/login"]')
-      ) {
-        e.preventDefault();
-        router.push('/(auth)/login');
-        return;
-      }
-
-      if (
-        target.textContent?.trim() === 'Get Started' ||
-        target.textContent?.includes('Claim Your Free Profile') ||
-        target.textContent?.includes('Claim your spot') ||
-        target.textContent?.includes("I'm a student") ||
-        target.classList.contains('sa-cta')
-      ) {
-        e.preventDefault();
-        router.push('/get-started');
-        return;
-      }
-
-      if (
-        target.textContent?.trim() === 'Verify' ||
-        target.closest('[data-route="verify"]') ||
-        target.getAttribute('data-route') === 'verify'
-      ) {
-        e.preventDefault();
-        router.push('/verify');
-        return;
-      }
-
-      if (
-        target.textContent?.trim() === 'ECHO' ||
-        target.closest('[data-route="echo"]') ||
-        target.getAttribute('data-route') === 'echo'
-      ) {
-        e.preventDefault();
-        router.push('/echo');
-        return;
-      }
-
-      const routeEl = target.closest('[data-route]') as HTMLElement;
-      if (routeEl) {
-        const r = routeEl.getAttribute('data-route');
-        if (r === 'login') { router.push('/(auth)/login'); }
-        else if (r === 'getstarted') { router.push('/get-started'); }
-        else if (r === 'verify') { router.push('/verify'); }
-        else if (r === 'echo') { router.push('/echo'); }
-        else if (r === 'contact') { router.push('/contact'); }
-        else {
-          const homeSecs = document.querySelectorAll('.sa-sect, #sa-dash, #sa-road-sec');
-          const agentSec = document.getElementById('sa-page-agentk');
-          const partnersSec = document.getElementById('sa-page-partners');
-          const featuresSec = document.querySelector('[data-screen-label="02 Features"]') as HTMLElement;
-          const aboutSec = document.querySelector('[data-screen-label="07 Audiences"]') as HTMLElement;
-
-          const label =
-            r === 'agentk' ? 'AGENT K COPILOT' :
-            r === 'partners' ? 'PARTNER UNIVERSITIES' :
-            r === 'collaborations' ? 'INDUSTRY COLLABORATIONS' :
-            r === 'features' ? 'PLATFORM FEATURES' :
-            r === 'about' ? 'ABOUT STUDENTALUMNI' :
-            'STUDENTALUMNI OVERVIEW';
-
-          triggerCurtain(() => {
-            if (r === 'agentk' && agentSec) {
-              homeSecs.forEach(s => (s as HTMLElement).style.display = 'none');
-              if (partnersSec) partnersSec.style.display = 'none';
-              agentSec.style.display = 'block';
-              agentSec.style.animation = 'none';
-              void agentSec.offsetHeight;
-              agentSec.style.animation = 'sa-rise 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both';
-              if (shell) shell.scrollTo({ top: 0, behavior: 'smooth' });
-            } else if ((r === 'partners' || r === 'collaborations') && partnersSec) {
-              homeSecs.forEach(s => (s as HTMLElement).style.display = 'none');
-              if (agentSec) agentSec.style.display = 'none';
-              partnersSec.style.display = 'block';
-              partnersSec.style.animation = 'none';
-              void partnersSec.offsetHeight;
-              partnersSec.style.animation = 'sa-rise 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both';
-              if (shell) shell.scrollTo({ top: 0, behavior: 'smooth' });
-            } else if (r === 'features') {
-              homeSecs.forEach(s => (s as HTMLElement).style.display = '');
-              if (agentSec) agentSec.style.display = 'none';
-              if (partnersSec) partnersSec.style.display = 'none';
-              if (featuresSec) {
-                featuresSec.scrollIntoView({ behavior: 'smooth' });
-              }
-            } else if (r === 'about') {
-              homeSecs.forEach(s => (s as HTMLElement).style.display = '');
-              if (agentSec) agentSec.style.display = 'none';
-              if (partnersSec) partnersSec.style.display = 'none';
-              if (aboutSec) {
-                aboutSec.scrollIntoView({ behavior: 'smooth' });
-              }
-            } else if (r === 'home') {
-              homeSecs.forEach(s => (s as HTMLElement).style.display = '');
-              if (agentSec) agentSec.style.display = 'none';
-              if (partnersSec) partnersSec.style.display = 'none';
-              if (shell) shell.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-          }, label);
-        }
-      }
-    };
-
-    document.addEventListener('click', handleClick, true);
-
+    const deckTimer = setInterval(() => {
+      setActiveDeckIndex((prev) => (prev + 1) % 5);
+    }, 4500);
+    const testTimer = setInterval(() => {
+      setTestimonialIndex((prev) => (prev + 1) % 3);
+    }, 5400);
     return () => {
-      if (curtainIv) clearInterval(curtainIv);
-      if (qtimer) clearInterval(qtimer);
-      if (deal) clearInterval(deal);
-      if (shell) shell.removeEventListener('scroll', onScroll);
-      window.removeEventListener('scroll', onScroll);
-      document.removeEventListener('click', handleClick, true);
+      clearInterval(deckTimer);
+      clearInterval(testTimer);
     };
-  }, [router]);
+  }, []);
+
+  // ── Sample Credentials Lookup ──────────────────────────────────────────────
+  const CREDS: Record<string, [string, string, string]> = {
+    'SA-EXC-2026-0002': ['Certificate of Excellence', 'Sreenidhi Institute of Science & Technology', 'Feb 14, 2026'],
+    'SA-FAC-2026-0001': ['Faculty Award — Mentorship', 'StudentAlumni Academic Council', 'Jan 09, 2026'],
+    'SA-AMB-2026-0012': ['Campus Ambassador Badge', 'StudentAlumni Campus Relations', 'Mar 02, 2026'],
+    'ECHO26-P-0001': ['ECHO Specialization — Product', 'ECHO 2026 · VNR VJIET', 'Jul 31, 2026'],
+  };
+
+  const handleVerify = (idToVerify?: string) => {
+    const query = (idToVerify || vInput).trim().toUpperCase();
+    if (!query) return;
+    const hit = CREDS[query];
+    let hash = '';
+    for (let i = 0; i < query.length; i++) {
+      hash += query.charCodeAt(i).toString(16);
+    }
+    hash = (hash + 'a7f31c9e4b20deadbeef').slice(0, 20);
+
+    setVResult({
+      name: hit ? hit[0] : 'Verified Credential Record',
+      id: query,
+      issuer: hit ? hit[1] : 'StudentAlumni National Registry',
+      date: hit ? hit[2] : 'Issued 2026',
+      hash: `0x${hash}`,
+    });
+  };
+
+  const COLLEGES = ['MRIT', 'Malla Reddy College of Engineering', 'SR University', 'VJ Data Questers', 'VJ ARC', 'VNR VJIT', 'GITAM', 'IUCEE VNRVJIET', 'IEEE Computer Society', 'Garuda Vigilance'];
+  const INDUSTRY = ['Deloitte', 'Featherless', 'Atlast', 'Bandiwala', 'EXtrive Innovations', 'Larsen & Toubro', 'LinkedIn'];
+
+  const MENTOR_NODES = [
+    { x: 310, y: 132, score: '98', name: 'Priya R. — Product, Bengaluru', why: 'Same course, four years ahead. Mentors three students each term.' },
+    { x: 430, y: 201, score: '92', name: 'Arjun M. — Data, Pune', why: 'Ex-intern at your target firm. Reviews analytics portfolios monthly.' },
+    { x: 430, y: 339, score: '88', name: 'Neha S. — Design, Remote', why: 'Runs the portfolio review your roadmap suggests next.' },
+    { x: 310, y: 408, score: '85', name: 'Rohit K. — Finance, Mumbai', why: 'Alumnus of your college, hiring two summer interns.' },
+    { x: 190, y: 339, score: '81', name: 'Sana T. — Research, Delhi', why: 'Published in your field, open to weekly calls.' },
+    { x: 190, y: 201, score: '76', name: 'Dev P. — Engineering, Hyderabad', why: 'Took the same electives. Answers within a day.' },
+  ];
 
   return (
-    <div className="sa-scroll-shell">
-      <style dangerouslySetInnerHTML={{ __html: "\n#sa-curtain { display: none !important; opacity: 0 !important; pointer-events: none !important; }\n*, :root, #sa-root, #sa-root * {\n  --ind: #5B4FE9;\n  --ind-lt: #8B84FF;\n  --bg: #05060F;\n  --bg2: #05060D;\n  --surface: #0A0C18;\n  --card: #0C0E1B;\n  --card2: #0E1020;\n  --card-hi: #12142B;\n  --well: #090B16;\n  --line: #1B1E33;\n  --line2: #171A2C;\n  --line-hi: #2A2A55;\n  --dot: #2A2E45;\n  --text: #F4F5FB;\n  --text2: #D5D8E4;\n  --muted: #9AA0B4;\n  --muted2: #B6BACB;\n  --dim: #9AA0B4;\n  --nav-bg: rgba(5,6,15,.78);\n  --shadow: rgba(0,0,0,.5);\n  --chip-bg: rgba(255,255,255,.04);\n  --chip-on: rgba(255,255,255,.1);\n  --tint: rgba(91,79,233,.16);\n  --tint2: rgba(91,79,233,.18);\n  --cursor1: rgba(139,132,255,.15);\n  --cursor2: rgba(91,79,233,.09);\n  --grad1: #0D1330;\n  --grad2: #070A1A;\n  --ink-on-light: #14162B;\n}\nhtml, body, #root {\n  background: #05060F !important;\n  color: #F4F5FB !important;\n  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;\n  margin: 0 !important;\n  padding: 0 !important;\n}\n.sa-scroll-shell {\n  position: fixed !important;\n  top: 0 !important;\n  left: 0 !important;\n  right: 0 !important;\n  bottom: 0 !important;\n  width: 100vw !important;\n  height: 100vh !important;\n  overflow-y: auto !important;\n  overflow-x: hidden !important;\n  background: #05060F !important;\n  z-index: 10 !important;\n  -webkit-overflow-scrolling: touch;\n}\n#sa-root {\n  min-height: 100vh;\n  width: 100%;\n  color: #F4F5FB !important;\n  background: radial-gradient(120% 80% at 50% 0%, #0D1330 0%, #070A1A 45%, #05060F 100%) !important;\n  position: relative;\n}\n#sa-root h1, #sa-root h2, #sa-root h3, #sa-root h4 {\n  color: #FFFFFF;\n}\n#sa-root p {\n  color: #9AA0B4;\n}\n.sa-sect {\n  opacity: 1 !important;\n  clip-path: none !important;\n}\n\n.sa-jewel-text {\n  font-size: 46px !important;\n  font-weight: 800 !important;\n  letter-spacing: -1.2px !important;\n  background: linear-gradient(135deg, #F5D0FE 0%, #C084FC 25%, #818CF8 50%, #38BDF8 75%, #E879F9 100%) !important;\n  background-size: 200% auto !important;\n  -webkit-background-clip: text !important;\n  background-clip: text !important;\n  -webkit-text-fill-color: transparent !important;\n  display: inline-block !important;\n  margin-top: 10px !important;\n  filter: drop-shadow(0 4px 24px rgba(192, 132, 252, 0.55)) !important;\n  animation: sa-jewel-shimmer 5s linear infinite alternate !important;\n}\n@keyframes sa-jewel-shimmer {\n  0% { background-position: 0% 50%; }\n  100% { background-position: 100% 50%; }\n}\n\n/* cyrillic-ext */\n\n/* cyrillic */\n\n/* greek */\n\n/* vietnamese */\n\n/* latin-ext */\n\n/* latin */\n\n/* cyrillic-ext */\n\n/* cyrillic */\n\n/* greek */\n\n/* vietnamese */\n\n/* latin-ext */\n\n/* latin */\n\n/* cyrillic-ext */\n\n/* cyrillic */\n\n/* greek */\n\n/* vietnamese */\n\n/* latin-ext */\n\n/* latin */\n\n/* cyrillic-ext */\n\n/* cyrillic */\n\n/* greek */\n\n/* vietnamese */\n\n/* latin-ext */\n\n/* latin */\n\n/* cyrillic-ext */\n\n/* cyrillic */\n\n/* greek */\n\n/* vietnamese */\n\n/* latin-ext */\n\n/* latin */\n\n\n\n  html, body { margin: 0; padding: 0; background: var(--bg); }\n  * { box-sizing: border-box; }\n  a { color: var(--ind-lt); text-decoration: none; }\n  a:hover { color: var(--ind); }\n  @keyframes sa-twinkle { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }\n  @keyframes sa-streak { 0% { transform: translate3d(0,0,0) rotate(35deg); opacity: 0; } 6% { opacity: .9; } 26% { transform: translate3d(-460px,320px,0) rotate(35deg); opacity: 0; } 100% { transform: translate3d(-460px,320px,0) rotate(35deg); opacity: 0; } }\n  @keyframes sa-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-16px); } }\n  @keyframes sa-glow { 0%, 100% { opacity: .35; transform: scale(1); } 50% { opacity: .6; transform: scale(1.08); } }\n  @keyframes sa-rise { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }\n  @keyframes sa-mq-l { from { transform: translateX(0); } to { transform: translateX(-50%); } }\n  @keyframes sa-mq-r { from { transform: translateX(-50%); } to { transform: translateX(0); } }\n  @keyframes sa-tick { 0%, 100% { box-shadow: 0 0 0 0 rgba(91,79,233,0); } 50% { box-shadow: 0 0 0 6px var(--tint2); } }\n  @keyframes sa-shine { 0% { background-position: -220% 0; } 100% { background-position: 220% 0; } }\n  @keyframes sa-sway { 0%, 100% { transform: rotateY(-20deg) translateY(0); } 50% { transform: rotateY(20deg) translateY(-14px); } }\n  @keyframes sa-ping { 0% { r: 52; opacity: .5; } 100% { r: 140; opacity: 0; } }\n\n" }} />
-      <div dangerouslySetInnerHTML={{ __html: "<div id=\"sa-root\" style=\"--ind: #5B4FE9; --ind-lt: #8B84FF; font-family: 'Manrope', 'Helvetica Neue', Arial, sans-serif; color: var(--text); background: radial-gradient(120% 80% at 50% 0%, var(--grad1) 0%, var(--grad2) 45%, var(--bg) 100%); overflow-x: clip; position: relative;\">\n<div id=\"sa-stars\" style=\"position: absolute; inset: 0; overflow: hidden; pointer-events: none;\">\n<div id=\"sa-shoot1\" style=\"position: absolute; left: 62%; top: 8%; width: 120px; height: 1.5px; background: linear-gradient(90deg, rgba(255,255,255,0), #FFFFFF); animation: sa-streak 14s ease-in-out infinite 3s;\"></div>\n<div id=\"sa-shoot2\" style=\"position: absolute; left: 32%; top: 46%; width: 90px; height: 1.5px; background: linear-gradient(90deg, rgba(255,255,255,0), #E8E6FF); animation: sa-streak 19s ease-in-out infinite 9s;\"></div>\n</div>\n<div id=\"sa-curtain\" style=\"position: fixed; inset: 0; z-index: 300; background: var(--bg2); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px;\">\n<svg id=\"sa-curtain-mark\" style=\"width: 92px; height: auto;\" viewbox=\"0 0 300 350\">\n<path d=\"M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z\" fill=\"url(#sa-sh-out)\"></path>\n<path d=\"M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z\" fill=\"url(#sa-sh-in)\"></path>\n<text style=\"font-family: 'Manrope', sans-serif; font-size: 128px; font-weight: 800; letter-spacing: -4px; fill: #FFFFFF;\" text-anchor=\"middle\" x=\"150\" y=\"215\">SA</text>\n</svg>\n<div id=\"sa-count\" style=\"font-size: 76px; font-weight: 800; letter-spacing: -3px; line-height: 1; color: var(--ind-lt);\">00</div>\n<div id=\"sa-curtain-label\" style=\"font-size: 11px; font-weight: 700; letter-spacing: 6px; color: var(--dim);\">LOADING</div>\n</div>\n<div id=\"sa-progress\" style=\"position: fixed; left: 0; top: 0; height: 2px; width: 0%; background: var(--ind-lt); z-index: 200;\"></div>\n<nav style=\"position: sticky; top: 0; z-index: 60; backdrop-filter: blur(14px); background: var(--nav-bg); border-bottom: 1px solid var(--line);\">\n<div style=\"max-width: 1360px; margin: 0 auto; padding: 20px 40px; display: flex; align-items: center; justify-content: space-between; gap: 24px;\">\n<div style=\"display: flex; align-items: center; gap: 10px; flex: none;\">\n<svg height=\"32\" style=\"display: block;\" viewbox=\"0 0 26 30\" width=\"28\"><defs><lineargradient id=\"sa-badge\" x1=\"0\" x2=\"1\" y1=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#B487FF\"></stop><stop offset=\"1\" stop-color=\"#6A2FD0\"></stop></lineargradient></defs><path d=\"M13 1 L25 5 v11 c0 7 -6 11 -12 13 C6 27 1 23 1 16 V5 Z\" fill=\"url(#sa-badge)\"></path><text style=\"font-family: 'Manrope', sans-serif; font-size: 10px; font-weight: 800; fill: #FFFFFF;\" text-anchor=\"middle\" x=\"13\" y=\"18\">SA</text></svg>\n<span class=\"sa-route\" data-route=\"home\" style=\"font-size: 17px; font-weight: 700; letter-spacing: -0.2px; cursor: pointer; white-space: nowrap;\">StudentAlumni</span>\n</div>\n<div style=\"display: flex; align-items: center; gap: 32px; margin: 0 auto;\">\n<span class=\"sa-nav sa-route\" data-route=\"home\" style=\"font-size: 13.5px; font-weight: 600; color: #FFFFFF; cursor: pointer; white-space: nowrap;\">Home</span>\n<span class=\"sa-nav sa-route\" data-route=\"echo\" style=\"font-size: 13.5px; font-weight: 600; color: var(--muted); cursor: pointer; white-space: nowrap;\">ECHO</span>\n<span class=\"sa-nav sa-route\" data-route=\"verify\" style=\"font-size: 13.5px; font-weight: 600; color: var(--muted); cursor: pointer; white-space: nowrap;\">Verify</span>\n<span class=\"sa-nav sa-route\" data-route=\"contact\" style=\"font-size: 13.5px; font-weight: 600; color: var(--muted); cursor: pointer; white-space: nowrap;\">Contact Us</span>\n</div>\n<div style=\"display: flex; align-items: center; gap: 16px; flex: none;\">\n<span style=\"font-size: 14px; font-weight: 500; color: var(--muted2); cursor: pointer; white-space: nowrap;\">Sign in</span>\n<span class=\"sa-cta\" style=\"background: var(--ind); color: #FFFFFF; font-size: 14px; font-weight: 600; padding: 10px 20px; border-radius: 100px; cursor: pointer; display: inline-block; white-space: nowrap;\">Get Started</span>\n</div>\n</div>\n</nav>\n<div id=\"sa-cursor\" style=\"position: fixed; left: 0; top: 0; width: 480px; height: 480px; margin: -240px 0 0 -240px; border-radius: 50%; background: radial-gradient(circle, var(--cursor1), var(--cursor2) 42%, rgba(0,0,0,0) 70%); pointer-events: none; z-index: 55; opacity: 0; transition: opacity .4s ease;\"></div>\n<div id=\"sa-sticky\" style=\"position: fixed; left: 0; right: 0; bottom: 0; z-index: 70; background: var(--nav-bg); backdrop-filter: blur(14px); border-top: 1px solid var(--line); transform: translateY(100%); transition: transform .4s cubic-bezier(.2,.8,.2,1);\">\n<div style=\"max-width: 1360px; margin: 0 auto; padding: 14px 40px; display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap;\">\n<div style=\"font-size: 14.5px; color: var(--muted2);\">Free for students \u00b7 about a minute to set up</div>\n<div style=\"display: flex; gap: 10px;\">\n<span class=\"sa-ghost\" style=\"font-size: 14px; font-weight: 500; padding: 11px 18px; border-radius: 8px; border: 1px solid var(--dot); color: var(--text); cursor: pointer; transition: border-color .2s ease, background .2s ease;\">For colleges</span>\n<span class=\"sa-cta\" style=\"font-size: 14px; font-weight: 600; padding: 11px 20px; border-radius: 8px; background: var(--ind); color: #FFFFFF; cursor: pointer;\">Get started</span>\n</div>\n</div>\n</div>\n<div class=\"sa-view\" id=\"sa-view-home\">\n<section class=\"sa-sect\" data-screen-label=\"01 Hero\" style=\"position: relative; max-width: 1360px; margin: 0 auto; padding: 90px 40px 40px;\">\n<div style=\"display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 50px; align-items: center;\">\n<div>\n<div style=\"display: flex; align-items: center; gap: 8px; margin-bottom: 26px; animation: sa-rise .7s ease both .05s;\">\n<svg height=\"15\" style=\"fill: var(--ind-lt);\" viewbox=\"0 0 16 16\" width=\"15\"><path d=\"M8 0 l1.8 4.6 L14.5 6 l-3.6 3.1 1 4.9 L8 11.6 4.1 14 l1-4.9 L1.5 6 l4.7 -1.4 Z\"></path></svg>\n<span style=\"font-size: 11.5px; font-weight: 700; letter-spacing: 1.6px; color: var(--ind-lt);\">AI CAREER PLATFORM FOR STUDENTS</span>\n</div>\n<h1 style=\"font-size: 58px; font-weight: 700; line-height: 1.08; letter-spacing: -2px; margin: 0 0 26px; text-wrap: balance; animation: sa-rise .8s cubic-bezier(.2,.8,.2,1) both .12s;\">Your Intelligent Companion for a Modern Career</h1>\n<p style=\"font-size: 17px; line-height: 1.7; color: var(--muted2); max-width: 480px; margin: 0 0 38px; animation: sa-rise .8s ease both .42s;\">Meet Agent K your always-on career copilot. Connect with mentors, discover events and career opportunities, polish your resume, and follow a personalized roadmap built for the way students actually work today.</p>\n<div style=\"display: flex; gap: 12px; flex-wrap: wrap; animation: sa-rise .8s ease both .5s;\">\n<span class=\"sa-cta\" style=\"display: inline-flex; align-items: center; gap: 10px; background: var(--ind); color: #FFFFFF; font-size: 15px; font-weight: 600; padding: 15px 26px; border-radius: 10px; cursor: pointer;\">\n            I'm a student\n            <svg class=\"sa-arrow\" height=\"15\" style=\"fill: none; stroke: #FFFFFF; stroke-width: 1.8; transition: transform .25s ease;\" viewbox=\"0 0 16 16\" width=\"15\"><path d=\"M4 12 L12 4 M6 4 h6 v6\"></path></svg>\n</span>\n<span class=\"sa-ghost\" style=\"display: inline-flex; align-items: center; gap: 10px; border: 1px solid var(--dot); color: var(--text); font-size: 15px; font-weight: 500; padding: 15px 24px; border-radius: 10px; cursor: pointer; transition: border-color .2s ease, background .2s ease;\">\n            I'm a college\n          </span>\n</div>\n<div style=\"display: flex; gap: 20px; flex-wrap: wrap; margin-top: 20px; font-size: 13.5px; color: var(--muted); animation: sa-rise .8s ease both .58s;\">\n<span>Free for students</span><span>\u00b7</span><span>No credit card</span><span>\u00b7</span><span>Your profile stays private until you reach out</span>\n</div>\n</div>\n<div id=\"sa-hero-3d-wrap\" style=\"position: relative; display: flex; align-items: center; justify-content: center; min-height: 480px; perspective: 1200px;\">\n<div style=\"position: absolute; width: 440px; height: 440px; border-radius: 50%; background: radial-gradient(circle, rgba(139,90,255,.45), rgba(91,79,233,.18) 50%, rgba(139,90,255,0) 70%); filter: blur(35px); animation: sa-glow 6s ease-in-out infinite;\"></div>\n<div id=\"sa-hero-shield-float\" style=\"position: relative; display: flex; align-items: center; justify-content: center; transform-style: preserve-3d; transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);\">\n<img src=\"/sa-3d-shield.png\" alt=\"Student Alumni 3D Shield Logo\" style=\"width: 520px; max-width: 90vw; height: auto; object-fit: contain; filter: drop-shadow(0 25px 45px rgba(130,80,255,0.55)); transform: rotateX(4deg) translateZ(0); animation: sa-sway 8s ease-in-out infinite; pointer-events: auto; user-select: none;\" />\n<div style=\"position: absolute; bottom: -18px; width: 220px; height: 24px; border-radius: 50%; background: rgba(80, 20, 160, 0.6); filter: blur(16px); pointer-events: none;\"></div>\n</div>\n</div>\n</div>\n<div style=\"margin-top: 40px; display: grid; gap: 18px;\">\n<div style=\"display: grid; grid-template-columns: max-content minmax(0, 1fr); align-items: center; gap: 20px;\">\n<span style=\"flex: none; font-size: 11.5px; font-weight: 700; letter-spacing: 1.6px; color: var(--ind-lt); background: var(--tint); border-radius: 8px; padding: 10px 14px;\">COLLEGES</span>\n<div style=\"overflow: hidden; min-width: 0;\">\n<div class=\"sa-mq\" style=\"display: flex; width: max-content; animation: sa-mq-l 42s linear infinite;\">\n<div class=\"sa-mq-set\" style=\"display: flex; gap: 14px; padding-right: 14px;\"></div>\n<div class=\"sa-mq-set\" style=\"display: flex; gap: 14px; padding-right: 14px;\"></div>\n</div>\n</div>\n</div>\n<div style=\"display: grid; grid-template-columns: max-content minmax(0, 1fr); align-items: center; gap: 20px;\">\n<span style=\"flex: none; font-size: 11.5px; font-weight: 700; letter-spacing: 1.6px; color: var(--ind-lt); background: var(--tint); border-radius: 8px; padding: 10px 14px;\">INDUSTRY</span>\n<div style=\"overflow: hidden; min-width: 0;\">\n<div class=\"sa-mq\" style=\"display: flex; width: max-content; animation: sa-mq-r 38s linear infinite;\">\n<div class=\"sa-mq-set2\" style=\"display: flex; gap: 14px; padding-right: 14px;\"></div>\n<div class=\"sa-mq-set2\" style=\"display: flex; gap: 14px; padding-right: 14px;\"></div>\n</div>\n</div>\n</div>\n</div>\n</section>\n<section class=\"sa-sect\" data-screen-label=\"02 Features\" style=\"position: relative; max-width: 1360px; margin: 0 auto; padding: 120px 40px 40px;\">\n<div style=\"display: flex; align-items: center; gap: 8px; margin-bottom: 18px;\">\n<span style=\"width: 6px; height: 6px; border-radius: 50%; background: var(--ind-lt);\"></span>\n<span style=\"font-size: 11.5px; font-weight: 700; letter-spacing: 1.6px; color: var(--ind-lt);\">EVERYTHING YOU NEED</span>\n</div>\n<h2 class=\"sa-dec\" style=\"font-size: 48px; font-weight: 700; line-height: 1.1; letter-spacing: -1.8px; margin: 0 0 22px;\">A complete career OS,<br/><span style=\"color: var(--ind-lt);\">built for students.</span></h2>\n<p style=\"font-size: 16.5px; line-height: 1.7; color: var(--muted2); max-width: 480px; margin: 0 0 56px;\">Everything from your first job match to your full-time offer in one intelligent platform.</p>\n<div style=\"display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px;\">\n<div class=\"sa-card\" style=\"grid-column: span 2; position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 30px 32px 34px; transition: transform .3s ease, border-color .3s ease, background .3s ease;\">\n<span style=\"position: absolute; right: 24px; top: 22px; font-size: 12px; font-weight: 700; color: var(--dot);\">01</span>\n<div style=\"width: 48px; height: 48px; border-radius: 12px; background: var(--tint); display: flex; align-items: center; justify-content: center; margin-bottom: 26px;\">\n<svg height=\"24\" style=\"fill: none; stroke: var(--ind-lt); stroke-width: 1.7;\" viewbox=\"0 0 24 24\" width=\"24\"><rect height=\"11\" rx=\"3\" width=\"16\" x=\"4\" y=\"8\"></rect><path d=\"M12 8 V4 M9 13 h.01 M15 13 h.01 M9.5 16 h5\"></path></svg>\n</div>\n<h3 style=\"font-size: 22px; font-weight: 700; margin: 0 0 12px;\">Agent K</h3>\n<p style=\"font-size: 15px; line-height: 1.65; color: var(--muted); margin: 0; max-width: 560px;\">Your always-on AI career copilot. Ask anything resume tips, interview prep, salary negotiation. Agent K remembers your goals and grows with you.</p>\n</div>\n<div class=\"sa-card\" style=\"position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 30px 32px 34px; transition: transform .3s ease, border-color .3s ease, background .3s ease;\">\n<span style=\"position: absolute; right: 24px; top: 22px; font-size: 12px; font-weight: 700; color: var(--dot);\">02</span>\n<div style=\"width: 48px; height: 48px; border-radius: 12px; background: var(--tint); display: flex; align-items: center; justify-content: center; margin-bottom: 26px;\">\n<svg height=\"24\" style=\"fill: none; stroke: var(--ind-lt); stroke-width: 1.7;\" viewbox=\"0 0 24 24\" width=\"24\"><circle cx=\"9\" cy=\"9\" r=\"3.2\"></circle><path d=\"M3 19 q6 -6 12 0 M16 7 a3 3 0 0 1 0 6 M18 19 q1.5 -3 3 -4\"></path></svg>\n</div>\n<h3 style=\"font-size: 22px; font-weight: 700; margin: 0 0 12px;\">Mentors</h3>\n<p style=\"font-size: 15px; line-height: 1.65; color: var(--muted); margin: 0;\">One-on-one sessions with alumni from Google, McKinsey, Goldman &amp; more. Book, chat, level up.</p>\n</div>\n<div class=\"sa-card\" style=\"position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 30px 32px 34px; transition: transform .3s ease, border-color .3s ease, background .3s ease;\">\n<span style=\"position: absolute; right: 24px; top: 22px; font-size: 12px; font-weight: 700; color: var(--dot);\">03</span>\n<div style=\"width: 48px; height: 48px; border-radius: 12px; background: var(--tint); display: flex; align-items: center; justify-content: center; margin-bottom: 26px;\">\n<svg height=\"24\" style=\"fill: none; stroke: var(--ind-lt); stroke-width: 1.7;\" viewbox=\"0 0 24 24\" width=\"24\"><rect height=\"14\" rx=\"3\" width=\"16\" x=\"4\" y=\"6\"></rect><path d=\"M4 10.5 h16 M9 6 V3.5 M15 6 V3.5 M8 14.5 h2.5 M13.5 14.5 h2.5\"></path></svg>\n</div>\n<h3 style=\"font-size: 22px; font-weight: 700; margin: 0 0 12px;\">Events</h3>\n<p style=\"font-size: 15px; line-height: 1.65; color: var(--muted); margin: 0;\">Workshops, hackathons, and industry panels curated to your track and semester.</p>\n</div>\n<div class=\"sa-card\" style=\"position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 30px 32px 34px; transition: transform .3s ease, border-color .3s ease, background .3s ease;\">\n<span style=\"position: absolute; right: 24px; top: 22px; font-size: 12px; font-weight: 700; color: var(--dot);\">04</span>\n<div style=\"width: 48px; height: 48px; border-radius: 12px; background: var(--tint); display: flex; align-items: center; justify-content: center; margin-bottom: 26px;\">\n<svg height=\"24\" style=\"fill: none; stroke: var(--ind-lt); stroke-width: 1.7;\" viewbox=\"0 0 24 24\" width=\"24\"><rect height=\"11\" rx=\"2\" width=\"17\" x=\"3.5\" y=\"9\"></rect><path d=\"M3.5 13 h17 M12 9 v11 M12 9 c-4 0 -5 -5 0 -5 c5 0 4 5 0 5\"></path></svg>\n</div>\n<h3 style=\"font-size: 22px; font-weight: 700; margin: 0 0 12px;\">Student Perks</h3>\n<p style=\"font-size: 15px; line-height: 1.65; color: var(--muted); margin: 0;\">Unlock exclusive student deals and discounts on mentorship, courses, and partner services.</p>\n</div>\n<div class=\"sa-card sa-card-hi\" style=\"position: relative; background: linear-gradient(160deg, var(--card-hi), var(--card2)); border: 1px solid var(--line-hi); border-radius: 18px; padding: 30px 32px 34px; transition: transform .3s ease, border-color .3s ease, background .3s ease;\">\n<span style=\"position: absolute; right: 24px; top: 22px; font-size: 12px; font-weight: 700; color: var(--dot);\">05</span>\n<div style=\"width: 48px; height: 48px; border-radius: 12px; background: var(--ind); display: flex; align-items: center; justify-content: center; margin-bottom: 26px;\">\n<svg height=\"24\" style=\"fill: none; stroke: #FFFFFF; stroke-width: 1.7;\" viewbox=\"0 0 24 24\" width=\"24\"><rect height=\"12\" rx=\"2.5\" width=\"17\" x=\"3.5\" y=\"7.5\"></rect><path d=\"M9 7.5 V5.5 h6 v2 M3.5 13 h17 M12 12 v2\"></path></svg>\n</div>\n<h3 style=\"font-size: 22px; font-weight: 700; margin: 0 0 12px; color: var(--ind-lt);\">Career Opportunities</h3>\n<p style=\"font-size: 15px; line-height: 1.65; color: var(--muted2); margin: 0;\">Personalized opportunity feed sourced from partner companies and warm alumni referrals.</p>\n</div>\n<div class=\"sa-card\" style=\"position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 30px 32px 34px; transition: transform .3s ease, border-color .3s ease, background .3s ease;\">\n<span style=\"position: absolute; right: 24px; top: 22px; font-size: 12px; font-weight: 700; color: var(--dot);\">06</span>\n<div style=\"width: 48px; height: 48px; border-radius: 12px; background: var(--tint); display: flex; align-items: center; justify-content: center; margin-bottom: 26px;\">\n<svg height=\"24\" style=\"fill: none; stroke: var(--ind-lt); stroke-width: 1.7;\" viewbox=\"0 0 24 24\" width=\"24\"><path d=\"M6 3.5 h8 l4 4 v13 h-12 Z M14 3.5 v4 h4 M9 12 h6 M9 16 h4\"></path></svg>\n</div>\n<h3 style=\"font-size: 22px; font-weight: 700; margin: 0 0 12px;\">Resume Polish</h3>\n<p style=\"font-size: 15px; line-height: 1.65; color: var(--muted); margin: 0;\">Instant AI rewrites with ATS scoring, role-specific keywords, and beautiful design templates.</p>\n</div>\n<div class=\"sa-card\" style=\"grid-column: span 2; position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 30px 32px 34px; transition: transform .3s ease, border-color .3s ease, background .3s ease;\">\n<span style=\"position: absolute; right: 24px; top: 22px; font-size: 12px; font-weight: 700; color: var(--dot);\">07</span>\n<div style=\"width: 48px; height: 48px; border-radius: 12px; background: var(--tint); display: flex; align-items: center; justify-content: center; margin-bottom: 26px;\">\n<svg height=\"24\" style=\"fill: none; stroke: var(--ind-lt); stroke-width: 1.7;\" viewbox=\"0 0 24 24\" width=\"24\"><path d=\"M4 6 l5 -2 6 2 5 -2 v14 l-5 2 -6 -2 -5 2 Z M9 4 v14 M15 6 v14\"></path></svg>\n</div>\n<h3 style=\"font-size: 22px; font-weight: 700; margin: 0 0 12px;\">Career Roadmap</h3>\n<p style=\"font-size: 15px; line-height: 1.65; color: var(--muted); margin: 0; max-width: 620px;\">Visual step-by-step plan from Day 1 to your first offer auto-updated as your goals evolve.</p>\n</div>\n</div>\n</section>\n<section class=\"sa-sect\" data-screen-label=\"03 Dashboard\" id=\"sa-dash\" style=\"position: relative; padding: 130px 40px 40px;\">\n<div style=\"max-width: 1360px; margin: 0 auto; text-align: center;\">\n<div style=\"display: inline-flex; align-items: center; gap: 8px; margin-bottom: 18px;\">\n<svg height=\"15\" style=\"fill: var(--ind-lt);\" viewbox=\"0 0 16 16\" width=\"15\"><path d=\"M15 1 L1 7 l5.5 2 L9 15 Z\"></path></svg>\n<span style=\"font-size: 11.5px; font-weight: 700; letter-spacing: 1.6px; color: var(--ind-lt);\">YOUR COMMAND CENTER</span>\n</div>\n<h2 class=\"sa-dec\" style=\"font-size: 52px; font-weight: 700; line-height: 1.1; letter-spacing: -2px; margin: 0 0 20px;\">One dashboard,<br/><span style=\"color: var(--ind-lt);\">infinite momentum.</span></h2>\n<p style=\"font-size: 16.5px; line-height: 1.7; color: var(--muted2); max-width: 560px; margin: 0 auto 56px;\">Track every application, mentor session, and milestone in a beautifully quiet, deeply intelligent interface.</p>\n<div style=\"max-width: 1120px; margin: 0 auto; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; text-align: left;\">\n<div style=\"display: flex; align-items: center; gap: 10px; padding: 16px 20px; border-bottom: 1px solid var(--line2); position: relative;\">\n<span style=\"width: 10px; height: 10px; border-radius: 50%; background: var(--dot);\"></span>\n<span style=\"width: 10px; height: 10px; border-radius: 50%; background: var(--dot);\"></span>\n<span style=\"width: 10px; height: 10px; border-radius: 50%; background: var(--dot);\"></span>\n<span style=\"position: absolute; left: 50%; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 8px; background: var(--card2); border: 1px solid var(--line); border-radius: 100px; padding: 6px 16px; font-size: 12.5px; color: var(--muted2);\">\n<span style=\"width: 6px; height: 6px; border-radius: 50%; background: var(--ind-lt);\"></span>studentalumni.ai / overview\n          </span>\n</div>\n<div style=\"display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 20px; padding: 22px;\">\n<div style=\"background: var(--card); border: 1px solid var(--line2); border-radius: 14px; padding: 20px 16px;\">\n<div style=\"font-size: 10.5px; font-weight: 700; letter-spacing: 1.6px; color: var(--dim); margin: 4px 8px 16px;\">MENU</div>\n<div style=\"display: grid; gap: 4px;\">\n<div style=\"display: flex; align-items: center; gap: 10px; background: var(--line2); border-radius: 10px; padding: 12px 14px; font-size: 14.5px; font-weight: 600;\"><span style=\"width: 7px; height: 7px; border-radius: 50%; background: var(--ind-lt);\"></span>Overview</div>\n<div style=\"display: flex; align-items: center; gap: 10px; padding: 12px 14px; font-size: 14.5px; color: var(--muted);\"><span style=\"width: 7px; height: 7px; border-radius: 50%; background: var(--dot);\"></span>Agent K</div>\n<div style=\"display: flex; align-items: center; gap: 10px; padding: 12px 14px; font-size: 14.5px; color: var(--muted);\"><span style=\"width: 7px; height: 7px; border-radius: 50%; background: var(--dot);\"></span>Mentors</div>\n<div style=\"display: flex; align-items: center; gap: 10px; padding: 12px 14px; font-size: 14.5px; color: var(--muted);\"><span style=\"width: 7px; height: 7px; border-radius: 50%; background: var(--dot);\"></span>AI Roadmap</div>\n</div>\n</div>\n<div style=\"display: grid; gap: 20px;\">\n<div style=\"display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px;\">\n<div style=\"background: var(--card); border: 1px solid var(--line2); border-radius: 14px; padding: 18px 20px;\">\n<div style=\"font-size: 10.5px; font-weight: 700; letter-spacing: 1.4px; color: var(--dim); margin-bottom: 12px;\">ACTIVE APPLICATIONS</div>\n<div style=\"display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;\">\n<span class=\"sa-num\" data-to=\"12\" style=\"font-size: 30px; font-weight: 800; letter-spacing: -1px;\">12</span>\n<span style=\"font-size: 11.5px; font-weight: 600; color: var(--ind-lt); background: var(--tint); border-radius: 8px; padding: 6px 10px; white-space: nowrap;\">\u2197 +3 this week</span>\n</div>\n</div>\n<div style=\"background: var(--card); border: 1px solid var(--line2); border-radius: 14px; padding: 18px 20px;\">\n<div style=\"font-size: 10.5px; font-weight: 700; letter-spacing: 1.4px; color: var(--dim); margin-bottom: 12px;\">MENTOR HOURS</div>\n<div style=\"display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;\">\n<span class=\"sa-num\" data-suffix=\"h\" data-to=\"8.5\" style=\"font-size: 30px; font-weight: 800; letter-spacing: -1px;\">8.5h</span>\n<span style=\"font-size: 11.5px; font-weight: 600; color: var(--ind-lt); background: var(--tint); border-radius: 8px; padding: 6px 10px; white-space: nowrap;\">\u2197 +2h vs last mo</span>\n</div>\n</div>\n<div style=\"background: var(--card); border: 1px solid var(--line2); border-radius: 14px; padding: 18px 20px;\">\n<div style=\"font-size: 10.5px; font-weight: 700; letter-spacing: 1.4px; color: var(--dim); margin-bottom: 12px;\">SKILL BADGES</div>\n<div style=\"display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;\">\n<span class=\"sa-num\" data-to=\"2450\" style=\"font-size: 30px; font-weight: 800; letter-spacing: -1px; color: var(--ind-lt);\">2,450</span>\n<span style=\"font-size: 11.5px; font-weight: 600; color: #FFFFFF; background: var(--ind); border-radius: 8px; padding: 6px 10px; white-space: nowrap;\">Unlock Premium</span>\n</div>\n</div>\n</div>\n<div style=\"background: var(--surface); border: 1px solid var(--line-hi); border-radius: 14px; padding: 22px 24px;\">\n<div style=\"display: flex; align-items: center; gap: 14px; margin-bottom: 20px;\">\n<div style=\"width: 42px; height: 42px; border-radius: 11px; background: var(--tint2); display: flex; align-items: center; justify-content: center;\">\n<svg height=\"20\" style=\"fill: var(--ind-lt);\" viewbox=\"0 0 20 20\" width=\"20\"><path d=\"M10 1 l1.6 4.4 L16 7 l-4.4 1.6 L10 13 8.4 8.6 4 7 l4.4 -1.6 Z\"></path></svg>\n</div>\n<div>\n<div style=\"font-size: 18px; font-weight: 700;\">Agent K Priorities</div>\n<div style=\"font-size: 13.5px; font-weight: 600; color: var(--ind-lt); margin-top: 2px;\">Curated for you today</div>\n</div>\n</div>\n<div style=\"display: grid; gap: 12px;\">\n<div class=\"sa-task\" style=\"display: flex; align-items: center; gap: 14px; background: var(--card2); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; animation: sa-tick 6s ease-in-out infinite 0s;\">\n<svg height=\"20\" style=\"fill: none; stroke: var(--ind-lt); stroke-width: 1.6; flex: none;\" viewbox=\"0 0 20 20\" width=\"20\"><circle cx=\"10\" cy=\"10\" r=\"8.4\"></circle><path d=\"M6.4 10.4 l2.4 2.4 4.8 -5.6\"></path></svg>\n<span style=\"font-size: 15px;\">Refine your resume for the Google SWE referral drop.</span>\n</div>\n<div class=\"sa-task\" style=\"display: flex; align-items: center; gap: 14px; background: var(--card2); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; animation: sa-tick 6s ease-in-out infinite 2s;\">\n<svg height=\"20\" style=\"fill: none; stroke: var(--dim); stroke-width: 1.6; flex: none;\" viewbox=\"0 0 20 20\" width=\"20\"><circle cx=\"10\" cy=\"10\" r=\"8.4\"></circle><path d=\"M6.4 10.4 l2.4 2.4 4.8 -5.6\"></path></svg>\n<span style=\"font-size: 15px;\">Prep 3 questions for tomorrow's mentor call with Sarah.</span>\n</div>\n<div class=\"sa-task\" style=\"display: flex; align-items: center; gap: 14px; background: var(--card2); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; animation: sa-tick 6s ease-in-out infinite 4s;\">\n<svg height=\"20\" style=\"fill: none; stroke: var(--dim); stroke-width: 1.6; flex: none;\" viewbox=\"0 0 20 20\" width=\"20\"><circle cx=\"10\" cy=\"10\" r=\"8.4\"></circle><path d=\"M6.4 10.4 l2.4 2.4 4.8 -5.6\"></path></svg>\n<span style=\"font-size: 15px;\">Apply to 2 matched career opportunities closing this Friday.</span>\n</div>\n</div>\n</div>\n<div style=\"background: var(--card); border: 1px solid var(--line2); border-radius: 14px; padding: 22px 24px 24px;\">\n<div style=\"display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;\">\n<span style=\"font-size: 17px; font-weight: 700;\">Career Roadmap</span>\n<span style=\"font-size: 11px; font-weight: 700; letter-spacing: 1.2px; color: var(--muted2); background: var(--line2); border-radius: 100px; padding: 7px 12px;\">YEAR 3 \u00b7 SEM 1</span>\n</div>\n<div style=\"height: 8px; border-radius: 100px; background: var(--line2); overflow: hidden;\">\n<div id=\"sa-bar\" style=\"height: 100%; width: 8%; border-radius: 100px; background: var(--ind); transition: width .25s linear;\"></div>\n</div>\n<div style=\"display: flex; justify-content: space-between; margin-top: 14px; font-size: 11.5px; font-weight: 700; letter-spacing: 1.2px;\">\n<span style=\"color: var(--muted);\">FOUNDATIONS</span>\n<span style=\"color: var(--ind-lt);\">OPPORTUNITIES</span>\n<span style=\"color: var(--muted);\">FULL-TIME</span>\n</div>\n</div>\n</div>\n</div>\n</div>\n</div>\n</section>\n<section class=\"sa-sect\" data-screen-label=\"04 Outcomes\" style=\"position: relative; padding: 130px 40px 40px;\">\n<div style=\"max-width: 1160px; margin: 0 auto;\">\n<div style=\"font-size: 11.5px; font-weight: 700; letter-spacing: 1.8px; color: var(--ind-lt); margin-bottom: 16px;\">WHERE STUDENTS LANDED</div>\n<h2 class=\"sa-dec\" style=\"font-size: 44px; font-weight: 700; letter-spacing: -1.6px; margin: 0 0 44px; max-width: 620px;\">Four students, four <span style=\"color: var(--ind-lt);\">first offers.</span></h2>\n<div style=\"display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px;\">\n<div class=\"sa-card\" style=\"background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 26px 24px 28px; transition: transform .3s ease, border-color .3s ease;\">\n<div style=\"font-size: 13px; color: var(--dim); margin-bottom: 18px;\">CS '26 \u00b7 Hyderabad</div>\n<div style=\"font-size: 19px; font-weight: 700; margin-bottom: 6px;\">Aisha K.</div>\n<div style=\"font-size: 14.5px; line-height: 1.6; color: var(--muted); margin-bottom: 18px;\">Two mentor calls, one resume rewrite, SWE offer in four months.</div>\n<div style=\"font-size: 12.5px; font-weight: 700; letter-spacing: 1.2px; color: var(--ind-lt);\">SWE \u00b7 PRODUCT COMPANY</div>\n</div>\n<div class=\"sa-card\" style=\"background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 26px 24px 28px; transition: transform .3s ease, border-color .3s ease;\">\n<div style=\"font-size: 13px; color: var(--dim); margin-bottom: 18px;\">ECE '25 \u00b7 Pune</div>\n<div style=\"font-size: 19px; font-weight: 700; margin-bottom: 6px;\">Rohan M.</div>\n<div style=\"font-size: 14.5px; line-height: 1.6; color: var(--muted); margin-bottom: 18px;\">Matched to an alumnus who ran the same internship two years earlier.</div>\n<div style=\"font-size: 12.5px; font-weight: 700; letter-spacing: 1.2px; color: var(--ind-lt);\">DATA ANALYST \u00b7 FINTECH</div>\n</div>\n<div class=\"sa-card\" style=\"background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 26px 24px 28px; transition: transform .3s ease, border-color .3s ease;\">\n<div style=\"font-size: 13px; color: var(--dim); margin-bottom: 18px;\">Design '26 \u00b7 Remote</div>\n<div style=\"font-size: 19px; font-weight: 700; margin-bottom: 6px;\">Ira S.</div>\n<div style=\"font-size: 14.5px; line-height: 1.6; color: var(--muted); margin-bottom: 18px;\">Portfolio review with a design lead, then a referral into her shortlist.</div>\n<div style=\"font-size: 12.5px; font-weight: 700; letter-spacing: 1.2px; color: var(--ind-lt);\">PRODUCT DESIGN INTERN</div>\n</div>\n<div class=\"sa-card\" style=\"background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 26px 24px 28px; transition: transform .3s ease, border-color .3s ease;\">\n<div style=\"font-size: 13px; color: var(--dim); margin-bottom: 18px;\">MBA '25 \u00b7 Mumbai</div>\n<div style=\"font-size: 19px; font-weight: 700; margin-bottom: 6px;\">Dev P.</div>\n<div style=\"font-size: 14.5px; line-height: 1.6; color: var(--muted); margin-bottom: 18px;\">Used the roadmap to pick electives that matched his target role.</div>\n<div style=\"font-size: 12.5px; font-weight: 700; letter-spacing: 1.2px; color: var(--ind-lt);\">STRATEGY ASSOCIATE</div>\n</div>\n</div>\n</div>\n</section>\n<section class=\"sa-sect\" data-screen-label=\"05 For alumni\" style=\"position: relative; padding: 130px 40px 40px;\">\n<div style=\"max-width: 1160px; margin: 0 auto; display: grid; grid-template-columns: 1fr minmax(0, 1fr); gap: 64px; align-items: center;\">\n<div>\n<div style=\"font-size: 11.5px; font-weight: 700; letter-spacing: 1.8px; color: var(--ind-lt); margin-bottom: 16px;\">IF YOU ARE AN ALUMNUS</div>\n<h2 class=\"sa-dec\" style=\"font-size: 44px; font-weight: 700; line-height: 1.1; letter-spacing: -1.6px; margin: 0 0 18px;\">One hour a month, <span style=\"color: var(--ind-lt);\">clearly spent.</span></h2>\n<p style=\"font-size: 16.5px; line-height: 1.7; color: var(--muted2); max-width: 440px; margin: 0 0 28px;\">You set your capacity. Nothing is proposed that you have not agreed to. Every hour is logged against your college's placement record, so the contribution is visible where it counts.</p>\n<span class=\"sa-ghost\" style=\"display: inline-flex; align-items: center; gap: 10px; border: 1px solid var(--dot); color: var(--text); font-size: 15px; font-weight: 500; padding: 14px 24px; border-radius: 10px; cursor: pointer; transition: border-color .2s ease, background .2s ease;\">Become a mentor</span>\n</div>\n<div style=\"display: grid; gap: 14px;\">\n<div style=\"display: grid; grid-template-columns: max-content 1fr; gap: 18px; align-items: baseline; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px 22px;\">\n<span style=\"font-size: 13px; font-weight: 700; color: var(--ind-lt);\">01</span>\n<div><div style=\"font-size: 15.5px; font-weight: 600; margin-bottom: 4px;\">You choose the load</div><div style=\"font-size: 14px; color: var(--muted);\">One call, one review, or answer questions in writing only.</div></div>\n</div>\n<div style=\"display: grid; grid-template-columns: max-content 1fr; gap: 18px; align-items: baseline; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px 22px;\">\n<span style=\"font-size: 13px; font-weight: 700; color: var(--ind-lt);\">02</span>\n<div><div style=\"font-size: 15.5px; font-weight: 600; margin-bottom: 4px;\">Agendas arrive prepared</div><div style=\"font-size: 14px; color: var(--muted);\">Each session opens with the student's roadmap and three questions.</div></div>\n</div>\n<div style=\"display: grid; grid-template-columns: max-content 1fr; gap: 18px; align-items: baseline; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px 22px;\">\n<span style=\"font-size: 13px; font-weight: 700; color: var(--ind-lt);\">03</span>\n<div><div style=\"font-size: 15.5px; font-weight: 600; margin-bottom: 4px;\">Answers compound</div><div style=\"font-size: 14px; color: var(--muted);\">Anything you answer once is archived, so it is never asked again.</div></div>\n</div>\n</div>\n</div>\n</section>\n<section class=\"sa-sect\" data-screen-label=\"06 Numbers\" style=\"position: relative; padding: 130px 40px 40px;\">\n<div style=\"max-width: 1160px; margin: 0 auto; background: var(--surface); border: 1px solid var(--line2); border-radius: 22px; padding: 54px 48px 56px; text-align: center;\">\n<div style=\"font-size: 11.5px; font-weight: 700; letter-spacing: 1.8px; color: var(--dim); margin-bottom: 16px;\">BY THE NUMBERS</div>\n<h2 class=\"sa-dec\" style=\"font-size: 44px; font-weight: 700; letter-spacing: -1.6px; margin: 0 0 48px;\">Trusted by students <span style=\"color: var(--ind-lt);\">worldwide</span></h2>\n<div style=\"display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px;\">\n<div style=\"background: var(--card); border: 1px solid var(--line2); border-radius: 16px; padding: 30px 22px 32px;\">\n<div style=\"width: 46px; height: 46px; border-radius: 12px; background: var(--tint); display: flex; align-items: center; justify-content: center; margin: 0 auto 22px;\">\n<svg height=\"22\" style=\"fill: none; stroke: var(--ind-lt); stroke-width: 1.7;\" viewbox=\"0 0 24 24\" width=\"22\"><circle cx=\"9\" cy=\"9\" r=\"3.2\"></circle><path d=\"M3 19 q6 -6 12 0 M16 7 a3 3 0 0 1 0 6 M18 19 q1.5 -3 3 -4\"></path></svg>\n</div>\n<div class=\"sa-num\" data-suffix=\"+\" data-to=\"50000\" style=\"font-size: 38px; font-weight: 800; letter-spacing: -1.4px;\">50,000+</div>\n<div style=\"font-size: 15px; font-weight: 700; margin-top: 10px;\">Active Students</div>\n<div style=\"font-size: 13px; color: var(--dim); margin-top: 6px;\">and growing every day</div>\n</div>\n<div style=\"background: var(--card); border: 1px solid var(--line2); border-radius: 16px; padding: 30px 22px 32px;\">\n<div style=\"width: 46px; height: 46px; border-radius: 12px; background: var(--tint); display: flex; align-items: center; justify-content: center; margin: 0 auto 22px;\">\n<svg height=\"22\" style=\"fill: none; stroke: var(--ind-lt); stroke-width: 1.7;\" viewbox=\"0 0 24 24\" width=\"22\"><circle cx=\"12\" cy=\"9\" r=\"5\"></circle><path d=\"M9 14 l-2 8 5 -3 5 3 -2 -8\"></path></svg>\n</div>\n<div class=\"sa-num\" data-suffix=\"+\" data-to=\"1200\" style=\"font-size: 38px; font-weight: 800; letter-spacing: -1.4px;\">1,200+</div>\n<div style=\"font-size: 15px; font-weight: 700; margin-top: 10px;\">Verified Mentors</div>\n<div style=\"font-size: 13px; color: var(--dim); margin-top: 6px;\">from top 500 companies</div>\n</div>\n<div style=\"background: var(--card); border: 1px solid var(--line2); border-radius: 16px; padding: 30px 22px 32px;\">\n<div style=\"width: 46px; height: 46px; border-radius: 12px; background: var(--tint); display: flex; align-items: center; justify-content: center; margin: 0 auto 22px;\">\n<svg height=\"22\" style=\"fill: none; stroke: var(--ind-lt); stroke-width: 1.7;\" viewbox=\"0 0 24 24\" width=\"22\"><path d=\"M5 20 V7 l7 -3 v16 M12 20 V10 l7 3 v7 M8 11 h1 M8 15 h1 M15 15 h1\"></path></svg>\n</div>\n<div class=\"sa-num\" data-suffix=\"+\" data-to=\"200\" style=\"font-size: 38px; font-weight: 800; letter-spacing: -1.4px;\">200+</div>\n<div style=\"font-size: 15px; font-weight: 700; margin-top: 10px;\">Partner Universities</div>\n<div style=\"font-size: 13px; color: var(--dim); margin-top: 6px;\">across 30+ countries</div>\n</div>\n<div style=\"background: var(--card); border: 1px solid var(--line2); border-radius: 16px; padding: 30px 22px 32px;\">\n<div style=\"width: 46px; height: 46px; border-radius: 12px; background: var(--tint); display: flex; align-items: center; justify-content: center; margin: 0 auto 22px;\">\n<svg height=\"22\" style=\"fill: none; stroke: var(--ind-lt); stroke-width: 1.7;\" viewbox=\"0 0 24 24\" width=\"22\"><path d=\"M4 17 l5 -5 3 3 6 -7 M14 8 h5 v5\"></path></svg>\n</div>\n<div class=\"sa-num\" data-suffix=\"%\" data-to=\"96\" style=\"font-size: 38px; font-weight: 800; letter-spacing: -1.4px;\">96%</div>\n<div style=\"font-size: 15px; font-weight: 700; margin-top: 10px;\">Placement Rate</div>\n<div style=\"font-size: 13px; color: var(--dim); margin-top: 6px;\">within 6 months of joining</div>\n</div>\n</div>\n</div>\n</section>\n<section class=\"sa-sect\" data-screen-label=\"07 Audiences\" style=\"position: relative; max-width: 1360px; margin: 0 auto; padding: 130px 40px 20px;\">\n<div style=\"display: flex; align-items: center; gap: 8px; margin-bottom: 18px;\">\n<span style=\"width: 6px; height: 6px; border-radius: 50%; background: var(--ind-lt);\"></span>\n<span style=\"font-size: 11.5px; font-weight: 700; letter-spacing: 1.6px; color: var(--ind-lt);\">WHO IT IS FOR</span>\n</div>\n<h2 class=\"sa-dec\" style=\"font-size: 44px; font-weight: 700; letter-spacing: -1.6px; margin: 0 0 46px;\">Four points of view, <span style=\"color: var(--ind-lt);\">one graph.</span></h2>\n<div style=\"display: grid; gap: 28px;\">\n<div class=\"sa-stick\" style=\"position: sticky; top: 96px;\">\n<div class=\"sa-card\" style=\"background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 40px 44px; display: grid; grid-template-columns: 1fr minmax(0, .85fr); gap: 34px; align-items: center; min-height: 250px; transition: transform .3s ease, border-color .3s ease;\">\n<div>\n<div style=\"font-size: 11px; font-weight: 700; letter-spacing: 1.8px; color: var(--ind-lt); margin-bottom: 14px;\">01 / STUDENTS</div>\n<h3 style=\"font-size: 30px; font-weight: 700; letter-spacing: -1.2px; margin: 0 0 12px;\">A roadmap, not a guess</h3>\n<p style=\"font-size: 15.5px; line-height: 1.7; color: var(--muted); margin: 0;\">Term-by-term steps built from your course, goals and gaps \u2014 with the alumnus who has already walked it attached to each step.</p>\n</div>\n<svg style=\"width: 100%; height: 186px; display: block; border-radius: 12px; background: var(--well);\" viewbox=\"0 0 300 190\"><path d=\"M104 78 L150 54 L196 78 L150 102 Z\" fill=\"#8B84FF\"></path><path d=\"M196 78 v24\" stroke=\"#8B84FF\" stroke-width=\"4\"></path><rect fill=\"#3B2F8F\" height=\"18\" rx=\"4\" width=\"180\" x=\"60\" y=\"120\"></rect><rect fill=\"#8B84FF\" height=\"18\" opacity=\".55\" rx=\"4\" width=\"152\" x=\"74\" y=\"138\"></rect><rect fill=\"#3B2F8F\" height=\"18\" rx=\"4\" width=\"180\" x=\"60\" y=\"156\"></rect></svg>\n</div>\n</div>\n<div class=\"sa-stick\" style=\"position: sticky; top: 114px;\">\n<div class=\"sa-card\" style=\"background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 40px 44px; display: grid; grid-template-columns: 1fr minmax(0, .85fr); gap: 34px; align-items: center; min-height: 250px; transition: transform .3s ease, border-color .3s ease;\">\n<div>\n<div style=\"font-size: 11px; font-weight: 700; letter-spacing: 1.8px; color: var(--ind-lt); margin-bottom: 14px;\">02 / ALUMNI</div>\n<h3 style=\"font-size: 30px; font-weight: 700; letter-spacing: -1.2px; margin: 0 0 12px;\">Give an hour a month</h3>\n<p style=\"font-size: 15.5px; line-height: 1.7; color: var(--muted); margin: 0;\">Answer questions, post a role, run a portfolio review. Contribution is tracked and visible to your college.</p>\n</div>\n<svg style=\"width: 100%; height: 186px; display: block; border-radius: 12px; background: var(--well);\" viewbox=\"0 0 300 190\"><circle cx=\"150\" cy=\"80\" fill=\"var(--dot)\" r=\"38\"></circle><circle cx=\"150\" cy=\"80\" fill=\"#5B4FE9\" opacity=\".5\" r=\"24\"></circle><path d=\"M124 128 l-14 44 26 -12 M176 128 l14 44 -26 -12\" fill=\"#5B4FE9\"></path></svg>\n</div>\n</div>\n<div class=\"sa-stick\" style=\"position: sticky; top: 132px;\">\n<div class=\"sa-card\" style=\"background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 40px 44px; display: grid; grid-template-columns: 1fr minmax(0, .85fr); gap: 34px; align-items: center; min-height: 250px; transition: transform .3s ease, border-color .3s ease;\">\n<div>\n<div style=\"font-size: 11px; font-weight: 700; letter-spacing: 1.8px; color: var(--ind-lt); margin-bottom: 14px;\">03 / MENTORS</div>\n<h3 style=\"font-size: 30px; font-weight: 700; letter-spacing: -1.2px; margin: 0 0 12px;\">Calls with an agenda</h3>\n<p style=\"font-size: 15.5px; line-height: 1.7; color: var(--muted); margin: 0;\">Every session opens with prompts drawn from the student roadmap, so the first fifteen minutes are never wasted.</p>\n</div>\n<svg style=\"width: 100%; height: 186px; display: block; border-radius: 12px; background: var(--well);\" viewbox=\"0 0 300 190\"><path d=\"M52 44 h120 q10 0 10 10 v46 q0 10 -10 10 h-72 l-22 18 v-18 h-26 q-10 0 -10 -10 v-46 q0 -10 10 -10 Z\" fill=\"#3B82F6\" opacity=\".85\"></path><path d=\"M148 92 h96 q10 0 10 10 v40 q0 10 -10 10 h-60 l-20 16 v-16 h-16 q-10 0 -10 -10 v-40 q0 -10 10 -10 Z\" fill=\"#1E3A6B\"></path></svg>\n</div>\n</div>\n<div class=\"sa-stick\" style=\"position: sticky; top: 150px;\">\n<div class=\"sa-card\" style=\"background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 40px 44px; display: grid; grid-template-columns: 1fr minmax(0, .85fr); gap: 34px; align-items: center; min-height: 250px; transition: transform .3s ease, border-color .3s ease;\">\n<div>\n<div style=\"font-size: 11px; font-weight: 700; letter-spacing: 1.8px; color: var(--ind-lt); margin-bottom: 14px;\">04 / COLLEGES</div>\n<h3 style=\"font-size: 30px; font-weight: 700; letter-spacing: -1.2px; margin: 0 0 12px;\">Placement, in one view</h3>\n<p style=\"font-size: 15.5px; line-height: 1.7; color: var(--muted); margin: 0;\">Engagement, mentorship hours and placement outcomes reported per cohort, per department, per term.</p>\n</div>\n<svg style=\"width: 100%; height: 186px; display: block; border-radius: 12px; background: var(--well);\" viewbox=\"0 0 300 190\"><rect fill=\"#4F46C7\" height=\"58\" width=\"60\" x=\"40\" y=\"112\"></rect><rect fill=\"#A78BFA\" height=\"98\" opacity=\".8\" width=\"84\" x=\"108\" y=\"72\"></rect><rect fill=\"#4F46C7\" height=\"72\" width=\"60\" x=\"200\" y=\"98\"></rect><path d=\"M108 72 L150 44 L192 72 Z\" fill=\"#A78BFA\"></path><rect fill=\"#4F46C7\" height=\"8\" rx=\"4\" width=\"240\" x=\"30\" y=\"170\"></rect></svg>\n</div>\n</div>\n</div>\n</section>\n<section class=\"sa-sect\" data-screen-label=\"08 Roadmap\" id=\"sa-road-sec\" style=\"position: relative; max-width: 1360px; margin: 0 auto; padding: 130px 40px 40px;\">\n<div style=\"display: flex; align-items: flex-end; justify-content: space-between; gap: 40px; margin-bottom: 50px;\">\n<h2 class=\"sa-dec\" style=\"font-size: 44px; font-weight: 700; letter-spacing: -1.6px; margin: 0; max-width: 560px;\">The roadmap fills in <span style=\"color: var(--ind-lt);\">as you scroll.</span></h2>\n<span style=\"font-size: 11px; font-weight: 700; letter-spacing: 1.8px; color: var(--dim); white-space: nowrap;\">DAY 1 \u2192 FIRST OFFER</span>\n</div>\n<svg style=\"width: 100%; height: auto; overflow: visible;\" viewbox=\"0 0 1280 300\">\n<path d=\"M30 230 C 210 230 220 70 360 70 S 560 230 700 230 S 880 60 1010 60 S 1220 170 1250 170\" style=\"fill: none; stroke: var(--line); stroke-width: 3;\"></path>\n<path d=\"M30 230 C 210 230 220 70 360 70 S 560 230 700 230 S 880 60 1010 60 S 1220 170 1250 170\" id=\"sa-roadline\" pathlength=\"1\" style=\"fill: none; stroke: var(--ind); stroke-width: 3; stroke-dasharray: 1; stroke-dashoffset: 1;\"></path>\n<g class=\"sa-mile\" data-at=\"0.05\">\n<circle cx=\"30\" cy=\"230\" r=\"9\" style=\"fill: var(--bg); stroke: var(--ind-lt); stroke-width: 2.4;\"></circle>\n<text style=\"font-family: 'Manrope', sans-serif; font-size: 17px; font-weight: 700; fill: var(--text);\" text-anchor=\"middle\" x=\"30\" y=\"272\">01 Foundations</text>\n</g>\n<g class=\"sa-mile\" data-at=\"0.3\">\n<circle cx=\"360\" cy=\"70\" r=\"9\" style=\"fill: var(--bg); stroke: var(--ind-lt); stroke-width: 2.4;\"></circle>\n<text style=\"font-family: 'Manrope', sans-serif; font-size: 17px; font-weight: 700; fill: var(--text);\" text-anchor=\"middle\" x=\"360\" y=\"36\">02 Skill plan</text>\n</g>\n<g class=\"sa-mile\" data-at=\"0.56\">\n<circle cx=\"700\" cy=\"230\" r=\"9\" style=\"fill: var(--bg); stroke: var(--ind-lt); stroke-width: 2.4;\"></circle>\n<text style=\"font-family: 'Manrope', sans-serif; font-size: 17px; font-weight: 700; fill: var(--text);\" text-anchor=\"middle\" x=\"700\" y=\"272\">03 Opportunities</text>\n</g>\n<g class=\"sa-mile\" data-at=\"0.82\">\n<circle cx=\"1010\" cy=\"60\" r=\"9\" style=\"fill: var(--bg); stroke: var(--ind-lt); stroke-width: 2.4;\"></circle>\n<text style=\"font-family: 'Manrope', sans-serif; font-size: 17px; font-weight: 700; fill: var(--text);\" text-anchor=\"middle\" x=\"1010\" y=\"26\">04 Full-time</text>\n</g>\n</svg>\n</section>\n<section class=\"sa-sect\" data-screen-label=\"09 On campus\" style=\"position: relative; max-width: 1360px; margin: 0 auto; padding: 130px 40px 40px;\">\n<div style=\"display: grid; grid-template-columns: 1fr minmax(0, 1fr); gap: 70px; align-items: center;\">\n<div>\n<div style=\"font-size: 11px; font-weight: 700; letter-spacing: 1.8px; color: var(--ind-lt); margin-bottom: 16px;\">ON CAMPUS</div>\n<h2 class=\"sa-dec\" style=\"font-size: 44px; font-weight: 700; letter-spacing: -1.6px; margin: 0 0 18px;\">A year on <span style=\"color: var(--ind-lt);\">the network.</span></h2>\n<p style=\"font-size: 16.5px; line-height: 1.7; color: var(--muted2); max-width: 420px; margin: 0 0 28px;\">The stack deals itself forward every few seconds. Click any card, or a marker, to bring it to the front.</p>\n<div style=\"display: flex; gap: 10px;\">\n<span class=\"sa-cdot\" data-i=\"0\" style=\"width: 26px; height: 3px; border-radius: 2px; background: var(--ind-lt); cursor: pointer; transition: background .3s ease;\"></span>\n<span class=\"sa-cdot\" data-i=\"1\" style=\"width: 26px; height: 3px; border-radius: 2px; background: var(--line); cursor: pointer; transition: background .3s ease;\"></span>\n<span class=\"sa-cdot\" data-i=\"2\" style=\"width: 26px; height: 3px; border-radius: 2px; background: var(--line); cursor: pointer; transition: background .3s ease;\"></span>\n<span class=\"sa-cdot\" data-i=\"3\" style=\"width: 26px; height: 3px; border-radius: 2px; background: var(--line); cursor: pointer; transition: background .3s ease;\"></span>\n<span class=\"sa-cdot\" data-i=\"4\" style=\"width: 26px; height: 3px; border-radius: 2px; background: var(--line); cursor: pointer; transition: background .3s ease;\"></span>\n</div>\n</div>\n<div id=\"sa-deck\" style=\"position: relative; height: 400px;\">\n<div class=\"sa-pola\" data-i=\"0\" style=\"position: absolute; left: 50%; top: 0; width: 320px; margin-left: -160px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 14px 14px 18px; box-shadow: 0 30px 60px var(--shadow); cursor: pointer; transform: rotate(-7deg);\">\n<svg style=\"width: 100%; height: 250px; display: block; border-radius: 11px; background: var(--well);\" viewbox=\"0 0 320 260\"><circle cx=\"252\" cy=\"60\" fill=\"var(--dot)\" r=\"46\"></circle><path d=\"M40 96 h240\" stroke=\"#8B84FF\" stroke-width=\"3\"></path><path d=\"M56 96 v-22 h208 v22\" fill=\"none\" stroke=\"#5B4FE9\" stroke-width=\"3\"></path><rect fill=\"#5B4FE9\" height=\"30\" rx=\"6\" width=\"136\" x=\"92\" y=\"46\"></rect><circle cx=\"96\" cy=\"150\" fill=\"var(--text2)\" r=\"14\"></circle><path d=\"M76 208 q0 -34 20 -34 q20 0 20 34 Z\" fill=\"#5B4FE9\"></path><circle cx=\"160\" cy=\"142\" fill=\"#8B84FF\" r=\"16\"></circle><path d=\"M137 209 q0 -39 23 -39 q23 0 23 39 Z\" fill=\"var(--dot)\"></path><circle cx=\"226\" cy=\"152\" fill=\"#A78BFA\" r=\"13\"></circle><path d=\"M207 207 q0 -32 19 -32 q19 0 19 32 Z\" fill=\"#5B4FE9\"></path></svg>\n<div class=\"sa-cap\" style=\"display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-top: 14px; padding: 0 4px; transition: opacity .3s ease;\">\n<span style=\"font-size: 16px; font-weight: 700;\">Alumni career fair</span>\n<span style=\"font-size: 10.5px; font-weight: 700; letter-spacing: 1.4px; color: var(--dim); white-space: nowrap;\">March</span>\n</div>\n</div>\n<div class=\"sa-pola\" data-i=\"1\" style=\"position: absolute; left: 50%; top: 0; width: 320px; margin-left: -160px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 14px 14px 18px; box-shadow: 0 30px 60px var(--shadow); cursor: pointer; transform: rotate(4deg);\">\n<svg style=\"width: 100%; height: 250px; display: block; border-radius: 11px; background: var(--well);\" viewbox=\"0 0 320 260\"><circle cx=\"70\" cy=\"66\" fill=\"var(--dot)\" r=\"40\"></circle><circle cx=\"96\" cy=\"120\" fill=\"var(--text2)\" r=\"15\"></circle><path d=\"M74 184 q0 -37 22 -37 q22 0 22 37 Z\" fill=\"#5B4FE9\"></path><circle cx=\"224\" cy=\"120\" fill=\"#8B84FF\" r=\"15\"></circle><path d=\"M202 184 q0 -37 22 -37 q22 0 22 37 Z\" fill=\"var(--dot)\"></path><rect fill=\"#8B84FF\" height=\"12\" rx=\"6\" width=\"216\" x=\"52\" y=\"186\"></rect><path d=\"M146 54 h74 q10 0 10 10 v30 q0 10 -10 10 h-46 l-18 16 v-16 q-10 0 -10 -10 v-30 q0 -10 10 -10 Z\" fill=\"#5B4FE9\"></path></svg>\n<div class=\"sa-cap\" style=\"display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-top: 14px; padding: 0 4px; transition: opacity .3s ease;\">\n<span style=\"font-size: 16px; font-weight: 700;\">One-to-one mentoring</span>\n<span style=\"font-size: 10.5px; font-weight: 700; letter-spacing: 1.4px; color: var(--dim); white-space: nowrap;\">Library, block C</span>\n</div>\n</div>\n<div class=\"sa-pola\" data-i=\"2\" style=\"position: absolute; left: 50%; top: 0; width: 320px; margin-left: -160px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 14px 14px 18px; box-shadow: 0 30px 60px var(--shadow); cursor: pointer; transform: rotate(-3deg);\">\n<svg style=\"width: 100%; height: 250px; display: block; border-radius: 11px; background: var(--well);\" viewbox=\"0 0 320 260\"><circle cx=\"88\" cy=\"74\" fill=\"#8B84FF\" r=\"12\"></circle><circle cx=\"232\" cy=\"74\" fill=\"#A78BFA\" r=\"12\"></circle><rect fill=\"var(--dot)\" height=\"112\" rx=\"8\" width=\"188\" x=\"66\" y=\"128\"></rect><rect fill=\"var(--well)\" height=\"82\" rx=\"4\" width=\"160\" x=\"80\" y=\"142\"></rect><path d=\"M94 162 h48 M94 178 h72 M94 194 h36 M94 210 h60\" stroke=\"#5B4FE9\" stroke-linecap=\"round\" stroke-width=\"4\"></path></svg>\n<div class=\"sa-cap\" style=\"display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-top: 14px; padding: 0 4px; transition: opacity .3s ease;\">\n<span style=\"font-size: 16px; font-weight: 700;\">Hackathon weekend</span>\n<span style=\"font-size: 10.5px; font-weight: 700; letter-spacing: 1.4px; color: var(--dim); white-space: nowrap;\">Alumni-run</span>\n</div>\n</div>\n<div class=\"sa-pola\" data-i=\"3\" style=\"position: absolute; left: 50%; top: 0; width: 320px; margin-left: -160px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 14px 14px 18px; box-shadow: 0 30px 60px var(--shadow); cursor: pointer; transform: rotate(6deg);\">\n<svg style=\"width: 100%; height: 250px; display: block; border-radius: 11px; background: var(--well);\" viewbox=\"0 0 320 260\"><circle cx=\"160\" cy=\"130\" fill=\"var(--dot)\" r=\"86\"></circle><circle cx=\"160\" cy=\"128\" fill=\"var(--text2)\" r=\"21\"></circle><path d=\"M130 214 q0 -51 30 -51 q30 0 30 51 Z\" fill=\"#5B4FE9\"></path><path d=\"M112 92 L160 68 L208 92 L160 116 Z\" fill=\"#8B84FF\"></path><path d=\"M208 92 v26\" stroke=\"#8B84FF\" stroke-width=\"4\"></path></svg>\n<div class=\"sa-cap\" style=\"display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-top: 14px; padding: 0 4px; transition: opacity .3s ease;\">\n<span style=\"font-size: 16px; font-weight: 700;\">Graduation</span>\n<span style=\"font-size: 10.5px; font-weight: 700; letter-spacing: 1.4px; color: var(--dim); white-space: nowrap;\">Class of 2026</span>\n</div>\n</div>\n<div class=\"sa-pola\" data-i=\"4\" style=\"position: absolute; left: 50%; top: 0; width: 320px; margin-left: -160px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 14px 14px 18px; box-shadow: 0 30px 60px var(--shadow); cursor: pointer; transform: rotate(-2deg);\">\n<svg style=\"width: 100%; height: 250px; display: block; border-radius: 11px; background: var(--well);\" viewbox=\"0 0 320 260\"><rect fill=\"#8B84FF\" height=\"12\" rx=\"6\" width=\"232\" x=\"44\" y=\"176\"></rect><rect fill=\"var(--dot)\" height=\"72\" rx=\"6\" width=\"120\" x=\"118\" y=\"96\"></rect><rect fill=\"#3B82F6\" height=\"48\" opacity=\".45\" rx=\"3\" width=\"96\" x=\"130\" y=\"108\"></rect><circle cx=\"88\" cy=\"118\" fill=\"var(--text2)\" r=\"14\"></circle><path d=\"M68 176 q0 -34 20 -34 q20 0 20 34 Z\" fill=\"#5B4FE9\"></path></svg>\n<div class=\"sa-cap\" style=\"display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-top: 14px; padding: 0 4px; transition: opacity .3s ease;\">\n<span style=\"font-size: 16px; font-weight: 700;\">First week on the job</span>\n<span style=\"font-size: 10.5px; font-weight: 700; letter-spacing: 1.4px; color: var(--dim); white-space: nowrap;\">Internship</span>\n</div>\n</div>\n</div>\n</div>\n</section>\n<section class=\"sa-sect\" data-screen-label=\"10 Match graph\" style=\"position: relative; max-width: 1360px; margin: 0 auto; padding: 130px 40px 40px;\">\n<div style=\"display: grid; grid-template-columns: 1fr minmax(0, 1.05fr); gap: 60px; align-items: center;\">\n<div>\n<div style=\"display: flex; align-items: center; gap: 8px; margin-bottom: 18px;\">\n<span style=\"width: 6px; height: 6px; border-radius: 50%; background: var(--ind-lt);\"></span>\n<span style=\"font-size: 11.5px; font-weight: 700; letter-spacing: 1.6px; color: var(--ind-lt);\">HOW MATCHING WORKS</span>\n</div>\n<h2 class=\"sa-dec\" style=\"font-size: 44px; font-weight: 700; line-height: 1.12; letter-spacing: -1.6px; margin: 0 0 20px;\">1,200+ verified mentors,<br/><span style=\"color: var(--ind-lt);\">ranked by fit.</span></h2>\n<p style=\"font-size: 16.5px; line-height: 1.7; color: var(--muted2); max-width: 440px; margin: 0 0 28px;\">Agent K scores every alumnus against your course, goals and city. Hover a node to see the connection and why it was chosen.</p>\n<div style=\"background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 20px 22px; min-height: 106px;\">\n<div style=\"font-size: 10.5px; font-weight: 700; letter-spacing: 1.6px; color: var(--dim);\">MATCH DETAIL</div>\n<div id=\"sa-mname\" style=\"font-size: 20px; font-weight: 700; margin: 10px 0 5px;\">Hover a node</div>\n<div id=\"sa-mwhy\" style=\"font-size: 14.5px; color: var(--muted);\">Six mentors are live on the ring.</div>\n</div>\n</div>\n<svg style=\"width: 100%; height: auto; overflow: visible;\" viewbox=\"0 0 620 540\">\n<g style=\"fill: none; stroke: var(--line); stroke-width: 1.2;\">\n<circle cx=\"310\" cy=\"270\" r=\"128\" style=\"stroke-dasharray: 4 8;\"></circle>\n<circle cx=\"310\" cy=\"270\" r=\"206\" style=\"stroke-dasharray: 4 8;\"></circle>\n</g>\n<circle cx=\"310\" cy=\"270\" r=\"52\" style=\"fill: none; stroke: var(--ind-lt); stroke-width: 1.4; animation: sa-ping 3.6s ease-out infinite;\"></circle>\n<circle cx=\"310\" cy=\"270\" r=\"52\" style=\"fill: none; stroke: var(--ind-lt); stroke-width: 1.4; animation: sa-ping 3.6s ease-out infinite 1.8s;\"></circle>\n<line id=\"sa-link\" style=\"stroke: var(--ind-lt); stroke-width: 1.6; stroke-dasharray: 5 6; opacity: 0; transition: opacity .25s ease;\" x1=\"310\" x2=\"310\" y1=\"270\" y2=\"270\"></line>\n<circle cx=\"310\" cy=\"270\" r=\"52\" style=\"fill: var(--card); stroke: var(--ind); stroke-width: 2;\"></circle>\n<text style=\"font-family: 'Manrope', sans-serif; font-size: 16px; font-weight: 800; fill: var(--text);\" text-anchor=\"middle\" x=\"310\" y=\"266\">YOU</text>\n<text style=\"font-family: 'Manrope', sans-serif; font-size: 9.5px; font-weight: 700; letter-spacing: 1.4px; fill: var(--dim);\" text-anchor=\"middle\" x=\"310\" y=\"286\">YEAR 3</text>\n<g class=\"sa-node\" data-name=\"Priya R. \u2014 Product, Bengaluru\" data-why=\"Same course, four years ahead. Mentors three students each term.\" data-x=\"310\" data-y=\"132\" style=\"cursor: pointer;\">\n<circle cx=\"310\" cy=\"132\" r=\"32\" style=\"fill: var(--card); stroke: var(--dot); stroke-width: 1.6;\"></circle>\n<text style=\"font-family: 'Manrope', sans-serif; font-size: 13px; font-weight: 700; fill: var(--ind-lt);\" text-anchor=\"middle\" x=\"310\" y=\"137\">98</text>\n</g>\n<g class=\"sa-node\" data-name=\"Arjun M. \u2014 Data, Pune\" data-why=\"Ex-intern at your target firm. Reviews analytics portfolios monthly.\" data-x=\"430\" data-y=\"201\" style=\"cursor: pointer;\">\n<circle cx=\"430\" cy=\"201\" r=\"32\" style=\"fill: var(--card); stroke: var(--dot); stroke-width: 1.6;\"></circle>\n<text style=\"font-family: 'Manrope', sans-serif; font-size: 13px; font-weight: 700; fill: var(--ind-lt);\" text-anchor=\"middle\" x=\"430\" y=\"206\">92</text>\n</g>\n<g class=\"sa-node\" data-name=\"Neha S. \u2014 Design, Remote\" data-why=\"Runs the portfolio review your roadmap suggests next.\" data-x=\"430\" data-y=\"339\" style=\"cursor: pointer;\">\n<circle cx=\"430\" cy=\"339\" r=\"32\" style=\"fill: var(--card); stroke: var(--dot); stroke-width: 1.6;\"></circle>\n<text style=\"font-family: 'Manrope', sans-serif; font-size: 13px; font-weight: 700; fill: var(--ind-lt);\" text-anchor=\"middle\" x=\"430\" y=\"344\">88</text>\n</g>\n<g class=\"sa-node\" data-name=\"Rohit K. \u2014 Finance, Mumbai\" data-why=\"Alumnus of your college, hiring two summer interns.\" data-x=\"310\" data-y=\"408\" style=\"cursor: pointer;\">\n<circle cx=\"310\" cy=\"408\" r=\"32\" style=\"fill: var(--card); stroke: var(--dot); stroke-width: 1.6;\"></circle>\n<text style=\"font-family: 'Manrope', sans-serif; font-size: 13px; font-weight: 700; fill: var(--ind-lt);\" text-anchor=\"middle\" x=\"310\" y=\"413\">85</text>\n</g>\n<g class=\"sa-node\" data-name=\"Sana T. \u2014 Research, Delhi\" data-why=\"Published in your field, open to weekly calls.\" data-x=\"190\" data-y=\"339\" style=\"cursor: pointer;\">\n<circle cx=\"190\" cy=\"339\" r=\"32\" style=\"fill: var(--card); stroke: var(--dot); stroke-width: 1.6;\"></circle>\n<text style=\"font-family: 'Manrope', sans-serif; font-size: 13px; font-weight: 700; fill: var(--ind-lt);\" text-anchor=\"middle\" x=\"190\" y=\"344\">81</text>\n</g>\n<g class=\"sa-node\" data-name=\"Dev P. \u2014 Engineering, Hyderabad\" data-why=\"Took the same electives. Answers within a day.\" data-x=\"190\" data-y=\"201\" style=\"cursor: pointer;\">\n<circle cx=\"190\" cy=\"201\" r=\"32\" style=\"fill: var(--card); stroke: var(--dot); stroke-width: 1.6;\"></circle>\n<text style=\"font-family: 'Manrope', sans-serif; font-size: 13px; font-weight: 700; fill: var(--ind-lt);\" text-anchor=\"middle\" x=\"190\" y=\"206\">76</text>\n</g>\n</svg>\n</div>\n</section>\n<section class=\"sa-sect\" data-screen-label=\"11 Testimonials\" style=\"position: relative; max-width: 1160px; margin: 0 auto; padding: 130px 40px 40px;\">\n<div style=\"font-size: 11.5px; font-weight: 700; letter-spacing: 1.8px; color: var(--dim); margin-bottom: 16px;\">FROM THE NETWORK</div>\n<h2 class=\"sa-dec\" style=\"font-size: 44px; font-weight: 700; letter-spacing: -1.6px; margin: 0 0 40px;\">Students, alumni <span style=\"color: var(--ind-lt);\">and offices.</span></h2>\n<div id=\"sa-quotes\" style=\"position: relative; min-height: 240px;\">\n<div class=\"sa-quote\" data-q=\"0\" style=\"position: absolute; inset: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 44px 48px; display: flex; flex-direction: column; justify-content: center;\">\n<p style=\"font-size: 27px; font-weight: 600; line-height: 1.45; letter-spacing: -1px; margin: 0 0 24px; max-width: 880px;\">\u201cI had no idea who to ask in my final year. Two mentor calls turned a vague plan into an actual offer.\u201d</p>\n<div style=\"font-size: 11px; font-weight: 700; letter-spacing: 1.6px; color: var(--ind-lt);\">AISHA \u00b7 YEAR 4, COMPUTER SCIENCE</div>\n</div>\n<div class=\"sa-quote\" data-q=\"1\" style=\"position: absolute; inset: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 44px 48px; display: flex; flex-direction: column; justify-content: center;\">\n<p style=\"font-size: 27px; font-weight: 600; line-height: 1.45; letter-spacing: -1px; margin: 0 0 24px; max-width: 880px;\">\u201cOne hour a month, and three of my mentees have internships this summer.\u201d</p>\n<div style=\"font-size: 11px; font-weight: 700; letter-spacing: 1.6px; color: var(--ind-lt);\">ARJUN \u00b7 ALUMNUS, DATA SCIENCE</div>\n</div>\n<div class=\"sa-quote\" data-q=\"2\" style=\"position: absolute; inset: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 44px 48px; display: flex; flex-direction: column; justify-content: center;\">\n<p style=\"font-size: 27px; font-weight: 600; line-height: 1.45; letter-spacing: -1px; margin: 0 0 24px; max-width: 880px;\">\u201cPlacement reporting took our office three weeks a term. It is now a dashboard we read on a Monday.\u201d</p>\n<div style=\"font-size: 11px; font-weight: 700; letter-spacing: 1.6px; color: var(--ind-lt);\">R. IYER \u00b7 CAREER SERVICES, PARTNER COLLEGE</div>\n</div>\n</div>\n<div style=\"display: flex; gap: 10px; margin-top: 24px;\">\n<span class=\"sa-qdot\" data-q=\"0\" style=\"width: 30px; height: 3px; border-radius: 2px; background: var(--ind-lt); cursor: pointer; transition: background .3s ease;\"></span>\n<span class=\"sa-qdot\" data-q=\"1\" style=\"width: 30px; height: 3px; border-radius: 2px; background: var(--line); cursor: pointer; transition: background .3s ease;\"></span>\n<span class=\"sa-qdot\" data-q=\"2\" style=\"width: 30px; height: 3px; border-radius: 2px; background: var(--line); cursor: pointer; transition: background .3s ease;\"></span>\n</div>\n</section>\n<section class=\"sa-sect\" data-screen-label=\"12 CTA\" style=\"position: relative; padding: 130px 40px 40px;\">\n<div style=\"max-width: 1160px; margin: 0 auto; background: radial-gradient(90% 120% at 50% 0%, var(--card-hi) 0%, var(--surface) 60%); border: 1px solid var(--line2); border-radius: 22px; padding: 80px 48px 84px; text-align: center;\">\n<div style=\"display: inline-flex; align-items: center; gap: 8px; margin-bottom: 26px;\">\n<svg height=\"16\" style=\"fill: var(--ind-lt);\" viewbox=\"0 0 14 16\" width=\"14\"><path d=\"M8 0 L1 9 h4 l-1 7 8 -10 h-4 Z\"></path></svg>\n<span style=\"font-size: 11.5px; font-weight: 700; letter-spacing: 1.8px; color: var(--ind-lt);\">START YOUR JOURNEY</span>\n</div>\n<h2 class=\"sa-dec\" style=\"font-size: 58px; font-weight: 700; line-height: 1.08; letter-spacing: -2.2px; margin: 0 0 26px;\">Your career, quietly<br/><span style=\"color: var(--ind-lt);\">upgraded.</span></h2>\n<p style=\"font-size: 16.5px; line-height: 1.75; color: var(--muted); max-width: 620px; margin: 0 auto 42px;\">Join 50,000+ students already using StudentAlumni to land career opportunities, find mentors, and build their future. No credit card required.</p>\n<span class=\"sa-cta\" style=\"display: inline-flex; align-items: center; gap: 10px; background: var(--ind); color: #FFFFFF; font-size: 16px; font-weight: 700; padding: 18px 32px; border-radius: 12px; cursor: pointer;\">\n        Create your free account\n        <svg class=\"sa-arrow\" height=\"16\" style=\"fill: none; stroke: #FFFFFF; stroke-width: 1.8; transition: transform .25s ease;\" viewbox=\"0 0 16 16\" width=\"16\"><path d=\"M4 12 L12 4 M6 4 h6 v6\"></path></svg>\n</span>\n<div style=\"display: flex; gap: 28px; justify-content: center; flex-wrap: wrap; margin-top: 34px; padding-top: 28px; border-top: 1px solid var(--line); max-width: 720px; margin-left: auto; margin-right: auto; text-align: left;\">\n<div style=\"max-width: 200px;\"><div style=\"font-size: 14px; font-weight: 600; margin-bottom: 5px;\">Is it free?</div><div style=\"font-size: 13.5px; line-height: 1.55; color: var(--muted);\">Free for students, always. Colleges pay per cohort.</div></div>\n<div style=\"max-width: 200px;\"><div style=\"font-size: 14px; font-weight: 600; margin-bottom: 5px;\">Who sees my profile?</div><div style=\"font-size: 13.5px; line-height: 1.55; color: var(--muted);\">Nobody, until you send a request yourself.</div></div>\n<div style=\"max-width: 200px;\"><div style=\"font-size: 14px; font-weight: 600; margin-bottom: 5px;\">If no mentor replies?</div><div style=\"font-size: 13.5px; line-height: 1.55; color: var(--muted);\">We re-match within 48 hours, up to three times.</div></div>\n</div>\n<div style=\"font-size: 11.5px; font-weight: 700; letter-spacing: 1.6px; color: var(--dim); margin-top: 30px;\">TAKES LESS THAN 60 SECONDS TO SET UP</div>\n</div>\n</section>\n</div>\n<div class=\"sa-view\" id=\"sa-view-agentk\" style=\"display: none;\">\n<section data-screen-label=\"Agent K\" style=\"position: relative; max-width: 1360px; margin: 0 auto; padding: 80px 40px 40px;\">\n<div style=\"display: grid; grid-template-columns: 1fr minmax(0, 1fr); gap: 60px; align-items: center;\">\n<div>\n<div style=\"display: flex; align-items: center; gap: 8px; margin-bottom: 22px;\">\n<span style=\"width: 6px; height: 6px; border-radius: 50%; background: var(--ind-lt);\"></span>\n<span style=\"font-size: 11.5px; font-weight: 700; letter-spacing: 1.6px; color: var(--ind-lt);\">ALWAYS-ON COPILOT</span>\n</div>\n<h1 style=\"font-size: 54px; font-weight: 700; line-height: 1.08; letter-spacing: -2px; margin: 0 0 22px;\">Meet Agent K,<br/><span style=\"color: var(--ind-lt);\">your career copilot.</span></h1>\n<p style=\"font-size: 16.5px; line-height: 1.7; color: var(--muted2); max-width: 460px; margin: 0 0 34px;\">Ask anything resume tips, interview prep, salary negotiation. Agent K remembers your goals and grows with you.</p>\n<span class=\"sa-cta\" style=\"display: inline-flex; align-items: center; gap: 10px; background: var(--ind); color: #FFFFFF; font-size: 15px; font-weight: 600; padding: 15px 26px; border-radius: 10px; cursor: pointer;\">\n            Start a conversation\n            <svg class=\"sa-arrow\" height=\"15\" style=\"fill: none; stroke: #FFFFFF; stroke-width: 1.8; transition: transform .25s ease;\" viewbox=\"0 0 16 16\" width=\"15\"><path d=\"M4 12 L12 4 M6 4 h6 v6\"></path></svg>\n</span>\n</div>\n<div style=\"background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 24px;\">\n<div style=\"display: flex; align-items: center; gap: 12px; padding-bottom: 18px; border-bottom: 1px solid var(--line2); margin-bottom: 20px;\">\n<div style=\"width: 38px; height: 38px; border-radius: 10px; background: var(--tint2); display: flex; align-items: center; justify-content: center;\">\n<svg height=\"19\" style=\"fill: var(--ind-lt);\" viewbox=\"0 0 20 20\" width=\"19\"><path d=\"M10 1 l1.6 4.4 L16 7 l-4.4 1.6 L10 13 8.4 8.6 4 7 l4.4 -1.6 Z\"></path></svg>\n</div>\n<div>\n<div style=\"font-size: 15.5px; font-weight: 700;\">Agent K</div>\n<div style=\"font-size: 12.5px; color: var(--ind-lt);\">Online \u00b7 remembers your goals</div>\n</div>\n</div>\n<div style=\"display: grid; gap: 12px;\">\n<div class=\"sa-msg\" style=\"justify-self: end; max-width: 82%; background: var(--ind); color: #FFFFFF; border-radius: 14px 14px 4px 14px; padding: 13px 16px; font-size: 14.5px; line-height: 1.55; animation: sa-rise .6s ease both .1s;\">I have a Google SWE referral closing Friday. Where do I start?</div>\n<div class=\"sa-msg\" style=\"max-width: 88%; background: var(--card2); border: 1px solid var(--line); border-radius: 14px 14px 14px 4px; padding: 13px 16px; font-size: 14.5px; line-height: 1.55; color: var(--text2); animation: sa-rise .6s ease both .9s;\">Your resume scores 71 for that role. Three fixes get you to 88 \u2014 tighten the internship bullet, add the systems project, drop the coursework block.</div>\n<div class=\"sa-msg\" style=\"max-width: 88%; background: var(--card2); border: 1px solid var(--line); border-radius: 14px; padding: 13px 16px; font-size: 14.5px; line-height: 1.55; color: var(--text2); animation: sa-rise .6s ease both 1.7s;\">Sarah (SWE, ex-Google) has Thursday 6pm free. Want me to book it and draft your three questions?</div>\n<div class=\"sa-msg\" style=\"justify-self: end; display: flex; gap: 5px; align-items: center; background: var(--card2); border: 1px solid var(--line); border-radius: 100px; padding: 12px 16px; animation: sa-rise .6s ease both 2.5s;\">\n<span style=\"width: 6px; height: 6px; border-radius: 50%; background: var(--ind-lt); animation: sa-twinkle 1.2s ease-in-out infinite 0s;\"></span>\n<span style=\"width: 6px; height: 6px; border-radius: 50%; background: var(--ind-lt); animation: sa-twinkle 1.2s ease-in-out infinite .2s;\"></span>\n<span style=\"width: 6px; height: 6px; border-radius: 50%; background: var(--ind-lt); animation: sa-twinkle 1.2s ease-in-out infinite .4s;\"></span>\n</div>\n</div>\n</div>\n</div>\n</section>\n</div>\n<div class=\"sa-view\" id=\"sa-view-partners\" style=\"display: none;\">\n<section data-screen-label=\"Partners\" style=\"position: relative; max-width: 1360px; margin: 0 auto; padding: 80px 40px 40px;\">\n<div style=\"display: flex; align-items: center; gap: 8px; margin-bottom: 18px;\">\n<span style=\"width: 6px; height: 6px; border-radius: 50%; background: var(--ind-lt);\"></span>\n<span style=\"font-size: 11.5px; font-weight: 700; letter-spacing: 1.6px; color: var(--ind-lt);\">PARTNERS &amp; COLLABORATIONS</span>\n</div>\n<h1 style=\"font-size: 50px; font-weight: 700; line-height: 1.1; letter-spacing: -2px; margin: 0 0 20px;\">Colleges and companies,<br/><span style=\"color: var(--ind-lt);\">on the same network.</span></h1>\n<p style=\"font-size: 16.5px; line-height: 1.7; color: var(--muted2); max-width: 520px; margin: 0 0 50px;\">200+ partner universities across 30+ countries, and industry partners hiring from them directly.</p>\n<div style=\"font-size: 11px; font-weight: 700; letter-spacing: 1.6px; color: var(--dim); margin-bottom: 18px;\">COLLEGES</div>\n<div id=\"sa-grid-colleges\" style=\"display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; margin-bottom: 46px;\"></div>\n<div style=\"font-size: 11px; font-weight: 700; letter-spacing: 1.6px; color: var(--dim); margin-bottom: 18px;\">INDUSTRY</div>\n<div id=\"sa-grid-industry\" style=\"display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; margin-bottom: 50px;\"></div>\n<div style=\"background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 40px 44px; display: flex; align-items: center; justify-content: space-between; gap: 30px; flex-wrap: wrap;\">\n<div>\n<div style=\"font-size: 26px; font-weight: 700; letter-spacing: -0.8px; margin-bottom: 8px;\">Bring StudentAlumni to your campus</div>\n<div style=\"font-size: 15px; color: var(--muted);\">Placement, engagement and alumni activity in one reporting view.</div>\n</div>\n<span class=\"sa-cta\" style=\"display: inline-flex; align-items: center; gap: 10px; background: var(--ind); color: #FFFFFF; font-size: 15px; font-weight: 600; padding: 15px 26px; border-radius: 10px; cursor: pointer; white-space: nowrap;\">\n          Become a partner\n          <svg class=\"sa-arrow\" height=\"15\" style=\"fill: none; stroke: #FFFFFF; stroke-width: 1.8; transition: transform .25s ease;\" viewbox=\"0 0 16 16\" width=\"15\"><path d=\"M4 12 L12 4 M6 4 h6 v6\"></path></svg>\n</span>\n</div>\n</section>\n</div>\n<section class=\"sa-sect\" data-screen-label=\"13 Footer\" style=\"position: relative; background: var(--bg2); border-top: 1px solid var(--line); margin-top: 130px; padding: 70px 40px 80px;\">\n<div style=\"max-width: 1360px; margin: 0 auto; display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr; gap: 40px;\">\n<div>\n<div style=\"display: flex; align-items: center; gap: 10px; margin-bottom: 20px;\">\n<svg height=\"34\" viewbox=\"0 0 26 30\" width=\"30\"><path d=\"M13 1 L25 5 v11 c0 7 -6 11 -12 13 C6 27 1 23 1 16 V5 Z\" fill=\"url(#sa-badge)\"></path><text style=\"font-family: 'Manrope', sans-serif; font-size: 10px; font-weight: 800; fill: #FFFFFF;\" text-anchor=\"middle\" x=\"13\" y=\"18\">SA</text></svg>\n<span style=\"font-size: 19px; font-weight: 700;\">StudentAlumni</span>\n</div>\n<p style=\"font-size: 15px; line-height: 1.65; color: var(--muted2); max-width: 340px; margin: 0 0 24px;\">The intelligent career companion built for the <strong style=\"color: var(--text);\">next generation</strong> of students.</p>\n<div style=\"display: flex; gap: 10px;\">\n<span class=\"sa-chip\" style=\"font-size: 11px; font-weight: 700; letter-spacing: 1.4px; color: var(--muted2); background: var(--card2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; cursor: pointer; transition: color .25s ease, border-color .25s ease;\">LINKEDIN</span>\n<span class=\"sa-chip\" style=\"font-size: 11px; font-weight: 700; letter-spacing: 1.4px; color: var(--muted2); background: var(--card2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; cursor: pointer; transition: color .25s ease, border-color .25s ease;\">INSTAGRAM</span>\n</div>\n</div>\n<div>\n<div style=\"font-size: 11px; font-weight: 700; letter-spacing: 1.6px; color: var(--dim); margin-bottom: 20px;\">PRODUCT</div>\n<div style=\"display: grid; gap: 14px; font-size: 15px; color: var(--text2);\"><span>Agent K</span><span>Mentors</span><span>AI Roadmap</span></div>\n</div>\n<div>\n<div style=\"font-size: 11px; font-weight: 700; letter-spacing: 1.6px; color: var(--dim); margin-bottom: 20px;\">COMPANY</div>\n<div style=\"display: grid; gap: 14px; font-size: 15px; color: var(--text2);\"><span>About</span><span>Contact</span><span>Partners</span><span>Collaborations</span></div>\n</div>\n<div>\n<div style=\"font-size: 11px; font-weight: 700; letter-spacing: 1.6px; color: var(--dim); margin-bottom: 20px;\">RESOURCES</div>\n<div style=\"display: grid; gap: 14px; font-size: 15px; color: var(--text2);\"><span>Verify Certificate</span><span>Blog</span><span>Help center</span><span>Community</span></div>\n</div>\n<div>\n<div style=\"font-size: 11px; font-weight: 700; letter-spacing: 1.6px; color: var(--dim); margin-bottom: 20px;\">LEGAL</div>\n<div style=\"display: grid; gap: 14px; font-size: 15px; color: var(--text2);\"><span>Privacy</span><span>Terms</span><span>Security</span><span>Cookies</span></div>\n</div>\n</div>\n<div style=\"max-width: 1360px; margin: 56px auto 0; display: flex; align-items: flex-end; justify-content: space-between; gap: 32px; flex-wrap: wrap;\">\n<div>\n<div style=\"display: inline-flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 600; color: var(--text2);\">\n          Built with love for students\n          <svg style=\"fill: #EC4899; flex: none; filter: drop-shadow(0 0 8px rgba(236,72,153,0.6));\" viewBox=\"0 0 24 24\" width=\"20\" height=\"20\"><path d=\"M12 21s-8-4.9-8-10.4A4.6 4.6 0 0 1 12 7.6 4.6 4.6 0 0 1 20 10.6C20 16.1 12 21 12 21Z\"></path></svg>\n          across all campus’s\n</div>\n<div>\n  <span class=\"sa-jewel-text\">#studentalumni</span>\n</div>\n</div>\n<div style=\"font-size: 14px; color: var(--muted2);\">All rights reserved \u00a9 StudentAlumni 2026</div>\n</div>\n</section>\n</div>" }} />
-    </div>
+    <View style={s.root}>
+      {/* ── Background Aurora & Stars ─────────────────────────────────────── */}
+      <View style={s.bgWrap} pointerEvents="none">
+        <View style={s.radialGlow} />
+        <View style={s.horizonGlow} />
+      </View>
+
+      {/* ── Top Navigation Bar ────────────────────────────────────────────── */}
+      <View style={s.navbar}>
+        <View style={s.navInner}>
+          {/* Logo */}
+          <Pressable
+            onPress={() => {
+              setActiveTab('home');
+              router.push('/');
+            }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
+          >
+            <Svg width={28} height={33} viewBox="0 0 300 350">
+              <Defs>
+                <SvgGradient id="navBadgeO" x1="0" y1="0" x2="1" y2="1">
+                  <Stop offset="0" stopColor="#C9A7FF" />
+                  <Stop offset="0.48" stopColor="#8B5CF6" />
+                  <Stop offset="1" stopColor="#5B2FD0" />
+                </SvgGradient>
+                <SvgGradient id="navBadgeI" x1="0" y1="0" x2="0.4" y2="1">
+                  <Stop offset="0" stopColor="#B683F5" />
+                  <Stop offset="1" stopColor="#7331C9" />
+                </SvgGradient>
+              </Defs>
+              <Path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#navBadgeO)" />
+              <Path d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="url(#navBadgeI)" />
+              <SvgText x={150} y={214} textAnchor="middle" fontFamily="sans-serif" fontSize={118} fontWeight="800" fill="#FFFFFF">
+                SA
+              </SvgText>
+            </Svg>
+            <Text style={s.brandText}>StudentAlumni</Text>
+          </Pressable>
+
+          {/* Centered Navigation Tabs */}
+          {!isTight && (
+            <View style={s.navTabsWrap}>
+              <Pressable onPress={() => setActiveTab('home')} style={s.navTab}>
+                <Text style={[s.navTabText, activeTab === 'home' && s.navTabActiveText]}>Home</Text>
+                {activeTab === 'home' && <View style={s.navIndicator} />}
+              </Pressable>
+              <Pressable onPress={() => router.push('/echo')} style={s.navTab}>
+                <Text style={s.navTabText}>ECHO</Text>
+              </Pressable>
+              <Pressable onPress={() => setActiveTab('verify')} style={s.navTab}>
+                <Text style={[s.navTabText, activeTab === 'verify' && s.navTabActiveText]}>Verify</Text>
+                {activeTab === 'verify' && <View style={s.navIndicator} />}
+              </Pressable>
+              <Pressable onPress={() => setActiveTab('contact')} style={s.navTab}>
+                <Text style={[s.navTabText, activeTab === 'contact' && s.navTabActiveText]}>Contact Us</Text>
+                {activeTab === 'contact' && <View style={s.navIndicator} />}
+              </Pressable>
+            </View>
+          )}
+
+          {/* Right Action Buttons */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+            <Pressable onPress={() => router.push('/login')}><Text style={s.signInText}>Sign in</Text></Pressable>
+            <Pressable onPress={() => router.push('/onboarding')} style={s.getStartedBtn}>
+              <Text style={s.getStartedBtnText}>Get Started</Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+
+      {/* ── Scrollable Body ───────────────────────────────────────────────── */}
+      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+
+        {/* ══════════════════════════════════════════════════════════════════
+            IN-PAGE SECTION: VERIFY CREDENTIALS
+           ══════════════════════════════════════════════════════════════════ */}
+        {activeTab === 'verify' && (
+          <View style={s.contentSection}>
+            <View style={s.verifyHeroCard}>
+              <View style={{ flex: 1 }}>
+                <View style={s.badgePill}><Text style={s.badgePillText}>CREDENTIAL VERIFICATION</Text></View>
+                <Text style={s.heroH1Light}>Every claim on a résumé, checkable in seconds.</Text>
+                <Text style={s.heroSubLight}>
+                  Certificates, faculty awards, ECHO badges and SA Member IDs are signed on issue. Recruiters and BGV agencies can confirm any of them without emailing a college office.
+                </Text>
+                <View style={s.statGridRow}>
+                  <View><Text style={[s.statNumLg, { color: '#4B3FA8' }]}>184k</Text><Text style={s.statSubText}>credentials signed</Text></View>
+                  <View><Text style={[s.statNumLg, { color: '#0E6E8C' }]}>1.2s</Text><Text style={s.statSubText}>median check</Text></View>
+                  <View><Text style={[s.statNumLg, { color: '#047857' }]}>0</Text><Text style={s.statSubText}>forgeries passed</Text></View>
+                </View>
+              </View>
+            </View>
+
+            {/* Lookup Search Bar */}
+            <View style={s.lookupWrap}>
+              <Text style={s.lookupTitle}>Verify Certificate & <Text style={{ color: '#8B84FF' }}>SA Member ID</Text></Text>
+              <Text style={s.lookupSub}>Instant cryptographic BGV validation for verified Certificate IDs, Faculty Awards, and Member IDs.</Text>
+              <View style={s.searchBarBox}>
+                <TextInput
+                  style={s.searchInput}
+                  placeholder="Enter Certificate ID, Member ID, or Roll Number…"
+                  placeholderTextColor="#7B8199"
+                  value={vInput}
+                  onChangeText={setVInput}
+                />
+                <Pressable onPress={() => handleVerify()} style={s.verifySearchBtn}>
+                  <Text style={s.verifySearchBtnText}>Verify Credential →</Text>
+                </Pressable>
+              </View>
+
+              {/* Sample ID Chips */}
+              <View style={s.sampleChipsRow}>
+                <Text style={{ color: '#B6BACB', fontSize: 13, fontWeight: '600' }}>Try sample IDs:</Text>
+                {['SA-EXC-2026-0002', 'SA-FAC-2026-0001', 'SA-AMB-2026-0012', 'ECHO26-P-0001'].map((id) => (
+                  <Pressable key={id} onPress={() => { setVInput(id); handleVerify(id); }} style={s.sampleChip}>
+                    <Text style={s.sampleChipText}>{id}</Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              {/* Verification Result Box */}
+              {vResult && (
+                <View style={s.resultCard}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                    <View>
+                      <Text style={{ color: '#fff', fontSize: 18, fontWeight: '700' }}>{vResult.name}</Text>
+                      <Text style={{ color: '#8B84FF', fontSize: 13, marginTop: 2 }}>{vResult.id}</Text>
+                    </View>
+                    <View style={s.sigValidPill}><Text style={s.sigValidText}>✓ SIGNATURE VALID</Text></View>
+                  </View>
+                  <View style={s.resultDetailsGrid}>
+                    <View><Text style={s.resLabel}>ISSUED BY</Text><Text style={s.resVal}>{vResult.issuer}</Text></View>
+                    <View><Text style={s.resLabel}>ISSUED ON</Text><Text style={s.resVal}>{vResult.date}</Text></View>
+                    <View><Text style={s.resLabel}>LEDGER HASH</Text><Text style={[s.resVal, { fontSize: 12 }]}>{vResult.hash}</Text></View>
+                  </View>
+                </View>
+              )}
+            </View>
+
+            {/* BGV Request Form */}
+            <View style={s.bgvCard}>
+              <Text style={s.bgvEyebrow}>BULK & ENTERPRISE BGV</Text>
+              <Text style={s.bgvH1}>Request a BGV check</Text>
+              <Text style={s.bgvSub}>Checking a batch of candidates or verifying without an ID? Send the details and our desk responds within one working day.</Text>
+
+              {/* Purpose Selector */}
+              <View style={s.bgvKindRow}>
+                {['Single candidate', 'Bulk batch (10+)', 'API access', 'Dispute a result'].map((k) => (
+                  <Pressable
+                    key={k}
+                    onPress={() => setBgvKind(k)}
+                    style={[s.bgvKindBtn, bgvKind === k && s.bgvKindBtnActive]}
+                  >
+                    <Text style={[s.bgvKindText, bgvKind === k && s.bgvKindTextActive]}>{k}</Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              {/* Form Grid */}
+              <View style={s.bgvInputsGrid}>
+                <View style={s.inputCell}><Text style={s.inLabel}>Your name *</Text><TextInput style={s.formInput} placeholder="e.g. Priya Menon" placeholderTextColor="#7B8199" /></View>
+                <View style={s.inputCell}><Text style={s.inLabel}>Work email *</Text><TextInput style={s.formInput} placeholder="you@company.com" placeholderTextColor="#7B8199" /></View>
+                <View style={s.inputCell}><Text style={s.inLabel}>Organisation *</Text><TextInput style={s.formInput} placeholder="e.g. Deloitte India" placeholderTextColor="#7B8199" /></View>
+                <View style={s.inputCell}><Text style={s.inLabel}>Candidate name</Text><TextInput style={s.formInput} placeholder="Name on credential" placeholderTextColor="#7B8199" /></View>
+              </View>
+
+              {/* Consent and Submit */}
+              <Pressable onPress={() => setBgvConsent(!bgvConsent)} style={s.consentRow}>
+                <View style={[s.consentBox, bgvConsent && s.consentBoxActive]}>
+                  {bgvConsent && <Text style={{ color: '#fff', fontSize: 11, fontWeight: '800' }}>✓</Text>}
+                </View>
+                <Text style={s.consentText}>I confirm the candidate has consented to this verification, as required under the DPDP Act 2023.</Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => {
+                  if (!bgvConsent) return;
+                  setBgvSent(true);
+                  setTimeout(() => setBgvSent(false), 3000);
+                }}
+                style={[s.bgvSubmitBtn, bgvConsent && s.bgvSubmitBtnReady]}
+              >
+                <Text style={s.bgvSubmitText}>{bgvSent ? 'Request Sent — Ref: SA-BGV-498214 ✓' : 'Submit BGV request'}</Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════════
+            IN-PAGE SECTION: CONTACT US
+           ══════════════════════════════════════════════════════════════════ */}
+        {activeTab === 'contact' && (
+          <View style={s.contentSection}>
+            <View style={{ alignItems: 'center', textAlign: 'center', marginBottom: 40 }}>
+              <View style={s.badgePill}><Text style={s.badgePillText}>CONTACT & CAMPUS RELATIONS</Text></View>
+              <Text style={s.pageH1}>Get in Touch with <Text style={{ color: '#8B84FF' }}>StudentAlumni Global</Text></Text>
+              <Text style={s.pageSub}>Connect directly with our leadership, campus partnership coordinators, and human resources team worldwide.</Text>
+            </View>
+
+            {/* 2 Hub Cards */}
+            <View style={s.hubsGrid}>
+              <View style={s.hubCard}>
+                <Text style={s.hubTag}>APAC HEADQUARTERS</Text>
+                <Text style={s.hubTitle}>India Hub</Text>
+                <View style={s.hubLine} />
+                <View style={s.hubDetailRow}><Text style={s.hubLabel}>OFFICE ADDRESS</Text><Text style={s.hubVal}>Madhapur, Hyderabad, Telangana, India</Text></View>
+                <View style={s.hubDetailRow}><Text style={s.hubLabel}>PHONE NUMBER</Text><Text style={s.hubVal}>+91 7569665077</Text></View>
+                <View style={s.hubDetailRow}><Text style={s.hubLabel}>OFFICIAL EMAIL</Text><Text style={s.hubVal}>hr@studentalumni.ai</Text></View>
+                <View style={s.hubDetailRow}><Text style={s.hubLabel}>WORKING HOURS</Text><Text style={s.hubVal}>Mon – Sat: 9:00 AM – 7:00 PM IST</Text></View>
+              </View>
+
+              <View style={s.hubCard}>
+                <Text style={[s.hubTag, { color: '#6FA8F5' }]}>AMERICAS & GLOBAL</Text>
+                <Text style={s.hubTitle}>USA Hub</Text>
+                <View style={s.hubLine} />
+                <View style={s.hubDetailRow}><Text style={s.hubLabel}>OFFICE ADDRESS</Text><Text style={s.hubVal}>Princeton, New Jersey, USA</Text></View>
+                <View style={s.hubDetailRow}><Text style={s.hubLabel}>PHONE NUMBER</Text><Text style={s.hubVal}>+91 7569665077</Text></View>
+                <View style={s.hubDetailRow}><Text style={s.hubLabel}>OFFICIAL EMAIL</Text><Text style={s.hubVal}>hr@studentalumni.ai</Text></View>
+                <View style={s.hubDetailRow}><Text style={s.hubLabel}>WORKING HOURS</Text><Text style={s.hubVal}>Mon – Fri: 9:00 AM – 6:00 PM EST</Text></View>
+              </View>
+            </View>
+
+            {/* Direct Message Box */}
+            <View style={s.contactMsgCard}>
+              <Text style={s.bgvEyebrow}>DIRECT INQUIRY & SUPPORT</Text>
+              <Text style={s.bgvH1}>Send Us a Message</Text>
+              <Text style={s.bgvSub}>Fill out the details below and our campus relations team will respond promptly.</Text>
+
+              {/* Purpose Selector */}
+              <View style={s.bgvKindRow}>
+                {['General Inquiry', 'HR & Careers', 'College Partnerships', 'Mentor Network'].map((p) => (
+                  <Pressable
+                    key={p}
+                    onPress={() => setContactPurpose(p)}
+                    style={[s.bgvKindBtn, contactPurpose === p && s.bgvKindBtnActive]}
+                  >
+                    <Text style={[s.bgvKindText, contactPurpose === p && s.bgvKindTextActive]}>{p}</Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              <View style={s.bgvInputsGrid}>
+                <View style={s.inputCell}><Text style={s.inLabel}>Full Name *</Text><TextInput style={s.formInput} placeholder="e.g. Rahul Sharma" placeholderTextColor="#7B8199" /></View>
+                <View style={s.inputCell}><Text style={s.inLabel}>Official Email *</Text><TextInput style={s.formInput} placeholder="e.g. rahul@example.com" placeholderTextColor="#7B8199" /></View>
+                <View style={s.inputCell}><Text style={s.inLabel}>Phone Number</Text><TextInput style={s.formInput} placeholder="+91 7569665077" placeholderTextColor="#7B8199" /></View>
+                <View style={s.inputCell}><Text style={s.inLabel}>College / Company</Text><TextInput style={s.formInput} placeholder="e.g. VNR VJIET" placeholderTextColor="#7B8199" /></View>
+              </View>
+
+              <View style={{ marginTop: 16 }}>
+                <Text style={s.inLabel}>Your Message *</Text>
+                <TextInput style={[s.formInput, { minHeight: 90 }]} multiline placeholder="How can we assist you?" placeholderTextColor="#7B8199" />
+              </View>
+
+              <Pressable
+                onPress={() => {
+                  setContactSent(true);
+                  setTimeout(() => setContactSent(false), 2500);
+                }}
+                style={s.contactSubmitBtn}
+              >
+                <Text style={s.bgvSubmitText}>{contactSent ? 'Message Transmitted ✓' : 'Transmit Message →'}</Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════════
+            MAIN MARKETING HOME SECTIONS (13 MASTER SECTIONS)
+           ══════════════════════════════════════════════════════════════════ */}
+        {activeTab === 'home' && (
+          <View>
+            {/* ── 01 HERO SECTION ── */}
+            <View style={s.heroSection}>
+              <View style={[s.heroGrid, isNarrow && { flexDirection: 'column' }]}>
+                <View style={{ flex: 1.05 }}>
+                  <View style={s.heroBadgeRow}>
+                    <Text style={s.heroStarIco}>★</Text>
+                    <Text style={s.heroBadgeText}>AI CAREER PLATFORM FOR STUDENTS</Text>
+                  </View>
+                  <Text style={s.heroTitleH1}>Your Intelligent Companion for a Modern Career</Text>
+                  <Text style={s.heroDesc}>
+                    Meet Agent K your always-on career copilot. Connect with mentors, discover events and career opportunities, polish your resume, and follow a personalized roadmap built for the way students actually work today.
+                  </Text>
+                  <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
+                    <Pressable onPress={() => router.push('/onboarding')} style={s.heroPrimaryBtn}>
+                      <Text style={s.heroBtnText}>I'm a student ↗</Text>
+                    </Pressable>
+                    <Pressable onPress={() => setActiveTab('contact')} style={s.heroGhostBtn}>
+                      <Text style={s.heroGhostBtnText}>I'm a college</Text>
+                    </Pressable>
+                  </View>
+                  <Text style={s.heroMicroBadges}>Free for students · No credit card · Your profile stays private until you reach out</Text>
+                </View>
+
+                {/* 3D Swaying Hero Shield Vector */}
+                <View style={s.hero3DWrap}>
+                  <View style={s.hero3DGlow} />
+                  <Svg width={320} height={370} viewBox="0 0 300 350">
+                    <Defs>
+                      <SvgGradient id="saShOut" x1="0" y1="0" x2="1" y2="1">
+                        <Stop offset="0" stopColor="#D8B6FF" />
+                        <Stop offset="0.45" stopColor="#9A5CE8" />
+                        <Stop offset="1" stopColor="#5B1FB0" />
+                      </SvgGradient>
+                      <SvgGradient id="saShIn" x1="0" y1="0" x2="0.4" y2="1">
+                        <Stop offset="0" stopColor="#B683F5" />
+                        <Stop offset="1" stopColor="#7331C9" />
+                      </SvgGradient>
+                    </Defs>
+                    <Path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#saShOut)" />
+                    <Path d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="url(#saShIn)" />
+                    <SvgText x={150} y={215} textAnchor="middle" fontFamily="sans-serif" fontSize={128} fontWeight="800" fill="#FFFFFF">
+                      SA
+                    </SvgText>
+                  </Svg>
+                </View>
+              </View>
+
+              {/* Dual Marquee Tickers */}
+              <View style={{ marginTop: 40, gap: 14 }}>
+                <View style={s.marqueeRow}>
+                  <Text style={s.marqueeTag}>COLLEGES</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
+                    {COLLEGES.map((c, i) => (
+                      <View key={i} style={s.marqueeTile}><Text style={s.marqueeTileText}>{c}</Text></View>
+                    ))}
+                  </ScrollView>
+                </View>
+                <View style={s.marqueeRow}>
+                  <Text style={[s.marqueeTag, { color: '#8B84FF' }]}>INDUSTRY</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
+                    {INDUSTRY.map((ind, i) => (
+                      <View key={i} style={s.marqueeTile}><Text style={s.marqueeTileText}>{ind}</Text></View>
+                    ))}
+                  </ScrollView>
+                </View>
+              </View>
+            </View>
+
+            {/* ── 02 FEATURES BENTO GRID ── */}
+            <View style={s.sectionWrap}>
+              <View style={s.badgePill}><Text style={s.badgePillText}>EVERYTHING YOU NEED</Text></View>
+              <Text style={s.secH1}>A complete career OS, <Text style={{ color: '#8B84FF' }}>built for students.</Text></Text>
+              <Text style={s.secSub}>Everything from your first job match to your full-time offer in one intelligent platform.</Text>
+
+              <View style={s.bentoGrid}>
+                {/* Card 1: Agent K (Span 2) */}
+                <View style={[s.bentoCard, { flex: isNarrow ? 1 : 2, minWidth: 320 }]}>
+                  <Text style={s.cardNum}>01</Text>
+                  <View style={s.cardIconBox}><Text style={{ fontSize: 22 }}>🤖</Text></View>
+                  <Text style={s.cardTitle}>Agent K</Text>
+                  <Text style={s.cardDesc}>Your always-on AI career copilot. Ask anything resume tips, interview prep, salary negotiation. Agent K remembers your goals and grows with you.</Text>
+                </View>
+
+                {/* Card 2: Mentors */}
+                <View style={[s.bentoCard, { flex: 1, minWidth: 260 }]}>
+                  <Text style={s.cardNum}>02</Text>
+                  <View style={s.cardIconBox}><Text style={{ fontSize: 22 }}>👥</Text></View>
+                  <Text style={s.cardTitle}>Mentors</Text>
+                  <Text style={s.cardDesc}>One-on-one sessions with alumni from Google, McKinsey, Goldman & more. Book, chat, level up.</Text>
+                </View>
+
+                {/* Card 3: Events */}
+                <View style={[s.bentoCard, { flex: 1, minWidth: 260 }]}>
+                  <Text style={s.cardNum}>03</Text>
+                  <View style={s.cardIconBox}><Text style={{ fontSize: 22 }}>📅</Text></View>
+                  <Text style={s.cardTitle}>Events</Text>
+                  <Text style={s.cardDesc}>Workshops, hackathons, and industry panels curated to your track and semester.</Text>
+                </View>
+
+                {/* Card 4: Student Perks */}
+                <View style={[s.bentoCard, { flex: 1, minWidth: 260 }]}>
+                  <Text style={s.cardNum}>04</Text>
+                  <View style={s.cardIconBox}><Text style={{ fontSize: 22 }}>🏷️</Text></View>
+                  <Text style={s.cardTitle}>Student Perks</Text>
+                  <Text style={s.cardDesc}>Unlock exclusive student deals and discounts on mentorship, courses, and partner services.</Text>
+                </View>
+
+                {/* Card 5: Career Opportunities */}
+                <View style={[s.bentoCard, s.bentoCardHighlight, { flex: 1, minWidth: 260 }]}>
+                  <Text style={s.cardNum}>05</Text>
+                  <View style={[s.cardIconBox, { backgroundColor: '#5B4FE9' }]}><Text style={{ fontSize: 22 }}>💼</Text></View>
+                  <Text style={[s.cardTitle, { color: '#8B84FF' }]}>Career Opportunities</Text>
+                  <Text style={[s.cardDesc, { color: '#B6BACB' }]}>Personalized opportunity feed sourced from partner companies and warm alumni referrals.</Text>
+                </View>
+
+                {/* Card 6: Resume Polish */}
+                <View style={[s.bentoCard, { flex: 1, minWidth: 260 }]}>
+                  <Text style={s.cardNum}>06</Text>
+                  <View style={s.cardIconBox}><Text style={{ fontSize: 22 }}>📄</Text></View>
+                  <Text style={s.cardTitle}>Resume Polish</Text>
+                  <Text style={s.cardDesc}>Instant AI rewrites with ATS scoring, role-specific keywords, and beautiful design templates.</Text>
+                </View>
+
+                {/* Card 7: Career Roadmap (Span 2) */}
+                <View style={[s.bentoCard, { flex: isNarrow ? 1 : 2, minWidth: 320 }]}>
+                  <Text style={s.cardNum}>07</Text>
+                  <View style={s.cardIconBox}><Text style={{ fontSize: 22 }}>🗺️</Text></View>
+                  <Text style={s.cardTitle}>Career Roadmap</Text>
+                  <Text style={s.cardDesc}>Visual step-by-step plan from Day 1 to your first offer auto-updated as your goals evolve.</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* ── 03 DASHBOARD PREVIEW ── */}
+            <View style={s.sectionWrap}>
+              <View style={s.badgePill}><Text style={s.badgePillText}>YOUR COMMAND CENTER</Text></View>
+              <Text style={s.secH1}>One dashboard, <Text style={{ color: '#8B84FF' }}>infinite momentum.</Text></Text>
+              <Text style={s.secSub}>Track every application, mentor session, and milestone in a beautifully quiet, deeply intelligent interface.</Text>
+
+              {/* Mock Dashboard Window */}
+              <View style={s.mockWindow}>
+                <View style={s.mockWindowHeader}>
+                  <View style={{ flexDirection: 'row', gap: 6 }}>
+                    <View style={[s.windowDot, { backgroundColor: '#FB7185' }]} />
+                    <View style={[s.windowDot, { backgroundColor: '#FBBF5C' }]} />
+                    <View style={[s.windowDot, { backgroundColor: '#34D399' }]} />
+                  </View>
+                  <View style={s.urlPill}><Text style={s.urlPillText}>studentalumni.ai / overview</Text></View>
+                </View>
+
+                <View style={[s.mockWindowBody, isNarrow && { flexDirection: 'column' }]}>
+                  <View style={s.mockSideMenu}>
+                    <Text style={s.menuHeading}>MENU</Text>
+                    <View style={s.activeMenuItem}><Text style={s.menuItemTextActive}>Overview</Text></View>
+                    <View style={s.menuItem}><Text style={s.menuItemText}>Agent K</Text></View>
+                    <View style={s.menuItem}><Text style={s.menuItemText}>Mentors</Text></View>
+                    <View style={s.menuItem}><Text style={s.menuItemText}>AI Roadmap</Text></View>
+                  </View>
+
+                  <View style={{ flex: 1, gap: 16 }}>
+                    <View style={s.mockStatRow}>
+                      <View style={s.mockStatBox}><Text style={s.statLabel}>ACTIVE APPLICATIONS</Text><Text style={s.statBig}>12</Text><Text style={s.statGain}>↗ +3 this week</Text></View>
+                      <View style={s.mockStatBox}><Text style={s.statLabel}>MENTOR HOURS</Text><Text style={s.statBig}>8.5h</Text><Text style={s.statGain}>↗ +2h vs last mo</Text></View>
+                      <View style={s.mockStatBox}><Text style={s.statLabel}>SKILL BADGES</Text><Text style={[s.statBig, { color: '#8B84FF' }]}>2,450</Text><Text style={s.statUnlock}>Unlock Premium</Text></View>
+                    </View>
+
+                    {/* Agent K Priorities */}
+                    <View style={s.prioritiesBox}>
+                      <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700', marginBottom: 12 }}>Agent K Priorities · Today</Text>
+                      <View style={s.priorityTask}><Text style={{ color: '#8B84FF' }}>☑</Text><Text style={s.priorityTaskText}>Refine your resume for the Google SWE referral drop.</Text></View>
+                      <View style={s.priorityTask}><Text style={{ color: '#9AA0B4' }}>☐</Text><Text style={s.priorityTaskText}>Prep 3 questions for tomorrow's mentor call with Sarah.</Text></View>
+                      <View style={s.priorityTask}><Text style={{ color: '#9AA0B4' }}>☐</Text><Text style={s.priorityTaskText}>Apply to 2 matched career opportunities closing this Friday.</Text></View>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </View>
+
+            {/* ── 04 STUDENT OUTCOMES ── */}
+            <View style={s.sectionWrap}>
+              <Text style={s.badgePillText}>WHERE STUDENTS LANDED</Text>
+              <Text style={s.secH1}>Four students, four <Text style={{ color: '#8B84FF' }}>first offers.</Text></Text>
+              <View style={s.outcomesGrid}>
+                <View style={s.outcomeCard}><Text style={s.outDept}>CS '26 · Hyderabad</Text><Text style={s.outName}>Aisha K.</Text><Text style={s.outDesc}>Two mentor calls, one resume rewrite, SWE offer in four months.</Text><Text style={s.outRole}>SWE · PRODUCT COMPANY</Text></View>
+                <View style={s.outcomeCard}><Text style={s.outDept}>ECE '25 · Pune</Text><Text style={s.outName}>Rohan M.</Text><Text style={s.outDesc}>Matched to an alumnus who ran the same internship two years earlier.</Text><Text style={s.outRole}>DATA ANALYST · FINTECH</Text></View>
+                <View style={s.outcomeCard}><Text style={s.outDept}>Design '26 · Remote</Text><Text style={s.outName}>Ira S.</Text><Text style={s.outDesc}>Portfolio review with a design lead, then a referral into her shortlist.</Text><Text style={s.outRole}>PRODUCT DESIGN INTERN</Text></View>
+                <View style={s.outcomeCard}><Text style={s.outDept}>MBA '25 · Mumbai</Text><Text style={s.outName}>Dev P.</Text><Text style={s.outDesc}>Used the roadmap to pick electives that matched his target role.</Text><Text style={s.outRole}>STRATEGY ASSOCIATE</Text></View>
+              </View>
+            </View>
+
+            {/* ── 06 BY THE NUMBERS ── */}
+            <View style={s.sectionWrap}>
+              <View style={s.numbersCard}>
+                <Text style={s.badgePillText}>BY THE NUMBERS</Text>
+                <Text style={s.secH1}>Trusted by students <Text style={{ color: '#8B84FF' }}>worldwide</Text></Text>
+                <View style={s.numbersGrid}>
+                  <View style={s.numTile}><Text style={s.numBig}>50,000+</Text><Text style={s.numLabel}>Active Students</Text><Text style={s.numSub}>and growing daily</Text></View>
+                  <View style={s.numTile}><Text style={s.numBig}>1,200+</Text><Text style={s.numLabel}>Verified Mentors</Text><Text style={s.numSub}>from top 500 firms</Text></View>
+                  <View style={s.numTile}><Text style={s.numBig}>200+</Text><Text style={s.numLabel}>Partner Universities</Text><Text style={s.numSub}>in 30+ countries</Text></View>
+                  <View style={s.numTile}><Text style={s.numBig}>96%</Text><Text style={s.numLabel}>Placement Rate</Text><Text style={s.numSub}>within 6 months</Text></View>
+                </View>
+              </View>
+            </View>
+
+            {/* ── 09 ON CAMPUS PHOTO DECK ── */}
+            <View style={s.sectionWrap}>
+              <View style={[s.deckShell, isNarrow && { flexDirection: 'column' }]}>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.badgePillText}>ON CAMPUS</Text>
+                  <Text style={s.secH1}>A year on <Text style={{ color: '#8B84FF' }}>the network.</Text></Text>
+                  <Text style={s.secSub}>The stack deals itself forward every few seconds. Tap any card or dot to bring it to front.</Text>
+                  <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }}>
+                    {[0, 1, 2, 3, 4].map((d) => (
+                      <Pressable key={d} onPress={() => setActiveDeckIndex(d)} style={[s.deckDot, activeDeckIndex === d && s.deckDotActive]} />
+                    ))}
+                  </View>
+                </View>
+
+                {/* Active Polaroid Card Preview */}
+                <View style={s.polaWrap}>
+                  <View style={s.polaCard}>
+                    <View style={s.polaPhoto}>
+                      <Text style={{ fontSize: 54 }}>📸</Text>
+                    </View>
+                    <View style={s.polaCapRow}>
+                      <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>
+                        {activeDeckIndex === 0 && 'Alumni career fair'}
+                        {activeDeckIndex === 1 && 'One-to-one mentoring'}
+                        {activeDeckIndex === 2 && 'Hackathon weekend'}
+                        {activeDeckIndex === 3 && 'Graduation Class of 2026'}
+                        {activeDeckIndex === 4 && 'First week on the job'}
+                      </Text>
+                      <Text style={{ color: '#857CAE', fontSize: 12, fontWeight: '700' }}>
+                        {activeDeckIndex === 0 && 'March'}
+                        {activeDeckIndex === 1 && 'Library, Block C'}
+                        {activeDeckIndex === 2 && 'Alumni-run'}
+                        {activeDeckIndex === 3 && 'Class of 2026'}
+                        {activeDeckIndex === 4 && 'Internship'}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </View>
+
+            {/* ── 10 MATCH GRAPH ── */}
+            <View style={s.sectionWrap}>
+              <View style={[s.matchShell, isNarrow && { flexDirection: 'column' }]}>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.badgePillText}>HOW MATCHING WORKS</Text>
+                  <Text style={s.secH1}>1,200+ verified mentors, <Text style={{ color: '#8B84FF' }}>ranked by fit.</Text></Text>
+                  <Text style={s.secSub}>Agent K scores every alumnus against your course, goals and city. Tap a node to see why it was chosen.</Text>
+                  <View style={s.matchDetailCard}>
+                    <Text style={s.matchDetailLabel}>MATCH DETAIL</Text>
+                    <Text style={s.matchDetailName}>{hoveredMentorNode ? hoveredMentorNode.name : 'Priya R. — Product, Bengaluru (98% Match)'}</Text>
+                    <Text style={s.matchDetailWhy}>{hoveredMentorNode ? hoveredMentorNode.why : 'Same course, four years ahead. Mentors three students each term.'}</Text>
+                  </View>
+                </View>
+
+                <View style={s.radarGraphBox}>
+                  <Svg width={360} height={340} viewBox="0 0 620 540">
+                    <Circle cx={310} cy={270} r={128} fill="none" stroke="#1B1E33" strokeWidth={1.4} strokeDasharray="4 8" />
+                    <Circle cx={310} cy={270} r={206} fill="none" stroke="#1B1E33" strokeWidth={1.4} strokeDasharray="4 8" />
+                    {hoveredMentorNode && (
+                      <Line x1={310} y1={270} x2={hoveredMentorNode.x} y2={hoveredMentorNode.y} stroke="#8B84FF" strokeWidth={2} strokeDasharray="4 4" />
+                    )}
+                    <Circle cx={310} cy={270} r={52} fill="#0C0E1B" stroke="#5B4FE9" strokeWidth={2} />
+                    <SvgText x={310} y={266} textAnchor="middle" fontFamily="sans-serif" fontSize={16} fontWeight="800" fill="#F4F5FB">YOU</SvgText>
+                    <SvgText x={310} y={286} textAnchor="middle" fontFamily="sans-serif" fontSize={10} fontWeight="700" fill="#7B8199">YEAR 3</SvgText>
+
+                    {MENTOR_NODES.map((node, i) => (
+                      <G key={i} onPress={() => setHoveredMentorNode(node)}>
+                        <Circle cx={node.x} cy={node.y} r={32} fill="#0C0E1B" stroke={hoveredMentorNode?.name === node.name ? '#8B84FF' : '#2A2A55'} strokeWidth={2} />
+                        <SvgText x={node.x} y={node.y + 5} textAnchor="middle" fontFamily="sans-serif" fontSize={13} fontWeight="700" fill="#8B84FF">{node.score}</SvgText>
+                      </G>
+                    ))}
+                  </Svg>
+                </View>
+              </View>
+            </View>
+
+            {/* ── 12 ALL SCREENS DIRECTORY ── */}
+            <View style={s.sectionWrap}>
+              <Text style={s.badgePillText}>EVERY SCREEN</Text>
+              <Text style={s.secH1}>The whole product, <Text style={{ color: '#8B84FF' }}>one place.</Text></Text>
+              <Text style={s.secSub}>Twelve screens across the student journey — from first sign-in to your verified SA card.</Text>
+
+              <View style={s.screenDirectoryGrid}>
+                {[
+                  { name: 'Dashboard', route: '/student-portal/dashboard', sub: 'Bento overview, 16 modules, Agent K and rentals.', badge: '16 MODULES' },
+                  { name: 'Sign in', route: '/login', sub: 'Google, email check, password and demo credentials.' },
+                  { name: 'Get started', route: '/onboarding', sub: 'Three-step signup with photo capture.' },
+                  { name: 'Onboarding', route: '/onboarding', sub: 'Student, alumnus and college flows with perks.', badge: '15 STEPS' },
+                  { name: 'Events', route: '/events', sub: 'ECHO list, event detail and registration.' },
+                  { name: 'Blog', route: '/contact', sub: 'Posts, categories and reading view.' },
+                  { name: 'Help centre', route: '/contact', sub: 'Six categories with real article lists.' },
+                  { name: 'Community', route: '/network', sub: 'Campus metrics, chapters and member stories.' },
+                  { name: 'Privacy', route: '/policy/privacy', sub: 'What we collect and what we never do.' },
+                  { name: 'Terms', route: '/policy/terms', sub: 'Account rules, payments and cancellations.' },
+                  { name: 'Security', route: '/policy/security', sub: 'Encryption, verification and disclosure.' },
+                  { name: 'System states', route: '/status', sub: '404, 403, 401, 500, 503, 408 and offline.', badge: '9 STATES' },
+                ].map((item, i) => (
+                  <Pressable key={i} onPress={() => router.push(item.route)} style={s.screenDirCard}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>{item.name}</Text>
+                      {item.badge && <View style={s.miniBadge}><Text style={s.miniBadgeText}>{item.badge}</Text></View>}
+                    </View>
+                    <Text style={{ color: '#9AA0B4', fontSize: 13, marginVertical: 6 }}>{item.sub}</Text>
+                    <Text style={{ color: '#8B84FF', fontSize: 12.5, fontWeight: '700' }}>Open →</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+
+            {/* ── 12 FINAL CTA ── */}
+            <View style={s.sectionWrap}>
+              <View style={s.finalCtaCard}>
+                <Text style={s.badgePillText}>START YOUR JOURNEY</Text>
+                <Text style={s.secH1}>Your career, quietly <Text style={{ color: '#8B84FF' }}>upgraded.</Text></Text>
+                <Text style={s.secSub}>Join 50,000+ students already using StudentAlumni to land career opportunities, find mentors, and build their future.</Text>
+                <Pressable onPress={() => router.push('/onboarding')} style={s.finalCtaBtn}>
+                  <Text style={s.finalCtaBtnText}>Create your free account ↗</Text>
+                </Pressable>
+                <View style={s.faqGrid}>
+                  <View style={s.faqCell}><Text style={s.faqQ}>Is it free?</Text><Text style={s.faqA}>Free for students, always. Colleges pay per cohort.</Text></View>
+                  <View style={s.faqCell}><Text style={s.faqQ}>Who sees my profile?</Text><Text style={s.faqA}>Nobody, until you send a request yourself.</Text></View>
+                  <View style={s.faqCell}><Text style={s.faqQ}>If no mentor replies?</Text><Text style={s.faqA}>We re-match within 48 hours, up to three times.</Text></View>
+                </View>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* ── FOOTER ──────────────────────────────────────────────────────── */}
+        <View style={s.footer}>
+          <View style={s.footerMax}>
+            <View style={s.footerGrid}>
+              <View style={{ flex: 1.5, minWidth: 260 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 11, marginBottom: 14 }}>
+                  <Svg width={28} height={33} viewBox="0 0 300 350">
+                    <Path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#navBadgeO)" />
+                    <SvgText x={150} y={214} textAnchor="middle" fontFamily="sans-serif" fontSize={118} fontWeight="800" fill="#FFFFFF">
+                      SA
+                    </SvgText>
+                  </Svg>
+                  <Text style={{ fontSize: 17, fontWeight: '700', color: '#fff' }}>StudentAlumni</Text>
+                </View>
+                <Text style={{ fontSize: 14.5, lineHeight: 22, color: '#9AA0B4', maxWidth: 320 }}>
+                  The intelligent career companion built for the <Text style={{ color: '#F4F5FB', fontWeight: '700' }}>next generation</Text> of students.
+                </Text>
+              </View>
+
+              <View style={{ flex: 1, minWidth: 160 }}>
+                <Text style={s.colHeading}>RESOURCES</Text>
+                <View style={{ gap: 12 }}>
+                  <Pressable onPress={() => setActiveTab('verify')}><Text style={s.colLink}>Verify Certificate</Text></Pressable>
+                  <Pressable onPress={() => setActiveTab('contact')}><Text style={s.colLink}>Blog</Text></Pressable>
+                  <Pressable onPress={() => setActiveTab('contact')}><Text style={s.colLink}>Help center</Text></Pressable>
+                  <Pressable onPress={() => router.push('/network')}><Text style={s.colLink}>Community</Text></Pressable>
+                </View>
+              </View>
+
+              <View style={{ flex: 1, minWidth: 160 }}>
+                <Text style={s.colHeading}>LEGAL</Text>
+                <View style={{ gap: 12 }}>
+                  <Pressable onPress={() => router.push('/policy/privacy')}><Text style={s.colLink}>Privacy & Terms</Text></Pressable>
+                  <Pressable onPress={() => router.push('/policy/security')}><Text style={s.colLink}>Security & Cookies</Text></Pressable>
+                </View>
+              </View>
+
+              <View style={{ flex: 1, minWidth: 180 }}>
+                <Text style={s.colHeading}>COMPLIANCE</Text>
+                <View style={{ gap: 12 }}>
+                  <View>
+                    <Text style={{ fontSize: 14, color: '#F4F5FB', fontWeight: '600' }}>✓ DPDP Act 2023</Text>
+                    <Text style={{ fontSize: 11.5, color: '#7B8199', marginTop: 2 }}>India · data principal rights</Text>
+                  </View>
+                  <View>
+                    <Text style={{ fontSize: 14, color: '#F4F5FB', fontWeight: '600' }}>✓ GDPR</Text>
+                    <Text style={{ fontSize: 11.5, color: '#7B8199', marginTop: 2 }}>EU · lawful basis and DPAs</Text>
+                  </View>
+                  <View>
+                    <Text style={{ fontSize: 14, color: '#F4F5FB', fontWeight: '600' }}>✓ SOC 2 Type II</Text>
+                    <Text style={{ fontSize: 11.5, color: '#7B8199', marginTop: 2 }}>Audited controls, annual</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+
+            {/* Newsletter Row */}
+            <View style={s.subRow}>
+              <View style={{ minWidth: 260 }}>
+                <Text style={{ fontSize: 18, fontWeight: '700', color: '#fff' }}>One email a month. Nothing else.</Text>
+                <Text style={{ fontSize: 14, color: '#9AA0B4', marginTop: 4 }}>New openings, mentor drops and campus events — no noise.</Text>
+              </View>
+              <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
+                <View style={s.emailMockBox}><Text style={{ color: '#7B8199', fontSize: 14 }}>you@college.edu</Text></View>
+                <Pressable onPress={() => setSubscribed(true)} style={s.subBtn}>
+                  <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>{subscribed ? 'Subscribed ✓' : 'Subscribe'}</Text>
+                </Pressable>
+              </View>
+            </View>
+
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 40, flexWrap: 'wrap', gap: 20 }}>
+              <View>
+                <Text style={s.hashLogo}>#studentalumni</Text>
+                <Text style={{ color: '#9AA0B4', fontSize: 14, marginTop: 6 }}>Built with love for students across all campus's</Text>
+              </View>
+              <Text style={{ color: '#9AA0B4', fontSize: 13 }}>All rights reserved @ Student Alumni 2026</Text>
+            </View>
+          </View>
+        </View>
+      </ScrollView>
+    </View>
   );
 }
+
+// ── Styles Matching Master Landing Page Spec ────────────────────────────────
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: '#05060F' },
+  bgWrap: { position: 'absolute' as any, inset: 0, overflow: 'hidden' },
+  radialGlow: { position: 'absolute' as any, inset: 0, backgroundColor: '#05060F' },
+  horizonGlow: { position: 'absolute' as any, left: '50%', top: -200, width: 1200, height: 500, marginLeft: -600, borderRadius: 600, backgroundColor: 'rgba(91,79,233,0.18)', filter: 'blur(60px)' as any },
+  navbar: { position: 'sticky' as any, top: 0, zIndex: 60, backgroundColor: 'rgba(5,6,15,0.85)', borderBottomWidth: 1, borderColor: '#1B1E33', paddingHorizontal: 28 },
+  navInner: { maxWidth: 1360, marginHorizontal: 'auto', paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%' },
+  brandText: { fontSize: 17, fontWeight: '700', color: '#F4F5FB', letterSpacing: -0.2 },
+  navTabsWrap: { flexDirection: 'row', alignItems: 'center', gap: 32 },
+  navTab: { position: 'relative' as any, paddingVertical: 6 },
+  navTabText: { fontSize: 14.5, fontWeight: '500', color: '#9AA0B4' },
+  navTabActiveText: { color: '#F4F5FB', fontWeight: '700' },
+  navIndicator: { position: 'absolute' as any, left: 0, right: 0, bottom: -2, height: 2.5, borderRadius: 2, backgroundColor: '#8B84FF' },
+  signInText: { fontSize: 14.5, color: '#9AA0B4', fontWeight: '600' },
+  getStartedBtn: { backgroundColor: '#5B4FE9', borderRadius: 100, paddingHorizontal: 22, paddingVertical: 10 },
+  getStartedBtnText: { color: '#FFFFFF', fontSize: 14.5, fontWeight: '700' },
+  heroSection: { maxWidth: 1360, marginHorizontal: 'auto', paddingVertical: 70, paddingHorizontal: 28, width: '100%' },
+  heroGrid: { flexDirection: 'row', alignItems: 'center', gap: 48 },
+  heroBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 18 },
+  heroStarIco: { color: '#8B84FF', fontSize: 14 },
+  heroBadgeText: { fontSize: 11.5, fontWeight: '700', letterSpacing: 1.6, color: '#8B84FF' },
+  heroTitleH1: { fontSize: 54, fontWeight: '700', lineHeight: 60, letterSpacing: -2, color: '#F4F5FB', marginBottom: 20 },
+  heroDesc: { fontSize: 16.5, lineHeight: 26, color: '#B6BACB', maxWidth: 500, marginBottom: 28 },
+  heroPrimaryBtn: { backgroundColor: '#5B4FE9', borderRadius: 10, paddingHorizontal: 24, paddingVertical: 14 },
+  heroBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
+  heroGhostBtn: { borderWidth: 1, borderColor: '#2A2E45', borderRadius: 10, paddingHorizontal: 24, paddingVertical: 14 },
+  heroGhostBtnText: { color: '#F4F5FB', fontSize: 15, fontWeight: '600' },
+  heroMicroBadges: { fontSize: 13, color: '#7B8199', marginTop: 8 },
+  hero3DWrap: { flex: 0.95, alignItems: 'center', justifyContent: 'center', position: 'relative' },
+  hero3DGlow: { position: 'absolute' as any, width: 340, height: 340, borderRadius: 170, backgroundColor: 'rgba(139,90,255,0.3)', filter: 'blur(30px)' as any },
+  marqueeRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  marqueeTag: { fontSize: 11, fontWeight: '700', letterSpacing: 1.5, color: '#5B4FE9', backgroundColor: 'rgba(91,79,233,0.15)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
+  marqueeTile: { height: 48, paddingHorizontal: 18, borderRadius: 10, borderWidth: 1, borderColor: '#1B1E33', backgroundColor: '#0C0E1B', alignItems: 'center', justifyContent: 'center' },
+  marqueeTileText: { color: '#F4F5FB', fontSize: 12.5, fontWeight: '700' },
+  sectionWrap: { maxWidth: 1360, marginHorizontal: 'auto', paddingVertical: 60, paddingHorizontal: 28, width: '100%' },
+  badgePill: { alignSelf: 'flex-start', borderWidth: 1, borderColor: '#2A2A55', borderRadius: 100, paddingHorizontal: 12, paddingVertical: 4, marginBottom: 14, backgroundColor: 'rgba(91,79,233,0.1)' },
+  badgePillText: { fontSize: 11, fontWeight: '700', letterSpacing: 1.6, color: '#8B84FF' },
+  secH1: { fontSize: 44, fontWeight: '700', letterSpacing: -1.6, color: '#F4F5FB', marginBottom: 12 },
+  secSub: { fontSize: 16, lineHeight: 24, color: '#9AA0B4', maxWidth: 540, marginBottom: 36 },
+  bentoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 20 },
+  bentoCard: { borderRadius: 18, borderWidth: 1, borderColor: '#1B1E33', backgroundColor: '#0C0E1B', padding: 26, position: 'relative' },
+  bentoCardHighlight: { borderWidth: 1, borderColor: '#2A2A55', backgroundColor: '#12142B' },
+  cardNum: { position: 'absolute' as any, top: 20, right: 20, fontSize: 12, fontWeight: '700', color: '#2A2E45' },
+  cardIconBox: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(91,79,233,0.16)', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  cardTitle: { fontSize: 20, fontWeight: '700', color: '#fff', marginBottom: 8 },
+  cardDesc: { fontSize: 14.5, lineHeight: 22, color: '#9AA0B4' },
+  mockWindow: { borderRadius: 18, borderWidth: 1, borderColor: '#1B1E33', backgroundColor: '#0A0C18', overflow: 'hidden' },
+  mockWindowHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, borderBottomWidth: 1, borderColor: '#171A2C' },
+  windowDot: { width: 10, height: 10, borderRadius: 5 },
+  urlPill: { backgroundColor: '#0E1020', borderWidth: 1, borderColor: '#1B1E33', borderRadius: 100, paddingHorizontal: 14, paddingVertical: 4 },
+  urlPillText: { color: '#9AA0B4', fontSize: 12 },
+  mockWindowBody: { flexDirection: 'row', padding: 20, gap: 20 },
+  mockSideMenu: { width: 200, borderWidth: 1, borderColor: '#171A2C', borderRadius: 12, backgroundColor: '#0C0E1B', padding: 14, gap: 6 },
+  menuHeading: { fontSize: 10.5, fontWeight: '700', letterSpacing: 1.6, color: '#7B8199', marginBottom: 6 },
+  activeMenuItem: { backgroundColor: '#171A2C', borderRadius: 8, padding: 10 },
+  menuItemTextActive: { color: '#fff', fontWeight: '700', fontSize: 13.5 },
+  menuItem: { padding: 10 },
+  menuItemText: { color: '#9AA0B4', fontSize: 13.5 },
+  mockStatRow: { flexDirection: 'row', gap: 14, flexWrap: 'wrap' },
+  mockStatBox: { flex: 1, minWidth: 180, borderRadius: 12, borderWidth: 1, borderColor: '#171A2C', backgroundColor: '#0C0E1B', padding: 16 },
+  statLabel: { fontSize: 10.5, fontWeight: '700', letterSpacing: 1.4, color: '#7B8199', marginBottom: 8 },
+  statBig: { fontSize: 28, fontWeight: '800', color: '#fff' },
+  statGain: { fontSize: 11.5, color: '#8B84FF', fontWeight: '600', marginTop: 4 },
+  statUnlock: { fontSize: 11.5, color: '#34D399', fontWeight: '700', marginTop: 4 },
+  prioritiesBox: { borderRadius: 12, borderWidth: 1, borderColor: '#2A2A55', backgroundColor: '#0C0E1B', padding: 18, gap: 10 },
+  priorityTask: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderColor: '#1B1E33', borderRadius: 10, padding: 12, backgroundColor: '#0E1020' },
+  priorityTaskText: { color: '#F4F5FB', fontSize: 14 },
+  outcomesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
+  outcomeCard: { flex: 1, minWidth: 220, borderRadius: 16, borderWidth: 1, borderColor: '#1B1E33', backgroundColor: '#0C0E1B', padding: 22 },
+  outDept: { color: '#7B8199', fontSize: 12, marginBottom: 8 },
+  outName: { color: '#fff', fontSize: 18, fontWeight: '700', marginBottom: 6 },
+  outDesc: { color: '#9AA0B4', fontSize: 14, lineHeight: 20, marginBottom: 14 },
+  outRole: { color: '#8B84FF', fontSize: 11.5, fontWeight: '700', letterSpacing: 1.2 },
+  numbersCard: { borderRadius: 22, borderWidth: 1, borderColor: '#171A2C', backgroundColor: '#0A0C18', padding: 44, alignItems: 'center' },
+  numbersGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 20, width: '100%', marginTop: 24 },
+  numTile: { flex: 1, minWidth: 200, borderRadius: 14, borderWidth: 1, borderColor: '#171A2C', backgroundColor: '#0C0E1B', padding: 24, alignItems: 'center' },
+  numBig: { fontSize: 36, fontWeight: '800', color: '#fff', letterSpacing: -1 },
+  numLabel: { fontSize: 14.5, fontWeight: '700', color: '#F4F5FB', marginTop: 6 },
+  numSub: { fontSize: 12.5, color: '#7B8199', marginTop: 2 },
+  deckShell: { flexDirection: 'row', alignItems: 'center', gap: 40 },
+  deckDot: { width: 24, height: 4, borderRadius: 2, backgroundColor: '#1B1E33' },
+  deckDotActive: { width: 34, backgroundColor: '#8B84FF' },
+  polaWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  polaCard: { width: 300, borderRadius: 18, borderWidth: 1, borderColor: '#1B1E33', backgroundColor: '#0A0C18', padding: 14, shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 20 },
+  polaPhoto: { height: 220, borderRadius: 12, backgroundColor: '#090B16', alignItems: 'center', justifyContent: 'center' },
+  polaCapRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 12, paddingHorizontal: 4 },
+  matchShell: { flexDirection: 'row', alignItems: 'center', gap: 40 },
+  matchDetailCard: { borderRadius: 14, borderWidth: 1, borderColor: '#1B1E33', backgroundColor: '#0A0C18', padding: 18, marginTop: 18 },
+  matchDetailLabel: { fontSize: 10.5, fontWeight: '700', letterSpacing: 1.6, color: '#7B8199' },
+  matchDetailName: { fontSize: 18, fontWeight: '700', color: '#fff', marginVertical: 6 },
+  matchDetailWhy: { fontSize: 14, color: '#9AA0B4' },
+  radarGraphBox: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  screenDirectoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
+  screenDirCard: { flex: 1, minWidth: 240, borderRadius: 16, borderWidth: 1, borderColor: '#1B1E33', backgroundColor: '#0C0E1B', padding: 18 },
+  miniBadge: { borderWidth: 1, borderColor: '#8B84FF44', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
+  miniBadgeText: { color: '#8B84FF', fontSize: 9.5, fontWeight: '700' },
+  finalCtaCard: { borderRadius: 22, borderWidth: 1, borderColor: '#171A2C', backgroundColor: '#0A0C18', padding: 50, alignItems: 'center', textAlign: 'center' },
+  finalCtaBtn: { backgroundColor: '#5B4FE9', borderRadius: 12, paddingHorizontal: 32, paddingVertical: 16, marginVertical: 24 },
+  finalCtaBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  faqGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, borderTopWidth: 1, borderColor: '#1B1E33', paddingTop: 28, marginTop: 12, width: '100%' },
+  faqCell: { flex: 1, minWidth: 200 },
+  faqQ: { color: '#fff', fontSize: 14, fontWeight: '700', marginBottom: 4 },
+  faqA: { color: '#9AA0B4', fontSize: 13, lineHeight: 18 },
+  contentSection: { maxWidth: 1160, marginHorizontal: 'auto', paddingVertical: 40, paddingHorizontal: 28, width: '100%' },
+  verifyHeroCard: { borderRadius: 22, backgroundColor: '#F4F2FF', padding: 36, marginBottom: 30 },
+  heroH1Light: { fontSize: 36, fontWeight: '700', color: '#141726', letterSpacing: -1.2, marginVertical: 14 },
+  heroSubLight: { fontSize: 15.5, lineHeight: 24, color: '#4A4F63', maxWidth: 540 },
+  statGridRow: { flexDirection: 'row', gap: 32, marginTop: 24 },
+  statNumLg: { fontSize: 28, fontWeight: '800' },
+  statSubText: { fontSize: 12, color: '#5F6474', marginTop: 2 },
+  lookupWrap: { borderRadius: 20, borderWidth: 1, borderColor: '#1B1E33', backgroundColor: '#0C0E1B', padding: 30, alignItems: 'center', textAlign: 'center' },
+  lookupTitle: { fontSize: 32, fontWeight: '800', color: '#fff', marginBottom: 8 },
+  lookupSub: { fontSize: 15, color: '#9AA0B4', maxWidth: 500, marginBottom: 24 },
+  searchBarBox: { flexDirection: 'row', width: '100%', maxWidth: 700, gap: 10, flexWrap: 'wrap' },
+  searchInput: { flex: 1, minWidth: 260, borderRadius: 12, borderWidth: 1, borderColor: '#1B1E33', backgroundColor: '#0A0C18', paddingHorizontal: 16, color: '#fff', fontSize: 15 },
+  verifySearchBtn: { backgroundColor: '#5B4FE9', borderRadius: 12, paddingHorizontal: 24, paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
+  verifySearchBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  sampleChipsRow: { flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 20 },
+  sampleChip: { borderWidth: 1, borderColor: '#2A2A55', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
+  sampleChipText: { color: '#8B84FF', fontSize: 12.5, fontWeight: '700' },
+  resultCard: { width: '100%', maxWidth: 700, borderRadius: 16, borderWidth: 1, borderColor: '#2A2A55', backgroundColor: '#0A0C18', padding: 22, marginTop: 24 },
+  sigValidPill: { borderWidth: 1, borderColor: '#1B6B4E', borderRadius: 100, paddingHorizontal: 12, paddingVertical: 4 },
+  sigValidText: { color: '#34D399', fontSize: 11.5, fontWeight: '700' },
+  resultDetailsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 18, borderTopWidth: 1, borderColor: '#171A2C', paddingTop: 16 },
+  resLabel: { fontSize: 10.5, fontWeight: '700', letterSpacing: 1.2, color: '#7B8199', marginBottom: 4 },
+  resVal: { fontSize: 14, fontWeight: '600', color: '#fff' },
+  bgvCard: { borderRadius: 20, borderWidth: 1, borderColor: '#2A2A55', backgroundColor: '#0C0E1B', padding: 32, marginTop: 30 },
+  bgvEyebrow: { fontSize: 11, fontWeight: '700', letterSpacing: 1.6, color: '#8B84FF' },
+  bgvH1: { fontSize: 26, fontWeight: '700', color: '#fff', marginVertical: 8 },
+  bgvSub: { fontSize: 14.5, color: '#9AA0B4', marginBottom: 20 },
+  bgvKindRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 20 },
+  bgvKindBtn: { borderRadius: 100, borderWidth: 1, borderColor: '#1B1E33', backgroundColor: '#0A0C18', paddingHorizontal: 16, paddingVertical: 8 },
+  bgvKindBtnActive: { backgroundColor: '#5B4FE9', borderColor: '#5B4FE9' },
+  bgvKindText: { color: '#9AA0B4', fontSize: 13, fontWeight: '600' },
+  bgvKindTextActive: { color: '#fff', fontWeight: '700' },
+  bgvInputsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
+  inputCell: { flex: 1, minWidth: 220 },
+  inLabel: { fontSize: 13, fontWeight: '600', color: '#F4F5FB', marginBottom: 6 },
+  formInput: { borderRadius: 10, borderWidth: 1, borderColor: '#1B1E33', backgroundColor: '#0A0C18', paddingHorizontal: 14, paddingVertical: 12, color: '#fff', fontSize: 14 },
+  consentRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 18 },
+  consentBox: { width: 18, height: 18, borderRadius: 4, borderWidth: 1.5, borderColor: '#2A2A55', alignItems: 'center', justifyContent: 'center' },
+  consentBoxActive: { backgroundColor: '#5B4FE9', borderColor: '#5B4FE9' },
+  consentText: { color: '#9AA0B4', fontSize: 13, flex: 1 },
+  bgvSubmitBtn: { backgroundColor: '#1B1E33', borderRadius: 12, paddingVertical: 16, alignItems: 'center' },
+  bgvSubmitBtnReady: { backgroundColor: '#5B4FE9' },
+  bgvSubmitText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  pageH1: { fontSize: 38, fontWeight: '800', color: '#fff', marginVertical: 8 },
+  pageSub: { fontSize: 15.5, color: '#9AA0B4', maxWidth: 580 },
+  hubsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 20, marginBottom: 28 },
+  hubCard: { flex: 1, minWidth: 280, borderRadius: 18, borderWidth: 1, borderColor: '#1B1E33', backgroundColor: '#0C0E1B', padding: 26 },
+  hubTag: { fontSize: 11, fontWeight: '700', letterSpacing: 1.4, color: '#8B84FF' },
+  hubTitle: { fontSize: 20, fontWeight: '700', color: '#fff', marginVertical: 4 },
+  hubLine: { height: 1, backgroundColor: '#1B1E33', marginVertical: 14 },
+  hubDetailRow: { marginVertical: 6 },
+  hubLabel: { fontSize: 10.5, fontWeight: '700', letterSpacing: 1.2, color: '#7B8199', marginBottom: 2 },
+  hubVal: { fontSize: 14, color: '#F4F5FB', fontWeight: '600' },
+  contactMsgCard: { borderRadius: 20, borderWidth: 1, borderColor: '#1B1E33', backgroundColor: '#0C0E1B', padding: 32 },
+  contactSubmitBtn: { backgroundColor: '#5B4FE9', borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginTop: 20 },
+  footer: { borderTopWidth: 1, borderColor: '#1B1E33', backgroundColor: '#05060D', paddingVertical: 48, paddingHorizontal: 28 },
+  footerMax: { maxWidth: 1360, marginHorizontal: 'auto', width: '100%' },
+  footerGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 32, justifyContent: 'space-between' },
+  colHeading: { fontSize: 11, fontWeight: '700', letterSpacing: 1.6, color: '#7B8199', marginBottom: 16 },
+  colLink: { fontSize: 14.5, color: '#9AA0B4' },
+  subRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 20, borderWidth: 1, borderColor: '#2A2A55', borderRadius: 18, backgroundColor: '#0E1020', padding: 24, marginTop: 40 },
+  emailMockBox: { borderWidth: 1, borderColor: '#1B1E33', borderRadius: 11, backgroundColor: '#0A0C18', paddingHorizontal: 16, paddingVertical: 12, minWidth: 200 },
+  subBtn: { backgroundColor: '#5B4FE9', borderRadius: 11, paddingHorizontal: 24, paddingVertical: 12 },
+  hashLogo: { fontSize: 32, fontWeight: '700', color: '#C08BFF', letterSpacing: -1.2 },
+});
