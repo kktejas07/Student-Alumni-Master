@@ -3816,23 +3816,22 @@ async def get_ticket(reg_id: str, request: Request, email: Optional[str] = Query
             is_admin = False
     if not is_admin:
         allowed_email = (reg.get("email") or "").strip().lower()
+        allowed_emails = {allowed_email} if allowed_email else set()
+        
+        team_members = reg.get("team_members", [])
+        if isinstance(team_members, list):
+            for m in team_members:
+                if isinstance(m, dict) and m.get("email"):
+                    allowed_emails.add(m.get("email").strip().lower())
+                    
+        user_email = (user.get("email") or "").strip().lower() if user else ""
         owner_match = user is not None and (
             str(user["_id"]) == reg.get("user_id")
-            or (user.get("email") or "").strip().lower() == allowed_email
+            or user_email in allowed_emails
         )
         # Also allow access if email query param matches (guest registrations)
-        req_email = (email or "").strip().lower()
-        email_match = bool(req_email and req_email == allowed_email)
-
-        # Team member access check
-        team_match = False
-        if reg.get("team_members"):
-            team_match = any(
-                (m.get("email") or "").strip().lower() in (allowed_email, req_email, (user.get("email") or "").strip().lower() if user else "")
-                for m in reg.get("team_members")
-            )
-
-        if not owner_match and not email_match and not team_match:
+        email_match = email and email.strip().lower() in allowed_emails
+        if not owner_match and not email_match:
             raise HTTPException(status_code=403, detail="You do not have access to this ticket")
     
     html_content = _build_ticket_html(reg_ser, showcase or {}, reg.get("ticket_template"))
