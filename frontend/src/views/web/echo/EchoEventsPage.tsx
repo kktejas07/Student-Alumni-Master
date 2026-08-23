@@ -129,53 +129,114 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Fetch showcase events
+  // Fetch and sync all showcase events from backend
   useEffect(() => {
     let mounted = true;
     api
       .listEchoShowcases()
       .then((res) => {
         if (mounted && res?.items && res.items.length > 0) {
-          const merged = [...SAMPLE_EVENTS];
-          res.items.forEach((item: any) => {
-            if (!merged.some((m) => m.slug === item.slug)) {
-              merged.push({
-                id: item.slug || item.id,
-                slug: item.slug || 'snist',
-                title: item.title || 'ECHO Event',
-                college: item.college_name || 'ECHO Campus',
-                college_full: item.college_name || item.venue || 'ECHO Campus',
-                status: item.event_status_badge?.toUpperCase() || 'UPCOMING',
-                organizer: item.organizer_name || 'StudentAlumni.ai',
-                description: item.subtitle || item.description || "Empowering Tomorrow's Leaders",
-                dates: item.date || 'September 04, 2026',
-                date_short: item.date || 'September 04, 2026',
-                date_pill: item.date || 'Sep 4 – 5, 2026',
-                time: item.time || '09:00 AM',
-                venue: item.venue || 'Campus Auditorium',
-                location_short: item.venue || 'Hyderabad',
-                prize_pool: item.prize_pool ? `₹${item.prize_pool} prize pool` : '₹50,000 prize pool',
-                reg_closes: item.reg_closes || '2026-09-01',
-                individual_fee: item.fee || 599,
-                team_fee: item.team_fee || 2495,
-                individual_seats: '985 seats available',
-                team_slots: '197 team slots available',
-                partners: item.partners?.map((p: any) => p.name) || ['CodeSpectra', 'Featherless', 'Stepupmark'],
-                poster_banner: item.hero_image_url || '',
+          setEvents((prev) => {
+            const map = new Map();
+            // Seed defaults first
+            SAMPLE_EVENTS.forEach((e) => map.set(e.slug, { ...e }));
+            // Merge all items from backend
+            res.items.forEach((item: any) => {
+              const slugKey = item.slug || 'snist';
+              const existing = map.get(slugKey) || {};
+              map.set(slugKey, {
+                ...existing,
+                id: item.id || item.slug || existing.id || 'snist',
+                slug: slugKey,
+                title: item.title || existing.title || 'ECHO Event',
+                college: item.college_name || item.college || existing.college || 'ECHO Campus',
+                college_full: item.college_name || item.college || item.venue || existing.college_full || 'ECHO Campus',
+                status: (item.event_status_badge || item.status || existing.status || 'UPCOMING').toUpperCase(),
+                organizer: item.organizer_name || existing.organizer || 'CDC SNIST and in collaboration with StudentAlumni.ai',
+                description: item.subtitle || item.description || existing.description || "Empowering Tomorrow's Leaders",
+                dates: item.date || item.dates || existing.dates || 'September 04, 2026',
+                date_short: item.date || item.dates || existing.date_short || 'September 04, 2026',
+                date_pill: item.date || item.dates || existing.date_pill || 'Sep 4 – 5, 2026',
+                time: item.time || existing.time || '09:00 AM',
+                venue: item.venue || existing.venue || 'Sreenidhi Institute of Science & Technology',
+                location_short: item.venue || existing.location_short || 'Hyderabad',
+                prize_pool: item.prize_pool ? (String(item.prize_pool).includes('₹') ? item.prize_pool : `₹${item.prize_pool} prize pool`) : existing.prize_pool || '₹50,000 prize pool',
+                reg_closes: item.reg_closes || existing.reg_closes || '2026-09-01',
+                individual_fee: item.fee ?? item.individual_fee ?? existing.individual_fee ?? 599,
+                team_fee: item.team_fee ?? existing.team_fee ?? 2495,
+                individual_seats: item.available_seats ? `${item.available_seats} seats available` : existing.individual_seats || '985 seats available',
+                team_slots: item.team_slots_available ? `${item.team_slots_available} team slots available` : existing.team_slots || '197 team slots available',
+                partners: item.partners?.map((p: any) => (typeof p === 'string' ? p : p.name || p.title)) || existing.partners || ['CodeSpectra', 'Featherless', 'Stepupmark'],
+                poster_banner: item.hero_image_url || item.banner_url || item.poster_url || existing.poster_banner || '',
+                categories: item.categories || existing.categories || [],
+                speakers: item.speakers || existing.speakers || [],
+                gallery_images: item.gallery_images || item.gallery || existing.gallery_images || [],
+                highlights: item.highlights || existing.highlights || [],
+                handbook_url: item.handbook_url || existing.handbook_url || '/HackWave_3.0_Event_Handbook.pdf',
               });
-            }
+            });
+            return Array.from(map.values());
           });
-          setEvents(merged);
         }
       })
       .catch(() => {})
       .finally(() => {
         if (mounted) setLoading(false);
       });
+
     return () => {
       mounted = false;
     };
   }, []);
+
+  // Fetch detailed showcase document when selectedSlug changes
+  useEffect(() => {
+    let mounted = true;
+    if (!selectedSlug) return;
+    api
+      .getEchoShowcase(selectedSlug)
+      .then((item) => {
+        if (mounted && item && item.slug) {
+          setEvents((prev) =>
+            prev.map((e) => {
+              if (e.slug === item.slug) {
+                return {
+                  ...e,
+                  title: item.title || e.title,
+                  college: item.college_name || item.college || e.college,
+                  college_full: item.college_name || item.college || item.venue || e.college_full,
+                  status: (item.event_status_badge || item.status || e.status).toUpperCase(),
+                  organizer: item.organizer_name || e.organizer,
+                  description: item.subtitle || item.description || e.description,
+                  dates: item.date || item.dates || e.dates,
+                  time: item.time || e.time,
+                  venue: item.venue || e.venue,
+                  prize_pool: item.prize_pool ? (String(item.prize_pool).includes('₹') ? item.prize_pool : `₹${item.prize_pool} prize pool`) : e.prize_pool,
+                  reg_closes: item.reg_closes || e.reg_closes,
+                  individual_fee: item.fee ?? item.individual_fee ?? e.individual_fee,
+                  team_fee: item.team_fee ?? e.team_fee,
+                  individual_seats: item.available_seats ? `${item.available_seats} seats available` : e.individual_seats,
+                  team_slots: item.team_slots_available ? `${item.team_slots_available} team slots available` : e.team_slots,
+                  partners: item.partners?.map((p: any) => (typeof p === 'string' ? p : p.name || p.title)) || e.partners,
+                  poster_banner: item.hero_image_url || item.banner_url || item.poster_url || e.poster_banner,
+                  categories: item.categories || e.categories,
+                  speakers: item.speakers || e.speakers,
+                  gallery_images: item.gallery_images || item.gallery || e.gallery_images,
+                  highlights: item.highlights || e.highlights,
+                  handbook_url: item.handbook_url || e.handbook_url,
+                };
+              }
+              return e;
+            })
+          );
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      mounted = false;
+    };
+  }, [selectedSlug]);
 
   const activeEvent = events.find((e) => e.slug === selectedSlug) || events[0] || SAMPLE_EVENTS[0];
 
@@ -923,10 +984,20 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
           {/* Moments from the Event */}
           <div style={{ marginBottom: '30px' }}>
             <div style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-.4px', marginBottom: '16px', color: '#FFFFFF' }}>Moments from the Event</div>
-            <div style={{ border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '60px 24px', textAlign: 'center' }}>
-              <svg width="32" height="32" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'var(--dim)', strokeWidth: 1.6, margin: '0 auto 12px' }}><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="M15.5 15.5L21 21M10.5 7.5v6M7.5 10.5h6"></path></svg>
-              <div style={{ fontSize: '14.5px', color: 'var(--muted)' }}>No photos yet. Upload gallery photos via Admin CMS.</div>
-            </div>
+            {activeEvent.gallery_images && activeEvent.gallery_images.length > 0 ? (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+                {activeEvent.gallery_images.map((img: string, gidx: number) => (
+                  <div key={gidx} style={{ position: 'relative', borderRadius: '14px', overflow: 'hidden', height: '200px', border: '1px solid var(--line2)' }}>
+                    <img src={img} alt={`Event Moment ${gidx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '60px 24px', textAlign: 'center' }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'var(--dim)', strokeWidth: 1.6, margin: '0 auto 12px' }}><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="M15.5 15.5L21 21M10.5 7.5v6M7.5 10.5h6"></path></svg>
+                <div style={{ fontSize: '14.5px', color: 'var(--muted)' }}>No photos yet. Upload gallery photos via Admin CMS.</div>
+              </div>
+            )}
           </div>
 
           {/* Event Highlights 4-Step Connected Timeline */}
@@ -1308,18 +1379,26 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
 
                   {/* Track Theme */}
                   <div>
-                    <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: 'var(--muted)', marginBottom: '9px' }}>HACKWAVE 3.0 TRACK / THEME (OPTIONAL — CAN UPDATE ON EVENT DAY)</div>
+                    <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: 'var(--muted)', marginBottom: '9px' }}>
+                      {activeEvent.title ? `${activeEvent.title.toUpperCase()} TRACK / THEME (OPTIONAL)` : 'TRACK / THEME (OPTIONAL)'}
+                    </div>
                     <div className="ev-field" style={{ border: '1px solid var(--line2)', borderRadius: '11px', background: 'var(--panel2)', padding: '11px 14px' }}>
                       <select
                         value={track}
                         onChange={(e) => setTrack(e.target.value)}
                         style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', color: '#FFFFFF', fontSize: '14.5px', fontFamily: 'inherit', cursor: 'pointer' }}
                       >
-                        <option value="Generative AI & Agentic Systems" style={{ background: '#161622', color: '#FFF' }}>Generative AI & Agentic Systems</option>
-                        <option value="Web3, DeFi & Cryptographic Systems" style={{ background: '#161622', color: '#FFF' }}>Web3, DeFi & Cryptographic Systems</option>
-                        <option value="HealthTech & Bio-Informatics" style={{ background: '#161622', color: '#FFF' }}>HealthTech & Bio-Informatics</option>
-                        <option value="Smart Cities & Autonomous Mobility" style={{ background: '#161622', color: '#FFF' }}>Smart Cities & Autonomous Mobility</option>
-                        <option value="Open Innovation & Social Impact" style={{ background: '#161622', color: '#FFF' }}>Open Innovation & Social Impact</option>
+                        {(activeEvent.categories && activeEvent.categories.length > 0 ? activeEvent.categories : [
+                          { name: 'AI That Solves a Real Problem' },
+                          { name: 'Beyond the Chatbot' },
+                          { name: 'AI for Builders' },
+                          { name: 'Autonomous AI Workflows' },
+                          { name: 'Build the Unexpected' },
+                        ]).map((cat: any, cidx: number) => (
+                          <option key={cidx} value={cat.name || cat} style={{ background: '#161622', color: '#FFF' }}>
+                            {cat.name || cat}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   </div>
