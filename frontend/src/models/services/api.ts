@@ -467,8 +467,8 @@ export const api = {
     request<any>(`/echo/admin/registrations/${regId}/remind`, { method: 'POST' }),
   adminEchoMarkRegistrationFailed: (regId: string) =>
     request<any>(`/echo/admin/registrations/${regId}/mark-failed`, { method: 'POST' }),
-  adminEchoUpdateTeam: (regId: string, teamMembers: any[]) =>
-    request<any>(`/echo/admin/registrations/${regId}/team`, { method: 'PUT', body: JSON.stringify({ team_members: teamMembers }) }),
+  adminEchoUpdateTeam: (regId: string, teamMembers: any[], teamName?: string) =>
+    request<any>(`/echo/admin/registrations/${regId}/team`, { method: 'PUT', body: JSON.stringify({ team_members: teamMembers, team_name: teamName }) }),
   adminEchoResendTickets: (regId: string) =>
     request<any>(`/echo/admin/registrations/${regId}/resend-tickets`, { method: 'POST' }),
   adminEchoRevenue: () =>

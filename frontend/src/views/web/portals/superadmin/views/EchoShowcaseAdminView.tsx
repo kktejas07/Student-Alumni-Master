@@ -2877,8 +2877,11 @@ function RegistrationsPanel() {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [actioning, setActioning] = useState<string | null>(null);
 
+
   const [editingTeamReg, setEditingTeamReg] = useState<any>(null);
   const [editTeamMembers, setEditTeamMembers] = useState<any[]>([]);
+  const [editTeamName, setEditTeamName] = useState('');
+
 
   const [page, setPage] = useState(0);
   const PER_PAGE = 20;
@@ -2927,7 +2930,9 @@ function RegistrationsPanel() {
   
   const handleEditTeam = (r: any) => {
     setEditingTeamReg(r);
+    setEditTeamName(r.team_name || '');
     const members = [...(r.team_members || [])];
+
     const size = r.team_size || 1;
     while (members.length < size - 1) {
       members.push({ name: '', email: '', phone: '' });
@@ -2939,7 +2944,7 @@ function RegistrationsPanel() {
     if (!editingTeamReg) return;
     setActioning(editingTeamReg.id);
     try {
-      await api.adminEchoUpdateTeam(editingTeamReg.id, editTeamMembers);
+      await api.adminEchoUpdateTeam(editingTeamReg.id, editTeamMembers, editTeamName);
       flash('Team members updated successfully');
       setEditingTeamReg(null);
       await load();
@@ -3380,29 +3385,106 @@ function RegistrationsPanel() {
                 ))}
               </View>
 
-              {/* Team Members (if team registration) */}
-              {detailRow.registration_type === 'team' && detailRow.team_members?.length > 0 && (
+                            {/* Team Members (if team registration) */}
+              {detailRow.registration_type === 'team' && (
                 <View style={{ backgroundColor: 'rgba(124,58,237,0.08)', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: 'rgba(167,139,250,0.2)' }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                    <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>Team Members ({detailRow.team_members.length})</Text>
-                    <Pressable onPress={() => handleEditTeam(detailRow)} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(124,58,237,0.15)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 }}>
-                      <Pencil size={12} color="#C4B5FD" />
-                      <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#C4B5FD' }}>Edit</Text>
-                    </Pressable>
+                    <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>Team Members ({(detailRow.team_members || []).length})</Text>
+                    {!editingTeamReg ? (
+                      <Pressable onPress={() => handleEditTeam(detailRow)} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(124,58,237,0.15)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 }}>
+                        <Pencil size={12} color="#C4B5FD" />
+                        <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#C4B5FD' }}>Edit</Text>
+                      </Pressable>
+                    ) : null}
                   </View>
-                  <View style={{ gap: 8 }}>
-                    {detailRow.team_members.map((member: any, idx: number) => (
-                      <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 10 }}>
-                        <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(124,58,237,0.25)', alignItems: 'center', justifyContent: 'center' }}>
-                          <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: '#C4B5FD' }}>{idx + 2}</Text>
+                  
+                  {!editingTeamReg ? (
+                    <View style={{ gap: 8 }}>
+                      {(detailRow.team_members || []).map((member: any, idx: number) => (
+                        <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 10 }}>
+                          <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(124,58,237,0.25)', alignItems: 'center', justifyContent: 'center' }}>
+                            <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: '#C4B5FD' }}>{idx + 2}</Text>
+                          </View>
+                          <View style={{ flex: 1, minWidth: 0 }}>
+                            <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: SAC.text }} numberOfLines={1}>
+                              {member.name || `Team Member ${idx + 2} (Details Needed)`}
+                            </Text>
+                            {member.email ? <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.dim }}>{member.email} {member.phone ? `• ${member.phone}` : ''}</Text> : null}
+                          </View>
                         </View>
-                        <View style={{ flex: 1, minWidth: 0 }}>
-                          <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>{member.name || '—'}</Text>
-                          <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>{member.email || ''} {member.phone ? `· ${member.phone}` : ''}</Text>
-                        </View>
+                      ))}
+                    </View>
+                  ) : (
+                    <View style={{ gap: 12 }}>
+                      <View style={{ backgroundColor: 'rgba(255,255,255,0.02)', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
+                        <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#F59E0B', marginBottom: 8 }}>Team Name</Text>
+                        <TextInput
+                          style={{ backgroundColor: 'rgba(255,255,255,0.04)', color: SAC.text, padding: 10, borderRadius: 6, fontFamily: FONTS.med, fontSize: 12 }}
+                          placeholder="Enter team name"
+                          placeholderTextColor="rgba(255,255,255,0.3)"
+                          value={editTeamName}
+                          onChangeText={setEditTeamName}
+                        />
                       </View>
-                    ))}
-                  </View>
+                      
+                      {editTeamMembers.map((m, idx) => (
+                        <View key={idx} style={{ backgroundColor: 'rgba(255,255,255,0.02)', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
+                          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#C4B5FD', marginBottom: 8 }}>Team Member {idx + 2}</Text>
+                          <TextInput
+                            style={{ backgroundColor: 'rgba(255,255,255,0.04)', color: SAC.text, padding: 10, borderRadius: 6, fontFamily: FONTS.med, fontSize: 12, marginBottom: 8 }}
+                            placeholder="Full Name"
+                            placeholderTextColor="rgba(255,255,255,0.3)"
+                            value={m.name}
+                            onChangeText={(val) => {
+                              const updated = [...editTeamMembers];
+                              updated[idx].name = val;
+                              setEditTeamMembers(updated);
+                            }}
+                          />
+                          <TextInput
+                            style={{ backgroundColor: 'rgba(255,255,255,0.04)', color: SAC.text, padding: 10, borderRadius: 6, fontFamily: FONTS.med, fontSize: 12, marginBottom: 8 }}
+                            placeholder="Email Address"
+                            placeholderTextColor="rgba(255,255,255,0.3)"
+                            autoCapitalize="none"
+                            value={m.email}
+                            onChangeText={(val) => {
+                              const updated = [...editTeamMembers];
+                              updated[idx].email = val;
+                              setEditTeamMembers(updated);
+                            }}
+                          />
+                          <TextInput
+                            style={{ backgroundColor: 'rgba(255,255,255,0.04)', color: SAC.text, padding: 10, borderRadius: 6, fontFamily: FONTS.med, fontSize: 12 }}
+                            placeholder="Phone (Optional)"
+                            placeholderTextColor="rgba(255,255,255,0.3)"
+                            keyboardType="numeric"
+                            value={m.phone}
+                            onChangeText={(val) => {
+                              const updated = [...editTeamMembers];
+                              updated[idx].phone = val;
+                              setEditTeamMembers(updated);
+                            }}
+                          />
+                        </View>
+                      ))}
+                      <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+                        <Pressable onPress={() => setEditingTeamReg(null)} style={{ flex: 1, padding: 10, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 6, alignItems: 'center' }}>
+                          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.dim }}>Cancel</Text>
+                        </Pressable>
+                        <Pressable onPress={() => {
+                          saveTeamMembers().then(() => {
+                            setDetailRow(prev => ({ ...prev, team_members: editTeamMembers, team_name: editTeamName }));
+                          });
+                        }} style={{ flex: 1, padding: 10, backgroundColor: '#7C3AED', borderRadius: 6, alignItems: 'center' }}>
+                          {actioning === editingTeamReg?.id ? (
+                            <ActivityIndicator size="small" color="#fff" />
+                          ) : (
+                            <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Save</Text>
+                          )}
+                        </Pressable>
+                      </View>
+                    </View>
+                  )}
                 </View>
               )}
 
@@ -3456,90 +3538,7 @@ function RegistrationsPanel() {
         </Modal>
       )}
 
-      {/* Edit Team Modal */}
-      <Modal visible={!!editingTeamReg} transparent animationType="fade">
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-          <View style={{ backgroundColor: SAC.bg, width: '100%', maxWidth: 500, borderRadius: 16, padding: 24, borderWidth: 1, borderColor: SAC.border }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <Text style={{ fontFamily: FONTS.bold, fontSize: 18, color: SAC.text }}>Edit Team Members</Text>
-              <Pressable onPress={() => setEditingTeamReg(null)}>
-                <X size={20} color={SAC.dim} />
-              </Pressable>
-            </View>
-            
-            <ScrollView style={{ maxHeight: 400 }} showsVerticalScrollIndicator={false}>
-              {editTeamMembers.map((m, idx) => (
-                <View key={idx} style={{ marginBottom: 16, backgroundColor: 'rgba(255,255,255,0.02)', padding: 16, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
-                  <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#C4B5FD', marginBottom: 12 }}>Team Member {idx + 2}</Text>
-                  
-                  <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: SAC.text, marginBottom: 6 }}>Full Name</Text>
-                  <TextInput
-                    style={{ backgroundColor: 'rgba(255,255,255,0.04)', color: SAC.text, padding: 12, borderRadius: 8, fontFamily: FONTS.med, fontSize: 13, marginBottom: 12 }}
-                    placeholder="Enter name"
-                    placeholderTextColor="rgba(255,255,255,0.3)"
-                    value={m.name}
-                    onChangeText={(val) => {
-                      const updated = [...editTeamMembers];
-                      updated[idx].name = val;
-                      setEditTeamMembers(updated);
-                    }}
-                  />
-                  
-                  <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: SAC.text, marginBottom: 6 }}>Email Address</Text>
-                  <TextInput
-                    style={{ backgroundColor: 'rgba(255,255,255,0.04)', color: SAC.text, padding: 12, borderRadius: 8, fontFamily: FONTS.med, fontSize: 13, marginBottom: 12 }}
-                    placeholder="Enter email"
-                    placeholderTextColor="rgba(255,255,255,0.3)"
-                    autoCapitalize="none"
-                    value={m.email}
-                    onChangeText={(val) => {
-                      const updated = [...editTeamMembers];
-                      updated[idx].email = val;
-                      setEditTeamMembers(updated);
-                    }}
-                  />
-                  
-                  <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: SAC.text, marginBottom: 6 }}>Phone Number (Optional)</Text>
-                  <TextInput
-                    style={{ backgroundColor: 'rgba(255,255,255,0.04)', color: SAC.text, padding: 12, borderRadius: 8, fontFamily: FONTS.med, fontSize: 13 }}
-                    placeholder="Enter phone"
-                    placeholderTextColor="rgba(255,255,255,0.3)"
-                    keyboardType="numeric"
-                    value={m.phone}
-                    onChangeText={(val) => {
-                      const updated = [...editTeamMembers];
-                      updated[idx].phone = val;
-                      setEditTeamMembers(updated);
-                    }}
-                  />
-                </View>
-              ))}
-            </ScrollView>
-            
-            <View style={{ flexDirection: 'row', gap: 12, marginTop: 20 }}>
-              <Pressable
-                onPress={() => setEditingTeamReg(null)}
-                style={{ flex: 1, padding: 14, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center' }}
-              >
-                <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: SAC.dim }}>Cancel</Text>
-              </Pressable>
-              <Pressable
-                onPress={saveTeamMembers}
-                disabled={actioning === editingTeamReg?.id}
-                style={{ flex: 1, padding: 14, borderRadius: 10, backgroundColor: '#7C3AED', alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}
-              >
-                {actioning === editingTeamReg?.id ? (
-                  <ActivityIndicator color="#fff" size="small" />
-                ) : (
-                  <>
-                    <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#fff' }}>Save Changes</Text>
-                  </>
-                )}
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      
     </View>
   );
 }

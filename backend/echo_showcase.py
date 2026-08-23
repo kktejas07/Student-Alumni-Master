@@ -3871,7 +3871,10 @@ def _parse_ticket(ticket: str) -> dict:
 async def admin_update_team_members(reg_id: str, request: Request, payload: dict, _=Depends(_require_admin)):
     """Super-admin: update the team members for a registration and provision their SA accounts."""
     db = _get_db(request)
+
     team_members = payload.get("team_members", [])
+    team_name = payload.get("team_name")
+    
     if not isinstance(team_members, list):
         raise HTTPException(400, "team_members must be a list")
     
@@ -3879,10 +3882,15 @@ async def admin_update_team_members(reg_id: str, request: Request, payload: dict
     if not reg:
         raise HTTPException(404, "Registration not found")
         
+    update_data = {"team_members": team_members}
+    if team_name is not None:
+        update_data["team_name"] = team_name
+        
     await db.echo_registrations.update_one(
         {"id": reg_id},
-        {"$set": {"team_members": team_members}}
+        {"$set": update_data}
     )
+
     
     # After saving, let's provision SA accounts for any members that have an email.
     showcase = await db.echo_showcases.find_one({"slug": reg.get("slug")})
