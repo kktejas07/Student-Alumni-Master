@@ -256,55 +256,7 @@ export default function CertificateVerifyPortal() {
       setLoading(false);
     }
   };
-    setResult(null);
 
-    try {
-      const resp = await fetch(`${API_BASE}/api/certificates/verify/${encodeURIComponent(targetId)}`);
-      const data = await resp.json();
-
-      if (resp.ok) {
-        setResult(data);
-        if (data.type === 'certificate' && !data.is_registered_member) {
-          setTimeout(() => setShowSignupModal(true), 1200);
-        }
-        return;
-      }
-
-      const idResp = await fetch(`${API_BASE}/api/id-cards/${encodeURIComponent(targetId)}`);
-      if (idResp.ok) {
-        const idData = await idResp.json();
-        setResult({
-          type: 'id_card',
-          user: {
-            sa_id: idData.id || targetId,
-            full_name: idData.full_name,
-            role: idData.role_label || idData.role,
-            institution: idData.institution || idData.org,
-            branch: idData.branch,
-            batch: idData.batch,
-            email: idData.email,
-            photo: idData.photo,
-            status: idData.status,
-            issued_at: idData.issued_at,
-          },
-          dynamic_attributes: {
-            'Full Name': idData.full_name,
-            'Role': idData.role_label || idData.role,
-            'Institution': idData.institution || idData.org,
-            'Batch / Year': idData.batch || '2026',
-            'Location': [idData.city, idData.state].filter(Boolean).join(', ') || 'National Network',
-          },
-        });
-        return;
-      }
-
-      setError(data?.detail || 'Credential not found in cryptographic registry. Please verify the ID.');
-    } catch (err) {
-      setError('Network connection error. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
     if (queryId) {
