@@ -4048,6 +4048,265 @@ async def admin_resend_account_tickets(reg_id: str, request: Request, _=Depends(
     }
 
 
+class EchoBroadcastSchema(BaseModel):
+    slug: Optional[str] = None
+    target_group: str  # "pending_unpaid" | "confirmed_paid" | "unregistered_students"
+    subject: Optional[str] = None
+    custom_message: Optional[str] = None
+
+
+@router.get("/admin/broadcast/audience-summary")
+async def admin_broadcast_audience_summary(
+    request: Request,
+    slug: Optional[str] = None,
+    _=Depends(_require_admin)
+):
+    """Return counts for target audience segments: pending/unpaid registrants, confirmed/paid attendees, and platform students not yet registered."""
+    db = _get_db(request)
+    slug_q = {"slug": slug} if slug and slug != "all" else {}
+
+    # 1. Pending / Unpaid registrations
+    pending_count = await db.echo_registrations.count_documents({
+        **slug_q,
+        "$or": [
+            {"payment.status": "pending"},
+            {"status": "pending"},
+            {"payment.status": "failed"},
+        ]
+    })
+
+    # 2. Confirmed / Paid attendees
+    confirmed_count = await db.echo_registrations.count_documents({
+        **slug_q,
+        "$or": [
+            {"payment.status": "paid"},
+            {"status": "registered"},
+            {"fee": 0, "status": "registered"}
+        ]
+    })
+
+    # 3. Platform students not yet registered for this event
+    registered_emails = await db.echo_registrations.distinct("email", slug_q)
+    registered_emails_set = {e.lower() for e in registered_emails if e}
+
+    all_students_count = await db.users.count_documents({"role": "student"})
+    unregistered_count = max(0, all_students_count - len(registered_emails_set))
+
+    return {
+        "ok": True,
+        "slug": slug or "all",
+        "pending_unpaid": pending_count,
+        "confirmed_paid": confirmed_count,
+        "unregistered_students": unregistered_count,
+        "total_platform_students": all_students_count,
+    }
+
+
+@router.post("/admin/broadcast/send")
+async def admin_broadcast_send(
+    payload: EchoBroadcastSchema,
+    request: Request,
+    _=Depends(_require_admin)
+):
+    """Broadcast notifications/newsletters to targeted audience segments with customizable message."""
+    db = _get_db(request)
+    slug = payload.slug
+    target = payload.target_group
+    custom_msg = payload.custom_message or ""
+    
+    showcase = None
+    if slug and slug != "all":
+        showcase = await db.echo_showcases.find_one(_slug_query(slug))
+    if not showcase:
+        showcase = await db.echo_showcases.find_one({"status": "published"}) or {}
+
+    title = showcase.get("title") or "SNIST HackWave 3.0"
+    event_date = showcase.get("date") or "September 04, 2026"
+    venue = showcase.get("venue") or "Campus Auditorium"
+    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+    event_slug = showcase.get("slug") or "snist"
+    reg_url = f"{frontend_url}/echo/{event_slug}/register"
+
+    attachments = []
+    pdf_file = Path(__file__).parent / "static" / "HackWave_3.0_Event_Handbook.pdf"
+    if pdf_file.exists():
+        try:
+            attachments.append({
+                "filename": "HackWave_3.0_Event_Handbook.pdf",
+                "content": pdf_file.read_bytes(),
+            })
+        except Exception:
+            pass
+
+    sent_count = 0
+    failed_count = 0
+
+    if target == "pending_unpaid":
+        slug_q = {"slug": slug} if slug and slug != "all" else {}
+        regs = await db.echo_registrations.find({
+            **slug_q,
+            "$or": [
+                {"payment.status": "pending"},
+                {"status": "pending"},
+                {"payment.status": "failed"},
+            ]
+        }).to_list(2000)
+
+        subject = payload.subject or f"Action Required: Complete Your Registration & Pass for {title}"
+
+        for r in regs:
+            email = (r.get("email") or "").strip()
+            if not email:
+                continue
+            name = r.get("full_name") or "Student"
+            is_team = r.get("registration_type") == "team"
+            team_info = f"<p style='color:#7C3AED;font-weight:700;'>Team: {r.get('team_name')}</p>" if is_team and r.get("team_name") else ""
+            
+            body = render_html_email(
+                f"""
+                <h2 style="margin:0 0 14px 0;color:#111827;">Complete your registration for {title}</h2>
+                <p style="margin:0 0 16px 0;color:#374151;">
+                  Hi <strong>{name}</strong>,<br/><br/>
+                  You have a registered Student Alumni account, but your registration pass for <strong>{title}</strong> has <strong>not yet been confirmed</strong>.
+                </p>
+                {team_info}
+                {f'<div style="padding:14px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:10px;margin-bottom:18px;color:#4c1d95;font-size:13.5px;">{custom_msg}</div>' if custom_msg else ''}
+
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                  style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;margin:0 0 18px 0;">
+                  <tr><td style="padding:12px 16px;color:#6b7280;font-size:12px;text-transform:uppercase;">Event</td>
+                      <td style="padding:12px 16px;text-align:right;color:#111827;font-weight:700;">{title}</td></tr>
+                  <tr><td style="padding:12px 16px;color:#6b7280;font-size:12px;text-transform:uppercase;">Date &amp; Venue</td>
+                      <td style="padding:12px 16px;text-align:right;color:#111827;font-weight:600;">{event_date} · {venue}</td></tr>
+                  <tr><td style="padding:12px 16px;color:#6b7280;font-size:12px;text-transform:uppercase;">Pass Status</td>
+                      <td style="padding:12px 16px;text-align:right;color:#DC2626;font-weight:700;">Payment Pending / Incomplete</td></tr>
+                </table>
+
+                <div style="margin:20px 0;">
+                  <a href="{reg_url}"
+                     style="display:inline-block;padding:12px 28px;background:#7C3AED;color:#fff;text-decoration:none;border-radius:10px;font-weight:700;font-size:14px;">Complete Payment &amp; Claim Entry Pass</a>
+                </div>
+
+                <div style="margin:20px 0;padding:16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;">
+                  <h4 style="margin:0 0 6px 0;color:#334155;font-size:13.5px;">Official Event Handbook Attached</h4>
+                  <p style="margin:0;color:#64748b;font-size:12px;">
+                    Read about 5 hackathon tracks, prize pool, food coupons, and rules in the attached <strong>HackWave_3.0_Event_Handbook.pdf</strong>.
+                  </p>
+                </div>
+                """
+            )
+            try:
+                await send_email(email, subject, body, attachments=attachments)
+                sent_count += 1
+                await db.echo_registrations.update_one({"_id": r["_id"]}, {"$set": {"payment_reminder_sent_at": _now()}})
+            except Exception as _err:
+                failed_count += 1
+                print(f"[ECHO-BROADCAST] Failed to send unpaid reminder to {email}: {_err}")
+
+    elif target == "confirmed_paid":
+        slug_q = {"slug": slug} if slug and slug != "all" else {}
+        regs = await db.echo_registrations.find({
+            **slug_q,
+            "$or": [
+                {"payment.status": "paid"},
+                {"status": "registered"},
+                {"fee": 0, "status": "registered"}
+            ]
+        }).to_list(3000)
+
+        subject = payload.subject or f"Important Event Notice & Schedule Updates — {title}"
+
+        for r in regs:
+            email = (r.get("email") or "").strip()
+            if not email:
+                continue
+            name = r.get("full_name") or "Attendee"
+            reg_id = r.get("id") or ""
+            ticket_url = f"{frontend_url}/api/echo/tickets/{reg_id}?email={urllib.parse.quote(email)}"
+
+            body = render_html_email(
+                f"""
+                <h2 style="margin:0 0 14px 0;color:#111827;">Official Event Notice &amp; Schedule</h2>
+                <p style="margin:0 0 16px 0;color:#374151;">
+                  Hi <strong>{name}</strong>,<br/><br/>
+                  Here is an official announcement and update regarding <strong>{title}</strong>.
+                </p>
+                {f'<div style="padding:16px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:10px;margin-bottom:18px;color:#4c1d95;font-size:14px;line-height:1.5;">{custom_msg}</div>' if custom_msg else ''}
+
+                <div style="margin:16px 0;padding:16px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:12px;">
+                  <h4 style="margin:0 0 6px 0;color:#065f46;font-size:14px;">✓ Your Ticket &amp; Entry Pass is Active</h4>
+                  <p style="margin:0 0 10px 0;color:#047857;font-size:12.5px;">Registration ID: <strong>{reg_id}</strong></p>
+                  <a href="{ticket_url}" style="display:inline-block;padding:8px 18px;background:#059669;color:#fff;text-decoration:none;border-radius:8px;font-weight:600;font-size:12.5px;">View Entry Pass &amp; QR</a>
+                </div>
+
+                <div style="margin:18px 0;padding:16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;">
+                  <h4 style="margin:0 0 6px 0;color:#334155;font-size:13.5px;">Official Event Handbook Attached</h4>
+                  <p style="margin:0;color:#64748b;font-size:12px;">
+                    Find track guidelines, schedule, venue map, and meal timings in the attached PDF.
+                  </p>
+                </div>
+                """
+            )
+            try:
+                await send_email(email, subject, body, attachments=attachments)
+                sent_count += 1
+            except Exception as _err:
+                failed_count += 1
+                print(f"[ECHO-BROADCAST] Failed to send notice to {email}: {_err}")
+
+    elif target == "unregistered_students":
+        slug_q = {"slug": slug} if slug and slug != "all" else {}
+        registered_emails = await db.echo_registrations.distinct("email", slug_q)
+        registered_set = {e.lower() for e in registered_emails if e}
+
+        students = await db.users.find({"role": "student"}).to_list(5000)
+        subject = payload.subject or f"🚀 Invitation to {title} — Register Your Team Now!"
+
+        for u in students:
+            email = (u.get("email") or "").strip().lower()
+            if not email or email in registered_set:
+                continue
+            name = u.get("full_name") or "Student"
+
+            body = render_html_email(
+                f"""
+                <h2 style="margin:0 0 14px 0;color:#111827;">You're invited to {title}!</h2>
+                <p style="margin:0 0 16px 0;color:#374151;">
+                  Hi <strong>{name}</strong>,<br/><br/>
+                  StudentAlumni is thrilled to invite you to participate in <strong>{title}</strong>.
+                </p>
+                {f'<div style="padding:16px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:10px;margin-bottom:18px;color:#4c1d95;font-size:14px;">{custom_msg}</div>' if custom_msg else ''}
+
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                  style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;margin:0 0 18px 0;">
+                  <tr><td style="padding:12px 16px;color:#6b7280;font-size:12px;text-transform:uppercase;">Event</td>
+                      <td style="padding:12px 16px;text-align:right;color:#111827;font-weight:700;">{title}</td></tr>
+                  <tr><td style="padding:12px 16px;color:#6b7280;font-size:12px;text-transform:uppercase;">Date &amp; Venue</td>
+                      <td style="padding:12px 16px;text-align:right;color:#111827;font-weight:600;">{event_date} · {venue}</td></tr>
+                </table>
+
+                <div style="margin:20px 0;">
+                  <a href="{reg_url}"
+                     style="display:inline-block;padding:12px 28px;background:#7C3AED;color:#fff;text-decoration:none;border-radius:10px;font-weight:700;font-size:14px;">Register Now (Individual / Team Pass)</a>
+                </div>
+                """
+            )
+            try:
+                await send_email(email, subject, body, attachments=attachments)
+                sent_count += 1
+            except Exception as _err:
+                failed_count += 1
+                print(f"[ECHO-BROADCAST] Failed to send invite to {email}: {_err}")
+
+    return {
+        "ok": True,
+        "target_group": target,
+        "sent_count": sent_count,
+        "failed_count": failed_count,
+        "message": f"Successfully broadcasted to {sent_count} recipient(s)."
+    }
+
+
 @router.post("/admin/registrations/{reg_id}/remind")
 async def admin_send_payment_reminder(reg_id: str, request: Request, _=Depends(_require_admin)):
     """Super-admin: email the attendee a payment reminder for a pending registration."""
