@@ -103,6 +103,13 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
   const [year, setYear] = useState('3rd Year');
   const [track, setTrack] = useState('Generative AI & Agentic Systems');
   const [college, setCollege] = useState('SNIST');
+  const [teamName, setTeamName] = useState('');
+  const [teamMembers, setTeamMembers] = useState<Array<{ name: string; email: string; phone: string }>>([
+    { name: '', email: '', phone: '' },
+    { name: '', email: '', phone: '' },
+    { name: '', email: '', phone: '' },
+    { name: '', email: '', phone: '' },
+  ]);
 
   // Checkout modal
   const [isPaying, setIsPaying] = useState(false);
@@ -206,20 +213,53 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
       setShowTermsErr(true);
       return;
     }
+    if (isTeam && !teamName.trim()) {
+      alert('Please enter a team name to proceed.');
+      return;
+    }
     setShowTermsErr(false);
     setIsPaying(true);
 
     try {
+      const validMembers = isTeam
+        ? teamMembers.filter((m) => m.name.trim() || m.email.trim())
+        : [];
+      
+      const payload = {
+        full_name: fullName || 'Student Attendee',
+        email: email || 'student@example.com',
+        phone: phone || '',
+        date_of_birth: dob || '',
+        branch: branch,
+        year: year,
+        hackwave_theme: track,
+        college: college,
+        terms_accepted: acceptedTerms,
+        whatsapp_opt_in: whatsappOptIn,
+        registration_type: isTeam ? 'team' : 'individual',
+        team_name: isTeam ? teamName : '',
+        team_size: isTeam ? 1 + validMembers.length : 1,
+        team_members: validMembers,
+      };
+
+      try {
+        await api.registerEchoShowcase(activeEvent.slug || selectedSlug || 'snist', payload);
+      } catch (err) {
+        console.log('[EchoEventsPage] Registration API notice:', err);
+      }
+
       const ticketId = `SA-HW3-${Math.floor(100000 + Math.random() * 900000)}`;
       setTicketData({
         ticketId,
         eventName: activeEvent.title,
         attendeeName: fullName || 'Student Attendee',
-        type: isTeam ? 'Team Pass (Up to 5)' : 'Individual Pass',
+        type: isTeam ? `Team Pass (${1 + validMembers.length} Members)` : 'Individual Pass',
         amount: isTeam ? activeEvent.team_fee : activeEvent.individual_fee,
         date: activeEvent.dates,
         venue: activeEvent.venue,
         email: email || 'student@example.com',
+        teamName: isTeam ? teamName : '',
+        teamMembers: validMembers,
       });
       setTimeout(() => {
         setIsPaying(false);
@@ -965,13 +1005,31 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 
                 <div style={{ display: 'grid', gap: '18px' }}>
                   
-                  {/* Full Name */}
+                  {/* Team Name if Team registration */}
+                  {isTeam && (
+                    <div>
+                      <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: '#A78BFA', marginBottom: '9px' }}>TEAM NAME *</div>
+                      <div className="ev-field" style={{ border: '1px solid #7C5CFC', borderRadius: '11px', background: 'rgba(124,92,252,0.08)', padding: '14px 15px', display: 'flex', alignItems: 'center' }}>
+                        <input
+                          type="text"
+                          placeholder="e.g. Code Ninjas, Team Alpha"
+                          value={teamName}
+                          onChange={(e) => setTeamName(e.target.value)}
+                          style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', color: '#FFFFFF', fontSize: '14.5px', fontFamily: 'inherit', fontWeight: 600 }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Full Name / Captain Name */}
                   <div>
-                    <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: 'var(--muted)', marginBottom: '9px' }}>FULL NAME *</div>
+                    <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: 'var(--muted)', marginBottom: '9px' }}>
+                      {isTeam ? 'TEAM CAPTAIN FULL NAME (PERSON 1) *' : 'FULL NAME *'}
+                    </div>
                     <div className="ev-field" style={{ border: '1px solid var(--line2)', borderRadius: '11px', background: 'var(--panel2)', padding: '14px 15px', display: 'flex', alignItems: 'center' }}>
                       <input
                         type="text"
-                        placeholder="Your full name"
+                        placeholder="Captain / Full name"
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
                         style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', color: '#FFFFFF', fontSize: '14.5px', fontFamily: 'inherit' }}
@@ -981,11 +1039,13 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
 
                   {/* Email */}
                   <div>
-                    <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: 'var(--muted)', marginBottom: '9px' }}>EMAIL *</div>
+                    <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: 'var(--muted)', marginBottom: '9px' }}>
+                      {isTeam ? 'TEAM CAPTAIN EMAIL (PERSON 1) *' : 'EMAIL *'}
+                    </div>
                     <div className="ev-field" style={{ border: '1px solid var(--line2)', borderRadius: '11px', background: 'var(--panel2)', padding: '14px 15px', display: 'flex', alignItems: 'center' }}>
                       <input
                         type="email"
-                        placeholder="you@example.com"
+                        placeholder="captain@example.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', color: '#FFFFFF', fontSize: '14.5px', fontFamily: 'inherit' }}
@@ -995,7 +1055,9 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
 
                   {/* Phone */}
                   <div>
-                    <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: 'var(--muted)', marginBottom: '9px' }}>PHONE NUMBER *</div>
+                    <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: 'var(--muted)', marginBottom: '9px' }}>
+                      {isTeam ? 'TEAM CAPTAIN PHONE NUMBER *' : 'PHONE NUMBER *'}
+                    </div>
                     <div className="ev-field" style={{ border: '1px solid var(--line2)', borderRadius: '11px', background: 'var(--panel2)', padding: '14px 15px', display: 'flex', alignItems: 'center' }}>
                       <input
                         type="tel"
@@ -1006,6 +1068,68 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                       />
                     </div>
                   </div>
+
+                  {/* Team Members Section (Person 2 to 5) */}
+                  {isTeam && (
+                    <div style={{ margin: '8px 0', padding: '18px', background: 'rgba(124, 92, 252, 0.06)', border: '1px solid rgba(124, 92, 252, 0.25)', borderRadius: '14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                        <div style={{ fontSize: '14px', fontWeight: 700, color: '#A78BFA', letterSpacing: '.4px' }}>
+                          TEAM MEMBERS (MEMBERS 2 TO 5)
+                        </div>
+                        <span style={{ fontSize: '11px', padding: '3px 8px', background: 'rgba(52, 211, 153, 0.15)', color: '#34D399', borderRadius: '6px', fontWeight: 600 }}>
+                          Passes &amp; Accounts Included
+                        </span>
+                      </div>
+                      <p style={{ fontSize: '12px', color: '#9CA3AF', marginBottom: '16px', lineHeight: 1.5 }}>
+                        Every team member entered below will have their own Student Alumni account provisioned and an individual QR entry pass ticket card emailed to them.
+                      </p>
+
+                      <div style={{ display: 'grid', gap: '14px' }}>
+                        {teamMembers.map((member, idx) => (
+                          <div key={idx} style={{ padding: '14px', background: 'var(--panel2)', border: '1px solid var(--line2)', borderRadius: '11px' }}>
+                            <div style={{ fontSize: '11px', fontWeight: 700, color: '#DDD6FE', marginBottom: '10px', display: 'flex', justifyContent: 'space-between' }}>
+                              <span>MEMBER {idx + 2} {idx === 0 ? '(REQUIRED)' : '(OPTIONAL)'}</span>
+                            </div>
+                            <div style={{ display: 'grid', gap: '10px' }}>
+                              <input
+                                type="text"
+                                placeholder={`Member ${idx + 2} Full Name`}
+                                value={member.name}
+                                onChange={(e) => {
+                                  const updated = [...teamMembers];
+                                  updated[idx] = { ...updated[idx], name: e.target.value };
+                                  setTeamMembers(updated);
+                                }}
+                                style={{ width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.25)', border: '1px solid var(--line)', borderRadius: '8px', color: '#FFF', fontSize: '13.5px', fontFamily: 'inherit', outline: 'none' }}
+                              />
+                              <input
+                                type="email"
+                                placeholder={`Member ${idx + 2} Email (for login & ticket)`}
+                                value={member.email}
+                                onChange={(e) => {
+                                  const updated = [...teamMembers];
+                                  updated[idx] = { ...updated[idx], email: e.target.value };
+                                  setTeamMembers(updated);
+                                }}
+                                style={{ width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.25)', border: '1px solid var(--line)', borderRadius: '8px', color: '#FFF', fontSize: '13.5px', fontFamily: 'inherit', outline: 'none' }}
+                              />
+                              <input
+                                type="tel"
+                                placeholder={`Member ${idx + 2} Phone (optional)`}
+                                value={member.phone}
+                                onChange={(e) => {
+                                  const updated = [...teamMembers];
+                                  updated[idx] = { ...updated[idx], phone: e.target.value };
+                                  setTeamMembers(updated);
+                                }}
+                                style={{ width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.25)', border: '1px solid var(--line)', borderRadius: '8px', color: '#FFF', fontSize: '13.5px', fontFamily: 'inherit', outline: 'none' }}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Date of Birth */}
                   <div>
