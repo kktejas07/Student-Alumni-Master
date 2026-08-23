@@ -921,17 +921,23 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
             onClick={() => router.push('/')}
             style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 'none', cursor: 'pointer' }}
           >
-            <svg width="30" height="34" viewBox="0 0 300 350" style={{ flex: 'none' }}>
+            <svg width="28" height="33" viewBox="0 0 300 350" style={{ display: 'block', flexShrink: 0 }}>
               <defs>
                 <linearGradient id="ev-badge-grad2" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="#9E7BFF" />
-                  <stop offset="100%" stopColor="#5B3FD9" />
+                  <stop offset="0%" stopColor="#C9A7FF" />
+                  <stop offset="48%" stopColor="#8B5CF6" />
+                  <stop offset="100%" stopColor="#5B2FD0" />
+                </linearGradient>
+                <linearGradient id="ev-badge-grad2-in" x1="0" y1="0" x2="0.4" y2="1">
+                  <stop offset="0%" stopColor="#B683F5" />
+                  <stop offset="100%" stopColor="#7331C9" />
                 </linearGradient>
               </defs>
               <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#ev-badge-grad2)" />
-              <text x="150" y="212" textAnchor="middle" style={{ fontFamily: "'Outfit', sans-serif", fontSize: '124px', fontWeight: 700, letterSpacing: '-4px', fill: '#FFFFFF' }}>SA</text>
+              <path d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="url(#ev-badge-grad2-in)" />
+              <text x="150" y="214" textAnchor="middle" style={{ fontFamily: "'Manrope', -apple-system, sans-serif", fontSize: '118px', fontWeight: '800', letterSpacing: '-5px', fill: '#FFFFFF' }}>SA</text>
             </svg>
-            <span style={{ fontSize: '17px', fontWeight: 600, letterSpacing: '-0.3px', color: '#FFFFFF' }}>StudentAlumni</span>
+            <span style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-0.4px', color: '#FFFFFF', fontFamily: "'Manrope', sans-serif" }}>StudentAlumni</span>
           </div>
 
           {/* Centered Navigation Tabs */}
