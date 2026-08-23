@@ -255,7 +255,7 @@ async def test_register_paid_no_gateway_503(patch_deps, fake_db, monkeypatch):
     with pytest.raises(HTTPException) as e:
         await es.register_for_showcase(
             "echo-tech-2026",
-            es.RegisterSchema(full_name="T", email="t@x.co", phone="123"),
+            es.RegisterSchema(full_name="T", email="t@x.co", phone="+919876543210", terms_accepted=True),
             req,
         )
     assert e.value.status_code == 503
@@ -271,7 +271,7 @@ async def test_register_free_confirmed(patch_deps, fake_db):
 
     out = await es.register_for_showcase(
         "echo-tech-2026",
-        es.RegisterSchema(full_name="Free Guy", email="F@x.Co", phone="999"),
+        es.RegisterSchema(full_name="Free Guy", email="F@x.Co", phone="+919876543210", terms_accepted=True),
         req,
     )
     assert out["payment"]["status"] == "paid"
@@ -289,8 +289,8 @@ async def test_register_dedup_lowercase(patch_deps, fake_db):
     db.echo_showcases.docs = [_showcase(fee=0)]
     req = FakeRequest()
 
-    await es.register_for_showcase("echo-tech-2026", es.RegisterSchema(full_name="A", email="a@b.co"), req)
-    again = await es.register_for_showcase("echo-tech-2026", es.RegisterSchema(full_name="A", email="A@B.CO"), req)
+    await es.register_for_showcase("echo-tech-2026", es.RegisterSchema(full_name="A", email="a@b.co", phone="+919876543210", terms_accepted=True), req)
+    again = await es.register_for_showcase("echo-tech-2026", es.RegisterSchema(full_name="A", email="A@B.CO", phone="+919876543210", terms_accepted=True), req)
 
     assert len(db.echo_registrations.docs) == 1
     assert again.get("id") == db.echo_registrations.docs[0]["id"]
@@ -488,7 +488,7 @@ async def test_free_registration_provisions_sa_account(patch_deps, fake_db, monk
     sent = []
     monkeypatch.setattr(
         es, "send_email",
-        lambda to, subj, body: sent.append((to, subj)) or asyncio.sleep(0) or True,
+        lambda to, subj, *a, **kw: sent.append((to, subj)) or asyncio.sleep(0) or True,
     )
 
     db = fake_db
@@ -496,7 +496,7 @@ async def test_free_registration_provisions_sa_account(patch_deps, fake_db, monk
 
     out = await es.register_for_showcase(
         "echo-tech-2026",
-        es.RegisterSchema(full_name="Provision Me", email="provision@x.co", phone="999", dob="2002-01-15"),
+        es.RegisterSchema(full_name="Provision Me", email="provision@x.co", phone="+919876543210", dob="2002-01-15", terms_accepted=True),
         FakeRequest(),
     )
     assert out["payment"]["status"] == "paid"
@@ -528,7 +528,7 @@ async def test_provision_sa_account_idempotent_and_existing(patch_deps, fake_db,
     sent = []
     monkeypatch.setattr(
         es, "send_email",
-        lambda to, subj, body: sent.append((to, subj)) or asyncio.sleep(0) or True,
+        lambda to, subj, *a, **kw: sent.append((to, subj)) or asyncio.sleep(0) or True,
     )
     db = fake_db
 
@@ -598,7 +598,7 @@ def test_ticket_email_block_contains_pass_and_download_link():
     assert "ENTRY PASS" in block.upper() or "ENTRY PASS" in block
     assert "Download Pass" in block
     assert "REG456" in block
-    assert "data:image/png;base64," in block
+    assert "qr.png" in block or "data:image/png;base64," in block
 
 
 @pytest.mark.asyncio

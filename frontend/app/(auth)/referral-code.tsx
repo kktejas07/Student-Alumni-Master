@@ -47,13 +47,7 @@ export default function ReferralCode() {
       // Route by role — students get the spec-compliant 7-step wizard,
       // mentors get the spec-compliant 8-step wizard, alumni get the
       // 6-step wizard, others use the shorter flat quick-setup form.
-      const dest =
-        role === 'student' ? '/(onboarding)/student-onboard' :
-        role === 'mentor'  ? '/(onboarding)/mentor-onboard'  :
-        role === 'alumni'  ? '/(onboarding)/alumni-onboard'  :
-        role === 'college' ? '/(onboarding)/college-onboard' :
-        '/(onboarding)/quick-setup';
-      router.replace(dest as any);
+      router.replace('/onboarding' as any);
     } catch {
       setError('Could not apply code. Try again or skip.');
     } finally {
@@ -63,13 +57,7 @@ export default function ReferralCode() {
 
   const onSkip = () => {
     trackAuth({ event: 'referral_skipped' as any });
-    const dest =
-      role === 'student' ? '/(onboarding)/student-onboard' :
-      role === 'mentor'  ? '/(onboarding)/mentor-onboard'  :
-      role === 'alumni'  ? '/(onboarding)/alumni-onboard'  :
-      role === 'college' ? '/(onboarding)/college-onboard' :
-      '/(onboarding)/quick-setup';
-    router.replace(dest as any);
+    router.replace('/onboarding' as any);
   };
 
   return (

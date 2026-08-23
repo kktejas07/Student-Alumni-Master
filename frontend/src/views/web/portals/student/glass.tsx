@@ -47,6 +47,16 @@ export function AnimatedAurora({ intensity = 'normal' }: {
 @keyframes orbA { 0%{transform:translate(0,0)} 50%{transform:translate(15vw,10vh)} 100%{transform:translate(0,0)} }
 @keyframes orbB { 0%{transform:translate(0,0)} 50%{transform:translate(-18vw,12vh)} 100%{transform:translate(0,0)} }
 @keyframes orbC { 0%{transform:translate(0,0)} 50%{transform:translate(12vw,-10vh)} 100%{transform:translate(0,0)} }
+@keyframes db-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes db-sweep { 0% { transform: translateX(-30%) rotate(8deg); } 100% { transform: translateX(30%) rotate(8deg); } }
+@keyframes db-lockshine { 0% { transform: translateX(-140%) skewX(-16deg); } 60%, 100% { transform: translateX(260%) skewX(-16deg); } }
+@keyframes db-fab { 0%, 100% { box-shadow: 0 0 0 0 rgba(124,92,252,.36); } 50% { box-shadow: 0 0 0 12px rgba(124,92,252,0); } }
+@keyframes db-dot { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
+@keyframes db-flame { 0%, 100% { transform: scale(1) rotate(-3deg); } 50% { transform: scale(1.12) rotate(3deg); } }
+@keyframes db-tilein { from { opacity: 0; transform: translateY(18px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes db-marq { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes db-aurora1 { 0%, 100% { transform: translate3d(-6%, 0, 0) rotate(-8deg); } 50% { transform: translate3d(10%, 4%, 0) rotate(-2deg); } }
+@keyframes db-aurora2 { 0%, 100% { transform: translate3d(8%, 2%, 0) rotate(6deg); } 50% { transform: translate3d(-8%, -3%, 0) rotate(12deg); } }
         `}</style>
         <View style={[a.orb, {
           top: '-12%', left: '-10%', width: 540, height: 540,
@@ -598,7 +608,7 @@ const fab = StyleSheet.create({
 import { GlobalTopProgressBar } from '../../components/AppLoader';
 
 /* ─────────────────────────────────────────────────────────────────
- * RouteTransition — fade + 6px y-shift wrapper + top glowing progress bar.
+ * RouteTransition — fade + 100px y-shift motion slide + top glowing progress bar.
  *                   Wrap each view's root with this.
  * ───────────────────────────────────────────────────────────────── */
 export function RouteTransition({ children, deps = [] }: {
@@ -606,17 +616,26 @@ export function RouteTransition({ children, deps = [] }: {
   deps?: any[];
 }) {
   const opacity = useRef(new Animated.Value(0)).current;
-  const ty = useRef(new Animated.Value(6)).current;
+  const ty = useRef(new Animated.Value(100)).current;
   const [navigating, setNavigating] = React.useState(false);
 
   useEffect(() => {
     setNavigating(true);
-    opacity.setValue(0); ty.setValue(6);
+    opacity.setValue(0);
+    ty.setValue(100);
     Animated.parallel([
-      Animated.timing(opacity, { toValue: 1, duration: 280,
-        easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' }),
-      Animated.timing(ty,      { toValue: 0, duration: 280,
-        easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 350,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: Platform.OS !== 'web',
+      }),
+      Animated.timing(ty, {
+        toValue: 0,
+        duration: 350,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: Platform.OS !== 'web',
+      }),
     ]).start(() => {
       setNavigating(false);
     });
