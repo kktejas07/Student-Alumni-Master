@@ -364,10 +364,82 @@ export function Footer() {
           ))}
         </div>
 
+        {/* Newsletter Subscription Row */}
+        <div
+          style={{
+            marginTop: "48px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "22px",
+            flexWrap: "wrap",
+            border: "1px solid #2A2A55",
+            borderRadius: "18px",
+            background: "#0E1020",
+            padding: "24px 28px",
+          }}
+        >
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: "19px", fontWeight: 700, letterSpacing: "-0.4px", color: "#F4F5FB" }}>
+              One email a month. Nothing else.
+            </div>
+            <div style={{ fontSize: "14.5px", color: "#B6BACB", marginTop: "5px" }}>
+              New openings, mentor drops and campus events — no noise.
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: "10px", flex: "1 1 340px", flexWrap: "wrap" }}>
+            <input
+              type="email"
+              placeholder="you@college.edu"
+              style={{
+                flex: "1 1 220px",
+                minWidth: 0,
+                border: "1px solid #1B1E33",
+                borderRadius: "11px",
+                background: "#0A0C18",
+                padding: "14px 16px",
+                fontSize: "14.5px",
+                color: "#F4F5FB",
+                outline: "none",
+                fontFamily: "inherit",
+              }}
+            />
+            <button
+              type="button"
+              onClick={(e) => {
+                const btn = e.currentTarget;
+                btn.textContent = "Subscribed ✓";
+                btn.style.background = "#047857";
+                setTimeout(() => {
+                  btn.textContent = "Subscribe";
+                  btn.style.background = "#5B4FE9";
+                }, 2200);
+              }}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "9px",
+                background: "#5B4FE9",
+                color: "#FFFFFF",
+                fontSize: "14.5px",
+                fontWeight: 600,
+                padding: "14px 24px",
+                borderRadius: "11px",
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+                border: "none",
+                boxShadow: "0 0 16px rgba(91,79,233,0.35)",
+              }}
+            >
+              Subscribe
+            </button>
+          </div>
+        </div>
+
         {/* Signature StudentAlumni Brand Banner */}
         <div
           style={{
-            marginTop: "56px",
+            marginTop: "36px",
             paddingTop: "32px",
             borderTop: "1px solid rgba(255, 255, 255, 0.08)",
             display: "flex",
