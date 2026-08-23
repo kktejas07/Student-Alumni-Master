@@ -465,6 +465,10 @@ export const api = {
     request<any>(`/echo/admin/registrations/${regId}`, { method: 'DELETE' }),
   adminEchoSendPaymentReminder: (regId: string) =>
     request<any>(`/echo/admin/registrations/${regId}/remind`, { method: 'POST' }),
+  adminEchoResendAccountTickets: (regId: string) =>
+    request<any>(`/echo/admin/registrations/${regId}/resend-account-tickets`, { method: 'POST' }),
+  adminEchoSyncTeams: () =>
+    request<any>('/echo/admin/registrations/sync-teams', { method: 'POST' }),
   adminEchoMarkRegistrationFailed: (regId: string) =>
     request<any>(`/echo/admin/registrations/${regId}/mark-failed`, { method: 'POST' }),
   adminEchoUpdateTeam: (regId: string, teamMembers: any[], teamName?: string) =>

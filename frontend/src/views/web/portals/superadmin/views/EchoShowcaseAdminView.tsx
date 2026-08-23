@@ -3001,6 +3001,53 @@ function RegistrationsPanel() {
     }
   };
 
+  const [resending, setResending] = useState<string | null>(null);
+  const [syncingTeams, setSyncingTeams] = useState(false);
+
+  const resendAccountTickets = async (r: any) => {
+    const regId = r.id || r._id;
+    if (!regId) return;
+    const isTeam = r.registration_type === 'team';
+    const ok = await confirm({
+      title: 'Resend Account Credentials & Tickets?',
+      message: `This will provision Student Alumni accounts for ${isTeam ? 'all team members (' + (r.team_size || 1) + ' members)' : r.full_name}, generate unique QR entry passes, and email login credentials and passes.`,
+      confirmText: 'Resend & Issue Passes',
+    });
+    if (!ok) return;
+    setResending(regId);
+    try {
+      const res = await api.adminEchoResendAccountTickets(regId);
+      flash(res?.message || 'Accounts and tickets successfully sent!');
+      await load();
+      if (detailRow && (detailRow.id === regId || detailRow._id === regId)) {
+        setDetailRow((prev: any) => ({ ...prev, has_account: true, ticket_issued: true }));
+      }
+    } catch (err: any) {
+      flash(err?.message || 'Failed to resend accounts and tickets');
+    } finally {
+      setResending(null);
+    }
+  };
+
+  const syncAllTeams = async () => {
+    const ok = await confirm({
+      title: 'Sync & Resend All Team Accounts & Passes?',
+      message: 'This will scan all paid/registered team registrations, ensure every team member has an SA Student account, generate individual QR tickets, and email login credentials and entry passes.',
+      confirmText: 'Sync All Teams',
+    });
+    if (!ok) return;
+    setSyncingTeams(true);
+    try {
+      const res = await api.adminEchoSyncTeams();
+      flash(`Successfully fulfilled ${res?.total_members_synced || 0} team members across ${res?.teams_processed || 0} teams!`);
+      await load();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to sync teams');
+    } finally {
+      setSyncingTeams(false);
+    }
+  };
+
   const filtered = rows.filter((r) => {
     const s = q.toLowerCase();
     const matchQ = !s
@@ -3043,6 +3090,21 @@ function RegistrationsPanel() {
         }}>
           <ScanLine size={14} color="#fff" />
           <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Scan Coupons</Text>
+        </Pressable>
+        <Pressable
+          onPress={syncAllTeams}
+          disabled={syncingTeams}
+          style={{
+            flexDirection: 'row', alignItems: 'center', gap: 6,
+            backgroundColor: syncingTeams ? 'rgba(16,185,129,0.2)' : 'rgba(16,185,129,0.15)',
+            borderWidth: 1, borderColor: 'rgba(52,211,153,0.35)',
+            borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, cursor: 'pointer',
+          }}
+        >
+          <RefreshCw size={14} color="#34D399" />
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#34D399' }}>
+            {syncingTeams ? 'Syncing...' : 'Sync & Resend Team Passes'}
+          </Text>
         </Pressable>
       </View>
 
@@ -3227,8 +3289,18 @@ function RegistrationsPanel() {
                       {(r.registered_at || '').slice(0, 10) || '—'}
                     </Text>
                   </View>
-                  <View style={{ width: 80, flexDirection: 'row', gap: 4, justifyContent: 'center' }}>
+                  <View style={{ width: 110, flexDirection: 'row', gap: 4, justifyContent: 'center' }}>
                     <IconAction icon={<Eye size={14} color="#818CF8" />} label="View" color="#818CF8" onPress={() => setDetailRow(r)} />
+                    {(r.payment_status === 'paid' || Number(r.fee || 0) === 0) && (
+                      <IconAction
+                        icon={<Send size={14} color="#A78BFA" />}
+                        label="Resend Account & Pass"
+                        color="#A78BFA"
+                        bg="rgba(124,58,237,0.15)"
+                        onPress={() => resendAccountTickets(r)}
+                        disabled={resending === (r.id || r._id)}
+                      />
+                    )}
                     {r.payment_status === 'pending' && (
                       <>
                         <IconAction
@@ -3528,8 +3600,25 @@ function RegistrationsPanel() {
               </ScrollView>
 
               {/* Fixed Footer */}
-              <View style={{ padding: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' }}>
-                <GradientButton onPress={() => setDetailRow(null)} size="sm" style={{ alignSelf: 'flex-end' }}>
+              <View style={{ padding: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                {(detailRow.payment_status === 'paid' || Number(detailRow.fee || 0) === 0) ? (
+                  <Pressable
+                    onPress={() => resendAccountTickets(detailRow)}
+                    disabled={resending === (detailRow.id || detailRow._id)}
+                    style={{
+                      flexDirection: 'row', alignItems: 'center', gap: 6,
+                      backgroundColor: 'rgba(124,58,237,0.2)', borderWidth: 1, borderColor: '#7C3AED',
+                      borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8,
+                      opacity: resending === (detailRow.id || detailRow._id) ? 0.6 : 1,
+                    }}
+                  >
+                    <Send size={13} color="#C4B5FD" />
+                    <Text style={{ fontFamily: FONTS.bold, fontSize: 11.5, color: '#DDD6FE' }}>
+                      {resending === (detailRow.id || detailRow._id) ? 'Sending...' : 'Resend Accounts & Reissue Tickets'}
+                    </Text>
+                  </Pressable>
+                ) : <View />}
+                <GradientButton onPress={() => setDetailRow(null)} size="sm">
                   <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>Close</Text>
                 </GradientButton>
               </View>
