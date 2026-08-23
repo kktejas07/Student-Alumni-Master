@@ -3242,6 +3242,7 @@ class PaymentOrderSchema(BaseModel):
     college: Optional[str] = ""
     terms_accepted: Optional[bool] = False
     registration_type: Optional[str] = "individual"
+    team_name: Optional[str] = ""
     team_size: Optional[int] = 1
     team_members: Optional[List[TeamMemberSchema]] = []
 
@@ -3411,6 +3412,19 @@ async def create_payment_order(slug: str, payload: PaymentOrderSchema, request: 
     # Persist a pending registration so verify-payment / webhook has a record
     if not existing:
         dob_val = payload.date_of_birth or payload.dob or ""
+        
+        # Prepare team members data
+        team_members_data = []
+        if registration_type == "team" and payload.team_members:
+            team_members_data = [
+                {
+                    "name": m.name or "",
+                    "email": m.email or "",
+                    "phone": m.phone or "",
+                }
+                for m in payload.team_members
+            ]
+            
         reg = {
             "id": reg_id,
             "slug": canonical_slug,
@@ -3426,12 +3440,12 @@ async def create_payment_order(slug: str, payload: PaymentOrderSchema, request: 
             "branch": payload.branch,
             "year": payload.year,
             "college": payload.college or showcase.get("college"),
-            "fee": fee,
+            "fee": total_fee,
             "currency": currency,
             "payment": {
                 "payment_id": None,
                 "gateway": "razorpay",
-                "amount": fee,
+                "amount": total_fee,
                 "currency": currency,
                 "status": "pending",
                 "paid_at": None,
@@ -3442,16 +3456,49 @@ async def create_payment_order(slug: str, payload: PaymentOrderSchema, request: 
             "registered_at": now_iso,
             "status": "pending",
             "created_at": now_iso,
+            "registration_type": registration_type,
+            "team_name": (payload.team_name or "").strip(),
+            "team_size": team_size,
+            "team_members": team_members_data,
         }
         await db.echo_registrations.insert_one(dict(reg))
     else:
         reg_id = existing.get("id")
+        
+        # Prepare team members data for update
+        team_members_data = []
+        if registration_type == "team" and payload.team_members:
+            team_members_data = [
+                {
+                    "name": m.name or "",
+                    "email": m.email or "",
+                    "phone": m.phone or "",
+                }
+                for m in payload.team_members
+            ]
+            
+        dob_val = payload.date_of_birth or payload.dob or ""
+        
         # Attach the freshly-created order to the pre-existing reg and reset any
         # expired/failed state back to pending so verify-payment / webhook can
         # resolve it by order id and the user can pay with the new session.
+        # Also update all registration details in case they changed from IND to TEAM or updated info.
         await db.echo_registrations.update_one(
             {"_id": existing["_id"]},
             {"$set": {
+                "full_name": payload.full_name,
+                "phone": payload.phone,
+                "date_of_birth": dob_val,
+                "dob": dob_val,
+                "branch": payload.branch,
+                "year": payload.year,
+                "college": payload.college or showcase.get("college"),
+                "fee": total_fee,
+                "payment.amount": total_fee,
+                "registration_type": registration_type,
+                "team_name": (payload.team_name or "").strip(),
+                "team_size": team_size,
+                "team_members": team_members_data,
                 "payment_order": {"order_id": order.get("id"), "created_at": now_iso},
                 "status": "pending",
                 "payment.status": "pending",
@@ -3464,7 +3511,7 @@ async def create_payment_order(slug: str, payload: PaymentOrderSchema, request: 
     return {
         "already": False,
         "order_id": order.get("id"),
-        "amount": fee,
+        "amount": total_fee,
         "currency": currency,
         "key_id": cfg["key_id"],
         "receipt": reg_id,
@@ -4051,6 +4098,10 @@ async def admin_mark_registration_failed(reg_id: str, request: Request, _=Depend
 
 
 # ── Ticket verification / check-in (venue staff) ─────────────────────────────
+class AdminUpdateTeamSchema(BaseModel):
+    team_members: List[dict] = []
+    team_name: Optional[str] = None
+
 class TicketVerifySchema(BaseModel):
     ticket: str  # raw QR scan payload or a bare registration id
 
@@ -4081,6 +4132,102 @@ def _parse_ticket(ticket: str) -> dict:
         return {}
     return {"reg_id": t}
 
+
+
+@router.put("/admin/registrations/{reg_id}/team")
+async def admin_update_team_members(reg_id: str, request: Request, payload: AdminUpdateTeamSchema, _=Depends(_require_admin)):
+    """Super-admin: update the team members for a registration and provision their SA accounts."""
+    db = _get_db(request)
+
+    team_members = payload.team_members
+    team_name = payload.team_name
+    
+    reg = await db.echo_registrations.find_one({"id": reg_id})
+    if not reg:
+        raise HTTPException(404, "Registration not found")
+        
+    update_data = {"team_members": team_members}
+    if team_name is not None:
+        update_data["team_name"] = team_name
+        
+    await db.echo_registrations.update_one(
+        {"id": reg_id},
+        {"$set": update_data}
+    )
+
+    
+    # After saving, let's provision SA accounts for any members that have an email.
+    showcase = await db.echo_showcases.find_one({"slug": reg.get("slug")})
+    
+    for idx, member in enumerate(team_members):
+        member_email = (member.get("email") or "").strip().lower()
+        if not member_email:
+            continue
+            
+        member_reg = dict(reg)
+        member_reg["email"] = member_email
+        member_reg["full_name"] = member.get("name", "")
+        member_reg["phone"] = member.get("phone", "")
+        member_reg["id"] = f"{reg_id}_m{idx + 1}"  # Unique ID for team member
+        
+        member_sa_user, member_created, member_password = await _provision_sa_account(db, member_reg, showcase)
+        if member_sa_user:
+            await _mirror_to_event_registration(db, member_reg, showcase, member_sa_user)
+        if member_created and member_password:
+            await _send_sa_welcome_email(member_reg, showcase, member_password)
+            
+        # Optional: Send them their own team member confirmation email too?
+        # await _send_team_member_confirmation(db, member_reg, showcase, reg, reg.get("team_name", ""))
+
+    return {"ok": True, "message": "Team members updated successfully"}
+
+
+@router.post("/admin/registrations/{reg_id}/resend-tickets")
+async def admin_resend_tickets(reg_id: str, request: Request, _=Depends(_require_admin)):
+    """Super-admin: resend tickets and coupons for a paid registration."""
+    db = _get_db(request)
+    reg = await db.echo_registrations.find_one({"id": reg_id})
+    if not reg:
+        raise HTTPException(404, "Registration not found")
+    
+    if reg.get("payment", {}).get("status") != "paid":
+        raise HTTPException(400, "Cannot resend tickets for an unpaid registration")
+        
+    showcase = await db.echo_showcases.find_one({"slug": reg.get("slug")})
+    
+    # Re-fetch coupons
+    coupons = await db.echo_coupons.find({"reg_id": reg_id}).to_list(100)
+    
+    # 1. Resend email
+    await _store_invoice_and_email(db, reg, showcase, coupons)
+    
+    # 2. Resend WhatsApp
+    if reg.get("phone"):
+        # We need the PDF attachments
+        inv = await db.invoices.find_one({"reg_id": reg_id})
+        attachments = []
+        if inv:
+            inv_ser = _ser(inv)
+            inv_no = inv_ser.get("invoice_no") or "invoice"
+            invoice_html = _build_invoice_html(inv_ser)
+            invoice_pdf = await generate_pdf_from_html(invoice_html)
+            if invoice_pdf:
+                attachments.append({"filename": f"Invoice-{inv_no}.pdf", "content": invoice_pdf})
+            
+            receipt_html = _build_receipt_html(inv_ser)
+            receipt_pdf = await generate_pdf_from_html(receipt_html)
+            if receipt_pdf:
+                raw_pid = str(inv_ser.get("payment_id") or "").replace("pay_", "").replace("PAY_", "")
+                rno = f"{raw_pid[:4]}-{raw_pid[-4:]}" if len(raw_pid) >= 8 else raw_pid
+                attachments.append({"filename": f"Receipt-{rno}.pdf", "content": receipt_pdf})
+                
+            ticket_pdf = await generate_ticket_pdf(inv_ser, showcase or {})
+            if ticket_pdf:
+                attachments.append({"filename": f"EntryPass-{reg_id}.pdf", "content": ticket_pdf})
+                
+        await _send_wa_paid_package(db, reg, showcase or {}, attachments, coupons)
+
+    return {"ok": True, "message": "Tickets and coupons resent successfully"}
 
 @router.post("/admin/registrations/verify")
 async def verify_ticket(payload: TicketVerifySchema, request: Request, _=Depends(_require_admin)):

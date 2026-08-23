@@ -2876,6 +2876,13 @@ function RegistrationsPanel() {
   const [detailRow, setDetailRow] = useState<any>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [actioning, setActioning] = useState<string | null>(null);
+
+
+  const [editingTeamReg, setEditingTeamReg] = useState<any>(null);
+  const [editTeamMembers, setEditTeamMembers] = useState<any[]>([]);
+  const [editTeamName, setEditTeamName] = useState('');
+
+
   const [page, setPage] = useState(0);
   const PER_PAGE = 20;
   const { flash } = useToast();
@@ -2917,6 +2924,47 @@ function RegistrationsPanel() {
       flash('Failed to delete registration');
     } finally {
       setDeleting(null);
+    }
+  };
+
+  
+  const handleEditTeam = (r: any) => {
+    setEditingTeamReg(r);
+    setEditTeamName(r.team_name || '');
+    const members = [...(r.team_members || [])];
+
+    const size = r.team_size || 1;
+    while (members.length < size - 1) {
+      members.push({ name: '', email: '', phone: '' });
+    }
+    setEditTeamMembers(members);
+  };
+
+  const saveTeamMembers = async () => {
+    if (!editingTeamReg) return;
+    setActioning(editingTeamReg.id);
+    try {
+      await api.adminEchoUpdateTeam(editingTeamReg.id, editTeamMembers, editTeamName);
+      flash('Team members updated successfully');
+      setEditingTeamReg(null);
+      await load();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to update team members');
+    } finally {
+      setActioning(null);
+    }
+  };
+
+  const resendTickets = async (r: any) => {
+    setActioning(r.id);
+    try {
+      await api.adminEchoResendTickets(r.id);
+      flash('Tickets and coupons resent successfully');
+      await load();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to resend tickets');
+    } finally {
+      setActioning(null);
     }
   };
 
@@ -3139,11 +3187,12 @@ function RegistrationsPanel() {
           </View>
         ) : (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
-            <View style={{ minWidth: 950, flex: 1 }}>
+            <View style={{ minWidth: 1050, flex: 1 }}>
               {/* Header */}
               <View style={{ flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 14, backgroundColor: 'rgba(255,255,255,0.04)', borderBottomWidth: 1, borderBottomColor: SAC.border }}>
                 <Text style={{ flex: 1.5, minWidth: 180, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>ATTENDEE</Text>
                 <Text style={{ width: 70, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>TYPE</Text>
+                <Text style={{ width: 50, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>SIZE</Text>
                 <Text style={{ flex: 1.5, minWidth: 180, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>EVENT</Text>
                 <Text style={{ width: 120, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>AMOUNT</Text>
                 <Text style={{ width: 120, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>PAYMENT</Text>
@@ -3151,14 +3200,21 @@ function RegistrationsPanel() {
                 <Text style={{ width: 120, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>DATE</Text>
                 <Text style={{ width: 80, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5, textAlign: 'center' }}>ACTIONS</Text>
               </View>
-              {paged.map((r: any, i: number) => (
+              {paged.map((r: any, i: number) => {
+                const isTeam = r.registration_type === 'team' || !!r.team_name || (r.team_size && r.team_size > 1);
+                return (
                 <View key={r.id || i} style={{ flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 11, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' }}>
                   <View style={{ flex: 1.5, minWidth: 180 }}>
                     <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 12.5, color: '#fff' }}>{r.full_name || '—'}</Text>
                     <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10.5, color: SAC.dim }}>{r.email || r.phone || ''}</Text>
-                    {r.registration_type === 'team' && r.team_members?.length > 0 && (
+                    {isTeam && (
                       <View style={{ marginTop: 6, gap: 4 }}>
-                        {r.team_members.slice(0, 2).map((member: any, idx: number) => (
+                        {r.team_name && (
+                          <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#C4B5FD' }}>
+                            Team: {r.team_name}
+                          </Text>
+                        )}
+                        {(r.team_members?.length || 0) > 0 && r.team_members.slice(0, 2).map((member: any, idx: number) => (
                           <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                             <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: 'rgba(167,139,250,0.2)', alignItems: 'center', justifyContent: 'center' }}>
                               <Text style={{ fontFamily: FONTS.xbold, fontSize: 7, color: '#C4B5FD' }}>{idx + 2}</Text>
@@ -3168,7 +3224,7 @@ function RegistrationsPanel() {
                             </Text>
                           </View>
                         ))}
-                        {r.team_members.length > 2 && (
+                        {(r.team_members?.length || 0) > 2 && (
                           <Text style={{ fontFamily: FONTS.med, fontSize: 8, color: SAC.dim }}>
                             +{r.team_members.length - 2} more
                           </Text>
@@ -3178,28 +3234,29 @@ function RegistrationsPanel() {
                   </View>
                   <View style={{ width: 70 }}>
                     <View style={{ 
-                      backgroundColor: r.registration_type === 'team' ? 'rgba(124,58,237,0.15)' : 'rgba(52,211,153,0.15)',
-                      paddingHorizontal: 6, paddingVertical: 3, borderRadius: 6,
-                      borderWidth: 1, borderColor: r.registration_type === 'team' ? 'rgba(124,58,237,0.3)' : 'rgba(52,211,153,0.3)',
+                      backgroundColor: isTeam ? 'rgba(124,58,237,0.15)' : 'rgba(52,211,153,0.15)',
+                      paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6,
+                      borderWidth: 1, borderColor: isTeam ? 'rgba(124,58,237,0.3)' : 'rgba(52,211,153,0.3)',
+                      alignSelf: 'flex-start', alignItems: 'center'
                     }}>
-                      <Text style={{ fontFamily: FONTS.xbold, fontSize: 9, color: r.registration_type === 'team' ? '#C4B5FD' : '#6EE7B7' }}>
-                        {r.registration_type === 'team' ? 'TEAM' : 'IND'}
+                      <Text style={{ fontFamily: FONTS.xbold, fontSize: 9, color: isTeam ? '#C4B5FD' : '#6EE7B7' }}>
+                        {isTeam ? 'TEAM' : 'IND'}
                       </Text>
                     </View>
+                  </View>
+                  <View style={{ width: 50, paddingTop: 4 }}>
+                    <Text style={{ fontFamily: FONTS.xbold, fontSize: 11, color: '#e5e7eb' }}>
+                      {isTeam ? (r.team_size > 1 ? r.team_size : 1) : 1}
+                    </Text>
                   </View>
                   <View style={{ flex: 1.5, minWidth: 180 }}>
                     <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 12, color: '#e5e7eb' }}>{r.event_title || r.slug || '—'}</Text>
                     <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>{r.college || ''}</Text>
                   </View>
-                  <View style={{ width: 120, minWidth: 0 }}>
+                  <View style={{ width: 120, minWidth: 0, paddingTop: 2 }}>
                     <Text style={{ fontFamily: FONTS.xbold, fontSize: 12, color: '#fff' }}>
                       {Number(r.fee || 0) > 0 ? `₹${Number(r.fee).toLocaleString('en-IN')}` : 'FREE'}
                     </Text>
-                    {r.registration_type === 'team' && r.team_size > 1 && (
-                      <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 9, color: SAC.dim }}>
-                        {r.team_size} ppl
-                      </Text>
-                    )}
                   </View>
                   <View style={{ width: 120, minWidth: 0 }}>
                     <StatusPill
@@ -3276,7 +3333,8 @@ function RegistrationsPanel() {
                     />
                   </View>
                 </View>
-              ))}
+                );
+              })}
             </View>
           </ScrollView>
         )}
@@ -3399,23 +3457,106 @@ function RegistrationsPanel() {
                 ))}
               </View>
 
-              {/* Team Members (if team registration) */}
-              {detailRow.registration_type === 'team' && detailRow.team_members?.length > 0 && (
+                            {/* Team Members (if team registration) */}
+              {detailRow.registration_type === 'team' && (
                 <View style={{ backgroundColor: 'rgba(124,58,237,0.08)', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: 'rgba(167,139,250,0.2)' }}>
-                  <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text, marginBottom: 10 }}>Team Members ({detailRow.team_members.length})</Text>
-                  <View style={{ gap: 8 }}>
-                    {detailRow.team_members.map((member: any, idx: number) => (
-                      <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 10 }}>
-                        <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(124,58,237,0.25)', alignItems: 'center', justifyContent: 'center' }}>
-                          <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: '#C4B5FD' }}>{idx + 2}</Text>
-                        </View>
-                        <View style={{ flex: 1, minWidth: 0 }}>
-                          <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>{member.name || '—'}</Text>
-                          <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>{member.email || ''} {member.phone ? `· ${member.phone}` : ''}</Text>
-                        </View>
-                      </View>
-                    ))}
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                    <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>Team Members ({(detailRow.team_members || []).length})</Text>
+                    {!editingTeamReg ? (
+                      <Pressable onPress={() => handleEditTeam(detailRow)} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(124,58,237,0.15)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 }}>
+                        <Pencil size={12} color="#C4B5FD" />
+                        <Text style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#C4B5FD' }}>Edit</Text>
+                      </Pressable>
+                    ) : null}
                   </View>
+                  
+                  {!editingTeamReg ? (
+                    <View style={{ gap: 8 }}>
+                      {(detailRow.team_members || []).map((member: any, idx: number) => (
+                        <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 10 }}>
+                          <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(124,58,237,0.25)', alignItems: 'center', justifyContent: 'center' }}>
+                            <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: '#C4B5FD' }}>{idx + 2}</Text>
+                          </View>
+                          <View style={{ flex: 1, minWidth: 0 }}>
+                            <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: SAC.text }} numberOfLines={1}>
+                              {member.name || `Team Member ${idx + 2} (Details Needed)`}
+                            </Text>
+                            {member.email ? <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.dim }}>{member.email} {member.phone ? `• ${member.phone}` : ''}</Text> : null}
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  ) : (
+                    <View style={{ gap: 12 }}>
+                      <View style={{ backgroundColor: 'rgba(255,255,255,0.02)', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
+                        <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#F59E0B', marginBottom: 8 }}>Team Name</Text>
+                        <TextInput
+                          style={{ backgroundColor: 'rgba(255,255,255,0.04)', color: SAC.text, padding: 10, borderRadius: 6, fontFamily: FONTS.med, fontSize: 12 }}
+                          placeholder="Enter team name"
+                          placeholderTextColor="rgba(255,255,255,0.3)"
+                          value={editTeamName}
+                          onChangeText={setEditTeamName}
+                        />
+                      </View>
+                      
+                      {editTeamMembers.map((m, idx) => (
+                        <View key={idx} style={{ backgroundColor: 'rgba(255,255,255,0.02)', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
+                          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#C4B5FD', marginBottom: 8 }}>Team Member {idx + 2}</Text>
+                          <TextInput
+                            style={{ backgroundColor: 'rgba(255,255,255,0.04)', color: SAC.text, padding: 10, borderRadius: 6, fontFamily: FONTS.med, fontSize: 12, marginBottom: 8 }}
+                            placeholder="Full Name"
+                            placeholderTextColor="rgba(255,255,255,0.3)"
+                            value={m.name}
+                            onChangeText={(val) => {
+                              const updated = [...editTeamMembers];
+                              updated[idx].name = val;
+                              setEditTeamMembers(updated);
+                            }}
+                          />
+                          <TextInput
+                            style={{ backgroundColor: 'rgba(255,255,255,0.04)', color: SAC.text, padding: 10, borderRadius: 6, fontFamily: FONTS.med, fontSize: 12, marginBottom: 8 }}
+                            placeholder="Email Address"
+                            placeholderTextColor="rgba(255,255,255,0.3)"
+                            autoCapitalize="none"
+                            value={m.email}
+                            onChangeText={(val) => {
+                              const updated = [...editTeamMembers];
+                              updated[idx].email = val;
+                              setEditTeamMembers(updated);
+                            }}
+                          />
+                          <TextInput
+                            style={{ backgroundColor: 'rgba(255,255,255,0.04)', color: SAC.text, padding: 10, borderRadius: 6, fontFamily: FONTS.med, fontSize: 12 }}
+                            placeholder="Phone (Optional)"
+                            placeholderTextColor="rgba(255,255,255,0.3)"
+                            keyboardType="numeric"
+                            value={m.phone}
+                            onChangeText={(val) => {
+                              const updated = [...editTeamMembers];
+                              updated[idx].phone = val;
+                              setEditTeamMembers(updated);
+                            }}
+                          />
+                        </View>
+                      ))}
+                      <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+                        <Pressable onPress={() => setEditingTeamReg(null)} style={{ flex: 1, padding: 10, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 6, alignItems: 'center' }}>
+                          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.dim }}>Cancel</Text>
+                        </Pressable>
+                        <Pressable onPress={() => {
+                          saveTeamMembers().then(() => {
+                            setDetailRow(prev => ({ ...prev, team_members: editTeamMembers, team_name: editTeamName }));
+                          });
+                        }} style={{ flex: 1, padding: 10, backgroundColor: '#7C3AED', borderRadius: 6, alignItems: 'center' }}>
+                          {actioning === editingTeamReg?.id ? (
+                            <ActivityIndicator size="small" color="#fff" />
+                          ) : (
+                            <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Save</Text>
+                          )}
+                        </Pressable>
+                      </View>
+                    </View>
+                  )}
                 </View>
               )}
 
@@ -3485,6 +3626,8 @@ function RegistrationsPanel() {
           </View>
         </Modal>
       )}
+
+      
     </View>
   );
 }
