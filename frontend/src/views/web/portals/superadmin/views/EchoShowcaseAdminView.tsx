@@ -3089,12 +3089,14 @@ function RegistrationsPanel() {
                 <Text style={{ width: 120, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>DATE</Text>
                 <Text style={{ width: 80, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5, textAlign: 'center' }}>ACTIONS</Text>
               </View>
-              {paged.map((r: any, i: number) => (
+              {paged.map((r: any, i: number) => {
+                const isTeam = r.registration_type === 'team' || !!r.team_name || (r.team_size && r.team_size > 1);
+                return (
                 <View key={r.id || i} style={{ flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 11, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' }}>
                   <View style={{ flex: 1.5, minWidth: 180 }}>
                     <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 12.5, color: '#fff' }}>{r.full_name || '—'}</Text>
                     <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10.5, color: SAC.dim }}>{r.email || r.phone || ''}</Text>
-                    {r.registration_type === 'team' && (
+                    {isTeam && (
                       <View style={{ marginTop: 6, gap: 4 }}>
                         {r.team_name && (
                           <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#C4B5FD' }}>
@@ -3121,12 +3123,13 @@ function RegistrationsPanel() {
                   </View>
                   <View style={{ width: 70 }}>
                     <View style={{ 
-                      backgroundColor: r.registration_type === 'team' ? 'rgba(124,58,237,0.15)' : 'rgba(52,211,153,0.15)',
-                      paddingHorizontal: 6, paddingVertical: 3, borderRadius: 6,
-                      borderWidth: 1, borderColor: r.registration_type === 'team' ? 'rgba(124,58,237,0.3)' : 'rgba(52,211,153,0.3)',
+                      backgroundColor: isTeam ? 'rgba(124,58,237,0.15)' : 'rgba(52,211,153,0.15)',
+                      paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6,
+                      borderWidth: 1, borderColor: isTeam ? 'rgba(124,58,237,0.3)' : 'rgba(52,211,153,0.3)',
+                      alignSelf: 'flex-start', alignItems: 'center'
                     }}>
-                      <Text style={{ fontFamily: FONTS.xbold, fontSize: 9, color: r.registration_type === 'team' ? '#C4B5FD' : '#6EE7B7' }}>
-                        {r.registration_type === 'team' ? 'TEAM' : 'IND'}
+                      <Text style={{ fontFamily: FONTS.xbold, fontSize: 9, color: isTeam ? '#C4B5FD' : '#6EE7B7' }}>
+                        {isTeam ? 'TEAM' : 'IND'}
                       </Text>
                     </View>
                   </View>
@@ -3138,7 +3141,7 @@ function RegistrationsPanel() {
                     <Text style={{ fontFamily: FONTS.xbold, fontSize: 12, color: '#fff' }}>
                       {Number(r.fee || 0) > 0 ? `₹${Number(r.fee).toLocaleString('en-IN')}` : 'FREE'}
                     </Text>
-                    {r.registration_type === 'team' && r.team_size > 1 && (
+                    {isTeam && r.team_size > 1 && (
                       <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 9, color: SAC.dim }}>
                         {r.team_size} ppl
                       </Text>
@@ -3209,7 +3212,8 @@ function RegistrationsPanel() {
                     />
                   </View>
                 </View>
-              ))}
+                );
+              })}
             </View>
           </ScrollView>
         )}
