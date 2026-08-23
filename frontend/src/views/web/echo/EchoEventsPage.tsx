@@ -92,24 +92,44 @@ const SAMPLE_EVENTS = [
     slug: 'vnr',
     title: 'VNR ECHO 2026',
     college: 'VNR VJIET',
-    college_full: 'VNR Vignana Jyothi Institute of Engineering and Technology',
+    college_name: 'VNR Vignana Jyothi Institute of Engineering and Technology',
+    college_full: 'VNR Vignana Jyothi Institute of Engineering & Technology, Hyderabad',
     status: 'COMPLETED',
     organizer: 'VNR Student Council in collaboration with StudentAlumni.ai',
-    description: "Empowering Tomorrow's Leaders",
+    description: "Empowering Tomorrow's Leaders — Innovation, Career Tracks and AI Engineering.",
     dates: 'July 31, 2026',
     date_short: 'July 31, 2026',
     date_pill: 'Jul 31, 2026',
-    time: '09:30 AM',
-    venue: 'Main Auditorium, VNR VJIET',
+    time: '09:30 AM — 04:30 PM',
+    venue: 'Main Auditorium, VNR VJIET, Hyderabad',
     location_short: 'VNR VJIET Campus, Hyderabad',
     prize_pool: '₹35,000 prize pool',
     reg_closes: '2026-07-28',
     individual_fee: 499,
     team_fee: 1999,
-    individual_seats: 'Completed',
-    team_slots: 'Completed',
-    partners: ['Deloitte', 'Featherless', 'Atlast'],
-    poster_banner: '',
+    individual_seats: '320 attended',
+    team_slots: '64 teams',
+    partners: ['Deloitte', 'Featherless', 'Atlast', 'Microsoft', 'Google'],
+    poster_banner: '/images/hackwave/hackwave_techfest_verticals.jpg',
+    gallery_images: [
+      '/images/hackwave/hackwave_techfest_verticals.jpg',
+      '/images/hackwave/hackwave_speakers.jpg',
+      '/images/hackwave/hackwave_main_poster.png',
+      '/images/hackwave/hackwave_cybersecurity_conclave.jpg',
+      '/images/hackwave/hackwave_perks_pool.jpg'
+    ],
+    speakers: [
+      { name: 'Vijay Raghavan', position: 'Chief AI Architect', company: 'Google', category: 'Keynote Speaker', is_panel_member: true },
+      { name: 'Sneha Reddy', position: 'VP Engineering', company: 'Microsoft', category: 'Panelist', is_panel_member: true },
+      { name: 'Dr. Kavitha Nair', position: 'Professor & NLP Researcher', company: 'VNR VJIET', category: 'Academic Mentor', is_panel_member: true },
+      { name: 'Arjun Mehta', position: 'Founder', company: 'BrightFuture Labs', category: 'Industry Speaker', is_panel_member: false }
+    ],
+    highlights: [
+      { title: 'AI at Scale Keynote', desc: 'Vijay Raghavan on large-scale production ML architectures' },
+      { title: 'Careers in AI Panel', desc: 'Industry veterans answer student questions on emerging roles' },
+      { title: 'Hands-on Hackathon', desc: 'Sprint across MedTech, FinTech, and Smart Mobility' },
+      { title: 'Networking Hub', desc: 'Connect directly with alumni from leading global tech companies' }
+    ]
   },
 ];
 
@@ -980,14 +1000,24 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 style={{ border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', overflow: 'hidden', cursor: 'pointer', display: 'flex', flexDirection: 'column' }}
               >
                 {/* Event Poster Card Banner */}
-                <div style={{ position: 'relative', height: '200px', background: 'var(--panel2)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderBottom: '1px solid var(--line)' }}>
-                  <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at center, rgba(124,92,252,0.28) 0%, transparent 70%)' }} />
-                  <div style={{ textAlign: 'center', padding: '20px', zIndex: 2 }}>
-                    <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: 'rgba(124,92,252,0.18)', border: '1px solid rgba(167,139,250,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
-                      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" strokeWidth="2"><path d="M4 20V8l8-4 8 4v12M9 20v-5h6v5" /></svg>
+                <div style={{ position: 'relative', height: '210px', background: 'var(--panel2)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderBottom: '1px solid var(--line)' }}>
+                  {ev.poster_banner ? (
+                    <img src={ev.poster_banner} alt={ev.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '20px', zIndex: 2 }}>
+                      <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: 'rgba(124,92,252,0.18)', border: '1px solid rgba(167,139,250,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" strokeWidth="2"><path d="M4 20V8l8-4 8 4v12M9 20v-5h6v5" /></svg>
+                      </div>
+                      <div style={{ fontSize: '20px', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.4px' }}>{ev.title}</div>
+                      <div style={{ fontSize: '13px', color: 'var(--violet-lt)', marginTop: '4px' }}>{ev.college_full}</div>
                     </div>
-                    <div style={{ fontSize: '20px', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.4px' }}>{ev.title}</div>
-                    <div style={{ fontSize: '13px', color: 'var(--violet-lt)', marginTop: '4px' }}>{ev.college_full}</div>
+                  )}
+                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(17,17,28,0.92) 0%, rgba(17,17,28,0.3) 50%, transparent 100%)' }} />
+                  <div style={{ position: 'absolute', bottom: '12px', left: '16px', right: '16px', zIndex: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                    <div>
+                      <div style={{ fontSize: '18px', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.4px', textShadow: '0 2px 8px rgba(0,0,0,0.6)' }}>{ev.title}</div>
+                      <div style={{ fontSize: '12px', color: '#DCCEF7', marginTop: '2px' }}>{ev.college}</div>
+                    </div>
                   </div>
                 </div>
 
@@ -1055,12 +1085,15 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
           <div style={{ border: '1px solid var(--line2)', borderRadius: '22px', overflow: 'hidden', background: 'var(--panel)', marginBottom: '22px', width: '100%' }}>
             
             {/* Banner Top Graphic */}
-            <div style={{ position: 'relative', minHeight: '280px', background: 'linear-gradient(135deg, #1C1236 0%, #2A1758 50%, #160D30 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '36px' }}>
+            <div style={{ position: 'relative', minHeight: '300px', background: 'linear-gradient(135deg, #1C1236 0%, #2A1758 50%, #160D30 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '36px', overflow: 'hidden' }}>
+              {activeEvent.poster_banner && (
+                <img src={activeEvent.poster_banner} alt={activeEvent.title} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.35, filter: 'blur(3px)' }} />
+              )}
               <div style={{ position: 'absolute', width: '420px', height: '260px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(147, 51, 234, 0.45) 0%, transparent 70%)', filter: 'blur(50px)', pointerEvents: 'none' }} />
               <div style={{ position: 'relative', zIndex: 2, textAlign: 'center' }}>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.22)', borderRadius: '100px', padding: '6px 18px', marginBottom: '16px' }}>
                   <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--ok)', animation: 'ev-dot 2s ease-in-out infinite' }} />
-                  <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.5px', color: '#FFFFFF' }}>FLAGSHIP NATIONAL HACKATHON</span>
+                  <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.5px', color: '#FFFFFF' }}>FLAGSHIP NATIONAL EVENT</span>
                 </div>
                 <div style={{ fontSize: '42px', fontWeight: 800, letterSpacing: '-1.4px', color: '#FFFFFF', lineHeight: 1.2 }}>{activeEvent.title}</div>
                 <div style={{ fontSize: '16px', color: '#DCCEF7', marginTop: '8px' }}>{activeEvent.college_full}</div>
@@ -1486,19 +1519,25 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
           <div className="ev-rgrid" style={{ display: 'grid', gap: '24px', alignItems: 'start', width: '100%' }}>
             
             {/* Left Column: Event Poster */}
-            <div style={{ border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '22px' }}>
-              <div style={{ position: 'relative', borderRadius: '14px', overflow: 'hidden', background: 'var(--panel2)', aspectRatio: '3/4', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '28px', border: '1px solid var(--line2)' }}>
-                <div style={{ width: '84px', height: '84px', borderRadius: '22px', background: 'rgba(124,92,252,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
-                  <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="var(--violet-lt)" strokeWidth="1.8"><path d="M12 2l1.9 5.1L19 9l-5.1 1.9L12 16l-1.9-5.1L5 9l5.1-1.9Z" /><circle cx="12" cy="12" r="9" /></svg>
-                </div>
-                <div style={{ fontSize: '26px', fontWeight: 800, color: '#FFFFFF', textAlign: 'center', letterSpacing: '-0.8px', marginBottom: '8px' }}>{activeEvent.title}</div>
-                <div style={{ fontSize: '14.5px', color: 'var(--violet-lt)', textAlign: 'center', marginBottom: '18px' }}>{activeEvent.college_full}</div>
-                <div style={{ fontSize: '13.5px', color: 'var(--muted)', textAlign: 'center', lineHeight: 1.6, maxWidth: '300px' }}>
-                  Join top coders, innovators, and future founders in India's leading flagship hackathon.
-                </div>
-                <div style={{ marginTop: '26px', padding: '9px 18px', background: 'rgba(245,179,66,0.14)', border: '1px solid #4A3410', borderRadius: '100px', color: 'var(--amber)', fontSize: '12.5px', fontWeight: 700 }}>
-                  PRIZE POOL: ₹50,000
-                </div>
+            <div style={{ border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '16px', overflow: 'hidden' }}>
+              <div style={{ position: 'relative', borderRadius: '14px', overflow: 'hidden', background: 'var(--panel2)', aspectRatio: '3/4', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--line2)' }}>
+                {activeEvent.poster_banner ? (
+                  <img src={activeEvent.poster_banner} alt={activeEvent.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '28px' }}>
+                    <div style={{ width: '84px', height: '84px', borderRadius: '22px', background: 'rgba(124,92,252,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+                      <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="var(--violet-lt)" strokeWidth="1.8"><path d="M12 2l1.9 5.1L19 9l-5.1 1.9L12 16l-1.9-5.1L5 9l5.1-1.9Z" /><circle cx="12" cy="12" r="9" /></svg>
+                    </div>
+                    <div style={{ fontSize: '24px', fontWeight: 800, color: '#FFFFFF', textAlign: 'center', letterSpacing: '-0.8px', marginBottom: '8px' }}>{activeEvent.title}</div>
+                    <div style={{ fontSize: '14px', color: 'var(--violet-lt)', textAlign: 'center', marginBottom: '14px' }}>{activeEvent.college_full}</div>
+                    <div style={{ fontSize: '13px', color: 'var(--muted)', textAlign: 'center', lineHeight: 1.5 }}>
+                      Join top coders, innovators, and future founders in India's leading flagship event.
+                    </div>
+                    <div style={{ marginTop: '20px', display: 'inline-block', padding: '8px 16px', background: 'rgba(245,179,66,0.14)', border: '1px solid #4A3410', borderRadius: '100px', color: 'var(--amber)', fontSize: '12px', fontWeight: 700 }}>
+                      {activeEvent.prize_pool || 'PRIZE POOL: ₹2,00,000'}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
