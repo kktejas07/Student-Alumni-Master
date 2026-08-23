@@ -504,62 +504,6 @@ export function Footer() {
               All rights reserved © StudentAlumni 2026
             </div>
           </div>
-
-          {/* Bottom Action Row */}
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: "16px",
-              paddingTop: "20px",
-              borderTop: "1px solid rgba(255, 255, 255, 0.06)",
-            }}
-          >
-            <p style={{ margin: 0, fontSize: "14px", color: "#9AA0B4", fontWeight: 500 }}>
-              Free for students · about a minute to set up
-            </p>
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <button
-                type="button"
-                onClick={() => router.push("/get-started" as any)}
-                style={{
-                  padding: "10px 18px",
-                  borderRadius: "8px",
-                  backgroundColor: "#0C0E1B",
-                  border: "1px solid #2A2E45",
-                  fontSize: "13.5px",
-                  fontWeight: 500,
-                  color: "#F4F5FB",
-                  cursor: "pointer",
-                  fontFamily: "'Manrope', sans-serif",
-                  transition: "border-color 0.2s ease",
-                }}
-              >
-                For colleges
-              </button>
-              <button
-                type="button"
-                onClick={() => router.push("/get-started")}
-                style={{
-                  padding: "10px 20px",
-                  borderRadius: "8px",
-                  backgroundColor: "#5B4FE9",
-                  border: "none",
-                  fontSize: "13.5px",
-                  fontWeight: 600,
-                  color: "#FFFFFF",
-                  cursor: "pointer",
-                  fontFamily: "'Manrope', sans-serif",
-                  boxShadow: "0 0 16px rgba(91, 79, 233, 0.4)",
-                  transition: "background-color 0.2s ease",
-                }}
-              >
-                Get started
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </footer>

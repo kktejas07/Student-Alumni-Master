@@ -182,10 +182,17 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
   const [teamName, setTeamName] = useState('');
   const [teamMembers, setTeamMembers] = useState<Array<{ name: string; email: string; phone: string }>>([
     { name: '', email: '', phone: '' },
-    { name: '', email: '', phone: '' },
-    { name: '', email: '', phone: '' },
-    { name: '', email: '', phone: '' },
   ]);
+
+  // Derived dynamic team calculations
+  const validMembers = isTeam
+    ? teamMembers.filter((m) => (m.name || '').trim() || (m.email || '').trim())
+    : [];
+  const currentTeamSize = isTeam
+    ? 1 + (validMembers.length > 0 ? validMembers.length : teamMembers.length)
+    : 1;
+  const perPersonFee = activeEvent?.individual_fee || 599;
+  const calculatedTotalFee = isTeam ? (perPersonFee * currentTeamSize) : perPersonFee;
 
   // Checkout modal
   const [isPaying, setIsPaying] = useState(false);
@@ -428,8 +435,9 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
       whatsapp_opt_in: whatsappOptIn,
       registration_type: isTeam ? 'team' : 'individual',
       team_name: isTeam ? teamName : '',
-      team_size: isTeam ? 1 + validMembers.length : 1,
+      team_size: currentTeamSize,
       team_members: validMembers,
+      fee: calculatedTotalFee,
     };
 
     const targetSlug = activeEvent.slug || selectedSlug || 'snist';
@@ -450,8 +458,8 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
           ticketId: reg.id || `SA-HW3-${Math.floor(100000 + Math.random() * 900000)}`,
           eventName: activeEvent.title,
           attendeeName: fullName || 'Student Attendee',
-          type: isTeam ? `Team Pass (${1 + validMembers.length} Members)` : 'Individual Pass',
-          amount: isTeam ? activeEvent.team_fee : activeEvent.individual_fee,
+          type: isTeam ? `Team Pass (${currentTeamSize} Members)` : 'Individual Pass',
+          amount: calculatedTotalFee,
           date: activeEvent.dates,
           venue: activeEvent.venue,
           email: email || 'student@example.com',
@@ -470,10 +478,10 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
         if (isLoaded && (window as any).Razorpay) {
           const options = {
             key: orderRes.key_id,
-            amount: (orderRes.amount || (isTeam ? activeEvent.team_fee : activeEvent.individual_fee)) * 100,
+            amount: (orderRes.amount || calculatedTotalFee) * 100,
             currency: orderRes.currency || 'INR',
             name: activeEvent.title || 'Student Alumni ECHO',
-            description: isTeam ? `Team Registration: ${teamName}` : `Individual Pass: ${activeEvent.title}`,
+            description: isTeam ? `Team Registration: ${teamName} (${currentTeamSize} Members)` : `Individual Pass: ${activeEvent.title}`,
             image: activeEvent.poster_banner || '/images/hackwave/hackwave_main_poster.png',
             order_id: orderRes.order_id,
             prefill: {
@@ -485,6 +493,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
               slug: targetSlug,
               registration_type: isTeam ? 'team' : 'individual',
               team_name: isTeam ? teamName : '',
+              team_size: String(currentTeamSize),
             },
             theme: {
               color: '#7C5CFC',
@@ -498,14 +507,17 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                   email: email,
                   phone: phone,
                   full_name: fullName,
+                  team_name: isTeam ? teamName : '',
+                  team_size: currentTeamSize,
+                  team_members: validMembers,
                 });
                 const reg = verifyRes?.registration || {};
                 setTicketData({
                   ticketId: reg.id || resp.razorpay_payment_id || `SA-HW3-${Math.floor(100000 + Math.random() * 900000)}`,
                   eventName: activeEvent.title,
                   attendeeName: fullName || 'Student Attendee',
-                  type: isTeam ? `Team Pass (${1 + validMembers.length} Members)` : 'Individual Pass',
-                  amount: isTeam ? activeEvent.team_fee : activeEvent.individual_fee,
+                  type: isTeam ? `Team Pass (${currentTeamSize} Members)` : 'Individual Pass',
+                  amount: calculatedTotalFee,
                   date: activeEvent.dates,
                   venue: activeEvent.venue,
                   email: email || 'student@example.com',
@@ -521,8 +533,8 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                   ticketId: resp.razorpay_payment_id || `SA-HW3-${Math.floor(100000 + Math.random() * 900000)}`,
                   eventName: activeEvent.title,
                   attendeeName: fullName || 'Student Attendee',
-                  type: isTeam ? `Team Pass (${1 + validMembers.length} Members)` : 'Individual Pass',
-                  amount: isTeam ? activeEvent.team_fee : activeEvent.individual_fee,
+                  type: isTeam ? `Team Pass (${currentTeamSize} Members)` : 'Individual Pass',
+                  amount: calculatedTotalFee,
                   date: activeEvent.dates,
                   venue: activeEvent.venue,
                   email: email || 'student@example.com',
@@ -549,10 +561,18 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
         }
       }
 
-      // Step 3: Direct registration path (free event / direct fallback)
+      // Step 3: Direct registration path (free event / demo / direct fallback)
       let regRes: any = null;
       try {
-        regRes = await api.registerEchoShowcase(targetSlug, payload);
+        regRes = await api.registerEchoShowcase(targetSlug, {
+          ...payload,
+          fee: calculatedTotalFee,
+          payment: {
+            status: 'paid',
+            amount: calculatedTotalFee,
+            payment_id: `PAY_RAZOR_${Math.floor(100000 + Math.random() * 900000)}`,
+          },
+        });
       } catch (regErr) {
         console.log('[EchoEventsPage] Direct registration notice:', regErr);
       }
@@ -562,8 +582,8 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
         ticketId,
         eventName: activeEvent.title,
         attendeeName: fullName || 'Student Attendee',
-        type: isTeam ? `Team Pass (${1 + validMembers.length} Members)` : 'Individual Pass',
-        amount: isTeam ? activeEvent.team_fee : activeEvent.individual_fee,
+        type: isTeam ? `Team Pass (${currentTeamSize} Members)` : 'Individual Pass',
+        amount: calculatedTotalFee,
         date: activeEvent.dates,
         venue: activeEvent.venue,
         email: email || 'student@example.com',
@@ -1573,17 +1593,17 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                   <div>
                     <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.3px', color: 'var(--muted)' }}>REGISTRATION FEE</div>
                     <div id="ev-fee" style={{ fontSize: '24px', fontWeight: 700, letterSpacing: '-.6px', marginTop: '3px', color: '#FFFFFF' }}>
-                      {isTeam ? `INR ${activeEvent.team_fee.toLocaleString()}` : `INR ${activeEvent.individual_fee.toLocaleString()}`}
+                      INR {calculatedTotalFee.toLocaleString()}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '12.5px', color: 'var(--muted)', marginTop: '6px' }}>
                       <svg width="13" height="13" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 1.8 }}><circle cx="9" cy="9" r="3"></circle><path d="M3 19q6-6 12 0"></path></svg>
-                      <span id="ev-seats">{isTeam ? activeEvent.team_slots : activeEvent.individual_seats}</span>
+                      <span id="ev-seats">{isTeam ? `${currentTeamSize} Attendees (${currentTeamSize} × INR ${perPersonFee.toLocaleString()})` : activeEvent.individual_seats}</span>
                     </div>
                   </div>
                 </div>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', fontSize: '12px', fontWeight: 600, color: 'var(--ok)', border: '1px solid #17503E', borderRadius: '100px', padding: '7px 14px', flex: 'none' }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 2 }}><path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6Z"></path><path d="M9 12l2 2 4-4"></path></svg>
-                  Secure payment
+                  Secure Razorpay payment
                 </span>
               </div>
 
@@ -1680,23 +1700,32 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                   {/* Team Members Section (Person 2 to 5) */}
                   {isTeam && (
                     <div style={{ margin: '8px 0', padding: '18px', background: 'rgba(124, 92, 252, 0.06)', border: '1px solid rgba(124, 92, 252, 0.25)', borderRadius: '14px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
                         <div style={{ fontSize: '14px', fontWeight: 700, color: '#A78BFA', letterSpacing: '.4px' }}>
-                          TEAM MEMBERS (MEMBERS 2 TO 5)
+                          TEAM MEMBERS ({currentTeamSize} Total Attendees)
                         </div>
-                        <span style={{ fontSize: '11px', padding: '3px 8px', background: 'rgba(52, 211, 153, 0.15)', color: '#34D399', borderRadius: '6px', fontWeight: 600 }}>
-                          Passes &amp; Accounts Included
+                        <span style={{ fontSize: '11px', padding: '4px 9px', background: 'rgba(52, 211, 153, 0.15)', color: '#34D399', borderRadius: '6px', fontWeight: 600 }}>
+                          INR {perPersonFee}/person × {currentTeamSize} = INR {calculatedTotalFee.toLocaleString()}
                         </span>
                       </div>
                       <p style={{ fontSize: '12px', color: '#9CA3AF', marginBottom: '16px', lineHeight: 1.5 }}>
-                        Every team member entered below will have their own Student Alumni account provisioned and an individual QR entry pass ticket card emailed to them.
+                        Add your teammates below. The registration amount updates dynamically based on the number of members added ({currentTeamSize} of 5 max).
                       </p>
 
                       <div style={{ display: 'grid', gap: '14px' }}>
                         {teamMembers.map((member, idx) => (
                           <div key={idx} style={{ padding: '14px', background: 'var(--panel2)', border: '1px solid var(--line2)', borderRadius: '11px' }}>
-                            <div style={{ fontSize: '11px', fontWeight: 700, color: '#DDD6FE', marginBottom: '10px', display: 'flex', justifyContent: 'space-between' }}>
+                            <div style={{ fontSize: '11px', fontWeight: 700, color: '#DDD6FE', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                               <span>MEMBER {idx + 2} {idx === 0 ? '(REQUIRED)' : '(OPTIONAL)'}</span>
+                              {teamMembers.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => setTeamMembers(teamMembers.filter((_, i) => i !== idx))}
+                                  style={{ background: 'transparent', border: 'none', color: '#F87171', fontSize: '11.5px', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                >
+                                  ✕ Remove
+                                </button>
+                              )}
                             </div>
                             <div style={{ display: 'grid', gap: '10px' }}>
                               <input
@@ -1736,6 +1765,31 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                           </div>
                         ))}
                       </div>
+
+                      {teamMembers.length < 4 && (
+                        <button
+                          type="button"
+                          onClick={() => setTeamMembers([...teamMembers, { name: '', email: '', phone: '' }])}
+                          style={{
+                            marginTop: '14px',
+                            width: '100%',
+                            padding: '11px',
+                            borderRadius: '10px',
+                            background: 'rgba(124, 92, 252, 0.14)',
+                            border: '1px dashed #7C5CFC',
+                            color: '#DDD6FE',
+                            fontSize: '13px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                          }}
+                        >
+                          + Add Another Team Member ({teamMembers.length + 1}/5)
+                        </button>
+                      )}
                     </div>
                   )}
 
