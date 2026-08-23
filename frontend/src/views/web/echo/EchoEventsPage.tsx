@@ -26,26 +26,66 @@ const SAMPLE_EVENTS = [
   {
     id: 'snist',
     slug: 'snist',
-    title: 'Hack Wave 3.0 – SNIST',
+    title: 'HackWave 3.0 (2026)',
     college: 'SNIST',
-    college_full: 'Sreenidhi Institute of Science & Technology',
+    college_name: 'Sreenidhi Institute of Science and Technology',
+    college_full: 'Sreenidhi Institute of Science & Technology, Hyderabad',
     status: 'UPCOMING',
-    organizer: 'CDC SNIST and in collaboration with StudentAlumni.ai',
-    description: "Empowering Tomorrow's Leaders | Organized by cdc snist and in collaboration with StudentAlumni.ai",
-    dates: 'September 04, 2026 – September 05, 2026',
+    organizer: 'Career Development Center · SNIST in collaboration with StudentAlumni.ai',
+    description: "Build something real. In one overnight sprint. National-Level 24-Hour Tech Fest with 7 Verticals across AI, Security, Hiring and Firesides.",
+    dates: 'September 04 – 05, 2026',
     date_short: 'September 04, 2026',
     date_pill: 'Sep 4 – 5, 2026',
-    time: '09:00 AM',
-    venue: 'Sreenidhi Institute of Science & Technology',
+    time: 'Sep 4th, 08:00 AM — Sep 5th, 01:00 PM',
+    venue: 'Sreenidhi Institute of Science & Technology (SNIST), Hyderabad',
     location_short: 'SNIST Campus, Hyderabad',
-    prize_pool: '₹50,000 prize pool',
+    prize_pool: '₹2,00,000 Mega Grand Pool (₹50,000 Track Pool)',
     reg_closes: '2026-09-01',
     individual_fee: 599,
     team_fee: 2495,
     individual_seats: '985 seats available',
     team_slots: '197 team slots available',
-    partners: ['CodeSpectra', 'Featherless', 'Stepupmark'],
-    poster_banner: '',
+    partners: ['CodeSpectra', 'Featherless', 'Stepupmark', 'Bandiwala', 'WeHive'],
+    poster_banner: '/images/hackwave/hackwave_main_poster.png',
+    gallery_images: [
+      '/images/hackwave/hackwave_main_poster.png',
+      '/images/hackwave/hackwave_cybersecurity_conclave.jpg',
+      '/images/hackwave/hackwave_speakers.jpg',
+      '/images/hackwave/hackwave_techfest_verticals.jpg',
+      '/images/hackwave/hackwave_perks_pool.jpg'
+    ],
+    speakers: [
+      { name: 'Jeremy Livingston', position: 'CISO & Deputy CIO', company: 'Stevens Institute of Technology', category: 'International Panel', is_panel_member: true },
+      { name: 'Sharon Kelley', position: 'Board Member', company: 'ISC2 New Jersey Chapter (MS, MBA, CISSP, CCSP)', category: 'International Panel', is_panel_member: true },
+      { name: 'Suman Kalia', position: 'Associate Professor & Chair, Computer Science', company: "Saint Peter's University", category: 'International Panel', is_panel_member: true },
+      { name: 'Ken Fishkin', position: 'President', company: 'ISC2 New Jersey Chapter', category: 'International Panel', is_panel_member: true },
+      { name: 'Jonna Dheeraj', position: 'Account Delivery & Program Management', company: 'Embedded SW · AI · VLSI · 5G · IoT', category: 'Voices That Build', is_panel_member: false },
+      { name: 'Harish Kotra', position: 'DevX Lead', company: 'Quirq', category: 'Voices That Build', is_panel_member: false },
+      { name: 'M Avinash Rao', position: 'Client Account Manager', company: 'Deloitte', category: 'Voices That Build', is_panel_member: false },
+      { name: 'Gopichand Anumolu', position: 'Founder', company: 'ATLAST', category: 'Voices That Build', is_panel_member: false },
+    ],
+    verticals: [
+      { title: 'Build by Sunset', desc: 'Ship something real between morning and dusk. Teams of 2–5, 5 AI tracks, ₹50,000 prize pool.', icon: 'rocket' },
+      { title: 'Codethon', desc: 'Pre-event coding ladder: L1 to L2 to L3. Individual, scored, closes before Sep 4.', icon: 'code' },
+      { title: 'Voices That Build', desc: 'A panel of people who have actually shipped — not people talking about shipping.', icon: 'mic' },
+      { title: 'Meet the People Who Hire', desc: 'Recruiters in the room, not behind a portal. On-the-spot internship and placement offers.', icon: 'briefcase' },
+      { title: 'Cyber Security Conclave', desc: 'Virtual, featuring the ISC2 New Jersey Chapter — global insights on trends, certifications, career pathways (Friday Sep 4, 6:00 PM IST).', icon: 'shield' },
+      { title: 'International Panel', desc: 'Speakers joining live on the big screen from outside India.', icon: 'globe' },
+      { title: 'Between the Builds', desc: 'Sleep, eat, work, find people. Open across both days.', icon: 'bed' },
+      { title: 'Play After Dark', desc: 'Live music when the laptops finally close.', icon: 'music' },
+      { title: 'Build by Fireside', desc: "Where the idea you haven't shipped yet finally gets heard.", icon: 'flame' }
+    ],
+    perks: [
+      { name: 'Featherless AI', desc: 'A full account, free', value: '$29 value', icon: '✦' },
+      { name: 'SetupMark AI', desc: '50 credits, 2 months free', value: '$50 value', icon: '♾' },
+      { name: 'CodeSpectra AI', desc: '3 months completely free', value: 'Assessments', icon: '</>' },
+      { name: 'Bandiwala', desc: '15% off food', value: 'Coupon', icon: '🥪' },
+      { name: 'WeHive Consulting', desc: '15% off services', value: 'Coupon', icon: '💼' },
+      { name: 'Four meal coupons', desc: 'Lunch, dinner, midnight, breakfast', value: 'Included', icon: '🍱' },
+      { name: 'Certificates for all', desc: 'Participation and winner certificates', value: 'Verifiable', icon: '📜' },
+      { name: 'On-the-spot offers', desc: 'Internship and placement offers, in the room', value: 'Live', icon: '💼' },
+      { name: 'Surprise goodies', desc: 'Extra prizes and drops announced on the day', value: 'Surprise', icon: '🎁' }
+    ]
   },
   {
     id: 'vnr',
@@ -1000,46 +1040,191 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
             )}
           </div>
 
-          {/* Event Highlights 4-Step Connected Timeline */}
-          <div style={{ marginBottom: '30px' }}>
-            <div style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-.4px', marginBottom: '24px', color: '#FFFFFF' }}>Event Highlights</div>
-            <div className="ev-grid4" style={{ display: 'grid', gap: '0', position: 'relative' }}>
-              
-              <div style={{ position: 'relative', textAlign: 'center', padding: '0 14px' }}>
-                <span className="ev-hl" style={{ position: 'relative', zIndex: 2, width: '50px', height: '50px', borderRadius: '50%', border: '1px solid #3A2E72', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'var(--violet-lt)', strokeWidth: 1.8 }}><path d="M12 4l2.3 5.1L20 10l-4 3.8 1 5.7-5-2.9-5 2.9 1-5.7L4 10l5.7-.9Z"></path></svg>
-                </span>
-                <span className="ev-hlline" style={{ position: 'absolute', left: '50%', top: '25px', right: '-50%', height: '1px', background: '#2E2A55', zIndex: 1 }} />
-                <div style={{ fontSize: '15px', fontWeight: 700, color: '#FFFFFF' }}>Inspiring Keynotes</div>
-                <div style={{ fontSize: '13px', lineHeight: 1.5, color: 'var(--muted)', marginTop: '6px' }}>Industry leaders shared their journey and insights</div>
+          {/* ────────────────────────────────────────────────────────── */}
+          {/* A NATIONAL-LEVEL TECH FEST — 7 VERTICALS (BANNER 4)       */}
+          {/* ────────────────────────────────────────────────────────── */}
+          <div style={{ marginBottom: '32px', border: '1px solid #3A2E72', borderRadius: '22px', background: 'linear-gradient(135deg, #1B143A 0%, #110E24 100%)', padding: '32px 30px' }}>
+            <div style={{ textAlign: 'center', marginBottom: '26px' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 700, letterSpacing: '1.4px', color: '#FFFFFF', background: '#EF4444', borderRadius: '100px', padding: '6px 14px', marginBottom: '12px' }}>
+                THIS IS NOT JUST A HACKATHON
+              </span>
+              <div style={{ fontSize: '32px', fontWeight: 800, letterSpacing: '-1.1px', color: '#FFFFFF' }}>
+                A national-level <span style={{ color: '#60A5FA' }}>TECH FEST</span>
               </div>
-
-              <div style={{ position: 'relative', textAlign: 'center', padding: '0 14px' }}>
-                <span className="ev-hl" style={{ position: 'relative', zIndex: 2, width: '50px', height: '50px', borderRadius: '50%', border: '1px solid #3A2E72', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'var(--violet-lt)', strokeWidth: 1.8 }}><circle cx="9" cy="9" r="3"></circle><path d="M3 19q6-6 12 0M16.5 7a3 3 0 010 6"></path></svg>
-                </span>
-                <span className="ev-hlline" style={{ position: 'absolute', left: '50%', top: '25px', right: '-50%', height: '1px', background: '#2E2A55', zIndex: 1 }} />
-                <div style={{ fontSize: '15px', fontWeight: 700, color: '#FFFFFF' }}>Panel Discussions</div>
-                <div style={{ fontSize: '13px', lineHeight: 1.5, color: 'var(--muted)', marginTop: '6px' }}>Engaging conversations on career and tech trends</div>
+              <div style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '1.5px', color: '#A78BFA', marginTop: '6px' }}>
+                SEVEN VERTICALS · ONE TICKET · ONE OVERNIGHT SPRINT
               </div>
+            </div>
 
-              <div style={{ position: 'relative', textAlign: 'center', padding: '0 14px' }}>
-                <span className="ev-hl" style={{ position: 'relative', zIndex: 2, width: '50px', height: '50px', borderRadius: '50%', border: '1px solid #3A2E72', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'var(--violet-lt)', strokeWidth: 1.8 }}><path d="M13 2L5 13h6l-1 9 8-11h-6Z"></path></svg>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '14px' }}>
+              {(activeEvent.verticals || [
+                { title: 'Build by Sunset', desc: 'Ship something real between morning and dusk. Teams of 2–5, 5 AI tracks, ₹50,000 prize pool.', icon: 'rocket' },
+                { title: 'Codethon', desc: 'Pre-event coding ladder: L1 to L2 to L3. Individual, scored, closes before Sep 4.', icon: 'code' },
+                { title: 'Voices That Build', desc: 'A panel of people who have actually shipped — not people talking about shipping.', icon: 'mic' },
+                { title: 'Meet the People Who Hire', desc: 'Recruiters in the room, not behind a portal. On-the-spot internship and placement offers.', icon: 'briefcase' },
+                { title: 'Cyber Security Conclave', desc: 'Virtual, featuring the ISC2 New Jersey Chapter — global insights on trends, certifications, career pathways.', icon: 'shield' },
+                { title: 'International Panel', desc: 'Speakers joining live on the big screen from outside India.', icon: 'globe' },
+                { title: 'Between the Builds', desc: 'Sleep, eat, work, find people. Open across both days.', icon: 'bed' },
+                { title: 'Play After Dark', desc: 'Live music when the laptops finally close.', icon: 'music' },
+                { title: 'Build by Fireside', desc: "Where the idea you haven't shipped yet finally gets heard.", icon: 'flame' }
+              ]).map((vert: any, vidx: number) => (
+                <div key={vidx} className="ev-mini" style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', padding: '16px 18px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px' }}>
+                  <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(124,92,252,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', marginTop: '2px' }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C4B5FD" strokeWidth="2"><path d="M12 2l1.9 5.1L19 9l-5.1 1.9L12 16l-1.9-5.1L5 9l5.1-1.9Z" /></svg>
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '15px', fontWeight: 700, color: '#FFFFFF', marginBottom: '4px' }}>{vert.title}</div>
+                    <div style={{ fontSize: '12.5px', color: '#9CA3AF', lineHeight: 1.5 }}>{vert.desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ────────────────────────────────────────────────────────── */}
+          {/* CYBER SECURITY WITH AI CONCLAVE (BANNER 2)                 */}
+          {/* ────────────────────────────────────────────────────────── */}
+          <div style={{ marginBottom: '32px', border: '1px solid #4338CA', borderRadius: '22px', background: 'linear-gradient(135deg, #1E1B4B 0%, #0F172A 100%)', padding: '30px 32px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap', marginBottom: '18px' }}>
+              <div>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 700, letterSpacing: '1.4px', color: '#818CF8', background: 'rgba(99,102,241,0.18)', borderRadius: '100px', padding: '6px 14px', marginBottom: '10px' }}>
+                  INTERNATIONAL VIRTUAL CONCLAVE
                 </span>
-                <span className="ev-hlline" style={{ position: 'absolute', left: '50%', top: '25px', right: '-50%', height: '1px', background: '#2E2A55', zIndex: 1 }} />
-                <div style={{ fontSize: '15px', fontWeight: 700, color: '#FFFFFF' }}>Hands-on Workshops</div>
-                <div style={{ fontSize: '13px', lineHeight: 1.5, color: 'var(--muted)', marginTop: '6px' }}>Practical learning and skill-building sessions</div>
+                <div style={{ fontSize: '30px', fontWeight: 800, letterSpacing: '-1px', color: '#FFFFFF' }}>
+                  Cyber Security with <span style={{ color: '#38BDF8' }}>AI</span>
+                </div>
+                <div style={{ fontSize: '13.5px', color: '#94A3B8', marginTop: '4px' }}>
+                  Global insights for students building a career in security · Presented by <strong style={{ color: '#E0E7FF' }}>ISC2 New Jersey Chapter (USA) × StudentAlumni.ai</strong>
+                </div>
               </div>
-
-              <div style={{ position: 'relative', textAlign: 'center', padding: '0 14px' }}>
-                <span className="ev-hl" style={{ position: 'relative', zIndex: 2, width: '50px', height: '50px', borderRadius: '50%', border: '1px solid #3A2E72', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'var(--violet-lt)', strokeWidth: 1.8 }}><rect x="9" y="3.5" width="6" height="5" rx="1.5"></rect><rect x="3" y="15.5" width="6" height="5" rx="1.5"></rect><rect x="15" y="15.5" width="6" height="5" rx="1.5"></rect><path d="M12 8.5v3.5M6 15.5V12h12v3.5"></path></svg>
-                </span>
-                <div style={{ fontSize: '15px', fontWeight: 700, color: '#FFFFFF' }}>Networking Sessions</div>
-                <div style={{ fontSize: '13px', lineHeight: 1.5, color: 'var(--muted)', marginTop: '6px' }}>Students connected with experts and alumni</div>
+              <div style={{ padding: '12px 18px', background: 'rgba(99,102,241,0.15)', border: '1px solid #4F46E5', borderRadius: '12px', textAlign: 'right' }}>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: '#C7D2FE' }}>FRIDAY, SEPTEMBER 4, 2026</div>
+                <div style={{ fontSize: '16px', fontWeight: 800, color: '#38BDF8', marginTop: '2px' }}>6:00 PM IST · 8:30 AM ET</div>
               </div>
+            </div>
 
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '12px', marginTop: '18px' }}>
+              {[
+                { title: 'Global security trends', desc: 'Where the threat landscape is moving.' },
+                { title: 'AI on both sides', desc: 'How AI is reshaping defence and attack.' },
+                { title: 'Certifications that matter', desc: 'CISSP, CC and the paths worth it.' },
+                { title: 'Career pathways', desc: 'How to enter the field from campus.' }
+              ].map((sess, sidx) => (
+                <div key={sidx} style={{ padding: '16px 18px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px' }}>
+                  <div style={{ fontSize: '14.5px', fontWeight: 700, color: '#FFFFFF', marginBottom: '4px' }}>{sess.title}</div>
+                  <div style={{ fontSize: '12.5px', color: '#94A3B8' }}>{sess.desc}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ────────────────────────────────────────────────────────── */}
+          {/* MEET THE SPEAKERS (BANNER 3)                              */}
+          {/* ────────────────────────────────────────────────────────── */}
+          <div style={{ marginBottom: '32px' }}>
+            <div style={{ textAlign: 'center', marginBottom: '22px' }}>
+              <div style={{ fontSize: '30px', fontWeight: 800, letterSpacing: '-1px', color: '#FFFFFF' }}>Meet the Speakers</div>
+              <div style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '1.4px', color: 'var(--violet-lt)', marginTop: '4px' }}>
+                HACKWAVE 3.0 · SEPTEMBER 4 – 5, 2026 · SNIST CAMPUS
+              </div>
+            </div>
+
+            {/* International Panel */}
+            <div style={{ marginBottom: '22px' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 700, letterSpacing: '1.3px', color: '#C4B5FD', background: 'rgba(124,92,252,0.25)', borderRadius: '100px', padding: '6px 14px', marginBottom: '14px' }}>
+                INTERNATIONAL PANEL · CYBER SECURITY CONCLAVE
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
+                {[
+                  { name: 'Jeremy Livingston', role: 'CISO & Deputy CIO', org: 'Stevens Institute of Technology' },
+                  { name: 'Sharon Kelley', role: 'Board Member, ISC2 New Jersey Chapter', org: 'MS, MBA, CISSP, CCSP' },
+                  { name: 'Suman Kalia', role: 'Associate Professor & Chair, Computer Science', org: "Saint Peter's University" },
+                  { name: 'Ken Fishkin', role: 'President, ISC2 New Jersey Chapter', org: 'ISC2 New Jersey Chapter' }
+                ].map((spk, idx) => (
+                  <div key={idx} className="ev-mini" style={{ padding: '20px 18px', background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: '16px', textAlign: 'center' }}>
+                    <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #7C5CFC, #38BDF8)', margin: '0 auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF', fontWeight: 800, fontSize: '22px' }}>
+                      {spk.name.split(' ').map((n) => n[0]).join('')}
+                    </div>
+                    <div style={{ fontSize: '16px', fontWeight: 700, color: '#FFFFFF' }}>{spk.name}</div>
+                    <div style={{ fontSize: '13px', color: 'var(--violet-lt)', fontWeight: 600, marginTop: '3px' }}>{spk.role}</div>
+                    <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>{spk.org}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Voices That Build */}
+            <div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 700, letterSpacing: '1.3px', color: '#38BDF8', background: 'rgba(56,189,248,0.18)', borderRadius: '100px', padding: '6px 14px', marginBottom: '14px' }}>
+                VOICES THAT BUILD
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
+                {[
+                  { name: 'Jonna Dheeraj', role: 'Account Delivery & Program Management', org: 'Embedded SW · AI · VLSI · 5G · IoT' },
+                  { name: 'Harish Kotra', role: 'DevX Lead', org: 'Quirq' },
+                  { name: 'M Avinash Rao', role: 'Client Account Manager', org: 'Deloitte' },
+                  { name: 'Gopichand Anumolu', role: 'Founder', org: 'ATLAST' }
+                ].map((spk, idx) => (
+                  <div key={idx} className="ev-mini" style={{ padding: '20px 18px', background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: '16px', textAlign: 'center' }}>
+                    <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #38BDF8, #34D399)', margin: '0 auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF', fontWeight: 800, fontSize: '22px' }}>
+                      {spk.name.split(' ').map((n) => n[0]).join('')}
+                    </div>
+                    <div style={{ fontSize: '16px', fontWeight: 700, color: '#FFFFFF' }}>{spk.name}</div>
+                    <div style={{ fontSize: '13px', color: '#38BDF8', fontWeight: 600, marginTop: '3px' }}>{spk.role}</div>
+                    <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>{spk.org}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* ────────────────────────────────────────────────────────── */}
+          {/* ONE TICKET. ₹599. MEGA GRAND POOL & ALL PERKS (BANNER 5)   */}
+          {/* ────────────────────────────────────────────────────────── */}
+          <div style={{ marginBottom: '32px', border: '1px solid #F59E0B', borderRadius: '22px', background: 'linear-gradient(135deg, #2D1A04 0%, #1A130B 100%)', padding: '32px 30px' }}>
+            <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+              <div style={{ fontSize: '32px', fontWeight: 800, letterSpacing: '-1px', color: '#FFFFFF' }}>One ticket. ₹599</div>
+              <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '1.4px', color: '#FBBF24', marginTop: '4px' }}>
+                ALL 7 VERTICALS · FOOD · CODETHON · EVERYTHING BELOW
+              </div>
+            </div>
+
+            {/* Prize Pools */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 220px', gap: '16px', padding: '20px 24px', background: 'rgba(245,158,11,0.12)', border: '1px solid #78350F', borderRadius: '16px', marginBottom: '22px' }}>
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.3px', color: '#FCD34D' }}>MEGA GRAND POOL</div>
+                <div style={{ fontSize: '34px', fontWeight: 900, color: '#FFFFFF', letterSpacing: '-1px' }}>₹2,00,000</div>
+                <div style={{ fontSize: '12.5px', color: '#FDE68A', marginTop: '2px' }}>Open to every hackathon participant, not only winners</div>
+              </div>
+              <div style={{ textAlign: 'right', borderLeft: '1px solid rgba(245,158,11,0.3)', paddingLeft: '18px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.3px', color: '#FCD34D' }}>TRACK PRIZE POOL</div>
+                <div style={{ fontSize: '26px', fontWeight: 800, color: '#34D399', marginTop: '2px' }}>₹50,000</div>
+              </div>
+            </div>
+
+            {/* Perks Cards List */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '10px' }}>
+              {(activeEvent.perks || [
+                { name: 'Featherless AI', desc: 'A full account, free', value: '$29 value' },
+                { name: 'SetupMark AI', desc: '50 credits, 2 months free', value: '$50 value' },
+                { name: 'CodeSpectra AI', desc: '3 months completely free', value: 'Assessments' },
+                { name: 'Bandiwala', desc: '15% off food', value: 'Coupon' },
+                { name: 'WeHive Consulting', desc: '15% off services', value: 'Coupon' },
+                { name: 'Four meal coupons', desc: 'Lunch, dinner, midnight, breakfast', value: 'Included' },
+                { name: 'Certificates for all', desc: 'Participation and winner certificates', value: 'Verifiable' },
+                { name: 'On-the-spot offers', desc: 'Internship and placement offers, in the room', value: 'Live' },
+                { name: 'Surprise goodies', desc: 'Extra prizes and drops announced on the day', value: 'Surprise' }
+              ]).map((perk: any, pidx: number) => (
+                <div key={pidx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '11px' }}>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#FFFFFF' }}>{perk.name}</div>
+                    <div style={{ fontSize: '12px', color: '#9CA3AF' }}>{perk.desc}</div>
+                  </div>
+                  <span style={{ fontSize: '11px', fontWeight: 700, padding: '4px 10px', background: 'rgba(245,158,11,0.2)', color: '#FBBF24', borderRadius: '100px' }}>
+                    {perk.value}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
 

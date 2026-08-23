@@ -325,6 +325,7 @@ export default function LoginScreen() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@university.edu"
+              autoComplete="username email"
               required
               style={{
                 width: '100%',
@@ -356,6 +357,7 @@ export default function LoginScreen() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••••"
+                autoComplete="current-password"
                 required
                 style={{
                   width: '100%',
