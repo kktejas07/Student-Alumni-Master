@@ -117,12 +117,28 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
   const router = useRouter();
   const searchParams = useLocalSearchParams();
   
-  const [view, setView] = useState<'list' | 'detail' | 'reg'>(
-    (searchParams?.view as any) || initialView
-  );
-  const [selectedSlug, setSelectedSlug] = useState<string>(
-    (searchParams?.slug as string) || initialSlug
-  );
+  // Determine initial view & slug with direct URL fallback support on web
+  const getInitialRouteState = () => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const path = window.location.pathname;
+      if (path.includes('/register')) {
+        const parts = path.split('/').filter(Boolean);
+        return { view: 'reg' as const, slug: parts[1] || initialSlug || 'snist' };
+      }
+      if (path.startsWith('/echo/') && path !== '/echo') {
+        const parts = path.split('/').filter(Boolean);
+        return { view: 'detail' as const, slug: parts[1] || initialSlug || 'snist' };
+      }
+    }
+    return {
+      view: (searchParams?.view as any) || initialView,
+      slug: (searchParams?.slug as string) || initialSlug || 'snist',
+    };
+  };
+
+  const initialRoute = getInitialRouteState();
+  const [view, setView] = useState<'list' | 'detail' | 'reg'>(initialRoute.view);
+  const [selectedSlug, setSelectedSlug] = useState<string>(initialRoute.slug);
   
   const [events, setEvents] = useState<any[]>(SAMPLE_EVENTS);
   const [loading, setLoading] = useState(false);
@@ -281,12 +297,45 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
   const activeEvent = events.find((e) => e.slug === selectedSlug) || events[0] || SAMPLE_EVENTS[0];
 
   const go = (targetView: 'list' | 'detail' | 'reg', targetSlug?: string) => {
+    const nextSlug = targetSlug || selectedSlug || 'snist';
     if (targetSlug) setSelectedSlug(targetSlug);
     setView(targetView);
-    if (Platform.OS === 'web') {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      let targetUrl = '/echo';
+      if (targetView === 'detail') {
+        targetUrl = `/echo/${nextSlug}`;
+      } else if (targetView === 'reg') {
+        targetUrl = `/echo/${nextSlug}/register`;
+      }
+      if (window.location.pathname !== targetUrl) {
+        window.history.pushState(null, '', targetUrl);
+      }
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
+
+  // Synchronize view and selected event on browser back / forward buttons
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+    const handlePopState = () => {
+      const path = window.location.pathname;
+      if (path.includes('/register')) {
+        const parts = path.split('/').filter(Boolean);
+        const slugFromUrl = parts[1] || 'snist';
+        setSelectedSlug(slugFromUrl);
+        setView('reg');
+      } else if (path.startsWith('/echo/') && path !== '/echo') {
+        const parts = path.split('/').filter(Boolean);
+        const slugFromUrl = parts[1] || 'snist';
+        setSelectedSlug(slugFromUrl);
+        setView('detail');
+      } else if (path === '/echo') {
+        setView('list');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   const handleDownloadHandbook = () => {
     if (Platform.OS === 'web') {
