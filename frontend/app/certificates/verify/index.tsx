@@ -257,6 +257,7 @@ export default function CertificateVerifyPortal() {
     }
   };
 
+
   useEffect(() => {
     if (queryId) {
       setSearchId(queryId);
