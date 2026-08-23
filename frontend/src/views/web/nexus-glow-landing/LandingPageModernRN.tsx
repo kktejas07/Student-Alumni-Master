@@ -30,6 +30,7 @@ import {
 } from 'react-native';
 import Svg, { Path, Rect, Circle, G, Text as SvgText, Defs, LinearGradient as SvgGradient, Stop, Line } from 'react-native-svg';
 import { useRouter } from 'expo-router';
+import { AgentK3D } from './AgentK3D';
 
 export function LandingPageModernRN() {
   const router = useRouter();
@@ -400,27 +401,9 @@ export function LandingPageModernRN() {
                   <Text style={s.heroMicroBadges}>Free for students · No credit card · Your profile stays private until you reach out</Text>
                 </View>
 
-                {/* 3D Swaying Hero Shield Vector */}
+                {/* 3D Interactive Hero Logo */}
                 <View style={s.hero3DWrap}>
-                  <View style={s.hero3DGlow} />
-                  <Svg width={320} height={370} viewBox="0 0 300 350">
-                    <Defs>
-                      <SvgGradient id="saShOut" x1="0" y1="0" x2="1" y2="1">
-                        <Stop offset="0" stopColor="#D8B6FF" />
-                        <Stop offset="0.45" stopColor="#9A5CE8" />
-                        <Stop offset="1" stopColor="#5B1FB0" />
-                      </SvgGradient>
-                      <SvgGradient id="saShIn" x1="0" y1="0" x2="0.4" y2="1">
-                        <Stop offset="0" stopColor="#B683F5" />
-                        <Stop offset="1" stopColor="#7331C9" />
-                      </SvgGradient>
-                    </Defs>
-                    <Path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#saShOut)" />
-                    <Path d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="url(#saShIn)" />
-                    <SvgText x={150} y={215} textAnchor="middle" fontFamily="sans-serif" fontSize={128} fontWeight="800" fill="#FFFFFF">
-                      SA
-                    </SvgText>
-                  </Svg>
+                  <AgentK3D />
                 </View>
               </View>
 
@@ -823,8 +806,7 @@ const s = StyleSheet.create({
   heroGhostBtn: { borderWidth: 1, borderColor: '#2A2E45', borderRadius: 10, paddingHorizontal: 24, paddingVertical: 14 },
   heroGhostBtnText: { color: '#F4F5FB', fontSize: 15, fontWeight: '600' },
   heroMicroBadges: { fontSize: 13, color: '#7B8199', marginTop: 8 },
-  hero3DWrap: { flex: 0.95, alignItems: 'center', justifyContent: 'center', position: 'relative' },
-  hero3DGlow: { position: 'absolute' as any, width: 340, height: 340, borderRadius: 170, backgroundColor: 'rgba(139,90,255,0.3)', filter: 'blur(30px)' as any },
+  hero3DWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', position: 'relative', width: '100%', minHeight: 440 },
   marqueeRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   marqueeTag: { fontSize: 11, fontWeight: '700', letterSpacing: 1.5, color: '#5B4FE9', backgroundColor: 'rgba(91,79,233,0.15)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
   marqueeTile: { height: 48, paddingHorizontal: 18, borderRadius: 10, borderWidth: 1, borderColor: '#1B1E33', backgroundColor: '#0C0E1B', alignItems: 'center', justifyContent: 'center' },

@@ -161,6 +161,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
   const [selectedSlug, setSelectedSlug] = useState<string>(initialRoute.slug);
   
   const [events, setEvents] = useState<any[]>(SAMPLE_EVENTS);
+  const activeEvent = events.find((e) => e.slug === selectedSlug) || events[0] || SAMPLE_EVENTS[0];
   const [loading, setLoading] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
 
@@ -320,8 +321,6 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
       mounted = false;
     };
   }, [selectedSlug]);
-
-  const activeEvent = events.find((e) => e.slug === selectedSlug) || events[0] || SAMPLE_EVENTS[0];
 
   const go = (targetView: 'list' | 'detail' | 'reg', targetSlug?: string) => {
     const nextSlug = targetSlug || selectedSlug || 'snist';
