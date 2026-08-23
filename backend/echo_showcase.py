@@ -3866,6 +3866,97 @@ def _parse_ticket(ticket: str) -> dict:
     return {"reg_id": t}
 
 
+
+@router.put("/admin/registrations/{reg_id}/team")
+async def admin_update_team_members(reg_id: str, request: Request, payload: dict, _=Depends(_require_admin)):
+    """Super-admin: update the team members for a registration and provision their SA accounts."""
+    db = _get_db(request)
+    team_members = payload.get("team_members", [])
+    if not isinstance(team_members, list):
+        raise HTTPException(400, "team_members must be a list")
+    
+    reg = await db.echo_registrations.find_one({"id": reg_id})
+    if not reg:
+        raise HTTPException(404, "Registration not found")
+        
+    await db.echo_registrations.update_one(
+        {"id": reg_id},
+        {"$set": {"team_members": team_members}}
+    )
+    
+    # After saving, let's provision SA accounts for any members that have an email.
+    showcase = await db.echo_showcases.find_one({"slug": reg.get("slug")})
+    
+    for idx, member in enumerate(team_members):
+        member_email = (member.get("email") or "").strip().lower()
+        if not member_email:
+            continue
+            
+        member_reg = dict(reg)
+        member_reg["email"] = member_email
+        member_reg["full_name"] = member.get("name", "")
+        member_reg["phone"] = member.get("phone", "")
+        member_reg["id"] = f"{reg_id}_m{idx + 1}"  # Unique ID for team member
+        
+        member_sa_user, member_created, member_password = await _provision_sa_account(db, member_reg, showcase)
+        if member_sa_user:
+            await _mirror_to_event_registration(db, member_reg, showcase, member_sa_user)
+        if member_created and member_password:
+            await _send_sa_welcome_email(member_reg, showcase, member_password)
+            
+        # Optional: Send them their own team member confirmation email too?
+        # await _send_team_member_confirmation(db, member_reg, showcase, reg, reg.get("team_name", ""))
+
+    return {"ok": True, "message": "Team members updated successfully"}
+
+
+@router.post("/admin/registrations/{reg_id}/resend-tickets")
+async def admin_resend_tickets(reg_id: str, request: Request, _=Depends(_require_admin)):
+    """Super-admin: resend tickets and coupons for a paid registration."""
+    db = _get_db(request)
+    reg = await db.echo_registrations.find_one({"id": reg_id})
+    if not reg:
+        raise HTTPException(404, "Registration not found")
+    
+    if reg.get("payment", {}).get("status") != "paid":
+        raise HTTPException(400, "Cannot resend tickets for an unpaid registration")
+        
+    showcase = await db.echo_showcases.find_one({"slug": reg.get("slug")})
+    
+    # Re-fetch coupons
+    coupons = await db.echo_coupons.find({"reg_id": reg_id}).to_list(100)
+    
+    # 1. Resend email
+    await _store_invoice_and_email(db, reg, showcase, coupons)
+    
+    # 2. Resend WhatsApp
+    if reg.get("phone"):
+        # We need the PDF attachments
+        inv = await db.invoices.find_one({"reg_id": reg_id})
+        attachments = []
+        if inv:
+            inv_ser = _ser(inv)
+            inv_no = inv_ser.get("invoice_no") or "invoice"
+            invoice_html = _build_invoice_html(inv_ser)
+            invoice_pdf = await generate_pdf_from_html(invoice_html)
+            if invoice_pdf:
+                attachments.append({"filename": f"Invoice-{inv_no}.pdf", "content": invoice_pdf})
+            
+            receipt_html = _build_receipt_html(inv_ser)
+            receipt_pdf = await generate_pdf_from_html(receipt_html)
+            if receipt_pdf:
+                raw_pid = str(inv_ser.get("payment_id") or "").replace("pay_", "").replace("PAY_", "")
+                rno = f"{raw_pid[:4]}-{raw_pid[-4:]}" if len(raw_pid) >= 8 else raw_pid
+                attachments.append({"filename": f"Receipt-{rno}.pdf", "content": receipt_pdf})
+                
+            ticket_pdf = await generate_ticket_pdf(inv_ser, showcase or {})
+            if ticket_pdf:
+                attachments.append({"filename": f"EntryPass-{reg_id}.pdf", "content": ticket_pdf})
+                
+        await _send_wa_paid_package(db, reg, showcase or {}, attachments, coupons)
+
+    return {"ok": True, "message": "Tickets and coupons resent successfully"}
+
 @router.post("/admin/registrations/verify")
 async def verify_ticket(payload: TicketVerifySchema, request: Request, _=Depends(_require_admin)):
     """Verify an attendee ticket by QR payload (or registration id).
