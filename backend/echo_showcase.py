@@ -3091,6 +3091,7 @@ class PaymentOrderSchema(BaseModel):
     college: Optional[str] = ""
     terms_accepted: Optional[bool] = False
     registration_type: Optional[str] = "individual"
+    team_name: Optional[str] = ""
     team_size: Optional[int] = 1
     team_members: Optional[List[TeamMemberSchema]] = []
 
@@ -3260,6 +3261,19 @@ async def create_payment_order(slug: str, payload: PaymentOrderSchema, request: 
     # Persist a pending registration so verify-payment / webhook has a record
     if not existing:
         dob_val = payload.date_of_birth or payload.dob or ""
+        
+        # Prepare team members data
+        team_members_data = []
+        if registration_type == "team" and payload.team_members:
+            team_members_data = [
+                {
+                    "name": m.name or "",
+                    "email": m.email or "",
+                    "phone": m.phone or "",
+                }
+                for m in payload.team_members
+            ]
+            
         reg = {
             "id": reg_id,
             "slug": canonical_slug,
@@ -3275,12 +3289,12 @@ async def create_payment_order(slug: str, payload: PaymentOrderSchema, request: 
             "branch": payload.branch,
             "year": payload.year,
             "college": payload.college or showcase.get("college"),
-            "fee": fee,
+            "fee": total_fee,
             "currency": currency,
             "payment": {
                 "payment_id": None,
                 "gateway": "razorpay",
-                "amount": fee,
+                "amount": total_fee,
                 "currency": currency,
                 "status": "pending",
                 "paid_at": None,
@@ -3291,6 +3305,10 @@ async def create_payment_order(slug: str, payload: PaymentOrderSchema, request: 
             "registered_at": now_iso,
             "status": "pending",
             "created_at": now_iso,
+            "registration_type": registration_type,
+            "team_name": (payload.team_name or "").strip(),
+            "team_size": team_size,
+            "team_members": team_members_data,
         }
         await db.echo_registrations.insert_one(dict(reg))
     else:
