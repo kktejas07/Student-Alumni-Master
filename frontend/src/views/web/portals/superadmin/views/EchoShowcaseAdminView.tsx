@@ -3094,9 +3094,14 @@ function RegistrationsPanel() {
                   <View style={{ flex: 1.5, minWidth: 180 }}>
                     <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 12.5, color: '#fff' }}>{r.full_name || '—'}</Text>
                     <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10.5, color: SAC.dim }}>{r.email || r.phone || ''}</Text>
-                    {r.registration_type === 'team' && r.team_members?.length > 0 && (
+                    {r.registration_type === 'team' && (
                       <View style={{ marginTop: 6, gap: 4 }}>
-                        {r.team_members.slice(0, 2).map((member: any, idx: number) => (
+                        {r.team_name && (
+                          <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#C4B5FD' }}>
+                            Team: {r.team_name}
+                          </Text>
+                        )}
+                        {(r.team_members?.length || 0) > 0 && r.team_members.slice(0, 2).map((member: any, idx: number) => (
                           <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                             <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: 'rgba(167,139,250,0.2)', alignItems: 'center', justifyContent: 'center' }}>
                               <Text style={{ fontFamily: FONTS.xbold, fontSize: 7, color: '#C4B5FD' }}>{idx + 2}</Text>
@@ -3106,7 +3111,7 @@ function RegistrationsPanel() {
                             </Text>
                           </View>
                         ))}
-                        {r.team_members.length > 2 && (
+                        {(r.team_members?.length || 0) > 2 && (
                           <Text style={{ fontFamily: FONTS.med, fontSize: 8, color: SAC.dim }}>
                             +{r.team_members.length - 2} more
                           </Text>

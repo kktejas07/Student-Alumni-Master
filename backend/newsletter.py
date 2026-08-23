@@ -1050,15 +1050,25 @@ async def execute_campaign(db, campaign: dict):
                 except Exception:
                     attempt["in_app"] = "fail"
 
-            # WhatsApp
+            # WhatsApp - with rate limiting and opt-in check
             if send_whatsapp_enabled:
                 from core.whatsapp import send_wa_message as _wa_msg, send_wa_image as _wa_img
                 phone = sub.get("phone") or ""
-                if phone:
+                whatsapp_opt_in = sub.get("whatsapp_opt_in", True)  # Default True for existing users
+                
+                if phone and whatsapp_opt_in:
                     wa_text = f"*{campaign['subject']}*\n\n{_strip_html(push_body)}"
                     if campaign.get("cta_url"):
                         wa_text += f"\n\n{campaign['cta_url']}"
                     hero_url = _make_absolute_url((campaign.get("hero_image") or "").strip())
+                    
+                    # Rate limit: wait 2-3 seconds between WhatsApp messages
+                    # to avoid WhatsApp restrictions
+                    if whatsapp_ok > 0 or whatsapp_fail > 0:
+                        import random
+                        delay = random.uniform(2.0, 3.0)  # 2-3 second delay
+                        await asyncio.sleep(delay)
+                    
                     try:
                         if hero_url:
                             wa_result = await _wa_img(phone=phone, image_url=hero_url, caption=wa_text, kind="newsletter", location=sub.get("location"))
@@ -1073,9 +1083,12 @@ async def execute_campaign(db, campaign: dict):
                     except Exception:
                         whatsapp_fail += 1
                         attempt["whatsapp"] = "fail"
-                else:
+                elif not phone:
                     whatsapp_no_phone += 1
                     attempt["whatsapp"] = "no_phone"
+                else:
+                    whatsapp_no_phone += 1
+                    attempt["whatsapp"] = "opted_out"
 
             attempts.append(attempt)
             if len(attempts) % 50 == 0:
