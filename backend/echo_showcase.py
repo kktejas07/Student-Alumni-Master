@@ -3778,6 +3778,10 @@ async def admin_echo_registrations(
             "coupons_issued": len(coupons_map.get(rid) or []),
             "invoice_issued": bool(inv_rec.get("issued")),
             "invoice_no": inv_rec.get("invoice_no"),
+            "registration_type": s.get("registration_type"),
+            "team_name": s.get("team_name"),
+            "team_size": s.get("team_size"),
+            "team_members": s.get("team_members", []),
         })
     return {"items": items, "total": len(items)}
 
