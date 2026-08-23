@@ -26,11 +26,14 @@ import { ActivityIndicator, LogBox, Platform, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { PaperProvider, MD3LightTheme, configureFonts } from 'react-native-paper';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { Colors } from '@/src/theme';
 import { ToastProvider, ConfirmProvider } from '@/src/views/components';
+import { SAModernLoader } from '@/src/views/components/SAModernLoader';
+import { GlobalTopProgressBar } from '@/src/views/web/components/AppLoader';
+import '@/src/views/web/components/UniversalMotionTransition';
 import analytics, { AnalyticsRoot, AnalyticsErrorBoundary } from '@/src/analytics';
 import { AgentKQuickLauncher } from '@/src/views/web/agent-k/AgentKQuickLauncher';
 import { ConsentBanner } from '@/src/views/web/consent/ConsentBanner';
@@ -130,23 +133,19 @@ export default function RootLayout() {
     analytics.init();
   }, [init]);
 
-  // Render the loader only while auth is initializing, or while native fonts
-  // are still loading (local assets, fast). On web we do NOT block first paint
-  // on web fonts — the browser swaps them in (FOUT) once they finish loading,
-  // so the landing page renders immediately instead of waiting on the network.
-  if ((Platform.OS !== 'web' && !fontsLoaded && !fontError) || !initialized) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: Colors.deepPurple,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <ActivityIndicator size="large" color={Colors.white} />
-      </View>
-    );
+  const pathname = usePathname();
+  const [routeTransitioning, setRouteTransitioning] = useState(false);
+
+  useEffect(() => {
+    setRouteTransitioning(true);
+    const t = setTimeout(() => setRouteTransitioning(false), 350);
+    return () => clearTimeout(t);
+  }, [pathname]);
+
+  // Render the loader only on native platforms while auth is initializing
+  // or native fonts are loading. On web, render immediately with zero blocking splash.
+  if (Platform.OS !== 'web' && ((!fontsLoaded && !fontError) || !initialized)) {
+    return <SAModernLoader subtitle="INITIALIZING ECOSYSTEM" />;
   }
 
   return (
@@ -159,12 +158,13 @@ export default function RootLayout() {
                 <ConfirmProvider>
                 <TourProvider>
                   <StatusBar style="light" />
+                  <GlobalTopProgressBar active={routeTransitioning} />
                   <Stack
                     screenOptions={{
                       headerShown: false,
                       contentStyle: { backgroundColor: Colors.background },
                       animation: 'slide_from_right',
-                      animationDuration: 280,
+                      animationDuration: 350,
                     }}
                   >
                     <Stack.Screen 
