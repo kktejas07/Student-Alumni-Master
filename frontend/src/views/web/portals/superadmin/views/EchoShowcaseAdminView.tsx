@@ -3046,6 +3046,8 @@ function RegistrationsPanel() {
     } finally {
       setSyncingTeams(false);
     }
+  };
+
   const [broadcastSummary, setBroadcastSummary] = useState<any>(null);
   const [broadcastModal, setBroadcastModal] = useState<any>(null);
   const [broadcasting, setBroadcasting] = useState(false);
