@@ -3313,12 +3313,41 @@ async def create_payment_order(slug: str, payload: PaymentOrderSchema, request: 
         await db.echo_registrations.insert_one(dict(reg))
     else:
         reg_id = existing.get("id")
+        
+        # Prepare team members data for update
+        team_members_data = []
+        if registration_type == "team" and payload.team_members:
+            team_members_data = [
+                {
+                    "name": m.name or "",
+                    "email": m.email or "",
+                    "phone": m.phone or "",
+                }
+                for m in payload.team_members
+            ]
+            
+        dob_val = payload.date_of_birth or payload.dob or ""
+        
         # Attach the freshly-created order to the pre-existing reg and reset any
         # expired/failed state back to pending so verify-payment / webhook can
         # resolve it by order id and the user can pay with the new session.
+        # Also update all registration details in case they changed from IND to TEAM or updated info.
         await db.echo_registrations.update_one(
             {"_id": existing["_id"]},
             {"$set": {
+                "full_name": payload.full_name,
+                "phone": payload.phone,
+                "date_of_birth": dob_val,
+                "dob": dob_val,
+                "branch": payload.branch,
+                "year": payload.year,
+                "college": payload.college or showcase.get("college"),
+                "fee": total_fee,
+                "payment.amount": total_fee,
+                "registration_type": registration_type,
+                "team_name": (payload.team_name or "").strip(),
+                "team_size": team_size,
+                "team_members": team_members_data,
                 "payment_order": {"order_id": order.get("id"), "created_at": now_iso},
                 "status": "pending",
                 "payment.status": "pending",
@@ -3331,7 +3360,7 @@ async def create_payment_order(slug: str, payload: PaymentOrderSchema, request: 
     return {
         "already": False,
         "order_id": order.get("id"),
-        "amount": fee,
+        "amount": total_fee,
         "currency": currency,
         "key_id": cfg["key_id"],
         "receipt": reg_id,
