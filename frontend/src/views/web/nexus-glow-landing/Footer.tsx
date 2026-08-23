@@ -160,38 +160,49 @@ export function Footer() {
         <div className="sa-footer-main-grid">
           {/* Brand column */}
           <div className="sa-footer-brand-col" style={{ minWidth: "220px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <svg height="36" style={{ display: "block", flexShrink: 0 }} viewBox="0 0 32 36" width="32">
+            <div
+              onClick={() => {
+                if (typeof window !== "undefined") {
+                  if (pathname === "/" || pathname === "/welcome") {
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  } else {
+                    router.push("/");
+                  }
+                }
+              }}
+              style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}
+            >
+              <svg width="28" height="33" viewBox="0 0 300 350" style={{ display: "block", flexShrink: 0 }}>
                 <defs>
-                  <linearGradient id="saFooterMainBadgeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#D8B6FF" />
-                    <stop offset="45%" stopColor="#9A5CE8" />
-                    <stop offset="100%" stopColor="#5B1FB0" />
+                  <linearGradient id="saFooterMainBadgeGrad" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="#C9A7FF" />
+                    <stop offset="48%" stopColor="#8B5CF6" />
+                    <stop offset="100%" stopColor="#5B2FD0" />
                   </linearGradient>
-                  <linearGradient id="saFooterInnerBadgeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <linearGradient id="saFooterInnerBadgeGrad" x1="0" y1="0" x2="0.4" y2="1">
                     <stop offset="0%" stopColor="#B683F5" />
                     <stop offset="100%" stopColor="#7331C9" />
                   </linearGradient>
                 </defs>
                 <path
-                  d="M16 2 L29 6.5 v13.5 c0 9 -7.5 13.5 -13 16 C10.5 33.5 3 29 3 20 V6.5 Z"
+                  d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z"
                   fill="url(#saFooterMainBadgeGrad)"
                 />
                 <path
-                  d="M16 4.5 L26.5 8.2 v11.8 c0 7 -6 11 -10.5 13 C11.5 31 5.5 27 5.5 20 V8.2 Z"
+                  d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z"
                   fill="url(#saFooterInnerBadgeGrad)"
                 />
                 <text
                   style={{
-                    fontFamily: "'Manrope', sans-serif",
-                    fontSize: "12px",
+                    fontFamily: "'Manrope', -apple-system, sans-serif",
+                    fontSize: "118px",
                     fontWeight: "800",
-                    letterSpacing: "-0.5px",
+                    letterSpacing: "-5px",
                     fill: "#FFFFFF",
                   }}
                   textAnchor="middle"
-                  x="16"
-                  y="22.5"
+                  x="150"
+                  y="214"
                 >
                   SA
                 </text>
@@ -201,11 +212,9 @@ export function Footer() {
                   fontSize: "20px",
                   fontWeight: 800,
                   letterSpacing: "-0.4px",
-                  background: "linear-gradient(135deg, #FFFFFF 0%, #E8E6FF 40%, #B487FF 80%, #8B84FF 100%)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
+                  color: "#FFFFFF",
+                  whiteSpace: "nowrap",
                   fontFamily: "'Manrope', sans-serif",
-                  filter: "drop-shadow(0 2px 10px rgba(139, 132, 255, 0.35))",
                 }}
               >
                 StudentAlumni
@@ -502,62 +511,6 @@ export function Footer() {
             </div>
             <div style={{ fontSize: "13.5px", color: "#9AA0B4", fontWeight: 500 }}>
               All rights reserved © StudentAlumni 2026
-            </div>
-          </div>
-
-          {/* Bottom Action Row */}
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: "16px",
-              paddingTop: "20px",
-              borderTop: "1px solid rgba(255, 255, 255, 0.06)",
-            }}
-          >
-            <p style={{ margin: 0, fontSize: "14px", color: "#9AA0B4", fontWeight: 500 }}>
-              Free for students · about a minute to set up
-            </p>
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <button
-                type="button"
-                onClick={() => router.push("/get-started" as any)}
-                style={{
-                  padding: "10px 18px",
-                  borderRadius: "8px",
-                  backgroundColor: "#0C0E1B",
-                  border: "1px solid #2A2E45",
-                  fontSize: "13.5px",
-                  fontWeight: 500,
-                  color: "#F4F5FB",
-                  cursor: "pointer",
-                  fontFamily: "'Manrope', sans-serif",
-                  transition: "border-color 0.2s ease",
-                }}
-              >
-                For colleges
-              </button>
-              <button
-                type="button"
-                onClick={() => router.push("/get-started")}
-                style={{
-                  padding: "10px 20px",
-                  borderRadius: "8px",
-                  backgroundColor: "#5B4FE9",
-                  border: "none",
-                  fontSize: "13.5px",
-                  fontWeight: 600,
-                  color: "#FFFFFF",
-                  cursor: "pointer",
-                  fontFamily: "'Manrope', sans-serif",
-                  boxShadow: "0 0 16px rgba(91, 79, 233, 0.4)",
-                  transition: "background-color 0.2s ease",
-                }}
-              >
-                Get started
-              </button>
             </div>
           </div>
         </div>

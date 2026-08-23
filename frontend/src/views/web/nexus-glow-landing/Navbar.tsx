@@ -72,22 +72,12 @@ export function Navbar() {
   const handleLogoClick = (e: React.MouseEvent) => {
     e.preventDefault();
     setMobileOpen(false);
-    if (isLanding) {
-      if (typeof document !== "undefined") {
-        const shell = document.querySelector(".sa-scroll-shell");
-        const homeSecs = document.querySelectorAll(".sa-sect, #sa-dash, #sa-road-sec");
-        const agentSec = document.getElementById("sa-page-agentk");
-        const partnersSec = document.getElementById("sa-page-partners");
-        homeSecs.forEach((s) => {
-          (s as HTMLElement).style.display = "";
-        });
-        if (agentSec) agentSec.style.display = "none";
-        if (partnersSec) partnersSec.style.display = "none";
-        if (shell) shell.scrollTo({ top: 0, behavior: "smooth" });
-        else window.scrollTo({ top: 0, behavior: "smooth" });
+    if (pathname === "/" || pathname === "/welcome") {
+      if (typeof window !== "undefined") {
+        window.scrollTo({ top: 0, behavior: "smooth" });
       }
     } else {
-      router.push("/welcome");
+      router.push("/");
     }
   };
 
@@ -122,7 +112,7 @@ export function Navbar() {
         >
           {/* Logo */}
           <a
-            href="/welcome"
+            href="/"
             onClick={handleLogoClick}
             style={{
               display: "flex",
@@ -133,52 +123,49 @@ export function Navbar() {
               flexShrink: 0,
             }}
           >
-            <svg height="34" style={{ display: "block", flexShrink: 0 }} viewBox="0 0 32 36" width="30">
+            <svg width="28" height="33" viewBox="0 0 300 350" style={{ display: "block", flexShrink: 0 }}>
               <defs>
-                <linearGradient id="saNavMainBadgeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#D8B6FF" />
-                  <stop offset="45%" stopColor="#9A5CE8" />
-                  <stop offset="100%" stopColor="#5B1FB0" />
+                <linearGradient id="saNavMainBadgeGrad" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#C9A7FF" />
+                  <stop offset="48%" stopColor="#8B5CF6" />
+                  <stop offset="100%" stopColor="#5B2FD0" />
                 </linearGradient>
-                <linearGradient id="saNavInnerBadgeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <linearGradient id="saNavInnerBadgeGrad" x1="0" y1="0" x2="0.4" y2="1">
                   <stop offset="0%" stopColor="#B683F5" />
                   <stop offset="100%" stopColor="#7331C9" />
                 </linearGradient>
               </defs>
               <path
-                d="M16 2 L29 6.5 v13.5 c0 9 -7.5 13.5 -13 16 C10.5 33.5 3 29 3 20 V6.5 Z"
+                d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z"
                 fill="url(#saNavMainBadgeGrad)"
               />
               <path
-                d="M16 4.5 L26.5 8.2 v11.8 c0 7 -6 11 -10.5 13 C11.5 31 5.5 27 5.5 20 V8.2 Z"
+                d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z"
                 fill="url(#saNavInnerBadgeGrad)"
               />
               <text
                 style={{
-                  fontFamily: "'Manrope', sans-serif",
-                  fontSize: "12px",
+                  fontFamily: "'Manrope', -apple-system, sans-serif",
+                  fontSize: "118px",
                   fontWeight: "800",
-                  letterSpacing: "-0.5px",
+                  letterSpacing: "-5px",
                   fill: "#FFFFFF",
                 }}
                 textAnchor="middle"
-                x="16"
-                y="22.5"
+                x="150"
+                y="214"
               >
                 SA
               </text>
             </svg>
             <span
               style={{
-                fontSize: "18.5px",
+                fontSize: "20px",
                 fontWeight: 800,
                 letterSpacing: "-0.4px",
-                background: "linear-gradient(135deg, #FFFFFF 0%, #E8E6FF 40%, #B487FF 80%, #8B84FF 100%)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
+                color: "#FFFFFF",
                 whiteSpace: "nowrap",
                 fontFamily: "'Manrope', sans-serif",
-                filter: "drop-shadow(0 2px 10px rgba(139, 132, 255, 0.35))",
               }}
             >
               StudentAlumni

@@ -92,24 +92,44 @@ const SAMPLE_EVENTS = [
     slug: 'vnr',
     title: 'VNR ECHO 2026',
     college: 'VNR VJIET',
-    college_full: 'VNR Vignana Jyothi Institute of Engineering and Technology',
+    college_name: 'VNR Vignana Jyothi Institute of Engineering and Technology',
+    college_full: 'VNR Vignana Jyothi Institute of Engineering & Technology, Hyderabad',
     status: 'COMPLETED',
     organizer: 'VNR Student Council in collaboration with StudentAlumni.ai',
-    description: "Empowering Tomorrow's Leaders",
+    description: "Empowering Tomorrow's Leaders — Innovation, Career Tracks and AI Engineering.",
     dates: 'July 31, 2026',
     date_short: 'July 31, 2026',
     date_pill: 'Jul 31, 2026',
-    time: '09:30 AM',
-    venue: 'Main Auditorium, VNR VJIET',
+    time: '09:30 AM — 04:30 PM',
+    venue: 'Main Auditorium, VNR VJIET, Hyderabad',
     location_short: 'VNR VJIET Campus, Hyderabad',
     prize_pool: '₹35,000 prize pool',
     reg_closes: '2026-07-28',
     individual_fee: 499,
     team_fee: 1999,
-    individual_seats: 'Completed',
-    team_slots: 'Completed',
-    partners: ['Deloitte', 'Featherless', 'Atlast'],
-    poster_banner: '',
+    individual_seats: '320 attended',
+    team_slots: '64 teams',
+    partners: ['Deloitte', 'Featherless', 'Atlast', 'Microsoft', 'Google'],
+    poster_banner: '/images/hackwave/hackwave_techfest_verticals.jpg',
+    gallery_images: [
+      '/images/hackwave/hackwave_techfest_verticals.jpg',
+      '/images/hackwave/hackwave_speakers.jpg',
+      '/images/hackwave/hackwave_main_poster.png',
+      '/images/hackwave/hackwave_cybersecurity_conclave.jpg',
+      '/images/hackwave/hackwave_perks_pool.jpg'
+    ],
+    speakers: [
+      { name: 'Vijay Raghavan', position: 'Chief AI Architect', company: 'Google', category: 'Keynote Speaker', is_panel_member: true },
+      { name: 'Sneha Reddy', position: 'VP Engineering', company: 'Microsoft', category: 'Panelist', is_panel_member: true },
+      { name: 'Dr. Kavitha Nair', position: 'Professor & NLP Researcher', company: 'VNR VJIET', category: 'Academic Mentor', is_panel_member: true },
+      { name: 'Arjun Mehta', position: 'Founder', company: 'BrightFuture Labs', category: 'Industry Speaker', is_panel_member: false }
+    ],
+    highlights: [
+      { title: 'AI at Scale Keynote', desc: 'Vijay Raghavan on large-scale production ML architectures' },
+      { title: 'Careers in AI Panel', desc: 'Industry veterans answer student questions on emerging roles' },
+      { title: 'Hands-on Hackathon', desc: 'Sprint across MedTech, FinTech, and Smart Mobility' },
+      { title: 'Networking Hub', desc: 'Connect directly with alumni from leading global tech companies' }
+    ]
   },
 ];
 
@@ -162,10 +182,17 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
   const [teamName, setTeamName] = useState('');
   const [teamMembers, setTeamMembers] = useState<Array<{ name: string; email: string; phone: string }>>([
     { name: '', email: '', phone: '' },
-    { name: '', email: '', phone: '' },
-    { name: '', email: '', phone: '' },
-    { name: '', email: '', phone: '' },
   ]);
+
+  // Derived dynamic team calculations
+  const validMembers = isTeam
+    ? teamMembers.filter((m) => (m.name || '').trim() || (m.email || '').trim())
+    : [];
+  const currentTeamSize = isTeam
+    ? 1 + (validMembers.length > 0 ? validMembers.length : teamMembers.length)
+    : 1;
+  const perPersonFee = activeEvent?.individual_fee || 599;
+  const calculatedTotalFee = isTeam ? (perPersonFee * currentTeamSize) : perPersonFee;
 
   // Checkout modal
   const [isPaying, setIsPaying] = useState(false);
@@ -408,8 +435,9 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
       whatsapp_opt_in: whatsappOptIn,
       registration_type: isTeam ? 'team' : 'individual',
       team_name: isTeam ? teamName : '',
-      team_size: isTeam ? 1 + validMembers.length : 1,
+      team_size: currentTeamSize,
       team_members: validMembers,
+      fee: calculatedTotalFee,
     };
 
     const targetSlug = activeEvent.slug || selectedSlug || 'snist';
@@ -430,8 +458,8 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
           ticketId: reg.id || `SA-HW3-${Math.floor(100000 + Math.random() * 900000)}`,
           eventName: activeEvent.title,
           attendeeName: fullName || 'Student Attendee',
-          type: isTeam ? `Team Pass (${1 + validMembers.length} Members)` : 'Individual Pass',
-          amount: isTeam ? activeEvent.team_fee : activeEvent.individual_fee,
+          type: isTeam ? `Team Pass (${currentTeamSize} Members)` : 'Individual Pass',
+          amount: calculatedTotalFee,
           date: activeEvent.dates,
           venue: activeEvent.venue,
           email: email || 'student@example.com',
@@ -450,10 +478,10 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
         if (isLoaded && (window as any).Razorpay) {
           const options = {
             key: orderRes.key_id,
-            amount: (orderRes.amount || (isTeam ? activeEvent.team_fee : activeEvent.individual_fee)) * 100,
+            amount: (orderRes.amount || calculatedTotalFee) * 100,
             currency: orderRes.currency || 'INR',
             name: activeEvent.title || 'Student Alumni ECHO',
-            description: isTeam ? `Team Registration: ${teamName}` : `Individual Pass: ${activeEvent.title}`,
+            description: isTeam ? `Team Registration: ${teamName} (${currentTeamSize} Members)` : `Individual Pass: ${activeEvent.title}`,
             image: activeEvent.poster_banner || '/images/hackwave/hackwave_main_poster.png',
             order_id: orderRes.order_id,
             prefill: {
@@ -465,6 +493,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
               slug: targetSlug,
               registration_type: isTeam ? 'team' : 'individual',
               team_name: isTeam ? teamName : '',
+              team_size: String(currentTeamSize),
             },
             theme: {
               color: '#7C5CFC',
@@ -478,14 +507,17 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                   email: email,
                   phone: phone,
                   full_name: fullName,
+                  team_name: isTeam ? teamName : '',
+                  team_size: currentTeamSize,
+                  team_members: validMembers,
                 });
                 const reg = verifyRes?.registration || {};
                 setTicketData({
                   ticketId: reg.id || resp.razorpay_payment_id || `SA-HW3-${Math.floor(100000 + Math.random() * 900000)}`,
                   eventName: activeEvent.title,
                   attendeeName: fullName || 'Student Attendee',
-                  type: isTeam ? `Team Pass (${1 + validMembers.length} Members)` : 'Individual Pass',
-                  amount: isTeam ? activeEvent.team_fee : activeEvent.individual_fee,
+                  type: isTeam ? `Team Pass (${currentTeamSize} Members)` : 'Individual Pass',
+                  amount: calculatedTotalFee,
                   date: activeEvent.dates,
                   venue: activeEvent.venue,
                   email: email || 'student@example.com',
@@ -501,8 +533,8 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                   ticketId: resp.razorpay_payment_id || `SA-HW3-${Math.floor(100000 + Math.random() * 900000)}`,
                   eventName: activeEvent.title,
                   attendeeName: fullName || 'Student Attendee',
-                  type: isTeam ? `Team Pass (${1 + validMembers.length} Members)` : 'Individual Pass',
-                  amount: isTeam ? activeEvent.team_fee : activeEvent.individual_fee,
+                  type: isTeam ? `Team Pass (${currentTeamSize} Members)` : 'Individual Pass',
+                  amount: calculatedTotalFee,
                   date: activeEvent.dates,
                   venue: activeEvent.venue,
                   email: email || 'student@example.com',
@@ -529,10 +561,18 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
         }
       }
 
-      // Step 3: Direct registration path (free event / direct fallback)
+      // Step 3: Direct registration path (free event / demo / direct fallback)
       let regRes: any = null;
       try {
-        regRes = await api.registerEchoShowcase(targetSlug, payload);
+        regRes = await api.registerEchoShowcase(targetSlug, {
+          ...payload,
+          fee: calculatedTotalFee,
+          payment: {
+            status: 'paid',
+            amount: calculatedTotalFee,
+            payment_id: `PAY_RAZOR_${Math.floor(100000 + Math.random() * 900000)}`,
+          },
+        });
       } catch (regErr) {
         console.log('[EchoEventsPage] Direct registration notice:', regErr);
       }
@@ -542,8 +582,8 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
         ticketId,
         eventName: activeEvent.title,
         attendeeName: fullName || 'Student Attendee',
-        type: isTeam ? `Team Pass (${1 + validMembers.length} Members)` : 'Individual Pass',
-        amount: isTeam ? activeEvent.team_fee : activeEvent.individual_fee,
+        type: isTeam ? `Team Pass (${currentTeamSize} Members)` : 'Individual Pass',
+        amount: calculatedTotalFee,
         date: activeEvent.dates,
         venue: activeEvent.venue,
         email: email || 'student@example.com',
@@ -881,17 +921,23 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
             onClick={() => router.push('/')}
             style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 'none', cursor: 'pointer' }}
           >
-            <svg width="30" height="34" viewBox="0 0 300 350" style={{ flex: 'none' }}>
+            <svg width="28" height="33" viewBox="0 0 300 350" style={{ display: 'block', flexShrink: 0 }}>
               <defs>
                 <linearGradient id="ev-badge-grad2" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="#9E7BFF" />
-                  <stop offset="100%" stopColor="#5B3FD9" />
+                  <stop offset="0%" stopColor="#C9A7FF" />
+                  <stop offset="48%" stopColor="#8B5CF6" />
+                  <stop offset="100%" stopColor="#5B2FD0" />
+                </linearGradient>
+                <linearGradient id="ev-badge-grad2-in" x1="0" y1="0" x2="0.4" y2="1">
+                  <stop offset="0%" stopColor="#B683F5" />
+                  <stop offset="100%" stopColor="#7331C9" />
                 </linearGradient>
               </defs>
               <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#ev-badge-grad2)" />
-              <text x="150" y="212" textAnchor="middle" style={{ fontFamily: "'Outfit', sans-serif", fontSize: '124px', fontWeight: 700, letterSpacing: '-4px', fill: '#FFFFFF' }}>SA</text>
+              <path d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="url(#ev-badge-grad2-in)" />
+              <text x="150" y="214" textAnchor="middle" style={{ fontFamily: "'Manrope', -apple-system, sans-serif", fontSize: '118px', fontWeight: '800', letterSpacing: '-5px', fill: '#FFFFFF' }}>SA</text>
             </svg>
-            <span style={{ fontSize: '17px', fontWeight: 600, letterSpacing: '-0.3px', color: '#FFFFFF' }}>StudentAlumni</span>
+            <span style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-0.4px', color: '#FFFFFF', fontFamily: "'Manrope', sans-serif" }}>StudentAlumni</span>
           </div>
 
           {/* Centered Navigation Tabs */}
@@ -980,14 +1026,24 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 style={{ border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', overflow: 'hidden', cursor: 'pointer', display: 'flex', flexDirection: 'column' }}
               >
                 {/* Event Poster Card Banner */}
-                <div style={{ position: 'relative', height: '200px', background: 'var(--panel2)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderBottom: '1px solid var(--line)' }}>
-                  <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at center, rgba(124,92,252,0.28) 0%, transparent 70%)' }} />
-                  <div style={{ textAlign: 'center', padding: '20px', zIndex: 2 }}>
-                    <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: 'rgba(124,92,252,0.18)', border: '1px solid rgba(167,139,250,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
-                      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" strokeWidth="2"><path d="M4 20V8l8-4 8 4v12M9 20v-5h6v5" /></svg>
+                <div style={{ position: 'relative', height: '210px', background: 'var(--panel2)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderBottom: '1px solid var(--line)' }}>
+                  {ev.poster_banner ? (
+                    <img src={ev.poster_banner} alt={ev.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '20px', zIndex: 2 }}>
+                      <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: 'rgba(124,92,252,0.18)', border: '1px solid rgba(167,139,250,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" strokeWidth="2"><path d="M4 20V8l8-4 8 4v12M9 20v-5h6v5" /></svg>
+                      </div>
+                      <div style={{ fontSize: '20px', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.4px' }}>{ev.title}</div>
+                      <div style={{ fontSize: '13px', color: 'var(--violet-lt)', marginTop: '4px' }}>{ev.college_full}</div>
                     </div>
-                    <div style={{ fontSize: '20px', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.4px' }}>{ev.title}</div>
-                    <div style={{ fontSize: '13px', color: 'var(--violet-lt)', marginTop: '4px' }}>{ev.college_full}</div>
+                  )}
+                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(17,17,28,0.92) 0%, rgba(17,17,28,0.3) 50%, transparent 100%)' }} />
+                  <div style={{ position: 'absolute', bottom: '12px', left: '16px', right: '16px', zIndex: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                    <div>
+                      <div style={{ fontSize: '18px', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.4px', textShadow: '0 2px 8px rgba(0,0,0,0.6)' }}>{ev.title}</div>
+                      <div style={{ fontSize: '12px', color: '#DCCEF7', marginTop: '2px' }}>{ev.college}</div>
+                    </div>
                   </div>
                 </div>
 
@@ -1055,12 +1111,15 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
           <div style={{ border: '1px solid var(--line2)', borderRadius: '22px', overflow: 'hidden', background: 'var(--panel)', marginBottom: '22px', width: '100%' }}>
             
             {/* Banner Top Graphic */}
-            <div style={{ position: 'relative', minHeight: '280px', background: 'linear-gradient(135deg, #1C1236 0%, #2A1758 50%, #160D30 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '36px' }}>
+            <div style={{ position: 'relative', minHeight: '300px', background: 'linear-gradient(135deg, #1C1236 0%, #2A1758 50%, #160D30 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '36px', overflow: 'hidden' }}>
+              {activeEvent.poster_banner && (
+                <img src={activeEvent.poster_banner} alt={activeEvent.title} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.35, filter: 'blur(3px)' }} />
+              )}
               <div style={{ position: 'absolute', width: '420px', height: '260px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(147, 51, 234, 0.45) 0%, transparent 70%)', filter: 'blur(50px)', pointerEvents: 'none' }} />
               <div style={{ position: 'relative', zIndex: 2, textAlign: 'center' }}>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.22)', borderRadius: '100px', padding: '6px 18px', marginBottom: '16px' }}>
                   <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--ok)', animation: 'ev-dot 2s ease-in-out infinite' }} />
-                  <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.5px', color: '#FFFFFF' }}>FLAGSHIP NATIONAL HACKATHON</span>
+                  <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.5px', color: '#FFFFFF' }}>FLAGSHIP NATIONAL EVENT</span>
                 </div>
                 <div style={{ fontSize: '42px', fontWeight: 800, letterSpacing: '-1.4px', color: '#FFFFFF', lineHeight: 1.2 }}>{activeEvent.title}</div>
                 <div style={{ fontSize: '16px', color: '#DCCEF7', marginTop: '8px' }}>{activeEvent.college_full}</div>
@@ -1486,19 +1545,25 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
           <div className="ev-rgrid" style={{ display: 'grid', gap: '24px', alignItems: 'start', width: '100%' }}>
             
             {/* Left Column: Event Poster */}
-            <div style={{ border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '22px' }}>
-              <div style={{ position: 'relative', borderRadius: '14px', overflow: 'hidden', background: 'var(--panel2)', aspectRatio: '3/4', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '28px', border: '1px solid var(--line2)' }}>
-                <div style={{ width: '84px', height: '84px', borderRadius: '22px', background: 'rgba(124,92,252,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
-                  <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="var(--violet-lt)" strokeWidth="1.8"><path d="M12 2l1.9 5.1L19 9l-5.1 1.9L12 16l-1.9-5.1L5 9l5.1-1.9Z" /><circle cx="12" cy="12" r="9" /></svg>
-                </div>
-                <div style={{ fontSize: '26px', fontWeight: 800, color: '#FFFFFF', textAlign: 'center', letterSpacing: '-0.8px', marginBottom: '8px' }}>{activeEvent.title}</div>
-                <div style={{ fontSize: '14.5px', color: 'var(--violet-lt)', textAlign: 'center', marginBottom: '18px' }}>{activeEvent.college_full}</div>
-                <div style={{ fontSize: '13.5px', color: 'var(--muted)', textAlign: 'center', lineHeight: 1.6, maxWidth: '300px' }}>
-                  Join top coders, innovators, and future founders in India's leading flagship hackathon.
-                </div>
-                <div style={{ marginTop: '26px', padding: '9px 18px', background: 'rgba(245,179,66,0.14)', border: '1px solid #4A3410', borderRadius: '100px', color: 'var(--amber)', fontSize: '12.5px', fontWeight: 700 }}>
-                  PRIZE POOL: ₹50,000
-                </div>
+            <div style={{ border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '16px', overflow: 'hidden' }}>
+              <div style={{ position: 'relative', borderRadius: '14px', overflow: 'hidden', background: 'var(--panel2)', aspectRatio: '3/4', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--line2)' }}>
+                {activeEvent.poster_banner ? (
+                  <img src={activeEvent.poster_banner} alt={activeEvent.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '28px' }}>
+                    <div style={{ width: '84px', height: '84px', borderRadius: '22px', background: 'rgba(124,92,252,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+                      <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="var(--violet-lt)" strokeWidth="1.8"><path d="M12 2l1.9 5.1L19 9l-5.1 1.9L12 16l-1.9-5.1L5 9l5.1-1.9Z" /><circle cx="12" cy="12" r="9" /></svg>
+                    </div>
+                    <div style={{ fontSize: '24px', fontWeight: 800, color: '#FFFFFF', textAlign: 'center', letterSpacing: '-0.8px', marginBottom: '8px' }}>{activeEvent.title}</div>
+                    <div style={{ fontSize: '14px', color: 'var(--violet-lt)', textAlign: 'center', marginBottom: '14px' }}>{activeEvent.college_full}</div>
+                    <div style={{ fontSize: '13px', color: 'var(--muted)', textAlign: 'center', lineHeight: 1.5 }}>
+                      Join top coders, innovators, and future founders in India's leading flagship event.
+                    </div>
+                    <div style={{ marginTop: '20px', display: 'inline-block', padding: '8px 16px', background: 'rgba(245,179,66,0.14)', border: '1px solid #4A3410', borderRadius: '100px', color: 'var(--amber)', fontSize: '12px', fontWeight: 700 }}>
+                      {activeEvent.prize_pool || 'PRIZE POOL: ₹2,00,000'}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1534,17 +1599,17 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                   <div>
                     <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.3px', color: 'var(--muted)' }}>REGISTRATION FEE</div>
                     <div id="ev-fee" style={{ fontSize: '24px', fontWeight: 700, letterSpacing: '-.6px', marginTop: '3px', color: '#FFFFFF' }}>
-                      {isTeam ? `INR ${activeEvent.team_fee.toLocaleString()}` : `INR ${activeEvent.individual_fee.toLocaleString()}`}
+                      INR {calculatedTotalFee.toLocaleString()}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '12.5px', color: 'var(--muted)', marginTop: '6px' }}>
                       <svg width="13" height="13" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 1.8 }}><circle cx="9" cy="9" r="3"></circle><path d="M3 19q6-6 12 0"></path></svg>
-                      <span id="ev-seats">{isTeam ? activeEvent.team_slots : activeEvent.individual_seats}</span>
+                      <span id="ev-seats">{isTeam ? `${currentTeamSize} Attendees (${currentTeamSize} × INR ${perPersonFee.toLocaleString()})` : activeEvent.individual_seats}</span>
                     </div>
                   </div>
                 </div>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', fontSize: '12px', fontWeight: 600, color: 'var(--ok)', border: '1px solid #17503E', borderRadius: '100px', padding: '7px 14px', flex: 'none' }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 2 }}><path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6Z"></path><path d="M9 12l2 2 4-4"></path></svg>
-                  Secure payment
+                  Secure Razorpay payment
                 </span>
               </div>
 
@@ -1641,23 +1706,32 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                   {/* Team Members Section (Person 2 to 5) */}
                   {isTeam && (
                     <div style={{ margin: '8px 0', padding: '18px', background: 'rgba(124, 92, 252, 0.06)', border: '1px solid rgba(124, 92, 252, 0.25)', borderRadius: '14px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
                         <div style={{ fontSize: '14px', fontWeight: 700, color: '#A78BFA', letterSpacing: '.4px' }}>
-                          TEAM MEMBERS (MEMBERS 2 TO 5)
+                          TEAM MEMBERS ({currentTeamSize} Total Attendees)
                         </div>
-                        <span style={{ fontSize: '11px', padding: '3px 8px', background: 'rgba(52, 211, 153, 0.15)', color: '#34D399', borderRadius: '6px', fontWeight: 600 }}>
-                          Passes &amp; Accounts Included
+                        <span style={{ fontSize: '11px', padding: '4px 9px', background: 'rgba(52, 211, 153, 0.15)', color: '#34D399', borderRadius: '6px', fontWeight: 600 }}>
+                          INR {perPersonFee}/person × {currentTeamSize} = INR {calculatedTotalFee.toLocaleString()}
                         </span>
                       </div>
                       <p style={{ fontSize: '12px', color: '#9CA3AF', marginBottom: '16px', lineHeight: 1.5 }}>
-                        Every team member entered below will have their own Student Alumni account provisioned and an individual QR entry pass ticket card emailed to them.
+                        Add your teammates below. The registration amount updates dynamically based on the number of members added ({currentTeamSize} of 5 max).
                       </p>
 
                       <div style={{ display: 'grid', gap: '14px' }}>
                         {teamMembers.map((member, idx) => (
                           <div key={idx} style={{ padding: '14px', background: 'var(--panel2)', border: '1px solid var(--line2)', borderRadius: '11px' }}>
-                            <div style={{ fontSize: '11px', fontWeight: 700, color: '#DDD6FE', marginBottom: '10px', display: 'flex', justifyContent: 'space-between' }}>
+                            <div style={{ fontSize: '11px', fontWeight: 700, color: '#DDD6FE', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                               <span>MEMBER {idx + 2} {idx === 0 ? '(REQUIRED)' : '(OPTIONAL)'}</span>
+                              {teamMembers.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => setTeamMembers(teamMembers.filter((_, i) => i !== idx))}
+                                  style={{ background: 'transparent', border: 'none', color: '#F87171', fontSize: '11.5px', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                >
+                                  ✕ Remove
+                                </button>
+                              )}
                             </div>
                             <div style={{ display: 'grid', gap: '10px' }}>
                               <input
@@ -1697,6 +1771,31 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                           </div>
                         ))}
                       </div>
+
+                      {teamMembers.length < 4 && (
+                        <button
+                          type="button"
+                          onClick={() => setTeamMembers([...teamMembers, { name: '', email: '', phone: '' }])}
+                          style={{
+                            marginTop: '14px',
+                            width: '100%',
+                            padding: '11px',
+                            borderRadius: '10px',
+                            background: 'rgba(124, 92, 252, 0.14)',
+                            border: '1px dashed #7C5CFC',
+                            color: '#DDD6FE',
+                            fontSize: '13px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                          }}
+                        >
+                          + Add Another Team Member ({teamMembers.length + 1}/5)
+                        </button>
+                      )}
                     </div>
                   )}
 
