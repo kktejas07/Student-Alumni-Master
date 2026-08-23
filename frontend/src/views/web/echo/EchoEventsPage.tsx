@@ -270,6 +270,35 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
     }
   };
 
+  // Curtain loading state matching design specification
+  const [curtainVisible, setCurtainVisible] = useState(true);
+  const [curtainNum, setCurtainNum] = useState('00');
+  const [curtainBarWidth, setCurtainBarWidth] = useState('0%');
+  const [curtainOpacity, setCurtainOpacity] = useState(1);
+
+  useEffect(() => {
+    let t0 = performance.now();
+    let animId: any;
+    const step = (t: number) => {
+      const pr = Math.min(1, (t - t0) / 1400);
+      const e = 1 - Math.pow(1 - pr, 3);
+      setCurtainNum(String(Math.round(e * 100)).padStart(2, '0'));
+      setCurtainBarWidth((e * 100).toFixed(1) + '%');
+      if (pr < 1) {
+        animId = requestAnimationFrame(step);
+      } else {
+        setCurtainNum('100');
+        setCurtainBarWidth('100%');
+        setCurtainOpacity(0);
+        setTimeout(() => setCurtainVisible(false), 450);
+      }
+    };
+    animId = requestAnimationFrame(step);
+    return () => {
+      if (animId) cancelAnimationFrame(animId);
+    };
+  }, []);
+
   return (
     <div id="ev-root" style={{ '--bg': '#0A0A14', '--panel': '#11111C', '--panel2': '#161622', '--line': '#1F1F30', '--line2': '#292940', '--violet': '#7C5CFC', '--violet-lt': '#A78BFA', '--ok': '#34D399', '--amber': '#F5B342', '--text': '#F4F4FA', '--muted': '#8A8A9E', '--dim': '#6A6A7E', fontFamily: "'Outfit', -apple-system, sans-serif", color: 'var(--text)', background: 'var(--bg)', minHeight: '100vh', width: '100%', position: 'relative', overflowX: 'hidden' }}>
       
@@ -291,8 +320,12 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
               ::-webkit-scrollbar { width: 8px; height: 8px; }
               ::-webkit-scrollbar-thumb { background: #23233A; border-radius: 4px; }
               
+              @keyframes ev-tick {
+                from { transform: translateX(0); }
+                to { transform: translateX(-50%); }
+              }
               @keyframes ev-in {
-                from { opacity: 0; transform: translateY(20px); }
+                from { opacity: 0; transform: translateY(18px); }
                 to { opacity: 1; transform: translateY(0); }
               }
               @keyframes ev-dot {
@@ -301,7 +334,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
               }
               @keyframes ev-drift {
                 0%, 100% { transform: translate3d(0,0,0); }
-                50% { transform: translate3d(-5%, 4%, 0); }
+                50% { transform: translate3d(-4%, 3%, 0); }
               }
               @keyframes ev-sheen {
                 0% { transform: translateX(-130%) skewX(-16deg); }
@@ -312,6 +345,9 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 50% { box-shadow: 0 0 35px rgba(124, 92, 252, 0.45); }
               }
               
+              #ev-ticker:hover {
+                animation-play-state: paused !important;
+              }
               .ev-anim-in {
                 animation: ev-in 0.6s cubic-bezier(.2, .8, .2, 1) both;
               }
@@ -433,9 +469,121 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
       {/* Luxury SA Watermark on the Right */}
       <SAWatermark size={850} top={50} right={-30} opacity={0.14} fixed />
 
+      {/* Intro Curtain Loader */}
+      {curtainVisible && (
+        <div
+          id="ev-curtain"
+          style={{
+            fontFamily: "'Outfit', -apple-system, sans-serif",
+            position: 'fixed',
+            inset: 0,
+            zIndex: 400,
+            background: '#07070E',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'flex-end',
+            padding: '0 44px 40px',
+            pointerEvents: 'none',
+            opacity: curtainOpacity,
+            transition: 'opacity .45s ease',
+          }}
+        >
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '0 32px' }}>
+            <svg width="146" height="170" viewBox="0 0 300 350" style={{ display: 'block', maxWidth: '32vw', height: 'auto' }}>
+              <defs>
+                <linearGradient id="ev-badge-curt" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#8B84FF" />
+                  <stop offset="100%" stopColor="#5B4FE9" />
+                </linearGradient>
+              </defs>
+              <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#ev-badge-curt)" />
+              <text x="150" y="212" textAnchor="middle" style={{ fontFamily: "'Outfit', sans-serif", fontSize: '122px', fontWeight: 800, letterSpacing: '-6px', fill: '#FFFFFF' }}>SA</text>
+            </svg>
+            <div style={{ fontSize: '42px', fontWeight: 700, letterSpacing: '-1.9px', lineHeight: 1.1, marginTop: '30px', whiteSpace: 'nowrap', color: '#C08BFF', background: 'linear-gradient(96deg, #F0A6E8 0%, #C08BFF 32%, #8B84FF 66%, #6FA8F5 100%)', WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              #studentalumni
+            </div>
+            <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '14.5px', fontWeight: 600, color: 'rgba(244,245,251,.8)', marginTop: '14px', whiteSpace: 'nowrap' }}>
+              Built with love for students
+              <svg width="15" height="15" viewBox="0 0 24 24" style={{ fill: '#8B84FF', flex: 'none' }}>
+                <path d="M12 21s-8-4.9-8-10.4A4.6 4.6 0 0 1 12 7.6 4.6 4.6 0 0 1 20 10.6C20 16.1 12 21 12 21Z" />
+              </svg>
+              across all campus's
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '30px', maxWidth: '1400px', width: '100%', margin: '0 auto' }}>
+            <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '3.4px', color: 'rgba(244,245,251,.62)' }}>LOADING</div>
+            <div id="ev-curtain-num" style={{ fontSize: '76px', fontWeight: 700, letterSpacing: '-3.2px', lineHeight: 0.85, fontVariantNumeric: 'tabular-nums', color: '#F4F5FB' }}>
+              {curtainNum}
+            </div>
+          </div>
+          <div style={{ maxWidth: '1400px', width: '100%', margin: '16px auto 0', height: '2px', background: 'rgba(244,245,251,.14)' }}>
+            <div id="ev-curtain-bar" style={{ height: '100%', width: curtainBarWidth, background: 'linear-gradient(90deg, #7C5CFC, #A78BFA)', transition: 'width 0.05s linear' }} />
+          </div>
+        </div>
+      )}
+
+      {/* Top Continuous Ticker Bar */}
+      <div id="ev-tickwrap" style={{ position: 'sticky', top: 0, zIndex: 62, overflow: 'hidden', borderBottom: '1px solid var(--line)', background: 'linear-gradient(90deg, rgba(124,92,252,.12), rgba(240,166,232,.08) 52%, rgba(111,168,245,.10))' }}>
+        <div id="ev-ticker" style={{ display: 'flex', width: 'max-content', padding: '9px 0', animation: 'ev-tick 46s linear infinite' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 0, flex: 'none' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>The network is a feed until it meets in person.</span>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>86 ECHO events across 31 campuses.</span>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>267 roles matched, 41 with a warm referral path.</span>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>Verified by your college email — free forever for students.</span>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>HackWave 3.0 · Sep 4–5 · Sreenidhi · ₹50,000 prize pool</span>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>Built with love for students across all campus’s</span>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+            </span>
+          </div>
+          {/* Duplicate set for seamless infinite loop */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 0, flex: 'none' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>The network is a feed until it meets in person.</span>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>86 ECHO events across 31 campuses.</span>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>267 roles matched, 41 with a warm referral path.</span>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>Verified by your college email — free forever for students.</span>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>HackWave 3.0 · Sep 4–5 · Sreenidhi · ₹50,000 prize pool</span>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>Built with love for students across all campus’s</span>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* ── Fixed Sticky Navigation Header ── */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 40, background: 'rgba(10,10,20,.84)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderBottom: '1px solid var(--line)', width: '100%' }}>
-        <div style={{ maxWidth: '1400px', width: '100%', margin: '0 auto', padding: '14px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px' }}>
+      <div style={{ position: 'sticky', top: '36px', zIndex: 40, background: 'rgba(10,10,20,.84)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderBottom: '1px solid var(--line)', width: '100%' }}>
+        <div style={{ maxWidth: '1400px', width: '100%', margin: '0 auto', padding: '14px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap', rowGap: '14px' }}>
           
           {/* SA Brand Badge */}
           <div
@@ -455,84 +603,59 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
             <span style={{ fontSize: '17px', fontWeight: 600, letterSpacing: '-0.3px', color: '#FFFFFF' }}>StudentAlumni</span>
           </div>
 
-          {/* Centered Pill Navigation Strip */}
-          <div id="ev-navstrip" style={{ flex: '1 1 auto', minWidth: 0, display: 'flex', flexWrap: 'wrap', gap: '3px', justifyContent: 'center', border: '1px solid var(--line)', borderRadius: '100px', background: 'var(--panel)', padding: '5px' }}>
-            <span
-              className="ev-nav"
-              data-on="1"
+          {/* Centered Navigation Tabs */}
+          <div id="ev-tabs" style={{ display: 'flex', alignItems: 'center', gap: '30px', flex: '0 1 auto', flexShrink: 0, justifyContent: 'center', paddingTop: '2px' }}>
+            <a
+              className="ev-tab"
+              onClick={() => router.push('/')}
+              style={{ position: 'relative', fontSize: '15px', fontWeight: 500, color: 'var(--muted)', padding: '6px 2px 10px', cursor: 'pointer', whiteSpace: 'nowrap', textDecoration: 'none', transition: 'color .2s ease' }}
+            >
+              Home
+              <span style={{ position: 'absolute', left: 0, right: 0, bottom: '4px', height: '3px', borderRadius: '2px', background: 'var(--violet-lt)', opacity: 0 }} />
+            </a>
+            <a
+              className="ev-tab"
               onClick={() => go('list')}
-              style={{ height: '34px', display: 'inline-flex', alignItems: 'center', padding: '0 13px', borderRadius: '100px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+              style={{ position: 'relative', fontSize: '15px', fontWeight: 700, color: 'var(--text)', padding: '6px 2px 10px', cursor: 'pointer', whiteSpace: 'nowrap', textDecoration: 'none', transition: 'color .2s ease' }}
             >
               ECHO
-            </span>
-            <span
-              className="ev-nav"
+              <span style={{ position: 'absolute', left: 0, right: 0, bottom: '4px', height: '3px', borderRadius: '2px', background: 'var(--violet-lt)', opacity: 1 }} />
+            </a>
+            <a
+              className="ev-tab"
               onClick={() => router.push('/verify')}
-              style={{ height: '34px', display: 'inline-flex', alignItems: 'center', padding: '0 13px', borderRadius: '100px', fontSize: '13.5px', fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap' }}
+              style={{ position: 'relative', fontSize: '15px', fontWeight: 500, color: 'var(--muted)', padding: '6px 2px 10px', cursor: 'pointer', whiteSpace: 'nowrap', textDecoration: 'none', transition: 'color .2s ease' }}
             >
               Verify
-            </span>
-            <span
-              className="ev-nav"
-              onClick={() => router.push('/agent-k')}
-              style={{ height: '34px', display: 'inline-flex', alignItems: 'center', padding: '0 13px', borderRadius: '100px', fontSize: '13.5px', fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap' }}
-            >
-              Agent K
-            </span>
-            <span
-              className="ev-nav"
-              onClick={() => router.push('/')}
-              style={{ height: '34px', display: 'inline-flex', alignItems: 'center', padding: '0 13px', borderRadius: '100px', fontSize: '13.5px', fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap' }}
-            >
-              Features
-            </span>
-            <span
-              className="ev-nav"
-              onClick={() => router.push('/welcome')}
-              style={{ height: '34px', display: 'inline-flex', alignItems: 'center', padding: '0 13px', borderRadius: '100px', fontSize: '13.5px', fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap' }}
-            >
-              About Us
-            </span>
-            <span
-              className="ev-nav"
+              <span style={{ position: 'absolute', left: 0, right: 0, bottom: '4px', height: '3px', borderRadius: '2px', background: 'var(--violet-lt)', opacity: 0 }} />
+            </a>
+            <a
+              className="ev-tab"
               onClick={() => router.push('/contact')}
-              style={{ height: '34px', display: 'inline-flex', alignItems: 'center', padding: '0 13px', borderRadius: '100px', fontSize: '13.5px', fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap' }}
+              style={{ position: 'relative', fontSize: '15px', fontWeight: 500, color: 'var(--muted)', padding: '6px 2px 10px', cursor: 'pointer', whiteSpace: 'nowrap', textDecoration: 'none', transition: 'color .2s ease' }}
             >
-              Contact
-            </span>
-            <span
-              className="ev-nav"
-              onClick={() => router.push('/')}
-              style={{ height: '34px', display: 'inline-flex', alignItems: 'center', padding: '0 13px', borderRadius: '100px', fontSize: '13.5px', fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap' }}
-            >
-              Partners
-            </span>
-            <span
-              className="ev-nav"
-              onClick={() => router.push('/')}
-              style={{ height: '34px', display: 'inline-flex', alignItems: 'center', padding: '0 13px', borderRadius: '100px', fontSize: '13.5px', fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap' }}
-            >
-              Collaborations
-            </span>
+              Contact Us
+              <span style={{ position: 'absolute', left: 0, right: 0, bottom: '4px', height: '3px', borderRadius: '2px', background: 'var(--violet-lt)', opacity: 0 }} />
+            </a>
           </div>
 
           {/* Right Action Buttons */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 'none' }}>
             <span
               onClick={() => router.push('/login')}
+              className="ev-ghost"
               style={{ fontSize: '14px', fontWeight: 500, color: 'var(--muted)', cursor: 'pointer', transition: 'color .2s ease' }}
             >
               Sign in
             </span>
             <span
-              onClick={() => router.push('/welcome')}
+              onClick={() => router.push('/register')}
               className="ev-btn"
-              style={{ fontSize: '14px', fontWeight: 600, background: 'var(--violet)', color: '#FFFFFF', borderRadius: '100px', padding: '10px 20px', cursor: 'pointer', transition: 'all .2s ease', boxShadow: '0 4px 16px rgba(124, 92, 252, 0.35)' }}
+              style={{ fontSize: '14px', fontWeight: 600, background: 'var(--violet)', color: '#FFFFFF', borderRadius: '100px', padding: '10px 20px', cursor: 'pointer', transition: 'all .2s ease' }}
             >
               Get Started
             </span>
           </div>
-
         </div>
       </div>
 
