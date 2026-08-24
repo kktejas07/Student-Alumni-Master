@@ -2760,24 +2760,114 @@ async def get_showcase(slug: str, request: Request):
             await seed_echo_showcase(db)
             doc = await db.echo_showcases.find_one(_slug_query(slug))
             if not doc and slug in ("hackwave-3.0", "hackwave-3", "hackwave", "snist"):
-                hw_doc = dict(DEFAULT_SHOWCASE_SEED)
-                hw_doc["_id"] = ObjectId()
-                hw_doc["slug"] = slug if slug == "snist" else "hackwave-3.0"
-                hw_doc["aliases"] = ["hackwave-3.0", "hackwave-3", "hackwave", "snist"]
-                hw_doc["title"] = "SNIST Hackwave 3.0 — AI Flagship Hackathon" if slug == "snist" else "Hackwave 3.0 — AI Flagship Hackathon"
-                hw_doc["college"] = "Sreenidhi Institute of Science and Technology (SNIST)" if slug == "snist" else "VNR VJIET"
-                hw_doc["organizer_name"] = "SNIST Student Alumni" if slug == "snist" else "VNR Student Alumni"
-                hw_doc["description"] = "Build next-generation AI systems, autonomous agent workflows, and innovative builder tools in 24 hours at SNIST."
-                hw_doc["status"] = "published"
-                hw_doc["categories"] = [
-                    {"name": "AI That Solves a Real Problem", "description": "Build an AI application that solves a meaningful, real-world problem with high value.", "icon": "target", "color": "#F43F5E"},
-                    {"name": "Beyond the Chatbot", "description": "Reimagine AI interaction via voice, visual, workflows, and automation.", "icon": "rocket", "color": "#8B5CF6"},
-                    {"name": "AI for Builders", "description": "Developer and creator tools that remove friction and accelerate workflows.", "icon": "wrench", "color": "#3B82F6"},
-                    {"name": "Autonomous AI Workflows", "description": "Multi-step reasoning, tool-using autonomous agent systems.", "icon": "cpu", "color": "#10B981"},
-                    {"name": "Build the Unexpected", "description": "Original, creative, and ambitious concepts that surprise and delight.", "icon": "sparkles", "color": "#F59E0B"},
-                ]
-                hw_doc["created_at"] = _now()
-                hw_doc["updated_at"] = _now()
+                hw_doc = {
+                    "_id": ObjectId(),
+                    "title": "HackWave 3.0 (2026)",
+                    "slug": slug if slug == "snist" else "hackwave-3.0",
+                    "aliases": ["hackwave-3.0", "hackwave-3", "hackwave", "snist"],
+                    "subtitle": "Career Development Center · SNIST in collaboration with StudentAlumni.ai",
+                    "description": "Build something real. In one overnight sprint. National-Level 24-Hour Tech Fest with 7 Verticals across AI, Security, Hiring and Firesides.",
+                    "date": "September 04 – 05, 2026",
+                    "dates": "September 04 – 05, 2026",
+                    "time": "Sep 4th, 08:00 AM — Sep 5th, 01:00 PM",
+                    "venue": "Sreenidhi Institute of Science and Technology (SNIST), Hyderabad",
+                    "college": "SNIST",
+                    "college_name": "Sreenidhi Institute of Science and Technology",
+                    "college_full": "Sreenidhi Institute of Science and Technology",
+                    "organizer_name": "Career Development Center · SNIST in collaboration with StudentAlumni.ai",
+                    "status": "published",
+                    "event_status_badge": "Upcoming",
+                    "fee": 599,
+                    "individual_fee": 599,
+                    "team_fee": 2495,
+                    "available_seats": 985,
+                    "team_slots_available": 197,
+                    "prize_pool": "₹2,00,000 Mega Grand Pool (₹50,000 Track Prize Pool)",
+                    "reg_closes": "2026-09-01",
+                    "hero_image_url": "/images/hackwave/hackwave_main_poster.png",
+                    "banner_url": "/images/hackwave/hackwave_main_poster.png",
+                    "poster_url": "/images/hackwave/hackwave_main_poster.png",
+                    "gallery_images": [
+                        "/images/hackwave/hackwave_main_poster.png",
+                        "/images/hackwave/hackwave_cybersecurity_conclave.jpg",
+                        "/images/hackwave/hackwave_speakers.jpg",
+                        "/images/hackwave/hackwave_techfest_verticals.jpg",
+                        "/images/hackwave/hackwave_perks_pool.jpg"
+                    ],
+                    "cyber_security_conclave": {
+                        "title": "Cyber Security with AI",
+                        "presented_by": "ISC2 New Jersey Chapter x StudentAlumni.ai",
+                        "subtitle": "Global insights for students building a career in security",
+                        "date_time": "Friday, September 4, 2026 · 6:00 PM IST · 8:30 AM ET",
+                        "topics": [
+                            {"title": "Global security trends", "description": "Where the threat landscape is moving."},
+                            {"title": "AI on both sides", "description": "How AI is reshaping defence and attack."},
+                            {"title": "Certifications that matter", "description": "CISSP, CC and the paths worth it."},
+                            {"title": "Career pathways", "description": "How to enter the field from campus."}
+                        ]
+                    },
+                    "speakers": [
+                        {"name": "Jeremy Livingston", "position": "CISO & Deputy CIO", "company": "Stevens Institute of Technology", "bio": "Leading cybersecurity and higher ed IT infrastructure.", "is_panel_member": True, "category": "International Panel", "sort_order": 0, "visible": True},
+                        {"name": "Sharon Kelley", "position": "Board Member", "company": "ISC2 New Jersey Chapter (MS, MBA, CISSP, CCSP)", "bio": "Security leader, educator, and governance mentor.", "is_panel_member": True, "category": "International Panel", "sort_order": 1, "visible": True},
+                        {"name": "Suman Kalia", "position": "Associate Professor & Chair, Computer Science", "company": "Saint Peter's University", "bio": "Academic leader in algorithms and security engineering.", "is_panel_member": True, "category": "International Panel", "sort_order": 2, "visible": True},
+                        {"name": "Ken Fishkin", "position": "President", "company": "ISC2 New Jersey Chapter", "bio": "Champion for cybersecurity career entry from university campus.", "is_panel_member": True, "category": "International Panel", "sort_order": 3, "visible": True},
+                        {"name": "Jonna Dheeraj", "position": "Account Delivery & Program Management", "company": "Embedded SW · AI · VLSI · 5G · IoT", "bio": "Building high-performance embedded systems and VLSI architectures.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 4, "visible": True},
+                        {"name": "Harish Kotra", "position": "DevX Lead", "company": "Quirq", "bio": "Developer relations leader and community builder.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 5, "visible": True},
+                        {"name": "M Avinash Rao", "position": "Client Account Manager", "company": "Deloitte", "bio": "Enterprise tech consulting and digital delivery expert.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 6, "visible": True},
+                        {"name": "Gopichand Anumolu", "position": "Founder", "company": "ATLAST", "bio": "Startup founder engineering developer tools and student platforms.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 7, "visible": True}
+                    ],
+                    "verticals": [
+                        {"title": "Build by Sunset", "description": "Ship something real between morning and dusk. Teams of 2–5, 5 AI tracks, ₹50,000 prize pool.", "icon": "rocket"},
+                        {"title": "Codethon", "description": "Pre-event coding ladder: L1 to L2 to L3. Individual, scored, closes before Sep 4.", "icon": "code"},
+                        {"title": "Voices That Build", "description": "A panel of people who have actually shipped — not people talking about shipping.", "icon": "mic"},
+                        {"title": "Meet the People Who Hire", "description": "Recruiters in the room, not behind a portal. On-the-spot internship and placement offers.", "icon": "briefcase"},
+                        {"title": "Cyber Security Conclave", "description": "Virtual, featuring the ISC2 New Jersey Chapter — global insights on trends, certifications, career pathways (Friday Sep 4, 6:00 PM IST · 8:30 AM ET).", "icon": "shield"},
+                        {"title": "International Panel", "description": "Speakers joining live on the big screen from outside India.", "icon": "globe"},
+                        {"title": "Between the Builds", "description": "Sleep, eat, work, find people. Open across both days.", "icon": "bed"},
+                        {"title": "Play After Dark", "description": "Live music when the laptops finally close.", "icon": "music"},
+                        {"title": "Build by Fireside", "description": "Where the idea you haven't shipped yet finally gets heard.", "icon": "flame"}
+                    ],
+                    "perks": [
+                        {"name": "Featherless AI", "desc": "A full account, free", "value": "$29 value", "icon": "sparkles"},
+                        {"name": "SetupMark AI", "desc": "50 credits, 2 months free", "value": "$50 value", "icon": "infinity"},
+                        {"name": "CodeSpectra AI", "desc": "3 months completely free", "value": "Assessments", "icon": "code"},
+                        {"name": "Bandiwala", "desc": "15% off food", "value": "Coupon", "icon": "utensils"},
+                        {"name": "WeHive Consulting", "desc": "15% off services", "value": "Coupon", "icon": "briefcase"},
+                        {"name": "Four meal coupons", "desc": "Lunch, dinner, midnight, breakfast", "value": "Included", "icon": "coffee"},
+                        {"name": "Certificates for all", "desc": "Participation and winner certificates", "value": "Verifiable", "icon": "award"},
+                        {"name": "On-the-spot offers", "desc": "Internship and placement offers, in the room", "value": "Live", "icon": "check"},
+                        {"name": "Surprise goodies", "desc": "Extra prizes and drops announced on the day", "value": "Surprise", "icon": "gift"}
+                    ],
+                    "categories": [
+                        {"name": "AI That Solves a Real Problem", "description": "Build an AI application that solves a meaningful, real-world problem with high value.", "icon": "target", "color": "#F43F5E"},
+                        {"name": "Beyond the Chatbot", "description": "Reimagine AI interaction via voice, visual, workflows, and automation.", "icon": "rocket", "color": "#8B5CF6"},
+                        {"name": "AI for Builders", "description": "Developer and creator tools that remove friction and accelerate workflows.", "icon": "wrench", "color": "#3B82F6"},
+                        {"name": "Autonomous AI Workflows", "description": "Multi-step reasoning, tool-using autonomous agent systems.", "icon": "cpu", "color": "#10B981"},
+                        {"name": "Build the Unexpected", "description": "Original, creative, and ambitious concepts that surprise and delight.", "icon": "sparkles", "color": "#F59E0B"}
+                    ],
+                    "registration": {
+                        "status": "open",
+                        "fee": 599,
+                        "individual_fee": 599,
+                        "team_fee": 2495,
+                        "currency": "INR",
+                        "available_seats": 985,
+                        "team_slots_available": 197,
+                        "deadline": "2026-09-01T23:59:59Z",
+                        "external_url": None,
+                        "payment_url": None
+                    },
+                    "partners": [
+                        {"name": "CodeSpectra", "kind": "association", "logo_url": None},
+                        {"name": "Featherless", "kind": "association", "logo_url": None},
+                        {"name": "Stepupmark", "kind": "association", "logo_url": None},
+                        {"name": "Bandiwala", "kind": "perk", "logo_url": None},
+                        {"name": "WeHive", "kind": "perk", "logo_url": None}
+                    ],
+                    "handbook_url": "/HackWave_3.0_Event_Handbook.pdf",
+                    "created_at": _now(),
+                    "updated_at": _now()
+                }
                 await db.echo_showcases.insert_one(hw_doc)
                 doc = await db.echo_showcases.find_one(_slug_query(slug))
 
@@ -3816,9 +3906,18 @@ async def get_ticket(reg_id: str, request: Request, email: Optional[str] = Query
             is_admin = False
     if not is_admin:
         allowed_email = (reg.get("email") or "").strip().lower()
+        allowed_emails = {allowed_email} if allowed_email else set()
+        
+        team_members = reg.get("team_members", [])
+        if isinstance(team_members, list):
+            for m in team_members:
+                if isinstance(m, dict) and m.get("email"):
+                    allowed_emails.add(m.get("email").strip().lower())
+                    
+        user_email = (user.get("email") or "").strip().lower() if user else ""
         owner_match = user is not None and (
             str(user["_id"]) == reg.get("user_id")
-            or (user.get("email") or "").strip().lower() == allowed_email
+            or user_email in allowed_emails
         )
         # Also allow access if email query param matches (guest registrations)
         req_email = (email or "").strip().lower()
@@ -5151,11 +5250,14 @@ async def scan_coupon_get(code: str, request: Request):
     reg = None
     if query:
         reg = await db.echo_registrations.find_one(query)
-        if not reg:
-            reg_id_parsed = parsed.get("reg_id")
-            reg = await db.echo_registrations.find_one({"id": reg_id_parsed.lower() if reg_id_parsed else None})
+        if not reg and parsed.get("reg_id"):
+            reg = await db.echo_registrations.find_one({
+                "id": {"$regex": f"^{parsed['reg_id']}$", "$options": "i"}
+            })
     if not reg:
-        reg = await db.echo_registrations.find_one({"id": raw.lower()})
+        reg = await db.echo_registrations.find_one({
+            "id": {"$regex": f"^{raw}$", "$options": "i"}
+        })
 
     if not reg:
         raise HTTPException(status_code=404, detail="Invalid code")
