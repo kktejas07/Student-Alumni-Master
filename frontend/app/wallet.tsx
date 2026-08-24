@@ -15,10 +15,7 @@
  *       • Redeem new coupons using SA credits balance
  */
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import {
-  View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator,
-  TextInput, Platform, useWindowDimensions, Modal, Linking,
-} from 'react-native';
+import {View, Text, Pressable, ScrollView, ActivityIndicator, TextInput, Platform, useWindowDimensions, Modal, Linking} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Wallet, Sparkles, CircleCheck as CheckCircle2, Copy, ExternalLink, Clock,
@@ -216,6 +213,45 @@ function fmtCredits(n: number): string {
   if (!isFinite(n)) return '0';
   return Math.round(n).toLocaleString('en-IN');
 }
+
+
+const styles = {
+  embeddedShell: { flex: 1, backgroundColor: 'transparent', gap: 24, paddingBottom: 60 },
+  shell: { flex: 1, backgroundColor: '#08080F' },
+  contentContainer: { paddingVertical: 24, paddingHorizontal: 20, paddingBottom: 80, gap: 24, maxWidth: 1280, width: '100%' as any, alignSelf: 'center' as any },
+  regenBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(129,140,248,0.30)', backgroundColor: 'rgba(129,140,248,0.30)' },
+  regenBtnHover: { backgroundColor: 'rgba(129,140,248,0.30)' },
+  reportBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10, backgroundColor: '#7C3AED' },
+  reportBtnHover: { backgroundColor: '#6366F1' },
+  kpiCard: { flex: 1, minWidth: 160, backgroundColor: '#101019', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderRadius: 16, padding: 16, gap: 6 },
+  kpiIconBox: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  tabItem: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
+  tabItemActive: { backgroundColor: '#7C3AED' },
+  tabText: { color: '#8A8A9E', fontFamily: '700', fontSize: 13 },
+  tabTextActive: { color: '#FFF' },
+  twoColRow: { flexDirection: 'Platform.OS === 'web' ? ('row' as any) : 'column'', gap: 24, alignItems: 'stretch' },
+  txIconBox: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  txAmount: { fontFamily: '700', fontSize: 14 },
+  filterChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1 },
+  filterChipActive: { backgroundColor: '#7C3AED', borderColor: '#A78BFA' },
+  filterChipText: { color: '#8A8A9E', fontFamily: '700', fontSize: 12 },
+  filterChipTextActive: { color: '#FFF' },
+  couponCard: { flexBasis: 'Platform.OS === 'web' ? 340 : '100%'', flexGrow: 1, backgroundColor: '#101019', borderWidth: 1, borderRadius: 16, padding: 18, gap: 10 },
+  couponBrandBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, borderWidth: 1 },
+  couponBrandText: { fontFamily: '800', fontSize: 12 },
+  statusPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  statusPillText: { fontFamily: '700', fontSize: 11 },
+  presetChip: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1 },
+  presetChipActive: { backgroundColor: '#7C3AED', borderColor: '#A78BFA' },
+  presetText: { color: '#F4F4FA', fontFamily: '700', fontSize: 13 },
+  presetTextActive: { color: '#FFF' },
+  methodBox: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1 },
+  methodBoxActive: { borderColor: '#A78BFA', backgroundColor: 'rgba(129,140,248,0.30)' },
+  methodText: { color: '#8A8A9E', fontFamily: '500', fontSize: 13 },
+  methodTextActive: { color: '#FFF', fontFamily: '700' },
+  calcVal: { color: '#FFF', fontFamily: '700', fontSize: 13 },
+  txFullAmount: { fontFamily: '800', fontSize: 15 },
+};
 
 export default function WalletScreen() {
   const router = useRouter();
@@ -438,14 +474,14 @@ export default function WalletScreen() {
     <Container {...containerProps}>
 
       {/* ══════════════ 1. HEADER BANNER ══════════════ */}
-      <View style={s.headerBar}>
-        <View style={s.headerLeft}>
-          <Text style={s.greetingText}>
+      <View className="flex-row items-center justify-between flex-wrap gap-3">
+        <View className="flex-1 min-w-70">
+          <Text className="text-base">
             Welcome back, {studentName}! Manage your SA Credits, Deals & Cashouts.
           </Text>
         </View>
 
-        <View style={s.headerActions}>
+        <View className="flex-row items-center gap-2.5">
           <Pressable
             onPress={() => fetchSummary(true)}
             disabled={refreshing}
@@ -457,7 +493,7 @@ export default function WalletScreen() {
             {refreshing ? (
               <ActivityIndicator size={13} color={C.purpleL} />
             ) : (
-              <Text style={s.regenBtnText}>↺ Sync Balance</Text>
+              <Text className="text-xs">↺ Sync Balance</Text>
             )}
           </Pressable>
 
@@ -469,64 +505,64 @@ export default function WalletScreen() {
             ]}
           >
             <PlusCircle size={14} color="#FFF" />
-            <Text style={s.reportBtnText}>Add Funds</Text>
+            <Text className="text-xs text-text">Add Funds</Text>
           </Pressable>
         </View>
       </View>
 
       {/* ══════════════ 2. KPI METRICS STRIP (4 Cards) ══════════════ */}
-      <View style={s.kpiRow}>
+      <View className="flex-row gap-3.5">
         {/* Card 1: Balance */}
-        <View style={[s.kpiCard, { borderColor: 'rgba(129, 140, 248, 0.35)' }]}>
-          <View style={s.kpiTopRow}>
-            <Text style={s.kpiLabel}>WALLET BALANCE</Text>
-            <View style={[s.kpiIconBox, { backgroundColor: 'rgba(129, 140, 248, 0.15)' }]}>
+        <View style={[styles.kpiCard, { borderColor: 'rgba(129, 140, 248, 0.35)' }]}>
+          <View className="flex-row items-center justify-between">
+            <Text className="text-xs">WALLET BALANCE</Text>
+            <View style={[styles.kpiIconBox, { backgroundColor: 'rgba(129, 140, 248, 0.15)' }]}>
               <Wallet size={16} color={C.purpleL} />
             </View>
           </View>
-          <Text style={s.kpiValue}>{fmtINR(balanceInr)}</Text>
-          <Text style={s.kpiSubText}>✦ {fmtCredits(balancePts)} SA Credits</Text>
+          <Text className="text-lg text-text">{fmtINR(balanceInr)}</Text>
+          <Text className="text-xs">✦ {fmtCredits(balancePts)} SA Credits</Text>
         </View>
 
         {/* Card 2: Rewards Level */}
-        <View style={[s.kpiCard, { borderColor: 'rgba(245, 158, 11, 0.35)' }]}>
-          <View style={s.kpiTopRow}>
-            <Text style={s.kpiLabel}>REWARDS TIER</Text>
-            <View style={[s.kpiIconBox, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
+        <View style={[styles.kpiCard, { borderColor: 'rgba(245, 158, 11, 0.35)' }]}>
+          <View className="flex-row items-center justify-between">
+            <Text className="text-xs">REWARDS TIER</Text>
+            <View style={[styles.kpiIconBox, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
               <Award size={16} color={C.amber} />
             </View>
           </View>
-          <Text style={s.kpiValue}>Level 3 Gold</Text>
-          <Text style={s.kpiSubText}>7,500 pts to Platinum</Text>
+          <Text className="text-lg text-text">Level 3 Gold</Text>
+          <Text className="text-xs">7,500 pts to Platinum</Text>
         </View>
 
         {/* Card 3: Active Coupons */}
-        <Pressable onPress={() => setTab('coupons')} style={[s.kpiCard, { borderColor: 'rgba(52, 211, 153, 0.35)' }]}>
-          <View style={s.kpiTopRow}>
-            <Text style={s.kpiLabel}>MY COUPONS</Text>
-            <View style={[s.kpiIconBox, { backgroundColor: 'rgba(52, 211, 153, 0.15)' }]}>
+        <Pressable onPress={() => setTab('coupons')} style={[styles.kpiCard, { borderColor: 'rgba(52, 211, 153, 0.35)' }]}>
+          <View className="flex-row items-center justify-between">
+            <Text className="text-xs">MY COUPONS</Text>
+            <View style={[styles.kpiIconBox, { backgroundColor: 'rgba(52, 211, 153, 0.15)' }]}>
               <Tag size={16} color={C.green} />
             </View>
           </View>
-          <Text style={s.kpiValue}>{activeCount} Active</Text>
-          <Text style={s.kpiSubText}>{usedCount} Coupons Used</Text>
+          <Text className="text-lg text-text">{activeCount} Active</Text>
+          <Text className="text-xs">{usedCount} Coupons Used</Text>
         </Pressable>
 
         {/* Card 4: Lifetime Savings */}
-        <View style={[s.kpiCard, { borderColor: 'rgba(96, 165, 250, 0.35)' }]}>
-          <View style={s.kpiTopRow}>
-            <Text style={s.kpiLabel}>TOTAL SAVED</Text>
-            <View style={[s.kpiIconBox, { backgroundColor: 'rgba(96, 165, 250, 0.15)' }]}>
+        <View style={[styles.kpiCard, { borderColor: 'rgba(96, 165, 250, 0.35)' }]}>
+          <View className="flex-row items-center justify-between">
+            <Text className="text-xs">TOTAL SAVED</Text>
+            <View style={[styles.kpiIconBox, { backgroundColor: 'rgba(96, 165, 250, 0.15)' }]}>
               <Zap size={16} color={C.blue} />
             </View>
           </View>
-          <Text style={s.kpiValue}>{fmtINR(4850)}</Text>
-          <Text style={s.kpiSubText}>Across 5 SA partner deals</Text>
+          <Text className="text-lg text-text">{fmtINR(4850)}</Text>
+          <Text className="text-xs">Across 5 SA partner deals</Text>
         </View>
       </View>
 
       {/* ══════════════ 3. NAVIGATION TAB STRIP ══════════════ */}
-      <View style={s.tabBarRow}>
+      <View className="flex-row flex-wrap gap-2 rounded-xl p-2">
         {[
           { id: 'overview', label: 'Overview', icon: Wallet },
           { id: 'coupons', label: `My Coupons (${activeCount})`, icon: Tag },
@@ -540,10 +576,10 @@ export default function WalletScreen() {
             <Pressable
               key={t.id}
               onPress={() => setTab(t.id as any)}
-              style={[s.tabItem, isActive && s.tabItemActive]}
+              style={[styles.tabItem, isActive && s.tabItemActive]}
             >
               <IconComp size={15} color={isActive ? '#FFF' : C.textSub} />
-              <Text style={[s.tabText, isActive && s.tabTextActive]}>{t.label}</Text>
+              <Text style={[styles.tabText, isActive && s.tabTextActive]}>{t.label}</Text>
             </Pressable>
           );
         })}
@@ -558,35 +594,35 @@ export default function WalletScreen() {
           <LinearGradient
             colors={['rgba(79, 70, 229, 0.40)', 'rgba(24, 18, 48, 0.85)', 'rgba(18, 22, 35, 0.95)']}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-            style={s.heroCard}
+            className="rounded-2xl p-6 overflow-hidden"
           >
-            <View style={s.heroContentRow}>
+            <View className="flex-row items-center">
               <View style={{ flex: 1, gap: 8 }}>
-                <Text style={s.heroOverline}>AVAILABLE BALANCE</Text>
-                <Text style={s.heroBalanceBig}>{fmtINR(balanceInr)}</Text>
-                <Text style={s.heroBalanceSub}>Equal to {fmtCredits(balancePts)} SA Credits</Text>
+                <Text className="text-xs">AVAILABLE BALANCE</Text>
+                <Text className="text-text">{fmtINR(balanceInr)}</Text>
+                <Text className="text-sm">Equal to {fmtCredits(balancePts)} SA Credits</Text>
                 
-                <View style={s.heroQuickRow}>
-                  <Pressable onPress={() => setTab('topup')} style={s.heroBtnPrimary}>
+                <View className="flex-row flex-wrap gap-2.5 mt-3">
+                  <Pressable onPress={() => setTab('topup')} className="flex-row items-center gap-1.5 rounded-xl px-4 py-3">
                     <PlusCircle size={14} color="#FFF" />
-                    <Text style={s.heroBtnText}>Top-Up Wallet</Text>
+                    <Text className="text-sm text-text">Top-Up Wallet</Text>
                   </Pressable>
-                  <Pressable onPress={() => setTab('coupons')} style={s.heroBtnSecondary}>
+                  <Pressable onPress={() => setTab('coupons')} className="flex-row items-center gap-1.5 rounded-xl px-4 py-3">
                     <Tag size={14} color={C.purpleL} />
-                    <Text style={s.heroBtnTextSec}>View My Coupons</Text>
+                    <Text className="text-sm">View My Coupons</Text>
                   </Pressable>
-                  <Pressable onPress={() => setTab('withdraw')} style={s.heroBtnSecondary}>
+                  <Pressable onPress={() => setTab('withdraw')} className="flex-row items-center gap-1.5 rounded-xl px-4 py-3">
                     <ArrowUpRight size={14} color={C.teal} />
-                    <Text style={s.heroBtnTextSec}>Redeem Cash</Text>
+                    <Text className="text-sm">Redeem Cash</Text>
                   </Pressable>
                 </View>
               </View>
 
               {isTablet && (
-                <View style={s.heroRightTile}>
-                  <Text style={s.heroTileTitle}>CONVERSION RATE</Text>
-                  <Text style={s.heroTileVal}>25 Pts = ₹1 INR</Text>
-                  <Text style={s.heroTileDesc}>Earn SA credits by completing profile tasks, attending events & referring alumni.</Text>
+                <View className="gap-1.5 rounded-xl p-4 w-60">
+                  <Text className="text-xs">CONVERSION RATE</Text>
+                  <Text className="text-lg">25 Pts = ₹1 INR</Text>
+                  <Text className="text-xs">Earn SA credits by completing profile tasks, attending events & referring alumni.</Text>
                 </View>
               )}
             </View>
@@ -595,29 +631,29 @@ export default function WalletScreen() {
           {/* Money Coach & Recent Activity */}
           <View style={s.twoColRow}>
             {/* Money Coach Assistant */}
-            <View style={s.colCard}>
-              <View style={s.cardHeader}>
+            <View className="flex-1 gap-4 rounded-2xl p-5">
+              <View className="flex-row items-center justify-between">
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <Sparkles size={16} color={C.purpleL} />
-                  <Text style={s.sectionTitle}>MONEY COACH AI</Text>
+                  <Text className="text-base">MONEY COACH AI</Text>
                 </View>
               </View>
               <MoneyCoach />
             </View>
 
             {/* Recent Activity */}
-            <View style={s.colCard}>
-              <View style={s.cardHeader}>
-                <Text style={s.sectionTitle}>RECENT ACTIVITY</Text>
+            <View className="flex-1 gap-4 rounded-2xl p-5">
+              <View className="flex-row items-center justify-between">
+                <Text className="text-base">RECENT ACTIVITY</Text>
                 <Pressable onPress={() => setTab('history')}>
-                  <Text style={s.cardBottomLinkText}>View All ➔</Text>
+                  <Text className="text-sm">View All ➔</Text>
                 </Pressable>
               </View>
 
               <View style={{ gap: 10 }}>
                 {(data?.history || []).slice(0, 4).map((tx, idx) => (
-                  <View key={tx.id || idx} style={s.txRow}>
-                    <View style={[s.txIconBox, { backgroundColor: tx.type === 'credit' ? 'rgba(52, 211, 153, 0.15)' : 'rgba(248, 113, 113, 0.15)' }]}>
+                  <View key={tx.id || idx} className="flex-row items-center gap-3 rounded-xl p-3">
+                    <View style={[styles.txIconBox, { backgroundColor: tx.type === 'credit' ? 'rgba(52, 211, 153, 0.15)' : 'rgba(248, 113, 113, 0.15)' }]}>
                       {tx.type === 'credit' ? (
                         <ArrowDownLeft size={16} color={C.green} />
                       ) : (
@@ -625,10 +661,10 @@ export default function WalletScreen() {
                       )}
                     </View>
                     <View style={{ flex: 1, gap: 2 }}>
-                      <Text style={s.txReason}>{tx.reason}</Text>
-                      <Text style={s.txDate}>{tx.ts ? new Date(tx.ts).toLocaleDateString() : 'Recent'}</Text>
+                      <Text className="text-sm text-text">{tx.reason}</Text>
+                      <Text className="text-xs">{tx.ts ? new Date(tx.ts).toLocaleDateString() : 'Recent'}</Text>
                     </View>
-                    <Text style={[s.txAmount, { color: tx.type === 'credit' ? C.green : C.red }]}>
+                    <Text style={[styles.txAmount, { color: tx.type === 'credit' ? C.green : C.red }]}>
                       {tx.type === 'credit' ? '+' : '-'}{fmtCredits(tx.amount)} pts
                     </Text>
                   </View>
@@ -643,9 +679,9 @@ export default function WalletScreen() {
       {tab === 'coupons' && (
         <View style={{ gap: 24 }}>
           {/* Sub-Header Controls */}
-          <View style={s.couponControlsRow}>
+          <View className="flex-row items-center justify-between flex-wrap gap-3">
             {/* Filter Pills */}
-            <View style={s.couponFilterGroup}>
+            <View className="flex-row gap-2">
               {[
                 { id: 'all', label: `All (${myCoupons.length})` },
                 { id: 'active', label: `Active (${activeCount})` },
@@ -654,9 +690,9 @@ export default function WalletScreen() {
                 <Pressable
                   key={f.id}
                   onPress={() => setCouponFilter(f.id as any)}
-                  style={[s.filterChip, couponFilter === f.id && s.filterChipActive]}
+                  style={[styles.filterChip, couponFilter === f.id && s.filterChipActive]}
                 >
-                  <Text style={[s.filterChipText, couponFilter === f.id && s.filterChipTextActive]}>
+                  <Text style={[styles.filterChipText, couponFilter === f.id && s.filterChipTextActive]}>
                     {f.label}
                   </Text>
                 </Pressable>
@@ -664,14 +700,14 @@ export default function WalletScreen() {
             </View>
 
             {/* Search Input */}
-            <View style={s.searchWrap}>
+            <View className="flex-row items-center rounded-xl px-3 h-10 min-w-55">
               <Search size={14} color={C.textSub} style={{ marginRight: 6 }} />
               <TextInput
                 value={couponSearch}
                 onChangeText={setCouponSearch}
                 placeholder="Search by brand or code..."
                 placeholderTextColor={C.dim}
-                style={s.searchInput}
+                className="flex-1 text-sm text-text"
               />
               {!!couponSearch && (
                 <Pressable onPress={() => setCouponSearch('')}>
@@ -684,64 +720,64 @@ export default function WalletScreen() {
           {/* Section 1: My Redeemed Coupons Grid */}
           <View>
             <View style={{ marginBottom: 12 }}>
-              <Text style={s.sectionTitle}>MY REDEEMED COUPONS</Text>
+              <Text className="text-base">MY REDEEMED COUPONS</Text>
               <Text style={{ color: C.textSub, fontSize: 13, marginTop: 2 }}>
                 Copy your unique voucher code and click "Use Now" to apply on partner websites.
               </Text>
             </View>
 
             {filteredMyCoupons.length === 0 ? (
-              <View style={s.emptyBox}>
+              <View className="items-center justify-center gap-2.5 rounded-2xl py-10">
                 <Tag size={40} color={C.dim} />
-                <Text style={s.emptyTitle}>No coupons found</Text>
-                <Text style={s.emptySub}>Redeem partner coupons below to get instant discount codes!</Text>
+                <Text className="text-base text-text">No coupons found</Text>
+                <Text className="text-sm">Redeem partner coupons below to get instant discount codes!</Text>
               </View>
             ) : (
-              <View style={s.couponsGrid}>
+              <View className="flex-row flex-wrap gap-4">
                 {filteredMyCoupons.map((c) => (
-                  <View key={c.id} style={[s.couponCard, { borderColor: c.accent + '33' }]}>
-                    <View style={s.couponCardHeader}>
-                      <View style={[s.couponBrandBadge, { backgroundColor: c.accent + '20', borderColor: c.accent + '40' }]}>
-                        <Text style={[s.couponBrandText, { color: c.accent }]}>{c.brand}</Text>
+                  <View key={c.id} style={[styles.couponCard, { borderColor: c.accent + '33' }]}>
+                    <View className="flex-row items-center justify-between">
+                      <View style={[styles.couponBrandBadge, { backgroundColor: c.accent + '20', borderColor: c.accent + '40' }]}>
+                        <Text style={[styles.couponBrandText, { color: c.accent }]}>{c.brand}</Text>
                       </View>
-                      <View style={[s.statusPill, { backgroundColor: c.status === 'active' ? 'rgba(52, 211, 153, 0.15)' : 'rgba(240, 238, 255, 0.1)' }]}>
-                        <Text style={[s.statusPillText, { color: c.status === 'active' ? C.green : C.dim }]}>
+                      <View style={[styles.statusPill, { backgroundColor: c.status === 'active' ? 'rgba(52, 211, 153, 0.15)' : 'rgba(240, 238, 255, 0.1)' }]}>
+                        <Text style={[styles.statusPillText, { color: c.status === 'active' ? C.green : C.dim }]}>
                           {c.status === 'active' ? '● Ready to Use' : '✓ Used'}
                         </Text>
                       </View>
                     </View>
 
-                    <Text style={s.couponTitle}>{c.title}</Text>
-                    <Text style={s.couponExpiry}>{c.expiry}</Text>
+                    <Text className="text-base text-text">{c.title}</Text>
+                    <Text className="text-xs">{c.expiry}</Text>
 
                     {/* Voucher Code Box */}
-                    <View style={s.voucherCodeBox}>
-                      <Text style={s.voucherCodeText}>{c.code}</Text>
-                      <Pressable onPress={() => copyCouponCode(c.code)} style={s.copyBtn}>
+                    <View className="flex-row items-center justify-between rounded-xl px-3 py-2 mt-1">
+                      <Text className="text-sm">{c.code}</Text>
+                      <Pressable onPress={() => copyCouponCode(c.code)} className="flex-row items-center gap-1 rounded-md px-2 py-1">
                         <Copy size={13} color={C.purpleL} />
-                        <Text style={s.copyBtnText}>Copy</Text>
+                        <Text className="text-xs">Copy</Text>
                       </Pressable>
                     </View>
 
                     {/* Action Buttons */}
-                    <View style={s.couponActionRow}>
+                    <View className="flex-row items-center gap-2.5 mt-2">
                       <Pressable
                         onPress={() => {
                           if (c.url) Linking.openURL(c.url);
                         }}
-                        style={s.useNowBtn}
+                        className="flex-1 flex-row items-center justify-center gap-1.5 rounded-lg py-2"
                       >
-                        <Text style={s.useNowBtnText}>Use Now</Text>
+                        <Text className="text-xs text-text">Use Now</Text>
                         <ExternalLink size={12} color="#FFF" />
                       </Pressable>
 
                       {c.status === 'active' && (
                         <Pressable
                           onPress={() => markCouponAsUsed(c.id)}
-                          style={s.markUsedBtn}
+                          className="flex-row items-center gap-1 rounded-lg px-3 py-2"
                         >
                           <CheckCircle2 size={12} color={C.textSub} />
-                          <Text style={s.markUsedText}>Mark Used</Text>
+                          <Text className="text-xs">Mark Used</Text>
                         </Pressable>
                       )}
                     </View>
@@ -754,28 +790,28 @@ export default function WalletScreen() {
           {/* Section 2: Catalog of Redeemable Partner Coupons */}
           <View style={{ marginTop: 16 }}>
             <View style={{ marginBottom: 14 }}>
-              <Text style={s.sectionTitle}>REDEEM NEW PARTNER COUPONS</Text>
+              <Text className="text-base">REDEEM NEW PARTNER COUPONS</Text>
               <Text style={{ color: C.textSub, fontSize: 13, marginTop: 2 }}>
                 Use your SA Credits balance to unlock exclusive discounts & free passes.
               </Text>
             </View>
 
-            <View style={s.couponsGrid}>
+            <View className="flex-row flex-wrap gap-4">
               {AVAILABLE_CATALOG_COUPONS.map((cat) => (
-                <View key={cat.id} style={[s.couponCard, { borderColor: 'rgba(255,255,255,0.08)' }]}>
-                  <View style={s.couponCardHeader}>
-                    <View style={[s.couponBrandBadge, { backgroundColor: cat.accent + '20', borderColor: cat.accent + '40' }]}>
-                      <Text style={[s.couponBrandText, { color: cat.accent }]}>{cat.brand}</Text>
+                <View key={cat.id} style={[styles.couponCard, { borderColor: 'rgba(255,255,255,0.08)' }]}>
+                  <View className="flex-row items-center justify-between">
+                    <View style={[styles.couponBrandBadge, { backgroundColor: cat.accent + '20', borderColor: cat.accent + '40' }]}>
+                      <Text style={[styles.couponBrandText, { color: cat.accent }]}>{cat.brand}</Text>
                     </View>
-                    <View style={s.discountChip}>
-                      <Text style={s.discountChipText}>{cat.discount}</Text>
+                    <View className="rounded-md px-2 py-1">
+                      <Text className="text-xs">{cat.discount}</Text>
                     </View>
                   </View>
 
-                  <Text style={s.couponTitle}>{cat.title}</Text>
-                  <Text style={s.couponExpiry}>{cat.expiry}</Text>
+                  <Text className="text-base text-text">{cat.title}</Text>
+                  <Text className="text-xs">{cat.expiry}</Text>
 
-                  <View style={s.redeemCatalogFooter}>
+                  <View className="flex-row items-center justify-between pt-3 mt-2">
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                       <Star size={14} color={C.amber} />
                       <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 13 }}>{cat.cost_credits} Pts</Text>
@@ -783,9 +819,9 @@ export default function WalletScreen() {
 
                     <Pressable
                       onPress={() => redeemCatalogCoupon(cat)}
-                      style={s.redeemCatalogBtn}
+                      className="rounded-lg px-3 py-2"
                     >
-                      <Text style={s.redeemCatalogBtnText}>Redeem Coupon</Text>
+                      <Text className="text-xs">Redeem Coupon</Text>
                     </Pressable>
                   </View>
                 </View>
@@ -797,9 +833,9 @@ export default function WalletScreen() {
 
       {/* ── TAB 3: ADD FUNDS ── */}
       {tab === 'topup' && (
-        <View style={s.formColCard}>
-          <View style={s.cardHeader}>
-            <Text style={s.sectionTitle}>ADD FUNDS TO WALLET</Text>
+        <View className="self-center rounded-2xl p-6">
+          <View className="flex-row items-center justify-between">
+            <Text className="text-base">ADD FUNDS TO WALLET</Text>
           </View>
           <Text style={{ color: C.text2, fontSize: 14 }}>
             Top up your SA Wallet using UPI, Card, or Netbanking. Get +10% bonus SA credits on every top-up!
@@ -807,15 +843,15 @@ export default function WalletScreen() {
 
           {/* Amount Presets */}
           <View style={{ gap: 8, marginTop: 8 }}>
-            <Text style={s.inputLabel}>SELECT AMOUNT (INR)</Text>
-            <View style={s.presetsGrid}>
+            <Text className="text-xs">SELECT AMOUNT (INR)</Text>
+            <View className="flex-row flex-wrap gap-2">
               {TOPUP_PRESETS.map((amt) => (
                 <Pressable
                   key={`top-preset-${amt}`}
                   onPress={() => setTopupAmount(String(amt))}
-                  style={[s.presetChip, topupAmount === String(amt) && s.presetChipActive]}
+                  style={[styles.presetChip, topupAmount === String(amt) && s.presetChipActive]}
                 >
-                  <Text style={[s.presetText, topupAmount === String(amt) && s.presetTextActive]}>
+                  <Text style={[styles.presetText, topupAmount === String(amt) && s.presetTextActive]}>
                     ₹{amt}
                   </Text>
                 </Pressable>
@@ -825,20 +861,20 @@ export default function WalletScreen() {
 
           {/* Custom Input */}
           <View style={{ gap: 6 }}>
-            <Text style={s.inputLabel}>CUSTOM AMOUNT (INR)</Text>
+            <Text className="text-xs">CUSTOM AMOUNT (INR)</Text>
             <TextInput
               value={topupAmount}
               onChangeText={setTopupAmount}
               keyboardType="numeric"
               placeholder="Enter amount in ₹"
               placeholderTextColor={C.dim}
-              style={s.textInputCustom}
+              className="rounded-xl px-4 py-3 text-sm text-text"
             />
           </View>
 
           {/* Payment Method Selector */}
           <View style={{ gap: 8 }}>
-            <Text style={s.inputLabel}>PAYMENT METHOD</Text>
+            <Text className="text-xs">PAYMENT METHOD</Text>
             <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
               {[
                 { id: 'upi', label: 'UPI / GPay / PhonePe', icon: Zap },
@@ -851,10 +887,10 @@ export default function WalletScreen() {
                   <Pressable
                     key={m.id}
                     onPress={() => setTopupMethod(m.id as any)}
-                    style={[s.methodBox, isSel && s.methodBoxActive]}
+                    style={[styles.methodBox, isSel && s.methodBoxActive]}
                   >
                     <IconC size={16} color={isSel ? C.purpleL : C.textSub} />
-                    <Text style={[s.methodText, isSel && s.methodTextActive]}>{m.label}</Text>
+                    <Text style={[styles.methodText, isSel && s.methodTextActive]}>{m.label}</Text>
                   </Pressable>
                 );
               })}
@@ -862,30 +898,30 @@ export default function WalletScreen() {
           </View>
 
           {/* Calculation summary */}
-          <View style={s.calcSummaryBox}>
-            <View style={s.calcRow}>
-              <Text style={s.calcLabel}>Top-up Amount:</Text>
-              <Text style={s.calcVal}>{fmtINR(parseFloat(topupAmount) || 0)}</Text>
+          <View className="gap-2 rounded-xl p-4">
+            <View className="flex-row items-center justify-between">
+              <Text className="text-sm">Top-up Amount:</Text>
+              <Text className="text-sm text-text">{fmtINR(parseFloat(topupAmount) || 0)}</Text>
             </View>
-            <View style={s.calcRow}>
-              <Text style={s.calcLabel}>Base SA Credits (25x):</Text>
-              <Text style={s.calcVal}>+{fmtCredits((parseFloat(topupAmount) || 0) * 25)} Pts</Text>
+            <View className="flex-row items-center justify-between">
+              <Text className="text-sm">Base SA Credits (25x):</Text>
+              <Text className="text-sm text-text">+{fmtCredits((parseFloat(topupAmount) || 0) * 25)} Pts</Text>
             </View>
-            <View style={s.calcRow}>
-              <Text style={s.calcLabel}>10% Bonus Points:</Text>
-              <Text style={[s.calcVal, { color: C.green }]}>+{fmtCredits((parseFloat(topupAmount) || 0) * 2.5)} Pts</Text>
+            <View className="flex-row items-center justify-between">
+              <Text className="text-sm">10% Bonus Points:</Text>
+              <Text style={[styles.calcVal, { color: C.green }]}>+{fmtCredits((parseFloat(topupAmount) || 0) * 2.5)} Pts</Text>
             </View>
           </View>
 
           <Pressable
             onPress={handleTopupSubmit}
             disabled={topupSubmitting}
-            style={s.submitActionBtn}
+            className="items-center justify-center rounded-xl py-3 mt-2"
           >
             {topupSubmitting ? (
               <ActivityIndicator size={16} color="#FFF" />
             ) : (
-              <Text style={s.submitActionText}>Proceed to Pay {fmtINR(parseFloat(topupAmount) || 0)}</Text>
+              <Text className="text-sm text-text">Proceed to Pay {fmtINR(parseFloat(topupAmount) || 0)}</Text>
             )}
           </Pressable>
         </View>
@@ -893,9 +929,9 @@ export default function WalletScreen() {
 
       {/* ── TAB 4: REDEEM / CASHOUT ── */}
       {tab === 'withdraw' && (
-        <View style={s.formColCard}>
-          <View style={s.cardHeader}>
-            <Text style={s.sectionTitle}>REDEEM SA CREDITS FOR CASH</Text>
+        <View className="self-center rounded-2xl p-6">
+          <View className="flex-row items-center justify-between">
+            <Text className="text-base">REDEEM SA CREDITS FOR CASH</Text>
           </View>
           <Text style={{ color: C.text2, fontSize: 14 }}>
             Convert your earned SA Credits back to real cash. Funds are transferred directly to your UPI ID or Bank account.
@@ -903,38 +939,38 @@ export default function WalletScreen() {
 
           {/* Custom Input */}
           <View style={{ gap: 6 }}>
-            <Text style={s.inputLabel}>AMOUNT TO CASH OUT (INR)</Text>
+            <Text className="text-xs">AMOUNT TO CASH OUT (INR)</Text>
             <TextInput
               value={wdAmountInr}
               onChangeText={setWdAmountInr}
               keyboardType="numeric"
               placeholder="Minimum ₹100"
               placeholderTextColor={C.dim}
-              style={s.textInputCustom}
+              className="rounded-xl px-4 py-3 text-sm text-text"
             />
           </View>
 
           {/* Withdrawal Target Input */}
           <View style={{ gap: 6 }}>
-            <Text style={s.inputLabel}>ENTER YOUR UPI ID OR BANK DETAILS</Text>
+            <Text className="text-xs">ENTER YOUR UPI ID OR BANK DETAILS</Text>
             <TextInput
               value={wdTarget}
               onChangeText={setWdTarget}
               placeholder="e.g. username@upi or Account Number & IFSC"
               placeholderTextColor={C.dim}
-              style={s.textInputCustom}
+              className="rounded-xl px-4 py-3 text-sm text-text"
             />
           </View>
 
           <Pressable
             onPress={handleWithdrawSubmit}
             disabled={wdSubmitting}
-            style={s.submitActionBtn}
+            className="items-center justify-center rounded-xl py-3 mt-2"
           >
             {wdSubmitting ? (
               <ActivityIndicator size={16} color="#FFF" />
             ) : (
-              <Text style={s.submitActionText}>Request Cashout ({fmtCredits((parseFloat(wdAmountInr) || 0) * 25)} Pts)</Text>
+              <Text className="text-sm text-text">Request Cashout ({fmtCredits((parseFloat(wdAmountInr) || 0) * 25)} Pts)</Text>
             )}
           </Pressable>
         </View>
@@ -942,15 +978,15 @@ export default function WalletScreen() {
 
       {/* ── TAB 5: HISTORY ── */}
       {tab === 'history' && (
-        <View style={s.formColCard}>
-          <View style={s.cardHeader}>
-            <Text style={s.sectionTitle}>TRANSACTION HISTORY</Text>
+        <View className="self-center rounded-2xl p-6">
+          <View className="flex-row items-center justify-between">
+            <Text className="text-base">TRANSACTION HISTORY</Text>
           </View>
 
           <View style={{ gap: 12 }}>
             {(data?.history || []).map((tx, idx) => (
-              <View key={tx.id || idx} style={s.txFullRow}>
-                <View style={[s.txIconBox, { backgroundColor: tx.type === 'credit' ? 'rgba(52, 211, 153, 0.15)' : 'rgba(248, 113, 113, 0.15)' }]}>
+              <View key={tx.id || idx} className="flex-row items-center gap-3.5 rounded-xl p-4">
+                <View style={[styles.txIconBox, { backgroundColor: tx.type === 'credit' ? 'rgba(52, 211, 153, 0.15)' : 'rgba(248, 113, 113, 0.15)' }]}>
                   {tx.type === 'credit' ? (
                     <ArrowDownLeft size={18} color={C.green} />
                   ) : (
@@ -959,17 +995,17 @@ export default function WalletScreen() {
                 </View>
 
                 <View style={{ flex: 1, gap: 2 }}>
-                  <Text style={s.txFullReason}>{tx.reason}</Text>
-                  <Text style={s.txFullMeta}>
+                  <Text className="text-sm text-text">{tx.reason}</Text>
+                  <Text className="text-xs">
                     ID: {tx.id || 'TX-8921'} · {tx.ts ? new Date(tx.ts).toLocaleString() : 'Recent'}
                   </Text>
                 </View>
 
                 <View style={{ alignItems: 'flex-end', gap: 2 }}>
-                  <Text style={[s.txFullAmount, { color: tx.type === 'credit' ? C.green : C.red }]}>
+                  <Text style={[styles.txFullAmount, { color: tx.type === 'credit' ? C.green : C.red }]}>
                     {tx.type === 'credit' ? '+' : '-'}{fmtCredits(tx.amount)} Pts
                   </Text>
-                  <Text style={s.txFullBal}>Bal: {fmtCredits(tx.balance_after || 0)} Pts</Text>
+                  <Text className="text-xs">Bal: {fmtCredits(tx.balance_after || 0)} Pts</Text>
                 </View>
               </View>
             ))}
@@ -982,678 +1018,4 @@ export default function WalletScreen() {
 }
 
 /* ────────── Styles ────────── */
-const s = StyleSheet.create({
-  shell: {
-    flex: 1,
-    backgroundColor: C.bg,
-  },
-  embeddedShell: {
-    flex: 1,
-    backgroundColor: 'transparent',
-    gap: 24,
-    paddingBottom: 60,
-  },
-  contentContainer: {
-    paddingVertical: 24,
-    paddingHorizontal: 20,
-    paddingBottom: 80,
-    gap: 24,
-    maxWidth: 1280,
-    width: '100%' as any,
-    alignSelf: 'center' as any,
-  },
 
-  /* Header */
-  headerBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  headerLeft: {
-    flex: 1,
-    minWidth: 280,
-  },
-  greetingText: {
-    color: C.text,
-    fontFamily: FT.med,
-    fontSize: 15,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  regenBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(129, 140, 248, 0.35)',
-    backgroundColor: 'rgba(129, 140, 248, 0.08)',
-  },
-  regenBtnHover: {
-    backgroundColor: 'rgba(129, 140, 248, 0.18)',
-  },
-  regenBtnText: {
-    color: C.purpleL,
-    fontFamily: FT.bold,
-    fontSize: 12,
-  },
-  reportBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: C.purple2,
-  },
-  reportBtnHover: {
-    backgroundColor: '#6366F1',
-  },
-  reportBtnText: {
-    color: '#FFF',
-    fontFamily: FT.bold,
-    fontSize: 12,
-  },
-
-  /* KPI Row */
-  kpiRow: {
-    flexDirection: 'row',
-    gap: 14,
-    flexWrap: Platform.OS === 'web' ? ('nowrap' as any) : 'wrap',
-  },
-  kpiCard: {
-    flex: 1,
-    minWidth: 160,
-    backgroundColor: C.bgCard,
-    borderColor: C.border,
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 16,
-    gap: 6,
-  },
-  kpiTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  kpiLabel: {
-    color: C.purpleXL,
-    fontFamily: FT.bold,
-    fontSize: 11,
-    letterSpacing: 1.1,
-  },
-  kpiIconBox: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  kpiValue: {
-    color: '#FFF',
-    fontFamily: FT.xbold,
-    fontSize: 22,
-  },
-  kpiSubText: {
-    color: C.textSub,
-    fontFamily: FT.med,
-    fontSize: 12,
-  },
-
-  /* Tab Bar */
-  tabBarRow: {
-    flexDirection: 'row',
-    gap: 8,
-    backgroundColor: 'rgba(18, 22, 35, 0.60)',
-    borderColor: C.border,
-    borderWidth: 1,
-    borderRadius: 14,
-    padding: 6,
-    flexWrap: 'wrap',
-  },
-  tabItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 10,
-  },
-  tabItemActive: {
-    backgroundColor: C.purple2,
-  },
-  tabText: {
-    color: C.textSub,
-    fontFamily: FT.bold,
-    fontSize: 13,
-  },
-  tabTextActive: {
-    color: '#FFF',
-  },
-
-  /* Hero Card */
-  heroCard: {
-    borderRadius: 16,
-    borderColor: 'rgba(129, 140, 248, 0.30)',
-    borderWidth: 1,
-    padding: 24,
-    overflow: 'hidden',
-  },
-  heroContentRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 24,
-  },
-  heroOverline: {
-    color: C.purpleXL,
-    fontFamily: FT.bold,
-    fontSize: 11,
-    letterSpacing: 1.2,
-  },
-  heroBalanceBig: {
-    color: '#FFF',
-    fontFamily: FT.xbold,
-    fontSize: 38,
-  },
-  heroBalanceSub: {
-    color: C.text2,
-    fontFamily: FT.med,
-    fontSize: 14,
-  },
-  heroQuickRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 12,
-    flexWrap: 'wrap',
-  },
-  heroBtnPrimary: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: C.purple2,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 10,
-  },
-  heroBtnText: {
-    color: '#FFF',
-    fontFamily: FT.bold,
-    fontSize: 13,
-  },
-  heroBtnSecondary: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderColor: C.border2,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 10,
-  },
-  heroBtnTextSec: {
-    color: C.text,
-    fontFamily: FT.bold,
-    fontSize: 13,
-  },
-  heroRightTile: {
-    width: 240,
-    backgroundColor: 'rgba(0,0,0,0.30)',
-    borderColor: C.border,
-    borderWidth: 1,
-    borderRadius: 14,
-    padding: 16,
-    gap: 6,
-  },
-  heroTileTitle: {
-    color: C.purpleXL,
-    fontFamily: FT.bold,
-    fontSize: 11,
-    letterSpacing: 1,
-  },
-  heroTileVal: {
-    color: C.teal,
-    fontFamily: FT.xbold,
-    fontSize: 18,
-  },
-  heroTileDesc: {
-    color: C.textSub,
-    fontFamily: FT.med,
-    fontSize: 12,
-    lineHeight: 16,
-  },
-
-  /* 2 Col Layout */
-  twoColRow: {
-    flexDirection: Platform.OS === 'web' ? ('row' as any) : 'column',
-    gap: 24,
-    alignItems: 'stretch',
-  },
-  colCard: {
-    flex: 1,
-    backgroundColor: C.bgCard,
-    borderColor: C.border,
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 20,
-    gap: 16,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  sectionTitle: {
-    color: C.purpleXL,
-    fontFamily: FT.bold,
-    fontSize: 16,
-    letterSpacing: 1.1,
-  },
-  cardBottomLinkText: {
-    color: C.purpleL,
-    fontFamily: FT.bold,
-    fontSize: 13,
-  },
-
-  /* Transactions */
-  txRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderColor: C.border,
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 12,
-  },
-  txIconBox: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  txReason: {
-    color: '#FFF',
-    fontFamily: FT.bold,
-    fontSize: 13,
-  },
-  txDate: {
-    color: C.textSub,
-    fontFamily: FT.med,
-    fontSize: 11,
-  },
-  txAmount: {
-    fontFamily: FT.bold,
-    fontSize: 14,
-  },
-
-  /* Coupon Controls */
-  couponControlsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-    flexWrap: 'wrap',
-  },
-  couponFilterGroup: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  filterChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderColor: C.border,
-    borderWidth: 1,
-  },
-  filterChipActive: {
-    backgroundColor: C.purple2,
-    borderColor: C.purpleL,
-  },
-  filterChipText: {
-    color: C.textSub,
-    fontFamily: FT.bold,
-    fontSize: 12,
-  },
-  filterChipTextActive: {
-    color: '#FFF',
-  },
-  searchWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: C.border,
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    height: 38,
-    minWidth: 220,
-  },
-  searchInput: {
-    flex: 1,
-    color: '#FFF',
-    fontSize: 13,
-  },
-
-  /* Coupons Grid */
-  couponsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
-  },
-  couponCard: {
-    flexBasis: Platform.OS === 'web' ? 340 : '100%',
-    flexGrow: 1,
-    backgroundColor: C.bgCard,
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 18,
-    gap: 10,
-  },
-  couponCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  couponBrandBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  couponBrandText: {
-    fontFamily: FT.xbold,
-    fontSize: 12,
-  },
-  statusPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  statusPillText: {
-    fontFamily: FT.bold,
-    fontSize: 11,
-  },
-  discountChip: {
-    backgroundColor: 'rgba(52, 211, 153, 0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  discountChipText: {
-    color: C.green,
-    fontFamily: FT.bold,
-    fontSize: 11,
-  },
-  couponTitle: {
-    color: '#FFF',
-    fontFamily: FT.bold,
-    fontSize: 15,
-  },
-  couponExpiry: {
-    color: C.textSub,
-    fontFamily: FT.med,
-    fontSize: 12,
-  },
-  voucherCodeBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: 'rgba(0,0,0,0.40)',
-    borderColor: 'rgba(129, 140, 248, 0.30)',
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginTop: 4,
-  },
-  voucherCodeText: {
-    color: C.purpleXL,
-    fontFamily: FT.bold,
-    fontSize: 14,
-    letterSpacing: 1,
-  },
-  copyBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(129, 140, 248, 0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  copyBtnText: {
-    color: C.purpleL,
-    fontFamily: FT.bold,
-    fontSize: 11,
-  },
-  couponActionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginTop: 6,
-  },
-  useNowBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    backgroundColor: C.purple2,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  useNowBtnText: {
-    color: '#FFF',
-    fontFamily: FT.bold,
-    fontSize: 12,
-  },
-  markUsedBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  markUsedText: {
-    color: C.textSub,
-    fontFamily: FT.med,
-    fontSize: 12,
-  },
-  emptyBox: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 40,
-    gap: 10,
-    backgroundColor: C.bgCard,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: C.border,
-  },
-  emptyTitle: {
-    color: '#FFF',
-    fontFamily: FT.bold,
-    fontSize: 16,
-  },
-  emptySub: {
-    color: C.textSub,
-    fontFamily: FT.med,
-    fontSize: 13,
-  },
-  redeemCatalogFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 8,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: C.border,
-  },
-  redeemCatalogBtn: {
-    backgroundColor: 'rgba(52, 211, 153, 0.15)',
-    borderColor: C.green,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  redeemCatalogBtnText: {
-    color: C.green,
-    fontFamily: FT.bold,
-    fontSize: 12,
-  },
-
-  /* Form Cards */
-  formColCard: {
-    backgroundColor: C.bgCard,
-    borderColor: C.border,
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 24,
-    gap: 18,
-    maxWidth: 640,
-    alignSelf: 'center',
-    width: '100%',
-  },
-  inputLabel: {
-    color: C.purpleXL,
-    fontFamily: FT.bold,
-    fontSize: 11,
-    letterSpacing: 1,
-  },
-  presetsGrid: {
-    flexDirection: 'row',
-    gap: 8,
-    flexWrap: 'wrap',
-  },
-  presetChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderColor: C.border,
-    borderWidth: 1,
-  },
-  presetChipActive: {
-    backgroundColor: C.purple2,
-    borderColor: C.purpleL,
-  },
-  presetText: {
-    color: C.text,
-    fontFamily: FT.bold,
-    fontSize: 13,
-  },
-  presetTextActive: {
-    color: '#FFF',
-  },
-  textInputCustom: {
-    backgroundColor: 'rgba(0,0,0,0.30)',
-    borderColor: C.border,
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    color: '#FFF',
-    fontFamily: FT.med,
-    fontSize: 14,
-  },
-  methodBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: C.border,
-    borderWidth: 1,
-  },
-  methodBoxActive: {
-    borderColor: C.purpleL,
-    backgroundColor: 'rgba(129, 140, 248, 0.12)',
-  },
-  methodText: {
-    color: C.textSub,
-    fontFamily: FT.med,
-    fontSize: 13,
-  },
-  methodTextActive: {
-    color: '#FFF',
-    fontFamily: FT.bold,
-  },
-  calcSummaryBox: {
-    backgroundColor: 'rgba(0,0,0,0.30)',
-    borderColor: C.border,
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 14,
-    gap: 8,
-  },
-  calcRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  calcLabel: {
-    color: C.textSub,
-    fontFamily: FT.med,
-    fontSize: 13,
-  },
-  calcVal: {
-    color: '#FFF',
-    fontFamily: FT.bold,
-    fontSize: 13,
-  },
-  submitActionBtn: {
-    backgroundColor: C.purple2,
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 6,
-  },
-  submitActionText: {
-    color: '#FFF',
-    fontFamily: FT.bold,
-    fontSize: 14,
-  },
-
-  /* History */
-  txFullRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderColor: C.border,
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 14,
-  },
-  txFullReason: {
-    color: '#FFF',
-    fontFamily: FT.bold,
-    fontSize: 14,
-  },
-  txFullMeta: {
-    color: C.textSub,
-    fontFamily: FT.med,
-    fontSize: 12,
-  },
-  txFullAmount: {
-    fontFamily: FT.xbold,
-    fontSize: 15,
-  },
-  txFullBal: {
-    color: C.dim,
-    fontFamily: FT.med,
-    fontSize: 11,
-  },
-});

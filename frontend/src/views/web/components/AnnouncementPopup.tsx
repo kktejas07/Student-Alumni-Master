@@ -7,7 +7,7 @@
  */
 import React, { useEffect, useState, useCallback } from 'react';
 import {
-  View, Text, Pressable, StyleSheet, Platform, Modal, ScrollView, Image, ImageStyle, DimensionValue,
+  View, Text, Pressable, Platform, Modal, ScrollView, Image, ImageStyle, DimensionValue,
 } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
@@ -122,13 +122,13 @@ export function AnnouncementPopup() {
       window.open(url, '_blank', 'noopener,noreferrer');
     } else {
       onDismiss();
-      router.push(url);
+      router.push(url as any);
     }
   }, [onDismiss, router]);
 
   const onEventPress = useCallback((slug: string) => {
     onDismiss();
-    router.push(`/echo/${slug}`);
+    router.push(`/echo/${slug}` as any);
   }, [onDismiss, router]);
 
   if (Platform.OS !== 'web') return null;
@@ -238,7 +238,7 @@ export function AnnouncementPopup() {
   );
 }
 
-const s = StyleSheet.create({
+const s = {
   backdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.65)',
@@ -413,4 +413,4 @@ const s = StyleSheet.create({
     fontFamily: FONTS.med,
     fontSize: 14,
   },
-});
+} as const;

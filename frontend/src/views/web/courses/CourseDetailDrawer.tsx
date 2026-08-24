@@ -4,7 +4,7 @@
  */
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, Pressable, ScrollView, Modal, Linking, Platform,
+  View, Text, Pressable, ScrollView, Modal, Linking, Platform,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { request } from '@/src/models/services/api';
@@ -273,7 +273,7 @@ function Pill({ label }: { label: string }) {
   );
 }
 
-const s = StyleSheet.create({
+const s = {
   backdrop: { flex: 1, backgroundColor: 'rgba(10,5,22,0.65)',
     justifyContent: 'flex-end', alignItems: 'flex-end' },
   drawer: { width: 480, maxWidth: '100%', height: '100%',
@@ -370,4 +370,4 @@ const s = StyleSheet.create({
   enrollBtnText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 13 },
   disclaimer: { color: C.text3, fontFamily: 'DMSans_600SemiBold',
     fontSize: 11, textAlign: 'center' },
-});
+};

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, Platform, ActivityIndicator, Linking, Image, Modal } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { Search, Trash2, CheckCircle, XCircle, MapPin, Briefcase, GraduationCap, Star, X, Mail, ExternalLink, Calendar, UserPlus } from 'lucide-react-native';
+import { Search, Trash2, CheckCircle, XCircle, MapPin, Briefcase, GraduationCap, Star, X, Mail, ExternalLink, Calendar, UserPlus, Sparkles } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { request, tokenStore, resolveImageUrl } from '@/src/models/services/api';
 import { SAC, FONTS } from '../tokens';
@@ -41,9 +41,85 @@ export function TalentPoolView() {
 
   const openPromoteModal = (p: TalentProfile) => { setCandidateToPromote(p); setPromoteCategory('alumni'); setPromoteSendInvite(true); setPromoteModalVisible(true); };
 
-  const handlePromoteCandidate = async () => { if (!candidateToPromote) return; setPromoting(true); try { const res = await request<any>('/admin/talent-pool/promote-to-user', { method: 'POST', body: { profile_id: candidateToPromote.id, category: promoteCategory, send_invite: promoteSendInvite } }); setMessage(`Successfully promoted ${candidateToPromote.full_name} to ${promoteCategory}${res.invite_sent ? ' (Invite email sent)' : ''}`); setPromoteModalVisible(false); setCandidateToPromote(null); fetchProfiles(page); } catch (e: any) { setMessage('Promotion failed: ' + (e?.message || '')); } finally { setPromoting(false); } };
+  // ── AI Scraping Agent State ──
+  const [aiModalVisible, setAiModalVisible] = useState(false);
+  const [aiInput, setAiInput] = useState('');
+  const [aiNotes, setAiNotes] = useState('');
+  const [aiScraping, setAiScraping] = useState(false);
+  const [aiCandidateResult, setAiCandidateResult] = useState<any>(null);
 
-  const goToPage = useCallback((p: number) => { setPage(p); setLoading(true); (async () => { try { const params = new URLSearchParams(); params.set('page', String(p)); params.set('limit', '50'); if (search.trim()) params.set('q', search.trim()); if (sourceFilter) params.set('source', sourceFilter); const data = await request<{ items: TalentProfile[]; total: number; pages: number }>(`/admin/talent-pool?${params.toString()}`); setProfiles(data.items); setTotal(data.total); setPages(data.pages); } catch (e: any) { setMessage('Error: ' + (e?.message || 'Failed to load')); } finally { setLoading(false); } })(); }, [search, sourceFilter]);
+  const handleRunAiScrape = async () => {
+    if (!aiInput.trim()) {
+      setMessage('Please enter a LinkedIn/GitHub URL or resume text');
+      return;
+    }
+    setAiScraping(true);
+    try {
+      const res: any = await request('/admin/talent-pool/ai/scrape-and-store', {
+        method: 'POST',
+        body: {
+          url_or_text: aiInput.trim(),
+          recruiter_notes: aiNotes.trim() || undefined,
+          save_to_db: true,
+        },
+      });
+      if (res?.candidate) {
+        setAiCandidateResult(res.candidate);
+        setMessage(`AI Scraper Agent: ${res.candidate.full_name} (${res.candidate.current_role}) successfully stored!`);
+        fetchProfiles(page);
+      }
+    } catch (e: any) {
+      setMessage('AI Scraping failed: ' + (e?.message || ''));
+    } finally {
+      setAiScraping(false);
+    }
+  };
+
+  const handlePromoteCandidate = async () => {
+    if (!candidateToPromote) return;
+    setPromoting(true);
+    try {
+      const res = await request<any>('/admin/talent-pool/promote-to-user', {
+        method: 'POST',
+        body: {
+          profile_id: candidateToPromote.id,
+          category: promoteCategory,
+          send_invite: promoteSendInvite,
+        },
+      });
+      setMessage(`Successfully promoted ${candidateToPromote.full_name} to ${promoteCategory}${res.invite_sent ? ' (Invite email sent)' : ''}`);
+      setPromoteModalVisible(false);
+      setCandidateToPromote(null);
+      fetchProfiles(page);
+    } catch (e: any) {
+      setMessage('Promotion failed: ' + (e?.message || ''));
+    } finally {
+      setPromoting(false);
+    }
+  };
+
+  const goToPage = useCallback((p: number) => {
+    setPage(p);
+    setLoading(true);
+    (async () => {
+      try {
+        const params = new URLSearchParams();
+        params.set('page', String(p));
+        params.set('limit', '50');
+        if (search.trim()) params.set('q', search.trim());
+        if (sourceFilter) params.set('source', sourceFilter);
+        const data = await request<{ items: TalentProfile[]; total: number; pages: number }>(
+          `/admin/talent-pool?${params.toString()}`
+        );
+        setProfiles(data.items);
+        setTotal(data.total);
+        setPages(data.pages);
+      } catch (e: any) {
+        setMessage('Error: ' + (e?.message || 'Failed to load'));
+      } finally { setLoading(false); }
+    })();
+  }, [search, sourceFilter]);
+
   const fetchProfiles = useCallback(async (p: number = 1) => { goToPage(p); }, [goToPage]);
   useEffect(() => { fetchProfiles(1); }, []);
 
@@ -67,8 +143,20 @@ export function TalentPoolView() {
           <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 22 }}>Talent Pool & Contacts</Text>
           <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 13, marginTop: 2 }}>{total} unified candidate and contact profiles</Text>
         </View>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          <Pressable style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: SAC.border }} onPress={onSyncLinkedIn} disabled={syncing}>
+        <View style={s.headerActions}>
+          <Pressable
+            style={[s.btn, { backgroundColor: '#7C3AED', borderColor: '#8B5CF6', borderWidth: 1 }]}
+            onPress={() => {
+              setAiInput('');
+              setAiNotes('');
+              setAiCandidateResult(null);
+              setAiModalVisible(true);
+            }}
+          >
+            <Sparkles size={14} color="#fff" />
+            <Text style={s.btnText}>Scrape with AI</Text>
+          </Pressable>
+          <Pressable style={[s.btn, s.btnOutline]} onPress={onSyncLinkedIn} disabled={syncing}>
             {syncing ? <ActivityIndicator size="small" color="#fff" /> : null}
             <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>{syncing ? 'Syncing...' : 'Sync LinkedIn'}</Text>
           </Pressable>
@@ -311,6 +399,94 @@ export function TalentPoolView() {
           </Animated.View>
         </View>
       </Modal>
+
+      {/* AI Talent Scraper Modal */}
+      <Modal visible={aiModalVisible} transparent animationType="fade" onRequestClose={() => setAiModalVisible(false)}>
+        <View style={s.modalBg}>
+          <Animated.View entering={FadeInDown.duration(200)} style={[s.modalCard, { maxWidth: 580 }]}>
+            <LinearGradient colors={['#7C3AED', '#4F46E5']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.modalHero}>
+              <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' }}>
+                <Sparkles size={20} color="#fff" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.modalTitle}>AI Talent Web Scraper & Ingestion Agent</Text>
+                <Text style={s.modalRole}>Extracts skills, work history, and links from LinkedIn, GitHub, or Resumes</Text>
+              </View>
+              <Pressable onPress={() => setAiModalVisible(false)} style={s.modalCloseBtn}>
+                <X size={16} color="#fff" />
+              </Pressable>
+            </LinearGradient>
+
+            <ScrollView style={{ padding: 18, maxHeight: 480 }} contentContainerStyle={{ gap: 14 }}>
+              <View style={{ gap: 6 }}>
+                <Text style={s.modalSectionLabel}>LINKEDIN / GITHUB / PORTFOLIO URL OR RESUME TEXT *</Text>
+                <TextInput
+                  value={aiInput}
+                  onChangeText={setAiInput}
+                  placeholder="e.g. https://linkedin.com/in/username or https://github.com/developer"
+                  placeholderTextColor={SAC.muted}
+                  multiline
+                  style={[s.searchInput, { minHeight: 70, borderRadius: 8, padding: 10, textAlignVertical: 'top' as any }]}
+                />
+              </View>
+
+              <View style={{ gap: 6 }}>
+                <Text style={s.modalSectionLabel}>RECRUITER / SCREENING NOTES (OPTIONAL)</Text>
+                <TextInput
+                  value={aiNotes}
+                  onChangeText={setAiNotes}
+                  placeholder="e.g. Top hackathon finalist, strong system design background"
+                  placeholderTextColor={SAC.muted}
+                  style={[s.searchInput, { borderRadius: 8, padding: 10 }]}
+                />
+              </View>
+
+              {/* Candidate Result Card */}
+              {aiCandidateResult && (
+                <View style={{ padding: 14, borderRadius: 12, backgroundColor: 'rgba(124,58,237,0.1)', borderColor: '#7C3AED', borderWidth: 1, gap: 8 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 14 }}>{aiCandidateResult.full_name}</Text>
+                    <View style={{ backgroundColor: 'rgba(16,185,129,0.2)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
+                      <Text style={{ color: '#34D399', fontFamily: FONTS.bold, fontSize: 11 }}>{aiCandidateResult.seniority} Level</Text>
+                    </View>
+                  </View>
+                  <Text style={{ color: '#DDD6FE', fontFamily: FONTS.med, fontSize: 12 }}>
+                    {aiCandidateResult.current_role} at {aiCandidateResult.current_company} · {aiCandidateResult.experience_years} yrs exp
+                  </Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>
+                    {aiCandidateResult.skills?.map((sk: string, idx: number) => (
+                      <View key={idx} style={{ backgroundColor: 'rgba(124,58,237,0.25)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 }}>
+                        <Text style={{ color: '#C4B5FD', fontSize: 10.5, fontFamily: FONTS.bold }}>{sk}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
+                <Pressable
+                  onPress={() => setAiModalVisible(false)}
+                  style={[s.btn, { backgroundColor: 'rgba(255,255,255,0.06)' }]}
+                >
+                  <Text style={s.btnText}>Close</Text>
+                </Pressable>
+                <Pressable
+                  onPress={handleRunAiScrape}
+                  disabled={aiScraping}
+                  style={[s.btn, { backgroundColor: '#7C3AED' }]}
+                >
+                  {aiScraping ? <ActivityIndicator size="small" color="#fff" /> : (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Sparkles size={14} color="#fff" />
+                      <Text style={s.btnText}>Scrape & Store</Text>
+                    </View>
+                  )}
+                </Pressable>
+              </View>
+            </ScrollView>
+          </Animated.View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -377,3 +553,18 @@ function ProfileDetailModal({ visible, profile, onClose, onPromote }: { visible:
     </Modal>
   );
 }
+
+const s = {
+  headerActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  btn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1 },
+  btnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
+  btnOutline: { backgroundColor: 'transparent', borderColor: 'rgba(139,92,246,0.3)' },
+  modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
+  modalCard: { backgroundColor: '#1A0438', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(139,92,246,0.2)', width: '92%', maxHeight: '85%', overflow: 'hidden' },
+  modalHero: { paddingHorizontal: 20, paddingVertical: 16 },
+  modalTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 18 },
+  modalRole: { color: 'rgba(255,255,255,0.7)', fontFamily: FONTS.med, fontSize: 12, marginTop: 4 },
+  modalCloseBtn: { padding: 8 },
+  modalSectionLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 0.8, marginBottom: 6 },
+  searchInput: { backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(139,92,246,0.2)', borderRadius: 10, color: '#fff', fontFamily: FONTS.med, fontSize: 13, padding: 12 },
+};

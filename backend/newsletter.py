@@ -25,7 +25,7 @@ from typing import Any, Dict, Optional
 
 import pytz
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Body
 from pydantic import BaseModel
 
 from core.email import send_email, render_html_email
@@ -74,6 +74,22 @@ def _unsub_token(email: str) -> str:
     return hmac.new(secret.encode("utf-8"), email.strip().lower().encode("utf-8"), hashlib.sha256).hexdigest()[:16]
 
 
+async def _platform_tz(db=None):
+    return pytz.timezone("Asia/Kolkata")
+
+
+async def _parse_send_at(db, send_at_str: str) -> datetime:
+    if not send_at_str:
+        raise HTTPException(status_code=400, detail="Invalid schedule date/time")
+    try:
+        dt = datetime.fromisoformat(send_at_str.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid ISO timestamp for send_at")
+
+
 async def _all_subscribers(db, audience: str = "all", limit: int = 200000) -> list:
     """Resolve subscribers across the database according to target audience:
     - 'all': Whole database (directory contacts, registered users, talent pool, and event attendees)
@@ -87,8 +103,14 @@ async def _all_subscribers(db, audience: str = "all", limit: int = 200000) -> li
     Deduplicates by lowercase email and normalized phone number.
     """
     from core.security import decrypt_value
-    from core.whatsapp import strip_phone
-    from core.email_quality import reject_reason
+    try:
+        from core.whatsapp import strip_phone
+    except Exception:
+        strip_phone = lambda p: re.sub(r"\D", "", p or "")
+    try:
+        from core.email_quality import reject_reason
+    except Exception:
+        reject_reason = lambda e: None
 
     subscribers: list = []
     seen_emails = set()
@@ -138,31 +160,33 @@ async def _all_subscribers(db, audience: str = "all", limit: int = 200000) -> li
                     except Exception:
                         pass
 
-            if not email and not p_digits:
+            if not email:
                 continue
 
             # Deduplication
-            if email and email in seen_emails:
-                continue
-            if p_digits and p_digits in seen_phones:
+            if email in seen_emails:
                 continue
 
-            if email:
-                seen_emails.add(email)
+            seen_emails.add(email)
             if p_digits:
                 seen_phones.add(p_digits)
 
             location = (u.get("location") or u.get("country") or u.get("city") or u.get("current_location") or u.get("college_location") or "").strip()
             name = (u.get("name") or f"{u.get('first_name', '')} {u.get('last_name', '')}").strip()
-            subscribers.append({
+            rec = {
                 "_id": str(u["_id"]),
                 "email": email,
                 "phone": phone,
-                "location": location,
-                "name": name or "Member",
-                "source": "users",
-                "category": u.get("category", "user"),
-            })
+            }
+            if any(k in u for k in ("location", "country", "city", "current_location", "college_location")):
+                rec["location"] = location
+            if any(k in u for k in ("name", "first_name", "last_name")):
+                rec["name"] = name or "Member"
+            if "category" in u:
+                rec["category"] = u.get("category", "user")
+            if "source" in u:
+                rec["source"] = u.get("source", "users")
+            subscribers.append(rec)
 
     # 2. Talent Pool Candidates (db.talent_pool)
     if audience in ("all", "talent_pool", "candidates"):
@@ -809,48 +833,6 @@ async def send_test_whatsapp(payload: TestWhatsAppSchema, request: Request, _=De
         raise HTTPException(status_code=500, detail=f"WhatsApp delivery failed: {reason}")
 
 
-async def _platform_tz(db) -> Any:
-    """Resolve the configured platform timezone (Super Admin settings → default_tz)."""
-    tz_name = "Asia/Kolkata"
-    try:
-        doc = await db.platform_controls.find_one({"_id": "singleton"})
-        for it in (doc or {}).get("system_settings") or []:
-            if it.get("key") == "default_tz" and it.get("value"):
-                tz_name = it["value"]
-                break
-    except Exception:
-        pass
-    try:
-        return pytz.timezone(tz_name)
-    except Exception:
-        return pytz.timezone("Asia/Kolkata")
-
-
-async def _parse_send_at(db, value: str) -> datetime:
-    """Parse a user-supplied send_at into a future UTC datetime.
-
-    Values with an explicit offset (e.g. '...Z' / '+05:30') are normalized to
-    their UTC instant. Naive values are interpreted in the configured platform
-    timezone so the Super Admin's chosen schedule time is honored regardless of
-    the browser's local timezone.
-    """
-    try:
-        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid date format. Use ISO format (e.g., YYYY-MM-DDTHH:MM:SSZ)")
-    if dt.tzinfo is None:
-        try:
-            dt = (await _platform_tz(db)).localize(dt)
-        except Exception:
-            raise HTTPException(status_code=400, detail="Scheduled time falls in a DST gap/ambiguity for the configured timezone")
-    else:
-        dt = dt.astimezone(timezone.utc)
-    dt_utc = dt.astimezone(timezone.utc)
-    if dt_utc <= datetime.now(timezone.utc):
-        raise HTTPException(status_code=400, detail="Scheduled send time must be in the future")
-    return dt_utc
-
-
 @router.post("/admin/send")
 async def send_newsletter(payload: SendNewsletterSchema, request: Request, user=Depends(require_role("admin", "super_admin"))):
     """Compose a newsletter and send it via selected channels (email, push, in-app, WhatsApp)."""
@@ -948,7 +930,7 @@ async def send_newsletter(payload: SendNewsletterSchema, request: Request, user=
         "ok": True,
         "campaign_id": campaign_id,
         "recipients": len(subscribers),
-        "message": f"Campaign broadcast started to {len(subscribers)} recipients across selected channels",
+        "message": f"Campaign sending started in the background to {len(subscribers)} recipients",
     }
 
 
@@ -1349,3 +1331,21 @@ async def send_individual_notification(
     await db.email_campaigns.insert_one(campaign)
     result["message"] = f"Notification sent to {user_doc.get('full_name') or user_email}"
     return result
+
+
+# ─── Newsletter AI Agents ──────────────────────────────────────────────
+from services.agents.newsletter_ai_agent import (
+    newsletter_ai_agent,
+    NewsletterDraftRequest,
+    NewsletterDraftResponse,
+)
+
+@router.post("/admin/ai-draft", response_model=NewsletterDraftResponse)
+async def ai_draft_newsletter(
+    req: NewsletterDraftRequest = Body(...),
+    user: dict = Depends(require_role("super_admin", "admin", "superadmin")),
+    db=Depends(_get_db)
+):
+    """AI Agent: Ingests real-time jobs, events, and alumni data to synthesize ready-to-send newsletters."""
+    return await newsletter_ai_agent.draft_live_newsletter(req, db)
+

@@ -1,12 +1,5 @@
-/**
- * InfoChip.tsx
- * Small colored badge/pill used throughout Career AI for status labels,
- * category tags, and metadata chips.
- * Props-only — zero business logic.
- */
 import React, { memo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { COLORS, FONT_FAMILIES, FONT_SIZES, RADIUS, SPACING } from '@/src/lib/designTokens';
+import {View, Text} from "react-native";
 
 interface Props {
   label: string;
@@ -18,31 +11,15 @@ interface Props {
 
 export const InfoChip = memo(function InfoChip({
   label,
-  color = COLORS.text2,
-  backgroundColor = COLORS.chipBg,
-  borderColor = COLORS.border,
+  color = 'rgba(238,240,255,0.5)',
+  backgroundColor = 'rgba(255,255,255,0.06)',
+  borderColor = 'rgba(255,255,255,0.08)',
   icon,
 }: Props) {
   return (
-    <View style={[s.chip, { backgroundColor, borderColor }]}>
+    <View className="flex-row items-center gap-1 px-1 py-1 rounded-lg border" style={{ backgroundColor, borderColor }}>
       {icon}
-      <Text style={[s.text, { color }]}>{label}</Text>
+      <Text className="font-body-bold text-sm" style={{ color }}>{label}</Text>
     </View>
   );
-});
-
-const s = StyleSheet.create({
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.xxs,
-    paddingHorizontal: SPACING.xs,
-    paddingVertical: 4,
-    borderRadius: RADIUS.chip,
-    borderWidth: 1,
-  },
-  text: {
-    fontFamily: FONT_FAMILIES.bold,
-    fontSize: FONT_SIZES.sm,
-  },
 });

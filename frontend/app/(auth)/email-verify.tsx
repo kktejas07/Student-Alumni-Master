@@ -1,14 +1,6 @@
-/**
- * Email Verification screen — web (centered glass card) + native (full screen).
- *
- * States:
- *   0 = pending         — show "we sent a link to user@email" + status / timer
- *   1 = verifying       — spinner with "Verifying your email…"
- *   2 = verified        — success ✓ + CTA to set up 2FA / skip
- */
 import { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, Pressable, Animated, Easing,
+  View, Text, Pressable, Animated, Easing,
   ActivityIndicator, Platform, ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -93,7 +85,6 @@ export default function EmailVerify() {
   };
 
   const skipToDashboard = () => {
-    // Per spec — go through Welcome Dashboard transition before landing on portal
     router.replace('/(onboarding)/welcome-dashboard' as any);
   };
 
@@ -109,18 +100,18 @@ export default function EmailVerify() {
     </View>
   );
 
-  // ─── Web ─────────────────────────────────────────────────────────────────
   if (IS_WEB) {
     return (
       <AuthWebShell variant="center" cardMaxWidth={460} role={role}>
         {step === 0 && (
           <Pressable
             onPress={() => router.back()}
-            style={({ hovered }: any) => [styles.back, hovered && { opacity: 1 }]}
+            className="flex-row items-center self-start"
+            style={({ hovered }: any) => [{ gap: 6, paddingVertical: 6, marginBottom: 6, opacity: 0.75, cursor: 'pointer', transitionDuration: '160ms' }, hovered && { opacity: 1 }]}
             testID="verify-back"
           >
             <ArrowLeft size={16} color="rgba(255,255,255,0.75)" />
-            <Text style={styles.backText}>Back</Text>
+            <Text className="text-muted" style={{ fontFamily: 'DMSans_500Medium', fontSize: 13 }}>Back</Text>
           </Pressable>
         )}
         {Body}
@@ -128,12 +119,11 @@ export default function EmailVerify() {
     );
   }
 
-  // ─── Native ──────────────────────────────────────────────────────────────
   return (
-    <SafeAreaView style={nativeStyles.safe} edges={['top', 'bottom']}>
-      <ScrollView contentContainerStyle={nativeStyles.container}>
+    <SafeAreaView className="flex-1 bg-navy" edges={['top', 'bottom']}>
+      <ScrollView contentContainerStyle={{ padding: 24, gap: 16, paddingBottom: 60 }}>
         {step === 0 && (
-          <Pressable onPress={() => router.back()} style={nativeStyles.backNative} testID="verify-back">
+          <Pressable onPress={() => router.back()} className="items-center justify-center" style={{ width: 40, height: 40, marginBottom: 8 }} testID="verify-back">
             <ArrowLeft size={22} color="rgba(255,255,255,0.85)" />
           </Pressable>
         )}
@@ -143,39 +133,35 @@ export default function EmailVerify() {
   );
 }
 
-// ─── State views ─────────────────────────────────────────────────────────────
-
 function PendingView({
   email, onVerify, onResend, onChangeEmail, resending, resendTimer,
 }: {
   email: string; onVerify: () => void; onResend: () => void; onChangeEmail: () => void; resending: boolean; resendTimer: number;
 }) {
-  // "Float" animation on email icon
   const floatY = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(floatY, { toValue: -6, duration: 1400, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-        Animated.timing(floatY, { toValue: 0, duration: 1400, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        Animated.timing(floatY, { toValue: -6, duration: 1400, easing: Easing.inOut(Easing.quad), useNativeDriver: Platform.OS !== 'web' }),
+        Animated.timing(floatY, { toValue: 0, duration: 1400, easing: Easing.inOut(Easing.quad), useNativeDriver: Platform.OS !== 'web' }),
       ]),
     ).start();
   }, [floatY]);
 
   return (
     <View>
-      <View style={{ alignItems: 'center', marginBottom: 24 }}>
-        <Animated.View style={[styles.iconHero, { transform: [{ translateY: floatY }] }]}>
+      <View className="items-center" style={{ marginBottom: 24 }}>
+        <Animated.View className="items-center justify-center" style={[{ width: 100, height: 100, borderRadius: 28, backgroundColor: 'rgba(124,58,237,0.22)', borderWidth: 1.5, borderColor: 'rgba(196,181,253,0.28)' }, { transform: [{ translateY: floatY }] }]}>
           <Mail size={36} color="#C4B5FD" />
         </Animated.View>
       </View>
-      <Text style={styles.h1}>Verify your email address</Text>
-      <Text style={styles.sub}>
+      <Text className="text-text font-body-bold text-center" style={{ fontSize: 22, letterSpacing: -0.4, marginBottom: 8 }}>Verify your email address</Text>
+      <Text className="text-muted text-center" style={{ fontFamily: 'DMSans_400Regular', fontSize: 13.5, lineHeight: 21, marginBottom: 24 }}>
         We sent a verification link to{' '}
-        <Text style={styles.emailHi}>{email}</Text>
+        <Text className="text-violet font-body-bold">{email}</Text>
       </Text>
 
-      {/* Status card */}
-      <View style={styles.statusCard}>
+      <View className="rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, paddingHorizontal: 16, paddingVertical: 4, marginBottom: 18 }}>
         {[
           { icon: Send, label: 'Email sent',   value: '2 minutes ago',    color: 'rgba(255,255,255,0.6)' },
           { icon: Clock, label: 'Link expires', value: 'In 23 minutes',    color: '#FCD34D' },
@@ -183,25 +169,24 @@ function PendingView({
         ].map((row, i, arr) => {
           const Icon = row.icon;
           return (
-            <View key={row.label} style={[styles.statusRow, i < arr.length - 1 && styles.statusRowDivider]}>
-              <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+            <View key={row.label} className="flex-row justify-between items-center" style={[{ paddingVertical: 10 }, i < arr.length - 1 && { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' }]}>
+              <View className="flex-row items-center" style={{ gap: 10 }}>
                 <Icon size={16} color={row.color} />
-                <Text style={styles.statusLabel}>{row.label}</Text>
+                <Text className="text-muted" style={{ fontFamily: 'DMSans_500Medium', fontSize: 13 }}>{row.label}</Text>
               </View>
-              <Text style={[styles.statusVal, { color: row.color }]}>{row.value}</Text>
+              <Text className="font-body-bold" style={{ color: row.color, fontSize: 12 }}>{row.value}</Text>
             </View>
           );
         })}
       </View>
 
-      {/* Progress timer */}
       <View style={{ marginBottom: 22 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-          <Text style={styles.timerLabel}>Time remaining</Text>
-          <Text style={styles.timerVal}>23 min</Text>
+        <View className="flex-row justify-between" style={{ marginBottom: 6 }}>
+          <Text className="text-dim font-body-semibold" style={{ fontSize: 11 }}>Time remaining</Text>
+          <Text className="font-body-bold" style={{ fontSize: 11, color: '#FCD34D' }}>23 min</Text>
         </View>
-        <View style={styles.timerTrack}>
-          <View style={styles.timerFill} />
+        <View className="rounded-full" style={{ height: 4, backgroundColor: 'rgba(255,255,255,0.08)' }}>
+          <View className="rounded-full" style={{ width: '77%', height: '100%', backgroundColor: '#FCD34D' }} />
         </View>
       </View>
 
@@ -209,13 +194,13 @@ function PendingView({
       <View style={{ height: 10 }} />
       <WebGhostBtn label={resendTimer > 0 ? `Resend in ${resendTimer}s` : "Resend verification email"} disabled={resendTimer > 0 || resending} loading={resending} onPress={onResend} testID="verify-resend" />
 
-      <View style={{ alignItems: 'center', marginTop: 16 }}>
+      <View className="items-center" style={{ marginTop: 16 }}>
         <Pressable
           onPress={onChangeEmail}
           style={({ hovered }: any) => [{ opacity: hovered ? 1 : 0.85 }]}
         >
-          <Text style={styles.changeEmailText}>
-            Wrong email? <Text style={styles.changeEmailLink}>Change email</Text>
+          <Text className="text-muted" style={{ fontFamily: 'DMSans_400Regular', fontSize: 13 }}>
+            Wrong email? <Text className="text-violet font-body-bold">Change email</Text>
           </Text>
         </Pressable>
       </View>
@@ -225,37 +210,36 @@ function PendingView({
 
 function VerifyingView() {
   return (
-    <View style={{ alignItems: 'center', paddingVertical: 60 }}>
+    <View className="items-center" style={{ paddingVertical: 60 }}>
       <ActivityIndicator size="large" color="#A78BFA" />
-      <Text style={[styles.h1, { marginTop: 22, fontSize: 17 }]}>Verifying your email…</Text>
-      <Text style={[styles.sub, { textAlign: 'center', marginTop: 4 }]}>This will only take a moment.</Text>
+      <Text className="text-text font-body-bold text-center" style={{ marginTop: 22, fontSize: 17 }}>Verifying your email…</Text>
+      <Text className="text-muted text-center" style={{ fontFamily: 'DMSans_400Regular', fontSize: 13.5, lineHeight: 21, marginTop: 4 }}>This will only take a moment.</Text>
     </View>
   );
 }
 
 function DoneView({ onSetup2FA, onSkip }: { onSetup2FA: () => void; onSkip: () => void }) {
-  // Pulse animation on success ring
   const scale = useRef(new Animated.Value(0.6)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.parallel([
-      Animated.spring(scale, { toValue: 1, friction: 5, tension: 80, useNativeDriver: true }),
-      Animated.timing(opacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+      Animated.spring(scale, { toValue: 1, friction: 5, tension: 80, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(opacity, { toValue: 1, duration: 400, useNativeDriver: Platform.OS !== 'web' }),
     ]).start();
   }, [scale, opacity]);
 
   return (
-    <View style={{ alignItems: 'center', paddingVertical: 6 }}>
-      <Animated.View style={[styles.successRing, { transform: [{ scale }], opacity }]}>
+    <View className="items-center" style={{ paddingVertical: 6 }}>
+      <Animated.View className="items-center justify-center" style={[{ width: 88, height: 88, borderRadius: 44, backgroundColor: 'rgba(16,185,129,0.18)', borderWidth: 2, borderColor: 'rgba(52,211,153,0.5)', marginBottom: 14 }, { transform: [{ scale }], opacity }]}>
         <Text style={{ fontSize: 38, color: '#34D399' }}>✓</Text>
       </Animated.View>
-      <Text style={[styles.h1, { textAlign: 'center', marginTop: 6 }]}>Email verified!</Text>
-      <Text style={[styles.sub, { textAlign: 'center', marginBottom: 18 }]}>
+      <Text className="text-text font-body-bold text-center" style={{ fontSize: 22, letterSpacing: -0.4, marginTop: 6 }}>Email verified!</Text>
+      <Text className="text-muted text-center" style={{ fontFamily: 'DMSans_400Regular', fontSize: 13.5, lineHeight: 21, marginBottom: 18 }}>
         Your email address has been confirmed. Your account is now fully active.
       </Text>
-      <View style={styles.verifiedBadge}>
+      <View className="flex-row items-center rounded-full" style={{ gap: 6, backgroundColor: 'rgba(16,185,129,0.18)', borderColor: 'rgba(110,231,183,0.35)', borderWidth: 1, paddingHorizontal: 14, paddingVertical: 6 }}>
         <ShieldCheck size={14} color="#86EFAC" />
-        <Text style={styles.verifiedBadgeText}>Account Verified</Text>
+        <Text className="font-body-bold" style={{ color: '#86EFAC', fontSize: 12 }}>Account Verified</Text>
       </View>
 
       <View style={{ width: '100%', marginTop: 18 }}>
@@ -266,98 +250,3 @@ function DoneView({ onSetup2FA, onSkip }: { onSetup2FA: () => void; onSkip: () =
     </View>
   );
 }
-
-// ─── styles ──────────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
-  back: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 6,
-    marginBottom: 6,
-    opacity: 0.75,
-    alignSelf: 'flex-start',
-    ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
-  },
-  backText: { color: 'rgba(255,255,255,0.75)', fontFamily: 'DMSans_500Medium', fontSize: 13 },
-  iconHero: {
-    width: 100, height: 100, borderRadius: 28,
-    backgroundColor: 'rgba(124,58,237,0.22)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(196,181,253,0.28)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  h1: {
-    color: '#FFFFFF',
-    fontFamily: 'DMSans_700Bold',
-    fontSize: 22,
-    letterSpacing: -0.4,
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  sub: {
-    color: 'rgba(255,255,255,0.55)',
-    fontFamily: 'DMSans_400Regular',
-    fontSize: 13.5,
-    lineHeight: 21,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  emailHi: { color: '#C4B5FD', fontFamily: 'DMSans_700Bold' },
-
-  statusCard: {
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: 'rgba(255,255,255,0.08)',
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 4,
-    marginBottom: 18,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 10,
-  },
-  statusRowDivider: { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
-  statusLabel: { color: 'rgba(255,255,255,0.6)', fontFamily: 'DMSans_500Medium', fontSize: 13 },
-  statusVal: { fontFamily: 'DMSans_700Bold', fontSize: 12 },
-
-  timerLabel: { fontSize: 11, color: 'rgba(255,255,255,0.42)', fontFamily: 'DMSans_600SemiBold' },
-  timerVal: { fontSize: 11, color: '#FCD34D', fontFamily: 'DMSans_700Bold' },
-  timerTrack: { height: 4, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 2 },
-  timerFill: { width: '77%', height: '100%', borderRadius: 2, backgroundColor: '#FCD34D' },
-
-  changeEmailText: { color: 'rgba(255,255,255,0.4)', fontFamily: 'DMSans_400Regular', fontSize: 13 },
-  changeEmailLink: { color: '#C4B5FD', fontFamily: 'DMSans_700Bold' },
-
-  successRing: {
-    width: 88, height: 88, borderRadius: 44,
-    backgroundColor: 'rgba(16,185,129,0.18)',
-    borderWidth: 2,
-    borderColor: 'rgba(52,211,153,0.5)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 14,
-  },
-  verifiedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(16,185,129,0.18)',
-    borderColor: 'rgba(110,231,183,0.35)',
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 999,
-  },
-  verifiedBadgeText: { color: '#86EFAC', fontFamily: 'DMSans_700Bold', fontSize: 12 },
-});
-
-const nativeStyles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#0F0820' },
-  container: { padding: 24, gap: 16, paddingBottom: 60 },
-  backNative: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-});

@@ -87,9 +87,9 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
   const initials = ((draft.full_name || '?').split(' ').slice(0,2).map((s: string) => s[0] || '').join('') || '?').toUpperCase();
 
   const isMentor = !!onTakeSelfie;
-  const themeColor = isMentor ? '#14B8A6' : '#A78BFA';
-  const themeBg = isMentor ? 'rgba(20,184,166,0.15)' : 'rgba(167,139,250,0.15)';
-  const themeBadgeBg = isMentor ? '#14B8A6' : '#7C3AED';
+  const themeColor = isMentor ? '#14B8A6' : '#60A5FA';
+  const themeBg = isMentor ? 'rgba(20,184,166,0.15)' : 'rgba(37,99,235,0.15)';
+  const themeBadgeBg = isMentor ? '#14B8A6' : '#2563EB';
 
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -303,7 +303,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
       {/* Completion Banner */}
       {!isCollege && (
         <View style={[st.banner, completion.percentage >= 100 && st.bannerComplete]}>
-          <CompletionRing pct={completion.percentage} size={92} color={completion.percentage >= 100 ? '#10B981' : '#A78BFA'} />
+          <CompletionRing pct={completion.percentage} size={92} color={completion.percentage >= 100 ? '#10B981' : '#60A5FA'} />
           <View style={{ flex: 1, minWidth: 0, gap: 10 }}>
             <Text style={st.bannerTitle}>Profile Completion</Text>
             <Text style={st.bannerSub}>Complete your profile to unlock personalized recommendations & higher trust signals.</Text>
@@ -345,7 +345,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
             <View style={{ position: 'absolute', top: 16, left: 16, flexDirection: 'row', gap: 8 }}>
               <Pressable onPress={pickBannerImage} style={{ backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Upload size={14} color="#FFF" />
-                <Text style={{ color: '#FFF', fontSize: 13, fontFamily: 'DMSans_700Bold' }}>Upload Banner</Text>
+                <Text style={{ color: '#000', fontSize: 13, fontFamily: 'DMSans_700Bold' }}>Upload Banner</Text>
               </Pressable>
               {draft.banner_data && (
                 <Pressable onPress={() => setDraft((d: any) => ({ ...d, banner_data: '' }))} style={{ backgroundColor: 'rgba(0,0,0,0.6)', padding: 10, borderRadius: 20 }}>
@@ -356,17 +356,17 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
 
             {/* Profile Photo (Logo) on the Bottom Right */}
             <View style={{ position: 'absolute', bottom: 12, right: 12, zIndex: 20 }}>
-              <View style={{ width: 84, height: 84, borderRadius: 16, backgroundColor: '#0a0f1e', overflow: 'hidden', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
+              <View style={{ width: 84, height: 84, borderRadius: 16, backgroundColor: '#0a0f1e', overflow: 'hidden', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(0,0,0,0.05)' }}>
                 {photo ? (
                   <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} />
                 ) : (
-                  <Text style={{ color: '#C4B5FD', fontFamily: 'DMSans_800ExtraBold', fontSize: 32 }}>{initials}</Text>
+                  <Text style={{ color: '#93C5FD', fontFamily: 'DMSans_800ExtraBold', fontSize: 32 }}>{initials}</Text>
                 )}
               </View>
               {/* Small camera edit button */}
               <Pressable
                 onPress={pickCollegeLogo}
-                style={{ position: 'absolute', bottom: -6, right: -6, width: 28, height: 28, borderRadius: 14, backgroundColor: '#A78BFA', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#131938' }}
+                style={{ position: 'absolute', bottom: -6, right: -6, width: 28, height: 28, borderRadius: 14, backgroundColor: '#60A5FA', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#131938' }}
                 testID="pf-college-logo-upload"
               >
                 <Camera size={14} color="#FFF" />
@@ -453,7 +453,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
               <View style={st.modalHeader}>
                 <Text style={st.modalTitle}>Update Profile Photo</Text>
                 <Pressable onPress={handleCloseMenu} style={st.modalCloseBtn}>
-                  <X size={18} color="rgba(255,255,255,0.7)" />
+                  <X size={18} color="rgba(0,0,0,0.7)" />
                 </Pressable>
               </View>
 
@@ -649,7 +649,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
             <View style={st.suggestionsBox}>
               {filteredSuggestions.map(sug => (
                 <Pressable key={sug} onPress={() => addSkillsFromInput(sug)} style={st.suggestionItem}>
-                  <Sparkles size={12} color="#A78BFA" />
+                  <Sparkles size={12} color="#60A5FA" />
                   <Text style={st.suggestionText}>{sug}</Text>
                 </Pressable>
               ))}
@@ -666,7 +666,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
                 <View style={st.richChipTop}>
                   <Text style={st.richChipName}>{sk.skill_name}</Text>
                   <Pressable onPress={(e) => { e.stopPropagation(); removeSkill(sk.skill_name); }} style={st.richChipDel}>
-                    <X size={12} color="rgba(255,255,255,0.4)" />
+                    <X size={12} color="rgba(0,0,0,0.4)" />
                   </Pressable>
                 </View>
                 <View style={st.richChipBottom}>
@@ -686,7 +686,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
         {skillIntel && skillIntel.analytics && (
           <View style={st.intelPanel}>
             <View style={st.intelHeader}>
-              <TrendingUp size={16} color="#A78BFA" />
+              <TrendingUp size={16} color="#60A5FA" />
               <Text style={st.intelTitle}>Career Readiness Impact</Text>
             </View>
             
@@ -735,12 +735,12 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
             <View style={st.modalHeader}>
               <Text style={st.modalTitle}>Skill Intelligence Data</Text>
               <Pressable onPress={() => setSelectedSkill(null)} style={st.modalCloseBtn}>
-                <X size={18} color="rgba(255,255,255,0.7)" />
+                <X size={18} color="rgba(0,0,0,0.7)" />
               </Pressable>
             </View>
             
             <View style={{ width: '100%', gap: 12, alignItems: 'flex-start' }}>
-              <Text style={{ color: '#fff', fontSize: 24, fontFamily: 'DMSans_700Bold' }}>{selectedSkill.skill_name}</Text>
+              <Text style={{ color: '#000', fontSize: 24, fontFamily: 'DMSans_700Bold' }}>{selectedSkill.skill_name}</Text>
               
               <View style={st.modalDetailRow}>
                 <Text style={st.modalDetailLabel}>Subcategory:</Text>
@@ -780,7 +780,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
             <View style={st.modalHeader}>
               <Text style={st.modalTitle}>Add a New Project</Text>
               <Pressable onPress={() => { setProjModalVisible(false); setNewProjName(''); setNewProjDesc(''); }} style={st.modalCloseBtn}>
-                <X size={18} color="rgba(255,255,255,0.7)" />
+                <X size={18} color="rgba(0,0,0,0.7)" />
               </Pressable>
             </View>
 
@@ -840,50 +840,50 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
   );
 }
 
-const st = StyleSheet.create({
+const st = {
   banner: {
     flexDirection: 'row', gap: 18, alignItems: 'center',
     padding: 20, borderRadius: 16,
-    backgroundColor: 'rgba(167,139,250,0.07)',
-    borderColor: 'rgba(167,139,250,0.25)', borderWidth: 1,
+    backgroundColor: 'rgba(37,99,235,0.07)',
+    borderColor: 'rgba(37,99,235,0.25)', borderWidth: 1,
   },
   bannerComplete: {
     backgroundColor: 'rgba(16,185,129,0.07)',
     borderColor: 'rgba(16,185,129,0.30)',
   },
-  bannerTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 17 },
-  bannerSub:   { color: 'rgba(255,255,255,0.65)', fontFamily: 'DMSans_400Regular', fontSize: 12.5 },
-  completePill: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#10B981', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999 },
+  bannerTitle: { color: '#000', fontFamily: 'DMSans_700Bold', fontSize: 17 },
+  bannerSub:   { color: 'rgba(0,0,0,0.65)', fontFamily: 'DMSans_400Regular', fontSize: 12.5 },
+  completePill: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#fff', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999 },
   completePillText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 11 },
   itemsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   itemPill: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.10)', borderWidth: 1,
+    backgroundColor: 'rgba(0,0,0,0.05)', borderColor: 'rgba(0,0,0,0.10)', borderWidth: 1,
   },
   itemPillDone: { backgroundColor: 'rgba(16,185,129,0.10)', borderColor: 'rgba(16,185,129,0.35)' },
-  itemPillText: { color: 'rgba(255,255,255,0.65)', fontFamily: 'DMSans_600SemiBold', fontSize: 11 },
-  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.30)' },
+  itemPillText: { color: 'rgba(0,0,0,0.65)', fontFamily: 'DMSans_600SemiBold', fontSize: 11 },
+  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: 'rgba(0,0,0,0.30)' },
 
   // Profile Photo section (new layout matching spec)
   photoRow: { flexDirection: 'row', alignItems: 'center', gap: 18, marginBottom: 4 },
   avatarLg: {
     width: 92, height: 92, borderRadius: 46, overflow: 'hidden', position: 'relative',
-    backgroundColor: 'rgba(167,139,250,0.20)', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(37,99,235,0.20)', alignItems: 'center', justifyContent: 'center',
     ...({ cursor: 'pointer' } as any),
   },
-  avatarLgText: { color: '#A78BFA', fontFamily: 'DMSans_800ExtraBold', fontSize: 28 },
+  avatarLgText: { color: '#60A5FA', fontFamily: 'DMSans_800ExtraBold', fontSize: 28 },
   avatarCheck: {
     position: 'absolute', bottom: 2, right: 2,
     width: 22, height: 22, borderRadius: 11,
-    backgroundColor: '#10B981',
+    backgroundColor: '#fff',
     alignItems: 'center', justifyContent: 'center',
     borderColor: '#0B0717', borderWidth: 2,
   },
   avatarBadge: {
     position: 'absolute', bottom: 2, right: 2,
     width: 22, height: 22, borderRadius: 11,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#2563EB',
     alignItems: 'center', justifyContent: 'center',
     borderColor: '#0B0717', borderWidth: 2,
   },
@@ -901,8 +901,8 @@ const st = StyleSheet.create({
     maxWidth: 320,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(167,139,250,0.25)',
-    backgroundColor: '#13091F',
+    borderColor: 'rgba(37,99,235,0.25)',
+    backgroundColor: '#fff',
     padding: 20,
     alignItems: 'center',
     ...({
@@ -918,14 +918,14 @@ const st = StyleSheet.create({
     marginBottom: 16,
   },
   modalTitle: {
-    color: '#FFF',
+    color: '#000',
     fontFamily: 'DMSans_700Bold',
     fontSize: 16,
   },
   modalCloseBtn: {
     padding: 4,
     borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(0,0,0,0.06)',
   },
   menuItem: {
     flexDirection: 'row',
@@ -935,11 +935,11 @@ const st = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 14,
     borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    backgroundColor: 'rgba(0,0,0,0.03)',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   menuItemText: {
-    color: 'rgba(255,255,255,0.90)',
+    color: 'rgba(0,0,0,0.90)',
     fontFamily: 'DMSans_600SemiBold',
     fontSize: 14,
   },
@@ -953,8 +953,8 @@ const st = StyleSheet.create({
     flex: 1,
     height: 80,
     borderRadius: 12,
-    backgroundColor: 'rgba(167,139,250,0.06)',
-    borderColor: 'rgba(167,139,250,0.20)',
+    backgroundColor: 'rgba(37,99,235,0.06)',
+    borderColor: 'rgba(37,99,235,0.20)',
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -963,36 +963,36 @@ const st = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transition: 'all 0.2s ease' } as any) : {}),
   },
   actionClickBoxText: {
-    color: 'rgba(255,255,255,0.90)',
+    color: 'rgba(0,0,0,0.90)',
     fontFamily: 'DMSans_700Bold',
     fontSize: 12,
     textAlign: 'center',
   },
-  photoTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 14 },
-  photoHint: { color: 'rgba(255,255,255,0.60)', fontFamily: 'DMSans_400Regular', fontSize: 12 },
+  photoTitle: { color: '#000', fontFamily: 'DMSans_700Bold', fontSize: 14 },
+  photoHint: { color: 'rgba(0,0,0,0.60)', fontFamily: 'DMSans_400Regular', fontSize: 12 },
 
-  btnPrimary: { flexDirection: 'row', gap: 6, paddingHorizontal: 14, height: 34, borderRadius: 8, backgroundColor: '#A78BFA', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ backgroundImage: 'linear-gradient(135deg, #A78BFA 0%, #7C3AED 55%, #6D28D9 100%)', boxShadow: '0 6px 18px rgba(124,58,237,0.35)' } as any) : {}), ...({ cursor: 'pointer' } as any) },
-  btnConfirm: { flexDirection: 'row', gap: 6, paddingHorizontal: 14, height: 34, borderRadius: 8, backgroundColor: '#10B981', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ backgroundImage: 'linear-gradient(135deg, #34D399 0%, #10B981 55%, #059669 100%)', boxShadow: '0 6px 18px rgba(16,185,129,0.35)' } as any) : {}), ...({ cursor: 'pointer' } as any) },
+  btnPrimary: { flexDirection: 'row', gap: 6, paddingHorizontal: 14, height: 34, borderRadius: 8, backgroundColor: '#60A5FA', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ backgroundImage: 'linear-gradient(135deg, #60A5FA 0%, #2563EB 55%, #1D4ED8 100%)', boxShadow: '0 6px 18px rgba(37,99,235,0.35)' } as any) : {}), ...({ cursor: 'pointer' } as any) },
+  btnConfirm: { flexDirection: 'row', gap: 6, paddingHorizontal: 14, height: 34, borderRadius: 8, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ backgroundImage: 'linear-gradient(135deg, #34D399 0%, #10B981 55%, #059669 100%)', boxShadow: '0 6px 18px rgba(16,185,129,0.35)' } as any) : {}), ...({ cursor: 'pointer' } as any) },
   btnPrimaryText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12 },
-  btnGhost: { paddingHorizontal: 14, height: 34, borderRadius: 8, backgroundColor: 'rgba(167,139,250,0.10)', borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1, alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ boxShadow: '0 4px 14px rgba(124,58,237,0.20)' } as any) : {}), ...({ cursor: 'pointer' } as any) },
-  btnGhostText: { color: 'rgba(255,255,255,0.85)', fontFamily: 'DMSans_700Bold', fontSize: 12 },
+  btnGhost: { paddingHorizontal: 14, height: 34, borderRadius: 8, backgroundColor: 'rgba(37,99,235,0.10)', borderColor: 'rgba(37,99,235,0.30)', borderWidth: 1, alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ boxShadow: '0 4px 14px rgba(37,99,235,0.20)' } as any) : {}), ...({ cursor: 'pointer' } as any) },
+  btnGhostText: { color: 'rgba(0,0,0,0.85)', fontFamily: 'DMSans_700Bold', fontSize: 12 },
 
   // legacy (unused, kept to prevent runtime undef from any stray ref)
   avatar: {
     width: 84, height: 84, borderRadius: 42, overflow: 'hidden', position: 'relative',
-    backgroundColor: 'rgba(167,139,250,0.20)', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(37,99,235,0.20)', alignItems: 'center', justifyContent: 'center',
     ...({ cursor: 'pointer' } as any),
   },
-  avatarText: { color: '#A78BFA', fontFamily: 'DMSans_800ExtraBold', fontSize: 26 },
+  avatarText: { color: '#60A5FA', fontFamily: 'DMSans_800ExtraBold', fontSize: 26 },
   avatarOver: {
     position: 'absolute', bottom: 0, left: 0, right: 0, paddingVertical: 4,
     backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 4,
   },
-  avatarOverText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 9, letterSpacing: 0.6 },
+  avatarOverText: { color: '#000', fontFamily: 'DMSans_800ExtraBold', fontSize: 9, letterSpacing: 0.6 },
 
-  btnSm: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.09)', borderWidth: 1, ...({ cursor: 'pointer' } as any) },
+  btnSm: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, backgroundColor: 'rgba(0,0,0,0.05)', borderColor: 'rgba(0,0,0,0.09)', borderWidth: 1, ...({ cursor: 'pointer' } as any) },
   btnSmDanger: { backgroundColor: 'rgba(244,63,94,0.10)', borderColor: 'rgba(244,63,94,0.40)' },
-  btnSmText: { color: 'rgba(255,255,255,0.85)', fontFamily: 'DMSans_700Bold', fontSize: 11 },
+  btnSmText: { color: 'rgba(0,0,0,0.85)', fontFamily: 'DMSans_700Bold', fontSize: 11 },
 
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
 
@@ -1003,10 +1003,10 @@ const st = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#7C3AED',
-    borderColor: '#8B5CF6',
+    backgroundColor: '#2563EB',
+    borderColor: '#2563EB',
     borderWidth: 1,
-    ...(Platform.OS === 'web' ? ({ boxShadow: '0 10px 24px rgba(124,58,237,0.30)' } as any) : {}),
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 10px 24px rgba(37,99,235,0.30)' } as any) : {}),
     ...({ cursor: 'pointer' } as any),
   },
   skillAddBtnText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12 },
@@ -1014,27 +1014,27 @@ const st = StyleSheet.create({
   // Suggestions
   suggestionsBox: {
     position: 'absolute', top: 48, left: 0, right: 0,
-    backgroundColor: '#13091F', borderColor: 'rgba(167,139,250,0.25)', borderWidth: 1, borderRadius: 10,
+    backgroundColor: '#fff', borderColor: 'rgba(37,99,235,0.25)', borderWidth: 1, borderRadius: 10,
     padding: 6, gap: 4, zIndex: 9999,
     ...(Platform.OS === 'web' ? { boxShadow: '0 10px 25px rgba(0,0,0,0.5)' } : {}),
   },
-  suggestionItem: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 10, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.03)', ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {}) },
-  suggestionText: { color: '#E0E7FF', fontFamily: 'DMSans_500Medium', fontSize: 13 },
+  suggestionItem: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 10, borderRadius: 6, backgroundColor: 'rgba(0,0,0,0.03)', ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {}) },
+  suggestionText: { color: '#1E3A8A', fontFamily: 'DMSans_700Bold', fontSize: 13 },
 
   // Rich Chips
   chipsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 12 },
   richChip: {
     width: 160, padding: 12, borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(167,139,250,0.15)', borderWidth: 1,
+    backgroundColor: 'rgba(0,0,0,0.03)', borderColor: 'rgba(37,99,235,0.15)', borderWidth: 1,
     gap: 8,
     ...(Platform.OS === 'web' ? { cursor: 'pointer', transition: 'all 0.2s' } : {}),
   },
   richChipTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  richChipName: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 14 },
-  richChipDel: { padding: 4, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 6 },
+  richChipName: { color: '#000', fontFamily: 'DMSans_700Bold', fontSize: 14 },
+  richChipDel: { padding: 4, backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: 6 },
   richChipBottom: { flexDirection: 'row', gap: 6 },
-  richBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: 'rgba(167,139,250,0.15)' },
-  richBadgeText: { color: '#C4B5FD', fontFamily: 'DMSans_700Bold', fontSize: 10 },
+  richBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: 'rgba(37,99,235,0.08)' },
+  richBadgeText: { color: '#2563EB', fontFamily: 'DMSans_700Bold', fontSize: 10 },
 
   // Intel Panel
   intelPanel: {
@@ -1042,22 +1042,22 @@ const st = StyleSheet.create({
     backgroundColor: 'rgba(15,23,42,0.6)', borderColor: 'rgba(51,65,85,0.5)', borderWidth: 1,
   },
   intelHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-  intelTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 14 },
+  intelTitle: { color: '#000', fontFamily: 'DMSans_700Bold', fontSize: 14 },
   intelGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  intelStat: { flex: 1, minWidth: 120, padding: 12, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.05)', borderWidth: 1 },
+  intelStat: { flex: 1, minWidth: 120, padding: 12, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.03)', borderColor: 'rgba(0,0,0,0.05)', borderWidth: 1 },
   intelStatLabel: { color: '#94A3B8', fontFamily: 'DMSans_500Medium', fontSize: 11, marginBottom: 4 },
   intelStatValue: { color: '#34D399', fontFamily: 'DMSans_800ExtraBold', fontSize: 16 },
   intelSubHeading: { color: '#94A3B8', fontFamily: 'DMSans_700Bold', fontSize: 12, marginTop: 8 },
-  intelEmpty: { color: 'rgba(255,255,255,0.4)', fontFamily: 'DMSans_400Regular', fontSize: 12, marginTop: 6 },
+  intelEmpty: { color: 'rgba(0,0,0,0.4)', fontFamily: 'DMSans_400Regular', fontSize: 12, marginTop: 6 },
   strengthBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(16,185,129,0.1)' },
   strengthText: { color: '#34D399', fontFamily: 'DMSans_600SemiBold', fontSize: 11 },
   gapBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(245,158,11,0.1)' },
   gapText: { color: '#FCD34D', fontFamily: 'DMSans_600SemiBold', fontSize: 11 },
 
   // Modal specifics
-  modalDetailRow: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', paddingVertical: 8, borderBottomColor: 'rgba(255,255,255,0.05)', borderBottomWidth: 1 },
+  modalDetailRow: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', paddingVertical: 8, borderBottomColor: 'rgba(0,0,0,0.05)', borderBottomWidth: 1 },
   modalDetailLabel: { color: '#94A3B8', fontFamily: 'DMSans_500Medium', fontSize: 13 },
-  modalDetailValue: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13 },
+  modalDetailValue: { color: '#000', fontFamily: 'DMSans_700Bold', fontSize: 13 },
 
   // Projects section styles
   emptyProj: {
@@ -1066,7 +1066,7 @@ const st = StyleSheet.create({
     gap: 8,
   },
   emptyProjText: {
-    color: 'rgba(255,255,255,0.45)',
+    color: 'rgba(0,0,0,0.45)',
     fontFamily: 'DMSans_400Regular',
     fontSize: 12,
     textAlign: 'center',
@@ -1077,25 +1077,25 @@ const st = StyleSheet.create({
     gap: 12,
     padding: 12,
     borderRadius: 11,
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderColor: 'rgba(255,255,255,0.09)',
+    backgroundColor: 'rgba(0,0,0,0.03)',
+    borderColor: 'rgba(0,0,0,0.09)',
     borderWidth: 1,
   },
   projIcon: {
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: 'rgba(167,139,250,0.12)',
+    backgroundColor: 'rgba(37,99,235,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   projName: {
-    color: '#fff',
+    color: '#000',
     fontFamily: 'DMSans_700Bold',
     fontSize: 13,
   },
   projDesc: {
-    color: 'rgba(255,255,255,0.55)',
+    color: 'rgba(0,0,0,0.55)',
     fontFamily: 'DMSans_400Regular',
     fontSize: 11.5,
     marginTop: 2,
@@ -1104,7 +1104,7 @@ const st = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 7,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: 'rgba(0,0,0,0.05)',
     borderColor: 'rgba(244,63,94,0.40)',
     borderWidth: 1,
     alignItems: 'center',
@@ -1115,11 +1115,11 @@ const st = StyleSheet.create({
     marginTop: 10,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.06)',
+    borderTopColor: 'rgba(0,0,0,0.06)',
     gap: 12,
   },
   projFormTitle: {
-    color: '#fff',
+    color: '#000',
     fontFamily: 'DMSans_700Bold',
     fontSize: 13,
     marginBottom: 4,
@@ -1131,12 +1131,12 @@ const st = StyleSheet.create({
     gap: 6,
     height: 34,
     borderRadius: 8,
-    backgroundColor: '#A78BFA',
-    ...(Platform.OS === 'web' ? ({ backgroundImage: 'linear-gradient(135deg, #A78BFA 0%, #7C3AED 55%, #6D28D9 100%)', boxShadow: '0 6px 18px rgba(124,58,237,0.35)' } as any) : {}),
+    backgroundColor: '#60A5FA',
+    ...(Platform.OS === 'web' ? ({ backgroundImage: 'linear-gradient(135deg, #60A5FA 0%, #2563EB 55%, #1D4ED8 100%)', boxShadow: '0 6px 18px rgba(37,99,235,0.35)' } as any) : {}),
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   projAddBtnText: {
-    color: '#fff',
+    color: '#000',
     fontFamily: 'DMSans_700Bold',
     fontSize: 12,
   },
@@ -1147,12 +1147,12 @@ const st = StyleSheet.create({
     paddingHorizontal: 12,
     height: 32,
     borderRadius: 8,
-    backgroundColor: '#A78BFA',
+    backgroundColor: '#60A5FA',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   projHeaderAddBtnText: {
-    color: '#fff',
+    color: '#000',
     fontFamily: 'DMSans_700Bold',
     fontSize: 12,
   },
-});
+};

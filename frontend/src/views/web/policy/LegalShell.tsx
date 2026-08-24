@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet, Platform, Pressable } from 'react-native';
+import { View, Text, ScrollView, Platform, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
@@ -29,11 +29,11 @@ export default function LegalShell({ title, children }: LegalShellProps) {
   );
 }
 
-const s = StyleSheet.create({
+const s = {
   scroll: { flex: 1, backgroundColor: '#0f172a' },
   container: { padding: 20, paddingBottom: 60, maxWidth: 800, width: '100%', alignSelf: 'center', overflow: 'hidden' as any },
   back: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 20, marginTop: Platform.OS === 'web' ? 20 : 50, ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}) },
   backText: { color: '#94a3b8', fontFamily: FONTS.med, fontSize: 14 },
   title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 28, letterSpacing: -0.5, marginBottom: 8 },
   divider: { height: 2, width: 60, backgroundColor: '#F59E0B', borderRadius: 2, marginBottom: 24 },
-});
+};

@@ -177,6 +177,15 @@ class UserResponse(BaseModel):
     is_verified: Optional[bool] = None
     ranking_tier: Optional[str] = None
     badges: List[Dict[str, Any]] = []
+    # Identity & DigiLocker Verification
+    aadhaar_number: Optional[str] = None
+    aadhaar_masked: Optional[str] = None
+    aadhaar_verified: Optional[bool] = False
+    digilocker_id: Optional[str] = None
+    digilocker_verified: Optional[bool] = False
+    digilocker_doc_count: Optional[int] = 0
+    digilocker_uri: Optional[str] = None
+    digilocker_linked_at: Optional[str] = None
 
 class AuthResponse(BaseModel):
     """Returned on successful login/registration/refresh."""

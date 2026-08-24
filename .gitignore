@@ -218,4 +218,4 @@ backend/cryptography.whl
 
 # ── User uploaded files / media (always store in docker volume, never in Git)
 uploads/
-backend/uploads/
+backend/uploads/SA New Theme/

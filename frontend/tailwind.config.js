@@ -60,7 +60,7 @@ module.exports = {
         // ── Named Colors (direct hex for non-CSS-var usage) ──
         white: '#FFFFFF',
         black: '#000000',
-        purple: { DEFAULT: '#7C5CFC', light: '#A78BFA', dark: '#6246E8', soft: 'rgba(124,92,252,0.10)' },
+        purple: { DEFAULT: '#7C3AED', light: '#A78BFA', dark: '#5B21B6', soft: 'rgba(124,58,237,0.15)' },
         blue: { DEFAULT: '#3B82F6', light: '#60A5FA', dark: '#2563EB', soft: 'rgba(59,130,246,0.15)' },
         green: { DEFAULT: '#34D399', light: '#6EE7B7', dark: '#059669', soft: 'rgba(52,211,153,0.15)' },
         amber: { DEFAULT: '#F59E0B', light: '#FBBF24', dark: '#D97706', soft: 'rgba(245,158,11,0.15)' },

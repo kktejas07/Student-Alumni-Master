@@ -127,9 +127,7 @@ function SavedJobsIllu() {
     drop.value = withRepeat(
       withSequence(
         withTiming(1, { duration: 900, easing: Easing.bezier(0.22, 1, 0.36, 1) }),
-        withDelay(700, withTiming(0, { duration: 280, easing: Easing.in(Easing.cubic) })),
-      ), -1, false,
-    );
+        withDelay(700, withTiming(0, { duration: 280, easing: Easing.in(Easing.cubic) }))), -1, false);
     ring.value = withRepeat(withTiming(1, { duration: 2400, easing: Easing.linear }), -1, false);
   }, [drop, ring]);
   const aBookmark = useAnimatedStyle(() => ({
@@ -167,8 +165,7 @@ function BookingsIllu() {
   useEffect(() => {
     wobble.value = withRepeat(withSequence(
       withTiming(1, { duration: 1100, easing: Easing.inOut(Easing.sin) }),
-      withTiming(-1, { duration: 1100, easing: Easing.inOut(Easing.sin) }),
-    ), -1, true);
+      withTiming(-1, { duration: 1100, easing: Easing.inOut(Easing.sin) })), -1, true);
     hand.value = withRepeat(withTiming(1, { duration: 3200, easing: Easing.linear }), -1, false);
   }, [wobble, hand]);
   const aCal = useAnimatedStyle(() => ({ transform: [{ rotate: `${wobble.value * 6}deg` }] }));
@@ -195,8 +192,7 @@ function ApplicationsIllu() {
   useEffect(() => {
     drift.value = withRepeat(withSequence(
       withTiming(1, { duration: 1800, easing: Easing.inOut(Easing.cubic) }),
-      withTiming(0, { duration: 0 }),
-    ), -1, false);
+      withTiming(0, { duration: 0 })), -1, false);
   }, [drift]);
   const aPlane = useAnimatedStyle(() => ({
     transform: [
@@ -231,8 +227,7 @@ function WorkshopsIllu() {
   useEffect(() => {
     bob.value = withRepeat(withSequence(
       withTiming(1, { duration: 700, easing: Easing.inOut(Easing.sin) }),
-      withTiming(0, { duration: 700, easing: Easing.inOut(Easing.sin) }),
-    ), -1, false);
+      withTiming(0, { duration: 700, easing: Easing.inOut(Easing.sin) })), -1, false);
   }, [bob]);
   const aCap = useAnimatedStyle(() => ({ transform: [{ translateY: interpolate(bob.value, [0, 1], [3, -8]) }] }));
   return (
@@ -284,8 +279,7 @@ function GenericIllu() {
   const pulse = useSharedValue(0);
   useEffect(() => {
     pulse.value = withRepeat(withSequence(
-      withTiming(1, { duration: 900 }), withTiming(0, { duration: 900 }),
-    ), -1, false);
+      withTiming(1, { duration: 900 }), withTiming(0, { duration: 900 })), -1, false);
   }, [pulse]);
   const aIcon = useAnimatedStyle(() => ({ transform: [{ scale: 0.92 + pulse.value * 0.16 }, { rotate: `${pulse.value * 12 - 6}deg` }] }));
   return (
@@ -308,8 +302,7 @@ function Sparkle({ x, y, color = '#A78BFA', delay = 0, size = 6 }: { x: number; 
   useEffect(() => {
     v.value = withDelay(delay, withRepeat(
       withSequence(withTiming(1, { duration: 800 }), withTiming(0, { duration: 600 })),
-      -1, false,
-    ));
+      -1, false));
   }, [delay, v]);
   const aStyle = useAnimatedStyle(() => ({
     opacity: v.value,
@@ -385,8 +378,7 @@ export function SuccessBurst({ visible, onHide, label = 'Success!' }: { visible:
     if (!visible) { v.value = 0; return; }
     v.value = withSequence(
       withTiming(1, { duration: 320, easing: Easing.out(Easing.cubic) }),
-      withDelay(900, withTiming(0, { duration: 280, easing: Easing.in(Easing.cubic) })),
-    );
+      withDelay(900, withTiming(0, { duration: 280, easing: Easing.in(Easing.cubic) })));
     const t = setTimeout(() => onHide?.(), 1700);
     return () => clearTimeout(t);
   }, [visible, v, onHide]);
@@ -414,7 +406,7 @@ export function SuccessBurst({ visible, onHide, label = 'Success!' }: { visible:
   );
 }
 
-const s = StyleSheet.create({
+const s = {
   wrap: { padding: 40, alignItems: 'center', backgroundColor: SC.card, borderRadius: 14, borderWidth: 1, borderColor: SC.border, gap: 10 },
   illu: { width: 130, height: 130, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
   illuBox: { width: 130, height: 130, position: 'relative' },
@@ -444,4 +436,4 @@ const s = StyleSheet.create({
     backgroundColor: '#22C55E', alignItems: 'center', justifyContent: 'center',
   },
   burstText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13.5 },
-});
+};

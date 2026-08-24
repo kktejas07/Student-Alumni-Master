@@ -19,7 +19,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  View, Text, ScrollView, Pressable, StyleSheet, Platform, useWindowDimensions,
+  View, Text, ScrollView, Pressable, Platform, useWindowDimensions,
   ActivityIndicator, TextInput, Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -350,27 +350,27 @@ function EmptyConnectAI({ gradient, textColor, subColor, borderColor }: {
   );
 }
 
-const s = StyleSheet.create({
+const s = {
   hero: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
+    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12,
     padding: 16, borderRadius: 14, borderWidth: 1, marginBottom: 14,
   },
-  heroIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  heroIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center' as const, justifyContent: 'center' as const, borderWidth: 1 },
   heroTitle: { fontFamily: FONT, fontSize: 16, fontWeight: '800' as any },
   heroSub: { fontFamily: FONT, fontSize: 12.5, marginTop: 2 },
   miniBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
+    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 6,
     paddingHorizontal: 10, height: 28, borderRadius: 999, borderWidth: 1,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   miniBtnText: { fontFamily: FONT, fontSize: 11, fontWeight: '700' as any },
 
   errBar: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
+    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 8,
     paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1, marginBottom: 12,
   },
 
-  center: { paddingVertical: 60, alignItems: 'center' },
+  center: { paddingVertical: 60, alignItems: 'center' as const },
 
   dot: { width: 7, height: 7, borderRadius: 4 },
   kicker: { fontFamily: FONT, fontSize: 10.5, fontWeight: '800' as any, letterSpacing: 1.6 },
@@ -379,66 +379,65 @@ const s = StyleSheet.create({
   dim: { fontFamily: FONT, fontSize: 12 },
 
   grid: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: 14,
+    flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 14,
   },
   card: {
     flex: 1, minWidth: 280,
     padding: 16, borderRadius: 14, borderWidth: 1, gap: 8,
     ...(Platform.OS === 'web' ? ({ boxShadow: '0 4px 14px rgba(0,0,0,0.18)' } as any) : {}),
   },
-  iconBox: { width: 30, height: 30, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  iconBox: { width: 30, height: 30, borderRadius: 10, alignItems: 'center' as const, justifyContent: 'center' as const, borderWidth: 1 },
   cardKicker: { fontFamily: FONT, fontSize: 10, fontWeight: '800' as any, letterSpacing: 1.5 },
   cardTitle: { fontFamily: FONT, fontSize: 14.5, fontWeight: '800' as any, lineHeight: 19 },
   cardSub: { fontFamily: FONT, fontSize: 12, lineHeight: 16.5 },
   cardCta: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'center' as const, gap: 6,
     height: 34, paddingHorizontal: 12, borderRadius: 10, marginTop: 6,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   cardCtaText: { color: '#fff', fontFamily: FONT, fontSize: 12, fontWeight: '800' as any },
 
   runRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
+    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 10,
     padding: 12, borderRadius: 10, borderWidth: 1,
   },
   statusDot: { width: 8, height: 8, borderRadius: 4 },
   runPrompt: { fontFamily: FONT, fontSize: 12.5, fontWeight: '700' as any },
 
-  // Scheduled automations
   scheduleEmpty: {
-    alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center' as const, justifyContent: 'center' as const,
     padding: 16, borderRadius: 12, borderWidth: 1, borderStyle: 'dashed' as any,
   },
   scheduleRow: {
-    flexDirection: 'row', alignItems: 'flex-start', gap: 10,
+    flexDirection: 'row' as const, alignItems: 'flex-start' as const, gap: 10,
     padding: 12, borderRadius: 12, borderWidth: 1,
   },
   scheduleTitle: { fontFamily: FONT, fontSize: 13.5, fontWeight: '700' as any },
   miniPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
+    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 4,
     paddingHorizontal: 8, height: 22, borderRadius: 999, borderWidth: 1,
   },
   miniPillText: { fontFamily: FONT, fontSize: 11, fontWeight: '700' as any },
   iconBtn: {
     width: 30, height: 30, borderRadius: 8, borderWidth: 1,
-    alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center' as const, justifyContent: 'center' as const,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   cardScheduleBtn: {
     width: 36, height: 34, borderRadius: 10, borderWidth: 1,
-    alignItems: 'center', justifyContent: 'center', marginTop: 6,
+    alignItems: 'center' as const, justifyContent: 'center' as const, marginTop: 6,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
 
   empty: {
-    alignItems: 'center', padding: 32, borderRadius: 16, borderWidth: 1, gap: 12,
+    alignItems: 'center' as const, padding: 32, borderRadius: 16, borderWidth: 1, gap: 12,
     backgroundColor: 'transparent',
   },
-  emptyIcon: { width: 56, height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  emptyIcon: { width: 56, height: 56, borderRadius: 16, alignItems: 'center' as const, justifyContent: 'center' as const, borderWidth: 1 },
   emptyTitle: { fontFamily: FONT, fontSize: 17, fontWeight: '800' as any, textAlign: 'center' as any },
   emptySub: { fontFamily: FONT, fontSize: 13, lineHeight: 19, textAlign: 'center' as any, maxWidth: 580 },
   emptyCta: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
+    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 6,
     paddingHorizontal: 16, height: 38, borderRadius: 10,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
@@ -446,28 +445,28 @@ const s = StyleSheet.create({
 
   chip: {
     paddingHorizontal: 10, height: 26, borderRadius: 999, borderWidth: 1,
-    alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center' as const, justifyContent: 'center' as const,
   },
   chipText: { fontFamily: FONT, fontSize: 11, fontWeight: '700' as any },
-});
+};
 
 /* ─── Outer shell styles (top bar / back button / powered-by pill) ─── */
-const ss = StyleSheet.create({
+const ss = {
   shell: { flex: 1, minHeight: '100%' as any },
   topBar: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
+    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 10,
     paddingHorizontal: 14, paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 1,
   },
   backBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
+    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 6,
     paddingHorizontal: 10, height: 30, borderRadius: 999, borderWidth: 1,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   backText: { fontFamily: FONT, fontSize: 12, fontWeight: '700' as any },
   poweredBy: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
+    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 5,
     paddingHorizontal: 10, height: 26, borderRadius: 999,
   },
   poweredByText: { color: '#fff', fontFamily: FONT, fontSize: 11, fontWeight: '800' as any, letterSpacing: 0.3 },
-});
+};

@@ -2,7 +2,7 @@
  * SettingsPage — admin users management.
  */
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, ActivityIndicator } from 'react-native';
 import { ShieldCheck, UserCog } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
 import { AdminLayout } from './AdminLayout';
@@ -61,7 +61,7 @@ export default function SettingsPage() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = {
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
   icon: { width: 36, height: 36, borderRadius: 10, backgroundColor: T.glassMd, borderColor: T.borderMd, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   title: { color: T.text, fontFamily: 'DMSans_700Bold', fontSize: 15 },
@@ -71,4 +71,4 @@ const styles = StyleSheet.create({
   name: { color: T.text, fontFamily: 'DMSans_700Bold', fontSize: 13 },
   email: { color: T.textMute, fontFamily: 'DMSans_400Regular', fontSize: 11.5, marginTop: 2 },
   date: { color: T.textMute, fontFamily: 'DMSans_500Medium', fontSize: 11.5 },
-});
+};

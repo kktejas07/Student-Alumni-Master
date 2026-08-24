@@ -53,6 +53,10 @@ class FakeCollection:
         self.docs.append(doc)
         return type("R", (), {"inserted_id": doc.get("_id", "fakeid")})()
 
+    async def insert_many(self, docs):
+        self.docs.extend(docs)
+        return type("R", (), {"inserted_ids": [d.get("_id", "fakeid") for d in docs]})()
+
     async def update_one(self, query, update, **kw):
         for d in self.docs:
             if self._match(d, query):
@@ -76,10 +80,12 @@ class FakeCollection:
     @staticmethod
     def _match(doc, query):
         for k, v in (query or {}).items():
+            if k == "$or":
+                if not any(FakeCollection._match(doc, sub) for sub in v):
+                    return False
+                continue
             if k.startswith("$"):
                 continue
-            if k == "$or":
-                return True
             cur = doc
             parts = k.split(".")
             for p in parts[:-1]:
@@ -255,7 +261,7 @@ async def test_register_paid_no_gateway_503(patch_deps, fake_db, monkeypatch):
     with pytest.raises(HTTPException) as e:
         await es.register_for_showcase(
             "echo-tech-2026",
-            es.RegisterSchema(full_name="T", email="t@x.co", phone="123"),
+            es.RegisterSchema(full_name="T", email="t@x.co", phone="+919876543210", terms_accepted=True),
             req,
         )
     assert e.value.status_code == 503
@@ -271,7 +277,7 @@ async def test_register_free_confirmed(patch_deps, fake_db):
 
     out = await es.register_for_showcase(
         "echo-tech-2026",
-        es.RegisterSchema(full_name="Free Guy", email="F@x.Co", phone="999"),
+        es.RegisterSchema(full_name="Free Guy", email="F@x.Co", phone="+919876543210", terms_accepted=True),
         req,
     )
     assert out["payment"]["status"] == "paid"
@@ -289,8 +295,8 @@ async def test_register_dedup_lowercase(patch_deps, fake_db):
     db.echo_showcases.docs = [_showcase(fee=0)]
     req = FakeRequest()
 
-    await es.register_for_showcase("echo-tech-2026", es.RegisterSchema(full_name="A", email="a@b.co"), req)
-    again = await es.register_for_showcase("echo-tech-2026", es.RegisterSchema(full_name="A", email="A@B.CO"), req)
+    await es.register_for_showcase("echo-tech-2026", es.RegisterSchema(full_name="A", email="a@b.co", terms_accepted=True), req)
+    again = await es.register_for_showcase("echo-tech-2026", es.RegisterSchema(full_name="A", email="A@B.CO", terms_accepted=True), req)
 
     assert len(db.echo_registrations.docs) == 1
     assert again.get("id") == db.echo_registrations.docs[0]["id"]
@@ -488,7 +494,7 @@ async def test_free_registration_provisions_sa_account(patch_deps, fake_db, monk
     sent = []
     monkeypatch.setattr(
         es, "send_email",
-        lambda to, subj, body: sent.append((to, subj)) or asyncio.sleep(0) or True,
+        lambda to, subj, body, *a, **k: sent.append((to, subj)) or asyncio.sleep(0) or True,
     )
 
     db = fake_db
@@ -496,10 +502,11 @@ async def test_free_registration_provisions_sa_account(patch_deps, fake_db, monk
 
     out = await es.register_for_showcase(
         "echo-tech-2026",
-        es.RegisterSchema(full_name="Provision Me", email="provision@x.co", phone="999", dob="2002-01-15"),
+        es.RegisterSchema(full_name="Provision Me", email="provision@x.co", phone="+919876543210", dob="2002-01-15", terms_accepted=True),
         FakeRequest(),
     )
     assert out["payment"]["status"] == "paid"
+    assert out.get("qr_code_base64") is not None
 
     # A brand-new SA student account was created
     users = db.users.docs
@@ -598,7 +605,7 @@ def test_ticket_email_block_contains_pass_and_download_link():
     assert "ENTRY PASS" in block.upper() or "ENTRY PASS" in block
     assert "Download Pass" in block
     assert "REG456" in block
-    assert "data:image/png;base64," in block
+    assert "qr.png" in block or "data:image/png;base64," in block
 
 
 @pytest.mark.asyncio
@@ -624,3 +631,136 @@ async def test_get_ticket_endpoint(patch_deps, fake_db):
         raised = True
         assert e.status_code in (401, 403)
     assert raised is True
+
+
+@pytest.mark.asyncio
+async def test_fulfill_team_members_creates_accounts_tickets_and_coupons(patch_deps, fake_db, monkeypatch):
+    """Verify that _fulfill_team_members creates child registrations, provisions SA accounts, and issues tickets for members 2..5."""
+    emails_sent = []
+    async def fake_send_email(to, subject, body, **kw):
+        emails_sent.append({"to": to, "subject": subject, "body": body, "attachments": kw.get("attachments", [])})
+    monkeypatch.setattr(es, "send_email", fake_send_email)
+
+    db = fake_db
+    showcase = {
+        "slug": "hackwave-3",
+        "title": "SNIST HackWave 3.0",
+        "college": "Sreenidhi Institute of Science and Technology",
+        "sessions": [
+            {"key": "lunch_day1", "name": "Day 1 Lunch Pass", "day": 1},
+            {"key": "snacks_day1", "name": "Day 1 Evening Snacks", "day": 1},
+        ],
+    }
+
+    parent_reg = {
+        "_id": "p1",
+        "id": "HW3-TEAM-101",
+        "slug": "hackwave-3",
+        "full_name": "Tejas Leader",
+        "email": "lead@snist.edu",
+        "phone": "+919876543210",
+        "registration_type": "team",
+        "team_name": "Neural Pioneers",
+        "team_size": 4,
+        "team_members": [
+            {"name": "Ananya Sharma", "email": "ananya@snist.edu", "phone": "+919876543211"},
+            {"name": "Rahul Verma", "email": "rahul@snist.edu", "phone": "+919876543212"},
+            {"name": "Karthik Reddy", "email": "karthik@snist.edu", "phone": "+919876543213"},
+        ],
+        "payment": {"status": "paid", "amount": 2495, "currency": "INR"},
+        "status": "registered",
+    }
+
+    fulfilled = await es._fulfill_team_members(db, parent_reg, showcase)
+    assert len(fulfilled) == 3
+
+    # Check child registrations in echo_registrations
+    m1 = await db.echo_registrations.find_one({"id": "HW3-TEAM-101_M1"})
+    assert m1 is not None
+    assert m1["email"] == "ananya@snist.edu"
+    assert m1["full_name"] == "Ananya Sharma"
+    assert m1["parent_reg_id"] == "HW3-TEAM-101"
+    assert m1["is_team_member"] is True
+    assert m1["team_name"] == "Neural Pioneers"
+    assert m1["status"] == "registered"
+    assert m1["payment"]["status"] == "paid"
+    assert m1.get("qr_code_base64") is not None
+
+    m2 = await db.echo_registrations.find_one({"id": "HW3-TEAM-101_M2"})
+    assert m2 is not None
+    assert m2["email"] == "rahul@snist.edu"
+
+    m3 = await db.echo_registrations.find_one({"id": "HW3-TEAM-101_M3"})
+    assert m3 is not None
+    assert m3["email"] == "karthik@snist.edu"
+
+    # Check that SA user accounts were provisioned in db.users
+    user_ananya = await db.users.find_one({"email": "ananya@snist.edu"})
+    assert user_ananya is not None
+    assert user_ananya["role"] == "student"
+    assert user_ananya.get("unique_id") is not None
+
+    # Check session coupons generated for teammate
+    coupons = await db.echo_coupons.find({"reg_id": "HW3-TEAM-101_M1"}).to_list(10)
+    assert len(coupons) == 2
+
+    # Check emails sent (both Welcome email with credentials and Ticket pass confirmation)
+    ananya_emails = [e for e in emails_sent if e["to"] == "ananya@snist.edu"]
+    assert len(ananya_emails) >= 2  # 1 Welcome email with password + 1 Entry Pass email
+    pass_email = next(e for e in ananya_emails if "Entry Pass" in e["subject"])
+    assert "Neural Pioneers" in pass_email["subject"]
+    assert "HW3-TEAM-101_M1" in pass_email["body"]
+
+
+@pytest.mark.asyncio
+async def test_finalize_paid_registration_triggers_team_fulfillment(patch_deps, fake_db, monkeypatch):
+    """Verify that finalizing a paid team registration automatically provisions accounts & passes for all team members."""
+    emails_sent = []
+    async def fake_send_email(to, subject, body, **kw):
+        emails_sent.append({"to": to, "subject": subject, "body": body})
+    monkeypatch.setattr(es, "send_email", fake_send_email)
+
+    db = fake_db
+    showcase = {
+        "slug": "snist-hackwave",
+        "title": "SNIST HackWave 3.0",
+        "college": "SNIST",
+        "fee": 2495,
+    }
+    db.echo_showcases.docs = [showcase]
+
+    team_reg = {
+        "_id": "paid_t1",
+        "id": "HW3-TEAM-555",
+        "slug": "snist-hackwave",
+        "full_name": "Captain Marvel",
+        "email": "captain@snist.edu",
+        "registration_type": "team",
+        "team_name": "Code Avengers",
+        "team_size": 3,
+        "team_members": [
+            {"name": "Iron Man", "email": "tony@snist.edu"},
+            {"name": "Thor", "email": "thor@snist.edu"},
+        ],
+        "fee": 2495,
+        "status": "pending",
+        "payment": {"status": "pending"},
+    }
+    db.echo_registrations.docs = [team_reg]
+
+    res = await es._finalize_paid_registration(db, team_reg, showcase, payment_id="pay_999")
+    assert res["status"] == "registered"
+
+    # Team members must be created
+    tony = await db.echo_registrations.find_one({"id": "HW3-TEAM-555_M1"})
+    assert tony is not None
+    assert tony["email"] == "tony@snist.edu"
+    assert tony["status"] == "registered"
+
+    thor = await db.echo_registrations.find_one({"id": "HW3-TEAM-555_M2"})
+    assert thor is not None
+    assert thor["email"] == "thor@snist.edu"
+
+    # User accounts created
+    assert await db.users.find_one({"email": "tony@snist.edu"}) is not None
+    assert await db.users.find_one({"email": "thor@snist.edu"}) is not None

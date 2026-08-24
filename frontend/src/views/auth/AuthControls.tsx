@@ -3,7 +3,7 @@
  * Migrated to NativeWind className.
  */
 import React from 'react';
-import { View, Text, Pressable, TextInput, Platform, ActivityIndicator } from 'react-native';
+import {View, Text, Pressable, TextInput, Platform, ActivityIndicator} from "react-native";
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRoleTheme } from './RoleTheme';
 
@@ -90,6 +90,12 @@ export function OutlineButton({ label, onPress, icon, disabled, testID, accessib
   );
 }
 
+const ob = {
+  wrap: { flexDirection: 'row' as const, alignItems: 'center' as const, paddingVertical: 13, paddingHorizontal: 18, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(139, 132, 255, 0.25)', backgroundColor: 'rgba(18, 20, 43, 0.75)', position: 'relative' as const, ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transition: 'all 0.2s ease' } as any) : {}) },
+  iconWrap: { position: 'absolute' as const, left: 16 },
+  text: { flex: 1, textAlign: 'center' as const, color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 14 },
+};
+
 // ─── Text Input ─────────────────────────────────────────────────
 export const AuthInput = React.forwardRef<TextInput, {
   label?: string;
@@ -120,28 +126,18 @@ export const AuthInput = React.forwardRef<TextInput, {
   
   const [focused, setFocused] = React.useState(false);
   const { primary } = useRoleTheme();
-  const focusBg = primary ? `${primary}10` : 'rgba(124,58,237,0.06)';
-
+  const focusBg = primary ? `${primary}18` : 'rgba(91, 79, 233, 0.15)';
   return (
-    <View className="w-full">
-      {label ? <Text className="text-gray-700 font-bold text-[13px] mb-2">{typeof label === 'string' ? label : String(label ?? '')}</Text> : null}
-      <View
-        className={`flex-row items-center bg-white border rounded-xl px-3.5 h-12 ${
-          focused
-            ? `border-[${primary || '#7C3AED'}]`
-            : error
-            ? 'border-red-500'
-            : 'border-gray-200'
-        }`}
-        style={focused ? { borderColor: primary, backgroundColor: focusBg } : undefined}
-      >
-        {leftIcon ? <View className="mr-2.5">{leftIcon}</View> : null}
+    <View style={inp.wrap}>
+      {label ? <Text style={inp.label}>{typeof label === 'string' ? label : String(label ?? '')}</Text> : null}
+      <View style={[inp.row, focused && [inp.rowOn, { borderColor: primary || '#8B84FF', backgroundColor: focusBg }], error && inp.rowErr]}>
+        {leftIcon ? <View style={{ marginRight: 10 }}>{leftIcon}</View> : null}
         <TextInput
           ref={ref}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor="#6B7280"
           secureTextEntry={secureTextEntry}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize ?? 'none'}
@@ -172,6 +168,17 @@ export const AuthInput = React.forwardRef<TextInput, {
     </View>
   );
 });
+
+const inp = {
+  wrap: { width: '100%' },
+  label: { color: '#D5D8E4', fontFamily: FONTS.bold, fontSize: 13, marginBottom: 8 },
+  row: { flexDirection: 'row' as const, alignItems: 'center' as const, backgroundColor: 'rgba(18, 20, 43, 0.75)', borderColor: 'rgba(139, 132, 255, 0.22)', borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, height: 50 },
+  rowOn: { borderColor: '#8B84FF', backgroundColor: 'rgba(91, 79, 233, 0.15)' },
+  rowErr: { borderColor: AC.red },
+  input: { flex: 1, color: '#F4F5FB', fontFamily: FONTS.med, fontSize: 14.5, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
+  hint: { color: '#9AA0B4', fontFamily: FONTS.med, fontSize: 11.5, marginTop: 6 },
+  err: { color: '#F87171', fontFamily: FONTS.bold, fontSize: 11.5, marginTop: 6 },
+};
 
 // ─── Password Rules — real-time checklist ────────────────────────
 export function PasswordRules({ checks }: { checks: { met: boolean; label: string; key: string }[] }) {

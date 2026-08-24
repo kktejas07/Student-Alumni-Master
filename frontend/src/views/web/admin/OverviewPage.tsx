@@ -2,7 +2,7 @@
  * Admin Overview — KPI grid + Top Colleges table + Monthly enrollments chart + Recent activity.
  */
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, ActivityIndicator } from 'react-native';
 import {
   GraduationCap, Users, Briefcase, Building2, Calendar,
   Wallet, ShieldCheck, BarChart3,
@@ -117,7 +117,7 @@ export default function AdminOverviewPage() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = {
   kpiGrid: {
     flexDirection: 'row', flexWrap: 'wrap', gap: 14,
     ...({ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' } as any),
@@ -151,4 +151,4 @@ const styles = StyleSheet.create({
   activityText: { flex: 1, color: 'rgba(255,255,255,0.78)', fontFamily: 'DMSans_500Medium', fontSize: 12, lineHeight: 17 },
 
   barLabel: { color: 'rgba(255,255,255,0.4)', fontFamily: 'DMSans_500Medium', fontSize: 10, flex: 1, textAlign: 'center' },
-});
+};

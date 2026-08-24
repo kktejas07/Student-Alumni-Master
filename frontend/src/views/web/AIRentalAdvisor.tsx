@@ -4,7 +4,7 @@
  */
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, Pressable, ScrollView, TextInput, ActivityIndicator,
+  View, Text, Pressable, ScrollView, TextInput, ActivityIndicator,
   Modal, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -168,10 +168,10 @@ export default function AIRentalAdvisor({
   );
 }
 
-const s = StyleSheet.create({
+const s = {
   backdrop: { flex: 1, backgroundColor: 'rgba(7,3,15,0.60)',
     justifyContent: 'flex-end', alignItems: 'flex-end' },
-  panel: { width: 420, maxWidth: '100%', height: 600, maxHeight: '90%',
+  panel: { width: 420, maxWidth: '100%' as any, height: 600, maxHeight: '90%' as any,
     backgroundColor: C.bg, borderRadius: 18, marginRight: 20, marginBottom: 20,
     borderWidth: 1, borderColor: C.border, overflow: 'hidden',
     boxShadow: '0 24px 60px rgba(0,0,0,0.65)' as any },
@@ -188,7 +188,7 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     ...({ cursor: 'pointer' } as any) },
 
-  msgRow: { maxWidth: '88%' },
+  msgRow: { maxWidth: '88%' as any },
   msgBubble: { paddingHorizontal: 12, paddingVertical: 10, borderRadius: 14,
     gap: 6 },
   msgText: { color: '#fff', fontFamily: 'DMSans_600SemiBold',
@@ -210,4 +210,4 @@ const s = StyleSheet.create({
   sendBtn: { width: 38, height: 38, borderRadius: 999,
     alignItems: 'center', justifyContent: 'center',
     ...({ cursor: 'pointer' } as any) },
-});
+};

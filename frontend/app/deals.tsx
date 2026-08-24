@@ -13,7 +13,7 @@
  */
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator,
+  View, Text, Pressable, ScrollView, ActivityIndicator,
   Image, Linking, Modal, Platform,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -239,29 +239,29 @@ export default function DealsScreen() {
       accent="#F59E0B"
       rightSlot={
         <View style={{ flexDirection: 'row', gap: 8 }}>
-          <View style={s.savePill}>
+          <View className="flex-row items-center gap-1.5 px-2.5 py-1.5 rounded-full" style={{ backgroundColor: 'rgba(252,211,77,0.12)', borderColor: 'rgba(252,211,77,0.35)', borderWidth: 1 }}>
             <MaterialCommunityIcons name="star-four-points" size={12} color="#FCD34D" />
-            <Text style={s.savePillText}>SA Exclusive</Text>
+            <Text className="font-body-bold" style={{ color: '#FCD34D', fontSize: 10.5 }}>SA Exclusive</Text>
           </View>
-          <Pressable style={s.refreshBtn} onPress={onRefresh} disabled={refreshing}>
+          <Pressable className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ backgroundColor: "rgba(255,255,255,0.10)", borderColor: "rgba(255,255,255,0.20)", borderWidth: 1 }} onPress={onRefresh} disabled={refreshing}>
             {refreshing ? <ActivityIndicator color="#fff" size="small" /> :
               <MaterialCommunityIcons name="refresh" size={14} color="#fff" />}
-            <Text style={s.refreshText}>Refresh</Text>
+            <Text className="text-text font-body-bold text-xs">Refresh</Text>
           </Pressable>
         </View>
       }
     >
       {/* Last updated */}
       {lastUpdated && (
-        <Text style={s.lastUpdated}>
+        <Text className="text-dim text-xs" style={{ marginTop: -10 }}>
           Last updated {relTime(lastUpdated)} · Sources: {sources.length || 1}
         </Text>
       )}
 
       {error ? (
-        <View style={s.errBox}>
+        <View className="flex-row items-center gap-2 p-3 rounded-xl" style={{ backgroundColor: "rgba(248,113,113,0.10)", borderColor: "rgba(248,113,113,0.40)", borderWidth: 1 }}>
           <MaterialCommunityIcons name="alert-circle-outline" size={16} color="#F87171" />
-          <Text style={s.errText}>{error}</Text>
+          <Text className="text-rose text-sm flex-1">{error}</Text>
         </View>
       ) : null}
 
@@ -279,13 +279,13 @@ export default function DealsScreen() {
           <ActivityIndicator color="#F59E0B" />
         ) : (
           <View style={{ gap: 12 }}>
-            <View style={s.advisorRow}>
+            <View className="flex-row flex-wrap" style={{ gap: 10 }}>
               <AdvisorMetric label="Estimated yearly savings" value={fmtINR(stats.yearly_savings_inr)} icon="cash-multiple" tint="#34D399" />
               <AdvisorMetric label="Top category" value={CATEGORY_META[stats.top_category.id]?.label || stats.top_category.id} icon="trophy" tint="#FCD34D" />
               <AdvisorMetric label="Best ROI" value={stats.best_roi ? fmtINR(stats.best_roi.savings_inr) : '—'} icon="medal" tint="#A78BFA" />
             </View>
             {stats.best_roi && (
-              <Text style={s.advisorSummary}>
+              <Text className="text-muted text-sm" style={{ lineHeight: 18 }}>
                 You can save up to <Text style={{ color: '#FCD34D', fontWeight: '700' }}>{fmtINR(stats.total_savings_inr)}</Text> across{' '}
                 <Text style={{ color: '#FCD34D', fontWeight: '700' }}>{stats.total_deals}</Text> active deals.
                 Your biggest single saving: <Text style={{ color: '#FCD34D', fontWeight: '700' }}>{stats.best_roi.brand}</Text> — {stats.best_roi.title} ({fmtINR(stats.best_roi.savings_inr)}).
@@ -310,41 +310,41 @@ export default function DealsScreen() {
           <ActivityIndicator color="#EC4899" />
         ) : (
           <View style={{ gap: 12 }}>
-            <Text style={s.bundleSummary}>
+            <Text className="text-muted text-sm">
               These 4 deals together save you{' '}
               <Text style={{ color: '#FBCFE8', fontWeight: '800' }}>{fmtINR(stats.smart_bundle_total_savings_inr)}</Text>.
             </Text>
-            <View style={s.bundleGrid}>
+            <View className="gap-2">
               {stats.smart_bundle.map((b) => (
-                <View key={b.deal_id} style={[s.bundleItem, { borderColor: b.accent + '55' }]}>
+                <View key={b.deal_id} className="flex-row items-center gap-2.5 p-2.5 rounded-xl" style={{ backgroundColor: 'rgba(0,0,0,0.20)', borderWidth: 1, borderColor: b.accent + '55' }}>
                   {b.logo_url ? (
-                    <Image source={{ uri: resolveImageUrl(b.logo_url) }} style={s.bundleLogo} resizeMode="contain" />
+                    <Image source={{ uri: resolveImageUrl(b.logo_url) }} className="w-9 h-9 rounded-xl bg-white" resizeMode="contain" />
                   ) : (
-                    <View style={[s.bundleLogoFallback, { backgroundColor: b.accent + '33' }]}>
+                    <View className="w-9 h-9 rounded-xl items-center justify-center" style={{ backgroundColor: b.accent + '33' }}>
                       <Text style={{ color: b.accent, fontSize: 14, fontWeight: '800' }}>{b.brand?.[0] || '?'}</Text>
                     </View>
                   )}
                   <View style={{ flex: 1 }}>
-                    <Text style={s.bundleBrand}>{b.brand}</Text>
-                    <Text style={s.bundleTitle} numberOfLines={1}>{b.title}</Text>
-                    <Text style={[s.bundleSavings, { color: '#FBCFE8' }]}>save {fmtINR(b.savings_inr)}</Text>
+                    <Text className="text-dim text-xs">{b.brand}</Text>
+                    <Text className="text-text font-body-semibold text-sm" numberOfLines={1}>{b.title}</Text>
+                    <Text className="text-xs font-body-bold" style={{ color: '#FBCFE8' }}>save {fmtINR(b.savings_inr)}</Text>
                   </View>
                 </View>
               ))}
             </View>
-            <Pressable style={s.claimAllBtn}>
+            <Pressable className="flex-row items-center justify-center gap-1.5 py-2.5 rounded-xl" style={{ backgroundColor: "#EC4899" }}>
               <MaterialCommunityIcons name="auto-fix" size={14} color="#3F0518" />
-              <Text style={s.claimAllText}>Claim all 4</Text>
+              <Text className="font-body-bold text-sm" style={{ color: "#3F0518" }}>Claim all 4</Text>
             </Pressable>
           </View>
         )}
       </Accordion>
 
       {/* AI Trending button */}
-      <Pressable style={s.aiTrendBtn} onPress={onAiTrending} disabled={aiBusy}>
+      <Pressable className="flex-row items-center justify-center gap-2 py-2.5 rounded-xl" style={{ backgroundColor: "rgba(167,139,250,0.10)", borderColor: "rgba(167,139,250,0.45)", borderWidth: 1 }} onPress={onAiTrending} disabled={aiBusy}>
         {aiBusy ? <ActivityIndicator color="#A78BFA" /> :
           <MaterialCommunityIcons name="auto-fix" size={14} color="#A78BFA" />}
-        <Text style={s.aiTrendText}>
+        <Text className="text-violet font-body-bold text-sm">
           {aiBusy ? 'Generating…' : 'AI · Refresh trending hot deals (Claude)'}
         </Text>
       </Pressable>
@@ -377,13 +377,13 @@ export default function DealsScreen() {
         <>
           {/* Hot Deals */}
           {hotDeals.length > 0 && (
-            <View style={s.section}>
-              <View style={s.sectionHead}>
+            <View className="gap-3">
+              <View className="flex-row items-center gap-2 flex-wrap">
                 <MaterialCommunityIcons name="fire" size={18} color="#EF4444" />
-                <Text style={s.sectionTitle}>Hot Deals</Text>
-                <Text style={s.sectionSub}>Limited time — grab these before they expire!</Text>
+                <Text className="text-text font-display-bold text-lg">Hot Deals</Text>
+                <Text className="text-dim text-xs ml-1">Limited time — grab these before they expire!</Text>
               </View>
-              <View style={s.grid}>
+              <View className="flex-row flex-wrap" style={{ gap: 14 }}>
                 {hotDeals.map((d) => <DealCard key={d.deal_id} d={d} onClaim={openClaim} />)}
               </View>
             </View>
@@ -391,13 +391,13 @@ export default function DealsScreen() {
 
           {/* All Deals */}
           {otherDeals.length > 0 && (
-            <View style={s.section}>
-              <View style={s.sectionHead}>
+            <View className="gap-3">
+              <View className="flex-row items-center gap-2 flex-wrap">
                 <MaterialCommunityIcons name="view-grid" size={18} color="#A78BFA" />
-                <Text style={s.sectionTitle}>All Deals</Text>
-                <Text style={s.sectionSub}>Curated for SA members across {CATEGORY_META[tab]?.label || 'all'} categories</Text>
+                <Text className="text-text font-display-bold text-lg">All Deals</Text>
+                <Text className="text-dim text-xs ml-1">Curated for SA members across {CATEGORY_META[tab]?.label || 'all'} categories</Text>
               </View>
-              <View style={s.grid}>
+              <View className="flex-row flex-wrap" style={{ gap: 14 }}>
                 {otherDeals.map((d) => <DealCard key={d.deal_id} d={d} onClaim={openClaim} />)}
               </View>
             </View>
@@ -411,9 +411,9 @@ export default function DealsScreen() {
           )}
 
           {/* Sources strip */}
-          <View style={s.sourcesStrip}>
+          <View className="flex-row items-center gap-1.5 pt-4 pb-2" style={{ borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.10)" }}>
             <MaterialCommunityIcons name="api" size={12} color={C.text3} />
-            <Text style={s.sourcesText}>
+            <Text className="text-dim text-xs">
               Sourced from: {sources.map(s => s.name).join(' · ') || 'curated'} · Cache 60 min
             </Text>
           </View>
@@ -422,82 +422,82 @@ export default function DealsScreen() {
 
       {/* Claim Modal */}
       <Modal visible={!!claimDeal} animationType="fade" transparent onRequestClose={closeClaim}>
-        <View style={s.modalBackdrop}>
-          <View style={s.modalCard}>
+        <View className="flex-1 items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.65)" }}>
+          <View className="w-full rounded-2xl p-5 gap-3.5" style={{ maxWidth: 460, backgroundColor: "#1A1626", borderColor: "rgba(255,255,255,0.10)", borderWidth: 1 }}>
             {claimDeal && (
               <>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                   {claimDeal.logo_url ? (
-                    <Image source={{ uri: resolveImageUrl(claimDeal.logo_url) }} style={s.modalLogo} resizeMode="contain" />
+                    <Image source={{ uri: resolveImageUrl(claimDeal.logo_url) }} className="w-12 h-12 rounded-xl bg-white" resizeMode="contain" />
                   ) : (
-                    <View style={[s.modalLogoFallback, { backgroundColor: claimDeal.accent + '33' }]}>
+                    <View className="w-12 h-12 rounded-xl items-center justify-center" style={{ backgroundColor: claimDeal.accent + '33' }}>
                       <Text style={{ color: claimDeal.accent, fontSize: 18, fontWeight: '800' }}>{claimDeal.brand[0]}</Text>
                     </View>
                   )}
                   <View style={{ flex: 1 }}>
-                    <Text style={s.modalBrand}>{claimDeal.brand}</Text>
-                    <Text style={s.modalTitle}>{claimDeal.title}</Text>
+                    <Text className="text-dim text-xs">{claimDeal.brand}</Text>
+                    <Text className="text-text font-body-bold text-base">{claimDeal.title}</Text>
                   </View>
                   <Pressable onPress={closeClaim} hitSlop={8}>
                     <MaterialCommunityIcons name="close" size={20} color={C.text2} />
                   </Pressable>
                 </View>
 
-                <View style={s.modalSavingsBox}>
-                  <Text style={s.modalSavingsLabel}>You save</Text>
-                  <Text style={[s.modalSavingsValue, { color: claimDeal.accent }]}>
+                <View className="items-center rounded-xl p-3.5" style={{ backgroundColor: "rgba(0,0,0,0.30)", borderColor: "rgba(255,255,255,0.10)", borderWidth: 1, gap: 4 }}>
+                  <Text className="text-dim text-xs" style={{ letterSpacing: 0.5 }}>You save</Text>
+                  <Text className="text-3xl font-display-bold" style={{ color: claimDeal.accent, letterSpacing: -1 }}>
                     {fmtINR(claimDeal.absolute_savings_inr)}
                   </Text>
-                  <Text style={s.modalSavingsSub}>
+                  <Text className="text-muted text-xs">
                     {claimDeal.original_label} → {claimDeal.price_label} ({claimDeal.discount_label})
                   </Text>
                 </View>
 
                 {claimDeal.code ? (
-                  <View style={s.codeBox}>
-                    <Text style={s.codeLabel}>Code</Text>
-                    <Text style={s.codeValue}>{claimDeal.code}</Text>
+                  <View className="flex-row items-center gap-2.5 p-2.5 rounded-xl" style={{ backgroundColor: "rgba(167,139,250,0.10)", borderColor: "rgba(167,139,250,0.45)", borderWidth: 1, borderStyle: "dashed" }}>
+                    <Text className="text-dim text-xs">Code</Text>
+                    <Text className="text-text font-body-bold text-sm flex-1" style={{ letterSpacing: 1 }}>{claimDeal.code}</Text>
                     <MaterialCommunityIcons name="content-copy" size={14} color="#A78BFA" />
                   </View>
                 ) : (
-                  <Text style={s.modalNote}>No code needed — discount applied automatically at checkout.</Text>
+                  <Text className="text-dim text-xs italic">No code needed — discount applied automatically at checkout.</Text>
                 )}
 
                 {claimResult?.ok && (
-                  <View style={s.claimSuccess}>
+                  <View className="flex-row items-center gap-2.5 p-3 rounded-xl" style={{ backgroundColor: "rgba(52,211,153,0.10)", borderColor: "rgba(52,211,153,0.45)", borderWidth: 1 }}>
                     <MaterialCommunityIcons name="check-decagram" size={16} color="#34D399" />
                     <View style={{ flex: 1 }}>
-                      <Text style={s.claimSuccessTitle}>
+                      <Text className="text-text font-body-bold text-sm">
                         {claimResult.credits_awarded > 0
                           ? `+${claimResult.credits_awarded} SA points earned!`
                           : 'Daily quota reached — redirecting'}
                       </Text>
-                      <Text style={s.claimSuccessSub}>
+                      <Text className="text-muted text-xs mt-0.5">
                         Today {claimResult.todays_claims || 0}/{claimResult.max_per_day || 3} claims used
                       </Text>
                     </View>
                   </View>
                 )}
                 {claimResult && !claimResult.ok && (
-                  <View style={[s.claimSuccess, { backgroundColor: 'rgba(248,113,113,0.10)', borderColor: 'rgba(248,113,113,0.45)' }]}>
+                  <View className="flex-row items-center gap-2.5 p-3 rounded-xl" style={{ backgroundColor: 'rgba(248,113,113,0.10)', borderColor: 'rgba(248,113,113,0.45)', borderWidth: 1 }}>
                     <MaterialCommunityIcons name="alert-circle" size={16} color="#F87171" />
-                    <Text style={[s.claimSuccessSub, { color: '#FCA5A5' }]}>{claimResult.error}</Text>
+                    <Text className="text-muted text-xs mt-0.5" style={{ color: '#FCA5A5' }}>{claimResult.error}</Text>
                   </View>
                 )}
 
                 <Pressable
-                  style={[s.modalCTA, { backgroundColor: claimDeal.accent }]}
+                  className="flex-row items-center justify-center gap-1.5 py-3 rounded-xl" style={{ backgroundColor: claimDeal.accent }}
                   disabled={claimBusy}
                   onPress={onClaimConfirm}
                 >
                   {claimBusy ? <ActivityIndicator color="#fff" /> : (
                     <>
                       <MaterialCommunityIcons name="open-in-new" size={14} color="#fff" />
-                      <Text style={s.modalCTAText}>Continue to {claimDeal.brand}</Text>
+                      <Text className="text-text font-body-bold text-sm">Continue to {claimDeal.brand}</Text>
                     </>
                   )}
                 </Pressable>
-                <Text style={s.modalNote}>+20 SA points earned per claim · max 3 claims/day</Text>
+                <Text className="text-dim text-xs italic">+20 SA points earned per claim · max 3 claims/day</Text>
               </>
             )}
           </View>
@@ -519,27 +519,27 @@ function Accordion({ open, onToggle, title, icon, tint, bg, border, children }: 
   tint: string; bg: string; border: string; children: React.ReactNode;
 }) {
   return (
-    <View style={[s.accordion, { backgroundColor: bg, borderColor: border }]}>
-      <Pressable onPress={onToggle} style={s.accordionHead}>
+    <View className="rounded-xl overflow-hidden" style={[{ backgroundColor: bg, borderColor: border }]}>
+      <Pressable onPress={onToggle} className="flex-row items-center gap-2.5 px-4 py-3.5">
         <MaterialCommunityIcons name={icon} size={18} color={tint} />
-        <Text style={[s.accordionTitle, { color: tint }]}>{title}</Text>
+        <Text className="text-sm font-body-bold flex-1" style={{ color: tint }}>{title}</Text>
         <MaterialCommunityIcons
           name={open ? 'chevron-up' : 'chevron-down'}
           size={18} color={tint}
           style={{ marginLeft: 'auto' }}
         />
       </Pressable>
-      {open && <View style={s.accordionBody}>{children}</View>}
+      {open && <View className="px-4 pb-4 pt-3.5" style={{ borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.08)" }}>{children}</View>}
     </View>
   );
 }
 
 function AdvisorMetric({ label, value, icon, tint }: { label: string; value: string; icon: IconName; tint: string }) {
   return (
-    <View style={[s.advisorMetric, { borderColor: tint + '44' }]}>
+    <View className="flex-1 p-3 rounded-xl gap-1" style={{ minWidth: 130, backgroundColor: 'rgba(0,0,0,0.20)', borderWidth: 1, borderColor: tint + '44' }}>
       <MaterialCommunityIcons name={icon} size={14} color={tint} />
-      <Text style={s.advisorMetricLabel}>{label}</Text>
-      <Text style={[s.advisorMetricValue, { color: tint }]}>{value}</Text>
+      <Text className="text-dim text-xs mt-0.5">{label}</Text>
+      <Text className="text-lg font-display-bold mt-0.5" style={{ color: tint }}>{value}</Text>
     </View>
   );
 }
@@ -548,17 +548,17 @@ function DealCard({ d, onClaim }: { d: Deal; onClaim: (d: Deal) => void }) {
   const visible = (d.tags || []).filter((t) => t !== 'HOT').slice(0, 3);
   const overflow = (d.tags || []).filter((t) => t !== 'HOT').length - visible.length;
   return (
-    <View style={[s.card, { borderColor: d.accent + '44' }]}>
+    <View className="rounded-xl" style={{ flexGrow: 1, flexBasis: 260, maxWidth: 340, padding: 14, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, gap: 8, borderColor: d.accent + '44' }}>
       {/* Wrap top details in a flex: 1 view to push CTA to the bottom */}
       <View style={{ flex: 1, gap: 8 }}>
         {/* Top: Logo + title/brand + prices */}
-        <View style={s.cardTop}>
+        <View className="flex-row items-center gap-2.5 relative">
           {/* Col 1: Logo */}
-          <View style={s.cardLogoWrap}>
+          <View className="w-11 h-11 rounded-xl overflow-hidden" style={{ backgroundColor: "rgba(255,255,255,0.06)" }}>
             {d.logo_url ? (
-              <Image source={{ uri: resolveImageUrl(d.logo_url) }} style={s.cardLogo} resizeMode="contain" />
+              <Image source={{ uri: resolveImageUrl(d.logo_url) }} className="w-11 h-11 bg-white" resizeMode="contain" />
             ) : (
-              <View style={[s.cardLogoFallback, { backgroundColor: d.accent + '33' }]}>
+              <View className="w-11 h-11 rounded-xl items-center justify-center" style={{ backgroundColor: d.accent + '33' }}>
                 <Text style={{ color: d.accent, fontSize: 18, fontWeight: '800' }}>{d.brand[0]}</Text>
               </View>
             )}
@@ -566,40 +566,40 @@ function DealCard({ d, onClaim }: { d: Deal; onClaim: (d: Deal) => void }) {
 
           {/* Col 2: Brand + Title */}
           <View style={{ flex: 1, marginLeft: 10, justifyContent: 'center' }}>
-            <Text style={s.cardTitle} numberOfLines={1}>{d.title}</Text>
-            <Text style={s.cardBrand}>{d.brand}</Text>
+            <Text className="text-text font-display-bold text-sm" numberOfLines={1} numberOfLines={1}>{d.title}</Text>
+            <Text className="text-dim text-xs">{d.brand}</Text>
           </View>
 
           {/* Col 3: Prices */}
           <View style={{ alignItems: 'flex-end', justifyContent: 'center' }}>
-            <Text style={[s.cardPrice, { color: '#86EFAC' }]}>{d.price_label}</Text>
+            <Text className="text-lg font-display-bold" style={{ color: '#86EFAC', letterSpacing: -0.5 }}>{d.price_label}</Text>
             {d.original_inr > d.price_inr && (
-              <Text style={s.cardOrig}>{d.original_label}</Text>
+              <Text className="text-dim text-xs line-through">{d.original_label}</Text>
             )}
             {d.discount_pct > 0 && (
-              <Text style={[s.cardPct, { color: '#FCD34D' }]}>{d.discount_pct}% off</Text>
+              <Text className="text-xs font-body-bold" style={{ color: '#FCD34D' }}>{d.discount_pct}% off</Text>
             )}
           </View>
         </View>
 
         {/* HOT badge (rendered completely inline right above the description) */}
         {d.tags?.includes('HOT') && (
-          <View style={s.hotChip}>
+          <View className="flex-row items-center gap-0.5 px-1.5 py-0.5 rounded-md self-start" style={{ backgroundColor: "#EF4444" }}>
             <MaterialCommunityIcons name="fire" size={10} color="#fff" />
-            <Text style={s.hotChipText}>HOT</Text>
+            <Text className="text-text font-body-bold" style={{ fontSize: 9, letterSpacing: 0.4 }}>HOT</Text>
           </View>
         )}
 
         {/* Description */}
-        <Text style={s.cardDesc} numberOfLines={2}>{d.description}</Text>
+        <Text className="text-muted text-xs" numberOfLines={2} style={{ lineHeight: 17 }} numberOfLines={2}>{d.description}</Text>
 
         {/* Tag pills */}
         {visible.length > 0 && (
-          <View style={s.tagRow}>
+          <View className="flex-row flex-wrap mt-1" style={{ gap: 6 }}>
             {visible.map((t) => <TagPill key={t} tag={t} />)}
             {overflow > 0 && (
-              <View style={s.overflowPill}>
-                <Text style={s.overflowText}>+{overflow}</Text>
+              <View className="px-2 py-0.5 rounded-full" style={{ backgroundColor: "rgba(255,255,255,0.06)", borderColor: "rgba(255,255,255,0.15)", borderWidth: 1 }}>
+                <Text className="text-muted font-body-bold text-xs">+{overflow}</Text>
               </View>
             )}
           </View>
@@ -609,10 +609,10 @@ function DealCard({ d, onClaim }: { d: Deal; onClaim: (d: Deal) => void }) {
 
       {/* CTA */}
       <Pressable
-        style={[s.cardCTA, { backgroundColor: '#5D2EE6', marginTop: 'auto' }]}
+        className="py-2.5 rounded-xl items-center" style={{ backgroundColor: '#5D2EE6', marginTop: 'auto' }}
         onPress={() => onClaim(d)}
       >
-        <Text style={s.cardCTAText}>Claim Deal</Text>
+        <Text className="text-text font-body-bold text-sm">Claim Deal</Text>
       </Pressable>
     </View>
   );
@@ -639,217 +639,4 @@ function TagPill({ tag }: { tag: Tag }) {
   );
 }
 
-// ─── Styles ──────────────────────────────────────────────────────────────
-const s = StyleSheet.create({
-  savePill: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999,
-    backgroundColor: 'rgba(252,211,77,0.12)',
-    borderColor: 'rgba(252,211,77,0.35)', borderWidth: 1,
-  },
-  savePillText: { color: '#FCD34D', fontSize: 10.5, fontWeight: '800' },
 
-  refreshBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.10)',
-    borderColor: 'rgba(255,255,255,0.20)', borderWidth: 1,
-  },
-  refreshText: { color: '#fff', fontSize: 11, fontWeight: '700' },
-
-  lastUpdated: { color: C.text3, fontSize: 11, marginTop: -10 },
-
-  errBox: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    padding: 12, borderRadius: 10,
-    backgroundColor: 'rgba(248,113,113,0.10)',
-    borderColor: 'rgba(248,113,113,0.40)', borderWidth: 1,
-  },
-  errText: { color: '#FCA5A5', fontSize: 12.5, flex: 1 },
-
-  // Accordion
-  accordion: {
-    borderRadius: 14,
-    borderWidth: 1,
-    overflow: 'hidden',
-  },
-  accordionHead: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingHorizontal: 16, paddingVertical: 14,
-  },
-  accordionTitle: { fontSize: 13.5, fontWeight: '700', flex: 1 },
-  accordionBody: {
-    paddingHorizontal: 16, paddingBottom: 16,
-    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)',
-    paddingTop: 14,
-  },
-
-  advisorRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  advisorMetric: {
-    flex: 1, minWidth: 130,
-    padding: 12, borderRadius: 12,
-    backgroundColor: 'rgba(0,0,0,0.20)',
-    borderWidth: 1, gap: 4,
-  },
-  advisorMetricLabel: { color: C.text3, fontSize: 10.5, marginTop: 2 },
-  advisorMetricValue: { fontSize: 16, fontWeight: '800', marginTop: 2 },
-  advisorSummary: { color: C.text2, fontSize: 12.5, lineHeight: 18 },
-
-  bundleSummary: { color: C.text2, fontSize: 13 },
-  bundleGrid: { gap: 8 },
-  bundleItem: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    padding: 10, borderRadius: 12,
-    backgroundColor: 'rgba(0,0,0,0.20)',
-    borderWidth: 1,
-  },
-  bundleLogo: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#fff' },
-  bundleLogoFallback: {
-    width: 36, height: 36, borderRadius: 10,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  bundleBrand: { color: C.text3, fontSize: 10.5 },
-  bundleTitle: { color: '#fff', fontSize: 13, fontWeight: '600' },
-  bundleSavings: { fontSize: 12, fontWeight: '700' },
-  claimAllBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    backgroundColor: '#EC4899',
-    paddingVertical: 10, borderRadius: 10,
-  },
-  claimAllText: { color: '#3F0518', fontSize: 12.5, fontWeight: '800' },
-
-  // AI trending button
-  aiTrendBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    paddingVertical: 11, borderRadius: 12,
-    backgroundColor: 'rgba(167,139,250,0.10)',
-    borderColor: 'rgba(167,139,250,0.45)', borderWidth: 1,
-  },
-  aiTrendText: { color: '#A78BFA', fontSize: 12.5, fontWeight: '700' },
-
-  // Tabs
-  tab: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: C.border, borderWidth: 1,
-  },
-  tabText: { color: C.text2, fontSize: 12.5, fontWeight: '600' },
-
-  // Sections
-  section: { gap: 12 },
-  sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
-  sectionTitle: { color: '#fff', fontSize: 18, fontWeight: '800' },
-  sectionSub: { color: C.text3, fontSize: 12, marginLeft: 4 },
-
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
-
-  // Card
-  card: {
-    flexGrow: 1, flexBasis: 260, maxWidth: 340,
-    padding: 14, borderRadius: 16,
-    backgroundColor: C.card,
-    borderWidth: 1,
-    gap: 8,
-  },
-  cardTop: { flexDirection: 'row', alignItems: 'center', gap: 10, position: 'relative' },
-  cardLogoWrap: { width: 44, height: 44, borderRadius: 12, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.06)' },
-  cardLogo: { width: 44, height: 44, backgroundColor: '#fff' },
-  cardLogoFallback: {
-    width: 44, height: 44, borderRadius: 12,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  cardPrice: { fontSize: 18, fontWeight: '800', letterSpacing: -0.5 },
-  cardOrig: { color: C.text3, fontSize: 11, textDecorationLine: 'line-through' },
-  cardPct: { fontSize: 11, fontWeight: '700' },
-  hotChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 3,
-    backgroundColor: '#EF4444',
-    paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6,
-    alignSelf: 'flex-start',
-  },
-  hotChipText: { color: '#fff', fontSize: 9, fontWeight: '900', letterSpacing: 0.4 },
-
-  cardTitle: { color: '#fff', fontSize: 14.5, fontWeight: '800' },
-  cardBrand: { color: C.text3, fontSize: 11.5 },
-  cardDesc: { color: C.text2, fontSize: 12, lineHeight: 17 },
-
-  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
-  tagPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999,
-    borderWidth: 1,
-  },
-  tagText: { fontSize: 10, fontWeight: '700' },
-  overflowPill: {
-    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderColor: 'rgba(255,255,255,0.15)', borderWidth: 1,
-  },
-  overflowText: { color: C.text2, fontSize: 10, fontWeight: '700' },
-
-  cardCTA: {
-    paddingVertical: 11, borderRadius: 10,
-    alignItems: 'center', marginTop: 6,
-  },
-  cardCTAText: { color: '#fff', fontSize: 13, fontWeight: '800' },
-
-  sourcesStrip: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingTop: 16, paddingBottom: 8,
-    borderTopWidth: 1, borderTopColor: C.border,
-  },
-  sourcesText: { color: C.text3, fontSize: 11 },
-
-  // Modal
-  modalBackdrop: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.65)',
-    alignItems: 'center', justifyContent: 'center', padding: 16,
-  },
-  modalCard: {
-    width: '100%', maxWidth: 460,
-    borderRadius: 18, padding: 20, gap: 14,
-    backgroundColor: '#1A1626',
-    borderColor: 'rgba(255,255,255,0.10)', borderWidth: 1,
-  },
-  modalLogo: { width: 48, height: 48, borderRadius: 12, backgroundColor: '#fff' },
-  modalLogoFallback: { width: 48, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  modalBrand: { color: C.text3, fontSize: 11 },
-  modalTitle: { color: '#fff', fontSize: 15, fontWeight: '700' },
-
-  modalSavingsBox: {
-    backgroundColor: 'rgba(0,0,0,0.30)',
-    padding: 14, borderRadius: 12,
-    alignItems: 'center', gap: 4,
-    borderColor: C.border, borderWidth: 1,
-  },
-  modalSavingsLabel: { color: C.text3, fontSize: 11, letterSpacing: 0.5 },
-  modalSavingsValue: { fontSize: 28, fontWeight: '800', letterSpacing: -1 },
-  modalSavingsSub: { color: C.text2, fontSize: 12 },
-
-  codeBox: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    padding: 11, borderRadius: 10,
-    backgroundColor: 'rgba(167,139,250,0.10)',
-    borderColor: 'rgba(167,139,250,0.45)', borderWidth: 1, borderStyle: 'dashed',
-  },
-  codeLabel: { color: C.text3, fontSize: 11 },
-  codeValue: { color: '#fff', fontSize: 14, fontWeight: '800', letterSpacing: 1, flex: 1 },
-
-  modalNote: { color: C.text3, fontSize: 11, fontStyle: 'italic' },
-
-  claimSuccess: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    padding: 12, borderRadius: 10,
-    backgroundColor: 'rgba(52,211,153,0.10)',
-    borderColor: 'rgba(52,211,153,0.45)', borderWidth: 1,
-  },
-  claimSuccessTitle: { color: '#fff', fontSize: 13, fontWeight: '700' },
-  claimSuccessSub: { color: C.text2, fontSize: 11.5, marginTop: 2 },
-
-  modalCTA: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    paddingVertical: 13, borderRadius: 12,
-  },
-  modalCTAText: { color: '#fff', fontSize: 14, fontWeight: '800' },
-});

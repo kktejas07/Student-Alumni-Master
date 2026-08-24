@@ -1,67 +1,70 @@
 import React from 'react';
 import { View, Text, Pressable, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { COLORS } from '@/src/lib/designTokens';
 
 export function SectionHeader({ title, subtitle, icon }: { title: string; subtitle?: string; icon?: string }) {
   return (
-    <View style={{ marginBottom: 12 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        {icon && <MaterialCommunityIcons name={icon as any} size={18} color={COLORS.purpleL} />}
-        <Text style={{ color: COLORS.textPrimary, fontSize: 18, fontWeight: '700' }}>{title}</Text>
+    <View className="mb-3">
+      <View className="flex-row items-center gap-2">
+        {icon && <MaterialCommunityIcons name={icon as any} size={18} color="#818CF8" />}
+        <Text className="text-white font-display-bold text-lg">{title}</Text>
       </View>
-      {subtitle && <Text style={{ color: COLORS.textSecondary, fontSize: 13, marginTop: 2 }}>{subtitle}</Text>}
+      {subtitle && <Text className="text-white/50 font-body-semibold text-[13px] mt-0.5">{subtitle}</Text>}
     </View>
   );
 }
 
 export function CareerSectionCard({ children, style }: { children: React.ReactNode; style?: any }) {
   return (
-    <View style={[{ backgroundColor: COLORS.card, borderColor: COLORS.cardBorder, borderWidth: 1, borderRadius: 14, padding: 16, marginBottom: 14 }, style]}>
+    <View className="bg-white/[0.04] border border-white/[0.08] rounded-[14px] p-4 mb-3.5" style={style}>
       {children}
     </View>
   );
 }
 
-export function InfoChip({ label, color = COLORS.purpleL }: { label: string; color?: string }) {
+export function InfoChip({ label, color = '#818CF8' }: { label: string; color?: string }) {
   return (
-    <View style={{ backgroundColor: `${color}15`, borderColor: `${color}30`, borderWidth: 1, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 }}>
-      <Text style={{ color, fontSize: 11, fontWeight: '600' }}>{label}</Text>
+    <View className="rounded-md px-2 py-1 border" style={{ backgroundColor: `${color}15`, borderColor: `${color}30` }}>
+      <Text className="text-white text-[11px] font-semibold" style={{ color }}>{label}</Text>
     </View>
   );
 }
 
 export function MetricCard({ label, value, subtext }: { label: string; value: string | number; subtext?: string }) {
   return (
-    <View style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.03)', borderColor: COLORS.cardBorder, borderWidth: 1, borderRadius: 12, padding: 14 }}>
-      <Text style={{ color: COLORS.textSecondary, fontSize: 12 }}>{label}</Text>
-      <Text style={{ color: COLORS.textPrimary, fontSize: 22, fontWeight: '800', marginVertical: 4 }}>{value}</Text>
-      {subtext && <Text style={{ color: COLORS.purpleL, fontSize: 11 }}>{subtext}</Text>}
+    <View className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-xl p-3.5">
+      <Text className="text-white/50 text-xs">{label}</Text>
+      <Text className="text-white font-display-bold text-[22px] my-1">{value}</Text>
+      {subtext && <Text className="text-indigo-400 text-[11px]">{subtext}</Text>}
     </View>
   );
 }
 
 export function ActionCard({ title, impact, type, onPress }: { title: string; impact: string; type?: string; onPress?: () => void }) {
   return (
-    <Pressable onPress={onPress} style={({ hovered }: any) => [{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(255,255,255,0.03)', borderColor: COLORS.cardBorder, borderWidth: 1, borderRadius: 10, padding: 12, marginBottom: 8 }, hovered && { borderColor: COLORS.purpleL }]}>
-      <View style={{ flex: 1, marginRight: 8 }}>
-        <Text style={{ color: COLORS.textPrimary, fontSize: 13, fontWeight: '600' }}>{title}</Text>
-        <Text style={{ color: COLORS.green, fontSize: 11, marginTop: 2 }}>{impact}</Text>
+    <Pressable
+      onPress={onPress}
+      className="flex-row items-center justify-between bg-white/[0.03] border border-white/[0.08] rounded-[10px] p-3 mb-2"
+      style={({ hovered }: any) => hovered ? { borderColor: '#818CF8' } : undefined}
+    >
+      <View className="flex-1 mr-2">
+        <Text className="text-white text-[13px] font-semibold">{title}</Text>
+        <Text className="text-green-400 text-[11px] mt-0.5">{impact}</Text>
       </View>
-      <MaterialCommunityIcons name="chevron-right" size={18} color={COLORS.textSecondary} />
+      <MaterialCommunityIcons name="chevron-right" size={18} color="rgba(238,240,255,0.5)" />
     </Pressable>
   );
 }
 
 export function SkillBar({ name, score }: { name: string; score: number }) {
   return (
-    <View style={{ marginBottom: 10 }}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-        <Text style={{ color: COLORS.textPrimary, fontSize: 12, fontWeight: '600' }}>{name}</Text>
-        <Text style={{ color: COLORS.purpleL, fontSize: 12, fontWeight: '700' }}>{score}%</Text>
+    <View className="mb-2.5">
+      <View className="flex-row justify-between mb-1">
+        <Text className="text-white text-xs font-semibold">{name}</Text>
+        <Text className="text-indigo-400 text-xs font-bold">{score}%</Text>
       </View>
-      <View style={{ height: 6, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 3, overflow: 'hidden' }}>
-        <View style={{ height: '100%', width: `${score}%`, backgroundColor: COLORS.purpleL, borderRadius: 3 }} />
+      <View className="h-1.5 bg-white/[0.08] rounded-[3px] overflow-hidden">
+        <View className="h-full rounded-[3px] bg-indigo-400" style={{ width: `${score}%` as any }} />
       </View>
     </View>
   );
@@ -69,20 +72,23 @@ export function SkillBar({ name, score }: { name: string; score: number }) {
 
 export function AIInsightBubble({ text }: { text: string }) {
   return (
-    <View style={{ flexDirection: 'row', gap: 10, backgroundColor: 'rgba(79,70,229,0.1)', borderColor: 'rgba(79,70,229,0.25)', borderWidth: 1, borderRadius: 12, padding: 14, marginBottom: 10 }}>
-      <MaterialCommunityIcons name="sparkles" size={18} color={COLORS.purpleL} />
-      <Text style={{ flex: 1, color: COLORS.textPrimary, fontSize: 13, lineHeight: 18 }}>{text}</Text>
+    <View className="flex-row gap-2.5 bg-[rgba(79,70,229,0.1)] border border-[rgba(79,70,229,0.25)] rounded-xl p-3.5 mb-2.5">
+      <MaterialCommunityIcons name="sparkles" size={18} color="#818CF8" />
+      <Text className="flex-1 text-white text-[13px] leading-[18px]">{text}</Text>
     </View>
   );
 }
 
 export function MilestoneCard({ milestone, meta, onPress }: { milestone: any; meta?: any; onPress?: () => void }) {
   return (
-    <Pressable onPress={onPress || meta?.onPress} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: 'rgba(255,255,255,0.03)', borderColor: COLORS.cardBorder, borderWidth: 1, borderRadius: 10, padding: 12, marginBottom: 8 }}>
-      <MaterialCommunityIcons name={milestone.completed ? 'check-circle' : 'circle-outline'} size={20} color={milestone.completed ? COLORS.green : COLORS.dim} />
-      <View style={{ flex: 1 }}>
-        <Text style={{ color: milestone.completed ? COLORS.textSecondary : COLORS.textPrimary, fontSize: 13, fontWeight: '600', textDecorationLine: milestone.completed ? 'line-through' : 'none' }}>{milestone.title}</Text>
-        {milestone.description && <Text style={{ color: COLORS.dim, fontSize: 11, marginTop: 2 }}>{milestone.description}</Text>}
+    <Pressable
+      onPress={onPress || meta?.onPress}
+      className="flex-row items-center gap-3 bg-white/[0.03] border border-white/[0.08] rounded-[10px] p-3 mb-2"
+    >
+      <MaterialCommunityIcons name={milestone.completed ? 'check-circle' : 'circle-outline'} size={20} color={milestone.completed ? '#34D399' : 'rgba(238,240,255,0.3)'} />
+      <View className="flex-1">
+        <Text className="text-white text-[13px] font-semibold" style={{ color: milestone.completed ? 'rgba(238,240,255,0.5)' : 'white', textDecorationLine: milestone.completed ? 'line-through' : 'none' }}>{milestone.title}</Text>
+        {milestone.description && <Text className="text-white/30 text-[11px] mt-0.5">{milestone.description}</Text>}
       </View>
     </Pressable>
   );
@@ -90,9 +96,9 @@ export function MilestoneCard({ milestone, meta, onPress }: { milestone: any; me
 
 export function WeeklyTaskCard({ task, onToggle }: { task: any; onToggle?: () => void }) {
   return (
-    <Pressable onPress={onToggle} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 }}>
-      <MaterialCommunityIcons name={task.completed ? 'checkbox-marked' : 'checkbox-blank-outline'} size={18} color={task.completed ? COLORS.purpleL : COLORS.dim} />
-      <Text style={{ color: COLORS.textPrimary, fontSize: 13 }}>{task.title}</Text>
+    <Pressable onPress={onToggle} className="flex-row items-center gap-2.5 py-2">
+      <MaterialCommunityIcons name={task.completed ? 'checkbox-marked' : 'checkbox-blank-outline'} size={18} color={task.completed ? '#818CF8' : 'rgba(238,240,255,0.3)'} />
+      <Text className="text-white text-[13px]">{task.title}</Text>
     </Pressable>
   );
 }
@@ -101,7 +107,7 @@ export function CareerGoalSimulator({ currentRole, targetRole }: { currentRole?:
   return (
     <CareerSectionCard>
       <SectionHeader title="Career Goal Simulator" subtitle={`Simulating path from ${currentRole || 'Student'} to ${targetRole || 'Software Engineer'}`} icon="compass" />
-      <Text style={{ color: COLORS.textSecondary, fontSize: 13, lineHeight: 18 }}>
+      <Text className="text-white/50 text-[13px] leading-[18px]">
         Based on market telemetry, completing the recommended milestones will place your profile in the top percentile of candidate selections.
       </Text>
     </CareerSectionCard>
@@ -110,9 +116,9 @@ export function CareerGoalSimulator({ currentRole, targetRole }: { currentRole?:
 
 export function CareerPageSkeleton() {
   return (
-    <View style={{ padding: 24, alignItems: 'center', justifyContent: 'center' }}>
-      <ActivityIndicator size="large" color={COLORS.purpleL} />
-      <Text style={{ color: COLORS.textSecondary, marginTop: 12, fontSize: 13 }}>Loading Career AI Engine...</Text>
+    <View className="p-6 items-center justify-center">
+      <ActivityIndicator size="large" color="#818CF8" />
+      <Text className="text-white/50 mt-3 text-[13px]">Loading Career AI Engine...</Text>
     </View>
   );
 }

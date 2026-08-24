@@ -12,7 +12,7 @@
  * consistent across the entire web auth flow.
  */
 import { ReactNode } from 'react';
-import { View, Text, ScrollView, StyleSheet, Platform, useWindowDimensions } from 'react-native';
+import { View, Text, ScrollView, Platform, useWindowDimensions } from 'react-native';
 import { Colors as C } from '@/src/theme';
 import { SALogo } from '@/src/views/components';
 import { RoleThemeProvider, type Role } from '@/src/views/auth/RoleTheme';
@@ -36,17 +36,16 @@ export function AuthWebShell({
 
   return (
     <RoleThemeProvider role={role}>
-      <View style={styles.shell}>
-        {/* LEFT — brand pane (hidden on small screens) */}
+      <View className="flex-row min-h-full overflow-hidden bg-black">
         {!compact && (
-          <View style={styles.brandPane}>
-            <View pointerEvents="none" style={[styles.orb, { width: 280, height: 280, top: '-10%', right: '-15%', backgroundColor: 'rgba(139,92,246,0.18)' }]} />
-            <View pointerEvents="none" style={[styles.orb, { width: 200, height: 200, bottom: '10%', left: '-10%', backgroundColor: 'rgba(109,40,217,0.16)' }]} />
-            <View style={{ alignItems: 'center', marginBottom: 24 }}>
+          <View className="flex-1 justify-center items-center" style={{ paddingHorizontal: 64, paddingVertical: 80, maxWidth: 640, minWidth: 0, backgroundColor: '#5B21B6', overflow: 'hidden', position: 'relative', ...(Platform.OS === 'web' ? { display: 'flex' as any } : {}) }}>
+            <View pointerEvents="none" className="absolute rounded-full" style={{ width: 280, height: 280, top: '-10%', right: '-15%', backgroundColor: 'rgba(139,92,246,0.18)', filter: 'blur(80px)' } as any} />
+            <View pointerEvents="none" className="absolute rounded-full" style={{ width: 200, height: 200, bottom: '10%', left: '-10%', backgroundColor: 'rgba(109,40,217,0.16)', filter: 'blur(80px)' } as any} />
+            <View className="items-center mb-6">
               <SALogo size={76} variant="white" />
             </View>
-            <Text style={styles.brandTitle}>Student Alumni</Text>
-            <Text style={styles.brandSub}>
+            <Text className="text-white font-body-bold text-3xl tracking-tight text-center mb-3">Student Alumni</Text>
+            <Text className="text-sm text-center mb-8" style={{ color: 'rgba(255,255,255,0.46)', lineHeight: 22, maxWidth: 300 }}>
               AI career guidance, internships, mentorship, and alumni networking.
             </Text>
             {[
@@ -54,37 +53,36 @@ export function AuthWebShell({
               { emoji: '🌍', t: '10,000+ Internships', s: 'Global opportunities matched to you' },
               { emoji: '🤝', t: '500+ Mentors', s: 'Alumni who want to help you grow' },
             ].map((f) => (
-              <View key={f.t} style={styles.featRow}>
-                <View style={styles.featIcon}>
+              <View key={f.t} className="flex-row gap-3 items-start mb-3.5 w-full" style={{ maxWidth: 300 }}>
+                <View className="rounded-lg items-center justify-center" style={{ width: 36, height: 36, backgroundColor: 'rgba(255,255,255,0.10)' }}>
                   <Text style={{ fontSize: 17 }}>{f.emoji}</Text>
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.featTitle}>{f.t}</Text>
-                  <Text style={styles.featSub}>{f.s}</Text>
+                <View className="flex-1">
+                  <Text className="text-white font-body-bold text-sm">{f.t}</Text>
+                  <Text className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.44)' }}>{f.s}</Text>
                 </View>
               </View>
             ))}
           </View>
         )}
 
-        {/* RIGHT — content pane */}
-        <View style={styles.rightPane}>
+        <View className="flex-1" style={{ minWidth: 380, backgroundColor: '#000000' }}>
           <ScrollView
+            className="items-center grow"
             contentContainerStyle={[
-              styles.scroll,
-              variant === 'center' && styles.scrollCenter,
+              { paddingHorizontal: 40, paddingVertical: 60, alignItems: 'center', justifyContent: 'flex-start', flexGrow: 1 },
+              variant === 'center' && { justifyContent: 'center' },
             ]}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
             {variant === 'center' ? (
-              <View style={[styles.glassCard, { maxWidth: cardMaxWidth }]}>
-                {/* subtle gradient halo behind the card */}
-                <View pointerEvents="none" style={styles.cardHalo} />
+              <View className="w-full relative overflow-hidden rounded-2xl" style={{ maxWidth: cardMaxWidth, backgroundColor: 'rgba(20,12,40,0.65)', borderColor: '#E5E7EB', borderWidth: 1, paddingHorizontal: 32, paddingVertical: 36, backdropFilter: 'blur(24px)', boxShadow: '0px 16px 48px rgba(124,58,237,0.25)' } as any}>
+                <View pointerEvents="none" className="absolute rounded-full" style={{ top: -120, right: -120, width: 260, height: 260, backgroundColor: 'rgba(124,58,237,0.22)', filter: 'blur(80px)' } as any} />
                 {children}
               </View>
             ) : (
-              <View style={{ width: '100%', maxWidth: 480 }}>{children}</View>
+              <View className="w-full" style={{ maxWidth: 480 }}>{children}</View>
             )}
           </ScrollView>
         </View>
@@ -92,104 +90,3 @@ export function AuthWebShell({
     </RoleThemeProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  shell: {
-    flex: 1,
-    flexDirection: 'row',
-    minHeight: '100%' as any,
-    overflow: 'hidden',
-    backgroundColor: '#000000',
-  },
-  brandPane: {
-    flex: 1,
-    paddingHorizontal: 64,
-    paddingVertical: 80,
-    justifyContent: 'center',
-    alignItems: 'center',
-    maxWidth: 640,
-    minWidth: 0,
-    backgroundColor: '#5B21B6',
-    overflow: 'hidden',
-    position: 'relative',
-    ...Platform.select({ web: { display: 'flex' as any } }),
-  },
-  orb: {
-    position: 'absolute',
-    borderRadius: 999,
-    ...({ filter: 'blur(80px)' } as any),
-  },
-  brandTitle: {
-    color: C.white,
-    fontFamily: 'DMSans_700Bold',
-    fontSize: 32,
-    letterSpacing: -1,
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  brandSub: {
-    color: 'rgba(255,255,255,0.46)',
-    fontFamily: 'DMSans_400Regular',
-    fontSize: 14,
-    textAlign: 'center',
-    lineHeight: 22,
-    maxWidth: 300,
-    marginBottom: 32,
-  },
-  featRow: {
-    flexDirection: 'row',
-    gap: 12,
-    alignItems: 'flex-start',
-    marginBottom: 14,
-    width: '100%',
-    maxWidth: 300,
-  },
-  featIcon: {
-    width: 36, height: 36,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.10)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  featTitle: { color: C.white, fontFamily: 'DMSans_700Bold', fontSize: 13 },
-  featSub: { color: 'rgba(255,255,255,0.44)', fontFamily: 'DMSans_400Regular', fontSize: 11, marginTop: 1 },
-
-  rightPane: {
-    flex: 1,
-    minWidth: 380,
-    backgroundColor: '#000000',
-  },
-  scroll: {
-    paddingHorizontal: 40,
-    paddingVertical: 60,
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    flexGrow: 1,
-  },
-  scrollCenter: {
-    justifyContent: 'center',
-  },
-  glassCard: {
-    width: '100%',
-    backgroundColor: 'rgba(20,12,40,0.65)',
-    borderColor: '#E5E7EB',
-    borderWidth: 1,
-    borderRadius: 22,
-    paddingHorizontal: 32,
-    paddingVertical: 36,
-    position: 'relative',
-    overflow: 'hidden',
-    ...({ backdropFilter: 'blur(24px)' } as any),
-    boxShadow: '0px 16px 48px rgba(124,58,237,0.25)',
-  },
-  cardHalo: {
-    position: 'absolute',
-    top: -120,
-    right: -120,
-    width: 260,
-    height: 260,
-    borderRadius: 999,
-    backgroundColor: 'rgba(124,58,237,0.22)',
-    ...({ filter: 'blur(80px)' } as any),
-  },
-});

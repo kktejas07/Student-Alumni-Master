@@ -13,10 +13,9 @@
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  View, Text, Pressable, StyleSheet, Platform, Image, Linking,
+  View, Text, Pressable, Platform, Image, Linking,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { X, ArrowRight, Sparkles } from 'lucide-react-native';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { request, resolveImageUrl } from '@/src/models/services/api';
@@ -126,7 +125,7 @@ export function PromoBanner({ portal }: { portal: 'student' | 'alumni' | 'colleg
   const tint = TONE_TINT[promo.tone] || TONE_TINT.violet;
 
   return (
-    <Animated.View entering={FadeIn.duration(220)} exiting={FadeOut.duration(160)} style={s.wrap}>
+    <View style={s.wrap}>
       <View style={[s.shell, { borderColor: tint.replace('0.22', '0.45') as any }]}>
         {/* Tone gradient stripe down the left edge */}
         <LinearGradient
@@ -182,11 +181,11 @@ export function PromoBanner({ portal }: { portal: 'student' | 'alumni' | 'colleg
           </Pressable>
         )}
       </View>
-    </Animated.View>
+    </View>
   );
 }
 
-const s = StyleSheet.create({
+const s = {
   wrap: { marginBottom: 14 },
   shell: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
@@ -230,4 +229,4 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-});
+} as const;

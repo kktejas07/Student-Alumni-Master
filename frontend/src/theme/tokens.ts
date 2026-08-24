@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 
 export const COLORS = {
   bg: '#08080F',
-  bgNavy: '#08080F',
+  bgNavy: '#0a0f1e',
   surface1: '#101019',
   surface2: '#14141F',
   surface3: 'rgba(20, 20, 31, 0.75)',
@@ -16,10 +16,10 @@ export const COLORS = {
   textP: '#F4F4FA',
   textS: '#8A8A9E',
   textT: '#6A6A7E',
-  primary: '#7C5CFC',
-  primaryDark: '#6246E8',
+  primary: '#7C3AED',
+  primaryDark: '#5B21B6',
   primaryLight: '#A78BFA',
-  primarySoft: 'rgba(124,92,252,0.10)',
+  primarySoft: 'rgba(124,58,237,0.15)',
   violet: '#7C5CFC',
   violetLt: '#A78BFA',
   blue: '#3B82F6',
@@ -30,14 +30,6 @@ export const COLORS = {
   purpleSoft: 'rgba(139,92,246,0.15)',
   amber: '#F59E0B',
   amberSoft: 'rgba(245,158,11,0.15)',
-  chrome: 'rgba(10,10,20,0.86)',
-  chromeBlur: 'blur(16px)',
-  tint: 'rgba(124,92,252,0.10)',
-  tintStrong: 'rgba(124,92,252,0.18)',
-  onTint: '#F4F4FA',
-  onTintLight: '#3B2FA8',
-  onAccent: '#0C0C14',
-  onAccentLight: '#FFFFFF',
   categories: {
     cat1: '#7C5CFC',
     cat2: '#2FB8C6',
@@ -47,17 +39,10 @@ export const COLORS = {
     cat6: '#4C8DF6',
     cat7: '#A78BFA',
   },
-  gradient: {
-    button: 'linear-gradient(100deg, #7C5CFC, #6246E8)',
-    brandRamp: 'linear-gradient(135deg, #7C6BFF, #4C8DF6, #2FB8C6, #34D3A6)',
-    shieldOuter: 'linear-gradient(180deg, #D8B6FF, #9A5CE8, #5B1FB0)',
-    shieldInner: 'linear-gradient(180deg, #B683F5, #7331C9)',
-    hashtag: 'linear-gradient(135deg, #F0A6E8, #C08BFF, #8B84FF, #6FA8F5)',
-  },
 } as const;
 
 export const PORTAL_ACCENTS = {
-  student: { primary: '#7C5CFC', primaryD: '#6246E8', primaryL: '#A78BFA', accent: '#7C5CFC', accentSoft: 'rgba(124,92,252,0.18)' },
+  student: { primary: '#7C3AED', primaryD: '#5B21B6', primaryL: '#A78BFA', accent: '#7C3AED', accentSoft: 'rgba(124,58,237,0.18)' },
   alumni: { primary: '#FB923C', primaryD: '#F97316', primaryL: '#FDBA74', accent: '#FB923C', accentSoft: 'rgba(251,146,60,0.18)' },
   college: { primary: '#3B82F6', primaryD: '#2563EB', primaryL: '#60A5FA', accent: '#3B82F6', accentSoft: 'rgba(59,130,246,0.18)' },
   mentor: { primary: '#F59E0B', primaryD: '#D97706', primaryL: '#FBBF24', accent: '#F59E0B', accentSoft: 'rgba(245,158,11,0.18)' },
@@ -66,9 +51,9 @@ export const PORTAL_ACCENTS = {
 
 export type PortalKey = keyof typeof PORTAL_ACCENTS;
 
-export const SPACING = { xs: 4, sm: 6, md: 8, base: 10, lg: 12, xl: 14, xxl: 16, xxxl: 18, mega: 22, giga: 26, xxl2: 32, xxxl2: 40, giga2: 56, huge: 64 } as const;
+export const SPACING = { xs: 4, sm: 8, md: 12, base: 16, lg: 20, xl: 24, xxl: 32, xxxl: 40, mega: 48, giga: 64 } as const;
 
-export const RADIUS = { sm: 8, md: 10, lg: 12, card: 18, modal: 22, hero: 24, max: 28 } as const;
+export const RADIUS = { sm: 8, md: 10, lg: 12, card: 16, modal: 20, hero: 24, max: 28 } as const;
 
 export const GLASS = {
   card: {
@@ -113,13 +98,13 @@ export const STATUS = {
 } as const;
 
 export const FONT_FAMILIES = {
-  display: 'Manrope, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif',
-  body: 'Outfit, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif',
-  sans: 'Outfit, system-ui, sans-serif',
+  display: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", system-ui, sans-serif',
+  body: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", system-ui, sans-serif',
+  sans: 'Inter, system-ui, sans-serif',
   mono: 'JetBrains Mono, monospace',
-  bold: 'Outfit, system-ui, sans-serif',
-  med: 'Outfit, system-ui, sans-serif',
-  xbold: 'Manrope, system-ui, sans-serif',
+  bold: 'Inter, system-ui, sans-serif',
+  med: 'Inter, system-ui, sans-serif',
+  xbold: 'Inter, system-ui, sans-serif',
 };
 
 export const TYPE = {
@@ -131,10 +116,10 @@ export const TYPE = {
 } as const;
 
 export const BRAND = {
-  primary: '#7C5CFC',
-  primaryDark: '#6246E8',
+  primary: '#7C3AED',
+  primaryDark: '#5B21B6',
   primaryLight: '#A78BFA',
-  primarySoft: 'rgba(124,92,252,0.10)',
+  primarySoft: 'rgba(124,58,237,0.15)',
 } as const;
 
 export const APPLE_SEMANTIC = {
@@ -164,16 +149,16 @@ export const LIGHT = {
   primary: BRAND.primary,
   ...APPLE_SEMANTIC,
   shadow: {
-    sm: { shadowColor: '#141726', shadowOpacity: 0.04, shadowRadius: 2, shadowOffset: { width: 0, height: 1 } },
-    md: { shadowColor: '#141726', shadowOpacity: 0.06, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } },
-    lg: { shadowColor: '#141726', shadowOpacity: 0.08, shadowRadius: 30, shadowOffset: { width: 0, height: 12 } },
-    xl: { shadowColor: '#141726', shadowOpacity: 0.12, shadowRadius: 60, shadowOffset: { width: 0, height: 24 } },
+    sm: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 3, shadowOffset: { width: 0, height: 1 } },
+    md: { shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } },
+    lg: { shadowColor: '#000', shadowOpacity: 0.10, shadowRadius: 32, shadowOffset: { width: 0, height: 12 } },
+    xl: { shadowColor: '#000', shadowOpacity: 0.14, shadowRadius: 64, shadowOffset: { width: 0, height: 24 } },
   },
 } as const;
 
 export const DARK = {
   name: 'dark' as const,
-  bg: '#08080F',
+  bg: '#07070A',
   bgElevated: '#121218',
   bgGlass: 'rgba(14,14,18,0.72)',
   bgInset: '#0E0E12',
@@ -204,9 +189,9 @@ export const DARK = {
 export type Theme = typeof LIGHT;
 
 export const FONT_FAMILY = Platform.select({
-  ios: 'Outfit',
+  ios: 'System',
   android: 'sans-serif',
-  default: 'Manrope, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif',
+  default: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", system-ui, sans-serif',
 }) as string;
 
 export const NX = COLORS;
@@ -313,7 +298,7 @@ export const PROGRESS_HEIGHTS = {
 
 export const BREAKPOINTS = {
   phone: 480,
-  tablet: 860,
-  desktop: 1150,
+  tablet: 768,
+  desktop: 1024,
   wide: 1280,
 } as const;

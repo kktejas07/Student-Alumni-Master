@@ -916,8 +916,16 @@ async def update_profile(updates: dict, user: dict = Depends(get_current_user)):
         "section_toggles", "projects",
         # Preferences (settings page)
         "preferences",
+        # Identity & DigiLocker Verification
+        "aadhaar_number", "aadhaar_masked", "aadhaar_verified",
+        "digilocker_id", "digilocker_verified", "digilocker_doc_count", "digilocker_uri", "digilocker_linked_at",
     }
     safe = {k: v for k, v in updates.items() if k in allowed}
+    # Auto-generate masked Aadhaar if raw number is supplied
+    if "aadhaar_number" in safe and safe["aadhaar_number"]:
+        raw_num = re.sub(r"\D", "", str(safe["aadhaar_number"]))
+        if len(raw_num) >= 4:
+            safe["aadhaar_masked"] = f"•••• •••• {raw_num[-4:]}"
     # Synthesize full_name when first/last provided
     if ("first_name" in safe or "last_name" in safe) and "full_name" not in safe:
         u_now = user

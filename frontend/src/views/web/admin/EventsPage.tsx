@@ -2,7 +2,7 @@
  * EventsPage — list + compose modal + edit + delete.
  */
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, TextInput, ActivityIndicator } from 'react-native';
 import { Plus, Calendar, Users as UsersIcon, Edit3, Trash2, AlertTriangle, Save } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
 import { AdminLayout } from './AdminLayout';
@@ -175,7 +175,7 @@ function Field({ label, value, onChange, multiline, placeholder }: { label: stri
   );
 }
 
-const styles = StyleSheet.create({
+const styles = {
   grid: { ...({ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 14 } as any) },
   eventIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: T.glassMd, borderColor: T.borderMd, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   eventTitle: { color: T.text, fontFamily: 'DMSans_700Bold', fontSize: 14, flex: 1 },
@@ -189,4 +189,4 @@ const styles = StyleSheet.create({
     color: T.text, fontFamily: 'DMSans_500Medium', fontSize: 13,
     ...({ outlineStyle: 'none' } as any),
   },
-});
+};

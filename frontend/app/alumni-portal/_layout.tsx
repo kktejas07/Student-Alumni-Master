@@ -5,10 +5,12 @@
  * reach the portal; everyone else bounces to /login.
  */
 import React, { useEffect } from 'react';
-import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, Text } from 'react-native';
 import { Slot, useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { portalPathForRole, rolesForPortal } from '@/src/lib/portalHome';
+
+import { SAModernLoader } from '@/src/views/components/SAModernLoader';
 
 export default function AlumniPortalLayoutRoute() {
   const router = useRouter();
@@ -28,23 +30,15 @@ export default function AlumniPortalLayoutRoute() {
   }, [user, initialized, router]);
 
   if (!initialized) {
-    return (
-      <View style={s.gate}>
-        <ActivityIndicator size="small" color="#FB923C" />
-      </View>
-    );
+    return <SAModernLoader subtitle="LOADING ALUMNI PORTAL" />;
   }
   if (!user) {
     return (
-      <View style={s.gate}>
-        <Text style={s.gateText}>Redirecting to login…</Text>
+      <View className="flex-1 items-center justify-center" style={{ backgroundColor: '#030614', gap: 10 }}>
+        <Text className="text-xs" style={{ color: 'rgba(255,255,255,0.6)', fontFamily: 'DMSans_500Medium' }}>Redirecting to login…</Text>
       </View>
     );
   }
   return <Slot />;
 }
 
-const s = StyleSheet.create({
-  gate: { flex: 1, backgroundColor: '#030614', alignItems: 'center', justifyContent: 'center', gap: 10 },
-  gateText: { color: 'rgba(255,255,255,0.6)', fontFamily: 'DMSans_500Medium', fontSize: 12.5 },
-});

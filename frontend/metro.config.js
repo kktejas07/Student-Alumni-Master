@@ -56,7 +56,7 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   }
   if (moduleName === 'lucide-react-native') {
     return {
-      filePath: require.resolve('lucide-react-native'),
+      filePath: path.join(__dirname, 'src', 'shims', 'lucide-react-native.js'),
       type: 'sourceFile',
     };
   }

@@ -12,7 +12,7 @@
  *   <BadgeStack badges={badges} max={3} compact />
  *   <BadgeChip badge={b} />
  */
-import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
+import { View, Text, Pressable, Platform } from 'react-native';
 import {
   // role-tier icons
   Sparkles, Zap, Flame, Users, UserCheck, Star,
@@ -79,21 +79,18 @@ export function BadgeChip({ badge, size = 'sm', onPress }: ChipProps) {
 
   const inner = (
     <View
-      style={[
-        styles.chip,
-        {
-          paddingHorizontal: sz.padX,
-          paddingVertical: sz.padY,
-          gap: sz.gap,
-          borderColor: color + '70',
-          backgroundColor: color + '18',
-        },
-        Platform.OS === 'web' && ({ boxShadow: `0 0 12px ${glow}` } as any),
-        Platform.OS !== 'web' && ({ boxShadow: `0px 2px 10px ${color}80` } as any),
-      ]}
+      className="flex-row items-center border rounded-full"
+      style={{
+        paddingHorizontal: sz.padX,
+        paddingVertical: sz.padY,
+        gap: sz.gap,
+        borderColor: color + '70',
+        backgroundColor: color + '18',
+        ...(Platform.OS === 'web' ? { boxShadow: `0 0 12px ${glow}` } as any : { boxShadow: `0px 2px 10px ${color}80` } as any),
+      }}
     >
       <Icon size={sz.iconSize} color={color} />
-      <Text style={[styles.chipLabel, { color, fontSize: sz.fontSize, lineHeight: sz.lineH }]} numberOfLines={1}>
+      <Text className="font-body-bold tracking-wide" style={{ color, fontSize: sz.fontSize, lineHeight: sz.lineH }} numberOfLines={1}>
         {badge.label}
       </Text>
     </View>
@@ -135,40 +132,19 @@ export function BadgeStack({
   const chipSize = size || (compact ? 'xs' : 'sm');
 
   return (
-    <View style={styles.stack}>
+    <View className="flex-row flex-wrap gap-1.5 items-center">
       {visible.map((b) => (
         <BadgeChip key={b.id} badge={b} size={chipSize} />
       ))}
       {rest > 0 && (
         <Pressable
           onPress={onPressMore}
-          style={({ hovered }: any) => [styles.moreChip, hovered && { opacity: 0.8 }]}
+          className="rounded-full border"
+          style={{ paddingHorizontal: 8, paddingVertical: 4, borderColor: 'rgba(255,255,255,0.18)', backgroundColor: 'rgba(255,255,255,0.04)' }}
         >
-          <Text style={styles.moreLabel}>+{rest}</Text>
+          <Text className="font-body-bold text-xs" style={{ color: 'rgba(255,255,255,0.70)' }}>+{rest}</Text>
         </Pressable>
       )}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  stack: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'center' },
-  chip: {
-    flexDirection: 'row', alignItems: 'center',
-    borderWidth: 1, borderRadius: 999,
-  },
-  chipLabel: {
-    fontFamily: 'DMSans_700Bold',
-    letterSpacing: 0.3,
-  },
-  moreChip: {
-    paddingHorizontal: 8, paddingVertical: 4,
-    borderRadius: 999,
-    borderColor: 'rgba(255,255,255,0.18)', borderWidth: 1,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-  },
-  moreLabel: {
-    color: 'rgba(255,255,255,0.70)',
-    fontFamily: 'DMSans_700Bold', fontSize: 11,
-  },
-});
