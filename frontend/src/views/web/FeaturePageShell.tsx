@@ -26,6 +26,7 @@ import { Sidebar as StudentSidebar } from '@/src/views/web/portals/student/Sideb
 import { Sidebar as AlumniSidebar } from '@/src/views/web/portals/alumni/Sidebar';
 import { SA } from '@/src/views/web/platform/tokens';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { SAWatermark } from '@/src/views/web/components/SAWatermark';
 
 /**
  * EmbeddedShellContext — set to true when this Shell is rendered INSIDE a
@@ -88,6 +89,7 @@ function activeIdForPath(path: string): string {
 export default function FeaturePageShell({
   title, subtitle, accent = SA.purpleLight,
   heroEmoji = '✨',
+  heroIcon,
   children,
   rightSlot,
   hideHero = false,
@@ -96,6 +98,7 @@ export default function FeaturePageShell({
   subtitle?: string;
   accent?: string;
   heroEmoji?: string;
+  heroIcon?: React.ReactNode;
   children: React.ReactNode;
   rightSlot?: React.ReactNode;
   hideHero?: boolean;
@@ -227,12 +230,17 @@ export default function FeaturePageShell({
         {!hideHero && (
           <View style={[
             styles.heroShell,
-            { borderColor: heroBorder, backgroundColor: heroBg },
+            { borderColor: heroBorder, position: 'relative', overflow: 'hidden' },
             Platform.OS === 'web' ? ({ boxShadow: heroBoxShadow } as any) : {}
           ]}>
+            <LinearGradient
+              colors={['#172554', '#0F172A']}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0.5 }}
+              style={StyleSheet.absoluteFillObject}
+            />
             <View style={[styles.heroBody, !isWide && { flexDirection: 'column', alignItems: 'flex-start', gap: 16 }]}>
               <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
-                <View style={styles.heroBadge}><Text style={styles.heroBadgeText}>{heroEmoji}</Text></View>
+                <View style={styles.heroBadge}>{heroIcon || <Text style={styles.heroBadgeText}>{heroEmoji}</Text>}</View>
                 <Text style={styles.heroTitle}>{title}</Text>
                 {!!subtitle && <Text style={styles.heroSub}>{subtitle}</Text>}
               </View>
@@ -255,6 +263,7 @@ export default function FeaturePageShell({
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
+      <SAWatermark size={850} top={30} right={-30} opacity={0.16} />
 
       {/* Ambient floating orbs for depth */}
       <View pointerEvents="none" style={[styles.ambientOrb, { top: -160, right: -140, width: 520, height: 520, backgroundColor: orbColor1 }]} />
@@ -312,12 +321,17 @@ export default function FeaturePageShell({
         {!hideHero && (
           <View style={[
             styles.heroShell,
-            { borderColor: heroBorder, backgroundColor: heroBg },
+            { borderColor: heroBorder, position: 'relative', overflow: 'hidden' },
             Platform.OS === 'web' ? ({ boxShadow: heroBoxShadow } as any) : {}
           ]}>
+            <LinearGradient
+              colors={['#172554', '#0F172A']}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0.5 }}
+              style={StyleSheet.absoluteFillObject}
+            />
             <View style={[styles.heroBody, !isWide && { flexDirection: 'column', alignItems: 'flex-start', gap: 16 }]}>
               <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
-                <Text style={styles.heroEmoji}>{heroEmoji}</Text>
+                {heroIcon || <Text style={styles.heroEmoji}>{heroEmoji}</Text>}
                 <Text style={[styles.heroTitle, !isWide && { fontSize: 22, lineHeight: 28 }]}>{title}</Text>
                 {subtitle ? <Text style={styles.heroSub}>{subtitle}</Text> : null}
               </View>

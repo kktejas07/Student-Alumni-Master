@@ -32,7 +32,7 @@ const C = {
   card: 'rgba(255,255,255,0.03)', cardH: 'rgba(139,92,246,0.10)',
   border: 'rgba(255,255,255,0.06)', borderH: 'rgba(139,92,246,0.30)',
   text: '#F4F4F8', text2: '#A1A6B7', text3: '#6E7388', text4: '#4A4F65',
-  primary: '#8B5CF6', primaryD: '#7C3AED', primaryL: '#A78BFA', primaryS: 'rgba(139,92,246,0.12)',
+  primary: '#8B5CF6', primaryD: '#2563EB', primaryL: '#60A5FA', primaryS: 'rgba(139,92,246,0.12)',
   secondary: '#3B82F6', accent: '#10B981', accentS: 'rgba(16,185,129,0.12)',
   amber: '#F59E0B', rose: '#f43f5e',
   shadow: '0 16px 48px rgba(2,6,23,0.45), 0 1px 0 rgba(255,255,255,0.06) inset',
@@ -65,7 +65,7 @@ function injectKeyframes() {
     .sa-card-3d { transition:transform 0.4s cubic-bezier(.23,1,.32,1), box-shadow 0.4s ease; transform-style:preserve-3d; }
     .sa-card-3d:hover { transform:perspective(800px) rotateX(-2deg) rotateY(2deg) translateY(-4px); }
     .sa-marquee:hover .sa-marquee-inner { animation-play-state:paused !important; }
-    .sa-gradient-text { background:linear-gradient(135deg,#8B5CF6,#A78BFA,#3B82F6,#10B981); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-size:200% 200%; animation:saShimmer 4s ease infinite; }
+    .sa-gradient-text { background:linear-gradient(135deg,#8B5CF6,#60A5FA,#3B82F6,#10B981); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-size:200% 200%; animation:saShimmer 4s ease infinite; }
     .sa-float-anim { animation:saFloat 3s ease-in-out infinite; }
     .sa-float-anim-2 { animation:saFloat2 3.5s ease-in-out infinite 0.5s; }
     .sa-float-anim-3 { animation:saFloat3 4s ease-in-out infinite 1s; }
@@ -594,7 +594,7 @@ const MILESTONES = [
   { n: '02', t: 'Creates profile', d: 'Adds skills, goals, target roles. Agent K activates.', c: C.secondary, icon: Target },
   { n: '03', t: 'AI recommends', d: 'Agent K suggests alumni, events, and skill roadmaps.', c: C.accent, icon: Bot },
   { n: '04', t: 'Connects', d: 'Finds mentor, books 1-on-1, joins community.', c: C.amber, icon: Users },
-  { n: '05', t: 'Grows', d: 'Attends events, gains referrals, builds network.', c: '#A78BFA', icon: Activity },
+  { n: '05', t: 'Grows', d: 'Attends events, gains referrals, builds network.', c: '#60A5FA', icon: Activity },
 ];
 
 function CareerTimeline({ desk }: { desk: boolean }) {
@@ -861,7 +861,7 @@ function CTASection({ router, desk }: { router: any; desk: boolean }) {
    ── Premium Footer ──────────────────────────────────────────────────── */
 function FooterSection() {
   return (
-    <View style={{ borderTopWidth: 1, borderTopColor: C.border, paddingHorizontal: 24, paddingVertical: 44, marginTop: 32 }}>
+    <View style={{ backgroundColor: '#0A0A2A', borderTopWidth: 1, borderTopColor: C.border, paddingHorizontal: 24, paddingVertical: 44, marginTop: 32 }}>
       <View style={{ maxWidth: 1300, width: '100%', alignSelf: 'center', gap: 32 }}>
         {/* Newsletter + Brand */}
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 32, justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -870,7 +870,7 @@ function FooterSection() {
               <Image source={require('@/assets/images/sa-icon.png')} style={{ width: 22, height: 22 }} resizeMode="contain" />
               <Text style={{ color: C.text, fontFamily: TYPO.display700, fontSize: 14 }}>StudentAlumni</Text>
             </View>
-            <Text style={{ color: C.text2, fontFamily: TYPO.body400, fontSize: 12, lineHeight: 18 }}>
+            <Text style={{ color: C.text, fontFamily: TYPO.body400, fontSize: 12, lineHeight: 18 }}>
               The private career network for India's top students and alumni. AI-powered mentoring, events, and career growth.
             </Text>
             <View style={{ flexDirection: 'row', gap: 8 }}>

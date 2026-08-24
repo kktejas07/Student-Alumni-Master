@@ -189,7 +189,7 @@ export function DarkInfoCard({
       border: 'rgba(252,211,77,0.28)',
     },
     info: {
-      bg: 'rgba(124,58,237,0.12)',
+      bg: 'rgba(37,99,235,0.12)',
       border: 'rgba(196,181,253,0.28)',
     },
   }[tone];
@@ -290,7 +290,7 @@ const chipStyles = StyleSheet.create({
   },
   chipActive: {
     backgroundColor: '#EDE9FE',
-    borderColor: '#C4B5FD',
+    borderColor: '#93C5FD',
   },
   chipText: {
     color: '#4B5563',
@@ -298,7 +298,7 @@ const chipStyles = StyleSheet.create({
     fontSize: 13,
   },
   chipTextActive: {
-    color: '#6D28D9',
+    color: '#1D4ED8',
     fontFamily: 'DMSans_700Bold',
   },
 });
@@ -323,7 +323,7 @@ const toggleStyles = StyleSheet.create({
     justifyContent: 'center',
     ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
   },
-  trackOn: { backgroundColor: '#7C3AED' },
+  trackOn: { backgroundColor: '#2563EB' },
   knob: {
     width: 22,
     height: 22,
