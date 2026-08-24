@@ -7,7 +7,7 @@ import {
   COURSES_HERO, COURSES_SECTIONS,
   INTERNSHIPS_HERO, INTERNSHIPS_SECTIONS,
   NETWORK_HERO, NETWORK_SECTIONS,
-} from '@/src/views/web/exploreData';
+} from '@/src/views/web/ExploreData';
 
 export function StudentInternships() {
   return (
