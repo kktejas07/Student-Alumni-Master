@@ -127,7 +127,7 @@ export function Sidebar({
                 !isActive && hovered && s.navItemHover,
               ]}
             >
-              <Icon size={16} color={isActive ? '#fff' : CC.muted} />
+              <Icon size={16} color={isActive ? '#fff' : 'rgba(255,255,255,0.7)'} />
               <Text style={[s.navLabel, isActive && s.navLabelActive]} numberOfLines={1}>{label}</Text>
               {count != null && count > 0 && (
                 <View style={[s.countPill, isActive && { backgroundColor: 'rgba(255,255,255,0.20)' }]}>
@@ -153,28 +153,28 @@ export function Sidebar({
 
 const s = StyleSheet.create({
   aside: {
-    width: 240, height: '100%' as any, backgroundColor: CC.bg2,
-    borderRightWidth: 1, borderRightColor: CC.border,
+    width: 240, height: '100%' as any, backgroundColor: '#5D3FD3',
+    borderRightWidth: 1, borderRightColor: 'rgba(255,255,255,0.1)',
     paddingHorizontal: 12, paddingTop: 14, paddingBottom: 12,
   },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16, paddingHorizontal: 4 },
   brandLogo: { width: 32, height: 32, borderRadius: 8, backgroundColor: CC.accent, alignItems: 'center', justifyContent: 'center' },
   brandLogoText: { color: '#1E1B4B', fontFamily: FONTS.xbold, fontSize: 12, letterSpacing: 0.5 },
   brandTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13.5, letterSpacing: -0.2 },
-  brandSub: { color: CC.muted, fontFamily: FONTS.med, fontSize: 10.5 },
+  brandSub: { color: 'rgba(255,255,255,0.7)', fontFamily: FONTS.med, fontSize: 10.5 },
 
-  collegeCard: { backgroundColor: CC.card, borderColor: CC.border, borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 10 },
+  collegeCard: { backgroundColor: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 10 },
   collegeName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
-  collegeRole: { color: CC.muted, fontFamily: FONTS.med, fontSize: 10.5 },
+  collegeRole: { color: 'rgba(255,255,255,0.7)', fontFamily: FONTS.med, fontSize: 10.5 },
 
   idCardPill: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: CC.card, borderColor: CC.border, borderWidth: 1,
+    backgroundColor: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1,
     borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, marginBottom: 12,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}),
   },
   idCardLabel: { color: '#fff', fontFamily: FONTS.bold, fontSize: 11 },
-  idCardSub:   { color: CC.muted, fontFamily: FONTS.med, fontSize: 10.5, marginTop: 1 },
+  idCardSub:   { color: 'rgba(255,255,255,0.7)', fontFamily: FONTS.med, fontSize: 10.5, marginTop: 1 },
 
   navItem: {
     flexDirection: 'row', alignItems: 'center', gap: 11,
@@ -184,7 +184,7 @@ const s = StyleSheet.create({
   },
   navItemActive: { backgroundColor: CC.primary },
   navItemHover: { backgroundColor: 'rgba(99,102,241,0.10)' },
-  navLabel: { color: CC.muted, fontFamily: FONTS.bold, fontSize: 12.5, flex: 1 },
+  navLabel: { color: 'rgba(255,255,255,0.7)', fontFamily: FONTS.bold, fontSize: 12.5, flex: 1 },
   navLabelActive: { color: '#fff' },
   countPill: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6, backgroundColor: 'rgba(99,102,241,0.20)', minWidth: 20, alignItems: 'center' },
   countText: { color: CC.accentBright, fontFamily: FONTS.xbold, fontSize: 10 },
