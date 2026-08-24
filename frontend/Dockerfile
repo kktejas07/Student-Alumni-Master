@@ -48,7 +48,6 @@ RUN apk add --no-cache git python3 make g++ libc6-compat bash
 
 COPY package.json yarn.lock* package-lock.json* ./
 RUN if [ -f yarn.lock ]; then yarn install --network-timeout 600000 --ignore-engines; \
-    elif [ -f package-lock.json ]; then (npm ci --no-audit --no-fund --legacy-peer-deps || npm install --no-audit --no-fund --legacy-peer-deps); \
     else npm install --no-audit --no-fund --legacy-peer-deps; fi
 
 COPY . .
