@@ -151,7 +151,7 @@ export default function CertificateVerifyResult() {
                 {data.verification_code && (
                   <View className="flex-row items-center gap-1.5" style={{  backgroundColor: 'rgba(91, 79, 233, 0.12)'  }}>
                     <Hash size={13} color="#8B84FF" />
-                    <Text className="font-body-bold" style={{  color: '#8B84FF', fontSize: 13.5, fontFamily: Platform.OS === 'web' ? 'Manrope  }}>CODE: {data.verification_code}</Text>
+                    <Text className="font-body-bold" style={{  color: '#8B84FF', fontSize: 13.5, fontSize: 13.5 }}>CODE: {data.verification_code}</Text>
                   </View>
                 )}
               </View>

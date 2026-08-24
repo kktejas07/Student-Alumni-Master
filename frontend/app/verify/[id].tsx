@@ -202,7 +202,7 @@ export default function VerifyScreen() {
 
                   <View className="flex-row items-center gap-1.5" style={{  backgroundColor: 'rgba(91, 79, 233, 0.12)'  }}>
                     <Hash size={13} color="#8B84FF" />
-                    <Text className="font-body-bold" style={{  color: '#8B84FF', fontSize: 13.5, fontFamily: Platform.OS === 'web' ? 'Manrope  }}>ID: {c.id || c.certificate_id || id}</Text>
+                    <Text className="font-body-bold" style={{  color: '#8B84FF', fontSize: 13.5, fontSize: 13.5 }}>ID: {c.id || c.certificate_id || id}</Text>
                   </View>
                 </View>
 
@@ -348,7 +348,7 @@ export default function VerifyScreen() {
 
                 <View className="flex-row items-center gap-1.5" style={{  backgroundColor: 'rgba(91, 79, 233, 0.12)'  }}>
                   <Hash size={13} color="#8B84FF" />
-                  <Text className="font-body-bold" style={{  color: '#8B84FF', fontSize: 13.5, fontFamily: Platform.OS === 'web' ? 'Manrope  }}>SA ID: {data.id || id}</Text>
+                  <Text className="font-body-bold" style={{  color: '#8B84FF', fontSize: 13.5, fontSize: 13.5 }}>SA ID: {data.id || id}</Text>
                 </View>
               </View>
 

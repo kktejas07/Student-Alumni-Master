@@ -381,7 +381,7 @@ export default function CertificateVerifyPortal() {
               </View>
 
               {/* Main Headline */}
-              <Text className="font-body-bold text-center mb-4" style={{  fontSize: Platform.OS === 'web' ? 48 : 28, color: '#FFFFFF', letterSpacing: -1.4, lineHeight: Platform.OS === 'web' ? 56 : 36, fontFamily: Platform.OS === 'web' ? 'Manrope  }}>
+              <Text className="font-body-bold text-center mb-4" style={{  fontSize: Platform.OS === 'web' ? 48 : 28, color: '#FFFFFF', letterSpacing: -1.4, lineHeight: Platform.OS === 'web' ? 56 : 36, fontSize: 13.5 }}>
                 Verify Certificate &{' '}
                 <Text className="" style={{  color: '#C084FC'  }}>SA Member ID</Text>
               </Text>
@@ -475,7 +475,7 @@ export default function CertificateVerifyPortal() {
 
                   <View className="flex-row items-center gap-1.5" style={{  backgroundColor: 'rgba(91, 79, 233, 0.12)'  }}>
                     <Hash size={13} color="#8B84FF" />
-                    <Text className="font-body-bold" style={{  color: '#8B84FF', fontSize: 13.5, fontFamily: Platform.OS === 'web' ? 'Manrope  }}>
+                    <Text className="font-body-bold" style={{  color: '#8B84FF', fontSize: 13.5, fontSize: 13.5 }}>
                       ID: {result.identifier || certData?.id || userData?.sa_id || searchId}
                     </Text>
                   </View>
