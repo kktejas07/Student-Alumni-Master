@@ -1,5 +1,5 @@
 import React, { useId } from 'react';
-import { View, StyleSheet, Platform } from 'react-native';
+import { View, Platform } from 'react-native';
 import Svg, { Path, Text as SvgText, Defs, LinearGradient as SvgGrad, Stop } from 'react-native-svg';
 
 export interface SAWatermarkProps {
@@ -161,10 +161,10 @@ export function SAWatermark({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = {
   watermarkWrap: {
     position: 'absolute',
     zIndex: 0,
   },
-});
+} as const;
 

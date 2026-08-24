@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, Platform, ActivityIndicator, Linking, Image, Modal, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, ScrollView, Platform, ActivityIndicator, Linking, Image, Modal } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Search, Trash2, CheckCircle, XCircle, MapPin, Briefcase, GraduationCap, Star, X, Mail, ExternalLink, Calendar, UserPlus, Sparkles } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -554,7 +554,7 @@ function ProfileDetailModal({ visible, profile, onClose, onPromote }: { visible:
   );
 }
 
-const s = StyleSheet.create({
+const s = {
   headerActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   btn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1 },
   btnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
@@ -567,4 +567,4 @@ const s = StyleSheet.create({
   modalCloseBtn: { padding: 8 },
   modalSectionLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 0.8, marginBottom: 6 },
   searchInput: { backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(139,92,246,0.2)', borderRadius: 10, color: '#fff', fontFamily: FONTS.med, fontSize: 13, padding: 12 },
-});
+};

@@ -22,7 +22,7 @@
  */
 import React from 'react';
 import {
-  View, Text, StyleSheet, Pressable,
+  View, Text, Pressable,
   useWindowDimensions, Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -129,7 +129,7 @@ export default function LandingPageStudentAlumni() {
       <LinearGradient
         colors={[PALETTE.bg0, PALETTE.bg2]}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFillObject as any}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 } as any}
         pointerEvents="none"
       />
       <AnimatedAurora intensity="normal" />
@@ -243,7 +243,7 @@ function NavLink({ label }: { label: string }) {
 function Hero({ isDesktop, router }: { isDesktop: boolean; router: ReturnType<typeof useRouter> }) {
   return (
     <View style={[hero.section, { paddingTop: isDesktop ? 132 : 100, paddingBottom: 88 }]}>
-      <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
+      <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
         <NetworkScene intensity={isDesktop ? 1 : 0.7} />
       </View>
       <ShimmerGradient colors={[PALETTE.violet, PALETTE.blue, PALETTE.teal]} style={hero.heroGlow} />
@@ -453,7 +453,7 @@ function BentoCard({ children, tone, big }: { children: React.ReactNode; tone: s
       onMouseLeave={Platform.OS === 'web' ? () => { rx.value = 0; ry.value = 0; glow.value = 0; } : undefined}
     >
       <GlassCard radius={20} padding={big ? 26 : 22} style={{ height: '100%', gap: 10 }}>
-        <ReanimatedNS.View pointerEvents="none" style={[StyleSheet.absoluteFillObject, spotStyle]} />
+        <ReanimatedNS.View pointerEvents="none" style={[{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }, spotStyle]} />
         {children}
       </GlassCard>
     </ReanimatedNS.View>
@@ -786,7 +786,7 @@ function Section({ kicker, title, sub, children }: { kicker: string; title: stri
 // ─────────────────────────────────────────────────────────────────────────
 // STYLES
 // ─────────────────────────────────────────────────────────────────────────
-const nav = StyleSheet.create({
+const nav = {{
   bar: {
     borderBottomWidth: 1,
     width: '100%',
@@ -827,9 +827,9 @@ const nav = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 20px rgba(139,92,246,0.30)' } as any) : {}),
   },
   ctaText: { color: '#fff', fontFamily: TYPO.body700, fontSize: 13.5 },
-});
+};
 
-const hero = StyleSheet.create({
+const hero = {{
   section: { paddingHorizontal: 20, alignItems: 'center', position: 'relative', overflow: 'hidden' },
   pill: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
@@ -888,9 +888,9 @@ const hero = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ filter: 'blur(120px)' } as any) : {}),
   },
   trust: { marginTop: 56, gap: 24, alignItems: 'center', justifyContent: 'center' },
-});
+};
 
-const section = StyleSheet.create({
+const section = {{
   title: {
     color: '#fff',
     fontFamily: TYPO.display700,
@@ -908,9 +908,9 @@ const section = StyleSheet.create({
     textAlign: 'center',
     maxWidth: 640,
   },
-});
+};
 
-const feat = StyleSheet.create({
+const feat = {{
   iconWrap: {
     width: 42, height: 42, borderRadius: 10,
     alignItems: 'center', justifyContent: 'center',
@@ -918,9 +918,9 @@ const feat = StyleSheet.create({
   },
   title: { color: '#fff', fontFamily: TYPO.display700, fontSize: 18, lineHeight: 22 },
   body:  { color: 'rgba(255,255,255,0.65)', fontFamily: TYPO.body500, fontSize: 13.5, lineHeight: 20, marginTop: 2 },
-});
+};
 
-const how = StyleSheet.create({
+const how = {{
   bigNum: { color: 'rgba(139,92,246,0.5)', fontFamily: TYPO.mono600, fontSize: 28, letterSpacing: -1 },
   title:  { color: '#fff', fontFamily: TYPO.display700, fontSize: 19 },
   body:   { color: 'rgba(255,255,255,0.65)', fontFamily: TYPO.body500, fontSize: 13.5, lineHeight: 20 },
@@ -933,21 +933,21 @@ const how = StyleSheet.create({
     height: '100%', backgroundColor: PALETTE.violet, borderRadius: 1,
     ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 10px rgba(139,92,246,0.7)' } as any) : {}),
   },
-});
+};
 
-const stats = StyleSheet.create({
+const stats = {{
   num:   { color: '#fff', fontFamily: TYPO.mono600, fontSize: 32, letterSpacing: -1.2 },
   label: { color: 'rgba(255,255,255,0.55)', fontFamily: TYPO.body500, fontSize: 13, marginTop: 4 },
-});
+};
 
-const testi = StyleSheet.create({
+const testi = {{
   quote: { color: 'rgba(255,255,255,0.92)', fontFamily: TYPO.body500, fontSize: 14.5, lineHeight: 22 },
   avatar: { width: 36, height: 36, borderRadius: 9999, alignItems: 'center', justifyContent: 'center' },
   name:  { color: '#fff', fontFamily: TYPO.body700, fontSize: 13 },
   role:  { color: 'rgba(255,255,255,0.55)', fontFamily: TYPO.body500, fontSize: 11.5 },
-});
+};
 
-const cta = StyleSheet.create({
+const cta = {{
   banner: {
     paddingHorizontal: 32, paddingVertical: 48,
     borderRadius: 24, borderWidth: 1,
@@ -988,9 +988,9 @@ const cta = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
   },
   ghostText: { color: 'rgba(255,255,255,0.92)', fontFamily: TYPO.body600, fontSize: 14 },
-});
+};
 
-const footer = StyleSheet.create({
+const footer = {{
   wrap: {
     backgroundColor: 'rgba(10,15,30,0.72)',
     borderTopWidth: 1, borderTopColor: PALETTE.glassBorder,
@@ -1013,4 +1013,4 @@ const footer = StyleSheet.create({
   },
   bottomDivider: { height: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginTop: 8 },
   copy: { color: 'rgba(255,255,255,0.45)', fontFamily: TYPO.body500, fontSize: 12 },
-});
+};

@@ -23,7 +23,7 @@
  */
 import React, { useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, Pressable, ScrollView, Animated, Easing,
+  View, Text, Pressable, ScrollView, Animated, Easing,
   useWindowDimensions, Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -145,7 +145,7 @@ export function MentorDashboardView({
           </Pressable>
           <Pressable onPress={onOpenProfile} testID="mentor-profile-btn"
             style={({ pressed }: any) => [styles.avatar, pressed && { transform: [{ scale: 0.94 }] }]}>
-            <LinearGradient colors={[T.teal, T.tealDeep]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+            <LinearGradient colors={[T.teal, T.tealDeep]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
             <Text style={styles.avatarText}>{initials}</Text>
           </Pressable>
         </View>
@@ -341,7 +341,7 @@ function QuickActionTile({ action, onPress }: { action: typeof QUICK_ACTIONS[num
 }
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
+const styles = {{
   scrollContent: { padding: 18, paddingBottom: 50 },
 
   topBar: { flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -443,4 +443,4 @@ const styles = StyleSheet.create({
   // Footer
   footer: { alignItems: 'center', paddingVertical: 24 },
   footerText: { color: 'rgba(20,184,166,0.50)', fontFamily: 'DMSans_700Bold', fontSize: 10, letterSpacing: 2.5 },
-});
+};

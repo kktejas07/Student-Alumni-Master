@@ -26,7 +26,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, Pressable, Platform, useWindowDimensions, ScrollView, TextInput,
+  View, Text, Pressable, Platform, useWindowDimensions, ScrollView, TextInput,
 } from 'react-native';
 import Svg, { Path, Rect, Circle, G, Text as SvgText, Defs, LinearGradient as SvgGradient, Stop, Line } from 'react-native-svg';
 import { useRouter } from 'expo-router';
@@ -778,7 +778,7 @@ export function LandingPageModernRN() {
 }
 
 // ── Styles Matching Master Landing Page Spec ────────────────────────────────
-const s = StyleSheet.create({
+const s = {
   root: { flex: 1, backgroundColor: '#05060F' },
   bgWrap: { position: 'absolute' as any, inset: 0, overflow: 'hidden' },
   radialGlow: { position: 'absolute' as any, inset: 0, backgroundColor: '#05060F' },
@@ -944,4 +944,4 @@ const s = StyleSheet.create({
   emailMockBox: { borderWidth: 1, borderColor: '#1B1E33', borderRadius: 11, backgroundColor: '#0A0C18', paddingHorizontal: 16, paddingVertical: 12, minWidth: 200 },
   subBtn: { backgroundColor: '#5B4FE9', borderRadius: 11, paddingHorizontal: 24, paddingVertical: 12 },
   hashLogo: { fontSize: 32, fontWeight: '700', color: '#C08BFF', letterSpacing: -1.2 },
-});
+};

@@ -200,7 +200,7 @@ function StudentPortalInner() {
   );
 }
 
-const s = StyleSheet.create({
+const s = {
   shell: { flex: 1, flexDirection: 'row', height: '100%' as any },
   mobileNav: {
     flexDirection: 'row',
@@ -242,4 +242,4 @@ const s = StyleSheet.create({
     color: '#A78BFA',
     fontFamily: 'DMSans_700Bold',
   },
-});
+};

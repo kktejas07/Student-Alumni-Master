@@ -12,7 +12,7 @@
  */
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {View, Text, Pressable, Platform,
-  ActivityIndicator, useWindowDimensions, Modal, Image, Linking, StyleSheet} from "react-native";
+  ActivityIndicator, useWindowDimensions, Modal, Image, Linking} from "react-native";
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   ArrowLeft, ArrowRight, Share2, Calendar, Clock, MapPin, Users, Mic2,
@@ -297,7 +297,7 @@ function HighlightCard({ h, index, isLast }: { h: any; index: number; isLast: bo
     </View>
   );
 }
-const hc = StyleSheet.create({
+const hc = {
   card: {
     flex: 1, minWidth: 150, backgroundColor: 'rgba(12, 14, 27, 0.75)',
     borderRadius: 16, borderWidth: 1, borderColor: 'rgba(139, 132, 255, 0.22)',
@@ -322,7 +322,7 @@ const hc = StyleSheet.create({
   title: { fontFamily: TYPO.display700, fontSize: 15, color: '#fff', letterSpacing: -0.2 },
   desc: { fontFamily: TYPO.body400, fontSize: 12, color: PALETTE.muted, lineHeight: 18 },
   connectorWrap: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 2 },
-});
+};
 
 function TestimonialCard({ t }: { t: any }) {
   const photoUri = t.photo_url ? resolveImageUrl(t.photo_url) : null;

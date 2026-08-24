@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Animated, Easing, Platform } from 'react-native';
+import { View, Text, Animated, Easing, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Svg, { Path, Text as SvgText, Defs, LinearGradient as SvgGrad, Stop } from 'react-native-svg';
@@ -108,29 +108,29 @@ function NativeSplashScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = {
   shell: {
     flex: 1,
     backgroundColor: '#05060F',
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
   },
   glow: {
-    position: 'absolute',
+    position: 'absolute' as const,
     width: 300,
     height: 300,
     borderRadius: 150,
     backgroundColor: 'rgba(91,79,233,0.25)',
   },
   card: {
-    alignItems: 'center',
+    alignItems: 'center' as const,
   },
   badgeWrap: {
     marginBottom: 16,
   },
   brandTitle: {
     fontSize: 24,
-    fontWeight: '800',
+    fontWeight: '800' as const,
     color: '#F4F5FB',
     letterSpacing: -0.5,
   },
@@ -141,8 +141,8 @@ const styles = StyleSheet.create({
   },
   counter: {
     fontSize: 40,
-    fontWeight: '800',
+    fontWeight: '800' as const,
     color: '#8B84FF',
     marginTop: 20,
   },
-});
+};

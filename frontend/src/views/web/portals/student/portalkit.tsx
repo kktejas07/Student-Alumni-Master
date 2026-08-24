@@ -18,7 +18,7 @@
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  View, Text, Pressable, TextInput, StyleSheet, Platform, ScrollView,
+  View, Text, Pressable, TextInput, Platform, ScrollView,
   ActivityIndicator, Animated as RNAnimated, Easing, useWindowDimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -452,7 +452,7 @@ export function LoadingBox() {
 /* ─────────────────────────────────────────────────────────────────
  * Styles
  * ───────────────────────────────────────────────────────────────── */
-const k = StyleSheet.create({
+const k = {
   btn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     borderRadius: 9, justifyContent: 'center',
@@ -614,4 +614,4 @@ const k = StyleSheet.create({
   },
   emptyTitle: { color: SC.text, fontFamily: FONTS.xbold, fontSize: 13 },
   emptySub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 12, textAlign: 'center' },
-});
+};
