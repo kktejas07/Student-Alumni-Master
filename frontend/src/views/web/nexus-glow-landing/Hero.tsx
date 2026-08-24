@@ -3,7 +3,6 @@ import { ArrowUpRight, Sparkles } from "lucide-react";
 import { useRouter } from "expo-router";
 import { AgentK3D } from "./AgentK3D";
 import { useBreakpoint } from "@/src/theme/breakpoints";
-import { GradientShimmer } from "@/components/ui/gradient-shimmer";
 
 export function Hero() {
   const router = useRouter();
@@ -42,15 +41,7 @@ export function Hero() {
             className="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.08] text-white"
           >
             Your Intelligent <br />
-            <GradientShimmer
-              gradient="sunrise"
-              easing="smooth"
-              duration={1.8}
-              spread={3}
-              pauseBetween={1200}
-              baseColor="#fff"
-              className="font-extrabold"
-            >Companion</GradientShimmer> for a <br />
+            <span className="font-extrabold text-purple-400">Companion</span> for a <br />
             Modern Career
           </motion.h1>
 

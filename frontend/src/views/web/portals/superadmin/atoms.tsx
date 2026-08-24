@@ -9,7 +9,7 @@ import { SAC, FONTS } from './tokens';
 export function Av({ initials, size = 38, color }: { initials: string; size?: number; color?: string }) {
   return (
     <View style={{ width: size, height: size, borderRadius: 10, backgroundColor: color || SAC.primary, alignItems: 'center', justifyContent: 'center' }}>
-      <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: size * 0.36 }}>{initials}</Text>
+      <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: size * 0.36 }}>{initials}</Text>
     </View>
   );
 }
@@ -20,7 +20,7 @@ const BADGE_COLORS = {
   green:  { bg: 'rgba(34,197,94,0.15)',  bc: 'rgba(34,197,94,0.30)',  c: '#86EFAC' },
   blue:   { bg: 'rgba(59,130,246,0.15)', bc: 'rgba(59,130,246,0.30)', c: '#93C5FD' },
   red:    { bg: 'rgba(239,68,68,0.15)',  bc: 'rgba(239,68,68,0.30)',  c: '#FCA5A5' },
-  purple: { bg: 'rgba(37,99,235,0.18)',bc: 'rgba(37,99,235,0.35)',c: '#93C5FD' },
+  purple: { bg: 'rgba(167,139,250,0.18)',bc: 'rgba(167,139,250,0.35)',c: '#C4B5FD' },
   gray:   { bg: 'rgba(255,255,255,0.07)',bc: 'rgba(255,255,255,0.14)',c: 'rgba(255,255,255,0.5)' },
 } as const;
 export type BadgeColor = keyof typeof BADGE_COLORS;
@@ -39,7 +39,7 @@ export function KpiCard({
 }: { Icon?: any; label: string; value: string; delta: string; color?: 'blue' | 'purple' | 'green' | 'amber' | 'red' | string }) {
   const PALETTES: any = {
     blue:   { tint: 'rgba(37,99,235,0.18)',   border: 'rgba(96,165,250,0.30)',  ic: '#60A5FA' },
-    purple: { tint: 'rgba(95,37,159,0.18)',   border: 'rgba(176,127,223,0.30)', ic: '#60A5FA' },
+    purple: { tint: 'rgba(95,37,159,0.18)',   border: 'rgba(176,127,223,0.30)', ic: '#A78BFA' },
     green:  { tint: 'rgba(6,95,70,0.18)',     border: 'rgba(52,211,153,0.30)',  ic: '#34D399' },
     amber:  { tint: 'rgba(180,83,9,0.18)',    border: 'rgba(245,158,11,0.30)',  ic: '#F59E0B' },
     red:    { tint: 'rgba(239,68,68,0.18)',   border: 'rgba(248,113,113,0.30)', ic: '#F87171' },
@@ -52,7 +52,7 @@ export function KpiCard({
         {IconComp && <IconComp size={14} color={p.ic} />}
         <Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5, letterSpacing: 0.4 }}>{label}</Text>
       </View>
-      <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 30, letterSpacing: -0.5 }}>{value}</Text>
+      <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 30, letterSpacing: -0.5 }}>{value}</Text>
       <Text style={{ color: p.ic, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 }}>{delta}</Text>
     </View>
   );
@@ -70,6 +70,6 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   kpiLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5, letterSpacing: 0.3, marginBottom: 4 },
-  kpiValue: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 26, letterSpacing: -0.5 },
+  kpiValue: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 26, letterSpacing: -0.5 },
   kpiDelta: { fontFamily: FONTS.med, fontSize: 11, marginTop: 4 },
 });

@@ -28,7 +28,7 @@ export function AuthBrand({ role, minWidth = 980 }: { role?: any; minWidth?: num
       </Pressable>
 
       {/* Subtle purple glow matching the design */}
-      <View style={[s.blob, { top: '20%', left: '-20%', width: 500, height: 500, backgroundColor: 'rgba(37,99,235,0.15)' }]} />
+      <View style={[s.blob, { top: '20%', left: '-20%', width: 500, height: 500, backgroundColor: 'rgba(124,58,237,0.15)' }]} />
 
       <View style={s.content}>
         <Text style={s.title}>
@@ -41,19 +41,19 @@ export function AuthBrand({ role, minWidth = 980 }: { role?: any; minWidth?: num
 
         <View style={s.features}>
           <View style={s.featureRow}>
-            <View style={s.iconBox}><Sparkles size={20} color="#93C5FD" /></View>
+            <View style={s.iconBox}><Sparkles size={20} color="#C4B5FD" /></View>
             <Text style={s.featureText}>AI Career Guidance</Text>
           </View>
           <View style={s.featureRow}>
-            <View style={s.iconBox}><Users size={20} color="#93C5FD" /></View>
+            <View style={s.iconBox}><Users size={20} color="#C4B5FD" /></View>
             <Text style={s.featureText}>Mentor Connections</Text>
           </View>
           <View style={s.featureRow}>
-            <View style={s.iconBox}><Briefcase size={20} color="#93C5FD" /></View>
+            <View style={s.iconBox}><Briefcase size={20} color="#C4B5FD" /></View>
             <Text style={s.featureText}>Jobs & Internships</Text>
           </View>
           <View style={s.featureRow}>
-            <View style={s.iconBox}><GraduationCap size={20} color="#93C5FD" /></View>
+            <View style={s.iconBox}><GraduationCap size={20} color="#C4B5FD" /></View>
             <Text style={s.featureText}>Alumni Network</Text>
           </View>
         </View>

@@ -38,7 +38,6 @@ import { MyBookingsView } from './views/MyBookingsView';
 import { MyWorkshopsView } from './views/MyWorkshopsView';
 import { MyTicketsView } from './views/MyTicketsView';
 import { EchoShowcaseView } from './views/EchoShowcaseView';
-import { RentalsView } from './views/RentalsView';
 
 import { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
 
@@ -53,31 +52,32 @@ import HigherEducationPage from '@/app/higher-education';
 import DealsPage from '@/app/deals';
 import WalletPage from '@/app/wallet';
 
-import { SAWatermark } from '@/src/views/web/components/SAWatermark';
-
+/** Public component — wraps the inner shell with theme + toast providers. */
 export function StudentPortalRN() {
   return (
     <ThemeProvider>
       <ToastProvider>
-        <StudentPortalInner />
+        <PortalShell />
       </ToastProvider>
     </ThemeProvider>
   );
 }
 
-function StudentPortalInner() {
+function PortalShell() {
   const router = useRouter();
   const { tab, go } = usePortalUrl();
+  const { theme } = useTheme();
+  const bp = useBreakpoint();
+  const logout = useAuthStore((sx) => sx.logout);
   const [active, setActive] = useState<StudentNavId>(tab as StudentNavId);
-  const [scrolled, setScrolled] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [detailCourse, setDetailCourse] = useState<any>(null);
+  const [scrolled, setScrolled] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
-  const logout = useAuthStore((sx) => sx.logout);
-  const bp = useBreakpoint();
+  // Phase B — auto-launch the Student portal tour on first visit
   useAutoTour('student');
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (tab) {
       setActive(tab as StudentNavId);
     }
@@ -108,14 +108,13 @@ function StudentPortalInner() {
   const padH = bp.isPhone ? SP.base : bp.atLeast('xl') ? SP.xxl : SP.lg;
 
   return (
-    <View style={[s.shell, { backgroundColor: '#08080F' }]}>
+    <View style={[s.shell, { backgroundColor: '#030614' }]}>
       <LinearGradient
         pointerEvents="none"
-        colors={['#08080F', '#0C0E1F', '#08080F']}
+        colors={['#030614', '#040816']}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFillObject as any}
       />
-      <SAWatermark size={850} top={30} right={-30} opacity={0.16} />
       <Sidebar active={active} onNav={handleNav} onLogout={onLogout} />
       <View style={{ flex: 1, minWidth: 0, flexDirection: 'row' }}>
         <View style={{ flex: 1, minWidth: 0 }}>
@@ -151,7 +150,7 @@ function StudentPortalInner() {
                   {active === 'deals'           && <DealsPage />}
                   {active === 'wallet'          && <WalletPage />}
                   {active === 'higher-ed'       && <HigherEducationPage />}
-                  {active === 'rentals'         && <RentalsView />}
+                  {active === 'rentals'         && <RentalsPage />}
                   {active === 'profile'         && <ProfileSettingsView />}
                 </RouteTransition>
               </EmbeddedShellContext.Provider>

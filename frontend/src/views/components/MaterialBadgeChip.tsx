@@ -51,12 +51,12 @@ const TIER: Record<BadgeTier, {
     rank: 1,
   },
   moderate: {
-    gradient: ['rgba(100,116,139,0.12)', 'rgba(148,163,184,0.06)'], // Silver — readable on white bg
-    ring:    'rgba(100,116,139,0.45)',
-    glow:    'rgba(100,116,139,0.25)',
-    iconBg:  'rgba(100,116,139,0.15)',
-    iconFg:  '#475569',
-    textColor: '#1E293B',
+    gradient: ['rgba(148,163,184,0.20)', 'rgba(203,213,225,0.08)'], // Silver
+    ring:    'rgba(203,213,225,0.55)',
+    glow:    'rgba(148,163,184,0.30)',
+    iconBg:  'rgba(203,213,225,0.18)',
+    iconFg:  '#E2E8F0',
+    textColor: '#F1F5F9',
     rank: 2,
   },
   high: {
@@ -78,12 +78,12 @@ const TIER: Record<BadgeTier, {
     rank: 4,
   },
   special: {
-    gradient: ['rgba(37,99,235,0.32)', 'rgba(236,72,153,0.16)'],  // Iridescent
-    ring:    'rgba(37,99,235,0.65)',
-    glow:    'rgba(37,99,235,0.55)',
-    iconBg:  'rgba(37,99,235,0.28)',
-    iconFg:  '#93C5FD',
-    textColor: '#93C5FD',
+    gradient: ['rgba(167,139,250,0.32)', 'rgba(236,72,153,0.16)'],  // Iridescent
+    ring:    'rgba(167,139,250,0.65)',
+    glow:    'rgba(167,139,250,0.55)',
+    iconBg:  'rgba(167,139,250,0.28)',
+    iconFg:  '#C4B5FD',
+    textColor: '#C4B5FD',
     rank: 5,
   },
 };
@@ -298,17 +298,17 @@ const s = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 999,
-    backgroundColor: 'rgba(37,99,235,0.08)',
-    borderColor: 'rgba(37,99,235,0.25)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderColor: 'rgba(255,255,255,0.12)',
     borderWidth: 1,
   },
   overflowText: {
-    color: '#2563EB',
+    color: 'rgba(255,255,255,0.75)',
     fontFamily: FT.bold,
     fontSize: 10,
   },
   emptyHint: {
-    color: '#64748B',
+    color: 'rgba(255,255,255,0.45)',
     fontFamily: FT.med,
     fontSize: 11,
     fontStyle: 'italic',

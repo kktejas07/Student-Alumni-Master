@@ -225,23 +225,13 @@ async def verify_certificate(identifier: str):
         user_certs = u.get("certificates") or []
         
         # Also fetch any certificates issued to this SA ID or user name
-        or_conditions = []
-        if u.get("sa_id"):
-            or_conditions.extend([
+        linked_certs = await db.certificates.find({
+            "$or": [
                 {"roll_number": u.get("sa_id")},
-                {"sa_id": u.get("sa_id")}
-            ])
-        if u.get("full_name"):
-            import re
-            or_conditions.append(
-                {"recipient_name": {"$regex": f"^{re.escape(u.get('full_name'))}$", "$options": "i"}}
-            )
-            
-        linked_certs = []
-        if or_conditions:
-            linked_certs = await db.certificates.find({
-                "$or": or_conditions
-            }).to_list(length=50)
+                {"sa_id": u.get("sa_id")},
+                {"recipient_name": {"$regex": f"^{u.get('full_name')}$", "$options": "i"}}
+            ]
+        }).to_list(length=50)
         
         for lc in linked_certs:
             lc["_id"] = str(lc["_id"])

@@ -7,13 +7,6 @@ if (!Array.prototype.toReversed) {
 }
 
 const { getDefaultConfig } = require("expo/metro-config");
-let withNativeWind;
-try {
-  const nw = require("nativewind/metro");
-  withNativeWind = nw.withNativeWind || nw;
-} catch (e) {
-  withNativeWind = (c) => c;
-}
 const path = require('path');
 const { FileStore } = require('metro-cache');
 
@@ -86,4 +79,4 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
 // Reduce the number of workers to decrease resource usage
 config.maxWorkers = 2;
 
-module.exports = withNativeWind(config, { input: './global.css' });
+module.exports = config;

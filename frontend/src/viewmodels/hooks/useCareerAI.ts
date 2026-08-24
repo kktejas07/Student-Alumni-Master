@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { api, request } from '@/src/models/services/api';
+import { api } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 export function useCareerAI() {
@@ -13,9 +13,7 @@ export function useCareerAI() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = typeof (api as any).getCareerIntelligence === 'function'
-        ? await (api as any).getCareerIntelligence()
-        : await request('/student/intelligence');
+      const res = await api.getCareerIntelligence();
       setData(res);
       setIsOffline(false);
     } catch (e) {
@@ -120,7 +118,7 @@ export function useCareerAI() {
   }, [data]);
 
   const targetRole = useMemo(() => {
-    return (user?.student_info as any)?.career_goal || roadmap?.target_role || 'Software Engineer';
+    return user?.student_info?.career_goal || roadmap?.target_role || 'Software Engineer';
   }, [user, roadmap]);
 
   const targetCo = useMemo(() => {

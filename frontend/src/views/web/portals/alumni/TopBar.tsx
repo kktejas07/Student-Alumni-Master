@@ -98,14 +98,14 @@ const s = StyleSheet.create({
     backgroundColor: SC.bg2,
     position: 'relative', zIndex: 10,
   },
-  greet: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 17, letterSpacing: -0.4 },
+  greet: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 17, letterSpacing: -0.4 },
   sub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
   searchBox: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     width: 240, height: 36, paddingHorizontal: 11,
     borderRadius: 10, backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1,
   },
-  searchInput: { flex: 1, color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 12.5, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
+  searchInput: { flex: 1, color: '#fff', fontFamily: FONTS.med, fontSize: 12.5, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
   bell: {
     width: 36, height: 36, borderRadius: 10, backgroundColor: SC.card,
     borderColor: SC.border, borderWidth: 1, alignItems: 'center', justifyContent: 'center',

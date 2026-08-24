@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
   },
   editPill: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: 'rgba(37,99,235,0.4)',
+    backgroundColor: 'rgba(124,58,237,0.4)',
     borderRadius: 999,
     paddingHorizontal: 8, paddingVertical: 3,
   },

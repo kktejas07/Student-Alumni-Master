@@ -21,7 +21,7 @@ const C = {
 const STATUS_META: Record<string, { label: string; icon: IconName; color: string }> = {
   draft:               { label: 'Draft',                icon: 'pencil',           color: '#94A3B8' },
   submitted:           { label: 'Application Submitted',icon: 'email-fast',       color: '#3B82F6' },
-  under_review:        { label: 'Under Review',         icon: 'magnify',          color: '#60A5FA' },
+  under_review:        { label: 'Under Review',         icon: 'magnify',          color: '#A78BFA' },
   interview_scheduled: { label: 'Interview Scheduled',  icon: 'calendar-clock',   color: '#F59E0B' },
   decision_pending:    { label: 'Decision Pending',     icon: 'clock-outline',    color: '#F59E0B' },
   accepted:            { label: 'Accepted!',            icon: 'check-decagram',   color: '#34D399' },
@@ -50,13 +50,13 @@ export default function ApplicationTrackerScreen() {
     role === 'alumni' ? '#60A5FA' :
     role === 'mentor' ? '#5EEAD4' :
     role === 'college' || role === 'admin' ? '#818CF8' :
-    '#60A5FA';
+    '#A78BFA';
 
   const activeTabColor =
     role === 'alumni' ? '#3B82F6' :
     role === 'mentor' ? '#14B8A6' :
     role === 'college' || role === 'admin' ? '#6366F1' :
-    '#2563EB';
+    '#7C3AED';
 
   const handleBack = () => {
     if (role === 'alumni') {
@@ -335,10 +335,10 @@ const s = StyleSheet.create({
   aiBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 9, paddingVertical: 5, borderRadius: 999,
-    backgroundColor: 'rgba(37,99,235,0.15)',
-    borderColor: 'rgba(37,99,235,0.45)', borderWidth: 1,
+    backgroundColor: 'rgba(167,139,250,0.15)',
+    borderColor: 'rgba(167,139,250,0.45)', borderWidth: 1,
   },
-  aiBtnText: { color: '#60A5FA', fontSize: 10.5, fontWeight: '800' },
+  aiBtnText: { color: '#A78BFA', fontSize: 10.5, fontWeight: '800' },
   placeholder: { color: C.text3, fontSize: 12, fontStyle: 'italic' },
 
   stepRow: {
@@ -348,15 +348,15 @@ const s = StyleSheet.create({
   },
   stepBullet: {
     width: 24, height: 24, borderRadius: 999,
-    backgroundColor: 'rgba(37,99,235,0.20)',
+    backgroundColor: 'rgba(167,139,250,0.20)',
     alignItems: 'center', justifyContent: 'center',
   },
-  stepBulletText: { color: '#60A5FA', fontSize: 11, fontWeight: '800' },
+  stepBulletText: { color: '#A78BFA', fontSize: 11, fontWeight: '800' },
   stepTitle: { color: '#fff', fontSize: 13, fontWeight: '600' },
   stepWhy: { color: C.text3, fontSize: 11, marginTop: 2 },
   stepAction: {
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#7C3AED',
   },
   stepActionText: { color: '#fff', fontSize: 11, fontWeight: '700' },
 });

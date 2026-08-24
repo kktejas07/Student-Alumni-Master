@@ -354,7 +354,7 @@ function ProfileCardWithActions({ user, onView, onApprove, onDisable, onRestore,
         style={st.menuTrigger}
         accessibilityLabel="More actions"
       >
-        <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 14, lineHeight: 14 }}>⋯</Text>
+        <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 14, lineHeight: 14 }}>⋯</Text>
       </Pressable>
       )}
 
@@ -538,7 +538,7 @@ function EditRow({ label, value, onChange }: any) {
 
 const st = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  title: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 16 },
+  title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 },
   sub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 760 },
   muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
   kpiRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
@@ -576,7 +576,7 @@ const st = StyleSheet.create({
     paddingVertical: 7, paddingHorizontal: 10, borderRadius: 7,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  menuLabel: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12 },
+  menuLabel: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
 
   /* selection */
   selectBox: {
@@ -604,7 +604,7 @@ const st = StyleSheet.create({
       position: 'sticky' as any, bottom: 18,
     } as any) : {}),
   },
-  bulkText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 13 },
+  bulkText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
   bulkLinkBtn: { ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   bulkLink: { color: GRAD.to, fontFamily: FONTS.bold, fontSize: 12 },
   bulkClose: {
@@ -625,13 +625,13 @@ const st = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ boxShadow: '0 24px 60px rgba(0,0,0,0.7)' } as any) : {}),
   },
   modalHero: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, borderBottomWidth: 1, borderBottomColor: SAC.border },
-  modalTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 15 },
+  modalTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
 
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   detailLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5, width: 130 },
-  detailValue: { color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
+  detailValue: { color: '#fff', fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
   formInput: {
-    flex: 1, color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 13,
+    flex: 1, color: '#fff', fontFamily: FONTS.med, fontSize: 13,
     backgroundColor: SAC.cardSolid, borderRadius: 9, borderWidth: 1, borderColor: SAC.border,
     paddingHorizontal: 12, paddingVertical: 9,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
@@ -639,10 +639,10 @@ const st = StyleSheet.create({
   actionsRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 4 },
   destructiveBtn: { backgroundColor: SAC.red, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   warnBox: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 8, borderRadius: 8, backgroundColor: 'rgba(239,68,68,0.08)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.30)' },
-  btnText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12 },
+  btnText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
   secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
   pagination: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 12, gap: 14 },
   pageBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: SAC.card, borderRadius: 8, borderWidth: 1, borderColor: SAC.border, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  pageBtnText: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12 },
+  pageBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
   pageInfo: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
 });

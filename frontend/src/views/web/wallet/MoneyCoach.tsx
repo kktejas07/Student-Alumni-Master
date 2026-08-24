@@ -126,11 +126,11 @@ export default function MoneyCoach({ initialCmd, onAction }: {
             width: '56px',
             height: '56px',
             borderRadius: '999px',
-            backgroundColor: '#2563EB',
+            backgroundColor: '#7C3AED',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 8px 28px rgba(37,99,235,0.55)',
+            boxShadow: '0 8px 28px rgba(124,58,237,0.55)',
             zIndex: 99999,
             cursor: 'pointer',
           }}
@@ -212,7 +212,7 @@ export default function MoneyCoach({ initialCmd, onAction }: {
                       m.role === 'user' && { alignSelf: 'flex-end' }]}>
                       <View style={[s.msgBubble,
                         m.role === 'user'
-                          ? { backgroundColor: '#2563EB' }
+                          ? { backgroundColor: '#7C3AED' }
                           : { backgroundColor: 'rgba(255,255,255,0.05)',
                               borderColor: C.border, borderWidth: 1 }]}>
                         {m.cmd && m.role === 'assistant' && m.cmd !== 'chat' && (
@@ -244,7 +244,7 @@ export default function MoneyCoach({ initialCmd, onAction }: {
                                     <View key={ai} style={s.planAction}>
                                       <View style={s.planCheck}>
                                         <MaterialCommunityIcons name="checkbox-blank-circle-outline"
-                                          size={14} color="#60A5FA" />
+                                          size={14} color="#A78BFA" />
                                       </View>
                                       <View style={{ flex: 1 }}>
                                         <Text style={s.planActionTitle}>{a.title}</Text>
@@ -258,7 +258,7 @@ export default function MoneyCoach({ initialCmd, onAction }: {
                                           style={{
                                             padding: '5px 8px',
                                             borderRadius: '999px',
-                                            backgroundColor: '#2563EB',
+                                            backgroundColor: '#7C3AED',
                                             cursor: 'pointer',
                                             display: 'flex',
                                             alignItems: 'center',
@@ -282,7 +282,7 @@ export default function MoneyCoach({ initialCmd, onAction }: {
                               <View key={ci} style={s.donutCard}>
                                 {card.data.slice(0, 6).map((d: any, di: number) => {
                                   const pct = Math.round((d.value / total) * 100);
-                                  const tints = ['#2563EB', '#06B6D4', '#F59E0B', '#10B981', '#EC4899', '#60A5FA'];
+                                  const tints = ['#7C3AED', '#06B6D4', '#F59E0B', '#10B981', '#EC4899', '#A78BFA'];
                                   const tint = tints[di % tints.length];
                                   return (
                                     <View key={di} style={{ gap: 4 }}>
@@ -314,8 +314,8 @@ export default function MoneyCoach({ initialCmd, onAction }: {
                                 style={{
                                   padding: '6px 10px',
                                   borderRadius: '999px',
-                                  backgroundColor: 'rgba(37,99,235,0.20)',
-                                  border: '1px solid rgba(37,99,235,0.40)',
+                                  backgroundColor: 'rgba(167,139,250,0.20)',
+                                  border: '1px solid rgba(167,139,250,0.40)',
                                   cursor: 'pointer',
                                 }}
                               >
@@ -330,7 +330,7 @@ export default function MoneyCoach({ initialCmd, onAction }: {
                   {busy && (
                     <View style={s.msgRow}>
                       <View style={[s.msgBubble, { backgroundColor: 'rgba(255,255,255,0.05)' }]}>
-                        <ActivityIndicator color="#60A5FA" size="small" />
+                        <ActivityIndicator color="#A78BFA" size="small" />
                       </View>
                     </View>
                   )}
@@ -355,7 +355,7 @@ export default function MoneyCoach({ initialCmd, onAction }: {
                         cursor: 'pointer',
                       }}
                     >
-                      <MaterialCommunityIcons name={c.icon} size={11} color="#60A5FA" />
+                      <MaterialCommunityIcons name={c.icon} size={11} color="#A78BFA" />
                       <Text style={s.slashChipText}>{c.label}</Text>
                     </div>
                   ))}
@@ -377,7 +377,7 @@ export default function MoneyCoach({ initialCmd, onAction }: {
                       width: '38px',
                       height: '38px',
                       borderRadius: '999px',
-                      backgroundColor: '#2563EB',
+                      backgroundColor: '#7C3AED',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -430,7 +430,7 @@ export default function MoneyCoach({ initialCmd, onAction }: {
                     m.role === 'user' && { alignSelf: 'flex-end' }]}>
                     <View style={[s.msgBubble,
                       m.role === 'user'
-                        ? { backgroundColor: '#2563EB' }
+                        ? { backgroundColor: '#7C3AED' }
                         : { backgroundColor: 'rgba(255,255,255,0.05)',
                             borderColor: C.border, borderWidth: 1 }]}>
                       {m.cmd && m.role === 'assistant' && m.cmd !== 'chat' && (
@@ -462,7 +462,7 @@ export default function MoneyCoach({ initialCmd, onAction }: {
                                   <View key={ai} style={s.planAction}>
                                     <View style={s.planCheck}>
                                       <MaterialCommunityIcons name="checkbox-blank-circle-outline"
-                                        size={14} color="#60A5FA" />
+                                        size={14} color="#A78BFA" />
                                     </View>
                                     <View style={{ flex: 1 }}>
                                       <Text style={s.planActionTitle}>{a.title}</Text>
@@ -491,7 +491,7 @@ export default function MoneyCoach({ initialCmd, onAction }: {
                             <View key={ci} style={s.donutCard}>
                               {card.data.slice(0, 6).map((d: any, di: number) => {
                                 const pct = Math.round((d.value / total) * 100);
-                                const tints = ['#2563EB', '#06B6D4', '#F59E0B', '#10B981', '#EC4899', '#60A5FA'];
+                                const tints = ['#7C3AED', '#06B6D4', '#F59E0B', '#10B981', '#EC4899', '#A78BFA'];
                                 const tint = tints[di % tints.length];
                                 return (
                                   <View key={di} style={{ gap: 4 }}>
@@ -532,7 +532,7 @@ export default function MoneyCoach({ initialCmd, onAction }: {
                 {busy && (
                   <View style={s.msgRow}>
                     <View style={[s.msgBubble, { backgroundColor: 'rgba(255,255,255,0.05)' }]}>
-                      <ActivityIndicator color="#60A5FA" size="small" />
+                      <ActivityIndicator color="#A78BFA" size="small" />
                     </View>
                   </View>
                 )}
@@ -545,7 +545,7 @@ export default function MoneyCoach({ initialCmd, onAction }: {
                   <Pressable key={c.cmd}
                     onPress={() => send(c.cmd)}
                     style={s.slashChip}>
-                    <MaterialCommunityIcons name={c.icon} size={11} color="#60A5FA" />
+                    <MaterialCommunityIcons name={c.icon} size={11} color="#A78BFA" />
                     <Text style={s.slashChipText}>{c.label}</Text>
                   </Pressable>
                 ))}
@@ -577,8 +577,8 @@ export default function MoneyCoach({ initialCmd, onAction }: {
 const s = StyleSheet.create({
   bubble: { position: 'absolute', bottom: Layout.floatingOffset, right: 20,
     width: 56, height: 56, borderRadius: 999,
-    backgroundColor: '#2563EB', alignItems: 'center', justifyContent: 'center',
-    boxShadow: '0 8px 28px rgba(37,99,235,0.55)' as any,
+    backgroundColor: '#7C3AED', alignItems: 'center', justifyContent: 'center',
+    boxShadow: '0 8px 28px rgba(124,58,237,0.55)' as any,
     zIndex: 999, ...({ cursor: 'pointer' } as any) },
 
   backdrop: { flex: 1, backgroundColor: 'rgba(10,5,22,0.55)',
@@ -592,7 +592,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 14,
     borderBottomWidth: 1, borderColor: C.border },
   brain: { width: 36, height: 36, borderRadius: 999,
-    backgroundColor: '#2563EB', alignItems: 'center', justifyContent: 'center' },
+    backgroundColor: '#7C3AED', alignItems: 'center', justifyContent: 'center' },
   title: { color: '#fff', fontFamily: 'DMSans_900Black', fontSize: 14 },
   subtitle: { color: C.text3, fontFamily: 'DMSans_600SemiBold', fontSize: 10.5 },
   closeBtn: { width: 30, height: 30, borderRadius: 999,
@@ -605,8 +605,8 @@ const s = StyleSheet.create({
   msgText: { color: '#fff', fontFamily: 'DMSans_600SemiBold',
     fontSize: 12.5, lineHeight: 19 },
   cmdBadge: { alignSelf: 'flex-start', paddingHorizontal: 7, paddingVertical: 2,
-    borderRadius: 6, backgroundColor: 'rgba(37,99,235,0.20)' },
-  cmdBadgeText: { color: '#93C5FD', fontFamily: 'DMSans_900Black',
+    borderRadius: 6, backgroundColor: 'rgba(167,139,250,0.20)' },
+  cmdBadgeText: { color: '#C4B5FD', fontFamily: 'DMSans_900Black',
     fontSize: 9, letterSpacing: 0.6 },
 
   /* Plan card */
@@ -627,7 +627,7 @@ const s = StyleSheet.create({
   planActionTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 11.5 },
   planActionMeta: { color: C.text3, fontFamily: 'DMSans_600SemiBold', fontSize: 10 },
   planActionBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
-    backgroundColor: '#2563EB', ...({ cursor: 'pointer' } as any) },
+    backgroundColor: '#7C3AED', ...({ cursor: 'pointer' } as any) },
   planActionBtnText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 10 },
 
   /* Donut bars */
@@ -642,10 +642,10 @@ const s = StyleSheet.create({
 
   /* Generic action button */
   actBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8,
-    backgroundColor: 'rgba(37,99,235,0.20)',
-    borderColor: 'rgba(37,99,235,0.40)', borderWidth: 1,
+    backgroundColor: 'rgba(167,139,250,0.20)',
+    borderColor: 'rgba(167,139,250,0.40)', borderWidth: 1,
     ...({ cursor: 'pointer' } as any) },
-  actBtnText: { color: '#93C5FD', fontFamily: 'DMSans_700Bold', fontSize: 11 },
+  actBtnText: { color: '#C4B5FD', fontFamily: 'DMSans_700Bold', fontSize: 11 },
 
   /* Slash chip */
   slashChip: { flexDirection: 'row', alignItems: 'center', gap: 5,
@@ -663,6 +663,6 @@ const s = StyleSheet.create({
     color: '#fff', fontFamily: 'DMSans_600SemiBold', fontSize: 12.5,
     outlineWidth: 0 } as any,
   sendBtn: { width: 38, height: 38, borderRadius: 999,
-    backgroundColor: '#2563EB', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#7C3AED', alignItems: 'center', justifyContent: 'center',
     ...({ cursor: 'pointer' } as any) },
 });

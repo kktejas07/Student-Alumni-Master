@@ -10,8 +10,6 @@ import { Slot, useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { portalPathForRole } from '@/src/lib/portalHome';
 
-import { SAModernLoader } from '@/src/views/components/SAModernLoader';
-
 export default function SuperAdminLayoutRoute() {
   const router = useRouter();
   const user        = useAuthStore((s) => s.user);
@@ -34,7 +32,12 @@ export default function SuperAdminLayoutRoute() {
   }, [initialized, user]);
 
   if (!initialized || loading) {
-    return <SAModernLoader subtitle="AUTHENTICATING ADMIN ACCESS" />;
+    return (
+      <View style={s.gate}>
+        <ActivityIndicator size="small" color="#F59E0B" />
+        <Text style={s.gateText}>Authenticating…</Text>
+      </View>
+    );
   }
   if (!user) {
     return (

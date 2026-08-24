@@ -8,7 +8,7 @@ import { View, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ExploreScreen } from '@/src/views/web/ExploreScreen';
-import { COURSES_HERO, COURSES_SECTIONS } from '@/src/views/web/ExploreData';
+import { COURSES_HERO, COURSES_SECTIONS } from '@/src/views/web/exploreData';
 
 export default function ExploreCoursesPreview() {
   return (

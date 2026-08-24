@@ -192,8 +192,8 @@ const s = StyleSheet.create({
   roleStripe: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(37,99,235,0.14)',
-    borderColor: 'rgba(37,99,235,0.38)', borderWidth: 1,
+    backgroundColor: 'rgba(124,58,237,0.14)',
+    borderColor: 'rgba(124,58,237,0.38)', borderWidth: 1,
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999,
     marginBottom: 12,
   },

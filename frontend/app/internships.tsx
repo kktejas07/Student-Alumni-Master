@@ -179,7 +179,7 @@ export default function JobsInternshipsScreen() {
           advisorDesc="Need help shortlisting roles or polishing your resume? Connect with a career advisor."
           aiTitle="Ask the Career AI"
           aiDesc="What roles match my skills? How do I crack this interview? Ask anything 24×7."
-          advisorAccent="#60A5FA"
+          advisorAccent="#A78BFA"
           aiAccent="#10B981"
           advisorIcon="briefcase-account"
           aiIcon="robot-excited"
@@ -248,7 +248,7 @@ export default function JobsInternshipsScreen() {
       {/* List */}
       {loading ? (
         <View style={{ alignItems: 'center', paddingVertical: 60 }}>
-          <ActivityIndicator color="#60A5FA" size="large" />
+          <ActivityIndicator color="#A78BFA" size="large" />
         </View>
       ) : items.length === 0 ? (
         <View style={styles.empty}>
@@ -288,7 +288,7 @@ export default function JobsInternshipsScreen() {
 function OppCard({ opp, onSave, onApply }: { opp: Opp; onSave: () => void; onApply: () => void }) {
   const matchColor =
     (opp.match_score || 0) >= 80 ? '#10B981'
-  : (opp.match_score || 0) >= 60 ? '#F59E0B' : '#60A5FA';
+  : (opp.match_score || 0) >= 60 ? '#F59E0B' : '#A78BFA';
   // Tint hover glow by opportunity type — amber for jobs, teal for internships
   const tint = opp.type === 'job' ? '#F59E0B' : '#22D3EE';
   return (
@@ -299,8 +299,8 @@ function OppCard({ opp, onSave, onApply }: { opp: Opp; onSave: () => void; onApp
         {opp.image ? (
           <Image source={{ uri: opp.image }} style={styles.cardImg} />
         ) : (
-          <View style={[styles.cardImg, { backgroundColor: 'rgba(37,99,235,0.20)', alignItems: 'center', justifyContent: 'center' }]}>
-            <Briefcase size={20} color="#60A5FA" />
+          <View style={[styles.cardImg, { backgroundColor: 'rgba(167,139,250,0.20)', alignItems: 'center', justifyContent: 'center' }]}>
+            <Briefcase size={20} color="#A78BFA" />
           </View>
         )}
         <View style={{ flex: 1, minWidth: 0 }}>
@@ -366,10 +366,10 @@ function OppCard({ opp, onSave, onApply }: { opp: Opp; onSave: () => void; onApp
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <Pressable
             onPress={onSave}
-            style={[styles.iconBtn, opp.saved && { backgroundColor: 'rgba(37,99,235,0.20)', borderColor: '#60A5FA' }]}
+            style={[styles.iconBtn, opp.saved && { backgroundColor: 'rgba(167,139,250,0.20)', borderColor: '#A78BFA' }]}
             testID={`opp-save-${opp.id}`}
           >
-            {opp.saved ? <BookmarkCheck size={14} color="#60A5FA" /> : <Bookmark size={14} color="rgba(255,255,255,0.65)" />}
+            {opp.saved ? <BookmarkCheck size={14} color="#A78BFA" /> : <Bookmark size={14} color="rgba(255,255,255,0.65)" />}
           </Pressable>
           <Pressable
             onPress={onApply}
@@ -405,7 +405,7 @@ function FilterChip({ label, value, options, onChange }:
     <View style={[styles.filterChipWrapper, open && { zIndex: 200 }]}>
       <Pressable
         onPress={() => setOpen((o) => !o)}
-        style={[styles.filterChip, open && { borderColor: '#60A5FA' }]}
+        style={[styles.filterChip, open && { borderColor: '#A78BFA' }]}
       >
         <Filter size={11} color="rgba(255,255,255,0.55)" />
         <Text style={styles.filterChipLabel}>{label}:</Text>
@@ -417,7 +417,7 @@ function FilterChip({ label, value, options, onChange }:
             <Pressable
               key={opt.v}
               onPress={() => { onChange(opt.v); setOpen(false); }}
-              style={[styles.dropdownItem, value === (opt.l) && { backgroundColor: 'rgba(37,99,235,0.10)' }]}
+              style={[styles.dropdownItem, value === (opt.l) && { backgroundColor: 'rgba(167,139,250,0.10)' }]}
             >
               <Text style={styles.dropdownText}>{opt.l}</Text>
             </Pressable>
@@ -428,7 +428,7 @@ function FilterChip({ label, value, options, onChange }:
   );
 }
 
-const ACCENT = '#60A5FA';
+const ACCENT = '#A78BFA';
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#0C0818' },
   topBar: {
@@ -495,7 +495,7 @@ const styles = StyleSheet.create({
   dropdown: {
     position: 'absolute', top: 38, left: 0, minWidth: 140, zIndex: 999,
     backgroundColor: '#1B102D',
-    borderColor: 'rgba(37,99,235,0.30)', borderWidth: 1, borderRadius: 10,
+    borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1, borderRadius: 10,
     overflow: 'hidden',
     ...Platform.select({ web: { boxShadow: '0 12px 30px rgba(0,0,0,0.6)' } as any, default: {} }),
   },
@@ -533,9 +533,9 @@ const styles = StyleSheet.create({
   skills: { flexDirection: 'row', flexWrap: 'wrap', gap: 5 },
   skillChip: {
     paddingHorizontal: 7, paddingVertical: 2, borderRadius: 4,
-    backgroundColor: 'rgba(37,99,235,0.10)',
+    backgroundColor: 'rgba(167,139,250,0.10)',
   },
-  skillText: { color: '#93C5FD', fontFamily: 'DMSans_500Medium', fontSize: 10.5 },
+  skillText: { color: '#C4B5FD', fontFamily: 'DMSans_500Medium', fontSize: 10.5 },
 
   cardFooter: {
     flexDirection: 'row', alignItems: 'center',

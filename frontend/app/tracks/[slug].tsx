@@ -80,7 +80,7 @@ export default function TrackDetail() {
       subtitle={track ? `${track.title} · ${track.duration_weeks}-week roadmap`
                        : 'Loading career track…'}
       heroEmoji="🚀"
-      accent={track?.color || '#2563EB'}
+      accent={track?.color || '#7C3AED'}
       rightSlot={
         <Pressable onPress={() => router.push('/courses' as any)}
           style={s.backBtn}>
@@ -91,7 +91,7 @@ export default function TrackDetail() {
     >
       {loading ? (
         <View style={s.loadingBox}>
-          <ActivityIndicator color="#60A5FA" />
+          <ActivityIndicator color="#A78BFA" />
           <Text style={s.loadingText}>Loading roadmap…</Text>
         </View>
       ) : !track ? (
@@ -102,7 +102,7 @@ export default function TrackDetail() {
         <>
           {/* Hero */}
           <View style={s.hero}>
-            <LinearGradient colors={[track.color, '#60A5FA']}
+            <LinearGradient colors={[track.color, '#A78BFA']}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
               style={StyleSheet.absoluteFill} />
             <View style={s.heroBlur} />
@@ -182,11 +182,11 @@ export default function TrackDetail() {
                       ...p, [m.week_start]: !p[m.week_start],
                     }))}
                     style={[s.weekCard,
-                      isCurrent && { borderColor: '#60A5FA',
-                                      boxShadow: '0 0 24px -8px rgba(37,99,235,0.6)' as any }]}>
+                      isCurrent && { borderColor: '#A78BFA',
+                                      boxShadow: '0 0 24px -8px rgba(167,139,250,0.6)' as any }]}>
                     <View style={s.weekHead}>
                       <View style={[s.weekBadge,
-                        isCurrent && { backgroundColor: '#2563EB' }]}>
+                        isCurrent && { backgroundColor: '#7C3AED' }]}>
                         <Text style={s.weekBadgeText}>
                           W{m.week_start}{m.week_end !== m.week_start ? `-${m.week_end}` : ''}
                         </Text>
@@ -223,10 +223,10 @@ export default function TrackDetail() {
                                     </Text>
                                   </View>
                                   <View style={[s.requiredPill,
-                                    cref.required && { backgroundColor: 'rgba(37,99,235,0.18)',
-                                                        borderColor: 'rgba(37,99,235,0.40)' }]}>
+                                    cref.required && { backgroundColor: 'rgba(124,58,237,0.18)',
+                                                        borderColor: 'rgba(167,139,250,0.40)' }]}>
                                     <Text style={[s.requiredPillText,
-                                      cref.required && { color: '#93C5FD' }]}>
+                                      cref.required && { color: '#C4B5FD' }]}>
                                       {cref.required ? 'REQUIRED' : 'OPTIONAL'}
                                     </Text>
                                   </View>
@@ -395,8 +395,8 @@ const s = StyleSheet.create({
     ...({ cursor: 'pointer' } as any) },
   weekHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   weekBadge: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 6,
-    backgroundColor: 'rgba(37,99,235,0.18)' },
-  weekBadgeText: { color: '#93C5FD', fontFamily: 'DMSans_800ExtraBold',
+    backgroundColor: 'rgba(167,139,250,0.18)' },
+  weekBadgeText: { color: '#C4B5FD', fontFamily: 'DMSans_800ExtraBold',
     fontSize: 10.5, letterSpacing: 0.4 },
   weekTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 13.5 },
   currentPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999,

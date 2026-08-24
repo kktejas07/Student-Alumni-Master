@@ -39,7 +39,7 @@ export function ProfileView() {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
             <Av initials={initials} size={72} color={MC.teal} photo={photo} />
             <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.5 }}>{fullName}</Text>
+              <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.5 }}>{fullName}</Text>
               <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 13 }}>{role} · {company}</Text>
               <View style={{ flexDirection: 'row', gap: 8, marginTop: 6, alignItems: 'center' }}>
                 <StarRow rating={Math.round(rating)} size={13} />
@@ -72,12 +72,12 @@ export function ProfileView() {
           <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
             <View style={[s.priceBox, { borderColor: MC.border2, backgroundColor: 'rgba(20,184,166,0.07)' }]}>
               <Text style={{ color: MC.tealP, fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 0.6 }}>1:1 SESSION</Text>
-              <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 22, marginTop: 4 }}>₹{price}</Text>
+              <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 22, marginTop: 4 }}>₹{price}</Text>
               <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 11 }}>Per 30 min</Text>
             </View>
             <View style={s.priceBox}>
               <Text style={{ color: MC.muted, fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 0.6 }}>EVENT (PAID)</Text>
-              <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 22, marginTop: 4 }}>₹499</Text>
+              <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 22, marginTop: 4 }}>₹499</Text>
               <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 11 }}>Per seat</Text>
             </View>
           </View>
@@ -92,7 +92,7 @@ export function ProfileView() {
             <Text style={{ color: MC.tealP, fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 1 }}>VERIFIED MENTOR</Text>
           </View>
           <Av initials={initials} size={64} color={MC.teal} photo={photo} />
-          <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 20, letterSpacing: -0.5, marginTop: 10 }}>{fullName}</Text>
+          <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 20, letterSpacing: -0.5, marginTop: 10 }}>{fullName}</Text>
           <Text style={{ color: MC.tealP, fontFamily: FONTS.bold, fontSize: 12, marginTop: 2 }}>{role} · {company}</Text>
 
           <View style={s.idStats}>
@@ -122,7 +122,7 @@ function Row({ Icon, label, value, link }: any) {
           <Text style={{ color: MC.tealP, fontFamily: FONTS.med, fontSize: 13 }}>{value}</Text>
         </Pressable>
       ) : (
-        <Text style={{ color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 13 }}>{value}</Text>
+        <Text style={{ color: '#fff', fontFamily: FONTS.med, fontSize: 13 }}>{value}</Text>
       )}
     </View>
   );
@@ -131,7 +131,7 @@ function Row({ Icon, label, value, link }: any) {
 function Stat({ label, value }: any) {
   return (
     <View style={{ alignItems: 'center', flex: 1 }}>
-      <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 16 }}>{value}</Text>
+      <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 }}>{value}</Text>
       <Text style={{ color: MC.muted, fontFamily: FONTS.bold, fontSize: 9.5, letterSpacing: 0.6, marginTop: 2 }}>{label}</Text>
     </View>
   );
@@ -139,7 +139,7 @@ function Stat({ label, value }: any) {
 
 const s = StyleSheet.create({
   card: { backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 14, padding: 18 },
-  cardTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 14, marginBottom: 8 },
+  cardTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 14, marginBottom: 8 },
   editBtn: { paddingHorizontal: 14, height: 32, borderRadius: 8, borderWidth: 1, borderColor: MC.border2, backgroundColor: 'rgba(20,184,166,0.07)', alignItems: 'center', justifyContent: 'center' },
   rowIcon: { width: 26, height: 26, borderRadius: 8, backgroundColor: 'rgba(20,184,166,0.10)', alignItems: 'center', justifyContent: 'center' },
   tag: { backgroundColor: 'rgba(20,184,166,0.10)', borderColor: MC.border2, borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },

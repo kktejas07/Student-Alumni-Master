@@ -67,7 +67,7 @@ const ROLE_CFG: Record<RoleKey, {
     stats: (s) => [
       { Icon: CalendarCheck, label: 'Sessions Completed', value: s.sessions_completed ?? 0, tint: '#10B981' },
       { Icon: UsersRound,    label: 'Connections Made',   value: s.connections_made ?? 0,   tint: '#60A5FA' },
-      { Icon: Eye,           label: 'Profile Views',      value: s.profile_views ?? 0,      tint: '#60A5FA' },
+      { Icon: Eye,           label: 'Profile Views',      value: s.profile_views ?? 0,      tint: '#A78BFA' },
       { Icon: Sparkles,      label: 'Mentor Sessions',    value: s.mentor_sessions ?? 0,    tint: '#F59E0B' },
       { Icon: FileSearch,    label: 'Applications Sent',  value: s.applications_sent ?? 0,  tint: '#F97316' },
     ],
@@ -81,7 +81,7 @@ const ROLE_CFG: Record<RoleKey, {
     stats: (s) => [
       { Icon: CalendarCheck, label: 'Sessions Hosted',  value: s.sessions_completed ?? 0,                     tint: '#10B981' },
       { Icon: UsersRound,    label: 'Active Mentees',   value: s.connections_made ?? 0,                       tint: '#60A5FA' },
-      { Icon: Eye,           label: 'Profile Views',    value: s.profile_views ?? 0,                          tint: '#60A5FA' },
+      { Icon: Eye,           label: 'Profile Views',    value: s.profile_views ?? 0,                          tint: '#A78BFA' },
       { Icon: Star,          label: 'Avg Rating',       value: s.avg_rating ? `${s.avg_rating}★` : '—',       tint: '#F59E0B' },
       { Icon: IndianRupee,   label: 'Earnings (Month)', value: s.earnings_this_month ? `₹${s.earnings_this_month}` : '₹0', tint: '#22C55E' },
     ],
@@ -95,7 +95,7 @@ const ROLE_CFG: Record<RoleKey, {
     stats: (s) => [
       { Icon: CalendarCheck, label: 'Mentor Sessions',  value: s.sessions_completed ?? 0, tint: '#10B981' },
       { Icon: UsersRound,    label: 'Network Size',     value: s.connections_made ?? 0,   tint: '#60A5FA' },
-      { Icon: Eye,           label: 'Profile Views',    value: s.profile_views ?? 0,      tint: '#60A5FA' },
+      { Icon: Eye,           label: 'Profile Views',    value: s.profile_views ?? 0,      tint: '#A78BFA' },
       { Icon: Briefcase,     label: 'Referrals Given',  value: s.referrals_given ?? 0,    tint: '#F59E0B' },
       { Icon: Sparkles,      label: 'Talks Hosted',     value: s.talks_hosted ?? 0,       tint: '#F97316' },
     ],
@@ -109,7 +109,7 @@ const ROLE_CFG: Record<RoleKey, {
     stats: (s) => [
       { Icon: GraduationCap, label: 'Total Students',   value: s.total_students ?? 0,    tint: '#10B981' },
       { Icon: UsersRound,    label: 'Active Mentors',   value: s.active_mentors ?? 0,    tint: '#60A5FA' },
-      { Icon: Eye,           label: 'Profile Views',    value: s.profile_views ?? 0,     tint: '#60A5FA' },
+      { Icon: Eye,           label: 'Profile Views',    value: s.profile_views ?? 0,     tint: '#A78BFA' },
       { Icon: Sparkles,      label: 'Events Hosted',    value: s.events_hosted ?? 0,     tint: '#F59E0B' },
       { Icon: Building2,     label: 'Placements (YR)',  value: s.placements_year ?? 0,   tint: '#F97316' },
     ],
@@ -262,7 +262,7 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
         {loading ? (
           <ActivityIndicator size="large" color={C.purple} />
         ) : (
-          <Text style={{ color: '#1C1C1E' }}>Failed to load profile settings.</Text>
+          <Text style={{ color: '#fff' }}>Failed to load profile settings.</Text>
         )}
       </View>
     );
@@ -299,9 +299,9 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
                   <Text style={[st.headerBadgeText, { color: '#5EEAD4' }]}>{stats.sessions_completed} {cfg.badgeNoun}</Text>
                 </View>
               )}
-              <View style={[st.headerBadge, { backgroundColor: 'rgba(37,99,235,0.16)', borderColor: 'rgba(37,99,235,0.45)' }]}>
-                <ShieldCheck size={12} color="#93C5FD" />
-                <Text style={[st.headerBadgeText, { color: '#93C5FD' }]}>{cfg.verifiedLabel}</Text>
+              <View style={[st.headerBadge, { backgroundColor: 'rgba(167,139,250,0.16)', borderColor: 'rgba(167,139,250,0.45)' }]}>
+                <ShieldCheck size={12} color="#C4B5FD" />
+                <Text style={[st.headerBadgeText, { color: '#C4B5FD' }]}>{cfg.verifiedLabel}</Text>
               </View>
             </View>
           </View>
@@ -388,7 +388,7 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
                 pct={completion.percentage || 0}
                 size={120}
                 stroke={10}
-                color={(completion.percentage || 0) >= 100 ? '#10B981' : '#60A5FA'}
+                color={(completion.percentage || 0) >= 100 ? '#10B981' : '#A78BFA'}
               />
               <Text style={st.sideTitle}>Profile Score</Text>
               <Text style={st.sideSub}>{(completion.percentage || 0) >= 100 ? 'All complete!' : `${100 - (completion.percentage || 0)}% to go`}</Text>
@@ -418,7 +418,7 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
           {/* Role-aware ID card */}
           <View style={st.sideCard}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-              <ShieldCheck size={14} color="#60A5FA" />
+              <ShieldCheck size={14} color="#A78BFA" />
               <Text style={st.idTitle}>{cfg.idLabel}</Text>
             </View>
             <Text style={st.idValue}>{saId}</Text>
@@ -456,7 +456,7 @@ function StatRow({ Icon, label, value, tint, last }: { Icon: any; label: string;
 function ComingSoon({ title, sub }: { title: string; sub: string }) {
   return (
     <View style={st.comingCard}>
-      <Sparkles size={28} color="#60A5FA" />
+      <Sparkles size={28} color="#A78BFA" />
       <Text style={st.comingTitle}>{title}</Text>
       <Text style={st.comingSub}>{sub}</Text>
     </View>
@@ -479,7 +479,7 @@ function FooterActions({ dirty, saving, onSave, onDiscard, lastSavedAt }: any) {
           style={[st.btnPrimary, (!dirty || saving) && { opacity: 0.55 }]}
           testID="pf-save"
         >
-          <CheckCircle2 size={14} color="#2563EB" />
+          <CheckCircle2 size={14} color="#fff" />
           <Text style={st.btnPrimaryText}>{saving ? 'Saving…' : 'Save Profile'}</Text>
         </Pressable>
       </View>
@@ -498,17 +498,17 @@ const st = StyleSheet.create({
   },
   avatar: {
     width: 84, height: 84, borderRadius: 42, overflow: 'hidden',
-    backgroundColor: 'rgba(37,99,235,0.12)', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(167,139,250,0.20)', alignItems: 'center', justifyContent: 'center',
     position: 'relative',
   },
-  avatarText: { color: '#2563EB', fontFamily: 'DMSans_800ExtraBold', fontSize: 28 },
+  avatarText: { color: '#A78BFA', fontFamily: 'DMSans_800ExtraBold', fontSize: 28 },
   avatarCheck: {
     position: 'absolute', bottom: 2, right: 2,
     width: 22, height: 22, borderRadius: 11, backgroundColor: '#10B981',
     alignItems: 'center', justifyContent: 'center',
     borderColor: C.bg, borderWidth: 2,
   },
-  name: { color: '#1C1C1E', fontFamily: 'DMSans_700Bold', fontSize: 22, letterSpacing: -0.3 },
+  name: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 22, letterSpacing: -0.3 },
   subline: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 13, marginTop: 4 },
   badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
   headerBadge: {
@@ -536,31 +536,31 @@ const st = StyleSheet.create({
     backgroundColor: C.card, borderColor: C.border, borderWidth: 1,
     borderRadius: 14, padding: 16,
   },
-  sideTitle: { color: '#1C1C1E', fontFamily: 'DMSans_700Bold', fontSize: 14, marginTop: 4 },
+  sideTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 14, marginTop: 4 },
   sideSub: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11.5 },
   sideHeading: { color: C.text2, fontFamily: 'DMSans_800ExtraBold', fontSize: 11, letterSpacing: 1.0 },
   idChip: {
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6,
-    backgroundColor: 'rgba(37,99,235,0.06)', borderColor: 'rgba(37,99,235,0.22)', borderWidth: 1,
+    backgroundColor: 'rgba(167,139,250,0.10)', borderColor: 'rgba(167,139,250,0.35)', borderWidth: 1,
     marginTop: 6,
   },
-  idChipText: { color: '#2563EB', fontFamily: 'DMSans_700Bold', fontSize: 11.5, letterSpacing: 0.5 },
+  idChipText: { color: '#C4B5FD', fontFamily: 'DMSans_700Bold', fontSize: 11.5, letterSpacing: 0.5 },
 
   statRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10 },
   statRowDivider: { borderBottomColor: 'rgba(255,255,255,0.04)', borderBottomWidth: 1 },
   statIcon: { width: 30, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   statLabel: { flex: 1, color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12.5 },
-  statValue: { color: '#1C1C1E', fontFamily: 'DMSans_800ExtraBold', fontSize: 16 },
+  statValue: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 16 },
 
-  idTitle: { color: '#1C1C1E', fontFamily: 'DMSans_700Bold', fontSize: 13 },
-  idValue: { color: '#1C1C1E', fontFamily: 'DMSans_800ExtraBold', fontSize: 18, letterSpacing: 0.5, marginTop: 2 },
+  idTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13 },
+  idValue: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 18, letterSpacing: 0.5, marginTop: 2 },
   idMeta: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11.5, marginTop: 4 },
   viewIdBtn: {
     marginTop: 12,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
     paddingVertical: 12, borderRadius: 10,
     backgroundColor: C.purple,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', boxShadow: '0 6px 18px rgba(37,99,235,0.35)' } as any) : {}),
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', boxShadow: '0 6px 18px rgba(124,58,237,0.35)' } as any) : {}),
   },
   viewIdBtnText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12.5 },
 
@@ -569,33 +569,32 @@ const st = StyleSheet.create({
     backgroundColor: C.card, borderColor: C.border, borderWidth: 1, borderRadius: 14,
     padding: 32, alignItems: 'center', gap: 8,
   },
-  comingTitle: { color: '#1C1C1E', fontFamily: 'DMSans_700Bold', fontSize: 16 },
+  comingTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 16 },
   comingSub: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12, textAlign: 'center' },
 
   /* Footer save */
   footerBar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 18, paddingVertical: 14,
-    backgroundColor: '#FFFFFF',
-    borderColor: '#2563EB', borderWidth: 1.5,
+    backgroundColor: 'rgba(167,139,250,0.08)',
+    borderColor: 'rgba(167,139,250,0.24)', borderWidth: 1,
     borderRadius: 12, gap: 12,
-    ...(Platform.OS === 'web' ? { boxShadow: '0 4px 20px rgba(37,99,235,0.15)' } as any : { elevation: 4, shadowColor: '#2563EB', shadowOpacity: 0.2, shadowRadius: 8 }),
   },
-  footerStatus: { color: '#475569', fontFamily: 'DMSans_500Medium', fontSize: 12 },
+  footerStatus: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12 },
   btnGhost: {
     paddingHorizontal: 14, height: 36, borderRadius: 9,
-    backgroundColor: 'rgba(0,0,0,0.04)', borderColor: 'rgba(0,0,0,0.12)', borderWidth: 1,
+    backgroundColor: 'rgba(255,255,255,0.04)', borderColor: C.border, borderWidth: 1,
     alignItems: 'center', justifyContent: 'center',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  btnGhostText: { color: '#334155', fontFamily: 'DMSans_700Bold', fontSize: 12 },
+  btnGhostText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 12 },
   btnPrimary: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 16, height: 36, borderRadius: 9,
-    backgroundColor: '#2563EB',
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', boxShadow: '0 4px 14px rgba(37,99,235,0.40)' } as any) : {}),
+    backgroundColor: C.purple, borderColor: C.purple, borderWidth: 1,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', boxShadow: '0 6px 18px rgba(124,58,237,0.35)' } as any) : {}),
   },
-  btnPrimaryText: { color: '#ffffff', fontFamily: 'DMSans_700Bold', fontSize: 12 },
+  btnPrimaryText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12 },
 });
 
 export default ProfileSettingsView;

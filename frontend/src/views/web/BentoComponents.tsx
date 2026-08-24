@@ -72,7 +72,7 @@ export function GlowCard({
       {hovered && (
         <View pointerEvents="none" style={[StyleSheet.absoluteFill, { opacity: glowOpacity }]}>
           <LinearGradient
-            colors={['rgba(176,127,223,0.55)', 'rgba(37,99,235,0.0)', 'rgba(236,72,153,0.45)']}
+            colors={['rgba(176,127,223,0.55)', 'rgba(124,58,237,0.0)', 'rgba(236,72,153,0.45)']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={StyleSheet.absoluteFill}

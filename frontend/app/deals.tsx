@@ -84,7 +84,7 @@ type Stats = {
 const TAG_META: Record<Tag, { label: string; icon: IconName; bg: string; fg: string; solid?: boolean }> = {
   HOT:              { label: 'HOT',              icon: 'fire',                  bg: '#EF4444',  fg: '#fff', solid: true },
   OFF_30:           { label: '30%+ OFF',         icon: 'sale',                  bg: '#F97316',  fg: '#fff', solid: true },
-  STUDENT_VERIFIED: { label: 'Student Verified', icon: 'school',                bg: '#2563EB',  fg: '#fff' },
+  STUDENT_VERIFIED: { label: 'Student Verified', icon: 'school',                bg: '#7C3AED',  fg: '#fff' },
   INSTANT:          { label: 'Instant',          icon: 'flash',                 bg: '#06B6D4',  fg: '#fff' },
   ENDING_SOON:      { label: 'Ending Soon',      icon: 'clock-alert-outline',   bg: '#F59E0B',  fg: '#1A1410' },
   NEW:              { label: 'New',              icon: 'sparkles',              bg: '#10B981',  fg: '#fff' },
@@ -95,7 +95,7 @@ const TAG_META: Record<Tag, { label: string; icon: IconName; bg: string; fg: str
 };
 
 const CATEGORY_META: Record<string, { label: string; icon: IconName; color: string }> = {
-  all:           { label: 'All',           icon: 'view-grid',                color: '#60A5FA' },
+  all:           { label: 'All',           icon: 'view-grid',                color: '#A78BFA' },
   tech:          { label: 'Tech & Tools',  icon: 'laptop',                   color: '#3B82F6' },
   food:          { label: 'Food',          icon: 'food',                     color: '#FC8019' },
   learning:      { label: 'Learning',      icon: 'school',                   color: '#8B5CF6' },
@@ -111,11 +111,11 @@ const CATEGORY_ORDER = ['all', 'tech', 'food', 'learning', 'entertainment',
                         'insurance', 'transport', 'travel', 'fashion', 'grocery'];
 
 const C = {
-  text: '#000',
-  text2: 'rgba(0,0,0,0.72)',
-  text3: 'rgba(0,0,0,0.46)',
-  border: 'rgba(0,0,0,0.10)',
-  card: 'rgba(0,0,0,0.04)',
+  text: '#fff',
+  text2: 'rgba(255,255,255,0.72)',
+  text3: 'rgba(255,255,255,0.46)',
+  border: 'rgba(255,255,255,0.10)',
+  card: 'rgba(255,255,255,0.04)',
 };
 
 // ─── Utils ───────────────────────────────────────────────────────────────
@@ -282,7 +282,7 @@ export default function DealsScreen() {
             <View style={s.advisorRow}>
               <AdvisorMetric label="Estimated yearly savings" value={fmtINR(stats.yearly_savings_inr)} icon="cash-multiple" tint="#34D399" />
               <AdvisorMetric label="Top category" value={CATEGORY_META[stats.top_category.id]?.label || stats.top_category.id} icon="trophy" tint="#FCD34D" />
-              <AdvisorMetric label="Best ROI" value={stats.best_roi ? fmtINR(stats.best_roi.savings_inr) : '—'} icon="medal" tint="#60A5FA" />
+              <AdvisorMetric label="Best ROI" value={stats.best_roi ? fmtINR(stats.best_roi.savings_inr) : '—'} icon="medal" tint="#A78BFA" />
             </View>
             {stats.best_roi && (
               <Text style={s.advisorSummary}>
@@ -318,7 +318,7 @@ export default function DealsScreen() {
               {stats.smart_bundle.map((b) => (
                 <View key={b.deal_id} style={[s.bundleItem, { borderColor: b.accent + '55' }]}>
                   {b.logo_url ? (
-                    <Image source={{ uri: resolveImageUrl(b.logo_url) }} style={[s.bundleLogo, { backgroundColor: b.accent || '#000' }]} resizeMode="contain" />
+                    <Image source={{ uri: resolveImageUrl(b.logo_url) }} style={s.bundleLogo} resizeMode="contain" />
                   ) : (
                     <View style={[s.bundleLogoFallback, { backgroundColor: b.accent + '33' }]}>
                       <Text style={{ color: b.accent, fontSize: 14, fontWeight: '800' }}>{b.brand?.[0] || '?'}</Text>
@@ -342,8 +342,8 @@ export default function DealsScreen() {
 
       {/* AI Trending button */}
       <Pressable style={s.aiTrendBtn} onPress={onAiTrending} disabled={aiBusy}>
-        {aiBusy ? <ActivityIndicator color="#60A5FA" /> :
-          <MaterialCommunityIcons name="auto-fix" size={14} color="#60A5FA" />}
+        {aiBusy ? <ActivityIndicator color="#A78BFA" /> :
+          <MaterialCommunityIcons name="auto-fix" size={14} color="#A78BFA" />}
         <Text style={s.aiTrendText}>
           {aiBusy ? 'Generating…' : 'AI · Refresh trending hot deals (Claude)'}
         </Text>
@@ -393,7 +393,7 @@ export default function DealsScreen() {
           {otherDeals.length > 0 && (
             <View style={s.section}>
               <View style={s.sectionHead}>
-                <MaterialCommunityIcons name="view-grid" size={18} color="#60A5FA" />
+                <MaterialCommunityIcons name="view-grid" size={18} color="#A78BFA" />
                 <Text style={s.sectionTitle}>All Deals</Text>
                 <Text style={s.sectionSub}>Curated for SA members across {CATEGORY_META[tab]?.label || 'all'} categories</Text>
               </View>
@@ -428,7 +428,7 @@ export default function DealsScreen() {
               <>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                   {claimDeal.logo_url ? (
-                    <Image source={{ uri: resolveImageUrl(claimDeal.logo_url) }} style={[s.modalLogo, { backgroundColor: claimDeal.accent || '#000' }]} resizeMode="contain" />
+                    <Image source={{ uri: resolveImageUrl(claimDeal.logo_url) }} style={s.modalLogo} resizeMode="contain" />
                   ) : (
                     <View style={[s.modalLogoFallback, { backgroundColor: claimDeal.accent + '33' }]}>
                       <Text style={{ color: claimDeal.accent, fontSize: 18, fontWeight: '800' }}>{claimDeal.brand[0]}</Text>
@@ -457,7 +457,7 @@ export default function DealsScreen() {
                   <View style={s.codeBox}>
                     <Text style={s.codeLabel}>Code</Text>
                     <Text style={s.codeValue}>{claimDeal.code}</Text>
-                    <MaterialCommunityIcons name="content-copy" size={14} color="#60A5FA" />
+                    <MaterialCommunityIcons name="content-copy" size={14} color="#A78BFA" />
                   </View>
                 ) : (
                   <Text style={s.modalNote}>No code needed — discount applied automatically at checkout.</Text>
@@ -556,7 +556,7 @@ function DealCard({ d, onClaim }: { d: Deal; onClaim: (d: Deal) => void }) {
           {/* Col 1: Logo */}
           <View style={s.cardLogoWrap}>
             {d.logo_url ? (
-              <Image source={{ uri: resolveImageUrl(d.logo_url) }} style={[s.cardLogo, { backgroundColor: d.accent || '#000' }]} resizeMode="contain" />
+              <Image source={{ uri: resolveImageUrl(d.logo_url) }} style={s.cardLogo} resizeMode="contain" />
             ) : (
               <View style={[s.cardLogoFallback, { backgroundColor: d.accent + '33' }]}>
                 <Text style={{ color: d.accent, fontSize: 18, fontWeight: '800' }}>{d.brand[0]}</Text>
@@ -652,10 +652,10 @@ const s = StyleSheet.create({
   refreshBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
-    backgroundColor: 'rgba(0,0,0,0.10)',
-    borderColor: 'rgba(0,0,0,0.20)', borderWidth: 1,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderColor: 'rgba(255,255,255,0.20)', borderWidth: 1,
   },
-  refreshText: { color: '#000', fontSize: 11, fontWeight: '700' },
+  refreshText: { color: '#fff', fontSize: 11, fontWeight: '700' },
 
   lastUpdated: { color: C.text3, fontSize: 11, marginTop: -10 },
 
@@ -680,7 +680,7 @@ const s = StyleSheet.create({
   accordionTitle: { fontSize: 13.5, fontWeight: '700', flex: 1 },
   accordionBody: {
     paddingHorizontal: 16, paddingBottom: 16,
-    borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.08)',
+    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)',
     paddingTop: 14,
   },
 
@@ -703,13 +703,13 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.20)',
     borderWidth: 1,
   },
-  bundleLogo: { width: 36, height: 36, borderRadius: 10 },
+  bundleLogo: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#fff' },
   bundleLogoFallback: {
     width: 36, height: 36, borderRadius: 10,
     alignItems: 'center', justifyContent: 'center',
   },
   bundleBrand: { color: C.text3, fontSize: 10.5 },
-  bundleTitle: { color: '#000', fontSize: 13, fontWeight: '600' },
+  bundleTitle: { color: '#fff', fontSize: 13, fontWeight: '600' },
   bundleSavings: { fontSize: 12, fontWeight: '700' },
   claimAllBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
@@ -722,16 +722,16 @@ const s = StyleSheet.create({
   aiTrendBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     paddingVertical: 11, borderRadius: 12,
-    backgroundColor: 'rgba(37,99,235,0.10)',
-    borderColor: 'rgba(37,99,235,0.45)', borderWidth: 1,
+    backgroundColor: 'rgba(167,139,250,0.10)',
+    borderColor: 'rgba(167,139,250,0.45)', borderWidth: 1,
   },
-  aiTrendText: { color: '#60A5FA', fontSize: 12.5, fontWeight: '700' },
+  aiTrendText: { color: '#A78BFA', fontSize: 12.5, fontWeight: '700' },
 
   // Tabs
   tab: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999,
-    backgroundColor: 'rgba(0,0,0,0.04)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderColor: C.border, borderWidth: 1,
   },
   tabText: { color: C.text2, fontSize: 12.5, fontWeight: '600' },
@@ -739,7 +739,7 @@ const s = StyleSheet.create({
   // Sections
   section: { gap: 12 },
   sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
-  sectionTitle: { color: '#000', fontSize: 18, fontWeight: '800' },
+  sectionTitle: { color: '#fff', fontSize: 18, fontWeight: '800' },
   sectionSub: { color: C.text3, fontSize: 12, marginLeft: 4 },
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
@@ -753,8 +753,8 @@ const s = StyleSheet.create({
     gap: 8,
   },
   cardTop: { flexDirection: 'row', alignItems: 'center', gap: 10, position: 'relative' },
-  cardLogoWrap: { width: 44, height: 44, borderRadius: 12, overflow: 'hidden', backgroundColor: 'rgba(0,0,0,0.06)' },
-  cardLogo: { width: 44, height: 44 },
+  cardLogoWrap: { width: 44, height: 44, borderRadius: 12, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.06)' },
+  cardLogo: { width: 44, height: 44, backgroundColor: '#fff' },
   cardLogoFallback: {
     width: 44, height: 44, borderRadius: 12,
     alignItems: 'center', justifyContent: 'center',
@@ -768,9 +768,9 @@ const s = StyleSheet.create({
     paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6,
     alignSelf: 'flex-start',
   },
-  hotChipText: { color: '#000', fontSize: 9, fontWeight: '900', letterSpacing: 0.4 },
+  hotChipText: { color: '#fff', fontSize: 9, fontWeight: '900', letterSpacing: 0.4 },
 
-  cardTitle: { color: '#000', fontSize: 14.5, fontWeight: '800' },
+  cardTitle: { color: '#fff', fontSize: 14.5, fontWeight: '800' },
   cardBrand: { color: C.text3, fontSize: 11.5 },
   cardDesc: { color: C.text2, fontSize: 12, lineHeight: 17 },
 
@@ -783,8 +783,8 @@ const s = StyleSheet.create({
   tagText: { fontSize: 10, fontWeight: '700' },
   overflowPill: {
     paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999,
-    backgroundColor: 'rgba(0,0,0,0.06)',
-    borderColor: 'rgba(0,0,0,0.15)', borderWidth: 1,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderColor: 'rgba(255,255,255,0.15)', borderWidth: 1,
   },
   overflowText: { color: C.text2, fontSize: 10, fontWeight: '700' },
 
@@ -792,7 +792,7 @@ const s = StyleSheet.create({
     paddingVertical: 11, borderRadius: 10,
     alignItems: 'center', marginTop: 6,
   },
-  cardCTAText: { color: '#000', fontSize: 13, fontWeight: '800' },
+  cardCTAText: { color: '#fff', fontSize: 13, fontWeight: '800' },
 
   sourcesStrip: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
@@ -810,12 +810,12 @@ const s = StyleSheet.create({
     width: '100%', maxWidth: 460,
     borderRadius: 18, padding: 20, gap: 14,
     backgroundColor: '#1A1626',
-    borderColor: 'rgba(0,0,0,0.10)', borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)', borderWidth: 1,
   },
-  modalLogo: { width: 48, height: 48, borderRadius: 12 },
+  modalLogo: { width: 48, height: 48, borderRadius: 12, backgroundColor: '#fff' },
   modalLogoFallback: { width: 48, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   modalBrand: { color: C.text3, fontSize: 11 },
-  modalTitle: { color: '#000', fontSize: 15, fontWeight: '700' },
+  modalTitle: { color: '#fff', fontSize: 15, fontWeight: '700' },
 
   modalSavingsBox: {
     backgroundColor: 'rgba(0,0,0,0.30)',
@@ -830,11 +830,11 @@ const s = StyleSheet.create({
   codeBox: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     padding: 11, borderRadius: 10,
-    backgroundColor: 'rgba(37,99,235,0.10)',
-    borderColor: 'rgba(37,99,235,0.45)', borderWidth: 1, borderStyle: 'dashed',
+    backgroundColor: 'rgba(167,139,250,0.10)',
+    borderColor: 'rgba(167,139,250,0.45)', borderWidth: 1, borderStyle: 'dashed',
   },
   codeLabel: { color: C.text3, fontSize: 11 },
-  codeValue: { color: '#000', fontSize: 14, fontWeight: '800', letterSpacing: 1, flex: 1 },
+  codeValue: { color: '#fff', fontSize: 14, fontWeight: '800', letterSpacing: 1, flex: 1 },
 
   modalNote: { color: C.text3, fontSize: 11, fontStyle: 'italic' },
 
@@ -844,12 +844,12 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(52,211,153,0.10)',
     borderColor: 'rgba(52,211,153,0.45)', borderWidth: 1,
   },
-  claimSuccessTitle: { color: '#000', fontSize: 13, fontWeight: '700' },
+  claimSuccessTitle: { color: '#fff', fontSize: 13, fontWeight: '700' },
   claimSuccessSub: { color: C.text2, fontSize: 11.5, marginTop: 2 },
 
   modalCTA: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
     paddingVertical: 13, borderRadius: 12,
   },
-  modalCTAText: { color: '#000', fontSize: 14, fontWeight: '800' },
+  modalCTAText: { color: '#fff', fontSize: 14, fontWeight: '800' },
 });

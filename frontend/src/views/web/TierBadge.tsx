@@ -26,7 +26,7 @@ const PALETTE: Record<TierName, { primary: string; glow: string; ring: string; g
   Bronze:   { primary: '#B08D57', glow: '#D7A878', ring: '#8B5E3C', gradient: ['#D7A878', '#8B5E3C'] },
   Silver:   { primary: '#D1D5DB', glow: '#F1F5F9', ring: '#94A3B8', gradient: ['#F1F5F9', '#94A3B8'] },
   Gold:     { primary: '#F5C842', glow: '#FCD34D', ring: '#B45309', gradient: ['#FCD34D', '#B45309'] },
-  Platinum: { primary: '#60A5FA', glow: '#93C5FD', ring: '#2563EB', gradient: ['#93C5FD', '#2563EB'] },
+  Platinum: { primary: '#A78BFA', glow: '#C4B5FD', ring: '#7C3AED', gradient: ['#C4B5FD', '#7C3AED'] },
 };
 
 const ICONS = {

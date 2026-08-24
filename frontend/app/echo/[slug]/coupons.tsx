@@ -97,8 +97,8 @@ export default function EchoCouponsPage() {
             <Text style={s.backText}>Back to event</Text>
           </Pressable>
 
-          <LinearGradient colors={['rgba(37,99,235,0.30)', 'rgba(30,10,80,0.5)']} style={s.header}>
-            <View style={s.headerIcon}><Ticket size={20} color="#93C5FD" /></View>
+          <LinearGradient colors={['rgba(124,58,237,0.30)', 'rgba(30,10,80,0.5)']} style={s.header}>
+            <View style={s.headerIcon}><Ticket size={20} color="#C4B5FD" /></View>
             <Text style={s.headerTitle}>My Session Coupons</Text>
             <Text style={s.headerSub}>{regName ? `Registered as ${regName}` : 'Your event coupons'}</Text>
             {totalCount > 0 && (
@@ -117,7 +117,7 @@ export default function EchoCouponsPage() {
 
           {loading ? (
             <View style={s.center}>
-              <ActivityIndicator size="large" color="#60A5FA" />
+              <ActivityIndicator size="large" color="#A78BFA" />
               <Text style={s.centerText}>Loading coupons...</Text>
             </View>
           ) : error ? (
@@ -169,7 +169,7 @@ export default function EchoCouponsPage() {
                       <View style={s.grid}>
                         {dayCoupons.map((c, i) => {
                 const Icon = SESSION_ICONS[c.session_key] || Ticket;
-                const color = SESSION_COLORS[c.session_key] || '#60A5FA';
+                const color = SESSION_COLORS[c.session_key] || '#A78BFA';
                 const isExpanded = expandedCoupon === c.coupon_code;
 
                 return (
@@ -195,7 +195,7 @@ export default function EchoCouponsPage() {
                       ) : c.session_locked ? (
                         <View style={[s.statusBadge, { backgroundColor: 'rgba(139,92,246,0.15)' }]}>
                           <Lock size={12} color="#8B5CF6" />
-                          <Text style={[s.statusText, { color: '#60A5FA' }]}>Locked</Text>
+                          <Text style={[s.statusText, { color: '#A78BFA' }]}>Locked</Text>
                         </View>
                       ) : (
                         <View style={[s.statusBadge, { backgroundColor: 'rgba(245,158,11,0.15)' }]}>
@@ -270,8 +270,8 @@ const s = StyleSheet.create({
     marginBottom: 4,
   },
   backText: { color: '#fff', fontFamily: 'DMSans_500Medium', fontSize: 13 },
-  header: { borderRadius: 18, padding: 24, gap: 10, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(37,99,235,0.25)' },
-  headerIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(37,99,235,0.2)', alignItems: 'center', justifyContent: 'center' },
+  header: { borderRadius: 18, padding: 24, gap: 10, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)' },
+  headerIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(124,58,237,0.2)', alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontFamily: 'DMSans_800ExtraBold', fontSize: 20, color: '#fff', textAlign: 'center' },
   headerSub: { fontFamily: 'DMSans_500Medium', fontSize: 13, color: 'rgba(255,255,255,0.6)', textAlign: 'center' },
   badgeRow: { flexDirection: 'row', gap: 8, marginTop: 6 },
@@ -285,14 +285,14 @@ const s = StyleSheet.create({
   dayHeaderCount: { fontFamily: 'DMSans_500Medium', fontSize: 11, color: 'rgba(255,255,255,0.4)' },
   couponCard: {
     backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 16, borderWidth: 1,
-    borderColor: 'rgba(37,99,235,0.2)', overflow: 'hidden',
+    borderColor: 'rgba(167,139,250,0.2)', overflow: 'hidden',
   },
   couponUsed: { opacity: 0.6 },
   couponLocked: { borderColor: 'rgba(139,92,246,0.3)' },
   couponHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 },
   iconWrap: { width: 40, height: 40, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   couponName: { fontFamily: 'DMSans_800ExtraBold', fontSize: 15, color: '#fff' },
-  couponCode: { fontFamily: 'DMSans_500Medium', fontSize: 11, color: '#60A5FA', letterSpacing: 1, marginTop: 2 },
+  couponCode: { fontFamily: 'DMSans_500Medium', fontSize: 11, color: '#A78BFA', letterSpacing: 1, marginTop: 2 },
   statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
   statusText: { fontFamily: 'DMSans_700Bold', fontSize: 11 },
   qrSection: { padding: 16, paddingTop: 0, alignItems: 'center' },
@@ -301,7 +301,7 @@ const s = StyleSheet.create({
     width: '100%', maxWidth: 300,
   },
   qrCodeLabel: {
-    backgroundColor: 'rgba(37,99,235,0.1)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6,
+    backgroundColor: 'rgba(124,58,237,0.1)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6,
   },
   qrCodeText: { fontFamily: 'DMSans_700Bold', fontSize: 16, color: '#1a1a2e', letterSpacing: 2 },
   qrHint: { fontFamily: 'DMSans_500Medium', fontSize: 11, color: 'rgba(255,255,255,0.4)', textAlign: 'center' },
@@ -311,7 +311,7 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(139,92,246,0.08)', borderWidth: 1, borderColor: 'rgba(139,92,246,0.2)',
     alignItems: 'center', justifyContent: 'center', gap: 8,
   },
-  lockedTitle: { fontFamily: 'DMSans_800ExtraBold', fontSize: 14, color: '#93C5FD' },
+  lockedTitle: { fontFamily: 'DMSans_800ExtraBold', fontSize: 14, color: '#C4B5FD' },
   lockedHint: { fontFamily: 'DMSans_500Medium', fontSize: 10, color: 'rgba(255,255,255,0.4)', textAlign: 'center', paddingHorizontal: 12 },
   usedSection: { padding: 16, paddingTop: 0, alignItems: 'center' },
   usedPlaceholder: {

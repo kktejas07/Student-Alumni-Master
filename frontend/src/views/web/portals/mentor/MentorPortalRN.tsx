@@ -41,9 +41,8 @@ import { NotificationsPanel } from './views/NotificationsPanel';
 // Shared role-aware comprehensive profile view (purple theme, identical to student).
 import { ProfileSettingsView as SharedProfileSettingsView } from '../student/views/ProfileSettingsView';
 import { STUDENTS, SESSION_REQUESTS } from './data';
+import { useAutoTour } from '@/src/views/web/tour/TourProvider';
 import { request, api } from '@/src/models/services/api';
-import { UniversalMotionTransition } from '@/src/views/web/components/UniversalMotionTransition';
-import { SAWatermark } from '@/src/views/web/components/SAWatermark';
 
 const PAGE_TITLES: Record<NavId, string> = {
   dashboard:    'Dashboard',
@@ -81,7 +80,7 @@ export default function MentorPortalRN() {
   );
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  // useAutoTour('mentor');
+  useAutoTour('mentor');
 
   const [liveCounts, setLiveCounts] = useState({ students: 0, sessions: 0, requests: 0 });
 
@@ -145,7 +144,6 @@ export default function MentorPortalRN() {
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFillObject as any}
       />
-      <SAWatermark size={850} top={30} right={-30} opacity={0.16} />
 
       <Sidebar
         active={active}
@@ -170,18 +168,16 @@ export default function MentorPortalRN() {
           <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }}>
             <View style={{ flex: 1, padding: 20 }}>
               <PromoBanner portal="mentor" />
-              <UniversalMotionTransition deps={[active]}>
-                {active === 'dashboard' && <DashboardView onNav={(id) => navigate(id as NavId)} />}
-                {active === 'ai-studio' && <MentorAIStudioView />}
-                {active === 'students'  && <ConnectionsView />}
-                {active === 'sessions'  && <SessionsView />}
-                {active === 'requests'  && <RequestsView decisions={decisions} onSetDecision={(id, d) => setDecisions(prev => ({ ...prev, [id]: d }))} />}
-                {active === 'network'   && <NetworkView />}
-                {active === 'earnings'  && <EarningsView />}
-                {active === 'feedback'  && <FeedbackView />}
-                {active === 'event'     && <CreateEventView />}
-                {active === 'profile'   && <MentorProfileSettingsView initialTab={profileTab} />}
-              </UniversalMotionTransition>
+              {active === 'dashboard' && <DashboardView onNav={(id) => navigate(id as NavId)} />}
+              {active === 'ai-studio' && <MentorAIStudioView />}
+              {active === 'students'  && <ConnectionsView />}
+              {active === 'sessions'  && <SessionsView />}
+              {active === 'requests'  && <RequestsView decisions={decisions} onSetDecision={(id, d) => setDecisions(prev => ({ ...prev, [id]: d }))} />}
+              {active === 'network'   && <NetworkView />}
+              {active === 'earnings'  && <EarningsView />}
+              {active === 'feedback'  && <FeedbackView />}
+              {active === 'event'     && <CreateEventView />}
+              {active === 'profile'   && <MentorProfileSettingsView initialTab={profileTab} />}
             </View>
             <DashboardFooter portal="mentor" />
           </ScrollView>

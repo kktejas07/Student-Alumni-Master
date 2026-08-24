@@ -96,13 +96,13 @@ const s = StyleSheet.create({
     backgroundColor: CC.bg2,
     position: 'relative', zIndex: 10,
   },
-  title: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 17, letterSpacing: -0.4 },
+  title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 17, letterSpacing: -0.4 },
   searchBox: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     width: 220, height: 34, paddingHorizontal: 11,
     borderRadius: 10, backgroundColor: CC.card, borderColor: CC.border, borderWidth: 1,
   },
-  searchInput: { flex: 1, color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 12, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
+  searchInput: { flex: 1, color: '#fff', fontFamily: FONTS.med, fontSize: 12, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
   iconBtn: {
     width: 34, height: 34, borderRadius: 10, backgroundColor: CC.card,
     borderColor: CC.border, borderWidth: 1, alignItems: 'center', justifyContent: 'center',
@@ -114,5 +114,5 @@ const s = StyleSheet.create({
 
   addCta: { borderRadius: 10, overflow: 'hidden', ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms', boxShadow: '0px 4px 14px rgba(99,102,241,0.40)' } as any) : {}) },
   addCtaInner: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 34 },
-  addCtaText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12, letterSpacing: 0.2 },
+  addCtaText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12, letterSpacing: 0.2 },
 });

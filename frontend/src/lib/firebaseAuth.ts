@@ -41,17 +41,6 @@ export async function initFirebaseAuth(config: {
 }
 
 export async function signInWithGoogle(): Promise<{ idToken: string; email: string; name: string; picture: string } | null> {
-  if (!_firebaseAuth) {
-    const initialized = await initFirebaseAuth({
-      apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || "",
-      authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || "",
-      projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || "",
-      appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || "",
-    });
-    if (!initialized) {
-      throw new Error("Firebase Auth could not be initialized. Check API keys.");
-    }
-  }
   if (!_firebaseAuth) return null;
   try {
     const result = await _firebaseAuth.signInWithPopup(

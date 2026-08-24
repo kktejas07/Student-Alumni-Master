@@ -7,7 +7,7 @@ import { usePortalData } from '@/src/lib/portalApi';
 const FALLBACK = { stages: { shortlisted: [] as any[], interviewing: [] as any[], offered: [] as any[], joined: [] as any[] } };
 
 const COLUMNS = [
-  { id:'shortlisted',  label:'Shortlisted',  color:'#60A5FA' },
+  { id:'shortlisted',  label:'Shortlisted',  color:'#A78BFA' },
   { id:'interviewing', label:'Interviewing', color:'#FBBF24' },
   { id:'offered',      label:'Offered',      color:'#22C55E' },
   { id:'joined',       label:'Joined',       color:'#22D3EE' },
@@ -52,11 +52,11 @@ export function PlacementsView() {
 const s = StyleSheet.create({
   col: { backgroundColor: 'rgba(255,255,255,0.02)', borderColor: CC.border, borderWidth: 1, borderRadius: 14, padding: 14, minHeight: 320 },
   dot: { width: 8, height: 8, borderRadius: 4 },
-  colTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 13 },
+  colTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
   count: { backgroundColor: 'rgba(255,255,255,0.06)', paddingHorizontal: 7, paddingVertical: 1, borderRadius: 6 },
   countText: { color: CC.muted, fontFamily: FONTS.xbold, fontSize: 10 },
   cardItem: { backgroundColor: CC.card, borderColor: CC.border, borderWidth: 1, borderRadius: 10, padding: 10 },
-  itemName: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12 },
+  itemName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
   itemMeta: { color: CC.muted, fontFamily: FONTS.med, fontSize: 10.5 },
   itemCompany: { color: CC.accentBright, fontFamily: FONTS.bold, fontSize: 11, marginTop: 8 },
 });

@@ -194,7 +194,7 @@ const s = StyleSheet.create({
   barFill: {
     height: '100%',
     borderRadius: 2,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#7C3AED',
     ...(Platform.OS === 'web'
       ? ({ transition: 'width 0.38s cubic-bezier(0.16, 1, 0.3, 1)' } as any)
       : {}),

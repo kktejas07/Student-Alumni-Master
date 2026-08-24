@@ -16,7 +16,7 @@ interface Props {
 
 export function CompletionRing({
   pct, size = 92, stroke = 8,
-  color = '#2563EB', trackColor = 'rgba(0,0,0,0.06)',
+  color = '#A78BFA', trackColor = 'rgba(255,255,255,0.10)',
   hideText = false,
 }: Props) {
   const r = (size - stroke) / 2;

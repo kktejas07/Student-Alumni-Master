@@ -47,8 +47,6 @@ function measureTarget(selector: string): Rect | null {
 
 export function TourOverlay() {
   const { active, stepIdx, next, back, skip, complete } = useTour();
-  if (!active) return null;
-
   const [rect, setRect] = useState<Rect | null>(null);
   const [viewport, setViewport] = useState({
     w: typeof window !== 'undefined' ? window.innerWidth : 1280,
@@ -58,7 +56,7 @@ export function TourOverlay() {
   const cfg = active ? TOURS[active] : null;
   const step = cfg && cfg.steps[stepIdx];
   const isLast = !!cfg && stepIdx === cfg.steps.length - 1;
-  const accent = cfg?.accent || '#60A5FA';
+  const accent = cfg?.accent || '#A78BFA';
 
   // Track viewport so we re-measure on resize
   useEffect(() => {

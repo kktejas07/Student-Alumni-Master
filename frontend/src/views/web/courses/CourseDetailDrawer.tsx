@@ -87,7 +87,7 @@ export default function CourseDetailDrawer({
                   <Stat icon="star" tint="#F59E0B" label="Rating" value={`${course.rating}`} />
                   <Stat icon="account-group" tint="#06B6D4" label="Enrolled"
                     value={course.enrolled_count?.toLocaleString() || '—'} />
-                  <Stat icon="clock-outline" tint="#60A5FA" label="Duration"
+                  <Stat icon="clock-outline" tint="#A78BFA" label="Duration"
                     value={course.duration_label} />
                 </View>
                 <Section label="LEVEL & LANGUAGE">
@@ -295,7 +295,7 @@ const s = StyleSheet.create({
     borderBottomWidth: 1, borderColor: C.border, gap: 4 },
   tab: { paddingHorizontal: 14, paddingVertical: 10,
     ...({ cursor: 'pointer' } as any) },
-  tabActive: { borderBottomWidth: 2, borderColor: '#60A5FA' },
+  tabActive: { borderBottomWidth: 2, borderColor: '#A78BFA' },
   tabText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 12 },
 
   body: { color: C.text2, fontFamily: 'DMSans_600SemiBold',
@@ -316,9 +316,9 @@ const s = StyleSheet.create({
     borderColor: C.border, borderWidth: 1 },
   pillText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 11 },
   tagPill: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6,
-    backgroundColor: 'rgba(37,99,235,0.10)',
-    borderColor: 'rgba(37,99,235,0.30)', borderWidth: 1 },
-  tagText: { color: '#93C5FD', fontFamily: 'DMSans_800ExtraBold',
+    backgroundColor: 'rgba(167,139,250,0.10)',
+    borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1 },
+  tagText: { color: '#C4B5FD', fontFamily: 'DMSans_800ExtraBold',
     fontSize: 9, letterSpacing: 0.6 },
 
   /* Syllabus */
@@ -326,9 +326,9 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12,
     borderWidth: 1, borderColor: C.border },
   syllabusWeek: { width: 44, height: 44, borderRadius: 10,
-    backgroundColor: 'rgba(37,99,235,0.20)',
+    backgroundColor: 'rgba(167,139,250,0.20)',
     alignItems: 'center', justifyContent: 'center' },
-  syllabusWeekText: { color: '#93C5FD', fontFamily: 'DMSans_900Black', fontSize: 11 },
+  syllabusWeekText: { color: '#C4B5FD', fontFamily: 'DMSans_900Black', fontSize: 11 },
   syllabusTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 13 },
   syllabusBody: { color: C.text2, fontFamily: 'DMSans_600SemiBold',
     fontSize: 11.5, marginTop: 2 },
@@ -350,14 +350,14 @@ const s = StyleSheet.create({
 
   /* Enroll */
   priceCard: { padding: 16, borderRadius: 14, gap: 10,
-    backgroundColor: 'rgba(37,99,235,0.10)',
-    borderColor: 'rgba(37,99,235,0.40)', borderWidth: 1 },
+    backgroundColor: 'rgba(124,58,237,0.10)',
+    borderColor: 'rgba(167,139,250,0.40)', borderWidth: 1 },
   priceFree: { color: '#10B981', fontFamily: 'DMSans_900Black', fontSize: 28 },
   priceStrike: { color: C.text3, fontFamily: 'DMSans_700Bold', fontSize: 14,
     textDecorationLine: 'line-through' },
   pricePaid: { color: '#fff', fontFamily: 'DMSans_900Black', fontSize: 22 },
   discountBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
-    backgroundColor: '#2563EB' },
+    backgroundColor: '#7C3AED' },
   discountText: { color: '#fff', fontFamily: 'DMSans_900Black', fontSize: 10 },
   certBadge: { flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8,
@@ -366,7 +366,7 @@ const s = StyleSheet.create({
   certText: { color: '#6EE7B7', fontFamily: 'DMSans_700Bold', fontSize: 11 },
   enrollBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 8, paddingVertical: 13, borderRadius: 999,
-    backgroundColor: '#2563EB', ...({ cursor: 'pointer' } as any) },
+    backgroundColor: '#7C3AED', ...({ cursor: 'pointer' } as any) },
   enrollBtnText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 13 },
   disclaimer: { color: C.text3, fontFamily: 'DMSans_600SemiBold',
     fontSize: 11, textAlign: 'center' },

@@ -45,7 +45,7 @@ const TAG_META: Record<string, { label: string; icon: IconName; color: string }>
   TOP_RANKED:    { label: 'Top-Ranked',     icon: 'trophy',          color: '#F59E0B' },
   FULLY_FUNDED:  { label: 'Fully Funded',   icon: 'cash-multiple',   color: '#10B981' },
   DEADLINE_SOON: { label: 'Deadline Soon',  icon: 'clock-alert',     color: '#F59E0B' },
-  SAFE_BET:      { label: 'Safe Bet',       icon: 'shield-check',    color: '#2563EB' },
+  SAFE_BET:      { label: 'Safe Bet',       icon: 'shield-check',    color: '#7C3AED' },
   STRETCH:       { label: 'Stretch',        icon: 'rocket-launch',   color: '#EF4444' },
   INDIA_TOP:     { label: 'India Top',      icon: 'flag',            color: '#6366F1' },
   GLOBAL_TOP_50: { label: 'Global Top-50',  icon: 'earth',           color: '#06B6D4' },
@@ -54,8 +54,8 @@ const TAG_META: Record<string, { label: string; icon: IconName; color: string }>
 };
 
 const C = {
-  text: '#111827', text2: 'rgba(17,24,39,0.88)', text3: 'rgba(17,24,39,0.65)',
-  border: 'rgba(0,0,0,0.08)', card: '#ffffff',
+  text: '#fff', text2: 'rgba(255,255,255,0.72)', text3: 'rgba(255,255,255,0.46)',
+  border: 'rgba(255,255,255,0.10)', card: 'rgba(255,255,255,0.04)',
 };
 
 const fmtINR = (n: number) => {
@@ -68,7 +68,7 @@ const fmtINR = (n: number) => {
 const matchTier = (n: number) => {
   if (n >= 95) return { bg: 'rgba(16,185,129,0.15)', fg: '#34D399' };
   if (n >= 85) return { bg: 'rgba(34,211,238,0.15)', fg: '#67E8F9' };
-  if (n >= 75) return { bg: 'rgba(37,99,235,0.15)', fg: '#93C5FD' };
+  if (n >= 75) return { bg: 'rgba(167,139,250,0.15)', fg: '#C4B5FD' };
   return { bg: 'rgba(110,105,130,0.15)', fg: '#B7B3C6' };
 };
 
@@ -76,9 +76,23 @@ function useRoleTheme() {
   const user = useAuthStore((st) => st.user);
   const role = user?.role || 'student';
 
-  const themeColor = '#2563EB';
-  const activeTabColor = '#2563EB';
-  const activeTabBorder = '#2563EB';
+  const themeColor =
+    role === 'alumni' ? '#60A5FA' :
+    role === 'mentor' ? '#5EEAD4' :
+    role === 'college' || role === 'admin' ? '#818CF8' :
+    '#A78BFA';
+
+  const activeTabColor =
+    role === 'alumni' ? '#3B82F6' :
+    role === 'mentor' ? '#14B8A6' :
+    role === 'college' || role === 'admin' ? '#6366F1' :
+    '#7C3AED';
+
+  const activeTabBorder =
+    role === 'alumni' ? '#60A5FA' :
+    role === 'mentor' ? '#5EEAD4' :
+    role === 'college' || role === 'admin' ? '#818CF8' :
+    '#A78BFA';
 
   return { role, themeColor, activeTabColor, activeTabBorder };
 }
@@ -256,8 +270,8 @@ export default function HigherEducationScreen() {
                   advisorDesc="Need 1-on-1 guidance on programmes, visas, or funding? Connect with our advisors."
                   aiTitle="Ask the Higher-Ed AI"
                   aiDesc="Eligibility, fees, funding, SOP/CV — ask anything 24×7."
-                  advisorAccent="#6366F1"
-                  aiAccent="#059669"
+                  advisorAccent="#A78BFA"
+                  aiAccent="#10B981"
                   advisorIcon="account-tie"
                   aiIcon="robot-excited"
                 />
@@ -274,8 +288,8 @@ export default function HigherEducationScreen() {
                       <View style={[s.pill, { backgroundColor: 'rgba(16,185,129,0.15)' }]}>
                         <Text style={[s.pillText, { color: '#34D399' }]}>{sch.degree_levels.join('/')}</Text>
                       </View>
-                      <View style={[s.pill, { backgroundColor: 'rgba(37,99,235,0.20)' }]}>
-                        <Text style={[s.pillText, { color: '#93C5FD' }]}>{sch.country}</Text>
+                      <View style={[s.pill, { backgroundColor: 'rgba(124,58,237,0.20)' }]}>
+                        <Text style={[s.pillText, { color: '#C4B5FD' }]}>{sch.country}</Text>
                       </View>
                     </View>
                     <Text style={s.cardTitle}>{sch.name}</Text>
@@ -520,7 +534,7 @@ function ProgrammeCard({
 function Stat({ label, value, good }: { label: string; value: string; good?: boolean }) {
   return (
     <View style={s.stat}>
-      <Text style={[s.statValue, good && { color: '#10B981' }]}>{value}</Text>
+      <Text style={[s.statValue, good && { color: '#34D399' }]}>{value}</Text>
       <Text style={s.statLabel}>{label}</Text>
     </View>
   );
@@ -551,7 +565,7 @@ function CompareModal({ visible, ids, onClose, onApply, appliedAppMap }: {
             <Pressable onPress={onClose}><MaterialCommunityIcons name="close" size={20} color={C.text2} /></Pressable>
           </View>
           {loading || !data ? (
-            <ActivityIndicator color="#60A5FA" size="large" style={{ marginVertical: 40 }} />
+            <ActivityIndicator color="#A78BFA" size="large" style={{ marginVertical: 40 }} />
           ) : (
             <ScrollView style={{ flex: 1 }}>
               {data.tied && data.tie_breaker_note && (
@@ -810,32 +824,32 @@ const s = StyleSheet.create({
   toolsBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
-    backgroundColor: 'rgba(37,99,235,0.30)',
-    borderColor: 'rgba(37,99,235,0.55)', borderWidth: 1,
+    backgroundColor: 'rgba(124,58,237,0.30)',
+    borderColor: 'rgba(167,139,250,0.55)', borderWidth: 1,
   },
-  toolsBtnText: { color: '#000', fontSize: 11, fontWeight: '700' },
+  toolsBtnText: { color: '#fff', fontSize: 11, fontWeight: '700' },
 
   errBox: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: 'rgba(239,68,68,0.06)',
-    borderColor: 'rgba(239,68,68,0.25)', borderWidth: 1,
-    borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    padding: 12, borderRadius: 10,
+    backgroundColor: 'rgba(248,113,113,0.10)',
+    borderColor: 'rgba(248,113,113,0.40)', borderWidth: 1,
   },
-  errText: { color: '#B91C1C', fontSize: 12.5, fontWeight: '600', flex: 1 },
+  errText: { color: '#FCA5A5', fontSize: 12, flex: 1 },
 
   tabsRow: { flexDirection: 'row', gap: 8 },
   tab: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999,
-    backgroundColor: 'rgba(0,0,0,0.05)',
-    borderColor: 'rgba(0,0,0,0.08)', borderWidth: 1,
+    backgroundColor: C.card,
+    borderColor: C.border, borderWidth: 1,
   },
-  tabActive: { backgroundColor: '#2563EB', borderColor: '#60A5FA' },
+  tabActive: { backgroundColor: '#7C3AED', borderColor: '#A78BFA' },
   tabText: { color: C.text2, fontSize: 12.5, fontWeight: '600' },
   tabTextActive: { color: '#fff' },
 
   sectionHead: { gap: 4 },
-  sectionTitle: { color: '#000', fontSize: 22, fontWeight: '800', fontFamily: 'Outfit_800ExtraBold' },
+  sectionTitle: { color: '#fff', fontSize: 22, fontWeight: '800', fontFamily: 'Outfit_800ExtraBold' },
   sectionSub: { color: C.text3, fontSize: 12.5, fontFamily: 'PlusJakartaSans_500Medium' },
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
@@ -853,19 +867,18 @@ const s = StyleSheet.create({
   },
   matchText: { fontSize: 11.5, fontWeight: '800' },
 
-  cardTitle: { color: '#000', fontSize: 15, fontWeight: '800', marginTop: 4, fontFamily: 'Outfit_800ExtraBold' },
+  cardTitle: { color: '#fff', fontSize: 15, fontWeight: '800', marginTop: 4, fontFamily: 'Outfit_800ExtraBold' },
   cardSub: { color: C.text2, fontSize: 12, fontFamily: 'PlusJakartaSans_500Medium' },
 
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
   stat: {
     flexBasis: '47%', flexGrow: 1,
     padding: 10, borderRadius: 10,
-    backgroundColor: '#F0F4FF',
-    borderColor: 'rgba(37,99,235,0.18)', borderWidth: 1,
-    borderLeftWidth: 3, borderLeftColor: '#2563EB',
+    backgroundColor: 'rgba(0,0,0,0.20)',
+    borderColor: C.border, borderWidth: 1,
   },
-  statValue: { color: '#111827', fontSize: 13, fontWeight: '800' },
-  statLabel: { color: '#64748B', fontSize: 10.5, fontWeight: '600', marginTop: 2 },
+  statValue: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  statLabel: { color: C.text3, fontSize: 10.5, marginTop: 2 },
 
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 5 },
   tagPill: {
@@ -877,33 +890,33 @@ const s = StyleSheet.create({
 
   applyBtn: {
     paddingVertical: 11, borderRadius: 10,
-    backgroundColor: '#2563EB', alignItems: 'center',
+    backgroundColor: '#7C3AED', alignItems: 'center',
   },
   applyBtnText: { color: '#fff', fontSize: 13, fontWeight: '800' },
   detailsBtn: {
     paddingVertical: 11, paddingHorizontal: 14, borderRadius: 10,
-    backgroundColor: '#FFFFFF',
-    borderColor: 'rgba(0,0,0,0.12)', borderWidth: 1, alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderColor: C.border, borderWidth: 1, alignItems: 'center',
   },
-  detailsBtnText: { color: '#334155', fontSize: 12, fontWeight: '700' },
+  detailsBtnText: { color: C.text2, fontSize: 12, fontWeight: '700' },
 
   draftBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 9, paddingVertical: 6, borderRadius: 8,
-    backgroundColor: 'rgba(37,99,235,0.10)',
-    borderColor: 'rgba(37,99,235,0.40)', borderWidth: 1,
+    backgroundColor: 'rgba(167,139,250,0.10)',
+    borderColor: 'rgba(167,139,250,0.40)', borderWidth: 1,
   },
-  draftBtnText: { color: '#60A5FA', fontSize: 11, fontWeight: '700' },
+  draftBtnText: { color: '#A78BFA', fontSize: 11, fontWeight: '700' },
 
   compareChk: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 9, paddingVertical: 6, borderRadius: 8,
     marginLeft: 'auto',
-    backgroundColor: '#FFFFFF',
-    borderColor: 'rgba(0,0,0,0.12)', borderWidth: 1,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: C.border, borderWidth: 1,
   },
-  compareChkActive: { borderColor: 'rgba(37,99,235,0.55)' },
-  compareChkText: { color: '#475569', fontSize: 11, fontWeight: '700' },
+  compareChkActive: { borderColor: 'rgba(167,139,250,0.55)' },
+  compareChkText: { color: C.text3, fontSize: 11, fontWeight: '700' },
 
   // Sticky compare bar
   compareBar: {
@@ -911,16 +924,16 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 12,
     paddingHorizontal: 14, paddingVertical: 12, borderRadius: 14,
     backgroundColor: '#1A1626',
-    borderColor: 'rgba(37,99,235,0.55)', borderWidth: 1,
+    borderColor: 'rgba(167,139,250,0.55)', borderWidth: 1,
     zIndex: 50,
   },
-  compareText: { color: '#000', fontSize: 13, fontWeight: '700', flex: 1 },
+  compareText: { color: '#fff', fontSize: 13, fontWeight: '700', flex: 1 },
   compareClear: { color: C.text3, fontSize: 12 },
   compareCTA: {
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#7C3AED',
   },
-  compareCTAText: { color: '#000', fontSize: 12, fontWeight: '800' },
+  compareCTAText: { color: '#fff', fontSize: 12, fontWeight: '800' },
 
   // Modals
   modalBackdrop: {
@@ -931,7 +944,7 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center',
     paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: C.border,
   },
-  modalTitle: { flex: 1, color: '#000', fontSize: 16, fontWeight: '800' },
+  modalTitle: { flex: 1, color: '#fff', fontSize: 16, fontWeight: '800' },
 
   compareModal: {
     width: '100%', maxWidth: 1100, height: '90%',
@@ -950,7 +963,7 @@ const s = StyleSheet.create({
   compareLabelCell: { width: 160, padding: 10, justifyContent: 'center' },
   compareLabel: { color: C.text2, fontSize: 12, fontWeight: '700' },
   compareCell: { width: 200, padding: 10, justifyContent: 'center', borderLeftWidth: 1, borderLeftColor: C.border },
-  compareCellTitle: { color: '#000', fontSize: 13, fontWeight: '700' },
+  compareCellTitle: { color: '#fff', fontSize: 13, fontWeight: '700' },
   compareCellSub: { color: C.text3, fontSize: 11, marginTop: 2 },
   compareValue: { fontSize: 13, fontWeight: '600' },
 
@@ -962,15 +975,15 @@ const s = StyleSheet.create({
   },
   toolChip: {
     paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8,
-    backgroundColor: 'rgba(0,0,0,0.04)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderColor: C.border, borderWidth: 1,
   },
-  toolChipActive: { backgroundColor: '#2563EB', borderColor: '#60A5FA' },
+  toolChipActive: { backgroundColor: '#7C3AED', borderColor: '#A78BFA' },
   toolChipText: { color: C.text2, fontSize: 10.5, fontWeight: '800' },
 
   aiLabel: { color: C.text2, fontSize: 12.5, fontWeight: '600' },
   aiInput: {
-    color: '#000', fontSize: 13,
+    color: '#fff', fontSize: 13,
     paddingHorizontal: 12, paddingVertical: 10,
     borderRadius: 10, borderWidth: 1, borderColor: C.border,
     backgroundColor: 'rgba(0,0,0,0.20)',
@@ -978,7 +991,7 @@ const s = StyleSheet.create({
   },
   aiSubmit: {
     paddingVertical: 13, borderRadius: 12,
-    backgroundColor: '#2563EB', alignItems: 'center',
+    backgroundColor: '#7C3AED', alignItems: 'center',
   },
   aiSubmitText: { color: '#fff', fontSize: 14, fontWeight: '800' },
 
@@ -987,35 +1000,35 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.30)',
     borderColor: C.border, borderWidth: 1,
   },
-  aiResultTitle: { color: '#60A5FA', fontSize: 13, fontWeight: '800', marginBottom: 8 },
-  aiResultBody: { color: '#000', fontSize: 13, lineHeight: 20 },
+  aiResultTitle: { color: '#A78BFA', fontSize: 13, fontWeight: '800', marginBottom: 8 },
+  aiResultBody: { color: '#fff', fontSize: 13, lineHeight: 20 },
   aiNote: { color: '#34D399', fontSize: 11, fontStyle: 'italic' },
 
   // Confirm modal
   confirmModal: {
     width: '90%', maxWidth: 440,
     backgroundColor: '#1A1626', borderRadius: 16, padding: 20,
-    borderColor: 'rgba(37,99,235,0.30)', borderWidth: 1,
+    borderColor: 'rgba(124,58,237,0.30)', borderWidth: 1,
     gap: 16,
   },
   confirmHead: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: C.border,
   },
-  confirmTitle: { color: '#000', fontSize: 16, fontWeight: '800', fontFamily: 'Outfit_800ExtraBold' },
+  confirmTitle: { color: '#fff', fontSize: 16, fontWeight: '800', fontFamily: 'Outfit_800ExtraBold' },
   confirmBody: { gap: 8 },
-  confirmText: { color: '#000', fontSize: 13.5, lineHeight: 20, fontFamily: 'PlusJakartaSans_500Medium' },
-  boldText: { fontWeight: '700', color: '#60A5FA' },
+  confirmText: { color: '#fff', fontSize: 13.5, lineHeight: 20, fontFamily: 'PlusJakartaSans_500Medium' },
+  boldText: { fontWeight: '700', color: '#A78BFA' },
   confirmSubtext: { color: C.text2, fontSize: 12, lineHeight: 18, fontFamily: 'PlusJakartaSans_500Medium' },
   confirmActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10 },
   cancelBtn: {
     paddingVertical: 9, paddingHorizontal: 14, borderRadius: 8,
-    backgroundColor: 'rgba(0,0,0,0.06)', borderColor: C.border, borderWidth: 1,
+    backgroundColor: 'rgba(255,255,255,0.06)', borderColor: C.border, borderWidth: 1,
   },
   cancelBtnText: { color: C.text2, fontSize: 12, fontWeight: '700' },
   confirmBtn: {
     paddingVertical: 9, paddingHorizontal: 14, borderRadius: 8,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#7C3AED',
   },
-  confirmBtnText: { color: '#000', fontSize: 12, fontWeight: '800' },
+  confirmBtnText: { color: '#fff', fontSize: 12, fontWeight: '800' },
 });

@@ -141,7 +141,7 @@ export function InstitutionAutocomplete({
           style={styles.input}
           testID={testID}
         />
-        {loading && <ActivityIndicator size="small" color="#60A5FA" />}
+        {loading && <ActivityIndicator size="small" color="#A78BFA" />}
       </View>
 
       {open && (
@@ -185,7 +185,7 @@ export function InstitutionAutocomplete({
                 ]}
               >
                 <View style={styles.rowIcon}>
-                  <Building2 size={14} color="#60A5FA" />
+                  <Building2 size={14} color="#A78BFA" />
                 </View>
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Text style={styles.rowName} numberOfLines={1}>{r.name}</Text>
@@ -249,7 +249,7 @@ export function InstitutionLogo({
   if (failed || !candidates.length) {
     return (
       <View style={[styles.defaultLogo, { width: size, height: size, borderRadius: size * 0.22 }]}>
-        <GraduationCap size={size * 0.55} color="#93C5FD" />
+        <GraduationCap size={size * 0.55} color="#C4B5FD" />
       </View>
     );
   }
@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
   },
   defaultLogo: {
     backgroundColor: '#F3E8FF',
-    borderColor: '#93C5FD', borderWidth: 1.5,
+    borderColor: '#C4B5FD', borderWidth: 1.5,
     alignItems: 'center', justifyContent: 'center',
   },
   scroll: {

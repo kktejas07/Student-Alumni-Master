@@ -48,14 +48,9 @@ interface Track {
   current_week?: number;
 }
 
-const C = { 
-  bg: '#FFFFFF', 
-  surface: 'rgba(0,0,0,0.04)',
-  border: 'rgba(0,0,0,0.1)', 
-  text: '#000000', 
-  text2: 'rgba(0,0,0,0.7)',
-  text3: 'rgba(0,0,0,0.5)' 
-};
+const C = { bg: '#1A0F2E', surface: 'rgba(67,41,109,0.40)',
+            border: '#3D2D5C', text: '#fff', text2: '#B7A8D4',
+            text3: '#7B6B95' };
 
 export default function CareerTrackInline({
   slug, onBack, onEnrollCourse,
@@ -120,7 +115,7 @@ export default function CareerTrackInline({
   if (loading) {
     return (
       <View style={s.loading}>
-        <ActivityIndicator color="#60A5FA" />
+        <ActivityIndicator color="#A78BFA" />
         <Text style={s.loadingText}>Loading career track…</Text>
       </View>
     );
@@ -138,14 +133,14 @@ export default function CareerTrackInline({
 
   const currentWeek = enrollment?.current_week || 1;
   const progressPct = enrollment?.progress_percent || 0;
-  const accent = track.color || '#2563EB';
+  const accent = track.color || '#7C3AED';
 
   return (
     <View style={{ gap: 18 }}>
       {/* Top bar */}
       <View style={s.topBar}>
         <Pressable onPress={onBack} style={s.backChip}>
-          <MaterialCommunityIcons name="arrow-left" size={14} color="#60A5FA" />
+          <MaterialCommunityIcons name="arrow-left" size={14} color="#A78BFA" />
           <Text style={s.backChipText}>All courses</Text>
         </Pressable>
         <View style={s.crumb}>
@@ -153,14 +148,14 @@ export default function CareerTrackInline({
           <MaterialCommunityIcons name="chevron-right" size={12} color={C.text3} />
           <Text style={s.crumbText}>Career Tracks</Text>
           <MaterialCommunityIcons name="chevron-right" size={12} color={C.text3} />
-          <Text style={[s.crumbText, { color: '#000' }]}>{track.title}</Text>
+          <Text style={[s.crumbText, { color: '#fff' }]}>{track.title}</Text>
         </View>
       </View>
 
       {/* Hero gradient */}
       <View style={s.heroOuter}>
         <LinearGradient
-          colors={[accent, '#60A5FA']}
+          colors={[accent, '#A78BFA']}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFill}
         />
@@ -194,15 +189,15 @@ export default function CareerTrackInline({
           <Pressable onPress={handleEnroll} disabled={enrolling}
             style={s.enrollCta}>
             {enrolling
-              ? <ActivityIndicator color="#2563EB" />
+              ? <ActivityIndicator color="#7C3AED" />
               : (<>
-                  <MaterialCommunityIcons name="rocket-launch" size={15} color="#2563EB" />
+                  <MaterialCommunityIcons name="rocket-launch" size={15} color="#7C3AED" />
                   <Text style={s.enrollCtaText}>Start track — Free</Text>
                 </>)}
           </Pressable>
         ) : (
           <Pressable onPress={advanceWeek} style={s.enrollCta}>
-            <MaterialCommunityIcons name="check-circle-outline" size={15} color="#2563EB" />
+            <MaterialCommunityIcons name="check-circle-outline" size={15} color="#7C3AED" />
             <Text style={s.enrollCtaText}>
               {currentWeek >= track.duration_weeks
                 ? 'Track complete 🎉'
@@ -226,8 +221,8 @@ export default function CareerTrackInline({
       </View>
 
       {/* Mentors strip */}
-      <View style={[s.card, s.navyCard]}>
-        <Text style={[s.kicker, { color: '#94A3B8' }]}>MENTORS</Text>
+      <View style={s.card}>
+        <Text style={s.kicker}>MENTORS</Text>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
           {track.mentors.map((m, i) => (
             <View key={i} style={s.mentorChip}>
@@ -242,8 +237,8 @@ export default function CareerTrackInline({
       </View>
 
       {/* 12-week roadmap timeline */}
-      <View style={[s.card, s.navyCard]}>
-        <Text style={[s.kicker, { color: '#94A3B8' }]}>{track.duration_weeks}-WEEK ROADMAP</Text>
+      <View style={s.card}>
+        <Text style={s.kicker}>{track.duration_weeks}-WEEK ROADMAP</Text>
         <View style={{ gap: 10 }}>
           {track.modules.map((m, idx) => {
             const completed = enrollment && currentWeek > m.week_end;
@@ -361,7 +356,7 @@ export default function CareerTrackInline({
 function HeroStat({ icon, label, value }: { icon: IconName; label: string; value: string }) {
   return (
     <View style={s.heroStat}>
-      <MaterialCommunityIcons name={icon} size={14} color="#000" />
+      <MaterialCommunityIcons name={icon} size={14} color="#fff" />
       <Text style={s.heroStatValue}>{value}</Text>
       <Text style={s.heroStatLabel}>{label}</Text>
     </View>
@@ -374,16 +369,16 @@ const s = StyleSheet.create({
   errorBox: { padding: 60, alignItems: 'center', gap: 12 },
   errorText: { color: '#FCA5A5', fontFamily: 'DMSans_700Bold', fontSize: 13 },
   backBtn: { paddingHorizontal: 18, paddingVertical: 10, borderRadius: 999,
-    backgroundColor: '#2563EB', ...({ cursor: 'pointer' } as any) },
+    backgroundColor: '#7C3AED', ...({ cursor: 'pointer' } as any) },
   backBtnText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 12 },
 
   topBar: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   backChip: { flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999,
-    backgroundColor: 'rgba(37,99,235,0.10)',
-    borderWidth: 1, borderColor: 'rgba(37,99,235,0.30)',
+    backgroundColor: 'rgba(167,139,250,0.10)',
+    borderWidth: 1, borderColor: 'rgba(167,139,250,0.30)',
     ...({ cursor: 'pointer' } as any) },
-  backChipText: { color: '#60A5FA', fontFamily: 'DMSans_700Bold', fontSize: 11.5 },
+  backChipText: { color: '#A78BFA', fontFamily: 'DMSans_700Bold', fontSize: 11.5 },
   crumb: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   crumbText: { color: C.text3, fontFamily: 'DMSans_600SemiBold', fontSize: 11 },
 
@@ -391,17 +386,17 @@ const s = StyleSheet.create({
     paddingHorizontal: 24, paddingVertical: 22, position: 'relative', gap: 14,
     minHeight: 200 },
   heroBlur: { position: 'absolute', top: -40, right: -40, width: 220, height: 220,
-    borderRadius: 999, backgroundColor: 'rgba(0,0,0,0.05)' },
+    borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.12)' },
   heroEmoji: { fontSize: 28 },
-  heroTitle: { color: '#000', fontFamily: 'DMSans_900Black', fontSize: 26 },
-  heroSub: { color: 'rgba(0,0,0,0.85)', fontFamily: 'DMSans_600SemiBold',
+  heroTitle: { color: '#fff', fontFamily: 'DMSans_900Black', fontSize: 26 },
+  heroSub: { color: 'rgba(255,255,255,0.85)', fontFamily: 'DMSans_600SemiBold',
     fontSize: 13 },
   heroStats: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
   heroStat: { flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999,
-    backgroundColor: 'rgba(0,0,0,0.10)' },
-  heroStatValue: { color: '#000', fontFamily: 'DMSans_800ExtraBold', fontSize: 12 },
-  heroStatLabel: { color: 'rgba(0,0,0,0.85)',
+    backgroundColor: 'rgba(255,255,255,0.15)' },
+  heroStatValue: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 12 },
+  heroStatLabel: { color: 'rgba(255,255,255,0.85)',
     fontFamily: 'DMSans_600SemiBold', fontSize: 11 },
   progressBar: { backgroundColor: 'rgba(0,0,0,0.30)', height: 28, borderRadius: 999,
     overflow: 'hidden', justifyContent: 'center', paddingHorizontal: 12 },
@@ -411,49 +406,48 @@ const s = StyleSheet.create({
   enrollCta: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center',
     gap: 6, paddingHorizontal: 18, paddingVertical: 11, borderRadius: 999,
     backgroundColor: '#fff', ...({ cursor: 'pointer' } as any) },
-  enrollCtaText: { color: '#2563EB', fontFamily: 'DMSans_800ExtraBold', fontSize: 13 },
+  enrollCtaText: { color: '#7C3AED', fontFamily: 'DMSans_800ExtraBold', fontSize: 13 },
 
   card: { backgroundColor: C.surface, borderRadius: 18, borderWidth: 1,
     borderColor: C.border, padding: 18, gap: 12 },
-  navyCard: { backgroundColor: '#0F172A', borderColor: '#1E293B' },
   kicker: { color: C.text3, fontFamily: 'DMSans_800ExtraBold', fontSize: 10.5,
     letterSpacing: 1.4, textTransform: 'uppercase' },
 
   outcomeChip: { flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999,
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    borderColor: 'rgba(16, 185, 129, 0.40)', borderWidth: 1 },
-  outcomeText: { color: '#34D399', fontFamily: 'DMSans_700Bold', fontSize: 11.5 },
+    backgroundColor: 'rgba(16,185,129,0.10)',
+    borderColor: 'rgba(16,185,129,0.30)', borderWidth: 1 },
+  outcomeText: { color: '#6EE7B7', fontFamily: 'DMSans_700Bold', fontSize: 11.5 },
 
   mentorChip: { flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingHorizontal: 12, paddingVertical: 8, borderRadius: 14,
-    backgroundColor: 'rgba(99, 102, 241, 0.15)',
-    borderColor: 'rgba(99, 102, 241, 0.30)', borderWidth: 1 },
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: C.border, borderWidth: 1 },
   mentorName: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 12.5 },
-  mentorRole: { color: '#CBD5E1', fontFamily: 'DMSans_600SemiBold', fontSize: 10.5 },
+  mentorRole: { color: C.text3, fontFamily: 'DMSans_600SemiBold', fontSize: 10.5 },
 
-  weekCard: { backgroundColor: '#1E293B', borderRadius: 14,
-    borderWidth: 1, borderColor: '#334155', padding: 14, gap: 10 },
+  weekCard: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 14,
+    borderWidth: 1, borderColor: C.border, padding: 14, gap: 10 },
   weekHeader: { flexDirection: 'row', alignItems: 'center', gap: 12,
     ...({ cursor: 'pointer' } as any) },
   weekBadge: { width: 32, height: 32, borderRadius: 999,
     alignItems: 'center', justifyContent: 'center' },
   weekBadgeText: { color: '#fff', fontFamily: 'DMSans_900Black', fontSize: 12 },
   weekTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 13.5 },
-  weekMeta: { color: '#94A3B8', fontFamily: 'DMSans_600SemiBold', fontSize: 10.5 },
+  weekMeta: { color: C.text3, fontFamily: 'DMSans_600SemiBold', fontSize: 10.5 },
   weekBody: { gap: 10, paddingTop: 4 },
   weekCourseRow: { flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingHorizontal: 10, paddingVertical: 8, borderRadius: 10,
-    backgroundColor: 'rgba(0,0,0,0.25)', ...({ cursor: 'pointer' } as any) },
+    backgroundColor: 'rgba(0,0,0,0.20)', ...({ cursor: 'pointer' } as any) },
   weekCourseTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12 },
-  weekCourseMeta: { color: '#94A3B8', fontFamily: 'DMSans_600SemiBold', fontSize: 10.5 },
+  weekCourseMeta: { color: C.text3, fontFamily: 'DMSans_600SemiBold', fontSize: 10.5 },
   weekExtra: { flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.05)' },
-  weekExtraText: { color: '#CBD5E1', fontFamily: 'DMSans_600SemiBold', fontSize: 11 },
+    backgroundColor: 'rgba(255,255,255,0.04)' },
+  weekExtraText: { color: C.text2, fontFamily: 'DMSans_600SemiBold', fontSize: 11 },
 
   capHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  capTitle: { color: '#000', fontFamily: 'DMSans_800ExtraBold', fontSize: 15 },
+  capTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 15 },
   capDesc: { color: C.text2, fontFamily: 'DMSans_600SemiBold', fontSize: 12.5,
     lineHeight: 19 },
   capDeliverable: { color: C.text2, fontFamily: 'DMSans_600SemiBold', fontSize: 11.5 },

@@ -5,7 +5,7 @@ import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ExploreScreen } from '@/src/views/web/ExploreScreen';
-import { NETWORK_HERO, NETWORK_SECTIONS } from '@/src/views/web/ExploreData';
+import { NETWORK_HERO, NETWORK_SECTIONS } from '@/src/views/web/exploreData';
 
 export default function NetworkTab() {
   return (

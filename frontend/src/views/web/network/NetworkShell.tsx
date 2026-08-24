@@ -19,7 +19,7 @@ const C = {
   bg: '#0C0818', bg2: '#130A28',
   card: 'rgba(255,255,255,0.05)', border: 'rgba(255,255,255,0.09)',
   text: 'rgba(255,255,255,0.92)', text2: 'rgba(255,255,255,0.65)', text3: 'rgba(255,255,255,0.45)',
-  purple: '#60A5FA', green: '#10B981', amber: '#F59E0B', cyan: '#22D3EE', pink: '#EC4899',
+  purple: '#A78BFA', green: '#10B981', amber: '#F59E0B', cyan: '#22D3EE', pink: '#EC4899',
 };
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -215,7 +215,7 @@ export function ChatPhonePopup({
 
             {/* Direct message stub */}
             <View style={s.contactRow}>
-              <View style={[s.contactIcon, { backgroundColor: 'rgba(37,99,235,0.14)' }]}>
+              <View style={[s.contactIcon, { backgroundColor: 'rgba(167,139,250,0.14)' }]}>
                 <MessageSquare size={16} color={C.purple} />
               </View>
               <View style={{ flex: 1, minWidth: 0 }}>
@@ -357,7 +357,7 @@ export function BookingDrawer({
         style={[s.drawerTab, active && s.drawerTabActive]}
         testID={`drawer-tab-${k}`}
       >
-        <MCI name={icon} size={14} color={active ? '#60A5FA' : 'rgba(255,255,255,0.55)'} />
+        <MCI name={icon} size={14} color={active ? '#A78BFA' : 'rgba(255,255,255,0.55)'} />
         <Text style={[s.drawerTabText, active && { color: '#fff' }]}>{label}</Text>
       </Pressable>
     );
@@ -419,7 +419,7 @@ export function BookingDrawer({
                     <Text style={[s.notifyText, { color: '#BFDBFE' }]}>Zoom link sent to your email</Text>
                   </View>
                   <View style={s.notifyCard}>
-                    <MCI name="calendar-check-outline" size={16} color="#60A5FA" />
+                    <MCI name="calendar-check-outline" size={16} color="#A78BFA" />
                     <Text style={s.notifyText}>Teams invite sent</Text>
                   </View>
                 </View>
@@ -476,7 +476,7 @@ export function BookingDrawer({
                   { icon: 'phone-outline', label: 'Phone', value: mentor.phone },
                 ].filter((r) => r.value).map((r) => (
                   <View key={r.label} style={s.contactRow}>
-                    <View style={s.iconSquare}><MCI name={r.icon as any} size={13} color="#60A5FA" /></View>
+                    <View style={s.iconSquare}><MCI name={r.icon as any} size={13} color="#A78BFA" /></View>
                     <View style={{ flex: 1 }}>
                       <Text style={s.contactLabel}>{r.label}</Text>
                       <Text style={s.contactValue} numberOfLines={1}>{r.value}</Text>
@@ -493,7 +493,7 @@ export function BookingDrawer({
                     { name: 'Teams',   icon: 'account-group-outline' },
                   ].map((a) => (
                     <View key={a.name} style={s.appPill}>
-                      <MCI name={a.icon as any} size={11} color="#60A5FA" />
+                      <MCI name={a.icon as any} size={11} color="#A78BFA" />
                       <Text style={s.appPillText}>{a.name}</Text>
                     </View>
                   ))}
@@ -644,7 +644,7 @@ export function BookingDrawer({
                   style={[s.methodCard, payMethod === 'upi' && s.methodCardSel]}
                   testID="pay-upi"
                 >
-                  <View style={s.iconSquare}><MCI name="cellphone" size={14} color="#60A5FA" /></View>
+                  <View style={s.iconSquare}><MCI name="cellphone" size={14} color="#A78BFA" /></View>
                   <View style={{ flex: 1 }}>
                     <Text style={s.methodLabel}>UPI</Text>
                     <Text style={s.methodSub}>GPay · PhonePe · Paytm · BHIM</Text>
@@ -667,7 +667,7 @@ export function BookingDrawer({
                   style={[s.methodCard, payMethod === 'card' && s.methodCardSel]}
                   testID="pay-card"
                 >
-                  <View style={s.iconSquare}><MCI name="credit-card-outline" size={14} color="#60A5FA" /></View>
+                  <View style={s.iconSquare}><MCI name="credit-card-outline" size={14} color="#A78BFA" /></View>
                   <View style={{ flex: 1 }}>
                     <Text style={s.methodLabel}>Credit / Debit Card</Text>
                     <Text style={s.methodSub}>Visa · Mastercard · RuPay</Text>
@@ -711,14 +711,14 @@ const s = StyleSheet.create({
   // Sidebar
   sidebar: { width: 268, padding: 18, gap: 8, borderRightColor: 'rgba(255,255,255,0.06)', borderRightWidth: 1, backgroundColor: C.bg2 },
   logoRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 },
-  logoBox: { width: 38, height: 38, borderRadius: 9, backgroundColor: '#60A5FA', alignItems: 'center', justifyContent: 'center' },
+  logoBox: { width: 38, height: 38, borderRadius: 9, backgroundColor: '#A78BFA', alignItems: 'center', justifyContent: 'center' },
   logoText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 14 },
   logoTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 14 },
   logoSub: { color: C.text3, fontFamily: 'DMSans_400Regular', fontSize: 10.5, marginTop: 1 },
 
   miniProf: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.04)', borderColor: C.border, borderWidth: 1, marginVertical: 6 },
-  miniAvatar: { width: 36, height: 36, borderRadius: 18, overflow: 'hidden', backgroundColor: 'rgba(37,99,235,0.30)', alignItems: 'center', justifyContent: 'center' },
-  miniInitials: { color: '#93C5FD', fontFamily: 'DMSans_800ExtraBold', fontSize: 12 },
+  miniAvatar: { width: 36, height: 36, borderRadius: 18, overflow: 'hidden', backgroundColor: 'rgba(167,139,250,0.30)', alignItems: 'center', justifyContent: 'center' },
+  miniInitials: { color: '#C4B5FD', fontFamily: 'DMSans_800ExtraBold', fontSize: 12 },
   miniName: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12.5 },
   miniMeta: { color: C.text3, fontFamily: 'DMSans_500Medium', fontSize: 10.5, marginTop: 2 },
 
@@ -728,13 +728,13 @@ const s = StyleSheet.create({
 
   label: { color: C.text3, fontFamily: 'DMSans_700Bold', fontSize: 9.5, letterSpacing: 0.8, marginTop: 8, marginBottom: 4 },
   navItem: { flexDirection: 'row', alignItems: 'center', gap: 9, paddingHorizontal: 10, paddingVertical: 9, borderRadius: 9, ...({ cursor: 'pointer' } as any) },
-  navItemActive: { backgroundColor: 'rgba(37,99,235,0.16)' },
+  navItemActive: { backgroundColor: 'rgba(167,139,250,0.16)' },
   navText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 12.5, flex: 1 },
-  navBadge: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 999, backgroundColor: 'rgba(37,99,235,0.20)', minWidth: 20, alignItems: 'center' },
-  navBadgeText: { color: '#93C5FD', fontFamily: 'DMSans_800ExtraBold', fontSize: 10 },
+  navBadge: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 999, backgroundColor: 'rgba(167,139,250,0.20)', minWidth: 20, alignItems: 'center' },
+  navBadgeText: { color: '#C4B5FD', fontFamily: 'DMSans_800ExtraBold', fontSize: 10 },
 
   typeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8, ...({ cursor: 'pointer' } as any) },
-  typeRowActive: { backgroundColor: 'rgba(37,99,235,0.10)' },
+  typeRowActive: { backgroundColor: 'rgba(167,139,250,0.10)' },
   typeText: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12 },
 
   stats: { gap: 6, padding: 10, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.03)', borderColor: C.border, borderWidth: 1 },
@@ -747,8 +747,8 @@ const s = StyleSheet.create({
   heroTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 22, letterSpacing: -0.3 },
   heroSub: { color: C.text2, fontFamily: 'DMSans_400Regular', fontSize: 13 },
   heroPills: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
-  heroPill: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999, backgroundColor: 'rgba(37,99,235,0.10)', borderColor: 'rgba(37,99,235,0.30)', borderWidth: 1 },
-  heroPillText: { color: '#93C5FD', fontFamily: 'DMSans_500Medium', fontSize: 11 },
+  heroPill: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999, backgroundColor: 'rgba(167,139,250,0.10)', borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1 },
+  heroPillText: { color: '#C4B5FD', fontFamily: 'DMSans_500Medium', fontSize: 11 },
 
   // Modal
   modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' },
@@ -766,7 +766,7 @@ const s = StyleSheet.create({
 
   // Drawer
   drawer: { position: 'absolute', right: 0, top: 0, bottom: 0, width: 460, maxWidth: '100%', backgroundColor: '#0C0818', borderLeftColor: C.border, borderLeftWidth: 1 },
-  drawerKicker: { color: '#60A5FA', fontFamily: 'DMSans_800ExtraBold', fontSize: 11, letterSpacing: 1 },
+  drawerKicker: { color: '#A78BFA', fontFamily: 'DMSans_800ExtraBold', fontSize: 11, letterSpacing: 1 },
 
   bookMentor: { flexDirection: 'row', gap: 12, padding: 14, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.04)', borderColor: C.border, borderWidth: 1 },
   bookAvatar: { width: 52, height: 52, borderRadius: 26, overflow: 'hidden', backgroundColor: 'rgba(16,185,129,0.20)', alignItems: 'center', justifyContent: 'center' },
@@ -781,16 +781,16 @@ const s = StyleSheet.create({
 
   sectionLabel: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 11, letterSpacing: 0.4, textTransform: 'uppercase' },
   dayCard: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.04)', borderColor: C.border, borderWidth: 1, alignItems: 'center', minWidth: 76, ...({ cursor: 'pointer' } as any) },
-  dayCardSel: { backgroundColor: '#60A5FA', borderColor: '#60A5FA' },
+  dayCardSel: { backgroundColor: '#A78BFA', borderColor: '#A78BFA' },
   daySub: { color: C.text3, fontFamily: 'DMSans_700Bold', fontSize: 9, letterSpacing: 0.4, textTransform: 'uppercase' },
   dayLabel: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13, marginTop: 3 },
 
   slots: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   slot: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.04)', borderColor: C.border, borderWidth: 1, ...({ cursor: 'pointer' } as any) },
-  slotSel: { backgroundColor: '#60A5FA', borderColor: '#60A5FA' },
+  slotSel: { backgroundColor: '#A78BFA', borderColor: '#A78BFA' },
   slotText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 12 },
 
-  confirmBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 13, borderRadius: 11, backgroundColor: '#60A5FA', justifyContent: 'center', marginTop: 6, ...({ cursor: 'pointer' } as any) },
+  confirmBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 13, borderRadius: 11, backgroundColor: '#A78BFA', justifyContent: 'center', marginTop: 6, ...({ cursor: 'pointer' } as any) },
   confirmText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 13 },
 
   // ── Drawer 3-tab layout ──────────────────────────────────────
@@ -798,7 +798,7 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 12,
     padding: 16, paddingRight: 14,
     borderBottomColor: C.border, borderBottomWidth: 1,
-    backgroundColor: 'rgba(37,99,235,0.06)',
+    backgroundColor: 'rgba(167,139,250,0.06)',
   },
   drawerTabs: {
     flexDirection: 'row',
@@ -809,15 +809,15 @@ const s = StyleSheet.create({
     paddingVertical: 13, borderBottomWidth: 3, borderBottomColor: 'transparent',
     ...({ cursor: 'pointer' } as any),
   },
-  drawerTabActive: { borderBottomColor: '#60A5FA' },
+  drawerTabActive: { borderBottomColor: '#A78BFA' },
   drawerTabText: { color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_700Bold', fontSize: 12 },
 
   kicker: { color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_800ExtraBold', fontSize: 10.5, letterSpacing: 0.7, textTransform: 'uppercase' },
 
   iconSquare: {
     width: 30, height: 30, borderRadius: 8,
-    backgroundColor: 'rgba(37,99,235,0.14)',
-    borderColor: 'rgba(37,99,235,0.35)', borderWidth: 1,
+    backgroundColor: 'rgba(167,139,250,0.14)',
+    borderColor: 'rgba(167,139,250,0.35)', borderWidth: 1,
     alignItems: 'center', justifyContent: 'center',
   },
 
@@ -830,10 +830,10 @@ const s = StyleSheet.create({
   appPill: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999,
-    backgroundColor: 'rgba(37,99,235,0.10)',
-    borderColor: 'rgba(37,99,235,0.30)', borderWidth: 1,
+    backgroundColor: 'rgba(167,139,250,0.10)',
+    borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1,
   },
-  appPillText: { color: '#93C5FD', fontFamily: 'DMSans_700Bold', fontSize: 11 },
+  appPillText: { color: '#C4B5FD', fontFamily: 'DMSans_700Bold', fontSize: 11 },
 
   skillPill: {
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6,
@@ -886,7 +886,7 @@ const s = StyleSheet.create({
     borderColor: C.border, borderWidth: 1,
     ...({ cursor: 'pointer' } as any),
   },
-  methodCardSel: { borderColor: '#60A5FA', backgroundColor: 'rgba(37,99,235,0.08)' },
+  methodCardSel: { borderColor: '#A78BFA', backgroundColor: 'rgba(167,139,250,0.08)' },
   methodLabel: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13.5 },
   methodSub: { color: C.text3, fontFamily: 'DMSans_500Medium', fontSize: 11, marginTop: 2 },
   radio: {
@@ -894,8 +894,8 @@ const s = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.35)', borderWidth: 2,
     alignItems: 'center', justifyContent: 'center',
   },
-  radioOn: { borderColor: '#60A5FA' },
-  radioDot: { width: 8, height: 8, borderRadius: 999, backgroundColor: '#60A5FA' },
+  radioOn: { borderColor: '#A78BFA' },
+  radioDot: { width: 8, height: 8, borderRadius: 999, backgroundColor: '#A78BFA' },
 
   input: {
     height: 42, paddingHorizontal: 12, borderRadius: 10,

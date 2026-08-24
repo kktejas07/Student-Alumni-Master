@@ -54,7 +54,7 @@ const COLORS = {
   linkedin: '#0A66C2',
   github: '#24292E',
   chip: 'rgba(139, 92, 246, 0.15)',
-  chipText: '#60A5FA',
+  chipText: '#A78BFA',
   inputBg: '#1E293B',
 };
 

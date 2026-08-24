@@ -1,8 +1,11 @@
 /**
- * EchoChrome — shared public header + footer for the /echo and /verify pages.
+ * EchoChrome — shared public header + footer for the /echo pages.
  *
  * Reuses the exact same Navbar + Footer from the marketing landing page
- * (nexus-glow-landing) with the luxury glowing SA Watermark.
+ * (nexus-glow-landing) so the /echo pages have the identical menu and footer
+ * as /welcome. The Navbar is fixed at the top; pages must clear it with top
+ * padding (ECHO_TOP_PADDING). The footer renders in normal flow at the END of
+ * the page content (not pinned to the viewport).
  */
 // @ts-nocheck
 import React, { useState } from 'react';
@@ -10,11 +13,10 @@ import { StyleSheet, View, Image, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
 import { Footer } from '@/src/views/web/nexus-glow-landing/Footer';
-import { SAWatermark } from '@/src/views/web/components/SAWatermark';
-import '@/src/nexus-glow-styles.css';
+import '../../../nexus-glow-styles.css';
 
 /** Height to clear the fixed marketing navbar (matches Hero's pt-36/pt-48). */
-export const ECHO_TOP_PADDING = 120;
+export const ECHO_TOP_PADDING = 132;
 
 export function EchoHeader() {
   return <Navbar />;
@@ -24,23 +26,14 @@ export function EchoFooter() {
   return <Footer />;
 }
 
-export function EchoWatermark({ top = 100, right = 24, size = 720, opacity = 0.11, rotation = '0deg' }: any) {
-  return <SAWatermark top={top} right={right} size={size} opacity={opacity} rotation={rotation} />;
-}
-
-/** Wrapper for the scrollable body — reserves room for the fixed navbar and includes background watermark. */
+/** Wrapper for the scrollable body — reserves room for the fixed navbar. */
 export function EchoPageBody({ children, style }: { children: React.ReactNode; style?: any }) {
-  return (
-    <View style={[styles.body, style]}>
-      <SAWatermark top={100} right={10} size={720} opacity={0.11} rotation="0deg" />
-      {children}
-    </View>
-  );
+  return <View style={[styles.body, style]}>{children}</View>;
 }
 
 /**
  * EchoImg — Image wrapper with a gradient fallback when the source URL
- * returns a 404 or network error. Keeps the layout space occupied so
+ * returns a 404 or network error.  Keeps the layout space occupied so
  * the page doesn't jump when the error placeholder swaps in.
  */
 export function EchoImg({ source, fallbackGradient, fallbackLabel, style, resizeMode = 'cover', ...rest }: any) {
@@ -50,28 +43,15 @@ export function EchoImg({ source, fallbackGradient, fallbackLabel, style, resize
   if (failed) {
     return (
       <LinearGradient
-        colors={fallbackGradient || ['#15153A', '#0B0F19']}
+        colors={fallbackGradient || ['rgba(123,61,191,0.35)', 'rgba(95,37,159,0.55)', 'rgba(30,10,80,0.85)']}
         style={[style, { alignItems: 'center', justifyContent: 'center' }]}
       >
-        {(() => {
-          if (!fallbackLabel) return null;
-          const lbl = fallbackLabel.trim().toUpperCase();
-          const isVNR = lbl.includes('VNR');
-          const isSNIST = lbl.includes('SNIST');
-          
-          if (isSNIST) {
-            return <Image source={require('../../../../assets/images/snist-logo.png')} style={{ width: 550, height: 200, resizeMode: 'contain' }} />;
-          }
-          if (isVNR) {
-            return <Image source={require('../../../../assets/images/vnrvjit.png')} style={{ width: 550, height: 200, resizeMode: 'contain' }} />;
-          }
-          return (
-            <View style={{ padding: 12, alignItems: 'center' }}>
-              <Image source={require('../../../../assets/images/sa-icon.png')} style={{ width: 40, height: 40, opacity: 0.5, marginBottom: 6 }} resizeMode="contain" />
-              <View style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, fontFamily: 'Inter, sans-serif', textAlign: 'center' }}>{fallbackLabel}</View>
-            </View>
-          );
-        })()}
+        {fallbackLabel ? (
+          <View style={{ padding: 12, alignItems: 'center' }}>
+            <Image source={require('../../../assets/images/sa-icon.png')} style={{ width: 40, height: 40, opacity: 0.5, marginBottom: 6 }} resizeMode="contain" />
+            <View style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, fontFamily: 'Inter, sans-serif', textAlign: 'center' }}>{fallbackLabel}</View>
+          </View>
+        ) : null}
       </LinearGradient>
     );
   }
@@ -91,6 +71,5 @@ const styles = StyleSheet.create({
   body: {
     flex: 1,
     paddingTop: ECHO_TOP_PADDING,
-    position: 'relative',
   },
 });

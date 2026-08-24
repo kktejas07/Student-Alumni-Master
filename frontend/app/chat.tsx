@@ -27,7 +27,7 @@ const SUGGESTIONS = [
 export default function ChatScreen() {
   const toast = useToast();
   const { user } = useAuthStore();
-  const firstName = user?.full_name?.split(' ')[0] || (user as any)?.name?.split(' ')[0] || 'User';
+  const firstName = user?.full_name?.split(' ')[0] || user?.name?.split(' ')[0] || 'User';
   
   const router = useRouter();
   const [messages, setMessages] = useState<ChatMsg[]>([]);

@@ -30,10 +30,10 @@ export const SC = {
   accent:    A.accent,         // peach — kicker labels
   accentBright: '#FED7AA',     // very light peach
 
-  // Text on light surface
+  // Text on dark NexusOS surface
   text:  NX.textP,                          // primary
-  muted: NX.textS,                          // WCAG AA
-  dim:   NX.textT,                          // WCAG AA-Large
+  muted: 'rgba(255,255,255,0.66)',          // WCAG AA
+  dim:   'rgba(255,255,255,0.46)',          // WCAG AA-Large
 
   // Status / utility
   green: NX.success,

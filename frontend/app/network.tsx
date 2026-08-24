@@ -379,7 +379,7 @@ export default function NetworkScreen() {
             advisorDesc="Need warm intros? Our advisors curate mentors, alumni & founders for your goals."
             aiTitle="Ask the Network AI"
             aiDesc="Who should I connect with this week? How do I write a great cold message? Ask 24×7."
-            advisorAccent="#60A5FA"
+            advisorAccent="#A78BFA"
             aiAccent="#10B981"
             advisorIcon="account-group"
             aiIcon="robot-excited"
@@ -412,8 +412,8 @@ export default function NetworkScreen() {
               style={[styles.filterBtn, (showFilters || filterCount > 0) && styles.filterBtnActive]}
               testID="net-filter-toggle"
             >
-              <SlidersHorizontal size={14} color={(showFilters || filterCount > 0) ? '#60A5FA' : 'rgba(255,255,255,0.65)'} />
-              <Text style={[styles.filterBtnText, (showFilters || filterCount > 0) && { color: '#60A5FA' }]}>
+              <SlidersHorizontal size={14} color={(showFilters || filterCount > 0) ? '#A78BFA' : 'rgba(255,255,255,0.65)'} />
+              <Text style={[styles.filterBtnText, (showFilters || filterCount > 0) && { color: '#A78BFA' }]}>
                 Filters{filterCount > 0 ? ` (${filterCount})` : ''}
               </Text>
             </Pressable>
@@ -466,21 +466,21 @@ export default function NetworkScreen() {
       {/* Content */}
       {loading ? (
         <View style={{ alignItems: 'center', paddingVertical: 60 }}>
-          <ActivityIndicator color="#60A5FA" size="large" />
+          <ActivityIndicator color="#A78BFA" size="large" />
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           {tab === 'discover' && isSearching && (
             <View>
               <View style={[styles.sectionHeader, { paddingHorizontal: isMobile ? 12 : 16 }]}>
-                <View style={[styles.sectionIcon, { backgroundColor: '#60A5FA24', borderColor: '#60A5FA60' }]}>
-                  <Search size={15} color="#60A5FA" />
+                <View style={[styles.sectionIcon, { backgroundColor: '#A78BFA24', borderColor: '#A78BFA60' }]}>
+                  <Search size={15} color="#A78BFA" />
                 </View>
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                     <Text style={styles.sectionTitle}>Search results</Text>
-                    <View style={[styles.sectionCount, { backgroundColor: '#60A5FA24', borderColor: '#60A5FA60' }]}>
-                      <Text style={[styles.sectionCountText, { color: '#60A5FA' }]}>{flatResults.length}</Text>
+                    <View style={[styles.sectionCount, { backgroundColor: '#A78BFA24', borderColor: '#A78BFA60' }]}>
+                      <Text style={[styles.sectionCountText, { color: '#A78BFA' }]}>{flatResults.length}</Text>
                     </View>
                   </View>
                   <Text style={styles.sectionSubtitle}>
@@ -510,7 +510,7 @@ export default function NetworkScreen() {
 
           {tab === 'discover' && !isSearching && visibleSections.map((sec) => {
             const SecIcon = sec.icon ? SECTION_ICONS[sec.icon] : null;
-            const tint = sec.tint || '#60A5FA';
+            const tint = sec.tint || '#A78BFA';
             const isExpanded = expanded[sec.key];
             const itemsToShow = isExpanded ? sec.items : sec.items.slice(0, PAGE_SIZE);
             const hasMore = sec.items.length > PAGE_SIZE;
@@ -701,7 +701,7 @@ function ProfileDetailContent({ person, onClose, onConnect, onChat }: {
   const initials = (person.full_name || '?').split(' ').slice(0, 2).map(s => s[0] || '').join('').toUpperCase();
   const tint = person.role === 'mentor' ? '#10B981'
             : person.role === 'alumni' ? '#22D3EE'
-            : person.role === 'college' ? '#10B981' : '#60A5FA';
+            : person.role === 'college' ? '#10B981' : '#A78BFA';
   const isMentor = person.role === 'mentor';
   const titleLine = [person.job_title, person.organization].filter(Boolean).join(' · ');
   const collegeLine = [person.institution, person.graduation_year || person.year].filter(Boolean).join(' · ');
@@ -885,7 +885,7 @@ function PersonCard({
   const initials = (person.full_name || '?').split(' ').slice(0, 2).map(s => s[0] || '').join('').toUpperCase();
   const tint = person.role === 'mentor' ? '#10B981'
             : person.role === 'alumni' ? '#22D3EE'
-            : person.role === 'college' ? '#10B981' : '#60A5FA';
+            : person.role === 'college' ? '#10B981' : '#A78BFA';
   const isMentor = person.role === 'mentor';
   // Compose subtitle line: "Job Title · Org" / "College · Year"
   const titleLine = [person.job_title, person.organization].filter(Boolean).join(' · ');
@@ -1119,7 +1119,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.09)', borderWidth: 1,
     ...({ cursor: 'pointer' } as any),
   },
-  tabActive: { backgroundColor: '#60A5FA', borderColor: '#60A5FA' },
+  tabActive: { backgroundColor: '#A78BFA', borderColor: '#A78BFA' },
   tabText: { color: 'rgba(255,255,255,0.65)', fontFamily: 'DMSans_700Bold', fontSize: 12 },
   tabBadge: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 99, backgroundColor: 'rgba(255,255,255,0.10)' },
   tabBadgeText: { color: 'rgba(255,255,255,0.65)', fontFamily: 'DMSans_700Bold', fontSize: 10 },
@@ -1186,9 +1186,9 @@ const styles = StyleSheet.create({
   chipPurple: {
     flexDirection: 'row', alignItems: 'center', gap: 3,
     paddingHorizontal: 7, paddingVertical: 3, borderRadius: 4,
-    backgroundColor: 'rgba(37,99,235,0.10)',
+    backgroundColor: 'rgba(167,139,250,0.10)',
   },
-  chipPurpleText: { color: '#93C5FD', fontFamily: 'DMSans_500Medium', fontSize: 10.5 },
+  chipPurpleText: { color: '#C4B5FD', fontFamily: 'DMSans_500Medium', fontSize: 10.5 },
   chipPrimary: {
     paddingHorizontal: 7, paddingVertical: 3, borderRadius: 4,
     backgroundColor: 'rgba(16,185,129,0.14)',
@@ -1231,7 +1231,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.09)', borderWidth: 1,
   },
   btnGhostText: { color: 'rgba(255,255,255,0.65)', fontFamily: 'DMSans_700Bold', fontSize: 11.5 },
-  btnAccent: { backgroundColor: '#60A5FA', borderColor: '#60A5FA', borderWidth: 1 },
+  btnAccent: { backgroundColor: '#A78BFA', borderColor: '#A78BFA', borderWidth: 1 },
   btnGreen: { backgroundColor: '#10B981', borderColor: '#10B981', borderWidth: 1 },
   btnAccentText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 11.5 },
   btnText: { fontFamily: 'DMSans_700Bold', fontSize: 11.5 },
@@ -1254,8 +1254,8 @@ const styles = StyleSheet.create({
     ...({ cursor: 'pointer' } as any),
   },
   filterBtnActive: {
-    backgroundColor: 'rgba(37,99,235,0.14)',
-    borderColor: 'rgba(37,99,235,0.50)',
+    backgroundColor: 'rgba(167,139,250,0.14)',
+    borderColor: 'rgba(167,139,250,0.50)',
   },
   filterBtnText: { color: 'rgba(255,255,255,0.65)', fontFamily: 'DMSans_700Bold', fontSize: 12 },
   filterPanel: {
@@ -1273,7 +1273,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.10)', borderWidth: 1,
     ...({ cursor: 'pointer' } as any),
   },
-  filterOptActive: { backgroundColor: '#60A5FA', borderColor: '#60A5FA' },
+  filterOptActive: { backgroundColor: '#A78BFA', borderColor: '#A78BFA' },
   filterOptText: { color: 'rgba(255,255,255,0.75)', fontFamily: 'DMSans_500Medium', fontSize: 11.5 },
   clearFilters: {
     flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start',

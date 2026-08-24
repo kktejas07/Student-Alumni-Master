@@ -59,6 +59,7 @@ from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
 from core.db import db as _db
+from core.db import db as _db
 
 logger = logging.getLogger("events_aggregator")
 router = APIRouter()

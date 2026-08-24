@@ -6,13 +6,12 @@ import { request } from '@/src/models/services/api';
 
 const FT = { bold: 'DMSans_700Bold', semi: 'DMSans_600SemiBold', med: 'DMSans_500Medium', reg: 'DMSans_400Regular' };
 const C = {
-  card: '#FFFFFF',
-  border: '#E5E7EB',
-  text: '#374151',
-  textDark: '#111827',
-  dim: '#6B7280',
-  purpleL: '#818CF8', purple: '#4338CA', teal: '#10B981', green: '#10B981',
-  amber: '#F59E0B', blue: '#3B82F6', pink: '#F472B6',
+  card: 'rgba(255,255,255,0.05)',
+  border: 'rgba(255,255,255,0.08)',
+  text: 'rgba(255,255,255,0.55)',
+  dim: 'rgba(255,255,255,0.28)',
+  purpleL: '#818CF8', purple: '#4338CA', teal: '#2DD4BF', green: '#34D399',
+  amber: '#F59E0B', blue: '#60A5FA', pink: '#F472B6',
 };
 
 const SIM_ACTIONS = [
@@ -74,8 +73,7 @@ export function GoalSimulator({ currentReadiness }: { currentReadiness: number }
   }, [dirty, simulate]);
 
   return (
-    <View style={{ flex: 1, justifyContent: 'space-between', backgroundColor: C.card, borderColor: C.border, borderWidth: 1, borderRadius: 18, padding: 18 }}>
-      <View style={{ flex: 1 }}>
+    <View style={{ backgroundColor: C.card, borderColor: C.border, borderWidth: 1, borderRadius: 18, padding: 18 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 12 }}>
         <Zap size={14} color={C.purpleL} />
         <Text style={{ color: C.text, fontFamily: FT.bold, fontSize: 10, letterSpacing: 1.2 }}>GOAL SIMULATOR</Text>
@@ -84,9 +82,9 @@ export function GoalSimulator({ currentReadiness }: { currentReadiness: number }
 
       {/* Current vs Simulated */}
       <View style={{ flexDirection: 'row', gap: 10, marginBottom: 14 }}>
-        <View style={{ flex: 1, backgroundColor: '#F9FAFB', borderColor: C.border, borderWidth: 1, borderRadius: 12, padding: 12, alignItems: 'center' }}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.03)', borderColor: C.border, borderWidth: 1, borderRadius: 12, padding: 12, alignItems: 'center' }}>
           <Text style={{ color: C.text, fontFamily: FT.bold, fontSize: 9, letterSpacing: 0.8 }}>CURRENT</Text>
-          <Text style={{ color: C.textDark, fontFamily: FT.bold, fontSize: 28, marginTop: 4 }}>{currentReadiness}%</Text>
+          <Text style={{ color: '#fff', fontFamily: FT.bold, fontSize: 28, marginTop: 4 }}>{currentReadiness}%</Text>
         </View>
         <View style={{ flex: 1, backgroundColor: C.teal + '12', borderColor: C.teal + '44', borderWidth: 1, borderRadius: 12, padding: 12, alignItems: 'center' }}>
           <Text style={{ color: C.teal, fontFamily: FT.bold, fontSize: 9, letterSpacing: 0.8 }}>SIMULATED</Text>
@@ -111,12 +109,12 @@ export function GoalSimulator({ currentReadiness }: { currentReadiness: number }
             <Pressable
               key={act.type}
               onPress={() => toggle(act.type)}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: isOn ? act.color + '18' : '#F9FAFB', borderColor: isOn ? act.color + '44' : C.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8 }}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: isOn ? act.color + '18' : 'rgba(255,255,255,0.02)', borderColor: isOn ? act.color + '44' : C.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8 }}
             >
-              <View style={{ width: 20, height: 20, borderRadius: 6, backgroundColor: isOn ? act.color : C.border, alignItems: 'center', justifyContent: 'center' }}>
+              <View style={{ width: 20, height: 20, borderRadius: 6, backgroundColor: isOn ? act.color : C.dim + '44', alignItems: 'center', justifyContent: 'center' }}>
                 {isOn ? <Check size={12} color="#fff" /> : <Plus size={12} color={C.dim} />}
               </View>
-              <Text style={{ flex: 1, color: isOn ? C.textDark : C.text, fontFamily: isOn ? FT.semi : FT.med, fontSize: 12 }}>{act.label}</Text>
+              <Text style={{ flex: 1, color: isOn ? '#fff' : C.text, fontFamily: isOn ? FT.semi : FT.med, fontSize: 12 }}>{act.label}</Text>
               {breakdown && (
                 <Text style={{ color: C.green, fontFamily: FT.bold, fontSize: 12 }}>+{breakdown.gain}%</Text>
               )}
@@ -136,7 +134,7 @@ export function GoalSimulator({ currentReadiness }: { currentReadiness: number }
 
       {/* Simulated breakdown */}
       {simResult && simResult.breakdown.length > 0 && (
-        <View style={{ backgroundColor: '#F9FAFB', borderRadius: 12, padding: 12, marginTop: 12 }}>
+        <View style={{ backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 12, marginTop: 12 }}>
           <Text style={{ color: C.text, fontFamily: FT.bold, fontSize: 9, letterSpacing: 0.8, marginBottom: 8 }}>EXPECTED GAIN</Text>
           {simResult.breakdown.map((b, idx) => (
             <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 3 }}>
@@ -146,8 +144,6 @@ export function GoalSimulator({ currentReadiness }: { currentReadiness: number }
           ))}
         </View>
       )}
-
-      </View>
 
       <Text style={{ color: C.dim, fontFamily: FT.reg, fontSize: 9, marginTop: 10, textAlign: 'center' }}>
         This is a simulation only. No data is saved.

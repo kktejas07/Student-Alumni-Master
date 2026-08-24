@@ -8,7 +8,7 @@ const C = {
   border: 'rgba(255,255,255,0.08)',
   text: 'rgba(255,255,255,0.55)',
   dim: 'rgba(255,255,255,0.28)',
-  purpleL: '#60A5FA', teal: '#2DD4BF', green: '#34D399', amber: '#F59E0B',
+  purpleL: '#A78BFA', teal: '#2DD4BF', green: '#34D399', amber: '#F59E0B',
 };
 
 interface ReadinessEstimate {

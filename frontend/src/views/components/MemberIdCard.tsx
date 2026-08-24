@@ -39,10 +39,10 @@ const ROLE_META: Record<MemberRole, RoleMeta> = {
     label: 'Student Alumni',
     sub: 'STUDENT MEMBER',
     Icon: GraduationCap,
-    iconBg: 'rgba(37,99,235,0.22)',
+    iconBg: 'rgba(124,58,237,0.22)',
     iconColor: '#B07FDF',
-    cardBorder: 'rgba(37,99,235,0.45)',
-    qrTint: '#2563EB',
+    cardBorder: 'rgba(124,58,237,0.45)',
+    qrTint: '#7C3AED',
   },
   mentor: {
     label: 'Student Alumni',
@@ -81,7 +81,7 @@ const TIER_META: Record<MemberTier, { label: string; bg: string; border: string;
 };
 
 /* ---------- Barcode (SVG, deterministic from id) ---------- */
-function Barcode({ value, color = '#2563EB', height = 64 }: { value: string; color?: string; height?: number }) {
+function Barcode({ value, color = '#7C3AED', height = 64 }: { value: string; color?: string; height?: number }) {
   const bars = useMemo(() => {
     // Deterministic bar widths from the id chars
     const pattern: Array<{ w: number; gap: number }> = [];

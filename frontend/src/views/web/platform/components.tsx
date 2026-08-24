@@ -33,7 +33,7 @@ export function GlassCard({
   pad = 18,
   onPress,
   hover = true,
-  glowTint = '#60A5FA',
+  glowTint = '#A78BFA',
 }: {
   children: React.ReactNode;
   style?: any;
@@ -236,7 +236,7 @@ export type NavItem = {
 
 // Per-item animated icon — scales up + tints on hover, "pulse" when active
 function AnimatedNavIcon({
-  Icon, color = '#60A5FA', size, active, hovered,
+  Icon, color = '#A78BFA', size, active, hovered,
 }: {
   Icon: LucideIcon; color?: string; size: number;
   active: boolean; hovered: boolean;
@@ -342,7 +342,7 @@ export function Sidebar({
                 <>
                   <AnimatedNavIcon
                     Icon={n.Icon}
-                    color={n.color || '#60A5FA'}
+                    color={n.color || '#A78BFA'}
                     size={collapsed ? 20 : 17}
                     active={active}
                     hovered={!!hovered}

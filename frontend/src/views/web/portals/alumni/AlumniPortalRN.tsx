@@ -28,9 +28,8 @@ import { MyApplicationsView } from './views/MyApplicationsView';
 import { MyWorkshopsView } from './views/MyWorkshopsView';
 import { MyTicketsView } from '../student/views/MyTicketsView';
 import { CareerAIView } from '../student/views/CareerAIView';
+
 import { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
-import { UniversalMotionTransition } from '@/src/views/web/components/UniversalMotionTransition';
-import { SAWatermark } from '@/src/views/web/components/SAWatermark';
 
 // Feature pages imported as components for inline rendering
 import CoursesPage from '@/app/courses';
@@ -80,7 +79,6 @@ export function AlumniPortalRN() {
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFillObject as any}
       />
-      <SAWatermark size={850} top={30} right={-30} opacity={0.16} />
 
       <Sidebar active={active} onNav={handleNav} onLogout={onLogout} />
       <View style={{ flex: 1, minWidth: 0 }}>
@@ -93,33 +91,31 @@ export function AlumniPortalRN() {
           >
             <EmbeddedShellContext.Provider value={true}>
               <PromoBanner portal="alumni" />
-              <UniversalMotionTransition deps={[active]}>
-                {active === 'dashboard'       && (
-                  <DashboardView
-                    onOpenProfile={() => setActive('profile')}
-                    onOpenInternships={() => setActive('internships')}
-                    onOpenNetwork={() => setActive('network')}
-                    onOpenEvents={() => setActive('events')}
-                    onOpenCareerAi={() => setActive('career-ai')}
-                  />
-                )}
-                {active === 'career-ai'       && <CareerAIView />}
-                {active === 'internships'     && <InternshipsView />}
-                {active === 'my-applications' && <MyApplicationsView />}
-                {active === 'network'         && <NetworkView />}
-                {active === 'my-bookings'     && <MyBookingsView />}
-                {active === 'my-tickets'      && <MyTicketsView />}
-                {active === 'events'          && <EventsView />}
-                {active === 'my-workshops'    && <MyWorkshopsView />}
-                {active === 'courses'         && <CoursesPage />}
-                {active === 'financial'       && <FinancialPage />}
-                {active === 'deals'           && <DealsPage />}
-                {active === 'wallet'          && <WalletPage />}
-                {active === 'higher-ed'       && <HigherEducationPage />}
-                {active === 'rentals'         && <RentalsPage />}
-                {active === 'profile'         && <ProfileSettingsView />}
-              </UniversalMotionTransition>
-            </EmbeddedShellContext.Provider>
+            {active === 'dashboard'       && (
+              <DashboardView
+                onOpenProfile={() => setActive('profile')}
+                onOpenInternships={() => setActive('internships')}
+                onOpenNetwork={() => setActive('network')}
+                onOpenEvents={() => setActive('events')}
+                onOpenCareerAi={() => setActive('career-ai')}
+              />
+            )}
+            {active === 'career-ai'       && <CareerAIView />}
+            {active === 'internships'     && <InternshipsView />}
+            {active === 'my-applications' && <MyApplicationsView />}
+            {active === 'network'         && <NetworkView />}
+            {active === 'my-bookings'     && <MyBookingsView />}
+            {active === 'my-tickets'      && <MyTicketsView />}
+            {active === 'events'          && <EventsView />}
+            {active === 'my-workshops'    && <MyWorkshopsView />}
+            {active === 'courses'         && <CoursesPage />}
+            {active === 'financial'       && <FinancialPage />}
+            {active === 'deals'           && <DealsPage />}
+            {active === 'wallet'          && <WalletPage />}
+            {active === 'higher-ed'       && <HigherEducationPage />}
+            {active === 'rentals'         && <RentalsPage />}
+            {active === 'profile'         && <ProfileSettingsView />}
+          </EmbeddedShellContext.Provider>
           <DashboardFooter portal="alumni" />
         </ScrollView>
         </AlumniPortalNavContext.Provider>

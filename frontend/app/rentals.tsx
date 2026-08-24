@@ -51,26 +51,26 @@ type Booking = {
 
 /* ────────── Career AI Design Tokens ────────── */
 const C = {
-  bg: '#FFFFFF',
-  bgCard: 'rgba(0, 0, 0, 0.02)',
-  bgCardHover: 'rgba(0, 0, 0, 0.04)',
-  border: 'rgba(0, 0, 0, 0.12)',
-  border2: 'rgba(0, 0, 0, 0.12)',
-  borderAccent: 'rgba(37, 99, 235, 0.25)',
-  text: '#000000',
-  text2: 'rgba(0, 0, 0, 0.85)',
-  textSub: 'rgba(0, 0, 0, 0.65)',
-  dim: 'rgba(0, 0, 0, 0.55)',
-  purple: '#2563EB',
-  purple2: '#2563EB',
-  purpleL: '#1E40AF',
-  purpleXL: '#1D4ED8',
-  teal: '#2563EB',
-  blue: '#2563EB',
-  amber: '#2563EB',
-  red: '#DC2626',
-  green: '#2563EB',
-  pink: '#2563EB',
+  bg: '#0B0D1A',
+  bgCard: 'rgba(18, 22, 35, 0.75)',
+  bgCardHover: 'rgba(26, 30, 50, 0.90)',
+  border: 'rgba(255, 255, 255, 0.08)',
+  border2: 'rgba(255, 255, 255, 0.14)',
+  borderAccent: 'rgba(99, 102, 241, 0.25)',
+  text: '#F0EEFF',
+  text2: 'rgba(240, 238, 255, 0.80)',
+  textSub: 'rgba(240, 238, 255, 0.60)',
+  dim: 'rgba(240, 238, 255, 0.45)',
+  purple: '#4F46E5',
+  purple2: '#6366F1',
+  purpleL: '#818CF8',
+  purpleXL: '#A5B4FC',
+  teal: '#2DD4BF',
+  blue: '#60A5FA',
+  amber: '#F59E0B',
+  red: '#F87171',
+  green: '#34D399',
+  pink: '#F472B6',
 };
 
 const FT = {
@@ -81,9 +81,9 @@ const FT = {
 };
 
 const ALL_CAT: CategoryDef = { id: 'all', label: 'All Rentals', iconKey: 'grid',
-  color: '#2563EB', tagline: 'Everything in one place', count: 0 };
+  color: '#A5B4FC', tagline: 'Everything in one place', count: 0 };
 
-const getCategoryIcon = (catId: string, color: string = '#2563EB', size: number = 18) => {
+const getCategoryIcon = (catId: string, color: string = '#818CF8', size: number = 18) => {
   switch (catId) {
     case 'housing': return <Home size={size} color={color} />;
     case 'vehicle': return <Car size={size} color={color} />;
@@ -175,11 +175,11 @@ export default function RentalsPage() {
     <FeaturePageShell
       title="SA Stay Rentals Marketplace"
       subtitle="Verified student housing, vehicles, stays & coworking with exclusive SA discounts"
-      accent="#2563EB"
+      accent="#6366F1"
       rightSlot={
         <View style={s.rightRow}>
           <Pressable onPress={() => setBookingsOpen(true)} style={s.bookingsPill}>
-            <Ticket size={13} color={C.blue} />
+            <Ticket size={13} color="#F59E0B" />
             <Text style={s.bookingsPillText}>My Bookings</Text>
             {bookings.length > 0 && (
               <View style={s.bookingsBadge}>
@@ -188,7 +188,7 @@ export default function RentalsPage() {
             )}
           </Pressable>
           <View style={s.verifyPill}>
-            <ShieldCheck size={13} color={C.blue} />
+            <ShieldCheck size={13} color="#34D399" />
             <Text style={s.verifyText}>All SA Verified</Text>
           </View>
         </View>
@@ -197,13 +197,13 @@ export default function RentalsPage() {
       {/* ── Career AI Ambient Glass Hero Artwork Background Container ── */}
       <View style={s.heroArtBox}>
         <LinearGradient
-          colors={['rgba(37, 99, 235, 0.12)', 'rgba(37, 99, 235, 0.04)', 'transparent']}
+          colors={['rgba(99, 102, 241, 0.15)', 'rgba(45, 212, 191, 0.05)', 'transparent']}
           style={StyleSheet.absoluteFillObject}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         />
         <View style={s.heroArtContent}>
           <View style={s.heroBadge}>
-            <Sparkles size={14} color={C.purpleL} />
+            <Sparkles size={14} color="#A5B4FC" />
             <Text style={s.heroBadgeText}>AI-MATCHED ACCOMMODATIONS & VEHICLES</Text>
           </View>
           <Text style={s.heroTitle}>Premium Stays & Mobility Near Campus</Text>
@@ -216,13 +216,13 @@ export default function RentalsPage() {
       {/* KPI Stats Strip */}
       <View style={s.statsRow}>
         <Stat label="TOTAL LISTINGS" value={String(stats.total)} sub="All categories"
-              color={C.blue} Icon={LayoutGrid} />
+              color="#A5B4FC" Icon={LayoutGrid} />
         <Stat label="SA VERIFIED" value={String(stats.verified)} sub="Guaranteed authenticity"
-              color={C.blue} Icon={ShieldCheck} />
+              color="#34D399" Icon={ShieldCheck} />
         <Stat label="FEATURED" value={String(stats.featured)} sub="Top picks of the month"
-              color={C.blue} Icon={Star} />
+              color="#F59E0B" Icon={Star} />
         <Stat label="SA DISCOUNTS" value="Up to 25%" sub="Exclusive member savings"
-              color={C.blue} Icon={Tag} />
+              color="#6366F1" Icon={Tag} />
       </View>
 
       {/* Search + City filter */}
@@ -250,8 +250,8 @@ export default function RentalsPage() {
             return (
               <Pressable key={cv} onPress={() => setCity(cv)}
                 style={[s.cityPill, active && s.cityPillActive]}>
-                <MapPin size={11} color={active ? '#2563EB' : C.dim} />
-                <Text style={[s.cityPillText, active && { color: '#2563EB' }]}>
+                <MapPin size={11} color={active ? '#A5B4FC' : C.dim} />
+                <Text style={[s.cityPillText, active && { color: '#A5B4FC' }]}>
                   {cv === 'all' ? 'All Cities' : cv}
                 </Text>
               </Pressable>
@@ -284,7 +284,7 @@ export default function RentalsPage() {
       {/* Grid of Rentals */}
       {loading ? (
         <View style={s.loadingBox}>
-          <ActivityIndicator color="#2563EB" size="large" />
+          <ActivityIndicator color="#A5B4FC" size="large" />
           <Text style={s.loadingText}>Fetching live verified rentals…</Text>
         </View>
       ) : visibleListings.length === 0 ? (
@@ -309,16 +309,16 @@ export default function RentalsPage() {
       <View style={{ marginTop: 24 }}>
         <View style={s.advisorRow}>
           {/* Advisor Card */}
-          <View style={[s.advisorCard, { borderColor: 'rgba(37, 99, 235, 0.3)' }]}>
-            <View style={[s.advisorIconBox, { backgroundColor: 'rgba(37, 99, 235, 0.15)', borderColor: 'rgba(37, 99, 235, 0.4)' }]}>
-              <PhoneCall size={20} color="#2563EB" />
+          <View style={[s.advisorCard, { borderColor: 'rgba(244, 114, 182, 0.3)' }]}>
+            <View style={[s.advisorIconBox, { backgroundColor: 'rgba(244, 114, 182, 0.15)', borderColor: 'rgba(244, 114, 182, 0.4)' }]}>
+              <PhoneCall size={20} color="#F472B6" />
             </View>
             <Text style={s.advisorTitle}>Talk to a Stay Advisor</Text>
             <Text style={s.advisorDesc}>
               Need custom housing, road-trip rentals, or group bookings near your university? Our advisors curate verified options in 4 hours.
             </Text>
             <Pressable
-              style={[s.advisorCTA, { backgroundColor: '#2563EB' }]}
+              style={[s.advisorCTA, { backgroundColor: '#EC4899' }]}
               onPress={() => setAdvisorOpen(!advisorOpen)}
             >
               <Phone size={14} color="#fff" />
@@ -327,12 +327,12 @@ export default function RentalsPage() {
             {advisorOpen && (
               <View style={s.advisorExpanded}>
                 <Pressable style={s.advisorLinkRow} onPress={() => Linking.openURL('tel:+919876543210').catch(() => {})}>
-                  <Phone size={14} color="#2563EB" />
-                  <Text style={[s.advisorLinkText, { color: '#2563EB' }]}>+91 9876543210</Text>
+                  <Phone size={14} color="#F472B6" />
+                  <Text style={[s.advisorLinkText, { color: '#F472B6' }]}>+91 9876543210</Text>
                 </Pressable>
                 <Pressable style={s.advisorLinkRow} onPress={() => Linking.openURL('mailto:advisor@studentalumni.in?subject=Help with rentals').catch(() => {})}>
-                  <Mail size={14} color="#2563EB" />
-                  <Text style={[s.advisorLinkText, { color: '#2563EB' }]}>advisor@studentalumni.in</Text>
+                  <Mail size={14} color="#F472B6" />
+                  <Text style={[s.advisorLinkText, { color: '#F472B6' }]}>advisor@studentalumni.in</Text>
                 </Pressable>
                 <Text style={s.advisorNote}>Mon–Fri · 9am – 7pm IST · response within 4 hours</Text>
               </View>
@@ -340,22 +340,22 @@ export default function RentalsPage() {
           </View>
 
           {/* My Bookings Card */}
-          <View style={[s.advisorCard, { borderColor: 'rgba(37, 99, 235, 0.3)' }]}>
-            <View style={[s.advisorIconBox, { backgroundColor: 'rgba(37, 99, 235, 0.15)', borderColor: 'rgba(37, 99, 235, 0.4)' }]}>
-              <Ticket size={20} color="#2563EB" />
+          <View style={[s.advisorCard, { borderColor: 'rgba(139, 92, 246, 0.3)' }]}>
+            <View style={[s.advisorIconBox, { backgroundColor: 'rgba(139, 92, 246, 0.15)', borderColor: 'rgba(139, 92, 246, 0.4)' }]}>
+              <Ticket size={20} color="#8B5CF6" />
             </View>
             <Text style={s.advisorTitle}>My Active Bookings</Text>
             {bookings.length > 0 ? (
               <View style={{ gap: 6, flexGrow: 1 }}>
                 <Text style={s.advisorDesc} numberOfLines={1}>
-                  <Text style={{ fontWeight: '800', color: C.text }}>Current Stay:</Text> {currentStay.listing_snapshot?.title || 'Active Booking'}
+                  <Text style={{ fontWeight: '800', color: '#fff' }}>Current Stay:</Text> {currentStay.listing_snapshot?.title || 'Active Booking'}
                 </Text>
                 <Text style={s.advisorDesc}>
-                  <Text style={{ fontWeight: '800', color: C.text }}>Dates:</Text> {fmtDate(currentStay.check_in)} – {fmtDate(currentStay.check_out)}
+                  <Text style={{ fontWeight: '800', color: '#fff' }}>Dates:</Text> {fmtDate(currentStay.check_in)} – {fmtDate(currentStay.check_out)}
                 </Text>
                 <Text style={s.advisorDesc}>
-                  <Text style={{ fontWeight: '800', color: C.text }}>Status:</Text>{' '}
-                  <Text style={{ color: C.green, fontWeight: '800' }}>{currentStay.status?.toUpperCase() || 'UNKNOWN'}</Text>
+                  <Text style={{ fontWeight: '800', color: '#fff' }}>Status:</Text>{' '}
+                  <Text style={{ color: '#34D399', fontWeight: '800' }}>{currentStay.status?.toUpperCase() || 'UNKNOWN'}</Text>
                 </Text>
                 {displayCount > 1 && (
                   <Text style={[s.advisorDesc, { color: C.dim, marginTop: 2 }]}>
@@ -369,7 +369,7 @@ export default function RentalsPage() {
               </Text>
             )}
             <Pressable
-              style={[s.advisorCTA, { backgroundColor: C.purple }]}
+              style={[s.advisorCTA, { backgroundColor: '#6366F1' }]}
               onPress={() => setBookingsOpen(true)}
             >
               <Ticket size={14} color="#fff" />
@@ -418,7 +418,7 @@ export default function RentalsPage() {
       />
 
       {/* MD3 Floating Action Button — open Stay AI Chat */}
-      <FAB icon="brain" label="Ask Stay AI" color={C.purple}
+      <FAB icon="brain" label="Ask Stay AI" color="#6366F1"
             onPress={() => setAiChatOpen(true)} />
     </FeaturePageShell>
   );
@@ -427,8 +427,8 @@ export default function RentalsPage() {
 /* ─── Rental Card Component ─────────────────────────────────── */
 function RentalCard({ r, onViewDetails }: { r: Listing; onViewDetails: () => void }) {
   return (
-    <View style={[s.card, { borderColor: 'rgba(37,99,235,0.20)' }]}>
-      <View style={[s.cover, { backgroundColor: 'rgba(37,99,235,0.12)', borderColor: 'rgba(37,99,235,0.20)' }]}>
+    <View style={[s.card, { borderColor: r.color + '33' }]}>
+      <View style={[s.cover, { backgroundColor: r.color + '1F', borderColor: r.color + '33' }]}>
         <View style={s.coverCategoryBadge}>
           {getCategoryIcon(r.category, '#FFFFFF', 20)}
         </View>
@@ -436,28 +436,23 @@ function RentalCard({ r, onViewDetails }: { r: Listing; onViewDetails: () => voi
         <View style={s.coverBadgeRow}>
           {r.verified && (
             <View style={s.badgeVerify}>
-              <ShieldCheck size={11} color="#2563EB" />
+              <ShieldCheck size={11} color="#34D399" />
               <Text style={s.badgeVerifyText}>Verified</Text>
             </View>
           )}
           {r.featured && (
             <View style={s.badgeFeat}>
-              <Star size={11} color="#1E40AF" />
+              <Star size={11} color="#F59E0B" />
               <Text style={s.badgeFeatText}>Featured</Text>
             </View>
           )}
         </View>
-        <View style={[s.discBadge, { backgroundColor: '#2563EB' }]}>
+        <View style={[s.discBadge, { backgroundColor: r.color + 'DD' }]}>
           <Text style={s.discText}>{r.discount} OFF</Text>
         </View>
       </View>
 
       <View style={{ padding: 16, gap: 10 }}>
-        {!!r.emoji && (
-          <View style={s.logoCircle}>
-            <Text style={s.logoEmoji}>{r.emoji}</Text>
-          </View>
-        )}
         <View>
           <Text style={s.title} numberOfLines={1}>{r.title}</Text>
           <View style={s.metaRow}>
@@ -472,7 +467,7 @@ function RentalCard({ r, onViewDetails }: { r: Listing; onViewDetails: () => voi
         <View style={s.amenRow}>
           {(r.amenities || []).slice(0, 3).map((a, i) => (
             <View key={i} style={s.amenChip}>
-              <Check size={10} color="#2563EB" />
+              <Check size={10} color="#A5B4FC" />
               <Text style={s.amenText}>{a}</Text>
             </View>
           ))}
@@ -480,7 +475,7 @@ function RentalCard({ r, onViewDetails }: { r: Listing; onViewDetails: () => voi
 
         {/* Rating & Availability */}
         <View style={s.ratingRow}>
-          <Star size={13} color="#2563EB" fill="#2563EB" />
+          <Star size={13} color="#F59E0B" fill="#F59E0B" />
           <Text style={s.ratingText}>{r.rating}</Text>
           <Text style={s.ratingCount}>({r.reviews} reviews)</Text>
           <View style={{ flex: 1 }} />
@@ -488,9 +483,9 @@ function RentalCard({ r, onViewDetails }: { r: Listing; onViewDetails: () => voi
         </View>
 
         {!!r.perk && (
-          <View style={[s.perkBar, { borderColor: 'rgba(37,99,235,0.25)', backgroundColor: 'rgba(37,99,235,0.08)' }]}>
-            <Sparkles size={11} color="#2563EB" />
-            <Text style={[s.perkText, { color: '#2563EB' }]} numberOfLines={1}>
+          <View style={[s.perkBar, { borderColor: r.color + '44', backgroundColor: r.color + '15' }]}>
+            <Sparkles size={11} color={r.color} />
+            <Text style={[s.perkText, { color: r.color }]} numberOfLines={1}>
               {r.perk}
             </Text>
           </View>
@@ -500,11 +495,11 @@ function RentalCard({ r, onViewDetails }: { r: Listing; onViewDetails: () => voi
         <View style={s.priceRow}>
           <View>
             <Text style={s.priceOrig}>{r.orig_label}</Text>
-            <Text style={[s.priceRent, { color: '#2563EB' }]}>{r.rent_label}</Text>
+            <Text style={[s.priceRent, { color: r.color }]}>{r.rent_label}</Text>
           </View>
           <Pressable onPress={onViewDetails}
-            style={[s.bookBtn, { borderColor: C.border }]}>
-            <Eye size={13} color={C.text2} />
+            style={[s.bookBtn, { backgroundColor: r.color }]}>
+            <Eye size={13} color="#fff" />
             <Text style={s.bookText}>View Details</Text>
           </Pressable>
         </View>
@@ -529,9 +524,9 @@ function ListingDetailsModal({
         <View style={s.detailsSheet}>
           <ScrollView showsVerticalScrollIndicator={false}>
             {/* Header / Hero Cover */}
-            <View style={[s.detailsHero, { backgroundColor: 'rgba(37,99,235,0.13)', borderColor: 'rgba(37,99,235,0.25)' }]}>
+            <View style={[s.detailsHero, { backgroundColor: listing.color + '22', borderColor: listing.color + '44' }]}>
               <View style={s.detailsCategoryBox}>
-                {getCategoryIcon(listing.category, '#2563EB', 32)}
+                {getCategoryIcon(listing.category, listing.color, 32)}
               </View>
               <Pressable onPress={onClose} style={s.detailsCloseBtn} hitSlop={12}>
                 <X size={18} color="#FFFFFF" />
@@ -540,17 +535,17 @@ function ListingDetailsModal({
               <View style={s.detailsBadgeContainer}>
                 {listing.verified && (
                   <View style={s.badgeVerify}>
-                    <ShieldCheck size={11} color="#2563EB" />
+                    <ShieldCheck size={11} color="#34D399" />
                     <Text style={s.badgeVerifyText}>SA Verified</Text>
                   </View>
                 )}
                 {listing.featured && (
                   <View style={s.badgeFeat}>
-                    <Star size={11} color="#1E40AF" />
+                    <Star size={11} color="#F59E0B" />
                     <Text style={s.badgeFeatText}>Featured Pick</Text>
                   </View>
                 )}
-                <View style={[s.discBadge, { backgroundColor: '#2563EB', position: 'relative', top: 0, right: 0 }]}>
+                <View style={[s.discBadge, { backgroundColor: listing.color, position: 'relative', top: 0, right: 0 }]}>
                   <Text style={s.discText}>{listing.discount} OFF</Text>
                 </View>
               </View>
@@ -561,10 +556,10 @@ function ListingDetailsModal({
               <View>
                 <Text style={s.detailsTitle}>{listing.title}</Text>
                 <View style={[s.metaRow, { marginTop: 6 }]}>
-                  <MapPin size={14} color="#2563EB" />
+                  <MapPin size={14} color="#A5B4FC" />
                   <Text style={[s.loc, { fontSize: 13, color: C.text2 }]}>{listing.location}, {listing.city}</Text>
                   <Text style={s.dot}>·</Text>
-                  <Text style={[s.type, { fontSize: 13, color: '#2563EB' }]}>{listing.type}</Text>
+                  <Text style={[s.type, { fontSize: 13, color: '#A5B4FC' }]}>{listing.type}</Text>
                 </View>
               </View>
 
@@ -573,13 +568,13 @@ function ListingDetailsModal({
                 <View style={s.detailsStatItem}>
                   <Text style={s.detailsStatKey}>RATING</Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                    <Star size={14} color="#2563EB" fill="#2563EB" />
+                    <Star size={14} color="#F59E0B" fill="#F59E0B" />
                     <Text style={s.detailsStatVal}>{listing.rating} ({listing.reviews} reviews)</Text>
                   </View>
                 </View>
                 <View style={s.detailsStatItem}>
                   <Text style={s.detailsStatKey}>AVAILABILITY</Text>
-                  <Text style={[s.detailsStatVal, { color: '#2563EB' }]}>{listing.available} units remaining</Text>
+                  <Text style={[s.detailsStatVal, { color: '#34D399' }]}>{listing.available} units remaining</Text>
                 </View>
                 <View style={s.detailsStatItem}>
                   <Text style={s.detailsStatKey}>ACCOMMODATION</Text>
@@ -596,9 +591,9 @@ function ListingDetailsModal({
                 </Text>
 
                 {!!listing.perk && (
-                  <View style={[s.perkBar, { borderColor: 'rgba(37,99,235,0.25)', backgroundColor: 'rgba(37,99,235,0.08)', marginTop: 10 }]}>
-                    <Sparkles size={13} color="#2563EB" />
-                    <Text style={[s.perkText, { color: '#2563EB', fontSize: 12 }]}>
+                  <View style={[s.perkBar, { borderColor: listing.color + '44', backgroundColor: listing.color + '15', marginTop: 10 }]}>
+                    <Sparkles size={13} color={listing.color} />
+                    <Text style={[s.perkText, { color: listing.color, fontSize: 12 }]}>
                       {listing.perk}
                     </Text>
                   </View>
@@ -1046,12 +1041,12 @@ function Stat({ label, value, sub, color, Icon }:
 
 const statusStyle = (status: string) => {
   if (status === 'confirmed')
-    return { color: '#2563EB', backgroundColor: 'rgba(37, 99, 235, 0.15)', borderColor: 'rgba(37, 99, 235, 0.35)' };
+    return { color: '#34D399', backgroundColor: 'rgba(52, 211, 153, 0.15)', borderColor: 'rgba(52, 211, 153, 0.35)' };
   if (status === 'pending')
-    return { color: '#1E40AF', backgroundColor: 'rgba(30, 64, 175, 0.12)', borderColor: 'rgba(30, 64, 175, 0.30)' };
+    return { color: '#F59E0B', backgroundColor: 'rgba(245, 158, 11, 0.15)', borderColor: 'rgba(245, 158, 11, 0.35)' };
   if (status === 'cancelled')
-    return { color: '#DC2626', backgroundColor: 'rgba(220, 38, 38, 0.12)', borderColor: 'rgba(220, 38, 38, 0.30)' };
-  return { color: '#2563EB', backgroundColor: 'rgba(37, 99, 235, 0.12)', borderColor: 'rgba(37, 99, 235, 0.30)' };
+    return { color: '#F87171', backgroundColor: 'rgba(248, 113, 113, 0.15)', borderColor: 'rgba(248, 113, 113, 0.35)' };
+  return { color: '#A5B4FC', backgroundColor: 'rgba(165, 180, 252, 0.15)', borderColor: 'rgba(165, 180, 252, 0.35)' };
 };
 
 /* ────────── Career AI Styles ────────── */
@@ -1059,19 +1054,19 @@ const s = StyleSheet.create({
   rightRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   bookingsPill: { flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
-    backgroundColor: 'rgba(37, 99, 235, 0.12)',
-    borderColor: 'rgba(37, 99, 235, 0.35)', borderWidth: 1,
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    borderColor: 'rgba(245, 158, 11, 0.35)', borderWidth: 1,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  bookingsPillText: { color: '#2563EB', fontFamily: FT.xbold, fontSize: 11 },
+  bookingsPillText: { color: '#F59E0B', fontFamily: FT.xbold, fontSize: 11 },
   bookingsBadge: { paddingHorizontal: 6, height: 16, borderRadius: 999,
-    backgroundColor: '#2563EB', alignItems: 'center', justifyContent: 'center' },
-  bookingsBadgeText: { color: '#FFFFFF', fontFamily: FT.xbold, fontSize: 9 },
+    backgroundColor: '#F59E0B', alignItems: 'center', justifyContent: 'center' },
+  bookingsBadgeText: { color: '#0B0D1A', fontFamily: FT.xbold, fontSize: 9 },
 
   verifyPill: { flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
-    backgroundColor: 'rgba(37, 99, 235, 0.12)',
-    borderColor: 'rgba(37, 99, 235, 0.35)', borderWidth: 1 },
-  verifyText: { color: '#2563EB', fontFamily: FT.xbold, fontSize: 11 },
+    backgroundColor: 'rgba(52, 211, 153, 0.12)',
+    borderColor: 'rgba(52, 211, 153, 0.35)', borderWidth: 1 },
+  verifyText: { color: '#34D399', fontFamily: FT.xbold, fontSize: 11 },
 
   /* Hero Artwork Box */
   heroArtBox: {
@@ -1082,9 +1077,9 @@ const s = StyleSheet.create({
   heroArtContent: { padding: 20, gap: 8 },
   heroBadge: { flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
-    backgroundColor: 'rgba(37, 99, 235, 0.15)', alignSelf: 'flex-start',
-    borderWidth: 1, borderColor: 'rgba(37, 99, 235, 0.35)' },
-  heroBadgeText: { color: '#2563EB', fontFamily: FT.xbold, fontSize: 10, letterSpacing: 0.8 },
+    backgroundColor: 'rgba(99, 102, 241, 0.20)', alignSelf: 'flex-start',
+    borderWidth: 1, borderColor: 'rgba(99, 102, 241, 0.35)' },
+  heroBadgeText: { color: '#A5B4FC', fontFamily: FT.xbold, fontSize: 10, letterSpacing: 0.8 },
   heroTitle: { color: C.text, fontFamily: FT.xbold, fontSize: 22 },
   heroSub: { color: C.textSub, fontFamily: FT.med, fontSize: 13, lineHeight: 19, maxWidth: 720 },
 
@@ -1111,7 +1106,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999,
     backgroundColor: C.bgCard, borderColor: C.border,
     borderWidth: 1, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  cityPillActive: { backgroundColor: 'rgba(37, 99, 235, 0.15)', borderColor: '#2563EB' },
+  cityPillActive: { backgroundColor: 'rgba(99, 102, 241, 0.20)', borderColor: '#6366F1' },
   cityPillText: { color: C.textSub, fontFamily: FT.bold, fontSize: 11.5 },
 
   kicker: { color: C.dim, fontFamily: FT.xbold,
@@ -1123,13 +1118,13 @@ const s = StyleSheet.create({
     borderWidth: 1, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   tabText: { color: C.textSub, fontFamily: FT.bold, fontSize: 12.5 },
   tabCount: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 999,
-    backgroundColor: 'rgba(37, 99, 235, 0.12)' },
-  tabCountText: { color: '#2563EB', fontFamily: FT.xbold, fontSize: 10 },
+    backgroundColor: 'rgba(255, 255, 255, 0.08)' },
+  tabCountText: { color: '#fff', fontFamily: FT.xbold, fontSize: 10 },
 
   loadingBox: { paddingVertical: 50, alignItems: 'center', gap: 12 },
   loadingText: { color: C.textSub, fontFamily: FT.med, fontSize: 13 },
   emptyBox: { paddingVertical: 50, alignItems: 'center', gap: 10 },
-  emptyTitle: { color: C.text, fontFamily: FT.xbold, fontSize: 15, marginTop: 4 },
+  emptyTitle: { color: '#fff', fontFamily: FT.xbold, fontSize: 15, marginTop: 4 },
   emptySub: { color: C.dim, fontFamily: FT.med, fontSize: 12.5 },
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
@@ -1142,14 +1137,14 @@ const s = StyleSheet.create({
   coverBadgeRow: { position: 'absolute', top: 10, left: 10, flexDirection: 'row', gap: 6 },
   badgeVerify: { flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999,
-    backgroundColor: 'rgba(37, 99, 235, 0.12)',
-    borderColor: 'rgba(37, 99, 235, 0.30)', borderWidth: 1 },
-  badgeVerifyText: { color: '#2563EB', fontFamily: FT.xbold, fontSize: 9.5 },
+    backgroundColor: 'rgba(52, 211, 153, 0.15)',
+    borderColor: 'rgba(52, 211, 153, 0.35)', borderWidth: 1 },
+  badgeVerifyText: { color: '#34D399', fontFamily: FT.xbold, fontSize: 9.5 },
   badgeFeat: { flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999,
-    backgroundColor: 'rgba(30, 64, 175, 0.12)',
-    borderColor: 'rgba(30, 64, 175, 0.30)', borderWidth: 1 },
-  badgeFeatText: { color: '#1E40AF', fontFamily: FT.xbold, fontSize: 9.5 },
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    borderColor: 'rgba(245, 158, 11, 0.35)', borderWidth: 1 },
+  badgeFeatText: { color: '#F59E0B', fontFamily: FT.xbold, fontSize: 9.5 },
   discBadge: { position: 'absolute', top: 10, right: 10,
     paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
   discText: { color: '#fff', fontFamily: FT.xbold, fontSize: 10.5, letterSpacing: 0.4 },
@@ -1167,9 +1162,9 @@ const s = StyleSheet.create({
   amenText: { color: C.textSub, fontFamily: FT.bold, fontSize: 10.5 },
 
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  ratingText: { color: C.text, fontFamily: FT.xbold, fontSize: 12.5 },
+  ratingText: { color: '#fff', fontFamily: FT.xbold, fontSize: 12.5 },
   ratingCount: { color: C.dim, fontFamily: FT.med, fontSize: 11 },
-  available: { color: '#2563EB', fontFamily: FT.bold, fontSize: 11 },
+  available: { color: '#34D399', fontFamily: FT.bold, fontSize: 11 },
 
   perkBar: { flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8, borderWidth: 1 },
@@ -1177,31 +1172,29 @@ const s = StyleSheet.create({
 
   priceRow: { flexDirection: 'row', alignItems: 'flex-end',
     justifyContent: 'space-between', marginTop: 4 },
-  priceOrig: { color: C.dim, textDecorationLine: 'line-through', fontFamily: FT.med, fontSize: 12 },
+  priceOrig: { color: C.dim, fontFamily: FT.med,
+    fontSize: 11.5, textDecorationLine: 'line-through' },
+  priceRent: { fontFamily: FT.xbold, fontSize: 17, marginTop: 1 },
   bookBtn: { flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, borderWidth: 1,
-    backgroundColor: 'rgba(0,0,0,0.04)',
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  bookText: { color: C.text2, fontFamily: FT.bold, fontSize: 11.5 },
-  logoCircle: { width: 48, height: 48, borderRadius: 14,
-    backgroundColor: 'rgba(0,0,0,0.04)', borderWidth: 1, borderColor: C.border,
-    alignItems: 'center', justifyContent: 'center' },
-  logoEmoji: { fontSize: 26 },
+    paddingHorizontal: 14, height: 36, borderRadius: 999,
+    justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  bookText: { color: '#fff', fontFamily: FT.xbold,
+    fontSize: 12, letterSpacing: 0.3 },
 
   /* Modal Base */
-  overlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.60)',
+  overlay: { flex: 1, backgroundColor: 'rgba(7, 9, 20, 0.85)',
     justifyContent: 'center', alignItems: 'center', padding: 16 },
 
   /* STEP 1: Details Sheet */
   detailsSheet: { width: '100%', maxWidth: 580, maxHeight: '92%',
-    backgroundColor: '#FFFFFF', borderRadius: 20,
-    borderColor: C.border, borderWidth: 1, overflow: 'hidden' },
+    backgroundColor: '#0F1222', borderRadius: 20,
+    borderColor: C.border2, borderWidth: 1, overflow: 'hidden' },
   detailsHero: { height: 130, padding: 16, justifyContent: 'space-between',
     position: 'relative', borderBottomWidth: 1 },
   detailsCategoryBox: { width: 56, height: 56, borderRadius: 16,
-    backgroundColor: 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center' },
+    backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
   detailsCloseBtn: { position: 'absolute', top: 14, right: 14, width: 32, height: 32,
-    borderRadius: 999, backgroundColor: 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center',
+    borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.10)', alignItems: 'center', justifyContent: 'center',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   detailsBadgeContainer: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   detailsTitle: { color: C.text, fontFamily: FT.xbold, fontSize: 20 },
@@ -1221,8 +1214,8 @@ const s = StyleSheet.create({
 
   /* STEP 2: Booking Sheet */
   sheet: { width: '100%', maxWidth: 540, maxHeight: '92%',
-    backgroundColor: '#FFFFFF', borderRadius: 20, padding: 20,
-    borderColor: C.border, borderWidth: 1 },
+    backgroundColor: '#0F1222', borderRadius: 20, padding: 20,
+    borderColor: C.border2, borderWidth: 1 },
   sheetHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
   sheetIconBox: { width: 48, height: 48, borderRadius: 12,
     borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
@@ -1266,8 +1259,8 @@ const s = StyleSheet.create({
     textAlign: 'center', marginTop: 12 },
 
   /* Confirmation Modal */
-  confirmSheet: { width: '100%', maxWidth: 460, backgroundColor: '#FFFFFF',
-    borderRadius: 20, padding: 24, borderColor: C.border,
+  confirmSheet: { width: '100%', maxWidth: 460, backgroundColor: '#0F1222',
+    borderRadius: 20, padding: 24, borderColor: 'rgba(245, 158, 11, 0.35)',
     borderWidth: 1, alignItems: 'center' },
   confirmIconBox: { width: 72, height: 72, borderRadius: 999,
     backgroundColor: 'rgba(245, 158, 11, 0.15)',
@@ -1281,7 +1274,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
     backgroundColor: 'rgba(165, 180, 252, 0.15)',
     borderColor: 'rgba(165, 180, 252, 0.35)', borderWidth: 1, marginTop: 12 },
-  confirmIdText: { color: C.purple, fontFamily: FT.xbold, fontSize: 11.5 },
+  confirmIdText: { color: '#A5B4FC', fontFamily: FT.xbold, fontSize: 11.5 },
   confirmGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10,
     marginTop: 16, width: '100%' },
   confirmCell: { flexBasis: '48%', flexGrow: 1, padding: 12, borderRadius: 10,
@@ -1294,10 +1287,10 @@ const s = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999,
     backgroundColor: 'rgba(245, 158, 11, 0.15)',
     borderColor: 'rgba(245, 158, 11, 0.40)', borderWidth: 1, marginTop: 14 },
-  savingsText: { color: C.amber, fontFamily: FT.xbold, fontSize: 12 },
+  savingsText: { color: '#F59E0B', fontFamily: FT.xbold, fontSize: 12 },
   confirmCTA: { flexDirection: 'row', alignItems: 'center', gap: 8,
     paddingHorizontal: 20, height: 44, borderRadius: 12,
-    backgroundColor: C.purple, alignSelf: 'stretch', justifyContent: 'center',
+    backgroundColor: '#6366F1', alignSelf: 'stretch', justifyContent: 'center',
     marginTop: 16, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   confirmCTAText: { color: '#fff', fontFamily: FT.xbold, fontSize: 13.5 },
   confirmDismiss: { paddingVertical: 8, alignSelf: 'stretch',
@@ -1306,15 +1299,15 @@ const s = StyleSheet.create({
 
   /* Bookings Drawer */
   drawer: { width: '100%', maxWidth: 600, maxHeight: '92%',
-    backgroundColor: '#FFFFFF', borderRadius: 20, padding: 20,
-    borderColor: C.border, borderWidth: 1 },
+    backgroundColor: '#0F1222', borderRadius: 20, padding: 20,
+    borderColor: C.border2, borderWidth: 1 },
   drawerHeader: { flexDirection: 'row', alignItems: 'center',
     justifyContent: 'space-between', marginBottom: 16 },
   drawerTitle: { color: C.text, fontFamily: FT.xbold, fontSize: 17 },
   drawerCountBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999,
     backgroundColor: 'rgba(165, 180, 252, 0.15)',
     borderColor: 'rgba(165, 180, 252, 0.35)', borderWidth: 1 },
-  drawerCountText: { color: C.purple, fontFamily: FT.xbold, fontSize: 11 },
+  drawerCountText: { color: '#A5B4FC', fontFamily: FT.xbold, fontSize: 11 },
   emptyDrawer: { paddingVertical: 60, alignItems: 'center', gap: 8 },
 
   bookingCard: { padding: 16, borderRadius: 14, borderWidth: 1,
@@ -1330,7 +1323,7 @@ const s = StyleSheet.create({
   bookingFacts: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
   factCell: { flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 9, paddingVertical: 5, borderRadius: 6,
-    backgroundColor: 'rgba(0, 0, 0, 0.05)' },
+    backgroundColor: 'rgba(255,255,255,0.05)' },
   factText: { color: C.textSub, fontFamily: FT.bold, fontSize: 11.5 },
 
   bookingTimeline: { marginTop: 12, gap: 4 },
@@ -1365,7 +1358,8 @@ const s = StyleSheet.create({
   advisorCTA: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     paddingVertical: 12, borderRadius: 10, marginTop: 'auto',
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
   advisorCTAText: { color: '#fff', fontSize: 13, fontFamily: FT.xbold },
   advisorExpanded: {
     marginTop: 8, paddingTop: 12,

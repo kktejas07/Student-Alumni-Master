@@ -291,7 +291,7 @@ export function FeedbackView({ demoMode = false, setDemoMode }: { demoMode?: boo
             Demo Mode · Sample data is displayed for demonstration purposes.{' '}
             <Text 
               onPress={() => setDemoMode?.(false)}
-              style={{ textDecorationLine: 'underline', color: '#1C1C1E', fontFamily: FONTS.bold }}
+              style={{ textDecorationLine: 'underline', color: '#fff', fontFamily: FONTS.bold }}
             >
               Switch to Live Mode
             </Text>
@@ -600,7 +600,7 @@ export function FeedbackView({ demoMode = false, setDemoMode }: { demoMode?: boo
       ) : (
         <View style={[s.card, { alignItems: 'center', paddingVertical: 40 }]}>
           <Star size={48} color={MC.dim} style={{ marginBottom: 12 }} />
-          <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: '#1C1C1E', marginBottom: 4 }}>No student reviews yet</Text>
+          <Text style={[s.cardTitle, { marginBottom: 4 }]}>No student reviews yet</Text>
           <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 13, textAlign: 'center', paddingHorizontal: 20 }}>
             Reviews and student feedback will appear here after you conduct mentoring sessions.
           </Text>
@@ -625,7 +625,7 @@ const s = StyleSheet.create({
     marginBottom: 4,
   },
   mainTitle: {
-    color: '#1C1C1E',
+    color: '#fff',
     fontFamily: FONTS.xbold,
     fontSize: 22,
     letterSpacing: -0.5,
@@ -680,7 +680,7 @@ const s = StyleSheet.create({
     fontSize: 12,
   },
   accordionTriggerTextActive: {
-    color: '#1C1C1E',
+    color: '#fff',
   },
   accordionBody: {
     backgroundColor: 'rgba(245,158,11,0.02)',
@@ -716,7 +716,7 @@ const s = StyleSheet.create({
     fontSize: 13,
   },
   hugeValue: {
-    color: '#1C1C1E',
+    color: '#fff',
     fontFamily: FONTS.xbold,
     fontSize: 38,
     letterSpacing: -1,
@@ -809,7 +809,7 @@ const s = StyleSheet.create({
     fontSize: 9.5,
   },
   chartBarMonthActive: {
-    color: '#1C1C1E',
+    color: '#fff',
     fontFamily: FONTS.bold,
   },
   filterContainer: {
@@ -870,7 +870,7 @@ const s = StyleSheet.create({
     fontSize: 12.5,
   },
   filterPillTextActive: {
-    color: '#1C1C1E',
+    color: '#fff',
     fontFamily: FONTS.bold,
   },
   reviewCard: {
@@ -887,7 +887,7 @@ const s = StyleSheet.create({
     gap: 10,
   },
   studentName: {
-    color: '#1C1C1E',
+    color: '#fff',
     fontFamily: FONTS.bold,
     fontSize: 13.5,
   },
@@ -938,7 +938,7 @@ const s = StyleSheet.create({
     letterSpacing: 0.6,
   },
   replyBoxBody: {
-    color: '#1C1C1E',
+    color: '#fff',
     fontFamily: FONTS.med,
     fontSize: 12.5,
     lineHeight: 18,
@@ -972,7 +972,7 @@ const s = StyleSheet.create({
     minHeight: 60,
   },
   replyTextInput: {
-    color: '#1C1C1E',
+    color: '#fff',
     fontFamily: FONTS.med,
     fontSize: 13,
     minHeight: 40,

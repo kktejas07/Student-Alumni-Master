@@ -1,7 +1,7 @@
 # Start the backend using the project's virtual environment Python
 # This ensures all dependencies (including slowapi) are available.
 
-$VENV_PYTHON = "$PSScriptRoot\venv\Scripts\python.exe"
+$VENV_PYTHON = Join-Path $PSScriptRoot "venv" "Scripts" "python.exe"
 
 if (-not (Test-Path $VENV_PYTHON)) {
     Write-Error "Virtual environment not found at $VENV_PYTHON"
@@ -13,5 +13,5 @@ if (-not (Test-Path $VENV_PYTHON)) {
 Write-Host "Using: $VENV_PYTHON"
 & $VENV_PYTHON --version
 
-Write-Host "Starting uvicorn on http://127.0.0.1:8002 ..."
-& $VENV_PYTHON -m uvicorn server:app --reload --port 8002
+Write-Host "Starting uvicorn on http://127.0.0.1:8000 ..."
+& $VENV_PYTHON -m uvicorn server:app --reload

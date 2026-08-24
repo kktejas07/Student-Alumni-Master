@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     maxWidth: 640,
     minWidth: 0,
-    backgroundColor: '#1E40AF',
+    backgroundColor: '#5B21B6',
     overflow: 'hidden',
     position: 'relative',
     ...Platform.select({ web: { display: 'flex' as any } }),
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
     position: 'relative',
     overflow: 'hidden',
     ...({ backdropFilter: 'blur(24px)' } as any),
-    boxShadow: '0px 16px 48px rgba(37,99,235,0.25)',
+    boxShadow: '0px 16px 48px rgba(124,58,237,0.25)',
   },
   cardHalo: {
     position: 'absolute',
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
     width: 260,
     height: 260,
     borderRadius: 999,
-    backgroundColor: 'rgba(37,99,235,0.22)',
+    backgroundColor: 'rgba(124,58,237,0.22)',
     ...({ filter: 'blur(80px)' } as any),
   },
 });

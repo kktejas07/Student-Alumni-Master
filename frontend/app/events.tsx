@@ -31,8 +31,8 @@ const C = {
   bg: '#0A051A',
   card: '#111827',
   border: '#1F2937',
-  primary: '#2563EB',
-  primaryDim: '#1E40AF',
+  primary: '#7C3AED',
+  primaryDim: '#5B21B6',
   green: '#10B981',
   amber: '#F59E0B',
   red: '#EF4444',
@@ -507,7 +507,7 @@ export default function EventsScreen() {
             advisorDesc="Need help discovering the right hackathons or workshops? Our advisors curate them for you."
             aiTitle="Ask the Events AI"
             aiDesc="What's trending this week? Which event matches my profile? Ask anything 24×7."
-            advisorAccent="#60A5FA"
+            advisorAccent="#A78BFA"
             aiAccent="#10B981"
             advisorIcon="calendar-account"
             aiIcon="robot-excited"
@@ -909,7 +909,7 @@ function EventCard({
           </View>
         ) : (
           <View style={[s.priceBadge, { backgroundColor: C.primary + '22', borderColor: C.primary }]}>
-            <Text style={[s.priceBadgeText, { color: '#60A5FA' }]}>₹{ev.price_amount}</Text>
+            <Text style={[s.priceBadgeText, { color: '#A78BFA' }]}>₹{ev.price_amount}</Text>
           </View>
         )}
       </View>
@@ -1090,7 +1090,7 @@ function DetailPanel({
                     <Text style={s.detailKey}>Price</Text>
                     <Text style={s.detailVal}>
                       {isFree ? <Text style={{ color: C.green, fontWeight: '700' }}>Free</Text> :
-                        <Text style={{ color: '#60A5FA', fontWeight: '700' }}>₹{ev.price_amount}</Text>}
+                        <Text style={{ color: '#A78BFA', fontWeight: '700' }}>₹{ev.price_amount}</Text>}
                     </Text>
                   </View>
                   {ev.capacity ? (
@@ -1613,7 +1613,7 @@ const s = StyleSheet.create({
     overflow: 'hidden', position: 'relative',
     ...(Platform.OS === 'web' ? { transitionProperty: 'transform, border-color, box-shadow', transitionDuration: '200ms' } : {}) as any,
   },
-  cardHover: { borderColor: C.primary + '99', transform: [{ translateY: -2 }] as any, ...(Platform.OS === 'web' ? { boxShadow: '0 8px 24px rgba(37,99,235,0.18)' } : {}) as any },
+  cardHover: { borderColor: C.primary + '99', transform: [{ translateY: -2 }] as any, ...(Platform.OS === 'web' ? { boxShadow: '0 8px 24px rgba(124,58,237,0.18)' } : {}) as any },
   cardImg: { width: '100%', height: 130, backgroundColor: C.bg },
   cardTopRow: { position: 'absolute', top: 10, left: 10, flexDirection: 'row', gap: 6 },
   typeChip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1 },
@@ -1699,7 +1699,7 @@ const s = StyleSheet.create({
   topicPillText: { color: '#94A3B8', fontSize: 10, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4 },
 
   // Host event button + approvals row
-  hostBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 9, backgroundColor: C.primary, borderRadius: 999, ...(Platform.OS === 'web' ? { boxShadow: '0 4px 12px rgba(37,99,235,0.4)' } : {}) as any },
+  hostBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 9, backgroundColor: C.primary, borderRadius: 999, ...(Platform.OS === 'web' ? { boxShadow: '0 4px 12px rgba(124,58,237,0.4)' } : {}) as any },
   hostBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
   approvalRow: { flexDirection: 'row', gap: 8, marginTop: 8 },
   approveBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: 8 },

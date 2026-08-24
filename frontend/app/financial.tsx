@@ -19,14 +19,14 @@ const Icon = (props: { name: IconName; size?: number; color?: string;
   <MaterialCommunityIcons name={props.name} size={props.size}
     color={props.color} style={props.style} />;
 
-const C = { text: '#000', text2: 'rgba(0,0,0,0.85)', text3: 'rgba(0,0,0,0.65)', border: 'rgba(0,0,0,0.12)' };
+const C = { text: '#fff', text2: 'rgba(255,255,255,0.70)', text3: 'rgba(255,255,255,0.45)', border: 'rgba(255,255,255,0.09)' };
 
 const TABS = [
-  { id: 'scholarships', label: 'Funding',       icon: 'trophy-award' as IconName,    color: '#2563EB', api: '/financial/scholarships/search' },
-  { id: 'loans',        label: 'Education Loans', icon: 'bank-outline' as IconName,    color: '#2563EB', api: '/financial/loans/search' },
-  { id: 'startup',      label: 'Startup Funding', icon: 'rocket-launch' as IconName,   color: '#2563EB', api: '/financial/startup-funding/search' },
-  { id: 'investors',    label: 'Investors & VCs', icon: 'trending-up' as IconName,     color: '#2563EB', api: '/financial/venture-capital/search' },
-  { id: 'insurance',    label: 'Insurance',       icon: 'shield-outline' as IconName,  color: '#2563EB', api: '/financial/insurance/search' },
+  { id: 'scholarships', label: 'Funding',       icon: 'trophy-award' as IconName,    color: '#F97316', api: '/financial/scholarships/search' },
+  { id: 'loans',        label: 'Education Loans', icon: 'bank-outline' as IconName,    color: '#3B82F6', api: '/financial/loans/search' },
+  { id: 'startup',      label: 'Startup Funding', icon: 'rocket-launch' as IconName,   color: '#14B8A6', api: '/financial/startup-funding/search' },
+  { id: 'investors',    label: 'Investors & VCs', icon: 'trending-up' as IconName,     color: '#6366F1', api: '/financial/venture-capital/search' },
+  { id: 'insurance',    label: 'Insurance',       icon: 'shield-outline' as IconName,  color: '#10B981', api: '/financial/insurance/search' },
 ];
 
 const AI_LABELS: Record<string, string> = {
@@ -112,21 +112,21 @@ function EmiSlider({ label, value, setValue, min, max, step, fmt, prefix = '', s
           {React.createElement('input' as any, {
             type: 'range', min, max, step, value,
             onChange: (e: any) => setValue(Number(e.target.value)),
-            style: { width: '100%', accentColor: '#2563EB', cursor: 'pointer' },
+            style: { width: '100%', accentColor: '#7C3AED', cursor: 'pointer' },
           })}
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.04)', borderRadius: 6, borderWidth: 1, borderColor: 'rgba(0,0,0,0.12)', paddingHorizontal: 8, height: 28, marginTop: 6 }}>
-          {prefix ? <Text style={{ color: 'rgba(0,0,0,0.4)', fontSize: 11, marginRight: 2 }}>{prefix}</Text> : null}
+        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 6, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', paddingHorizontal: 8, height: 28, marginTop: 6 }}>
+          {prefix ? <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginRight: 2 }}>{prefix}</Text> : null}
           <TextInput
             value={typedValue}
             onChangeText={handleTextChange}
             onBlur={handleBlur}
             keyboardType="numeric"
             placeholder={`Enter ${label.toLowerCase()}...`}
-            placeholderTextColor="rgba(0,0,0,0.3)"
-            style={{ color: '#000', fontSize: 11.5, flex: 1, paddingVertical: 0, paddingHorizontal: 0, height: '100%', backgroundColor: 'transparent', outlineStyle: 'none', borderWidth: 0 } as any}
+            placeholderTextColor="rgba(255,255,255,0.3)"
+            style={{ color: '#fff', fontSize: 11.5, flex: 1, paddingVertical: 0, paddingHorizontal: 0, height: '100%', backgroundColor: 'transparent', outlineStyle: 'none', borderWidth: 0 } as any}
           />
-          {suffix ? <Text style={{ color: 'rgba(0,0,0,0.4)', fontSize: 11, marginLeft: 2 }}>{suffix}</Text> : null}
+          {suffix ? <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginLeft: 2 }}>{suffix}</Text> : null}
         </View>
       </View>
     );
@@ -140,7 +140,7 @@ function EmiSlider({ label, value, setValue, min, max, step, fmt, prefix = '', s
         onChangeText={handleTextChange}
         onBlur={handleBlur}
         keyboardType="numeric"
-        style={{ color: '#000', borderWidth: 1, borderColor: 'rgba(0,0,0,0.18)', borderRadius: 8, padding: 8, marginTop: 4 }}
+        style={{ color: '#fff', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', borderRadius: 8, padding: 8, marginTop: 4 }}
       />
     </View>
   );
@@ -306,14 +306,14 @@ export default function FinancialPage() {
       title="Financial Services"
       subtitle="Funding, education loans, investors, insurance — matched to your profile."
       heroEmoji="💰"
-      accent="#2563EB"
-      rightSlot={<View style={s.savPill}><Icon name="wallet-outline" size={12} color="#2DD4BF" /><Text style={s.savPillText}>SA Savings Advisor</Text></View>}
+      accent="#5F259F"
+      rightSlot={<View style={s.savPill}><Icon name="wallet-outline" size={12} color="#86EFAC" /><Text style={s.savPillText}>SA Savings Advisor</Text></View>}
     >
       <View style={s.statsRow}>
-        <Stat label="HIGH MATCH FUNDING" value="3+" sub="Matched to you" color="#2563EB" iconName="trophy-award" />
-        <Stat label="FREE GRANTS" value="4+" sub="Zero repayment" color="#2563EB" iconName="auto-fix" />
-        <Stat label="ALUMNI INVESTORS" value="2+" sub="Active pitch pipeline" color="#2563EB" iconName="trending-up" />
-        <Stat label="TAX BENEFIT" value="Available" sub="Under Sec 80C / 80E" color="#2563EB" iconName="check-decagram" />
+        <Stat label="HIGH MATCH FUNDING" value="3+" sub="Matched to you" color="#F97316" iconName="trophy-award" />
+        <Stat label="FREE GRANTS" value="4+" sub="Zero repayment" color="#14B8A6" iconName="auto-fix" />
+        <Stat label="ALUMNI INVESTORS" value="2+" sub="Active pitch pipeline" color="#6366F1" iconName="trending-up" />
+        <Stat label="TAX BENEFIT" value="Available" sub="Under Sec 80C / 80E" color="#22C55E" iconName="check-decagram" />
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingRight: 12 }}>
@@ -321,7 +321,7 @@ export default function FinancialPage() {
           const active = tab === t.id;
           return (
             <Pressable key={t.id} onPress={() => setTab(t.id)} style={[s.tab, active && { backgroundColor: t.color + '22', borderColor: t.color + '66' }]}>
-              <MaterialCommunityIcons name={t.icon} size={14} color={active ? t.color : 'rgba(0,0,0,0.55)'} />
+              <MaterialCommunityIcons name={t.icon} size={14} color={active ? t.color : 'rgba(255,255,255,0.65)'} />
               <Text style={[s.tabText, active && { color: t.color }]}>{t.label}</Text>
             </Pressable>
           );
@@ -330,7 +330,7 @@ export default function FinancialPage() {
 
       {/* AI Helper button */}
       <Pressable style={s.aiHelper} onPress={() => setAiOpen(!aiOpen)}>
-        <Icon name="auto-fix" size={14} color="#2563EB" />
+        <Icon name="auto-fix" size={14} color="#A78BFA" />
         <Text style={s.aiHelperText}>{AI_LABELS[tab]}</Text>
         <Icon name="chevron-down" size={14} color="rgba(255,255,255,0.5)" style={{ transform: [{ rotate: aiOpen ? '180deg' : '0deg' }] }} />
       </Pressable>
@@ -376,7 +376,7 @@ export default function FinancialPage() {
                     <Text style={s.aiTop3Name}>{t.name}</Text>
                   </View>
                   <View style={s.matchBadge}>
-                    <Icon name="auto-fix" size={10} color="#2563EB" />
+                    <Icon name="auto-fix" size={10} color="#86EFAC" />
                     <Text style={s.matchText}>{t.match_score}%</Text>
                   </View>
                 </View>
@@ -390,7 +390,7 @@ export default function FinancialPage() {
       {tab === 'loans' && (
         <View style={s.emiBox}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-            <Icon name="calculator-variant" size={18} color="#2563EB" />
+            <Icon name="calculator-variant" size={18} color="#A78BFA" />
             <Text style={s.emiTitle}>EMI Calculator</Text>
           </View>
           <View style={s.emiGrid}>
@@ -402,7 +402,7 @@ export default function FinancialPage() {
             <View style={s.emiSummary}>
               <View style={s.emiCol}>
                 <Text style={s.emiColLabel}>Monthly EMI</Text>
-                <Text style={[s.emiColValue, { color: '#2563EB' }]}>₹{Math.round(emi.monthly_emi).toLocaleString('en-IN')}</Text>
+                <Text style={[s.emiColValue, { color: '#A78BFA' }]}>₹{Math.round(emi.monthly_emi).toLocaleString('en-IN')}</Text>
               </View>
               <View style={s.emiCol}>
                 <Text style={s.emiColLabel}>Total Payable</Text>
@@ -410,15 +410,15 @@ export default function FinancialPage() {
               </View>
               <View style={s.emiCol}>
                 <Text style={s.emiColLabel}>Total Interest</Text>
-                <Text style={[s.emiColValue, { color: '#2563EB' }]}>₹{Math.round(emi.total_interest).toLocaleString('en-IN')}</Text>
+                <Text style={[s.emiColValue, { color: '#FCA5A5' }]}>₹{Math.round(emi.total_interest).toLocaleString('en-IN')}</Text>
               </View>
             </View>
           )}
         </View>
       )}
- 
+
       {loading ? (
-        <ActivityIndicator color="#2563EB" style={{ marginTop: 32 }} />
+        <ActivityIndicator color="#7C3AED" style={{ marginTop: 32 }} />
       ) : items.length === 0 ? (
         <View style={{ paddingVertical: 40, alignItems: 'center' }}>
           <Text style={{ color: 'rgba(255,255,255,0.5)' }}>No items found.</Text>
@@ -426,7 +426,7 @@ export default function FinancialPage() {
       ) : (
       <View style={s.grid}>
         {items.map((p) => {
-          const tint = '#2563EB';
+          const tint = p.tint || tabInfo.color;
           const ms = p.match_score ?? 0;
           const amountStr = p.interest_rate && tab === 'loans'
             ? `${rangeFmt(p)} · ${p.interest_rate}% p.a.`
@@ -445,7 +445,7 @@ export default function FinancialPage() {
                 </View>
                 {ms > 0 && (
                   <View style={s.matchBadge}>
-                    <Icon name="auto-fix" size={10} color="#2563EB" />
+                    <Icon name="auto-fix" size={10} color="#86EFAC" />
                     <Text style={s.matchText}>{ms}%</Text>
                   </View>
                 )}
@@ -462,8 +462,8 @@ export default function FinancialPage() {
                   <View style={s.metaPill}><Text style={s.metaPillText}>{p.stage.replace('_', ' ')}</Text></View>
                 )}
                 {p.status && p.status !== 'open' && (
-                  <View style={[s.metaPill, p.status === 'closing_soon' && { backgroundColor: '#2563EB22', borderColor: '#2563EB' }, p.status === 'closed' && { backgroundColor: '#2563EB22', borderColor: '#2563EB' }]}>
-                    <Text style={[s.metaPillText, p.status === 'closing_soon' && { color: '#2563EB' }, p.status === 'closed' && { color: '#2563EB' }]}>
+                  <View style={[s.metaPill, p.status === 'closing_soon' && { backgroundColor: '#F59E0B22', borderColor: '#F59E0B' }, p.status === 'closed' && { backgroundColor: '#EF444422', borderColor: '#EF4444' }]}>
+                    <Text style={[s.metaPillText, p.status === 'closing_soon' && { color: '#FCD34D' }, p.status === 'closed' && { color: '#FCA5A5' }]}>
                       {p.status === 'closing_soon' ? 'Closing soon' : 'Closed'}
                     </Text>
                   </View>
@@ -505,14 +505,14 @@ export default function FinancialPage() {
       {/* Advisor + AI Chat CTAs */}
       <View style={s.ctaRow}>
         {/* Advisor card */}
-        <View style={[s.ctaCard, { borderColor: '#2563EB55' }]}>
-          <View style={[s.iconBox, { backgroundColor: '#2563EB22', borderColor: '#2563EB55', width: 38, height: 38 }]}>
-            <MaterialCommunityIcons name="target" size={18} color="#2563EB" />
+        <View style={[s.ctaCard, { borderColor: '#8B5CF655' }]}>
+          <View style={[s.iconBox, { backgroundColor: '#8B5CF622', borderColor: '#8B5CF655', width: 38, height: 38 }]}>
+            <MaterialCommunityIcons name="target" size={18} color="#8B5CF6" />
           </View>
           <Text style={s.ctaTitle}>Talk to a Student Advisor</Text>
           <Text style={s.ctaSub}>Need personalised financial advice? Connect with our dedicated student advisors.</Text>
           <Pressable
-            style={[s.ctaBtn, { backgroundColor: '#2563EB', borderRadius: 8 }]}
+            style={[s.ctaBtn, { backgroundColor: '#8B5CF6', borderRadius: 8 }]}
             onPress={() => setAdvisorOpen(!advisorOpen)}
           >
             <Text style={s.ctaBtnText}>Connect with Advisor</Text>
@@ -520,12 +520,12 @@ export default function FinancialPage() {
           {advisorOpen && (
             <View style={{ marginTop: 8, gap: 6 }}>
               <Pressable style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }} onPress={() => Linking.openURL('tel:+919876543210').catch(() => {})}>
-                <MaterialCommunityIcons name="phone" size={14} color="#2563EB" />
-                <Text style={{ color: '#2563EB', fontSize: 12.5, fontWeight: '600' }}>+919876543210</Text>
+                <MaterialCommunityIcons name="phone" size={14} color="#8B5CF6" />
+                <Text style={{ color: '#8B5CF6', fontSize: 12.5, fontWeight: '600' }}>+919876543210</Text>
               </Pressable>
               <Pressable style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }} onPress={() => Linking.openURL('mailto:advisor@studentalumni.in?subject=Help with financial').catch(() => {})}>
-                <MaterialCommunityIcons name="email" size={14} color="#2563EB" />
-                <Text style={{ color: '#2563EB', fontSize: 12.5, fontWeight: '600' }}>advisor@studentalumni.in</Text>
+                <MaterialCommunityIcons name="email" size={14} color="#8B5CF6" />
+                <Text style={{ color: '#8B5CF6', fontSize: 12.5, fontWeight: '600' }}>advisor@studentalumni.in</Text>
               </Pressable>
               <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 11, fontStyle: 'italic', marginTop: 4 }}>
                 Mon–Fri · 9am – 7pm IST · response within 4 hours
@@ -533,28 +533,28 @@ export default function FinancialPage() {
             </View>
           )}
         </View>
- 
+
         {/* AI card */}
-        <View style={[s.ctaCard, { borderColor: '#2563EB55' }]}>
-          <View style={[s.iconBox, { backgroundColor: '#2563EB22', borderColor: '#2563EB55', width: 38, height: 38 }]}>
-            <MaterialCommunityIcons name="auto-fix" size={18} color="#2563EB" />
+        <View style={[s.ctaCard, { borderColor: '#14B8A655' }]}>
+          <View style={[s.iconBox, { backgroundColor: '#14B8A622', borderColor: '#14B8A655', width: 38, height: 38 }]}>
+            <MaterialCommunityIcons name="auto-fix" size={18} color="#14B8A6" />
           </View>
           <Text style={s.ctaTitle}>Ask the Financial AI</Text>
           <Text style={s.ctaSub}>Got a question about financial products? Chat with our AI assistant 24x7.</Text>
           <Pressable
-            style={[s.ctaBtn, { backgroundColor: '#2563EB', borderRadius: 8 }]}
+            style={[s.ctaBtn, { backgroundColor: '#14B8A6', borderRadius: 8 }]}
             onPress={() => setAdvisorChatOpen(true)}
           >
-            <Text style={[s.ctaBtnText, { color: '#ffffff' }]}>Chat with AI</Text>
+            <Text style={[s.ctaBtnText, { color: '#0A2E1A' }]}>Chat with AI</Text>
           </Pressable>
         </View>
       </View>
- 
+
       {/* Floating Financial AI Coach (works same as Money Coach) */}
       <FinancialCoach open={advisorChatOpen} setOpen={setAdvisorChatOpen} />
- 
+
       {/* MD3 Floating Action Button — open AI chat */}
-      <FAB icon="brain" label="Financial AI" color="#2563EB"
+      <FAB icon="brain" label="Financial AI" color="#5F259F"
             onPress={() => setAdvisorChatOpen(true)} />
     </FeaturePageShell>
   );
@@ -576,26 +576,26 @@ function Stat({ label, value, sub, color, iconName }: any) {
 }
 
 const s = StyleSheet.create({
-  savPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: 'rgba(45,212,191,0.12)', borderColor: 'rgba(45,212,191,0.30)', borderWidth: 1 },
-  savPillText: { color: '#2DD4BF', fontFamily: 'DMSans_800ExtraBold', fontSize: 10.5 },
+  savPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: 'rgba(34,197,94,0.14)', borderColor: 'rgba(34,197,94,0.40)', borderWidth: 1 },
+  savPillText: { color: '#86EFAC', fontFamily: 'DMSans_800ExtraBold', fontSize: 10.5 },
 
   statsRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
-  statCard: { flex: 1, minWidth: 180, padding: 14, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.03)', borderColor: C.border, borderWidth: 1, gap: 6 },
+  statCard: { flex: 1, minWidth: 180, padding: 14, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.03)', borderColor: C.border, borderWidth: 1, gap: 6 },
   statIcon: { width: 28, height: 28, borderRadius: 7, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  statLabel: { color: C.text2, fontFamily: 'DMSans_800ExtraBold', fontSize: 10, letterSpacing: 1, flex: 1 },
+  statLabel: { color: C.text3, fontFamily: 'DMSans_800ExtraBold', fontSize: 10, letterSpacing: 1, flex: 1 },
   statValue: { fontFamily: 'DMSans_800ExtraBold', fontSize: 24, marginTop: 2 },
-  statSub: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11 },
+  statSub: { color: C.text3, fontFamily: 'DMSans_500Medium', fontSize: 11 },
 
-  tab: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.04)', borderColor: C.border, borderWidth: 1, ...({ cursor: 'pointer' } as any) },
+  tab: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.04)', borderColor: C.border, borderWidth: 1, ...({ cursor: 'pointer' } as any) },
   tabText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 12 },
-  tabCount: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999, backgroundColor: 'rgba(0,0,0,0.07)' },
-  tabCountText: { color: '#000', fontFamily: 'DMSans_800ExtraBold', fontSize: 10 },
+  tabCount: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.07)' },
+  tabCountText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 10 },
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
-  card: { flexGrow: 1, flexBasis: 300, maxWidth: 380, padding: 16, borderRadius: 14, borderWidth: 1, backgroundColor: 'rgba(0,0,0,0.02)', gap: 12 },
+  card: { flexGrow: 1, flexBasis: 300, maxWidth: 380, padding: 16, borderRadius: 14, borderWidth: 1, backgroundColor: 'rgba(255,255,255,0.02)', gap: 12 },
   cardHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   iconBox: { width: 38, height: 38, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  cardTitle: { color: '#000', fontFamily: 'DMSans_800ExtraBold', fontSize: 14.5 },
+  cardTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 14.5 },
   cardSub: { color: C.text3, fontFamily: 'DMSans_500Medium', fontSize: 11.5, marginTop: 2 },
 
   amtBar: { padding: 12, borderRadius: 10, borderWidth: 1 },
@@ -609,62 +609,62 @@ const s = StyleSheet.create({
   applyText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 12, letterSpacing: 0.3 },
 
   // Match% badge + AI helper + meta pills
-  matchBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, backgroundColor: 'rgba(37,99,235,0.12)', borderColor: 'rgba(37,99,235,0.30)', borderWidth: 1 },
-  matchText: { color: '#2563EB', fontFamily: 'DMSans_800ExtraBold', fontSize: 11 },
-  aiHelper: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10, backgroundColor: 'rgba(37,99,235,0.14)', borderColor: 'rgba(37,99,235,0.40)', borderWidth: 1, marginTop: 8, ...({ cursor: 'pointer' } as any) },
-  aiHelperText: { color: '#2563EB', fontFamily: 'DMSans_700Bold', fontSize: 12 },
-  metaPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(0,0,0,0.05)', borderColor: C.border, borderWidth: 1 },
-  metaPillText: { color: 'rgba(0,0,0,0.75)', fontFamily: 'DMSans_700Bold', fontSize: 10, textTransform: 'capitalize' as any },
- 
+  matchBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, backgroundColor: 'rgba(34,197,94,0.18)', borderColor: 'rgba(34,197,94,0.45)', borderWidth: 1 },
+  matchText: { color: '#86EFAC', fontFamily: 'DMSans_800ExtraBold', fontSize: 11 },
+  aiHelper: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10, backgroundColor: 'rgba(124,58,237,0.14)', borderColor: 'rgba(124,58,237,0.40)', borderWidth: 1, marginTop: 8, ...({ cursor: 'pointer' } as any) },
+  aiHelperText: { color: '#C4B5FD', fontFamily: 'DMSans_700Bold', fontSize: 12 },
+  metaPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.05)', borderColor: C.border, borderWidth: 1 },
+  metaPillText: { color: 'rgba(255,255,255,0.75)', fontFamily: 'DMSans_700Bold', fontSize: 10, textTransform: 'capitalize' as any },
+
   // AI Helper expandable panel
-  aiPanel: { marginTop: 10, padding: 16, borderRadius: 14, backgroundColor: 'rgba(37,99,235,0.08)', borderColor: 'rgba(37,99,235,0.30)', borderWidth: 1, gap: 12 },
-  aiPanelTitle: { color: '#000', fontFamily: 'DMSans_700Bold', fontSize: 13 },
+  aiPanel: { marginTop: 10, padding: 16, borderRadius: 14, backgroundColor: 'rgba(124,58,237,0.08)', borderColor: 'rgba(124,58,237,0.30)', borderWidth: 1, gap: 12 },
+  aiPanelTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13 },
   aiPanelGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   aiField: { width: '48%', minWidth: 200, gap: 4 },
-  aiFieldLabel: { color: 'rgba(0,0,0,0.65)', fontSize: 11, fontFamily: 'DMSans_600SemiBold' },
-  aiInput: { paddingHorizontal: 10, paddingVertical: 8, backgroundColor: 'rgba(0,0,0,0.04)', borderColor: 'rgba(0,0,0,0.14)', borderWidth: 1, borderRadius: 8, color: '#000', fontSize: 13, ...(Platform.OS === 'web' ? { outlineStyle: 'none' as any } : {}) },
-  aiSubmit: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 11, borderRadius: 10, backgroundColor: '#2563EB', alignSelf: 'flex-start', paddingHorizontal: 18, ...({ cursor: 'pointer' } as any) },
+  aiFieldLabel: { color: 'rgba(255,255,255,0.65)', fontSize: 11, fontFamily: 'DMSans_600SemiBold' },
+  aiInput: { paddingHorizontal: 10, paddingVertical: 8, backgroundColor: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderRadius: 8, color: '#fff', fontSize: 13, ...(Platform.OS === 'web' ? { outlineStyle: 'none' as any } : {}) },
+  aiSubmit: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 11, borderRadius: 10, backgroundColor: '#7C3AED', alignSelf: 'flex-start', paddingHorizontal: 18, ...({ cursor: 'pointer' } as any) },
   aiSubmitText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 13, letterSpacing: 0.3 },
-  aiTop3Box: { padding: 12, borderRadius: 10, backgroundColor: 'rgba(37,99,235,0.08)', borderColor: 'rgba(37,99,235,0.30)', borderWidth: 1, gap: 8 },
-  aiTop3Title: { color: '#2563EB', fontFamily: 'DMSans_700Bold', fontSize: 12 },
+  aiTop3Box: { padding: 12, borderRadius: 10, backgroundColor: 'rgba(34,197,94,0.08)', borderColor: 'rgba(34,197,94,0.30)', borderWidth: 1, gap: 8 },
+  aiTop3Title: { color: '#86EFAC', fontFamily: 'DMSans_700Bold', fontSize: 12 },
   aiTop3Row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
-  aiTop3Rank: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#2563EB', alignItems: 'center', justifyContent: 'center' },
+  aiTop3Rank: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#22C55E', alignItems: 'center', justifyContent: 'center' },
   aiTop3RankText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 11 },
-  aiTop3Name: { color: '#2563EB', fontFamily: 'DMSans_600SemiBold', fontSize: 13 },
+  aiTop3Name: { color: '#fff', fontFamily: 'DMSans_600SemiBold', fontSize: 13 },
 
   // EMI Calculator widget
-  emiBox: { marginTop: 16, padding: 18, borderRadius: 14, backgroundColor: 'rgba(0,0,0,0.04)', borderColor: 'rgba(37,99,235,0.30)', borderWidth: 1 },
-  emiTitle: { color: '#000', fontFamily: 'DMSans_800ExtraBold', fontSize: 16 },
+  emiBox: { marginTop: 16, padding: 18, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.04)', borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1 },
+  emiTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 16 },
   emiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
   emiSliderWrap: { flex: 1, minWidth: 240, gap: 4 },
-  emiSliderLabel: { color: 'rgba(0,0,0,0.65)', fontFamily: 'DMSans_600SemiBold', fontSize: 11, textTransform: 'uppercase' as any, letterSpacing: 0.5 },
-  emiSliderValue: { color: '#000', fontFamily: 'DMSans_800ExtraBold', fontSize: 14 },
-  emiSummary: { marginTop: 16, padding: 14, borderRadius: 12, backgroundColor: 'rgba(37,99,235,0.10)', borderColor: 'rgba(37,99,235,0.40)', borderWidth: 1, flexDirection: 'row', gap: 12 },
+  emiSliderLabel: { color: 'rgba(255,255,255,0.65)', fontFamily: 'DMSans_600SemiBold', fontSize: 11, textTransform: 'uppercase' as any, letterSpacing: 0.5 },
+  emiSliderValue: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 14 },
+  emiSummary: { marginTop: 16, padding: 14, borderRadius: 12, backgroundColor: 'rgba(124,58,237,0.10)', borderColor: 'rgba(124,58,237,0.40)', borderWidth: 1, flexDirection: 'row', gap: 12 },
   emiCol: { flex: 1, gap: 4 },
-  emiColLabel: { color: 'rgba(0,0,0,0.55)', fontFamily: 'DMSans_600SemiBold', fontSize: 10, textTransform: 'uppercase' as any, letterSpacing: 0.5 },
-  emiColValue: { color: '#000', fontFamily: 'DMSans_800ExtraBold', fontSize: 17 },
+  emiColLabel: { color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_600SemiBold', fontSize: 10, textTransform: 'uppercase' as any, letterSpacing: 0.5 },
+  emiColValue: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 17 },
 
-  widgetCard: { padding: 18, borderRadius: 16, backgroundColor: 'rgba(37,99,235,0.07)', borderColor: 'rgba(37,99,235,0.30)', borderWidth: 1, flexDirection: 'row', gap: 18, flexWrap: 'wrap' },
-  widgetIcon: { width: 40, height: 40, borderRadius: 11, backgroundColor: 'rgba(37,99,235,0.18)', borderColor: 'rgba(37,99,235,0.40)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  widgetTitle: { color: '#000', fontFamily: 'DMSans_800ExtraBold', fontSize: 16 },
+  widgetCard: { padding: 18, borderRadius: 16, backgroundColor: 'rgba(59,130,246,0.07)', borderColor: 'rgba(59,130,246,0.30)', borderWidth: 1, flexDirection: 'row', gap: 18, flexWrap: 'wrap' },
+  widgetIcon: { width: 40, height: 40, borderRadius: 11, backgroundColor: 'rgba(59,130,246,0.18)', borderColor: 'rgba(59,130,246,0.40)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  widgetTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 16 },
   widgetSub: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12 },
 
   sliderLabel: { color: C.text2, fontFamily: 'DMSans_600SemiBold', fontSize: 11.5 },
   sliderValue: { fontFamily: 'DMSans_800ExtraBold', fontSize: 12 },
-  sliderTrack: { height: 6, borderRadius: 3, backgroundColor: 'rgba(0,0,0,0.06)', position: 'relative' },
+  sliderTrack: { height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.06)', position: 'relative' },
   sliderFill: { height: '100%', borderRadius: 3 },
   sliderKnob: { position: 'absolute', top: -3, width: 12, height: 12, borderRadius: 6 },
 
-  emiResult: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 14, marginTop: 8, paddingTop: 10, borderTopColor: 'rgba(0,0,0,0.07)', borderTopWidth: 1 },
+  emiResult: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 14, marginTop: 8, paddingTop: 10, borderTopColor: 'rgba(255,255,255,0.07)', borderTopWidth: 1 },
   emiLabel: { color: C.text3, fontFamily: 'DMSans_800ExtraBold', fontSize: 9.5, letterSpacing: 1 },
-  emiValue: { color: '#2563EB', fontFamily: 'DMSans_800ExtraBold', fontSize: 18, marginTop: 2 },
+  emiValue: { color: '#93C5FD', fontFamily: 'DMSans_800ExtraBold', fontSize: 18, marginTop: 2 },
   optimizeBtn: { borderRadius: 999, overflow: 'hidden', ...({ cursor: 'pointer' } as any) },
   optimizeBtnGrad: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 34, borderRadius: 999 },
   optimizeText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 11 },
 
   ctaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
   ctaCard: { flex: 1, flexBasis: 260, padding: 18, borderRadius: 14, borderWidth: 1, gap: 8 },
-  ctaTitle: { color: '#000', fontFamily: 'DMSans_800ExtraBold', fontSize: 15, marginTop: 4 },
+  ctaTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 15, marginTop: 4 },
   ctaSub: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12.5 },
   ctaBtn: { alignSelf: 'flex-start', paddingHorizontal: 14, height: 34, borderRadius: 999, alignItems: 'center', justifyContent: 'center', marginTop: 4, ...({ cursor: 'pointer' } as any) },
   ctaBtnText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 11.5 },

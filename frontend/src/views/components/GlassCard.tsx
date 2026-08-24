@@ -6,7 +6,7 @@
  * portal's primary color and the surface auto-tones the gradient + ring.
  *
  * Usage:
- *   <GlassCard tint="#60A5FA" intensity="md">
+ *   <GlassCard tint="#A78BFA" intensity="md">
  *     ...children...
  *   </GlassCard>
  */
@@ -17,7 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 type Intensity = 'sm' | 'md' | 'lg';
 
 interface Props {
-  tint?: string;             // e.g. '#60A5FA' (purple), '#14B8A6' (teal), '#F97316'
+  tint?: string;             // e.g. '#A78BFA' (purple), '#14B8A6' (teal), '#F97316'
   intensity?: Intensity;     // controls gradient + glow strength
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
@@ -38,7 +38,7 @@ function rgba(hex: string, a: number): string {
 }
 
 export function GlassCard({
-  tint = '#60A5FA',
+  tint = '#A78BFA',
   intensity = 'md',
   children,
   style,

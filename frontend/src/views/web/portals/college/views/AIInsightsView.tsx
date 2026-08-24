@@ -61,14 +61,14 @@ export function AIInsightsView() {
 const s = StyleSheet.create({
   banner: { flexDirection: 'row', gap: 12, padding: 14, marginBottom: 14, borderRadius: 14, backgroundColor: 'rgba(34,211,238,0.06)', borderColor: CC.border2, borderWidth: 1 },
   bIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(34,211,238,0.15)', borderColor: 'rgba(34,211,238,0.30)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  bTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 13 },
+  bTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
   bSub: { color: CC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 4, lineHeight: 17 },
   card: { flexDirection: 'row', gap: 12, backgroundColor: CC.card, borderColor: CC.border, borderWidth: 1, borderRadius: 14, padding: 16 },
   icon: { width: 34, height: 34, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  title: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 13.5 },
+  title: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13.5 },
   body: { color: CC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 6, lineHeight: 18 },
   actBtn: { paddingHorizontal: 14, height: 30, borderRadius: 8, backgroundColor: CC.primary, alignItems: 'center', justifyContent: 'center' },
-  actText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 11.5 },
+  actText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 11.5 },
   dismissBtn: { paddingHorizontal: 14, height: 30, borderRadius: 8, borderWidth: 1, borderColor: CC.border, backgroundColor: CC.card, alignItems: 'center', justifyContent: 'center' },
   dismissText: { color: CC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
 });

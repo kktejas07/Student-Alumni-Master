@@ -37,11 +37,11 @@ export function Logos() {
       <div className="relative mx-auto max-w-7xl px-6 w-full">
         <div className="flex items-center gap-4 md:gap-10">
           {/* Highlighted Left Title Badge */}
-          <div className="shrink-0 z-20 px-3 py-2 md:px-4 md:py-2.5 rounded-xl border border-primary/40 bg-primary/15 backdrop-blur-md shadow-[0_0_20px_rgba(37,99,235,0.4)]">
-            <p className="text-[10px] sm:text-xs md:text-sm lg:text-base font-black uppercase tracking-widest text-primary drop-shadow-[0_0_10px_rgba(37,99,235,0.8)] whitespace-nowrap">
+          <div className="shrink-0 z-20 px-3 py-2 md:px-4 md:py-2.5 rounded-xl border border-primary/40 bg-primary/15 backdrop-blur-md shadow-[0_0_20px_rgba(124,58,237,0.4)]">
+            <p className="text-[10px] sm:text-xs md:text-sm lg:text-base font-black uppercase tracking-widest text-primary drop-shadow-[0_0_10px_rgba(167,139,250,0.8)] whitespace-nowrap">
               COLLEGES
             </p>
-            <p className="hidden sm:block text-[10px] md:text-sm lg:text-base font-black uppercase tracking-widest text-primary drop-shadow-[0_0_10px_rgba(37,99,235,0.8)] whitespace-nowrap">
+            <p className="hidden sm:block text-[10px] md:text-sm lg:text-base font-black uppercase tracking-widest text-primary drop-shadow-[0_0_10px_rgba(167,139,250,0.8)] whitespace-nowrap">
               COLLABORATIONS
             </p>
           </div>

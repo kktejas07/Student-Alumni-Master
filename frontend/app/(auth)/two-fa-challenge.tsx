@@ -112,7 +112,7 @@ export default function TwoFAChallenge() {
       </View>
 
       <View style={s.iconCircle}>
-        <ShieldCheck size={28} color="#60A5FA" />
+        <ShieldCheck size={28} color="#A78BFA" />
       </View>
 
       <Text style={s.h1}>Two-Factor Authentication</Text>
@@ -148,7 +148,7 @@ export default function TwoFAChallenge() {
 
           {verifying && (
             <View style={s.statusRow}>
-              <ActivityIndicator size="small" color="#60A5FA" />
+              <ActivityIndicator size="small" color="#A78BFA" />
               <Text style={s.statusText}>Verifying…</Text>
             </View>
           )}
@@ -264,7 +264,7 @@ const s = StyleSheet.create({
 
   iconCircle: {
     width: 56, height: 56, borderRadius: 18,
-    backgroundColor: 'rgba(37,99,235,0.18)',
+    backgroundColor: 'rgba(124,58,237,0.18)',
     borderWidth: 1, borderColor: 'rgba(196,181,253,0.45)',
     alignSelf: 'center', alignItems: 'center', justifyContent: 'center',
     marginBottom: 16,
@@ -290,7 +290,7 @@ const s = StyleSheet.create({
     textAlign: 'center',
     ...({ outlineStyle: 'none' } as any),
   },
-  otpBoxFilled: { borderColor: '#2563EB', backgroundColor: 'rgba(37,99,235,0.14)' },
+  otpBoxFilled: { borderColor: '#7C3AED', backgroundColor: 'rgba(124,58,237,0.14)' },
   otpBoxOk:     { borderColor: '#10B981', backgroundColor: 'rgba(16,185,129,0.14)' },
   otpBoxErr:    { borderColor: '#EF4444', backgroundColor: 'rgba(239,68,68,0.14)' },
 
@@ -320,7 +320,7 @@ const s = StyleSheet.create({
     marginBottom: 14, ...({ outlineStyle: 'none' } as any),
   },
   btnPrimary: {
-    height: 52, borderRadius: 12, backgroundColor: '#2563EB',
+    height: 52, borderRadius: 12, backgroundColor: '#7C3AED',
     alignItems: 'center', justifyContent: 'center',
   },
   btnPrimaryText: { color: '#FFFFFF', fontFamily: 'DMSans_700Bold', fontSize: 15 },

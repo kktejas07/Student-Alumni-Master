@@ -86,7 +86,7 @@ def mock_db():
     """Return a mock database with async collections."""
     db = MagicMock()
     for coll_name in [
-        "events", "events_v2", "user_event_preferences", "event_cache",
+        "events_v2", "user_event_preferences", "event_cache",
         "event_activity_log", "event_registrations", "users",
     ]:
         coll = MagicMock()

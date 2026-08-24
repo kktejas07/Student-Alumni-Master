@@ -60,11 +60,7 @@ export function LiveStrip({
         ))}
       </Text>
       <View style={{ flex: 1 }} />
-      <View style={{ backgroundColor: accent + '20', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
-        <Text style={[s.asOf, { color: accent, fontWeight: '600' }]}>
-          auto-refreshing every {Math.round(refreshMs / 1000)}s
-        </Text>
-      </View>
+      <Text style={s.asOf}>auto-refreshing every {Math.round(refreshMs / 1000)}s</Text>
     </View>
   );
 }
@@ -82,14 +78,14 @@ const s = StyleSheet.create({
     fontWeight: '800',
   },
   txt: {
-    color: '#4B5563', // dark gray for light theme
+    color: 'rgba(255,255,255,0.65)',
     fontSize: 12,
     fontFamily: Platform.select({ web: 'Inter, system-ui, sans-serif', default: 'System' }) as string,
     fontWeight: '500',
   },
   num: { fontWeight: '800' },
   asOf: {
-    color: '#9CA3AF', // lighter gray for light theme
+    color: 'rgba(255,255,255,0.40)',
     fontSize: 11, fontStyle: 'italic',
     fontFamily: Platform.select({ web: 'Inter, system-ui, sans-serif', default: 'System' }) as string,
   },

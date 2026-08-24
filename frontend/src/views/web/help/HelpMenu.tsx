@@ -26,7 +26,7 @@ export function HelpMenu({ portal }: { portal: TourKey }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<View>(null);
   const cfg = TOURS[portal];
-  const accent = cfg?.accent || '#60A5FA';
+  const accent = cfg?.accent || '#A78BFA';
   const seen = !!status[portal]?.completed_at;
 
   // Close on outside click (web only)
