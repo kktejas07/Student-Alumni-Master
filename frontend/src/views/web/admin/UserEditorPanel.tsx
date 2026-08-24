@@ -107,8 +107,7 @@ function flatToForm(role: Role, u: any): Record<string, string> {
   FIELD_DEFS[role].forEach((f) => {
     const v = flatLookup[f.key] ?? get(f.key);
     out[f.key] = v == null ? '' : String(v);
-  };
-
+  });
   return out;
 }
 
@@ -132,15 +131,13 @@ function buildPayload(role: Role, form: Record<string, string>): any {
       result[a] = result[a] || {};
       result[a][b] = val;
     }
-  };
-
+  });
   return result;
 }
 
 export function UserEditorPanel({ open, mode: initMode, role, user, onClose, onChanged }: Props) {
   const [mode, setMode] = useState<Mode>(initMode);
-  const [form, setForm] = useState<Record<string, string>>({};
-
+  const [form, setForm] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmDel, setConfirmDel] = useState(false);

@@ -77,13 +77,10 @@ interface Connected {
 export function IntegrationsView() {
   const toast = useToast();
   const [loading, setLoading] = useState(true);
-  const [connected, setConnected] = useState<Record<string, Connected>>({};
-
-  const [defaults, setDefaults] = useState<{ video?: string; ai?: string }>({};
-
-  const [draftEmail, setDraftEmail] = useState<Record<string, string>>({};
-
-  const [busy, setBusy] = useState<Record<string, boolean>>({};
+  const [connected, setConnected] = useState<Record<string, Connected>>({});
+  const [defaults, setDefaults] = useState<{ video?: string; ai?: string }>({});
+  const [draftEmail, setDraftEmail] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState<Record<string, boolean>>({});
 
   // OAuth modal state
   const [oauthProvider, setOauthProvider] = useState<ProviderMeta | null>(null);
@@ -92,10 +89,8 @@ export function IntegrationsView() {
     setLoading(true);
     try {
       const r = await request<any>('/users/me/integrations');
-      setConnected(r.integrations || {};
-
-      setDefaults({ video: r.default_video_platform, ai: r.default_ai_provider };
-
+      setConnected(r.integrations || {});
+      setDefaults({ video: r.default_video_platform, ai: r.default_ai_provider });
     } catch {/* tolerate */}
     finally { setLoading(false); }
   };

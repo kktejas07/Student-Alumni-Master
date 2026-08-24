@@ -16,7 +16,7 @@ interface Props {
 
 export function CompletionRing({
   pct, size = 92, stroke = 8,
-  color = '#A78BFA', trackColor = 'rgba(255,255,255,0.10)',
+  color = '#2563EB', trackColor = 'rgba(0,0,0,0.06)',
   hideText = false,
 }: Props) {
   const r = (size - stroke) / 2;
@@ -25,7 +25,7 @@ export function CompletionRing({
   const offset = c * (1 - safe / 100);
 
   return (
-    <View className="items-center justify-center" style={{ width: size, height: size }}>
+    <View style={[styles.wrap, { width: size, height: size }]}>
       <Svg width={size} height={size}>
         <Circle
           cx={size / 2} cy={size / 2} r={r}
@@ -41,10 +41,16 @@ export function CompletionRing({
         />
       </Svg>
       {!hideText && (
-        <View className="absolute items-center justify-center">
-          <Text style={{ color, fontFamily: 'DMSans_800ExtraBold', fontSize: 20 }}>{safe}%</Text>
+        <View style={styles.label}>
+          <Text style={[styles.pct, { color }]}>{safe}%</Text>
         </View>
       )}
     </View>
   );
 }
+
+const styles = {
+  wrap: { alignItems: 'center', justifyContent: 'center' },
+  label: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
+  pct: { fontFamily: 'DMSans_800ExtraBold', fontSize: 20 },
+};

@@ -117,8 +117,7 @@ function Overview({ onNav }: { onNav: (id: string) => void }) {
   const [analytics, setAnalytics] = useState<any>(null);
 
   useEffect(() => {
-    api.analytics().then(setAnalytics).catch(() => {};
-
+    api.analytics().then(setAnalytics).catch(() => {});
   }, []);
 
   const collegeName = user?.college_info?.institution_name || user?.school_info?.institution_name || 'Institution';

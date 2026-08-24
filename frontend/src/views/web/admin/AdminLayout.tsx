@@ -3,7 +3,7 @@
  * Glass amber theme per Super Admin spec.
  */
 import { ReactNode, useEffect } from 'react';
-import { View, Text, Pressable, ScrollView, Platform } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, Platform } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import {
   LayoutGrid, Building2, GraduationCap, Users, Briefcase, CalendarDays,

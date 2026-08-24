@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, Pressable, StyleSheet, Platform, Linking, Image, ScrollView,
+  View, Text, Pressable, Platform, Linking, Image, ScrollView,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import {
@@ -75,7 +75,7 @@ export default function CertificateVerifyResult() {
 
   if (loading) {
     return (
-      <View style={s.outerWrap}>
+      <View className="flex-1 relative" style={{  backgroundColor: '#05060F'  }}>
         <EchoHeader />
         <SAModernLoader subtitle="CHECKING CRYPTOGRAPHIC LEDGER" />
         <EchoFooter />
@@ -85,19 +85,19 @@ export default function CertificateVerifyResult() {
 
   if (notFound || !data) {
     return (
-      <View style={s.outerWrap}>
+      <View className="flex-1 relative" style={{  backgroundColor: '#05060F'  }}>
         <EchoHeader />
-        <View style={s.centerWrap}>
-          <View style={s.errorIconCircle}>
+        <View className="flex-1 items-center justify-center p-6" style={{  backgroundColor: '#05060F', paddingTop: ECHO_TOP_PADDING + 40  }}>
+          <View className="rounded-2xl" style={{  width: 72, height: 72, backgroundColor: 'rgba(239, 68, 68, 0.12)'  }}>
             <AlertCircle size={44} color="#EF4444" />
           </View>
-          <Text style={s.errorTitle}>Certificate Not Found</Text>
-          <Text style={s.errorSub}>
+          <Text className="font-body-bold text-center" style={{  color: '#EF4444', fontSize: 20  }}>Certificate Not Found</Text>
+          <Text className="text-center mb-5" style={{  color: '#9AA0B4', fontSize: 14, maxWidth: 480, lineHeight: 20, marginTop: 6  }}>
             No certificate matching "{code?.toUpperCase()}" was registered with Student Alumni.
           </Text>
-          <Pressable onPress={() => router.replace('/certificates/verify')} style={s.backPill}>
+          <Pressable onPress={() => router.replace('/certificates/verify')} className="flex-row items-center gap-1.5" style={{  alignSelf: 'flex-start', backgroundColor: 'rgba(91, 79, 233, 0.1)'  }}>
             <ArrowLeft size={14} color="#ffffff" />
-            <Text style={s.backPillText}>Try Another Unique ID</Text>
+            <Text className="font-body-bold" style={{  color: '#8B84FF', fontSize: 13  }}>Try Another Unique ID</Text>
           </Pressable>
         </View>
         <EchoFooter />
@@ -110,7 +110,7 @@ export default function CertificateVerifyResult() {
   const isImageFile = (ct?: string) => !!ct && ct.startsWith('image/');
 
   return (
-    <View style={s.outerWrap}>
+    <View className="flex-1 relative" style={{  backgroundColor: '#05060F'  }}>
       {Platform.OS === 'web' && (
         <style
           dangerouslySetInnerHTML={{
@@ -123,59 +123,59 @@ export default function CertificateVerifyResult() {
           }}
         />
       )}
-      <View style={s.ambientGlowTop} />
+      <View className="absolute rounded-2xl" style={{  top: 0, left: '50%', transform: [{ translateX: -400 }], width: 800, height: 500, backgroundColor: 'rgba(91, 79, 233, 0.14)'  }} />
       <SAWatermark opacity={0.09} rotation="0deg" top={110} right={24} size={520} />
       <EchoHeader />
 
-      <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent}>
-        <View style={s.container}>
-          <Animated.View entering={FadeIn.duration(300)} style={s.wrapper}>
+      <ScrollView className="flex-1" style={{  backgroundColor: '#05060F'  }} contentContainerStyle={s.scrollContent}>
+        <View className="items-center" style={{  paddingTop: ECHO_TOP_PADDING + 10, paddingBottom: 70, paddingHorizontal: Platform.OS === 'web' ? 24 : 16, width: '100%'  }}>
+          <Animated.View entering={FadeIn.duration(300)} className="" style={{  width: '100%', maxWidth: 1240  }}>
 
             {/* Back button */}
-            <Pressable onPress={() => router.push('/certificates/verify')} style={s.backPill}>
+            <Pressable onPress={() => router.push('/certificates/verify')} className="flex-row items-center gap-1.5" style={{  alignSelf: 'flex-start', backgroundColor: 'rgba(91, 79, 233, 0.1)'  }}>
               <ArrowLeft size={14} color="#8B84FF" />
-              <Text style={s.backPillText}>Verify Another Credential</Text>
+              <Text className="font-body-bold" style={{  color: '#8B84FF', fontSize: 13  }}>Verify Another Credential</Text>
             </Pressable>
 
             {/* Status Card */}
-            <View style={s.resultCard}>
+            <View className="rounded-2xl border gap-5.5" style={{  backgroundColor: '#0C0E1B', borderColor: '#1B1E33', padding: Platform.OS === 'web' ? 28 : 18  }}>
 
-              <View style={s.verifiedHeader}>
-                <View style={s.statusBadge}>
+              <View className="flex-row items-center justify-between flex-wrap gap-3" style={{  borderBottomWidth: 1, borderBottomColor: '#171A2C', paddingBottom: 18  }}>
+                <View className="flex-row items-center gap-2" style={{  backgroundColor: 'rgba(16, 185, 129, 0.12)'  }}>
                   <CheckCircle2 size={16} color="#10B981" />
-                  <Text style={s.statusBadgeText}>
+                  <Text className="font-body-bold" style={{  color: '#10B981', fontSize: 13, letterSpacing: 0.5  }}>
                     {isPlatform ? 'OFFICIALLY VERIFIED & VALID' : 'THIRD-PARTY ACCREDITED CERTIFICATE'}
                   </Text>
                 </View>
 
                 {data.verification_code && (
-                  <View style={s.uniqueIdPill}>
+                  <View className="flex-row items-center gap-1.5" style={{  backgroundColor: 'rgba(91, 79, 233, 0.12)'  }}>
                     <Hash size={13} color="#8B84FF" />
-                    <Text style={s.uniqueIdPillText}>CODE: {data.verification_code}</Text>
+                    <Text className="font-body-bold" style={{  color: '#8B84FF', fontSize: 13.5, fontFamily: Platform.OS === 'web' ? 'Manrope  }}>CODE: {data.verification_code}</Text>
                   </View>
                 )}
               </View>
 
               {/* Certificate Document */}
               {data.file_url && (
-                <View style={s.imageWrapper}>
+                <View className="rounded-2xl overflow-hidden border p-3.5 items-center" style={{  backgroundColor: '#070A1A', borderColor: '#1B1E33'  }}>
                   {isImageFile(data.content_type) ? (
                     <Image
                       source={{ uri: absUrl(data.file_url) }}
-                      style={s.fileImage}
+                      className="rounded-xl" style={{  width: '100%', height: Platform.OS === 'web' ? 520 : 250  }}
                       resizeMode="contain"
                     />
                   ) : (
                     <Pressable
                       onPress={() => Linking.openURL(absUrl(data.file_url))}
-                      style={s.pdfBtn}
+                      className="flex-row items-center gap-3.5 rounded-2xl border" style={{  width: '100%', backgroundColor: '#0C0E1B', padding: 18, borderColor: '#1B1E33'  }}
                     >
                       <FileText size={24} color="#8B84FF" />
-                      <View style={{ flex: 1 }}>
-                        <Text style={s.pdfName} numberOfLines={1}>
+                      <View style={{  flex: 1  }}>
+                        <Text className="font-body-bold" style={{  color: '#F4F5FB', fontSize: 14.5  }} numberOfLines={1}>
                           {data.file_name || 'Official_Certificate.pdf'}
                         </Text>
-                        <Text style={s.pdfHint}>Click to view high-resolution PDF</Text>
+                        <Text className="" style={{  color: '#9AA0B4', fontSize: 12.5, marginTop: 2  }}>Click to view high-resolution PDF</Text>
                       </View>
                       <ExternalLink size={16} color="#8B84FF" />
                     </Pressable>
@@ -184,9 +184,9 @@ export default function CertificateVerifyResult() {
               )}
 
               {/* Certificate Metadata */}
-              <View style={s.metaCard}>
-                <Text style={s.metaCardTitle}>Certificate Metadata</Text>
-                <View style={s.metaGrid}>
+              <View className="rounded-2xl p-6 border gap-4" style={{  backgroundColor: '#0A0C18', borderColor: '#171A2C'  }}>
+                <Text className="font-body-bold uppercase" style={{  color: '#8B84FF', fontSize: 12.5, letterSpacing: 1.2, marginBottom: 4  }}>Certificate Metadata</Text>
+                <View className="flex-row flex-wrap gap-3.5">
                   <MetaItem icon={Award} label="Title / Award" value={data.title} />
                   <MetaItem icon={User} label="Recipient Name" value={data.recipient_name} />
                   <MetaItem icon={Mail} label="Email Address" value={data.recipient_email} />
@@ -196,246 +196,16 @@ export default function CertificateVerifyResult() {
 
                 {/* Cryptographic SHA-256 Hash */}
                 {data.verification_hash && (
-                  <View style={s.hashBox}>
-                    <View style={s.hashHeader}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <View className="mt-2 p-4 rounded-2xl border" style={{  backgroundColor: '#05060F', borderColor: '#1B1E33'  }}>
+                    <View className="flex-row items-center justify-between mb-2.5">
+                      <View style={{  flexDirection: 'row', alignItems: 'center', gap: 6  }}>
                         <Lock size={12} color="#10B981" />
-                        <Text style={s.hashLabel}>Cryptographic SHA-256 Signature</Text>
+                        <Text className="font-body-bold" style={{  color: '#10B981', fontSize: 12.5, letterSpacing: 0.2  }}>Cryptographic SHA-256 Signature</Text>
                       </View>
                       <Pressable
                         onPress={() => copyToClipboard(data.verification_hash)}
-                        style={s.copyBtn}
-                      >
-                        {copiedHash ? <Check size={12} color="#10B981" /> : <Copy size={12} color="#8B84FF" />}
-                        <Text style={[s.copyBtnText, copiedHash && { color: '#10B981' }]}>
-                          {copiedHash ? 'Copied' : 'Copy'}
-                        </Text>
-                      </Pressable>
-                    </View>
-                    <Text style={s.hashValue}>{data.verification_hash}</Text>
-                  </View>
-                )}
-              </View>
-
-              {/* External Verification link if applicable */}
-              {!isPlatform && (
-                <View style={s.externalCard}>
-                  <Text style={s.externalTitle}>Verify at Partner Authority</Text>
-                  <Text style={s.externalDesc}>
-                    This credential was issued through an external partner program. You can verify the source certificate
-                    directly on the partner platform.
-                  </Text>
-                  {(data.verify_url || data.credential_url) && (
-                    <Pressable
-                      onPress={() => Linking.openURL(data.verify_url || data.credential_url!)}
-                      style={s.externalBtn}
-                    >
-                      <ExternalLink size={15} color="#8B84FF" />
-                      <Text style={s.externalBtnText}>Open Issuer Portal ({data.issuer})</Text>
-                    </Pressable>
-                  )}
-                  {data.hint ? <Text style={s.externalHint}>{data.hint}</Text> : null}
-                </View>
-              )}
-
-              {/* Verified Authority Banner */}
-              <View style={s.verifiedBanner}>
-                <ShieldCheck size={18} color="#10B981" />
-                <Text style={s.verifiedText}>
-                  {isPlatform
-                    ? 'Cryptographically Verified by Student Alumni Network'
-                    : 'Accredited Authenticity Confirmed'}
-                </Text>
-              </View>
-
-            </View>
-
-          </Animated.View>
-        </View>
-
-        <EchoFooter />
-      </ScrollView>
-    </View>
-  );
-}
-
-function MetaItem({ icon: Icon, label, value }: { icon: any; label: string; value?: string }) {
-  if (!value) return null;
-  return (
-    <View style={s.metaItem}>
-      <View style={s.metaIconWrap}>
-        <Icon size={14} color="#8B84FF" />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text style={s.metaItemLabel}>{label}</Text>
-        <Text style={s.metaItemValue}>{value}</Text>
-      </View>
-    </View>
-  );
-}
-
-const s = StyleSheet.create({
-  outerWrap: {
-    flex: 1,
-    backgroundColor: '#05060F',
-    position: 'relative',
-  },
-  ambientGlowTop: {
-    position: 'absolute',
-    top: 0,
-    left: '50%',
-    transform: [{ translateX: -400 }],
-    width: 800,
-    height: 500,
-    borderRadius: 400,
-    backgroundColor: 'rgba(91, 79, 233, 0.14)',
-    pointerEvents: 'none',
-  },
-  scroll: {
-    flex: 1,
-    backgroundColor: '#05060F',
-  },
-  scrollContent: {
-    flexGrow: 1,
-    backgroundColor: '#05060F',
-  },
-  container: {
-    paddingTop: ECHO_TOP_PADDING + 10,
-    paddingBottom: 70,
-    paddingHorizontal: Platform.OS === 'web' ? 24 : 16,
-    width: '100%',
-    alignItems: 'center',
-  },
-  wrapper: {
-    width: '100%',
-    maxWidth: 1240,
-  },
-  centerWrap: {
-    flex: 1,
-    backgroundColor: '#05060F',
-    paddingTop: ECHO_TOP_PADDING + 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  errorIconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
-  },
-  errorTitle: {
-    color: '#EF4444',
-    fontSize: 20,
-    fontWeight: '800',
-    textAlign: 'center',
-  },
-  errorSub: {
-    color: '#9AA0B4',
-    fontSize: 14,
-    textAlign: 'center',
-    maxWidth: 480,
-    lineHeight: 20,
-    marginTop: 6,
-    marginBottom: 20,
-  },
-  backPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(91, 79, 233, 0.1)',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(139, 132, 255, 0.25)',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    marginBottom: 20,
-  },
-  backPillText: {
-    color: '#8B84FF',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  resultCard: {
-    backgroundColor: '#0C0E1B',
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: '#1B1E33',
-    padding: Platform.OS === 'web' ? 28 : 18,
-    gap: 22,
-  },
-  verifiedHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
-    gap: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#171A2C',
-    paddingBottom: 18,
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    paddingHorizontal: 16,
-    paddingVertical: 7,
-    borderRadius: 100,
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
-  },
-  statusBadgeText: {
-    color: '#10B981',
-    fontSize: 13,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  uniqueIdPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(91, 79, 233, 0.12)',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(139, 132, 255, 0.25)',
-  },
-  uniqueIdPillText: {
-    color: '#8B84FF',
-    fontSize: 13.5,
-    fontWeight: '700',
-    fontFamily: Platform.OS === 'web' ? 'Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
-  },
-  imageWrapper: {
-    backgroundColor: '#070A1A',
-    borderRadius: 18,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#1B1E33',
-    padding: 14,
-    alignItems: 'center',
-  },
-  fileImage: {
-    width: '100%',
-    height: Platform.OS === 'web' ? 520 : 250,
-    borderRadius: 12,
-  },
-  pdfBtn: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    backgroundColor: '#0C0E1B',
-    borderRadius: 14,
-    padding: 18,
+                        className="flex-row items-center gap-1.5" style={{  backgroundColor: 'rgba(91, 79, 233, 0.12)'  }}
+    ding: 18,
     borderWidth: 1,
     borderColor: '#1B1E33',
   },

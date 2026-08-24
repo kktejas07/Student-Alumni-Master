@@ -218,7 +218,7 @@ function fmtCredits(n: number): string {
 const styles = {
   embeddedShell: { embeddedShell: '{', flex: 1, backgroundColor: 'transparent', gap: 24, paddingBottom: 60 },
   shell: { shell: '{', flex: 1, backgroundColor: 'C.bg' },
-  contentContainer: { contentContainer: '{', paddingVertical: 24, paddingHorizontal: 20, paddingBottom: 80, gap: 24, maxWidth: 1280, width: '100%' as any', alignSelf: 'center' as any' },
+  contentContainer: { contentContainer: '{', paddingVertical: 24, paddingHorizontal: 20, paddingBottom: 80, gap: 24, maxWidth: 1280, width: '100%' as any, alignSelf: 'center' as any },
   regenBtn: { regenBtn: '{', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(129', backgroundColor: 'rgba(129' },
   regenBtnHover: { regenBtnHover: '{', backgroundColor: 'rgba(129' },
   reportBtn: { reportBtn: '{', flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10, backgroundColor: 'C.purple2' },

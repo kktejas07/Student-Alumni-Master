@@ -19,7 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { request, tokenStore, resolveImageUrl } from '@/src/models/services/api';
+import { request, tokenStore } from '@/src/models/services/api';
 import AdvisorAIBlock from '@/src/views/web/AdvisorAIBlock';
 
 // ─── Constants ────────────────────────────────────────────────────────
@@ -155,117 +155,116 @@ function daysUntil(iso?: string): number | null {
 }
 
 // ─── Main Screen ──────────────────────────────────────────────────────
-
 const styles = {
-  root: { root: '{ flex: 1' },
-  headerRow: { headerRow: '{ flexDirection: 'row'' },
-  backBtn: { backBtn: '{ width: 36' },
-  h1: { h1: '{ color: C.text' },
-  subtitle: { subtitle: '{ color: C.textMuted' },
-  hostBtn: { hostBtn: '{ flexDirection: 'row'' },
-  hostBtnText: { hostBtnText: '{ color: '#fff'' },
-  newPill: { newPill: '{ flexDirection: 'row'' },
-  newPillText: { newPillText: '{ color: '#fff'' },
-  searchWrap: { searchWrap: '{ flexDirection: 'row'' },
-  searchInput: { searchInput: '{ flex: 1' },
-  tabsRow: { tabsRow: '{ flexDirection: 'row'' },
-  tabBtn: { tabBtn: '{ flexDirection: 'row'' },
-  tabBtnActive: { tabBtnActive: '{ backgroundColor: C.primary' },
-  tabText: { tabText: '{ color: C.textMuted' },
-  tabTextActive: { tabTextActive: '{ color: '#fff'' },
-  tabBadge: { tabBadge: '{ paddingHorizontal: 6' },
-  tabBadgeActive: { tabBadgeActive: '{ backgroundColor: 'rgba(255' },
-  tabBadgeText: { tabBadgeText: '{ color: C.textMuted' },
-  pill: { pill: '{ flexDirection: 'row'' },
-  pillText: { pillText: '{ color: C.textMuted' },
-  pillCount: { pillCount: '{ paddingHorizontal: 6' },
-  pillCountText: { pillCountText: '{ color: C.textMuted' },
-  scopeToggle: { scopeToggle: '{ flexDirection: 'row'' },
-  scopeBtn: { scopeBtn: '{ flexDirection: 'row'' },
-  scopeBtnActive: { scopeBtnActive: '{ backgroundColor: C.primary' },
-  scopeFlag: { scopeFlag: '{ fontSize: 14' },
-  scopeText: { scopeText: '{ color: C.textMuted' },
-  ddBtn: { ddBtn: '{ flexDirection: 'row'' },
-  ddBtnText: { ddBtnText: '{ color: C.text' },
-  aiBtn: { aiBtn: '{ flexDirection: 'row'' },
-  aiBtnText: { aiBtnText: '{ color: '#FCD34D'' },
-  ddPanel: { ddPanel: '{ marginHorizontal: 16' },
-  ddOpt: { ddOpt: '{ paddingVertical: 10' },
-  ddOptActive: { ddOptActive: '{ backgroundColor: C.primary' },
-  ddOptText: { ddOptText: '{ color: C.text' },
-  sectionHead: { sectionHead: '{ flexDirection: 'row'' },
-  sectionTitle: { sectionTitle: '{ color: C.text' },
-  sectionSub: { sectionSub: '{ color: C.textMuted' },
-  empty: { empty: '{ alignItems: 'center'' },
-  emptyTitle: { emptyTitle: '{ color: C.text' },
-  emptySub: { emptySub: '{ color: C.textMuted' },
-  grid: { grid: '{ flexDirection: 'row'' },
-  approvalRow: { approvalRow: '{ flexDirection: 'row'' },
-  approveBtn: { approveBtn: '{ flex: 1' },
-  approveBtnText: { approveBtnText: '{ color: '#fff'' },
-  toast: { toast: '{ position: 'absolute'' },
-  toastText: { toastText: '{ color: C.text' },
-  carouselArrows: { carouselArrows: '{ flexDirection: 'row'' },
-  arrowBtn: { arrowBtn: '{ width: 32' },
-  card: { card: '{', backgroundColor: 'C.card', overflow: 'hidden', transitionProperty: 'transform' },
-  cardHover: { cardHover: '{ borderColor: C.primary + '99'' },
-  cardImg: { cardImg: '{ width: '100%'' },
-  cardTopRow: { cardTopRow: '{ position: 'absolute'' },
-  typeChip: { typeChip: '{ flexDirection: 'row'' },
-  typeChipText: { typeChipText: '{ fontSize: 10' },
-  featPill: { featPill: '{ flexDirection: 'row'' },
-  featPillText: { featPillText: '{ color: '#fff'' },
-  priceTopRight: { priceTopRight: '{ position: 'absolute'' },
-  priceBadge: { priceBadge: '{ paddingHorizontal: 10' },
-  priceBadgeText: { priceBadgeText: '{ fontSize: 11' },
-  saveBtn: { saveBtn: '{ position: 'absolute'' },
-  cardTitle: { cardTitle: '{ color: C.text' },
-  matchPill: { matchPill: '{ alignSelf: 'flex-start'' },
-  matchPillText: { matchPillText: '{ color: C.green' },
-  metaRow: { metaRow: '{ flexDirection: 'row'' },
-  metaText: { metaText: '{ color: C.textMuted' },
-  urgent: { urgent: '{ paddingHorizontal: 6' },
-  urgentText: { urgentText: '{ color: C.amber' },
-  desc: { desc: '{ color: C.textDim' },
-  topicRow: { topicRow: '{ flexDirection: 'row'' },
-  topicPill: { topicPill: '{ paddingHorizontal: 8' },
-  topicPillText: { topicPillText: '{ color: '#94A3B8'' },
-  cardFooter: { cardFooter: '{ flexDirection: 'row'' },
-  regChip: { regChip: '{ flexDirection: 'row'' },
-  regChipText: { regChipText: '{ fontSize: 10' },
-  registerBtnSmall: { registerBtnSmall: '{ flexDirection: 'row'' },
-  registerBtnSmallText: { registerBtnSmallText: '{ color: '#fff'' },
-  modalBackdrop: { modalBackdrop: '{ flex: 1' },
-  panel: { panel: '{ backgroundColor: C.bg' },
-  panelBanner: { panelBanner: '{ width: '100%'' },
-  closeBtn: { closeBtn: '{ position: 'absolute'' },
-  panelTitle: { panelTitle: '{ color: C.text' },
-  panelOrg: { panelOrg: '{ color: C.textMuted' },
-  panelTabsRow: { panelTabsRow: '{ flexDirection: 'row'' },
-  panelTab: { panelTab: '{ flexDirection: 'row'' },
-  panelTabText: { panelTabText: '{ color: C.textMuted' },
-  panelDesc: { panelDesc: '{ color: C.text' },
-  detailCard: { detailCard: '{ backgroundColor: C.card' },
-  detailRow: { detailRow: '{ flexDirection: 'row'' },
-  detailKey: { detailKey: '{ color: C.textMuted' },
-  detailVal: { detailVal: '{ color: C.text' },
-  registeredBanner: { registeredBanner: '{ flexDirection: 'row'' },
-  registeredBannerText: { registeredBannerText: '{ color: C.green' },
-  linkBtn: { linkBtn: '{ flexDirection: 'row'' },
-  linkBtnText: { linkBtnText: '{ color: C.primary' },
-  creditToggle: { creditToggle: '{ flexDirection: 'row'' },
-  checkbox: { checkbox: '{ width: 18' },
-  creditToggleText: { creditToggleText: '{ color: C.text' },
-  registerCta: { registerCta: '{ flexDirection: 'row'' },
-  registerCtaText: { registerCtaText: '{ color: '#fff'' },
-  fpSectionTitle: { fpSectionTitle: '{ color: C.text' },
-  fpRow: { fpRow: '{ flexDirection: 'row'' },
-  fpRowText: { fpRowText: '{ color: C.text' },
-  radio: { radio: '{ width: 18' },
-  radioDot: { radioDot: '{ width: 8' },
-  tagChip: { tagChip: '{ paddingHorizontal: 12' },
-  tagChipText: { tagChipText: '{ color: C.textMuted' },
-  formInput: { formInput: '{ marginTop: 6' },
+  root: {root:'{ flex: 1'},
+  headerRow: {headerRow:'{ flexDirection: 'row''},
+  backBtn: {backBtn:'{ width: 36'},
+  h1: {h1:'{ color: C.text'},
+  subtitle: {subtitle:'{ color: C.textMuted'},
+  hostBtn: {hostBtn:'{ flexDirection: 'row''},
+  hostBtnText: {hostBtnText:'{ color: '#fff''},
+  newPill: {newPill:'{ flexDirection: 'row''},
+  newPillText: {newPillText:'{ color: '#fff''},
+  searchWrap: {searchWrap:'{ flexDirection: 'row''},
+  searchInput: {searchInput:'{ flex: 1'},
+  tabsRow: {tabsRow:'{ flexDirection: 'row''},
+  tabBtn: {tabBtn:'{ flexDirection: 'row''},
+  tabBtnActive: {tabBtnActive:'{ backgroundColor: C.primary'},
+  tabText: {tabText:'{ color: C.textMuted'},
+  tabTextActive: {tabTextActive:'{ color: '#fff''},
+  tabBadge: {tabBadge:'{ paddingHorizontal: 6'},
+  tabBadgeActive: {tabBadgeActive:'{ backgroundColor: 'rgba(255'},
+  tabBadgeText: {tabBadgeText:'{ color: C.textMuted'},
+  pill: {pill:'{ flexDirection: 'row''},
+  pillText: {pillText:'{ color: C.textMuted'},
+  pillCount: {pillCount:'{ paddingHorizontal: 6'},
+  pillCountText: {pillCountText:'{ color: C.textMuted'},
+  scopeToggle: {scopeToggle:'{ flexDirection: 'row''},
+  scopeBtn: {scopeBtn:'{ flexDirection: 'row''},
+  scopeBtnActive: {scopeBtnActive:'{ backgroundColor: C.primary'},
+  scopeFlag: {scopeFlag:'{ fontSize: 14'},
+  scopeText: {scopeText:'{ color: C.textMuted'},
+  ddBtn: {ddBtn:'{ flexDirection: 'row''},
+  ddBtnText: {ddBtnText:'{ color: C.text'},
+  aiBtn: {aiBtn:'{ flexDirection: 'row''},
+  aiBtnText: {aiBtnText:'{ color: '#FCD34D''},
+  ddPanel: {ddPanel:'{ marginHorizontal: 16'},
+  ddOpt: {ddOpt:'{ paddingVertical: 10'},
+  ddOptActive: {ddOptActive:'{ backgroundColor: C.primary'},
+  ddOptText: {ddOptText:'{ color: C.text'},
+  sectionHead: {sectionHead:'{ flexDirection: 'row''},
+  sectionTitle: {sectionTitle:'{ color: C.text'},
+  sectionSub: {sectionSub:'{ color: C.textMuted'},
+  empty: {empty:'{ alignItems: 'center''},
+  emptyTitle: {emptyTitle:'{ color: C.text'},
+  emptySub: {emptySub:'{ color: C.textMuted'},
+  grid: {grid:'{ flexDirection: 'row''},
+  approvalRow: {approvalRow:'{ flexDirection: 'row''},
+  approveBtn: {approveBtn:'{ flex: 1'},
+  approveBtnText: {approveBtnText:'{ color: '#fff''},
+  toast: {toast:'{ position: 'absolute''},
+  toastText: {toastText:'{ color: C.text'},
+  carouselArrows: {carouselArrows:'{ flexDirection: 'row''},
+  arrowBtn: {arrowBtn:'{ width: 32'},
+  card: {card:'{', backgroundColor:'C.card', overflow:'hidden', transitionProperty:'transform'},
+  cardHover: {cardHover:'{ borderColor: C.primary + '99''},
+  cardImg: {cardImg:'{ width: '100%''},
+  cardTopRow: {cardTopRow:'{ position: 'absolute''},
+  typeChip: {typeChip:'{ flexDirection: 'row''},
+  typeChipText: {typeChipText:'{ fontSize: 10'},
+  featPill: {featPill:'{ flexDirection: 'row''},
+  featPillText: {featPillText:'{ color: '#fff''},
+  priceTopRight: {priceTopRight:'{ position: 'absolute''},
+  priceBadge: {priceBadge:'{ paddingHorizontal: 10'},
+  priceBadgeText: {priceBadgeText:'{ fontSize: 11'},
+  saveBtn: {saveBtn:'{ position: 'absolute''},
+  cardTitle: {cardTitle:'{ color: C.text'},
+  matchPill: {matchPill:'{ alignSelf: 'flex-start''},
+  matchPillText: {matchPillText:'{ color: C.green'},
+  metaRow: {metaRow:'{ flexDirection: 'row''},
+  metaText: {metaText:'{ color: C.textMuted'},
+  urgent: {urgent:'{ paddingHorizontal: 6'},
+  urgentText: {urgentText:'{ color: C.amber'},
+  desc: {desc:'{ color: C.textDim'},
+  topicRow: {topicRow:'{ flexDirection: 'row''},
+  topicPill: {topicPill:'{ paddingHorizontal: 8'},
+  topicPillText: {topicPillText:'{ color: '#94A3B8''},
+  cardFooter: {cardFooter:'{ flexDirection: 'row''},
+  regChip: {regChip:'{ flexDirection: 'row''},
+  regChipText: {regChipText:'{ fontSize: 10'},
+  registerBtnSmall: {registerBtnSmall:'{ flexDirection: 'row''},
+  registerBtnSmallText: {registerBtnSmallText:'{ color: '#fff''},
+  modalBackdrop: {modalBackdrop:'{ flex: 1'},
+  panel: {panel:'{ backgroundColor: C.bg'},
+  panelBanner: {panelBanner:'{ width: '100%''},
+  closeBtn: {closeBtn:'{ position: 'absolute''},
+  panelTitle: {panelTitle:'{ color: C.text'},
+  panelOrg: {panelOrg:'{ color: C.textMuted'},
+  panelTabsRow: {panelTabsRow:'{ flexDirection: 'row''},
+  panelTab: {panelTab:'{ flexDirection: 'row''},
+  panelTabText: {panelTabText:'{ color: C.textMuted'},
+  panelDesc: {panelDesc:'{ color: C.text'},
+  detailCard: {detailCard:'{ backgroundColor: C.card'},
+  detailRow: {detailRow:'{ flexDirection: 'row''},
+  detailKey: {detailKey:'{ color: C.textMuted'},
+  detailVal: {detailVal:'{ color: C.text'},
+  registeredBanner: {registeredBanner:'{ flexDirection: 'row''},
+  registeredBannerText: {registeredBannerText:'{ color: C.green'},
+  linkBtn: {linkBtn:'{ flexDirection: 'row''},
+  linkBtnText: {linkBtnText:'{ color: C.primary'},
+  creditToggle: {creditToggle:'{ flexDirection: 'row''},
+  checkbox: {checkbox:'{ width: 18'},
+  creditToggleText: {creditToggleText:'{ color: C.text'},
+  registerCta: {registerCta:'{ flexDirection: 'row''},
+  registerCtaText: {registerCtaText:'{ color: '#fff''},
+  fpSectionTitle: {fpSectionTitle:'{ color: C.text'},
+  fpRow: {fpRow:'{ flexDirection: 'row''},
+  fpRowText: {fpRowText:'{ color: C.text'},
+  radio: {radio:'{ width: 18'},
+  radioDot: {radioDot:'{ width: 8'},
+  tagChip: {tagChip:'{ paddingHorizontal: 12'},
+  tagChipText: {tagChipText:'{ color: C.textMuted'},
+  formInput: {formInput:'{ marginTop: 6'},
 };
 
 export default function EventsScreen() {
@@ -478,7 +477,7 @@ export default function EventsScreen() {
         it.event_id === ev.event_id ? { ...it, rsvp_status: null } : it
       );
       setFeatured(upd); setMore(upd); setAiRecs(upd);
-      showToast(r.refunded_credits ? `Cancelled — ${r.refunded_credits} points refunded` : 'Cancelled');
+      showToast(r.refunded_credits ? `Cancelled — ${r.refunded_credits} credits refunded` : 'Cancelled');
       if (selected?.event_id === ev.event_id) setSelected({ ...selected, rsvp_status: null });
       loadRegistered();
     } catch (err: any) {
@@ -566,27 +565,27 @@ export default function EventsScreen() {
   };
 
   return (
-    <SafeAreaView style={s.root} edges={['top']}>
+    <SafeAreaView style={styles.root} edges={['top']}>
       <ScrollView contentContainerStyle={{ paddingBottom: 140 }} showsVerticalScrollIndicator={false}>
         {/* Header */}
-        <View style={s.headerRow}>
-          <Pressable onPress={() => router.back()} style={s.backBtn} hitSlop={8}>
+        <View style={styles.headerRow}>
+          <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={8}>
             <MaterialCommunityIcons name="arrow-left" size={22} color={C.text} />
           </Pressable>
           <View style={{ flex: 1 }}>
-            <Text style={s.h1}>Events</Text>
-            <Text style={s.subtitle}>Discover hackathons, talks, workshops & meetups</Text>
+            <Text style={styles.h1}>Events</Text>
+            <Text style={styles.subtitle}>Discover hackathons, talks, workshops & meetups</Text>
           </View>
           {canHost && (
-            <Pressable onPress={() => setShowHostModal(true)} style={s.hostBtn}>
+            <Pressable onPress={() => setShowHostModal(true)} style={styles.hostBtn}>
               <MaterialCommunityIcons name="plus-circle" size={16} color="#fff" />
-              <Text style={s.hostBtnText}>{me?.role === 'college' ? 'Publish Event' : 'Host Event'}</Text>
+              <Text style={styles.hostBtnText}>{me?.role === 'college' ? 'Publish Event' : 'Host Event'}</Text>
             </Pressable>
           )}
           {newCount > 0 && (
-            <Pressable onPress={() => { setNewCount(0); load(); }} style={s.newPill}>
+            <Pressable onPress={() => { setNewCount(0); load(); }} style={styles.newPill}>
               <MaterialCommunityIcons name="bell-ring" size={14} color="#fff" />
-              <Text style={s.newPillText}>{newCount} new</Text>
+              <Text style={styles.newPillText}>{newCount} new</Text>
             </Pressable>
           )}
         </View>
@@ -599,7 +598,7 @@ export default function EventsScreen() {
             onChangeText={setSearch}
             placeholder="Search events, organizers, cities…"
             placeholderTextColor={C.textDim}
-            style={s.searchInput}
+            style={styles.searchInput}
           />
           {search.length > 0 && (
             <Pressable onPress={() => setSearch('')} hitSlop={8}>
@@ -624,7 +623,7 @@ export default function EventsScreen() {
         </View>
 
         {/* Tabs */}
-        <View style={s.tabsRow}>
+        <View style={styles.tabsRow}>
           {[
             { id: 'all', label: 'Discover', n: counts.all || 0, show: true },
             { id: 'saved', label: 'Saved', n: savedItems.length, show: true },
@@ -688,12 +687,12 @@ export default function EventsScreen() {
         {/* India / Global toggle + Price + AI */}
         {tab === 'all' && (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16, marginTop: 12 }}>
-            <View style={s.scopeToggle}>
+            <View style={styles.scopeToggle}>
               <Pressable
                 onPress={() => setScope('india')}
                 style={[styles.scopeBtn, scope === 'india' && s.scopeBtnActive]}
               >
-                <Text style={s.scopeFlag}>🇮🇳</Text>
+                <Text style={styles.scopeFlag}>🇮🇳</Text>
                 <Text style={[styles.scopeText, scope === 'india' && { color: '#fff' }]}>India</Text>
               </Pressable>
               <Pressable
@@ -706,16 +705,16 @@ export default function EventsScreen() {
             </View>
 
             {scope === 'india' && (
-              <Pressable onPress={() => setShowCityDD(!showCityDD)} style={s.ddBtn}>
+              <Pressable onPress={() => setShowCityDD(!showCityDD)} style={styles.ddBtn}>
                 <MaterialCommunityIcons name="map-marker-outline" size={14} color={C.textMuted} />
-                <Text style={s.ddBtnText}>{city}</Text>
+                <Text style={styles.ddBtnText}>{city}</Text>
                 <MaterialCommunityIcons name="chevron-down" size={14} color={C.textMuted} />
               </Pressable>
             )}
 
-            <Pressable onPress={() => setShowPriceDD(!showPriceDD)} style={s.ddBtn}>
+            <Pressable onPress={() => setShowPriceDD(!showPriceDD)} style={styles.ddBtn}>
               <MaterialCommunityIcons name="cash" size={14} color={C.textMuted} />
-              <Text style={s.ddBtnText}>{price === 'all' ? 'All prices' : price === 'free' ? 'Free' : 'Paid'}</Text>
+              <Text style={styles.ddBtnText}>{price === 'all' ? 'All prices' : price === 'free' ? 'Free' : 'Paid'}</Text>
               <MaterialCommunityIcons name="chevron-down" size={14} color={C.textMuted} />
             </Pressable>
 
@@ -741,7 +740,7 @@ export default function EventsScreen() {
 
         {/* City DD popover */}
         {showCityDD && (
-          <View style={s.ddPanel}>
+          <View style={styles.ddPanel}>
             {INDIAN_CITIES.map((c) => (
               <Pressable
                 key={c}
@@ -754,7 +753,7 @@ export default function EventsScreen() {
           </View>
         )}
         {showPriceDD && (
-          <View style={s.ddPanel}>
+          <View style={styles.ddPanel}>
             {[
               { id: 'all', label: 'All Events' },
               { id: 'free', label: 'Free Events Only' },
@@ -786,23 +785,23 @@ export default function EventsScreen() {
           <ActivityIndicator color={C.primary} style={{ marginTop: 32 }} />
         ) : (
           <View style={{ paddingHorizontal: 16, marginTop: 24 }}>
-            <View style={s.sectionHead}>
-              <Text style={s.sectionTitle}>
+            <View style={styles.sectionHead}>
+              <Text style={styles.sectionTitle}>
                 {tab === 'saved' ? 'Saved Events' :
                  tab === 'registered' ? 'My Registrations' :
                  aiOn ? '✨ AI Best Events for You' : 'More Events'}
               </Text>
-              <Text style={s.sectionSub}>{listToShow.length} {listToShow.length === 1 ? 'event' : 'events'}</Text>
+              <Text style={styles.sectionSub}>{listToShow.length} {listToShow.length === 1 ? 'event' : 'events'}</Text>
             </View>
 
             {listToShow.length === 0 ? (
-              <View style={s.empty}>
+              <View style={styles.empty}>
                 <MaterialCommunityIcons name="calendar-blank-outline" size={56} color={C.textDim} />
-                <Text style={s.emptyTitle}>
+                <Text style={styles.emptyTitle}>
                   {tab === 'saved' ? 'No saved events yet' :
                    tab === 'registered' ? 'No registrations yet' : 'No matching events'}
                 </Text>
-                <Text style={s.emptySub}>
+                <Text style={styles.emptySub}>
                   {tab === 'saved' ? 'Tap the bookmark on any card to save it.' :
                    tab === 'registered' ? 'RSVP to events to see them here.' :
                    'Try adjusting your filters or search.'}
@@ -818,14 +817,14 @@ export default function EventsScreen() {
                       onSave={(e) => handleSave(ev, e)}
                     />
                     {tab === 'approvals' && (
-                      <View style={s.approvalRow}>
+                      <View style={styles.approvalRow}>
                         <Pressable onPress={() => handleApprove(ev)} style={[styles.approveBtn, { backgroundColor: C.green }]}>
                           <MaterialCommunityIcons name="check" size={14} color="#fff" />
-                          <Text style={s.approveBtnText}>Approve</Text>
+                          <Text style={styles.approveBtnText}>Approve</Text>
                         </Pressable>
                         <Pressable onPress={() => handleReject(ev)} style={[styles.approveBtn, { backgroundColor: C.red }]}>
                           <MaterialCommunityIcons name="close" size={14} color="#fff" />
-                          <Text style={s.approveBtnText}>Reject</Text>
+                          <Text style={styles.approveBtnText}>Reject</Text>
                         </Pressable>
                       </View>
                     )}
@@ -885,8 +884,8 @@ export default function EventsScreen() {
 
       {/* Toast */}
       {toast && (
-        <View style={s.toast}>
-          <Text style={s.toastText}>{toast}</Text>
+        <View style={styles.toast}>
+          <Text style={styles.toastText}>{toast}</Text>
         </View>
       )}
     </SafeAreaView>
@@ -921,16 +920,16 @@ function FeaturedCarousel({
     <View style={{ marginTop: 26 }}>
       <View style={[styles.sectionHead, { paddingHorizontal: 16 }]}>
         <View>
-          <Text style={s.sectionTitle}>Featured Events</Text>
-          <Text style={s.sectionSub}>Handpicked for your interests</Text>
+          <Text style={styles.sectionTitle}>Featured Events</Text>
+          <Text style={styles.sectionSub}>Handpicked for your interests</Text>
         </View>
-        <View style={s.carouselArrows}>
+        <View style={styles.carouselArrows}>
           <Pressable
             onPress={() => {
               idx.current = Math.max(0, idx.current - 1);
               scrollRef.current?.scrollTo({ x: idx.current * (cardW + gap), animated: true });
             }}
-            style={s.arrowBtn}
+            style={styles.arrowBtn}
           >
             <MaterialCommunityIcons name="chevron-left" size={20} color={C.primary} />
           </Pressable>
@@ -939,7 +938,7 @@ function FeaturedCarousel({
               idx.current = Math.min(items.length - 1, idx.current + 1);
               scrollRef.current?.scrollTo({ x: idx.current * (cardW + gap), animated: true });
             }}
-            style={s.arrowBtn}
+            style={styles.arrowBtn}
           >
             <MaterialCommunityIcons name="chevron-right" size={20} color={C.primary} />
           </Pressable>
@@ -987,26 +986,26 @@ function EventCard({
     ]}>
       {/* Image banner if available */}
       {ev.image_url ? (
-        <Image source={{ uri: resolveImageUrl(ev.image_url) }} style={s.cardImg} />
+        <Image source={{ uri: ev.image_url }} style={styles.cardImg} />
       ) : (
         <LinearGradient
           colors={[tint + '40', tint + '15']}
-          style={s.cardImg}
+          style={styles.cardImg}
         >
           <MaterialCommunityIcons name={icon} size={42} color={tint} style={{ alignSelf: 'center', marginTop: 36 }} />
         </LinearGradient>
       )}
 
       {/* Top row: type chip + featured + price */}
-      <View style={s.cardTopRow}>
+      <View style={styles.cardTopRow}>
         <View style={[styles.typeChip, { backgroundColor: tint + '22', borderColor: tint + '55' }]}>
           <MaterialCommunityIcons name={icon} size={12} color={tint} />
           <Text style={[styles.typeChipText, { color: tint }]}>{TYPE_LABELS[ev.event_type] || ev.event_type}</Text>
         </View>
         {featured && (
-          <View style={s.featPill}>
+          <View style={styles.featPill}>
             <MaterialCommunityIcons name="star" size={11} color="#fff" />
-            <Text style={s.featPillText}>Featured</Text>
+            <Text style={styles.featPillText}>Featured</Text>
           </View>
         )}
       </View>
@@ -1024,26 +1023,26 @@ function EventCard({
       </View>
 
       {/* Save bookmark */}
-      <Pressable onPress={(e) => onSave(e)} style={s.saveBtn} hitSlop={8}>
+      <Pressable onPress={(e) => onSave(e)} style={styles.saveBtn} hitSlop={8}>
         <MaterialCommunityIcons name={ev.is_saved ? 'bookmark' : 'bookmark-outline'} size={18} color={ev.is_saved ? C.amber : '#fff'} />
       </Pressable>
 
       <View style={{ padding: 14, paddingTop: 10 }}>
-        <Text style={s.cardTitle} numberOfLines={2}>{ev.title}</Text>
+        <Text style={styles.cardTitle} numberOfLines={2}>{ev.title}</Text>
         {ev.match_score !== undefined && (
-          <View style={s.matchPill}>
-            <Text style={s.matchPillText}>★ {ev.match_score}% match</Text>
+          <View style={styles.matchPill}>
+            <Text style={styles.matchPillText}>★ {ev.match_score}% match</Text>
           </View>
         )}
-        <View style={s.metaRow}>
+        <View style={styles.metaRow}>
           <MaterialCommunityIcons name="map-marker-outline" size={13} color={C.textMuted} />
-          <Text style={s.metaText} numberOfLines={1}>
+          <Text style={styles.metaText} numberOfLines={1}>
             {ev.location_city || 'Online'}{ev.location_country ? ` · ${ev.location_country}` : ''}
           </Text>
         </View>
-        <View style={s.metaRow}>
+        <View style={styles.metaRow}>
           <MaterialCommunityIcons name="calendar-outline" size={13} color={C.textMuted} />
-          <Text style={s.metaText}>{fmtRange(ev.event_date_start, ev.event_date_end)}</Text>
+          <Text style={styles.metaText}>{fmtRange(ev.event_date_start, ev.event_date_end)}</Text>
           {dDays !== null && dDays >= 0 && dDays <= 7 && (
             <View style={[styles.urgent, dDays <= 3 && { backgroundColor: C.red + '33', borderColor: C.red }]}>
               <Text style={[styles.urgentText, dDays <= 3 && { color: '#FCA5A5' }]}>
@@ -1053,23 +1052,23 @@ function EventCard({
           )}
         </View>
         {ev.description ? (
-          <Text style={s.desc} numberOfLines={2}>{ev.description}</Text>
+          <Text style={styles.desc} numberOfLines={2}>{ev.description}</Text>
         ) : null}
 
         {ev.topic_keywords && ev.topic_keywords.length > 0 && (
-          <View style={s.topicRow}>
+          <View style={styles.topicRow}>
             {ev.topic_keywords.slice(0, 3).map((tk) => (
-              <View key={tk} style={s.topicPill}>
-                <Text style={s.topicPillText}>{tk.replace('_', ' ')}</Text>
+              <View key={tk} style={styles.topicPill}>
+                <Text style={styles.topicPillText}>{tk.replace('_', ' ')}</Text>
               </View>
             ))}
           </View>
         )}
 
-        <View style={s.cardFooter}>
+        <View style={styles.cardFooter}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <MaterialCommunityIcons name="account-multiple" size={13} color={C.textMuted} />
-            <Text style={s.metaText}>{ev.attendee_count || 0}</Text>
+            <Text style={styles.metaText}>{ev.attendee_count || 0}</Text>
             {ev.spots_left !== null && ev.spots_left !== undefined && ev.spots_left <= 20 && ev.spots_left > 0 && (
               <Text style={[styles.metaText, { color: C.amber, fontWeight: '700', marginLeft: 4 }]}>
                 · {ev.spots_left} spots left
@@ -1084,8 +1083,8 @@ function EventCard({
               </Text>
             </View>
           ) : (
-            <View style={s.registerBtnSmall}>
-              <Text style={s.registerBtnSmallText}>Register</Text>
+            <View style={styles.registerBtnSmall}>
+              <Text style={styles.registerBtnSmallText}>Register</Text>
               <MaterialCommunityIcons name="arrow-right" size={14} color="#fff" />
             </View>
           )}
@@ -1115,7 +1114,7 @@ function DetailPanel({
   const [useCredits, setUseCredits] = useState(false);
 
   return (
-    <Pressable onPress={onClose} style={s.modalBackdrop}>
+    <Pressable onPress={onClose} style={styles.modalBackdrop}>
       <Pressable onPress={(e) => e.stopPropagation()} style={[
         s.panel,
         isWide ? { right: 0, top: 0, height: '100%', width: 600, position: 'absolute' as any } :
@@ -1125,13 +1124,13 @@ function DetailPanel({
           {/* Banner */}
           <View style={{ position: 'relative' }}>
             {ev.image_url ? (
-              <Image source={{ uri: resolveImageUrl(ev.image_url) }} style={s.panelBanner} />
+              <Image source={{ uri: ev.image_url }} style={styles.panelBanner} />
             ) : (
-              <LinearGradient colors={[tint + '60', tint + '20']} style={s.panelBanner}>
+              <LinearGradient colors={[tint + '60', tint + '20']} style={styles.panelBanner}>
                 <MaterialCommunityIcons name={icon} size={64} color={tint} style={{ alignSelf: 'center', marginTop: 64 }} />
               </LinearGradient>
             )}
-            <Pressable onPress={onClose} style={s.closeBtn} hitSlop={8}>
+            <Pressable onPress={onClose} style={styles.closeBtn} hitSlop={8}>
               <MaterialCommunityIcons name="close" size={20} color="#fff" />
             </Pressable>
           </View>
@@ -1142,29 +1141,29 @@ function DetailPanel({
               <MaterialCommunityIcons name={icon} size={12} color={tint} />
               <Text style={[styles.typeChipText, { color: tint }]}>{TYPE_LABELS[ev.event_type]}</Text>
             </View>
-            <Text style={s.panelTitle}>{ev.title}</Text>
-            <Text style={s.panelOrg}>by {ev.organizer_name || 'Unknown'}</Text>
+            <Text style={styles.panelTitle}>{ev.title}</Text>
+            <Text style={styles.panelOrg}>by {ev.organizer_name || 'Unknown'}</Text>
 
             <View style={[styles.metaRow, { marginTop: 10 }]}>
               <MaterialCommunityIcons name="map-marker" size={14} color={C.textMuted} />
-              <Text style={s.metaText}>
+              <Text style={styles.metaText}>
                 {ev.location_city || 'Online'}{ev.location_country ? ` · ${ev.location_country}` : ''}
               </Text>
             </View>
-            <View style={s.metaRow}>
+            <View style={styles.metaRow}>
               <MaterialCommunityIcons name="calendar" size={14} color={C.textMuted} />
-              <Text style={s.metaText}>{fmtRange(ev.event_date_start, ev.event_date_end)}</Text>
+              <Text style={styles.metaText}>{fmtRange(ev.event_date_start, ev.event_date_end)}</Text>
             </View>
             {ev.capacity ? (
-              <View style={s.metaRow}>
+              <View style={styles.metaRow}>
                 <MaterialCommunityIcons name="account-multiple" size={14} color={C.textMuted} />
-                <Text style={s.metaText}>{ev.attendee_count}/{ev.capacity} attendees{ev.spots_left ? ` · ${ev.spots_left} left` : ''}</Text>
+                <Text style={styles.metaText}>{ev.attendee_count}/{ev.capacity} attendees{ev.spots_left ? ` · ${ev.spots_left} left` : ''}</Text>
               </View>
             ) : null}
           </View>
 
           {/* Tabs */}
-          <View style={s.panelTabsRow}>
+          <View style={styles.panelTabsRow}>
             {[
               { id: 'overview', label: 'Overview', icon: 'text-box-outline' },
               { id: 'register', label: 'Register', icon: 'ticket-outline' },
@@ -1185,33 +1184,33 @@ function DetailPanel({
           <View style={{ padding: 20, gap: 14 }}>
             {tab === 'overview' && (
               <>
-                <Text style={s.panelDesc}>{ev.description || 'No description provided.'}</Text>
-                <View style={s.detailCard}>
-                  <View style={s.detailRow}>
-                    <Text style={s.detailKey}>Date</Text>
-                    <Text style={s.detailVal}>{fmtRange(ev.event_date_start, ev.event_date_end)}</Text>
+                <Text style={styles.panelDesc}>{ev.description || 'No description provided.'}</Text>
+                <View style={styles.detailCard}>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailKey}>Date</Text>
+                    <Text style={styles.detailVal}>{fmtRange(ev.event_date_start, ev.event_date_end)}</Text>
                   </View>
-                  <View style={s.detailRow}>
-                    <Text style={s.detailKey}>Location</Text>
-                    <Text style={s.detailVal}>{ev.location_city}, {ev.location_country}</Text>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailKey}>Location</Text>
+                    <Text style={styles.detailVal}>{ev.location_city}, {ev.location_country}</Text>
                   </View>
-                  <View style={s.detailRow}>
-                    <Text style={s.detailKey}>Price</Text>
-                    <Text style={s.detailVal}>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailKey}>Price</Text>
+                    <Text style={styles.detailVal}>
                       {isFree ? <Text style={{ color: C.green, fontWeight: '700' }}>Free</Text> :
                         <Text style={{ color: '#A78BFA', fontWeight: '700' }}>₹{ev.price_amount}</Text>}
                     </Text>
                   </View>
                   {ev.capacity ? (
-                    <View style={s.detailRow}>
-                      <Text style={s.detailKey}>Capacity</Text>
-                      <Text style={s.detailVal}>{ev.capacity} attendees</Text>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailKey}>Capacity</Text>
+                      <Text style={styles.detailVal}>{ev.capacity} attendees</Text>
                     </View>
                   ) : null}
                 </View>
                 {ev.why && ev.why.length > 0 && (
-                  <View style={s.detailCard}>
-                    <Text style={s.detailKey}>Why we recommend this</Text>
+                  <View style={styles.detailCard}>
+                    <Text style={styles.detailKey}>Why we recommend this</Text>
                     {ev.why.map((w, i) => (
                       <Text key={i} style={[styles.detailVal, { marginTop: 4 }]}>• {w}</Text>
                     ))}
@@ -1223,31 +1222,31 @@ function DetailPanel({
             {tab === 'register' && (
               <>
                 {ev.rsvp_status ? (
-                  <View style={s.registeredBanner}>
+                  <View style={styles.registeredBanner}>
                     <MaterialCommunityIcons name="check-circle" size={20} color={C.green} />
-                    <Text style={s.registeredBannerText}>
+                    <Text style={styles.registeredBannerText}>
                       You're {ev.rsvp_status === 'waitlisted' ? 'on the waitlist' : 'registered'}
                     </Text>
                   </View>
                 ) : (
                   <>
                     {ev.registration_url && (
-                      <Pressable onPress={() => Linking.openURL(ev.registration_url!)} style={s.linkBtn}>
+                      <Pressable onPress={() => Linking.openURL(ev.registration_url!)} style={styles.linkBtn}>
                         <MaterialCommunityIcons name="open-in-new" size={16} color={C.primary} />
-                        <Text style={s.linkBtnText}>Register on {ev.organizer_name || 'organizer'}'s site</Text>
+                        <Text style={styles.linkBtnText}>Register on {ev.organizer_name || 'organizer'}'s site</Text>
                       </Pressable>
                     )}
                     {!isFree && (
-                      <Pressable onPress={() => setUseCredits(!useCredits)} style={s.creditToggle}>
+                      <Pressable onPress={() => setUseCredits(!useCredits)} style={styles.creditToggle}>
                         <View style={[styles.checkbox, useCredits && { backgroundColor: C.primary }]}>
                           {useCredits && <MaterialCommunityIcons name="check" size={12} color="#fff" />}
                         </View>
-                        <Text style={s.creditToggleText}>Use SA points to pay (₹{ev.price_amount})</Text>
+                        <Text style={styles.creditToggleText}>Use SA Credits to pay (₹{ev.price_amount})</Text>
                       </Pressable>
                     )}
                     <Pressable onPress={() => onRegister(useCredits)} style={[styles.registerCta, { backgroundColor: C.primary }]}>
-                      <Text style={s.registerCtaText}>
-                        {isFree ? 'Register — Free' : useCredits ? `Pay & Register (${ev.price_amount} points)` : `Register Here · ₹${ev.price_amount}`}
+                      <Text style={styles.registerCtaText}>
+                        {isFree ? 'Register — Free' : useCredits ? `Pay & Register (${ev.price_amount} credits)` : `Register Here · ₹${ev.price_amount}`}
                       </Text>
                       <MaterialCommunityIcons name="arrow-right" size={18} color="#fff" />
                     </Pressable>
@@ -1259,24 +1258,24 @@ function DetailPanel({
             {tab === 'track' && (
               <>
                 {!ev.rsvp_status ? (
-                  <Text style={s.panelDesc}>You haven't registered yet. Switch to the Register tab.</Text>
+                  <Text style={styles.panelDesc}>You haven't registered yet. Switch to the Register tab.</Text>
                 ) : (
                   <>
-                    <View style={s.detailCard}>
-                      <View style={s.detailRow}>
-                        <Text style={s.detailKey}>Status</Text>
+                    <View style={styles.detailCard}>
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailKey}>Status</Text>
                         <Text style={[styles.detailVal, { color: ev.rsvp_status === 'waitlisted' ? C.amber : C.green, fontWeight: '700' }]}>
                           {ev.rsvp_status === 'waitlisted' ? 'Waitlisted' : 'Registered'}
                         </Text>
                       </View>
                     </View>
-                    <Pressable onPress={onDownloadIcs} style={s.linkBtn}>
+                    <Pressable onPress={onDownloadIcs} style={styles.linkBtn}>
                       <MaterialCommunityIcons name="calendar-export" size={16} color={C.primary} />
-                      <Text style={s.linkBtnText}>Add to Calendar (.ics)</Text>
+                      <Text style={styles.linkBtnText}>Add to Calendar (.ics)</Text>
                     </Pressable>
-                    <Pressable onPress={onShare} style={s.linkBtn}>
+                    <Pressable onPress={onShare} style={styles.linkBtn}>
                       <MaterialCommunityIcons name="share-variant" size={16} color={C.primary} />
-                      <Text style={s.linkBtnText}>Share event</Text>
+                      <Text style={styles.linkBtnText}>Share event</Text>
                     </Pressable>
                     <Pressable onPress={onCancel} style={[styles.linkBtn, { borderColor: C.red + '55' }]}>
                       <MaterialCommunityIcons name="close-circle" size={16} color={C.red} />
@@ -1313,7 +1312,7 @@ function FilterPanel({
     setArr(arr.includes(id) ? arr.filter((x) => x !== id) : [...arr, id]);
   };
   return (
-    <Pressable onPress={onClose} style={s.modalBackdrop}>
+    <Pressable onPress={onClose} style={styles.modalBackdrop}>
       <Pressable onPress={(e) => e.stopPropagation()} style={[
         s.panel,
         isWide ? { left: 0, top: 0, height: '100%', width: 360, position: 'absolute' as any } :
@@ -1333,16 +1332,16 @@ function FilterPanel({
         <ScrollView contentContainerStyle={{ padding: 18, gap: 22, paddingBottom: 100 }}>
           {/* Institution Tier */}
           <View>
-            <Text style={s.fpSectionTitle}>Institution Tier</Text>
+            <Text style={styles.fpSectionTitle}>Institution Tier</Text>
             <View style={{ gap: 8, marginTop: 10 }}>
               {TIER_OPTIONS.map((t) => {
                 const active = tiers.includes(t.id);
                 return (
-                  <Pressable key={t.id} onPress={() => toggleArr(tiers, setTiers, t.id)} style={s.fpRow}>
+                  <Pressable key={t.id} onPress={() => toggleArr(tiers, setTiers, t.id)} style={styles.fpRow}>
                     <View style={[styles.checkbox, active && { backgroundColor: C.primary, borderColor: C.primary }]}>
                       {active && <MaterialCommunityIcons name="check" size={12} color="#fff" />}
                     </View>
-                    <Text style={s.fpRowText}>{t.label}</Text>
+                    <Text style={styles.fpRowText}>{t.label}</Text>
                   </Pressable>
                 );
               })}
@@ -1351,16 +1350,16 @@ function FilterPanel({
 
           {/* Event Mode */}
           <View>
-            <Text style={s.fpSectionTitle}>Event Mode</Text>
+            <Text style={styles.fpSectionTitle}>Event Mode</Text>
             <View style={{ gap: 8, marginTop: 10 }}>
               {MODE_OPTIONS.map((m) => {
                 const active = mode === m.id;
                 return (
-                  <Pressable key={m.id} onPress={() => setMode(m.id)} style={s.fpRow}>
+                  <Pressable key={m.id} onPress={() => setMode(m.id)} style={styles.fpRow}>
                     <View style={[styles.radio, active && { borderColor: C.primary }]}>
-                      {active && <View style={s.radioDot} />}
+                      {active && <View style={styles.radioDot} />}
                     </View>
-                    <Text style={s.fpRowText}>{m.label}</Text>
+                    <Text style={styles.fpRowText}>{m.label}</Text>
                   </Pressable>
                 );
               })}
@@ -1369,16 +1368,16 @@ function FilterPanel({
 
           {/* Price Type */}
           <View>
-            <Text style={s.fpSectionTitle}>Price Type</Text>
+            <Text style={styles.fpSectionTitle}>Price Type</Text>
             <View style={{ gap: 8, marginTop: 10 }}>
               {[{ id: 'all', label: 'All' }, { id: 'free', label: 'Free' }, { id: 'paid', label: 'Paid' }].map((p) => {
                 const active = price === p.id;
                 return (
-                  <Pressable key={p.id} onPress={() => setPrice(p.id)} style={s.fpRow}>
+                  <Pressable key={p.id} onPress={() => setPrice(p.id)} style={styles.fpRow}>
                     <View style={[styles.radio, active && { borderColor: C.primary }]}>
-                      {active && <View style={s.radioDot} />}
+                      {active && <View style={styles.radioDot} />}
                     </View>
-                    <Text style={s.fpRowText}>{p.label}</Text>
+                    <Text style={styles.fpRowText}>{p.label}</Text>
                   </Pressable>
                 );
               })}
@@ -1387,7 +1386,7 @@ function FilterPanel({
 
           {/* Region India */}
           <View>
-            <Text style={s.fpSectionTitle}>Region (India)</Text>
+            <Text style={styles.fpSectionTitle}>Region (India)</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
               {INDIAN_CITIES.map((c) => (
                 <Pressable key={c} onPress={() => setCity(c)} style={[styles.tagChip, city === c && { backgroundColor: C.primary, borderColor: C.primary }]}>
@@ -1399,7 +1398,7 @@ function FilterPanel({
 
           {/* Topic Keywords */}
           <View>
-            <Text style={s.fpSectionTitle}>Topic Keywords</Text>
+            <Text style={styles.fpSectionTitle}>Topic Keywords</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
               {TOPIC_OPTIONS.map((t) => {
                 const active = topics.includes(t.id);
@@ -1414,7 +1413,7 @@ function FilterPanel({
         </ScrollView>
         <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, gap: 8, backgroundColor: C.bg, borderTopWidth: 1, borderTopColor: C.border }}>
           <Pressable onPress={onClose} style={[styles.registerCta, { backgroundColor: C.primary }]}>
-            <Text style={s.registerCtaText}>Apply Filters</Text>
+            <Text style={styles.registerCtaText}>Apply Filters</Text>
           </Pressable>
         </View>
       </Pressable>
@@ -1468,7 +1467,7 @@ function HostEventModal({
   };
 
   return (
-    <Pressable onPress={onClose} style={s.modalBackdrop}>
+    <Pressable onPress={onClose} style={styles.modalBackdrop}>
       <Pressable onPress={(e) => e.stopPropagation()} style={[
         s.panel,
         isWide ? { right: 0, top: 0, height: '100%', width: 560, position: 'absolute' as any } :
@@ -1491,19 +1490,19 @@ function HostEventModal({
         <ScrollView contentContainerStyle={{ padding: 18, gap: 14, paddingBottom: 120 }}>
           {/* Title */}
           <View>
-            <Text style={s.fpSectionTitle}>Title <Text style={{ color: C.red }}>*</Text></Text>
+            <Text style={styles.fpSectionTitle}>Title <Text style={{ color: C.red }}>*</Text></Text>
             <TextInput
               value={form.title}
               onChangeText={(v) => update('title', v)}
               placeholder="e.g. AI/ML Bootcamp 2026"
               placeholderTextColor={C.textDim}
-              style={s.formInput}
+              style={styles.formInput}
             />
           </View>
 
           {/* Description */}
           <View>
-            <Text style={s.fpSectionTitle}>Description</Text>
+            <Text style={styles.fpSectionTitle}>Description</Text>
             <TextInput
               value={form.description}
               onChangeText={(v) => update('description', v)}
@@ -1516,7 +1515,7 @@ function HostEventModal({
 
           {/* Event Type */}
           <View>
-            <Text style={s.fpSectionTitle}>Event Type</Text>
+            <Text style={styles.fpSectionTitle}>Event Type</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
               {allowedTypes.map((t) => {
                 const active = form.event_type === t;
@@ -1534,23 +1533,23 @@ function HostEventModal({
           {/* Date pickers */}
           <View style={{ flexDirection: 'row', gap: 10 }}>
             <View style={{ flex: 1 }}>
-              <Text style={s.fpSectionTitle}>Start Date <Text style={{ color: C.red }}>*</Text></Text>
+              <Text style={styles.fpSectionTitle}>Start Date <Text style={{ color: C.red }}>*</Text></Text>
               <TextInput
                 value={form.event_date_start}
                 onChangeText={(v) => update('event_date_start', v)}
                 placeholder="YYYY-MM-DD"
                 placeholderTextColor={C.textDim}
-                style={s.formInput}
+                style={styles.formInput}
               />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={s.fpSectionTitle}>End Date</Text>
+              <Text style={styles.fpSectionTitle}>End Date</Text>
               <TextInput
                 value={form.event_date_end}
                 onChangeText={(v) => update('event_date_end', v)}
                 placeholder="YYYY-MM-DD"
                 placeholderTextColor={C.textDim}
-                style={s.formInput}
+                style={styles.formInput}
               />
             </View>
           </View>
@@ -1558,30 +1557,30 @@ function HostEventModal({
           {/* Location */}
           <View style={{ flexDirection: 'row', gap: 10 }}>
             <View style={{ flex: 1 }}>
-              <Text style={s.fpSectionTitle}>City</Text>
+              <Text style={styles.fpSectionTitle}>City</Text>
               <TextInput
                 value={form.location_city}
                 onChangeText={(v) => update('location_city', v)}
                 placeholder="Bangalore"
                 placeholderTextColor={C.textDim}
-                style={s.formInput}
+                style={styles.formInput}
               />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={s.fpSectionTitle}>Country</Text>
+              <Text style={styles.fpSectionTitle}>Country</Text>
               <TextInput
                 value={form.location_country}
                 onChangeText={(v) => update('location_country', v)}
                 placeholder="India"
                 placeholderTextColor={C.textDim}
-                style={s.formInput}
+                style={styles.formInput}
               />
             </View>
           </View>
 
           {/* Price */}
           <View>
-            <Text style={s.fpSectionTitle}>Pricing</Text>
+            <Text style={styles.fpSectionTitle}>Pricing</Text>
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
               {['free', 'paid'].map((p) => (
                 <Pressable key={p} onPress={() => update('price_type', p)}
@@ -1594,7 +1593,7 @@ function HostEventModal({
               <TextInput
                 value={String(form.price_amount)}
                 onChangeText={(v) => update('price_amount', v.replace(/[^0-9]/g, ''))}
-                placeholder="Price in ₹ (SA points)"
+                placeholder="Price in ₹ (SA Credits)"
                 placeholderTextColor={C.textDim}
                 keyboardType="numeric"
                 style={[styles.formInput, { marginTop: 8 }]}
@@ -1604,39 +1603,39 @@ function HostEventModal({
 
           {/* Capacity */}
           <View>
-            <Text style={s.fpSectionTitle}>Capacity</Text>
+            <Text style={styles.fpSectionTitle}>Capacity</Text>
             <TextInput
               value={String(form.capacity)}
               onChangeText={(v) => update('capacity', v.replace(/[^0-9]/g, ''))}
               placeholder="100 (0 = unlimited)"
               placeholderTextColor={C.textDim}
               keyboardType="numeric"
-              style={s.formInput}
+              style={styles.formInput}
             />
           </View>
 
           {/* External registration URL */}
           <View>
-            <Text style={s.fpSectionTitle}>External Registration URL (optional)</Text>
+            <Text style={styles.fpSectionTitle}>External Registration URL (optional)</Text>
             <TextInput
               value={form.registration_url}
               onChangeText={(v) => update('registration_url', v)}
               placeholder="https://..."
               placeholderTextColor={C.textDim}
-              style={s.formInput}
+              style={styles.formInput}
               autoCapitalize="none"
             />
           </View>
 
           {/* Image URL */}
           <View>
-            <Text style={s.fpSectionTitle}>Banner Image URL (optional)</Text>
+            <Text style={styles.fpSectionTitle}>Banner Image URL (optional)</Text>
             <TextInput
               value={form.image_url}
               onChangeText={(v) => update('image_url', v)}
               placeholder="https://..."
               placeholderTextColor={C.textDim}
-              style={s.formInput}
+              style={styles.formInput}
               autoCapitalize="none"
             />
           </View>
@@ -1653,7 +1652,7 @@ function HostEventModal({
             style={[styles.registerCta, { backgroundColor: submitting ? C.primaryDim : C.primary }]}>
             {submitting ? <ActivityIndicator color="#fff" /> :
               <>
-                <Text style={s.registerCtaText}>{isCollege ? 'Submit for Approval' : 'Publish Event'}</Text>
+                <Text style={styles.registerCtaText}>{isCollege ? 'Submit for Approval' : 'Publish Event'}</Text>
                 <MaterialCommunityIcons name="arrow-right" size={18} color="#fff" />
               </>
             }

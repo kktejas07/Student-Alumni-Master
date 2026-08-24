@@ -17,7 +17,7 @@ export default function EventsPage() {
   const [editing, setEditing] = useState<any | null>(null);  // existing event being edited
   const [confirmDel, setConfirmDel] = useState<any | null>(null);
   const [busy, setBusy] = useState(false);
-  const [form, setForm] = useState({ title: '', description: '', date: '', location: '', capacity: '50' };
+  const [form, setForm] = useState({ title: '', description: '', date: '', location: '', capacity: '50' });
 
   const load = async () => {
     setLoading(true);
@@ -30,8 +30,7 @@ export default function EventsPage() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ title: '', description: '', date: '', location: '', capacity: '50' };
-
+    setForm({ title: '', description: '', date: '', location: '', capacity: '50' });
     setOpen(true);
   };
 
@@ -43,8 +42,7 @@ export default function EventsPage() {
       date: e.date || '',
       location: e.location || '',
       capacity: String(e.capacity || 50),
-    };
-
+    });
     setOpen(true);
   };
 

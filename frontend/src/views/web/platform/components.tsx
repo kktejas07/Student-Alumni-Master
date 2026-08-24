@@ -257,8 +257,7 @@ function AnimatedNavIcon({
     ]).start();
   }, [active, hovered]);
 
-  const rotateInterp = rotate.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '8deg'] };
-
+  const rotateInterp = rotate.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '8deg'] });
   const tint = active ? color : (hovered ? color : 'rgba(255,255,255,0.65)');
 
   return (

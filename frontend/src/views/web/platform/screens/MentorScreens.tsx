@@ -93,8 +93,7 @@ export function MentorSessions() {
   const [bookings, setBookings] = useState<any[]>([]);
   useEffect(() => {
     if (!user) return;
-    api.myBookings().then((r) => setBookings(r.bookings || [])).catch(() => {};
-
+    api.myBookings().then((r) => setBookings(r.bookings || [])).catch(() => {});
   }, [user]);
 
   const upcoming = bookings.filter((b) => b.status === 'confirmed' || b.status === 'pending');

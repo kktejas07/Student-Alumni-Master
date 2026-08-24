@@ -19,8 +19,7 @@ const TABS: { key: TabKey; label: string; tone: 'warn' | 'good' | 'bad' }[] = [
 export default function AdminApprovalsPage() {
   const [tab, setTab] = useState<TabKey>('pending');
   const [items, setItems] = useState<any[]>([]);
-  const [counts, setCounts] = useState<any>({ pending: 0, approved: 0, rejected: 0 };
-
+  const [counts, setCounts] = useState<any>({ pending: 0, approved: 0, rejected: 0 });
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState<string | null>(null);
 
@@ -29,8 +28,7 @@ export default function AdminApprovalsPage() {
     try {
       const r = await request<{ items: any[]; counts: any }>(`/admin/approvals?status=${tab}`);
       setItems(r.items || []);
-      setCounts(r.counts || {};
-
+      setCounts(r.counts || {});
     } finally { setLoading(false); }
   };
 
@@ -39,8 +37,7 @@ export default function AdminApprovalsPage() {
   const act = async (id: string, action: 'approve' | 'reject') => {
     setWorking(id);
     try {
-      await request(`/admin/mentors/${id}/${action}`, { method: 'POST' };
-
+      await request(`/admin/mentors/${id}/${action}`, { method: 'POST' });
       await load();
     } finally { setWorking(null); }
   };

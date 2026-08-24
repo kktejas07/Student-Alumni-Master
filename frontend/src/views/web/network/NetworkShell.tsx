@@ -4,7 +4,7 @@
  */
 import { useMemo, useState, useEffect } from 'react';
 import {
-  View, Text, ScrollView, Pressable, Modal, Image, Platform, Linking, TextInput, ActivityIndicator,
+  View, Text, StyleSheet, ScrollView, Pressable, Modal, Image, Platform, Linking, TextInput, ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons as MCI } from '@expo/vector-icons';
@@ -249,13 +249,10 @@ function nextNDays(n: number) {
   const today = new Date();
   for (let i = 0; i < n; i++) {
     const d = new Date(today); d.setDate(today.getDate() + i);
-    const day = d.toLocaleDateString('en', { weekday: 'short' };
-
+    const day = d.toLocaleDateString('en', { weekday: 'short' });
     const num = d.getDate();
-    const month = d.toLocaleDateString('en', { month: 'short' };
-
-    out.push({ date: d, label: i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : `${day} ${num}`, sub: month, key: d.toISOString().slice(0, 10) };
-
+    const month = d.toLocaleDateString('en', { month: 'short' });
+    out.push({ date: d, label: i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : `${day} ${num}`, sub: month, key: d.toISOString().slice(0, 10) });
   }
   return out;
 }
@@ -289,12 +286,10 @@ export function BookingDrawer({
     if (!visible || !mentor?.id) return;
     request<any>('/wallet/balance')
       .then((j) => setCreditBalance(Number(j?.balance_credits || 0)))
-      .catch(() => {};
-
+      .catch(() => {});
     request<any>(`/mentors/${mentor.id}/availability?days=7`)
       .then((j) => { if (j?.days) setLiveDays(j.days); })
-      .catch(() => {};
-
+      .catch(() => {});
   }, [visible, mentor?.id]);
 
   // Reset state whenever a new mentor is opened
@@ -331,8 +326,7 @@ export function BookingDrawer({
       await request(`/mentors/${mentor.id}/availability/book`, {
         method: 'POST',
         body: { date: pickedDay, time: pickedTime, idempotency_key: idem },
-      };
-
+      });
       // Deduct credits if applied
       if (useCredits && SA_CREDITS > 0) {
         const amount = Math.min(SA_CREDITS, price);
@@ -342,14 +336,12 @@ export function BookingDrawer({
             amount, reason: `Session with ${mentor.full_name}`,
             idempotency_key: `deduct-${idem}`,
           },
-        };
-
+        });
       }
       // (Real Razorpay charge for `totalAfterCredits` would happen here)
       await new Promise((r) => setTimeout(r, 800));
       setConfirmed(true);
-      onConfirm({ date: pickedDay!, time: pickedTime!, mentorId: mentor.id, isFree };
-
+      onConfirm({ date: pickedDay!, time: pickedTime!, mentorId: mentor.id, isFree });
     } catch (e: any) {
       setPayError(e?.message || 'Could not book session. Please try again.');
     } finally {

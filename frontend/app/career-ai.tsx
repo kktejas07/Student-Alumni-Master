@@ -119,7 +119,7 @@ interface RoadmapResp {
 const styles = {
   embeddedShell: { embeddedShell: '{', flex: 1, backgroundColor: 'transparent', gap: 'SPACING.xxl', paddingBottom: 60 },
   shell: { shell: '{', flex: 1, backgroundColor: 'C.bg' },
-  contentContainer: { contentContainer: '{', paddingVertical: 'SPACING.xxl', paddingHorizontal: 'SPACING.xl', paddingBottom: 80, gap: 'SPACING.xxl', maxWidth: 1280, width: '100%' as any', alignSelf: 'center' as any' },
+  contentContainer: { contentContainer: '{', paddingVertical: 'SPACING.xxl', paddingHorizontal: 'SPACING.xl', paddingBottom: 80, gap: 'SPACING.xxl', maxWidth: 1280, width: '100%' as any, alignSelf: 'center' as any },
   regenBtn: { regenBtn: '{', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 'RADIUS.btn', borderWidth: 1, borderColor: 'rgba(129', backgroundColor: 'rgba(129' },
   regenBtnHover: { regenBtnHover: '{', backgroundColor: 'rgba(129' },
   reportBtn: { reportBtn: '{', flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 'RADIUS.btn', backgroundColor: 'C.purple2' },

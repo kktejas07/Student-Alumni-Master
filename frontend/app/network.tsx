@@ -36,9 +36,6 @@ import { NetworkSidebar, TopHero, ChatPhonePopup, BookingDrawer } from '@/src/vi
 import { request } from '@/src/models/services/api';
 import AdvisorAIBlock from '@/src/views/web/AdvisorAIBlock';
 import { useAuth } from '@/src/viewmodels/hooks';
-import { useAuthStore } from '@/src/viewmodels/stores/authStore';
-import { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
-import React from 'react';
 import { HoverGlowCard } from '@/src/views/web/HoverGlowCard';
 import { MaterialBadgeChip } from '@/src/views/components/MaterialBadgeChip';
 
@@ -82,91 +79,77 @@ const SECTION_ICONS: Record<string, any> = {
 
 type TabKey = 'discover' | 'connections' | 'requests';
 
-
 const styles = {
-  screen: { screen: '{ flex: 1' },
-  title: { title: '{ color: '#fff'' },
-  subtitle: { subtitle: '{ color: 'rgba(255' },
-  tabs: { tabs: '{ flexDirection: 'row'' },
-  tab: { tab: '{', flexDirection: 'row', paddingHorizontal: 14, backgroundColor: 'rgba(255', borderColor: 'rgba(255', cursor: 'pointer' },
-  tabActive: { tabActive: '{ backgroundColor: '#A78BFA'' },
-  tabText: { tabText: '{ color: 'rgba(255' },
-  tabBadge: { tabBadge: '{ paddingHorizontal: 6' },
-  tabBadgeText: { tabBadgeText: '{ color: 'rgba(255' },
-  searchBar: { searchBar: '{', flexDirection: 'row', marginHorizontal: 16, paddingHorizontal: 14, backgroundColor: 'rgba(255', borderColor: 'rgba(255' },
-  searchInput: { searchInput: '{ flex: 1' },
-  filterBtn: { filterBtn: '{', flexDirection: 'row', paddingHorizontal: 12, backgroundColor: 'rgba(255', borderColor: 'rgba(255', cursor: 'pointer' },
-  filterBtnActive: { filterBtnActive: '{', backgroundColor: 'rgba(167', borderColor: 'rgba(167' },
-  filterBtnText: { filterBtnText: '{ color: 'rgba(255' },
-  content: { content: '{ paddingTop: 12' },
-  sectionHeader: { sectionHeader: '{', flexDirection: 'row', paddingHorizontal: 16 },
-  sectionIcon: { sectionIcon: '{', width: 30, alignItems: 'center', marginTop: 2 },
-  sectionTitle: { sectionTitle: '{ color: '#fff'' },
-  sectionCount: { sectionCount: '{', paddingHorizontal: 7, minWidth: 22 },
-  sectionCountText: { sectionCountText: '{ fontFamily: 'DMSans_700Bold'' },
-  sectionSubtitle: { sectionSubtitle: '{ color: 'rgba(255' },
-  emptyState: { emptyState: '{ alignItems: 'center'' },
-  emptyTitle: { emptyTitle: '{ color: '#fff'' },
-  emptyText: { emptyText: '{ color: 'rgba(255' },
-  grid: { grid: '{ flexDirection: 'row'' },
-  expandPill: { expandPill: '{', flexDirection: 'row', marginTop: 12, borderWidth: 1 },
-  expandText: { expandText: '{ fontFamily: 'DMSans_700Bold'' },
-  toastText: { toastText: '{ color: '#10B981'' },
-  modalPanel: { modalPanel: '{', backgroundColor: '#0C0818', maxHeight: '90%', borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255', overflow: 'hidden', shadowColor: '#000' },
-  filterLabel: { filterLabel: '{', color: 'rgba(255', letterSpacing: 0.6 },
-  filterOpt: { filterOpt: '{', paddingHorizontal: 10, backgroundColor: 'rgba(255', borderColor: 'rgba(255', cursor: 'pointer' },
-  filterOptActive: { filterOptActive: '{ backgroundColor: '#A78BFA'' },
-  filterOptText: { filterOptText: '{ color: 'rgba(255' },
-  onlineDot: { onlineDot: '{', position: 'absolute', width: 12, backgroundColor: '#10B981', borderColor: '#0C0818' },
-  detailLabel: { detailLabel: '{ color: 'rgba(255' },
-  detailValue: { detailValue: '{ color: '#fff'' },
-  badgeRow: { badgeRow: '{ flexDirection: 'row'' },
-  chips: { chips: '{ flexDirection: 'row'' },
-  chipPrimary: { chipPrimary: '{', paddingHorizontal: 7, backgroundColor: 'rgba(16', borderColor: 'rgba(16' },
-  chipNeutral: { chipNeutral: '{', paddingHorizontal: 7, backgroundColor: 'rgba(255' },
-  chipPrimaryText: { chipPrimaryText: '{ color: '#34D399'' },
-  chipNeutralText: { chipNeutralText: '{ color: 'rgba(255' },
-  metaText: { metaText: '{ color: 'rgba(255' },
-  linkedinBtn: { linkedinBtn: '{', width: 28, backgroundColor: 'rgba(11', borderColor: 'rgba(11', alignItems: 'center', cursor: 'pointer' },
-  btn: { btn: '{', flexDirection: 'row', paddingHorizontal: 12, cursor: 'pointer' },
-  btnFlex: { btnFlex: '{ flex: 1' },
-  btnText: { btnText: '{ fontFamily: 'DMSans_700Bold'' },
-  btnAccent: { btnAccent: '{ backgroundColor: '#A78BFA'' },
-  btnAccentText: { btnAccentText: '{ color: '#fff'' },
-  btnGreen: { btnGreen: '{ backgroundColor: '#10B981'' },
-  btnGhost: { btnGhost: '{', backgroundColor: 'rgba(255', borderColor: 'rgba(255' },
-  btnGhostText: { btnGhostText: '{ color: 'rgba(255' },
-  cardSlot: { cardSlot: '{ marginBottom: 0' },
-  personInner: { personInner: '{ padding: 14' },
-  avatar: { avatar: '{ width: 44' },
-  avatarText: { avatarText: '{ fontFamily: 'DMSans_800ExtraBold'' },
-  name: { name: '{ color: '#fff'' },
-  activePillText: { activePillText: '{ color: '#34D399'' },
-  busyPillText: { busyPillText: '{ color: 'rgba(255' },
-  subline: { subline: '{ color: 'rgba(255' },
-  badgeChip: { badgeChip: '{', paddingHorizontal: 7, maxWidth: 130 },
-  badgeChipText: { badgeChipText: '{ fontFamily: 'DMSans_700Bold'' },
-  socialBtn: { socialBtn: '{', width: 24, alignItems: 'center', cursor: 'pointer' },
-  iconOnly: { iconOnly: '{ width: 30' },
-  viewProfileText: { viewProfileText: '{ color: 'rgba(255' },
+  screen: {screen:'{ flex: 1'},
+  title: {title:'{ color: '#fff''},
+  subtitle: {subtitle:'{ color: 'rgba(255'},
+  tabs: {tabs:'{ flexDirection: 'row''},
+  tab: {tab:'{', flexDirection:'row', paddingHorizontal:14, backgroundColor:'rgba(255', borderColor:'rgba(255', cursor:'pointer'},
+  tabActive: {tabActive:'{ backgroundColor: '#A78BFA''},
+  tabText: {tabText:'{ color: 'rgba(255'},
+  tabBadge: {tabBadge:'{ paddingHorizontal: 6'},
+  tabBadgeText: {tabBadgeText:'{ color: 'rgba(255'},
+  searchBar: {searchBar:'{', flexDirection:'row', marginHorizontal:16, paddingHorizontal:14, backgroundColor:'rgba(255', borderColor:'rgba(255'},
+  searchInput: {searchInput:'{ flex: 1'},
+  filterBtn: {filterBtn:'{', flexDirection:'row', paddingHorizontal:12, backgroundColor:'rgba(255', borderColor:'rgba(255', cursor:'pointer'},
+  filterBtnActive: {filterBtnActive:'{', backgroundColor:'rgba(167', borderColor:'rgba(167'},
+  filterBtnText: {filterBtnText:'{ color: 'rgba(255'},
+  content: {content:'{ paddingTop: 12'},
+  sectionHeader: {sectionHeader:'{', flexDirection:'row', paddingHorizontal:16},
+  sectionIcon: {sectionIcon:'{', width:30, alignItems:'center', marginTop:2},
+  sectionTitle: {sectionTitle:'{ color: '#fff''},
+  sectionCount: {sectionCount:'{', paddingHorizontal:7, minWidth:22},
+  sectionCountText: {sectionCountText:'{ fontFamily: 'DMSans_700Bold''},
+  sectionSubtitle: {sectionSubtitle:'{ color: 'rgba(255'},
+  emptyState: {emptyState:'{ alignItems: 'center''},
+  emptyTitle: {emptyTitle:'{ color: '#fff''},
+  emptyText: {emptyText:'{ color: 'rgba(255'},
+  grid: {grid:'{ flexDirection: 'row''},
+  expandPill: {expandPill:'{', flexDirection:'row', marginTop:12, borderWidth:1},
+  expandText: {expandText:'{ fontFamily: 'DMSans_700Bold''},
+  toastText: {toastText:'{ color: '#10B981''},
+  modalPanel: {modalPanel:'{', backgroundColor:'#0C0818', maxHeight:'Platform.OS === 'web' ? '100%' : '92%'', height:'Platform.OS === 'web' ? '100%' : 'auto'', borderTopLeftRadius:'Platform.OS === 'web' ? 0 : 20', borderTopRightRadius:'Platform.OS === 'web' ? 0 : 20', borderLeftWidth:'Platform.OS === 'web' ? 1 : 0', borderColor:'rgba(255'},
+  filterLabel: {filterLabel:'{', color:'rgba(255', letterSpacing:0.6},
+  filterOpt: {filterOpt:'{', paddingHorizontal:10, backgroundColor:'rgba(255', borderColor:'rgba(255', cursor:'pointer'},
+  filterOptActive: {filterOptActive:'{ backgroundColor: '#A78BFA''},
+  filterOptText: {filterOptText:'{ color: 'rgba(255'},
+  onlineDot: {onlineDot:'{', position:'absolute', width:12, backgroundColor:'#10B981', borderColor:'#0C0818'},
+  detailLabel: {detailLabel:'{ color: 'rgba(255'},
+  detailValue: {detailValue:'{ color: '#fff''},
+  badgeRow: {badgeRow:'{ flexDirection: 'row''},
+  chips: {chips:'{ flexDirection: 'row''},
+  chipPrimary: {chipPrimary:'{', paddingHorizontal:7, backgroundColor:'rgba(16', borderColor:'rgba(16'},
+  chipNeutral: {chipNeutral:'{', paddingHorizontal:7, backgroundColor:'rgba(255'},
+  chipPrimaryText: {chipPrimaryText:'{ color: '#34D399''},
+  chipNeutralText: {chipNeutralText:'{ color: 'rgba(255'},
+  metaText: {metaText:'{ color: 'rgba(255'},
+  linkedinBtn: {linkedinBtn:'{', width:28, backgroundColor:'rgba(11', borderColor:'rgba(11', alignItems:'center', cursor:'pointer'},
+  btn: {btn:'{', flexDirection:'row', paddingHorizontal:12, cursor:'pointer'},
+  btnFlex: {btnFlex:'{ flex: 1'},
+  btnText: {btnText:'{ fontFamily: 'DMSans_700Bold''},
+  btnGreen: {btnGreen:'{ backgroundColor: '#10B981''},
+  btnAccentText: {btnAccentText:'{ color: '#fff''},
+  btnAccent: {btnAccent:'{ backgroundColor: '#A78BFA''},
+  btnGhost: {btnGhost:'{', backgroundColor:'rgba(255', borderColor:'rgba(255'},
+  btnGhostText: {btnGhostText:'{ color: 'rgba(255'},
+  cardSlot: {cardSlot:'{ marginBottom: 0'},
+  personInner: {personInner:'{ padding: 14'},
+  avatar: {avatar:'{ width: 44'},
+  avatarText: {avatarText:'{ fontFamily: 'DMSans_800ExtraBold''},
+  name: {name:'{ color: '#fff''},
+  activePillText: {activePillText:'{ color: '#34D399''},
+  busyPillText: {busyPillText:'{ color: 'rgba(255'},
+  subline: {subline:'{ color: 'rgba(255'},
+  badgeChip: {badgeChip:'{', paddingHorizontal:7, maxWidth:130},
+  badgeChipText: {badgeChipText:'{ fontFamily: 'DMSans_700Bold''},
+  socialBtn: {socialBtn:'{', width:24, alignItems:'center', cursor:'pointer'},
+  iconOnly: {iconOnly:'{ width: 30'},
+  viewProfileText: {viewProfileText:'{ color: 'rgba(255'},
 };
 
 export default function NetworkScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const initialized = useAuthStore((s) => s.initialized);
-  const isEmbedded = React.useContext(EmbeddedShellContext);
-
-  useEffect(() => {
-    if (!isEmbedded && initialized && user) {
-      if (user.role === 'alumni') {
-        router.replace('/alumni-portal?tab=network' as any);
-      } else if (user.role === 'student') {
-        router.replace('/student-portal?tab=network' as any);
-      }
-    }
-  }, [isEmbedded, initialized, user, router]);
-
   const { width: winW } = useWindowDimensions();
   // Responsive column count: 4 on wide desktop, 3 on small desktop, 2 on tablet, 1 on phone
   const cols = winW >= 1280 ? 4 : winW >= 960 ? 3 : winW >= 640 ? 2 : 1;
@@ -399,7 +382,7 @@ export default function NetworkScreen() {
         <View style={{ flex: 1, minWidth: 0 }}>
       {/* Top bar */}
       <View className="flex-row px-4">
-        <Pressable onPress={() => router.back()} className="items-center w-9" testID="net-back">
+        <Pressable onPress={() => router.back()} className="items-center" testID="net-back">
           <ArrowLeft size={18} color="rgba(255,255,255,0.85)" />
         </Pressable>
         <View style={{ flex: 1 }}>
@@ -691,8 +674,8 @@ export default function NetworkScreen() {
         visible={!!selectedPerson}
         onRequestClose={() => setSelectedPerson(null)}
       >
-        <Pressable className="flex-1 items-center justify-center" onPress={() => setSelectedPerson(null)}>
-          <Pressable style={[styles.modalPanel, { width: isMobile ? '95%' : 540 }]} onPress={(e) => e.stopPropagation()}>
+        <Pressable className="flex-1 justify-end" onPress={() => setSelectedPerson(null)}>
+          <Pressable style={[styles.modalPanel, { width: isMobile ? '100%' : 480 }]} onPress={(e) => e.stopPropagation()}>
             {selectedPerson && (
               <ProfileDetailContent
                 person={selectedPerson}
@@ -779,7 +762,7 @@ function ProfileDetailContent({ person, onClose, onConnect, onChat }: {
         <Text style={{ color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_700Bold', fontSize: 11, letterSpacing: 0.6, textTransform: 'uppercase' }}>
           {person.role}
         </Text>
-        <Pressable onPress={onClose} className="items-center w-8" testID="profile-detail-close">
+        <Pressable onPress={onClose} className="items-center" testID="profile-detail-close">
           <CloseX size={18} color="rgba(255,255,255,0.65)" />
         </Pressable>
       </View>
@@ -893,28 +876,10 @@ function ProfileDetailContent({ person, onClose, onConnect, onChat }: {
             <Text style={[styles.btnText, { color: '#F59E0B' }]}>Pending</Text>
           </View>
         ) : isMentor ? (
-          <View style={{ flexDirection: 'row', gap: 8, flex: 1 }}>
-            <Pressable 
-              onPress={async () => {
-                try {
-                  await request(`/network/connect/${person.id}`, { method: 'POST' });
-                  showToast('Request sent');
-                  person.connection_state = 'pending';
-                  onClose();
-                } catch {
-                  showToast('Failed to connect');
-                }
-              }}
-              style={[styles.btn, styles.btnFlex, styles.btnAccent, { height: 38, borderRadius: 9 }]}
-            >
-              <UserPlus size={14} color="#fff" />
-              <Text style={[styles.btnAccentText, { fontSize: 13 }]}>Connect</Text>
-            </Pressable>
-            <Pressable onPress={onConnect} style={[styles.btn, styles.btnFlex, styles.btnGreen, { height: 38, borderRadius: 9 }]} testID={`net-book-${person.id}`}>
-              <Calendar size={14} color="#fff" />
-              <Text style={[styles.btnAccentText, { fontSize: 13 }]}>Book</Text>
-            </Pressable>
-          </View>
+          <Pressable onPress={onConnect} style={[styles.btn, styles.btnFlex, styles.btnGreen, { height: 38, borderRadius: 9 }]}>
+            <Calendar size={14} color="#fff" />
+            <Text style={[styles.btnAccentText, { fontSize: 13 }]}>Book Session</Text>
+          </Pressable>
         ) : (
           <Pressable onPress={onConnect} style={[styles.btn, styles.btnFlex, styles.btnAccent, { height: 38, borderRadius: 9 }]}>
             <UserPlus size={14} color="#fff" />
@@ -974,7 +939,7 @@ function PersonCard({
                 <Text style={[styles.avatarText, { color: tint }]}>{initials}</Text>
               </View>
             )}
-            {person.is_online && <View className="w-3 absolute" />}
+            {person.is_online && <View className="absolute" />}
           </View>
           <View style={{ flex: 1, minWidth: 0 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -1089,7 +1054,7 @@ function PersonCard({
         )}
 
         {/* Primary action footer */}
-        <View className="flex-row pt-2">
+        <View className="flex-row">
           {onAccept && onReject ? (
             <View style={{ flexDirection: 'row', gap: 6, flex: 1 }}>
               <Pressable onPress={onReject} style={[styles.btn, styles.btnGhost, { flex: 1 }]} testID={`net-reject-${person.id}`}>
@@ -1115,27 +1080,10 @@ function PersonCard({
                   <Text style={[styles.btnText, { color: '#F59E0B' }]}>Pending</Text>
                 </View>
               ) : isMentor ? (
-                <View style={{ flexDirection: 'row', gap: 6, flex: 1 }}>
-                  <Pressable 
-                    onPress={async () => {
-                      try {
-                        await request(`/network/connect/${person.id}`, { method: 'POST' });
-                        showToast('Request sent');
-                        person.connection_state = 'pending';
-                      } catch {
-                        showToast('Failed to connect');
-                      }
-                    }}
-                    style={[styles.btn, styles.btnFlex, styles.btnAccent]}
-                  >
-                    <UserPlus size={13} color="#fff" />
-                    <Text style={styles.btnAccentText}>Connect</Text>
-                  </Pressable>
-                  <Pressable onPress={onConnect} style={[styles.btn, styles.btnFlex, styles.btnGreen]} testID={`net-book-${person.id}`}>
-                    <Calendar size={13} color="#fff" />
-                    <Text style={styles.btnAccentText}>Book</Text>
-                  </Pressable>
-                </View>
+                <Pressable onPress={onConnect} style={[styles.btn, styles.btnFlex, styles.btnGreen]} testID={`net-book-${person.id}`}>
+                  <Calendar size={13} color="#fff" />
+                  <Text style={styles.btnAccentText}>Book Session</Text>
+                </Pressable>
               ) : (
                 <Pressable onPress={onConnect} style={[styles.btn, styles.btnFlex, styles.btnAccent]} testID={`net-connect-${person.id}`}>
                   <UserPlus size={13} color="#fff" />

@@ -3,7 +3,7 @@
  * Sections: Profile Completion banner, Basic Info, Contact, Academic, Interests, Social, Skills.
  */
 import { useState, useEffect } from 'react';
-import { View, Text, ScrollView, Pressable, Image, Platform, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform, Modal } from 'react-native';
 import { Mail, Phone, MapPin, Building2, Link2, Link2 as GithubIcon, Globe, Sparkles, Check, X, Upload, Camera, TrendingUp, AlertCircle, Plus, Trash2, Folder, Image as ImageIcon } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { WebcamModal } from '@/src/views/components/WebcamModal';
@@ -145,8 +145,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
         base64: true,
         allowsEditing: true,
         aspect: [1, 1],
-      };
-
+      });
       if (!res.canceled && res.assets[0]?.base64) {
         const base64Photo = `data:image/jpeg;base64,${res.assets[0].base64}`;
         setPendingPhoto(base64Photo);
@@ -165,8 +164,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
         aspect: [3, 1],
         quality: 0.6,
         base64: true,
-      };
-
+      });
       if (!result.canceled && result.assets[0]?.base64) {
         setDraft((d: any) => ({ ...d, banner_data: `data:image/jpeg;base64,${result.assets[0].base64}` }));
       }
@@ -197,8 +195,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
         aspect: [1, 1],
         quality: 0.6,
         base64: true,
-      };
-
+      });
       if (!result.canceled && result.assets[0]?.base64) {
         setDraft((d: any) => ({ ...d, college_logo_data: `data:image/jpeg;base64,${result.assets[0].base64}` }));
       }
@@ -230,8 +227,8 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
       const res = await request<any>('/users/me/skills', {
         method: 'POST',
         body: { skill: raw }
-      };
-
+      });
+      
       if (res.status === 'exists') {
         toast.info('Skill exists', `${raw} is already on your profile.`);
         return;
@@ -283,8 +280,8 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
 
   const removeSkill = async (skillName: string) => {
     try {
-      await request(`/users/me/skills/${encodeURIComponent(skillName)}`, { method: 'DELETE' };
-
+      await request(`/users/me/skills/${encodeURIComponent(skillName)}`, { method: 'DELETE' });
+      
       const existing: string[] = draft.skills || [];
       setField('skills', existing.filter((s) => s.toLowerCase() !== skillName.toLowerCase()));
       
