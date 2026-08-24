@@ -22,9 +22,9 @@ export function AnnouncementsView() {
   const showConfirmation = () => {
     setSent(true);
     Animated.sequence([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 250, useNativeDriver: Platform.OS !== 'web' }),
       Animated.delay(2500),
-      Animated.timing(fadeAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
+      Animated.timing(fadeAnim, { toValue: 0, duration: 400, useNativeDriver: Platform.OS !== 'web' }),
     ]).start(() => setSent(false));
   };
 

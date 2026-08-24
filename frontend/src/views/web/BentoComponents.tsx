@@ -11,7 +11,7 @@
  */
 import { ReactNode, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, Pressable, Animated, Easing, Platform,
+  View, Text, Pressable, Animated, Easing, Platform,
   useWindowDimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -45,7 +45,7 @@ export function GlowCard({
       toValue: hovered ? 1 : 0,
       duration: 280,
       easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
+      useNativeDriver: Platform.OS !== 'web',
     }).start();
   });
 
@@ -68,29 +68,31 @@ export function GlowCard({
 
   return (
     <Wrapper {...wrapperProps}>
-      {/* Animated gradient glow ring (web hover-driven, fade) */}
       {hovered && (
-        <View pointerEvents="none" style={[StyleSheet.absoluteFill, { opacity: glowOpacity }]}>
+        <View pointerEvents="none" className="absolute inset-0" style={{ opacity: glowOpacity }}>
           <LinearGradient
             colors={['rgba(176,127,223,0.55)', 'rgba(124,58,237,0.0)', 'rgba(236,72,153,0.45)']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={StyleSheet.absoluteFill}
+            className="absolute inset-0"
           />
         </View>
       )}
 
-      {/* Inner card surface */}
       <View
-        style={[
-          glowStyles.inner,
-          hovered && {
-            backgroundColor: 'rgba(255,255,255,0.08)',
-            borderColor: 'rgba(196,181,253,0.30)',
-          },
-        ]}
+        className="rounded-3xl p-px overflow-hidden"
+        style={{ ...(Platform.OS === 'web' ? { cursor: 'pointer', transitionDuration: '240ms' } as any : {}) }}
       >
-        {children}
+        <View
+          className="bg-white/5 border rounded-[21px] p-4 overflow-hidden"
+          style={{
+            borderColor: hovered ? 'rgba(196,181,253,0.30)' : 'rgba(255,255,255,0.10)',
+            backgroundColor: hovered ? 'rgba(255,255,255,0.08)' : undefined,
+            ...(Platform.OS === 'web' ? { transitionDuration: '240ms' } as any : {}),
+          }}
+        >
+          {children}
+        </View>
       </View>
     </Wrapper>
   );
@@ -123,40 +125,42 @@ export function IconBubble({
       testID={testID}
       onHoverIn={() => setHovered(true)}
       onHoverOut={() => setHovered(false)}
+      className="items-center justify-center py-2 gap-2"
+      style={{ ...(Platform.OS === 'web' ? { cursor: 'pointer', transitionDuration: '160ms' } as any : {}) }}
       style={({ pressed }: any) => [
-        bubbleStyles.outer,
         pressed && { transform: [{ scale: 0.96 }] },
       ]}
     >
-      {/* Glow halo on hover */}
       {hovered && (
         <View
           pointerEvents="none"
-          style={[
-            bubbleStyles.halo,
-            {
-              width: size + 18,
-              height: size + 18,
-              borderRadius: (size + 18) / 2,
-              backgroundColor: glowColor + '33',
-            },
-          ]}
+          className="absolute"
+          style={{
+            width: size + 18,
+            height: size + 18,
+            borderRadius: (size + 18) / 2,
+            backgroundColor: glowColor + '33',
+            filter: 'blur(18px)' as any,
+            top: 0,
+            zIndex: 0,
+          }}
         />
       )}
       <View
-        style={[
-          bubbleStyles.bubble,
-          { width: size, height: size, borderRadius: size / 2 },
-          hovered && {
-            borderColor: glowColor + '66',
-            backgroundColor: 'rgba(255,255,255,0.10)',
-            transform: [{ translateY: -2 }],
-          },
-        ]}
+        className="bg-white/6 border items-center justify-center"
+        style={{
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          borderColor: hovered ? glowColor + '66' : 'rgba(255,255,255,0.12)',
+          backgroundColor: hovered ? 'rgba(255,255,255,0.10)' : undefined,
+          transform: hovered ? [{ translateY: -2 }] : [],
+          ...(Platform.OS === 'web' ? { transitionDuration: '200ms' } as any : {}),
+        }}
       >
         {icon}
       </View>
-      <Text style={bubbleStyles.label} numberOfLines={2}>
+      <Text className="text-white/85 font-body-medium text-xs text-center px-1" style={{ lineHeight: 14 }} numberOfLines={2}>
         {label}
       </Text>
     </Pressable>
@@ -184,14 +188,14 @@ export function CategorySection({
 
   return (
     <GlowCard style={{ marginBottom: 14 }}>
-      <View style={sectionStyles.header}>
-        <Text style={sectionStyles.title}>
+      <View className="mb-4">
+        <Text className="text-white font-body-bold text-lg tracking-tight">
           {emoji ? `${emoji}  ` : ''}{title}
         </Text>
       </View>
-      <View style={sectionStyles.grid}>
+      <View className="flex-row flex-wrap gap-1">
         {items.map((it) => (
-          <View key={it.id} style={[sectionStyles.cell, { flexBasis: `${100 / cols}%` }]}>
+          <View key={it.id} className="px-1 py-1.5" style={{ flexBasis: `${100 / cols}%`, minWidth: 70 }}>
             <IconBubble
               icon={it.icon}
               label={it.label}
@@ -234,88 +238,17 @@ export function BentoTile({
         style={{ flex: 1, overflow: 'hidden' }}
       >
         {gradient && (
-          <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+          <View pointerEvents="none" className="absolute inset-0">
             <LinearGradient
               colors={gradient as any}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={StyleSheet.absoluteFill}
+              className="absolute inset-0"
             />
           </View>
         )}
-        <View style={{ flex: 1, padding: 18 }}>{children}</View>
+        <View className="flex-1 p-4">{children}</View>
       </GlowCard>
     </View>
   );
 }
-
-// ─── styles ──────────────────────────────────────────────────────────────────
-const glowStyles = StyleSheet.create({
-  outer: {
-    borderRadius: 22,
-    padding: 1,
-    overflow: 'hidden',
-    ...({ cursor: 'pointer', transitionDuration: '240ms' } as any),
-  },
-  inner: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderColor: 'rgba(255,255,255,0.10)',
-    borderWidth: 1,
-    borderRadius: 21,
-    padding: 18,
-    overflow: 'hidden',
-    ...({ transitionDuration: '240ms' } as any),
-  },
-});
-
-const bubbleStyles = StyleSheet.create({
-  outer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 8,
-    gap: 8,
-    ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
-  },
-  halo: {
-    position: 'absolute',
-    top: 0,
-    ...({ filter: 'blur(18px)' } as any),
-    zIndex: 0,
-  },
-  bubble: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderColor: 'rgba(255,255,255,0.12)',
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...({ transitionDuration: '200ms' } as any),
-  },
-  label: {
-    color: 'rgba(255,255,255,0.85)',
-    fontFamily: 'DMSans_500Medium',
-    fontSize: 11.5,
-    textAlign: 'center',
-    lineHeight: 14,
-    paddingHorizontal: 4,
-  },
-});
-
-const sectionStyles = StyleSheet.create({
-  header: { marginBottom: 16 },
-  title: {
-    color: '#FFFFFF',
-    fontFamily: 'DMSans_700Bold',
-    fontSize: 18,
-    letterSpacing: -0.3,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 4,
-  },
-  cell: {
-    minWidth: 70,
-    paddingHorizontal: 4,
-    paddingVertical: 6,
-  },
-});

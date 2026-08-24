@@ -5,10 +5,12 @@
  * and role check. Guards /super-admin, /super-admin/newsletter, etc.
  */
 import React, { useEffect } from 'react';
-import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, Text } from 'react-native';
 import { Slot, useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { portalPathForRole } from '@/src/lib/portalHome';
+
+import { SAModernLoader } from '@/src/views/components/SAModernLoader';
 
 export default function SuperAdminLayoutRoute() {
   const router = useRouter();
@@ -32,17 +34,12 @@ export default function SuperAdminLayoutRoute() {
   }, [initialized, user]);
 
   if (!initialized || loading) {
-    return (
-      <View style={s.gate}>
-        <ActivityIndicator size="small" color="#F59E0B" />
-        <Text style={s.gateText}>Authenticating…</Text>
-      </View>
-    );
+    return <SAModernLoader subtitle="AUTHENTICATING ADMIN ACCESS" />;
   }
   if (!user) {
     return (
-      <View style={s.gate}>
-        <Text style={s.gateText}>Redirecting to login…</Text>
+      <View className="flex-1 items-center justify-center" style={{ backgroundColor: '#0F0A05', gap: 10 }}>
+        <Text className="text-xs" style={{ color: '#C4A788', fontFamily: 'DMSans_500Medium' }}>Redirecting to login…</Text>
       </View>
     );
   }
@@ -50,7 +47,3 @@ export default function SuperAdminLayoutRoute() {
   return <Slot />;
 }
 
-const s = StyleSheet.create({
-  gate: { flex: 1, backgroundColor: '#0F0A05', alignItems: 'center', justifyContent: 'center', gap: 10 },
-  gateText: { color: '#C4A788', fontFamily: 'DMSans_500Medium', fontSize: 12.5 },
-});

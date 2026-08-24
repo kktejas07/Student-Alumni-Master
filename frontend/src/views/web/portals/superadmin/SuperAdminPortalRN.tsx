@@ -21,6 +21,7 @@ import { PaymentsView } from './views/PaymentsView';
 import { AnalyticsView } from './views/AnalyticsView';
 import { ApprovalsView } from './views/ApprovalsView';
 import { AIInsightsView } from './views/AIInsightsView';
+import { AutonomousAgentsView } from './views/AutonomousAgentsView';
 import { SettingsView } from './views/SettingsView';
 import { WorkflowsView } from './views/WorkflowsView';
 import { ImportsView } from './views/ImportsView';
@@ -31,8 +32,11 @@ import { NewsletterView } from './views/NewsletterView';
 import { EchoShowcaseAdminView } from './views/EchoShowcaseAdminView';
 import { CertificatesView } from './views/CertificatesView';
 import { EmailQualityView } from './views/EmailQualityView';
+import { BGVAccountVerticalsView } from './views/BGVAccountVerticalsView';
+import { VisitorIntelligenceView } from './views/VisitorIntelligenceView';
 import { useAutoTour } from '@/src/views/web/tour/TourProvider';
 import { usePortalUrl } from '@/src/views/web/portals/portalUrl';
+import { SAWatermark } from '@/src/views/web/components/SAWatermark';
 
 export function SuperAdminPortalRN() {
   const router = useRouter();
@@ -61,6 +65,7 @@ export function SuperAdminPortalRN() {
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
       />
+      <SAWatermark size={850} top={30} right={-30} opacity={0.16} />
       <AnimatedAurora intensity="normal" />
       <GridOverlay />
 
@@ -73,7 +78,10 @@ export function SuperAdminPortalRN() {
           showsVerticalScrollIndicator={false}
         >
           <PromoBanner portal="super_admin" />
-          {active === 'overview'    && <OverviewView onNavigate={(id) => go(id as SuperAdminNavId)} />}
+          {active === 'overview'        && <OverviewView onNavigate={(id) => go(id as SuperAdminNavId)} />}
+          {active === 'visitor-radar'   && <VisitorIntelligenceView />}
+          {active === 'agents'          && <AutonomousAgentsView />}
+          {active === 'bgv'             && <BGVAccountVerticalsView />}
           {active === 'colleges'    && <CollegesView {...subFor('colleges')} />}
           {active === 'students'    && <StudentsView />}
           {active === 'mentors'     && <MentorsView />}

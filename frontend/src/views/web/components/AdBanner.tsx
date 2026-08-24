@@ -3,7 +3,7 @@
  * clickable carousel above the AI Daily Brief section on user dashboards.
  */
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { View, Image, Pressable, StyleSheet, Platform, Linking, Dimensions } from 'react-native';
+import { View, Image, Pressable, Platform, Linking, Dimensions } from 'react-native';
 import { fetchPortal } from '@/src/lib/portalApi';
 import { resolveImageUrl } from '@/src/models/services/api';
 
@@ -59,7 +59,7 @@ export function AdBanner() {
   );
 }
 
-const s = StyleSheet.create({
+const s = {
   root: { gap: 8 },
   wrap: {
     borderRadius: 12, overflow: 'hidden',
@@ -78,4 +78,4 @@ const s = StyleSheet.create({
   dotActive: {
     backgroundColor: '#fff', width: 24, borderRadius: 4,
   },
-});
+} as const;

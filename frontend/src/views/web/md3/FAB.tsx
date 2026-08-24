@@ -7,7 +7,7 @@
  * - Hover (web): expand label inline
  */
 import React, { useEffect, useState } from 'react';
-import { Text, StyleSheet, Pressable, Platform, View } from 'react-native';
+import { Text, Pressable, Platform, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, {
   useSharedValue, useAnimatedStyle, withTiming, withSpring, Easing,
@@ -179,7 +179,7 @@ export function FAB({ onPress, icon, label, color = '#7C3AED',
   );
 }
 
-const s = StyleSheet.create({
+const s = {
   fab: {
     height: 56,
     borderRadius: 28,
@@ -189,4 +189,4 @@ const s = StyleSheet.create({
   labelWrap: { overflow: 'hidden' },
   label: { color: '#fff', fontFamily: 'DMSans_800ExtraBold',
     fontSize: 13.5, letterSpacing: 0.2 },
-});
+};

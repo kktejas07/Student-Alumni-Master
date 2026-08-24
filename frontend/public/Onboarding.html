@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>StudentAlumni — Onboarding</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ind: #5B4FE9;
+      --ind-lt: #8B84FF;
+      --bg: #05060F;
+      --bg2: #05060D;
+      --card: #0C0E1B;
+      --card2: #0E1020;
+      --line: #1B1E33;
+      --line2: #171A2C;
+      --line-hi: #2A2A55;
+      --dot: #2A2E45;
+      --text: #F4F5FB;
+      --text2: #D5D8E4;
+      --muted: #9AA0B4;
+      --muted2: #B6BACB;
+      --nav-bg: rgba(5,6,15,.78);
+      --tint: rgba(91,79,233,.16);
+      --tint2: rgba(91,79,233,.20);
+      --glow1: rgba(124,107,255,.22);
+      --glow2: rgba(47,184,198,.15);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { margin: 0; padding: 0; background: #05060F; font-family: 'Manrope', -apple-system, sans-serif; color: var(--text); min-height: 100vh; overflow-x: clip; }
+    a { color: var(--ind-lt); text-decoration: none; }
+    @keyframes ob-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes ob-ring { 0% { transform: scale(.6); opacity: .55; } 100% { transform: scale(1.9); opacity: 0; } }
+    @keyframes ob-caret { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+    @keyframes ob-cardfloat { 0%, 100% { transform: rotate(-1.6deg) translateY(0); } 50% { transform: rotate(1.6deg) translateY(-10px); } }
+    @keyframes ob-wash { 0%, 100% { transform: translate3d(0,0,0); } 50% { transform: translate3d(-3%, 2.5%, 0); } }
+    @keyframes ob-shine { 0% { transform: translateX(-120%) skewX(-18deg); } 55%, 100% { transform: translateX(220%) skewX(-18deg); } }
+    .ob-chip { transition: all .2s ease; }
+    .ob-chip:hover { border-color: var(--ind) !important; }
+    .ob-pick { transition: all .25s ease; }
+    .ob-pick:hover { transform: translateY(-3px); border-color: var(--ind-lt) !important; }
+    .ob-toggle-row { transition: all .2s ease; }
+    .ob-toggle-row:hover { border-color: var(--line-hi) !important; }
+    .ob-ghost:hover { border-color: var(--line-hi) !important; background: var(--card2) !important; }
+    .ob-cta:hover { background: #6E62F5 !important; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script>
+    // Standalone Onboarding Redirect to Expo Web app
+    window.location.href = '/onboarding';
+  </script>
+</body>
+</html>

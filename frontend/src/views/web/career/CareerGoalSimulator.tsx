@@ -1,22 +1,10 @@
-/**
- * CareerGoalSimulator.tsx
- *
- * UNIFIED Goal Simulator — single implementation replacing:
- *   1. The inlined simEnabled/simResult/simLoading/simDirty state in career-ai.tsx
- *   2. The standalone GoalSimulator.tsx component
- *
- * This component owns its own simulation state. The parent page only
- * provides `currentReadiness` and an optional onToggle collapse callback.
- *
- * API: POST /career/simulate
- */
 import React, { useCallback, useEffect, useRef, useState, memo } from 'react';
-import { View, Text, Pressable, ActivityIndicator, StyleSheet, Platform } from 'react-native';
+import {View, Text, Pressable, ActivityIndicator, Platform} from "react-native";
 import { TrendingUp, ChevronDown, ChevronUp, Check, Plus } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
 import { useToast } from '@/src/views/components/Toast';
 import { SIM_ACTIONS } from '@/src/lib/careerConstants';
-import { COLORS, FONT_FAMILIES, FONT_SIZES, RADIUS, SPACING, WEB_TRANSITIONS } from '@/src/lib/designTokens';
+import { COLORS } from '@/src/lib/designTokens';
 import { ScoreComparison } from './ScoreComparison';
 import { InfoChip } from './InfoChip';
 
@@ -35,7 +23,6 @@ interface SimResult {
 
 interface Props {
   currentReadiness: number;
-  /** If provided, the simulator panel is collapsible. */
   collapsible?: boolean;
 }
 
@@ -53,7 +40,6 @@ export const CareerGoalSimulator = memo(function CareerGoalSimulator({
   const [dirty,     setDirty]     = useState(false);
   const [expanded,  setExpanded]  = useState(!collapsible);
 
-  // ── Toggle an action on/off ───────────────────────────────────────────────
   const toggle = useCallback((type: string) => {
     setEnabled((prev) => {
       const next = new Set(prev);
@@ -63,7 +49,6 @@ export const CareerGoalSimulator = memo(function CareerGoalSimulator({
     setDirty(true);
   }, []);
 
-  // ── Run simulation ────────────────────────────────────────────────────────
   const simulate = useCallback(async () => {
     if (enabled.size === 0) { setSimResult(null); return; }
     setLoading(true);
@@ -75,27 +60,24 @@ export const CareerGoalSimulator = memo(function CareerGoalSimulator({
       setSimResult(result);
       setDirty(false);
     } catch (err: any) {
-      // ✅ No longer silent — shows a toast on failure
       toastRef.current.error('Simulation Failed', err?.message || 'Could not calculate projected score. Please try again.');
       setSimResult(null);
     } finally {
       setLoading(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled]); // toast accessed via ref
+  }, [enabled]);
 
   useEffect(() => { if (dirty) simulate(); }, [dirty, simulate]);
 
-  // ── Render ────────────────────────────────────────────────────────────────
   const hasGain = simResult && simResult.total_gain > 0;
 
   const headerContent = (
     <>
       <View>
-        <Text style={s.title} accessibilityRole="header">Goal Simulator</Text>
-        <Text style={s.sub}>Toggle actions to see projected impact</Text>
+        <Text className="text-white font-display-bold text-[15px] tracking-[-0.2px]" accessibilityRole="header">Goal Simulator</Text>
+        <Text className="text-white/50 font-body-semibold text-sm mt-0.5">Toggle actions to see projected impact</Text>
       </View>
-      <View style={s.headerRight}>
+      <View className="flex-row flex-wrap items-center gap-1">
         {hasGain && (
           <InfoChip
             label={`+${simResult!.total_gain}%`}
@@ -116,100 +98,68 @@ export const CareerGoalSimulator = memo(function CareerGoalSimulator({
 
   return (
     <View>
-      {/* Header — clickable if collapsible */}
       {collapsible ? (
         <Pressable
           accessibilityRole="button"
           onPress={() => setExpanded((v) => !v)}
-          style={s.header}
+          className="flex-row items-start justify-between gap-1 mb-4"
+          style={Platform.OS === 'web' ? { cursor: 'pointer' } : undefined}
         >
           {headerContent}
         </Pressable>
       ) : (
-        <View style={s.header}>{headerContent}</View>
+        <View className="flex-row items-start justify-between gap-1 mb-4">{headerContent}</View>
       )}
 
-      {/* Score display — always visible */}
       <ScoreComparison
         current={currentReadiness}
         projected={simResult?.simulated ?? null}
         totalGain={simResult?.total_gain ?? 0}
       />
 
-      {/* Toggle rows — shown when expanded */}
       {expanded && (
-        <View style={s.actionList}>
+        <View className="gap-1.5 mt-1">
           {SIM_ACTIONS.map((act) => {
-            const isOn      = enabled.has(act.type);
+            const isOn = enabled.has(act.type);
             const breakdown = simResult?.breakdown?.find((b) => b.type === act.type);
             return (
               <Pressable
                 accessibilityRole="button"
                 key={act.type}
                 onPress={() => toggle(act.type)}
-                style={[
-                  s.actionRow,
-                  isOn 
-                    ? { backgroundColor: act.color + '18', borderColor: act.color + '50' }
-                    : { borderColor: act.color + '30', backgroundColor: 'rgba(255,255,255,0.015)' }
-                ]}
+                className="flex-row items-center gap-1 px-2 py-2 rounded-lg border"
+                style={{
+                  backgroundColor: isOn ? act.color + '18' : 'rgba(255,255,255,0.015)',
+                  borderColor: isOn ? act.color + '50' : act.color + '30',
+                  ...(Platform.OS === 'web' ? { cursor: 'pointer', transition: 'all 200ms cubic-bezier(0.16, 1, 0.3, 1)' } : {}),
+                }}
               >
-                <View style={[
-                  s.check, 
-                  isOn 
-                    ? { backgroundColor: act.color }
-                    : { backgroundColor: act.color + '15', borderColor: act.color + '35', borderWidth: 1 }
-                ]}>
+                <View
+                  className="w-5 h-5 rounded-sm items-center justify-center"
+                  style={{
+                    backgroundColor: isOn ? act.color : act.color + '15',
+                    borderColor: isOn ? undefined : act.color + '35',
+                    borderWidth: isOn ? undefined : 1,
+                  }}
+                >
                   {isOn ? <Check size={11} color="#fff" /> : <Plus size={11} color={act.color} />}
                 </View>
-                <Text style={s.actionLabel}>
+                <Text className="flex-1 text-white font-body-bold text-sm">
                   {act.label}
                 </Text>
                 {breakdown && (
-                  <Text style={s.breakdownGain}>+{breakdown.gain}%</Text>
+                  <Text className="text-green-400 font-body-bold text-sm">+{breakdown.gain}%</Text>
                 )}
               </Pressable>
             );
           })}
 
           {loading && (
-            <ActivityIndicator size="small" color={COLORS.purpleL} style={{ marginTop: SPACING.xxs }} />
+            <ActivityIndicator size="small" color="#818CF8" className="mt-1" />
           )}
-          <Text style={s.disclaimer}>Simulation only — no data is saved</Text>
+          <Text className="text-white/30 font-body-semibold text-sm text-center mt-1">Simulation only — no data is saved</Text>
         </View>
       )}
     </View>
   );
-});
-
-const s = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: SPACING.xs,
-    marginBottom: SPACING.md,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  headerRight: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: SPACING.xs },
-  title: { color: COLORS.text,  fontFamily: FONT_FAMILIES.xbold, fontSize: 15, letterSpacing: -0.2 },
-  sub:   { color: COLORS.text2, fontFamily: FONT_FAMILIES.med,   fontSize: FONT_SIZES.sm, marginTop: 2 },
-
-  actionList: { gap: 6, marginTop: SPACING.xs },
-  actionRow: {
-    flexDirection: 'row', alignItems: 'center', gap: SPACING.xs,
-    paddingHorizontal: SPACING.sm, paddingVertical: 9,
-    borderRadius: RADIUS.btn,
-    backgroundColor: 'rgba(255,255,255,0.025)',
-    borderColor: COLORS.border, borderWidth: 1,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transition: 'all 200ms cubic-bezier(0.16, 1, 0.3, 1)' } as any) : {}),
-  },
-  check: {
-    width: 20, height: 20, borderRadius: RADIUS.icon,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  actionLabel:   { flex: 1, color: '#FFFFFF', fontFamily: FONT_FAMILIES.bold,  fontSize: FONT_SIZES.sm },
-  breakdownGain: { color: COLORS.green,           fontFamily: FONT_FAMILIES.bold, fontSize: FONT_SIZES.sm },
-  disclaimer:    { color: COLORS.dim, fontFamily: FONT_FAMILIES.med, fontSize: FONT_SIZES.sm, textAlign: 'center', marginTop: SPACING.xs },
 });

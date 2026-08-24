@@ -1,16 +1,6 @@
-/**
- * /two-fa-challenge  — Login-time 2FA challenge screen.
- *
- * Reached when user logs in with a 2FA-enabled account. Receives:
- *   • challenge_id — short-lived token from POST /auth/login
- *   • user_email   — account being authenticated (for display)
- *   • methods      — comma-separated list (e.g., "totp,backup")
- *
- * On success → calls authStore.verifyTwoFA → tokens issued → routes home.
- */
 import { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, Pressable, ActivityIndicator, TextInput,
+  View, Text, Pressable, ActivityIndicator, TextInput,
   Platform, KeyboardAvoidingView, ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -40,7 +30,6 @@ export default function TwoFAChallenge() {
   const [state, setState] = useState<'idle' | 'success' | 'error'>('idle');
   const inputs = useRef<Array<TextInput | null>>([]);
 
-  // If no challenge_id (deep link / refresh) → bounce back to login
   useEffect(() => {
     if (!challengeId) {
       toast.error('Session expired', 'Please log in again.');
@@ -48,7 +37,6 @@ export default function TwoFAChallenge() {
     }
   }, [challengeId]);
 
-  // ─── TOTP digit handling ─────────────────────────────────────────────
   const onDigit = (i: number, v: string) => {
     const digit = v.replace(/[^0-9]/g, '').slice(-1);
     const next = [...totp];
@@ -75,7 +63,6 @@ export default function TwoFAChallenge() {
     ));
   };
 
-  // ─── Verify ──────────────────────────────────────────────────────────
   const verify = async (code: string) => {
     if (!code) return;
     setVerifying(true);
@@ -104,26 +91,25 @@ export default function TwoFAChallenge() {
     verify(code);
   };
 
-  // ─── Body (shared web + native) ──────────────────────────────────────
   const Body = (
     <View style={{ width: '100%' }}>
-      <View style={{ alignItems: 'center', marginBottom: 14 }}>
+      <View className="items-center" style={{ marginBottom: 14 }}>
         <SALogo size={56} variant="glass" />
       </View>
 
-      <View style={s.iconCircle}>
+      <View className="items-center justify-center self-center" style={{ width: 56, height: 56, borderRadius: 18, backgroundColor: 'rgba(124,58,237,0.18)', borderWidth: 1, borderColor: 'rgba(196,181,253,0.45)', marginBottom: 16 }}>
         <ShieldCheck size={28} color="#A78BFA" />
       </View>
 
-      <Text style={s.h1}>Two-Factor Authentication</Text>
-      <Text style={s.sub}>
+      <Text className="text-text font-body-bold text-center" style={{ fontSize: 24, letterSpacing: -0.4 }}>Two-Factor Authentication</Text>
+      <Text className="text-muted text-center" style={{ fontFamily: 'DMSans_400Regular', fontSize: 13.5, marginTop: 6, marginBottom: 26 }}>
         Enter the 6-digit code from your authenticator app{email ? ` for ` : ''}
         {!!email && <Text style={{ color: '#D4AAFF' }}>{email}</Text>}
       </Text>
 
       {mode === 'totp' ? (
         <>
-          <View style={s.otpRow}>
+          <View className="flex-row justify-between" style={{ gap: 6, marginBottom: 18, width: '100%' }}>
             {totp.map((d, i) => (
               <TextInput
                 key={i}
@@ -135,11 +121,12 @@ export default function TwoFAChallenge() {
                 inputMode="numeric"
                 maxLength={1}
                 editable={!verifying}
+                className="font-body-bold text-text text-center"
                 style={[
-                  s.otpBox,
-                  d && s.otpBoxFilled,
-                  state === 'success' && s.otpBoxOk,
-                  state === 'error' && s.otpBoxErr,
+                  { flex: 1, height: 54, minWidth: 0, maxWidth: 48, borderRadius: 12, borderWidth: 1.5, backgroundColor: 'rgba(255,255,255,0.04)', fontSize: 22, borderColor: 'rgba(255,255,255,0.18)', ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
+                  d && { borderColor: '#7C3AED', backgroundColor: 'rgba(124,58,237,0.14)' },
+                  state === 'success' && { borderColor: '#10B981', backgroundColor: 'rgba(16,185,129,0.14)' },
+                  state === 'error' && { borderColor: '#EF4444', backgroundColor: 'rgba(239,68,68,0.14)' },
                 ]}
                 testID={`twofa-challenge-digit-${i}`}
               />
@@ -147,9 +134,9 @@ export default function TwoFAChallenge() {
           </View>
 
           {verifying && (
-            <View style={s.statusRow}>
+            <View className="flex-row items-center justify-center" style={{ gap: 8, marginBottom: 12 }}>
               <ActivityIndicator size="small" color="#A78BFA" />
-              <Text style={s.statusText}>Verifying…</Text>
+              <Text className="text-muted" style={{ fontFamily: 'DMSans_500Medium', fontSize: 13 }}>Verifying…</Text>
             </View>
           )}
 
@@ -157,16 +144,17 @@ export default function TwoFAChallenge() {
             <Pressable
               onPress={() => setMode('backup')}
               testID="twofa-challenge-use-backup-btn"
-              style={({ hovered }: any) => [s.linkBtn, hovered && { opacity: 1 }]}
+              className="flex-row items-center justify-center"
+              style={({ hovered }: any) => [{ gap: 8, marginTop: 6, paddingVertical: 8, cursor: 'pointer' }, hovered && { opacity: 1 }]}
             >
               <KeyRound size={14} color="#D4AAFF" />
-              <Text style={s.linkText}>Use a backup code instead</Text>
+              <Text className="text-violet" style={{ fontFamily: 'DMSans_500Medium', fontSize: 13.5 }}>Use a backup code instead</Text>
             </Pressable>
           )}
         </>
       ) : (
         <>
-          <Text style={s.fieldLabel}>Backup code</Text>
+          <Text className="text-muted font-body-bold" style={{ fontSize: 11, letterSpacing: 1, marginBottom: 8 }}>Backup code</Text>
           <TextInput
             value={backupCode}
             onChangeText={(v) => setBackupCode(v.toUpperCase())}
@@ -174,7 +162,8 @@ export default function TwoFAChallenge() {
             placeholderTextColor="rgba(255,255,255,0.35)"
             autoCapitalize="characters"
             maxLength={9}
-            style={s.backupInput}
+            className="text-text font-body-bold text-center"
+            style={{ height: 52, borderRadius: 12, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.18)', backgroundColor: 'rgba(255,255,255,0.04)', fontSize: 16, letterSpacing: 2, paddingHorizontal: 14, marginBottom: 14, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) }}
             testID="twofa-challenge-backup-input"
           />
           {IS_WEB ? (
@@ -184,19 +173,21 @@ export default function TwoFAChallenge() {
               onPress={verifyBackup}
               disabled={verifying}
               testID="twofa-challenge-backup-submit"
-              style={({ pressed }: any) => [s.btnPrimary, pressed && { transform: [{ scale: 0.98 }] }]}
+              className="items-center justify-center"
+              style={({ pressed }: any) => [{ height: 52, borderRadius: 12, backgroundColor: '#7C3AED' }, pressed && { transform: [{ scale: 0.98 }] }]}
             >
               {verifying
                 ? <ActivityIndicator size="small" color="#FFFFFF" />
-                : <Text style={s.btnPrimaryText}>Verify backup code</Text>}
+                : <Text className="text-text font-body-bold" style={{ fontSize: 15 }}>Verify backup code</Text>}
             </Pressable>
           )}
           <Pressable
             onPress={() => setMode('totp')}
             testID="twofa-challenge-back-totp-btn"
-            style={({ hovered }: any) => [s.linkBtn, { marginTop: 8 }, hovered && { opacity: 1 }]}
+            className="flex-row items-center justify-center"
+            style={({ hovered }: any) => [{ gap: 8, marginTop: 8, paddingVertical: 8, cursor: 'pointer' }, hovered && { opacity: 1 }]}
           >
-            <Text style={s.linkText}>Back to authenticator code</Text>
+            <Text className="text-violet" style={{ fontFamily: 'DMSans_500Medium', fontSize: 13.5 }}>Back to authenticator code</Text>
           </Pressable>
         </>
       )}
@@ -204,14 +195,14 @@ export default function TwoFAChallenge() {
       <Pressable
         onPress={() => router.replace('/(auth)/login')}
         testID="twofa-challenge-cancel-btn"
-        style={({ hovered }: any) => [s.cancel, hovered && { opacity: 1 }]}
+        className="items-center"
+        style={({ hovered }: any) => [{ marginTop: 22, cursor: 'pointer' }, hovered && { opacity: 1 }]}
       >
-        <Text style={s.cancelText}>Cancel and sign in with a different account</Text>
+        <Text className="text-muted" style={{ fontFamily: 'DMSans_400Regular', fontSize: 12.5 }}>Cancel and sign in with a different account</Text>
       </Pressable>
     </View>
   );
 
-  // ─── WEB ──────────────────────────────────────────────────────────────
   if (IS_WEB) {
     return (
       <AuthShell>
@@ -219,10 +210,11 @@ export default function TwoFAChallenge() {
           <Pressable
             onPress={() => router.replace('/(auth)/login')}
             testID="twofa-challenge-back-btn"
-            style={({ hovered }: any) => [s.webBack, hovered && { opacity: 1 }]}
+            className="flex-row items-center self-start"
+            style={({ hovered }: any) => [{ gap: 6, paddingVertical: 6, marginBottom: 14, opacity: 0.75, cursor: 'pointer', transitionDuration: '160ms' }, hovered && { opacity: 1 }]}
           >
             <ArrowLeft size={16} color="rgba(255,255,255,0.75)" />
-            <Text style={s.webBackText}>Back to login</Text>
+            <Text className="text-muted" style={{ fontFamily: 'DMSans_500Medium', fontSize: 13 }}>Back to login</Text>
           </Pressable>
           {Body}
         </View>
@@ -230,18 +222,18 @@ export default function TwoFAChallenge() {
     );
   }
 
-  // ─── NATIVE ───────────────────────────────────────────────────────────
   return (
-    <SafeAreaView style={native.safe} edges={['top', 'bottom']}>
+    <SafeAreaView className="flex-1 bg-navy" edges={['top', 'bottom']}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
       >
-        <ScrollView contentContainerStyle={native.container} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={{ padding: 22, paddingBottom: 60 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           <Pressable
             onPress={() => router.replace('/(auth)/login')}
             testID="twofa-challenge-back-btn"
-            style={native.back}
+            className="items-center justify-center"
+            style={{ width: 40, height: 40, marginBottom: 4 }}
             hitSlop={12}
           >
             <ArrowLeft size={24} color="#FFFFFF" />
@@ -252,88 +244,3 @@ export default function TwoFAChallenge() {
     </SafeAreaView>
   );
 }
-
-// ─── styles ──────────────────────────────────────────────────────────────
-const s = StyleSheet.create({
-  webBack: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingVertical: 6, marginBottom: 14, opacity: 0.75, alignSelf: 'flex-start',
-    ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
-  },
-  webBackText: { color: 'rgba(255,255,255,0.75)', fontFamily: 'DMSans_500Medium', fontSize: 13 },
-
-  iconCircle: {
-    width: 56, height: 56, borderRadius: 18,
-    backgroundColor: 'rgba(124,58,237,0.18)',
-    borderWidth: 1, borderColor: 'rgba(196,181,253,0.45)',
-    alignSelf: 'center', alignItems: 'center', justifyContent: 'center',
-    marginBottom: 16,
-  },
-  h1: {
-    color: '#FFFFFF', fontFamily: 'DMSans_700Bold',
-    fontSize: 24, letterSpacing: -0.4, textAlign: 'center',
-  },
-  sub: {
-    color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_400Regular',
-    fontSize: 13.5, textAlign: 'center', marginTop: 6, marginBottom: 26,
-  },
-
-  otpRow: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    gap: 6, marginBottom: 18, width: '100%',
-  },
-  otpBox: {
-    flex: 1, height: 54, minWidth: 0, maxWidth: 48,
-    borderRadius: 12, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.18)',
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    color: '#FFFFFF', fontFamily: 'DMSans_700Bold', fontSize: 22,
-    textAlign: 'center',
-    ...({ outlineStyle: 'none' } as any),
-  },
-  otpBoxFilled: { borderColor: '#7C3AED', backgroundColor: 'rgba(124,58,237,0.14)' },
-  otpBoxOk:     { borderColor: '#10B981', backgroundColor: 'rgba(16,185,129,0.14)' },
-  otpBoxErr:    { borderColor: '#EF4444', backgroundColor: 'rgba(239,68,68,0.14)' },
-
-  statusRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 8, marginBottom: 12,
-  },
-  statusText: { color: 'rgba(255,255,255,0.65)', fontFamily: 'DMSans_500Medium', fontSize: 13 },
-
-  linkBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 8, marginTop: 6, paddingVertical: 8,
-    ...({ cursor: 'pointer' } as any),
-  },
-  linkText: { color: '#D4AAFF', fontFamily: 'DMSans_500Medium', fontSize: 13.5 },
-
-  fieldLabel: {
-    color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_700Bold',
-    fontSize: 11, letterSpacing: 1, marginBottom: 8,
-  },
-  backupInput: {
-    height: 52, borderRadius: 12, borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.18)',
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    color: '#FFFFFF', fontFamily: 'JetBrainsMono_700Bold, DMSans_700Bold', fontSize: 16,
-    textAlign: 'center', letterSpacing: 2, paddingHorizontal: 14,
-    marginBottom: 14, ...({ outlineStyle: 'none' } as any),
-  },
-  btnPrimary: {
-    height: 52, borderRadius: 12, backgroundColor: '#7C3AED',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  btnPrimaryText: { color: '#FFFFFF', fontFamily: 'DMSans_700Bold', fontSize: 15 },
-
-  cancel: { alignItems: 'center', marginTop: 22, ...({ cursor: 'pointer' } as any) },
-  cancelText: {
-    color: 'rgba(255,255,255,0.5)',
-    fontFamily: 'DMSans_400Regular', fontSize: 12.5,
-  },
-});
-
-const native = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#0F0820' },
-  container: { padding: 22, paddingBottom: 60 },
-  back: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
-});

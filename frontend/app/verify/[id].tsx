@@ -1,18 +1,42 @@
+// @ts-nocheck
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, Pressable, StyleSheet, Platform, ScrollView, Image, ActivityIndicator, Linking,
+  View,
+  Text,
+  Pressable,
+  ,
+  Platform,
+  ScrollView,
+  Image,
+  Linking,
+  Modal,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import {
-  UserCog, Building2, GraduationCap, Briefcase, MapPin, Calendar,
-  ShieldCheck, BookOpen, Award, Mail, ChevronLeft, Download, Hash, CheckCircle2, User,
+  ShieldCheck,
+  CheckCircle2,
+  AlertCircle,
+  Download,
+  Award,
+  BookOpen,
+  User,
+  Hash,
+  Calendar,
+  Building2,
+  ChevronLeft,
+  UserCheck,
+  FileCheck,
+  Copy,
+  Check,
+  Lock,
+  Search,
+  X,
 } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
-import { FONTS } from '@/src/views/web/portals/superadmin/tokens';
+import Animated, { FadeIn } from 'react-native-reanimated';
+import { EchoHeader, EchoFooter, ECHO_TOP_PADDING } from '@/src/views/web/components/EchoChrome';
+import { SAWatermark } from '@/src/views/web/components/SAWatermark';
+import { SAModernLoader } from '@/src/views/components/SAModernLoader';
 
-const GRAD_FROM = '#FB923C';
 const API_BASE = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://studentalumni.ai';
 
 export default function VerifyScreen() {
@@ -21,12 +45,13 @@ export default function VerifyScreen() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [copiedHash, setCopiedHash] = useState(false);
+  const [showImageZoom, setShowImageZoom] = useState(false);
 
   useEffect(() => {
     if (!id) return;
     (async () => {
       try {
-        // Try unified certificate / roll number lookup first
         const certResp = await fetch(`${API_BASE}/api/certificates/verify/${encodeURIComponent(id)}`);
         if (certResp.ok) {
           const certJson = await certResp.json();
@@ -37,7 +62,6 @@ export default function VerifyScreen() {
           }
         }
 
-        // Fallback to digital ID card lookup
         const resp = await fetch(`${API_BASE}/api/id-cards/${encodeURIComponent(id)}`);
         if (!resp.ok) {
           setError(resp.status === 404 ? 'Invalid Certificate ID or Member ID' : 'Verification failed');
@@ -45,12 +69,20 @@ export default function VerifyScreen() {
         }
         setData(await resp.json());
       } catch {
-        setError('Could not connect to verification server');
+        setError('Could not connect to verification registry');
       } finally {
         setLoading(false);
       }
     })();
   }, [id]);
+
+  const copyToClipboard = (text: string) => {
+    if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+      setCopiedHash(true);
+      setTimeout(() => setCopiedHash(false), 2000);
+    }
+  };
 
   const downloadCert = (url: string, name: string) => {
     const fullUrl = url.startsWith('http') ? url : `${API_BASE}${url}`;
@@ -58,7 +90,7 @@ export default function VerifyScreen() {
       const link = document.createElement('a');
       link.href = fullUrl;
       link.target = '_blank';
-      link.download = `${name.replace(/\s+/g, '_')}_Certificate.jpg`;
+      link.download = `${(name || 'Certificate').replace(/\s+/g, '_')}_Certificate.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -67,235 +99,511 @@ export default function VerifyScreen() {
     }
   };
 
+  const downloadBGVReport = (memberData: any) => {
+    const reportContent =
+      "=================================================================\n" +
+      "  STUDENT ALUMNI NETWORK — BACKGROUND VERIFICATION (BGV) REPORT\n" +
+      "  Cryptographic Credential & Authenticity Verification Record\n" +
+      "=================================================================\n\n" +
+      `VERIFICATION STATUS : OFFICIALLY VERIFIED & VALID\n` +
+      `MEMBER / CERT ID    : ${memberData.id || id}\n` +
+      `FULL NAME           : ${memberData.full_name || memberData.recipient_name || 'N/A'}\n` +
+      `ROLE / TITLE        : ${memberData.role || 'Member'}\n` +
+      `INSTITUTION / ORG   : ${memberData.institution || memberData.org || 'Student Alumni Network'}\n` +
+      `VERIFIED TIMESTAMP  : ${new Date().toISOString()}\n` +
+      `SECURITY PROTOCOL   : Cryptographic SHA-256 Public Ledger\n` +
+      `VERIFICATION SERVER : ${API_BASE}\n` +
+      "=================================================================";
+
+    if (Platform.OS === 'web') {
+      const blob = new Blob([reportContent], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `BGV_Report_${(memberData.id || id).replace(/\s+/g, '_')}.txt`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
   if (loading) {
     return (
-      <View style={s.center}>
-        <ActivityIndicator size="large" color={GRAD_FROM} />
-        <Text style={s.loadingText}>Verifying Credentials...</Text>
+      <View className="flex-1 relative" style={{  backgroundColor: '#05060F'  }}>
+        <EchoHeader />
+        <SAModernLoader subtitle="VERIFYING CRYPTOGRAPHIC REGISTRY" />
+        <EchoFooter />
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={s.center}>
-        <MaterialCommunityIcons name="shield-off-outline" size={64} color="#ef4444" />
-        <Text style={s.errorTitle}>{error}</Text>
-        <Text style={s.errorSub}>The ID or certificate could not be verified.</Text>
-        <Pressable onPress={() => router.push('/verify')} style={s.backBtn}>
-          <ChevronLeft size={16} color="#fff" />
-          <Text style={s.backBtnText}>Go to Verification Portal</Text>
-        </Pressable>
+      <View className="flex-1 relative" style={{  backgroundColor: '#05060F'  }}>
+        <EchoHeader />
+        <View className="flex-1 items-center justify-center p-6" style={{  backgroundColor: '#05060F', paddingTop: ECHO_TOP_PADDING + 40  }}>
+          <View className="rounded-2xl" style={{  width: 72, height: 72, backgroundColor: 'rgba(239, 68, 68, 0.12)'  }}>
+            <AlertCircle size={48} color="#EF4444" />
+          </View>
+          <Text className="font-body-bold text-center" style={{  color: '#EF4444', fontSize: 20  }}>{error}</Text>
+          <Text className="text-center mb-6" style={{  color: '#9AA0B4', fontSize: 14, maxWidth: 480, lineHeight: 20, marginTop: 6  }}>The credential with ID "{id}" could not be verified in the registry.</Text>
+          <Pressable onPress={() => router.push('/verify')} className="flex-row items-center gap-2 py-3 rounded-xl border" style={{  backgroundColor: '#0C0E1B', paddingHorizontal: 18, borderColor: '#2A2A55'  }}>
+            <ChevronLeft size={16} color="#ffffff" />
+            <Text className="font-body-bold" style={{  color: '#ffffff', fontSize: 13.5  }}>Return to Verification Portal</Text>
+          </Pressable>
+        </View>
+        <EchoFooter />
       </View>
     );
   }
 
-  // Render Certificate View
+  // RENDER CERTIFICATE VIEW
   if (certResult?.certificate) {
     const c = certResult.certificate;
     return (
-      <ScrollView style={s.scroll} contentContainerStyle={s.container}>
-        <Animated.View entering={FadeIn.duration(300)}>
-          {/* Header */}
-          <View style={s.header}>
-            <Pressable onPress={() => router.push('/verify')} style={s.backArrow}>
-              <ChevronLeft size={20} color="#fff" />
+      <View className="flex-1 relative" style={{  backgroundColor: '#05060F'  }}>
+        {Platform.OS === 'web' && (
+          <style
+            dangerouslySetInnerHTML={{
+              __html: `
+                html, body, #root {
+                  background: #05060F !important;
+                  color: #F4F5FB !important;
+                }
+              `,
+            }}
+          />
+        )}
+        <View className="absolute rounded-2xl" style={{  top: 0, left: '50%', transform: [{ translateX: -400 }], width: 800, height: 500, backgroundColor: 'rgba(91, 79, 233, 0.14)'  }} />
+        <SAWatermark opacity={0.09} rotation="0deg" top={110} right={24} size={520} />
+        <EchoHeader />
+
+        <ScrollView className="flex-1" style={{  backgroundColor: '#05060F'  }} contentContainerStyle={styles.scrollContent}>
+          <View className="items-center" style={{  paddingTop: ECHO_TOP_PADDING + 10, paddingBottom: 70, paddingHorizontal: Platform.OS === 'web' ? 24 : 16, width: '100%'  }}>
+            <Animated.View entering={FadeIn.duration(300)} className="" style={{  width: '100%', maxWidth: 1240  }}>
+
+              {/* Navigation row */}
+              <View className="" style={{  marginBottom: 18  }}>
+                <Pressable onPress={() => router.push('/verify')} className="flex-row items-center gap-1.5" style={{  alignSelf: 'flex-start', backgroundColor: 'rgba(91, 79, 233, 0.1)'  }}>
+                  <ChevronLeft size={18} color="#8B84FF" />
+                  <Text className="font-body-bold" style={{  color: '#8B84FF', fontSize: 12.5  }}>Search Registry</Text>
+                </Pressable>
+              </View>
+
+              {/* Verified Result Card */}
+              <View className="rounded-2xl border gap-5.5" style={{  backgroundColor: '#0C0E1B', borderColor: '#1B1E33', padding: Platform.OS === 'web' ? 28 : 18  }}>
+
+                {/* Status Bar */}
+                <View className="flex-row items-center justify-between flex-wrap gap-3" style={{  borderBottomWidth: 1, borderBottomColor: '#171A2C', paddingBottom: 18  }}>
+                  <View className="flex-row items-center gap-2" style={{  backgroundColor: 'rgba(16, 185, 129, 0.12)'  }}>
+                    <CheckCircle2 size={16} color="#10B981" />
+                    <Text className="font-body-bold" style={{  color: '#10B981', fontSize: 13, letterSpacing: 0.5  }}>OFFICIALLY VERIFIED & VALID</Text>
+                  </View>
+
+                  <View className="flex-row items-center gap-1.5" style={{  backgroundColor: 'rgba(91, 79, 233, 0.12)'  }}>
+                    <Hash size={13} color="#8B84FF" />
+                    <Text className="font-body-bold" style={{  color: '#8B84FF', fontSize: 13.5, fontFamily: Platform.OS === 'web' ? 'Manrope  }}>ID: {c.id || c.certificate_id || id}</Text>
+                  </View>
+                </View>
+
+                {/* Certificate Image */}
+                {c.image_url && (
+                  <View className="rounded-2xl overflow-hidden border p-3.5 items-center" style={{  backgroundColor: '#070A1A', borderColor: '#1B1E33'  }}>
+                    <Pressable onPress={() => setShowImageZoom(true)} className="relative items-center" style={{  width: '100%'  }}>
+                      <Image
+                        source={{ uri: c.image_url.startsWith('http') ? c.image_url : `${API_BASE}${c.image_url}` }}
+                        className="rounded-xl" style={{  width: '100%', height: Platform.OS === 'web' ? 520 : 250  }}
+                        resizeMode="contain"
+                      />
+                      <View className="absolute flex-row items-center gap-1.5" style={{  bottom: 14, right: 14, backgroundColor: 'rgba(0,0,0,0.75)'  }}>
+                        <Search size={12} color="#fff" />
+                        <Text className="font-body-semibold" style={{  color: '#fff', fontSize: 11.5  }}>Click to zoom</Text>
+                      </View>
+                    </Pressable>
+                  </View>
+                )}
+
+                {/* Metadata Card */}
+                <View className="rounded-2xl p-6 border gap-4" style={{  backgroundColor: '#0A0C18', borderColor: '#171A2C'  }}>
+                  <Text className="font-body-bold uppercase" style={{  color: '#8B84FF', fontSize: 12.5, letterSpacing: 1.2, marginBottom: 4  }}>Credential Verification Details</Text>
+                  <View className="flex-row flex-wrap gap-3.5">
+                    <MetaItem label="Recipient Name" value={c.recipient_name} icon={User} />
+                    <MetaItem label="Certificate ID" value={c.id || c.certificate_id || id} icon={Hash} />
+                    {c.roll_number && <MetaItem label="Roll Number" value={c.roll_number} icon={Award} />}
+                    {c.branch && <MetaItem label="Branch / Specialization" value={c.branch} icon={BookOpen} />}
+                    <MetaItem label="Issuing Organization" value={c.issuing_organization || c.issuer || 'Student Alumni Network'} icon={Building2} />
+                    <MetaItem label="Issue Date" value={c.issue_date || '2026-02-15'} icon={Calendar} />
+                  </View>
+
+                  {/* Hash Signature */}
+                  {c.verification_hash && (
+                    <View className="mt-2 p-4 rounded-2xl border" style={{  backgroundColor: '#05060F', borderColor: '#1B1E33'  }}>
+                      <View className="flex-row items-center justify-between mb-2.5">
+                        <View style={{  flexDirection: 'row', alignItems: 'center', gap: 6  }}>
+                          <Lock size={12} color="#10B981" />
+                          <Text className="font-body-bold" style={{  color: '#10B981', fontSize: 12.5, letterSpacing: 0.2  }}>Cryptographic SHA-256 Signature</Text>
+                        </View>
+                        <Pressable onPress={() => copyToClipboard(c.verification_hash)} className="flex-row items-center gap-1.5" style={{  backgroundColor: 'rgba(91, 79, 233, 0.12)'  }}>
+                          {copiedHash ? <Check size={12} color="#10B981" /> : <Copy size={12} color="#8B84FF" />}
+                          <Text style={[styles.copyBtnText, copiedHash && { color: '#10B981' }]}>
+                            {copiedHash ? 'Copied' : 'Copy Hash'}
+                          </Text>
+                        </Pressable>
+                      </View>
+                      <Text className="font-body-semibold" style={{  color: '#10B981', fontSize: 13.5, fontFamily: Platform.OS === 'web' ? 'Manrope, letterSpacing: 0.5  }}>{c.verification_hash}</Text>
+                    </View>
+                  )}
+                </View>
+
+                {/* Action Buttons */}
+                <View className="flex-row gap-3.5">
+                  {c.image_url && (
+                    <Pressable
+                      onPress={() => downloadCert(c.image_url, c.recipient_name)}
+                      className="flex-1 flex-row items-center justify-center gap-2 rounded-2xl" style={{  backgroundColor: '#5B4FE9', height: 52  }}
+                    >
+                      <Download size={16} color="#ffffff" />
+                      <Text className="font-body-bold" style={{  color: '#ffffff', fontSize: 14.5  }}>Download High-Resolution Certificate</Text>
+                    </Pressable>
+                  )}
+
+                  <Pressable
+                    onPress={() => downloadBGVReport(c)}
+                    className="flex-1 flex-row items-center justify-center gap-2" style={{  backgroundColor: 'rgba(91, 79, 233, 0.1)'  }}
+                  >
+                    <FileCheck size={16} color="#8B84FF" />
+                    <Text className="font-body-bold" style={{  color: '#8B84FF', fontSize: 14.5  }}>Download BGV Verification Record</Text>
+                  </Pressable>
+                </View>
+
+              </View>
+
+            </Animated.View>
+          </View>
+
+          <EchoFooter />
+        </ScrollView>
+
+        {/* Zoom Modal */}
+        <Modal visible={showImageZoom} transparent animationType="fade" onRequestClose={() => setShowImageZoom(false)}>
+          <View className="flex-1" style={{  backgroundColor: 'rgba(5, 6, 15, 0.88)'  }}>
+            <Pressable onPress={() => setShowImageZoom(false)} className="absolute p-2 z-[100]" style={{  top: 24, right: 24  }}>
+              <X size={24} color="#ffffff" />
             </Pressable>
-            <Text style={s.title}>Verified Certificate</Text>
-          </View>
-
-          {/* Verified Status Banner */}
-          <View style={s.statusBanner}>
-            <CheckCircle2 size={20} color="#10B981" />
-            <Text style={s.statusBannerText}>OFFICIALLY VERIFIED & VALID</Text>
-          </View>
-
-          {/* Image Preview */}
-          {c.image_url && (
-            <View style={s.certImageWrapper}>
+            {c?.image_url && (
               <Image
                 source={{ uri: c.image_url.startsWith('http') ? c.image_url : `${API_BASE}${c.image_url}` }}
-                style={s.certImage}
+                className="" style={{  width: '92%', height: '84%'  }}
                 resizeMode="contain"
               />
-            </View>
-          )}
-
-          {/* Details Card */}
-          <View style={s.detailsCard}>
-            <Text style={s.sectionTitle}>Credential Details</Text>
-            <DetailRow icon={User} label="Recipient Name" value={c.recipient_name} />
-            <DetailRow icon={Hash} label="Certificate ID" value={c.id || c.certificate_id} />
-            <DetailRow icon={Award} label="Roll Number" value={c.roll_number} />
-            <DetailRow icon={BookOpen} label="Branch / Specialization" value={c.branch} />
-            <DetailRow icon={Building2} label="Issuing Organization" value={c.issuing_organization || c.issuer} />
-            <DetailRow icon={Calendar} label="Issue Date" value={c.issue_date || '2026-02-15'} />
-
-            {c.verification_hash && (
-              <View style={s.hashRow}>
-                <Text style={s.hashLabel}>Security Hash Signature:</Text>
-                <Text style={s.hashValue}>{c.verification_hash}</Text>
-              </View>
             )}
           </View>
-
-          {/* Download Action */}
-          {c.image_url && (
-            <Pressable
-              onPress={() => downloadCert(c.image_url, c.recipient_name)}
-              style={s.downloadBtn}
-            >
-              <Download size={18} color="#fff" />
-              <Text style={s.downloadBtnText}>Download High-Resolution Certificate</Text>
-            </Pressable>
-          )}
-
-          {/* Verified Footer */}
-          <View style={s.verifiedBanner}>
-            <ShieldCheck size={20} color="#10B981" />
-            <Text style={s.verifiedText}>Verified by Student Alumni Network & ECHO 2026</Text>
-          </View>
-        </Animated.View>
-      </ScrollView>
+        </Modal>
+      </View>
     );
   }
 
-  // Render Digital ID Card View
+  // RENDER DIGITAL ID CARD VIEW
   if (!data) return null;
-
   const role = (data.role || '').toLowerCase();
 
   return (
-    <ScrollView style={s.scroll} contentContainerStyle={s.container}>
-      <Animated.View entering={FadeIn.duration(300)}>
-        {/* Header */}
-        <View style={s.header}>
-          <Pressable onPress={() => router.push('/verify')} style={s.backArrow}>
-            <ChevronLeft size={20} color="#fff" />
-          </Pressable>
-          <Text style={s.title}>Digital ID Card</Text>
-        </View>
+    <View className="flex-1 relative" style={{  backgroundColor: '#05060F'  }}>
+      {Platform.OS === 'web' && (
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+              html, body, #root {
+                background: #05060F !important;
+                color: #F4F5FB !important;
+              }
+            `,
+          }}
+        />
+      )}
+      <View className="absolute rounded-2xl" style={{  top: 0, left: '50%', transform: [{ translateX: -400 }], width: 800, height: 500, backgroundColor: 'rgba(91, 79, 233, 0.14)'  }} />
+      <EchoHeader />
 
-        {/* ID Card */}
-        <LinearGradient colors={['#FBBF24', '#F97316', '#B45309']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.card}>
-          <View style={s.cardInner}>
-            <View style={s.photoRow}>
-              <View style={s.photoCircle}>
-                {data.photo ? (
-                  <Image source={{ uri: data.photo }} style={s.photo} />
-                ) : (
-                  <UserCog size={28} color="rgba(31,17,7,0.4)" />
-                )}
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={s.cardName}>{data.full_name}</Text>
-                <View style={s.roleBadge}>
-                  <Text style={s.roleText}>{data.role_label || (data.role || '').toUpperCase()}</Text>
+      <ScrollView className="flex-1" style={{  backgroundColor: '#05060F'  }} contentContainerStyle={styles.scrollContent}>
+        <View className="items-center" style={{  paddingTop: ECHO_TOP_PADDING + 10, paddingBottom: 70, paddingHorizontal: Platform.OS === 'web' ? 24 : 16, width: '100%'  }}>
+          <Animated.View entering={FadeIn.duration(300)} className="" style={{  width: '100%', maxWidth: 1240  }}>
+
+            {/* Header */}
+            <View className="" style={{  marginBottom: 18  }}>
+              <Pressable onPress={() => router.push('/verify')} className="flex-row items-center gap-1.5" style={{  alignSelf: 'flex-start', backgroundColor: 'rgba(91, 79, 233, 0.1)'  }}>
+                <ChevronLeft size={18} color="#8B84FF" />
+                <Text className="font-body-bold" style={{  color: '#8B84FF', fontSize: 12.5  }}>Search Registry</Text>
+              </Pressable>
+            </View>
+
+            {/* Result Card */}
+            <View className="rounded-2xl border gap-5.5" style={{  backgroundColor: '#0C0E1B', borderColor: '#1B1E33', padding: Platform.OS === 'web' ? 28 : 18  }}>
+
+              {/* Status Header */}
+              <View className="flex-row items-center justify-between flex-wrap gap-3" style={{  borderBottomWidth: 1, borderBottomColor: '#171A2C', paddingBottom: 18  }}>
+                <View className="flex-row items-center gap-2" style={{  backgroundColor: 'rgba(16, 185, 129, 0.12)'  }}>
+                  <CheckCircle2 size={16} color="#10B981" />
+                  <Text className="font-body-bold" style={{  color: '#10B981', fontSize: 13, letterSpacing: 0.5  }}>VERIFIED ACTIVE MEMBER</Text>
+                </View>
+
+                <View className="flex-row items-center gap-1.5" style={{  backgroundColor: 'rgba(91, 79, 233, 0.12)'  }}>
+                  <Hash size={13} color="#8B84FF" />
+                  <Text className="font-body-bold" style={{  color: '#8B84FF', fontSize: 13.5, fontFamily: Platform.OS === 'web' ? 'Manrope  }}>SA ID: {data.id || id}</Text>
                 </View>
               </View>
-            </View>
 
-            <View style={s.idRow}>
-              <Text style={s.idLabel}>ID</Text>
-              <Text style={s.idValue}>{data.id}</Text>
-            </View>
-
-            {data.status && (
-              <View style={s.statusRow}>
-                <View style={[s.statusDot, { backgroundColor: data.status.color || '#10B981' }]} />
-                <Text style={s.statusText}>{data.status.label || 'Verified'}</Text>
-                <ShieldCheck size={14} color="#065f46" />
-              </View>
-            )}
-          </View>
-        </LinearGradient>
-
-        {/* Details Section */}
-        <View style={s.detailsCard}>
-          <Text style={s.sectionTitle}>Member Details</Text>
-          <DetailRow icon={Mail} label="Email" value={data.email} />
-          <DetailRow icon={Building2} label="Organization" value={data.org} />
-
-          {role === 'student' && (
-            <>
-              <DetailRow icon={GraduationCap} label="Institution" value={data.institution} />
-              <DetailRow icon={BookOpen} label="Branch" value={data.branch} />
-              <DetailRow icon={Calendar} label="Batch" value={data.batch} />
-              <DetailRow icon={MapPin} label="Location" value={[data.city, data.state].filter(Boolean).join(', ')} />
-            </>
-          )}
-
-          {data.issued_at && (
-            <DetailRow icon={Calendar} label="Issued" value={new Date(data.issued_at).toLocaleDateString()} />
-          )}
-        </View>
-
-        {/* Verified Badge */}
-        <View style={s.verifiedBanner}>
-          <ShieldCheck size={20} color="#10B981" />
-          <Text style={s.verifiedText}>Verified by Student Alumni Platform</Text>
-        </View>
-      </Animated.View>
-    </ScrollView>
-  );
-}
-
-function DetailRow({ icon: Icon, label, value }: { icon: any; label: string; value?: string }) {
-  if (!value) return null;
-  return (
-    <View style={s.detailRow}>
-      <View style={s.detailIconWrap}>
-        <Icon size={16} color="#F59E0B" />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text style={s.detailLabel}>{label}</Text>
-        <Text style={s.detailValue}>{value}</Text>
-      </View>
-    </View>
-  );
-}
-
-const s = StyleSheet.create({
-  scroll: { flex: 1, backgroundColor: '#0f172a' },
-  container: { padding: 16, paddingBottom: 40, alignItems: 'center' },
-  center: { flex: 1, backgroundColor: '#0f172a', alignItems: 'center', justifyContent: 'center', padding: 20 },
-  loadingText: { color: '#94a3b8', fontFamily: FONTS.med, fontSize: 14, marginTop: 12 },
-  errorTitle: { color: '#ef4444', fontFamily: FONTS.xbold, fontSize: 18, marginTop: 12 },
-  errorSub: { color: '#94a3b8', fontFamily: FONTS.med, fontSize: 14, marginTop: 4 },
-  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 20, backgroundColor: '#1e293b', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: '#334155' },
-  backBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20, marginTop: Platform.OS === 'web' ? 20 : 50, width: '100%', maxWidth: 700 },
-  backArrow: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#1e293b', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#334155' },
-  title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 20 },
-  statusBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(16, 185, 129, 0.12)', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(16, 185, 129, 0.3)', marginBottom: 16, width: '100%', maxWidth: 700 },
-  statusBannerText: { color: '#10B981', fontFamily: FONTS.bold, fontSize: 13, letterSpacing: 0.5 },
-  certImageWrapper: { width: '100%', maxWidth: 700, backgroundColor: '#090d16', borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: '#334155', padding: 8, marginBottom: 16 },
-  certImage: { width: '100%', height: Platform.OS === 'web' ? 420 : 250, borderRadius: 10 },
-  card: { width: '100%', maxWidth: 700, padding: 6, borderRadius: 22 },
-  cardInner: { backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 22, padding: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
-  photoRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  photoCircle: { width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(31,17,7,0.15)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.4)', overflow: 'hidden' },
-  photo: { width: 60, height: 60, borderRadius: 30 },
-  cardName: { color: '#1f1107', fontFamily: FONTS.xbold, fontSize: 22 },
-  roleBadge: { backgroundColor: 'rgba(31,17,7,0.18)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, alignSelf: 'flex-start', marginTop: 4, borderWidth: 1, borderColor: 'rgba(31,17,7,0.25)' },
-  roleText: { color: '#1f1107', fontFamily: FONTS.xbold, fontSize: 9, letterSpacing: 1 },
-  idRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16 },
-  idLabel: { color: 'rgba(31,17,7,0.55)', fontFamily: FONTS.xbold, fontSize: 9.5, letterSpacing: 1.4 },
-  idValue: { color: '#1f1107', fontFamily: (Platform.OS === 'web' ? '"JetBrains Mono", monospace' : FONTS.xbold) as any, fontSize: 17 },
-  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12, backgroundColor: 'rgba(5,150,105,0.15)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, alignSelf: 'flex-start', borderWidth: 1, borderColor: 'rgba(5,150,105,0.25)' },
-  statusDot: { width: 8, height: 8, borderRadius: 4 },
-  statusText: { color: '#065f46', fontFamily: FONTS.bold, fontSize: 11 },
-  detailsCard: { width: '100%', maxWidth: 700, backgroundColor: '#1e293b', borderRadius: 16, padding: 18, marginTop: 16, borderWidth: 1, borderColor: '#334155' },
-  sectionTitle: { color: '#94a3b8', fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 1.4, marginBottom: 14, textTransform: 'uppercase' },
-  detailRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(51,65,85,0.4)' },
-  detailIconWrap: { width: 32, height: 32, borderRadius: 8, backgroundColor: 'rgba(245,158,11,0.1)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(245,158,11,0.2)' },
-  detailLabel: { color: '#64748b', fontFamily: FONTS.bold, fontSize: 11, marginBottom: 2 },
-  detailValue: { color: '#e2e8f0', fontFamily: FONTS.med, fontSize: 14 },
-  hashRow: { marginTop: 12, backgroundColor: '#090d16', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#334155' },
-  hashLabel: { color: '#64748b', fontFamily: FONTS.bold, fontSize: 11 },
-  hashValue: { color: '#10B981', fontFamily: Platform.OS === 'web' ? 'monospace' : FONTS.med, fontSize: 12, marginTop: 2 },
-  downloadBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#D97706', paddingVertical: 14, borderRadius: 12, marginTop: 16, width: '100%', maxWidth: 700 },
-  downloadBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 14 },
-  verifiedBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 16, paddingVertical: 12, backgroundColor: 'rgba(5,150,105,0.08)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(5,150,105,0.2)', width: '100%', maxWidth: 700 },
-  verifiedText: { color: '#10B981', fontFamily: FONTS.bold, fontSize: 12 },
+              {/* Digital Member Card */}
+              <View className="rounded-2xl overflow-hidden border" style={{  borderColor: '#2A2A55'  }}>
+                <LinearGradient
+                  colors={['#171A2C', '#0C0E1B']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  className="" s 14,
+    right: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  zoomHintText: {
+    color: '#fff',
+    fontSize: 11.5,
+    fontWeight: '600',
+  },
+  metaCard: {
+    backgroundColor: '#0A0C18',
+    borderRadius: 18,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: '#171A2C',
+    gap: 16,
+  },
+  metaCardTitle: {
+    color: '#8B84FF',
+    fontSize: 12.5,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    marginBottom: 4,
+  },
+  metaGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 14,
+  },
+  metaItem: {
+    minWidth: Platform.OS === 'web' ? '48%' : '100%',
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 14,
+    backgroundColor: '#0C0E1B',
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.04)',
+  },
+  metaIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: 'rgba(91, 79, 233, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  metaItemLabel: {
+    color: '#64748B',
+    fontSize: 11.5,
+    fontWeight: '600',
+  },
+  metaItemValue: {
+    color: '#F4F5FB',
+    fontSize: 14.5,
+    fontWeight: '700',
+    marginTop: 2,
+    fontFamily: Platform.OS === 'web' ? 'Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
+  },
+  hashBox: {
+    marginTop: 8,
+    backgroundColor: '#05060F',
+    padding: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#1B1E33',
+  },
+  hashHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  hashLabel: {
+    color: '#10B981',
+    fontSize: 12.5,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  copyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(91, 79, 233, 0.12)',
+    paddingHorizontal: 11,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  copyBtnText: {
+    color: '#8B84FF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  hashValue: {
+    color: '#10B981',
+    fontSize: 13.5,
+    fontWeight: '600',
+    fontFamily: Platform.OS === 'web' ? 'Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
+    letterSpacing: 0.5,
+  },
+  actionsGrid: {
+    flexDirection: Platform.OS === 'web' ? 'row' : 'column',
+    gap: 14,
+  },
+  primaryActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#5B4FE9',
+    height: 52,
+    borderRadius: 14,
+  },
+  primaryActionBtnText: {
+    color: '#ffffff',
+    fontSize: 14.5,
+    fontWeight: '700',
+  },
+  secondaryActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(91, 79, 233, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(139, 132, 255, 0.3)',
+    height: 52,
+    borderRadius: 14,
+  },
+  secondaryActionBtnText: {
+    color: '#8B84FF',
+    fontSize: 14.5,
+    fontWeight: '700',
+  },
+  idCardShell: {
+    borderRadius: 22,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#2A2A55',
+  },
+  idCardInner: {
+    padding: 26,
+  },
+  idCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 22,
+  },
+  idCardLogoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  idCardLogoBadge: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: 'rgba(91, 79, 233, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  idCardBrand: {
+    color: '#ffffff',
+    fontSize: 14.5,
+    fontWeight: '700',
+  },
+  idRolePill: {
+    backgroundColor: 'rgba(91, 79, 233, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(139, 132, 255, 0.3)',
+  },
+  idRoleText: {
+    color: '#8B84FF',
+    fontSize: 10.5,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
+  idCardBody: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 18,
+  },
+  idAvatarWrap: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: 'rgba(91, 79, 233, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(139, 132, 255, 0.3)',
+    overflow: 'hidden',
+  },
+  idAvatar: {
+    width: 68,
+    height: 68,
+  },
+  idMemberName: {
+    color: '#ffffff',
+    fontSize: 22,
+    fontWeight: '800',
+  },
+  idMemberOrg: {
+    color: '#9AA0B4',
+    fontSize: 13.5,
+    marginTop: 2,
+  },
+  idMemberId: {
+    color: '#8B84FF',
+    fontSize: 13,
+    fontWeight: '700',
+    fontFamily: Platform.OS === 'web' ? 'Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
+    marginTop: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(5, 6, 15, 0.88)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  modalCloseBtn: {
+    position: 'absolute',
+    top: 24,
+    right: 24,
+    padding: 8,
+    zIndex: 100,
+  },
+  zoomedImage: {
+    width: '92%',
+    height: '84%',
+  },
 });

@@ -4,7 +4,7 @@
  * role-based auth flow. Safe to delete later.
  */
 import React from 'react';
-import { View, StyleSheet, Platform } from 'react-native';
+import { View, Platform } from 'react-native';
 import { Redirect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MentorDashboardView } from '@/src/views/web/MentorDashboardView';
@@ -32,7 +32,8 @@ export default function MentorPreviewPage() {
       colors={['#071412', '#0A1F1A', '#0F2E26'] as any}
       locations={[0, 0.5, 1] as any}
       start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-      style={styles.shell}
+      className="flex-1 flex-row"
+      style={{ height: '100%' } as any}
     >
       <Sidebar
         navItems={NAV}
@@ -48,7 +49,7 @@ export default function MentorPreviewPage() {
           gradient: ['#14B8A6', '#0F766E'] as const,
         }}
       />
-      <View style={{ flex: 1 }}>
+      <View className="flex-1">
         <MentorDashboardView
           userName="Dr. Priya Sharma"
           notifCount={2}
@@ -58,7 +59,3 @@ export default function MentorPreviewPage() {
     </LinearGradient>
   );
 }
-
-const styles = StyleSheet.create({
-  shell: { flex: 1, flexDirection: 'row', height: '100%' as any },
-});

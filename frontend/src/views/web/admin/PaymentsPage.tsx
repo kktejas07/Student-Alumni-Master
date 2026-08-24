@@ -2,7 +2,7 @@
  * PaymentsPage — KPIs + Revenue/Payouts dual bar + Transactions table.
  */
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, ActivityIndicator } from 'react-native';
 import { Wallet, ArrowDownRight, ArrowUpRight, Receipt } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
 import { AdminLayout } from './AdminLayout';
@@ -97,7 +97,7 @@ function Legend({ color, label }: { color: string; label: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = {
   kpiGrid: { ...({ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 14 } as any) },
   cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   cardTitle: { color: T.text, fontFamily: 'DMSans_700Bold', fontSize: 14 },
@@ -115,4 +115,4 @@ const styles = StyleSheet.create({
   },
   th: { color: 'rgba(255,255,255,0.32)', fontFamily: 'DMSans_700Bold', fontSize: 11, letterSpacing: 0.6, textTransform: 'uppercase' },
   td: { color: 'rgba(255,255,255,0.78)', fontFamily: 'DMSans_500Medium', fontSize: 12.5 },
-});
+};

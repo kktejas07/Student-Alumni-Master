@@ -4,7 +4,7 @@
  * Scan QR codes via camera or enter coupon codes manually.
  */
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, Pressable, Platform, ScrollView } from 'react-native';
+import { View, Text, TextInput, Pressable, Platform, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, ScanLine, Check, X, Camera, Keyboard, Ticket } from 'lucide-react-native';
@@ -59,46 +59,24 @@ function QRScanner({ onScan, onClose }: { onScan: (code: string) => void; onClos
   }, []);
 
   return (
-    <View style={qrStyles.overlay}>
-      <View style={qrStyles.topBar}>
-        <Pressable onPress={onClose} style={qrStyles.closeBtn}>
+    <View className="flex-col bg-navy" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999 }}>
+      <View className="flex-row items-center justify-between p-4 bg-black/60" style={{ paddingTop: 50 }}>
+        <Pressable onPress={onClose} className="w-9 h-9 rounded-full bg-white/15 items-center justify-center">
           <X size={20} color="#fff" />
         </Pressable>
-        <Text style={qrStyles.topTitle}>Scan Coupon QR</Text>
+        <Text className="font-body-bold text-base text-white">Scan Coupon QR</Text>
         <View style={{ width: 32 }} />
       </View>
-      <View style={qrStyles.readerWrap}>
+      <View className="flex-1 justify-center items-center">
         <div ref={containerRef} id="qr-reader" style={{ width: '100%' }} />
       </View>
-      <View style={qrStyles.bottomHint}>
+      <View className="flex-row items-center justify-center gap-2 p-4 pb-8 bg-black/60">
         <Camera size={18} color="#A78BFA" />
-        <Text style={qrStyles.bottomText}>Point camera at the attendee's coupon QR code</Text>
+        <Text className="text-sm text-white/70 font-body-semibold">Point camera at the attendee's coupon QR code</Text>
       </View>
     </View>
   );
 }
-
-const qrStyles = StyleSheet.create({
-  overlay: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: '#0a0f1e', zIndex: 999, flexDirection: 'column',
-  },
-  topBar: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    padding: 16, paddingTop: 50, backgroundColor: 'rgba(0,0,0,0.6)',
-  },
-  topTitle: { fontFamily: 'DMSans_700Bold', fontSize: 16, color: '#fff' },
-  closeBtn: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  readerWrap: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  bottomHint: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    padding: 16, paddingBottom: 32, backgroundColor: 'rgba(0,0,0,0.6)',
-  },
-  bottomText: { fontFamily: 'DMSans_500Medium', fontSize: 13, color: 'rgba(255,255,255,0.7)' },
-});
 
 // ── Main Page ────────────────────────────────────────────────────────────────
 export default function EchoScanPage() {
@@ -220,11 +198,11 @@ export default function EchoScanPage() {
   // Access guard loading
   if (accessCheck === 'loading') {
     return (
-      <View style={s.root}>
+      <View className="flex-1 bg-navy">
         <EchoHeader current="echo" />
         <ScrollView contentContainerStyle={{ paddingTop: ECHO_TOP_PADDING }}>
-          <View style={[s.content, { alignItems: 'center', paddingVertical: 80 }]}>
-            <Text style={{ fontFamily: 'DMSans_500Medium', fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>Checking access…</Text>
+          <View className="px-5 py-4 max-w-[600px] w-full self-center gap-4 items-center py-20">
+            <Text className="text-sm text-white/50 font-body-semibold">Checking access…</Text>
           </View>
           <EchoFooter />
         </ScrollView>
@@ -235,20 +213,20 @@ export default function EchoScanPage() {
   // Access denied
   if (accessCheck === 'denied') {
     return (
-      <View style={s.root}>
+      <View className="flex-1 bg-navy">
         <EchoHeader current="echo" />
         <ScrollView contentContainerStyle={{ paddingTop: ECHO_TOP_PADDING }}>
-          <View style={[s.content, { alignItems: 'center', paddingVertical: 80, gap: 16 }]}>
-            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(239,68,68,0.15)', alignItems: 'center', justifyContent: 'center' }}>
+          <View className="px-5 py-4 max-w-[600px] w-full self-center gap-4 items-center py-20">
+            <View className="items-center justify-center" style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(239,68,68,0.15)' }}>
               <X size={28} color="#EF4444" />
             </View>
-            <Text style={{ fontFamily: 'DMSans_800ExtraBold', fontSize: 20, color: '#FCA5A5', textAlign: 'center' }}>Access Denied</Text>
-            <Text style={{ fontFamily: 'DMSans_500Medium', fontSize: 13, color: 'rgba(255,255,255,0.5)', textAlign: 'center', maxWidth: 300 }}>
+            <Text className="font-display-bold text-xl text-rose text-center">Access Denied</Text>
+            <Text className="text-sm text-white/50 font-body-semibold text-center max-w-[300px]">
               You need super admin or volunteer access to use the coupon scanner. Contact the event organizer to be added as a volunteer.
             </Text>
-            <Pressable onPress={() => router.push('/echo')} style={s.backBtn}>
+            <Pressable onPress={() => router.push('/echo')} className="flex-row items-center gap-1.5 self-start bg-white/5 rounded-full px-3 py-1.5 border border-white/10 mb-1">
               <ArrowLeft size={14} color="#fff" />
-              <Text style={s.backText}>Back to ECHO</Text>
+              <Text className="text-white text-sm font-body-semibold">Back to ECHO</Text>
             </Pressable>
           </View>
           <EchoFooter />
@@ -258,35 +236,35 @@ export default function EchoScanPage() {
   }
 
   return (
-    <View style={s.root}>
+    <View className="flex-1 bg-navy">
       <EchoHeader current="echo" />
       <ScrollView contentContainerStyle={{ paddingTop: ECHO_TOP_PADDING }}>
-        <View style={s.content}>
-          <Pressable onPress={() => router.push('/echo')} style={s.backBtn}>
+        <View className="px-5 py-4 max-w-[600px] w-full self-center gap-4">
+          <Pressable onPress={() => router.push('/echo')} className="flex-row items-center gap-1.5 self-start bg-white/5 rounded-full px-3 py-1.5 border border-white/10 mb-1">
             <ArrowLeft size={14} color="#fff" />
-            <Text style={s.backText}>Back to ECHO</Text>
+            <Text className="text-white text-sm font-body-semibold">Back to ECHO</Text>
           </Pressable>
 
-          <LinearGradient colors={['rgba(124,58,237,0.30)', 'rgba(30,10,80,0.5)']} style={s.header}>
-            <View style={s.headerIcon}><ScanLine size={24} color="#C4B5FD" /></View>
-            <Text style={s.headerTitle}>Coupon Scanner</Text>
-            <Text style={s.headerSub}>Scan QR codes or enter coupon codes manually</Text>
+          <LinearGradient colors={['rgba(124,58,237,0.30)', 'rgba(30,10,80,0.5)']} className="rounded-2xl p-6 gap-2.5 items-center border border-violet">
+            <View className="w-[52px] h-[52px] rounded-full bg-violet/20 items-center justify-center"><ScanLine size={24} color="#C4B5FD" /></View>
+            <Text className="font-display-bold text-2xl text-white">Coupon Scanner</Text>
+            <Text className="text-sm text-muted font-body-semibold text-center">Scan QR codes or enter coupon codes manually</Text>
           </LinearGradient>
 
           {/* Mode selector */}
-          <View style={s.modeRow}>
-            <Pressable onPress={() => setCameraOpen(true)} style={s.modeBtn}>
+          <View className="flex-row gap-2.5">
+            <Pressable onPress={() => setCameraOpen(true)} className="flex-1 flex-row items-center justify-center gap-2 py-3.5 rounded-xl bg-violet/15 border border-violet/25">
               <Camera size={18} color="#A78BFA" />
-              <Text style={s.modeBtnText}>Scan with Camera</Text>
+              <Text className="font-body-bold text-base text-violet">Scan with Camera</Text>
             </Pressable>
-            <Pressable onPress={() => inputRef.current?.focus()} style={[s.modeBtn, { backgroundColor: 'rgba(255,255,255,0.04)' }]}>
+            <Pressable onPress={() => inputRef.current?.focus()} className="flex-1 flex-row items-center justify-center gap-2 py-3.5 rounded-xl bg-white/5 border border-violet/25">
               <Keyboard size={18} color="#94a3b8" />
-              <Text style={[s.modeBtnText, { color: '#94a3b8' }]}>Type Code</Text>
+              <Text className="font-body-bold text-base text-slate-400">Type Code</Text>
             </Pressable>
           </View>
 
           {/* Manual input */}
-          <View style={s.inputCard}>
+          <View className="flex-row gap-2.5 bg-white/5 rounded-xl border border-violet/20 p-3">
             <TextInput
               ref={inputRef}
               value={code}
@@ -295,56 +273,57 @@ export default function EchoScanPage() {
               placeholderTextColor="#475569"
               autoCapitalize="characters"
               onSubmitEditing={handleManualSubmit}
-              style={s.input}
+              className="flex-1 bg-white/5 rounded-lg border border-white/5 p-3.5 text-white font-body-bold text-base"
+              style={{ letterSpacing: 2, textTransform: 'uppercase' }}
             />
-            <Pressable onPress={handleManualSubmit} disabled={loading || !code.trim()} style={[s.scanBtn, (!code.trim() || loading) && { opacity: 0.5 }]}>
+            <Pressable onPress={handleManualSubmit} disabled={loading || !code.trim()} className="flex-row items-center gap-1.5 bg-violet rounded-xl px-5 py-3.5" style={(!code.trim() || loading) ? { opacity: 0.5 } : {}}>
               <ScanLine size={16} color="#fff" />
-              <Text style={s.scanBtnText}>{loading ? 'Scanning…' : 'Scan'}</Text>
+              <Text className="text-white font-body-bold text-base">{loading ? 'Scanning…' : 'Scan'}</Text>
             </Pressable>
           </View>
 
           {/* Stats bar */}
           {recent.length > 0 && (
-            <View style={s.statsBar}>
-              <View style={s.statItem}>
+            <View className="flex-row items-center gap-2 py-2 px-3.5 bg-white/5 rounded-xl">
+              <View className="flex-row items-center gap-1.5">
                 <Ticket size={14} color="#A78BFA" />
-                <Text style={s.statText}>{recent.length} scanned</Text>
+                <Text className="text-xs text-white/50 font-body-semibold">{recent.length} scanned</Text>
               </View>
-              <View style={[s.statDot, { backgroundColor: '#10B981' }]} />
-              <Text style={s.statText}>{usedCount} valid</Text>
-              <View style={[s.statDot, { backgroundColor: '#EF4444' }]} />
-              <Text style={s.statText}>{failedCount} failed</Text>
+              <View className="w-1.5 h-1.5 rounded-full bg-teal" />
+              <Text className="text-xs text-white/50 font-body-semibold">{usedCount} valid</Text>
+              <View className="w-1.5 h-1.5 rounded-full bg-rose" />
+              <Text className="text-xs text-white/50 font-body-semibold">{failedCount} failed</Text>
             </View>
           )}
 
           {/* Result */}
           {result && (
-            <View style={[s.resultCard, { borderColor: result.ok ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)' }]}>
-              <View style={[s.resultIcon, { backgroundColor: result.ok ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)' }]}>
+            <View className="bg-white/5 rounded-2xl border p-6 items-center gap-2.5" style={{ borderColor: result.ok ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)' }}>
+              <View className="items-center justify-center" style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: result.ok ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)' }}>
                 {result.ok ? <Check size={28} color="#10B981" /> : <X size={28} color="#EF4444" />}
               </View>
-              <Text style={[s.resultTitle, { color: result.ok ? '#34D399' : '#FCA5A5' }]}>
+              <Text className="font-display-bold text-lg" style={{ color: result.ok ? '#34D399' : '#FCA5A5' }}>
                 {result.ok
                   ? result.type === 'ticket'
                     ? result.status === 'checked_in' ? 'Already Checked In' : result.status === 'valid' ? 'Valid Ticket' : 'Valid Ticket'
                     : 'Valid Coupon'
                   : result.status === 'already_used' ? 'Already Used' : 'Invalid'}
               </Text>
-              <Text style={s.resultMsg}>{result.message}</Text>
+              <Text className="text-sm text-muted font-body-semibold text-center">{result.message}</Text>
               {result.coupon && (
-                <View style={s.resultDetails}>
-                  <Text style={s.resultDetail}>
+                <View className="mt-2 gap-1">
+                  <Text className="text-xs text-white/50 font-body-semibold text-center">
                     {result.type === 'ticket' ? 'Event' : 'Session'}: {result.coupon.session_name}
                   </Text>
-                  {result.coupon.session_day && <Text style={s.resultDetail}>Day: {result.coupon.session_day}</Text>}
-                  <Text style={s.resultDetail}>Attendee: {result.coupon.attendee_name || '—'}</Text>
-                  {result.coupon.attendee_email ? <Text style={s.resultDetail}>Email: {result.coupon.attendee_email}</Text> : null}
-                  <Text style={s.resultDetail}>Code: {result.coupon.code}</Text>
+                  {result.coupon.session_day && <Text className="text-xs text-white/50 font-body-semibold text-center">Day: {result.coupon.session_day}</Text>}
+                  <Text className="text-xs text-white/50 font-body-semibold text-center">Attendee: {result.coupon.attendee_name || '—'}</Text>
+                  {result.coupon.attendee_email ? <Text className="text-xs text-white/50 font-body-semibold text-center">Email: {result.coupon.attendee_email}</Text> : null}
+                  <Text className="text-xs text-white/50 font-body-semibold text-center">Code: {result.coupon.code}</Text>
                   {result.status === 'checked_in' && result.coupon.used_at && (
-                    <Text style={s.resultDetail}>Checked in: {result.coupon.used_at}</Text>
+                    <Text className="text-xs text-white/50 font-body-semibold text-center">Checked in: {result.coupon.used_at}</Text>
                   )}
                   {result.type === 'ticket' && result.status === 'unconfirmed' && (
-                    <Text style={s.resultDetail}>Payment pending — not eligible for check-in</Text>
+                    <Text className="text-xs text-white/50 font-body-semibold text-center">Payment pending — not eligible for check-in</Text>
                   )}
                 </View>
               )}
@@ -353,13 +332,13 @@ export default function EchoScanPage() {
 
           {/* Recent scans */}
           {recent.length > 0 && (
-            <View style={s.recentCard}>
-              <Text style={s.recentTitle}>Recent Scans ({recent.length})</Text>
+            <View className="bg-white/5 rounded-xl border border-white/5 p-4 gap-2">
+              <Text className="font-body-bold text-sm text-violet mb-1">Recent Scans ({recent.length})</Text>
               {recent.map((r, i) => (
-                <View key={i} style={[s.recentRow, { borderLeftColor: r.ok ? '#10B981' : '#EF4444' }]}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={s.recentCode}>{r.scannedCode} — {r.coupon?.session_name || '?'}</Text>
-                    <Text style={s.recentInfo}>{r.coupon?.attendee_name || '—'} • {r.time}</Text>
+                <View key={i} className="flex-row items-center gap-2.5 py-2 border-b border-white/5 border-l-[3px] pl-2.5" style={{ borderLeftColor: r.ok ? '#10B981' : '#EF4444' }}>
+                  <View className="flex-1">
+                    <Text className="font-body-bold text-xs text-white">{r.scannedCode} — {r.coupon?.session_name || '?'}</Text>
+                    <Text className="text-xs text-white/40 font-body-semibold mt-0.5">{r.coupon?.attendee_name || '—'} • {r.time}</Text>
                   </View>
                   {r.ok ? <Check size={14} color="#10B981" /> : <X size={14} color="#EF4444" />}
                 </View>
@@ -377,65 +356,3 @@ export default function EchoScanPage() {
     </View>
   );
 }
-
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0a0f1e' },
-  content: { padding: 20, maxWidth: 600, width: '100%', alignSelf: 'center', gap: 16 },
-  backBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 20,
-    paddingHorizontal: 12, paddingVertical: 7, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
-    marginBottom: 4,
-  },
-  backText: { color: '#fff', fontFamily: 'DMSans_500Medium', fontSize: 13 },
-  header: { borderRadius: 18, padding: 24, gap: 10, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)' },
-  headerIcon: { width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(124,58,237,0.2)', alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { fontFamily: 'DMSans_800ExtraBold', fontSize: 22, color: '#fff' },
-  headerSub: { fontFamily: 'DMSans_500Medium', fontSize: 13, color: 'rgba(255,255,255,0.6)', textAlign: 'center' },
-  modeRow: { flexDirection: 'row', gap: 10 },
-  modeBtn: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    paddingVertical: 14, borderRadius: 12, backgroundColor: 'rgba(124,58,237,0.15)',
-    borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)',
-  },
-  modeBtnText: { fontFamily: 'DMSans_700Bold', fontSize: 14, color: '#C4B5FD' },
-  inputCard: {
-    flexDirection: 'row', gap: 10, backgroundColor: 'rgba(255,255,255,0.04)',
-    borderRadius: 14, borderWidth: 1, borderColor: 'rgba(167,139,250,0.2)', padding: 12,
-  },
-  input: {
-    flex: 1, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 10,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 14,
-    color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 16, letterSpacing: 2,
-    textTransform: 'uppercase',
-  },
-  scanBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#7C3AED',
-    borderRadius: 12, paddingHorizontal: 20, paddingVertical: 14,
-  },
-  scanBtnText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 14 },
-  statsBar: {
-    flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8,
-    paddingHorizontal: 14, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 10,
-  },
-  statItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  statDot: { width: 6, height: 6, borderRadius: 3 },
-  statText: { fontFamily: 'DMSans_500Medium', fontSize: 12, color: 'rgba(255,255,255,0.5)' },
-  resultCard: {
-    backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 16, borderWidth: 1,
-    padding: 24, alignItems: 'center', gap: 10,
-  },
-  resultIcon: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
-  resultTitle: { fontFamily: 'DMSans_800ExtraBold', fontSize: 18 },
-  resultMsg: { fontFamily: 'DMSans_500Medium', fontSize: 13, color: 'rgba(255,255,255,0.6)', textAlign: 'center' },
-  resultDetails: { marginTop: 8, gap: 4 },
-  resultDetail: { fontFamily: 'DMSans_500Medium', fontSize: 12, color: 'rgba(255,255,255,0.5)', textAlign: 'center' },
-  recentCard: { backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 16, gap: 8 },
-  recentTitle: { fontFamily: 'DMSans_700Bold', fontSize: 13, color: '#A78BFA', marginBottom: 4 },
-  recentRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8,
-    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)', borderLeftWidth: 3, paddingLeft: 10,
-  },
-  recentCode: { fontFamily: 'DMSans_700Bold', fontSize: 12, color: '#fff' },
-  recentInfo: { fontFamily: 'DMSans_500Medium', fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2 },
-});

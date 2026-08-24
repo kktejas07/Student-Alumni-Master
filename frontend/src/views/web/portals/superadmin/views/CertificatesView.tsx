@@ -27,26 +27,27 @@ import {
   GRAD, GradientButton, Card, IconBox, SectionLabel,
   TopTabs, Toast, useToast,
 } from '../applekit';
-import { request, resolveImageUrl } from '@/src/models/services/api';
 import { useConfirm } from '@/src/views/components';
 import * as Linking from 'expo-linking';
 import { useSubTab } from '@/src/views/web/portals/portalUrl';
+import { EchoCertificateStudio } from './EchoCertificateStudio';
 
-type TabId = 'issue' | 'bulk' | 'external' | 'verify' | 'files' | 'registry';
+type TabId = 'templates' | 'issue' | 'bulk' | 'external' | 'verify' | 'files' | 'registry';
 
-const TAB_IDS: TabId[] = ['registry', 'issue', 'bulk', 'files', 'external', 'verify'];
+const TAB_IDS: TabId[] = ['templates', 'registry', 'issue', 'bulk', 'files', 'external', 'verify'];
 
 export function CertificatesView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
-  const [tab, setTab] = useSubTab<TabId>(TAB_IDS, 'registry', { sub, onSub });
+  const [tab, setTab] = useSubTab<TabId>(TAB_IDS, 'templates', { sub, onSub });
   const { toast, flash, hide } = useToast();
 
   const tabs = [
-    { id: 'registry', label: 'Registry',  icon: FolderOpen },
-    { id: 'issue',    label: 'Issue',     icon: Award },
-    { id: 'bulk',     label: 'Bulk Issue', icon: Upload },
-    { id: 'files',    label: 'Files',     icon: FileUp },
-    { id: 'external', label: 'External',  icon: ExternalLink },
-    { id: 'verify',   label: 'Verify',    icon: ShieldCheck },
+    { id: 'templates', label: 'ECHO & AXISS Studio', icon: Sparkles },
+    { id: 'registry',  label: 'Registry',           icon: FolderOpen },
+    { id: 'issue',     label: 'Issue',              icon: Award },
+    { id: 'bulk',      label: 'Bulk Issue',         icon: Upload },
+    { id: 'files',     label: 'Files',              icon: FileUp },
+    { id: 'external',  label: 'External',           icon: ExternalLink },
+    { id: 'verify',    label: 'Verify',             icon: ShieldCheck },
   ] as const;
 
   return (
@@ -56,13 +57,9 @@ export function CertificatesView({ sub, onSub }: { sub?: string; onSub?: (s: str
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <IconBox size={38}><Award size={18} color={GRAD.to} /></IconBox>
             <View>
-              <Text style={s.title}>Certificates</Text>
+              <Text style={s.title}>Certificates & Generation Studio</Text>
               <Text style={s.sub}>
-                Issue verifiable certificates (Coursera-style SA codes), upload certificate
-                files (PNG/JPEG/WEBP/PDF), store third-party credentials with issuer
-                classification, and confirm any certificate from the public
-                /certificates/verify page. The Registry tab lists every certificate
-                stored in the system.
+                Select event series (ECHO 2026, AXISS Group, StudentAlumni), customize 15 high-fidelity layout templates, print A4 landscape PDFs, and issue verifiable certificates online.
               </Text>
             </View>
           </View>
@@ -71,12 +68,13 @@ export function CertificatesView({ sub, onSub }: { sub?: string; onSub?: (s: str
 
       <TopTabs<TabId> tabs={tabs as any} active={tab} onChange={setTab} />
 
-      {tab === 'registry' && <RegistryTab onSaved={flash} />}
-      {tab === 'issue'    && <IssueTab onSaved={flash} />}
-      {tab === 'bulk'     && <BulkTab onSaved={flash} />}
-      {tab === 'files'    && <FilesTab onSaved={flash} />}
-      {tab === 'external' && <ExternalTab onSaved={flash} />}
-      {tab === 'verify'   && <VerifyTab onSaved={flash} />}
+      {tab === 'templates' && <EchoCertificateStudio onSaved={flash} />}
+      {tab === 'registry'  && <RegistryTab onSaved={flash} />}
+      {tab === 'issue'     && <IssueTab onSaved={flash} />}
+      {tab === 'bulk'      && <BulkTab onSaved={flash} />}
+      {tab === 'files'     && <FilesTab onSaved={flash} />}
+      {tab === 'external'  && <ExternalTab onSaved={flash} />}
+      {tab === 'verify'    && <VerifyTab onSaved={flash} />}
 
       <Toast text={toast.text} visible={toast.visible} kind={toast.kind} onDismiss={hide} />
     </View>

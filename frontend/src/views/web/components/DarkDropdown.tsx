@@ -7,7 +7,7 @@
 import * as React from 'react';
 import { useState } from 'react';
 import {
-  View, Text, StyleSheet, Pressable, Modal, ScrollView, Platform,
+  View, Text, Pressable, Modal, ScrollView, Platform,
 } from 'react-native';
 import { ChevronDown, Check } from 'lucide-react-native';
 import { PALETTE, FONTS, TYPO } from '../portals/student/tokens';
@@ -114,7 +114,7 @@ export function DarkDropdown({
   );
 }
 
-const s = StyleSheet.create({
+const s = {
   wrap: { marginBottom: 4, flex: 1 },
   label: { color: '#94a3b8', fontFamily: FONTS.semi, fontSize: 11, marginTop: 6, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
   trigger: {
@@ -156,4 +156,4 @@ const s = StyleSheet.create({
   optionRowSelected: { backgroundColor: 'rgba(124,58,237,0.18)' },
   optionText: { color: PALETTE.muted, fontFamily: FONTS.med, fontSize: 13.5, flex: 1 },
   optionTextSelected: { color: '#fff', fontFamily: TYPO.display700 },
-});
+} as const;

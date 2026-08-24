@@ -9,13 +9,13 @@ import { NETWORK_HERO, NETWORK_SECTIONS } from '@/src/views/web/ExploreData';
 
 export default function NetworkTab() {
   return (
-    <View style={styles.shell}>
+    <View className="flex-1 bg-navy">
       <LinearGradient
         colors={['#1A0438', '#2D0760']}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
-      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+      <SafeAreaView className="flex-1" edges={['top']}>
         <ExploreScreen
           pageTitle="Network"
           pageSubtitle="Mentors, alumni, peers, events — your circle of growth."
@@ -28,6 +28,4 @@ export default function NetworkTab() {
   );
 }
 
-const styles = StyleSheet.create({
-  shell: { flex: 1, backgroundColor: '#1A0438' },
-});
+
