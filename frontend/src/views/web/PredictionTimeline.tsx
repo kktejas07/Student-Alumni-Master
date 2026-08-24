@@ -42,7 +42,7 @@ export function PredictionTimeline({ data }: { data?: any }) {
   const areaD = `${pathD} L 440 145 L 40 145 Z`;
 
   return (
-    <View className="bg-bg2 border border-glass-border rounded-xl p-4 gap-4" style={{ boxShadow: Platform.OS === 'web' ? '0 4px 20px rgba(0,0,0,0.35)' } as any}>
+    <View className="bg-bg2 border border-glass-border rounded-xl p-4 gap-4">
       <View style={{ marginBottom: 4 }}>
         <Text className="text-xs font-body-bold tracking-widest uppercase" style={{ color: 'rgba(238,240,255,0.45)' }}>CAREER GROWTH PREDICTION</Text>
       </View>

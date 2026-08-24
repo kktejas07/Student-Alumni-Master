@@ -4,7 +4,7 @@ import {
   View,
   Text,
   Pressable,
-  StyleSheet,
+  ,
   Platform,
   ScrollView,
   Image,
@@ -129,7 +129,7 @@ export default function VerifyScreen() {
 
   if (loading) {
     return (
-      <View style={styles.outerWrap}>
+      <View className="flex-1 relative" style={{  backgroundColor: '#05060F'  }}>
         <EchoHeader />
         <SAModernLoader subtitle="VERIFYING CRYPTOGRAPHIC REGISTRY" />
         <EchoFooter />
@@ -139,17 +139,17 @@ export default function VerifyScreen() {
 
   if (error) {
     return (
-      <View style={styles.outerWrap}>
+      <View className="flex-1 relative" style={{  backgroundColor: '#05060F'  }}>
         <EchoHeader />
-        <View style={styles.centerWrap}>
-          <View style={styles.errorIconCircle}>
+        <View className="flex-1 items-center justify-center p-6" style={{  backgroundColor: '#05060F', paddingTop: ECHO_TOP_PADDING + 40  }}>
+          <View className="rounded-2xl" style={{  width: 72, height: 72, backgroundColor: 'rgba(239, 68, 68, 0.12)'  }}>
             <AlertCircle size={48} color="#EF4444" />
           </View>
-          <Text style={styles.errorTitle}>{error}</Text>
-          <Text style={styles.errorSub}>The credential with ID "{id}" could not be verified in the registry.</Text>
-          <Pressable onPress={() => router.push('/verify')} style={styles.backBtn}>
+          <Text className="font-body-bold text-center" style={{  color: '#EF4444', fontSize: 20  }}>{error}</Text>
+          <Text className="text-center mb-6" style={{  color: '#9AA0B4', fontSize: 14, maxWidth: 480, lineHeight: 20, marginTop: 6  }}>The credential with ID "{id}" could not be verified in the registry.</Text>
+          <Pressable onPress={() => router.push('/verify')} className="flex-row items-center gap-2 py-3 rounded-xl border" style={{  backgroundColor: '#0C0E1B', paddingHorizontal: 18, borderColor: '#2A2A55'  }}>
             <ChevronLeft size={16} color="#ffffff" />
-            <Text style={styles.backBtnText}>Return to Verification Portal</Text>
+            <Text className="font-body-bold" style={{  color: '#ffffff', fontSize: 13.5  }}>Return to Verification Portal</Text>
           </Pressable>
         </View>
         <EchoFooter />
@@ -161,7 +161,7 @@ export default function VerifyScreen() {
   if (certResult?.certificate) {
     const c = certResult.certificate;
     return (
-      <View style={styles.outerWrap}>
+      <View className="flex-1 relative" style={{  backgroundColor: '#05060F'  }}>
         {Platform.OS === 'web' && (
           <style
             dangerouslySetInnerHTML={{
@@ -174,59 +174,59 @@ export default function VerifyScreen() {
             }}
           />
         )}
-        <View style={styles.ambientGlowTop} />
+        <View className="absolute rounded-2xl" style={{  top: 0, left: '50%', transform: [{ translateX: -400 }], width: 800, height: 500, backgroundColor: 'rgba(91, 79, 233, 0.14)'  }} />
         <SAWatermark opacity={0.09} rotation="0deg" top={110} right={24} size={520} />
         <EchoHeader />
 
-        <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-          <View style={styles.container}>
-            <Animated.View entering={FadeIn.duration(300)} style={styles.wrapper}>
+        <ScrollView className="flex-1" style={{  backgroundColor: '#05060F'  }} contentContainerStyle={styles.scrollContent}>
+          <View className="items-center" style={{  paddingTop: ECHO_TOP_PADDING + 10, paddingBottom: 70, paddingHorizontal: Platform.OS === 'web' ? 24 : 16, width: '100%'  }}>
+            <Animated.View entering={FadeIn.duration(300)} className="" style={{  width: '100%', maxWidth: 1240  }}>
 
               {/* Navigation row */}
-              <View style={styles.headerRow}>
-                <Pressable onPress={() => router.push('/verify')} style={styles.backArrow}>
+              <View className="" style={{  marginBottom: 18  }}>
+                <Pressable onPress={() => router.push('/verify')} className="flex-row items-center gap-1.5" style={{  alignSelf: 'flex-start', backgroundColor: 'rgba(91, 79, 233, 0.1)'  }}>
                   <ChevronLeft size={18} color="#8B84FF" />
-                  <Text style={styles.backArrowText}>Search Registry</Text>
+                  <Text className="font-body-bold" style={{  color: '#8B84FF', fontSize: 12.5  }}>Search Registry</Text>
                 </Pressable>
               </View>
 
               {/* Verified Result Card */}
-              <View style={styles.resultCard}>
+              <View className="rounded-2xl border gap-5.5" style={{  backgroundColor: '#0C0E1B', borderColor: '#1B1E33', padding: Platform.OS === 'web' ? 28 : 18  }}>
 
                 {/* Status Bar */}
-                <View style={styles.verifiedHeader}>
-                  <View style={styles.statusBadge}>
+                <View className="flex-row items-center justify-between flex-wrap gap-3" style={{  borderBottomWidth: 1, borderBottomColor: '#171A2C', paddingBottom: 18  }}>
+                  <View className="flex-row items-center gap-2" style={{  backgroundColor: 'rgba(16, 185, 129, 0.12)'  }}>
                     <CheckCircle2 size={16} color="#10B981" />
-                    <Text style={styles.statusBadgeText}>OFFICIALLY VERIFIED & VALID</Text>
+                    <Text className="font-body-bold" style={{  color: '#10B981', fontSize: 13, letterSpacing: 0.5  }}>OFFICIALLY VERIFIED & VALID</Text>
                   </View>
 
-                  <View style={styles.uniqueIdPill}>
+                  <View className="flex-row items-center gap-1.5" style={{  backgroundColor: 'rgba(91, 79, 233, 0.12)'  }}>
                     <Hash size={13} color="#8B84FF" />
-                    <Text style={styles.uniqueIdPillText}>ID: {c.id || c.certificate_id || id}</Text>
+                    <Text className="font-body-bold" style={{  color: '#8B84FF', fontSize: 13.5, fontFamily: Platform.OS === 'web' ? 'Manrope  }}>ID: {c.id || c.certificate_id || id}</Text>
                   </View>
                 </View>
 
                 {/* Certificate Image */}
                 {c.image_url && (
-                  <View style={styles.imageWrapper}>
-                    <Pressable onPress={() => setShowImageZoom(true)} style={styles.imagePressable}>
+                  <View className="rounded-2xl overflow-hidden border p-3.5 items-center" style={{  backgroundColor: '#070A1A', borderColor: '#1B1E33'  }}>
+                    <Pressable onPress={() => setShowImageZoom(true)} className="relative items-center" style={{  width: '100%'  }}>
                       <Image
                         source={{ uri: c.image_url.startsWith('http') ? c.image_url : `${API_BASE}${c.image_url}` }}
-                        style={styles.certImage}
+                        className="rounded-xl" style={{  width: '100%', height: Platform.OS === 'web' ? 520 : 250  }}
                         resizeMode="contain"
                       />
-                      <View style={styles.zoomHint}>
+                      <View className="absolute flex-row items-center gap-1.5" style={{  bottom: 14, right: 14, backgroundColor: 'rgba(0,0,0,0.75)'  }}>
                         <Search size={12} color="#fff" />
-                        <Text style={styles.zoomHintText}>Click to zoom</Text>
+                        <Text className="font-body-semibold" style={{  color: '#fff', fontSize: 11.5  }}>Click to zoom</Text>
                       </View>
                     </Pressable>
                   </View>
                 )}
 
                 {/* Metadata Card */}
-                <View style={styles.metaCard}>
-                  <Text style={styles.metaCardTitle}>Credential Verification Details</Text>
-                  <View style={styles.metaGrid}>
+                <View className="rounded-2xl p-6 border gap-4" style={{  backgroundColor: '#0A0C18', borderColor: '#171A2C'  }}>
+                  <Text className="font-body-bold uppercase" style={{  color: '#8B84FF', fontSize: 12.5, letterSpacing: 1.2, marginBottom: 4  }}>Credential Verification Details</Text>
+                  <View className="flex-row flex-wrap gap-3.5">
                     <MetaItem label="Recipient Name" value={c.recipient_name} icon={User} />
                     <MetaItem label="Certificate ID" value={c.id || c.certificate_id || id} icon={Hash} />
                     {c.roll_number && <MetaItem label="Roll Number" value={c.roll_number} icon={Award} />}
@@ -237,42 +237,42 @@ export default function VerifyScreen() {
 
                   {/* Hash Signature */}
                   {c.verification_hash && (
-                    <View style={styles.hashBox}>
-                      <View style={styles.hashHeader}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <View className="mt-2 p-4 rounded-2xl border" style={{  backgroundColor: '#05060F', borderColor: '#1B1E33'  }}>
+                      <View className="flex-row items-center justify-between mb-2.5">
+                        <View style={{  flexDirection: 'row', alignItems: 'center', gap: 6  }}>
                           <Lock size={12} color="#10B981" />
-                          <Text style={styles.hashLabel}>Cryptographic SHA-256 Signature</Text>
+                          <Text className="font-body-bold" style={{  color: '#10B981', fontSize: 12.5, letterSpacing: 0.2  }}>Cryptographic SHA-256 Signature</Text>
                         </View>
-                        <Pressable onPress={() => copyToClipboard(c.verification_hash)} style={styles.copyBtn}>
+                        <Pressable onPress={() => copyToClipboard(c.verification_hash)} className="flex-row items-center gap-1.5" style={{  backgroundColor: 'rgba(91, 79, 233, 0.12)'  }}>
                           {copiedHash ? <Check size={12} color="#10B981" /> : <Copy size={12} color="#8B84FF" />}
                           <Text style={[styles.copyBtnText, copiedHash && { color: '#10B981' }]}>
                             {copiedHash ? 'Copied' : 'Copy Hash'}
                           </Text>
                         </Pressable>
                       </View>
-                      <Text style={styles.hashValue}>{c.verification_hash}</Text>
+                      <Text className="font-body-semibold" style={{  color: '#10B981', fontSize: 13.5, fontFamily: Platform.OS === 'web' ? 'Manrope, letterSpacing: 0.5  }}>{c.verification_hash}</Text>
                     </View>
                   )}
                 </View>
 
                 {/* Action Buttons */}
-                <View style={styles.actionsGrid}>
+                <View className="flex-row gap-3.5">
                   {c.image_url && (
                     <Pressable
                       onPress={() => downloadCert(c.image_url, c.recipient_name)}
-                      style={styles.primaryActionBtn}
+                      className="flex-1 flex-row items-center justify-center gap-2 rounded-2xl" style={{  backgroundColor: '#5B4FE9', height: 52  }}
                     >
                       <Download size={16} color="#ffffff" />
-                      <Text style={styles.primaryActionBtnText}>Download High-Resolution Certificate</Text>
+                      <Text className="font-body-bold" style={{  color: '#ffffff', fontSize: 14.5  }}>Download High-Resolution Certificate</Text>
                     </Pressable>
                   )}
 
                   <Pressable
                     onPress={() => downloadBGVReport(c)}
-                    style={styles.secondaryActionBtn}
+                    className="flex-1 flex-row items-center justify-center gap-2" style={{  backgroundColor: 'rgba(91, 79, 233, 0.1)'  }}
                   >
                     <FileCheck size={16} color="#8B84FF" />
-                    <Text style={styles.secondaryActionBtnText}>Download BGV Verification Record</Text>
+                    <Text className="font-body-bold" style={{  color: '#8B84FF', fontSize: 14.5  }}>Download BGV Verification Record</Text>
                   </Pressable>
                 </View>
 
@@ -286,14 +286,14 @@ export default function VerifyScreen() {
 
         {/* Zoom Modal */}
         <Modal visible={showImageZoom} transparent animationType="fade" onRequestClose={() => setShowImageZoom(false)}>
-          <View style={styles.modalOverlay}>
-            <Pressable onPress={() => setShowImageZoom(false)} style={styles.modalCloseBtn}>
+          <View className="flex-1" style={{  backgroundColor: 'rgba(5, 6, 15, 0.88)'  }}>
+            <Pressable onPress={() => setShowImageZoom(false)} className="absolute p-2 z-[100]" style={{  top: 24, right: 24  }}>
               <X size={24} color="#ffffff" />
             </Pressable>
             {c?.image_url && (
               <Image
                 source={{ uri: c.image_url.startsWith('http') ? c.image_url : `${API_BASE}${c.image_url}` }}
-                style={styles.zoomedImage}
+                className="" style={{  width: '92%', height: '84%'  }}
                 resizeMode="contain"
               />
             )}
@@ -308,7 +308,7 @@ export default function VerifyScreen() {
   const role = (data.role || '').toLowerCase();
 
   return (
-    <View style={styles.outerWrap}>
+    <View className="flex-1 relative" style={{  backgroundColor: '#05060F'  }}>
       {Platform.OS === 'web' && (
         <style
           dangerouslySetInnerHTML={{
@@ -321,328 +321,44 @@ export default function VerifyScreen() {
           }}
         />
       )}
-      <View style={styles.ambientGlowTop} />
+      <View className="absolute rounded-2xl" style={{  top: 0, left: '50%', transform: [{ translateX: -400 }], width: 800, height: 500, backgroundColor: 'rgba(91, 79, 233, 0.14)'  }} />
       <EchoHeader />
 
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-        <View style={styles.container}>
-          <Animated.View entering={FadeIn.duration(300)} style={styles.wrapper}>
+      <ScrollView className="flex-1" style={{  backgroundColor: '#05060F'  }} contentContainerStyle={styles.scrollContent}>
+        <View className="items-center" style={{  paddingTop: ECHO_TOP_PADDING + 10, paddingBottom: 70, paddingHorizontal: Platform.OS === 'web' ? 24 : 16, width: '100%'  }}>
+          <Animated.View entering={FadeIn.duration(300)} className="" style={{  width: '100%', maxWidth: 1240  }}>
 
             {/* Header */}
-            <View style={styles.headerRow}>
-              <Pressable onPress={() => router.push('/verify')} style={styles.backArrow}>
+            <View className="" style={{  marginBottom: 18  }}>
+              <Pressable onPress={() => router.push('/verify')} className="flex-row items-center gap-1.5" style={{  alignSelf: 'flex-start', backgroundColor: 'rgba(91, 79, 233, 0.1)'  }}>
                 <ChevronLeft size={18} color="#8B84FF" />
-                <Text style={styles.backArrowText}>Search Registry</Text>
+                <Text className="font-body-bold" style={{  color: '#8B84FF', fontSize: 12.5  }}>Search Registry</Text>
               </Pressable>
             </View>
 
             {/* Result Card */}
-            <View style={styles.resultCard}>
+            <View className="rounded-2xl border gap-5.5" style={{  backgroundColor: '#0C0E1B', borderColor: '#1B1E33', padding: Platform.OS === 'web' ? 28 : 18  }}>
 
               {/* Status Header */}
-              <View style={styles.verifiedHeader}>
-                <View style={styles.statusBadge}>
+              <View className="flex-row items-center justify-between flex-wrap gap-3" style={{  borderBottomWidth: 1, borderBottomColor: '#171A2C', paddingBottom: 18  }}>
+                <View className="flex-row items-center gap-2" style={{  backgroundColor: 'rgba(16, 185, 129, 0.12)'  }}>
                   <CheckCircle2 size={16} color="#10B981" />
-                  <Text style={styles.statusBadgeText}>VERIFIED ACTIVE MEMBER</Text>
+                  <Text className="font-body-bold" style={{  color: '#10B981', fontSize: 13, letterSpacing: 0.5  }}>VERIFIED ACTIVE MEMBER</Text>
                 </View>
 
-                <View style={styles.uniqueIdPill}>
+                <View className="flex-row items-center gap-1.5" style={{  backgroundColor: 'rgba(91, 79, 233, 0.12)'  }}>
                   <Hash size={13} color="#8B84FF" />
-                  <Text style={styles.uniqueIdPillText}>SA ID: {data.id || id}</Text>
+                  <Text className="font-body-bold" style={{  color: '#8B84FF', fontSize: 13.5, fontFamily: Platform.OS === 'web' ? 'Manrope  }}>SA ID: {data.id || id}</Text>
                 </View>
               </View>
 
               {/* Digital Member Card */}
-              <View style={styles.idCardShell}>
+              <View className="rounded-2xl overflow-hidden border" style={{  borderColor: '#2A2A55'  }}>
                 <LinearGradient
                   colors={['#171A2C', '#0C0E1B']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
-                  style={styles.idCardInner}
-                >
-                  <View style={styles.idCardHeader}>
-                    <View style={styles.idCardLogoRow}>
-                      <View style={styles.idCardLogoBadge}>
-                        <ShieldCheck size={16} color="#8B84FF" />
-                      </View>
-                      <Text style={styles.idCardBrand}>Student Alumni</Text>
-                    </View>
-                    <View style={styles.idRolePill}>
-                      <Text style={styles.idRoleText}>{data.role_label || (data.role || '').toUpperCase()}</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.idCardBody}>
-                    <View style={styles.idAvatarWrap}>
-                      {data.photo ? (
-                        <Image source={{ uri: data.photo }} style={styles.idAvatar} />
-                      ) : (
-                        <User size={32} color="#8B84FF" />
-                      )}
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.idMemberName}>{data.full_name}</Text>
-                      <Text style={styles.idMemberOrg}>{data.org || data.institution || 'Student Alumni Platform'}</Text>
-                      <Text style={styles.idMemberId}>ID: {data.id}</Text>
-                    </View>
-                  </View>
-                </LinearGradient>
-              </View>
-
-              {/* Details Section */}
-              <View style={styles.metaCard}>
-                <Text style={styles.metaCardTitle}>Member Profile Details</Text>
-                <View style={styles.metaGrid}>
-                  <MetaItem icon={User} label="Full Name" value={data.full_name} />
-                  <MetaItem icon={Hash} label="Member SA ID" value={data.id} />
-                  <MetaItem icon={Award} label="Role" value={data.role_label || data.role} />
-                  <MetaItem icon={Building2} label="Organization / Campus" value={data.org || data.institution} />
-                  {role === 'student' && (
-                    <>
-                      {data.branch && <MetaItem icon={BookOpen} label="Branch" value={data.branch} />}
-                      {data.batch && <MetaItem icon={Calendar} label="Batch" value={data.batch} />}
-                      {(data.city || data.state) && (
-                        <MetaItem
-                          icon={Building2}
-                          label="Location"
-                          value={[data.city, data.state].filter(Boolean).join(', ')}
-                        />
-                      )}
-                    </>
-                  )}
-                  {data.issued_at && (
-                    <MetaItem
-                      icon={Calendar}
-                      label="Issued Date"
-                      value={new Date(data.issued_at).toLocaleDateString()}
-                    />
-                  )}
-                </View>
-              </View>
-
-              {/* Actions */}
-              <View style={styles.actionsGrid}>
-                <Pressable
-                  onPress={() => downloadBGVReport(data)}
-                  style={styles.primaryActionBtn}
-                >
-                  <FileCheck size={16} color="#ffffff" />
-                  <Text style={styles.primaryActionBtnText}>Download Complete BGV Profile Report</Text>
-                </Pressable>
-              </View>
-
-            </View>
-
-          </Animated.View>
-        </View>
-
-        <EchoFooter />
-      </ScrollView>
-    </View>
-  );
-}
-
-function MetaItem({ label, value, icon: Icon }: { label: string; value?: string; icon: any }) {
-  if (!value) return null;
-  return (
-    <View style={styles.metaItem}>
-      <View style={styles.metaIconWrap}>
-        <Icon size={14} color="#8B84FF" />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.metaItemLabel}>{label}</Text>
-        <Text style={styles.metaItemValue}>{value}</Text>
-      </View>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  outerWrap: {
-    flex: 1,
-    backgroundColor: '#05060F',
-    position: 'relative',
-  },
-  ambientGlowTop: {
-    position: 'absolute',
-    top: 0,
-    left: '50%',
-    transform: [{ translateX: -400 }],
-    width: 800,
-    height: 500,
-    borderRadius: 400,
-    backgroundColor: 'rgba(91, 79, 233, 0.14)',
-    pointerEvents: 'none',
-  },
-  scroll: {
-    flex: 1,
-    backgroundColor: '#05060F',
-  },
-  scrollContent: {
-    flexGrow: 1,
-    backgroundColor: '#05060F',
-  },
-  container: {
-    paddingTop: ECHO_TOP_PADDING + 10,
-    paddingBottom: 70,
-    paddingHorizontal: Platform.OS === 'web' ? 24 : 16,
-    width: '100%',
-    alignItems: 'center',
-  },
-  wrapper: {
-    width: '100%',
-    maxWidth: 1240,
-  },
-  centerWrap: {
-    flex: 1,
-    backgroundColor: '#05060F',
-    paddingTop: ECHO_TOP_PADDING + 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  loadingText: {
-    color: '#9AA0B4',
-    fontSize: 14.5,
-    marginTop: 14,
-    fontFamily: Platform.OS === 'web' ? 'Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
-  },
-  errorIconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
-  },
-  errorTitle: {
-    color: '#EF4444',
-    fontSize: 20,
-    fontWeight: '800',
-    textAlign: 'center',
-  },
-  errorSub: {
-    color: '#9AA0B4',
-    fontSize: 14,
-    textAlign: 'center',
-    maxWidth: 480,
-    lineHeight: 20,
-    marginTop: 6,
-    marginBottom: 24,
-  },
-  backBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#0C0E1B',
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#2A2A55',
-  },
-  backBtnText: {
-    color: '#ffffff',
-    fontSize: 13.5,
-    fontWeight: '700',
-  },
-  headerRow: {
-    marginBottom: 18,
-  },
-  backArrow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(91, 79, 233, 0.1)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(139, 132, 255, 0.25)',
-  },
-  backArrowText: {
-    color: '#8B84FF',
-    fontSize: 12.5,
-    fontWeight: '700',
-  },
-  resultCard: {
-    backgroundColor: '#0C0E1B',
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: '#1B1E33',
-    padding: Platform.OS === 'web' ? 28 : 18,
-    gap: 22,
-  },
-  verifiedHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
-    gap: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#171A2C',
-    paddingBottom: 18,
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    paddingHorizontal: 16,
-    paddingVertical: 7,
-    borderRadius: 100,
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
-  },
-  statusBadgeText: {
-    color: '#10B981',
-    fontSize: 13,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  uniqueIdPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(91, 79, 233, 0.12)',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(139, 132, 255, 0.25)',
-  },
-  uniqueIdPillText: {
-    color: '#8B84FF',
-    fontSize: 13.5,
-    fontWeight: '700',
-    fontFamily: Platform.OS === 'web' ? 'Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : undefined,
-  },
-  imageWrapper: {
-    backgroundColor: '#070A1A',
-    borderRadius: 18,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#1B1E33',
-    padding: 14,
-    alignItems: 'center',
-  },
-  imagePressable: {
-    width: '100%',
-    position: 'relative',
-    alignItems: 'center',
-  },
-  certImage: {
-    width: '100%',
-    height: Platform.OS === 'web' ? 520 : 250,
-    borderRadius: 12,
-  },
-  zoomHint: {
-    position: 'absolute',
-    bottom: 14,
+                  className="" s 14,
     right: 14,
     flexDirection: 'row',
     alignItems: 'center',

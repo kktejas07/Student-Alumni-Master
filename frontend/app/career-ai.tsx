@@ -18,10 +18,7 @@
 import React, {
   useCallback, useEffect, useMemo, useState,
 } from 'react';
-import {
-  ActivityIndicator, Modal, Platform, Pressable, ScrollView,
-  StyleSheet, Text, useWindowDimensions, View,
-} from 'react-native';
+import {ActivityIndicator, Modal, Platform, Pressable, ScrollView, Text, useWindowDimensions, View} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { LogBox } from 'react-native';
 LogBox.ignoreAllLogs();
@@ -118,6 +115,24 @@ interface RoadmapResp {
 /* ═══════════════════════════════════════════════════════════
    Main Page Component
 ═══════════════════════════════════════════════════════════ */
+
+const styles = {
+  embeddedShell: { embeddedShell: '{', flex: 1, backgroundColor: 'transparent', gap: 'SPACING.xxl', paddingBottom: 60 },
+  shell: { shell: '{', flex: 1, backgroundColor: 'C.bg' },
+  contentContainer: { contentContainer: '{', paddingVertical: 'SPACING.xxl', paddingHorizontal: 'SPACING.xl', paddingBottom: 80, gap: 'SPACING.xxl', maxWidth: 1280, width: '100%' as any, alignSelf: 'center' as any },
+  regenBtn: { regenBtn: '{', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 'RADIUS.btn', borderWidth: 1, borderColor: 'rgba(129', backgroundColor: 'rgba(129' },
+  regenBtnHover: { regenBtnHover: '{', backgroundColor: 'rgba(129' },
+  reportBtn: { reportBtn: '{', flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 'RADIUS.btn', backgroundColor: 'C.purple2' },
+  reportBtnHover: { reportBtnHover: '{', backgroundColor: '#6366F1' },
+  heroLeftCol: { heroLeftCol: '{', flex: 3, gap: 'SPACING.xl' },
+  heroChipVal: { heroChipVal: '{', color: 'C.purpleXL', fontFamily: 'FT.bold' },
+  heroProgressFill: { heroProgressFill: '{', height: '100%', backgroundColor: 'C.purpleL', borderRadius: 3 },
+  continueBtn: { continueBtn: '{', backgroundColor: 'C.purple2', borderRadius: 'RADIUS.btn', paddingVertical: 8, paddingHorizontal: 14, marginTop: 8 },
+  continueBtnHover: { continueBtnHover: '{', backgroundColor: '#6366F1' },
+  twoColRow: { twoColRow: '{', flexDirection: 'Platform.OS === 'web' ? ('row' as any) : 'column'', gap: 'SPACING.xxl', alignItems: 'stretch' },
+  recruiterFill: { recruiterFill: '{', height: '100%', borderRadius: 1.5 },
+};
+
 export default function CareerAIPage({ embedded = false }: { embedded?: boolean } = {}) {
   const router = useRouter();
   const toast = useToast();
@@ -288,15 +303,15 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
     <Container {...containerProps}>
 
       {/* ══════════════ 1. HEADER BANNER ══════════════ */}
-      <View style={s.headerBar}>
-        <View style={s.headerLeft}>
+      <View className="flex-row items-center justify-between flex-wrap">
+        <View className="flex-1 min-w-70">
           <Text style={{ position: 'absolute', opacity: 0 }}>AI Career Roadmap</Text>
-          <Text style={s.greetingText}>
+          <Text className="text-base">
             Welcome back, {studentName}! Let's accelerate your career journey.
           </Text>
         </View>
 
-        <View style={s.headerActions}>
+        <View className="flex-row items-center">
           <Pressable
             accessibilityRole="button"
             onPress={() => fetch(true)}
@@ -309,7 +324,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
             {regenerating ? (
               <ActivityIndicator size={13} color={C.purpleL} />
             ) : (
-              <Text style={s.regenBtnText}>↺ Regenerate</Text>
+              <Text className="text-xs">↺ Regenerate</Text>
             )}
           </Pressable>
 
@@ -328,7 +343,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
             ) : (
               <Download size={14} color="#FFF" />
             )}
-            <Text style={s.reportBtnText}>Generate Career Report</Text>
+            <Text className="text-xs text-text">Generate Career Report</Text>
           </Pressable>
         </View>
       </View>
@@ -337,42 +352,42 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
       <LinearGradient
         colors={['rgba(55, 48, 163, 0.50)', 'rgba(24, 18, 48, 0.90)', 'rgba(18, 22, 35, 0.95)']}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        style={s.heroCard}
+        className="p-NaN overflow-hidden"
       >
-        <View style={s.heroConstellation}>
-          <View style={s.heroStar1} />
-          <View style={s.heroStar2} />
-          <View style={s.heroStar3} />
-          <View style={s.heroStar4} />
-          <View style={s.heroStar5} />
-          <View style={s.heroConstLine1} />
-          <View style={s.heroConstLine2} />
+        <View className="overflow-hidden absolute">
+          <View className="w-1 h-1 absolute" />
+          <View className="w-1 h-1 absolute opacity-50" />
+          <View className="w-1 h-1 absolute" />
+          <View className="w-1 h-1 absolute" />
+          <View className="w-0 h-0 absolute opacity-50" />
+          <View className="w-30 h-0 absolute" />
+          <View className="w-20 h-0 absolute" />
         </View>
-        <View style={s.heroContentRow}>
+        <View className="flex-row items-center">
           {/* Left Column (60%): Goal Title + 3 Sub-Panels */}
           <View style={s.heroLeftCol}>
             {/* Overline + Role Title */}
-            <View style={s.heroHeaderGroup}>
-              <View style={s.heroOverlineRow}>
-                <View style={s.heroDot} />
-                <Text style={s.heroOverline}>CURRENT GOAL</Text>
+            <View className="gap-2">
+              <View className="flex-row items-center gap-1.5">
+                <View className="w-2 h-2" />
+                <Text className="text-xs">CURRENT GOAL</Text>
               </View>
-              <Text style={s.heroRoleTitle} numberOfLines={2}>
+              <Text className="text-text" numberOfLines={2}>
                 {targetRole} at a {targetCo}
               </Text>
-              <View style={s.heroChipsRow}>
-                <Text style={s.heroChip}>✦ Level: <Text style={s.heroChipVal}>{readinessLevel}</Text></Text>
-                <Text style={s.heroChip}>✦ Target: <Text style={s.heroChipVal}>{getLevelForScore(potentialScore)}</Text></Text>
-                <Text style={s.heroChip}>✦ ETA: <Text style={s.heroChipVal}>{estimatedWeeks}</Text></Text>
+              <View className="flex-row items-center flex-wrap mt-1">
+                <Text className="text-sm">✦ Level: <Text style={s.heroChipVal}>{readinessLevel}</Text></Text>
+                <Text className="text-sm">✦ Target: <Text style={s.heroChipVal}>{getLevelForScore(potentialScore)}</Text></Text>
+                <Text className="text-sm">✦ ETA: <Text style={s.heroChipVal}>{estimatedWeeks}</Text></Text>
               </View>
             </View>
 
             {/* 3 Mini Panels Inline */}
-            <View style={s.heroPanelsRow}>
+            <View className="flex-row flex-wrap">
               {/* Panel 1: Current Readiness Ring */}
-              <View style={s.heroPanel}>
-                <Text style={s.heroPanelLabel}>Current Readiness</Text>
-                <View style={s.heroRingWrap}>
+              <View className="flex-1 items-start gap-2 p-NaN min-w-40">
+                <Text className="text-xs">Current Readiness</Text>
+                <View className="items-center justify-center self-center relative">
                   <CompletionRing
                     pct={readinessScore}
                     size={64}
@@ -381,27 +396,27 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
                     trackColor="rgba(255,255,255,0.08)"
                     hideText={true}
                   />
-                  <Text style={s.heroRingText}>{readinessScore}%</Text>
+                  <Text className="text-base text-text absolute">{readinessScore}%</Text>
                 </View>
-                <Text style={s.heroPanelSubBold}>{readinessLevel}</Text>
-                <Text style={s.heroPanelSub}>Current Level</Text>
+                <Text className="text-sm text-text">{readinessLevel}</Text>
+                <Text className="text-sm">Current Level</Text>
               </View>
 
               {/* Panel 2: Next Milestone */}
-              <View style={s.heroPanel}>
-                <Text style={s.heroPanelLabel}>Next Milestone</Text>
-                <Text style={s.heroPanelTitle} numberOfLines={2}>Build your professional resume</Text>
-                <View style={s.heroProgressTrack}>
-                  <View style={[s.heroProgressFill, { width: '60%' }]} />
+              <View className="flex-1 items-start gap-2 p-NaN min-w-40">
+                <Text className="text-xs">Next Milestone</Text>
+                <Text className="text-sm text-text" numberOfLines={2}>Build your professional resume</Text>
+                <View className="h-2 overflow-hidden">
+                  <View style={[styles.heroProgressFill, { width: '60%' }]} />
                 </View>
-                <Text style={s.heroPanelSub}>60% Completed</Text>
+                <Text className="text-sm">60% Completed</Text>
               </View>
 
               {/* Panel 3: Estimated Achievement */}
-              <View style={s.heroPanel}>
-                <Text style={s.heroPanelLabel}>Estimated Achievement</Text>
-                <Text style={s.heroEtaValue}>{estimatedWeeks}</Text>
-                <Text style={s.heroPanelSub}>Keep consistent and you'll reach your goal!</Text>
+              <View className="flex-1 items-start gap-2 p-NaN min-w-40">
+                <Text className="text-xs">Estimated Achievement</Text>
+                <Text className="text-xl">{estimatedWeeks}</Text>
+                <Text className="text-sm">Keep consistent and you'll reach your goal!</Text>
                 <Pressable
                   onPress={() => router.push('/student-portal?tab=profile' as any)}
                   style={({ pressed, hovered }: any) => [
@@ -409,7 +424,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
                     (pressed || hovered) && s.continueBtnHover,
                   ]}
                 >
-                  <Text style={s.continueBtnText}>Continue Now</Text>
+                  <Text className="text-xs text-text">Continue Now</Text>
                 </Pressable>
               </View>
             </View>
@@ -417,7 +432,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
 
           {/* Right Column (40%): Mountain Path SVG Illustration */}
           {isTablet && (
-            <View style={s.heroRightCol}>
+            <View className="items-center justify-center">
               <HeroIllustration />
             </View>
           )}
@@ -425,7 +440,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
       </LinearGradient>
 
       {/* ══════════════ 3. KPI STRIP (5 Cards in 1 Row) ══════════════ */}
-      <View style={s.kpiRow}>
+      <View className="flex-row">
         <MetricCard
           label="READINESS SCORE"
           value={`${readinessScore}%`}
@@ -479,11 +494,11 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
       {/* ══════════════ 5. ROW 1: SKILLS BREAKDOWN & NEXT BEST ACTIONS ══════════════ */}
       <View style={s.twoColRow}>
         {/* Left (50%): Skills Breakdown */}
-        <View style={s.colCard}>
-          <View style={s.cardHeader}>
-            <Text style={s.sectionTitle}>SKILLS BREAKDOWN</Text>
+        <View className="flex-1 justify-between p-NaN">
+          <View className="flex-row items-center justify-between">
+            <Text className="text-lg">SKILLS BREAKDOWN</Text>
           </View>
-          <View style={s.skillBarsList}>
+          <View className="gap-3">
             {SKILL_META.map((skill) => (
               <SkillBar
                 key={skill.key}
@@ -497,42 +512,42 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
           </View>
           <Pressable
             onPress={() => setShowExplainModal(true)}
-            style={s.cardBottomLinkRow}
+            className="flex-row items-center justify-end gap-1 mt-NaN"
           >
-            <Text style={s.cardBottomLinkText}>View Detailed Skills Report</Text>
+            <Text className="text-sm">View Detailed Skills Report</Text>
             <ChevronRight size={14} color={C.purpleL} />
           </Pressable>
         </View>
 
         {/* Right (50%): Next Best Actions */}
-        <View style={s.colCard}>
-          <View style={s.cardHeader}>
-            <Text style={s.sectionTitle}>NEXT BEST ACTIONS</Text>
+        <View className="flex-1 justify-between p-NaN">
+          <View className="flex-row items-center justify-between">
+            <Text className="text-lg">NEXT BEST ACTIONS</Text>
           </View>
-          <View style={s.actionsList}>
+          <View className="gap-2.5">
             {rankedActions.map((act) => (
-              <View key={`action-${act.rank}`} style={s.actionRow}>
-                <View style={s.actionNumCircle}>
-                  <Text style={s.actionNumText}>{act.rank}</Text>
+              <View key={`action-${act.rank}`} className="flex-row items-center p-NaN">
+                <View className="items-center justify-center rounded-xl w-7 h-7">
+                  <Text className="text-xs">{act.rank}</Text>
                 </View>
-                <View style={s.actionIconBox}>
+                <View className="items-center justify-center w-8 h-8">
                   <act.Icon size={16} color={C.purpleL} />
                 </View>
-                <View style={s.actionInfo}>
-                  <Text style={s.actionTitle}>{act.title}</Text>
-                  <Text style={s.actionDesc}>{act.desc}</Text>
+                <View className="flex-1 gap-0.5">
+                  <Text className="text-sm text-text">{act.title}</Text>
+                  <Text className="text-sm">{act.desc}</Text>
                 </View>
-                <View style={s.actionGainChip}>
-                  <Text style={s.actionGainText}>+{act.gain}%</Text>
+                <View className="px-2 py-1">
+                  <Text className="text-xs">+{act.gain}%</Text>
                 </View>
               </View>
             ))}
           </View>
           <Pressable
             onPress={() => router.push('/student-portal?tab=profile' as any)}
-            style={s.cardBottomLinkRow}
+            className="flex-row items-center justify-end gap-1 mt-NaN"
           >
-            <Text style={s.cardBottomLinkText}>View All Actions</Text>
+            <Text className="text-sm">View All Actions</Text>
             <ChevronRight size={14} color={C.purpleL} />
           </Pressable>
         </View>
@@ -541,14 +556,14 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
       {/* ══════════════ 6. ROW 2: AI INSIGHTS & GOAL SIMULATOR ══════════════ */}
       <View style={s.twoColRow}>
         {/* Left (50%): AI Insights */}
-        <View style={s.colCard}>
-          <View style={s.cardHeader}>
+        <View className="flex-1 justify-between p-NaN">
+          <View className="flex-row items-center justify-between">
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Sparkles size={15} color={C.purpleL} />
-              <Text style={s.sectionTitle}>AI INSIGHTS</Text>
+              <Text className="text-lg">AI INSIGHTS</Text>
             </View>
           </View>
-          <View style={s.insightsList}>
+          <View className="gap-2.5">
             <AIInsightBubble
               text="Your resume is the biggest growth opportunity. Completing it can increase your readiness by 8%."
             />
@@ -561,15 +576,15 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
           </View>
           <Pressable
             onPress={() => toast.info('AI Advice', 'Personalized advice engine active.')}
-            style={s.cardBottomLinkRow}
+            className="flex-row items-center justify-end gap-1 mt-NaN"
           >
-            <Text style={s.cardBottomLinkText}>Ask AI for Personalized Advice</Text>
+            <Text className="text-sm">Ask AI for Personalized Advice</Text>
             <ChevronRight size={14} color={C.purpleL} />
           </Pressable>
         </View>
 
         {/* Right (50%): Goal Simulator */}
-        <View style={s.colCard}>
+        <View className="flex-1 justify-between p-NaN">
           <GoalSimulator currentReadiness={readinessScore} />
         </View>
       </View>
@@ -584,84 +599,84 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
       {/* ══════════════ 8. ROW 3: THIS WEEK'S FOCUS & RECRUITER VIEW ══════════════ */}
       <View style={s.twoColRow}>
         {/* Left (50%): This Week's Focus */}
-        <View style={s.colCard}>
-          <View style={s.cardHeader}>
-            <Text style={s.sectionTitle}>THIS WEEK'S FOCUS</Text>
+        <View className="flex-1 justify-between p-NaN">
+          <View className="flex-row items-center justify-between">
+            <Text className="text-lg">THIS WEEK'S FOCUS</Text>
           </View>
-          <View style={s.weeklyFocusSplitRow}>
+          <View className="flex-row">
             {/* Checklist Left 50% */}
-            <View style={s.weeklyChecklistCol}>
+            <View className="flex-1 gap-2.5">
               {[
                 'Complete your resume',
                 'Upload LinkedIn profile',
                 'Add at least 1 project',
                 'Practice mock interview',
               ].map((task, idx) => (
-                <View key={`wf-check-${idx}`} style={s.checkRow}>
-                  <View style={s.circleCheckbox} />
-                  <Text style={s.checkText}>{task}</Text>
+                <View key={`wf-check-${idx}`} className="flex-row items-center gap-2">
+                  <View className="rounded-lg w-4 h-4" />
+                  <Text className="text-sm">{task}</Text>
                 </View>
               ))}
             </View>
 
             {/* Improvement Card Right 50% */}
-            <View style={s.improvementCard}>
-              <Text style={s.improvementTitle}>Estimated Readiness Improvement</Text>
-              <Text style={s.improvementValue}>+11%</Text>
-              <Text style={s.improvementSub}>If you complete all tasks this week</Text>
+            <View className="flex-1 justify-center gap-1.5 p-NaN">
+              <Text className="text-xs">Estimated Readiness Improvement</Text>
+              <Text className="text-xl text-text">+11%</Text>
+              <Text className="text-xs">If you complete all tasks this week</Text>
             </View>
           </View>
         </View>
 
         {/* Right (50%): Recruiter View (Beta) */}
-        <View style={s.colCard}>
-          <View style={s.cardHeader}>
+        <View className="flex-1 justify-between p-NaN">
+          <View className="flex-row items-center justify-between">
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Text style={s.sectionTitle}>RECRUITER VIEW</Text>
-              <View style={s.betaTag}>
-                <Text style={s.betaTagText}>Beta</Text>
+              <Text className="text-lg">RECRUITER VIEW</Text>
+              <View className="rounded px-2 py-0">
+                <Text className="text-xs">Beta</Text>
               </View>
             </View>
           </View>
-          <Text style={s.recruiterSubhead}>How recruiters see your profile today</Text>
+          <Text className="mb-NaN text-sm">How recruiters see your profile today</Text>
 
           {/* 4 Compact Cards Inline */}
-          <View style={s.recruiterGrid}>
-            <View style={s.recruiterCard}>
-              <Text style={s.recruiterLabel}>Resume</Text>
-              <Text style={s.recruiterVal}>42%</Text>
-              <View style={s.recruiterTrack}>
-                <View style={[s.recruiterFill, { width: '42%', backgroundColor: C.blue }]} />
+          <View className="flex-row">
+            <View className="flex-1 gap-1.5 p-NaN">
+              <Text className="text-xs">Resume</Text>
+              <Text className="text-xl text-text">42%</Text>
+              <View className="h-1 overflow-hidden">
+                <View style={[styles.recruiterFill, { width: '42%', backgroundColor: C.blue }]} />
               </View>
             </View>
-            <View style={s.recruiterCard}>
-              <Text style={s.recruiterLabel}>Portfolio</Text>
-              <Text style={s.recruiterVal}>20%</Text>
-              <View style={s.recruiterTrack}>
-                <View style={[s.recruiterFill, { width: '20%', backgroundColor: C.amber }]} />
+            <View className="flex-1 gap-1.5 p-NaN">
+              <Text className="text-xs">Portfolio</Text>
+              <Text className="text-xl text-text">20%</Text>
+              <View className="h-1 overflow-hidden">
+                <View style={[styles.recruiterFill, { width: '20%', backgroundColor: C.amber }]} />
               </View>
             </View>
-            <View style={s.recruiterCard}>
-              <Text style={s.recruiterLabel}>Communication</Text>
-              <Text style={s.recruiterVal}>65%</Text>
-              <View style={s.recruiterTrack}>
-                <View style={[s.recruiterFill, { width: '65%', backgroundColor: C.teal }]} />
+            <View className="flex-1 gap-1.5 p-NaN">
+              <Text className="text-xs">Communication</Text>
+              <Text className="text-xl text-text">65%</Text>
+              <View className="h-1 overflow-hidden">
+                <View style={[styles.recruiterFill, { width: '65%', backgroundColor: C.teal }]} />
               </View>
             </View>
-            <View style={s.recruiterCard}>
-              <Text style={s.recruiterLabel}>Overall Score</Text>
-              <Text style={s.recruiterVal}>31%</Text>
-              <View style={s.recruiterTrack}>
-                <View style={[s.recruiterFill, { width: '31%', backgroundColor: C.pink }]} />
+            <View className="flex-1 gap-1.5 p-NaN">
+              <Text className="text-xs">Overall Score</Text>
+              <Text className="text-xl text-text">31%</Text>
+              <View className="h-1 overflow-hidden">
+                <View style={[styles.recruiterFill, { width: '31%', backgroundColor: C.pink }]} />
               </View>
             </View>
           </View>
 
           <Pressable
             onPress={() => router.push('/student-portal?tab=profile' as any)}
-            style={s.cardBottomLinkRow}
+            className="flex-row items-center justify-end gap-1 mt-NaN"
           >
-            <Text style={s.cardBottomLinkText}>Improve Your Profile</Text>
+            <Text className="text-sm">Improve Your Profile</Text>
             <ChevronRight size={14} color={C.purpleL} />
           </Pressable>
         </View>
@@ -676,581 +691,4 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
 /* ═══════════════════════════════════════════════════════════
    Styles matching Image 1 Reference
 ═══════════════════════════════════════════════════════════ */
-const s = StyleSheet.create({
-  shell: {
-    flex: 1,
-    backgroundColor: C.bg,
-  },
-  embeddedShell: {
-    flex: 1,
-    backgroundColor: 'transparent',
-    gap: SPACING.xxl,
-    paddingBottom: 60,
-  },
-  contentContainer: {
-    paddingVertical: SPACING.xxl,
-    paddingHorizontal: SPACING.xl,
-    paddingBottom: 80,
-    gap: SPACING.xxl,
-    maxWidth: 1280,
-    width: '100%' as any,
-    alignSelf: 'center' as any,
-  },
 
-  /* 1. Header Bar */
-  headerBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
-    gap: SPACING.md,
-  },
-  headerLeft: {
-    flex: 1,
-    minWidth: 280,
-  },
-  greetingText: {
-    color: C.text,
-    fontFamily: FT.med,
-    fontSize: 15,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-  },
-  regenBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: RADIUS.btn,
-    borderWidth: 1,
-    borderColor: 'rgba(129, 140, 248, 0.35)',
-    backgroundColor: 'rgba(129, 140, 248, 0.08)',
-  },
-  regenBtnHover: {
-    backgroundColor: 'rgba(129, 140, 248, 0.18)',
-  },
-  regenBtnText: {
-    color: C.purpleL,
-    fontFamily: FT.bold,
-    fontSize: 12,
-  },
-  reportBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: RADIUS.btn,
-    backgroundColor: C.purple2,
-  },
-  reportBtnHover: {
-    backgroundColor: '#6366F1',
-  },
-  reportBtnText: {
-    color: '#FFF',
-    fontFamily: FT.bold,
-    fontSize: 12,
-  },
-
-  /* 2. Hero Mission Card */
-  heroCard: {
-    borderRadius: RADIUS.card,
-    borderColor: 'rgba(129, 140, 248, 0.25)',
-    borderWidth: 1,
-    padding: SPACING.xl,
-    overflow: 'hidden',
-    ...(Platform.OS === 'web' ? { boxShadow: '0 8px 32px rgba(79, 70, 229, 0.25)' } as any : {}),
-    backgroundColor: 'rgba(79, 70, 229, 0.15)',
-  },
-  heroContentRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.xxl,
-  },
-  heroLeftCol: {
-    flex: 3,
-    gap: SPACING.xl,
-  },
-  heroHeaderGroup: {
-    gap: 8,
-  },
-  heroOverlineRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  heroDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: C.purpleL,
-  },
-  heroOverline: {
-    color: C.purpleXL,
-    fontFamily: FT.bold,
-    fontSize: 11,
-    letterSpacing: 1.2,
-  },
-  heroRoleTitle: {
-    color: '#FFF',
-    fontFamily: FT.xbold,
-    fontSize: 36,
-    letterSpacing: -0.8,
-    lineHeight: 42,
-  },
-  heroChipsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.lg,
-    flexWrap: 'wrap',
-    marginTop: 4,
-  },
-  heroChip: {
-    color: C.text2,
-    fontFamily: FT.med,
-    fontSize: 13,
-  },
-  heroChipVal: {
-    color: C.purpleXL,
-    fontFamily: FT.bold,
-  },
-  heroPanelsRow: {
-    flexDirection: 'row',
-    gap: SPACING.lg,
-    flexWrap: 'wrap',
-  },
-  heroPanel: {
-    flex: 1,
-    minWidth: 160,
-    backgroundColor: 'rgba(18, 22, 35, 0.65)',
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    borderWidth: 1,
-    borderRadius: RADIUS.card,
-    padding: SPACING.lg,
-    gap: 8,
-    alignItems: 'flex-start',
-  },
-  heroPanelLabel: {
-    color: C.textSub,
-    fontFamily: FT.bold,
-    fontSize: 11,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase' as any,
-  },
-  heroRingWrap: {
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'center',
-    marginVertical: 4,
-  },
-  heroRingText: {
-    position: 'absolute',
-    color: '#FFF',
-    fontFamily: FT.xbold,
-    fontSize: 16,
-  },
-  heroPanelSubBold: {
-    color: '#FFF',
-    fontFamily: FT.bold,
-    fontSize: 14,
-  },
-  heroPanelSub: {
-    color: C.text2,
-    fontFamily: FT.med,
-    fontSize: 13,
-  },
-  heroPanelTitle: {
-    color: '#FFF',
-    fontFamily: FT.bold,
-    fontSize: 14,
-    marginVertical: 2,
-  },
-  heroProgressTrack: {
-    height: 6,
-    width: '100%',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 3,
-    overflow: 'hidden',
-    marginVertical: 6,
-  },
-  heroProgressFill: {
-    height: '100%',
-    backgroundColor: C.purpleL,
-    borderRadius: 3,
-  },
-  heroEtaValue: {
-    color: C.purpleXL,
-    fontFamily: FT.xbold,
-    fontSize: 28,
-    marginVertical: 2,
-  },
-  continueBtn: {
-    backgroundColor: C.purple2,
-    borderRadius: RADIUS.btn,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    marginTop: 8,
-  },
-  continueBtnHover: {
-    backgroundColor: '#6366F1',
-  },
-  continueBtnText: {
-    color: '#FFF',
-    fontFamily: FT.bold,
-    fontSize: 12,
-  },
-  heroRightCol: {
-    flex: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    maxWidth: 340,
-  },
-
-  /* Constellation Background */
-  heroConstellation: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    overflow: 'hidden',
-    pointerEvents: 'none',
-  },
-  heroStar1: {
-    position: 'absolute',
-    top: 40,
-    right: 80,
-    width: 2,
-    height: 2,
-    borderRadius: 1,
-    backgroundColor: '#A5B4FC',
-    opacity: 0.7,
-  },
-  heroStar2: {
-    position: 'absolute',
-    top: 100,
-    right: 200,
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: '#818CF8',
-    opacity: 0.5,
-  },
-  heroStar3: {
-    position: 'absolute',
-    top: 60,
-    left: '40%',
-    width: 2,
-    height: 2,
-    borderRadius: 1,
-    backgroundColor: '#FFF',
-    opacity: 0.4,
-  },
-  heroStar4: {
-    position: 'absolute',
-    bottom: 80,
-    right: 60,
-    width: 2,
-    height: 2,
-    borderRadius: 1,
-    backgroundColor: '#A5B4FC',
-    opacity: 0.6,
-  },
-  heroStar5: {
-    position: 'absolute',
-    top: 20,
-    left: '60%',
-    width: 1.5,
-    height: 1.5,
-    borderRadius: 0.75,
-    backgroundColor: '#38BDF8',
-    opacity: 0.5,
-  },
-  heroConstLine1: {
-    position: 'absolute',
-    top: 42,
-    right: 82,
-    width: 120,
-    height: 1,
-    backgroundColor: 'rgba(165, 180, 252, 0.15)',
-    transform: [{ rotate: '25deg' }],
-  },
-  heroConstLine2: {
-    position: 'absolute',
-    top: 62,
-    left: '41%',
-    width: 80,
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    transform: [{ rotate: '-15deg' }],
-  },
-
-  /* 3. KPI Strip */
-  kpiRow: {
-    flexDirection: 'row',
-    gap: SPACING.md,
-    flexWrap: Platform.OS === 'web' ? ('nowrap' as any) : 'wrap',
-  },
-
-  /* 2-Column Section Cards */
-  twoColRow: {
-    flexDirection: Platform.OS === 'web' ? ('row' as any) : 'column',
-    gap: SPACING.xxl,
-    alignItems: 'stretch',
-  },
-  colCard: {
-    flex: 1,
-    backgroundColor: 'rgba(18, 22, 35, 0.75)',
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    borderWidth: 1,
-    borderRadius: RADIUS.card,
-    padding: SPACING.lg,
-    gap: SPACING.lg,
-    justifyContent: 'space-between',
-    ...(Platform.OS === 'web' ? { boxShadow: '0 4px 20px rgba(0,0,0,0.35)' } as any : {}),
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  sectionTitle: {
-    color: C.purpleXL,
-    fontFamily: FT.bold,
-    fontSize: 18,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase' as any,
-  },
-  cardBottomLinkRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: 4,
-    marginTop: SPACING.xs,
-  },
-  cardBottomLinkText: {
-    color: C.purpleL,
-    fontFamily: FT.bold,
-    fontSize: 13,
-  },
-
-  /* Skills Breakdown */
-  skillBarsList: {
-    gap: 12,
-  },
-
-  /* Next Best Actions */
-  actionsList: {
-    gap: 10,
-  },
-  actionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.md,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderColor: 'rgba(255, 255, 255, 0.06)',
-    borderWidth: 1,
-    borderRadius: RADIUS.card,
-    padding: SPACING.sm,
-  },
-  actionNumCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(99, 102, 241, 0.20)',
-    borderColor: C.purpleL,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actionIconBox: {
-    width: 32,
-    height: 32,
-    borderRadius: RADIUS.chip,
-    backgroundColor: 'rgba(129, 140, 248, 0.12)',
-    borderColor: 'rgba(129, 140, 248, 0.25)',
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actionNumText: {
-    color: C.purpleL,
-    fontFamily: FT.bold,
-    fontSize: 12,
-  },
-  actionInfo: {
-    flex: 1,
-    gap: 2,
-  },
-  actionTitle: {
-    color: '#FFF',
-    fontFamily: FT.bold,
-    fontSize: 13,
-  },
-  actionDesc: {
-    color: C.text2,
-    fontFamily: FT.med,
-    fontSize: 13,
-  },
-  actionGainChip: {
-    backgroundColor: 'rgba(45, 212, 191, 0.12)',
-    borderColor: 'rgba(45, 212, 191, 0.3)',
-    borderWidth: 1,
-    borderRadius: RADIUS.full,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  actionGainText: {
-    color: C.teal,
-    fontFamily: FT.bold,
-    fontSize: 12,
-  },
-
-  /* AI Insights */
-  insightsList: {
-    gap: 10,
-  },
-
-  /* Weekly Focus */
-  weeklyFocusSplitRow: {
-    flexDirection: 'row',
-    gap: SPACING.lg,
-  },
-  weeklyChecklistCol: {
-    flex: 1,
-    gap: 10,
-  },
-  checkRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  circleCheckbox: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: C.dim,
-  },
-  checkText: {
-    color: C.text2,
-    fontFamily: FT.med,
-    fontSize: 13,
-  },
-  improvementCard: {
-    flex: 1,
-    backgroundColor: 'rgba(55, 48, 163, 0.25)',
-    borderColor: 'rgba(129, 140, 248, 0.30)',
-    borderWidth: 1,
-    borderRadius: RADIUS.card,
-    padding: SPACING.lg,
-    gap: 6,
-    justifyContent: 'center',
-  },
-  improvementTitle: {
-    color: C.purpleXL,
-    fontFamily: FT.bold,
-    fontSize: 12,
-  },
-  improvementValue: {
-    color: '#FFF',
-    fontFamily: FT.xbold,
-    fontSize: 28,
-  },
-  improvementSub: {
-    color: C.text2,
-    fontFamily: FT.med,
-    fontSize: 12,
-  },
-
-  /* Recruiter View */
-  betaTag: {
-    backgroundColor: 'rgba(129, 140, 248, 0.15)',
-    borderRadius: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-  },
-  betaTagText: {
-    color: C.purpleL,
-    fontFamily: FT.bold,
-    fontSize: 10,
-  },
-  recruiterSubhead: {
-    color: C.text2,
-    fontFamily: FT.med,
-    fontSize: 13,
-    marginBottom: SPACING.md,
-  },
-  recruiterGrid: {
-    flexDirection: 'row',
-    gap: SPACING.md,
-  },
-  recruiterCard: {
-    flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderColor: C.border,
-    borderWidth: 1,
-    borderRadius: RADIUS.card,
-    padding: SPACING.md,
-    gap: 6,
-  },
-  recruiterLabel: {
-    color: C.textSub,
-    fontFamily: FT.bold,
-    fontSize: 11,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase' as any,
-  },
-  recruiterVal: {
-    color: '#FFF',
-    fontFamily: FT.bold,
-    fontSize: 28,
-  },
-  recruiterTrack: {
-    height: 3,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 1.5,
-    overflow: 'hidden',
-  },
-  recruiterFill: {
-    height: '100%',
-    borderRadius: 1.5,
-  },
-
-  /* 9. Footer */
-  footerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: SPACING.md,
-    borderTopWidth: 1,
-    borderTopColor: C.border,
-    flexWrap: 'wrap',
-    gap: SPACING.sm,
-  },
-  footerCopy: {
-    color: C.dim,
-    fontFamily: FT.med,
-    fontSize: 11,
-  },
-  footerLinks: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  footerLinkBtn: {
-    paddingVertical: 2,
-    paddingHorizontal: 4,
-  },
-  footerLinkText: {
-    color: C.dim,
-    fontFamily: FT.med,
-    fontSize: 11,
-  },
-  footerDot: {
-    color: C.dim,
-    fontSize: 11,
-  },
-});

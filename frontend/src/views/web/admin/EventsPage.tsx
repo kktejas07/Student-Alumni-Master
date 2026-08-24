@@ -174,4 +174,19 @@ function Field({ label, value, onChange, multiline, placeholder }: { label: stri
     </View>
   );
 }
-;
+
+const styles = {
+  grid: { ...({ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 14 } as any) },
+  eventIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: T.glassMd, borderColor: T.borderMd, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  eventTitle: { color: T.text, fontFamily: 'DMSans_700Bold', fontSize: 14, flex: 1 },
+  eventDesc: { color: 'rgba(255,255,255,0.65)', fontFamily: 'DMSans_400Regular', fontSize: 12, lineHeight: 18, marginBottom: 12 },
+  eventMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, alignItems: 'center', marginTop: 8 },
+  metaText: { color: 'rgba(255,255,255,0.65)', fontFamily: 'DMSans_500Medium', fontSize: 11.5 },
+  fieldLabel: { color: T.textMute, fontFamily: 'DMSans_700Bold', fontSize: 11, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 6 },
+  input: {
+    paddingHorizontal: 12, paddingVertical: 10,
+    backgroundColor: T.glass, borderColor: T.border, borderWidth: 1, borderRadius: 10,
+    color: T.text, fontFamily: 'DMSans_500Medium', fontSize: 13,
+    ...({ outlineStyle: 'none' } as any),
+  },
+};

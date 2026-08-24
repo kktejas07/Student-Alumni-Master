@@ -3,7 +3,7 @@
  */
 import React, { useEffect, useState, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, Pressable, ScrollView,
+  View, Text, Pressable, ScrollView,
   ActivityIndicator, Linking,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -83,51 +83,51 @@ export default function TrackDetail() {
       accent={track?.color || '#7C3AED'}
       rightSlot={
         <Pressable onPress={() => router.push('/courses' as any)}
-          style={s.backBtn}>
+          className="flex-row items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white/5 border border-glass-border">
           <MaterialCommunityIcons name="arrow-left" size={12} color="#fff" />
-          <Text style={s.backBtnText}>All Courses</Text>
+          <Text className="text-white text-xs font-body-bold">All Courses</Text>
         </Pressable>
       }
     >
       {loading ? (
-        <View style={s.loadingBox}>
+        <View className="py-16 items-center gap-2.5">
           <ActivityIndicator color="#A78BFA" />
-          <Text style={s.loadingText}>Loading roadmap…</Text>
+          <Text className="text-muted text-xs font-body-semibold">Loading roadmap…</Text>
         </View>
       ) : !track ? (
-        <View style={s.loadingBox}>
-          <Text style={s.loadingText}>Track not found</Text>
+        <View className="py-16 items-center gap-2.5">
+          <Text className="text-muted text-xs font-body-semibold">Track not found</Text>
         </View>
       ) : (
         <>
           {/* Hero */}
-          <View style={s.hero}>
+          <View className="p-6 rounded-[22px] overflow-hidden gap-2">
             <LinearGradient colors={[track.color, '#A78BFA']}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-              style={StyleSheet.absoluteFill} />
-            <View style={s.heroBlur} />
-            <Text style={s.heroEmoji}>🎁</Text>
-            <Text style={s.heroTitle}>{track.title}</Text>
-            <Text style={s.heroSub}>
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+            <View className="absolute -top-[50px] -right-[50px] w-[220px] h-[220px] rounded-full bg-white/18" />
+            <Text className="text-4xl">🎁</Text>
+            <Text className="text-white font-display-bold text-2xl mt-2">{track.title}</Text>
+            <Text className="text-white/85 font-body-semibold text-sm" style={{ lineHeight: 18 }}>
               {track.duration_weeks} weeks · {track.weekly_commitment} · {totalCourses} curated courses · {track.enrolled_count.toLocaleString('en-IN')} enrolled
             </Text>
-            <View style={s.heroFacts}>
+            <View className="flex-row flex-wrap gap-1.5 mt-2">
               <HeroFact icon="clock-outline" v={`${track.total_hours}h total`} />
               <HeroFact icon="certificate" v={`${track.certificates.length} certificates`} />
               <HeroFact icon="account-group" v={`${track.mentors.length} mentors`} />
             </View>
             <Pressable onPress={handleEnroll} disabled={enrolling || enrolled}
-              style={[s.heroCTA, enrolled && { backgroundColor: '#10B981' }]}>
+              className="flex-row items-center self-start gap-1.5 px-4 h-11 rounded-xl bg-black/30 mt-3" style={enrolled ? { backgroundColor: '#10B981' } : {}}>
               {enrolling ? <ActivityIndicator color="#fff" size="small" /> :
                enrolled ? (
                  <>
                    <MaterialCommunityIcons name="check-decagram" size={14} color="#fff" />
-                   <Text style={s.heroCTAText}>Enrolled · Track Active</Text>
+                   <Text className="text-white font-display-bold text-sm">Enrolled · Track Active</Text>
                  </>
                ) : (
                  <>
                    <MaterialCommunityIcons name="rocket-launch" size={14} color="#fff" />
-                   <Text style={s.heroCTAText}>Start Track Free</Text>
+                   <Text className="text-white font-display-bold text-sm">Start Track Free</Text>
                  </>
                )}
             </Pressable>
@@ -135,12 +135,12 @@ export default function TrackDetail() {
 
           {/* Outcomes */}
           <Section title="WHAT YOU'LL ACHIEVE">
-            <View style={s.outcomeGrid}>
+            <View className="flex-row flex-wrap gap-2.5">
               {track.outcomes.map((o, i) => (
-                <View key={i} style={s.outcomeCard}>
+                <View key={i} className="flex-1 min-w-[48%] flex-row items-center gap-2 p-3 rounded-xl border bg-teal/5 border-teal/30">
                   <MaterialCommunityIcons name="check-circle"
                     size={16} color="#86EFAC" />
-                  <Text style={s.outcomeText}>{o}</Text>
+                  <Text className="text-white font-body-bold text-sm flex-1">{o}</Text>
                 </View>
               ))}
             </View>
@@ -148,23 +148,23 @@ export default function TrackDetail() {
 
           {/* Prereq + Certs */}
           <Section title="PREREQUISITES & CERTIFICATES EARNED">
-            <View style={s.dualGrid}>
-              <View style={[s.dualCard, { borderColor: 'rgba(245,158,11,0.40)' }]}>
-                <View style={s.dualCardHead}>
+            <View className="flex-row flex-wrap gap-2.5">
+              <View className="flex-1 min-w-[48%] p-3.5 rounded-xl border bg-white/3 gap-1" style={{ borderColor: 'rgba(245,158,11,0.40)' }}>
+                <View className="flex-row items-center gap-1.5 mb-1">
                   <MaterialCommunityIcons name="alert-circle" size={14} color="#FCD34D" />
-                  <Text style={s.dualCardLabel}>Prerequisites</Text>
+                  <Text className="text-white font-display-bold text-xs" style={{ letterSpacing: 0.5 }}>Prerequisites</Text>
                 </View>
                 {track.prerequisites.map((p, i) => (
-                  <Text key={i} style={s.dualItem}>• {p}</Text>
+                  <Text key={i} className="text-muted font-body-semibold text-xs">• {p}</Text>
                 ))}
               </View>
-              <View style={[s.dualCard, { borderColor: 'rgba(16,185,129,0.40)' }]}>
-                <View style={s.dualCardHead}>
+              <View className="flex-1 min-w-[48%] p-3.5 rounded-xl border bg-white/3 gap-1" style={{ borderColor: 'rgba(16,185,129,0.40)' }}>
+                <View className="flex-row items-center gap-1.5 mb-1">
                   <MaterialCommunityIcons name="medal" size={14} color="#86EFAC" />
-                  <Text style={s.dualCardLabel}>Certificates earned</Text>
+                  <Text className="text-white font-display-bold text-xs" style={{ letterSpacing: 0.5 }}>Certificates earned</Text>
                 </View>
                 {track.certificates.map((c, i) => (
-                  <Text key={i} style={s.dualItem}>✨ {c}</Text>
+                  <Text key={i} className="text-muted font-body-semibold text-xs">✨ {c}</Text>
                 ))}
               </View>
             </View>
@@ -172,7 +172,7 @@ export default function TrackDetail() {
 
           {/* Timeline */}
           <Section title={`${track.duration_weeks}-WEEK ROADMAP`}>
-            <View style={{ gap: 10 }}>
+            <View className="gap-2.5">
               {track.modules.map((m, idx) => {
                 const isOpen = openWeeks[m.week_start];
                 const isCurrent = m.week_start === (track.current_week || 1);
@@ -181,21 +181,19 @@ export default function TrackDetail() {
                     onPress={() => setOpenWeeks((p) => ({
                       ...p, [m.week_start]: !p[m.week_start],
                     }))}
-                    style={[s.weekCard,
-                      isCurrent && { borderColor: '#A78BFA',
-                                      boxShadow: '0 0 24px -8px rgba(167,139,250,0.6)' as any }]}>
-                    <View style={s.weekHead}>
-                      <View style={[s.weekBadge,
-                        isCurrent && { backgroundColor: '#7C3AED' }]}>
-                        <Text style={s.weekBadgeText}>
+                    className="p-3.5 rounded-xl border bg-white/3"
+                    style={isCurrent ? { borderColor: '#A78BFA', boxShadow: '0 0 24px -8px rgba(167,139,250,0.6)' as any } : { borderColor: C.border }}>
+                    <View className="flex-row items-center gap-2.5">
+                      <View className={`px-2 py-1 rounded-md ${isCurrent ? 'bg-violet' : ''}`} style={!isCurrent ? { backgroundColor: 'rgba(167,139,250,0.18)' } : {}}>
+                        <Text className="text-violet font-display-bold text-xs" style={{ letterSpacing: 0.4 }}>
                           W{m.week_start}{m.week_end !== m.week_start ? `-${m.week_end}` : ''}
                         </Text>
                       </View>
-                      <Text style={s.weekTitle}>{m.title}</Text>
-                      <View style={{ flex: 1 }} />
+                      <Text className="text-white font-display-bold text-sm">{m.title}</Text>
+                      <View className="flex-1" />
                       {isCurrent && (
-                        <View style={s.currentPill}>
-                          <Text style={s.currentPillText}>CURRENT</Text>
+                        <View className="px-2 py-0.5 rounded-full bg-amber/15 border border-amber/50">
+                          <Text className="text-amber font-display-bold text-xs" style={{ letterSpacing: 0.6 }}>CURRENT</Text>
                         </View>
                       )}
                       <MaterialCommunityIcons
@@ -203,30 +201,27 @@ export default function TrackDetail() {
                         size={18} color={C.text2} />
                     </View>
                     {isOpen && (
-                      <View style={{ gap: 12, marginTop: 12 }}>
+                      <View className="gap-3 mt-3">
                         {/* Courses */}
                         {m.courses.length > 0 && (
-                          <View style={{ gap: 6 }}>
-                            <Text style={s.subLabel}>📚 Courses</Text>
+                          <View className="gap-1.5">
+                            <Text className="text-dim font-body-bold text-xs" style={{ letterSpacing: 0.5 }}>📚 Courses</Text>
                             {m.courses.map((cref, i) => {
                               const c = cref.course;
                               if (!c) return null;
                               return (
-                                <View key={i} style={s.miniCourseCard}>
-                                  <Text style={{ fontSize: 22 }}>{c.thumbnail}</Text>
-                                  <View style={{ flex: 1 }}>
-                                    <Text style={s.miniCourseTitle} numberOfLines={1}>
+                                <View key={i} className="flex-row items-center gap-2.5 p-2.5 rounded-lg bg-white/4 border border-glass-border">
+                                  <Text className="text-xl">{c.thumbnail}</Text>
+                                  <View className="flex-1">
+                                    <Text className="text-white font-body-bold text-sm" numberOfLines={1}>
                                       {c.title}
                                     </Text>
-                                    <Text style={s.miniCourseMeta} numberOfLines={1}>
+                                    <Text className="text-dim font-body-semibold text-xs mt-0.5" numberOfLines={1}>
                                       {c.provider.name} · {c.duration_label}
                                     </Text>
                                   </View>
-                                  <View style={[s.requiredPill,
-                                    cref.required && { backgroundColor: 'rgba(124,58,237,0.18)',
-                                                        borderColor: 'rgba(167,139,250,0.40)' }]}>
-                                    <Text style={[s.requiredPillText,
-                                      cref.required && { color: '#C4B5FD' }]}>
+                                  <View className={`px-1.5 py-0.5 rounded-sm ${cref.required ? 'bg-violet/18 border-violet/40' : 'bg-white/4 border-glass-border'}`} style={{ borderWidth: 1 }}>
+                                    <Text className={`text-xs font-display-bold ${cref.required ? 'text-violet' : 'text-dim'}`} style={{ letterSpacing: 0.6 }}>
                                       {cref.required ? 'REQUIRED' : 'OPTIONAL'}
                                     </Text>
                                   </View>
@@ -237,14 +232,14 @@ export default function TrackDetail() {
                         )}
                         {/* Live Session */}
                         {m.live_session && (
-                          <View style={s.liveCard}>
+                          <View className="flex-row items-center gap-2.5 p-2.5 rounded-lg bg-teal/10 border border-teal/40">
                             <MaterialCommunityIcons name="video"
                               size={14} color="#22D3EE" />
-                            <View style={{ flex: 1 }}>
-                              <Text style={s.liveTitle}>
+                            <View className="flex-1">
+                              <Text className="text-white font-body-bold text-sm">
                                 {m.live_session.topic}
                               </Text>
-                              <Text style={s.liveMeta}>
+                              <Text className="text-teal font-body-semibold text-xs mt-0.5">
                                 Mentor: {m.live_session.mentor}
                               </Text>
                             </View>
@@ -252,12 +247,12 @@ export default function TrackDetail() {
                         )}
                         {/* Project */}
                         {m.project && (
-                          <View style={s.projectCard}>
+                          <View className="flex-row items-center gap-2.5 p-2.5 rounded-lg bg-amber/10 border border-amber/40">
                             <MaterialCommunityIcons name="briefcase-check"
                               size={14} color="#FCD34D" />
-                            <View style={{ flex: 1 }}>
-                              <Text style={s.projectTitle}>{m.project.title}</Text>
-                              <Text style={s.projectMeta}>
+                            <View className="flex-1">
+                              <Text className="text-white font-body-bold text-sm">{m.project.title}</Text>
+                              <Text className="text-amber font-body-bold text-xs mt-0.5">
                                 Due by Week {m.project.due_by_week}
                               </Text>
                             </View>
@@ -273,12 +268,12 @@ export default function TrackDetail() {
 
           {/* Mentors */}
           <Section title="YOUR MENTORS">
-            <View style={s.mentorRow}>
+            <View className="flex-row flex-wrap gap-2.5">
               {track.mentors.map((m, i) => (
-                <View key={i} style={s.mentorCard}>
-                  <Text style={s.mentorAvatar}>{m.avatar}</Text>
-                  <Text style={s.mentorName}>{m.name}</Text>
-                  <Text style={s.mentorRole}>{m.role}</Text>
+                <View key={i} className="basis-[180px] flex-grow p-3.5 rounded-xl border border-glass-border items-center bg-white/3">
+                  <Text className="text-3xl">{m.avatar}</Text>
+                  <Text className="text-white font-display-bold text-sm mt-1.5">{m.name}</Text>
+                  <Text className="text-dim font-body-semibold text-xs mt-0.5 text-center">{m.role}</Text>
                 </View>
               ))}
             </View>
@@ -286,22 +281,22 @@ export default function TrackDetail() {
 
           {/* Capstone */}
           <Section title="CAPSTONE PROJECT">
-            <View style={s.capstoneCard}>
-              <View style={s.capstoneHead}>
+            <View className="p-4 rounded-xl gap-1.5 bg-amber/5 border border-amber/30">
+              <View className="flex-row items-center gap-2">
                 <MaterialCommunityIcons name="trophy"
                   size={20} color="#FCD34D" />
-                <Text style={s.capstoneTitle}>{track.capstone.title}</Text>
+                <Text className="text-white font-display-bold text-base">{track.capstone.title}</Text>
               </View>
-              <Text style={s.capstoneDesc}>{track.capstone.description}</Text>
-              <Text style={s.subLabel}>Deliverables</Text>
+              <Text className="text-muted font-body-semibold text-sm mt-1" style={{ lineHeight: 18, marginVertical: 4 }}>{track.capstone.description}</Text>
+              <Text className="text-dim font-body-bold text-xs" style={{ letterSpacing: 0.5 }}>Deliverables</Text>
               {track.capstone.deliverables.map((d, i) => (
-                <Text key={i} style={s.dualItem}>✓ {d}</Text>
+                <Text key={i} className="text-muted font-body-semibold text-xs">✓ {d}</Text>
               ))}
             </View>
           </Section>
 
           {/* Advisor */}
-          <View style={{ marginTop: 12 }}>
+          <View className="mt-3">
             <AdvisorAIBlock
               context={`career-track-${slug}`}
               advisorTitle="Talk to a Track Mentor"
@@ -322,8 +317,8 @@ export default function TrackDetail() {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <View style={{ gap: 10 }}>
-      <Text style={s.kicker}>{title}</Text>
+    <View className="gap-2.5">
+      <Text className="text-dim font-display-bold text-xs" style={{ letterSpacing: 1.2 }}>{title}</Text>
       {children}
     </View>
   );
@@ -331,126 +326,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function HeroFact({ icon, v }: { icon: IconName; v: string }) {
   return (
-    <View style={s.heroFact}>
+    <View className="flex-row items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white/18">
       <MaterialCommunityIcons name={icon} size={11} color="#fff" />
-      <Text style={s.heroFactText}>{v}</Text>
+      <Text className="text-white font-body-bold text-xs">{v}</Text>
     </View>
   );
 }
-
-const s = StyleSheet.create({
-  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: C.border, borderWidth: 1, ...({ cursor: 'pointer' } as any) },
-  backBtnText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 11 },
-
-  loadingBox: { paddingVertical: 60, alignItems: 'center', gap: 10 },
-  loadingText: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12 },
-
-  hero: { padding: 24, borderRadius: 22, overflow: 'hidden', gap: 8 },
-  heroBlur: { position: 'absolute', top: -50, right: -50,
-    width: 220, height: 220, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.18)' },
-  heroEmoji: { fontSize: 36 },
-  heroTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold',
-    fontSize: 26, marginTop: 8 },
-  heroSub: { color: 'rgba(255,255,255,0.85)', fontFamily: 'DMSans_500Medium',
-    fontSize: 13, lineHeight: 18 },
-  heroFacts: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
-  heroFact: { flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.18)' },
-  heroFactText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 11 },
-  heroCTA: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start',
-    gap: 7, paddingHorizontal: 18, height: 44, borderRadius: 12,
-    backgroundColor: 'rgba(0,0,0,0.30)', marginTop: 12,
-    ...({ cursor: 'pointer' } as any) },
-  heroCTAText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 13 },
-
-  kicker: { color: C.text3, fontFamily: 'DMSans_800ExtraBold',
-    fontSize: 11, letterSpacing: 1.2 },
-
-  outcomeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  outcomeCard: { flexBasis: '48%', flexGrow: 1, flexDirection: 'row',
-    alignItems: 'center', gap: 8,
-    padding: 12, borderRadius: 10, borderWidth: 1,
-    backgroundColor: 'rgba(16,185,129,0.06)',
-    borderColor: 'rgba(16,185,129,0.30)' },
-  outcomeText: { color: '#fff', fontFamily: 'DMSans_700Bold',
-    fontSize: 12.5, flex: 1 },
-
-  dualGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  dualCard: { flexBasis: '48%', flexGrow: 1, padding: 14, borderRadius: 10,
-    borderWidth: 1, backgroundColor: 'rgba(255,255,255,0.03)', gap: 5 },
-  dualCardHead: { flexDirection: 'row', alignItems: 'center',
-    gap: 6, marginBottom: 4 },
-  dualCardLabel: { color: '#fff', fontFamily: 'DMSans_800ExtraBold',
-    fontSize: 11.5, letterSpacing: 0.5 },
-  dualItem: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12 },
-
-  weekCard: { padding: 14, borderRadius: 12, borderWidth: 1,
-    borderColor: C.border,
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    ...({ cursor: 'pointer' } as any) },
-  weekHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  weekBadge: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 6,
-    backgroundColor: 'rgba(167,139,250,0.18)' },
-  weekBadgeText: { color: '#C4B5FD', fontFamily: 'DMSans_800ExtraBold',
-    fontSize: 10.5, letterSpacing: 0.4 },
-  weekTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 13.5 },
-  currentPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999,
-    backgroundColor: 'rgba(252,211,77,0.16)',
-    borderColor: 'rgba(252,211,77,0.50)', borderWidth: 1 },
-  currentPillText: { color: '#FCD34D', fontFamily: 'DMSans_800ExtraBold',
-    fontSize: 9, letterSpacing: 0.6 },
-
-  subLabel: { color: C.text3, fontFamily: 'DMSans_700Bold',
-    fontSize: 11, letterSpacing: 0.5 },
-
-  miniCourseCard: { flexDirection: 'row', alignItems: 'center', gap: 10,
-    padding: 10, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: C.border, borderWidth: 1 },
-  miniCourseTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12.5 },
-  miniCourseMeta: { color: C.text3, fontFamily: 'DMSans_500Medium',
-    fontSize: 10.5, marginTop: 2 },
-  requiredPill: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 5,
-    backgroundColor: 'rgba(255,255,255,0.04)', borderColor: C.border,
-    borderWidth: 1 },
-  requiredPillText: { color: C.text3, fontFamily: 'DMSans_800ExtraBold',
-    fontSize: 9, letterSpacing: 0.6 },
-
-  liveCard: { flexDirection: 'row', alignItems: 'center', gap: 10,
-    padding: 10, borderRadius: 9,
-    backgroundColor: 'rgba(34,211,238,0.10)',
-    borderColor: 'rgba(34,211,238,0.40)', borderWidth: 1 },
-  liveTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12.5 },
-  liveMeta: { color: '#A5F3FC', fontFamily: 'DMSans_500Medium',
-    fontSize: 11, marginTop: 2 },
-
-  projectCard: { flexDirection: 'row', alignItems: 'center', gap: 10,
-    padding: 10, borderRadius: 9,
-    backgroundColor: 'rgba(252,211,77,0.10)',
-    borderColor: 'rgba(252,211,77,0.40)', borderWidth: 1 },
-  projectTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12.5 },
-  projectMeta: { color: '#FCD34D', fontFamily: 'DMSans_700Bold',
-    fontSize: 10.5, marginTop: 2 },
-
-  mentorRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  mentorCard: { flexBasis: 180, flexGrow: 1, padding: 14, borderRadius: 12,
-    borderWidth: 1, borderColor: C.border, alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.03)' },
-  mentorAvatar: { fontSize: 36 },
-  mentorName: { color: '#fff', fontFamily: 'DMSans_800ExtraBold',
-    fontSize: 13, marginTop: 6 },
-  mentorRole: { color: C.text3, fontFamily: 'DMSans_500Medium',
-    fontSize: 11, marginTop: 2, textAlign: 'center' },
-
-  capstoneCard: { padding: 16, borderRadius: 14, gap: 6,
-    backgroundColor: 'rgba(252,211,77,0.06)',
-    borderColor: 'rgba(252,211,77,0.30)', borderWidth: 1 },
-  capstoneHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  capstoneTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 15 },
-  capstoneDesc: { color: C.text2, fontFamily: 'DMSans_500Medium',
-    fontSize: 12.5, lineHeight: 18, marginVertical: 4 },
-});
