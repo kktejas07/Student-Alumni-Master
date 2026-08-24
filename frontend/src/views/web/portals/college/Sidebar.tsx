@@ -1,15 +1,12 @@
-/**
- * College Admin Portal — left sidebar with college card + 11 nav items.
- */
 import React from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView, Platform } from 'react-native';
+import { View, Text, Pressable, ScrollView, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
   LayoutDashboard, GraduationCap, Users, UserCheck, Calendar, Megaphone,
   BarChart3, Sparkles, Briefcase, Trophy, User, ExternalLink, LogOut, Plus,
 } from 'lucide-react-native';
-import { CC, FONTS } from './tokens';
+import { CC } from './tokens';
 import { Av, Badge } from './atoms';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { displayName } from '@/src/lib/portalHome';
@@ -77,42 +74,37 @@ export function Sidebar({
   }, [collegeName]);
 
   return (
-    <View style={s.aside}>
-      {/* Brand */}
-      <View style={s.brand} nativeID="college-brand">
+    <View className="w-[240px] h-full bg-glass border-r border-glass-border px-3 pt-[14px] pb-3">
+      <View className="flex-row items-center gap-[10px] mb-4 px-1" nativeID="college-brand">
         <SALogo size={32} variant="glass" />
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={s.brandTitle}>Admin Portal</Text>
-          <Text style={s.brandSub}>Student Alumni</Text>
+        <View className="flex-1 min-w-0" style={{ flex: 1, minWidth: 0 }}>
+          <Text className="text-text font-display-bold text-[13.5px] tracking-tight">Admin Portal</Text>
+          <Text className="text-muted font-body text-[10.5px]">Student Alumni</Text>
         </View>
       </View>
 
-      {/* College card */}
-      <View style={[s.collegeCard, { alignItems: 'center' }]}>
-        <Text style={[s.collegeName, { textAlign: 'center' }]}>{collegeName}</Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 3 }}>
-          <Text style={s.collegeRole}>Admin ·</Text>
+      <View className="bg-glass-soft border border-glass-border rounded-xl p-3 mb-[10px] items-center" style={{ alignItems: 'center' }}>
+        <Text className="text-text font-body-bold text-[12.5px] text-center" style={{ textAlign: 'center' }}>{collegeName}</Text>
+        <View className="flex-row items-center justify-center gap-1 mt-[3px]" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 3 }}>
+          <Text className="text-muted font-body text-[10.5px]">Admin ·</Text>
           <Badge label={collegeRank} color="cyan" />
         </View>
     </View>
 
-    {/* Admin card pill */}
       <Pressable
         onPress={() => router.push('/id-card')}
-        style={({ hovered }: any) => [s.idCardPill, hovered && { backgroundColor: CC.cardH }]}
-      >
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={s.idCardLabel}>My Admin Card</Text>
-          <Text style={s.idCardSub}>Share your profile</Text>
+        className="flex-row items-center gap-[6px] bg-glass-soft border border-glass-border rounded-[10px] px-[10px] py-2 mb-3"
+        style={Platform.OS === 'web' ? { cursor: 'pointer', transitionDuration: '160ms' } as any : {}}>
+        <View className="flex-1 min-w-0" style={{ flex: 1, minWidth: 0 }}>
+          <Text className="text-text font-body-bold text-[11px]">My Admin Card</Text>
+          <Text className="text-muted font-body text-[10.5px] mt-[1px]">Share your profile</Text>
         </View>
         <ExternalLink size={13} color={CC.accentBright} />
       </Pressable>
 
-      {/* Agent K launcher (Chunk 2 — college portal) */}
       <AgentKLauncher />
 
-      {/* Nav */}
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: 6, paddingBottom: 8 }} showsVerticalScrollIndicator={false}>
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: 6, paddingBottom: 8 }} showsVerticalScrollIndicator={false}>
         {NAV.map(({ id, label, Icon }) => {
           const isActive = id === active;
           const count = counts[id];
@@ -121,17 +113,13 @@ export function Sidebar({
               key={id}
               onPress={() => onNav(id)}
               nativeID={`college-nav-${id}`}
-              style={({ hovered }: any) => [
-                s.navItem,
-                isActive && s.navItemActive,
-                !isActive && hovered && s.navItemHover,
-              ]}
-            >
+              className={`flex-row items-center gap-[11px] px-[11px] py-[9px] mb-[2px] rounded-lg ${isActive ? 'bg-violet' : ''}`}
+              style={Platform.OS === 'web' ? { cursor: 'pointer', transitionDuration: '160ms' } as any : {}}>
               <Icon size={16} color={isActive ? '#fff' : CC.muted} />
-              <Text style={[s.navLabel, isActive && s.navLabelActive]} numberOfLines={1}>{label}</Text>
+              <Text className={`font-body-bold text-[12.5px] flex-1 ${isActive ? 'text-text' : 'text-muted'}`} numberOfLines={1}>{label}</Text>
               {count != null && count > 0 && (
-                <View style={[s.countPill, isActive && { backgroundColor: 'rgba(255,255,255,0.20)' }]}>
-                  <Text style={[s.countText, isActive && { color: '#fff' }]}>{count}</Text>
+                <View className={`px-[6px] py-[1px] rounded-[6px] min-w-[20px] items-center ${isActive ? 'bg-[rgba(255,255,255,0.20)]' : 'bg-[rgba(99,102,241,0.20)]'}`}>
+                  <Text className={`font-display-bold text-[10px] ${isActive ? 'text-text' : 'text-teal'}`}>{count}</Text>
                 </View>
               )}
             </Pressable>
@@ -141,58 +129,12 @@ export function Sidebar({
 
       <Pressable
         onPress={onLogout}
-        style={({ hovered }: any) => [s.logoutRow, hovered && { backgroundColor: 'rgba(239,68,68,0.10)' }]}
-        testID="logout-button"
-      >
+        className="flex-row items-center gap-2 px-[11px] py-[9px] rounded-lg mt-1"
+        style={Platform.OS === 'web' ? { cursor: 'pointer', transitionDuration: '160ms' } as any : {}}
+        testID="logout-button">
         <LogOut size={14} color="#FCA5A5" />
-        <Text style={s.logoutText}>Log Out</Text>
+        <Text className="text-[#FCA5A5] font-body-bold text-[12.5px]">Log Out</Text>
       </Pressable>
     </View>
   );
 }
-
-const s = StyleSheet.create({
-  aside: {
-    width: 240, height: '100%' as any, backgroundColor: CC.bg2,
-    borderRightWidth: 1, borderRightColor: CC.border,
-    paddingHorizontal: 12, paddingTop: 14, paddingBottom: 12,
-  },
-  brand: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16, paddingHorizontal: 4 },
-  brandLogo: { width: 32, height: 32, borderRadius: 8, backgroundColor: CC.accent, alignItems: 'center', justifyContent: 'center' },
-  brandLogoText: { color: '#1E1B4B', fontFamily: FONTS.xbold, fontSize: 12, letterSpacing: 0.5 },
-  brandTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13.5, letterSpacing: -0.2 },
-  brandSub: { color: CC.muted, fontFamily: FONTS.med, fontSize: 10.5 },
-
-  collegeCard: { backgroundColor: CC.card, borderColor: CC.border, borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 10 },
-  collegeName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
-  collegeRole: { color: CC.muted, fontFamily: FONTS.med, fontSize: 10.5 },
-
-  idCardPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: CC.card, borderColor: CC.border, borderWidth: 1,
-    borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, marginBottom: 12,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}),
-  },
-  idCardLabel: { color: '#fff', fontFamily: FONTS.bold, fontSize: 11 },
-  idCardSub:   { color: CC.muted, fontFamily: FONTS.med, fontSize: 10.5, marginTop: 1 },
-
-  navItem: {
-    flexDirection: 'row', alignItems: 'center', gap: 11,
-    paddingHorizontal: 11, paddingVertical: 9, marginBottom: 2,
-    borderRadius: 8,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}),
-  },
-  navItemActive: { backgroundColor: CC.primary },
-  navItemHover: { backgroundColor: 'rgba(99,102,241,0.10)' },
-  navLabel: { color: CC.muted, fontFamily: FONTS.bold, fontSize: 12.5, flex: 1 },
-  navLabelActive: { color: '#fff' },
-  countPill: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6, backgroundColor: 'rgba(99,102,241,0.20)', minWidth: 20, alignItems: 'center' },
-  countText: { color: CC.accentBright, fontFamily: FONTS.xbold, fontSize: 10 },
-
-  logoutRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 11, paddingVertical: 9, borderRadius: 8, marginTop: 4,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}),
-  },
-  logoutText: { color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 12.5 },
-});

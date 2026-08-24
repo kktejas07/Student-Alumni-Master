@@ -1,8 +1,5 @@
-/**
- * Super Admin Portal — outer shell.
- */
 import React from 'react';
-import { View, ScrollView, StyleSheet } from 'react-native';
+import { View, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
@@ -55,23 +52,18 @@ export function SuperAdminPortalRN() {
 
   const titleFor = (id: SuperAdminNavId) => NAV.find((n) => n.id === id)?.label || 'Overview';
   const nav = (id: SuperAdminNavId) => go(id);
-  // Pass the current sub-segment + a setter so views with internal tabs
-  // (`useSubTab`) reflect their active tab in the URL. Passing fresh props on
-  // every render is fine — `useSubTab` falls back to local state when the
-  // props don't change meaningfully.
   const subFor = (t: string) => ({
     sub,
     onSub: (s: string) => go(active, s),
   });
 
   return (
-    <View style={s.shell}>
-      {/* FinTax360 Jewel-glass canvas */}
+    <View style={{ flex: 1, flexDirection: 'row', backgroundColor: SAC.bg, height: '100%' as any }}>
       <LinearGradient
         pointerEvents="none"
         colors={['#0a0f1e', '#131938']}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFillObject as any}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
       />
       <SAWatermark size={850} top={30} right={-30} opacity={0.16} />
       <AnimatedAurora intensity="normal" />
@@ -115,7 +107,3 @@ export function SuperAdminPortalRN() {
     </View>
   );
 }
-
-const s = StyleSheet.create({
-  shell: { flex: 1, flexDirection: 'row', backgroundColor: SAC.bg, height: '100%' as any },
-});

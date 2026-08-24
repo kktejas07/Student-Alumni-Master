@@ -1,14 +1,10 @@
 import { getBaseUrl } from '@/src/lib/env';
-/**
- * StudentsView — College Phase 3 Roster.
- * Live filters (dept, year, status, search) + pagination + status pills.
- */
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, Pressable, TextInput, StyleSheet, Platform, ScrollView, Modal, DeviceEventEmitter,
+  View, Text, Pressable, TextInput, Platform, ScrollView, Modal, DeviceEventEmitter,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { CC, FONTS } from '../tokens';
+import { CC } from '../tokens';
 import { Av, Badge } from '../atoms';
 import { usePortalData, postPortal, putPortal } from '@/src/lib/portalApi';
 import { useToast } from '@/src/views/components';
@@ -16,30 +12,29 @@ import { useToast } from '@/src/views/components';
 const DEPTS = ['CSE', 'ECE', 'ME', 'EEE', 'Civil', 'Chem', 'MBA'];
 const YEARS = ['1st', '2nd', '3rd', '4th', 'Final'];
 
-/** Lightweight inline select — avoids nested Modal z-index issues on web */
 function SimpleSelect({ label, value, options, onChange }: {
   label: string; value: string; options: string[]; onChange: (v: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   return (
-    <View style={{ position: 'relative', zIndex: open ? 100 : 1 }}>
-      <Text style={mst.label}>{label}</Text>
+    <View className={`relative ${open ? 'z-[100]' : 'z-[1]'}`}>
+      <Text className="text-muted font-display-bold text-[10.5px] tracking-wider uppercase mb-[2px]">{label}</Text>
       <Pressable
         onPress={() => setOpen((o) => !o)}
-        style={[mst.input, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}
-      >
-        <Text style={{ color: '#fff', fontFamily: FONTS.med, fontSize: 12.5 }}>{value}</Text>
+        className="bg-[rgba(255,255,255,0.04)] border border-glass-border rounded-lg px-3 h-[38px] flex-row items-center justify-between">
+        <Text className="text-text font-body text-[12.5px]">{value}</Text>
         <MaterialCommunityIcons name={open ? 'chevron-up' : 'chevron-down'} size={14} color="#aaa" />
       </Pressable>
       {open && (
-        <View style={ss.menu}>
+        <View className="absolute top-full left-0 right-0 bg-[#0d1320] border border-[rgba(255,255,255,0.14)] rounded-lg z-[999] overflow-hidden"
+          style={Platform.OS === 'web' ? { boxShadow: '0 8px 24px rgba(0,0,0,0.6)' } as any : { elevation: 10 }}>
           {options.map((opt) => (
             <Pressable
               key={opt}
               onPress={() => { onChange(opt); setOpen(false); }}
-              style={[ss.menuItem, value === opt && ss.menuItemActive]}
-            >
-              <Text style={[ss.menuText, value === opt && { color: '#fff' }]}>{opt}</Text>
+              className={`px-3 py-[9px] ${value === opt ? 'bg-[rgba(167,139,250,0.18)]' : ''}`}
+              style={Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}}>
+              <Text className={`font-body text-[12.5px] ${value === opt ? 'text-text' : 'text-[#aaa]'}`}>{opt}</Text>
             </Pressable>
           ))}
         </View>
@@ -47,29 +42,6 @@ function SimpleSelect({ label, value, options, onChange }: {
     </View>
   );
 }
-
-const ss = StyleSheet.create({
-  menu: {
-    position: 'absolute',
-    top: '100%' as any,
-    left: 0, right: 0,
-    backgroundColor: '#0d1320',
-    borderColor: 'rgba(255,255,255,0.14)',
-    borderWidth: 1,
-    borderRadius: 8,
-    zIndex: 999,
-    overflow: 'hidden',
-    ...(Platform.OS === 'web' ? ({ boxShadow: '0 8px 24px rgba(0,0,0,0.6)' } as any) : { elevation: 10 }),
-  },
-  menuItem: {
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  menuItemActive: { backgroundColor: 'rgba(167,139,250,0.18)' },
-  menuText: { color: '#aaa', fontFamily: FONTS.med, fontSize: 12.5 },
-});
-
 
 type Student = {
   id: string; name: string; initials: string; email: string;
@@ -101,7 +73,6 @@ export function StudentsView() {
   const [status, setStatus] = useState('all');
   const [page, setPage] = useState(1);
 
-  // Modal State
   const toast = useToast();
   const [confirmModal, setConfirmModal] = useState<{ visible: boolean; title: string; message: string; actionText: string; actionColor?: string; onConfirm: () => void } | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -138,24 +109,16 @@ export function StudentsView() {
       if (editingStudent) {
         await putPortal(`/college/students/${editingStudent.id}`, {
           body: {
-            name: nameVal,
-            email: emailVal,
-            dept: deptVal,
-            year: yearVal,
-            cgpa: parseFloat(cgpaVal) || 0.0,
-            attendance: parseInt(attendanceVal, 10) || 0,
+            name: nameVal, email: emailVal, dept: deptVal, year: yearVal,
+            cgpa: parseFloat(cgpaVal) || 0.0, attendance: parseInt(attendanceVal, 10) || 0,
           }
         });
         toast.success('Student Updated', 'The student record has been updated successfully.');
       } else {
         await postPortal('/college/students', {
           body: {
-            name: nameVal,
-            email: emailVal,
-            dept: deptVal,
-            year: yearVal,
-            cgpa: parseFloat(cgpaVal) || 0.0,
-            attendance: parseInt(attendanceVal, 10) || 0,
+            name: nameVal, email: emailVal, dept: deptVal, year: yearVal,
+            cgpa: parseFloat(cgpaVal) || 0.0, attendance: parseInt(attendanceVal, 10) || 0,
           }
         });
         toast.success('Student Added', 'The new student has been added to the roster.');
@@ -171,7 +134,6 @@ export function StudentsView() {
       refresh();
     } catch {
       toast.error('Error', 'Failed to save student.');
-      // silent — keep modal open so user can retry
     } finally {
       setSubmitting(false);
     }
@@ -210,11 +172,9 @@ export function StudentsView() {
   const doClear = async () => {
     if (isBusy) return;
     setConfirmModal({
-      visible: true,
-      title: 'Clear All Students',
+      visible: true, title: 'Clear All Students',
       message: 'Are you sure you want to clear all students? This action cannot be undone.',
-      actionText: 'Clear All',
-      actionColor: '#EF4444',
+      actionText: 'Clear All', actionColor: '#EF4444',
       onConfirm: async () => {
         setConfirmModal(null);
         setClearing(true);
@@ -226,12 +186,8 @@ export function StudentsView() {
             method: 'DELETE',
             headers: token ? { Authorization: `Bearer ${token}` } : {},
           });
-          if (resp.ok) {
-            toast.success('Success', 'Cleared all students successfully');
-            refresh();
-          } else {
-            toast.error('Error', 'Failed to clear students');
-          }
+          if (resp.ok) { toast.success('Success', 'Cleared all students successfully'); refresh(); }
+          else { toast.error('Error', 'Failed to clear students'); }
         } catch { toast.error('Error', 'Clear error'); } finally { setClearing(false); }
       }
     });
@@ -240,11 +196,9 @@ export function StudentsView() {
   const doBulkDelete = async () => {
     if (isBusy || selectedIds.size === 0) return;
     setConfirmModal({
-      visible: true,
-      title: 'Delete Selected',
+      visible: true, title: 'Delete Selected',
       message: `Are you sure you want to delete ${selectedIds.size} selected students?`,
-      actionText: 'Delete',
-      actionColor: '#EF4444',
+      actionText: 'Delete', actionColor: '#EF4444',
       onConfirm: async () => {
         setConfirmModal(null);
         setClearing(true);
@@ -254,27 +208,18 @@ export function StudentsView() {
           const token = await tokenStore.getAccess();
           const resp = await fetch(`${base}/api/college/students/bulk-delete`, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(token ? { Authorization: `Bearer ${token}` } : {})
-            },
+            headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
             body: JSON.stringify({ ids: Array.from(selectedIds) })
           });
-          if (resp.ok) {
-            toast.success('Success', 'Deleted selected students successfully');
-            setSelectedIds(new Set());
-            refresh();
-          } else {
-            toast.error('Error', 'Failed to delete selected students');
-          }
+          if (resp.ok) { toast.success('Success', 'Deleted selected students successfully'); setSelectedIds(new Set()); refresh(); }
+          else { toast.error('Error', 'Failed to delete selected students'); }
         } catch { toast.error('Error', 'Delete error'); } finally { setClearing(false); }
       }
     });
   };
 
   const doUpload = () => {
-    if (isBusy) return;
-    if (Platform.OS !== 'web') return; // File picker only web for now
+    if (isBusy || Platform.OS !== 'web') return;
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.csv, .xlsx';
@@ -293,63 +238,53 @@ export function StudentsView() {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
           body: fd,
         });
-        if (resp.ok) {
-          toast.success('Upload Successful', 'Student data has been securely added to your roster.');
-          refresh();
-        } else {
-          toast.error('Upload Failed', 'Could not process the uploaded file.');
-        }
+        if (resp.ok) { toast.success('Upload Successful', 'Student data has been securely added to your roster.'); refresh(); }
+        else { toast.error('Upload Failed', 'Could not process the uploaded file.'); }
       } catch { toast.error('Error', 'Upload error'); } finally { setUploading(false); }
     };
     input.click();
   };
 
   return (
-    <View style={{ gap: 14 }}>
-      {/* Tool row */}
-      <View style={s.toolRow}>
-        <View style={s.searchBox}>
+    <View className="gap-[14px]">
+      <View className="flex-row gap-[10px] items-center">
+        <View className="flex-row items-center gap-2 w-[280px] h-9 px-[11px] rounded-[10px] bg-glass-soft border border-glass-border">
           <MaterialCommunityIcons name="magnify" size={14} color={CC.dim} />
           <TextInput value={q} onChangeText={(v) => { setQ(v); setPage(1); }}
-            placeholder="Search by name, email, ID…"
-            placeholderTextColor={CC.dim} style={s.searchInput} />
+            placeholder="Search by name, email, ID…" placeholderTextColor={CC.dim}
+            className="flex-1 text-text font-body text-[12.5px]"
+            style={Platform.OS === 'web' ? { outlineStyle: 'none' } as any : {}} />
         </View>
-        <View style={{ flex: 1 }} />
+        <View className="flex-1" />
         {selectedIds.size > 0 && (
-          <Pressable style={[s.clearBtn, { marginRight: 8 }]} onPress={doBulkDelete} disabled={isBusy}>
+          <Pressable className="flex-row gap-[6px] items-center px-3 h-9 rounded-[10px] bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.3)] mr-2" onPress={doBulkDelete} disabled={isBusy}>
             <MaterialCommunityIcons name="delete" size={14} color="#EF4444" />
-            <Text style={s.clearBtnText}>Delete Selected ({selectedIds.size})</Text>
+            <Text className="text-[#EF4444] font-body-bold text-[11.5px]">Delete Selected ({selectedIds.size})</Text>
           </Pressable>
         )}
-        <Pressable style={s.clearBtn} onPress={doClear} disabled={isBusy}>
+        <Pressable className="flex-row gap-[6px] items-center px-3 h-9 rounded-[10px] bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.3)]" onPress={doClear} disabled={isBusy}>
           <MaterialCommunityIcons name="delete" size={14} color="#EF4444" />
-          <Text style={s.clearBtnText}>{clearing ? 'Clearing…' : 'Clear All'}</Text>
+          <Text className="text-[#EF4444] font-body-bold text-[11.5px]">{clearing ? 'Clearing…' : 'Clear All'}</Text>
         </Pressable>
-        <Pressable style={s.exportBtn} onPress={doExport} disabled={exporting || isBusy}>
+        <Pressable className="flex-row gap-[6px] items-center px-3 h-9 rounded-[10px] bg-[rgba(255,255,255,0.04)] border border-glass-border" onPress={doExport} disabled={exporting || isBusy}>
           <MaterialCommunityIcons name={exporting ? "loading" : "download"} size={14} color={CC.muted} />
-          <Text style={s.exportBtnText}>{exporting ? 'Exporting…' : 'Export'}</Text>
+          <Text className="text-muted font-body-bold text-[11.5px]">{exporting ? 'Exporting…' : 'Export'}</Text>
         </Pressable>
-        <Pressable style={s.uploadBtn} onPress={doUpload} disabled={isBusy}>
+        <Pressable className="flex-row gap-[6px] items-center px-3 h-9 rounded-[10px] bg-[#3B82F6]" onPress={doUpload} disabled={isBusy}>
           <MaterialCommunityIcons name="upload" size={14} color="#fff" />
-          <Text style={s.uploadBtnText}>{uploading ? 'Uploading…' : 'Upload CSV / XLSX'}</Text>
+          <Text className="text-text font-body-bold text-[11.5px]">{uploading ? 'Uploading…' : 'Upload CSV / XLSX'}</Text>
         </Pressable>
-        <Pressable style={s.cta} onPress={() => {
-          setEditingStudent(null);
-          setNameVal('');
-          setEmailVal('');
-          setDeptVal('CSE');
-          setYearVal('1st');
-          setCgpaVal('8.0');
-          setAttendanceVal('85');
+        <Pressable className="flex-row gap-[6px] items-center px-[14px] h-9 rounded-[10px] bg-violet" onPress={() => {
+          setEditingStudent(null); setNameVal(''); setEmailVal('');
+          setDeptVal('CSE'); setYearVal('1st'); setCgpaVal('8.0'); setAttendanceVal('85');
           setModalVisible(true);
         }} disabled={isBusy}>
           <MaterialCommunityIcons name="plus" size={14} color="#fff" />
-          <Text style={s.ctaText}>Add Student</Text>
+          <Text className="text-text font-display-bold text-xs">Add Student</Text>
         </Pressable>
       </View>
 
-      {/* Filters */}
-      <View style={s.filterRow}>
+      <View className="flex-row items-end gap-[14px]">
         <FilterPills label="Dept" value={dept}
           onChange={(v) => { setDept(v); setPage(1); }}
           options={[{ id: 'all', label: 'All' }, ...filters.departments]} />
@@ -359,50 +294,43 @@ export function StudentsView() {
         <FilterPills label="Status" value={status}
           onChange={(v) => { setStatus(v); setPage(1); }}
           options={[{ id: 'all', label: 'All' }, ...filters.statuses]} />
-        <View style={{ flex: 1 }} />
-        <Text style={s.totalText}>{(data?.total || 0).toLocaleString('en-IN')} students</Text>
+        <View className="flex-1" />
+        <Text className="text-muted font-body-bold text-[11.5px] self-end">{(data?.total || 0).toLocaleString('en-IN')} students</Text>
       </View>
 
-      {/* Table */}
-      <View style={s.table}>
-        <View style={s.tableHead}>
-          <Pressable
-            style={{ width: 32, alignItems: 'center', justifyContent: 'center' }}
+      <View className="rounded-xl overflow-hidden border border-glass-border">
+        <View className="flex-row items-center gap-[10px] py-[9px] px-[14px] border-b border-glass-border bg-[rgba(255,255,255,0.04)]">
+          <Pressable className="w-8 items-center justify-center"
             onPress={() => {
-              if (selectedIds.size === list.length && list.length > 0) {
-                setSelectedIds(new Set());
-              } else {
-                setSelectedIds(new Set(list.map(s => s.id)));
-              }
+              if (selectedIds.size === list.length && list.length > 0) setSelectedIds(new Set());
+              else setSelectedIds(new Set(list.map(s => s.id)));
             }}>
             <MaterialCommunityIcons
               name={list.length > 0 && selectedIds.size === list.length ? "checkbox-marked" : "checkbox-blank-outline"}
               size={18}
-              color={list.length > 0 && selectedIds.size === list.length ? CC.primary : CC.dim}
-            />
+              color={list.length > 0 && selectedIds.size === list.length ? CC.primary : CC.dim} />
           </Pressable>
-          <Text style={[s.th, { width: 40, textAlign: 'center' }]}>S.No</Text>
-          <Text style={[s.th, { flex: 2 }]}>Student</Text>
-          <Text style={[s.th, { flex: 1 }]}>Dept</Text>
-          <Text style={[s.th, { flex: 1 }]}>Year</Text>
-          <Text style={[s.th, { flex: 1 }]}>CGPA</Text>
-          <Text style={[s.th, { flex: 1 }]}>Attendance</Text>
-          <Text style={[s.th, { flex: 1.2 }]}>Status</Text>
-          <Text style={[s.th, { flex: 1.4 }]}>Placement</Text>
-          <Text style={[s.th, { width: 32 }]}> </Text>
+          <Text className="text-muted font-display-bold text-[10.5px] tracking-widest w-10 text-center">S.No</Text>
+          <Text className="text-muted font-display-bold text-[10.5px] tracking-widest flex-[2]">Student</Text>
+          <Text className="text-muted font-display-bold text-[10.5px] tracking-widest flex-1">Dept</Text>
+          <Text className="text-muted font-display-bold text-[10.5px] tracking-widest flex-1">Year</Text>
+          <Text className="text-muted font-display-bold text-[10.5px] tracking-widest flex-1">CGPA</Text>
+          <Text className="text-muted font-display-bold text-[10.5px] tracking-widest flex-1">Attendance</Text>
+          <Text className="text-muted font-display-bold text-[10.5px] tracking-widest flex-[1.2]">Status</Text>
+          <Text className="text-muted font-display-bold text-[10.5px] tracking-widest flex-[1.4]">Placement</Text>
+          <Text className="text-muted font-display-bold text-[10.5px] tracking-widest w-8"> </Text>
         </View>
         {list.length === 0 ? (
-          <View style={s.emptyRow}>
+          <View className="py-[30px] items-center gap-2 bg-glass-soft">
             <MaterialCommunityIcons name="account-search" size={28} color={CC.dim} />
-            <Text style={s.emptyText}>No students match these filters</Text>
+            <Text className="text-muted font-body-bold text-xs">No students match these filters</Text>
           </View>
         ) : list.map((st, index) => {
           const b = statusBadge(st.status);
           const sno = (page - 1) * 20 + index + 1;
           return (
-            <View key={st.id} style={s.row}>
-              <Pressable
-                style={{ width: 32, alignItems: 'center', justifyContent: 'center' }}
+            <View key={st.id} className="flex-row items-center gap-[10px] py-[11px] px-[14px] border-b border-glass-border bg-glass-soft">
+              <Pressable className="w-8 items-center justify-center"
                 onPress={() => {
                   const newSet = new Set(selectedIds);
                   if (newSet.has(st.id)) newSet.delete(st.id);
@@ -412,167 +340,126 @@ export function StudentsView() {
                 <MaterialCommunityIcons
                   name={selectedIds.has(st.id) ? "checkbox-marked" : "checkbox-blank-outline"}
                   size={18}
-                  color={selectedIds.has(st.id) ? CC.primary : CC.dim}
-                />
+                  color={selectedIds.has(st.id) ? CC.primary : CC.dim} />
               </Pressable>
-              <Text style={[s.cell, { width: 40, textAlign: 'center', color: CC.dim }]}>{sno}</Text>
-              <View style={[{ flex: 2, flexDirection: 'row',
-                              alignItems: 'center', gap: 10 }]}>
+              <Text className="text-dim font-body text-xs w-10 text-center">{sno}</Text>
+              <View className="flex-[2] flex-row items-center gap-[10px]">
                 <Av initials={st.initials} size={32} color={st.color} />
                 <View>
-                  <Text style={s.cellName}>{st.name}</Text>
-                  <Text style={s.cellSub}>{st.id} · {st.email}</Text>
+                  <Text className="text-text font-body-bold text-[12.5px]">{st.name}</Text>
+                  <Text className="text-dim font-body text-[10.5px] mt-[2px]">{st.id} · {st.email}</Text>
                 </View>
               </View>
-              <Text style={[s.cell, { flex: 1 }]}>{st.dept}</Text>
-              <Text style={[s.cell, { flex: 1 }]}>{st.year}</Text>
-              <Text style={[s.cell, { flex: 1, color: '#fff',
-                                       fontFamily: FONTS.bold }]}>
-                {st.cgpa}
-              </Text>
-              <Text style={[s.cell, { flex: 1,
-                                       color: st.attendance < 70 ? CC.red : '#fff' }]}>
+              <Text className="text-muted font-body text-xs flex-1">{st.dept}</Text>
+              <Text className="text-muted font-body text-xs flex-1">{st.year}</Text>
+              <Text className="text-text font-body-bold text-xs flex-1">{st.cgpa}</Text>
+              <Text className="font-body text-xs flex-1" style={{ color: st.attendance < 70 ? CC.red : '#fff' }}>
                 {st.attendance}%
               </Text>
-              <View style={{ flex: 1.2 }}>
+              <View className="flex-[1.2]">
                 <Badge label={b.label} color={b.color} />
               </View>
-              <View style={{ flex: 1.4 }}>
+              <View className="flex-[1.4]">
                 {st.placed ? (
-                  <View style={s.placedBox}>
-                    <MaterialCommunityIcons name="briefcase-check"
-                      size={11} color="#86EFAC" />
-                    <Text style={s.placedText} numberOfLines={1}>
+                  <View className="flex-row items-center gap-1 px-2 py-1 rounded-[5px] bg-[rgba(16,185,129,0.10)] border border-[rgba(16,185,129,0.35)]">
+                    <MaterialCommunityIcons name="briefcase-check" size={11} color="#86EFAC" />
+                    <Text className="text-[#86EFAC] font-body-bold text-[10.5px] flex-1" numberOfLines={1}>
                       {st.company} · ₹{st.package_lpa} LPA
                     </Text>
                   </View>
                 ) : (
-                  <Text style={s.unplaced}>—</Text>
+                  <Text className="text-dim font-body-bold text-[11px]">—</Text>
                 )}
               </View>
-              <Pressable style={[{ width: 32, alignItems: 'center' }]} onPress={() => {
-                setEditingStudent(st);
-                setNameVal(st.name);
-                setEmailVal(st.email);
-                setDeptVal(st.dept);
-                setYearVal(st.year);
-                setCgpaVal(String(st.cgpa));
-                setAttendanceVal(String(st.attendance));
+              <Pressable className="w-8 items-center" onPress={() => {
+                setEditingStudent(st); setNameVal(st.name); setEmailVal(st.email);
+                setDeptVal(st.dept); setYearVal(st.year);
+                setCgpaVal(String(st.cgpa)); setAttendanceVal(String(st.attendance));
                 setModalVisible(true);
               }}>
-                <MaterialCommunityIcons name="pencil"
-                  size={16} color={CC.muted} />
+                <MaterialCommunityIcons name="pencil" size={16} color={CC.muted} />
               </Pressable>
             </View>
           );
         })}
       </View>
 
-      {/* Pagination */}
       {data && data.pages > 1 && (
-        <View style={s.pagination}>
+        <View className="flex-row items-center gap-[14px] justify-end">
           <Pressable disabled={page <= 1} onPress={() => setPage(p => Math.max(1, p - 1))}
-            style={[s.pageBtn, page <= 1 && { opacity: 0.4 }]}>
+            className={`flex-row items-center gap-1 px-3 h-8 rounded-lg bg-[rgba(255,255,255,0.04)] border border-glass-border ${page <= 1 ? 'opacity-40' : ''}`}>
             <MaterialCommunityIcons name="chevron-left" size={14} color="#fff" />
-            <Text style={s.pageBtnText}>Prev</Text>
+            <Text className="text-text font-body-bold text-[11.5px]">Prev</Text>
           </Pressable>
-          <Text style={s.pageInfo}>
+          <Text className="text-muted font-body-bold text-xs">
             Page {data.page} of {data.pages}
           </Text>
           <Pressable disabled={page >= data.pages}
             onPress={() => setPage(p => Math.min(data.pages, p + 1))}
-            style={[s.pageBtn, page >= data.pages && { opacity: 0.4 }]}>
-            <Text style={s.pageBtnText}>Next</Text>
+            className={`flex-row items-center gap-1 px-3 h-8 rounded-lg bg-[rgba(255,255,255,0.04)] border border-glass-border ${page >= data.pages ? 'opacity-40' : ''}`}>
+            <Text className="text-text font-body-bold text-[11.5px]">Next</Text>
             <MaterialCommunityIcons name="chevron-right" size={14} color="#fff" />
           </Pressable>
         </View>
       )}
 
-      {/* Modal for adding a student */}
       <Modal visible={modalVisible} transparent animationType="fade" onRequestClose={() => setModalVisible(false)}>
-        <View style={mst.overlay}>
-          <View style={mst.modal}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <Text style={mst.title}>{editingStudent ? 'Edit Student' : 'Add New Student'}</Text>
-              <Pressable onPress={() => setModalVisible(false)} style={{ padding: 4 }}>
+        <View className="flex-1 bg-[rgba(5,7,16,0.50)] justify-center items-center p-5"
+          style={Platform.OS === 'web' ? { backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' } as any : {}}>
+          <View className="bg-[rgba(9,13,22,0.80)] border border-[rgba(255,255,255,0.12)] rounded-2xl p-5 w-full max-w-[460px] gap-[14px]"
+            style={Platform.OS === 'web' ? { boxShadow: '0 18px 40px rgba(0,0,0,0.85)', backdropFilter: 'blur(20px) saturate(180%)', WebkitBackdropFilter: 'blur(20px) saturate(180%)' } as any : {}}>
+            <View className="flex-row justify-between items-center mb-[6px]">
+              <Text className="text-text font-body-bold text-[16px]">{editingStudent ? 'Edit Student' : 'Add New Student'}</Text>
+              <Pressable onPress={() => setModalVisible(false)} className="p-1">
                 <MaterialCommunityIcons name="close" size={16} color="#fff" />
               </Pressable>
             </View>
 
-            <View style={mst.field}>
-              <Text style={mst.label}>Full Name</Text>
-              <TextInput
-                style={mst.input}
-                placeholder="e.g. Rahul Sharma"
-                placeholderTextColor={CC.dim}
-                value={nameVal}
-                onChangeText={setNameVal}
-              />
+            <View className="flex-1 gap-[5px]">
+              <Text className="text-muted font-body-bold text-[10.5px] uppercase tracking-wider mb-[2px]">Full Name</Text>
+              <TextInput className="bg-[rgba(255,255,255,0.04)] border border-glass-border rounded-lg px-3 h-[38px] text-text font-body text-[12.5px]"
+                style={Platform.OS === 'web' ? { outlineStyle: 'none' } as any : {}}
+                placeholder="e.g. Rahul Sharma" placeholderTextColor={CC.dim} value={nameVal} onChangeText={setNameVal} />
             </View>
 
-            <View style={mst.field}>
-              <Text style={mst.label}>Email Address</Text>
-              <TextInput
-                style={mst.input}
-                placeholder="e.g. rahul@college.edu"
-                placeholderTextColor={CC.dim}
-                value={emailVal}
-                onChangeText={setEmailVal}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
+            <View className="flex-1 gap-[5px]">
+              <Text className="text-muted font-body-bold text-[10.5px] uppercase tracking-wider mb-[2px]">Email Address</Text>
+              <TextInput className="bg-[rgba(255,255,255,0.04)] border border-glass-border rounded-lg px-3 h-[38px] text-text font-body text-[12.5px]"
+                style={Platform.OS === 'web' ? { outlineStyle: 'none' } as any : {}}
+                placeholder="e.g. rahul@college.edu" placeholderTextColor={CC.dim} value={emailVal} onChangeText={setEmailVal}
+                keyboardType="email-address" autoCapitalize="none" />
             </View>
 
-            <View style={[mst.row, { zIndex: 10 }]}>
-              <View style={[mst.field, { zIndex: 10 }]}>
-                <SimpleSelect
-                  label="Department"
-                  value={deptVal}
-                  options={DEPTS}
-                  onChange={setDeptVal}
-                />
+            <View className="flex-row gap-[10px]">
+              <View className="flex-1 gap-[5px] z-[10]">
+                <SimpleSelect label="Department" value={deptVal} options={DEPTS} onChange={setDeptVal} />
               </View>
-              <View style={[mst.field, { zIndex: 9 }]}>
-                <SimpleSelect
-                  label="Year"
-                  value={yearVal}
-                  options={YEARS}
-                  onChange={setYearVal}
-                />
+              <View className="flex-1 gap-[5px] z-[9]">
+                <SimpleSelect label="Year" value={yearVal} options={YEARS} onChange={setYearVal} />
               </View>
             </View>
 
-            <View style={mst.row}>
-              <View style={mst.field}>
-                <Text style={mst.label}>CGPA</Text>
-                <TextInput
-                  style={mst.input}
-                  placeholder="e.g. 8.5"
-                  placeholderTextColor={CC.dim}
-                  value={cgpaVal}
-                  onChangeText={setCgpaVal}
-                  keyboardType="numeric"
-                />
+            <View className="flex-row gap-[10px]">
+              <View className="flex-1 gap-[5px]">
+                <Text className="text-muted font-body-bold text-[10.5px] uppercase tracking-wider mb-[2px]">CGPA</Text>
+                <TextInput className="bg-[rgba(255,255,255,0.04)] border border-glass-border rounded-lg px-3 h-[38px] text-text font-body text-[12.5px]"
+                  style={Platform.OS === 'web' ? { outlineStyle: 'none' } as any : {}}
+                  placeholder="e.g. 8.5" placeholderTextColor={CC.dim} value={cgpaVal} onChangeText={setCgpaVal} keyboardType="numeric" />
               </View>
-              <View style={mst.field}>
-                <Text style={mst.label}>Attendance %</Text>
-                <TextInput
-                  style={mst.input}
-                  placeholder="e.g. 85"
-                  placeholderTextColor={CC.dim}
-                  value={attendanceVal}
-                  onChangeText={setAttendanceVal}
-                  keyboardType="numeric"
-                />
+              <View className="flex-1 gap-[5px]">
+                <Text className="text-muted font-body-bold text-[10.5px] uppercase tracking-wider mb-[2px]">Attendance %</Text>
+                <TextInput className="bg-[rgba(255,255,255,0.04)] border border-glass-border rounded-lg px-3 h-[38px] text-text font-body text-[12.5px]"
+                  style={Platform.OS === 'web' ? { outlineStyle: 'none' } as any : {}}
+                  placeholder="e.g. 85" placeholderTextColor={CC.dim} value={attendanceVal} onChangeText={setAttendanceVal} keyboardType="numeric" />
               </View>
             </View>
 
-            <View style={mst.actions}>
-              <Pressable style={mst.cancelBtn} onPress={() => setModalVisible(false)}>
-                <Text style={{ color: CC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>Cancel</Text>
+            <View className="flex-row justify-end gap-[10px] mt-2">
+              <Pressable className="px-4 h-[38px] rounded-lg justify-center items-center border border-glass-border" onPress={() => setModalVisible(false)}>
+                <Text className="text-muted font-body-bold text-xs">Cancel</Text>
               </Pressable>
-              <Pressable style={mst.submitBtn} onPress={handleSaveStudent} disabled={submitting}>
-                <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>
+              <Pressable className="px-4 h-[38px] rounded-lg bg-violet justify-center items-center" onPress={handleSaveStudent} disabled={submitting}>
+                <Text className="text-text font-body-bold text-xs">
                   {submitting ? 'Saving…' : editingStudent ? 'Save Changes' : 'Add Student'}
                 </Text>
               </Pressable>
@@ -581,26 +468,27 @@ export function StudentsView() {
         </View>
       </Modal>
 
-      {/* Confirm Modal */}
       {confirmModal && confirmModal.visible && (
         <Modal transparent animationType="fade" visible={true} onRequestClose={() => setConfirmModal(null)}>
-          <View style={mst.overlay}>
-            <View style={[mst.modal, { maxWidth: 380, gap: 10 }]}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={mst.title}>{confirmModal.title}</Text>
+          <View className="flex-1 bg-[rgba(5,7,16,0.50)] justify-center items-center p-5"
+            style={Platform.OS === 'web' ? { backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' } as any : {}}>
+            <View className="bg-[rgba(9,13,22,0.80)] border border-[rgba(255,255,255,0.12)] rounded-2xl p-5 w-full max-w-[380px] gap-[10px]"
+              style={Platform.OS === 'web' ? { boxShadow: '0 18px 40px rgba(0,0,0,0.85)', backdropFilter: 'blur(20px) saturate(180%)', WebkitBackdropFilter: 'blur(20px) saturate(180%)' } as any : {}}>
+              <View className="flex-row justify-between items-center">
+                <Text className="text-text font-body-bold text-[16px]">{confirmModal.title}</Text>
                 <Pressable onPress={() => setConfirmModal(null)}>
                   <MaterialCommunityIcons name="close" size={20} color={CC.dim} />
                 </Pressable>
               </View>
-              <Text style={{ color: CC.muted, fontFamily: FONTS.med, fontSize: 13.5, marginBottom: 16, marginTop: 4, lineHeight: 20 }}>
+              <Text className="text-muted font-body text-[13.5px] mb-4 mt-1 leading-5">
                 {confirmModal.message}
               </Text>
-              <View style={mst.actions}>
-                <Pressable onPress={() => setConfirmModal(null)} style={mst.cancelBtn}>
-                  <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 }}>Cancel</Text>
+              <View className="flex-row justify-end gap-[10px]">
+                <Pressable onPress={() => setConfirmModal(null)} className="px-4 h-[38px] rounded-lg justify-center items-center border border-glass-border">
+                  <Text className="text-text font-body-bold text-[12.5px]">Cancel</Text>
                 </Pressable>
-                <Pressable onPress={confirmModal.onConfirm} style={[mst.submitBtn, { backgroundColor: confirmModal.actionColor || CC.primary }]}>
-                  <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 }}>{confirmModal.actionText}</Text>
+                <Pressable onPress={confirmModal.onConfirm} className="px-4 h-[38px] rounded-lg justify-center items-center" style={{ backgroundColor: confirmModal.actionColor || CC.primary }}>
+                  <Text className="text-text font-body-bold text-[12.5px]">{confirmModal.actionText}</Text>
                 </Pressable>
               </View>
             </View>
@@ -615,19 +503,16 @@ function FilterPills({ label, value, onChange, options }:
   { label: string; value: string; onChange: (v: string) => void;
     options: Filter[] }) {
   return (
-    <View style={{ gap: 4 }}>
-      <Text style={s.filterLabel}>{label}</Text>
+    <View className="gap-1">
+      <Text className="text-muted font-display-bold text-[9.5px] tracking-widest uppercase">{label}</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}
                   contentContainerStyle={{ gap: 4 }}>
         {options.map((o) => {
           const active = value === o.id;
           return (
             <Pressable key={o.id} onPress={() => onChange(o.id)}
-              style={[s.pill, active && {
-                backgroundColor: 'rgba(167,139,250,0.18)',
-                borderColor: 'rgba(167,139,250,0.50)' }]}>
-              <Text style={[s.pillText,
-                active && { color: '#C4B5FD' }]}>{o.label}</Text>
+              className={`px-[10px] py-[5px] rounded-full border ${active ? 'bg-[rgba(167,139,250,0.18)] border-[rgba(167,139,250,0.50)]' : 'bg-[rgba(255,255,255,0.04)] border-glass-border'}`}>
+              <Text className={`font-body-bold text-[11px] ${active ? 'text-[#C4B5FD]' : 'text-muted'}`}>{o.label}</Text>
             </Pressable>
           );
         })}
@@ -635,160 +520,3 @@ function FilterPills({ label, value, onChange, options }:
     </View>
   );
 }
-
-const s = StyleSheet.create({
-  toolRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
-  searchBox: { flexDirection: 'row', alignItems: 'center', gap: 8,
-    width: 280, height: 36, paddingHorizontal: 11, borderRadius: 10,
-    backgroundColor: CC.card, borderColor: CC.border, borderWidth: 1 },
-  searchInput: { flex: 1, color: '#fff', fontFamily: FONTS.med, fontSize: 12.5,
-    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
-  cta: { flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, height: 36, borderRadius: 10,
-    backgroundColor: CC.primary },
-  ctaText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
-  exportBtn: { flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 12, height: 36, borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: CC.border, borderWidth: 1 },
-  exportBtnText: { color: CC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
-  clearBtn: { flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 12, height: 36, borderRadius: 10,
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    borderColor: 'rgba(239, 68, 68, 0.3)', borderWidth: 1 },
-  clearBtnText: { color: '#EF4444', fontFamily: FONTS.bold, fontSize: 11.5 },
-  uploadBtn: { flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 12, height: 36, borderRadius: 10,
-    backgroundColor: '#3B82F6' },
-  uploadBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 11.5 },
-
-  filterRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 14 },
-  filterLabel: { color: CC.muted, fontFamily: FONTS.xbold,
-    fontSize: 9.5, letterSpacing: 1, textTransform: 'uppercase' },
-  pill: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: CC.border, borderWidth: 1 },
-  pillText: { color: CC.muted, fontFamily: FONTS.bold, fontSize: 11 },
-  totalText: { color: CC.muted, fontFamily: FONTS.bold, fontSize: 11.5,
-    alignSelf: 'flex-end' },
-
-  table: { borderRadius: 12, overflow: 'hidden',
-    borderColor: CC.border, borderWidth: 1 },
-  tableHead: { flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingVertical: 9, paddingHorizontal: 14,
-    borderBottomWidth: 1, borderBottomColor: CC.border,
-    backgroundColor: 'rgba(255,255,255,0.04)' },
-  th: { color: CC.muted, fontFamily: FONTS.xbold, fontSize: 10.5,
-    letterSpacing: 0.6 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingVertical: 11, paddingHorizontal: 14,
-    borderBottomWidth: 1, borderBottomColor: CC.border,
-    backgroundColor: CC.card },
-  cellName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
-  cellSub: { color: CC.dim, fontFamily: FONTS.med, fontSize: 10.5, marginTop: 1 },
-  cell: { color: CC.muted, fontFamily: FONTS.med, fontSize: 12 },
-  placedBox: { flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 5,
-    backgroundColor: 'rgba(16,185,129,0.10)',
-    borderColor: 'rgba(16,185,129,0.35)', borderWidth: 1 },
-  placedText: { color: '#86EFAC', fontFamily: FONTS.bold, fontSize: 10.5, flex: 1 },
-  unplaced: { color: CC.dim, fontFamily: FONTS.bold, fontSize: 11 },
-
-  emptyRow: { paddingVertical: 30, alignItems: 'center', gap: 8,
-    backgroundColor: CC.card },
-  emptyText: { color: CC.muted, fontFamily: FONTS.bold, fontSize: 12 },
-
-  pagination: { flexDirection: 'row', alignItems: 'center', gap: 14,
-    justifyContent: 'flex-end' },
-  pageBtn: { flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 12, height: 32, borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: CC.border, borderWidth: 1 },
-  pageBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 11.5 },
-  pageInfo: { color: CC.muted, fontFamily: FONTS.bold, fontSize: 12 },
-});
-
-const mst = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(5, 7, 16, 0.50)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-    ...(Platform.OS === 'web' ? ({
-      backdropFilter: 'blur(10px)',
-      WebkitBackdropFilter: 'blur(10px)',
-    } as any) : {}),
-  },
-  modal: {
-    backgroundColor: 'rgba(9, 13, 22, 0.80)',
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 20,
-    width: '100%',
-    maxWidth: 460,
-    gap: 14,
-    ...(Platform.OS === 'web' ? ({
-      boxShadow: '0 18px 40px rgba(0, 0, 0, 0.85)',
-      backdropFilter: 'blur(20px) saturate(180%)',
-      WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-    } as any) : {}),
-  },
-  title: {
-    color: '#fff',
-    fontFamily: FONTS.bold,
-    fontSize: 16,
-  },
-  row: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  field: {
-    flex: 1,
-    gap: 5,
-  },
-  label: {
-    color: CC.muted,
-    fontFamily: FONTS.bold,
-    fontSize: 10.5,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 2,
-  },
-  input: {
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    borderColor: CC.border,
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    height: 38,
-    color: '#fff',
-    fontFamily: FONTS.med,
-    fontSize: 12.5,
-    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
-  },
-  actions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 10,
-    marginTop: 8,
-  },
-  cancelBtn: {
-    paddingHorizontal: 16,
-    height: 38,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: CC.border,
-  },
-  submitBtn: {
-    paddingHorizontal: 16,
-    height: 38,
-    borderRadius: 8,
-    backgroundColor: CC.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-});

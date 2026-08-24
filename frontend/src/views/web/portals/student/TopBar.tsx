@@ -1,20 +1,9 @@
 // @ts-nocheck
 /**
- * Student Portal — top bar (Apple HIG migration, Slice 2A).
- *
- * Theme-aware via useTheme(). Now uses GlassTopbar primitive — gains a
- * blurred translucent overlay once the dashboard scrolls past 8px.
- *
- * New: theme toggle pill (sun/moon morph) on the right side. Single tap
- * cycles light → dark → system → light.
- *
- * Responsive heights handled by GlassTopbar (44 phone / 52 tablet+).
- *
- * Accepts optional `scrolled` prop from the portal shell so the glass
- * blur can react to scroll without re-rendering the whole tree.
+ * Student Portal — top bar. Migrated to NativeWind className.
  */
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, Platform, Image } from 'react-native';
+import { View, Text, TextInput, Pressable, Platform } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { Bell, Search } from './iconShims';
@@ -26,11 +15,12 @@ import { api } from '@/src/models/services/api';
 import { HelpMenu } from '@/src/views/web/help/HelpMenu';
 import { useTheme } from '@/src/theme/ThemeContext';
 import { useBreakpoint } from '@/src/theme/breakpoints';
-import { SP, RADII, FONT_FAMILY } from '@/src/theme/apple';
+import { SP, RADII } from '@/src/theme/apple';
 import { GlassTopbar } from '@/src/motion/apple/components';
 import { FadeInView, PressScale, PulseDot } from './motion';
 import { PALETTE, TYPO } from './tokens';
 import { StudentPortalNavContext } from './StudentPortalNavContext';
+import { trackClick, logger as analyticsLogger } from '@/src/analytics';
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -39,7 +29,7 @@ function greeting(): string {
   return 'Good evening';
 }
 
-import { Sidebar, StudentNavId, NAV } from './Sidebar';
+import { NAV } from './Sidebar';
 
 export function TopBar({
   scrolled = false,
@@ -59,16 +49,12 @@ export function TopBar({
   const portalNav = React.useContext(StudentPortalNavContext);
   const [q, setQ] = React.useState(portalNav?.searchQuery || '');
 
-  useEffect(() => {
-    setQ(portalNav?.searchQuery || '');
-  }, [portalNav?.searchQuery]);
+  useEffect(() => { setQ(portalNav?.searchQuery || ''); }, [portalNav?.searchQuery]);
 
   const handleSearch = () => {
     if (q.trim() && portalNav) {
       portalNav.setSearchQuery(q.trim());
-      if (activeView !== 'network' && activeView !== 'internships') {
-        portalNav.navigate('internships');
-      }
+      if (activeView !== 'network' && activeView !== 'internships') portalNav.navigate('internships');
     }
   };
 
@@ -78,27 +64,16 @@ export function TopBar({
   const photo: string | undefined = useAuthStore((s) => s.photoOverride) || user?.photo_data || user?.face_image_base64;
 
   const onAvatarPressHandler = () => {
-    if (onAvatarPress) {
-      onAvatarPress();
-    } else if (onNav) {
-      onNav('profile');
-    } else {
-      router.push('/(tabs)/profile');
-    }
+    if (onAvatarPress) onAvatarPress();
+    else if (portalNav) portalNav.navigate('profile');
+    else router.push('/(tabs)/profile');
   };
 
-  const cycleTheme = () => {
-    setMode(mode === 'light' ? 'dark' : mode === 'dark' ? 'system' : 'light');
-  };
+  const cycleTheme = () => { setMode(mode === 'light' ? 'dark' : mode === 'dark' ? 'system' : 'light'); };
   const [unreadCount, setUnreadCount] = useState(0);
 
-  useEffect(() => {
-    api.notifications()
-      .then(res => setUnreadCount(res.unread || 0))
-      .catch(console.error);
-  }, []);
+  useEffect(() => { api.notifications().then(res => setUnreadCount(res.unread || 0)).catch(console.error); }, []);
 
-  // Hide search box on tablets to save space; phones already hide sidebar
   const showSearch = bp.atLeast('lg');
 
   return (
@@ -107,19 +82,14 @@ export function TopBar({
       paddingHorizontal: bp.isPhone ? SP.base : SP.lg,
       backgroundColor: 'rgba(10,15,30,0.80)',
       borderBottomColor: PALETTE.glassBorder,
-      // @ts-expect-error web-only
-      backdropFilter: 'blur(20px) saturate(180%)',
-      WebkitBackdropFilter: 'blur(20px) saturate(160%)',
     } as any}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: SP.md, flex: 1 }}>
-        <FadeInView delay={20} style={{ flex: 1, minWidth: 0 }}>
-          <Text style={{ fontFamily: TYPO.display700, fontSize: bp.isPhone ? 16 : 18, color: PALETTE.text, letterSpacing: -0.5 }}>
-            {activeView === 'dashboard'
-              ? `${greeting()}, ${firstName} 👋`
-              : (NAV.find((n) => n.id === activeView)?.label || activeView)}
+      <View className="flex-row items-center flex-1" style={{ gap: SP.md }}>
+        <FadeInView delay={20} className="flex-1 min-w-0">
+          <Text className="font-display tracking-tight" style={{ fontSize: bp.isPhone ? 16 : 18, color: PALETTE.text }}>
+            {activeView === 'dashboard' ? `${greeting()}, ${firstName} 👋` : (NAV.find((n) => n.id === activeView)?.label || activeView)}
           </Text>
           {!bp.isPhone && activeView === 'dashboard' && (
-            <Text style={{ fontFamily: TYPO.body500, fontSize: 12, color: PALETTE.muted, marginTop: 2 }}>
+            <Text className="font-body text-xs mt-0.5" style={{ color: PALETTE.muted }}>
               Here's your personalised dashboard for today
             </Text>
           )}
@@ -127,16 +97,11 @@ export function TopBar({
 
         {showSearch && (
           <FadeInView delay={120}>
-            <View style={[s.searchBox, { backgroundColor: PALETTE.glassSoft, borderColor: PALETTE.glassBorder }]}>
+            <View className="flex-row items-center h-9 px-4 rounded-[10px] border" style={{ width: 240, backgroundColor: PALETTE.glassSoft, borderColor: PALETTE.glassBorder, gap: SP.sm }}>
               <Pressable
-                onPress={() => {
-                  trackClick('topbar_search_submit_icon', { query: q });
-                  analyticsLogger.debug('[TopBar DEBUG] Search icon clicked', { query: q });
-                  handleSearch();
-                }}
-                style={Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}}
+                onPress={() => { trackClick('topbar_search_submit_icon', { query: q }); handleSearch(); }}
+                style={Platform.OS === 'web' ? { cursor: 'pointer' } : undefined}
                 accessibilityLabel="Execute dashboard search"
-                accessibilityHint="Executes global search query across platform"
                 testID="topbar-search-submit-btn"
                 accessibilityRole="button"
               >
@@ -144,41 +109,27 @@ export function TopBar({
               </Pressable>
               <TextInput
                 value={q}
-                onChangeText={(text) => {
-                  setQ(text);
-                  analyticsLogger.debug('[TopBar DEBUG] Global search query typing', { query: text });
-                }}
-                onSubmitEditing={() => {
-                  trackClick('topbar_search_submit_enter', { query: q });
-                  handleSearch();
-                }}
+                onChangeText={(text) => { setQ(text); }}
+                onSubmitEditing={() => { trackClick('topbar_search_submit_enter', { query: q }); handleSearch(); }}
                 placeholder="Search anything…"
                 placeholderTextColor={PALETTE.dim}
-                style={[s.searchInput, { color: PALETTE.text, fontFamily: TYPO.body500 }]}
+                className="flex-1 font-body text-[13px]"
+                style={{ color: PALETTE.text, ...(Platform.OS === 'web' ? { outlineStyle: 'none' } : {}) }}
                 accessibilityLabel="Search the dashboard"
-                accessibilityHint="Type to find courses, mentors, jobs, deals, and more"
                 nativeID="topbar-global-search-input"
                 testID="topbar-global-search-input"
-                // @ts-ignore — RN-Web accepts these
-                aria-label="Search the dashboard"
               />
             </View>
           </FadeInView>
         )}
 
-        {/* Theme toggle — sun ↔ moon morph (Apple-style rotation + scale) */}
         <FadeInView delay={160}>
           <PressScale
-            style={[s.iconBtn, { backgroundColor: PALETTE.glassSoft, borderColor: PALETTE.glassBorder }]}
-            onPress={() => {
-              trackClick('topbar_theme_toggle', { mode });
-              analyticsLogger.debug('[TopBar DEBUG] Theme toggle clicked', { currentMode: mode });
-              cycleTheme();
-            }}
+            className="w-9 h-9 rounded-[10px] items-center justify-center border"
+            style={{ backgroundColor: PALETTE.glassSoft, borderColor: PALETTE.glassBorder, ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {}) }}
+            onPress={() => { trackClick('topbar_theme_toggle', { mode }); cycleTheme(); }}
             accessibilityLabel={`Theme: ${mode}. Tap to cycle.`}
-            accessibilityHint="Switches between light, dark, and automatic"
             testID="topbar-theme-toggle-btn"
-            accessibilityRole="button"
           >
             <ThemeMorphIcon mode={mode} color={PALETTE.text} />
           </PressScale>
@@ -186,21 +137,15 @@ export function TopBar({
 
         <FadeInView delay={180}>
           <PressScale
-            style={[s.iconBtn, { backgroundColor: PALETTE.glassSoft, borderColor: PALETTE.glassBorder }]}
-            onPress={() => {
-              trackClick('topbar_bell_notifications_click');
-              analyticsLogger.debug('[TopBar DEBUG] Bell notifications clicked');
-              if (onBellPress) onBellPress();
-              else router.push('/notifications');
-            }}
+            className="w-9 h-9 rounded-[10px] items-center justify-center border"
+            style={{ backgroundColor: PALETTE.glassSoft, borderColor: PALETTE.glassBorder, ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {}) }}
+            onPress={() => { trackClick('topbar_bell_notifications_click'); if (onBellPress) onBellPress(); else router.push('/notifications'); }}
             accessibilityLabel="Notifications"
-            accessibilityHint="Opens the notifications panel"
             testID="topbar-notifications-btn"
-            accessibilityRole="button"
           >
             <Bell size={16} color={PALETTE.violet} />
             {unreadCount > 0 && (
-              <View style={[s.bellDotWrap, { backgroundColor: PALETTE.bg1 }]}>
+              <View className="absolute top-[7px] right-[7px] rounded-[6px] p-[1.5px]" style={{ backgroundColor: PALETTE.bg1 }}>
                 <PulseDot size={7} color={PALETTE.rose} />
               </View>
             )}
@@ -209,15 +154,9 @@ export function TopBar({
 
         <FadeInView delay={200}>
           <PressScale
-            onPress={() => {
-              trackClick('topbar_avatar_profile_click');
-              analyticsLogger.debug('[TopBar DEBUG] Avatar profile clicked');
-              onAvatarPressHandler();
-            }}
+            onPress={() => { trackClick('topbar_avatar_profile_click'); onAvatarPressHandler(); }}
             accessibilityLabel="View Profile Settings"
-            accessibilityHint="Opens user profile and account settings"
             testID="topbar-user-avatar-btn"
-            accessibilityRole="button"
           >
             <Av initials={initials} size={36} color={theme.primary} photo={photo} />
           </PressScale>
@@ -229,35 +168,11 @@ export function TopBar({
   );
 }
 
-const s = StyleSheet.create({
-  searchBox: {
-    flexDirection: 'row', alignItems: 'center', gap: SP.sm,
-    width: 240, height: 36, paddingHorizontal: SP.md,
-    borderRadius: RADII.md, borderWidth: StyleSheet.hairlineWidth,
-    ...(Platform.OS === 'web' ? ({ transitionDuration: '180ms' } as any) : {}),
-  },
-  searchInput: { flex: 1, fontFamily: FONT_FAMILY, fontWeight: '500', fontSize: 13, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
-  iconBtn: {
-    width: 36, height: 36, borderRadius: RADII.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    alignItems: 'center', justifyContent: 'center',
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  bellDotWrap: {
-    position: 'absolute', top: 7, right: 7,
-    borderRadius: 6, padding: 1.5,
-  },
-});
-
-/* ─── ThemeMorphIcon — animated sun ↔ moon morph ──────────────────── */
 function ThemeMorphIcon({ mode, color }: { mode: 'light' | 'dark' | 'system'; color: string }) {
   const target = mode === 'light' ? 0 : mode === 'dark' ? 1 : 0.5;
   const v = useSharedValue(target);
-  useEffect(() => {
-    v.value = withSpring(target, { damping: 16, stiffness: 220 });
-  }, [target, v]);
+  useEffect(() => { v.value = withSpring(target, { damping: 16, stiffness: 220 }); }, [target, v]);
 
-  // Sun visible when v ≈ 0 (light), moon when v ≈ 1 (dark), both half-fade for system
   const aSun = useAnimatedStyle(() => ({
     opacity: 1 - v.value,
     transform: [{ rotate: `${v.value * -90}deg` }, { scale: 1 - v.value * 0.2 }],
@@ -268,11 +183,11 @@ function ThemeMorphIcon({ mode, color }: { mode: 'light' | 'dark' | 'system'; co
   }));
 
   return (
-    <View style={{ width: 16, height: 16, alignItems: 'center', justifyContent: 'center' }}>
-      <Animated.View style={[{ position: 'absolute' }, aSun]}>
+    <View className="w-4 h-4 items-center justify-center">
+      <Animated.View className="absolute" style={aSun}>
         <MaterialCommunityIcons name="weather-sunny" size={16} color={color} />
       </Animated.View>
-      <Animated.View style={[{ position: 'absolute' }, aMoon]}>
+      <Animated.View className="absolute" style={aMoon}>
         <MaterialCommunityIcons name="weather-night" size={16} color={color} />
       </Animated.View>
     </View>

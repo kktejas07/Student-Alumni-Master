@@ -2,7 +2,7 @@
  * Atoms — small reusable building blocks for the Mentor Portal RN port.
  */
 import React from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import { View, Text, Image } from 'react-native';
 import { Star } from 'lucide-react-native';
 import { MC, FONTS } from './tokens';
 
@@ -42,7 +42,7 @@ export type BadgeColor = keyof typeof BADGE_COLORS;
 export function Badge({ label, color = 'teal' }: { label: string; color?: BadgeColor }) {
   const p = BADGE_COLORS[color] || BADGE_COLORS.gray;
   return (
-    <View style={[styles.badge, { backgroundColor: p.bg, borderColor: p.bc }]}>
+    <View className="flex-row items-center px-[9px] py-[3px] rounded-[20px] border self-start" style={{ backgroundColor: p.bg, borderColor: p.bc }}>
       <Text style={{ color: p.c, fontFamily: FONTS.bold, fontSize: 11 }}>{label}</Text>
     </View>
   );
@@ -50,7 +50,7 @@ export function Badge({ label, color = 'teal' }: { label: string; color?: BadgeC
 
 export function StarRow({ rating, size = 13 }: { rating: number; size?: number }) {
   return (
-    <View style={{ flexDirection: 'row', gap: 2 }}>
+    <View className="flex-row gap-0.5">
       {[1, 2, 3, 4, 5].map((s) => (
         <Star
           key={s} size={size}
@@ -78,11 +78,8 @@ export function Countdown({ days }: { days: number }) {
   }
 
   return (
-    <View style={{
-      paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6,
-      backgroundColor: bg, borderColor: border, borderWidth: 1,
-    }}>
-      <Text style={{ color: c, fontFamily: FONTS.xbold, fontSize: 9.5 }}>
+    <View className="px-[7px] py-[3px] rounded-md border" style={{ backgroundColor: bg, borderColor: border }}>
+      <Text className="text-[9.5px] font-display-bold" style={{ color: c }}>
         {label}
       </Text>
     </View>
@@ -92,23 +89,24 @@ export function Countdown({ days }: { days: number }) {
 export function BarChart({ data }: { data: { month: string; amount: number }[] }) {
   const maxVal = Math.max(...data.map((d) => d.amount));
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, height: 100, paddingHorizontal: 4 }}>
+    <View className="flex-row items-end gap-2 h-[100px] px-1">
       {data.map((d, i) => {
         const isLast = i === data.length - 1;
         const h = Math.round((d.amount / maxVal) * 84);
         return (
-          <View key={d.month} style={{ flex: 1, alignItems: 'center', gap: 4 }}>
-            <Text style={{ fontSize: 10, fontFamily: FONTS.bold, color: isLast ? MC.amber : MC.dim }}>
+          <View key={d.month} className="flex-1 items-center gap-1">
+            <Text className="text-[10px] font-body-bold" style={{ color: isLast ? MC.amber : MC.dim }}>
               ₹{(d.amount / 1000).toFixed(0)}k
             </Text>
             <View
+              className="w-full rounded-t"
               style={{
-                width: '100%', height: h, borderTopLeftRadius: 4, borderTopRightRadius: 4,
+                height: h,
                 backgroundColor: isLast ? MC.amber : MC.teal,
                 opacity: isLast ? 1 : 0.55,
               }}
             />
-            <Text style={{ fontSize: 10, color: isLast ? '#fff' : MC.dim, fontFamily: isLast ? FONTS.bold : FONTS.med }}>
+            <Text className="text-[10px]" style={{ color: isLast ? '#fff' : MC.dim, fontFamily: isLast ? FONTS.bold : FONTS.med }}>
               {d.month}
             </Text>
           </View>
@@ -117,11 +115,3 @@ export function BarChart({ data }: { data: { month: string; amount: number }[] }
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  badge: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 9, paddingVertical: 3,
-    borderRadius: 20, borderWidth: 1, alignSelf: 'flex-start',
-  },
-});

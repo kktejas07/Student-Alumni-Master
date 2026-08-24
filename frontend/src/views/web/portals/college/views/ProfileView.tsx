@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, Text, Pressable, StyleSheet, useWindowDimensions } from 'react-native';
+import { View, Text, Pressable, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Award, MapPin, Globe, Phone, Mail, Building2 } from 'lucide-react-native';
-import { CC, FONTS } from '../tokens';
+import { CC } from '../tokens';
 import { Av, Badge } from '../atoms';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
@@ -21,46 +21,48 @@ export function ProfileView() {
   const email = user?.email || "admin@college.edu";
   
   return (
-    <View style={{ flexDirection: stack ? 'column' : 'row', gap: 16 }}>
-      <View style={{ flex: stack ? undefined : 1.5, gap: 12 }}>
-        <View style={s.card}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+    <View className={stack ? 'flex-col gap-4' : 'flex-row gap-4'}>
+      <View className={`${stack ? '' : 'flex-[1.5]'} gap-3`}>
+        <View className="bg-glass-soft border border-glass-border rounded-[14px] p-[18px]">
+          <View className="flex-row items-center gap-[14px]">
             <Av initials={initials} size={70} color={CC.primary} />
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={s.name}>{collegeName}</Text>
-              <View style={{ flexDirection: 'row', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+            <View className="flex-1 min-w-0">
+              <Text className="text-text font-display-bold text-[20px]">{collegeName}</Text>
+              <View className="flex-row gap-[6px] mt-2 flex-wrap">
                 <Badge label="Verified ✓" color="green" />
               </View>
             </View>
-            <Pressable style={s.editBtn}><Text style={{ color: CC.accentBright, fontFamily: FONTS.bold, fontSize: 12 }}>Edit</Text></Pressable>
+            <Pressable className="px-[14px] h-8 rounded-lg border border-glass-border bg-glass-soft items-center justify-center">
+              <Text className="text-teal font-body-bold text-xs">Edit</Text>
+            </Pressable>
           </View>
-          <View style={{ marginTop: 18, gap: 8 }}>
+          <View className="mt-[18px] gap-2">
             <Row Icon={MapPin}    label="Location"  value={location} />
             <Row Icon={Mail}      label="Email"     value={email} />
             <Row Icon={Building2} label="Affiliation" value={affiliation} />
           </View>
         </View>
-        <View style={s.card}>
-          <Text style={s.cardTitle}>Accreditations</Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 12 }}>
+        <View className="bg-glass-soft border border-glass-border rounded-[14px] p-[18px]">
+          <Text className="text-text font-display-bold text-[14px]">Accreditations</Text>
+          <View className="flex-row flex-wrap gap-[10px] mt-3">
             {[{ l:'AICTE',c:'#A78BFA' }, { l:'Autonomous',c:'#22C55E' }].map((x) => (
-              <View key={x.l} style={[s.accBox, { borderColor: x.c + '60' }]}>
+              <View key={x.l} className="w-[110px] items-center p-3 rounded-xl border bg-glass-soft gap-[6px]" style={{ borderColor: x.c + '60' }}>
                 <Award size={20} color={x.c} />
-                <Text style={s.accLabel}>{x.l}</Text>
+                <Text className="text-text font-body-bold text-[10.5px] text-center">{x.l}</Text>
               </View>
             ))}
           </View>
         </View>
       </View>
-      <View style={{ width: stack ? '100%' : 320 }}>
-        <LinearGradient colors={[CC.primary, CC.primaryD] as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.idCard}>
-          <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 1 }}>ADMIN PORTAL · DIGITAL ID</Text>
+      <View className={stack ? 'w-full' : 'w-[320px]'}>
+        <LinearGradient colors={[CC.primary, CC.primaryD] as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} className="rounded-[18px] p-[22px] items-start">
+          <Text className="text-text font-display-bold text-[10px] tracking-widest">ADMIN PORTAL · DIGITAL ID</Text>
           <Av initials={initials} size={56} color="#fff" />
-          <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 18, marginTop: 10 }}>{collegeName}</Text>
-          <Text style={{ color: CC.accentBright, fontFamily: FONTS.bold, fontSize: 11.5, marginTop: 2 }}>Admin Code: ADM-2026</Text>
-          <View style={s.idStats}>
-            <Stat label="Students" value={studentsCount} /><View style={s.divider} />
-            <Stat label="Alumni"   value="—" /><View style={s.divider} />
+          <Text className="text-text font-display-bold text-[18px] mt-[10px]">{collegeName}</Text>
+          <Text className="text-teal font-body-bold text-[11.5px] mt-[2px]">Admin Code: ADM-2026</Text>
+          <View className="flex-row items-center self-stretch mt-[14px] py-[10px] border-t border-b border-[rgba(255,255,255,0.20)]">
+            <Stat label="Students" value={studentsCount} /><View className="w-px h-6 bg-[rgba(255,255,255,0.20)]" />
+            <Stat label="Alumni"   value="—" /><View className="w-px h-6 bg-[rgba(255,255,255,0.20)]" />
             <Stat label="Placement" value="—" />
           </View>
         </LinearGradient>
@@ -70,27 +72,15 @@ export function ProfileView() {
 }
 function Row({ Icon, label, value }: any) {
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-      <View style={s.rowIcon}><Icon size={13} color={CC.accentBright} /></View>
-      <Text style={s.rowLabel}>{label}</Text>
-      <Text numberOfLines={1} style={s.rowValue}>{value}</Text>
+    <View className="flex-row items-center gap-[10px]">
+      <View className="w-[26px] h-[26px] rounded-lg bg-[rgba(99,102,241,0.10)] items-center justify-center">
+        <Icon size={13} color={CC.accentBright} />
+      </View>
+      <Text className="text-muted font-body-bold text-[11px] w-[90px]">{label}</Text>
+      <Text numberOfLines={1} className="text-text font-body text-[12.5px] flex-1">{value}</Text>
     </View>
   );
 }
 function Stat({ label, value }: any) {
-  return (<View style={{ flex: 1, alignItems: 'center' }}><Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 }}>{value}</Text><Text style={{ color: 'rgba(255,255,255,0.7)', fontFamily: FONTS.bold, fontSize: 9.5, letterSpacing: 0.6, marginTop: 2 }}>{label}</Text></View>);
+  return (<View className="flex-1 items-center"><Text className="text-text font-display-bold text-[16px]">{value}</Text><Text className="text-[rgba(255,255,255,0.7)] font-body-bold text-[9.5px] tracking-widest mt-[2px]">{label}</Text></View>);
 }
-const s = StyleSheet.create({
-  card: { backgroundColor: CC.card, borderColor: CC.border, borderWidth: 1, borderRadius: 14, padding: 18 },
-  cardTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 },
-  name: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 20 },
-  editBtn: { paddingHorizontal: 14, height: 32, borderRadius: 8, borderWidth: 1, borderColor: CC.border2, backgroundColor: CC.card, alignItems: 'center', justifyContent: 'center' },
-  rowIcon: { width: 26, height: 26, borderRadius: 8, backgroundColor: 'rgba(99,102,241,0.10)', alignItems: 'center', justifyContent: 'center' },
-  rowLabel: { color: CC.muted, fontFamily: FONTS.bold, fontSize: 11, width: 90 },
-  rowValue: { color: '#fff', fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
-  accBox: { width: 110, alignItems: 'center', padding: 12, borderRadius: 12, borderWidth: 1, backgroundColor: CC.card, gap: 6 },
-  accLabel: { color: '#fff', fontFamily: FONTS.bold, fontSize: 10.5, textAlign: 'center' },
-  idCard: { borderRadius: 18, padding: 22, alignItems: 'flex-start' },
-  idStats: { flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch', marginTop: 14, paddingVertical: 10, borderTopWidth: 1, borderBottomWidth: 1, borderColor: 'rgba(255,255,255,0.20)' },
-  divider: { width: 1, height: 24, backgroundColor: 'rgba(255,255,255,0.20)' },
-});

@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable } from 'react-native';
 import { Calendar as CalIcon, Plus } from 'lucide-react-native';
-import { CC, FONTS } from '../tokens';
+import { CC } from '../tokens';
 import { Badge } from '../atoms';
 import { usePortalData } from '@/src/lib/portalApi';
 import { useRouter } from 'expo-router';
@@ -30,23 +30,25 @@ export function EventsView({ onNavigate }: { onNavigate?: (id: any) => void }) {
   const events = data?.items || [];
   return (
     <View>
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
-        <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 }}>All Events ({events.length})</Text>
-        <View style={{ flex: 1 }} />
-        <Pressable style={s.cta} onPress={() => onNavigate?.('create-event')}>
+      <View className="flex-row items-center mb-[14px]">
+        <Text className="text-text font-display-bold text-[16px]">All Events ({events.length})</Text>
+        <View className="flex-1" />
+        <Pressable className="flex-row gap-[6px] items-center px-[14px] h-[34px] rounded-[10px] bg-violet" onPress={() => onNavigate?.('create-event')}>
           <Plus size={14} color="#fff" />
-          <Text style={s.ctaText}>Create Event</Text>
+          <Text className="text-text font-display-bold text-xs">Create Event</Text>
         </Pressable>
       </View>
-      <View style={s.grid}>
+      <View className="flex-row flex-wrap gap-3">
         {events.map((e) => (
-          <View key={e.id} style={[s.card, { flexGrow: 1, flexBasis: 300, maxWidth: 360 }]}>
-            <View style={[s.icon, { backgroundColor: e.accent + '20', borderColor: e.accent + '40' }]}><CalIcon size={20} color={e.accent} /></View>
-            <Text numberOfLines={2} style={s.title}>{e.title}</Text>
-            <Text style={s.date}>{e.date} · {e.mode}</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 }}><Badge label={`${e.attending} attending`} color="cyan" /></View>
+          <View key={e.id} className="bg-glass-soft border border-glass-border rounded-[14px] p-4" style={{ flexGrow: 1, flexBasis: 300, maxWidth: 360 }}>
+            <View className="w-10 h-10 rounded-[10px] border items-center justify-center mb-3" style={{ backgroundColor: e.accent + '20', borderColor: e.accent + '40' }}>
+              <CalIcon size={20} color={e.accent} />
+            </View>
+            <Text numberOfLines={2} className="text-text font-body-bold text-[14px] leading-[18px]">{e.title}</Text>
+            <Text className="text-muted font-body text-[11.5px] mt-1">{e.date} · {e.mode}</Text>
+            <View className="flex-row items-center gap-[6px] mt-2"><Badge label={`${e.attending} attending`} color="cyan" /></View>
             <Pressable
-              style={s.manage}
+              className="mt-3 h-8 rounded-lg bg-glass-soft border border-glass-border items-center justify-center"
               onPress={() => router.push({
                 pathname: `/manage-event/${e.id}` as any,
                 params: {
@@ -64,7 +66,7 @@ export function EventsView({ onNavigate }: { onNavigate?: (id: any) => void }) {
                 }
               })}
             >
-              <Text style={s.manageText}>Manage →</Text>
+              <Text className="text-teal font-body-bold text-xs">Manage →</Text>
             </Pressable>
           </View>
         ))}
@@ -72,14 +74,3 @@ export function EventsView({ onNavigate }: { onNavigate?: (id: any) => void }) {
     </View>
   );
 }
-const s = StyleSheet.create({
-  cta: { flexDirection: 'row', gap: 6, alignItems: 'center', paddingHorizontal: 14, height: 34, borderRadius: 10, backgroundColor: CC.primary },
-  ctaText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  card: { backgroundColor: CC.card, borderColor: CC.border, borderWidth: 1, borderRadius: 14, padding: 16 },
-  icon: { width: 40, height: 40, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  title: { color: '#fff', fontFamily: FONTS.bold, fontSize: 14, lineHeight: 18 },
-  date: { color: CC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 4 },
-  manage: { marginTop: 12, height: 32, borderRadius: 8, backgroundColor: CC.card, borderWidth: 1, borderColor: CC.border2, alignItems: 'center', justifyContent: 'center' },
-  manageText: { color: CC.accentBright, fontFamily: FONTS.bold, fontSize: 12 },
-});

@@ -12,7 +12,7 @@
  *   • "Review & approve" → patches start_date to "now+1 day" + reloads
  */
 import React, { useMemo, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, Platform, useWindowDimensions, Modal, TextInput, ScrollView } from 'react-native';
+import { View, Text, Pressable, Platform, useWindowDimensions, Modal, TextInput, ScrollView } from 'react-native';
 import { Calendar as CalIcon, MapPin, Users as UsersIcon, ShieldCheck, AlertTriangle, IndianRupee, Sparkles, Plus, X, Trash2 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SAC, FONTS } from '../tokens';
@@ -409,55 +409,55 @@ export function EventsView({ sub, onSub }: { sub?: string; onSub?: (s: string) =
   );
 }
 
-const st = StyleSheet.create({
-  headRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+const st = {
+  headRow: { flexDirection: 'row' as const, alignItems: 'flex-start' as const, gap: 12 },
   title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 },
   sub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 760 },
   btnText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
   secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
   muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
 
-  kpiRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
-  browseHead: { flexDirection: 'row', alignItems: 'center', gap: 12, justifyContent: 'space-between', flexWrap: 'wrap' },
+  kpiRow: { flexDirection: 'row' as const, gap: 12, flexWrap: 'wrap' as const },
+  browseHead: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12, justifyContent: 'space-between' as const, flexWrap: 'wrap' as const },
 
   grid: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: 14,
+    flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 14,
   },
   card: {
     flexGrow: 1, flexBasis: 300, maxWidth: 360,
-    backgroundColor: '#1A0F05', borderColor: 'rgba(251,146,60,0.18)', borderWidth: 1, borderRadius: 16, overflow: 'hidden',
+    backgroundColor: '#1A0F05', borderColor: 'rgba(251,146,60,0.18)', borderWidth: 1, borderRadius: 16, overflow: 'hidden' as const,
     ...(Platform.OS === 'web' ? ({ boxShadow: '0 6px 24px rgba(0,0,0,0.45)' } as any) : {}),
   },
-  cover: { height: 96, borderBottomWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  cover: { height: 96, borderBottomWidth: 1, alignItems: 'center' as const, justifyContent: 'center' as const },
   cTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 14.5, lineHeight: 18 },
   meta: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
   dot: { color: SAC.dim, fontSize: 11 },
-  barTrack: { height: 5, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.06)', overflow: 'hidden', marginTop: 2 },
-  barFill: { height: '100%', borderRadius: 3 },
+  barTrack: { height: 5, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.06)', overflow: 'hidden' as const, marginTop: 2 },
+  barFill: { height: '100%' as any, borderRadius: 3 },
 
-  modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', alignItems: 'center', justifyContent: 'center', padding: 20 },
-  modalCard: { width: '100%', maxWidth: 560, maxHeight: '92%', backgroundColor: SAC.bg2, borderRadius: 16, borderWidth: 1, borderColor: SAC.border2, overflow: 'hidden' },
-  modalHero: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, borderBottomWidth: 1, borderBottomColor: SAC.border },
+  modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', alignItems: 'center' as const, justifyContent: 'center' as const, padding: 20 },
+  modalCard: { width: '100%', maxWidth: 560, maxHeight: '92%', backgroundColor: SAC.bg2, borderRadius: 16, borderWidth: 1, borderColor: SAC.border2, overflow: 'hidden' as const },
+  modalHero: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12, padding: 18, borderBottomWidth: 1, borderBottomColor: SAC.border },
   modalTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
   input: { flex: 1, color: '#fff', fontFamily: FONTS.med, fontSize: 13, backgroundColor: SAC.cardSolid, borderRadius: 9, borderWidth: 1, borderColor: SAC.border, paddingHorizontal: 12, paddingVertical: 10 },
-  detailRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  detailRow: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 10 },
   detailLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5, width: 100 },
   detailValue: { color: '#fff', fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
-  actionsRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
-});
+  actionsRow: { flexDirection: 'row' as const, justifyContent: 'flex-end' as const, gap: 8 },
+};
 
-const mst = StyleSheet.create({
-  bg: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  bgPress: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(0,0,0,0.55)' },
+const mst = {
+  bg: { flex: 1, alignItems: 'center' as const, justifyContent: 'center' as const, padding: 24 },
+  bgPress: { position: 'absolute' as const, top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(0,0,0,0.55)' },
   card: {
     width: '100%', maxWidth: 620,
     backgroundColor: '#1A0F05', borderColor: 'rgba(251,146,60,0.20)', borderWidth: 1, borderRadius: 16,
     ...(Platform.OS === 'web' ? ({ boxShadow: '0 24px 60px rgba(0,0,0,0.5)' } as any) : {}),
   },
-  head: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
+  head: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12, padding: 16, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
   title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
   sub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
-  closeBtn: { width: 30, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center',
+  closeBtn: { width: 30, height: 30, borderRadius: 8, alignItems: 'center' as const, justifyContent: 'center' as const,
               backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
   label: { color: SAC.muted, fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 1.4 },
   input: {
@@ -466,20 +466,20 @@ const mst = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
   },
   err: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
+    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 6,
     backgroundColor: 'rgba(239,68,68,0.10)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.30)',
     paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8,
   },
-  foot: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)' },
+  foot: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 8, padding: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)' },
   delBtn: {
-    flexDirection: 'row', gap: 6, alignItems: 'center',
+    flexDirection: 'row' as const, gap: 6, alignItems: 'center' as const,
     paddingHorizontal: 12, height: 32, borderRadius: 9,
     backgroundColor: 'rgba(239,68,68,0.08)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.28)',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   segBtn: {
-    paddingHorizontal: 11, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: 11, height: 30, borderRadius: 8, alignItems: 'center' as const, justifyContent: 'center' as const,
     backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
   },
   segOn: { backgroundColor: GRAD.to, borderColor: GRAD.from },
-});
+};

@@ -14,7 +14,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  View, Text, Pressable, StyleSheet, TextInput, Platform, Image, ActivityIndicator,
+  View, Text, Pressable, TextInput, Platform, Image, ActivityIndicator,
 } from 'react-native';
 import {
   Mail, Send, RefreshCw, Calendar, AlertTriangle, Check, Users, Megaphone,
@@ -1321,14 +1321,14 @@ function StatPill({ icon: Icon, label, kind = 'success' }: { icon: any; label: s
   );
 }
 
-const st = StyleSheet.create({
-  headRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+const st = {
+  headRow: { flexDirection: 'row' as const, alignItems: 'flex-start' as const, gap: 12 },
   title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 },
   sub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 720 },
   secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
   muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
-  kpiRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
-  cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  kpiRow: { flexDirection: 'row' as const, gap: 12, flexWrap: 'wrap' as const },
+  cardHead: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const },
   label: { color: SAC.muted, fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 0.5, marginBottom: 4 },
   hint: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11, marginBottom: 4, lineHeight: 15 },
   input: {
@@ -1337,34 +1337,34 @@ const st = StyleSheet.create({
     borderWidth: 1, borderColor: SAC.border,
   },
   checkRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
+    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 10,
     padding: 10, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1, borderColor: SAC.border,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   checkbox: {
     width: 20, height: 20, borderRadius: 6, borderWidth: 1.5, borderColor: SAC.muted,
-    alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center' as const, justifyContent: 'center' as const,
   },
   checkboxOn: { backgroundColor: GRAD.from, borderColor: GRAD.from },
   checkLabel: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
   checkSub: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11, marginTop: 1 },
   btnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5, marginLeft: 6 },
   confirmBox: {
-    flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 10,
+    flexDirection: 'row' as const, alignItems: 'flex-start' as const, gap: 8, marginTop: 10,
     padding: 10, borderRadius: 10, backgroundColor: 'rgba(252,211,77,0.08)',
     borderWidth: 1, borderColor: 'rgba(252,211,77,0.25)',
   },
   confirmText: { color: '#FDE68A', fontFamily: FONTS.med, fontSize: 11.5, lineHeight: 16, flex: 1 },
   editBanner: {
-    flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12,
+    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 10, marginTop: 12,
     padding: 12, borderRadius: 10, backgroundColor: 'rgba(124,58,237,0.10)',
     borderWidth: 1, borderColor: 'rgba(124,58,237,0.35)',
   },
   editBannerTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
   editBannerSub: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11, marginTop: 1, lineHeight: 15 },
   editBannerCancel: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
+    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 4,
     paddingHorizontal: 9, paddingVertical: 5, borderRadius: 7,
     borderWidth: 1, borderColor: SAC.border, backgroundColor: 'rgba(255,255,255,0.04)',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
@@ -1372,56 +1372,53 @@ const st = StyleSheet.create({
   editBannerCancelText: { color: '#94a3b8', fontFamily: FONTS.bold, fontSize: 10.5 },
   previewFrame: {
     marginTop: 12, backgroundColor: '#f3f4f6', borderRadius: 12, padding: 14,
-    maxHeight: 620, overflow: 'hidden',
+    maxHeight: 620, overflow: 'hidden' as const,
   },
   campRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
+    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 10,
     paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: SAC.border,
   },
   campTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
   campMeta: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 10.5, marginTop: 1 },
-  // Tabs
-  tabRow: { flexDirection: 'row', gap: 8, marginBottom: 14 },
+  tabRow: { flexDirection: 'row' as const, gap: 8, marginBottom: 14 },
   tab: {
-    flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8,
+    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 6, paddingHorizontal: 14, paddingVertical: 8,
     borderRadius: 8, borderWidth: 1, borderColor: SAC.border, backgroundColor: 'transparent',
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
   },
   tabActive: { backgroundColor: GRAD.from, borderColor: GRAD.from },
   tabText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
   tabTextActive: { color: '#fff' },
-  // Channel toggles
   channelSection: { marginTop: 4 },
   channelLabel: { color: SAC.muted, fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 0.5, marginBottom: 6 },
-  channelRow: { flexDirection: 'row', gap: 8 },
+  channelRow: { flexDirection: 'row' as const, gap: 8 },
   channelPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8,
+    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 6, paddingHorizontal: 12, paddingVertical: 8,
     borderRadius: 8, borderWidth: 1, borderColor: SAC.border, backgroundColor: 'transparent',
     ...(Platform.OS === 'web' ? { cursor: 'pointer', transitionDuration: '160ms' } as any : {}),
   },
   channelPillActive: { backgroundColor: 'rgba(124,58,237,0.2)', borderColor: '#7C3AED' },
   channelPillText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
   channelPillTextActive: { color: '#fff' },
-  // User search
-  searchWrap: { position: 'relative' },
-  searchIcon: { position: 'absolute', left: 12, top: 13, zIndex: 1 },
+  searchWrap: { position: 'relative' as const },
+  searchIcon: { position: 'absolute' as const, left: 12, top: 13, zIndex: 1 },
   searchResults: {
     backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 10,
-    maxHeight: 180, overflow: 'hidden',
+    maxHeight: 180, overflow: 'hidden' as const,
   },
   searchResultItem: {
-    flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 10,
+    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 10, paddingHorizontal: 12, paddingVertical: 10,
     borderBottomWidth: 1, borderBottomColor: SAC.border,
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
   },
   searchResultName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
   searchResultEmail: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11, marginTop: 1 },
-  searchResultRole: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 10, textTransform: 'capitalize' },
+  searchResultRole: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 10, textTransform: 'capitalize' as const },
   selectedUser: {
-    flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 10,
+    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 10, padding: 12, borderRadius: 10,
     backgroundColor: 'rgba(124,58,237,0.08)', borderWidth: 1, borderColor: 'rgba(124,58,237,0.25)',
   },
   selectedUserName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13 },
   selectedUserEmail: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },
   selectedUserClear: { color: '#7C3AED', fontFamily: FONTS.bold, fontSize: 12 },
-});
+};

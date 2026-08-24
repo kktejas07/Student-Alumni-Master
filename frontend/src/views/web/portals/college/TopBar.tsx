@@ -1,11 +1,8 @@
-/**
- * College Admin Portal — top bar.
- */
 import React, { useEffect, useState } from 'react';
-import { View, Text, Pressable, TextInput, StyleSheet, Platform } from 'react-native';
+import { View, Text, Pressable, TextInput, Platform } from 'react-native';
 import { Search, Bell, Calendar as CalIcon, Inbox, Plus } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import { CC, FONTS } from './tokens';
+import { CC } from './tokens';
 import { HelpMenu } from '@/src/views/web/help/HelpMenu';
 import { Av } from './atoms';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
@@ -39,47 +36,51 @@ export function TopBar({
     }).catch(() => {});
   }, []);
   return (
-    <View style={s.bar}>
-      <Text style={s.title}>{title}</Text>
+    <View className="flex-row items-center gap-[10px] px-[22px] py-3 border-b border-glass-border bg-bg2 relative z-10">
+      <Text className="text-text font-display-bold text-[17px] tracking-tight">{title}</Text>
 
-      <View style={{ flex: 1 }} />
+      <View className="flex-1" />
 
-      <View style={s.searchBox}>
+      <View className="flex-row items-center gap-2 w-[220px] h-[34px] px-[11px] rounded-[10px] bg-glass-soft border border-glass-border">
         <Search size={14} color={CC.dim} />
-        <TextInput placeholder="Search…" placeholderTextColor={CC.dim} style={s.searchInput} />
+        <TextInput placeholder="Search…" placeholderTextColor={CC.dim}
+          className="flex-1 text-text font-body text-xs"
+          style={Platform.OS === 'web' ? { outlineStyle: 'none' } as any : {}} />
       </View>
 
       {onAddPress && (
-        <Pressable onPress={onAddPress} style={s.addCta}>
-          <View style={s.addCtaInner}>
+        <Pressable onPress={onAddPress} className="rounded-[10px] overflow-hidden"
+          style={Platform.OS === 'web' ? { cursor: 'pointer', transitionDuration: '160ms', boxShadow: '0px 4px 14px rgba(99,102,241,0.40)' } as any : {}}>
+          <View className="flex-row items-center gap-[6px] px-[14px] h-[34px]">
             <Plus size={14} color="#fff" />
-            <Text style={s.addCtaText}>Add</Text>
+            <Text className="text-text font-display-bold text-xs tracking-wider">Add</Text>
           </View>
         </Pressable>
       )}
 
       <Pressable
         onPress={onCalendarPress || (() => {})}
-        style={({ hovered }: any) => [s.iconBtn, hovered && { backgroundColor: CC.cardH }]}
-      >
+        className="w-[34px] h-[34px] rounded-[10px] bg-glass-soft border border-glass-border items-center justify-center relative"
+        style={Platform.OS === 'web' ? { cursor: 'pointer', transitionDuration: '160ms' } as any : {}}>
         <CalIcon size={16} color={CC.muted} />
       </Pressable>
 
       <Pressable
         onPress={onNotificationsPress || (() => router.push('/notifications'))}
-        style={({ hovered }: any) => [s.iconBtn, hovered && { backgroundColor: CC.cardH }]}
-      >
+        className="w-[34px] h-[34px] rounded-[10px] bg-glass-soft border border-glass-border items-center justify-center relative"
+        style={Platform.OS === 'web' ? { cursor: 'pointer', transitionDuration: '160ms' } as any : {}}>
         <Bell size={16} color={CC.muted} />
         {unreadCount > 0 && (
-          <View style={[s.numPill, { backgroundColor: '#EF4444' }]}><Text style={s.numText}>{unreadCount}</Text></View>
+          <View className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full items-center justify-center border-[1.5px] border-bg2" style={{ backgroundColor: '#EF4444' }}>
+            <Text className="text-text font-display-bold text-[9px]">{unreadCount}</Text>
+          </View>
         )}
       </Pressable>
 
 
       <Pressable
         onPress={onProfilePress}
-        style={Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}}
-      >
+        style={Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}}>
         <Av initials={initials} size={34} color="#6366F1" photo={photo} />
       </Pressable>
 
@@ -87,32 +88,3 @@ export function TopBar({
     </View>
   );
 }
-
-const s = StyleSheet.create({
-  bar: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingHorizontal: 22, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: CC.border,
-    backgroundColor: CC.bg2,
-    position: 'relative', zIndex: 10,
-  },
-  title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 17, letterSpacing: -0.4 },
-  searchBox: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    width: 220, height: 34, paddingHorizontal: 11,
-    borderRadius: 10, backgroundColor: CC.card, borderColor: CC.border, borderWidth: 1,
-  },
-  searchInput: { flex: 1, color: '#fff', fontFamily: FONTS.med, fontSize: 12, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
-  iconBtn: {
-    width: 34, height: 34, borderRadius: 10, backgroundColor: CC.card,
-    borderColor: CC.border, borderWidth: 1, alignItems: 'center', justifyContent: 'center',
-    position: 'relative',
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}),
-  },
-  numPill: { position: 'absolute', top: -4, right: -4, minWidth: 16, height: 16, paddingHorizontal: 4, borderRadius: 8, backgroundColor: CC.accent, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: CC.bg2 },
-  numText: { color: '#1E1B4B', fontFamily: FONTS.xbold, fontSize: 9 },
-
-  addCta: { borderRadius: 10, overflow: 'hidden', ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms', boxShadow: '0px 4px 14px rgba(99,102,241,0.40)' } as any) : {}) },
-  addCtaInner: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 34 },
-  addCtaText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12, letterSpacing: 0.2 },
-});

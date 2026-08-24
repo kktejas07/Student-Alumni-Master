@@ -1,0 +1,128 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Student Alumni — Unified Theme Variables
+ * ========================================
+ * Single source of truth for all visual properties.
+ * Light/dark mode via prefers-color-scheme media query.
+ * Role accents via CSS custom properties.
+ */
+
+:root {
+  /* ── Dark Mode (Default) ─────────────────────────────────── */
+  --sa-bg: #0a0f1e;
+  --sa-bg-elevated: #0E1428;
+  --sa-bg-inset: #07070A;
+  --sa-bg-glass: rgba(14, 14, 18, 0.72);
+
+  --sa-text-primary: #F8FAFC;
+  --sa-text-secondary: rgba(255, 255, 255, 0.70);
+  --sa-text-muted: rgba(255, 255, 255, 0.50);
+  --sa-text-faint: rgba(255, 255, 255, 0.30);
+
+  --sa-border: rgba(255, 255, 255, 0.08);
+  --sa-border-subtle: rgba(255, 255, 255, 0.04);
+  --sa-border-strong: rgba(255, 255, 255, 0.14);
+
+  /* ── Role Accents (same in light/dark — brand identity) ──── */
+  --sa-student: #7C3AED;
+  --sa-alumni: #FB923C;
+  --sa-mentor: #F59E0B;
+  --sa-college: #3B82F6;
+  --sa-admin: #F59E0B;
+
+  /* ── Glass surfaces ──────────────────────────────────────── */
+  --sa-glass-subtle: rgba(255, 255, 255, 0.04);
+  --sa-glass-light: rgba(255, 255, 255, 0.06);
+  --sa-glass-medium: rgba(255, 255, 255, 0.08);
+  --sa-glass-strong: rgba(255, 255, 255, 0.12);
+
+  /* ── Shadows ─────────────────────────────────────────────── */
+  --sa-shadow-card: 0 4px 24px rgba(0, 0, 0, 0.25), 0 1px 0 rgba(255, 255, 255, 0.06) inset;
+  --sa-shadow-elevated: 0 8px 40px rgba(0, 0, 0, 0.35), 0 1px 0 rgba(255, 255, 255, 0.08) inset;
+
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    /* ── Light Mode ────────────────────────────────────────── */
+    --sa-bg: #F5F5F7;
+    --sa-bg-elevated: #FFFFFF;
+    --sa-bg-inset: #EBEBEF;
+    --sa-bg-glass: rgba(255, 255, 255, 0.72);
+
+    --sa-text-primary: #1D1D1F;
+    --sa-text-secondary: #6E6E73;
+    --sa-text-muted: #8E8E93;
+    --sa-text-faint: #C7C7CC;
+
+    --sa-border: rgba(0, 0, 0, 0.08);
+    --sa-border-subtle: rgba(0, 0, 0, 0.04);
+    --sa-border-strong: rgba(0, 0, 0, 0.16);
+
+    /* ── Glass surfaces (light) ─────────────────────────────── */
+    --sa-glass-subtle: rgba(0, 0, 0, 0.03);
+    --sa-glass-light: rgba(0, 0, 0, 0.05);
+    --sa-glass-medium: rgba(0, 0, 0, 0.08);
+    --sa-glass-strong: rgba(0, 0, 0, 0.12);
+
+    /* ── Shadows (light) ────────────────────────────────────── */
+    --sa-shadow-card: 0 2px 12px rgba(0, 0, 0, 0.08), 0 1px 0 rgba(255, 255, 255, 0.8) inset;
+    --sa-shadow-elevated: 0 8px 32px rgba(0, 0, 0, 0.12), 0 1px 0 rgba(255, 255, 255, 0.9) inset;
+
+    color-scheme: light;
+  }
+}
+
+/*
+ * ── Utility Classes ─────────────────────────────────────────
+ * Pre-built component patterns for common UI elements.
+ */
+@layer components {
+  .sa-card {
+    @apply bg-elevated rounded-card p-md border border-border;
+    box-shadow: var(--sa-shadow-card);
+  }
+
+  .sa-card-elevated {
+    @apply bg-elevated rounded-card p-md border border-border-strong;
+    box-shadow: var(--sa-shadow-elevated);
+  }
+
+  .sa-glass {
+    @apply rounded-card p-md border border-border;
+    background: var(--sa-bg-glass);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .sa-btn-primary {
+    @apply rounded-lg px-md py-s font-body font-semibold text-sm;
+    @apply bg-accent-student text-white;
+    @apply active:opacity-80;
+  }
+
+  .sa-btn-ghost {
+    @apply rounded-lg px-md py-s font-body font-medium text-sm;
+    @apply bg-transparent border border-border text-secondary;
+    @apply active:bg-glass-subtle;
+  }
+
+  .sa-input {
+    @apply w-full rounded-lg px-md py-s font-body text-sm;
+    @apply bg-bg-inset border border-border text-primary;
+    @apply placeholder:text-muted;
+    @apply focus:border-accent-student focus:ring-1 focus:ring-accent-student/30;
+  }
+
+  .sa-badge {
+    @apply inline-flex items-center rounded-full px-xs py-0 font-body font-medium text-2xs;
+  }
+
+  .sa-divider {
+    @apply w-full h-px bg-border;
+  }
+}

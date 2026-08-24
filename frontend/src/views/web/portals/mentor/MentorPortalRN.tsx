@@ -13,7 +13,7 @@
  *     Feedback, Create Event, Profile
  */
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView, StyleSheet, Platform } from 'react-native';
+import { View, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { usePortalUrl } from '@/src/views/web/portals/portalUrl';
@@ -22,7 +22,6 @@ import { MC } from './tokens';
 import { Sidebar, NavId } from './Sidebar';
 import { TopBar } from './TopBar';
 import { LinearGradient } from 'expo-linear-gradient';
-import { StarryBackground } from '@/src/views/web/nexus-glow-landing/StarryBackground';
 import { DashboardFooter } from '../../components/SponsorStrip';
 import { PromoBanner } from '../../components/PromoBanner';
 import { DashboardView } from './views/DashboardView';
@@ -38,8 +37,6 @@ import { ProfileView } from './views/ProfileView';
 import { MentorProfileSettingsView } from './views/MentorProfileSettingsView';
 import { MentorAIStudioView } from './views/MentorAIStudioView';
 import { NotificationsPanel } from './views/NotificationsPanel';
-// Shared role-aware comprehensive profile view (purple theme, identical to student).
-import { ProfileSettingsView as SharedProfileSettingsView } from '../student/views/ProfileSettingsView';
 import { STUDENTS, SESSION_REQUESTS } from './data';
 import { request, api } from '@/src/models/services/api';
 import { UniversalMotionTransition } from '@/src/views/web/components/UniversalMotionTransition';
@@ -85,7 +82,6 @@ export default function MentorPortalRN() {
 
   const [liveCounts, setLiveCounts] = useState({ students: 0, sessions: 0, requests: 0 });
 
-  // Fetch real-time notifications, connections, and requests for the sidebar
   const fetchDashboardData = async () => {
     try {
       const [notifRes, connectionsRes, bookingsRes] = await Promise.all([
@@ -138,7 +134,7 @@ export default function MentorPortalRN() {
   };
 
   return (
-    <View style={s.shell}>
+    <View className="flex-1 flex-row bg-bg h-full">
       <LinearGradient
         pointerEvents="none"
         colors={['#030614', '#040816']}
@@ -156,8 +152,8 @@ export default function MentorPortalRN() {
         counts={liveCounts}
       />
 
-      <View style={{ flex: 1, minWidth: 0, flexDirection: 'row' }}>
-        <View style={{ flex: 1, minWidth: 0 }}>
+      <View className="flex-1 min-w-0 flex-row">
+        <View className="flex-1 min-w-0">
           <TopBar
             title={PAGE_TITLES[active]}
             query={query}
@@ -167,8 +163,8 @@ export default function MentorPortalRN() {
             onAvatarPress={() => navigate('profile', 'manage')}
           />
 
-          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }}>
-            <View style={{ flex: 1, padding: 20 }}>
+          <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1 }}>
+            <View className="flex-1 p-5">
               <PromoBanner portal="mentor" />
               <UniversalMotionTransition deps={[active]}>
                 {active === 'dashboard' && <DashboardView onNav={(id) => navigate(id as NavId)} />}
@@ -202,7 +198,3 @@ export default function MentorPortalRN() {
     </View>
   );
 }
-
-const s = StyleSheet.create({
-  shell: { flex: 1, flexDirection: 'row', backgroundColor: MC.bg, height: '100%' as any },
-});

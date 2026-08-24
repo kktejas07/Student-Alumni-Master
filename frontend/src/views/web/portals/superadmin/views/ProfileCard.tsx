@@ -13,7 +13,7 @@
  * socials) are missing — never shows an empty inner shell.
  */
 import React from 'react';
-import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
+import { View, Text, Pressable, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Eye, ChevronRight, Calendar, Check, Play, Code, Sparkles,
@@ -378,7 +378,7 @@ export function ProfileCardSkeleton() {
 }
 
 /* ─── Styles ─────────────────────────────────────────────────────── */
-const s = StyleSheet.create({
+const s = {
   card: {
     height: '100%',
     borderRadius: 20, borderWidth: 1, borderColor: PC.cardBorder,
@@ -397,21 +397,21 @@ const s = StyleSheet.create({
   cardInner: { padding: 22, borderRadius: 20, flex: 1 },
 
   newPill: {
-    position: 'absolute', top: 14, right: 14,
-    flexDirection: 'row', alignItems: 'center', gap: 4,
+    position: 'absolute' as const, top: 14, right: 14,
+    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 4,
     paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, zIndex: 5,
   },
   newPillText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 9, letterSpacing: 0.8 },
 
-  header: { flexDirection: 'row', alignItems: 'flex-start', gap: 14 },
+  header: { flexDirection: 'row' as const, alignItems: 'flex-start' as const, gap: 14 },
   avatar: {
     width: 60, height: 60, borderRadius: 999, borderWidth: 2,
     backgroundColor: 'rgba(249,115,22,0.18)',
-    alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center' as const, justifyContent: 'center' as const,
   },
   avatarText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 19 },
   statusDot: {
-    position: 'absolute', right: -2, bottom: -2,
+    position: 'absolute' as const, right: -2, bottom: -2,
     width: 14, height: 14, borderRadius: 999,
     borderWidth: 2, borderColor: PC.bgPage,
   },
@@ -424,8 +424,8 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ fontFamily: '"JetBrains Mono", "SF Mono", monospace' } as any) : {}) },
 
   statusPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 10, paddingVertical: 4.5, borderRadius: 999, borderWidth: 1, alignSelf: 'flex-start',
+    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 5,
+    paddingHorizontal: 10, paddingVertical: 4.5, borderRadius: 999, borderWidth: 1, alignSelf: 'flex-start' as const,
   },
   statusInnerDot: { width: 6, height: 6, borderRadius: 4 },
   statusText: { fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 0.3 },
@@ -435,16 +435,16 @@ const s = StyleSheet.create({
 
   sectionLabel: { color: PC.textLabel, fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 1.6 },
   percent: { color: PC.accentBright, fontFamily: FONTS.xbold, fontSize: 13 },
-  progressHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  progressTrack: { height: 6, borderRadius: 99, backgroundColor: PC.trackBg, overflow: 'hidden' },
+  progressHeader: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const },
+  progressTrack: { height: 6, borderRadius: 99, backgroundColor: PC.trackBg, overflow: 'hidden' as const },
   progressFill: { height: 6, borderRadius: 99 },
-  progressMeta: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
-  playSq: { width: 16, height: 16, borderRadius: 4, backgroundColor: PC.accent, alignItems: 'center', justifyContent: 'center' },
+  progressMeta: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 6, marginTop: 2 },
+  playSq: { width: 16, height: 16, borderRadius: 4, backgroundColor: PC.accent, alignItems: 'center' as const, justifyContent: 'center' as const },
   metaCount: { color: PC.textPrimary, fontFamily: FONTS.bold, fontSize: 11.5 },
   metaMuted: { color: PC.textMuted, fontFamily: FONTS.med, fontSize: 11 },
   metaSep: { width: 1, height: 10, backgroundColor: PC.pillBorder, marginHorizontal: 4 },
 
-  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14 },
+  tagRow: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 8, marginTop: 14 },
   tag: {
     paddingHorizontal: 11, paddingVertical: 4.5, borderRadius: 999,
     backgroundColor: PC.pillBg, borderWidth: 1, borderColor: PC.pillBorder,
@@ -459,25 +459,25 @@ const s = StyleSheet.create({
   nextDate:  { color: PC.textPrimary, fontFamily: FONTS.bold, fontSize: 12.5, marginTop: 2 },
   nextTitle: { color: PC.textSecondary, fontFamily: FONTS.med, fontSize: 11.5 },
 
-  adminRow: { flexDirection: 'row', gap: 8, marginTop: 14 },
+  adminRow: { flexDirection: 'row' as const, gap: 8, marginTop: 14 },
   approveBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
+    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 5,
     paddingHorizontal: 11, paddingVertical: 7, borderRadius: 8,
     backgroundColor: PC.statusActiveBg, borderWidth: 1, borderColor: PC.statusActiveBd,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   removeBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
+    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 5,
     paddingHorizontal: 11, paddingVertical: 7, borderRadius: 8,
     backgroundColor: PC.dangerBg, borderWidth: 1, borderColor: 'rgba(239,68,68,0.30)',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   approveText: { fontFamily: FONTS.xbold, fontSize: 11 },
 
-  actionRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 'auto', paddingTop: 16 },
+  actionRow: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 8, marginTop: 'auto', paddingTop: 16 } as any,
   viewBtn: {
     height: 44, borderRadius: 12,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'center' as const, gap: 8,
     ...(Platform.OS === 'web'
       ? ({ boxShadow: '0 8px 24px rgba(249,115,22,0.35)', transitionDuration: '160ms' } as any)
       : { shadowColor: PC.accent, shadowOpacity: 0.4, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } }),
@@ -485,9 +485,9 @@ const s = StyleSheet.create({
   viewBtnText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13.5, letterSpacing: 0.1 },
   socialBtn: {
     width: 44, height: 44, borderRadius: 10,
-    alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center' as const, justifyContent: 'center' as const,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '150ms' } as any) : {}),
   },
 
   skBox: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 6 },
-});
+};

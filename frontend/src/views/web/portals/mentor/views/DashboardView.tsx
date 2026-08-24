@@ -13,7 +13,7 @@
  *    - Upcoming sessions mini list
  */
 import React from 'react';
-import { View, Text, Pressable, StyleSheet, Platform, useWindowDimensions, Linking, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, Platform, useWindowDimensions, Linking, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Calendar, Users, Coins, Star as StarIcon, Sparkles, ArrowUpRight,
@@ -58,7 +58,6 @@ export function DashboardView({ onNav, demoMode = false, setDemoMode }: Props) {
     ? `/mentor/dashboard?mentor_email=${encodeURIComponent(user.email)}`
     : '/mentor/dashboard';
 
-  // Fetch live data; falls back to empty if API unreachable.
   const { data, loading } = usePortalData<MentorDashboardData>(dashPath, MENTOR_EMPTY);
   const liveMentor = data?.mentor as any;
   const tier = liveMentor?.tier;
@@ -106,7 +105,7 @@ export function DashboardView({ onNav, demoMode = false, setDemoMode }: Props) {
 
   if (loading || studentsLoading) {
     return (
-      <View style={{ flex: 1, padding: 60, alignItems: 'center', justifyContent: 'center' }}>
+      <View className="flex-1 p-[60px] items-center justify-center">
         <ActivityIndicator color={MC.tealP} size="large" />
       </View>
     );
@@ -122,41 +121,35 @@ export function DashboardView({ onNav, demoMode = false, setDemoMode }: Props) {
   const upcoming = STUDENTS.filter((s) => s.nextSession).slice(0, 3);
 
   return (
-    <View style={[s.root, !isWide && { flexDirection: 'column' }]}>
-      {/* ── Left column ─────────────────────────────── */}
-      <View style={{ flex: 1, minWidth: 0 }}>
+    <View className="flex-row gap-5" style={!isWide ? { flexDirection: 'column' } : undefined}>
+      {/* Left column */}
+      <View className="flex-1 min-w-0">
         {demoMode && (
-          <View style={s.demoBadgeBanner}>
-            <Text style={s.demoBadgeText}>
+          <View className="bg-amber/[0.08] border border-amber/30 rounded-xl py-2.5 px-4 items-center mb-4">
+            <Text className="text-amber font-body-bold text-xs text-center">
               Demo Mode · Sample data is displayed for demonstration purposes.{' '}
               <Text 
                 onPress={() => setDemoMode?.(false)}
-                style={{ textDecorationLine: 'underline', color: '#fff', fontFamily: FONTS.bold }}
+                className="underline text-white font-body-bold"
               >
                 Switch to Live Mode
               </Text>
             </Text>
           </View>
         )}
-        {/* Ad Banner */}
         <AdBanner />
-
-        {/* Exclusive Coupons — below the ad banner */}
         <CouponBanner portal="mentor" />
-
-        {/* AI Daily Briefing */}
         <AIDailyBriefing onNav={onNav} demoMode={demoMode} />
 
-        {/* TIER BANNER — mentor */}
         {tier?.tier && (
-          <View style={s.tierBanner}>
+          <View className="flex-row items-center gap-3.5 bg-card border border-glass-border rounded-[14px] p-4 mb-4">
             <TierBadge tier={tier.tier} size="lg" />
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={s.tierKicker}>YOUR MENTOR TIER · BASED ON EXPERIENCE • COMPANY • SESSIONS • RATING</Text>
-              <Text style={s.tierTitle}>
-                {tier.tier} <Text style={s.tierScore}>· {tier.score}/100</Text>
+            <View className="flex-1 min-w-0">
+              <Text className="text-tealP font-display-bold text-[9.5px] tracking-[1px]">YOUR MENTOR TIER · BASED ON EXPERIENCE • COMPANY • SESSIONS • RATING</Text>
+              <Text className="text-white font-display-bold text-[22px] tracking-[-0.4px] mt-0.5">
+                {tier.tier} <Text className="text-muted font-body-bold text-sm">· {tier.score}/100</Text>
               </Text>
-              <Text style={s.tierSub}>
+              <Text className="text-muted font-body-semibold text-xs mt-0.5">
                 {tier.tier === 'Platinum' && 'Top 5% mentor — featured to Platinum students.'}
                 {tier.tier === 'Gold' && 'Senior mentor — Gold-tier students will see you first.'}
                 {tier.tier === 'Silver' && 'Active mentor — keep building sessions to reach Gold.'}
@@ -166,76 +159,77 @@ export function DashboardView({ onNav, demoMode = false, setDemoMode }: Props) {
           </View>
         )}
 
-        {/* Stat cards */}
-        <View style={s.statsGrid}>
+        <View className="flex-row flex-wrap gap-3 mb-5">
           {STATS.map((stat, i) => (
-            <View key={i} style={s.statCard}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                <View style={s.statIcon}>
+            <View key={i} className="flex-1 min-w-[180px] bg-card border border-glass-border rounded-[14px] p-4">
+              <View className="flex-row items-center gap-2 mb-2.5">
+                <View className="w-[34px] h-[34px] rounded-[10px] bg-teal/[0.12] border border-glass-border items-center justify-center">
                   <stat.Icon size={17} color={MC.tealP} />
                 </View>
-                <Text style={{ color: MC.muted, fontFamily: FONTS.semi, fontSize: 12 }}>{stat.label}</Text>
+                <Text className="text-muted font-body-semibold text-xs">{stat.label}</Text>
               </View>
-              <Text style={s.statValue}>{stat.value}</Text>
-              <Text style={{ color: stat.subColor, fontFamily: FONTS.bold, fontSize: 12 }}>{stat.sub}</Text>
+              <Text className="text-white font-display-bold text-[26px] tracking-[-0.5px] mb-1">{stat.value}</Text>
+              <Text className="text-[12px] font-body-bold" style={{ color: stat.subColor }}>{stat.sub}</Text>
             </View>
           ))}
         </View>
 
-        {/* Today's Sessions */}
-        <View style={s.cardBox}>
-          <View style={s.cardHead}>
-            <Text style={s.cardKicker}>TODAY SESSIONS</Text>
-            <Pressable onPress={() => onNav('sessions')}><Text style={s.linkText}>View all →</Text></Pressable>
+        <View className="bg-card border border-glass-border rounded-[14px] p-[18px]">
+          <View className="flex-row justify-between items-center mb-3.5">
+            <Text className="text-muted font-display-bold text-xs tracking-[1px]">TODAY SESSIONS</Text>
+            <Pressable onPress={() => onNav('sessions')}><Text className="text-tealP font-body-bold text-xs">View all →</Text></Pressable>
           </View>
-          <View style={{ gap: 8 }}>
+          <View className="gap-2">
             {TODAY_SESSIONS.length > 0 ? (
               TODAY_SESSIONS.map((sess, i) => (
-                <View key={i} style={s.sessionRow}>
+                <View key={i} className="flex-row items-center gap-3 bg-teal/[0.05] border border-glass-border rounded-[11px] p-3">
                   <Av initials={sess.avatar} size={40} color={sess.color} />
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13 }}>{sess.student}</Text>
-                    <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 11 }}>{sess.topic}</Text>
+                  <View className="flex-1 min-w-0">
+                    <Text className="text-white font-body-bold text-[13px]">{sess.student}</Text>
+                    <Text className="text-muted font-body-semibold text-[11px]">{sess.topic}</Text>
                   </View>
-                  <View style={{ alignItems: 'flex-end', marginRight: 10 }}>
-                    <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13 }}>{sess.time}</Text>
-                    <Text style={{ color: MC.dim, fontFamily: FONTS.med, fontSize: 11 }}>{sess.duration} min</Text>
+                  <View className="items-end mr-2.5">
+                    <Text className="text-white font-body-bold text-[13px]">{sess.time}</Text>
+                    <Text className="text-dim font-body-semibold text-[11px]">{sess.duration} min</Text>
                   </View>
                   <Pressable
                     onPress={() => Linking.openURL('https://meet.google.com/new')}
-                    style={({ hovered }: any) => [s.joinBtn, hovered && { backgroundColor: MC.tealD }]}
+                    className="items-center justify-center rounded-[9px]"
+                    style={({ hovered }: any) => ({
+                      paddingHorizontal: 14, height: 32, backgroundColor: MC.tealP,
+                      ...(hovered ? { backgroundColor: MC.tealD } : {}),
+                    })}
                   >
-                    <Text style={{ color: MC.bg, fontFamily: FONTS.xbold, fontSize: 11 }}>Join →</Text>
+                    <Text className="text-bg font-display-bold text-[11px]">Join →</Text>
                   </Pressable>
                 </View>
               ))
             ) : (
-              <View style={[s.sessionRow, { justifyContent: 'center', paddingVertical: 20 }]}>
-                <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 13 }}>there were no sessions</Text>
+              <View className="flex-row items-center justify-center py-5">
+                <Text className="text-muted font-body-semibold text-[13px]">there were no sessions</Text>
               </View>
             )}
           </View>
         </View>
 
-        {/* My Connections preview */}
-        <View style={[s.cardBox, { marginTop: 16 }]}>
-          <View style={s.cardHead}>
-            <Text style={s.cardKicker}>MY CONNECTIONS</Text>
+        <View className="bg-card border border-glass-border rounded-[14px] p-[18px] mt-4">
+          <View className="flex-row justify-between items-center mb-3.5">
+            <Text className="text-muted font-display-bold text-xs tracking-[1px]">MY CONNECTIONS</Text>
             <Pressable onPress={() => onNav('students')}>
-              <Text style={s.linkText}>View all {STUDENTS.length} →</Text>
+              <Text className="text-tealP font-body-bold text-xs">View all {STUDENTS.length} →</Text>
             </Pressable>
           </View>
-          <View style={s.connGrid}>
+          <View className="flex-row flex-wrap gap-2.5">
             {STUDENTS.slice(0, 3).map((stu) => (
-              <View key={stu.id} style={s.connCard}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <View key={stu.id} className="flex-1 min-w-[180px] bg-teal/[0.05] border border-glass-border rounded-[11px] p-3">
+                <View className="flex-row items-center gap-2 mb-2">
                   <Av initials={stu.avatar} size={34} color={stu.color} />
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text numberOfLines={1} style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>{stu.name}</Text>
-                    <Text numberOfLines={1} style={{ color: MC.dim, fontFamily: FONTS.med, fontSize: 10 }}>{stu.college}</Text>
+                  <View className="flex-1 min-w-0">
+                    <Text numberOfLines={1} className="text-white font-body-bold text-xs">{stu.name}</Text>
+                    <Text numberOfLines={1} className="text-dim font-body-semibold text-[10px]">{stu.college}</Text>
                   </View>
                 </View>
-                <View style={s.progTrack}>
+                <View className="h-1 rounded-[2px] bg-white/[0.07] overflow-hidden mb-1">
                   <LinearGradient
                     colors={(stu.progress === 100
                       ? [MC.green, '#16A34A']
@@ -246,7 +240,7 @@ export function DashboardView({ onNav, demoMode = false, setDemoMode }: Props) {
                     style={{ height: '100%', width: `${stu.progress}%`, borderRadius: 2 }}
                   />
                 </View>
-                <Text style={{ color: MC.dim, fontFamily: FONTS.med, fontSize: 10 }}>
+                <Text className="text-dim font-body-semibold text-[10px]">
                   {stu.progress}% · {stu.sessionsCompleted}/{stu.sessionsTotal} sessions
                 </Text>
               </View>
@@ -255,80 +249,75 @@ export function DashboardView({ onNav, demoMode = false, setDemoMode }: Props) {
         </View>
       </View>
 
-      {/* ── Right column ─────────────────────────────── */}
-      <View style={[s.rightCol, !isWide && { width: '100%', marginTop: 16 }]}>
-        {/* Earnings widget */}
+      {/* Right column */}
+      <View className="w-[260px] gap-3" style={!isWide ? { width: '100%', marginTop: 16 } : undefined}>
         <LinearGradient
           colors={['#0D2E2A', '#0A3D35'] as any}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={s.widget}
+          className="rounded-[14px] border border-glass-border p-4"
         >
-          <Text style={s.widgetKicker}>EARNINGS</Text>
-          <Text style={s.widgetBig}>{demoMode ? (data?.kpis?.find((k: any) => k.id === 'earnings')?.value || '₹500') : '₹500'}</Text>
-          <View style={s.miniTrack}>
+          <Text className="text-muted font-display-bold text-[11px] tracking-[1px] mb-2.5">EARNINGS</Text>
+          <Text className="text-white font-display-bold text-[28px] tracking-[-0.5px] mb-2">{demoMode ? (data?.kpis?.find((k: any) => k.id === 'earnings')?.value || '₹500') : '₹500'}</Text>
+          <View className="h-[3px] rounded-[2px] bg-teal/[0.20] overflow-hidden mb-2">
             <LinearGradient colors={[MC.teal, MC.tealD] as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
               style={{ height: '100%', width: '100%', borderRadius: 2 }} />
           </View>
-          <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 12, marginBottom: 12 }}>
-            This month · <Text style={{ color: MC.muted, fontFamily: FONTS.bold }}>0%</Text>
+          <Text className="text-muted font-body-semibold text-xs mb-3">
+            This month · <Text className="text-muted font-body-bold">0%</Text>
           </Text>
           <Pressable
             onPress={() => onNav('earnings')}
-            style={({ hovered }: any) => [
-              s.withdrawBtn,
-              hovered && { backgroundColor: 'rgba(20,184,166,0.10)' }
-            ]}
+            className="items-center rounded-[10px] py-[11px] border border-tealP bg-transparent"
+            style={({ hovered }: any) => hovered ? { backgroundColor: 'rgba(20,184,166,0.10)' } : undefined}
           >
-            <Text style={{ color: MC.tealP, fontFamily: FONTS.xbold, fontSize: 12 }}>
+            <Text className="text-tealP font-display-bold text-xs">
               Withdraw ₹500 →
             </Text>
           </Pressable>
         </LinearGradient>
 
-        {/* Feedback Summary */}
-        <View style={s.widgetCard}>
-          <Text style={s.widgetKicker}>FEEDBACK SUMMARY</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-            <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 34 }}>{demoMode ? (liveMentor?.rating || '0.0') : '—'}</Text>
+        <View className="rounded-[14px] border border-glass-border bg-card p-4">
+          <Text className="text-muted font-display-bold text-[11px] tracking-[1px] mb-2.5">FEEDBACK SUMMARY</Text>
+          <View className="flex-row items-center gap-2.5 mb-3">
+            <Text className="text-white font-display-bold text-[34px]">{demoMode ? (liveMentor?.rating || '0.0') : '—'}</Text>
             <View>
               <StarRow rating={demoMode ? Math.round(Number(liveMentor?.rating || 0)) : 0} size={14} />
-              <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 3 }}>
+              <Text className="text-muted font-body-semibold text-[11px] mt-[3px]">
                 {demoMode ? (data?.kpis?.find((k: any) => k.id === 'rating')?.delta || '0 reviews') : 'No reviews yet'}
               </Text>
             </View>
           </View>
           {RATING_DIST.slice(0, 3).map((d) => (
-            <View key={d.stars} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 5 }}>
-              <Text style={{ color: MC.dim, fontFamily: FONTS.med, fontSize: 10, width: 18 }}>{d.stars}★</Text>
-              <View style={{ flex: 1, height: 5, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.07)', overflow: 'hidden' }}>
+            <View key={d.stars} className="flex-row items-center gap-2 mb-[5px]">
+              <Text className="text-dim font-body-semibold text-[10px] w-[18px]">{d.stars}★</Text>
+              <View className="flex-1 h-[5px] rounded-[3px] bg-white/[0.07] overflow-hidden">
                 <LinearGradient colors={[MC.teal, MC.tealD] as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
                   style={{ height: '100%', width: `${d.pct}%`, borderRadius: 3 }} />
               </View>
-              <Text style={{ color: MC.dim, fontFamily: FONTS.med, fontSize: 10, width: 12, textAlign: 'right' }}>{d.count}</Text>
+              <Text className="text-dim font-body-semibold text-[10px] w-3 text-right">{d.count}</Text>
             </View>
           ))}
           <Pressable
             onPress={() => demoMode && onNav('feedback')}
             disabled={!demoMode}
-            style={({ hovered }: any) => [
-              s.feedbackBtn,
-              !demoMode && { opacity: 0.5 },
-              demoMode && hovered && { backgroundColor: 'rgba(20,184,166,0.12)', borderColor: MC.border2 }
-            ]}
+            className="mt-2.5 items-center rounded-[9px] py-2 bg-surf border border-glass-border"
+            style={({ hovered }: any) => ({
+              ...(!demoMode ? { opacity: 0.5 } : {}),
+              ...(demoMode && hovered ? { backgroundColor: 'rgba(20,184,166,0.12)', borderColor: MC.border2 } : {}),
+            })}
           >
-            <Text style={{ color: demoMode ? MC.tealP : MC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>View all reviews →</Text>
+            <Text className="text-[12px] font-body-bold" style={{ color: demoMode ? MC.tealP : MC.muted }}>View all reviews →</Text>
           </Pressable>
         </View>
 
-        {/* Upcoming */}
-        <View style={s.widgetCard}>
-          <Text style={s.widgetKicker}>UPCOMING</Text>
+        <View className="rounded-[14px] border border-glass-border bg-card p-4">
+          <Text className="text-muted font-display-bold text-[11px] tracking-[1px] mb-2.5">UPCOMING</Text>
           {upcoming.map((stu, i) => (
-            <View key={stu.id} style={[s.upcomingRow, i < upcoming.length - 1 && { borderBottomWidth: 1, borderBottomColor: MC.border }]}>
+            <View key={stu.id} className="flex-row items-center gap-2 py-[7px]" style={i < upcoming.length - 1 ? { borderBottomWidth: 1, borderBottomColor: MC.border } : undefined}>
               <Av initials={stu.avatar} size={30} color={stu.color} />
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text numberOfLines={1} style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 11 }}>{stu.name}</Text>
-                <Text numberOfLines={1} style={{ color: MC.dim, fontFamily: FONTS.med, fontSize: 10 }}>
+              <View className="flex-1 min-w-0">
+                <Text numberOfLines={1} className="text-white font-body-bold text-[11px]">{stu.name}</Text>
+                <Text numberOfLines={1} className="text-dim font-body-semibold text-[10px]">
                   {stu.nextSession!.date} · {stu.nextSession!.time}
                 </Text>
               </View>
@@ -341,7 +330,6 @@ export function DashboardView({ onNav, demoMode = false, setDemoMode }: Props) {
   );
 }
 
-/** AI Daily Briefing card — prominent purple-tinted glass with CTA */
 function AIDailyBriefing({ onNav, demoMode = false }: { onNav: (id: string) => void; demoMode?: boolean }) {
   const user = useAuthStore((s) => s.user);
   const firstName = (user as any)?.first_name || (user?.full_name || '').split(' ')[0] || 'Mentor';
@@ -362,193 +350,64 @@ function AIDailyBriefing({ onNav, demoMode = false }: { onNav: (id: string) => v
   };
 
   return (
-    <View style={s.briefingCard}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-        <View style={s.briefingIcon}>
+    <View className="rounded-[16px] border p-[18px] mb-4" style={{ backgroundColor: 'rgba(252,211,77,0.06)', borderColor: 'rgba(252,211,77,0.22)' }}>
+      <View className="flex-row items-center gap-2.5 mb-2">
+        <View className="w-7 h-7 rounded-[9px] items-center justify-center" style={{ backgroundColor: 'rgba(252,211,77,0.18)', borderColor: 'rgba(252,211,77,0.35)', borderWidth: 1 }}>
           <Sparkles size={16} color="#FCD34D" />
         </View>
-        <Text style={{ color: '#FCD34D', fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 0.6 }}>AI DAILY BRIEFING</Text>
-        <View style={{ flex: 1 }} />
-        <View style={{ paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, backgroundColor: 'rgba(252,211,77,0.15)', borderColor: 'rgba(252,211,77,0.30)', borderWidth: 1 }}>
-          <Text style={{ color: '#FCD34D', fontFamily: FONTS.xbold, fontSize: 9 }}>POWERED BY CLAUDE</Text>
+        <Text className="text-amber font-display-bold text-[11px] tracking-[0.6px]">AI DAILY BRIEFING</Text>
+        <View className="flex-1" />
+        <View className="px-[7px] py-0.5 rounded-md border" style={{ backgroundColor: 'rgba(252,211,77,0.15)', borderColor: 'rgba(252,211,77,0.30)' }}>
+          <Text className="text-amber font-display-bold text-[9px]">POWERED BY CLAUDE</Text>
         </View>
       </View>
-      <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 16, lineHeight: 22, marginBottom: 8 }}>
+      <Text className="text-white font-display-bold text-base leading-[22px] mb-2">
         {briefText ? 'Today\'s briefing' : (demoMode ? `Good morning, ${firstName} ✨` : 'AI Morning Summary')}
       </Text>
-      <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 18, marginBottom: 12 }}>
+      <Text className="text-muted font-body-semibold text-[12.5px] leading-[18px] mb-3">
         {demoMode ? (
           briefText || (
             <>
-              You have <Text style={{ color: MC.tealP, fontFamily: FONTS.bold }}>3 sessions today</Text>{' '}
-              starting at <Text style={{ color: MC.tealP, fontFamily: FONTS.bold }}>10:00 AM</Text>.{' '}
-              Tap <Text style={{ color: MC.tealP, fontFamily: FONTS.bold }}>Generate AI Brief</Text> for a personalized morning summary based on your tier, sessions and rating.
+              You have <Text className="text-tealP font-body-bold">3 sessions today</Text>{' '}
+              starting at <Text className="text-tealP font-body-bold">10:00 AM</Text>.{' '}
+              Tap <Text className="text-tealP font-body-bold">Generate AI Brief</Text> for a personalized morning summary based on your tier, sessions and rating.
             </>
           )
         ) : (
           'Welcome to your AI workspace! AI morning briefs will generate here once you have sessions scheduled. Keep your availability up-to-date to receive bookings.'
         )}
       </Text>
-      <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+      <View className="flex-row gap-2 flex-wrap">
         <Pressable
           onPress={generate}
           disabled={briefLoading || !demoMode}
-          style={({ hovered }: any) => [
-            s.briefingPrimary,
-            !demoMode && { opacity: 0.5, cursor: 'default' },
-            demoMode && hovered && { transform: [{ translateY: -1 }] },
-            briefLoading && { opacity: 0.6 }
-          ]}
+          className="flex-row items-center gap-1.5 px-[14px] h-9 rounded-[10px]"
+          style={({ hovered }: any) => ({
+            backgroundColor: '#FCD34D',
+            cursor: 'pointer', transitionDuration: '160ms',
+            ...(!demoMode ? { opacity: 0.5, cursor: 'default' } : {}),
+            ...(demoMode && hovered ? { transform: [{ translateY: -1 }] } : {}),
+            ...(briefLoading ? { opacity: 0.6 } : {}),
+          } as any)}
         >
           <Sparkles size={12} color={MC.bg} />
-          <Text style={{ color: MC.bg, fontFamily: FONTS.xbold, fontSize: 11.5 }}>
+          <Text className="text-bg font-display-bold text-[11.5px]">
             {briefLoading ? 'Generating…' : (briefText ? 'Regenerate Brief' : (demoMode ? 'Generate AI Brief' : 'Generate AI Brief (Requires active sessions)'))}
           </Text>
         </Pressable>
         <Pressable
           onPress={() => onNav('sessions')}
-          style={({ hovered }: any) => [
-            s.briefingSecondary,
-            demoMode && hovered && { borderColor: MC.tealP }
-          ]}
+          className="flex-row items-center gap-1.5 px-[14px] h-9 rounded-[10px] border bg-teal/[0.07]"
+          style={({ hovered }: any) => ({
+            borderColor: MC.border2,
+            cursor: 'pointer', transitionDuration: '160ms',
+            ...(demoMode && hovered ? { borderColor: MC.tealP } : {}),
+          })}
         >
-          <Text style={{ color: MC.tealP, fontFamily: FONTS.bold, fontSize: 11.5 }}>View Today's Schedule</Text>
+          <Text className="text-tealP font-body-bold text-[11.5px]">View Today's Schedule</Text>
           <ChevronRight size={12} color={MC.tealP} />
         </Pressable>
       </View>
     </View>
   );
 }
-
-const hovered2 = (b: boolean) => b;
-
-const s = StyleSheet.create({
-  root: { flexDirection: 'row', gap: 20 },
-
-  /* Tier banner */
-  tierBanner: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 14,
-    padding: 16, marginBottom: 16,
-  },
-  tierKicker: { color: MC.tealP, fontFamily: FONTS.xbold, fontSize: 9.5, letterSpacing: 1 },
-  tierTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4, marginTop: 2 },
-  tierScore: { color: MC.muted, fontFamily: FONTS.bold, fontSize: 14 },
-  tierSub: { color: MC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
-
-  /* AI Daily Briefing */
-  briefingCard: {
-    backgroundColor: 'rgba(252,211,77,0.06)',
-    borderColor: 'rgba(252,211,77,0.22)',
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 18,
-    marginBottom: 16,
-    ...(Platform.OS === 'web' ? ({ boxShadow: '0 8px 30px -12px rgba(252,211,77,0.20)' } as any) : {}),
-  },
-  briefingIcon: {
-    width: 28, height: 28, borderRadius: 9,
-    backgroundColor: 'rgba(252,211,77,0.18)',
-    borderColor: 'rgba(252,211,77,0.35)', borderWidth: 1,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  briefingPrimary: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, height: 36, borderRadius: 10,
-    backgroundColor: '#FCD34D',
-    ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
-  },
-  briefingSecondary: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, height: 36, borderRadius: 10,
-    borderWidth: 1, borderColor: MC.border2,
-    backgroundColor: 'rgba(20,184,166,0.07)',
-    ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
-  },
-
-  /* Stats */
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 20 },
-  statCard: {
-    flex: 1, flexBasis: 180, minWidth: 180,
-    backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1,
-    borderRadius: 14, padding: 16,
-  },
-  statIcon: {
-    width: 34, height: 34, borderRadius: 10,
-    backgroundColor: 'rgba(20,184,166,0.12)',
-    borderColor: MC.border, borderWidth: 1,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  statValue: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 26, letterSpacing: -0.5, marginBottom: 4 },
-
-  /* Card boxes */
-  cardBox: {
-    backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1,
-    borderRadius: 14, padding: 18,
-  },
-  cardHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
-  cardKicker: { color: MC.muted, fontFamily: FONTS.xbold, fontSize: 12, letterSpacing: 1 },
-  linkText: { color: MC.tealP, fontFamily: FONTS.bold, fontSize: 12 },
-
-  /* Session row */
-  sessionRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: 'rgba(20,184,166,0.05)',
-    borderColor: MC.border, borderWidth: 1,
-    borderRadius: 11, padding: 12,
-  },
-  joinBtn: {
-    paddingHorizontal: 14, height: 32, borderRadius: 9,
-    backgroundColor: MC.tealP,
-    alignItems: 'center', justifyContent: 'center',
-    ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
-  },
-
-  /* Connections grid */
-  connGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  connCard: {
-    flex: 1, flexBasis: 180, minWidth: 180,
-    backgroundColor: 'rgba(20,184,166,0.05)',
-    borderColor: MC.border, borderWidth: 1,
-    borderRadius: 11, padding: 12,
-  },
-  progTrack: { height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.07)', overflow: 'hidden', marginBottom: 5 },
-
-  /* Right column */
-  rightCol: { width: 260, gap: 12 },
-  widget: { borderRadius: 14, borderWidth: 1, borderColor: MC.border, padding: 16 },
-  widgetCard: {
-    borderRadius: 14, borderWidth: 1, borderColor: MC.border,
-    backgroundColor: MC.card, padding: 16,
-  },
-  widgetKicker: { color: MC.muted, fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 1, marginBottom: 10 },
-  widgetBig: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 28, letterSpacing: -0.5, marginBottom: 8 },
-  miniTrack: { height: 3, borderRadius: 2, backgroundColor: 'rgba(20,184,166,0.20)', overflow: 'hidden', marginBottom: 8 },
-  withdrawBtn: {
-    paddingVertical: 11, alignItems: 'center', borderRadius: 10,
-    borderWidth: 1, borderColor: MC.tealP, backgroundColor: 'transparent',
-    ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
-  },
-  feedbackBtn: {
-    marginTop: 10, paddingVertical: 9, alignItems: 'center', borderRadius: 9,
-    backgroundColor: MC.surf, borderWidth: 1, borderColor: MC.border,
-    ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
-  },
-  upcomingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 7 },
-  demoBadgeBanner: {
-    backgroundColor: 'rgba(245, 158, 11, 0.08)',
-    borderColor: 'rgba(245, 158, 11, 0.3)',
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  demoBadgeText: {
-    color: '#FBBF24',
-    fontFamily: FONTS.bold,
-    fontSize: 12,
-    textAlign: 'center',
-  },
-});
