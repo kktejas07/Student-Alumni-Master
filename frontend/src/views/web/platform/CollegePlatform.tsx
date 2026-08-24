@@ -26,7 +26,7 @@ import { CollegeDashboardView } from '@/src/views/web/CollegeDashboardView';
 
 const NAV: NavItem[] = [
   { id: 'overview',     Icon: BarChart3,    label: 'Overview',       color: '#60A5FA' },
-  { id: 'students',     Icon: GraduationCap, label: 'Students',      color: '#A78BFA' },
+  { id: 'students',     Icon: GraduationCap, label: 'Students',      color: '#60A5FA' },
   { id: 'alumni',       Icon: Users,        label: 'Alumni',         color: '#34D399' },
   { id: 'events',       Icon: Calendar,     label: 'Events',         color: '#FB923C' },
   { id: 'announcements',Icon: Megaphone,    label: 'Announcements',  color: '#EF4444' },

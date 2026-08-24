@@ -23,8 +23,8 @@ import {
 import { StudentDashboardView } from '@/src/views/web/StudentDashboardView';
 
 const NAV: NavItem[] = [
-  { id: 'home',              Icon: HomeIcon,       label: 'Dashboard',        color: '#A78BFA' },
-  { id: 'career',            Icon: Sparkles,       label: 'Career AI',        color: '#A78BFA' },
+  { id: 'home',              Icon: HomeIcon,       label: 'Dashboard',        color: '#60A5FA' },
+  { id: 'career',            Icon: Sparkles,       label: 'Career AI',        color: '#60A5FA' },
   { id: 'internships',       Icon: Briefcase,      label: 'Opportunities',   color: '#34D399' },
   { id: 'courses',           Icon: BookOpen,       label: 'Courses',          color: '#22D3EE' },
   { id: 'higher-education',  Icon: GraduationCap,  label: 'Higher Education', color: '#FCD34D' },
@@ -32,9 +32,9 @@ const NAV: NavItem[] = [
   { id: 'events',            Icon: Calendar,       label: 'Events',           color: '#FB923C' },
   { id: 'financial',         Icon: Wallet,         label: 'Funding',          color: '#FCD34D' },
   { id: 'insurance',         Icon: Shield,         label: 'Insurance',        color: '#60A5FA' },
-  { id: 'rentals',           Icon: Building2,      label: 'Rentals',          color: '#A78BFA' },
+  { id: 'rentals',           Icon: Building2,      label: 'Rentals',          color: '#60A5FA' },
   { id: 'deals',             Icon: Gift,           label: 'Deals',            color: '#F472B6' },
-  { id: 'profile',           Icon: UserIcon,       label: 'Profile',          color: '#A78BFA' },
+  { id: 'profile',           Icon: UserIcon,       label: 'Profile',          color: '#60A5FA' },
 ];
 
 export default function StudentPlatform() {
