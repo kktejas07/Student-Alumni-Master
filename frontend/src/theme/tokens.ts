@@ -208,9 +208,9 @@ export const NX_TYPE = {
 } as const;
 
 export const NX_FONT = Platform.select({
-  ios: 'System',
+  ios: 'Outfit',
   android: 'sans-serif',
-  default: '"Inter", -apple-system, BlinkMacSystemFont, "Geist", system-ui, sans-serif',
+  default: '"Outfit", -apple-system, BlinkMacSystemFont, "Manrope", system-ui, sans-serif',
 }) as string;
 
 export const NX_SPACE = { xs: 4, s: 8, m: 12, l: 16, xl: 20, xxl: 24, xxxl: 32, mega: 40 } as const;
@@ -219,9 +219,9 @@ export const NX_RADIUS = { xs: 6, sm: 8, md: 10, lg: 14, xl: 18, xxl: 22, pill: 
 
 export const NX_SHADOW = {
   card: Platform.select({
-    ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 24 } as const,
-    android: { elevation: 6 } as const,
-    default: { boxShadow: '0 8px 24px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.04)' } as any,
+    ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 18 }, shadowOpacity: 0.35, shadowRadius: 40 } as const,
+    android: { elevation: 8 } as const,
+    default: { boxShadow: '0 1px 0 rgba(255,255,255,0.03) inset, 0 18px 40px rgba(0,0,0,0.35)' } as any,
   }),
   glow: (color: string) => Platform.select({
     ios: { shadowColor: color, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.45, shadowRadius: 18 } as const,
