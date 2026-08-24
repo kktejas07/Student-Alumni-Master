@@ -6,7 +6,7 @@
  * Matches Image 1 reference design.
  */
 import React, { memo } from 'react';
-import { View } from 'react-native';
+import {View, StyleSheet} from "react-native";
 import Svg, {
   Circle, Line, Defs, RadialGradient, LinearGradient as SvgLinearGradient,
   Stop, Path, Polygon

@@ -12,7 +12,7 @@
  *   • Hover: translateY(-1px) + border brightening
  */
 import React, { memo } from 'react';
-import { View, Text, Pressable, Platform } from 'react-native';
+import {View, Text, Pressable, Platform, StyleSheet} from "react-native";
 import { ChevronRight, CircleCheck as CheckCircle2, Lock } from 'lucide-react-native';
 import { COLORS, FONT_FAMILIES, FONT_SIZES, RADIUS, SPACING } from '@/src/lib/designTokens';
 import type { Milestone } from '@/src/viewmodels/hooks/useCareerAI';

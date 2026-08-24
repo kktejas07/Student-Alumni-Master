@@ -3,7 +3,7 @@
  * Migrated to NativeWind className.
  */
 import React from 'react';
-import { View, Text, Pressable, TextInput, Platform, ActivityIndicator } from 'react-native';
+import {View, Text, Pressable, TextInput, Platform, ActivityIndicator, StyleSheet} from "react-native";
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRoleTheme } from './RoleTheme';
 

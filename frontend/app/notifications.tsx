@@ -12,7 +12,6 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TouchableOpacity,
   RefreshControl,
@@ -39,7 +38,7 @@ type Notif = {
   id: string;
   title: string;
   message: string;
-  type?: string;        // booking_request | booking_confirmed | review | event | system
+  type?: string;
   read?: boolean;
   created_at?: string;
   booking_id?: string;
@@ -57,16 +56,14 @@ export default function NotificationsScreen() {
     try {
       const r = await api.notifications();
       const list: Notif[] = (r.notifications || r.items || []) as Notif[];
-      // sort newest first
       list.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
       setItems(list);
-      // auto-mark all unread as read
       const unreadIds = list.filter((n) => !n.read).map((n) => n.id);
       if (unreadIds.length > 0) {
         api.markNotificationsRead(unreadIds).catch(() => {});
       }
     } catch (e) {
-      // swallow — UI shows empty state
+      // swallow
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -81,25 +78,24 @@ export default function NotificationsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} testID="notif-back">
+    <SafeAreaView className="flex-1 bg-navy" edges={['top']}>
+      <View className="flex-row items-center gap-1.5 px-3 pt-2 pb-3 bg-glass border-b border-glass-border">
+        <TouchableOpacity onPress={() => router.back()} className="w-11 h-11 items-center justify-center" testID="notif-back">
           <ArrowLeft size={22} color="#F4F4F8" />
         </TouchableOpacity>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.title}>Notifications</Text>
-          <Text style={styles.subtitle}>Bookings, reviews, events & alerts</Text>
+        <View className="flex-1">
+          <Text className="text-text font-display-bold text-lg">Notifications</Text>
+          <Text className="text-muted text-xs mt-0.5">Bookings, reviews, events & alerts</Text>
         </View>
       </View>
 
       {loading ? (
-        <View style={styles.loadingWrap}>
+        <View className="flex-1 items-center justify-center">
           <ActivityIndicator color="#8B5CF6" />
         </View>
       ) : (
         <ScrollView
-          contentContainerStyle={styles.container}
+          contentContainerStyle={{ padding: Spacing.md, gap: 10 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
         >
           {items.length === 0 ? (
@@ -110,7 +106,6 @@ export default function NotificationsScreen() {
                 key={n.id}
                 notif={n}
                 onPress={() => {
-                  // Route depending on type, supporting nested and title-based fallbacks
                   const resolvedType = (n.type || n.data?.type || '').toLowerCase();
                   const isBooking = resolvedType.includes('booking') || 
                                     (n.title || '').toLowerCase().includes('booking') || 
@@ -133,7 +128,7 @@ export default function NotificationsScreen() {
               />
             ))
           )}
-          <View style={{ height: 40 }} />
+          <View className="h-10" />
         </ScrollView>
       )}
     </SafeAreaView>
@@ -142,12 +137,12 @@ export default function NotificationsScreen() {
 
 function EmptyState() {
   return (
-    <View style={styles.empty}>
-      <View style={styles.emptyIconWrap}>
+    <View className="py-20 px-4 items-center justify-center">
+      <View className="w-20 h-20 rounded-full items-center justify-center bg-glass">
         <Bell size={36} color="#A78BFA" />
       </View>
-      <Text style={[Typography.h3, { color: '#F4F4F8', marginTop: 12 }]}>You're all caught up</Text>
-      <Text style={[Typography.body, { color: '#A1A6B7', marginTop: 6, textAlign: 'center' }]}>
+      <Text className="text-text font-display-bold text-lg mt-3">You're all caught up</Text>
+      <Text className="text-muted text-sm mt-1.5 text-center">
         New booking requests, reviews and event reminders will appear here.
       </Text>
     </View>
@@ -158,29 +153,26 @@ function NotificationRow({ notif, onPress }: { notif: Notif; onPress: () => void
   const { Icon, tint } = iconForType(notif.type || notif.data?.type, notif.title);
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
-      <View style={[styles.rowCard, !notif.read && styles.rowCardUnread]}>
-        <View style={[styles.rowIcon, { backgroundColor: tint.bg }]}>
+      <View className="flex-row items-start gap-3 p-3.5 bg-glass border border-glass-border rounded-xl" style={!notif.read ? { backgroundColor: 'rgba(139, 92, 246, 0.03)', borderColor: 'rgba(139, 92, 246, 0.15)', borderLeftWidth: 3, borderLeftColor: '#8B5CF6' } : {}}>
+        <View className="w-9 h-9 rounded-xl items-center justify-center" style={{ backgroundColor: tint.bg }}>
           <Icon size={18} color={tint.fg} />
         </View>
-        <View style={{ flex: 1 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <View className="flex-1">
+          <View className="flex-row items-center gap-1.5">
             <Text
-              style={[
-                Typography.bodyBold,
-                { color: '#F4F4F8', flex: 1 },
-              ]}
+              className="text-text font-body-bold text-sm flex-1"
               numberOfLines={1}
             >
               {notif.title}
             </Text>
-            {!notif.read && <View style={styles.unreadDot} />}
+            {!notif.read && <View className="w-2 h-2 rounded-full bg-violet" />}
           </View>
-          <Text style={[Typography.bodySm, { color: '#A1A6B7', marginTop: 2 }]} numberOfLines={3}>
+          <Text className="text-muted text-xs mt-0.5" numberOfLines={3}>
             {notif.message}
           </Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 }}>
+          <View className="flex-row items-center gap-1 mt-1.5">
             <Clock size={11} color="#6E7388" />
-            <Text style={[Typography.bodySm, { color: '#6E7388', fontSize: 11 }]}>
+            <Text className="text-dim text-xs" style={{ fontSize: 11 }}>
               {formatRelative(notif.created_at)}
             </Text>
           </View>
@@ -239,73 +231,3 @@ function formatRelative(iso?: string): string {
     return iso;
   }
 }
-
-// ----- styles ------------------------------------------------------------
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#0a0f1e' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.sm,
-    paddingBottom: Spacing.md,
-    backgroundColor: '#0d1326',
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
-    borderBottomWidth: 1,
-  },
-  backBtn: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: { ...Typography.h3, color: '#F4F4F8' },
-  subtitle: { ...Typography.bodySm, color: '#A1A6B7', marginTop: 2 },
-  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  container: { padding: Spacing.md, gap: 10 },
-
-  rowCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    padding: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.01)',
-    borderColor: 'rgba(255, 255, 255, 0.04)',
-    borderWidth: 1,
-    borderRadius: 12,
-  },
-  rowCardUnread: {
-    backgroundColor: 'rgba(139, 92, 246, 0.03)',
-    borderColor: 'rgba(139, 92, 246, 0.15)',
-    borderLeftWidth: 3,
-    borderLeftColor: '#8B5CF6',
-  },
-  rowIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  unreadDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#8B5CF6',
-  },
-  empty: {
-    paddingVertical: 80,
-    paddingHorizontal: Spacing.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyIconWrap: {
-    width: 80,
-    height: 80,
-    borderRadius: 999,
-    backgroundColor: 'rgba(139, 92, 246, 0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});

@@ -5,7 +5,7 @@
  * Props-only — zero business logic.
  */
 import React, { memo } from 'react';
-import { View, Text } from 'react-native';
+import {View, Text, StyleSheet} from "react-native";
 import { COLORS, FONT_FAMILIES, FONT_SIZES, RADIUS, SPACING } from '@/src/lib/designTokens';
 
 interface Props {

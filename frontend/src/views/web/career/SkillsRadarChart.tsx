@@ -5,7 +5,7 @@
  * concentric hexagonal grids, and crystal-clear typography.
  */
 import React, { memo } from 'react';
-import { View } from 'react-native';
+import {View, StyleSheet} from "react-native";
 import Svg, { Polygon, Line, Circle, Text as SvgText, G } from 'react-native-svg';
 import { COLORS, FONT_FAMILIES, FONT_SIZES, RADIUS, SPACING } from '@/src/lib/designTokens';
 

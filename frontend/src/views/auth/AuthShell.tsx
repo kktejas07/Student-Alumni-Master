@@ -5,7 +5,7 @@
  * Migrated to NativeWind className.
  */
 import React from 'react';
-import { View, Text, ScrollView, useWindowDimensions, Platform, KeyboardAvoidingView, Pressable } from 'react-native';
+import {View, Text, ScrollView, useWindowDimensions, Platform, KeyboardAvoidingView, Pressable, StyleSheet} from "react-native";
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';

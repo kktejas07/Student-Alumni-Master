@@ -11,7 +11,7 @@
  * API: POST /career/simulate
  */
 import React, { useCallback, useEffect, useRef, useState, memo } from 'react';
-import { View, Text, Pressable, ActivityIndicator, Platform } from 'react-native';
+import {View, Text, Pressable, ActivityIndicator, Platform, StyleSheet} from "react-native";
 import { TrendingUp, ChevronDown, ChevronUp, Check, Plus } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
 import { useToast } from '@/src/views/components/Toast';
