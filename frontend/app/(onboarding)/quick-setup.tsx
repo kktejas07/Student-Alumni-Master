@@ -12,7 +12,7 @@ import { getBaseUrl } from '@/src/lib/env';
  * offered as an OPTIONAL "Complete your profile" step later.
  */
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Platform } from 'react-native';
+import { View, Text, ScrollView, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AuthShell } from '@/src/views/auth/AuthShell';
 import { AuthInput, PrimaryButton, OutlineButton } from '@/src/views/auth/AuthControls';
@@ -33,20 +33,31 @@ const SESSION_PRICES = [499, 799, 999, 1499];
 const CURRENT_YEAR = new Date().getFullYear();
 const GRAD_YEARS = Array.from({ length: 60 }, (_, i) => String(CURRENT_YEAR + 6 - i));
 
-// Stepper — separating the steps using a hyphen / dash (line)
 function Stepper({ active, total }: { active: number; total: number }) {
   return (
-    <View style={s.stepRow}>
+    <View className="flex-row items-center gap-1.5 mb-5 justify-center">
       {Array.from({ length: total }, (_, i) => {
         const done = i < active;
         const current = i === active;
         return (
           <React.Fragment key={i}>
-            <View style={[s.stepDot, (done || current) && s.stepDotActive]}>
-              <Text style={[s.stepText, (done || current) && s.stepTextActive]}>{i + 1}</Text>
+            <View
+              className="w-7 h-7 rounded-full border items-center justify-center bg-bg2"
+              style={{
+                borderColor: (done || current) ? '#B07FDF' : '#E5E7EB',
+                backgroundColor: (done || current) ? 'rgba(176,127,223,0.18)' : '#F9FAFB',
+              }}
+            >
+              <Text
+                className="font-display-bold"
+                style={{ color: (done || current) ? '#E9D5FF' : '#9CA3AF', fontSize: 11 }}
+              >{i + 1}</Text>
             </View>
             {i < total - 1 && (
-              <View style={[s.stepLine, done && s.stepLineActive]} />
+              <View
+                className="w-6 h-0.5"
+                style={{ backgroundColor: done ? '#B07FDF' : '#E5E7EB' }}
+              />
             )}
           </React.Fragment>
         );
@@ -62,27 +73,21 @@ export default function QuickSetup() {
   const refreshUser = useAuthStore((u) => u.refreshUser);
   const role = user?.role || 'student';
 
-  // Shared fields
   const [fullName, setFullName] = useState(user?.full_name || '');
   const [phone, setPhone]       = useState(user?.phone || '');
   const [college, setCollege]   = useState('');
   const [gradYear, setGradYear] = useState('');
 
-  // Student
   const [cgpa, setCgpa]         = useState('');
 
-  // Mentor / Alumni shared
   const [currentRole, setCurrentRole] = useState('');
   const [company, setCompany]         = useState('');
 
-  // Mentor
   const [sessionPrice, setSessionPrice] = useState<number | undefined>(999);
   const [customPrice, setCustomPrice]   = useState('');
 
-  // Alumni
   const [yoe, setYoe] = useState('');
 
-  // College — spec fields: Institution Name / Type / Affiliated Univ / Website / City & State
   const [instName, setInstName]   = useState('');
   const [instType, setInstType]   = useState<'university' | 'college' | 'institute'>('university');
   const [affiliated, setAffiliated] = useState('');
@@ -90,7 +95,6 @@ export default function QuickSetup() {
   const [city, setCity]           = useState('');
   const [stateName, setStateName] = useState('');
 
-  // Populated from API on mount — used by Mentor/Alumni Company/Role autocomplete + Student course dropdown
   const [orgs, setOrgs]       = useState<string[]>([
     'Google', 'Microsoft', 'Amazon', 'TCS', 'Infosys', 'Flipkart', 'Swiggy',
     'Razorpay', 'Deloitte', 'IIT Bombay', 'Independent / Freelancer',
@@ -122,7 +126,6 @@ export default function QuickSetup() {
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
 
-  // Role meta
   const meta = role === 'mentor'
     ? { title: 'Your Profile', sub: 'Tell students about yourself', steps: 3 }
     : role === 'alumni'
@@ -184,18 +187,17 @@ export default function QuickSetup() {
       if (role === 'student') {
         payload.career_path = 'job';
         payload.student_info = {
-          age: 20,  // Collected in optional deeper onboarding; default here
+          age: 20,
           education_level: 'btech',
           career_interests: [],
           cgpa: cgpa.trim() ? parseFloat(cgpa) : undefined,
         };
-        // Capture selected course into school_info.branch_or_stream (existing field)
         if (courseSel) payload.school_info.branch_or_stream = courseSel;
       }
 
       if (role === 'mentor') {
         payload.mentor_info = {
-          category: 'it_software',  // User refines in optional deeper step
+          category: 'it_software',
           organization: company.trim(),
           job_title: currentRole.trim(),
           session_price_inr: sessionPrice,
@@ -251,15 +253,14 @@ export default function QuickSetup() {
   return (
     <AuthShell role={role as any}>
       <Stepper active={0} total={meta.steps} />
-      <Text style={s.title}>{meta.title}</Text>
-      <Text style={s.sub}>{meta.sub}</Text>
+      <Text className="text-text font-display-bold text-2xl mb-1.5 text-center">{meta.title}</Text>
+      <Text className="text-muted font-body-semibold text-sm text-center mb-4">{meta.sub}</Text>
 
       <ScrollView style={{ maxHeight: 520 }} showsVerticalScrollIndicator={false}>
-        <View style={{ gap: 12, paddingVertical: 6 }}>
-          {/* STUDENT */}
+        <View className="gap-3 py-1.5">
           {role === 'student' && (
             <>
-              <Text style={s.section}>College / University *</Text>
+              <Text className="text-xs font-body-bold tracking-widest uppercase mt-1" style={{ color: '#6B7280' }}>College / University *</Text>
               <InstitutionAutocomplete
                 value={college}
                 onChangeText={setCollege}
@@ -272,8 +273,8 @@ export default function QuickSetup() {
                 placeholder="Search your college / university (Indian institutions)"
                 testID="student-college"
               />
-              <View style={{ flexDirection: 'row', gap: 10 }}>
-                <View style={{ flex: 1 }}>
+              <View className="flex-row gap-2.5">
+                <View className="flex-1">
                   <Dropdown
                     label="Batch Year *"
                     value={gradYear}
@@ -283,7 +284,7 @@ export default function QuickSetup() {
                     testID="student-grad-year"
                   />
                 </View>
-                <View style={{ flex: 1 }}>
+                <View className="flex-1">
                   <AuthInput label="CGPA (optional, 0.0-10.0)" value={cgpa} onChangeText={setCgpa} placeholder="8.4" keyboardType="decimal-pad" />
                 </View>
               </View>
@@ -302,7 +303,6 @@ export default function QuickSetup() {
             </>
           )}
 
-          {/* MENTOR */}
           {role === 'mentor' && (
             <>
               <SuggestionAutocomplete
@@ -323,7 +323,7 @@ export default function QuickSetup() {
                 helper="Pick from our curated list — or type your own."
                 testID="mentor-company"
               />
-              <Text style={s.section}>College / University *</Text>
+              <Text className="text-xs font-body-bold tracking-widest uppercase mt-1" style={{ color: '#6B7280' }}>College / University *</Text>
               <InstitutionAutocomplete
                 value={college}
                 onChangeText={setCollege}
@@ -340,8 +340,8 @@ export default function QuickSetup() {
                 testID="mentor-grad-year"
               />
               <PhoneInput label="Phone Number *" value={phone} onChangeText={setPhone} />
-              <Text style={s.section}>Session Price (₹)</Text>
-              <View style={s.chipRow}>
+              <Text className="text-xs font-body-bold tracking-widest uppercase mt-1" style={{ color: '#6B7280' }}>Session Price (₹)</Text>
+              <View className="flex-row flex-wrap gap-2">
                 {SESSION_PRICES.map((p) => (
                   <DarkChip
                     key={p}
@@ -368,7 +368,6 @@ export default function QuickSetup() {
             </>
           )}
 
-          {/* ALUMNI */}
           {role === 'alumni' && (
             <>
               <SuggestionAutocomplete
@@ -389,7 +388,7 @@ export default function QuickSetup() {
                 helper="Pick from our curated list — or type your own."
                 testID="alumni-company"
               />
-              <Text style={s.section}>College / University *</Text>
+              <Text className="text-xs font-body-bold tracking-widest uppercase mt-1" style={{ color: '#6B7280' }}>College / University *</Text>
               <InstitutionAutocomplete
                 value={college}
                 onChangeText={setCollege}
@@ -397,8 +396,8 @@ export default function QuickSetup() {
                 placeholder="Search your college / university (Indian institutions)"
                 testID="alumni-college"
               />
-              <View style={{ flexDirection: 'row', gap: 10 }}>
-                <View style={{ flex: 1 }}>
+              <View className="flex-row gap-2.5">
+                <View className="flex-1">
                   <Dropdown
                     label="Batch Year *"
                     value={gradYear}
@@ -408,7 +407,7 @@ export default function QuickSetup() {
                     testID="alumni-grad-year"
                   />
                 </View>
-                <View style={{ flex: 1 }}>
+                <View className="flex-1">
                   <AuthInput
                     label="Years of Experience"
                     value={yoe}
@@ -422,10 +421,9 @@ export default function QuickSetup() {
             </>
           )}
 
-          {/* COLLEGE — per HTML spec "Your Institution" */}
           {role === 'college' && (
             <>
-              <Text style={s.section}>Institution Name *</Text>
+              <Text className="text-xs font-body-bold tracking-widest uppercase mt-1" style={{ color: '#6B7280' }}>Institution Name *</Text>
               <InstitutionAutocomplete
                 value={instName}
                 onChangeText={setInstName}
@@ -439,8 +437,8 @@ export default function QuickSetup() {
                 testID="college-inst-name"
               />
 
-              <Text style={s.section}>Institution Type</Text>
-              <View style={s.chipRow}>
+              <Text className="text-xs font-body-bold tracking-widest uppercase mt-1" style={{ color: '#6B7280' }}>Institution Type</Text>
+              <View className="flex-row flex-wrap gap-2">
                 {(['university', 'college', 'institute'] as const).map((t) => (
                   <DarkChip
                     key={t}
@@ -467,11 +465,11 @@ export default function QuickSetup() {
                 keyboardType="url"
                 autoCapitalize="none"
               />
-              <View style={{ flexDirection: 'row', gap: 10 }}>
-                <View style={{ flex: 1 }}>
+              <View className="flex-row gap-2.5">
+                <View className="flex-1">
                   <AuthInput label="City" value={city} onChangeText={setCity} placeholder="e.g. New Delhi" autoCapitalize="words" />
                 </View>
-                <View style={{ flex: 1 }}>
+                <View className="flex-1">
                   <AuthInput label="State" value={stateName} onChangeText={setStateName} placeholder="e.g. Delhi" autoCapitalize="words" />
                 </View>
               </View>
@@ -481,38 +479,15 @@ export default function QuickSetup() {
         </View>
       </ScrollView>
 
-      {error ? <Text style={s.err}>{error}</Text> : null}
+      {error ? <Text className="text-rose font-body-semibold text-sm mt-2.5 text-center">{error}</Text> : null}
 
-      <View style={{ marginTop: 10, gap: 10 }}>
+      <View className="mt-2.5 gap-2.5">
         <PrimaryButton label="Continue →" onPress={onSubmit} loading={loading} />
         <OutlineButton label="← Go Back" onPress={() => router.replace('/welcome')} testID="quick-setup-back" />
         <Pressable onPress={onCompleteDeeper}>
-          <Text style={s.deepLink}>Want to share more? Complete your full profile →</Text>
+          <Text className="text-violet font-body-semibold text-sm text-center mt-1">Want to share more? Complete your full profile →</Text>
         </Pressable>
       </View>
     </AuthShell>
   );
 }
-
-const s = StyleSheet.create({
-  stepRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 22, justifyContent: 'center' },
-  stepDot: {
-    width: 28, height: 28, borderRadius: 14,
-    borderWidth: 1.5, borderColor: '#E5E7EB',
-    alignItems: 'center', justifyContent: 'center',
-    backgroundColor: '#F9FAFB',
-  },
-  stepDotActive: { borderColor: '#B07FDF', backgroundColor: 'rgba(176,127,223,0.18)' },
-  stepText: { color: '#9CA3AF', fontFamily: FONTS.bold, fontSize: 11 },
-  stepTextActive: { color: '#E9D5FF' },
-  stepLine: { width: 24, height: 1.5, backgroundColor: '#E5E7EB' },
-  stepLineActive: { backgroundColor: '#B07FDF' },
-  title: { color: '#111827', fontFamily: FONTS.bold, fontSize: 26, marginBottom: 6, textAlign: 'center' },
-  sub: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 13.5, textAlign: 'center', marginBottom: 18 },
-  section: { color: '#6B7280', fontFamily: FONTS.bold,
-    fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', marginTop: 4,
-  },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  err: { color: '#FCA5A5', fontFamily: FONTS.med, fontSize: 12.5, marginTop: 10, textAlign: 'center' },
-  deepLink: { color: '#B07FDF', fontFamily: FONTS.med, fontSize: 12.5, textAlign: 'center', marginTop: 4 },
-});

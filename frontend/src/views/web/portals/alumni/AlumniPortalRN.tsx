@@ -4,7 +4,7 @@
  * EmbeddedShellContext (no router redirects).
  */
 import React, { useState } from 'react';
-import { View, ScrollView, StyleSheet , Platform} from 'react-native';
+import { View, ScrollView, StyleSheet, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useAutoTour } from '@/src/views/web/tour/TourProvider';
@@ -72,7 +72,7 @@ export function AlumniPortalRN() {
   };
 
   return (
-    <View style={s.shell}>
+    <View className="flex-1 flex-row h-full" style={{ backgroundColor: SC.bg }}>
       <LinearGradient
         pointerEvents="none"
         colors={['#030614', '#040816']}
@@ -81,11 +81,11 @@ export function AlumniPortalRN() {
       />
 
       <Sidebar active={active} onNav={handleNav} onLogout={onLogout} />
-      <View style={{ flex: 1, minWidth: 0 }}>
+      <View className="flex-1 min-w-0">
         <AlumniPortalNavContext.Provider value={{ navigate: handleNav, searchQuery, setSearchQuery }}>
           <TopBar activeView={active} onAvatarPress={() => setActive('profile')} />
           <ScrollView
-            style={{ flex: 1 }}
+            className="flex-1"
             contentContainerStyle={{ padding: 22, paddingBottom: 60 }}
             showsVerticalScrollIndicator={false}
           >
@@ -123,7 +123,3 @@ export function AlumniPortalRN() {
     </View>
   );
 }
-
-const s = StyleSheet.create({
-  shell: { flex: 1, flexDirection: 'row', backgroundColor: SC.bg, height: '100%' as any },
-});

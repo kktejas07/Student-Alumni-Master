@@ -10,7 +10,7 @@
  * After "Continue" → /(onboarding)/generating-experience → portal (role-based)
  */
 import React from 'react';
-import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
+import { View, Text, Pressable, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { AuthShell } from '@/src/views/auth/AuthShell';
 import { PrimaryButton } from '@/src/views/auth/AuthControls';
@@ -116,24 +116,23 @@ export default function MemberId() {
             }
           }
         }}
-        style={({ hovered }: any) => [s.back, hovered && { opacity: 1 }]}
+        style={({ hovered }: any) => hovered ? { opacity: 1 } : undefined}
+        className="flex-row items-center gap-1.5 py-1.5 mb-2.5 self-start opacity-75 cursor-pointer transition duration-[160ms]"
         testID="member-id-back"
       >
         <ArrowLeft size={16} color="#4B5563" />
-        <Text style={s.backText}>Back</Text>
+        <Text style={{ fontFamily: FONTS.med }} className="text-[#4B5563] text-[13px]">Back</Text>
       </Pressable>
 
-      <View style={s.center}>
-        {/* Identity Verified pill */}
-        <View style={s.verifiedPill}>
+      <View className="items-center py-1 w-full">
+        <View className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#ECFDF5] border border-[#A7F3D0] mb-3.5">
           <CheckCircle2 size={13} color="#34D399" />
-          <Text style={s.verifiedText}>Identity Verified</Text>
+          <Text style={{ fontFamily: FONTS.bold }} className="text-[#059669] text-[11.5px] tracking-[0.3px]">Identity Verified</Text>
         </View>
 
-        <Text style={s.title}>Your Member ID</Text>
-        <Text style={s.sub}>Your unique Student Alumni identity card</Text>
+        <Text style={{ fontFamily: FONTS.bold }} className="text-text text-2xl mb-1.5 text-center">Your Member ID</Text>
+        <Text style={{ fontFamily: FONTS.med }} className="text-muted text-[12.5px] text-center mb-[18px] px-2.5 leading-[18px]">Your unique Student Alumni identity card</Text>
 
-        {/* Interactive flip card */}
         <MemberIdCard
           uniqueId={uid}
           role={role}
@@ -143,91 +142,37 @@ export default function MemberId() {
           verifyBaseUrl={(process.env.EXPO_PUBLIC_FRONTEND_URL || 'https://studentalumni.ai').replace(/^https?:\/\//, '') + '/verify'}
         />
 
-        {/* Action buttons row */}
-        <View style={s.actionsRow}>
-          <Pressable onPress={onCopy} style={s.actionBtn} testID="member-id-copy">
+        <View className="flex-row gap-2 mt-3.5 w-full">
+          <Pressable onPress={onCopy} className="flex-1 flex-row justify-center items-center gap-1.5 py-[11px] rounded-[10px] bg-white border border-glass-border cursor-pointer" testID="member-id-copy">
             <Copy size={14} color="#111827" />
-            <Text style={s.actionText}>Copy ID</Text>
+            <Text style={{ fontFamily: FONTS.bold }} className="text-text text-xs">Copy ID</Text>
           </Pressable>
-          <Pressable onPress={onSaveCard} style={s.actionBtn} testID="member-id-save">
+          <Pressable onPress={onSaveCard} className="flex-1 flex-row justify-center items-center gap-1.5 py-[11px] rounded-[10px] bg-white border border-glass-border cursor-pointer" testID="member-id-save">
             <Save size={14} color="#111827" />
-            <Text style={s.actionText}>Save Card</Text>
+            <Text style={{ fontFamily: FONTS.bold }} className="text-text text-xs">Save Card</Text>
           </Pressable>
-          <Pressable onPress={onShare} style={s.actionBtn} testID="member-id-share">
+          <Pressable onPress={onShare} className="flex-1 flex-row justify-center items-center gap-1.5 py-[11px] rounded-[10px] bg-white border border-glass-border cursor-pointer" testID="member-id-share">
             <Share2 size={14} color="#111827" />
-            <Text style={s.actionText}>Share</Text>
+            <Text style={{ fontFamily: FONTS.bold }} className="text-text text-xs">Share</Text>
           </Pressable>
         </View>
 
-        {/* Info box */}
-        <View style={s.infoBox}>
+        <View className="w-full flex-row items-start gap-2 px-3.5 py-3 rounded-xl bg-white border border-glass-border mt-3.5">
           <Info size={14} color="#6B7280" />
-          <Text style={s.infoText}>
+          <Text style={{ fontFamily: FONTS.med }} className="flex-1 text-muted text-[11.5px] leading-[17px]">
             Your Member ID is permanent and unique to you. It appears on your profile, session receipts, certificates and placement letters.
           </Text>
         </View>
 
-        <View style={s.footNote}>
+        <View className="flex-row items-center gap-1.5 mt-3">
           <ShieldCheck size={12} color="#9CA3AF" />
-          <Text style={s.footText}>Keep this ID safe — it's your gateway to SA.</Text>
+          <Text style={{ fontFamily: FONTS.med }} className="text-dim text-[11px]">Keep this ID safe — it's your gateway to SA.</Text>
         </View>
 
-        <View style={{ width: '100%', marginTop: 18 }}>
+        <View className="w-full mt-[18px]">
           <PrimaryButton label="Continue to Your Dashboard →" onPress={onContinue} />
         </View>
       </View>
     </AuthShell>
   );
 }
-
-const s = StyleSheet.create({
-  center: { alignItems: 'center', paddingVertical: 4, width: '100%' },
-
-  verifiedPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 12, paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: '#ECFDF5',
-    borderWidth: 1, borderColor: '#A7F3D0',
-    marginBottom: 14,
-  },
-  verifiedText: { color: '#059669', fontFamily: FONTS.bold, fontSize: 11.5, letterSpacing: 0.3 },
-
-  title: { color: '#111827', fontFamily: FONTS.bold, fontSize: 24, marginBottom: 6, textAlign: 'center' },
-  sub: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 12.5, textAlign: 'center', marginBottom: 18, paddingHorizontal: 10, lineHeight: 18 },
-
-  actionsRow: { flexDirection: 'row', gap: 8, marginTop: 14, width: '100%' },
-  actionBtn: {
-    flex: 1, flexDirection: 'row',
-    justifyContent: 'center', alignItems: 'center', gap: 6,
-    paddingVertical: 11, borderRadius: 10,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1, borderColor: '#E5E7EB',
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  actionText: { color: '#111827', fontFamily: FONTS.bold, fontSize: 12 },
-
-  infoBox: {
-    width: '100%', flexDirection: 'row', alignItems: 'flex-start', gap: 8,
-    paddingHorizontal: 14, paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1, borderColor: '#E5E7EB',
-    marginTop: 14,
-  },
-  infoText: { flex: 1, color: '#6B7280', fontFamily: FONTS.med, fontSize: 11.5, lineHeight: 17 },
-
-  footNote: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 },
-  footText: { color: '#9CA3AF', fontFamily: FONTS.med, fontSize: 11 },
-  back: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 6,
-    marginBottom: 10,
-    opacity: 0.75,
-    alignSelf: 'flex-start',
-    ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
-  },
-  backText: { color: '#4B5563', fontFamily: FONTS.med, fontSize: 13 },
-});

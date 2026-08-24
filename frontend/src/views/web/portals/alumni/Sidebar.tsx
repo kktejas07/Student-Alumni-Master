@@ -63,32 +63,32 @@ export function Sidebar({
   const saId = user?.unique_id || '—';
 
   return (
-    <View style={s.aside}>
+    <View className="w-60 h-full bg-bg2 border-r border-glass-border px-3 pt-3.5 pb-3" style={{ borderBottomWidth: 0 }}>
       {/* Brand */}
       <FadeInView delay={20}>
-        <View style={s.brand} nativeID="alumni-brand">
+        <View className="flex-row items-center gap-2.5 mb-4.5 px-1" nativeID="alumni-brand">
           <SALogo size={32} variant="glass" />
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={s.brandTitle}>Student Alumni</Text>
-            <Text style={s.brandSub}>Alumni Dashboard</Text>
+          <View className="flex-1 min-w-0">
+            <Text className="text-white font-display-bold text-[13px] tracking-tight">Student Alumni</Text>
+            <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 10.5 }}>Alumni Dashboard</Text>
           </View>
         </View>
       </FadeInView>
 
       {/* Alumni profile card */}
       <FadeInView delay={70}>
-        <View style={[s.profileCard, { alignItems: 'center', ...(Platform.OS === 'web' ? { cursor: 'default' } : {}) }]}>
-          <Text numberOfLines={1} style={[s.profileName, { textAlign: 'center' }]}>{name}</Text>
-          <Text numberOfLines={1} style={[s.profileYear, { textAlign: 'center', marginTop: 2 }]}>{subTitle}</Text>
+        <View className="px-1 py-2 mb-2.5 items-center" nativeID="alumni-profile-card" style={Platform.OS === 'web' ? { cursor: 'default' } as any : {}}>
+          <Text numberOfLines={1} className="text-white font-body-bold text-[13px] text-center">{name}</Text>
+          <Text numberOfLines={1} style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 11, textAlign: 'center', marginTop: 2 }}>{subTitle}</Text>
         </View>
       </FadeInView>
 
       {/* Alumni card pill */}
       <FadeInView delay={95}>
-        <PressScale style={s.idCardPill} onPress={() => router.push('/id-card')}>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={s.idCardLabel}>My Alumni Card</Text>
-            <Text style={s.idCardNumber}>{saId}</Text>
+        <PressScale onPress={() => router.push('/id-card')} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, marginBottom: 12, ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {}) } as any}>
+          <View className="flex-1 min-w-0">
+            <Text style={{ color: SC.muted, fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 0.3 }}>My Alumni Card</Text>
+            <Text style={{ color: SC.accentBright, fontFamily: FONTS.xbold, fontSize: 11.5, letterSpacing: 0.5, marginTop: 1 }}>{saId}</Text>
           </View>
           <ExternalLink size={13} color={SC.accent} />
         </PressScale>
@@ -101,7 +101,7 @@ export function Sidebar({
 
       {/* Nav */}
       <ScrollView
-        style={{ flex: 1 }}
+        className="flex-1"
         contentContainerStyle={{ paddingTop: 8, paddingBottom: 8 }}
         showsVerticalScrollIndicator={false}
         accessibilityRole={Platform.OS === 'web' ? ('navigation' as any) : undefined}
@@ -123,16 +123,17 @@ export function Sidebar({
                   <LinearGradient
                     colors={GRADS.brand as any}
                     start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                    style={[s.navItem, s.navItemActive]}
+                    className="flex-row items-center gap-[11px] px-[11px] py-[9px] mb-0.5 rounded-lg"
+                    style={Platform.OS === 'web' ? { boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.18)' } : {}}
                   >
                     {spark ? <SparkIcon Icon={Icon} size={16} color="#fff" /> : <Icon size={16} color="#fff" />}
-                    <Text style={[s.navLabel, s.navLabelActive]} numberOfLines={1}>{label}</Text>
-                    <View style={s.activeDot} />
+                    <Text className="text-white font-body-bold text-[12.5px] flex-1" numberOfLines={1}>{label}</Text>
+                    <View className="w-[5px] h-[5px] rounded-full bg-white opacity-90" />
                   </LinearGradient>
                 ) : (
-                  <View style={s.navItem}>
+                  <View className="flex-row items-center gap-[11px] px-[11px] py-[9px] mb-0.5 rounded-lg" style={Platform.OS === 'web' ? { cursor: 'pointer' } : {}}>
                     {spark ? <SparkIcon Icon={Icon} size={16} color={SC.muted} /> : <Icon size={16} color={SC.muted} />}
-                    <Text style={s.navLabel} numberOfLines={1}>{label}</Text>
+                    <Text style={{ color: SC.muted, fontFamily: FONTS.bold, fontSize: 12.5, flex: 1 }} numberOfLines={1}>{label}</Text>
                   </View>
                 )}
               </PressScale>
@@ -144,66 +145,13 @@ export function Sidebar({
       {/* Logout */}
       <PressScale
         onPress={onLogout}
-        style={s.logoutRow}
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 11, paddingVertical: 9, borderRadius: 8, marginTop: 4, ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {}) } as any}
         accessibilityLabel="Log out of your alumni account"
         testID="logout-button"
       >
         <LogOut size={14} color="#FCA5A5" />
-        <Text style={s.logoutText}>Log out</Text>
+        <Text style={{ color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 12.5 }}>Log out</Text>
       </PressScale>
     </View>
   );
 }
-
-const s = StyleSheet.create({
-  aside: {
-    width: 240, height: '100%' as any, backgroundColor: SC.bg2,
-    borderRightWidth: 1, borderRightColor: SC.border,
-    paddingHorizontal: 12, paddingTop: 14, paddingBottom: 12,
-  },
-  brand: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 18, paddingHorizontal: 4 },
-  brandLogo: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  brandLogoText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12, letterSpacing: 0.5 },
-  brandTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13, letterSpacing: -0.2 },
-  brandSub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 10.5 },
-
-  profileCard: {
-    paddingHorizontal: 4, paddingVertical: 8, marginBottom: 10,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  statusDotWrap: { position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, backgroundColor: SC.bg2, alignItems: 'center', justifyContent: 'center' },
-  profileName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13 },
-  profileYear: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11 },
-
-  idCardPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1,
-    borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, marginBottom: 12,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  idCardLabel: { color: SC.muted, fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 0.3 },
-  idCardNumber: { color: SC.accentBright, fontFamily: FONTS.xbold, fontSize: 11.5, letterSpacing: 0.5, marginTop: 1 },
-
-  navItem: {
-    flexDirection: 'row', alignItems: 'center', gap: 11,
-    paddingHorizontal: 11, paddingVertical: 9, marginBottom: 2,
-    borderRadius: 8,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  navItemActive: {
-    ...(Platform.OS === 'web' ? ({
-      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.18)',
-    } as any) : {}),
-  },
-  navLabel: { color: SC.muted, fontFamily: FONTS.bold, fontSize: 12.5, flex: 1 },
-  navLabelActive: { color: '#fff' },
-  activeDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#fff', opacity: 0.9 },
-
-  logoutRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 11, paddingVertical: 9, borderRadius: 8,
-    marginTop: 4,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  logoutText: { color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 12.5 },
-});

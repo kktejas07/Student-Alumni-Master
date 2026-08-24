@@ -2,7 +2,7 @@
  * Mentor → Availability — set weekly recurring slots.
  */
 import React, { useState } from 'react';
-import { View, Text, Pressable, TextInput, StyleSheet, Platform } from 'react-native';
+import { View, Text, Pressable, TextInput, Platform } from 'react-native';
 import { Clock, CheckCircle, Plus, X } from 'lucide-react-native';
 import { MC, FONTS } from '../tokens';
 import { useCurrentUser } from '@/src/lib/useCurrentUser';
@@ -48,70 +48,64 @@ export function AvailabilityView() {
   };
 
   return (
-    <View style={{ gap: 16 }}>
+    <View className="gap-4">
       <View>
-        <Text style={s.h1}>Set Availability</Text>
-        <Text style={s.sub}>Weekly recurring slots for {email}</Text>
+        <Text className="text-white font-display-bold text-[22px] tracking-[-0.4px]">Set Availability</Text>
+        <Text className="text-muted font-body-semibold text-[12.5px] mt-1">Weekly recurring slots for {email}</Text>
       </View>
 
-      <View style={{ gap: 8 }}>
+      <View className="gap-2">
         {slots.map((slot, i) => (
-          <View key={i} style={s.row}>
-            <View style={s.iconBox}><Clock size={16} color={MC.tealP} /></View>
-            <View style={s.dayPicker}>
+          <View key={i} className="flex-row items-center gap-2 bg-card border border-glass-border rounded-xl p-3 flex-wrap">
+            <View className="w-8 h-8 rounded-lg items-center justify-center" style={{ backgroundColor: 'rgba(94,234,212,0.10)', borderColor: 'rgba(94,234,212,0.30)', borderWidth: 1 }}>
+              <Clock size={16} color={MC.tealP} />
+            </View>
+            <View className="flex-row gap-1 flex-1 flex-wrap">
               {DAYS.map((d) => (
                 <Pressable
                   key={d}
                   onPress={() => updateSlot(i, 'day', d)}
-                  style={[s.dayChip, slot.day === d && s.dayChipOn]}
+                  className="px-[9px] h-7 rounded-md items-center justify-center border"
+                  style={slot.day === d
+                    ? { backgroundColor: MC.tealP, borderColor: MC.tealP }
+                    : { backgroundColor: MC.card, borderColor: MC.border }
+                  }
                 >
-                  <Text style={{ color: slot.day === d ? '#fff' : MC.muted, fontFamily: FONTS.bold, fontSize: 11 }}>{d.slice(0, 3)}</Text>
+                  <Text className="text-[11px] font-body-bold" style={{ color: slot.day === d ? '#fff' : MC.muted }}>{d.slice(0, 3)}</Text>
                 </Pressable>
               ))}
             </View>
-            <TextInput value={slot.start_time} onChangeText={(t) => updateSlot(i, 'start_time', t)} style={s.timeInput} placeholder="09:00" placeholderTextColor={MC.dim} />
-            <Text style={s.dash}>—</Text>
-            <TextInput value={slot.end_time} onChangeText={(t) => updateSlot(i, 'end_time', t)} style={s.timeInput} placeholder="17:00" placeholderTextColor={MC.dim} />
-            <Pressable onPress={() => removeSlot(i)} style={s.removeBtn}>
+            <TextInput value={slot.start_time} onChangeText={(t) => updateSlot(i, 'start_time', t)} className="w-[70px] h-8 rounded-lg border px-2 text-white font-body-semibold text-[12.5px]" style={{ borderColor: MC.border, ...(Platform.OS === 'web' ? { outlineStyle: 'none' } as any : {}) }} placeholder="09:00" placeholderTextColor={MC.dim} />
+            <Text className="text-muted">—</Text>
+            <TextInput value={slot.end_time} onChangeText={(t) => updateSlot(i, 'end_time', t)} className="w-[70px] h-8 rounded-lg border px-2 text-white font-body-semibold text-[12.5px]" style={{ borderColor: MC.border, ...(Platform.OS === 'web' ? { outlineStyle: 'none' } as any : {}) }} placeholder="17:00" placeholderTextColor={MC.dim} />
+            <Pressable onPress={() => removeSlot(i)} className="w-[30px] h-[30px] rounded-lg items-center justify-center border" style={{ borderColor: '#EF444466', ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}) }}>
               <X size={13} color="#EF4444" />
             </Pressable>
           </View>
         ))}
       </View>
 
-      <Pressable onPress={addSlot} style={({ hovered }: any) => [s.addBtn, hovered && { backgroundColor: MC.cardH }]}>
+      <Pressable onPress={addSlot} className="flex-row items-center gap-1.5 px-[14px] h-[34px] rounded-[10px] bg-card border border-glass-border self-start" style={Platform.OS === 'web' ? { cursor: 'pointer' } as any : undefined}>
         <Plus size={13} color={MC.tealP} />
-        <Text style={s.addText}>Add Slot</Text>
+        <Text className="text-tealP font-body-bold text-xs">Add Slot</Text>
       </Pressable>
 
-      <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+      <View className="flex-row gap-2.5 items-center">
         <Pressable
           onPress={save}
           disabled={saving}
-          style={({ hovered }: any) => [s.saveBtn, hovered && { transform: [{ translateY: -1 }] }, saving && { opacity: 0.6 }]}
+          className="flex-row items-center gap-1.5 px-4 h-[38px] rounded-[10px] bg-tealP"
+          style={({ hovered }: any) => ({
+            cursor: 'pointer',
+            ...(hovered ? { transform: [{ translateY: -1 }] } : {}),
+            ...(saving ? { opacity: 0.6 } : {}),
+          })}
         >
           <CheckCircle size={13} color={MC.bg} />
-          <Text style={s.saveText}>{saving ? 'Saving…' : `Save ${slots.length} Slot${slots.length === 1 ? '' : 's'}`}</Text>
+          <Text className="text-bg font-display-bold text-[13px]">{saving ? 'Saving…' : `Save ${slots.length} Slot${slots.length === 1 ? '' : 's'}`}</Text>
         </Pressable>
-        {savedAt && <Text style={{ color: '#22C55E', fontFamily: FONTS.bold, fontSize: 12 }}>✓ Saved at {savedAt}</Text>}
+        {savedAt && <Text className="text-green font-body-bold text-xs">✓ Saved at {savedAt}</Text>}
       </View>
     </View>
   );
 }
-
-const s = StyleSheet.create({
-  h1: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4 },
-  sub: { color: MC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 12, padding: 12, flexWrap: 'wrap' },
-  iconBox: { width: 32, height: 32, borderRadius: 8, backgroundColor: 'rgba(94,234,212,0.10)', borderColor: 'rgba(94,234,212,0.30)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  dayPicker: { flexDirection: 'row', gap: 4, flex: 1, flexWrap: 'wrap' },
-  dayChip: { paddingHorizontal: 9, height: 28, borderRadius: 6, backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  dayChipOn: { backgroundColor: MC.tealP, borderColor: MC.tealP },
-  timeInput: { width: 70, height: 32, borderRadius: 8, borderColor: MC.border, borderWidth: 1, paddingHorizontal: 8, color: '#fff', fontFamily: FONTS.med, fontSize: 12.5, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
-  dash: { color: MC.muted },
-  removeBtn: { width: 30, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderColor: '#EF444466', borderWidth: 1, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  addBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 34, borderRadius: 10, backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, alignSelf: 'flex-start', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  addText: { color: MC.tealP, fontFamily: FONTS.bold, fontSize: 12 },
-  saveBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, height: 38, borderRadius: 10, backgroundColor: MC.tealP, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  saveText: { color: MC.bg, fontFamily: FONTS.xbold, fontSize: 13 },
-});

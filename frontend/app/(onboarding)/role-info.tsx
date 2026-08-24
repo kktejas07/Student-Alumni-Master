@@ -1,7 +1,7 @@
 /**
  * Onboarding step 1 — Role-aware intro (Web split-screen + Native dark theme).
  */
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { OnboardingShell } from '@/src/views/web/OnboardingShell';
@@ -87,42 +87,17 @@ export default function RoleInfo() {
       onPrimary={() => router.push('/(onboarding)/school-info')}
       showBack={false}
     >
-      <View style={styles.grid}>
+      <View className="flex-row flex-wrap gap-2.5">
         {content.perks.map((p) => (
-          <View key={p.title} style={styles.tile}>
-            <View style={styles.tileIcon}>
+          <View key={p.title} className="flex-[1_1_48%] bg-bg2 border border-border rounded-xl p-3.5 gap-1.5">
+            <View className="w-10 h-10 rounded-[11px] bg-violet/18 border border-violet/22 items-center justify-center">
               <Text style={{ fontSize: 22 }}>{p.emoji}</Text>
             </View>
-            <Text style={styles.tileTitle}>{p.title}</Text>
-            <Text style={styles.tileDesc} numberOfLines={2}>{p.desc}</Text>
+            <Text className="text-text font-body-bold text-sm mt-1.5">{p.title}</Text>
+            <Text className="text-muted font-body text-xs leading-[17px]" numberOfLines={2}>{p.desc}</Text>
           </View>
         ))}
       </View>
     </OnboardingShell>
   );
 }
-
-const styles = StyleSheet.create({
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  tile: {
-    flexBasis: '48%',
-    flexGrow: 1,
-    backgroundColor: '#F9FAFB',
-    borderColor: '#E5E7EB',
-    borderWidth: 1,
-    borderRadius: 14,
-    padding: 14,
-    gap: 6,
-  },
-  tileIcon: {
-    width: 40, height: 40,
-    borderRadius: 11,
-    backgroundColor: 'rgba(124,58,237,0.18)',
-    borderWidth: 1,
-    borderColor: 'rgba(196,181,253,0.22)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tileTitle: { color: '#111827', fontFamily: 'DMSans_700Bold', fontSize: 14, marginTop: 6 },
-  tileDesc: { color: '#6B7280', fontFamily: 'DMSans_400Regular', fontSize: 12, lineHeight: 17 },
-});

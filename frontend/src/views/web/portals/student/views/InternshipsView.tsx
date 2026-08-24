@@ -20,7 +20,7 @@
  */
 import React, { useCallback, useEffect, useState, useContext } from 'react';
 import {
-  View, Text, Pressable, TextInput, StyleSheet, useWindowDimensions,
+  View, Text, Pressable, TextInput, useWindowDimensions,
   Platform, ActivityIndicator, Linking, Modal, Clipboard,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -29,7 +29,7 @@ import {
   Search, MapPin, Bookmark, BookmarkCheck, ExternalLink, RefreshCcw,
   Lock, Sparkles, Briefcase, Globe2, Clock, Users, Calendar, IndianRupee,
 } from '../iconShims';
-import { SC, FONTS } from '../tokens';
+import { SC, FONTS, PALETTE } from '../tokens';
 import { GRAD } from '../portalkit';
 import { GlassCard } from '../glass';
 import { EmptyState, SuccessBurst } from '../EmptyState';
@@ -77,7 +77,6 @@ type FeedResponse = {
 
 const PER_PAGE = 12;
 
-/* ── Custom Dropdown Component ───────────────────────────────────────── */
 function CustomDropdown({
   value,
   options,
@@ -94,7 +93,6 @@ function CustomDropdown({
   const [open, setOpen] = useState(false);
   return (
     <View style={{ zIndex: open ? 1000 : 1, position: 'relative' }}>
-      {/* Transparent full-screen backdrop — closes menu on outside click */}
       {open && (
         <Pressable
           onPress={() => setOpen(false)}
@@ -119,28 +117,20 @@ function CustomDropdown({
         accessibilityHint="Tap to show filter dropdown options"
         testID={`job-dropdown-toggle-${value.toLowerCase().replace(/\s+/g, '-')}`}
         accessibilityRole="combobox"
+        className="flex-row items-center gap-1.5 rounded-lg px-3 h-9 min-w-[120px] justify-between z-[1001]"
         style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 6,
           backgroundColor: '#1E1B4B',
           borderColor: open ? 'rgba(124,58,237,0.5)' : 'rgba(255,255,255,0.08)',
           borderWidth: 1,
-          borderRadius: 8,
-          paddingHorizontal: 12,
-          height: 36,
-          minWidth: 120,
-          justifyContent: 'space-between',
-          zIndex: 1001,
         }}
       >
-        <Text style={{ color: '#E5E7EB', fontSize: 12.5, fontFamily: FONTS.med }}>{value}</Text>
+        <Text className="text-gray-200 text-[12.5px]" style={{ fontFamily: FONTS.med }}>{value}</Text>
         <MaterialCommunityIcons name={open ? "chevron-up" : "chevron-down"} size={14} color="#9CA3AF" />
       </Pressable>
       {open && (
         <View
+          className="absolute p-1 z-[1002]"
           style={{
-            position: 'absolute',
             top: 40,
             left: 0,
             minWidth: 140,
@@ -148,13 +138,11 @@ function CustomDropdown({
             borderColor: 'rgba(255,255,255,0.08)',
             borderWidth: 1,
             borderRadius: 8,
-            padding: 4,
             shadowColor: '#000',
             shadowOffset: { width: 0, height: 4 },
             shadowOpacity: 0.3,
             shadowRadius: 6,
             elevation: 8,
-            zIndex: 1002,
           }}
         >
           {options.map((opt) => {
@@ -170,22 +158,19 @@ function CustomDropdown({
                   }
                   setOpen(false);
                 }}
+                className="flex-row items-center gap-1.5 justify-between"
                 style={({ hovered }: any) => [
                   {
                     paddingVertical: 8,
                     paddingHorizontal: 10,
                     borderRadius: 6,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 6,
-                    justifyContent: 'space-between',
                   },
                   hovered && { backgroundColor: 'rgba(255,255,255,0.06)' },
                   value === opt && { backgroundColor: 'rgba(124, 58, 237, 0.2)' },
                   isDisabled && { opacity: 0.5 },
                 ]}
               >
-                <Text style={{ color: value === opt ? '#A78BFA' : '#D1D5DB', fontSize: 12, fontFamily: FONTS.bold }}>
+                <Text className="text-xs" style={{ color: value === opt ? '#A78BFA' : '#D1D5DB', fontFamily: FONTS.bold }}>
                   {opt}
                 </Text>
                 {isDisabled && <Lock size={10} color={SC.dim} />}
@@ -229,7 +214,6 @@ export function InternshipsView() {
   const [savedJobs, setSavedJobs] = useState<Job[]>([]);
   const [appliedRaw, setAppliedRaw] = useState<any[]>([]);
 
-  // Modals state
   const [coverModalJob, setCoverModalJob] = useState<Job | null>(null);
   const [coverLetterText, setCoverLetterText] = useState('');
   const [generatingCover, setGeneratingCover] = useState(false);
@@ -250,7 +234,6 @@ export function InternshipsView() {
       if (q.trim()) params.q = q.trim();
       if (opts?.refresh) params.refresh = true;
 
-      // Update lists and counts
       const savedRes: any = await request('/jobs/saved');
       const sList = savedRes.items || [];
       setSavedJobs(sList);
@@ -260,7 +243,6 @@ export function InternshipsView() {
       setAppliedRaw(aList);
 
       if (tab === 'Saved') {
-        // Filter locally for fast response
         const filtered = sList.filter((j: any) => {
           const typeMatch = selectedType === 'All Types' || j.job_type === selectedType;
           const modeMatch = selectedMode === 'All Modes' || j.work_mode === selectedMode;
@@ -277,7 +259,6 @@ export function InternshipsView() {
 
       if (tab === 'Applied') {
         const mapped = aList.map((app: any) => {
-          // Handle both app.job_id and app.id field names from the API
           const appJobId = app.job_id || app.id;
           const existing = sList.find((it: any) => it.job_id === appJobId) ||
                            items.find((it: any) => it.job_id === appJobId);
@@ -298,9 +279,6 @@ export function InternshipsView() {
           };
         });
 
-        // On the Applied tab only apply type/mode filters; ignore search query
-        // to avoid accidentally hiding applied jobs because user had typed something
-        // in the search box on a different tab.
         const filtered = mapped.filter((j: any) => {
           const typeMatch = selectedType === 'All Types' || j.job_type === selectedType;
           const modeMatch = selectedMode === 'All Modes' || j.work_mode === selectedMode;
@@ -311,7 +289,6 @@ export function InternshipsView() {
         return;
       }
 
-      // Default: tab === 'Recommended'
       const qs = new URLSearchParams(params).toString();
       const r: FeedResponse = await request(`/jobs/feed?${qs}`);
       setItems((prev) => append ? [...prev, ...(r.items || [])] : (r.items || []));
@@ -328,7 +305,6 @@ export function InternshipsView() {
 
   useEffect(() => { setPage(1); loadFeed({ pageOverride: 1 }); }, [tab, selectedType, selectedMode]); // eslint-disable-line
 
-  // "X new jobs since you last visited"
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -343,7 +319,6 @@ export function InternshipsView() {
     return () => { cancelled = true; };
   }, []); // eslint-disable-line
 
-  // Debounced search
   useEffect(() => {
     const t = setTimeout(() => { setPage(1); loadFeed({ pageOverride: 1 }); }, 350);
     return () => clearTimeout(t);
@@ -367,7 +342,6 @@ export function InternshipsView() {
     try {
       await request(next ? '/jobs/save' : '/jobs/unsave', { method: 'POST', body: { job_id: job.job_id } } as any);
       
-      // Update counts
       const savedRes: any = await request('/jobs/saved');
       setSavedJobs(savedRes.items || []);
     } catch (e: any) {
@@ -406,7 +380,6 @@ export function InternshipsView() {
     return allowedTypes.includes(type);
   };
 
-  // Burst toast on save action
   const [burst, setBurst] = useState<{ show: boolean; label: string }>({ show: false, label: '' });
 
   const onToggleSaveWithBurst = useCallback(async (job: Job) => {
@@ -419,7 +392,6 @@ export function InternshipsView() {
     setGeneratingCover(true);
     setCoverModalJob(job);
     
-    // Simulate AI generation delay
     setTimeout(() => {
       const name = authUser?.full_name || 'Aarav Student';
       const email = authUser?.email || 'aarav.student@studentalumni.in';
@@ -444,10 +416,8 @@ ${email}`;
   return (
     <View accessibilityLabel="Internships and jobs feed">
       <SuccessBurst visible={burst.show} onHide={() => setBurst({ show: false, label: '' })} label={burst.label} />
-       {/* Premium Tab Bar and Dropdown Filters */}
-      <View style={s.headerRow}>
-        {/* Left side: Tabs */}
-        <View style={s.tabsContainer}>
+      <View className="flex-row items-center justify-between flex-wrap gap-3 mb-4 z-[100]" style={Platform.OS === 'web' ? { overflow: 'visible' } as any : {}}>
+        <View className="flex-row bg-white/[0.03] border border-white/[0.05] rounded-[10px] p-[3px]">
           {(['Recommended', 'Saved', 'Applied'] as const).map((t) => {
             const active = tab === t;
             let label: string = t;
@@ -457,22 +427,19 @@ ${email}`;
              <Pressable
                 key={t}
                 onPress={() => {
-                  // Clear search query when switching tabs so it doesn't
-                  // accidentally filter out results on the new tab
                   if (t !== tab) setQ('');
                   setTab(t);
                 }}
-                style={[s.tabButton, active && s.tabButtonActive]}
+                className={`px-4 py-2 rounded-lg ${active ? 'bg-violet' : ''}`}
               >
-                <Text style={[s.tabButtonText, active && s.tabButtonTextActive]}>
+                <Text className={`font-body-bold text-[12.5px] ${active ? 'text-white' : 'text-muted'}`}>
                   {label}
                 </Text>
               </Pressable>
             );
           })}
         </View>
-         {/* Right side: Dropdowns + Search */}
-        <View style={s.filtersContainer}>
+        <View className="flex-row items-center gap-2 flex-wrap z-[100]" style={Platform.OS === 'web' ? { overflow: 'visible' } as any : {}}>
           <CustomDropdown
             value={selectedType}
             options={['All Types', 'Internship', 'Full-time', 'Contract']}
@@ -493,23 +460,24 @@ ${email}`;
               setPage(1);
             }}
           />
-          <View style={s.searchBox}>
+          <View className="flex-row items-center gap-2 w-[200px] h-9 px-[11px] rounded-[10px] bg-navy border border-white/[0.08]">
             <Search size={14} color={SC.dim} />
             <TextInput
               value={q}
               onChangeText={setQ}
               placeholder="Search..."
               placeholderTextColor={SC.dim}
-              style={s.searchInput}
+              className="flex-1 text-white text-[12.5px]"
+              style={{ fontFamily: FONTS.med, ...(Platform.OS === 'web' ? { outlineStyle: 'none' } as any : {}) }}
             />
           </View>
           <Pressable
             onPress={onRefresh}
             disabled={refreshing}
+            className="w-9 h-9 rounded-[10px] bg-navy border border-white/[0.08] items-center justify-center"
             style={({ pressed }: any) => [
-              s.refreshBtn,
               pressed && { opacity: 0.7 },
-              refreshing && { opacity: 0.6 }
+              refreshing && { opacity: 0.6 },
             ]}
           >
             {refreshing ? <ActivityIndicator size="small" color="#fff" /> : <RefreshCcw size={13} color="#fff" />}
@@ -517,13 +485,11 @@ ${email}`;
         </View>
       </View>
 
-      {/* Results meta */}
-      <Text style={s.metaCount}>
+      <Text className="text-muted text-[11.5px] mt-1" style={{ fontFamily: FONTS.med }}>
         {loading ? 'Loading…' : `${total} match${total === 1 ? '' : 'es'}`}
       </Text>
 
-      {/* List */}
-      <View style={{ gap: 12, marginTop: 10 }}>
+      <View className="gap-3 mt-2.5">
         {loading && items.length === 0 ? (
           <SkeletonList n={5} kind="job" gap={12} />
         ) : items.length === 0 ? (
@@ -560,52 +526,48 @@ ${email}`;
           />
         ))}
 
-        {/* Load more */}
         {!loading && tab === 'Recommended' && items.length < total && (
-          <Pressable onPress={onLoadMore} style={s.loadMore}>
-            <Text style={s.loadMoreTxt}>Load more · {total - items.length} remaining</Text>
+          <Pressable onPress={onLoadMore} className="self-center mt-3.5 px-[22px] h-[38px] rounded-[10px] flex-row items-center gap-1.5 bg-navy border border-white/[0.08]" style={Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}}>
+            <Text className="text-violet font-body-bold text-xs">Load more · {total - items.length} remaining</Text>
           </Pressable>
         )}
       </View>
 
-      {/* Did you apply modal? */}
       <Modal
         visible={applyModalJob !== null}
         transparent
         animationType="fade"
         onRequestClose={() => setApplyModalJob(null)}
       >
-        <View style={s.modalBg}>
-          <GlassCard radius={16} padding={22} style={s.modalCard}>
-            <View style={s.modalHeader}>
-              <View style={s.modalIconDisc}>
+        <View className="flex-1 bg-black/65 items-center justify-center p-5 z-[99999]">
+          <GlassCard radius={16} padding={22} style={{ backgroundColor: PALETTE.bg1, borderWidth: 1, borderColor: PALETTE.glassBorder, borderRadius: 16, padding: 22 }}>
+            <View className="flex-row items-center gap-3 mb-4">
+              <View className="w-10 h-10 rounded-xl bg-violet/[0.16] border border-violet/40 items-center justify-center">
                 <Briefcase size={18} color="#FCD34D" />
               </View>
-              <Text style={s.modalTitle}>Applying to External Job?</Text>
+              <Text className="text-white text-lg tracking-tight" style={{ fontFamily: FONTS.xbold }}>Applying to External Job?</Text>
             </View>
-            <Text style={s.modalText}>
+            <Text className="text-muted text-sm leading-[18px] mb-3" style={{ fontFamily: FONTS.med }}>
               We redirected you to the recruiter's page for{" "}
-              <Text style={{ fontFamily: FONTS.bold, color: '#fff' }}>
+              <Text className="text-white font-body-bold">
                 {applyModalJob?.title}
               </Text>{" "}
               at{" "}
-              <Text style={{ fontFamily: FONTS.bold, color: '#fff' }}>
+              <Text className="text-white font-body-bold">
                 {applyModalJob?.company}
               </Text>.
             </Text>
-            <Text style={s.modalSubtext}>
+            <Text className="text-dim text-xs leading-4 mb-5" style={{ fontFamily: FONTS.med }}>
               Once you finish submitting your details on their platform, confirm it here to track its progress in your dashboard!
             </Text>
 
-            <View style={s.modalBtnRow}>
+            <View className="flex-row justify-end gap-2.5">
               <Pressable
                 onPress={() => setApplyModalJob(null)}
-                style={({ hovered }: any) => [
-                  s.modalCancelBtn,
-                  hovered && { backgroundColor: 'rgba(255,255,255,0.06)' }
-                ]}
+                className="px-4 h-9 rounded-[10px] justify-center items-center bg-transparent"
+                style={({ hovered }: any) => hovered && { backgroundColor: 'rgba(255,255,255,0.06)' }}
               >
-                <Text style={s.modalCancelTxt}>Cancel</Text>
+                <Text className="text-muted font-body-bold text-[12.5px]">Cancel</Text>
               </Pressable>
 
               <Pressable
@@ -626,7 +588,6 @@ ${email}`;
                       `Successfully added ${job.title} at ${job.company} to your My Applications dashboard.`
                     );
                     
-                    // Update lists
                     const appliedRes: any = await request(`/student/my-applications?email=${encodeURIComponent(authUser?.email || '')}`);
                     setAppliedRaw(appliedRes.items || []);
                     
@@ -643,9 +604,9 @@ ${email}`;
                 <LinearGradient
                   colors={[GRAD.from, GRAD.to]}
                   start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-                  style={s.modalConfirmBtn}
+                  className="flex-row gap-1.5 items-center px-[18px] h-9 rounded-[10px]"
                 >
-                  <Text style={s.modalConfirmTxt}>Yes, I've Applied</Text>
+                  <Text className="text-white text-[12.5px]" style={{ fontFamily: FONTS.xbold }}>Yes, I've Applied</Text>
                 </LinearGradient>
               </Pressable>
             </View>
@@ -653,78 +614,57 @@ ${email}`;
         </View>
       </Modal>
 
-      {/* AI Cover Letter Modal */}
       <Modal
         visible={coverModalJob !== null}
         transparent
         animationType="fade"
         onRequestClose={() => setCoverModalJob(null)}
       >
-        <View style={s.modalBg}>
-          <GlassCard radius={16} padding={22} style={s.modalCard}>
-            <View style={s.modalHeader}>
-              <View style={s.modalIconDisc}>
+        <View className="flex-1 bg-black/65 items-center justify-center p-5 z-[99999]">
+          <GlassCard radius={16} padding={22} style={{ backgroundColor: PALETTE.bg1, borderWidth: 1, borderColor: PALETTE.glassBorder, borderRadius: 16, padding: 22 }}>
+            <View className="flex-row items-center gap-3 mb-4">
+              <View className="w-10 h-10 rounded-xl bg-violet/[0.16] border border-violet/40 items-center justify-center">
                 <Sparkles size={18} color="#A78BFA" />
               </View>
-              <Text style={s.modalTitle}>AI Cover Letter Draft</Text>
+              <Text className="text-white text-lg tracking-tight" style={{ fontFamily: FONTS.xbold }}>AI Cover Letter Draft</Text>
             </View>
             
             {generatingCover ? (
-              <View style={{ padding: 30, alignItems: 'center', gap: 12 }}>
+              <View className="p-[30px] items-center gap-3">
                 <ActivityIndicator size="large" color="#A78BFA" />
-                <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 13 }}>
+                <Text className="text-muted text-[13px]" style={{ fontFamily: FONTS.med }}>
                   Drafting professional cover letter...
                 </Text>
               </View>
             ) : (
               <>
-                <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 12, marginBottom: 8 }}>
+                <Text className="text-muted text-xs mb-2" style={{ fontFamily: FONTS.med }}>
                   Tailored for {coverModalJob?.title} at {coverModalJob?.company}:
                 </Text>
-                <View style={{ 
-                  backgroundColor: 'rgba(0,0,0,0.3)', 
-                  borderRadius: 10, 
-                  padding: 12, 
-                  maxHeight: 300, 
-                  borderWidth: 1, 
-                  borderColor: 'rgba(255,255,255,0.06)' 
-                }}>
+                <View className="bg-black/30 rounded-[10px] p-3 max-h-[300px] border border-white/[0.06]">
                   <TextInput
                     multiline
                     value={coverLetterText}
                     onChangeText={setCoverLetterText}
-                    style={{ 
-                      color: '#fff', 
-                      fontFamily: FONTS.med, 
-                      fontSize: 12, 
-                      lineHeight: 16,
-                      height: 250,
-                      textAlignVertical: 'top'
-                    }}
+                    className="text-white text-xs"
+                    style={{ fontFamily: FONTS.med, lineHeight: 16, height: 250, textAlignVertical: 'top' }}
                   />
                 </View>
-                <View style={[s.modalBtnRow, { marginTop: 16 }]}>
+                <View className="flex-row justify-end gap-2.5 mt-4">
                   <Pressable
                     onPress={() => setCoverModalJob(null)}
-                    style={s.modalCancelBtn}
+                    className="px-4 h-9 rounded-[10px] justify-center items-center bg-transparent"
                   >
-                    <Text style={s.modalCancelTxt}>Close</Text>
+                    <Text className="text-muted font-body-bold text-[12.5px]">Close</Text>
                   </Pressable>
                   <Pressable
                     onPress={() => {
                       Clipboard.setString(coverLetterText);
                       toast.success('Copied! 📋', 'Cover letter copied to clipboard.');
                     }}
-                    style={{
-                      backgroundColor: '#7C3AED',
-                      borderRadius: 10,
-                      paddingHorizontal: 16,
-                      height: 36,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
+                    className="bg-violet rounded-[10px] px-4 h-9 items-center justify-center"
                   >
-                    <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 }}>
+                    <Text className="text-white font-body-bold text-[12.5px]">
                       Copy to Clipboard
                     </Text>
                   </Pressable>
@@ -735,62 +675,54 @@ ${email}`;
         </View>
       </Modal>
 
-      {/* Why Match Modal */}
       <Modal
         visible={whyMatchJob !== null}
         transparent
         animationType="fade"
         onRequestClose={() => setWhyMatchJob(null)}
       >
-        <View style={s.modalBg}>
-          <GlassCard radius={16} padding={22} style={s.modalCard}>
-            <View style={s.modalHeader}>
-              <View style={[s.modalIconDisc, { backgroundColor: 'rgba(139,92,246,0.16)', borderColor: 'rgba(139,92,246,0.40)' }]}>
+        <View className="flex-1 bg-black/65 items-center justify-center p-5 z-[99999]">
+          <GlassCard radius={16} padding={22} style={{ backgroundColor: PALETTE.bg1, borderWidth: 1, borderColor: PALETTE.glassBorder, borderRadius: 16, padding: 22 }}>
+            <View className="flex-row items-center gap-3 mb-4">
+              <View className="w-10 h-10 rounded-xl items-center justify-center" style={{ backgroundColor: 'rgba(139,92,246,0.16)', borderColor: 'rgba(139,92,246,0.40)', borderWidth: 1 }}>
                 <Sparkles size={18} color="#A78BFA" />
               </View>
-              <Text style={s.modalTitle}>Why Match?</Text>
+              <Text className="text-white text-lg tracking-tight" style={{ fontFamily: FONTS.xbold }}>Why Match?</Text>
             </View>
             
-            <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 14, marginBottom: 12 }}>
+            <Text className="text-white font-body-bold text-sm mb-3">
               Skills & Profile Alignment
             </Text>
-            <Text style={s.modalText}>
-              Our AI matched your profile with <Text style={{ color: '#A78BFA', fontFamily: FONTS.bold }}>{whyMatchJob?.company}</Text>'s requirements:
+            <Text className="text-muted text-sm leading-[18px] mb-3" style={{ fontFamily: FONTS.med }}>
+              Our AI matched your profile with <Text className="text-violet font-body-bold">{whyMatchJob?.company}</Text>'s requirements:
             </Text>
-            <View style={{ gap: 8, marginBottom: 20 }}>
-              <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+            <View className="gap-2 mb-5">
+              <View className="flex-row gap-1.5 items-center">
                 <MaterialCommunityIcons name="check-circle" size={14} color="#10B981" />
-                <Text style={{ color: SC.muted, fontSize: 12.5, fontFamily: FONTS.med }}>
-                  Your skills in <Text style={{ color: '#fff' }}>{(whyMatchJob?.tags || []).slice(0, 2).join(', ') || 'related tech'}</Text> match the job tags.
+                <Text className="text-muted text-[12.5px]" style={{ fontFamily: FONTS.med }}>
+                  Your skills in <Text className="text-white">{(whyMatchJob?.tags || []).slice(0, 2).join(', ') || 'related tech'}</Text> match the job tags.
                 </Text>
               </View>
-              <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+              <View className="flex-row gap-1.5 items-center">
                 <MaterialCommunityIcons name="check-circle" size={14} color="#10B981" />
-                <Text style={{ color: SC.muted, fontSize: 12.5, fontFamily: FONTS.med }}>
+                <Text className="text-muted text-[12.5px]" style={{ fontFamily: FONTS.med }}>
                   Your academic tier and year are preferred by this recruiter.
                 </Text>
               </View>
-              <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+              <View className="flex-row gap-1.5 items-center">
                 <MaterialCommunityIcons name="check-circle" size={14} color="#10B981" />
-                <Text style={{ color: SC.muted, fontSize: 12.5, fontFamily: FONTS.med }}>
+                <Text className="text-muted text-[12.5px]" style={{ fontFamily: FONTS.med }}>
                   Location preference and work mode match your selection.
                 </Text>
               </View>
             </View>
 
-            <View style={s.modalBtnRow}>
+            <View className="flex-row justify-end gap-2.5">
               <Pressable
                 onPress={() => setWhyMatchJob(null)}
-                style={{
-                  backgroundColor: '#7C3AED',
-                  borderRadius: 10,
-                  paddingHorizontal: 18,
-                  height: 36,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
+                className="bg-violet rounded-[10px] px-[18px] h-9 items-center justify-center"
               >
-                <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 }}>
+                <Text className="text-white font-body-bold text-[12.5px]">
                   Awesome
                 </Text>
               </Pressable>
@@ -802,7 +734,6 @@ ${email}`;
   );
 }
 
-/* ── Card ───────────────────────────────────────────────────────────── */
 function JobCard({ 
   job, 
   onSave, 
@@ -824,37 +755,19 @@ function JobCard({
 
   return (
     <GlassCard radius={12} padding={20} style={{ position: 'relative' }}>
-      {/* Top right match badge and save bookmark */}
-      <View style={{ position: 'absolute', top: 16, right: 16, flexDirection: 'row', alignItems: 'center', gap: 10, zIndex: 10 }}>
+      <View className="absolute top-4 right-4 flex-row items-center gap-2.5 z-10">
         {job.is_recommended && (
-          <View style={{
-            backgroundColor: 'rgba(239, 68, 68, 0.1)',
-            borderColor: 'rgba(239, 68, 68, 0.3)',
-            borderWidth: 1,
-            borderRadius: 6,
-            paddingHorizontal: 8,
-            paddingVertical: 3,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 4
-          }}>
-            <Text style={{ fontSize: 10 }}>🔥</Text>
-            <Text style={{ color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 10 }}>Recommended</Text>
+          <View className="flex-row items-center gap-1 px-2 py-[3px] rounded-md border" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', borderColor: 'rgba(239, 68, 68, 0.3)' }}>
+            <Text className="text-[10px]">🔥</Text>
+            <Text className="text-rose font-body-bold text-[10px]">Recommended</Text>
           </View>
         )}
-        <View style={{
-          backgroundColor: 'rgba(124, 58, 237, 0.1)',
-          borderColor: 'rgba(124, 58, 237, 0.3)',
-          borderWidth: 1,
-          borderRadius: 6,
-          paddingHorizontal: 8,
-          paddingVertical: 3,
-        }}>
-          <Text style={{ color: '#C4B5FD', fontFamily: FONTS.bold, fontSize: 10 }}>{job.match_score !== undefined ? `${job.match_score}%` : `+${matchPct}%`} match</Text>
+        <View className="flex-row items-center gap-1 px-2 py-[3px] rounded-md border" style={{ backgroundColor: 'rgba(124, 58, 237, 0.1)', borderColor: 'rgba(124, 58, 237, 0.3)' }}>
+          <Text className="text-violet font-body-bold text-[10px]">{job.match_score !== undefined ? `${job.match_score}%` : `+${matchPct}%`} match</Text>
         </View>
         <Pressable
           onPress={() => onSave(job)}
-          style={{ padding: 4 }}
+          className="p-1"
           accessibilityRole="button"
         >
           {job.saved ? (
@@ -865,263 +778,133 @@ function JobCard({
         </Pressable>
       </View>
 
-      {/* Main Row */}
-      <View style={{ flexDirection: 'row', gap: 16, alignItems: 'flex-start' }}>
-        {/* Logo box */}
-        <View style={{
-          width: 52,
-          height: 52,
-          borderRadius: 10,
-          backgroundColor: logoBg,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-          <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 20 }}>{initials}</Text>
+      <View className="flex-row gap-4 items-start">
+        <View className="w-[52px] h-[52px] rounded-[10px] items-center justify-center" style={{ backgroundColor: logoBg }}>
+          <Text className="text-white text-xl" style={{ fontFamily: FONTS.xbold }}>{initials}</Text>
         </View>
 
-        {/* Details Column */}
-        <View style={{ flex: 1, minWidth: 0 }}>
-          {/* Job Title */}
-          <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 16, letterSpacing: -0.2 }}>
+        <View className="flex-1 min-w-0">
+          <Text className="text-white font-body-bold text-base tracking-tight">
             {job.title || '—'}
           </Text>
 
-          {/* Company and Location */}
-          <Text style={{ color: '#9CA3AF', fontFamily: FONTS.med, fontSize: 12.5, marginTop: 2 }}>
+          <Text className="text-muted text-[12.5px] mt-0.5" style={{ fontFamily: FONTS.med }}>
             {job.company} · {job.location || 'Remote'}
           </Text>
 
-          {/* Tags row */}
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10, alignItems: 'center' }}>
-            {/* Job Type Tag */}
-            <View style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 4,
-              backgroundColor: 'rgba(16, 185, 129, 0.1)',
-              borderColor: 'rgba(16, 185, 129, 0.25)',
-              borderWidth: 1,
-              borderRadius: 6,
-              paddingHorizontal: 8,
-              paddingVertical: 3,
-            }}>
+          <View className="flex-row flex-wrap gap-1.5 mt-2.5 items-center">
+            <View className="flex-row items-center gap-1 rounded-md px-2 py-[3px] border" style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', borderColor: 'rgba(16, 185, 129, 0.25)' }}>
               <Briefcase size={10} color="#10B981" />
-              <Text style={{ color: '#34D399', fontFamily: FONTS.bold, fontSize: 10.5 }}>
+              <Text className="text-teal font-body-bold text-[10.5px]">
                 {job.job_type}
               </Text>
             </View>
 
-            {/* Mode Tag */}
-            <View style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 4,
-              backgroundColor: 'rgba(255, 255, 255, 0.05)',
-              borderColor: 'rgba(255, 255, 255, 0.08)',
-              borderWidth: 1,
-              borderRadius: 6,
-              paddingHorizontal: 8,
-              paddingVertical: 3,
-            }}>
+            <View className="flex-row items-center gap-1 rounded-md px-2 py-[3px] border" style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)', borderColor: 'rgba(255, 255, 255, 0.08)' }}>
               <Globe2 size={10} color="#9CA3AF" />
-              <Text style={{ color: '#D1D5DB', fontFamily: FONTS.bold, fontSize: 10.5 }}>
+              <Text className="text-gray-300 font-body-bold text-[10.5px]">
                 {job.work_mode}
               </Text>
             </View>
 
-            {/* Salary Tag */}
             {salary && (
-              <View style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 4,
-                backgroundColor: 'rgba(124, 58, 237, 0.1)',
-                borderColor: 'rgba(124, 58, 237, 0.25)',
-                borderWidth: 1,
-                borderRadius: 6,
-                paddingHorizontal: 8,
-                paddingVertical: 3,
-              }}>
+              <View className="flex-row items-center gap-1 rounded-md px-2 py-[3px] border" style={{ backgroundColor: 'rgba(124, 58, 237, 0.1)', borderColor: 'rgba(124, 58, 237, 0.25)' }}>
                 <IndianRupee size={10} color="#A78BFA" />
-                <Text style={{ color: '#C4B5FD', fontFamily: FONTS.bold, fontSize: 10.5 }}>
+                <Text className="text-violet font-body-bold text-[10.5px]">
                   {salary}
                 </Text>
               </View>
             )}
 
-            {/* Duration Tag */}
             {duration && (
-              <View style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 4,
-                backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                borderColor: 'rgba(255, 255, 255, 0.08)',
-                borderWidth: 1,
-                borderRadius: 6,
-                paddingHorizontal: 8,
-                paddingVertical: 3,
-              }}>
-                <Text style={{ color: '#D1D5DB', fontFamily: FONTS.bold, fontSize: 10.5 }}>
+              <View className="flex-row items-center gap-1 rounded-md px-2 py-[3px] border" style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)', borderColor: 'rgba(255, 255, 255, 0.08)' }}>
+                <Text className="text-gray-300 font-body-bold text-[10.5px]">
                   {duration}
                 </Text>
               </View>
             )}
 
-            {/* Time Ago Tag */}
             {timeAgo && (
-              <View style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 4,
-                backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                borderColor: 'rgba(255, 255, 255, 0.08)',
-                borderWidth: 1,
-                borderRadius: 6,
-                paddingHorizontal: 8,
-                paddingVertical: 3,
-              }}>
+              <View className="flex-row items-center gap-1 rounded-md px-2 py-[3px] border" style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)', borderColor: 'rgba(255, 255, 255, 0.08)' }}>
                 <Clock size={10} color="#9CA3AF" />
-                <Text style={{ color: '#9CA3AF', fontFamily: FONTS.med, fontSize: 10.5 }}>
+                <Text className="text-muted text-[10.5px]" style={{ fontFamily: FONTS.med }}>
                   {timeAgo}
                 </Text>
               </View>
             )}
           </View>
 
-          {/* Description */}
           {job.description && (
-            <Text style={{
-              color: '#9CA3AF',
-              fontFamily: FONTS.med,
-              fontSize: 12.5,
-              lineHeight: 18,
-              marginTop: 10,
-            }}>
+            <Text className="text-muted text-[12.5px] mt-2.5" style={{ fontFamily: FONTS.med, lineHeight: 18 }}>
               {job.description}
             </Text>
           )}
 
-          {/* Skill pills */}
           {(job.tags || []).length > 0 && (
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 12 }}>
+            <View className="flex-row flex-wrap gap-1.5 mt-3">
               {(job.tags || []).slice(0, 5).map((t, idx) => (
                 <View
                   key={idx}
-                  style={{
-                    backgroundColor: 'rgba(255,255,255,0.03)',
-                    borderColor: 'rgba(255,255,255,0.05)',
-                    borderWidth: 1,
-                    borderRadius: 20,
-                    paddingHorizontal: 12,
-                    paddingVertical: 4,
-                  }}
+                  className="rounded-full px-3 py-1 border" style={{ backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.05)' }}
                 >
-                  <Text style={{ color: '#9CA3AF', fontFamily: FONTS.med, fontSize: 11 }}>{t}</Text>
+                  <Text className="text-muted text-[11px]" style={{ fontFamily: FONTS.med }}>{t}</Text>
                 </View>
               ))}
             </View>
           )}
 
-          {/* Footer Info & Actions */}
-          <View style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginTop: 16,
-            borderTopWidth: 1,
-            borderTopColor: 'rgba(255,255,255,0.04)',
-            paddingTop: 14,
-            flexWrap: 'wrap',
-            gap: 12,
-          }}>
-            {/* Footer details */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-              {/* Applicants */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <View className="flex-row justify-between items-center mt-4 pt-[14px] flex-wrap gap-3" style={{ borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.04)' }}>
+            <View className="flex-row items-center gap-3 flex-wrap">
+              <View className="flex-row items-center gap-1">
                 <Users size={12} color="#9CA3AF" />
-                <Text style={{ color: '#9CA3AF', fontFamily: FONTS.med, fontSize: 11.5 }}>
+                <Text className="text-muted text-[11.5px]" style={{ fontFamily: FONTS.med }}>
                   {applicants.toLocaleString()} applicants
                 </Text>
               </View>
 
-              <Text style={{ color: 'rgba(255,255,255,0.15)' }}>·</Text>
+              <Text className="text-white/15">·</Text>
 
-              {/* Closes date */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <View className="flex-row items-center gap-1">
                 <Calendar size={12} color="#9CA3AF" />
-                <Text style={{ color: '#9CA3AF', fontFamily: FONTS.med, fontSize: 11.5 }}>
+                <Text className="text-muted text-[11.5px]" style={{ fontFamily: FONTS.med }}>
                   {closes}
                 </Text>
               </View>
 
-              <Text style={{ color: 'rgba(255,255,255,0.15)' }}>·</Text>
+              <Text className="text-white/15">·</Text>
 
-              {/* Why Match */}
               <Pressable
                 onPress={() => onWhyMatch(job)}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 4,
-                  backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                  borderColor: 'rgba(139, 92, 246, 0.3)',
-                  borderWidth: 1,
-                  borderRadius: 14,
-                  paddingHorizontal: 8,
-                  paddingVertical: 3,
-                }}
+                className="flex-row items-center gap-1 rounded-[14px] px-2 py-[3px] border" style={{ backgroundColor: 'rgba(139, 92, 246, 0.1)', borderColor: 'rgba(139, 92, 246, 0.3)' }}
               >
                 <Sparkles size={11} color="#A78BFA" />
-                <Text style={{ color: '#C4B5FD', fontFamily: FONTS.bold, fontSize: 10.5 }}>
+                <Text className="text-violet font-body-bold text-[10.5px]">
                   Why match?
                 </Text>
               </Pressable>
             </View>
 
-            {/* Action Buttons */}
-            <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+            <View className="flex-row gap-2 items-center">
               <Pressable
                 onPress={() => onCoverLetter(job)}
+                className="flex-row items-center gap-[5px] rounded-lg px-3 h-8 justify-center border"
                 style={({ pressed }: any) => [
-                  {
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 5,
-                    borderWidth: 1,
-                    borderColor: 'rgba(255,255,255,0.1)',
-                    backgroundColor: 'rgba(255,255,255,0.03)',
-                    borderRadius: 8,
-                    paddingHorizontal: 12,
-                    height: 32,
-                    justifyContent: 'center',
-                  },
+                  { borderColor: 'rgba(255,255,255,0.1)', backgroundColor: 'rgba(255,255,255,0.03)' },
                   pressed && { opacity: 0.7 },
                 ]}
               >
                 <Sparkles size={12} color="#A78BFA" />
-                <Text style={{ color: '#D1D5DB', fontFamily: FONTS.bold, fontSize: 11.5 }}>
+                <Text className="text-gray-300 font-body-bold text-[11.5px]">
                   Cover Letter
                 </Text>
               </Pressable>
 
               <Pressable
                 onPress={() => onApply(job)}
-                style={({ pressed }: any) => [
-                  {
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 6,
-                    backgroundColor: '#7C3AED',
-                    borderRadius: 8,
-                    paddingHorizontal: 14,
-                    height: 32,
-                    justifyContent: 'center',
-                  },
-                  pressed && { opacity: 0.8 },
-                ]}
+                className="flex-row items-center gap-1.5 bg-violet rounded-lg px-3.5 h-8 justify-center"
+                style={({ pressed }: any) => pressed && { opacity: 0.8 }}
               >
-                <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 11.5 }}>
+                <Text className="text-white text-[11.5px]" style={{ fontFamily: FONTS.xbold }}>
                   {job.applied ? 'Applied Now' : 'Apply'}
                 </Text>
                 <ExternalLink size={11} color="#fff" />
@@ -1134,7 +917,6 @@ function JobCard({
   );
 }
 
-/* ── Helpers ───────────────────────────────────────────────────────── */
 function formatSalary(j: Job): string {
   if (j.salary_min || j.salary_max) {
     const cur = j.currency || 'USD';
@@ -1174,7 +956,6 @@ function getStableMockData(jobId: string, company: string, jobType: string) {
   const closes = closesOptions[hash % closesOptions.length];
   const duration = jobType === 'Internship' ? `${(hash % 2) ? 3 : 6} months` : 'Full-time';
 
-  // Realistic fallback salary
   let fallbackSalary = '';
   if (jobType === 'Internship') {
     const salaries = ['₹35,000/mo', '₹60,000/mo', '₹85,000/mo', '₹1,20,000/mo'];
@@ -1204,101 +985,3 @@ function formatTimeAgo(dateStr?: string): string {
     return '2 days ago';
   }
 }
-
-/* ── Styles ────────────────────────────────────────────────────────── */
-const s = StyleSheet.create({
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 16,
-    zIndex: 100,
-    ...(Platform.OS === 'web' ? ({ overflow: 'visible' } as any) : {}),
-  },
-  tabsContainer: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderColor: 'rgba(255,255,255,0.05)',
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 3,
-  },
-  tabButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  tabButtonActive: {
-    backgroundColor: '#7C3AED',
-  },
-  tabButtonText: {
-    color: '#9CA3AF',
-    fontFamily: FONTS.bold,
-    fontSize: 12.5,
-  },
-  tabButtonTextActive: {
-    color: '#fff',
-  },
-  filtersContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flexWrap: 'wrap',
-    zIndex: 100,
-    ...(Platform.OS === 'web' ? ({ overflow: 'visible' } as any) : {}),
-  },
-  searchBox: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    gap: 8, 
-    width: 200, 
-    height: 36, 
-    paddingHorizontal: 11, 
-    borderRadius: 10, 
-    backgroundColor: '#1E1B4B', 
-    borderColor: 'rgba(255,255,255,0.08)', 
-    borderWidth: 1 
-  },
-  searchInput: { 
-    flex: 1, 
-    color: '#fff', 
-    fontFamily: FONTS.med, 
-    fontSize: 12.5, 
-    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) 
-  },
-  refreshBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: '#1E1B4B',
-    borderColor: 'rgba(255,255,255,0.08)',
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  metaCount: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 4 },
-
-  loadMore: {
-    alignSelf: 'center', marginTop: 14, paddingHorizontal: 22, height: 38, borderRadius: 10,
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: '#1E1B4B', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  loadMoreTxt: { color: '#C4B5FD', fontFamily: FONTS.bold, fontSize: 12 },
-
-  modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', alignItems: 'center', justifyContent: 'center', padding: 20, zIndex: 99999 },
-  modalCard: { width: '100%', maxWidth: 480, backgroundColor: '#111827', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderRadius: 16, padding: 22 },
-  modalHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
-  modalIconDisc: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(124,58,237,0.16)', borderColor: 'rgba(124,58,237,0.40)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  modalTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 17, letterSpacing: -0.3 },
-  modalText: { color: SC.muted, fontFamily: FONTS.med, fontSize: 13, lineHeight: 18, marginBottom: 12 },
-  modalSubtext: { color: SC.dim, fontFamily: FONTS.med, fontSize: 12, lineHeight: 16, marginBottom: 20 },
-  modalBtnRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10 },
-  modalCancelBtn: { paddingHorizontal: 16, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center', backgroundColor: 'transparent' },
-  modalCancelTxt: { color: SC.muted, fontFamily: FONTS.bold, fontSize: 12.5 },
-  modalConfirmBtn: { flexDirection: 'row', gap: 6, alignItems: 'center', paddingHorizontal: 18, height: 36, borderRadius: 10 },
-  modalConfirmTxt: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12.5 },
-});

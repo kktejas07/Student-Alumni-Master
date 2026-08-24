@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable } from 'react-native';
 import { Sparkles, AlertTriangle, TrendingUp, Lightbulb, Zap } from 'lucide-react-native';
-import { CC, FONTS } from '../tokens';
+import { CC } from '../tokens';
 import { Badge } from '../atoms';
 import { usePortalData, postPortal } from '@/src/lib/portalApi';
 import { useToast } from '@/src/views/components';
@@ -27,28 +27,36 @@ export function AIInsightsView() {
   };
   return (
     <View>
-      <View style={s.banner}>
-        <View style={s.bIcon}><Sparkles size={16} color={CC.accent} /></View>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={s.bTitle}>AI Insights · Powered by Claude</Text>
-          <Text style={s.bSub}>6 prioritized insights generated this morning. Trust the high-priority ones — they’ve been verified against your last 3 months of platform data.</Text>
+      <View className="flex-row gap-3 p-[14px] mb-[14px] rounded-[14px] bg-[rgba(34,211,238,0.06)] border border-glass-border">
+        <View className="w-9 h-9 rounded-[10px] bg-[rgba(34,211,238,0.15)] border border-[rgba(34,211,238,0.30)] items-center justify-center">
+          <Sparkles size={16} color={CC.accent} />
+        </View>
+        <View className="flex-1 min-w-0">
+          <Text className="text-text font-display-bold text-[13px]">AI Insights · Powered by Claude</Text>
+          <Text className="text-muted font-body text-xs mt-1 leading-[17px]">6 prioritized insights generated this morning. Trust the high-priority ones — they've been verified against your last 3 months of platform data.</Text>
         </View>
       </View>
-      <View style={{ gap: 12 }}>
+      <View className="gap-3">
         {items.map((it) => {
           const Icon = ICON_MAP[it.icon] || Lightbulb;
           return (
-            <View key={it.id} style={s.card}>
-              <View style={[s.icon, { backgroundColor: it.color + '20', borderColor: it.color + '40' }]}><Icon size={15} color={it.color} /></View>
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <Text style={s.title}>{it.title}</Text>
+            <View key={it.id} className="flex-row gap-3 bg-glass-soft border border-glass-border rounded-[14px] p-4">
+              <View className="w-[34px] h-[34px] rounded-[10px] border items-center justify-center" style={{ backgroundColor: it.color + '20', borderColor: it.color + '40' }}>
+                <Icon size={15} color={it.color} />
+              </View>
+              <View className="flex-1 min-w-0">
+                <View className="flex-row items-center gap-2 flex-wrap">
+                  <Text className="text-text font-body-bold text-[13.5px]">{it.title}</Text>
                   <Badge label={it.kind === 'risk' ? 'RISK' : it.kind === 'opportunity' ? 'OPPORTUNITY' : 'INSIGHT'} color={it.kind === 'risk' ? 'red' : it.kind === 'opportunity' ? 'green' : 'amber'} />
                 </View>
-                <Text style={s.body}>{it.body}</Text>
-                <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
-                  <Pressable style={s.actBtn} onPress={() => onDismiss(it.id)}><Text style={s.actText}>Take action</Text></Pressable>
-                  <Pressable style={s.dismissBtn} onPress={() => onDismiss(it.id)}><Text style={s.dismissText}>Dismiss</Text></Pressable>
+                <Text className="text-muted font-body text-[12.5px] mt-[6px] leading-[18px]">{it.body}</Text>
+                <View className="flex-row gap-2 mt-3">
+                  <Pressable className="px-[14px] h-[30px] rounded-lg bg-violet items-center justify-center" onPress={() => onDismiss(it.id)}>
+                    <Text className="text-text font-display-bold text-[11.5px]">Take action</Text>
+                  </Pressable>
+                  <Pressable className="px-[14px] h-[30px] rounded-lg border border-glass-border bg-glass-soft items-center justify-center" onPress={() => onDismiss(it.id)}>
+                    <Text className="text-muted font-body-bold text-[11.5px]">Dismiss</Text>
+                  </Pressable>
                 </View>
               </View>
             </View>
@@ -58,17 +66,3 @@ export function AIInsightsView() {
     </View>
   );
 }
-const s = StyleSheet.create({
-  banner: { flexDirection: 'row', gap: 12, padding: 14, marginBottom: 14, borderRadius: 14, backgroundColor: 'rgba(34,211,238,0.06)', borderColor: CC.border2, borderWidth: 1 },
-  bIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(34,211,238,0.15)', borderColor: 'rgba(34,211,238,0.30)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  bTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
-  bSub: { color: CC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 4, lineHeight: 17 },
-  card: { flexDirection: 'row', gap: 12, backgroundColor: CC.card, borderColor: CC.border, borderWidth: 1, borderRadius: 14, padding: 16 },
-  icon: { width: 34, height: 34, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  title: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13.5 },
-  body: { color: CC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 6, lineHeight: 18 },
-  actBtn: { paddingHorizontal: 14, height: 30, borderRadius: 8, backgroundColor: CC.primary, alignItems: 'center', justifyContent: 'center' },
-  actText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 11.5 },
-  dismissBtn: { paddingHorizontal: 14, height: 30, borderRadius: 8, borderWidth: 1, borderColor: CC.border, backgroundColor: CC.card, alignItems: 'center', justifyContent: 'center' },
-  dismissText: { color: CC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
-});

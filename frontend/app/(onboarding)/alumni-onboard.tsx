@@ -1,30 +1,16 @@
 import { getBaseUrl } from '@/src/lib/env';
-/**
- * Alumni Onboarding — 6-step wizard per Alumni UI spec (New Folder With Items 4.zip).
- *
- * Step 1: Your Career Now      — Full Name, Current Role, Company, College & Batch,
- *                                Graduation Year, Years of Experience
- * Step 2: Interests & Skills   — 4 chip groups: Domain Expertise / Tech / Business / Soft Skills
- * Step 3: Your Next Chapter    — 6 cards (single select): Become a Mentor, Level Up My Career,
- *                                Build a Startup, Higher Education, Explore Options, Stay Connected & Give Back
- * Step 4: Profile Photo        — Selfie / Upload (CTA "Continue →")
- * Step 5: Your Bio             — 300-char textarea + 5 writing-style chips (CTA "See My Badge ✨")
- * Step 6: Your SA Badge        — Bronze / Silver / Gold / Platinum recap + perks (CTA "Continue →")
- *
- * After Step 6 → /(onboarding)/member-id → /(auth)/email-verify → /(auth)/two-fa-setup → Welcome Dashboard
- */
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform, TextInput as RNTextInput } from 'react-native';
+import { View, Text, ScrollView, Pressable, Image, Platform, TextInput as RNTextInput } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import {
-  ArrowLeft, Camera, Upload, GraduationCap, Award, CheckCircle2, Sparkles, Check,
-  Briefcase, Building2, Clock, User as UserIcon, Calendar,
+  ArrowLeft, Camera, Upload, Award, CheckCircle2, Check,
+  Clock, User as UserIcon,
   Rocket, TrendingUp, Compass, BookOpen, HeartHandshake, UsersRound,
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { AuthShell } from '@/src/views/auth/AuthShell';
 import { AuthInput, PrimaryButton } from '@/src/views/auth/AuthControls';
-import { FONTS } from '@/src/views/auth/tokens';
+
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useToast } from '@/src/views/components';
 import { api } from '@/src/models/services/api';
@@ -39,7 +25,6 @@ const BASE = getBaseUrl();
 const CURRENT_YEAR = new Date().getFullYear();
 const GRAD_YEARS = Array.from({ length: 50 }, (_, i) => String(CURRENT_YEAR - i));
 
-// === Step 2 chip groups ===
 const DOMAIN_EXPERTISE = [
   'Software Engineering', 'Product', 'Finance', 'Consulting',
   'Design', 'Research', 'Entrepreneurship',
@@ -57,7 +42,6 @@ const SOFT_SKILLS = [
   'Teamwork', 'Critical Thinking', 'Adaptability',
 ];
 
-// === Step 3: Next Chapter (6 single-select cards) ===
 type NextChapterPath = {
   id: string; title: string; desc: string; Icon: any; tint: string;
 };
@@ -70,26 +54,24 @@ const NEXT_CHAPTER: NextChapterPath[] = [
   { id: 'give_back',        title: 'Stay Connected & Give Back', desc: 'Network, refer talent, speak at events',      Icon: HeartHandshake, tint: '#FBBF24' },
 ];
 
-// === Step 5: Writing styles ===
 const STYLES = ['Friendly & warm', 'Professional', 'Inspiring', 'Concise', 'Detailed'];
 
 function toggle<T>(arr: T[], v: T): T[] {
   return arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
 }
 
-// 6-circle stepper
 function Stepper({ step }: { step: number }) {
   return (
-    <View style={s.stepRow}>
+    <View className="flex-row items-center mb-[18px] gap-1">
       {Array.from({ length: TOTAL }, (_, i) => {
         const done = i < step;
         const active = i === step;
         return (
           <React.Fragment key={i}>
-            <View style={[s.dot, (done || active) && s.dotActive]}>
-              {done ? <CheckCircle2 size={14} color="#111827" /> : <Text style={[s.dotText, active && s.dotTextActive]}>{i + 1}</Text>}
+            <View className={`w-[26px] h-[26px] rounded-[13px] border-[1.5px] items-center justify-center ${done || active ? 'border-amber-500 bg-amber-500' : 'border-gray-200 bg-gray-50'}`}>
+              {done ? <CheckCircle2 size={14} color="#111827" /> : <Text className={`font-bold text-[11px] ${active ? 'text-gray-800' : 'text-gray-400'}`}>{i + 1}</Text>}
             </View>
-            {i < TOTAL - 1 && <View style={[s.line, done && s.lineActive]} />}
+            {i < TOTAL - 1 && <View className={`flex-1 h-[1.5px] ${done ? 'bg-amber-500' : 'bg-gray-200'}`} />}
           </React.Fragment>
         );
       })}
@@ -114,7 +96,6 @@ export default function AlumniOnboard() {
     }
   }, [params.step]);
 
-  // Step 1
   const [fullName,  setFullName]   = useState(user?.full_name || '');
   const [jobTitle,  setJobTitle]   = useState('');
   const [company,   setCompany]    = useState('');
@@ -122,16 +103,13 @@ export default function AlumniOnboard() {
   const [gradYear,  setGradYear]   = useState('2020');
   const [yoe,       setYoe]        = useState('4');
 
-  // Step 2
   const [domain,    setDomain]    = useState<string[]>([]);
   const [tech,      setTech]      = useState<string[]>([]);
   const [biz,       setBiz]       = useState<string[]>([]);
   const [soft,      setSoft]      = useState<string[]>([]);
 
-  // Step 3
   const [nextChapter, setNextChapter] = useState<string>('');
 
-  // Step 4
   const [photo, setPhoto] = useState<string>('');
   const [pendingPhoto, setPendingPhoto] = useState<string | null>(null);
   const [webcamVisible, setWebcamVisible] = useState(false);
@@ -143,7 +121,6 @@ export default function AlumniOnboard() {
     toast.success('Photo confirmed', 'Looking great!');
   };
 
-  // Step 5
   const [bio,   setBio]   = useState('');
   const [style, setStyle] = useState('');
   const [generatingBio, setGeneratingBio] = useState(false);
@@ -170,7 +147,6 @@ export default function AlumniOnboard() {
     }
   };
 
-  // Suggestions
   const [roleSuggestions, setRoleSuggestions] = useState<string[]>([]);
   const [orgSuggestions,  setOrgSuggestions]  = useState<string[]>([]);
   useEffect(() => {
@@ -182,12 +158,11 @@ export default function AlumniOnboard() {
         if (!alive) return;
         setRoleSuggestions(Array.isArray(data.job_titles) ? data.job_titles : []);
         setOrgSuggestions(Array.isArray(data.organizations) ? data.organizations : []);
-      } catch { /* ignore — autocomplete still allows free-form typing */ }
+      } catch {}
     })();
     return () => { alive = false; };
   }, []);
 
-  // Step 6: badge tier auto-computed
   const badge = useMemo(() => {
     let score = 0;
     if (jobTitle && company) score += 2;
@@ -261,15 +236,13 @@ export default function AlumniOnboard() {
           profile_photo:      photo || undefined,
           bio:                bio || undefined,
           writing_style:      style || undefined,
-          // If they picked "Become a Mentor" auto-flag wants_to_mentor
           wants_to_mentor:    nextChapter === 'become_mentor',
         },
-        // ★ FIX: map "Next Chapter" selection to a real career_path
         career_path: (
           nextChapter === 'higher_education' ? 'higher_education' :
           nextChapter === 'build_startup'    ? 'startup' :
           nextChapter === 'build_business'   ? 'business' :
-          'job' // covers become_mentor, level_up_career, give_back, explore_options
+          'job'
         ),
         interests:   domain,
         skills:      [...tech, ...biz, ...soft],
@@ -321,12 +294,11 @@ export default function AlumniOnboard() {
   return (
     <AuthShell role="alumni">
       <Stepper step={step} />
-      <Text style={s.title}>{head.title}</Text>
-      <Text style={s.sub}>{head.sub}</Text>
+      <Text className="text-gray-900 font-bold text-[26px] mb-1.5 text-center">{head.title}</Text>
+      <Text className="text-gray-500 font-medium text-[13.5px] text-center mb-[18px]">{head.sub}</Text>
 
       <ScrollView style={{ maxHeight: 480 }} showsVerticalScrollIndicator={false}>
         <View style={{ paddingVertical: 6, gap: 12 }}>
-          {/* === STEP 1: Your Career Now === */}
           {step === 0 && (
             <>
               <AuthInput
@@ -353,7 +325,7 @@ export default function AlumniOnboard() {
                 suggestions={orgSuggestions}
                 helper="Pick from our curated list — or type your own."
               />
-              <Text style={s.section}>College &amp; Batch</Text>
+              <Text className="text-gray-500 font-bold text-[11px] tracking-widest uppercase mt-1 mb-1.5">College &amp; Batch</Text>
               <InstitutionAutocomplete
                 value={college}
                 onChangeText={setCollege}
@@ -361,8 +333,8 @@ export default function AlumniOnboard() {
                 type="college"
                 placeholder="Search your institution…"
               />
-              <View style={{ flexDirection: 'row', gap: 10 }}>
-                <View style={{ flex: 1 }}>
+              <View className="flex-row gap-2.5">
+                <View className="flex-1">
                   <Dropdown
                     label="Graduation Year"
                     value={gradYear}
@@ -372,7 +344,7 @@ export default function AlumniOnboard() {
                     testID="alumni-grad-year"
                   />
                 </View>
-                <View style={{ flex: 1 }}>
+                <View className="flex-1">
                   <AuthInput
                     label="Years of Experience"
                     value={yoe}
@@ -386,29 +358,28 @@ export default function AlumniOnboard() {
             </>
           )}
 
-          {/* === STEP 2: Interests & Skills === */}
           {step === 1 && (
             <>
-              <Text style={s.section}>Domain Expertise</Text>
-              <View style={s.chipRow}>
+              <Text className="text-gray-500 font-bold text-[11px] tracking-widest uppercase mt-1 mb-1.5">Domain Expertise</Text>
+              <View className="flex-row flex-wrap gap-2">
                 {DOMAIN_EXPERTISE.map((x) => (
                   <DarkChip key={x} label={x} active={domain.includes(x)} onPress={() => setDomain((a) => toggle(a, x))} />
                 ))}
               </View>
-              <Text style={[s.section, { marginTop: 10 }]}>Tech</Text>
-              <View style={s.chipRow}>
+              <Text className="text-gray-500 font-bold text-[11px] tracking-widest uppercase mt-2.5 mb-1.5">Tech</Text>
+              <View className="flex-row flex-wrap gap-2">
                 {TECH_SKILLS.map((x) => (
                   <DarkChip key={x} label={x} active={tech.includes(x)} onPress={() => setTech((a) => toggle(a, x))} />
                 ))}
               </View>
-              <Text style={[s.section, { marginTop: 10 }]}>Business</Text>
-              <View style={s.chipRow}>
+              <Text className="text-gray-500 font-bold text-[11px] tracking-widest uppercase mt-2.5 mb-1.5">Business</Text>
+              <View className="flex-row flex-wrap gap-2">
                 {BUSINESS_SKILLS.map((x) => (
                   <DarkChip key={x} label={x} active={biz.includes(x)} onPress={() => setBiz((a) => toggle(a, x))} />
                 ))}
               </View>
-              <Text style={[s.section, { marginTop: 10 }]}>Soft Skills</Text>
-              <View style={s.chipRow}>
+              <Text className="text-gray-500 font-bold text-[11px] tracking-widest uppercase mt-2.5 mb-1.5">Soft Skills</Text>
+              <View className="flex-row flex-wrap gap-2">
                 {SOFT_SKILLS.map((x) => (
                   <DarkChip key={x} label={x} active={soft.includes(x)} onPress={() => setSoft((a) => toggle(a, x))} />
                 ))}
@@ -416,27 +387,26 @@ export default function AlumniOnboard() {
             </>
           )}
 
-          {/* === STEP 3: Next Chapter === */}
           {step === 2 && (
-            <View style={s.cardGrid}>
+            <View className="flex-row flex-wrap gap-2.5">
               {NEXT_CHAPTER.map((p) => {
                 const Icon = p.Icon;
                 const active = nextChapter === p.id;
                 return (
                   <Pressable
                     key={p.id}
-                    style={[s.nextCard, active && s.nextCardActive]}
+                    className={`w-full py-3 px-3 rounded-xl border flex-row items-center gap-3 ${active ? 'border-amber-500 bg-amber-500/10' : 'border-gray-200 bg-white'}`}
                     onPress={() => setNextChapter(p.id)}
                   >
-                    <View style={[s.nextIcon, { backgroundColor: p.tint + '33', borderColor: p.tint }]}>
+                    <View className="w-10 h-10 rounded-full items-center justify-center border" style={{ backgroundColor: p.tint + '33', borderColor: p.tint }}>
                       <Icon size={18} color={p.tint} />
                     </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[s.nextTitle, active && s.nextTitleActive]}>{p.title}</Text>
-                      <Text style={s.nextDesc}>{p.desc}</Text>
+                    <View className="flex-1">
+                      <Text className={`font-bold text-[13.5px] ${active ? 'text-gray-900' : 'text-gray-800'}`}>{p.title}</Text>
+                      <Text className="text-gray-500 font-medium text-[11.5px] mt-0.5">{p.desc}</Text>
                     </View>
-                    <View style={[s.radio, active && s.radioActive]}>
-                      {active && <View style={s.radioDot} />}
+                    <View className={`w-[18px] h-[18px] rounded-full border-[1.5px] items-center justify-center ${active ? 'border-amber-500' : 'border-gray-300'}`}>
+                      {active && <View className="w-2.5 h-2.5 rounded-full bg-amber-500" />}
                     </View>
                   </Pressable>
                 );
@@ -444,80 +414,77 @@ export default function AlumniOnboard() {
             </View>
           )}
 
-          {/* === STEP 4: Photo === */}
           {step === 3 && (
-            <View style={{ alignItems: 'center', gap: 16 }}>
-              <Pressable onPress={takeSelfie} style={s.photoFrame}>
+            <View className="items-center gap-4">
+              <Pressable onPress={takeSelfie} className="w-40 h-40 rounded-full border-2 border-dashed items-center justify-center bg-white overflow-hidden">
                 {pendingPhoto ? (
-                  <Image source={{ uri: pendingPhoto }} style={s.photoImg} />
+                  <Image source={{ uri: pendingPhoto }} className="w-full h-full" />
                 ) : photo ? (
-                  <Image source={{ uri: photo }} style={s.photoImg} />
+                  <Image source={{ uri: photo }} className="w-full h-full" />
                 ) : (
-                  <View style={{ alignItems: 'center', gap: 8 }}>
+                  <View className="items-center gap-2">
                     <Camera size={32} color="#6B7280" />
-                    <Text style={s.photoHint}>Tap to capture</Text>
+                    <Text className="text-gray-500 font-medium text-xs">Tap to capture</Text>
                   </View>
                 )}
               </Pressable>
-              <Text style={s.helper}>A profile photo helps build trust with mentors and peers.</Text>
+              <Text className="text-gray-500 font-medium text-[12.5px] text-center leading-[18px]">A profile photo helps build trust with mentors and peers.</Text>
               {pendingPhoto ? (
-                <View style={{ flexDirection: 'row', gap: 10 }}>
-                  <Pressable style={s.confirmBtn} onPress={confirmPhoto}><Check size={14} color="#000" /><Text style={s.confirmBtnText}>Confirm</Text></Pressable>
-                  <Pressable style={s.smallBtn} onPress={() => { setPendingPhoto(null); takeSelfie(); }}><Camera size={14} color="#111827" /><Text style={s.smallBtnText}>Retake</Text></Pressable>
+                <View className="flex-row gap-2.5">
+                  <Pressable className="flex-row items-center gap-1.5 px-[18px] py-2 rounded-full bg-indigo-400 border border-indigo-400" onPress={confirmPhoto}><Check size={14} color="#000" /><Text className="text-indigo-950 font-bold text-xs">Confirm</Text></Pressable>
+                  <Pressable className="flex-row items-center gap-1.5 px-3.5 py-2 rounded-full bg-amber-500/18 border border-amber-500/40" onPress={() => { setPendingPhoto(null); takeSelfie(); }}><Camera size={14} color="#111827" /><Text className="text-indigo-950 font-bold text-xs">Retake</Text></Pressable>
                 </View>
               ) : (
-                <View style={{ flexDirection: 'row', gap: 10 }}>
-                  <Pressable style={s.smallBtn} onPress={takeSelfie}><Camera size={14} color="#111827" /><Text style={s.smallBtnText}>Take Selfie</Text></Pressable>
-                  <Pressable style={s.smallBtn} onPress={pickPhoto}><Upload size={14} color="#111827" /><Text style={s.smallBtnText}>Upload Photo</Text></Pressable>
+                <View className="flex-row gap-2.5">
+                  <Pressable className="flex-row items-center gap-1.5 px-3.5 py-2 rounded-full bg-amber-500/18 border border-amber-500/40" onPress={takeSelfie}><Camera size={14} color="#111827" /><Text className="text-indigo-950 font-bold text-xs">Take Selfie</Text></Pressable>
+                  <Pressable className="flex-row items-center gap-1.5 px-3.5 py-2 rounded-full bg-amber-500/18 border border-amber-500/40" onPress={pickPhoto}><Upload size={14} color="#111827" /><Text className="text-indigo-950 font-bold text-xs">Upload Photo</Text></Pressable>
                 </View>
               )}
             </View>
           )}
 
-          {/* === STEP 5: Bio === */}
           {step === 4 && (
             <>
-              <Text style={s.section}>Your Bio</Text>
-              <View style={s.textareaWrap}>
+              <Text className="text-gray-500 font-bold text-[11px] tracking-widest uppercase mt-1 mb-1.5">Your Bio</Text>
+              <View className="border border-gray-200 rounded-xl bg-white px-3.5 py-3">
                 <RNTextInput
                   value={bio}
                   onChangeText={(t) => setBio(t.slice(0, 300))}
                   multiline
                   placeholder="e.g. Senior PM at Flipkart with 6 years in product. IIT Bombay alum passionate about mentoring the next generation of builders…"
                   placeholderTextColor="#9CA3AF"
-                  style={s.textarea}
+                  className="text-gray-800 font-medium text-[13.5px] min-h-[100px]"
                 />
               </View>
-              <Text style={s.helperRight}>{bio.length}/300</Text>
-              <Text style={s.helper}>Your bio appears on your alumni profile - keep it authentic.</Text>
-              <Text style={[s.section, { marginTop: 10 }]}>Write Style</Text>
-              <View style={s.chipRow}>
+              <Text className="text-gray-500 font-medium text-[11px] text-right mt-[-10px]">{bio.length}/300</Text>
+              <Text className="text-gray-500 font-medium text-[12.5px] text-center leading-[18px]">Your bio appears on your alumni profile - keep it authentic.</Text>
+              <Text className="text-gray-500 font-bold text-[11px] tracking-widest uppercase mt-2.5 mb-1.5">Write Style</Text>
+              <View className="flex-row flex-wrap gap-2">
                 {STYLES.map((x) => (<DarkChip key={x} label={x} active={style === x} onPress={() => handleStylePress(x)} />))}
               </View>
-              {generatingBio && <Text style={s.generatingText}>✨ Generating your bio…</Text>}
+              {generatingBio && <Text className="text-violet-400 font-medium text-xs text-center mt-1.5">✨ Generating your bio…</Text>}
             </>
           )}
 
-          {/* === STEP 6: Badge === */}
           {step === 5 && (
-            <View style={{ alignItems: 'center', gap: 14 }}>
-              <View style={[s.badgeCircle, {
+            <View className="items-center gap-3.5">
+              <View className="w-[120px] h-[120px] rounded-full border-4 items-center justify-center bg-amber-500/18 mt-1" style={{
                 borderColor: badge.tier === 'Platinum' ? '#E5E4E2'
                   : badge.tier === 'Gold' ? '#FFD700'
                   : badge.tier === 'Silver' ? '#C0C0C0' : '#CD7F32'
-              }]}>
+              }}>
                 <Award size={38} color="#111827" />
-                <Text style={s.badgeTier}>{badge.tier}</Text>
+                <Text className="text-gray-800 font-bold text-xs mt-1 tracking-widest">{badge.tier}</Text>
               </View>
-              <Text style={s.greeting}>Welcome, {(fullName || user?.full_name || 'Alumni').split(' ')[0]}!</Text>
-              <Text style={s.helper}>You've earned {badge.tier} status on Student Alumni.</Text>
-              <View style={s.verifiedPill}>
+              <Text className="text-gray-800 font-bold text-lg">Welcome, {(fullName || user?.full_name || 'Alumni').split(' ')[0]}!</Text>
+              <Text className="text-gray-500 font-medium text-[12.5px] text-center leading-[18px]">You've earned {badge.tier} status on Student Alumni.</Text>
+              <View className="flex-row items-center gap-1.5 px-3 py-[5px] rounded-full bg-amber-500/12 border border-amber-500/30">
                 <CheckCircle2 size={14} color="#FBBF24" />
-                <Text style={s.verifiedText}>Verified SA member</Text>
+                <Text className="text-amber-500 font-bold text-[11.5px]">Verified SA member</Text>
               </View>
 
-              <Text style={[s.section, { marginTop: 14, alignSelf: 'flex-start' }]}>How your badge was calculated</Text>
-              <View style={{ width: '100%', gap: 6 }}>
+              <Text className="text-gray-500 font-bold text-[11px] tracking-widest uppercase mt-3.5 self-start">How your badge was calculated</Text>
+              <View className="w-full gap-1.5">
                 {[
                   `College: ${college || 'not set'}`,
                   `Experience: ${yoe || '0'} yrs ${parseInt(yoe || '0', 10) >= 8 ? '(8+)' : parseInt(yoe || '0', 10) >= 4 ? '(4-7)' : '(<4)'}`,
@@ -527,27 +494,27 @@ export default function AlumniOnboard() {
                   `${domain.length} domains of expertise`,
                   `Profile photo ${photo ? 'added' : 'not added'}`,
                   `Bio ${bio.length > 20 ? 'written' : 'not written'}`,
-                ].map((l) => (<Text key={l} style={s.calcRow}>• {l}</Text>))}
+                ].map((l) => (<Text key={l} className="text-gray-600 font-medium text-[12.5px]">• {l}</Text>))}
               </View>
 
-              <Text style={[s.section, { marginTop: 12, alignSelf: 'flex-start' }]}>{badge.tier} Perks</Text>
-              <View style={{ width: '100%', gap: 6 }}>
-                {badge.perks.map((p) => (<Text key={p} style={s.perk}>✔ {p}</Text>))}
+              <Text className="text-gray-500 font-bold text-[11px] tracking-widest uppercase mt-3 self-start">{badge.tier} Perks</Text>
+              <View className="w-full gap-1.5">
+                {badge.perks.map((p) => (<Text key={p} className="text-gray-800 font-medium text-[12.5px]">✔ {p}</Text>))}
               </View>
             </View>
           )}
         </View>
       </ScrollView>
 
-      <View style={s.navRow}>
+      <View className="flex-row items-center gap-2.5 mt-4">
         <Pressable
           onPress={step > 0 ? prev : () => router.replace('/welcome')}
-          style={s.backBtn}
+          className="w-[42px] h-[42px] rounded-[21px] bg-white border border-gray-200 items-center justify-center"
           testID="alumni-onboard-back"
         >
           <ArrowLeft size={18} color="#374151" />
         </Pressable>
-        <View style={{ flex: 1 }}>
+        <View className="flex-1">
           <PrimaryButton label={ctaLabel} onPress={onContinue} />
         </View>
       </View>
@@ -562,63 +529,3 @@ export default function AlumniOnboard() {
     </AuthShell>
   );
 }
-
-const s = StyleSheet.create({
-  stepRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 18, gap: 4 },
-  dot: { width: 26, height: 26, borderRadius: 13, borderWidth: 1.5, borderColor: '#E5E7EB', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F9FAFB' },
-  // Alumni theme accent: orange/yellow on active step
-  dotActive: { borderColor: '#F59E0B', backgroundColor: '#F59E0B' },
-  dotText: { color: '#9CA3AF', fontFamily: FONTS.bold, fontSize: 11 },
-  dotTextActive: { color: '#1F2937' },
-  line: { flex: 1, height: 1.5, backgroundColor: '#E5E7EB' },
-  lineActive: { backgroundColor: '#F59E0B' },
-  title: { color: '#111827', fontFamily: FONTS.bold, fontSize: 26, marginBottom: 6, textAlign: 'center' },
-  sub: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 13.5, textAlign: 'center', marginBottom: 18 },
-  section: { color: '#6B7280', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', marginTop: 4, marginBottom: 6 },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  cardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-
-  // Next Chapter cards
-  nextCard: {
-    width: '100%', paddingVertical: 12, paddingHorizontal: 12,
-    borderRadius: 12, borderWidth: 1, borderColor: '#E5E7EB', backgroundColor: '#FFFFFF',
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  nextCardActive: { borderColor: '#F59E0B', backgroundColor: 'rgba(245,158,11,0.10)' },
-  nextIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
-  nextTitle: { color: '#1F2937', fontFamily: FONTS.bold, fontSize: 13.5 },
-  nextTitleActive: { color: '#111827' },
-  nextDesc: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
-  radio: { width: 18, height: 18, borderRadius: 9, borderWidth: 1.5, borderColor: '#D1D5DB', alignItems: 'center', justifyContent: 'center' },
-  radioActive: { borderColor: '#F59E0B' },
-  radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#F59E0B' },
-
-  // Photo
-  photoFrame: { width: 160, height: 160, borderRadius: 80, borderWidth: 2, borderColor: '#D1D5DB', borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF', overflow: 'hidden' },
-  photoImg: { width: '100%', height: '100%' },
-  photoHint: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 12 },
-  helper: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 12.5, textAlign: 'center', lineHeight: 18 },
-  helperRight: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 11, textAlign: 'right', marginTop: -10 },
-  smallBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, backgroundColor: 'rgba(245,158,11,0.18)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.4)' },
-  smallBtnText: { color: '#1E1B4B', fontFamily: FONTS.bold, fontSize: 12 },
-  confirmBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 18, paddingVertical: 8, borderRadius: 999, backgroundColor: '#818CF8', borderWidth: 1, borderColor: '#818CF8' },
-  confirmBtnText: { color: '#1E1B4B', fontFamily: FONTS.bold, fontSize: 12 },
-
-  // Bio
-  textareaWrap: { borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 12, backgroundColor: '#FFFFFF', paddingHorizontal: 14, paddingVertical: 12 },
-  textarea: { color: '#1F2937', fontFamily: FONTS.med, fontSize: 13.5, minHeight: 100, ...(Platform.OS === 'web' ? ({ outlineWidth: 0 } as any) : {}) },
-
-  // Badge
-  badgeCircle: { width: 120, height: 120, borderRadius: 60, borderWidth: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(245,158,11,0.18)', marginTop: 4 },
-  badgeTier: { color: '#1F2937', fontFamily: FONTS.bold, fontSize: 12, marginTop: 4, letterSpacing: 1 },
-  greeting: { color: '#1F2937', fontFamily: FONTS.bold, fontSize: 18 },
-  verifiedPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 999, backgroundColor: 'rgba(251,191,36,0.12)', borderWidth: 1, borderColor: 'rgba(251,191,36,0.3)' },
-  verifiedText: { color: '#FBBF24', fontFamily: FONTS.bold, fontSize: 11.5 },
-  calcRow: { color: '#4B5563', fontFamily: FONTS.med, fontSize: 12.5 },
-  perk: { color: '#1F2937', fontFamily: FONTS.med, fontSize: 12.5 },
-
-  navRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 16 },
-  backBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E5E7EB', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  generatingText: { color: '#A78BFA', fontFamily: FONTS.med, fontSize: 12, textAlign: 'center', marginTop: 6 },
-});

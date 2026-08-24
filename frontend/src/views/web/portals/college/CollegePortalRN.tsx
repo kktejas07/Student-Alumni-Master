@@ -1,17 +1,12 @@
-/**
- * College Admin Portal — outer shell.
- */
 import React, { useState, useRef, useEffect } from 'react';
-import { View, ScrollView, StyleSheet, DeviceEventEmitter, Platform } from 'react-native';
+import { View, ScrollView, DeviceEventEmitter, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { usePortalUrl } from '@/src/views/web/portals/portalUrl';
 
-import { CC } from './tokens';
 import { Sidebar, CollegeNavId, NAV } from './Sidebar';
 import { TopBar } from './TopBar';
 import { LinearGradient } from 'expo-linear-gradient';
-import { StarryBackground } from '@/src/views/web/nexus-glow-landing/StarryBackground';
 import { DashboardFooter } from '../../components/SponsorStrip';
 import { PromoBanner } from '../../components/PromoBanner';
 import { DashboardView } from './views/DashboardView';
@@ -26,11 +21,11 @@ import { AIInsightsView } from './views/AIInsightsView';
 import { CareerIntelView } from './views/CareerIntelView';
 import { PlacementsView } from './views/PlacementsView';
 import { ProfileView } from './views/ProfileView';
-// Shared role-aware comprehensive profile view (purple theme, identical to student).
 import { ProfileSettingsView as SharedProfileSettingsView } from '../student/views/ProfileSettingsView';
 import { CreateEventView } from './views/CreateEventView';
 import { CollegeNotificationsPanel } from './views/NotificationsPanel';
 import { useAutoTour } from '@/src/views/web/tour/TourProvider';
+import { StyleSheet } from 'react-native';
 
 export function CollegePortalRN() {
   const router = useRouter();
@@ -62,7 +57,7 @@ export function CollegePortalRN() {
   const titleFor = (id: CollegeNavId) => NAV.find((n) => n.id === id)?.label || 'Dashboard';
 
   return (
-    <View style={s.shell}>
+    <View className="flex-1 flex-row bg-bg h-full">
       <LinearGradient
         pointerEvents="none"
         colors={['#030614', '#040816']}
@@ -71,8 +66,8 @@ export function CollegePortalRN() {
       />
 
       <Sidebar active={active} onNav={setActive} onLogout={onLogout} />
-      <View style={{ flex: 1, minWidth: 0, flexDirection: 'row' }}>
-        <View style={{ flex: 1, minWidth: 0 }}>
+      <View className="flex-1 min-w-0 flex-row">
+        <View className="flex-1 min-w-0">
           <TopBar
             title={titleFor(active)}
             onCalendarPress={() => setActive('events')}
@@ -82,11 +77,12 @@ export function CollegePortalRN() {
           />
           <ScrollView
             ref={scrollRef}
-            style={[{ flex: 1 }, Platform.OS === 'web' && ({ scrollBehavior: 'smooth' } as any)]}
+            className="flex-1"
+            style={Platform.OS === 'web' ? { scrollBehavior: 'smooth' } as any : {}}
             contentContainerStyle={{ flexGrow: 1 }}
             showsVerticalScrollIndicator={false}
           >
-            <View style={{ flex: 1, padding: 22, paddingBottom: 60 }}>
+            <View className="flex-1 p-[22px] pb-[60px]">
               <PromoBanner portal="college" />
               {active === 'dashboard'    && (
                 <DashboardView
@@ -123,7 +119,3 @@ export function CollegePortalRN() {
     </View>
   );
 }
-
-const s = StyleSheet.create({
-  shell: { flex: 1, flexDirection: 'row', backgroundColor: CC.bg, height: '100%' as any },
-});

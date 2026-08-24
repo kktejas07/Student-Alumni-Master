@@ -23,7 +23,7 @@
  */
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
-  View, Text, Pressable, StyleSheet, ScrollView, Image, Platform,
+  View, Text, Pressable, ScrollView, Image, Platform,
   ActivityIndicator, useWindowDimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -44,10 +44,6 @@ import { useToast } from '@/src/views/components';
 
 type TabKey = 'profile-info' | 'manage' | 'settings' | 'notifications' | 'security' | 'digital-id';
 
-/**
- * Role-aware copy & sidebar stat configuration.
- * Visual theme stays unified (purple) — only labels & stats list rotate per role.
- */
 type RoleKey = 'student' | 'mentor' | 'alumni' | 'college';
 
 const ROLE_CFG: Record<RoleKey, {
@@ -55,7 +51,7 @@ const ROLE_CFG: Record<RoleKey, {
   idLabel: string;
   verifiedLabel: string;
   fallbackHeadline: string;
-  badgeNoun: string;          // "sessions" / "mentees" / "students"
+  badgeNoun: string;
   stats: (s: any) => { Icon: any; label: string; value: any; tint: string }[];
 }> = {
   student: {
@@ -144,7 +140,6 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
   const [loading, setLoading] = useState(true);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
 
-  // Hydrate
   const reload = useCallback(async () => {
     setLoading(true);
     try {
@@ -179,7 +174,6 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
     };
   }, []);
 
-  // Track if draft changed vs last server snapshot
   const dirty = useMemo(() => {
     if (!user) return false;
     const watched = [
@@ -210,7 +204,6 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
     if (saving || !dirty) return;
     setSaving(true);
     try {
-      // Build payload from changed fields only (still safe-listed server-side)
       const payload: any = {};
       const watched = [
         'first_name','last_name','full_name','headline','bio','phone','city','state','location',
@@ -223,7 +216,6 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
           payload[k] = (draft as any)[k];
         }
       });
-      // Coerce numbers
       if ('graduation_year' in payload && payload.graduation_year)
         payload.graduation_year = Number(payload.graduation_year) || payload.graduation_year;
       if ('cgpa' in payload && payload.cgpa !== '' && payload.cgpa != null)
@@ -246,7 +238,6 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
     toast.info('Reverted', 'Changes discarded.');
   };
 
-  // Header + sidebar derived
   const fullName = (draft.full_name || `${draft.first_name || ''} ${draft.last_name || ''}`).trim() || 'Student';
   const initials = (fullName.split(' ').slice(0, 2).map((s: string) => s[0] || '').join('') || '?').toUpperCase();
   const headline = [draft.branch ? `B.Tech ${draft.branch}` : null, draft.institution].filter(Boolean).join(' · ') ||
@@ -256,61 +247,63 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
 
   if (!user) {
     return (
-      <View style={st.loaderWrap}>
+      <View className="flex-1 items-center justify-center min-h-[320px]">
         {loading ? (
           <ActivityIndicator size="large" color={C.purple} />
         ) : (
-          <Text style={{ color: '#fff' }}>Failed to load profile settings.</Text>
+          <Text className="text-white">Failed to load profile settings.</Text>
         )}
       </View>
     );
   }
 
   return (
-    <View style={{ gap: 16 }}>
+    <View className="gap-4">
       {/* Header card */}
-      <View style={[st.headerCard, stack && { flexDirection: 'column' }]}>
-        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 16, minWidth: 0 }}>
-          <View style={{ position: 'relative' }}>
-            <View style={st.avatar}>
+      <View className="flex-row items-center gap-[18px] bg-glass border border-glass-border rounded-2xl p-[18px]" style={stack ? { flexDirection: 'column' } : {}}>
+        <View className="flex-1 flex-row items-center gap-4 min-w-0">
+          <View className="relative">
+            <View className="w-[84px] h-[84px] rounded-full overflow-hidden items-center justify-center" style={{ backgroundColor: 'rgba(167,139,250,0.20)' }}>
               {photo ? (
-                <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} />
+                <Image source={{ uri: photo }} className="w-full h-full" />
               ) : (
-                <Text style={st.avatarText}>{initials}</Text>
+                <Text style={{ color: '#A78BFA', fontFamily: 'DMSans_800ExtraBold', fontSize: 28 }}>{initials}</Text>
               )}
             </View>
             {draft.is_verified && (
-              <View style={st.avatarCheck}><CheckCircle2 size={11} color="#fff" /></View>
+              <View className="absolute bottom-0.5 right-0.5 w-[22px] h-[22px] rounded-full bg-green-500 items-center justify-center" style={{ borderColor: C.bg, borderWidth: 2 }}>
+                <CheckCircle2 size={11} color="#fff" />
+              </View>
             )}
           </View>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={st.name}>{fullName}</Text>
-            <Text style={st.subline}>{headline}</Text>
-            <View style={st.badgeRow}>
+          <View className="flex-1 min-w-0">
+            <Text className="text-white font-display-bold text-[22px] tracking-tight">{fullName}</Text>
+            <Text style={{ color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 13, marginTop: 4 }}>{headline}</Text>
+            <View className="flex-row flex-wrap gap-2 mt-2.5">
               {!!draft.cgpa && (
-                <View style={[st.headerBadge, { backgroundColor: 'rgba(245,158,11,0.16)', borderColor: 'rgba(245,158,11,0.45)' }]}>
-                  <Text style={[st.headerBadgeText, { color: '#FBBF24' }]}>CGPA {draft.cgpa}</Text>
+                <View className="flex-row items-center gap-1 px-2.5 py-1 rounded-full border" style={{ backgroundColor: 'rgba(245,158,11,0.16)', borderColor: 'rgba(245,158,11,0.45)' }}>
+                  <Text style={{ fontFamily: 'DMSans_700Bold', fontSize: 11.5, color: '#FBBF24' }}>CGPA {draft.cgpa}</Text>
                 </View>
               )}
               {!!stats.sessions_completed && (
-                <View style={[st.headerBadge, { backgroundColor: 'rgba(20,184,166,0.16)', borderColor: 'rgba(20,184,166,0.45)' }]}>
-                  <Text style={[st.headerBadgeText, { color: '#5EEAD4' }]}>{stats.sessions_completed} {cfg.badgeNoun}</Text>
+                <View className="flex-row items-center gap-1 px-2.5 py-1 rounded-full border" style={{ backgroundColor: 'rgba(20,184,166,0.16)', borderColor: 'rgba(20,184,166,0.45)' }}>
+                  <Text style={{ fontFamily: 'DMSans_700Bold', fontSize: 11.5, color: '#5EEAD4' }}>{stats.sessions_completed} {cfg.badgeNoun}</Text>
                 </View>
               )}
-              <View style={[st.headerBadge, { backgroundColor: 'rgba(167,139,250,0.16)', borderColor: 'rgba(167,139,250,0.45)' }]}>
+              <View className="flex-row items-center gap-1 px-2.5 py-1 rounded-full border" style={{ backgroundColor: 'rgba(167,139,250,0.16)', borderColor: 'rgba(167,139,250,0.45)' }}>
                 <ShieldCheck size={12} color="#C4B5FD" />
-                <Text style={[st.headerBadgeText, { color: '#C4B5FD' }]}>{cfg.verifiedLabel}</Text>
+                <Text style={{ fontFamily: 'DMSans_700Bold', fontSize: 11.5, color: '#C4B5FD' }}>{cfg.verifiedLabel}</Text>
               </View>
             </View>
           </View>
         </View>
       </View>
 
-      <View style={[stack ? { flexDirection: 'column' } : { flexDirection: 'row' }, { gap: 16 }]}>
+      <View className="gap-4" style={stack ? { flexDirection: 'column' } : { flexDirection: 'row' }}>
         {/* Main column */}
-        <View style={{ flex: 1, minWidth: 0, gap: 14 }}>
+        <View className="flex-1 min-w-0 gap-3.5">
           {/* Tab bar */}
-          <View style={st.tabBar}>
+          <View className="bg-glass border border-glass-border rounded-xl p-1.5">
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingHorizontal: 6 }}>
               {TABS.map((t) => {
                 const Icon = t.Icon; const active = tab === t.key;
@@ -321,11 +314,12 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
                       if (t.key === 'digital-id') { router.push('/member-id' as any); return; }
                       setTab(t.key);
                     }}
-                    style={[st.tab, active && st.tabActive]}
+                    className="flex-row items-center gap-1.5 px-3.5 py-2 rounded-lg"
+                    style={active ? { backgroundColor: C.purple } : Platform.OS === 'web' ? { cursor: 'pointer' } : {}}
                     testID={`pf-tab-${t.key}`}
                   >
                     <Icon size={14} color={active ? '#fff' : C.text2} />
-                    <Text style={[st.tabText, active && { color: '#fff' }]}>{t.label}</Text>
+                    <Text style={{ color: active ? '#fff' : C.text2, fontFamily: 'DMSans_700Bold', fontSize: 12 }}>{t.label}</Text>
                   </Pressable>
                 );
               })}
@@ -365,7 +359,7 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
 
           {/* Save bar */}
           {(tab === 'profile-info' || tab === 'manage' || tab === 'settings') && (
-            <View style={{ marginTop: 4, zIndex: 1, position: 'relative' }}>
+            <View className="mt-1 z-10 relative">
               <FooterActions
                 dirty={dirty}
                 saving={saving}
@@ -380,26 +374,26 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
         {/* Right sidebar */}
         <View style={{ width: stack ? '100%' : 320, gap: 14 }}>
           {/* Profile Score card */}
-          <View style={st.sideCard}>
-            <View style={{ alignItems: 'center', gap: 8 }}>
+          <View className="bg-glass border border-glass-border rounded-[14px] p-4">
+            <View className="items-center gap-2">
               <CompletionRing
                 pct={completion.percentage || 0}
                 size={120}
                 stroke={10}
                 color={(completion.percentage || 0) >= 100 ? '#10B981' : '#A78BFA'}
               />
-              <Text style={st.sideTitle}>Profile Score</Text>
-              <Text style={st.sideSub}>{(completion.percentage || 0) >= 100 ? 'All complete!' : `${100 - (completion.percentage || 0)}% to go`}</Text>
-              <View style={st.idChip}>
-                <Text style={st.idChipText}>{saId}</Text>
+              <Text className="text-white font-body-bold text-sm mt-1">Profile Score</Text>
+              <Text style={{ color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11.5 }}>{(completion.percentage || 0) >= 100 ? 'All complete!' : `${100 - (completion.percentage || 0)}% to go`}</Text>
+              <View className="px-2.5 py-1 rounded-md mt-1.5" style={{ backgroundColor: 'rgba(167,139,250,0.10)', borderColor: 'rgba(167,139,250,0.35)', borderWidth: 1 }}>
+                <Text className="text-purple-300 font-body-bold text-[11.5px] tracking-wider">{saId}</Text>
               </View>
             </View>
           </View>
 
           {/* Role-aware stats list */}
-          <View style={st.sideCard}>
-            <Text style={st.sideHeading}>{cfg.statsHeading}</Text>
-            <View style={{ marginTop: 10, gap: 4 }}>
+          <View className="bg-glass border border-glass-border rounded-[14px] p-4">
+            <Text style={{ color: C.text2, fontFamily: 'DMSans_800ExtraBold', fontSize: 11, letterSpacing: 1.0 }}>{cfg.statsHeading}</Text>
+            <View className="mt-2.5 gap-1">
               {cfg.stats(stats).map((row, i, arr) => (
                 <StatRow
                   key={row.label}
@@ -414,22 +408,23 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
           </View>
 
           {/* Role-aware ID card */}
-          <View style={st.sideCard}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+          <View className="bg-glass border border-glass-border rounded-[14px] p-4">
+            <View className="flex-row items-center gap-1.5 mb-2">
               <ShieldCheck size={14} color="#A78BFA" />
-              <Text style={st.idTitle}>{cfg.idLabel}</Text>
+              <Text className="text-white font-body-bold text-[13px]">{cfg.idLabel}</Text>
             </View>
-            <Text style={st.idValue}>{saId}</Text>
-            <Text style={st.idMeta}>
+            <Text className="text-white font-display-bold text-lg tracking-wider mt-0.5">{saId}</Text>
+            <Text style={{ color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11.5, marginTop: 4 }}>
               {draft.is_verified ? 'Verified' : 'Active'} · since {new Date(user?.created_at || Date.now()).getFullYear()}
             </Text>
             <Pressable
               onPress={() => router.push('/member-id' as any)}
-              style={st.viewIdBtn}
+              className="mt-3 flex-row items-center justify-center gap-1.5 py-3 rounded-[10px]"
+              style={{ backgroundColor: C.purple, ...(Platform.OS === 'web' ? { cursor: 'pointer', boxShadow: '0 6px 18px rgba(124,58,237,0.35)' } : {}) }}
               testID="pf-view-digital-id"
             >
               <IdCard size={14} color="#fff" />
-              <Text style={st.viewIdBtnText}>View Digital ID Card →</Text>
+              <Text className="text-white font-body-bold text-[12.5px]">View Digital ID Card →</Text>
             </Pressable>
           </View>
         </View>
@@ -438,161 +433,51 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
   );
 }
 
-/* ---------- helpers ---------- */
 function StatRow({ Icon, label, value, tint, last }: { Icon: any; label: string; value: any; tint: string; last?: boolean }) {
   return (
-    <View style={[st.statRow, !last && st.statRowDivider]}>
-      <View style={[st.statIcon, { backgroundColor: tint + '20', borderColor: tint + '50' }]}>
+    <View className="flex-row items-center gap-2.5 py-2.5" style={!last ? { borderBottomColor: 'rgba(255,255,255,0.04)', borderBottomWidth: 1 } : {}}>
+      <View className="w-[30px] h-[30px] rounded-lg items-center justify-center border" style={{ backgroundColor: tint + '20', borderColor: tint + '50' }}>
         <Icon size={14} color={tint} />
       </View>
-      <Text style={st.statLabel}>{label}</Text>
-      <Text style={st.statValue}>{value}</Text>
+      <Text style={{ flex: 1, color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12.5 }}>{label}</Text>
+      <Text className="text-white font-display-bold text-base">{value}</Text>
     </View>
   );
 }
 
 function ComingSoon({ title, sub }: { title: string; sub: string }) {
   return (
-    <View style={st.comingCard}>
+    <View className="bg-glass border border-glass-border rounded-[14px] p-8 items-center gap-2">
       <Sparkles size={28} color="#A78BFA" />
-      <Text style={st.comingTitle}>{title}</Text>
-      <Text style={st.comingSub}>{sub}</Text>
+      <Text className="text-white font-body-bold text-base">{title}</Text>
+      <Text style={{ color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12, textAlign: 'center' }}>{sub}</Text>
     </View>
   );
 }
 
 function FooterActions({ dirty, saving, onSave, onDiscard, lastSavedAt }: any) {
   return (
-    <View style={st.footerBar}>
-      <Text style={st.footerStatus}>
+    <View className="flex-row items-center justify-between px-[18px] py-3.5 rounded-xl gap-3" style={{ backgroundColor: 'rgba(167,139,250,0.08)', borderColor: 'rgba(167,139,250,0.24)', borderWidth: 1 }}>
+      <Text style={{ color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12 }}>
         {lastSavedAt ? `Last saved ${lastSavedAt}` : (dirty ? 'You have unsaved changes' : 'All changes saved')}
       </Text>
-      <View style={{ flexDirection: 'row', gap: 8 }}>
-        <Pressable onPress={onDiscard} disabled={!dirty} style={[st.btnGhost, !dirty && { opacity: 0.5 }]} testID="pf-discard">
-          <Text style={st.btnGhostText}>Discard Changes</Text>
+      <View className="flex-row gap-2">
+        <Pressable onPress={onDiscard} disabled={!dirty} className="px-3.5 h-9 rounded-[9px] items-center justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.04)', borderColor: C.border, borderWidth: 1, ...(!dirty ? { opacity: 0.5 } : {}), ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {}) }} testID="pf-discard">
+          <Text style={{ color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 12 }}>Discard Changes</Text>
         </Pressable>
         <Pressable
           onPress={onSave}
           disabled={!dirty || saving}
-          style={[st.btnPrimary, (!dirty || saving) && { opacity: 0.55 }]}
+          className="flex-row items-center gap-1.5 px-4 h-9 rounded-[9px]"
+          style={{ backgroundColor: C.purple, borderColor: C.purple, borderWidth: 1, ...(!dirty || saving ? { opacity: 0.55 } : {}), ...(Platform.OS === 'web' ? { cursor: 'pointer', boxShadow: '0 6px 18px rgba(124,58,237,0.35)' } : {}) }}
           testID="pf-save"
         >
           <CheckCircle2 size={14} color="#fff" />
-          <Text style={st.btnPrimaryText}>{saving ? 'Saving…' : 'Save Profile'}</Text>
+          <Text className="text-white font-body-bold text-xs">{saving ? 'Saving…' : 'Save Profile'}</Text>
         </Pressable>
       </View>
     </View>
   );
 }
-
-const st = StyleSheet.create({
-  loaderWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: 320 },
-
-  /* Header */
-  headerCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 18,
-    backgroundColor: C.card, borderColor: C.border, borderWidth: 1,
-    borderRadius: 16, padding: 18,
-  },
-  avatar: {
-    width: 84, height: 84, borderRadius: 42, overflow: 'hidden',
-    backgroundColor: 'rgba(167,139,250,0.20)', alignItems: 'center', justifyContent: 'center',
-    position: 'relative',
-  },
-  avatarText: { color: '#A78BFA', fontFamily: 'DMSans_800ExtraBold', fontSize: 28 },
-  avatarCheck: {
-    position: 'absolute', bottom: 2, right: 2,
-    width: 22, height: 22, borderRadius: 11, backgroundColor: '#10B981',
-    alignItems: 'center', justifyContent: 'center',
-    borderColor: C.bg, borderWidth: 2,
-  },
-  name: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 22, letterSpacing: -0.3 },
-  subline: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 13, marginTop: 4 },
-  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
-  headerBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, borderWidth: 1,
-  },
-  headerBadgeText: { fontFamily: 'DMSans_700Bold', fontSize: 11.5 },
-
-  /* Tabs */
-  tabBar: {
-    backgroundColor: C.card, borderColor: C.border, borderWidth: 1,
-    borderRadius: 12, padding: 6,
-  },
-  tab: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, paddingVertical: 9,
-    borderRadius: 8,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  tabActive: { backgroundColor: C.purple },
-  tabText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 12 },
-
-  /* Sidebar */
-  sideCard: {
-    backgroundColor: C.card, borderColor: C.border, borderWidth: 1,
-    borderRadius: 14, padding: 16,
-  },
-  sideTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 14, marginTop: 4 },
-  sideSub: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11.5 },
-  sideHeading: { color: C.text2, fontFamily: 'DMSans_800ExtraBold', fontSize: 11, letterSpacing: 1.0 },
-  idChip: {
-    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6,
-    backgroundColor: 'rgba(167,139,250,0.10)', borderColor: 'rgba(167,139,250,0.35)', borderWidth: 1,
-    marginTop: 6,
-  },
-  idChipText: { color: '#C4B5FD', fontFamily: 'DMSans_700Bold', fontSize: 11.5, letterSpacing: 0.5 },
-
-  statRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10 },
-  statRowDivider: { borderBottomColor: 'rgba(255,255,255,0.04)', borderBottomWidth: 1 },
-  statIcon: { width: 30, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
-  statLabel: { flex: 1, color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12.5 },
-  statValue: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 16 },
-
-  idTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13 },
-  idValue: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 18, letterSpacing: 0.5, marginTop: 2 },
-  idMeta: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11.5, marginTop: 4 },
-  viewIdBtn: {
-    marginTop: 12,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    paddingVertical: 12, borderRadius: 10,
-    backgroundColor: C.purple,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', boxShadow: '0 6px 18px rgba(124,58,237,0.35)' } as any) : {}),
-  },
-  viewIdBtnText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12.5 },
-
-  /* Coming soon */
-  comingCard: {
-    backgroundColor: C.card, borderColor: C.border, borderWidth: 1, borderRadius: 14,
-    padding: 32, alignItems: 'center', gap: 8,
-  },
-  comingTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 16 },
-  comingSub: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12, textAlign: 'center' },
-
-  /* Footer save */
-  footerBar: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 18, paddingVertical: 14,
-    backgroundColor: 'rgba(167,139,250,0.08)',
-    borderColor: 'rgba(167,139,250,0.24)', borderWidth: 1,
-    borderRadius: 12, gap: 12,
-  },
-  footerStatus: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12 },
-  btnGhost: {
-    paddingHorizontal: 14, height: 36, borderRadius: 9,
-    backgroundColor: 'rgba(255,255,255,0.04)', borderColor: C.border, borderWidth: 1,
-    alignItems: 'center', justifyContent: 'center',
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  btnGhostText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 12 },
-  btnPrimary: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 16, height: 36, borderRadius: 9,
-    backgroundColor: C.purple, borderColor: C.purple, borderWidth: 1,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', boxShadow: '0 6px 18px rgba(124,58,237,0.35)' } as any) : {}),
-  },
-  btnPrimaryText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12 },
-});
 
 export default ProfileSettingsView;

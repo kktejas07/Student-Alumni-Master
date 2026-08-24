@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, ScrollView, Platform, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { CC, FONTS } from '../tokens';
+import { CC } from '../tokens';
 import { useToast } from '@/src/views/components';
 import { api } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
@@ -11,7 +11,7 @@ interface Notif {
   id: string;
   title: string;
   message: string;
-  type?: string;        // booking_request | booking_confirmed | review | event | system
+  type?: string;
   read?: boolean;
   created_at?: string;
   booking_id?: string;
@@ -37,11 +37,9 @@ export function CollegeNotificationsPanel({ onClose, onOpenSettings, onNavigate 
     try {
       const r = await api.notifications();
       const items: Notif[] = (r.notifications || r.items || []) as Notif[];
-      // sort newest first
       items.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
       setList(items);
     } catch (e) {
-      // swallow
     } finally {
       setLoading(false);
     }
@@ -81,7 +79,6 @@ export function CollegeNotificationsPanel({ onClose, onOpenSettings, onNavigate 
       await api.dismissNotifications([item.id]);
     } catch (e) {}
     
-    // Make notification disappear from the list
     setList((prev) => prev.filter((i) => i.id !== item.id));
 
     const role = user?.role || 'student';
@@ -115,29 +112,27 @@ export function CollegeNotificationsPanel({ onClose, onOpenSettings, onNavigate 
   }, [list, activeFilter]);
 
   return (
-    <View style={s.drawer}>
-      {/* Header */}
-      <View style={s.header}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Text style={s.headerTitle}>Notifications</Text>
+    <View className="w-[360px] h-full bg-bg border-l border-glass-border p-4 gap-4 z-[9999]">
+      <View className="flex-row items-center justify-between">
+        <View className="flex-row items-center gap-2">
+          <Text className="text-[#ffffff] font-body-bold text-[16px]">Notifications</Text>
           {unreadCount > 0 && (
-            <View style={s.unreadBadge}>
-              <Text style={s.unreadBadgeText}>{unreadCount} new</Text>
+            <View className="bg-[rgba(236,72,153,0.22)] border border-[rgba(236,72,153,0.50)] px-2 py-[2px] rounded-xl">
+              <Text className="text-[#EC4899] font-body-bold text-[10px]">{unreadCount} new</Text>
             </View>
           )}
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <Pressable onPress={handleMarkAllRead} style={Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}}>
-            <Text style={s.markReadText}>Mark all read</Text>
+        <View className="flex-row items-center gap-[10px]">
+          <Pressable onPress={handleMarkAllRead} style={Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}}>
+            <Text className="text-violet font-body-bold text-[12.5px] mr-1">Mark all read</Text>
           </Pressable>
-          <Pressable onPress={onClose} style={s.closeBtn}>
-            <Text style={s.closeBtnText}>&times;</Text>
+          <Pressable onPress={onClose} className="w-[26px] h-[26px] rounded-[13px] bg-[rgba(255,255,255,0.04)] items-center justify-center" style={Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}}>
+            <Text className="text-muted text-[16px] leading-[16px] text-center">&times;</Text>
           </Pressable>
         </View>
       </View>
 
-      {/* Filter Tabs */}
-      <View style={s.tabsContainer}>
+      <View className="h-8">
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
           {[
             { key: 'all', label: 'All' },
@@ -151,57 +146,53 @@ export function CollegeNotificationsPanel({ onClose, onOpenSettings, onNavigate 
               <Pressable
                 key={tab.key}
                 onPress={() => setActiveFilter(tab.key as any)}
-                style={[s.tab, active && s.tabActive]}
-              >
-                <Text style={[s.tabText, active && s.tabTextActive]}>{tab.label}</Text>
+                className={`px-3 h-7 rounded-[14px] items-center justify-center border ${active ? 'bg-[rgba(167,139,250,0.14)] border-violet' : 'bg-[rgba(255,255,255,0.03)] border-glass-border'}`}
+                style={Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}}>
+                <Text className={`font-body-bold text-[11px] ${active ? 'text-violet' : 'text-muted'}`}>{tab.label}</Text>
               </Pressable>
             );
           })}
         </ScrollView>
       </View>
 
-      {/* List */}
       {loading ? (
-        <View style={s.loadingState}>
+        <View className="flex-1 items-center justify-center">
           <ActivityIndicator color={CC.primary} />
         </View>
       ) : (
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: 12, paddingBottom: 16 }} showsVerticalScrollIndicator={false}>
+        <ScrollView className="flex-1" contentContainerStyle={{ gap: 12, paddingBottom: 16 }} showsVerticalScrollIndicator={false}>
           {filteredList.length === 0 ? (
-            <View style={s.emptyState}>
+            <View className="items-center justify-center py-[60px] gap-2">
               <MaterialCommunityIcons name="bell-off-outline" size={24} color={CC.dim} />
-              <Text style={s.emptyStateText}>No notifications found</Text>
+              <Text className="text-dim font-body text-xs">No notifications found</Text>
             </View>
           ) : (
             filteredList.map((item) => {
               const { glyph, color } = iconForType(item.type);
               const actionText = getActionText(item.type);
               return (
-                <Pressable key={item.id} style={[s.card, !item.read && s.cardUnread]} onPress={() => handleAction(item)}>
-                  <View style={{ flexDirection: 'row', gap: 12 }}>
-                    {/* Icon Outline Box */}
-                    <View style={[s.iconBox, { borderColor: color + '30', backgroundColor: color + '10' }]}>
+                <Pressable key={item.id} className={`bg-[rgba(255,255,255,0.01)] border rounded-xl p-3 ${!item.read ? 'bg-[rgba(167,139,250,0.0a)] border-violet' : 'border-[rgba(255,255,255,0.04)]'}`} onPress={() => handleAction(item)}>
+                  <View className="flex-row gap-3">
+                    <View className="w-9 h-9 rounded-lg border items-center justify-center" style={{ borderColor: color + '30', backgroundColor: color + '10' }}>
                       <MaterialCommunityIcons name={glyph as any} size={18} color={color} />
                     </View>
                     
-                    {/* Detail column */}
-                    <View style={{ flex: 1, gap: 4 }}>
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                        <Text style={s.cardTitle} numberOfLines={1}>{item.title}</Text>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                          <Text style={s.cardTime}>{formatRelative(item.created_at)}</Text>
-                          {!item.read && <View style={s.unreadDot} />}
+                    <View className="flex-1 gap-1">
+                      <View className="flex-row justify-between items-start gap-2">
+                        <Text className="text-[#ffffff] font-body-bold text-[13px] flex-1" numberOfLines={1}>{item.title}</Text>
+                        <View className="flex-row items-center gap-[6px]">
+                          <Text className="text-dim font-body text-[10.5px]">{formatRelative(item.created_at)}</Text>
+                          {!item.read && <View className="w-[7px] h-[7px] rounded-full bg-violet" />}
                         </View>
                       </View>
-                      <Text style={s.cardDesc}>{item.message}</Text>
+                      <Text className="text-muted font-body text-[11.5px] leading-[15.5px] mt-[2px]">{item.message}</Text>
                       
-                      {/* Buttons */}
-                      <View style={s.cardActions}>
-                        <Pressable onPress={() => handleAction(item)} style={s.actionBtn}>
-                          <Text style={s.actionBtnText}>{actionText}</Text>
+                      <View className="flex-row items-center gap-2 mt-2">
+                        <Pressable onPress={() => handleAction(item)} className="px-[10px] py-[5px] rounded-[6px] border border-violet bg-[rgba(167,139,250,0.0a)]" style={Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}}>
+                          <Text className="text-violet font-body-bold text-[11px]">{actionText}</Text>
                         </Pressable>
-                        <Pressable onPress={() => handleDismiss(item.id)} style={s.dismissBtn}>
-                          <Text style={s.dismissBtnText}>Dismiss</Text>
+                        <Pressable onPress={() => handleDismiss(item.id)} className="px-[10px] py-[5px] rounded-[6px] bg-[rgba(255,255,255,0.03)] border border-glass-border" style={Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}}>
+                          <Text className="text-muted font-body text-[11px]">Dismiss</Text>
                         </Pressable>
                       </View>
                     </View>
@@ -213,18 +204,16 @@ export function CollegeNotificationsPanel({ onClose, onOpenSettings, onNavigate 
         </ScrollView>
       )}
 
-      {/* Footer */}
-      <View style={s.footer}>
-        <Pressable onPress={onOpenSettings} style={s.settingsBtn}>
+      <View className="border-t border-glass-border pt-3 items-center">
+        <Pressable onPress={onOpenSettings} className="flex-row items-center gap-[6px] py-2 px-4 rounded-lg bg-[rgba(255,255,255,0.02)] border border-glass-border" style={Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}}>
           <MaterialCommunityIcons name="cog-outline" size={14} color={CC.muted} />
-          <Text style={s.settingsBtnText}>Notification Settings</Text>
+          <Text className="text-muted font-body-bold text-xs">Notification Settings</Text>
         </Pressable>
       </View>
     </View>
   );
 }
 
-// ----- helpers -----------------------------------------------------------
 function iconForType(type?: string) {
   const t = (type || '').toLowerCase();
   if (t.startsWith('booking_request') || t.startsWith('booking_pending')) {
@@ -254,15 +243,15 @@ function iconForType(type?: string) {
 function getActionText(type?: string): string {
   const t = (type || '').toLowerCase();
   if (t.startsWith('booking_request') || t.startsWith('booking_pending')) {
-    return 'View Request â†’';
+    return 'View Request →';
   }
   if (t.startsWith('connection_request')) {
-    return 'View Connections â†’';
+    return 'View Connections →';
   }
   if (t.startsWith('event')) {
-    return 'View Event â†’';
+    return 'View Event →';
   }
-  return 'View Details â†’';
+  return 'View Details →';
 }
 
 function formatRelative(iso?: string): string {
@@ -279,202 +268,3 @@ function formatRelative(iso?: string): string {
     return iso;
   }
 }
-
-const s = StyleSheet.create({
-  drawer: {
-    width: 360,
-    height: '100%',
-    backgroundColor: CC.bg,
-    borderLeftWidth: 1,
-    borderLeftColor: CC.border,
-    padding: 16,
-    gap: 16,
-    zIndex: 9999,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  headerTitle: {
-    color: '#ffffff',
-    fontFamily: FONTS.bold,
-    fontSize: 16,
-  },
-  unreadBadge: {
-    backgroundColor: CC.pink + '22',
-    borderColor: CC.pink + '50',
-    borderWidth: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
-  },
-  unreadBadgeText: {
-    color: CC.pink,
-    fontFamily: FONTS.bold,
-    fontSize: 10,
-  },
-  markReadText: {
-    color: CC.primaryL,
-    fontFamily: FONTS.bold,
-    fontSize: 12.5,
-    marginRight: 4,
-  },
-  closeBtn: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...({ cursor: 'pointer' } as any),
-  },
-  closeBtnText: {
-    color: CC.muted,
-    fontSize: 16,
-    lineHeight: 16,
-    textAlign: 'center',
-  },
-  tabsContainer: {
-    height: 32,
-  },
-  tab: {
-    paddingHorizontal: 12,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderColor: CC.border,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...({ cursor: 'pointer' } as any),
-  },
-  tabActive: {
-    backgroundColor: CC.primaryL + '14',
-    borderColor: CC.primaryL,
-  },
-  tabText: {
-    color: CC.muted,
-    fontFamily: FONTS.bold,
-    fontSize: 11,
-  },
-  tabTextActive: {
-    color: CC.primaryL,
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-    gap: 8,
-  },
-  emptyStateText: {
-    color: CC.dim,
-    fontFamily: FONTS.med,
-    fontSize: 12,
-  },
-  loadingState: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.01)',
-    borderColor: 'rgba(255, 255, 255, 0.04)',
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 12,
-  },
-  cardUnread: {
-    backgroundColor: CC.primaryL + '0a',
-    borderColor: CC.primaryL + '40',
-  },
-  iconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cardTitle: {
-    color: '#ffffff',
-    fontFamily: FONTS.bold,
-    fontSize: 13,
-    flex: 1,
-  },
-  cardTime: {
-    color: CC.dim,
-    fontFamily: FONTS.med,
-    fontSize: 10.5,
-  },
-  unreadDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    backgroundColor: CC.primaryL,
-  },
-  cardDesc: {
-    color: CC.muted,
-    fontFamily: FONTS.med,
-    fontSize: 11.5,
-    lineHeight: 15.5,
-    marginTop: 2,
-  },
-  cardActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 8,
-  },
-  actionBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: CC.primaryL + '40',
-    backgroundColor: CC.primaryL + '0a',
-    ...({ cursor: 'pointer' } as any),
-  },
-  actionBtnText: {
-    color: CC.primaryL,
-    fontFamily: FONTS.bold,
-    fontSize: 11,
-  },
-  dismissBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 6,
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderColor: CC.border,
-    borderWidth: 1,
-    ...({ cursor: 'pointer' } as any),
-  },
-  dismissBtnText: {
-    color: CC.muted,
-    fontFamily: FONTS.med,
-    fontSize: 11,
-  },
-  footer: {
-    borderTopWidth: 1,
-    borderTopColor: CC.border,
-    paddingTop: 12,
-    alignItems: 'center',
-  },
-  settingsBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.02)',
-    borderColor: CC.border,
-    borderWidth: 1,
-    ...({ cursor: 'pointer' } as any),
-  },
-  settingsBtnText: {
-    color: CC.muted,
-    fontFamily: FONTS.bold,
-    fontSize: 12,
-  },
-});

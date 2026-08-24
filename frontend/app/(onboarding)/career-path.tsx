@@ -1,9 +1,5 @@
-/**
- * Onboarding step 4 — Career path selection (Student / Alumni only).
- * Web: split-screen.  Native: full-screen dark.
- */
 import { useState } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useToast } from '@/src/views/components';
 import { useOnboardingStore } from '@/src/viewmodels/stores/onboardingStore';
@@ -33,7 +29,7 @@ export default function CareerPathScreen() {
     const v = skillInput.trim();
     if (v && !skills.includes(v)) {
       setSkills([...skills, v]);
-      toast.success('Skill added', `“${v}” added to your profile.`);
+      toast.success('Skill added', `\u201c${v}\u201d added to your profile.`);
     }
     setSkillInput('');
   };
@@ -59,8 +55,7 @@ export default function CareerPathScreen() {
       onPrimary={next}
       onBack={() => router.back()}
     >
-      {/* Path tiles */}
-      <View style={styles.pathGrid}>
+      <View className="flex-row flex-wrap gap-[10px] mb-[22px]">
         {PATHS.map((p) => {
           const active = career_path === p.id;
           return (
@@ -68,24 +63,24 @@ export default function CareerPathScreen() {
               key={p.id}
               onPress={() => setCareerPath(p.id)}
               testID={`career-path-${p.id}`}
+              className={`flex-[1_1_48%] py-4 px-3.5 rounded-[14px] border gap-1.5 ${active ? 'border-violet bg-violet/16' : 'border-glass-border bg-bg2'}`}
               style={({ hovered, pressed }: any) => [
-                styles.pathTile,
                 hovered && !active && { borderColor: 'rgba(196,181,253,0.30)', backgroundColor: 'rgba(124,58,237,0.10)' },
-                active && styles.pathTileActive,
                 pressed && { transform: [{ scale: 0.99 }] },
+                { cursor: 'pointer', transitionDuration: '160ms' },
               ]}
             >
-              <Text style={{ fontSize: 28 }}>{p.emoji}</Text>
-              <Text style={[styles.pathTitle, active && { color: '#111827' }]}>{p.title}</Text>
-              <Text style={styles.pathDesc} numberOfLines={3}>{p.desc}</Text>
+              <Text className="text-[28px]">{p.emoji}</Text>
+              <Text className={`font-body-bold text-[15px] mt-1.5 ${active ? 'text-gray-900' : 'text-gray-800'}`}>{p.title}</Text>
+              <Text className="text-text/50 font-body text-xs leading-[17px]" numberOfLines={3}>{p.desc}</Text>
             </Pressable>
           );
         })}
       </View>
 
-      <Text style={styles.h3}>Your interests</Text>
-      <Text style={styles.helper}>Pick a few areas you're curious about.</Text>
-      <View style={styles.chipRow}>
+      <Text className="text-gray-900 font-body-bold text-base mt-1 mb-1">Your interests</Text>
+      <Text className="text-text/50 font-body text-[12.5px] mb-2.5">Pick a few areas you're curious about.</Text>
+      <View className="flex-row flex-wrap gap-2 mb-3.5">
         {SUGGESTED_INTERESTS.map((i) => (
           <DarkChip
             key={i}
@@ -97,10 +92,10 @@ export default function CareerPathScreen() {
         ))}
       </View>
 
-      <Text style={[styles.h3, { marginTop: 6 }]}>Your skills (optional)</Text>
-      <Text style={styles.helper}>Type a skill and press Add.</Text>
-      <View style={{ flexDirection: 'row', gap: 8, alignItems: 'flex-end' }}>
-        <View style={{ flex: 1 }}>
+      <Text className="text-gray-900 font-body-bold text-base mt-1.5 mb-1">Your skills (optional)</Text>
+      <Text className="text-text/50 font-body text-[12.5px] mb-2.5">Type a skill and press Add.</Text>
+      <View className="flex-row gap-2 items-end">
+        <View className="flex-1">
           <WebField
             placeholder="e.g., Python, Public Speaking"
             value={skillInput}
@@ -111,17 +106,18 @@ export default function CareerPathScreen() {
         <Pressable
           onPress={addSkill}
           testID="skill-add-btn"
+          className="px-[18px] py-[13px] rounded-xl bg-violet/20 border border-violet/32 mb-3.5"
           style={({ hovered, pressed }: any) => [
-            styles.addBtn,
             hovered && { backgroundColor: 'rgba(124,58,237,0.30)' },
             pressed && { transform: [{ scale: 0.97 }] },
+            { cursor: 'pointer', transitionDuration: '160ms' },
           ]}
         >
-          <Text style={styles.addBtnText}>Add</Text>
+          <Text className="text-gray-900 font-body-bold text-sm">Add</Text>
         </Pressable>
       </View>
       {skills.length > 0 && (
-        <View style={[styles.chipRow, { marginTop: 12 }]}>
+        <View className="flex-row flex-wrap gap-2 mt-3 mb-3.5">
           {skills.map((s) => (
             <DarkChip
               key={s}
@@ -134,7 +130,7 @@ export default function CareerPathScreen() {
         </View>
       )}
 
-      <Text style={[styles.h3, { marginTop: 12 }]}>Short bio (optional)</Text>
+      <Text className="text-gray-900 font-body-bold text-base mt-3 mb-1">Short bio (optional)</Text>
       <WebField
         placeholder="A line or two about you..."
         value={bio}
@@ -144,33 +140,3 @@ export default function CareerPathScreen() {
     </OnboardingShell>
   );
 }
-
-const styles = StyleSheet.create({
-  pathGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 22 },
-  pathTile: {
-    flexBasis: '48%', flexGrow: 1,
-    paddingVertical: 16, paddingHorizontal: 14,
-    borderRadius: 14,
-    backgroundColor: '#F9FAFB',
-    borderColor: 'rgba(255,255,255,0.10)',
-    borderWidth: 1,
-    gap: 6,
-    ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
-  },
-  pathTileActive: { borderColor: '#7C3AED', backgroundColor: 'rgba(124,58,237,0.16)' },
-  pathTitle: { color: '#1F2937', fontFamily: 'DMSans_700Bold', fontSize: 15, marginTop: 6 },
-  pathDesc: { color: 'rgba(255,255,255,0.50)', fontFamily: 'DMSans_400Regular', fontSize: 12, lineHeight: 17 },
-  h3: { color: '#111827', fontFamily: 'DMSans_700Bold', fontSize: 16, marginTop: 4, marginBottom: 4 },
-  helper: { color: 'rgba(255,255,255,0.50)', fontFamily: 'DMSans_400Regular', fontSize: 12.5, marginBottom: 10 },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
-  addBtn: {
-    paddingHorizontal: 18, paddingVertical: 13,
-    borderRadius: 12,
-    backgroundColor: 'rgba(124,58,237,0.20)',
-    borderColor: 'rgba(196,181,253,0.32)',
-    borderWidth: 1,
-    marginBottom: 14,
-    ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
-  },
-  addBtnText: { color: '#111827', fontFamily: 'DMSans_700Bold', fontSize: 14 },
-});

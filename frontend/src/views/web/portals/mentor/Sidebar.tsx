@@ -3,14 +3,13 @@
  * Hamburger collapse, mentor mini-profile, nav with counts, sign-out.
  */
 import React from 'react';
-import { View, Text, Pressable, StyleSheet, Platform, ScrollView, Image } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, Text, Pressable, Platform, ScrollView } from 'react-native';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { displayName, displayInitials } from '@/src/lib/portalHome';
 import {
   Menu, LayoutDashboard, Users, Calendar, UserPlus, Network, Coins,
   Star as StarIcon, Plus, User as UserIcon, QrCode, ExternalLink, LogOut,
-  Clock, Sparkles,
+  Sparkles,
 } from 'lucide-react-native';
 import { MC, FONTS } from './tokens';
 import { AgentKLauncher } from '@/src/views/web/agent-k/AgentKLauncher';
@@ -47,7 +46,6 @@ export function Sidebar({
   const user = useAuthStore((u) => u.user) as any;
   const fullName = displayName(user);
   const initials = displayInitials(user);
-  const photo = useAuthStore((s) => s.photoOverride) || user?.photo_data || user?.face_image_base64;
   const role = user?.mentor_info?.current_role || user?.mentor_info?.job_title || user?.current_role || user?.headline || 'Mentor';
   const jobTitle = role;
   const company = user?.mentor_info?.current_company || user?.mentor_info?.organization || user?.current_company || '';
@@ -56,49 +54,48 @@ export function Sidebar({
   const w = collapsed ? 56 : 220;
 
   return (
-    <View style={[s.sidebar, { width: w }]}>
+    <View className="bg-bg2 border-r border-glass-border flex-shrink h-full overflow-hidden" style={[{ width: w }, Platform.OS === 'web' ? { transitionDuration: '220ms', transitionProperty: 'width' } as any : undefined]}>
       {/* Hamburger + brand */}
-      <View style={s.brandRow} nativeID="mentor-brand">
-        <Pressable onPress={onToggle} style={({ hovered }: any) => [s.hamburger, hovered && { backgroundColor: 'rgba(20,184,166,0.10)' }]}>
+      <View className="h-14 flex-row items-center gap-2.5 px-3 border-b border-glass-border" nativeID="mentor-brand">
+        <Pressable onPress={onToggle} className="w-8 h-8 rounded-lg items-center justify-center" style={({ hovered }: any) => hovered ? { backgroundColor: 'rgba(20,184,166,0.10)' } : undefined}>
           <Menu size={18} color={MC.muted} />
         </Pressable>
         {!collapsed && (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+          <View className="flex-row items-center gap-2 flex-1 min-w-0">
             <SALogo size={32} variant="glass" />
-            <View style={{ minWidth: 0, flex: 1 }}>
-              <Text style={s.brandTitle} numberOfLines={1}>Mentor Portal</Text>
-              <Text style={s.brandSub} numberOfLines={1}>Student Alumni</Text>
+            <View className="min-w-0 flex-1">
+              <Text className="text-white font-display-bold text-xs" numberOfLines={1}>Mentor Portal</Text>
+              <Text className="text-muted font-body-bold text-[9px] tracking-[0.5px]" numberOfLines={1}>Student Alumni</Text>
             </View>
           </View>
         )}
       </View>
 
       {/* Mentor mini-profile + Mentor Card widget */}
-      <View style={s.profileRow}>
+      <View className="p-2.5 border-b border-glass-border">
         {collapsed ? (
           <Pressable
             onPress={() => onNav('profile')}
-            style={({ pressed }: any) => [
-              { alignItems: 'center', paddingVertical: 4 },
-              pressed && { opacity: 0.8 }
-            ]}
+            className="items-center py-1"
+            style={({ pressed }: any) => pressed ? { opacity: 0.8 } : undefined}
           >
-              <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 }}>{initials}</Text>
+            <Text className="text-white font-display-bold text-xs">{initials}</Text>
           </Pressable>
         ) : (
-          <View style={s.profileCard}>
-            <View style={{ alignItems: 'center', marginBottom: 9 }}>
-              <Text numberOfLines={1} style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 11, textAlign: 'center' }}>{fullName}</Text>
-              <Text numberOfLines={1} style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 9, textAlign: 'center', marginTop: 2 }}>{jobTitle} · {company}</Text>
+          <View className="bg-card border border-glass-border rounded-xl p-2.5" style={Platform.OS === 'web' ? { cursor: 'pointer' } as any : undefined}>
+            <View className="items-center mb-2">
+              <Text numberOfLines={1} className="text-white font-display-bold text-[11px] text-center">{fullName}</Text>
+              <Text numberOfLines={1} className="text-muted font-body-semibold text-[9px] text-center mt-0.5">{jobTitle} · {company}</Text>
             </View>
-            <Pressable 
+            <Pressable
               onPress={() => router.push('/id-card')}
-              style={({ hovered }: any) => [s.idCard, hovered && { backgroundColor: 'rgba(20,184,166,0.15)' }]}
+              className="flex-row items-center gap-1.5 bg-teal/[0.08] border border-glass-border rounded-lg p-2"
+              style={({ hovered }: any) => hovered ? { backgroundColor: 'rgba(20,184,166,0.15)' } : undefined}
             >
               <QrCode size={13} color={MC.tealP} />
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={{ color: MC.tealP, fontFamily: FONTS.bold, fontSize: 11 }}>My Mentor Card</Text>
-                <Text style={{ color: MC.dim, fontFamily: FONTS.med, fontSize: 9 }}>Share your profile</Text>
+              <View className="flex-1 min-w-0">
+                <Text className="text-tealP font-body-bold text-[11px]">My Mentor Card</Text>
+                <Text className="text-dim font-body-semibold text-[9px]">Share your profile</Text>
               </View>
               <ExternalLink size={11} color={MC.dim} />
             </Pressable>
@@ -110,8 +107,8 @@ export function Sidebar({
       <AgentKLauncher collapsed={collapsed} />
 
       {/* Main nav */}
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: collapsed ? 4 : 6, paddingVertical: 4 }} showsVerticalScrollIndicator={false}>
-        {!collapsed && <Text style={s.kicker}>MAIN MENU</Text>}
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: collapsed ? 4 : 6, paddingVertical: 4 }} showsVerticalScrollIndicator={false}>
+        {!collapsed && <Text className="text-dim font-display-bold text-[9px] tracking-[1.2px] p-2">MAIN MENU</Text>}
         {items.map((n) => {
           const isActive = active === n.id;
           const tint = isActive ? MC.tealP : MC.muted;
@@ -120,22 +117,24 @@ export function Sidebar({
               key={n.id}
               onPress={() => onNav(n.id)}
               nativeID={`mentor-nav-${n.id}`}
-              style={({ hovered }: any) => [
-                s.navRow,
-                { padding: collapsed ? 9 : 11, justifyContent: collapsed ? 'center' : 'flex-start', gap: collapsed ? 0 : 11 },
-                isActive && { backgroundColor: 'rgba(20,184,166,0.12)' },
-                hovered && !isActive && { backgroundColor: 'rgba(255,255,255,0.04)' },
-              ]}
+              className="flex-row items-center rounded-lg my-0.5"
+              style={({ hovered }: any) => ({
+                padding: collapsed ? 9 : 11,
+                justifyContent: collapsed ? 'center' : 'flex-start',
+                gap: collapsed ? 0 : 11,
+                ...(isActive ? { backgroundColor: 'rgba(20,184,166,0.12)' } : {}),
+                ...(!isActive && hovered ? { backgroundColor: 'rgba(255,255,255,0.04)' } : {}),
+              })}
             >
               <n.Icon size={16} color={tint} />
               {!collapsed && (
-                <Text style={{ flex: 1, color: isActive ? '#fff' : MC.muted, fontFamily: isActive ? FONTS.bold : FONTS.med, fontSize: 13 }}>
+                <Text className="flex-1 text-[13px]" style={{ color: isActive ? '#fff' : MC.muted, fontFamily: isActive ? FONTS.bold : FONTS.med }}>
                   {n.label}
                 </Text>
               )}
               {!collapsed && !!n.count && (
-                <View style={[s.countPill, n.alert ? s.countPillAlert : null]}>
-                  <Text style={{ color: n.alert ? '#FCD34D' : MC.tealP, fontFamily: FONTS.xbold, fontSize: 10 }}>{n.count}</Text>
+                <View className={`px-[7px] py-0.5 rounded-lg ${n.alert ? 'bg-amber/[0.24]' : 'bg-teal/[0.14]'}`}>
+                  <Text className="text-[10px] font-display-bold" style={{ color: n.alert ? '#FCD34D' : MC.tealP }}>{n.count}</Text>
                 </View>
               )}
             </Pressable>
@@ -147,84 +146,19 @@ export function Sidebar({
       <Pressable
         onPress={onLogout}
         testID="logout-button"
-        style={({ hovered }: any) => [s.logoutRow,
-          { justifyContent: collapsed ? 'center' : 'flex-start', gap: collapsed ? 0 : 11, padding: collapsed ? 11 : 12 },
-          hovered && { backgroundColor: 'rgba(239,68,68,0.10)' },
-        ]}
+        className="flex-row items-center border-t border-glass-border"
+        style={({ hovered }: any) => ({
+          justifyContent: collapsed ? 'center' : 'flex-start',
+          gap: collapsed ? 0 : 11,
+          padding: collapsed ? 11 : 12,
+          ...(hovered ? { backgroundColor: 'rgba(239,68,68,0.10)' } : {}),
+        })}
       >
         <LogOut size={15} color={'#FCA5A5'} />
         {!collapsed && (
-          <Text style={{ color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 12 }}>Sign out</Text>
+          <Text className="text-rose font-body-bold text-xs">Sign out</Text>
         )}
       </Pressable>
     </View>
   );
 }
-
-const s = StyleSheet.create({
-  sidebar: {
-    backgroundColor: MC.bg2,
-    borderRightWidth: 1,
-    borderRightColor: MC.border,
-    flexShrink: 0,
-    height: '100%',
-    overflow: 'hidden',
-    ...(Platform.OS === 'web' ? ({ transitionDuration: '220ms', transitionProperty: 'width' } as any) : {}),
-  },
-  brandRow: {
-    height: 56, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12,
-    borderBottomWidth: 1, borderBottomColor: MC.border,
-  },
-  hamburger: {
-    width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center',
-    ...({ cursor: 'pointer' } as any),
-  },
-  brandLogo: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  brandLogoText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13, transform: [{ translateY: -1 }] },
-  brandTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
-  brandSub: { color: MC.muted, fontFamily: FONTS.bold, fontSize: 9, letterSpacing: 0.5 },
-
-  profileRow: { padding: 10, borderBottomWidth: 1, borderBottomColor: MC.border },
-  profileCard: {
-    backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 12, padding: 10,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  avatarMini: {
-    position: 'relative',
-    width: 34, height: 34, borderRadius: 17,
-    backgroundColor: 'rgba(20,184,166,0.20)',
-    borderColor: MC.teal, borderWidth: 2,
-    alignItems: 'center', justifyContent: 'center',
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  avatarLg: {
-    position: 'relative',
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: 'rgba(20,184,166,0.20)',
-    borderColor: MC.teal, borderWidth: 2,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  onlineDot: {
-    position: 'absolute', bottom: 1, right: 1,
-    width: 8, height: 8, borderRadius: 4,
-    backgroundColor: MC.green, borderColor: MC.bg2, borderWidth: 2,
-  },
-  idCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: 'rgba(20,184,166,0.08)',
-    borderColor: MC.border, borderWidth: 1,
-    borderRadius: 8, padding: 9,
-    ...({ cursor: 'pointer' } as any),
-  },
-  kicker: { color: MC.dim, fontFamily: FONTS.xbold, fontSize: 9, letterSpacing: 1.2, padding: 8 },
-  navRow: { flexDirection: 'row', alignItems: 'center', borderRadius: 8, marginVertical: 2 },
-  countPill: {
-    paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8,
-    backgroundColor: 'rgba(20,184,166,0.14)',
-  },
-  countPillAlert: { backgroundColor: 'rgba(245,158,11,0.24)' },
-  logoutRow: {
-    flexDirection: 'row', alignItems: 'center',
-    borderTopWidth: 1, borderTopColor: MC.border,
-  },
-});

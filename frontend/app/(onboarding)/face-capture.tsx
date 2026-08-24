@@ -3,7 +3,7 @@
  * Web: split-screen.  Native: full-screen dark.
  */
 import { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Image, Platform } from 'react-native';
+import { View, Text, Pressable, Image, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Camera as CameraIcon, ImagePlus, RotateCcw, Check } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
@@ -156,35 +156,34 @@ export default function FaceCapture() {
       onSecondary={submit}
       onBack={() => router.back()}
     >
-      {/* Photo area */}
-      <View style={styles.photoWrap}>
-        <View style={styles.photoFrame}>
+      <View className="items-center my-2 mb-6">
+        <View
+          style={{ boxShadow: '0px 12px 32px rgba(99,102,241,0.35)' }}
+          className="w-[220px] h-[220px] rounded-full bg-[rgba(255,255,255,0.05)] border-2 border-[rgba(165,180,252,0.30)] overflow-hidden items-center justify-center"
+        >
           {pendingPhoto ? (
-            <Image source={{ uri: pendingPhoto }} style={styles.photo} />
+            <Image source={{ uri: pendingPhoto }} className="w-full h-full" />
           ) : onboarding.face_image_base64 ? (
-            <Image source={{ uri: onboarding.face_image_base64 }} style={styles.photo} />
+            <Image source={{ uri: onboarding.face_image_base64 }} className="w-full h-full" />
           ) : (
-            <View style={styles.photoEmpty}>
+            <View className="items-center gap-2">
               <CameraIcon size={42} color="rgba(255,255,255,0.40)" />
-              <Text style={styles.photoEmptyText}>No photo yet</Text>
+              <Text style={{ fontFamily: 'DMSans_500Medium' }} className="text-dim text-[13px]">No photo yet</Text>
             </View>
           )}
         </View>
       </View>
 
-      {/* Picker / Confirm buttons */}
-      <View style={{ gap: 10, marginBottom: 8 }}>
+      <View className="gap-2.5 mb-2">
         {pendingPhoto ? (
           <>
             <Pressable
               onPress={confirmPhoto}
-              style={({ pressed }: any) => [
-                styles.confirmBtn,
-                pressed && { transform: [{ scale: 0.99 }] },
-              ]}
+              style={({ pressed }: any) => pressed ? { transform: [{ scale: 0.99 }] } : undefined}
+              className="flex-row items-center justify-center gap-2.5 bg-[#818CF8] py-[13px] px-4 rounded-xl shadow-[0px_8px_16px_rgba(99,102,241,0.35)] cursor-pointer transition duration-[160ms]"
             >
               <Check size={18} color="#000" />
-              <Text style={styles.confirmBtnText}>Confirm photo</Text>
+              <Text style={{ fontFamily: 'DMSans_700Bold' }} className="text-[#1E1B4B] text-sm">Confirm photo</Text>
             </Pressable>
             <WebGhostBtn
               label="Retake"
@@ -198,15 +197,15 @@ export default function FaceCapture() {
               onPress={pickFromCamera}
               testID="face-capture-camera-btn"
               style={({ hovered, pressed }: any) => [
-                styles.cameraBtn,
                 hovered && { backgroundColor: '#9059D9' },
                 pressed && { transform: [{ scale: 0.99 }] },
               ]}
+              className="flex-row items-center justify-center gap-2.5 bg-[#6366F1] py-[13px] px-4 rounded-xl shadow-[0px_8px_16px_rgba(99,102,241,0.35)] cursor-pointer transition duration-[160ms]"
             >
               {onboarding.face_image_base64
                 ? <RotateCcw size={18} color="#111827" />
                 : <CameraIcon size={18} color="#111827" />}
-              <Text style={styles.cameraBtnText}>
+              <Text style={{ fontFamily: 'DMSans_700Bold' }} className="text-[#EEF2FF] text-sm">
                 {onboarding.face_image_base64 ? 'Retake with camera' : 'Capture with camera'}
               </Text>
             </Pressable>
@@ -220,7 +219,14 @@ export default function FaceCapture() {
         )}
       </View>
 
-      {error && <Text style={styles.error}>{error}</Text>}
+      {error && (
+        <Text
+          style={{ fontFamily: 'DMSans_500Medium' }}
+          className="text-[#FCA5A5] text-[13px] bg-[rgba(220,38,38,0.15)] border border-[rgba(252,165,165,0.3)] px-3 py-[9px] rounded-lg mt-1"
+        >
+          {error}
+        </Text>
+      )}
 
       <WebcamModal
         visible={webcamVisible}
@@ -233,42 +239,3 @@ export default function FaceCapture() {
     </OnboardingShell>
   );
 }
-
-const styles = StyleSheet.create({
-  photoWrap: { alignItems: 'center', marginVertical: 8, marginBottom: 24 },
-  photoFrame: {
-    width: 220, height: 220,
-    borderRadius: 110,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderColor: 'rgba(165,180,252,0.30)',
-    borderWidth: 2,
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-    boxShadow: '0px 12px 32px rgba(99,102,241,0.35)',
-  },
-  photo: { width: '100%', height: '100%' },
-  photoEmpty: { alignItems: 'center', gap: 8 },
-  photoEmptyText: { color: '#9CA3AF', fontFamily: 'DMSans_500Medium', fontSize: 13 },
-  cameraBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 10,
-    backgroundColor: '#6366F1',
-    paddingVertical: 13, paddingHorizontal: 16,
-    borderRadius: 12,
-    boxShadow: '0px 8px 16px rgba(99,102,241,0.35)',
-    ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
-  },
-  cameraBtnText: { color: '#EEF2FF', fontFamily: 'DMSans_700Bold', fontSize: 14 },
-  confirmBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 10,
-    backgroundColor: '#818CF8',
-    paddingVertical: 13, paddingHorizontal: 16,
-    borderRadius: 12,
-    boxShadow: '0px 8px 16px rgba(99,102,241,0.35)',
-    ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
-  },
-  confirmBtnText: { color: '#1E1B4B', fontFamily: 'DMSans_700Bold', fontSize: 14 },
-  error: { color: '#FCA5A5', fontFamily: 'DMSans_500Medium', fontSize: 13, backgroundColor: 'rgba(220,38,38,0.15)', borderColor: 'rgba(252,165,165,0.3)', borderWidth: 1, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 8, marginTop: 4 },
-});

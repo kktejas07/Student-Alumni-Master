@@ -1,10 +1,7 @@
-/**
- * College → Create Event — POST /api/college/events.
- */
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, Platform } from 'react-native';
+import { View, Text, TextInput, Pressable, Platform } from 'react-native';
 import { Calendar, CheckCircle, Sparkles } from 'lucide-react-native';
-import { CC, FONTS } from '../tokens';
+import { CC } from '../tokens';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { request } from '@/src/models/services/api';
 import { useRouter } from 'expo-router';
@@ -44,7 +41,6 @@ export function CreateEventView({ onNavigate }: { onNavigate?: (id: any) => void
           start_date: sd, capacity: parseInt(capacity, 10) || 100, price: parseInt(price, 10) || 0,
         },
       });
-      // request() throws on HTTP errors — reaching here means the POST succeeded.
       setCreatedEvent({ ...j, title, category, mode });
       toast.success('Event created', `"${title.trim()}" has been published.`);
       setTimeout(() => {
@@ -56,69 +52,83 @@ export function CreateEventView({ onNavigate }: { onNavigate?: (id: any) => void
   };
 
   return (
-    <View style={{ gap: 16, maxWidth: 760 }}>
+    <View className="gap-4 max-w-[760px]">
       <View>
-        <Text style={s.h1}>Create Event</Text>
-        <Text style={s.sub}>Acting as {email}</Text>
+        <Text className="text-text font-display-bold text-[22px] tracking-tight">Create Event</Text>
+        <Text className="text-muted font-body text-[12.5px] mt-1">Acting as {email}</Text>
       </View>
 
-      <View style={s.card}>
+      <View className="bg-glass-soft border border-glass-border rounded-[14px] p-[18px] gap-[14px]">
         <Field label="Event Title">
-          <TextInput value={title} onChangeText={setTitle} style={s.input} placeholder="e.g. AI/ML Workshop 2026" placeholderTextColor={CC.dim} />
+          <TextInput value={title} onChangeText={setTitle}
+            className="h-9 rounded-[10px] border border-glass-border px-3 text-text font-body text-[13px] bg-bg"
+            placeholder="e.g. AI/ML Workshop 2026" placeholderTextColor={CC.dim}
+            style={Platform.OS === 'web' ? { outlineStyle: 'none' } as any : {}} />
         </Field>
 
         <Field label="College Name">
-          <TextInput value={collegeName} onChangeText={setCollegeName} style={s.input} placeholder="e.g. IIT Bombay" placeholderTextColor={CC.dim} />
+          <TextInput value={collegeName} onChangeText={setCollegeName}
+            className="h-9 rounded-[10px] border border-glass-border px-3 text-text font-body text-[13px] bg-bg"
+            placeholder="e.g. IIT Bombay" placeholderTextColor={CC.dim}
+            style={Platform.OS === 'web' ? { outlineStyle: 'none' } as any : {}} />
         </Field>
 
         <Field label="Category">
-          <View style={s.chipRow}>
+          <View className="flex-row gap-[6px] flex-wrap">
             {CATEGORIES.map((c) => (
-              <Pressable key={c} onPress={() => setCategory(c)} style={[s.chip, category === c && s.chipOn]}>
-                <Text style={{ color: category === c ? '#fff' : CC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>{c}</Text>
+              <Pressable key={c} onPress={() => setCategory(c)}
+                className={`px-3 h-[30px] rounded-lg border items-center justify-center ${category === c ? 'bg-teal border-teal' : 'bg-bg border-glass-border'}`}>
+                <Text className={`font-body-bold text-xs ${category === c ? 'text-text' : 'text-muted'}`}>{c}</Text>
               </Pressable>
             ))}
           </View>
         </Field>
 
         <Field label="Mode">
-          <View style={s.chipRow}>
+          <View className="flex-row gap-[6px] flex-wrap">
             {MODES.map((m) => (
-              <Pressable key={m} onPress={() => setMode(m)} style={[s.chip, mode === m && s.chipOn]}>
-                <Text style={{ color: mode === m ? '#fff' : CC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>{m}</Text>
+              <Pressable key={m} onPress={() => setMode(m)}
+                className={`px-3 h-[30px] rounded-lg border items-center justify-center ${mode === m ? 'bg-teal border-teal' : 'bg-bg border-glass-border'}`}>
+                <Text className={`font-body-bold text-xs ${mode === m ? 'text-text' : 'text-muted'}`}>{m}</Text>
               </Pressable>
             ))}
           </View>
         </Field>
 
-        <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
-          <View style={{ flex: 1, minWidth: 150 }}>
+        <View className="flex-row gap-3 flex-wrap">
+          <View className="flex-1 min-w-[150px]">
             <Field label="Capacity">
-              <TextInput value={capacity} onChangeText={setCapacity} keyboardType="numeric" style={s.input} placeholder="200" placeholderTextColor={CC.dim} />
+              <TextInput value={capacity} onChangeText={setCapacity} keyboardType="numeric"
+                className="h-9 rounded-[10px] border border-glass-border px-3 text-text font-body text-[13px] bg-bg"
+                placeholder="200" placeholderTextColor={CC.dim}
+                style={Platform.OS === 'web' ? { outlineStyle: 'none' } as any : {}} />
             </Field>
           </View>
-          <View style={{ flex: 1, minWidth: 150 }}>
+          <View className="flex-1 min-w-[150px]">
             <Field label="Price (₹)">
-              <TextInput value={price} onChangeText={setPrice} keyboardType="numeric" style={s.input} placeholder="0 = Free" placeholderTextColor={CC.dim} />
+              <TextInput value={price} onChangeText={setPrice} keyboardType="numeric"
+                className="h-9 rounded-[10px] border border-glass-border px-3 text-text font-body text-[13px] bg-bg"
+                placeholder="0 = Free" placeholderTextColor={CC.dim}
+                style={Platform.OS === 'web' ? { outlineStyle: 'none' } as any : {}} />
             </Field>
           </View>
         </View>
 
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <View className="flex-row items-center gap-3">
           <Pressable
             onPress={create}
             disabled={creating || !!createdEvent || !title || !collegeName}
-            style={({ hovered }: any) => [s.createBtn, hovered && { transform: [{ translateY: -1 }] }, (creating || !!createdEvent || !title || !collegeName) && { opacity: 0.5 }]}
-          >
+            className={`flex-row gap-[6px] items-center px-[18px] h-10 rounded-[10px] bg-teal ${(creating || !!createdEvent || !title || !collegeName) ? 'opacity-50' : ''}`}
+            style={Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}}>
             <Sparkles size={13} color={CC.bg} />
-            <Text style={s.createText}>{creating ? 'Creating…' : createdEvent ? 'Created!' : 'Create Event'}</Text>
+            <Text className="text-bg font-display-bold text-[13px]">{creating ? 'Creating…' : createdEvent ? 'Created!' : 'Create Event'}</Text>
           </Pressable>
           
           {createdEvent && (
             <>
-              <View style={s.successBox}>
+              <View className="flex-row items-center gap-[6px] px-3 py-[7px] rounded-lg bg-[rgba(34,197,94,0.10)] border border-[rgba(34,197,94,0.30)]">
                 <CheckCircle size={14} color="#22C55E" />
-                <Text style={{ color: '#22C55E', fontFamily: FONTS.bold, fontSize: 12 }}>
+                <Text className="text-green-500 font-body-bold text-xs">
                   {createdEvent.title}
                 </Text>
               </View>
@@ -128,9 +138,9 @@ export function CreateEventView({ onNavigate }: { onNavigate?: (id: any) => void
                    const router = require('expo-router').router;
                    router.push(`/manage-event/${createdEvent.event_id}`);
                 }}
-                style={({ hovered }: any) => [s.createBtn, { backgroundColor: CC.card, borderColor: CC.border, borderWidth: 1 }, hovered && { transform: [{ translateY: -1 }] }]}
-              >
-                <Text style={{ color: CC.text, fontFamily: FONTS.bold, fontSize: 12 }}>Manage Event →</Text>
+                className={`flex-row gap-[6px] items-center px-[18px] h-10 rounded-[10px] bg-glass-soft border border-glass-border`}
+                style={Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}}>
+                <Text className="text-text font-body-bold text-xs">Manage Event →</Text>
               </Pressable>
             </>
           )}
@@ -143,22 +153,8 @@ export function CreateEventView({ onNavigate }: { onNavigate?: (id: any) => void
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <View>
-      <Text style={s.fieldLabel}>{label}</Text>
+      <Text className="text-muted font-display-bold text-[11px] tracking-wider mb-[6px]">{label}</Text>
       {children}
     </View>
   );
 }
-
-const s = StyleSheet.create({
-  h1: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4 },
-  sub: { color: CC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4 },
-  card: { backgroundColor: CC.card, borderColor: CC.border, borderWidth: 1, borderRadius: 14, padding: 18, gap: 14 },
-  fieldLabel: { color: CC.muted, fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 0.7, marginBottom: 6 },
-  input: { height: 38, borderRadius: 10, borderColor: CC.border, borderWidth: 1, paddingHorizontal: 12, color: '#fff', fontFamily: FONTS.med, fontSize: 13, backgroundColor: CC.bg, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
-  chipRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
-  chip: { paddingHorizontal: 12, height: 30, borderRadius: 8, backgroundColor: CC.bg, borderColor: CC.border, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  chipOn: { backgroundColor: CC.accentBright, borderColor: CC.accentBright },
-  createBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 18, height: 40, borderRadius: 10, backgroundColor: CC.accentBright, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  createText: { color: CC.bg, fontFamily: FONTS.xbold, fontSize: 13 },
-  successBox: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, backgroundColor: 'rgba(34,197,94,0.10)', borderColor: 'rgba(34,197,94,0.30)', borderWidth: 1 },
-});

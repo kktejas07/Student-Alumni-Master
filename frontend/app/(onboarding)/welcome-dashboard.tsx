@@ -1,21 +1,7 @@
-/**
- * Dashboard Preview — per HTML spec screen "Dashboard Preview".
- *
- * Transition/welcome screen shown right after onboarding-success and before
- * the user lands on their role-specific portal.
- *
- *   "Welcome to SA! 🎉"
- *   "You're all set as a {Role}."
- *   "Redirecting to your {Role} Dashboard..."
- *   + 5 quick-link chips (Career AI · Internships · Network · Events · Wallet)
- *
- * Auto-redirects to the correct portal after 3s.
- */
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, ActivityIndicator, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AuthShell } from '@/src/views/auth/AuthShell';
-import { FONTS } from '@/src/views/auth/tokens';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 const CHIPS = [
@@ -38,7 +24,6 @@ export default function DashboardPreview() {
   const roleName = ROLE_LABEL[role] || 'Student';
 
   useEffect(() => {
-    // Auto-redirect after 2.5 seconds — consistent with spec demo
     const t = setTimeout(() => {
       router.replace(Platform.OS === 'web' ? '/platform' : '/(tabs)');
     }, 2500);
@@ -47,23 +32,23 @@ export default function DashboardPreview() {
 
   return (
     <AuthShell role={role as any}>
-      <View style={s.center}>
-        <View style={s.spinnerCircle}>
+      <View className="items-center py-6">
+        <View className="w-[72px] h-[72px] rounded-[36px] bg-violet/18 border-[1.5px] border-violet/40 items-center justify-center mb-[22px]">
           <ActivityIndicator size="large" color="#B07FDF" />
         </View>
-        <Text style={s.title}>Welcome to SA! 🎉</Text>
-        <Text style={s.sub}>
-          You're all set as a <Text style={s.roleHl}>{roleName}</Text>.
+        <Text className="text-gray-900 font-body-bold text-[28px] mb-2.5 text-center">Welcome to SA! 🎉</Text>
+        <Text className="text-gray-700 font-body text-[15px] mb-1.5 text-center">
+          You're all set as a <Text className="text-violet font-body-bold">{roleName}</Text>.
         </Text>
-        <Text style={s.redirect}>
-          Redirecting to your <Text style={s.bold}>{roleName} Dashboard</Text>...
+        <Text className="text-gray-500 font-body text-[13px] mb-7 text-center">
+          Redirecting to your <Text className="text-gray-900 font-body-bold">{roleName} Dashboard</Text>...
         </Text>
 
-        <View style={s.chipRow}>
+        <View className="flex-row flex-wrap gap-2 justify-center mb-7">
           {CHIPS.map((c) => (
-            <View key={c.id} style={s.chip}>
-              <Text style={s.chipEmoji}>{c.emoji}</Text>
-              <Text style={s.chipLabel}>{c.label}</Text>
+            <View key={c.id} className="flex-row items-center gap-1.5 px-3.5 py-2 rounded-full bg-violet/16 border border-violet/38">
+              <Text className="text-[13px]">{c.emoji}</Text>
+              <Text className="text-purple-200 font-body text-[12.5px]">{c.label}</Text>
             </View>
           ))}
         </View>
@@ -71,28 +56,3 @@ export default function DashboardPreview() {
     </AuthShell>
   );
 }
-
-const s = StyleSheet.create({
-  center: { alignItems: 'center', paddingVertical: 24 },
-  spinnerCircle: {
-    width: 72, height: 72, borderRadius: 36,
-    backgroundColor: 'rgba(124,58,237,0.18)',
-    borderColor: 'rgba(124,58,237,0.4)', borderWidth: 1.5,
-    alignItems: 'center', justifyContent: 'center', marginBottom: 22,
-  },
-  title: { color: '#111827', fontFamily: FONTS.bold, fontSize: 28, marginBottom: 10, textAlign: 'center' },
-  sub: { color: '#374151', fontFamily: FONTS.med, fontSize: 15, marginBottom: 6, textAlign: 'center' },
-  roleHl: { color: '#B07FDF', fontFamily: FONTS.bold },
-  redirect: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 13, marginBottom: 28, textAlign: 'center' },
-  bold: { color: '#111827', fontFamily: FONTS.bold },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginBottom: 28 },
-  chip: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: 'rgba(124,58,237,0.16)',
-    borderColor: 'rgba(124,58,237,0.38)', borderWidth: 1,
-  },
-  chipEmoji: { fontSize: 13 },
-  chipLabel: { color: '#E9D5FF', fontFamily: FONTS.med, fontSize: 12.5 },
-});

@@ -1,20 +1,6 @@
 import { getBaseUrl } from '@/src/lib/env';
-/**
- * Mentor Onboarding — 8-step wizard per Mentor UI spec (Archive.zip screenshots).
- *
- * Step 1: Your Profile         — Current Role, Company, College & Batch, YoE, Session Price (₹) chips
- * Step 2: Mentorship Archetype — 10 multi-select tile grid (Career Coach, Tech Guru, …)
- * Step 3: Education Background — 8 cards (High School / Diploma / Bachelor's / Master's / MBA / PhD / Executive / Self-taught)
- * Step 4: Your Expertise       — 9 chip multi-select (System Design, Career Guidance, …)
- * Step 5: Your Availability    — 7 day×time slot tiles (Mon–Fri 6–7 PM, Sat–Sun 10 AM–12 PM)
- * Step 6: Profile Photo        — selfie or upload
- * Step 7: Your Bio             — 300-char textarea + 5 writing-style chips
- * Step 8: Your SA Badge        — Bronze/Silver/Gold/Platinum recap + verification + perks
- *
- * After Step 8 → /(onboarding)/member-id → /welcome-dashboard
- */
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform, TextInput as RNTextInput } from 'react-native';
+import { View, Text, ScrollView, Pressable, Image, Platform, TextInput as RNTextInput } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import {
   ArrowLeft, Camera, Upload, GraduationCap, BriefcaseBusiness, BookOpen, Award, Sparkles, Code, CheckCircle2, Check,
@@ -37,12 +23,10 @@ import { WebcamModal } from '@/src/views/components/WebcamModal';
 const TOTAL = 8;
 const BASE = getBaseUrl();
 const CURRENT_YEAR = new Date().getFullYear();
-// For mentors, batch year is in the past — they've already graduated.
 const BATCH_YEARS = Array.from({ length: 30 }, (_, i) => String(CURRENT_YEAR - i));
 
-// === Step 2: Mentorship Archetypes (10 tiles) ===
 type Archetype = {
-  id: string;          // backend MentorCategory slug
+  id: string;
   title: string;
   desc: string;
   Icon: any;
@@ -61,7 +45,6 @@ const ARCHETYPES: Archetype[] = [
   { id: 'life_wellness',    title: 'Life & Wellness',    desc: 'Work-life balance, mental health & mindfulness', Icon: HandHeart,    tint: '#22D3EE' },
 ];
 
-// === Step 3: Education Background (8 cards) ===
 const EDU_LEVELS = [
   { id: 'high_school', label: 'High School',           Icon: Building2 },
   { id: 'diploma',     label: 'Diploma / ITI',         Icon: Scroll },
@@ -73,14 +56,12 @@ const EDU_LEVELS = [
   { id: 'bootcamp',    label: 'Self-taught / Bootcamp', Icon: Code },
 ];
 
-// === Step 4: Expertise chips (9) ===
 const EXPERTISE = [
   'System Design', 'Career Guidance', 'Product Management',
   'Startup Advice', 'Data Science', 'Finance',
   'Leadership', 'Communication', 'Negotiation',
 ];
 
-// === Step 5: Availability slots ===
 type Slot = { id: string; label: string };
 const AVAILABILITY: Slot[] = [
   { id: 'mon_18_19', label: 'Mon 6–7 PM' },
@@ -92,29 +73,26 @@ const AVAILABILITY: Slot[] = [
   { id: 'sun_10_12', label: 'Sun 10 AM–12 PM' },
 ];
 
-// === Step 1: Session price chips (₹) ===
 const PRICE_CHIPS = [499, 799, 999, 1499];
 
-// === Step 7: Writing styles ===
 const STYLES = ['Friendly & warm', 'Professional', 'Inspiring', 'Concise', 'Detailed'];
 
 function toggle<T>(arr: T[], v: T): T[] {
   return arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
 }
 
-// Stepper — 8 circular indicators with purple fill for done/active
 function Stepper({ step }: { step: number }) {
   return (
-    <View style={s.stepRow}>
+    <View className="flex-row items-center mb-[18px] gap-1">
       {Array.from({ length: TOTAL }, (_, i) => {
         const done = i < step;
         const active = i === step;
         return (
           <React.Fragment key={i}>
-            <View style={[s.dot, (done || active) && s.dotActive]}>
-              {done ? <CheckCircle2 size={14} color="#111827" /> : <Text style={[s.dotText, active && s.dotTextActive]}>{i + 1}</Text>}
+            <View className={`w-6 h-6 rounded-full border-[1.5px] items-center justify-center ${done || active ? 'border-violet bg-violet' : 'border-gray-200 bg-gray-50'}`}>
+              {done ? <CheckCircle2 size={14} color="#111827" /> : <Text className={`font-body-bold text-[10px] ${active ? 'text-white' : 'text-muted'}`}>{i + 1}</Text>}
             </View>
-            {i < TOTAL - 1 && <View style={[s.line, done && s.lineActive]} />}
+            {i < TOTAL - 1 && <View className={`flex-1 h-[1.5px] ${done ? 'bg-violet' : 'bg-gray-200'}`} />}
           </React.Fragment>
         );
       })}
@@ -139,7 +117,6 @@ export default function MentorOnboard() {
     }
   }, [params.step]);
 
-  // ---- Step 1: Profile ----
   const [jobTitle,  setJobTitle]    = useState('');
   const [company,   setCompany]     = useState('');
   const [college,   setCollege]     = useState('');
@@ -149,19 +126,14 @@ export default function MentorOnboard() {
   const [customOn,  setCustomOn]    = useState(false);
   const [customPrice, setCustomPrice] = useState('');
 
-  // ---- Step 2: Archetypes ----
   const [archetypes, setArchetypes] = useState<string[]>([]);
 
-  // ---- Step 3: Education ----
   const [edu, setEdu] = useState<string>('');
 
-  // ---- Step 4: Expertise ----
   const [expertise, setExpertise] = useState<string[]>([]);
 
-  // ---- Step 5: Availability ----
   const [availability, setAvailability] = useState<string[]>([]);
 
-  // ---- Step 6: Photo ----
   const [photo, setPhoto] = useState<string>('');
   const [pendingPhoto, setPendingPhoto] = useState<string | null>(null);
   const [webcamVisible, setWebcamVisible] = useState(false);
@@ -173,7 +145,6 @@ export default function MentorOnboard() {
     toast.success('Photo confirmed', 'Looking great!');
   };
 
-  // ---- Step 7: Bio ----
   const [bio, setBio]     = useState('');
   const [style, setStyle] = useState('');
   const [generatingBio, setGeneratingBio] = useState(false);
@@ -199,10 +170,8 @@ export default function MentorOnboard() {
     }
   };
 
-  // ---- Suggestions (fetched once on mount) ----
   const [roleSuggestions, setRoleSuggestions]   = useState<string[]>([]);
   const [orgSuggestions,  setOrgSuggestions]    = useState<string[]>([]);
-  // Fallback defaults if API is slow / offline
   const FALLBACK_ROLES = ['Software Engineer', 'Senior Software Engineer', 'Engineering Manager', 'Product Manager', 'Data Scientist', 'Designer', 'CTO', 'Founder'];
   const FALLBACK_ORGS  = ['Google', 'Microsoft', 'Meta', 'Amazon', 'Apple', 'Netflix', 'Flipkart', 'Swiggy', 'Paytm', 'Razorpay'];
 
@@ -225,7 +194,6 @@ export default function MentorOnboard() {
     return () => { alive = false; };
   }, []);
 
-  // ---- Step 8: Badge (computed client-side for preview) ----
   const badge = useMemo(() => {
     let score = 0;
     if (jobTitle && company) score += 2;
@@ -348,12 +316,11 @@ export default function MentorOnboard() {
   return (
     <AuthShell role="mentor">
       <Stepper step={step} />
-      <Text style={s.title}>{head.title}</Text>
-      <Text style={s.sub}>{head.sub}</Text>
+      <Text className="text-text font-display-bold text-[26px] mb-1.5 text-center">{head.title}</Text>
+      <Text className="text-muted font-body-semibold text-[13.5px] text-center mb-[18px]">{head.sub}</Text>
 
       <ScrollView style={{ maxHeight: 480 }} showsVerticalScrollIndicator={false}>
-        <View style={{ paddingVertical: 6, gap: 12 }}>
-          {/* === STEP 1: Profile === */}
+        <View className="py-1.5 gap-3">
           {step === 0 && (
             <>
               <SuggestionAutocomplete
@@ -372,7 +339,7 @@ export default function MentorOnboard() {
                 suggestions={orgSuggestions}
                 helper="Pick from our curated list — or type your own."
               />
-              <Text style={s.section}>College &amp; Batch</Text>
+              <Text className="text-muted font-body-bold text-[11px] tracking-widest uppercase mt-1 mb-1.5">College &amp; Batch</Text>
               <InstitutionAutocomplete
                 value={college}
                 onChangeText={setCollege}
@@ -380,8 +347,8 @@ export default function MentorOnboard() {
                 type="college"
                 placeholder="Search your institution…"
               />
-              <View style={{ flexDirection: 'row', gap: 10 }}>
-                <View style={{ flex: 1 }}>
+              <View className="flex-row gap-2.5">
+                <View className="flex-1">
                   <Dropdown
                     label="Batch Year"
                     value={batch}
@@ -391,7 +358,7 @@ export default function MentorOnboard() {
                     testID="batch-year-dropdown"
                   />
                 </View>
-                <View style={{ flex: 1 }}>
+                <View className="flex-1">
                   <AuthInput
                     label="Years of Experience"
                     value={yoe}
@@ -402,25 +369,27 @@ export default function MentorOnboard() {
                   />
                 </View>
               </View>
-              <Text style={s.section}>Session Price (₹)</Text>
-              <View style={[s.chipRow, { gap: 8 }]}>
+              <Text className="text-muted font-body-bold text-[11px] tracking-widest uppercase mt-1 mb-1.5">Session Price (₹)</Text>
+              <View className="flex-row flex-wrap gap-2">
                 {PRICE_CHIPS.map((p) => {
                   const active = !customOn && price === p;
                   return (
                     <Pressable
                       key={p}
                       onPress={() => { setPrice(p); setCustomOn(false); }}
-                      style={[s.priceChip, active && s.priceChipActive]}
+                      className={`px-4 py-2.5 rounded-[10px] border ${active ? 'border-violet bg-violet/18' : 'border-gray-200 bg-white'}`}
+                      style={Platform.OS === 'web' ? { cursor: 'pointer' } as any : undefined}
                     >
-                      <Text style={[s.priceChipText, active && s.priceChipTextActive]}>₹{p}</Text>
+                      <Text className={`font-body-bold text-sm ${active ? 'text-[#4C1D95]' : 'text-gray-600'}`}>₹{p}</Text>
                     </Pressable>
                   );
                 })}
                 <Pressable
                   onPress={() => setCustomOn(true)}
-                  style={[s.priceChip, customOn && s.priceChipActive]}
+                  className={`px-4 py-2.5 rounded-[10px] border ${customOn ? 'border-violet bg-violet/18' : 'border-gray-200 bg-white'}`}
+                  style={Platform.OS === 'web' ? { cursor: 'pointer' } as any : undefined}
                 >
-                  <Text style={[s.priceChipText, customOn && s.priceChipTextActive]}>Custom</Text>
+                  <Text className={`font-body-bold text-sm ${customOn ? 'text-[#4C1D95]' : 'text-gray-600'}`}>Custom</Text>
                 </Pressable>
               </View>
               {customOn && (
@@ -441,24 +410,24 @@ export default function MentorOnboard() {
             </>
           )}
 
-          {/* === STEP 2: Archetypes === */}
           {step === 1 && (
-            <View style={s.cardGrid}>
+            <View className="flex-row flex-wrap gap-2.5">
               {ARCHETYPES.map((a) => {
                 const Icon = a.Icon;
                 const active = archetypes.includes(a.id);
                 return (
                   <Pressable
                     key={a.id}
-                    style={[s.archetypeCard, active && s.archetypeCardActive]}
+                    className={`w-full py-3 px-3 rounded-xl border flex-row items-center gap-3 ${active ? 'border-violet bg-violet/14' : 'border-gray-200 bg-white'}`}
+                    style={Platform.OS === 'web' ? { cursor: 'pointer' } as any : undefined}
                     onPress={() => setArchetypes((arr) => toggle(arr, a.id))}
                   >
-                    <View style={[s.archetypeIcon, { backgroundColor: a.tint + '33', borderColor: a.tint }]}>
+                    <View className="w-10 h-10 rounded-full items-center justify-center border" style={{ backgroundColor: a.tint + '33', borderColor: a.tint }}>
                       <Icon size={18} color={a.tint} />
                     </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[s.archetypeTitle, active && s.archetypeTitleActive]}>{a.title}</Text>
-                      <Text style={s.archetypeDesc}>{a.desc}</Text>
+                    <View className="flex-1">
+                      <Text className={`font-body-bold text-[13.5px] ${active ? 'text-[#1F2937]' : 'text-[#1F2937]'}`}>{a.title}</Text>
+                      <Text className="text-muted font-body-semibold text-[11.5px] mt-0.5">{a.desc}</Text>
                     </View>
                     {active && <CheckCircle2 size={16} color="#B07FDF" />}
                   </Pressable>
@@ -467,115 +436,116 @@ export default function MentorOnboard() {
             </View>
           )}
 
-          {/* === STEP 3: Education === */}
           {step === 2 && (
-            <View style={s.cardGrid}>
+            <View className="flex-row flex-wrap gap-2.5">
               {EDU_LEVELS.map((e) => {
                 const Icon = e.Icon;
                 const active = edu === e.id;
                 return (
-                  <Pressable key={e.id} style={[s.eduCard, active && s.eduCardActive]} onPress={() => setEdu(e.id)}>
+                  <Pressable
+                    key={e.id}
+                    className={`w-[48%] py-3.5 px-3 rounded-xl border flex-row items-center gap-2.5 ${active ? 'border-violet bg-violet/14' : 'border-gray-200 bg-white'}`}
+                    style={Platform.OS === 'web' ? { cursor: 'pointer' } as any : undefined}
+                    onPress={() => setEdu(e.id)}
+                  >
                     <Icon size={22} color={active ? '#B07FDF' : '#6B7280'} />
-                    <Text style={[s.cardLabel, active && s.cardLabelActive]}>{e.label}</Text>
+                    <Text className={`flex-1 font-body-semibold text-[13px] ${active ? 'text-[#4C1D95]' : 'text-[#374151]'}`}>{e.label}</Text>
                   </Pressable>
                 );
               })}
             </View>
           )}
 
-          {/* === STEP 4: Expertise === */}
           {step === 3 && (
-            <View style={s.chipRow}>
+            <View className="flex-row flex-wrap gap-2">
               {EXPERTISE.map((x) => (
                 <DarkChip key={x} label={x} active={expertise.includes(x)} onPress={() => setExpertise((a) => toggle(a, x))} />
               ))}
             </View>
           )}
 
-          {/* === STEP 5: Availability === */}
           {step === 4 && (
-            <View style={s.cardGrid}>
+            <View className="flex-row flex-wrap gap-2.5">
               {AVAILABILITY.map((slot) => {
                 const active = availability.includes(slot.id);
                 return (
                   <Pressable
                     key={slot.id}
-                    style={[s.slotCard, active && s.slotCardActive]}
+                    className={`w-[48%] py-3.5 px-3 rounded-xl border flex-row items-center gap-2.5 ${active ? 'border-violet bg-violet/14' : 'border-gray-200 bg-white'}`}
+                    style={Platform.OS === 'web' ? { cursor: 'pointer' } as any : undefined}
                     onPress={() => setAvailability((arr) => toggle(arr, slot.id))}
                   >
                     <Clock size={16} color={active ? '#B07FDF' : '#6B7280'} />
-                    <Text style={[s.cardLabel, active && s.cardLabelActive]}>{slot.label}</Text>
+                    <Text className={`flex-1 font-body-semibold text-[13px] ${active ? 'text-[#4C1D95]' : 'text-[#374151]'}`}>{slot.label}</Text>
                   </Pressable>
                 );
               })}
             </View>
           )}
 
-          {/* === STEP 6: Photo === */}
           {step === 5 && (
-            <View style={{ alignItems: 'center', gap: 16 }}>
-              <Pressable onPress={takeSelfie} style={s.photoFrame}>
+            <View className="items-center gap-4">
+              <Pressable onPress={takeSelfie} className="w-40 h-40 rounded-[80px] border-2 border-dashed border-gray-300 items-center justify-center bg-white overflow-hidden">
                 {pendingPhoto ? (
-                  <Image source={{ uri: pendingPhoto }} style={s.photoImg} />
+                  <Image source={{ uri: pendingPhoto }} className="w-full h-full" />
                 ) : photo ? (
-                  <Image source={{ uri: photo }} style={s.photoImg} />
+                  <Image source={{ uri: photo }} className="w-full h-full" />
                 ) : (
-                  <View style={{ alignItems: 'center', gap: 8 }}>
+                  <View className="items-center gap-2">
                     <Camera size={32} color="#6B7280" />
-                    <Text style={s.photoHint}>Tap to capture</Text>
+                    <Text className="text-muted font-body-semibold text-xs">Tap to capture</Text>
                   </View>
                 )}
               </Pressable>
-              <Text style={s.helper}>A profile photo helps build trust with mentors and peers.{'\n'}Your photo is only visible to connected users.</Text>
+              <Text className="text-muted font-body-semibold text-[12.5px] text-center leading-[18px]">A profile photo helps build trust with mentors and peers.{'\n'}Your photo is only visible to connected users.</Text>
               {pendingPhoto ? (
-                <View style={{ flexDirection: 'row', gap: 10 }}>
-                  <Pressable style={s.confirmBtn} onPress={confirmPhoto}><Check size={14} color="#000" /><Text style={s.confirmBtnText}>Confirm</Text></Pressable>
-                  <Pressable style={s.smallBtn} onPress={() => { setPendingPhoto(null); takeSelfie(); }}><Camera size={14} color="#111827" /><Text style={s.smallBtnText}>Retake</Text></Pressable>
+                <View className="flex-row gap-2.5">
+                  <Pressable className="flex-row items-center gap-1.5 px-4 py-2 rounded-full bg-[#818CF8] border border-[#818CF8]" onPress={confirmPhoto}><Check size={14} color="#000" /><Text className="text-[#1E1B4B] font-body-bold text-xs">Confirm</Text></Pressable>
+                  <Pressable className="flex-row items-center gap-1.5 px-3.5 py-2 rounded-full bg-indigo-500/32 border border-indigo-400/40" onPress={() => { setPendingPhoto(null); takeSelfie(); }}><Camera size={14} color="#111827" /><Text className="text-[#1E1B4B] font-body-bold text-xs">Retake</Text></Pressable>
                 </View>
               ) : (
-                <View style={{ flexDirection: 'row', gap: 10 }}>
-                  <Pressable style={s.smallBtn} onPress={takeSelfie}><Camera size={14} color="#111827" /><Text style={s.smallBtnText}>Take Selfie</Text></Pressable>
-                  <Pressable style={s.smallBtn} onPress={pickPhoto}><Upload size={14} color="#111827" /><Text style={s.smallBtnText}>Upload Photo</Text></Pressable>
+                <View className="flex-row gap-2.5">
+                  <Pressable className="flex-row items-center gap-1.5 px-3.5 py-2 rounded-full bg-indigo-500/32 border border-indigo-400/40" onPress={takeSelfie}><Camera size={14} color="#111827" /><Text className="text-[#1E1B4B] font-body-bold text-xs">Take Selfie</Text></Pressable>
+                  <Pressable className="flex-row items-center gap-1.5 px-3.5 py-2 rounded-full bg-indigo-500/32 border border-indigo-400/40" onPress={pickPhoto}><Upload size={14} color="#111827" /><Text className="text-[#1E1B4B] font-body-bold text-xs">Upload Photo</Text></Pressable>
                 </View>
               )}
             </View>
           )}
 
-          {/* === STEP 7: Bio === */}
           {step === 6 && (
             <>
-              <Text style={s.section}>Your Bio</Text>
-              <View style={s.textareaWrap}>
+              <Text className="text-muted font-body-bold text-[11px] tracking-widest uppercase mt-1 mb-1.5">Your Bio</Text>
+              <View className="border border-gray-200 rounded-xl bg-white px-3.5 py-3">
                 <RNTextInput
                   value={bio}
                   onChangeText={(t) => setBio(t.slice(0, 300))}
                   multiline
                   placeholder="e.g. SDE-2 at Google with 5+ yrs in distributed systems. Happy to help with system design, FAANG interviews & career growth."
                   placeholderTextColor="#9CA3AF"
-                  style={s.textarea}
+                  className="text-[#1F2937] font-body-semibold text-[13.5px]"
+                  style={{ minHeight: 100, ...(Platform.OS === 'web' ? { outlineWidth: 0 } as any : {}) }}
                 />
               </View>
-              <Text style={s.helperRight}>{bio.length}/300</Text>
-              <Text style={s.helper}>Keep it genuine — 2–3 sentences work best.</Text>
-              <Text style={s.section}>Writing Style</Text>
-              <View style={s.chipRow}>{STYLES.map((x) => (<DarkChip key={x} label={x} active={style === x} onPress={() => handleStylePress(x)} />))}</View>
-              {generatingBio && <Text style={s.generatingText}>✨ Generating your bio…</Text>}
+              <Text className="text-muted font-body-semibold text-[11px] text-right -mt-2.5">{bio.length}/300</Text>
+              <Text className="text-muted font-body-semibold text-[12.5px] text-center leading-[18px]">Keep it genuine — 2–3 sentences work best.</Text>
+              <Text className="text-muted font-body-bold text-[11px] tracking-widest uppercase mt-1 mb-1.5">Writing Style</Text>
+              <View className="flex-row flex-wrap gap-2">{STYLES.map((x) => (<DarkChip key={x} label={x} active={style === x} onPress={() => handleStylePress(x)} />))}</View>
+              {generatingBio && <Text className="text-violet font-body-semibold text-xs text-center mt-1.5">✨ Generating your bio…</Text>}
             </>
           )}
 
-          {/* === STEP 8: Badge === */}
           {step === 7 && (
-            <View style={{ alignItems: 'center', gap: 14 }}>
-              <View style={[s.badgeCircle, { borderColor: badge.tier === 'Platinum' ? '#E5E4E2' : badge.tier === 'Gold' ? '#FFD700' : badge.tier === 'Silver' ? '#C0C0C0' : '#CD7F32' }]}>
+            <View className="items-center gap-3.5">
+              <View className="w-[120px] h-[120px] rounded-[60px] border-4 items-center justify-center bg-indigo-500/22 mt-1" style={{ borderColor: badge.tier === 'Platinum' ? '#E5E4E2' : badge.tier === 'Gold' ? '#FFD700' : badge.tier === 'Silver' ? '#C0C0C0' : '#CD7F32' }}>
                 <Award size={38} color="#111827" />
-                <Text style={s.badgeTier}>{badge.tier}</Text>
+                <Text className="text-[#1F2937] font-body-bold text-xs mt-1 tracking-widest">{badge.tier}</Text>
               </View>
-              <Text style={s.greeting}>Welcome, {(user?.full_name || 'Mentor').split(' ')[0]}!</Text>
-              <Text style={s.helper}>You've earned {badge.tier} status as a mentor on Student Alumni.</Text>
-              <View style={s.verifiedPill}><CheckCircle2 size={14} color="#5EEAD4" /><Text style={s.verifiedText}>Pending admin verification</Text></View>
+              <Text className="text-[#1F2937] font-body-bold text-lg">Welcome, {(user?.full_name || 'Mentor').split(' ')[0]}!</Text>
+              <Text className="text-muted font-body-semibold text-[12.5px] text-center leading-[18px]">You've earned {badge.tier} status as a mentor on Student Alumni.</Text>
+              <View className="flex-row items-center gap-1.5 px-3 py-1.25 rounded-full bg-teal-400/12 border border-teal-400/30"><CheckCircle2 size={14} color="#5EEAD4" /><Text className="text-teal-400 font-body-bold text-[11.5px]">Pending admin verification</Text></View>
 
-              <Text style={[s.section, { marginTop: 14, alignSelf: 'flex-start' }]}>How your badge was calculated</Text>
-              <View style={{ width: '100%', gap: 6 }}>
+              <Text className="text-muted font-body-bold text-[11px] tracking-widest uppercase mt-3.5 self-start">How your badge was calculated</Text>
+              <View className="w-full gap-1.5">
                 {[
                   `Role: ${jobTitle || 'not set'} ${company ? '· ' + company : ''}`,
                   `Experience: ${yoe || '0'} yrs`,
@@ -587,29 +557,29 @@ export default function MentorOnboard() {
                   `Profile photo: ${photo ? 'added' : 'not set'}`,
                   `Bio: ${bio.length > 20 ? 'written' : 'not set'}`,
                 ].map((l) => (
-                  <Text key={l} style={s.calcRow}>• {l}</Text>
+                  <Text key={l} className="text-gray-600 font-body-semibold text-[12.5px]">• {l}</Text>
                 ))}
               </View>
 
-              <Text style={[s.section, { marginTop: 12, alignSelf: 'flex-start' }]}>{badge.tier} Mentor Perks</Text>
-              <View style={{ width: '100%', gap: 6 }}>
-                <Text style={s.perk}>✔ Verified mentor badge after admin approval</Text>
-                <Text style={s.perk}>✔ Featured placement in suggestions: {badge.tier === 'Platinum' ? 'Top tier' : badge.tier === 'Gold' ? 'High' : badge.tier === 'Silver' ? 'Standard' : 'Basic'}</Text>
-                <Text style={s.perk}>💰 Earn ₹{price} per 1:1 session</Text>
-                <Text style={s.perk}>✨ Upgrade tier by adding more archetypes & sessions</Text>
+              <Text className="text-muted font-body-bold text-[11px] tracking-widest uppercase mt-3 self-start">{badge.tier} Mentor Perks</Text>
+              <View className="w-full gap-1.5">
+                <Text className="text-[#1F2937] font-body-semibold text-[12.5px]">✔ Verified mentor badge after admin approval</Text>
+                <Text className="text-[#1F2937] font-body-semibold text-[12.5px]">✔ Featured placement in suggestions: {badge.tier === 'Platinum' ? 'Top tier' : badge.tier === 'Gold' ? 'High' : badge.tier === 'Silver' ? 'Standard' : 'Basic'}</Text>
+                <Text className="text-[#1F2937] font-body-semibold text-[12.5px]">💰 Earn ₹{price} per 1:1 session</Text>
+                <Text className="text-[#1F2937] font-body-semibold text-[12.5px]">✨ Upgrade tier by adding more archetypes & sessions</Text>
               </View>
             </View>
           )}
         </View>
       </ScrollView>
 
-      <View style={s.navRow}>
+      <View className="flex-row items-center gap-2.5 mt-4">
         {step > 0 ? (
-          <Pressable onPress={prev} style={s.backBtn}>
+          <Pressable onPress={prev} className="w-[42px] h-[42px] rounded-[21px] bg-white border border-gray-200 items-center justify-center" style={Platform.OS === 'web' ? { cursor: 'pointer' } as any : undefined}>
             <ArrowLeft size={18} color="#374151" />
           </Pressable>
-        ) : <View style={{ width: 42 }} />}
-        <View style={{ flex: 1 }}>
+        ) : <View className="w-[42px]" />}
+        <View className="flex-1">
           <PrimaryButton label={step === TOTAL - 1 ? 'See My Member ID →' : 'Continue →'} onPress={onContinue} />
         </View>
       </View>
@@ -624,112 +594,3 @@ export default function MentorOnboard() {
     </AuthShell>
   );
 }
-
-const s = StyleSheet.create({
-  stepRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 18, gap: 4 },
-  dot: { width: 24, height: 24, borderRadius: 12, borderWidth: 1.5, borderColor: '#E5E7EB', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F9FAFB' },
-  dotActive: { borderColor: '#B07FDF', backgroundColor: '#7C3AED' },
-  dotText: { color: '#9CA3AF', fontFamily: FONTS.bold, fontSize: 10 },
-  dotTextActive: { color: '#FFFFFF' },
-  line: { flex: 1, height: 1.5, backgroundColor: '#E5E7EB' },
-  lineActive: { backgroundColor: '#7C3AED' },
-  title: { color: '#111827', fontFamily: FONTS.bold, fontSize: 26, marginBottom: 6, textAlign: 'center' },
-  sub: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 13.5, textAlign: 'center', marginBottom: 18 },
-  section: { color: '#6B7280', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', marginTop: 4, marginBottom: 6 },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  cardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-
-  // Archetype tile
-  archetypeCard: {
-    width: '100%',
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB', backgroundColor: '#FFFFFF',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  archetypeCardActive: { borderColor: '#B07FDF', backgroundColor: 'rgba(176,127,223,0.14)' },
-  archetypeIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
-  archetypeTitle: { color: '#1F2937', fontFamily: FONTS.bold, fontSize: 13.5 },
-  archetypeTitleActive: { color: '#1F2937' },
-  archetypeDesc: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
-
-  // Edu / availability cards (48% width — two per row)
-  eduCard: {
-    width: '48%',
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB', backgroundColor: '#FFFFFF',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  eduCardActive: { borderColor: '#B07FDF', backgroundColor: 'rgba(176,127,223,0.14)' },
-
-  slotCard: {
-    width: '48%',
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB', backgroundColor: '#FFFFFF',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  slotCardActive: { borderColor: '#B07FDF', backgroundColor: 'rgba(176,127,223,0.14)' },
-
-  cardLabel: { flex: 1, color: '#374151', fontFamily: FONTS.med, fontSize: 13 },
-  cardLabelActive: { color: '#4C1D95' },
-
-  // Price chips
-  priceChip: {
-    paddingHorizontal: 18, paddingVertical: 10, borderRadius: 10,
-    borderWidth: 1, borderColor: '#E5E7EB', backgroundColor: '#FFFFFF',
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  priceChipActive: { borderColor: '#B07FDF', backgroundColor: 'rgba(176,127,223,0.18)' },
-  priceChipText: { color: '#4B5563', fontFamily: FONTS.bold, fontSize: 14 },
-  priceChipTextActive: { color: '#4C1D95' },
-
-  // Photo
-  photoFrame: {
-    width: 160, height: 160, borderRadius: 80, borderWidth: 2,
-    borderColor: '#D1D5DB', borderStyle: 'dashed',
-    alignItems: 'center', justifyContent: 'center',
-    backgroundColor: '#FFFFFF', overflow: 'hidden',
-  },
-  photoImg: { width: '100%', height: '100%' },
-  photoHint: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 12 },
-  helper: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 12.5, textAlign: 'center', lineHeight: 18 },
-  helperRight: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 11, textAlign: 'right', marginTop: -10 },
-  smallBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, backgroundColor: 'rgba(79,70,229,0.32)', borderWidth: 1, borderColor: 'rgba(129,140,248,0.4)' },
-  smallBtnText: { color: '#1E1B4B', fontFamily: FONTS.bold, fontSize: 12 },
-  confirmBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 18, paddingVertical: 8, borderRadius: 999, backgroundColor: '#818CF8', borderWidth: 1, borderColor: '#818CF8' },
-  confirmBtnText: { color: '#1E1B4B', fontFamily: FONTS.bold, fontSize: 12 },
-
-  // Bio textarea
-  textareaWrap: { borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 12, backgroundColor: '#FFFFFF', paddingHorizontal: 14, paddingVertical: 12 },
-  textarea: { color: '#1F2937', fontFamily: FONTS.med, fontSize: 13.5, minHeight: 100, ...(Platform.OS === 'web' ? ({ outlineWidth: 0 } as any) : {}) },
-
-  // Badge
-  badgeCircle: { width: 120, height: 120, borderRadius: 60, borderWidth: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(79,70,229,0.22)', marginTop: 4 },
-  badgeTier: { color: '#1F2937', fontFamily: FONTS.bold, fontSize: 12, marginTop: 4, letterSpacing: 1 },
-  greeting: { color: '#1F2937', fontFamily: FONTS.bold, fontSize: 18 },
-  verifiedPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 999, backgroundColor: 'rgba(94,234,212,0.12)', borderWidth: 1, borderColor: 'rgba(94,234,212,0.3)' },
-  verifiedText: { color: '#5EEAD4', fontFamily: FONTS.bold, fontSize: 11.5 },
-  calcRow: { color: '#4B5563', fontFamily: FONTS.med, fontSize: 12.5 },
-  perk: { color: '#1F2937', fontFamily: FONTS.med, fontSize: 12.5 },
-
-  navRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 16 },
-  backBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E5E7EB', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  generatingText: { color: '#A78BFA', fontFamily: FONTS.med, fontSize: 12, textAlign: 'center', marginTop: 6 },
-});

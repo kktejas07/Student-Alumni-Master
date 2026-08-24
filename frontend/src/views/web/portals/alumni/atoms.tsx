@@ -2,7 +2,7 @@
  * Student Portal — reusable atoms (Avatar, Badge, KpiCard, etc).
  */
 import React from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import { View, Text, Image } from 'react-native';
 import { LucideIcon } from './iconShims';
 import { SC, FONTS } from './tokens';
 
@@ -34,7 +34,7 @@ export type BadgeColor = keyof typeof BADGE_COLORS;
 export function Badge({ label, color = 'purple' }: { label: string; color?: BadgeColor }) {
   const p = BADGE_COLORS[color] || BADGE_COLORS.gray;
   return (
-    <View style={[styles.badge, { backgroundColor: p.bg, borderColor: p.bc }]}>
+    <View style={[{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1, alignSelf: 'flex-start' as const }, { backgroundColor: p.bg, borderColor: p.bc }]}>
       <Text style={{ color: p.c, fontFamily: FONTS.bold, fontSize: 10.5, letterSpacing: 0.3 }}>{label}</Text>
     </View>
   );
@@ -53,8 +53,8 @@ export function KpiCard({
   const p = PALETTES[color] || PALETTES.purple;
   const IconComp = Icon;
   return (
-    <View style={[styles.kpi, { backgroundColor: p.tint, borderColor: p.border }]}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+    <View style={[{ flex: 1, minWidth: 160, paddingVertical: 16, paddingHorizontal: 16, borderRadius: 12, borderWidth: 1 }, { backgroundColor: p.tint, borderColor: p.border }]}>
+      <View className="flex-row items-center gap-2 mb-1.5">
         {IconComp && <IconComp size={14} color={p.ic} />}
         <Text style={{ color: SC.muted, fontFamily: FONTS.bold, fontSize: 11.5, letterSpacing: 0.4 }}>{label}</Text>
       </View>
@@ -63,14 +63,3 @@ export function KpiCard({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  badge: {
-    paddingHorizontal: 8, paddingVertical: 3,
-    borderRadius: 6, borderWidth: 1, alignSelf: 'flex-start',
-  },
-  kpi: {
-    flex: 1, minWidth: 160, paddingVertical: 16, paddingHorizontal: 16,
-    borderRadius: 12, borderWidth: 1,
-  },
-});

@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useCallback, useEffect, useState, useRef } from 'react';
-import { View, Text, Pressable, StyleSheet, Platform, TextInput as RNTextInput, Modal, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, Platform, TextInput as RNTextInput, Modal, ActivityIndicator } from 'react-native';
 import {
   Bold, Italic, Underline, Strikethrough, List, ListOrdered,
   Heading1, Heading2, Quote, Undo, Redo, Sparkles, X, Send,
@@ -257,71 +257,71 @@ const EDITOR_CSS = `
   .lex-editor-input blockquote { border-left: 3px solid #F59E0B; padding-left: 12px; margin: 8px 0; color: #94a3b8; font-style: italic; }
 `;
 
-const wrap = StyleSheet.create({
+const wrap = {
   toolbar: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const,
     paddingHorizontal: 8, paddingVertical: 6,
     backgroundColor: '#1e293b', borderWidth: 1, borderColor: '#334155',
     borderTopLeftRadius: 10, borderTopRightRadius: 10,
-    flexWrap: 'wrap', gap: 4,
+    flexWrap: 'wrap' as const, gap: 4,
   },
-  group: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  group: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 2 },
   btn: {
     width: 30, height: 30, borderRadius: 6,
-    alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center' as const, justifyContent: 'center' as const,
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {}),
   },
   editorBox: {
     minHeight: 400,
     borderRadius: 0,
-    overflow: 'hidden',
+    overflow: 'hidden' as const,
   },
   hintBar: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end',
+    flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'flex-end' as const,
     paddingHorizontal: 10, paddingVertical: 8,
     backgroundColor: '#1e293b', borderWidth: 1, borderColor: '#334155', borderTopWidth: 0,
     borderBottomLeftRadius: 10, borderBottomRightRadius: 10,
   },
   hint: { color: '#64748b', fontFamily: FONTS.med, fontSize: 10.5 },
   aiBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
+    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 5,
     paddingHorizontal: 10, height: 28, borderRadius: 999,
     backgroundColor: 'rgba(245,158,11,0.12)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.25)',
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {}),
   },
   aiLabel: { color: '#F59E0B', fontFamily: FONTS.bold, fontSize: 11 },
-});
+};
 
-const fallbackStyle = StyleSheet.create({
+const fallbackStyle = {
   input: {
     minHeight: 400, paddingHorizontal: 12, paddingTop: 10,
     color: '#e2e8f0', fontFamily: FONTS.med, fontSize: 13,
     backgroundColor: '#0f172a', borderColor: '#334155', borderWidth: 1, borderRadius: 10,
-    textAlignVertical: 'top',
+    textAlignVertical: 'top' as const,
     ...(Platform.OS === 'web' ? { outlineStyle: 'none' } : {}),
   },
-});
+};
 
-const aim = StyleSheet.create({
+const aim = {
   backdrop: {
     flex: 1, backgroundColor: 'rgba(0,0,0,0.65)',
-    alignItems: 'center', justifyContent: 'center', padding: 20,
+    alignItems: 'center' as const, justifyContent: 'center' as const, padding: 20,
     ...(Platform.OS === 'web' ? { backdropFilter: 'blur(8px)' } : {}),
   },
   card: {
     width: '100%', maxWidth: 500,
     backgroundColor: '#1e293b', borderRadius: 16, borderWidth: 1, borderColor: '#334155',
-    overflow: 'hidden',
+    overflow: 'hidden' as const,
     ...(Platform.OS === 'web' ? { boxShadow: '0 24px 60px rgba(0,0,0,0.7)' } : {}),
   },
   head: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const,
     padding: 16, borderBottomWidth: 1, borderBottomColor: '#334155',
   },
   title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
   closeBtn: {
     width: 28, height: 28, borderRadius: 7,
-    alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center' as const, justifyContent: 'center' as const,
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {}),
   },
   body: { padding: 16, gap: 12 },
@@ -330,11 +330,11 @@ const aim = StyleSheet.create({
     minHeight: 100, paddingHorizontal: 12, paddingTop: 10,
     color: '#e2e8f0', fontFamily: FONTS.med, fontSize: 13,
     backgroundColor: '#0f172a', borderColor: '#334155', borderWidth: 1, borderRadius: 10,
-    textAlignVertical: 'top',
+    textAlignVertical: 'top' as const,
     ...(Platform.OS === 'web' ? { outlineStyle: 'none' } : {}),
   },
   footer: {
-    flexDirection: 'row', justifyContent: 'flex-end', gap: 8,
+    flexDirection: 'row' as const, justifyContent: 'flex-end' as const, gap: 8,
     padding: 14, borderTopWidth: 1, borderTopColor: '#334155',
   },
   cancelBtn: {
@@ -344,10 +344,10 @@ const aim = StyleSheet.create({
   },
   cancelText: { color: '#94a3b8', fontFamily: FONTS.bold, fontSize: 12 },
   sendBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
+    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 6,
     paddingHorizontal: 14, paddingVertical: 9, borderRadius: 9,
     backgroundColor: '#F59E0B',
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {}),
   },
   sendText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
-});
+};

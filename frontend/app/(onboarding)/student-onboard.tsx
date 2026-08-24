@@ -18,7 +18,7 @@
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, Pressable, Image,
+  View, Text, ScrollView, Pressable, Image,
   Platform, TextInput as RNTextInput, Animated, useWindowDimensions,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -29,7 +29,6 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { AuthShell } from '@/src/views/auth/AuthShell';
 import { AuthInput, PrimaryButton } from '@/src/views/auth/AuthControls';
-import { FONTS } from '@/src/views/auth/tokens';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useToast } from '@/src/views/components';
 import { api } from '@/src/models/services/api';
@@ -40,16 +39,13 @@ import { Dropdown } from '@/src/views/web/Dropdown';
 import { WebcamModal } from '@/src/views/components/WebcamModal';
 import { OnboardingProgressBar } from '@/src/views/components/onboarding/OnboardingProgressBar';
 
-const TOTAL = 4; // 0-indexed steps 0–3 = 4 steps
+const TOTAL = 4;
 const CURRENT_YEAR = new Date().getFullYear();
 const GRAD_YEARS = Array.from({ length: CURRENT_YEAR + 9 - 1975 }, (_, i) => String(CURRENT_YEAR + 8 - i));
 
-// ─── Step labels for the progress bar ────────────────────────────────────────
 const STEP_LABELS = ['Education', 'Institution', 'Career Path', 'Profile'];
-// Estimated seconds per step (for "~N min left" label)
 const STEP_SECS = [90, 20, 25, 60];
 
-// ─── Step 1: Education ───────────────────────────────────────────────────────
 const EDU_LEVELS = [
   { id: 'high_school', label: 'High School',        icon: BookOpen },
   { id: 'diploma',  label: 'Diploma / ITI',        icon: Award },
@@ -58,7 +54,6 @@ const EDU_LEVELS = [
   { id: 'phd',      label: 'PhD / Doctorate',       icon: Award },
 ];
 
-// ─── Step 2: Career Path ★ NEW ────────────────────────────────────────────────
 type CareerPathId = 'job' | 'higher_education' | 'startup' | 'business';
 const CAREER_PATHS: {
   id: CareerPathId; icon: any; title: string; desc: string; unlocks: string[];
@@ -93,17 +88,13 @@ const CAREER_PATHS: {
   },
 ];
 
-// ─── Step 6: Bio writing styles ──────────────────────────────────────────────
 const STYLES = ['Friendly & warm', 'Professional', 'Inspiring', 'Concise', 'Detailed'];
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
 function toggle<T>(arr: T[], v: T): T[] {
   return arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
 }
 
 
-
-// ─── Main Component ───────────────────────────────────────────────────────────
 export default function StudentOnboard() {
   const router = useRouter();
   const params = useLocalSearchParams<{ step?: string }>();
@@ -143,7 +134,6 @@ export default function StudentOnboard() {
     }
   }, [params.step]);
 
-  // ── Step 0: College ──
   const [college, setCollege]   = useState('');
   const [gradYear, setGradYear] = useState('');
   const [cgpa, setCgpa]         = useState('');
@@ -153,16 +143,11 @@ export default function StudentOnboard() {
   const [city, setCity]         = useState('');
   const [stateName, setState2]  = useState('');
 
-  // ── Step 1: Education ──
   const [edu, setEdu] = useState<string>('');
 
-  // ── Step 2: Career Path ★ ──
   const [careerPath, setCareerPath] = useState<CareerPathId | ''>('');
   const [pathFeedback, setPathFeedback] = useState(false);
 
-  // (Career Goal state removed)
-
-  // ── Step 6: Photo + Bio ──
   const [photo, setPhoto]             = useState<string>('');
   const [pendingPhoto, setPendingPhoto] = useState<string | null>(null);
   const [webcamVisible, setWebcamVisible] = useState(false);
@@ -191,7 +176,6 @@ export default function StudentOnboard() {
       });
       if (res?.bio) setBio(res.bio.slice(0, 300));
     } catch {
-      // silently fallback
     } finally {
       setGeneratingBio(false);
     }
@@ -302,8 +286,6 @@ export default function StudentOnboard() {
     } catch { toast.error('Camera', 'Could not open camera.'); }
   };
 
-  // ─── Step heading copy ────────────────────────────────────────────────────
-  // ─── Step heading copy ────────────────────────────────────────────────────
   const HEADS = [
     {
       title: `Welcome, ${name.split(' ')[0] || 'there'} 👋\nWhat level are you at?`,
@@ -333,48 +315,46 @@ export default function StudentOnboard() {
         stepSeconds={STEP_SECS}
       />
 
-      <View style={{ flexDirection: isDesktop ? 'row' : 'column', gap: 24 }}>
-        <Animated.View style={{ flex: 1, opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
-          <Text style={s.title}>{head.title}</Text>
-          <Text style={s.sub}>{head.sub}</Text>
+      <View className={`flex-row ${isDesktop ? '' : 'flex-col'} gap-xl`}>
+        <Animated.View className="flex-1" style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+          <Text className="text-primary text-2xl font-display-bold mb-xxs">{head.title}</Text>
+          <Text className="text-muted text-base font-body-semibold mb-md leading-5">{head.sub}</Text>
 
-          <View style={[s.previewCard, { marginBottom: 16, marginTop: 8 }]}>
-            <Text style={s.previewTitle}>LIVE PROFILE PREVIEW</Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: 12, columnGap: 24 }}>
-              <View style={[s.previewRow, { flex: 1, minWidth: 120 }]}>
-                <Text style={s.previewLabel}>Name</Text>
-                <Text style={s.previewVal}>{name || 'New Student'}</Text>
+          <View className="w-full p-md rounded-2xl bg-white border border-default gap-s mb-4 mt-2 self-stretch">
+            <Text className="text-brand-purple font-body-bold text-2xs tracking-wider">LIVE PROFILE PREVIEW</Text>
+            <View className="flex-row flex-wrap gap-y-3 gap-x-6">
+              <View className="flex-1 min-w-[120px] gap-xxs">
+                <Text className="text-muted text-xs font-body-semibold">Name</Text>
+                <Text className="text-primary text-base font-body-bold">{name || 'New Student'}</Text>
               </View>
-              <View style={[s.previewRow, { flex: 1, minWidth: 120 }]}>
-                <Text style={s.previewLabel}>Education</Text>
-                <Text style={s.previewVal}>{EDU_LEVELS.find(e => e.id === edu)?.label || 'Not picked yet'}</Text>
+              <View className="flex-1 min-w-[120px] gap-xxs">
+                <Text className="text-muted text-xs font-body-semibold">Education</Text>
+                <Text className="text-primary text-base font-body-bold">{EDU_LEVELS.find(e => e.id === edu)?.label || 'Not picked yet'}</Text>
               </View>
-              <View style={[s.previewRow, { flex: 1, minWidth: 120 }]}>
-                <Text style={s.previewLabel}>Institution</Text>
-                <Text style={s.previewVal} numberOfLines={1}>{college || 'Not picked yet'}</Text>
+              <View className="flex-1 min-w-[120px] gap-xxs">
+                <Text className="text-muted text-xs font-body-semibold">Institution</Text>
+                <Text className="text-primary text-base font-body-bold" numberOfLines={1}>{college || 'Not picked yet'}</Text>
               </View>
-              <View style={[s.previewRow, { flex: 1, minWidth: 120 }]}>
-                <Text style={s.previewLabel}>Career Path</Text>
-                <Text style={s.previewVal}>{CAREER_PATHS.find(p => p.id === careerPath)?.title || 'Not picked yet'}</Text>
+              <View className="flex-1 min-w-[120px] gap-xxs">
+                <Text className="text-muted text-xs font-body-semibold">Career Path</Text>
+                <Text className="text-primary text-base font-body-bold">{CAREER_PATHS.find(p => p.id === careerPath)?.title || 'Not picked yet'}</Text>
               </View>
-              {/* Invisible spacer to fix flex: 1 alignment on the last row */}
-              <View style={{ flex: 1, minWidth: 120 }} />
+              <View className="flex-1 min-w-[120px]" />
             </View>
           </View>
 
-          <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
-        <View style={{ paddingVertical: 6, gap: 12 }}>
+          <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+        <View className="py-1.5 gap-3">
 
-          {/* ══════════════════ STEP 0: Education ══════════════════ */}
           {step === 0 && (
-            <View style={s.cardGrid}>
+            <View className="flex-row flex-wrap gap-2.5 justify-center">
               {EDU_LEVELS.map((e) => {
                 const Icon = e.icon;
                 const active = edu === e.id;
                 return (
-                  <Pressable key={e.id} style={[s.card, active && s.cardActive]} onPress={() => setEdu(e.id)}>
+                  <Pressable key={e.id} className={`w-[48%] py-3.5 px-3 rounded-xl border ${active ? 'border-brand-purple bg-brand-purple/10' : 'border-border bg-white'} flex-row items-center gap-2.5`} onPress={() => setEdu(e.id)}>
                     <Icon size={22} color={active ? '#7C3AED' : '#9CA3AF'} />
-                    <Text style={[s.cardLabel, active && s.cardLabelActive]}>{e.label}</Text>
+                    <Text className={`flex-1 text-sm font-body-semibold ${active ? 'text-brand-purple' : 'text-secondary'}`}>{e.label}</Text>
                     {active && <CheckCircle2 size={14} color="#B07FDF" style={{ marginLeft: 'auto' } as any} />}
                   </Pressable>
                 );
@@ -382,11 +362,10 @@ export default function StudentOnboard() {
             </View>
           )}
 
-          {/* ══════════════════ STEP 1: College ══════════════════ */}
           {step === 1 && (
             <>
-              <Text style={s.section}>{edu === 'high_school' ? 'School Name *' : 'Institution *'}</Text>
-              <View style={{ marginBottom: 14 }}>
+              <Text className="text-muted font-body-bold text-2xs tracking-wider uppercase mt-1 mb-1.5">{edu === 'high_school' ? 'School Name *' : 'Institution *'}</Text>
+              <View className="mb-3.5">
                 <InstitutionAutocomplete
                   value={college}
                   onChangeText={setCollege}
@@ -399,9 +378,9 @@ export default function StudentOnboard() {
                   placeholder={edu === 'high_school' ? 'Search your school…' : 'Search your institution…'}
                 />
               </View>
-              <View style={{ flexDirection: 'row', gap: 10 }}>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.section}>{edu === 'high_school' ? 'Stream *' : 'Graduation Year *'}</Text>
+              <View className="flex-row gap-2.5">
+                <View className="flex-1">
+                  <Text className="text-muted font-body-bold text-2xs tracking-wider uppercase mt-1 mb-1.5">{edu === 'high_school' ? 'Stream *' : 'Graduation Year *'}</Text>
                   {edu === 'high_school' ? (
                     <Dropdown
                       required
@@ -432,23 +411,22 @@ export default function StudentOnboard() {
                     />
                   )}
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.section}>{edu === 'high_school' ? 'Percentage/CGPA *' : 'Domain *'}</Text>
+                <View className="flex-1">
+                  <Text className="text-muted font-body-bold text-2xs tracking-wider uppercase mt-1 mb-1.5">{edu === 'high_school' ? 'Percentage/CGPA *' : 'Domain *'}</Text>
                   <AuthInput value={cgpa} onChangeText={setCgpa} placeholder={edu === 'high_school' ? '95' : 'e.g. Computer Science'} keyboardType={edu === 'high_school' ? 'decimal-pad' : 'default'} />
                 </View>
               </View>
             </>
           )}
 
-          {/* ══════════════════ STEP 2: Career Path ★ NEW ══════════════════ */}
           {step === 2 && (
-            <View style={{ gap: 10 }}>
+            <View className="gap-2.5">
               {CAREER_PATHS.map((p) => {
                 const active = careerPath === p.id;
                 return (
                   <Pressable
                     key={p.id}
-                    style={[s.pathTile, active && s.pathTileActive]}
+                    className={`rounded-lg border p-3.5 gap-2.5 ${active ? 'border-brand-purple bg-brand-purple/10' : 'border-border bg-white'}`}
                     onPress={() => {
                       setCareerPath(p.id);
                       setPathFeedback(true);
@@ -456,100 +434,96 @@ export default function StudentOnboard() {
                     }}
                     testID={`career-path-${p.id}`}
                   >
-                    <View style={s.pathTileTop}>
-                      <View style={{ marginTop: 2, marginRight: 2 }}>
+                    <View className="flex-row items-start gap-2.5">
+                      <View className="mt-0.5 mr-0.5">
                         <p.icon size={24} color={active ? '#7C3AED' : '#9CA3AF'} />
                       </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={[s.pathTitle, active && s.pathTitleActive]}>{p.title}</Text>
-                        <Text style={s.pathDesc}>{p.desc}</Text>
+                      <View className="flex-1">
+                        <Text className={`text-sm font-body-bold ${active ? 'text-brand-purple' : 'text-gray-700'}`}>{p.title}</Text>
+                        <Text className="text-muted text-xs font-body-semibold mt-0.5 leading-4">{p.desc}</Text>
                       </View>
                       {active && <CheckCircle2 size={16} color="#7C3AED" />}
                     </View>
-                    {/* "You'll receive" preview */}
-                    <Text style={[s.section, { marginTop: 4, marginBottom: 2 }]}>You'll receive</Text>
-                    <View style={s.pathUnlocks}>
+                    <Text className="text-muted font-body-bold text-2xs tracking-wider uppercase mt-1 mb-0.5">You'll receive</Text>
+                    <View className="flex-row flex-wrap gap-1.5">
                       {p.unlocks.map((u) => (
-                        <Text key={u} style={[s.pathUnlockChip, active && s.pathUnlockChipActive]}>• {u}</Text>
+                        <Text key={u} className={`text-xs font-body-semibold rounded-full px-2 py-0.5 border ${active ? 'text-purple-700 bg-purple-50 border-purple-300' : 'text-muted bg-gray-100 border-border'}`}>• {u}</Text>
                       ))}
                     </View>
                   </Pressable>
                 );
               })}
               {pathFeedback && (
-                <Text style={s.feedbackText}>Great choice! Your dashboard will be personalized for this path.</Text>
+                <Text className="text-brand-purple font-body-semibold text-xs text-center mt-1">Great choice! Your dashboard will be personalized for this path.</Text>
               )}
             </View>
           )}
 
-          {/* ══════════════════ STEP 3: Photo + Bio ══════════════════ */}
           {step === 3 && (
             <>
-              {/* Photo */}
-              <View style={{ alignItems: 'center', gap: 14, marginBottom: 8 }}>
-                <Pressable onPress={takeSelfie} style={s.photoFrame}>
+              <View className="items-center gap-3.5 mb-2">
+                <Pressable onPress={takeSelfie} className="w-[140px] h-[140px] rounded-full border-2 border-dashed border-border items-center justify-center bg-white overflow-hidden">
                   {pendingPhoto ? (
-                    <Image source={{ uri: pendingPhoto }} style={s.photoImg} />
+                    <Image source={{ uri: pendingPhoto }} className="w-full h-full" />
                   ) : photo ? (
-                    <Image source={{ uri: photo }} style={s.photoImg} />
+                    <Image source={{ uri: photo }} className="w-full h-full" />
                   ) : (
-                    <View style={{ alignItems: 'center', gap: 8 }}>
+                    <View className="items-center gap-2">
                       <Camera size={32} color="#9CA3AF" />
-                      <Text style={s.photoHint}>Tap to capture</Text>
+                      <Text className="text-faint text-xs font-body-semibold">Tap to capture</Text>
                     </View>
                   )}
                 </Pressable>
                 {pendingPhoto ? (
-                  <View style={{ flexDirection: 'row', gap: 10 }}>
-                    <Pressable style={s.confirmBtn} onPress={confirmPhoto}>
-                      <Check size={14} color="#000" /><Text style={s.confirmBtnText}>Confirm</Text>
+                  <View className="flex-row gap-2.5">
+                    <Pressable className="flex-row items-center gap-1.5 px-4 py-2 rounded-full bg-success border border-success" onPress={confirmPhoto}>
+                      <Check size={14} color="#000" /><Text className="text-primary font-body-bold text-xs">Confirm</Text>
                     </Pressable>
-                    <Pressable style={s.smallBtn} onPress={() => { setPendingPhoto(null); takeSelfie(); }}>
-                      <Camera size={14} color="#111827" /><Text style={s.smallBtnText}>Retake</Text>
+                    <Pressable className="flex-row items-center gap-1.5 px-3.5 py-2 rounded-full bg-brand-purple border border-brand-purple" onPress={() => { setPendingPhoto(null); takeSelfie(); }}>
+                      <Camera size={14} color="#111827" /><Text className="text-secondary font-body-bold text-xs">Retake</Text>
                     </Pressable>
                   </View>
                 ) : (
-                  <View style={{ flexDirection: 'row', gap: 10 }}>
-                    <Pressable style={s.smallBtn} onPress={takeSelfie}>
-                      <Camera size={14} color="#111827" /><Text style={s.smallBtnText}>Take Selfie</Text>
+                  <View className="flex-row gap-2.5">
+                    <Pressable className="flex-row items-center gap-1.5 px-3.5 py-2 rounded-full bg-brand-purple border border-brand-purple" onPress={takeSelfie}>
+                      <Camera size={14} color="#111827" /><Text className="text-secondary font-body-bold text-xs">Take Selfie</Text>
                     </Pressable>
-                    <Pressable style={s.smallBtn} onPress={pickPhoto}>
-                      <Upload size={14} color="#111827" /><Text style={s.smallBtnText}>Upload Photo</Text>
+                    <Pressable className="flex-row items-center gap-1.5 px-3.5 py-2 rounded-full bg-brand-purple border border-brand-purple" onPress={pickPhoto}>
+                      <Upload size={14} color="#111827" /><Text className="text-secondary font-body-bold text-xs">Upload Photo</Text>
                     </Pressable>
                   </View>
                 )}
                 {!photo && !pendingPhoto && (
-                  <Text style={s.skipHint}>Optional — but adds to your badge score</Text>
+                  <Text className="text-faint text-xs font-body-semibold text-center">Optional — but adds to your badge score</Text>
                 )}
               </View>
 
-              {/* Bio */}
-              <Text style={s.section}>Your Bio</Text>
-              <View style={s.textareaWrap}>
+              <Text className="text-muted font-body-bold text-2xs tracking-wider uppercase mt-1 mb-1.5">Your Bio</Text>
+              <View className="border border-default rounded-xl bg-white px-3.5 py-3">
                 <RNTextInput
                   value={bio}
                   onChangeText={(t) => setBio(t.slice(0, 300))}
                   multiline
                   placeholder="e.g. Final year CSE student at IIT Bombay, passionate about building AI products…"
                   placeholderTextColor="#9CA3AF"
-                  style={s.textarea}
+                  className="text-primary font-body-semibold text-base min-h-[90px]"
+                  style={Platform.OS === 'web' ? { outlineWidth: 0 } as any : undefined}
                 />
               </View>
-              <Text style={s.helperRight}>{bio.length}/300</Text>
+              <Text className="text-faint text-xs font-body-semibold text-right mt-[-8px]">{bio.length}/300</Text>
 
-              <Text style={s.section}>Writing Style — AI Generate</Text>
-              <Text style={s.helper}>Tap a style to auto-generate your bio using AI.</Text>
-              <View style={s.chipRow}>
+              <Text className="text-muted font-body-bold text-2xs tracking-wider uppercase mt-1 mb-1.5">Writing Style — AI Generate</Text>
+              <Text className="text-muted text-sm font-body-semibold leading-5 mb-2">Tap a style to auto-generate your bio using AI.</Text>
+              <View className="flex-row flex-wrap gap-2 mb-1">
                 {STYLES.map((x) => (
                   <DarkChip key={x} label={x} active={bioStyle === x} onPress={() => handleStylePress(x)} />
                 ))}
               </View>
               {generatingBio && (
-                <Text style={s.generatingText}>✨ Generating your bio…</Text>
+                <Text className="text-brand-purple font-body-semibold text-xs text-center mt-1">✨ Generating your bio…</Text>
               )}
             </>
           )}
-          {/* Step 4 was removed */}
 
         </View>
       </ScrollView>
@@ -559,17 +533,16 @@ export default function StudentOnboard() {
       </View>
 
       {validationNotice && (
-        <View style={s.validationPill}>
-          <Text style={s.validationText}>💡 {validationNotice}</Text>
+        <View className="mt-3 px-3.5 py-2 rounded-[10px] bg-brand-purple/10 border border-purple-300">
+          <Text className="text-purple-700 font-body-semibold text-sm">💡 {validationNotice}</Text>
         </View>
       )}
 
-      {/* ── Navigation Row ── */}
-      <View style={s.navRow}>
-        <Pressable onPress={() => step > 0 ? prev() : router.push('/(auth)/referral-code')} style={s.backBtn}>
+      <View className="flex-row items-center gap-2.5 mt-4">
+        <Pressable onPress={() => step > 0 ? prev() : router.push('/(auth)/referral-code')} className="w-[42px] h-[42px] rounded-full bg-white border border-default items-center justify-center">
           <ArrowLeft size={18} color="#374151" />
         </Pressable>
-        <View style={{ flex: 1 }}>
+        <View className="flex-1">
           <PrimaryButton
             label={step === TOTAL - 1 ? 'Complete Profile →' : 'Continue →'}
             onPress={onContinue}
@@ -588,174 +561,3 @@ export default function StudentOnboard() {
     </AuthShell>
   );
 }
-
-
-
-// ─── Main Styles ──────────────────────────────────────────────────────────────
-const s = StyleSheet.create({
-  title: { color: '#111827', fontFamily: FONTS.bold, fontSize: 24, marginBottom: 4 },
-  sub: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 13, marginBottom: 16, lineHeight: 18 },
-  section: {
-    color: '#6B7280', fontFamily: FONTS.bold,
-    fontSize: 10.5, letterSpacing: 1, textTransform: 'uppercase',
-    marginTop: 4, marginBottom: 6,
-  },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
-
-  // Education / generic card grid
-  cardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center' },
-  card: {
-    width: '48%', paddingVertical: 14, paddingHorizontal: 12,
-    borderRadius: 12, borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  cardActive: { borderColor: '#7C3AED', backgroundColor: '#F3E8FF' },
-  cardLabel: { flex: 1, color: '#4B5563', fontFamily: FONTS.med, fontSize: 13 },
-  cardLabelActive: { color: '#7C3AED' },
-
-  // Career path tiles
-  pathTile: {
-    borderRadius: 14, borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
-    padding: 14, gap: 10,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transition: 'all 160ms' } as any) : {}),
-  },
-  pathTileActive: { borderColor: '#7C3AED', backgroundColor: '#F3E8FF' },
-  pathTileTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  pathEmoji: { fontSize: 26, marginTop: 2 },
-  pathTitle: { color: '#374151', fontFamily: FONTS.bold, fontSize: 15 },
-  pathTitleActive: { color: '#7C3AED' },
-  pathDesc: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 12, marginTop: 2, lineHeight: 16 },
-  pathUnlocks: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  pathUnlockChip: {
-    color: '#6B7280', fontFamily: FONTS.med, fontSize: 11,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3,
-    borderWidth: 1, borderColor: '#E5E7EB',
-  },
-  pathUnlockChipActive: {
-    color: '#6D28D9',
-    backgroundColor: '#EDE9FE',
-    borderColor: '#C4B5FD',
-  },
-  feedbackText: {
-    color: '#7C3AED', fontFamily: FONTS.med, fontSize: 12,
-    textAlign: 'center', marginTop: 4,
-  },
-
-  // Career goal radios
-  optRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingVertical: 14, paddingHorizontal: 16,
-    borderRadius: 12, borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  optRowActive: { borderColor: '#7C3AED', backgroundColor: '#F3E8FF' },
-  radio: {
-    width: 18, height: 18, borderRadius: 9,
-    borderWidth: 1.5, borderColor: '#9CA3AF',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  radioActive: { borderColor: '#7C3AED' },
-  radioDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#7C3AED' },
-  optLabel: { color: '#4B5563', fontFamily: FONTS.med, fontSize: 14 },
-  optLabelActive: { color: '#7C3AED' },
-  helper: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 18, marginBottom: 8 },
-
-  // Photo
-  photoFrame: {
-    width: 140, height: 140, borderRadius: 70,
-    borderWidth: 2, borderColor: '#E5E7EB', borderStyle: 'dashed',
-    alignItems: 'center', justifyContent: 'center',
-    backgroundColor: '#FFFFFF', overflow: 'hidden',
-  },
-  photoImg: { width: '100%', height: '100%' },
-  photoHint: { color: '#9CA3AF', fontFamily: FONTS.med, fontSize: 11 },
-  skipHint: { color: '#9CA3AF', fontFamily: FONTS.med, fontSize: 11, textAlign: 'center' },
-  smallBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999,
-    backgroundColor: '#7C3AED', borderWidth: 1, borderColor: '#7C3AED',
-  },
-  smallBtnText: { color: '#4C1D95', fontFamily: FONTS.bold, fontSize: 12 },
-  confirmBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 18, paddingVertical: 8, borderRadius: 999,
-    backgroundColor: '#10B981', borderWidth: 1, borderColor: '#10B981',
-  },
-  confirmBtnText: { color: '#111827', fontFamily: FONTS.bold, fontSize: 12 },
-
-  // Bio
-  helperRight: { color: '#9CA3AF', fontFamily: FONTS.med, fontSize: 11, textAlign: 'right', marginTop: -8 },
-  textareaWrap: {
-    borderWidth: 1, borderColor: '#E5E7EB',
-    borderRadius: 12, backgroundColor: '#FFFFFF',
-    paddingHorizontal: 14, paddingVertical: 12,
-  },
-  textarea: {
-    color: '#111827', fontFamily: FONTS.med, fontSize: 13.5, minHeight: 90,
-    ...(Platform.OS === 'web' ? ({ outlineWidth: 0 } as any) : {}),
-  },
-  generatingText: { color: '#7C3AED', fontFamily: FONTS.med, fontSize: 12, textAlign: 'center', marginTop: 4 },
-
-  // Badge + Review
-  badgeCircle: {
-    width: 110, height: 110, borderRadius: 55, borderWidth: 4,
-    alignItems: 'center', justifyContent: 'center',
-    backgroundColor: '#F3E8FF', marginTop: 4,
-  },
-  badgeTier: { color: '#7C3AED', fontFamily: FONTS.bold, fontSize: 11, marginTop: 4, letterSpacing: 1 },
-  verifiedPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 12, paddingVertical: 5, borderRadius: 999,
-    backgroundColor: '#ECFDF5', borderWidth: 1, borderColor: '#A7F3D0',
-  },
-  verifiedText: { color: '#059669', fontFamily: FONTS.bold, fontSize: 11.5 },
-  reviewCard: {
-    width: '100%', backgroundColor: '#FFFFFF',
-    borderWidth: 1, borderColor: '#E5E7EB',
-    borderRadius: 14, padding: 14, gap: 6,
-  },
-  reviewCardTitle: { color: '#6B7280', fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 },
-  reviewRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  reviewLabel: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 12.5 },
-  reviewValue: { color: '#111827', fontFamily: FONTS.bold, fontSize: 12.5 },
-  perk: { color: '#374151', fontFamily: FONTS.med, fontSize: 12.5 },
-
-  // Nav
-  navRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 16 },
-  backBtn: {
-    width: 42, height: 42, borderRadius: 21,
-    backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E5E7EB',
-    alignItems: 'center', justifyContent: 'center',
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  validationPill: {
-    marginTop: 12, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10,
-    backgroundColor: '#F3E8FF', borderWidth: 1, borderColor: '#C4B5FD',
-  },
-  validationText: {
-    color: '#6D28D9', fontFamily: FONTS.med, fontSize: 12.5,
-  },
-  previewCard: {
-    width: '100%', padding: 16, borderRadius: 16,
-    backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E5E7EB',
-    alignSelf: 'stretch', gap: 12,
-  },
-  previewTitle: {
-    color: '#7C3AED', fontFamily: FONTS.bold, fontSize: 10.5, letterSpacing: 1,
-  },
-  previewRow: { gap: 2 },
-  previewLabel: {
-    color: '#6B7280', fontFamily: FONTS.med, fontSize: 11,
-  },
-  previewVal: {
-    color: '#111827', fontFamily: FONTS.bold, fontSize: 13,
-  },
-});

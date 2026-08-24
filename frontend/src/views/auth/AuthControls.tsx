@@ -1,10 +1,10 @@
 /**
  * Reusable auth UI primitives matching HTML spec.
+ * Migrated to NativeWind className.
  */
 import React from 'react';
-import { View, Text, Pressable, TextInput, StyleSheet, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, TextInput, Platform, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { AC, FONTS } from './tokens';
 import { useRoleTheme } from './RoleTheme';
 
 // ─── Primary CTA button ─────────────────────────────────────────
@@ -30,8 +30,6 @@ export function PrimaryButton({
   accessibilityHint?: string;
 }) {
   const inactive = disabled || loading;
-  // Pull colours from RoleThemeContext (provided by AuthShell). Falls back to
-  // the default purple gradient when used outside of AuthShell.
   const { gradient } = useRoleTheme();
   return (
     <Pressable
@@ -42,20 +40,21 @@ export function PrimaryButton({
       accessibilityLabel={accessibilityLabel || label}
       accessibilityHint={accessibilityHint}
       accessibilityState={{ disabled: inactive, busy: loading }}
-      style={[btn.wrap, fullWidth ? { width: '100%' } : null, inactive && btn.disabled]}
+      className={`rounded-[14px] overflow-hidden ${fullWidth ? 'w-full' : ''} ${inactive ? 'opacity-50' : ''}`}
+      style={Platform.OS === 'web' ? { cursor: 'pointer' } : undefined}
     >
       <LinearGradient
         colors={gradient as any}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={btn.grad}
+        className="py-3.5 px-5 items-center justify-center flex-row gap-2"
       >
         {loading ? (
           <ActivityIndicator color="#fff" size="small" />
         ) : (
           <>
             {icon}
-            <Text style={btn.text}>{label}</Text>
+            <Text className="text-white font-display text-[15px] tracking-wide">{label}</Text>
           </>
         )}
       </LinearGradient>
@@ -63,28 +62,33 @@ export function PrimaryButton({
   );
 }
 
-const btn = StyleSheet.create({
-  wrap: { borderRadius: 14, overflow: 'hidden', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  disabled: { opacity: 0.5 },
-  grad: { paddingVertical: 14, paddingHorizontal: 20, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 },
-  text: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15, letterSpacing: 0.2 },
-});
-
 // ─── Outline button ─────────────────────────────────────────────
-export function OutlineButton({ label, onPress, icon, disabled, testID, accessibilityLabel, accessibilityHint }: { label: string; onPress?: () => void; icon?: React.ReactNode; disabled?: boolean; testID?: string; accessibilityLabel?: string; accessibilityHint?: string }) {
+export function OutlineButton({ label, onPress, icon, disabled, testID, accessibilityLabel, accessibilityHint }: {
+  label: string;
+  onPress?: () => void;
+  icon?: React.ReactNode;
+  disabled?: boolean;
+  testID?: string;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
+}) {
   return (
-    <Pressable onPress={disabled ? undefined : onPress} style={[ob.wrap, disabled && { opacity: 0.5 }]} testID={testID} accessible={true} accessibilityRole="button" accessibilityLabel={accessibilityLabel || label} accessibilityHint={accessibilityHint} accessibilityState={{ disabled }}>
-      {icon && <View style={ob.iconWrap}>{icon}</View>}
-      <Text style={ob.text}>{label}</Text>
+    <Pressable
+      onPress={disabled ? undefined : onPress}
+      className={`flex-row items-center py-3 px-[18px] rounded-xl border border-gray-200 bg-white relative ${disabled ? 'opacity-50' : ''}`}
+      testID={testID}
+      accessible={true}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel || label}
+      accessibilityHint={accessibilityHint}
+      accessibilityState={{ disabled }}
+      style={Platform.OS === 'web' ? { cursor: 'pointer' } : undefined}
+    >
+      {icon && <View className="absolute left-4">{icon}</View>}
+      <Text className="flex-1 text-center text-gray-900 font-bold text-[14px]">{label}</Text>
     </Pressable>
   );
 }
-
-const ob = StyleSheet.create({
-  wrap: { flexDirection: 'row', alignItems: 'center', paddingVertical: 13, paddingHorizontal: 18, borderRadius: 12, borderWidth: 1, borderColor: '#E5E7EB', backgroundColor: '#FFFFFF', position: 'relative', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  iconWrap: { position: 'absolute', left: 16 },
-  text: { flex: 1, textAlign: 'center', color: '#111827', fontFamily: FONTS.bold, fontSize: 14 },
-});
 
 // ─── Text Input ─────────────────────────────────────────────────
 export const AuthInput = React.forwardRef<TextInput, {
@@ -117,11 +121,21 @@ export const AuthInput = React.forwardRef<TextInput, {
   const [focused, setFocused] = React.useState(false);
   const { primary } = useRoleTheme();
   const focusBg = primary ? `${primary}10` : 'rgba(124,58,237,0.06)';
+
   return (
-    <View style={inp.wrap}>
-      {label ? <Text style={inp.label}>{typeof label === 'string' ? label : String(label ?? '')}</Text> : null}
-      <View style={[inp.row, focused && [inp.rowOn, { borderColor: primary, backgroundColor: focusBg }], error && inp.rowErr]}>
-        {leftIcon ? <View style={{ marginRight: 10 }}>{leftIcon}</View> : null}
+    <View className="w-full">
+      {label ? <Text className="text-gray-700 font-bold text-[13px] mb-2">{typeof label === 'string' ? label : String(label ?? '')}</Text> : null}
+      <View
+        className={`flex-row items-center bg-white border rounded-xl px-3.5 h-12 ${
+          focused
+            ? `border-[${primary || '#7C3AED'}]`
+            : error
+            ? 'border-red-500'
+            : 'border-gray-200'
+        }`}
+        style={focused ? { borderColor: primary, backgroundColor: focusBg } : undefined}
+      >
+        {leftIcon ? <View className="mr-2.5">{leftIcon}</View> : null}
         <TextInput
           ref={ref}
           value={value}
@@ -143,77 +157,40 @@ export const AuthInput = React.forwardRef<TextInput, {
           accessibilityLabel={accessibilityLabel || (typeof label === 'string' ? label : placeholder)}
           accessibilityHint={accessibilityHint}
           accessibilityState={{ disabled: !editable }}
-          style={[inp.input, !editable && { opacity: 0.6 }]}
+          className="flex-1 text-gray-900 font-body text-[14px]"
+          style={!editable ? { opacity: 0.6 } : Platform.OS === 'web' ? { outlineStyle: 'none' } as any : undefined}
         />
         {rightSlot}
       </View>
-      {error ? <Text style={inp.err} accessibilityLiveRegion="polite">{typeof error === 'string' ? error : (error as any)?.msg || (error as any)?.message || JSON.stringify(error)}</Text> : hint ? <Text style={inp.hint}>{hint}</Text> : null}
+      {error ? (
+        <Text className="text-red-500 font-bold text-[11.5px] mt-1.5" accessibilityLiveRegion="polite">
+          {typeof error === 'string' ? error : (error as any)?.msg || (error as any)?.message || JSON.stringify(error)}
+        </Text>
+      ) : hint ? (
+        <Text className="text-gray-500 font-body text-[11.5px] mt-1.5">{hint}</Text>
+      ) : null}
     </View>
   );
-});
-
-const inp = StyleSheet.create({
-  wrap: { width: '100%' },
-  label: { color: '#374151', fontFamily: FONTS.bold, fontSize: 13, marginBottom: 8 },
-  row: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, height: 48 },
-  rowOn: { borderColor: AC.primary, backgroundColor: 'rgba(124,58,237,0.06)' },
-  rowErr: { borderColor: AC.red },
-  input: { flex: 1, color: '#111827', fontFamily: FONTS.med, fontSize: 14, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
-  hint: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 11.5, marginTop: 6 },
-  err: { color: AC.red, fontFamily: FONTS.bold, fontSize: 11.5, marginTop: 6 },
 });
 
 // ─── Password Rules — real-time checklist ────────────────────────
 export function PasswordRules({ checks }: { checks: { met: boolean; label: string; key: string }[] }) {
   const allMet = checks.length > 0 && checks.every(c => c.met);
   if (allMet) return (
-    <View style={pr.secureContainer}>
-      <Text style={pr.secureText}>Secure Password</Text>
+    <View className="mt-0.5">
+      <Text className="text-green-600 font-bold text-[13px]">Secure Password</Text>
     </View>
   );
 
   return (
-    <View style={pr.wrap}>
-      <Text style={pr.title}>Password must contain : </Text>
+    <View className="bg-gray-50 rounded-[10px] border border-gray-200 p-3 gap-[7px] mt-2.5">
+      <Text className="text-gray-700 font-bold text-[13px] mb-1">Password must contain : </Text>
       {checks.map((c) => (
-        <View key={c.key} style={pr.row}>
-          <View style={[pr.dot, c.met ? pr.dotOk : pr.dotMiss]} />
-          <Text style={[pr.text, c.met ? pr.textOk : pr.textMiss]}>{c.label}</Text>
+        <View key={c.key} className="flex-row items-center gap-2">
+          <View className={`w-2 h-2 rounded-full ${c.met ? 'bg-green-600' : 'bg-gray-200'}`} />
+          <Text className={`font-body text-sm ${c.met ? 'text-green-600' : 'text-gray-400'}`}>{c.label}</Text>
         </View>
       ))}
     </View>
   );
 }
-
-const pr = StyleSheet.create({
-  wrap: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    padding: 12,
-    gap: 7,
-    marginTop: 10,
-  },
-  secureContainer: {
-    marginTop: 2,
-  },
-  title: {
-    color: '#374151',
-    fontFamily: FONTS.bold,
-    fontSize: 13,
-    marginBottom: 4,
-  },
-  secureText: {
-    color: '#16A34A',
-    fontFamily: FONTS.bold,
-    fontSize: 13,
-  },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  dot: { width: 8, height: 8, borderRadius: 4 },
-  dotOk: { backgroundColor: '#16A34A' },
-  dotMiss: { backgroundColor: '#E5E7EB' },
-  text: { fontFamily: FONTS.med, fontSize: 12 },
-  textOk: { color: '#16A34A' },
-  textMiss: { color: '#9CA3AF' },
-});

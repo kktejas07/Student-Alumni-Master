@@ -1,22 +1,10 @@
 // @ts-nocheck
 /**
  * Student Portal — left sidebar (Apple HIG migration, Slice 2A).
- *
- * Theme-aware via useTheme() — reads from the new ThemeProvider mounted in
- * StudentPortalRN.tsx. Falls back gracefully to dark theme outside the
- * provider. Brand purple is preserved as the active-pill gradient. All
- * existing animations (FadeIn cascade, PressScale, SparkIcon) retained.
- *
- * Responsive:
- *   • Tablet (md): collapses to 80px icon-only rail (no labels, tooltip
- *     on hover)
- *   • Desktop (lg+): full 240px expanded rail
- *   • Phone (< md): hidden — bottom-tab pattern would replace this on
- *     phone-class viewports (handled by FeaturePageShell embed mode +
- *     dashboards we ship later)
+ * Migrated to NativeWind className.
  */
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Platform, Pressable, Image } from 'react-native';
+import { View, Text, ScrollView, Platform, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { displayName, displayInitials } from '@/src/lib/portalHome';
@@ -38,7 +26,6 @@ import { FadeInView, PressScale, SparkIcon, PulseDot } from './motion';
 import { AgentKLauncher } from '@/src/views/web/agent-k/AgentKLauncher';
 import { SALogo } from '@/src/views/components';
 import { trackClick, logger as analyticsLogger } from '@/src/analytics';
-
 import { api } from '@/src/models/services/api';
 
 export type StudentNavId =
@@ -80,11 +67,7 @@ function EchoNavGroup({
   React.useEffect(() => {
     let mounted = true;
     api.listEchoShowcases()
-      .then((res) => {
-        if (mounted && res?.items && res.items.length > 0) {
-          setShowcases(res.items);
-        }
-      })
+      .then((res) => { if (mounted && res?.items && res.items.length > 0) setShowcases(res.items); })
       .catch(() => {});
     return () => { mounted = false; };
   }, []);
@@ -93,8 +76,7 @@ function EchoNavGroup({
   const firstSlug = showcases[0]?.slug || 'echo-showcase';
 
   return (
-    <View style={{ marginBottom: 2 }}>
-      {/* Group header row */}
+    <View className="mb-0.5">
       <Pressable
         onPress={collapsed ? () => onNav(firstSlug) : onToggle}
         style={({ hovered }: any) => [
@@ -118,24 +100,20 @@ function EchoNavGroup({
         <Zap size={16} color={isChildActive ? '#A5B4FC' : C.textSec} />
         {!collapsed && (
           <>
-            <Text style={{ fontFamily: TYPO.body600, fontSize: 13, flex: 1, color: isChildActive ? '#A5B4FC' : C.textSec }} numberOfLines={1}>
+            <Text className="font-body-semibold text-[13px] flex-1" style={{ color: isChildActive ? '#A5B4FC' : C.textSec }} numberOfLines={1}>
               ECHO Showcase
             </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <View style={{ backgroundColor: 'rgba(99,102,241,0.30)', borderRadius: 10, paddingHorizontal: 5, paddingVertical: 2 }}>
-                <Text style={{ fontFamily: TYPO.body700, fontSize: 9, color: '#A5B4FC', letterSpacing: 0.5 }}>CMS</Text>
+            <View className="flex-row items-center gap-1">
+              <View className="rounded-[10px] px-[5px] py-0.5" style={{ backgroundColor: 'rgba(99,102,241,0.30)' }}>
+                <Text className="font-body-bold text-[9px]" style={{ color: '#A5B4FC', letterSpacing: 0.5 }}>CMS</Text>
               </View>
-              {isOpen
-                ? <ChevronDown size={12} color={C.textSec} />
-                : <ChevronRight size={12} color={C.textSec} />
-              }
+              {isOpen ? <ChevronDown size={12} color={C.textSec} /> : <ChevronRight size={12} color={C.textSec} />}
             </View>
           </>
         )}
       </Pressable>
-      {/* Child items */}
       {isOpen && !collapsed && (
-        <View style={{ gap: 2 }}>
+        <View className="gap-0.5">
           {showcases.map((sc) => {
             const isSelected = active === sc.slug || active === `echo-showcase:${sc.slug}`;
             return (
@@ -143,11 +121,7 @@ function EchoNavGroup({
                 key={sc.slug}
                 onPress={() => onNav(sc.slug)}
                 style={({ hovered }: any) => [
-                  {
-                    flexDirection: 'row', alignItems: 'center', gap: 8,
-                    paddingLeft: 32, paddingRight: 11, paddingVertical: 8,
-                    borderRadius: 8, minHeight: 36,
-                  },
+                  { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 32, paddingRight: 11, paddingVertical: 8, borderRadius: 8, minHeight: 36 },
                   Platform.OS === 'web' ? { cursor: 'pointer' } as any : {},
                 ]}
                 nativeID={`student-nav-${sc.slug}`}
@@ -159,24 +133,16 @@ function EchoNavGroup({
                   <LinearGradient
                     colors={[PALETTE.violet, PALETTE.violetD] as any}
                     start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                    style={{
-                      flexDirection: 'row', alignItems: 'center', gap: 8,
-                      flex: 1, paddingHorizontal: 10, paddingVertical: 7,
-                      borderRadius: 8,
-                      ...(Platform.OS === 'web' ? { boxShadow: PALETTE.violetGlow } as any : {}),
-                    }}
+                    className="flex-row items-center gap-2 flex-1 px-2.5 py-[7px] rounded-lg"
+                    style={Platform.OS === 'web' ? { boxShadow: PALETTE.violetGlow } as any : {}}
                   >
-                    <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: '#fff', opacity: 0.8 }} />
-                    <Text style={{ fontFamily: TYPO.body600, fontSize: 12.5, color: '#fff', flex: 1 }} numberOfLines={1}>
-                      {sc.title}
-                    </Text>
+                    <View className="w-1 h-1 rounded-sm bg-white opacity-80" />
+                    <Text className="font-body-semibold text-[12.5px] text-white flex-1" numberOfLines={1}>{sc.title}</Text>
                   </LinearGradient>
                 ) : (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: C.dim }} />
-                    <Text style={{ fontFamily: TYPO.body500, fontSize: 12.5, color: C.textSec }} numberOfLines={1}>
-                      {sc.title}
-                    </Text>
+                  <View className="flex-row items-center gap-2">
+                    <View className="w-1 h-1 rounded-sm" style={{ backgroundColor: C.dim }} />
+                    <Text className="font-body-medium text-[12.5px]" style={{ color: C.textSec }} numberOfLines={1}>{sc.title}</Text>
                   </View>
                 )}
               </Pressable>
@@ -188,6 +154,7 @@ function EchoNavGroup({
   );
 }
 
+/* ── Main Sidebar ──────────────────────────────────────────────────────────── */
 export function Sidebar({
   active, onNav, onLogout,
 }: { active: StudentNavId; onNav: (id: StudentNavId) => void; onLogout: () => void }) {
@@ -211,7 +178,6 @@ export function Sidebar({
     : (gy ? `Class of ${gy}` : user?.school_info?.class_or_year || user?.year || 'Student');
   const saId: string = user?.unique_id || '—';
 
-  // Adaptive width: collapsed icon-rail on md, OR forced-collapsed via store toggle.
   const userCollapsed = useSidebarStore((s) => s.isCollapsed);
   const toggleCollapse = useSidebarStore((s) => s.toggle);
   const hydrate = useSidebarStore((s) => s.hydrate);
@@ -220,24 +186,19 @@ export function Sidebar({
   const collapsed = bp.bp === 'md' || userCollapsed;
   const railWidth = collapsed ? 76 : 240;
 
-  // Hide the sidebar entirely on phone — content fills the viewport.
-  // (Phase 3 will replace this with a bottom-tab bar.)
   if (bp.isPhone) return null;
 
-  // Token resolution — FinTax360 glass-dark theme overrides.
-  // The sidebar is a translucent navy rail with a violet accent.
   const C = {
-    bg:      'rgba(10,15,30,0.72)',       // translucent navy (spec value)
-    border:  PALETTE.glassBorder,
-    text:    PALETTE.text,
+    bg: 'rgba(10,15,30,0.72)',
+    border: PALETTE.glassBorder,
+    text: PALETTE.text,
     textSec: PALETTE.muted,
     textTer: PALETTE.dim,
-    cardBg:  PALETTE.glassSoft,
-    accent:  PALETTE.violet,
-    danger:  PALETTE.rose,
+    cardBg: PALETTE.glassSoft,
+    accent: PALETTE.violet,
+    danger: PALETTE.rose,
   };
 
-  // Web-only frosted-glass effect for the rail.
   const railGlass = Platform.OS === 'web' ? ({
     backdropFilter: 'blur(24px) saturate(180%)',
     WebkitBackdropFilter: 'blur(24px) saturate(160%)',
@@ -245,17 +206,20 @@ export function Sidebar({
   } as any) : {};
 
   return (
-    <View style={[s.aside, { width: railWidth, backgroundColor: C.bg, borderRightColor: C.border }, railGlass]}>
+    <View
+      className="h-full border-r"
+      style={[{ width: railWidth, backgroundColor: C.bg, borderRightColor: C.border, borderRightWidth: StyleSheet.hairlineWidth }, railGlass]}
+    >
       {/* Brand */}
       <FadeInView delay={20}>
-        <View style={[s.brand, collapsed && { justifyContent: 'center' }]} nativeID="student-brand">
+        <View className="flex-row items-center gap-3 mb-[18px] px-1 relative" style={collapsed ? { justifyContent: 'center' } : {}}>
           <Pressable onPress={() => collapsed && toggleCollapse()} style={collapsed && Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}}>
             <SALogo size={32} variant="gradient" />
           </Pressable>
           {!collapsed && (
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={[s.brandTitle, { color: C.text }]}>Student Alumni</Text>
-              <Text style={[s.brandSub, { color: C.textSec }]}>Web Dashboard</Text>
+            <View className="flex-1 min-w-0">
+              <Text className="font-display-bold text-sm tracking-tight" style={{ color: C.text }}>Student Alumni</Text>
+              <Text className="font-body-medium text-[10.5px]" style={{ color: C.textSec }}>Web Dashboard</Text>
             </View>
           )}
           {!collapsed && (
@@ -265,18 +229,12 @@ export function Sidebar({
               accessibilityLabel={userCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               aria-expanded={!userCollapsed}
               style={({ hovered }: any) => ([
-                s.collapseBtn,
-                {
-                  borderColor: C.border,
-                  backgroundColor: hovered && Platform.OS === 'web' ? C.cardBg : 'transparent',
-                }
+                'w-6 h-6 rounded-full border items-center justify-center',
+                { borderColor: C.border, backgroundColor: hovered && Platform.OS === 'web' ? C.cardBg : 'transparent' },
+                Platform.OS === 'web' ? { cursor: 'pointer', transitionDuration: '150ms' } as any : {},
               ])}
             >
-              <MaterialCommunityIcons
-                name={userCollapsed ? 'chevron-right' : 'chevron-left'}
-                size={14}
-                color={C.textSec}
-              />
+              <MaterialCommunityIcons name={userCollapsed ? 'chevron-right' : 'chevron-left'} size={14} color={C.textSec} />
             </Pressable>
           )}
         </View>
@@ -285,9 +243,9 @@ export function Sidebar({
       {/* Profile card */}
       {!collapsed && (
         <FadeInView delay={70}>
-          <View style={[s.profileCard, { alignItems: 'center', ...(Platform.OS === 'web' ? { cursor: 'default' } : {}) }]}>
-            <Text numberOfLines={1} style={[s.profileName, { color: C.text, textAlign: 'center' }]}>{fullName}</Text>
-            <Text style={[s.profileYear, { color: C.textSec, textAlign: 'center', marginTop: 2 }]}>{yearLabel}</Text>
+          <View className="px-1 py-2 mb-3 items-center" style={Platform.OS === 'web' ? { cursor: 'default' } : {}}>
+            <Text numberOfLines={1} className="font-sf-semibold text-[13px] text-center" style={{ color: C.text }}>{fullName}</Text>
+            <Text className="font-sf-medium text-[11px] text-center mt-0.5" style={{ color: C.textSec }}>{yearLabel}</Text>
           </View>
         </FadeInView>
       )}
@@ -295,24 +253,28 @@ export function Sidebar({
       {/* Student card pill */}
       {!collapsed && (
         <FadeInView delay={120}>
-          <PressScale style={[s.idCardPill, { backgroundColor: C.cardBg, borderColor: C.border }]} onPress={() => router.push('/id-card')}>
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={[s.idCardLabel, { color: C.textSec }]}>My Student Card</Text>
-              <Text style={[s.idCardNumber, { color: C.accent }]}>{saId}</Text>
+          <PressScale
+            className="flex-row items-center gap-2 border rounded-lg px-3 py-2 mb-3"
+            style={{ backgroundColor: C.cardBg, borderColor: C.border, ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {}) }}
+            onPress={() => router.push('/id-card')}
+          >
+            <View className="flex-1 min-w-0">
+              <Text className="font-sf-bold text-[10px]" style={{ color: C.textSec, letterSpacing: 0.3 }}>My Student Card</Text>
+              <Text className="font-sf-extrabold text-[11.5px] mt-px" style={{ color: C.accent, letterSpacing: 0.5 }}>{saId}</Text>
             </View>
             <ExternalLink size={13} color={C.accent} />
           </PressScale>
         </FadeInView>
       )}
 
-      {/* Agent K launcher — sits ABOVE the main nav */}
+      {/* Agent K launcher */}
       <FadeInView delay={150}>
         <AgentKLauncher collapsed={collapsed} />
       </FadeInView>
 
       {/* Nav */}
       <ScrollView
-        style={{ flex: 1 }}
+        className="flex-1"
         contentContainerStyle={{ paddingTop: SP.sm, paddingBottom: SP.sm }}
         showsVerticalScrollIndicator={false}
         accessibilityRole={Platform.OS === 'web' ? ('navigation' as any) : undefined}
@@ -320,17 +282,8 @@ export function Sidebar({
       >
         {NAV.map(({ id, label, Icon, spark }, i) => {
           const isActive = id === active;
-          // Insert ECHO Showcase group after 'internships'
           const echoGroup = id === 'network' ? (
-            <EchoNavGroup
-              key="echo-group"
-              active={active}
-              collapsed={collapsed}
-              isOpen={echoOpen}
-              onToggle={() => setEchoOpen((o) => !o)}
-              onNav={onNav}
-              C={C}
-            />
+            <EchoNavGroup key="echo-group" active={active} collapsed={collapsed} isOpen={echoOpen} onToggle={() => setEchoOpen((o) => !o)} onNav={onNav} C={C} />
           ) : null;
           return (
             <React.Fragment key={id}>
@@ -353,17 +306,30 @@ export function Sidebar({
                     <LinearGradient
                       colors={[PALETTE.violet, PALETTE.violetD] as any}
                       start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                      style={[s.navItem, s.navItemActive, collapsed && { justifyContent: 'center', paddingHorizontal: 0 },
-                              Platform.OS === 'web' ? ({ boxShadow: PALETTE.violetGlow } as any) : {}]}
+                      className="flex-row items-center gap-[11px] rounded-[9px] min-h-[40px] mb-0.5"
+                      style={{
+                        paddingHorizontal: collapsed ? 0 : 11,
+                        paddingVertical: 9,
+                        justifyContent: collapsed ? 'center' : 'flex-start',
+                        ...(Platform.OS === 'web' ? { boxShadow: PALETTE.violetGlow } as any : {}),
+                      }}
                     >
                       {spark ? <SparkIcon Icon={Icon} size={16} color="#fff" /> : <Icon size={16} color="#fff" />}
-                      {!collapsed && <Text style={[s.navLabel, s.navLabelActive]} numberOfLines={1}>{label}</Text>}
-                      {!collapsed && <View style={s.activeDot} />}
+                      {!collapsed && <Text className="font-body-semibold text-[13px] flex-1 text-white" numberOfLines={1}>{label}</Text>}
+                      {!collapsed && <View className="w-[5px] h-[5px] rounded-full bg-white opacity-90" />}
                     </LinearGradient>
                   ) : (
-                    <View style={[s.navItem, collapsed && { justifyContent: 'center', paddingHorizontal: 0 }]}>
+                    <View
+                      className="flex-row items-center gap-[11px] rounded-[9px] min-h-[40px] mb-0.5"
+                      style={{
+                        paddingHorizontal: collapsed ? 0 : 11,
+                        paddingVertical: 9,
+                        justifyContent: collapsed ? 'center' : 'flex-start',
+                        ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
+                      }}
+                    >
                       {spark ? <SparkIcon Icon={Icon} size={16} color={C.textSec} /> : <Icon size={16} color={C.textSec} />}
-                      {!collapsed && <Text style={[s.navLabel, { color: C.textSec }]} numberOfLines={1}>{label}</Text>}
+                      {!collapsed && <Text className="font-body-semibold text-[13px] flex-1" style={{ color: C.textSec }} numberOfLines={1}>{label}</Text>}
                     </View>
                   )}
                 </PressScale>
@@ -376,71 +342,15 @@ export function Sidebar({
       {/* Logout */}
       <PressScale
         onPress={onLogout}
-        style={[s.logoutRow, collapsed && { justifyContent: 'center', paddingHorizontal: 0 }]}
+        className="flex-row items-center gap-2 rounded-[9px] mt-1 px-[11px] py-[9px]"
+        style={collapsed ? { justifyContent: 'center', paddingHorizontal: 0, ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {}) } : Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}}
         accessibilityLabel="Log out of your account"
         testID="logout-button"
         accessibilityHint="Signs you out and returns to the welcome screen"
       >
         <LogOut size={14} color={C.danger} />
-        {!collapsed && <Text style={[s.logoutText, { color: C.danger }]}>Log out</Text>}
+        {!collapsed && <Text className="font-sf-semibold text-[13px]" style={{ color: C.danger }}>Log out</Text>}
       </PressScale>
     </View>
   );
 }
-
-const s = StyleSheet.create({
-  aside: {
-    height: '100%' as any, borderRightWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: SP.md, paddingTop: SP.base, paddingBottom: SP.md,
-  },
-  brand: { flexDirection: 'row', alignItems: 'center', gap: SP.md, marginBottom: 18, paddingHorizontal: SP.xs, position: 'relative' },
-  collapseBtn: {
-    width: 24, height: 24, borderRadius: 12, borderWidth: 1,
-    alignItems: 'center', justifyContent: 'center',
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '150ms' } as any) : {}),
-  },
-  brandLogo: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-  brandLogoText: { color: '#fff', fontFamily: TYPO.display800, fontSize: 12, letterSpacing: 0.5 },
-  brandTitle: { fontFamily: TYPO.display700, fontSize: 14, letterSpacing: -0.3 },
-  brandSub: { fontFamily: TYPO.body500, fontSize: 10.5 },
-
-  profileCard: {
-    paddingHorizontal: SP.xs, paddingVertical: SP.sm, marginBottom: SP.md,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  statusDotWrap: { position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
-  profileName: { fontFamily: FONT_FAMILY, fontWeight: '600', fontSize: 13 },
-  profileYear: { fontFamily: FONT_FAMILY, fontWeight: '500', fontSize: 11 },
-
-  idCardPill: {
-    flexDirection: 'row', alignItems: 'center', gap: SP.sm,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADII.md, paddingHorizontal: SP.md, paddingVertical: SP.sm, marginBottom: SP.md,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  idCardLabel: { fontFamily: FONT_FAMILY, fontWeight: '700', fontSize: 10, letterSpacing: 0.3 },
-  idCardNumber: { fontFamily: FONT_FAMILY, fontWeight: '800', fontSize: 11.5, letterSpacing: 0.5, marginTop: 1 },
-
-  navItem: {
-    flexDirection: 'row', alignItems: 'center', gap: 11,
-    paddingHorizontal: 11, paddingVertical: 9, marginBottom: 2,
-    borderRadius: RADII.sm, minHeight: 40,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  navItemActive: {
-    ...(Platform.OS === 'web' ? ({
-      boxShadow: '0 6px 18px rgba(95,37,159,0.45), inset 0 1px 0 rgba(255,255,255,0.18)',
-    } as any) : { shadowColor: '#5F259F', shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } as any }),
-  },
-  navLabel: { fontFamily: TYPO.body600, fontSize: 13, flex: 1 },
-  navLabelActive: { color: '#fff' },
-  activeDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#fff', opacity: 0.9 },
-
-  logoutRow: {
-    flexDirection: 'row', alignItems: 'center', gap: SP.sm,
-    paddingHorizontal: 11, paddingVertical: 9, borderRadius: RADII.sm,
-    marginTop: SP.xs,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  logoutText: { fontFamily: FONT_FAMILY, fontWeight: '600', fontSize: 13 },
-});

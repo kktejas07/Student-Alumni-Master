@@ -13,7 +13,7 @@
  *   • Persists `current_course`, `academic_year`, `stream`, `board` for promotions logic
  */
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Switch } from 'react-native';
+import { View, Text, Switch } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useOnboardingStore } from '@/src/viewmodels/stores/onboardingStore';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
@@ -33,14 +33,12 @@ const INSTITUTION_TYPES: { id: InstitutionType; label: string }[] = [
 
 const CURRENT_YEAR = new Date().getFullYear();
 
-// Student-specific options
 const STUDENT_COURSE_OPTIONS = [
   { id: '11th',  label: '11th'  },
   { id: '12th',  label: '12th'  },
   { id: 'other', label: 'Other' },
 ];
 const ACADEMIC_YEAR_OPTIONS: DropdownOption[] = (() => {
-  // 5 past, current, 5 future academic years (e.g., 2023-24 … 2030-31)
   const list: DropdownOption[] = [];
   for (let i = -5; i <= 5; i++) {
     const a = CURRENT_YEAR + i;
@@ -50,13 +48,11 @@ const ACADEMIC_YEAR_OPTIONS: DropdownOption[] = (() => {
   return list;
 })();
 const STREAM_OPTIONS: DropdownOption[] = [
-  // Andhra/Telangana intermediate codes (most common for Inter students)
   { value: 'mpc',         label: 'MPC',                   hint: 'Maths · Physics · Chemistry' },
   { value: 'bipc',        label: 'BiPC',                  hint: 'Biology · Physics · Chemistry' },
   { value: 'mec',         label: 'MEC',                   hint: 'Maths · Economics · Commerce' },
   { value: 'cec',         label: 'CEC',                   hint: 'Civics · Economics · Commerce' },
   { value: 'hec',         label: 'HEC',                   hint: 'History · Economics · Civics' },
-  // CBSE / ICSE / generic +1/+2 streams
   { value: 'science_pcm', label: 'Science (PCM)',         hint: 'Physics · Chemistry · Maths' },
   { value: 'science_pcb', label: 'Science (PCB)',         hint: 'Physics · Chemistry · Biology' },
   { value: 'science_pcmb',label: 'Science (PCMB)',        hint: 'Maths + Biology combined' },
@@ -67,7 +63,6 @@ const STREAM_OPTIONS: DropdownOption[] = [
   { value: 'other',       label: 'Other' },
 ];
 
-// Engineering branches — used when type=college / university
 const ENGINEERING_STREAM_OPTIONS: DropdownOption[] = [
   { value: 'cse',          label: 'Computer Science & Engineering',   hint: 'CSE / CS' },
   { value: 'it',           label: 'Information Technology',           hint: 'IT' },
@@ -99,7 +94,6 @@ const ENGINEERING_STREAM_OPTIONS: DropdownOption[] = [
   { value: 'other',        label: 'Other' },
 ];
 
-// Academic year for college/university — 30 past + current + 10 future
 const COLLEGE_ACADEMIC_YEAR_OPTIONS: DropdownOption[] = (() => {
   const list: DropdownOption[] = [];
   for (let i = 30; i >= 1; i--) list.push({ value: String(CURRENT_YEAR - i), label: String(CURRENT_YEAR - i) });
@@ -117,7 +111,6 @@ const BOARD_OPTIONS: DropdownOption[] = [
   { value: 'other',       label: 'Other' },
 ];
 
-// Alumni / Mentor presets — Engineering-only per product spec
 const PASSOUT_DEGREE_PRESETS = [
   'B.Tech', 'B.E.', 'M.Tech', 'M.E.',
   'Diploma (Engg)', 'B.Sc (Engg)', 'PhD (Engg)',
@@ -143,18 +136,13 @@ export default function SchoolInfoScreen() {
   const isStudent = role === 'student';
   const isPassedOut = role === 'alumni' || role === 'mentor';
   const instType = school_info.institution_type || 'university';
-  // Stage flags — drive which fields render. For students we default to
-  // 'university' / higher-ed track since the app is engineering-focused.
   const isInter      = isStudent && instType === 'school';
   const isHigherEd   = isStudent && (instType !== 'school');
 
-  // On first mount, default the institution_type so downstream validation
-  // passes (we removed the user-facing Type of Institution chips per spec).
   useEffect(() => {
     if (!school_info.institution_type) {
       setSchoolInfo({ institution_type: 'university' });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const validate = (): boolean => {
@@ -169,7 +157,7 @@ export default function SchoolInfoScreen() {
         return false;
       }
       if (s.current_course === 'other') {
-        setError('We currently support 11th and 12th students only. You’ll be able to register once you reach Class 11.');
+        setError("We currently support 11th and 12th students only. You'll be able to register once you reach Class 11.");
         return false;
       }
       if (!s.academic_year) {
@@ -212,7 +200,6 @@ export default function SchoolInfoScreen() {
       institution_name: pick.name,
       institution_logo: pick.logo_url,
       institution_domain: pick.domain,
-      // Only auto-fill if user hasn't toggled on Manual mode
       ...(school_info.address_manual ? {} : {
         city: pick.city || school_info.city,
         state: pick.state || school_info.state,
@@ -243,22 +230,21 @@ export default function SchoolInfoScreen() {
     >
       {isInter && (
         <DarkInfoCard tone="warning">
-          <Text style={styles.warnText}>
+          <Text className="text-amber font-body-semibold text-xs" style={{ lineHeight: 18 }}>
             {'⚠️'}  Students must be in Class 11 (+1) or Class 12 (+2) to register.
           </Text>
         </DarkInfoCard>
       )}
 
-      {/* ── Institution Name (logo + autocomplete) ─────────── */}
-      <Text style={styles.section}>Institution name</Text>
-      <View style={styles.institutionRow}>
+      <Text className="text-xs font-body-bold tracking-widest uppercase mt-1 mb-2" style={{ color: '#6B7280' }}>Institution name</Text>
+      <View className="flex-row items-start gap-3 mb-3.5 relative" style={{ zIndex: 50 }}>
         <InstitutionLogo
           name={school_info.institution_name || ''}
           domain={school_info.institution_domain}
           logoUrl={school_info.institution_logo}
           size={56}
         />
-        <View style={{ flex: 1, minWidth: 0 }}>
+        <View className="flex-1" style={{ minWidth: 0 }}>
           <InstitutionAutocomplete
             value={school_info.institution_name || ''}
             onChangeText={(v) => setSchoolInfo({ institution_name: v })}
@@ -269,11 +255,10 @@ export default function SchoolInfoScreen() {
         </View>
       </View>
 
-      {/* ── Inter (school) student: 11/12 + Stream + Board ───── */}
       {isInter && (
         <>
-          <Text style={styles.section}>Current course</Text>
-          <View style={styles.chipRow}>
+          <Text className="text-xs font-body-bold tracking-widest uppercase mt-1 mb-2" style={{ color: '#6B7280' }}>Current course</Text>
+          <View className="flex-row flex-wrap gap-2 mb-3.5">
             {STUDENT_COURSE_OPTIONS.map((c) => (
               <DarkChip
                 key={c.id}
@@ -289,7 +274,6 @@ export default function SchoolInfoScreen() {
             ))}
           </View>
 
-          {/* Academic Year (mandatory dropdown) */}
           <Dropdown
             label="Academic year"
             required
@@ -300,7 +284,6 @@ export default function SchoolInfoScreen() {
             testID="school-academic-year"
           />
 
-          {/* Stream (optional dropdown) */}
           <Dropdown
             label="Stream"
             optional
@@ -311,7 +294,6 @@ export default function SchoolInfoScreen() {
             testID="school-stream"
           />
 
-          {/* Board (optional dropdown) */}
           <Dropdown
             label="Board"
             optional
@@ -324,10 +306,8 @@ export default function SchoolInfoScreen() {
         </>
       )}
 
-      {/* ── College / University student: Year + Engineering Stream ─── */}
       {isHigherEd && (
         <>
-          {/* Academic Year (30 past + 10 future) */}
           <Dropdown
             label="Academic year"
             required
@@ -340,7 +320,6 @@ export default function SchoolInfoScreen() {
             testID="school-academic-year"
           />
 
-          {/* Engineering Stream — MANDATORY */}
           <Dropdown
             label="Stream / Branch"
             required
@@ -353,17 +332,16 @@ export default function SchoolInfoScreen() {
         </>
       )}
 
-      {/* ── Alumni / Mentor: Degree + Year ─────────────────── */}
       {isPassedOut && (
         <>
-          <Text style={styles.section}>Pass-out degree</Text>
+          <Text className="text-xs font-body-bold tracking-widest uppercase mt-1 mb-2" style={{ color: '#6B7280' }}>Pass-out degree</Text>
           <WebField
             placeholder="e.g., B.Tech, MBA, B.Sc"
             value={school_info.degree || ''}
             onChangeText={(v: string) => setSchoolInfo({ degree: v })}
             testID="school-degree-input"
           />
-          <View style={[styles.chipRow, { marginTop: -4, marginBottom: 14 }]}>
+          <View className="flex-row flex-wrap gap-2 mb-3.5" style={{ marginTop: -4 }}>
             {PASSOUT_DEGREE_PRESETS.map((d) => (
               <DarkChip
                 key={d}
@@ -404,11 +382,10 @@ export default function SchoolInfoScreen() {
         </>
       )}
 
-      {/* ── Address (auto / manual) ────────────────────────── */}
-      <View style={styles.addressHeader}>
-        <Text style={[styles.section, { marginBottom: 0 }]}>Address</Text>
-        <View style={styles.toggleRow}>
-          <Text style={styles.toggleLabel}>Edit manually</Text>
+      <View className="flex-row items-center justify-between mt-1 mb-2">
+        <Text className="text-xs font-body-bold tracking-widest uppercase" style={{ color: '#6B7280', marginBottom: 0 }}>Address</Text>
+        <View className="flex-row items-center gap-2">
+          <Text className="font-body-semibold" style={{ color: '#6B7280', fontSize: 11.5, letterSpacing: 0.4 }}>Edit manually</Text>
           <Switch
             value={!!school_info.address_manual}
             onValueChange={toggleManualAddress}
@@ -428,15 +405,15 @@ export default function SchoolInfoScreen() {
             onChangeText={(v: string) => setSchoolInfo({ address_line: v })}
             testID="school-address-line"
           />
-          <View style={{ flexDirection: 'row', gap: 12 }}>
-            <View style={{ flex: 1 }}>
+          <View className="flex-row gap-3">
+            <View className="flex-1">
               <WebField label="City" placeholder="Bangalore"
                 value={school_info.city || ''}
                 onChangeText={(v: string) => setSchoolInfo({ city: v })}
                 testID="school-city-input"
               />
             </View>
-            <View style={{ flex: 1 }}>
+            <View className="flex-1">
               <WebField label="State" placeholder="Karnataka"
                 value={school_info.state || ''}
                 onChangeText={(v: string) => setSchoolInfo({ state: v })}
@@ -444,87 +421,40 @@ export default function SchoolInfoScreen() {
               />
             </View>
           </View>
-          <Text style={styles.hint}>
+          <Text className="font-body mt-1" style={{ color: 'rgba(255,255,255,0.40)', fontSize: 11.5 }}>
             {'✏️'}  Manual mode — fill in the address yourself.
           </Text>
         </>
       ) : (
-        <View style={styles.addressCard}>
+        <View className="bg-bg2 border border-glass-border rounded-xl p-3.5 mb-3.5">
           {school_info.address_line || school_info.city || school_info.state ? (
             <>
               {!!school_info.address_line && (
-                <Text style={styles.addressLine} numberOfLines={2}>
+                <Text className="font-body-semibold mb-1" style={{ color: '#111827', fontSize: 13, lineHeight: 18 }} numberOfLines={2}>
                   {school_info.address_line}
                 </Text>
               )}
-              <Text style={styles.addressCityState}>
+              <Text className="font-body-semibold mb-1.5" style={{ color: 'rgba(255,255,255,0.70)', fontSize: 12.5 }}>
                 {[school_info.city, school_info.state].filter(Boolean).join(', ')
                   || 'City & state will appear here'}
               </Text>
-              <Text style={styles.hint}>
-                {'✨'}  Auto-filled from the institution. Toggle “Edit manually” to override.
+              <Text className="font-body mt-1" style={{ color: 'rgba(255,255,255,0.40)', fontSize: 11.5 }}>
+                {'✨'}  Auto-filled from the institution. Toggle "Edit manually" to override.
               </Text>
             </>
           ) : (
-            <Text style={styles.addressEmpty}>
-              Pick an institution above and we’ll auto-fill the address.
+            <Text className="text-dim font-body" style={{ fontSize: 12.5 }}>
+              Pick an institution above and we'll auto-fill the address.
             </Text>
           )}
         </View>
       )}
 
-      {error && <Text style={styles.error}>{error}</Text>}
+      {error && (
+        <Text className="text-rose font-body-semibold rounded-lg px-3 py-2 mt-1" style={{ fontSize: 13, backgroundColor: 'rgba(220,38,38,0.15)', borderColor: 'rgba(252,165,165,0.3)', borderWidth: 1 }}>
+          {error}
+        </Text>
+      )}
     </OnboardingShell>
   );
 }
-
-const styles = StyleSheet.create({
-  section: {
-    color: '#6B7280', fontFamily: 'DMSans_700Bold',
-    fontSize: 11, letterSpacing: 1, textTransform: 'uppercase',
-    marginTop: 4, marginBottom: 8,
-  },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
-  warnText: { color: '#FCD34D', fontFamily: 'DMSans_500Medium', fontSize: 12.5, lineHeight: 18 },
-
-  institutionRow: {
-    flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 14,
-    // critical: parent must reserve room for the dropdown overlay
-    zIndex: 50, position: 'relative',
-  },
-
-  addressHeader: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    marginTop: 4, marginBottom: 8,
-  },
-  toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  toggleLabel: {
-    color: '#6B7280', fontFamily: 'DMSans_500Medium',
-    fontSize: 11.5, letterSpacing: 0.4,
-  },
-
-  addressCard: {
-    backgroundColor: '#F9FAFB',
-    borderColor: '#E5E7EB', borderWidth: 1, borderRadius: 12,
-    padding: 14, marginBottom: 14,
-  },
-  addressLine: {
-    color: '#111827', fontFamily: 'DMSans_500Medium', fontSize: 13, lineHeight: 18,
-    marginBottom: 4,
-  },
-  addressCityState: {
-    color: 'rgba(255,255,255,0.70)', fontFamily: 'DMSans_500Medium', fontSize: 12.5,
-    marginBottom: 6,
-  },
-  addressEmpty: {
-    color: '#9CA3AF', fontFamily: 'DMSans_400Regular', fontSize: 12.5,
-  },
-
-  hint: { color: 'rgba(255,255,255,0.40)', fontFamily: 'DMSans_400Regular', fontSize: 11.5, marginTop: 4 },
-  error: {
-    color: '#FCA5A5', fontFamily: 'DMSans_500Medium', fontSize: 13,
-    backgroundColor: 'rgba(220,38,38,0.15)',
-    borderColor: 'rgba(252,165,165,0.3)', borderWidth: 1,
-    paddingHorizontal: 12, paddingVertical: 9, borderRadius: 8, marginTop: 4,
-  },
-});

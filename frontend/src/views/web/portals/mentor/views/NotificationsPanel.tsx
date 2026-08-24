@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet, Platform } from 'react-native';
+import { View, Text, Pressable, ScrollView, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { MC, FONTS } from '../tokens';
 import { useToast } from '@/src/views/components';
@@ -37,7 +37,6 @@ export function NotificationsPanel({
   const [activeFilter, setActiveFilter] = useState<'all' | 'unread' | 'booking' | 'review' | 'payment'>('all');
   const [dismissedIds, setDismissedIds] = useState<string[]>([]);
 
-  // Map backend notifications to NotificationItem.
   const list = useMemo(() => {
     if (!Array.isArray(notifications)) return [];
     return notifications
@@ -126,7 +125,6 @@ export function NotificationsPanel({
 
   const unreadCount = useMemo(() => list.filter((n) => n.unread).length, [list]);
 
-  // Mark a single notification read and dismiss locally.
   const handleDismiss = async (id: string) => {
     setDismissedIds((prev) => [...prev, id]);
     try {
@@ -141,7 +139,6 @@ export function NotificationsPanel({
     }
   };
 
-  // Mark all notifications read.
   const handleMarkAllRead = async () => {
     try {
       await request('/notifications/mark-read', {
@@ -155,7 +152,6 @@ export function NotificationsPanel({
     }
   };
 
-  // Dismiss single notification, close panel, and navigate.
   const handleAction = async (item: NotificationItem) => {
     try {
       await request('/notifications/dismiss', {
@@ -185,7 +181,6 @@ export function NotificationsPanel({
     } catch (e: any) {
       toast.error('Error', e.message || 'Failed to perform action.');
     }
-
   };
 
   const filteredList = useMemo(() => {
@@ -199,29 +194,29 @@ export function NotificationsPanel({
   }, [list, activeFilter]);
 
   return (
-    <View style={s.drawer}>
+    <View className="w-[360px] h-full bg-card border-l border-glass-border p-4 gap-4" style={{ zIndex: 9999 }}>
       {/* Header */}
-      <View style={s.header}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Text style={s.headerTitle}>Notifications</Text>
+      <View className="flex-row items-center justify-between">
+        <View className="flex-row items-center gap-2">
+          <Text className="text-white font-display-bold text-[16px]">Notifications</Text>
           {unreadCount > 0 && (
-            <View style={s.unreadBadge}>
-              <Text style={s.unreadBadgeText}>{unreadCount} new</Text>
+            <View className="rounded-[12px] px-2 py-0.5 border" style={{ backgroundColor: MC.red + '22', borderColor: MC.red + '50' }}>
+              <Text className="text-[#FC5C5C] font-body-bold text-[10px]">{unreadCount} new</Text>
             </View>
           )}
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <Pressable onPress={handleMarkAllRead} style={Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}}>
-            <Text style={s.markReadText}>Mark all read</Text>
+        <View className="flex-row items-center gap-2.5">
+          <Pressable onPress={handleMarkAllRead} style={Platform.OS === 'web' ? { cursor: 'pointer', marginRight: 4 } as any : undefined}>
+            <Text className="text-tealP font-body-bold text-[12.5px]">Mark all read</Text>
           </Pressable>
-          <Pressable onPress={onClose} style={s.closeBtn}>
-            <Text style={s.closeBtnText}>&times;</Text>
+          <Pressable onPress={onClose} className="w-[26px] h-[26px] rounded-[13px] items-center justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.04)', ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}) }}>
+            <Text className="text-muted text-base leading-4 text-center">&times;</Text>
           </Pressable>
         </View>
       </View>
 
       {/* Filter Tabs */}
-      <View style={s.tabsContainer}>
+      <View className="h-8">
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
           {[
             { key: 'all', label: 'All' },
@@ -235,9 +230,13 @@ export function NotificationsPanel({
               <Pressable
                 key={tab.key}
                 onPress={() => setActiveFilter(tab.key as any)}
-                style={[s.tab, active && s.tabActive]}
+                className="px-3 h-7 rounded-[14px] items-center justify-center border"
+                style={active
+                  ? { backgroundColor: MC.tealP + '14', borderColor: MC.tealP }
+                  : { backgroundColor: 'rgba(255,255,255,0.03)', borderColor: MC.border, ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}) }
+                }
               >
-                <Text style={[s.tabText, active && s.tabTextActive]}>{tab.label}</Text>
+                <Text className="font-body-bold text-[11px]" style={{ color: active ? MC.tealP : MC.muted }}>{tab.label}</Text>
               </Pressable>
             );
           })}
@@ -245,39 +244,37 @@ export function NotificationsPanel({
       </View>
 
       {/* List */}
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: 12, paddingBottom: 16 }}>
+      <ScrollView className="flex-1" contentContainerStyle={{ gap: 12, paddingBottom: 16 }}>
         {filteredList.length === 0 ? (
-          <View style={s.emptyState}>
+          <View className="items-center justify-center py-[60px] gap-2">
             <MaterialCommunityIcons name="bell-off-outline" size={24} color={MC.dim} />
-            <Text style={s.emptyStateText}>No notifications found</Text>
+            <Text className="text-dim font-body-semibold text-xs">No notifications found</Text>
           </View>
         ) : (
           filteredList.map((item) => (
-            <Pressable key={item.id} style={[s.card, item.unread && s.cardUnread]} onPress={() => handleAction(item)}>
-              <View style={{ flexDirection: 'row', gap: 12 }}>
-                {/* Icon Outline Box */}
-                <View style={[s.iconBox, { borderColor: item.iconColor + '30', backgroundColor: item.iconColor + '10' }]}>
+            <Pressable key={item.id} onPress={() => handleAction(item)} className="rounded-xl p-3 border" style={item.unread
+              ? { backgroundColor: 'rgba(20, 184, 166, 0.03)', borderColor: 'rgba(20, 184, 166, 0.15)' }
+              : { backgroundColor: 'rgba(255, 255, 255, 0.01)', borderColor: 'rgba(255, 255, 255, 0.04)' }
+            }>
+              <View className="flex-row gap-3">
+                <View className="w-9 h-9 rounded-lg border items-center justify-center" style={{ borderColor: item.iconColor + '30', backgroundColor: item.iconColor + '10' }}>
                   <MaterialCommunityIcons name={item.iconGlyph as any} size={18} color={item.iconColor} />
                 </View>
-                
-                {/* Detail column */}
-                <View style={{ flex: 1, gap: 4 }}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                    <Text style={s.cardTitle}>{item.title}</Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <Text style={s.cardTime}>{item.time}</Text>
-                      {item.unread && <View style={s.unreadDot} />}
+                <View className="flex-1 gap-1">
+                  <View className="flex-row justify-between items-start gap-2">
+                    <Text className="text-white font-body-bold text-[13px] flex-1">{item.title}</Text>
+                    <View className="flex-row items-center gap-1.5">
+                      <Text className="text-dim font-body-semibold text-[10.5px]">{item.time}</Text>
+                      {item.unread && <View className="w-[7px] h-[7px] rounded-[3.5px] bg-tealP" />}
                     </View>
                   </View>
-                  <Text style={s.cardDesc}>{item.description}</Text>
-                  
-                  {/* Buttons */}
-                  <View style={s.cardActions}>
-                    <Pressable onPress={() => handleAction(item)} style={s.actionBtn}>
-                      <Text style={s.actionBtnText}>{item.actionText}</Text>
+                  <Text className="text-muted font-body-semibold text-[11.5px] leading-[15.5px] mt-0.5">{item.description}</Text>
+                  <View className="flex-row items-center gap-2 mt-2">
+                    <Pressable onPress={() => handleAction(item)} className="px-2.5 py-[5px] rounded-md border" style={{ borderColor: MC.tealP + '40', backgroundColor: MC.tealP + '0a', ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}) }}>
+                      <Text className="text-tealP font-body-bold text-[11px]">{item.actionText}</Text>
                     </Pressable>
-                    <Pressable onPress={() => handleDismiss(item.id)} style={s.dismissBtn}>
-                      <Text style={s.dismissBtnText}>Dismiss</Text>
+                    <Pressable onPress={() => handleDismiss(item.id)} className="px-2.5 py-[5px] rounded-md bg-white/[0.03] border border-glass-border" style={Platform.OS === 'web' ? { cursor: 'pointer' } as any : undefined}>
+                      <Text className="text-muted font-body-semibold text-[11px]">Dismiss</Text>
                     </Pressable>
                   </View>
                 </View>
@@ -288,206 +285,12 @@ export function NotificationsPanel({
       </ScrollView>
 
       {/* Footer */}
-      <View style={s.footer}>
-        <Pressable onPress={onOpenSettings} style={s.settingsBtn}>
+      <View className="border-t border-glass-border pt-3 items-center">
+        <Pressable onPress={onOpenSettings} className="flex-row items-center gap-1.5 py-2 px-4 rounded-lg bg-white/[0.02] border border-glass-border" style={Platform.OS === 'web' ? { cursor: 'pointer' } as any : undefined}>
           <MaterialCommunityIcons name="cog-outline" size={14} color={MC.muted} />
-          <Text style={s.settingsBtnText}>Notification Settings</Text>
+          <Text className="text-muted font-body-bold text-xs">Notification Settings</Text>
         </Pressable>
       </View>
     </View>
   );
 }
-
-const s = StyleSheet.create({
-  drawer: {
-    width: 360,
-    height: '100%',
-    backgroundColor: MC.card,
-    borderLeftWidth: 1,
-    borderLeftColor: MC.border,
-    padding: 16,
-    gap: 16,
-    zIndex: 9999,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  headerTitle: {
-    color: '#ffffff',
-    fontFamily: FONTS.xbold,
-    fontSize: 16,
-  },
-  unreadBadge: {
-    backgroundColor: MC.red + '22',
-    borderColor: MC.red + '50',
-    borderWidth: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
-  },
-  unreadBadgeText: {
-    color: '#FC5C5C',
-    fontFamily: FONTS.bold,
-    fontSize: 10,
-  },
-  markReadText: {
-    color: MC.tealP,
-    fontFamily: FONTS.bold,
-    fontSize: 12.5,
-    marginRight: 4,
-  },
-  closeBtn: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...({ cursor: 'pointer' } as any),
-  },
-  closeBtnText: {
-    color: MC.muted,
-    fontSize: 16,
-    lineHeight: 16,
-    textAlign: 'center',
-  },
-  tabsContainer: {
-    height: 32,
-  },
-  tab: {
-    paddingHorizontal: 12,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderColor: MC.border,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...({ cursor: 'pointer' } as any),
-  },
-  tabActive: {
-    backgroundColor: MC.tealP + '14',
-    borderColor: MC.tealP,
-  },
-  tabText: {
-    color: MC.muted,
-    fontFamily: FONTS.bold,
-    fontSize: 11,
-  },
-  tabTextActive: {
-    color: MC.tealP,
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-    gap: 8,
-  },
-  emptyStateText: {
-    color: MC.dim,
-    fontFamily: FONTS.med,
-    fontSize: 12,
-  },
-  card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.01)',
-    borderColor: 'rgba(255, 255, 255, 0.04)',
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 12,
-  },
-  cardUnread: {
-    backgroundColor: 'rgba(20, 184, 166, 0.03)',
-    borderColor: 'rgba(20, 184, 166, 0.15)',
-  },
-  iconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cardTitle: {
-    color: '#ffffff',
-    fontFamily: FONTS.bold,
-    fontSize: 13,
-    flex: 1,
-  },
-  cardTime: {
-    color: MC.dim,
-    fontFamily: FONTS.med,
-    fontSize: 10.5,
-  },
-  unreadDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    backgroundColor: MC.tealP,
-  },
-  cardDesc: {
-    color: MC.muted,
-    fontFamily: FONTS.med,
-    fontSize: 11.5,
-    lineHeight: 15.5,
-    marginTop: 2,
-  },
-  cardActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 8,
-  },
-  actionBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: MC.tealP + '40',
-    backgroundColor: MC.tealP + '0a',
-    ...({ cursor: 'pointer' } as any),
-  },
-  actionBtnText: {
-    color: MC.tealP,
-    fontFamily: FONTS.bold,
-    fontSize: 11,
-  },
-  dismissBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 6,
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderColor: MC.border,
-    borderWidth: 1,
-    ...({ cursor: 'pointer' } as any),
-  },
-  dismissBtnText: {
-    color: MC.muted,
-    fontFamily: FONTS.med,
-    fontSize: 11,
-  },
-  footer: {
-    borderTopWidth: 1,
-    borderTopColor: MC.border,
-    paddingTop: 12,
-    alignItems: 'center',
-  },
-  settingsBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.02)',
-    borderColor: MC.border,
-    borderWidth: 1,
-    ...({ cursor: 'pointer' } as any),
-  },
-  settingsBtnText: {
-    color: MC.muted,
-    fontFamily: FONTS.bold,
-    fontSize: 12,
-  },
-});

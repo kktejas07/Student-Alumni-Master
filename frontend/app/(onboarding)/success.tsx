@@ -1,8 +1,4 @@
-/**
- * Onboarding step 6 — Success / Generated unique ID + QR code.
- * Web: split-screen.  Native: full-screen dark.
- */
-import { View, Text, StyleSheet, Image, Platform } from 'react-native';
+import { View, Text, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { CheckCircle2, Sparkles } from 'lucide-react-native';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
@@ -30,51 +26,47 @@ export default function OnboardingSuccess() {
       onPrimary={() => router.replace('/(onboarding)/welcome-dashboard')}
       showBack={false}
     >
-      {/* Success header */}
-      <View style={styles.successRow}>
-        <View style={styles.iconBox}>
+      <View className="flex-row items-center gap-3 mb-[18px]">
+        <View className="w-12 h-12 rounded-[14px] bg-[rgba(16,185,129,0.18)] border border-[rgba(52,211,153,0.40)] items-center justify-center">
           <CheckCircle2 size={26} color="#34D399" />
         </View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.heroTitle}>Profile created</Text>
-          <Text style={styles.heroSub}>Your platform identity is ready.</Text>
+        <View className="flex-1">
+          <Text className="text-gray-900 font-body-bold text-base">Profile created</Text>
+          <Text className="text-gray-500 font-body text-[13px] mt-0.5">Your platform identity is ready.</Text>
         </View>
       </View>
 
-      {/* Unique ID card */}
-      <View style={[styles.card, styles.cardIdBox]}>
-        <Text style={styles.cardLabel}>YOUR UNIQUE ID</Text>
-        <Text style={styles.cardIdText} testID="success-unique-id">{user?.unique_id || '—'}</Text>
-        <Text style={styles.cardSub}>Use this ID anywhere on the platform.</Text>
+      <View className="bg-violet/14 border border-violet/30 rounded-[14px] p-4 mb-3.5">
+        <Text className="text-gray-500 font-body-bold text-[10.5px] tracking-[1.2px]">YOUR UNIQUE ID</Text>
+        <Text className="text-gray-900 font-body-bold text-[22px] tracking-[1.5px] mt-1.5" testID="success-unique-id">{user?.unique_id || '—'}</Text>
+        <Text className="text-gray-500 font-body text-xs mt-1.5 leading-[17px]">Use this ID anywhere on the platform.</Text>
       </View>
 
-      {/* QR code card */}
-      <View style={styles.card}>
-        <Text style={[styles.cardLabel, { textAlign: 'center' }]}>YOUR PLATFORM QR</Text>
-        <View style={{ alignItems: 'center', marginTop: 6 }}>
+      <View className="bg-bg2 border border-gray-200 rounded-[14px] p-4 mb-3.5">
+        <Text className="text-gray-500 font-body-bold text-[10.5px] tracking-[1.2px] text-center">YOUR PLATFORM QR</Text>
+        <View className="items-center mt-1.5">
           {user?.qr_code_base64 ? (
             <Image
               source={{ uri: `data:image/png;base64,${user.qr_code_base64}` }}
-              style={styles.qr}
+              className="w-[180px] h-[180px] rounded-xl bg-white"
               testID="success-qr-image"
             />
           ) : (
-            <View style={[styles.qr, styles.qrPlaceholder]}>
-              <Text style={styles.qrPlaceholderText}>QR not available</Text>
+            <View className="w-[180px] h-[180px] rounded-xl bg-white items-center justify-center">
+              <Text className="text-violet font-body-medium">QR not available</Text>
             </View>
           )}
-          <Text style={[styles.cardSub, { textAlign: 'center', marginTop: 10 }]}>
+          <Text className="text-gray-500 font-body text-xs mt-[10px] leading-[17px] text-center">
             Mentors can scan this to connect with you instantly.
           </Text>
         </View>
       </View>
 
-      {/* AI roadmap CTA */}
-      <View style={[styles.card, styles.aiCard]}>
+      <View className="bg-[rgba(252,211,77,0.10)] border border-[rgba(252,211,77,0.28)] rounded-[14px] p-4 mb-3.5 flex-row items-start gap-3">
         <Sparkles size={22} color="#FCD34D" />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.aiTitle}>Your AI roadmap is ready</Text>
-          <Text style={styles.aiSub}>
+        <View className="flex-1">
+          <Text className="text-gray-900 font-body-bold text-sm">Your AI roadmap is ready</Text>
+          <Text className="text-gray-600 font-body text-[12.5px] mt-1 leading-[18px]">
             Personalized milestones, courses and mentor matches based on your career path.
           </Text>
         </View>
@@ -82,54 +74,3 @@ export default function OnboardingSuccess() {
     </OnboardingShell>
   );
 }
-
-const styles = StyleSheet.create({
-  successRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 18 },
-  iconBox: {
-    width: 48, height: 48, borderRadius: 14,
-    backgroundColor: 'rgba(16,185,129,0.18)',
-    borderColor: 'rgba(52,211,153,0.40)',
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heroTitle: { color: '#111827', fontFamily: 'DMSans_700Bold', fontSize: 16 },
-  heroSub: { color: '#6B7280', fontFamily: 'DMSans_400Regular', fontSize: 13, marginTop: 2 },
-
-  card: {
-    backgroundColor: '#F9FAFB',
-    borderColor: '#E5E7EB',
-    borderWidth: 1,
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 14,
-  },
-  cardIdBox: {
-    backgroundColor: 'rgba(124,58,237,0.14)',
-    borderColor: 'rgba(196,181,253,0.30)',
-  },
-  cardIdText: {
-    color: '#111827',
-    fontFamily: 'DMSans_700Bold',
-    fontSize: 22,
-    letterSpacing: 1.5,
-    marginTop: 6,
-  },
-  cardLabel: { color: '#6B7280', fontFamily: 'DMSans_700Bold', fontSize: 10.5, letterSpacing: 1.2 },
-  cardSub: { color: '#6B7280', fontFamily: 'DMSans_400Regular', fontSize: 12, marginTop: 6, lineHeight: 17 },
-
-  qr: {
-    width: 180, height: 180, borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-  },
-  qrPlaceholder: { alignItems: 'center', justifyContent: 'center' },
-  qrPlaceholderText: { color: '#7C3AED', fontFamily: 'DMSans_500Medium' },
-
-  aiCard: {
-    flexDirection: 'row', alignItems: 'flex-start', gap: 12,
-    backgroundColor: 'rgba(252,211,77,0.10)',
-    borderColor: 'rgba(252,211,77,0.28)',
-  },
-  aiTitle: { color: '#111827', fontFamily: 'DMSans_700Bold', fontSize: 14 },
-  aiSub: { color: '#4B5563', fontFamily: 'DMSans_400Regular', fontSize: 12.5, marginTop: 4, lineHeight: 18 },
-});

@@ -20,7 +20,7 @@ import {
   Sparkles, GraduationCap, Bot, Users, Star,
   ChevronRight, Target, MessageCircle, ArrowUpRight, Activity,
 } from 'lucide-react-native';
-import { SunsetHero } from '@/src/components/ui/aurora-hero-bg-1';
+import { SunsetHero } from '@/src/components/ui/AuroraHeroBg';
 
 import { TYPO } from '@/src/views/web/portals/student/tokens';
 import { useScreenAnalytics, Trackable, ANALYTICS_IDS } from '@/src/analytics';

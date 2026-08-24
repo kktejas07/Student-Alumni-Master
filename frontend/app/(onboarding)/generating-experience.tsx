@@ -12,7 +12,7 @@
  */
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, Animated, Easing, Platform,
+  View, Text, Animated, Easing, Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
@@ -121,15 +121,14 @@ export default function GeneratingExperience() {
 
   return (
     <AuthShell role={role as any}>
-      <View style={s.container}>
+      <View className="items-center justify-center py-6 gap-5">
 
-        {/* Header */}
-        <Text style={s.label}>Getting {firstName}'s dashboard ready…</Text>
+        <Text style={{ fontFamily: FONTS.bold }} className="text-text text-[20px] text-center tracking-tight">
+          Getting {firstName}'s dashboard ready…
+        </Text>
 
-        {/* Icon activation row */}
-        <View style={s.iconRow}>
+        <View className="flex-row items-center my-1.5">
           {BEATS.map((beat, i) => {
-            const opacity = iconAnims[i];
             const bg = iconAnims[i].interpolate({
               inputRange: [0, 1],
               outputRange: ['#F9FAFB', 'rgba(124,58,237,0.30)'],
@@ -140,64 +139,62 @@ export default function GeneratingExperience() {
             });
             return (
               <React.Fragment key={i}>
-                <Animated.View style={[
-                  s.iconBubble,
-                  { backgroundColor: bg, borderColor: border },
-                ]}>
-                  <Animated.View style={[{ opacity: iconAnims[i].interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] }) }]}>
+                <Animated.View
+                  style={{ backgroundColor: bg, borderColor: border }}
+                  className="w-[46px] h-[46px] rounded-[23px] border-[1.5px] items-center justify-center"
+                >
+                  <Animated.View style={{ opacity: iconAnims[i].interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] }) }}>
                     <beat.icon size={20} color="#111827" />
                   </Animated.View>
                 </Animated.View>
                 {i < BEATS.length - 1 && (
-                  <Animated.View style={[
-                    s.iconConnector,
-                    {
-                      backgroundColor: iconAnims[i].interpolate({
-                        inputRange: [0, 1],
-                        outputRange: ['#E5E7EB', 'rgba(124,58,237,0.5)'],
-                      }),
-                    },
-                  ]} />
+                  <Animated.View
+                    style={{ backgroundColor: iconAnims[i].interpolate({ inputRange: [0, 1], outputRange: ['#E5E7EB', 'rgba(124,58,237,0.5)'] }) }}
+                    className="w-4 h-[2px] rounded-[1px]"
+                  />
                 )}
               </React.Fragment>
             );
           })}
         </View>
 
-        {/* Beat text blocks — stacked, only active one is visible */}
-        <View style={s.beatContainer}>
+        <View className="w-full min-h-[120px] bg-glass border border-glass-border rounded-2xl p-4 gap-2 justify-end">
           {beatTexts.map((text, i) => (
             <Animated.View
               key={i}
-              style={[
-                s.beatRow,
-                {
-                  opacity: beatOpacities[i],
-                  transform: [{ scale: beatScales[i] }],
-                  display: i <= activeBeat ? 'flex' : 'none',
-                },
-              ]}
+              style={{
+                opacity: beatOpacities[i],
+                transform: [{ scale: beatScales[i] }],
+                display: i <= activeBeat ? 'flex' : 'none',
+              }}
+              className="flex-row items-center gap-2.5"
             >
-              <View style={s.beatIconWrap}>
+              <View className="items-center justify-center">
                 {React.createElement(BEATS[i].icon as any, { size: 16, color: i === activeBeat ? '#FFF' : '#6B7280' })}
               </View>
-              <Text style={[
-                s.beatText,
-                i === activeBeat && s.beatTextActive,
-              ]}>{text}</Text>
+              <Text
+                style={{ fontFamily: i === activeBeat ? FONTS.bold : FONTS.med }}
+                className={`text-[13.5px] flex-1 ${i === activeBeat ? 'text-text' : 'text-muted'}`}
+              >
+                {text}
+              </Text>
             </Animated.View>
           ))}
         </View>
 
-        {/* Progress bar */}
-        <View style={s.barBg}>
-          <Animated.View style={[s.barFill, { width: progressWidth }]} />
+        <View className="w-full h-[5px] rounded-[2.5px] bg-glass overflow-hidden">
+          <Animated.View
+            style={[
+              { width: progressWidth },
+              Platform.OS === 'web' ? { transition: 'width 0.3s ease' } as any : undefined,
+            ]}
+            className="h-full rounded-[2.5px] bg-violet"
+          />
         </View>
 
-        {/* Personalizing label */}
-        <Text style={s.sub}>
+        <Text style={{ fontFamily: FONTS.med }} className="text-dim text-[12.5px] text-center">
           Personalizing based on your{' '}
-          <Text style={s.highlight}>{pathLabel}</Text>
+          <Text style={{ fontFamily: FONTS.bold }} className="text-violet">{pathLabel}</Text>
           {' '}profile
         </Text>
 
@@ -205,101 +202,3 @@ export default function GeneratingExperience() {
     </AuthShell>
   );
 }
-
-const s = StyleSheet.create({
-  container: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 24,
-    gap: 20,
-  },
-
-  label: {
-    color: '#111827',
-    fontFamily: FONTS.bold,
-    fontSize: 20,
-    textAlign: 'center',
-    letterSpacing: -0.3,
-  },
-
-  // Icon row
-  iconRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 6,
-  },
-  iconBubble: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    borderWidth: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconEmoji: { fontSize: 20 },
-  iconConnector: {
-    width: 16,
-    height: 2,
-    borderRadius: 1,
-  },
-
-  // Beat text stack
-  beatContainer: {
-    width: '100%',
-    minHeight: 120,
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 16,
-    padding: 16,
-    gap: 8,
-    justifyContent: 'flex-end',
-  },
-  beatRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  beatIconWrap: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  beatIcon: { fontSize: 16 },
-  beatText: {
-    color: '#6B7280',
-    fontFamily: FONTS.med,
-    fontSize: 13.5,
-    flex: 1,
-  },
-  beatTextActive: {
-    color: '#111827',
-    fontFamily: FONTS.bold,
-  },
-
-  // Progress bar
-  barBg: {
-    width: '100%',
-    height: 5,
-    borderRadius: 2.5,
-    backgroundColor: 'rgba(255,255,255,0.10)',
-    overflow: 'hidden',
-  },
-  barFill: {
-    height: '100%',
-    borderRadius: 2.5,
-    backgroundColor: '#7C3AED',
-    ...(Platform.OS === 'web' ? { transition: 'width 0.3s ease' } as any : {}),
-  },
-
-  // Footer
-  sub: {
-    color: 'rgba(255,255,255,0.42)',
-    fontFamily: FONTS.med,
-    fontSize: 12.5,
-    textAlign: 'center',
-  },
-  highlight: {
-    color: '#C4B5FD',
-    fontFamily: FONTS.bold,
-  },
-});

@@ -3,7 +3,7 @@ import { getBaseUrl } from '@/src/lib/env';
  * Onboarding step 3 — Role-specific details (Web split-screen + Native dark theme).
  */
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useOnboardingStore } from '@/src/viewmodels/stores/onboardingStore';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
@@ -17,7 +17,6 @@ import type { MentorCategory } from '@/src/models/entities';
 
 const BASE = getBaseUrl();
 
-// Static fallback — used if /api/mentors/suggestions is unreachable.
 const FALLBACK_ORGS = [
   'Google', 'Microsoft', 'Amazon', 'Meta', 'TCS', 'Infosys', 'Wipro',
   'Flipkart', 'Swiggy', 'Razorpay', 'Zomato', 'Paytm', 'Zerodha',
@@ -67,7 +66,6 @@ export default function RoleDetailsScreen() {
   const [titles, setTitles] = useState<string[]>(FALLBACK_TITLES);
   const [titleOther, setTitleOther] = useState('');
 
-  // Load mentor suggestions from backend on mount (once).
   useEffect(() => {
     if (user?.role !== 'mentor') return;
     let cancelled = false;
@@ -88,7 +86,6 @@ export default function RoleDetailsScreen() {
 
   const validate = (): boolean => {
     setError(null);
-    // Phone — required for ALL roles per spec (collected during onboarding)
     const phoneDigits = phoneStr.replace(/\D/g, '');
     if (!phoneDigits || phoneDigits.length < 10) {
       setError('Please enter a valid phone number (10+ digits).');
@@ -131,7 +128,6 @@ export default function RoleDetailsScreen() {
       if (error) toast.error('Check your details', error);
       return;
     }
-    // Persist phone for all roles
     onboarding.setPhone(phoneStr.trim());
     if (user?.role === 'student') {
       onboarding.setStudentInfo({
@@ -146,8 +142,6 @@ export default function RoleDetailsScreen() {
     }
   };
 
-  // Fall back to 'student' if auth state hasn't rehydrated yet — this avoids
-  // a blank screen on direct navigation/refresh while zustand restores from storage.
   const role = (user?.role || 'student') as 'student' | 'mentor' | 'alumni' | 'college';
 
   return (
@@ -165,7 +159,6 @@ export default function RoleDetailsScreen() {
       onPrimary={next}
       onBack={() => router.back()}
     >
-      {/* Phone Number — collected during onboarding for ALL roles per spec */}
       <WebField
         label="Phone Number *"
         placeholder="+91 98765 43210"
@@ -176,7 +169,6 @@ export default function RoleDetailsScreen() {
         helper="We'll use this for session reminders, booking confirmations and OTP verification."
       />
 
-      {/* Student fields */}
       {role === 'student' && (
         <>
           <WebField
@@ -187,8 +179,8 @@ export default function RoleDetailsScreen() {
             onChangeText={setAgeStr}
             testID="student-age-input"
           />
-          <Text style={styles.section}>Education Level</Text>
-          <View style={styles.chipRow}>
+          <Text className="text-dim font-body-bold text-[11px] tracking-widest uppercase mt-1 mb-2">Education Level</Text>
+          <View className="flex-row flex-wrap gap-2 mb-3.5">
             {EDU_LEVELS.map((e) => (
               <DarkChip
                 key={e.id}
@@ -219,15 +211,14 @@ export default function RoleDetailsScreen() {
         </>
       )}
 
-      {/* Mentor fields */}
       {role === 'mentor' && (
         <>
           <DarkInfoCard tone="info">
-            <Text style={styles.infoText}>
+            <Text className="text-violet font-body-medium text-[13px] leading-[19px]">
               📝 Mentor accounts are reviewed by our team for quality. You'll be notified once approved (24–48 hours).
             </Text>
           </DarkInfoCard>
-          <Text style={styles.section}>Mentorship Archetype</Text>
+          <Text className="text-dim font-body-bold text-[11px] tracking-widest uppercase mt-1 mb-2">Mentorship Archetype</Text>
           <MentorCategoryGrid
             selected={onboarding.mentor_category ? [onboarding.mentor_category as MentorCategory] : []}
             onChange={(arr) => onboarding.setMentorInfo({ mentor_category: arr[0] })}
@@ -251,7 +242,6 @@ export default function RoleDetailsScreen() {
             options={titles.map((t) => ({ value: t, label: t }))}
             onChange={(v) => {
               if (v === 'Other') {
-                // Preserve any previously-entered custom value; otherwise blank.
                 onboarding.setMentorInfo({
                   mentor_job_title: titles.includes(onboarding.mentor_job_title || '')
                     ? ''
@@ -266,8 +256,6 @@ export default function RoleDetailsScreen() {
             required
             testID="mentor-title-dropdown"
           />
-          {/* If user picked 'Other' OR their stored title isn't in the preset list,
-              show a free-text input so they can supply a custom designation. */}
           {(!titles.includes(onboarding.mentor_job_title || '') || titleOther) && (
             <WebField
               label="Custom job title"
@@ -283,12 +271,11 @@ export default function RoleDetailsScreen() {
           <WebField label="LinkedIn URL (highly recommended)" placeholder="https://linkedin.com/in/yourname" keyboardType="url" value={onboarding.mentor_linkedin_url || ''} onChangeText={(v: string) => onboarding.setMentorInfo({ mentor_linkedin_url: v })} testID="mentor-linkedin-input" />
           <WebField label="Years of Experience" placeholder="e.g., 5" keyboardType="numeric" value={onboarding.mentor_years_of_experience ? String(onboarding.mentor_years_of_experience) : ''} onChangeText={(v: string) => onboarding.setMentorInfo({ mentor_years_of_experience: parseInt(v) || undefined })} testID="mentor-yoe-input" />
 
-          {/* Session Price — per HTML spec. Revenue-critical. */}
-          <Text style={styles.section}>1:1 Session Price *</Text>
-          <Text style={styles.helper}>
+          <Text className="text-dim font-body-bold text-[11px] tracking-widest uppercase mt-1 mb-2">1:1 Session Price *</Text>
+          <Text className="text-dim font-body text-xs mt-1 mb-3">
             Set your per-session rate in INR. You can change this anytime from your mentor dashboard.
           </Text>
-          <View style={styles.chipRow}>
+          <View className="flex-row flex-wrap gap-2 mb-3.5">
             {SESSION_PRICES.map((p) => (
               <DarkChip
                 key={p}
@@ -324,11 +311,10 @@ export default function RoleDetailsScreen() {
         </>
       )}
 
-      {/* Alumni fields */}
       {role === 'alumni' && (
         <>
-          <Text style={styles.section}>Employment Status</Text>
-          <View style={styles.chipRow}>
+          <Text className="text-dim font-body-bold text-[11px] tracking-widest uppercase mt-1 mb-2">Employment Status</Text>
+          <View className="flex-row flex-wrap gap-2 mb-3.5">
             {EMPLOYMENT_STATUSES.map((s) => (
               <DarkChip
                 key={s.id}
@@ -350,10 +336,10 @@ export default function RoleDetailsScreen() {
             testID="alumni-linkedin-input"
             helper="Boosts credibility when students view your profile."
           />
-          <View style={styles.toggleCard}>
+          <View className="flex-row items-center gap-3 bg-glass border border-glass-border rounded-xl px-3.5 py-3 mt-1 mb-3.5">
             <View style={{ flex: 1 }}>
-              <Text style={styles.toggleTitle}>Want to mentor current students?</Text>
-              <Text style={styles.toggleSub}>Share your journey and earn through 1:1 sessions.</Text>
+              <Text className="text-text font-body-bold text-[13.5px]">Want to mentor current students?</Text>
+              <Text className="text-muted font-body text-xs mt-0.5">Share your journey and earn through 1:1 sessions.</Text>
             </View>
             <DarkToggle
               on={!!onboarding.alumni_wants_to_mentor}
@@ -363,7 +349,7 @@ export default function RoleDetailsScreen() {
           </View>
           {onboarding.alumni_wants_to_mentor && (
             <>
-              <Text style={styles.section}>Mentorship Archetypes (pick up to 3) *</Text>
+              <Text className="text-dim font-body-bold text-[11px] tracking-widest uppercase mt-1 mb-2">Mentorship Archetypes (pick up to 3) *</Text>
               <MentorCategoryGrid
                 selected={
                   onboarding.alumni_mentor_categories
@@ -371,38 +357,19 @@ export default function RoleDetailsScreen() {
                 }
                 onChange={(arr) => onboarding.setAlumniInfo({
                   alumni_mentor_categories: arr,
-                  alumni_mentor_category: arr[0],   // keep legacy field synced
+                  alumni_mentor_category: arr[0],
                 })}
                 multi={true}
                 max={3}
                 testIDPrefix="alumni-mentor-cat"
               />
-              <Text style={styles.helper}>You'll be added to the mentor pool after admin review (24–48 hours).</Text>
+              <Text className="text-dim font-body text-xs mt-1 mb-3">You'll be added to the mentor pool after admin review (24–48 hours).</Text>
             </>
           )}
         </>
       )}
 
-      {error && <Text style={styles.error}>{error}</Text>}
+      {error && <Text className="text-rose font-body-medium text-[13px] bg-rose/10 border border-rose/30 px-3 py-2 rounded-lg">{error}</Text>}
     </OnboardingShell>
   );
 }
-
-const styles = StyleSheet.create({
-  section: { color: '#6B7280', fontFamily: 'DMSans_700Bold', fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', marginTop: 4, marginBottom: 8 },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
-  infoText: { color: '#C4B5FD', fontFamily: 'DMSans_500Medium', fontSize: 13, lineHeight: 19 },
-  toggleCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: 'rgba(124,58,237,0.10)',
-    borderColor: 'rgba(196,181,253,0.20)',
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 14, paddingVertical: 12,
-    marginTop: 4, marginBottom: 14,
-  },
-  toggleTitle: { color: '#111827', fontFamily: 'DMSans_700Bold', fontSize: 13.5 },
-  toggleSub: { color: '#6B7280', fontFamily: 'DMSans_400Regular', fontSize: 12, marginTop: 2 },
-  helper: { color: '#9CA3AF', fontFamily: 'DMSans_400Regular', fontSize: 12, marginTop: 4, marginBottom: 12 },
-  error: { color: '#FCA5A5', fontFamily: 'DMSans_500Medium', fontSize: 13, backgroundColor: 'rgba(220,38,38,0.15)', borderColor: 'rgba(252,165,165,0.3)', borderWidth: 1, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 8 },
-});
