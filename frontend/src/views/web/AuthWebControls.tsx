@@ -163,7 +163,7 @@ export function WebStepBar({ steps, current }: { steps: string[]; current: numbe
           <Text
             style={[
               controlStyles.stepLabel,
-              i === current && { color: '#C4B5FD', fontFamily: 'DMSans_700Bold' },
+              i === current && { color: '#93C5FD', fontFamily: 'DMSans_700Bold' },
             ]}
             numberOfLines={1}
           >
@@ -173,7 +173,7 @@ export function WebStepBar({ steps, current }: { steps: string[]; current: numbe
             <View
               style={[
                 controlStyles.connector,
-                i < current && { backgroundColor: '#7C3AED' },
+                i < current && { backgroundColor: '#2563EB' },
               ]}
             />
           )}
@@ -206,7 +206,7 @@ export function WebOptionRow({
       testID={testID}
       style={({ hovered, pressed }: any) => [
         controlStyles.optRow,
-        hovered && { borderColor: 'rgba(196,181,253,0.35)', backgroundColor: 'rgba(124,58,237,0.10)' },
+        hovered && { borderColor: 'rgba(196,181,253,0.35)', backgroundColor: 'rgba(37,99,235,0.10)' },
         selected && controlStyles.optRowSel,
         pressed && { transform: [{ scale: 0.99 }] },
       ]}
@@ -214,7 +214,7 @@ export function WebOptionRow({
       <View
         style={[
           controlStyles.optIcon,
-          selected && { backgroundColor: 'rgba(124,58,237,0.28)', borderColor: 'rgba(196,181,253,0.45)' },
+          selected && { backgroundColor: 'rgba(37,99,235,0.28)', borderColor: 'rgba(196,181,253,0.45)' },
         ]}
       >
         <Text style={{ fontSize: 18 }}>{emoji}</Text>
@@ -233,7 +233,7 @@ export function WebOptionRow({
       <View
         style={[
           controlStyles.radio,
-          selected && { borderColor: '#7C3AED', backgroundColor: '#7C3AED' },
+          selected && { borderColor: '#2563EB', backgroundColor: '#2563EB' },
         ]}
       >
         {selected && <Text style={{ color: '#111827', fontSize: 11 }}>✓</Text>}
@@ -281,18 +281,18 @@ const controlStyles = StyleSheet.create({
   },
 
   primary: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#2563EB',
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
     marginTop: 4,
-    boxShadow: '0px 8px 18px rgba(124,58,237,0.4)',
+    boxShadow: '0px 8px 18px rgba(37,99,235,0.4)',
     ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
   },
   primaryHover: {
     backgroundColor: '#9059D9',
     transform: [{ translateY: -1 }],
-    boxShadow: '0px 8px 22px rgba(124,58,237,0.55)',
+    boxShadow: '0px 8px 22px rgba(37,99,235,0.55)',
   },
   primaryText: { color: C.white, fontFamily: 'DMSans_700Bold', fontSize: 15 },
 
@@ -332,14 +332,14 @@ const controlStyles = StyleSheet.create({
     zIndex: 2,
   },
   dotActive: {
-    backgroundColor: '#7C3AED',
-    borderColor: '#7C3AED',
+    backgroundColor: '#2563EB',
+    borderColor: '#2563EB',
   },
   dotCurrent: {
     backgroundColor: '#FFFFFF',
-    borderColor: '#7C3AED',
+    borderColor: '#2563EB',
     width: 12, height: 12, borderRadius: 6,
-    boxShadow: '0px 0px 8px rgba(124,58,237,0.6)',
+    boxShadow: '0px 0px 8px rgba(37,99,235,0.6)',
   },
   stepLabel: {
     fontSize: 11,
@@ -380,8 +380,8 @@ const controlStyles = StyleSheet.create({
     ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
   },
   optRowSel: {
-    backgroundColor: 'rgba(124,58,237,0.16)',
-    borderColor: '#7C3AED',
+    backgroundColor: 'rgba(37,99,235,0.16)',
+    borderColor: '#2563EB',
   },
   optIcon: {
     width: 38, height: 38,

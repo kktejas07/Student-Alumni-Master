@@ -6,7 +6,7 @@
  *   moderate → teal  (#2DD4BF) glow
  *   high     → gold  (#F59E0B) glow
  *   verified → emerald (#10B981)
- *   special  → purple (#A78BFA) glow
+ *   special  → purple (#60A5FA) glow
  *
  * Usage:
  *   <BadgeStack badges={badges} max={3} compact />
@@ -38,14 +38,14 @@ const TIER_COLOR: Record<string, string> = {
   moderate: '#2DD4BF',
   high:     '#F59E0B',
   verified: '#10B981',
-  special:  '#A78BFA',
+  special:  '#60A5FA',
 };
 const TIER_GLOW: Record<string, string> = {
   low:      'rgba(100,116,139,0.30)',
   moderate: 'rgba(45,212,191,0.45)',
   high:     'rgba(245,158,11,0.55)',
   verified: 'rgba(16,185,129,0.45)',
-  special:  'rgba(167,139,250,0.55)',
+  special:  'rgba(37,99,235,0.55)',
 };
 // Tier display priority — higher = show first
 const TIER_RANK: Record<string, number> = {
