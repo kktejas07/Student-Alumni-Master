@@ -66,7 +66,7 @@ export default function EchoScanPage() {
         <EchoHeader />
         <ScrollView contentContainerStyle={{ paddingTop: ECHO_TOP_PADDING }}>
           <View style={[s.content, { alignItems: 'center', paddingVertical: 80 }]}>
-            <ActivityIndicator size="large" color="#A78BFA" />
+            <ActivityIndicator size="large" color="#60A5FA" />
             <Text style={s.centerText}>Verifying coupon…</Text>
           </View>
           <EchoFooter />
@@ -188,17 +188,17 @@ const s = StyleSheet.create({
   title: { fontFamily: 'DMSans_800ExtraBold', fontSize: 22, textAlign: 'center' },
   sessionName: { fontFamily: 'DMSans_800ExtraBold', fontSize: 16, color: '#fff', textAlign: 'center' },
   codePill: {
-    backgroundColor: 'rgba(124,58,237,0.14)', borderRadius: 10, paddingHorizontal: 16, paddingVertical: 8,
-    borderWidth: 1, borderColor: 'rgba(167,139,250,0.3)',
+    backgroundColor: 'rgba(37,99,235,0.14)', borderRadius: 10, paddingHorizontal: 16, paddingVertical: 8,
+    borderWidth: 1, borderColor: 'rgba(37,99,235,0.3)',
   },
-  codeText: { fontFamily: 'DMSans_700Bold', fontSize: 17, color: '#C4B5FD', letterSpacing: 2 },
+  codeText: { fontFamily: 'DMSans_700Bold', fontSize: 17, color: '#93C5FD', letterSpacing: 2 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   metaText: { fontFamily: 'DMSans_500Medium', fontSize: 12, color: 'rgba(255,255,255,0.6)', textAlign: 'center' },
   detailText: { fontFamily: 'DMSans_500Medium', fontSize: 12.5, color: 'rgba(255,255,255,0.6)', textAlign: 'center', lineHeight: 18 },
   centerText: { color: 'rgba(255,255,255,0.6)', fontFamily: 'DMSans_500Medium', fontSize: 13, marginTop: 10 },
   secondaryBtn: {
     alignItems: 'center', paddingVertical: 13, borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)',
+    backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: 1, borderColor: 'rgba(37,99,235,0.25)',
   },
-  secondaryBtnText: { fontFamily: 'DMSans_700Bold', fontSize: 14, color: '#C4B5FD' },
+  secondaryBtnText: { fontFamily: 'DMSans_700Bold', fontSize: 14, color: '#93C5FD' },
 });

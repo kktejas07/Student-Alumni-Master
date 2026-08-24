@@ -92,7 +92,7 @@ export function MentorCategoryGrid({
         return (
           <View key={groupName} style={{ marginBottom: 14 }}>
             <View style={styles.groupHeader}>
-              <Icon size={12} color="#A78BFA" />
+              <Icon size={12} color="#60A5FA" />
               <Text style={styles.groupTitle}>{groupName}</Text>
               <View style={styles.groupRule} />
             </View>
@@ -113,7 +113,7 @@ export function MentorCategoryGrid({
                     ]}
                   >
                     <View style={[styles.cardIconWrap, active && styles.cardIconWrapActive]}>
-                      <ItemIcon size={18} color={active ? '#FFFFFF' : '#C4B5FD'} />
+                      <ItemIcon size={18} color={active ? '#FFFFFF' : '#93C5FD'} />
                     </View>
                     <View style={{ flex: 1, minWidth: 0 }}>
                       <Text style={[styles.cardTitle, active && { color: '#FFFFFF' }]} numberOfLines={1}>
@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
     marginBottom: 8, paddingHorizontal: 2,
   },
   groupTitle: {
-    color: '#C4B5FD', fontFamily: 'DMSans_700Bold',
+    color: '#93C5FD', fontFamily: 'DMSans_700Bold',
     fontSize: 10.5, letterSpacing: 1.2, textTransform: 'uppercase',
   },
   groupRule: { flex: 1, height: 1, backgroundColor: 'rgba(196,181,253,0.10)', marginLeft: 6 },
@@ -165,31 +165,31 @@ const styles = StyleSheet.create({
     ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
   },
   cardHover: {
-    backgroundColor: 'rgba(124,58,237,0.10)',
-    borderColor: 'rgba(167,139,250,0.35)',
+    backgroundColor: 'rgba(37,99,235,0.10)',
+    borderColor: 'rgba(37,99,235,0.35)',
     ...(Platform.OS === 'web' ? ({ transform: 'translateY(-1px)' } as any) : {}),
   },
-  cardPressed: { backgroundColor: 'rgba(124,58,237,0.18)' },
+  cardPressed: { backgroundColor: 'rgba(37,99,235,0.18)' },
   cardActive: {
-    backgroundColor: 'rgba(124,58,237,0.18)',
+    backgroundColor: 'rgba(37,99,235,0.18)',
     borderColor: 'rgba(196,181,253,0.65)',
-    boxShadow: '0px 6px 18px rgba(124,58,237,0.35)',
+    boxShadow: '0px 6px 18px rgba(37,99,235,0.35)',
   },
   cardIconWrap: {
     width: 38, height: 38, borderRadius: 10,
-    backgroundColor: 'rgba(124,58,237,0.18)',
+    backgroundColor: 'rgba(37,99,235,0.18)',
     borderColor: 'rgba(196,181,253,0.20)', borderWidth: 1,
     alignItems: 'center', justifyContent: 'center',
   },
   cardIconWrapActive: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#2563EB',
     borderColor: 'rgba(255,255,255,0.20)',
   },
   cardTitle: { color: '#E9E3FF', fontFamily: 'DMSans_600SemiBold', fontSize: 13.5, marginBottom: 2 },
   cardDesc: { color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_400Regular', fontSize: 11.5, lineHeight: 15 },
   checkBadge: {
     width: 22, height: 22, borderRadius: 11,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#2563EB',
     alignItems: 'center', justifyContent: 'center',
   },
   helperBar: {

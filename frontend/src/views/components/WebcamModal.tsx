@@ -169,7 +169,7 @@ export function WebcamModal({ visible, onClose, onCapture }: Props) {
               <>
                 {loading && (
                   <View style={s.overlay}>
-                    <ActivityIndicator size="large" color="#A78BFA" />
+                    <ActivityIndicator size="large" color="#60A5FA" />
                     <Text style={s.loadingText}>Accessing Camera…</Text>
                   </View>
                 )}

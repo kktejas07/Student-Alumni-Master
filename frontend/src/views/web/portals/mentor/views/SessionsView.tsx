@@ -703,7 +703,7 @@ export function SessionsView({ demoMode = false, setDemoMode }: { demoMode?: boo
           </Pressable>
           <Text style={s.calTitle}>Reschedule Session</Text>
           <Text style={s.calSub}>
-            Topic: <Text style={{ color: '#fff', fontFamily: FONTS.bold }}>"{reschedulingSession.topic}"</Text> with <Text style={{ color: MC.tealP, fontFamily: FONTS.bold }}>{reschedulingSession.student.name}</Text>
+            Topic: <Text style={{ color: '#1C1C1E', fontFamily: FONTS.bold }}>"{reschedulingSession.topic}"</Text> with <Text style={{ color: MC.tealP, fontFamily: FONTS.bold }}>{reschedulingSession.student.name}</Text>
           </Text>
         </View>
 
@@ -771,7 +771,7 @@ export function SessionsView({ demoMode = false, setDemoMode }: { demoMode?: boo
               <Text style={s.modalTitle}>Confirm Reschedule</Text>
               <Text style={s.modalBody}>
                 Are you sure you want to reschedule your session with{' '}
-                <Text style={{ color: '#fff', fontFamily: FONTS.bold }}>{reschedulingSession.student.name}</Text>{' '}
+                <Text style={{ color: '#1C1C1E', fontFamily: FONTS.bold }}>{reschedulingSession.student.name}</Text>{' '}
                 to <Text style={{ color: MC.tealP, fontFamily: FONTS.bold }}>{pendingDate}</Text> at{' '}
                 <Text style={{ color: MC.tealP, fontFamily: FONTS.bold }}>{selectedTime}</Text>?
               </Text>
@@ -1209,7 +1209,7 @@ export function SessionsView({ demoMode = false, setDemoMode }: { demoMode?: boo
                                   <Text style={[
                                     s.columnCapsuleText, 
                                     isBooked && { color: '#090D16', fontFamily: FONTS.bold },
-                                    isAvailable && { color: '#fff', fontFamily: FONTS.bold }
+                                    isAvailable && { color: '#1C1C1E', fontFamily: FONTS.bold }
                                   ]}>
                                     {slot.time}
                                   </Text>
@@ -1404,7 +1404,7 @@ export function SessionsView({ demoMode = false, setDemoMode }: { demoMode?: boo
                       ]}
                     >
                       <View style={[s.legendDot, { backgroundColor: formStatus === 'unavailable' ? '#fff' : '#475569', marginRight: 6 }]} />
-                      <Text style={[s.statusToggleText, formStatus === 'unavailable' && { color: '#fff', fontFamily: FONTS.bold }]}>Unavailable</Text>
+                      <Text style={[s.statusToggleText, formStatus === 'unavailable' && { color: '#1C1C1E', fontFamily: FONTS.bold }]}>Unavailable</Text>
                     </Pressable>
                   </View>
                 </View>
@@ -1441,7 +1441,7 @@ const s = StyleSheet.create({
     marginBottom: 16
   },
   mainTitle: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.xbold,
     fontSize: 24,
     letterSpacing: -0.5
@@ -1524,7 +1524,7 @@ const s = StyleSheet.create({
     alignItems: 'center'
   },
   studentName: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
     fontSize: 15
   },
@@ -1592,7 +1592,7 @@ const s = StyleSheet.create({
     letterSpacing: 0.8
   },
   wellTitle: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
     fontSize: 14
   },
@@ -1635,7 +1635,7 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.12)'
   },
   actionBtnText: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
     fontSize: 11.5
   },
@@ -1701,7 +1701,7 @@ const s = StyleSheet.create({
     gap: 4
   },
   notesContent: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.med,
     fontSize: 13,
     lineHeight: 18
@@ -1789,7 +1789,7 @@ const s = StyleSheet.create({
     gap: 14
   },
   availTitle: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.xbold,
     fontSize: 18
   },
@@ -1868,7 +1868,7 @@ const s = StyleSheet.create({
     gap: 2
   },
   gridDayTitle: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
     fontSize: 12
   },
@@ -1979,7 +1979,7 @@ const s = StyleSheet.create({
     gap: 2
   },
   columnDayTitle: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
     fontSize: 12
   },
@@ -2095,12 +2095,12 @@ const s = StyleSheet.create({
   calendarContainer: { gap: 16, width: '100%' },
   calHeader: { gap: 6 },
   backBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', ...({ cursor: 'pointer' } as any) },
-  calTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 20, letterSpacing: -0.4, marginTop: 4 },
+  calTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 20, letterSpacing: -0.4, marginTop: 4 },
   calSub: { color: MC.muted, fontFamily: FONTS.med, fontSize: 13 },
   calCard: { backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 16, padding: 18 },
   monthRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   navArrow: { width: 32, height: 32, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center', ...({ cursor: 'pointer' } as any) },
-  monthLabel: { color: '#fff', fontFamily: FONTS.bold, fontSize: 15 },
+  monthLabel: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 15 },
   weekDaysRow: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 8 },
   weekDayName: { color: MC.dim, fontFamily: FONTS.bold, fontSize: 12, width: 40, textAlign: 'center' },
   daysGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start' },
@@ -2108,9 +2108,9 @@ const s = StyleSheet.create({
   dayCellEmpty: { width: `${100 / 7}%`, aspectRatio: 1.1 },
   dayCellToday: { backgroundColor: MC.tealP },
   dayCellHovered: { backgroundColor: 'rgba(20,184,166,0.15)' },
-  dayText: { color: '#fff', fontFamily: FONTS.med, fontSize: 13 },
+  dayText: { color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 13 },
   timeSection: { marginTop: 20, borderTopWidth: 1, borderTopColor: MC.border, paddingTop: 16 },
-  timeSectionTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 14, marginBottom: 10 },
+  timeSectionTitle: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 14, marginBottom: 10 },
   timePresetsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   timePresetChip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: MC.border },
   timePresetChipActive: { backgroundColor: MC.tealP, borderColor: MC.tealP },
@@ -2148,7 +2148,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  modalTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 17 },
+  modalTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 17 },
   modalBody: { color: MC.muted, fontFamily: FONTS.med, fontSize: 13, textAlign: 'center', lineHeight: 20 },
   modalActions: { flexDirection: 'row', width: '100%', gap: 10, marginTop: 6 },
   modalCancelBtn: { flex: 1, height: 38, borderRadius: 10, borderWidth: 1, borderColor: MC.border, alignItems: 'center', justifyContent: 'center', ...({ cursor: 'pointer' } as any) },
@@ -2188,7 +2188,7 @@ const s = StyleSheet.create({
     width: '100%'
   },
   formCardTitle: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.xbold,
     fontSize: 16
   },
@@ -2208,7 +2208,7 @@ const s = StyleSheet.create({
     marginTop: 6
   },
   formMonthLabel: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.bold,
     fontSize: 13
   },
@@ -2247,7 +2247,7 @@ const s = StyleSheet.create({
     backgroundColor: '#14B8A6'
   },
   formDayText: {
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.med,
     fontSize: 11
   },
@@ -2321,7 +2321,7 @@ const s = StyleSheet.create({
     borderColor: MC.border,
     borderWidth: 1,
     paddingHorizontal: 8,
-    color: '#fff',
+    color: '#1C1C1E',
     fontFamily: FONTS.med,
     fontSize: 12,
     backgroundColor: 'rgba(0,0,0,0.1)',
@@ -2371,6 +2371,6 @@ const s = StyleSheet.create({
   },
   pagination: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 16, gap: 14 },
   pageBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: MC.card, borderRadius: 8, borderWidth: 1, borderColor: MC.border, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  pageBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
+  pageBtnText: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12 },
   pageInfo: { color: MC.muted, fontFamily: FONTS.med, fontSize: 12 },
 });

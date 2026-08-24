@@ -123,8 +123,8 @@ function CustomDropdown({
           flexDirection: 'row',
           alignItems: 'center',
           gap: 6,
-          backgroundColor: '#1E1B4B',
-          borderColor: open ? 'rgba(124,58,237,0.5)' : 'rgba(255,255,255,0.08)',
+          backgroundColor: '#F1F5F9',
+          borderColor: open ? '#2563EB' : 'rgba(15,38,71,0.12)',
           borderWidth: 1,
           borderRadius: 8,
           paddingHorizontal: 12,
@@ -134,8 +134,8 @@ function CustomDropdown({
           zIndex: 1001,
         }}
       >
-        <Text style={{ color: '#E5E7EB', fontSize: 12.5, fontFamily: FONTS.med }}>{value}</Text>
-        <MaterialCommunityIcons name={open ? "chevron-up" : "chevron-down"} size={14} color="#9CA3AF" />
+        <Text style={{ color: '#1E293B', fontSize: 12.5, fontFamily: FONTS.med }}>{value}</Text>
+        <MaterialCommunityIcons name={open ? "chevron-up" : "chevron-down"} size={14} color="#475569" />
       </Pressable>
       {open && (
         <View
@@ -144,14 +144,14 @@ function CustomDropdown({
             top: 40,
             left: 0,
             minWidth: 140,
-            backgroundColor: '#111827',
-            borderColor: 'rgba(255,255,255,0.08)',
+            backgroundColor: '#FFFFFF',
+            borderColor: 'rgba(15,38,71,0.12)',
             borderWidth: 1,
             borderRadius: 8,
             padding: 4,
             shadowColor: '#000',
             shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.3,
+            shadowOpacity: 0.1,
             shadowRadius: 6,
             elevation: 8,
             zIndex: 1002,
@@ -180,12 +180,12 @@ function CustomDropdown({
                     gap: 6,
                     justifyContent: 'space-between',
                   },
-                  hovered && { backgroundColor: 'rgba(255,255,255,0.06)' },
-                  value === opt && { backgroundColor: 'rgba(124, 58, 237, 0.2)' },
+                  hovered && { backgroundColor: 'rgba(0,0,0,0.04)' },
+                  value === opt && { backgroundColor: 'rgba(37,99,235,0.08)' },
                   isDisabled && { opacity: 0.5 },
                 ]}
               >
-                <Text style={{ color: value === opt ? '#A78BFA' : '#D1D5DB', fontSize: 12, fontFamily: FONTS.bold }}>
+                <Text style={{ color: value === opt ? '#2563EB' : '#1E293B', fontSize: 12, fontFamily: FONTS.bold }}>
                   {opt}
                 </Text>
                 {isDisabled && <Lock size={10} color={SC.dim} />}
@@ -264,8 +264,8 @@ export function InternshipsView() {
         const filtered = sList.filter((j: any) => {
           const typeMatch = selectedType === 'All Types' || j.job_type === selectedType;
           const modeMatch = selectedMode === 'All Modes' || j.work_mode === selectedMode;
-          const qMatch = !q.trim() || 
-            (j.title || '').toLowerCase().includes(q.toLowerCase()) || 
+          const qMatch = !q.trim() ||
+            (j.title || '').toLowerCase().includes(q.toLowerCase()) ||
             (j.company || '').toLowerCase().includes(q.toLowerCase()) ||
             (j.tags || []).some((t: any) => t.toLowerCase().includes(q.toLowerCase()));
           return typeMatch && modeMatch && qMatch;
@@ -280,7 +280,7 @@ export function InternshipsView() {
           // Handle both app.job_id and app.id field names from the API
           const appJobId = app.job_id || app.id;
           const existing = sList.find((it: any) => it.job_id === appJobId) ||
-                           items.find((it: any) => it.job_id === appJobId);
+            items.find((it: any) => it.job_id === appJobId);
           if (existing) {
             return { ...existing, applied: true };
           }
@@ -338,7 +338,7 @@ export function InternshipsView() {
           toast.success(`🎉 ${r.new_count} new job${r.new_count === 1 ? '' : 's'} since your last visit`,
             'Pulled fresh from RemoteOK · ArbeitNow · The Muse · Remotive · Jobicy · Himalayas · HackerNews · WeWorkRemotely · etc.');
         }
-      } catch {}
+      } catch { }
     })();
     return () => { cancelled = true; };
   }, []); // eslint-disable-line
@@ -366,7 +366,7 @@ export function InternshipsView() {
     setItems((arr) => arr.map((j) => j.job_id === job.job_id ? { ...j, saved: next } : j));
     try {
       await request(next ? '/jobs/save' : '/jobs/unsave', { method: 'POST', body: { job_id: job.job_id } } as any);
-      
+
       // Update counts
       const savedRes: any = await request('/jobs/saved');
       setSavedJobs(savedRes.items || []);
@@ -418,7 +418,7 @@ export function InternshipsView() {
   const generateCoverLetter = useCallback((job: Job) => {
     setGeneratingCover(true);
     setCoverModalJob(job);
-    
+
     // Simulate AI generation delay
     setTimeout(() => {
       const name = authUser?.full_name || 'Aarav Student';
@@ -444,7 +444,7 @@ ${email}`;
   return (
     <View accessibilityLabel="Internships and jobs feed">
       <SuccessBurst visible={burst.show} onHide={() => setBurst({ show: false, label: '' })} label={burst.label} />
-       {/* Premium Tab Bar and Dropdown Filters */}
+      {/* Premium Tab Bar and Dropdown Filters */}
       <View style={s.headerRow}>
         {/* Left side: Tabs */}
         <View style={s.tabsContainer}>
@@ -454,7 +454,7 @@ ${email}`;
             if (t === 'Saved') label = `Saved (${savedJobs.length})`;
             if (t === 'Applied') label = `Applied (${appliedRaw.length})`;
             return (
-             <Pressable
+              <Pressable
                 key={t}
                 onPress={() => {
                   // Clear search query when switching tabs so it doesn't
@@ -471,7 +471,7 @@ ${email}`;
             );
           })}
         </View>
-         {/* Right side: Dropdowns + Search */}
+        {/* Right side: Dropdowns + Search */}
         <View style={s.filtersContainer}>
           <CustomDropdown
             value={selectedType}
@@ -494,12 +494,12 @@ ${email}`;
             }}
           />
           <View style={s.searchBox}>
-            <Search size={14} color={SC.dim} />
+            <Search size={14} color="#64748B" />
             <TextInput
               value={q}
               onChangeText={setQ}
               placeholder="Search..."
-              placeholderTextColor={SC.dim}
+              placeholderTextColor="#94A3B8"
               style={s.searchInput}
             />
           </View>
@@ -512,7 +512,7 @@ ${email}`;
               refreshing && { opacity: 0.6 }
             ]}
           >
-            {refreshing ? <ActivityIndicator size="small" color="#fff" /> : <RefreshCcw size={13} color="#fff" />}
+            {refreshing ? <ActivityIndicator size="small" color="#1E40AF" /> : <RefreshCcw size={13} color="#1E40AF" />}
           </Pressable>
         </View>
       </View>
@@ -550,10 +550,10 @@ ${email}`;
             />
           )
         ) : items.map((j) => (
-          <JobCard 
-            key={j.job_id} 
-            job={j} 
-            onSave={onToggleSaveWithBurst} 
+          <JobCard
+            key={j.job_id}
+            job={j}
+            onSave={onToggleSaveWithBurst}
             onApply={onApply}
             onCoverLetter={generateCoverLetter}
             onWhyMatch={setWhyMatchJob}
@@ -585,11 +585,11 @@ ${email}`;
             </View>
             <Text style={s.modalText}>
               We redirected you to the recruiter's page for{" "}
-              <Text style={{ fontFamily: FONTS.bold, color: '#fff' }}>
+              <Text style={{ fontFamily: FONTS.bold, color: '#FFFFFF' }}>
                 {applyModalJob?.title}
               </Text>{" "}
               at{" "}
-              <Text style={{ fontFamily: FONTS.bold, color: '#fff' }}>
+              <Text style={{ fontFamily: FONTS.bold, color: '#FFFFFF' }}>
                 {applyModalJob?.company}
               </Text>.
             </Text>
@@ -625,11 +625,11 @@ ${email}`;
                       'Application Tracked! 🎉',
                       `Successfully added ${job.title} at ${job.company} to your My Applications dashboard.`
                     );
-                    
+
                     // Update lists
                     const appliedRes: any = await request(`/student/my-applications?email=${encodeURIComponent(authUser?.email || '')}`);
                     setAppliedRaw(appliedRes.items || []);
-                    
+
                     setItems((arr) =>
                       arr.map((j) =>
                         j.job_id === job.job_id ? { ...j, applied: true } : j
@@ -664,14 +664,14 @@ ${email}`;
           <GlassCard radius={16} padding={22} style={s.modalCard}>
             <View style={s.modalHeader}>
               <View style={s.modalIconDisc}>
-                <Sparkles size={18} color="#A78BFA" />
+                <Sparkles size={18} color="#3B82F6" />
               </View>
               <Text style={s.modalTitle}>AI Cover Letter Draft</Text>
             </View>
-            
+
             {generatingCover ? (
               <View style={{ padding: 30, alignItems: 'center', gap: 12 }}>
-                <ActivityIndicator size="large" color="#A78BFA" />
+                <ActivityIndicator size="large" color="#3B82F6" />
                 <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 13 }}>
                   Drafting professional cover letter...
                 </Text>
@@ -681,22 +681,22 @@ ${email}`;
                 <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 12, marginBottom: 8 }}>
                   Tailored for {coverModalJob?.title} at {coverModalJob?.company}:
                 </Text>
-                <View style={{ 
-                  backgroundColor: 'rgba(0,0,0,0.3)', 
-                  borderRadius: 10, 
-                  padding: 12, 
-                  maxHeight: 300, 
-                  borderWidth: 1, 
-                  borderColor: 'rgba(255,255,255,0.06)' 
+                <View style={{
+                  backgroundColor: 'rgba(0,0,0,0.3)',
+                  borderRadius: 10,
+                  padding: 12,
+                  maxHeight: 300,
+                  borderWidth: 1,
+                  borderColor: 'rgba(255,255,255,0.06)'
                 }}>
                   <TextInput
                     multiline
                     value={coverLetterText}
                     onChangeText={setCoverLetterText}
-                    style={{ 
-                      color: '#fff', 
-                      fontFamily: FONTS.med, 
-                      fontSize: 12, 
+                    style={{
+                      color: '#FFFFFF',
+                      fontFamily: FONTS.med,
+                      fontSize: 12,
                       lineHeight: 16,
                       height: 250,
                       textAlignVertical: 'top'
@@ -716,7 +716,7 @@ ${email}`;
                       toast.success('Copied! 📋', 'Cover letter copied to clipboard.');
                     }}
                     style={{
-                      backgroundColor: '#7C3AED',
+                      backgroundColor: '#1E40AF',
                       borderRadius: 10,
                       paddingHorizontal: 16,
                       height: 36,
@@ -724,7 +724,7 @@ ${email}`;
                       justifyContent: 'center',
                     }}
                   >
-                    <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 }}>
+                    <Text style={{ color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 12.5 }}>
                       Copy to Clipboard
                     </Text>
                   </Pressable>
@@ -745,23 +745,23 @@ ${email}`;
         <View style={s.modalBg}>
           <GlassCard radius={16} padding={22} style={s.modalCard}>
             <View style={s.modalHeader}>
-              <View style={[s.modalIconDisc, { backgroundColor: 'rgba(139,92,246,0.16)', borderColor: 'rgba(139,92,246,0.40)' }]}>
-                <Sparkles size={18} color="#A78BFA" />
+              <View style={[s.modalIconDisc, { backgroundColor: 'rgba(30,64,175,0.16)', borderColor: 'rgba(30,64,175,0.40)' }]}>
+                <Sparkles size={18} color="#60A5FA" />
               </View>
               <Text style={s.modalTitle}>Why Match?</Text>
             </View>
-            
-            <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 14, marginBottom: 12 }}>
+
+            <Text style={{ color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 14, marginBottom: 12 }}>
               Skills & Profile Alignment
             </Text>
             <Text style={s.modalText}>
-              Our AI matched your profile with <Text style={{ color: '#A78BFA', fontFamily: FONTS.bold }}>{whyMatchJob?.company}</Text>'s requirements:
+              Our AI matched your profile with <Text style={{ color: '#60A5FA', fontFamily: FONTS.bold }}>{whyMatchJob?.company}</Text>'s requirements:
             </Text>
             <View style={{ gap: 8, marginBottom: 20 }}>
               <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
                 <MaterialCommunityIcons name="check-circle" size={14} color="#10B981" />
                 <Text style={{ color: SC.muted, fontSize: 12.5, fontFamily: FONTS.med }}>
-                  Your skills in <Text style={{ color: '#fff' }}>{(whyMatchJob?.tags || []).slice(0, 2).join(', ') || 'related tech'}</Text> match the job tags.
+                  Your skills in <Text style={{ color: '#FFFFFF' }}>{(whyMatchJob?.tags || []).slice(0, 2).join(', ') || 'related tech'}</Text> match the job tags.
                 </Text>
               </View>
               <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
@@ -782,7 +782,7 @@ ${email}`;
               <Pressable
                 onPress={() => setWhyMatchJob(null)}
                 style={{
-                  backgroundColor: '#7C3AED',
+                  backgroundColor: '#1E40AF',
                   borderRadius: 10,
                   paddingHorizontal: 18,
                   height: 36,
@@ -790,7 +790,7 @@ ${email}`;
                   justifyContent: 'center',
                 }}
               >
-                <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 }}>
+                <Text style={{ color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 12.5 }}>
                   Awesome
                 </Text>
               </Pressable>
@@ -803,15 +803,15 @@ ${email}`;
 }
 
 /* ── Card ───────────────────────────────────────────────────────────── */
-function JobCard({ 
-  job, 
-  onSave, 
-  onApply, 
+function JobCard({
+  job,
+  onSave,
+  onApply,
   onCoverLetter,
   onWhyMatch,
-}: { 
-  job: Job; 
-  onSave: (j: Job) => void; 
+}: {
+  job: Job;
+  onSave: (j: Job) => void;
   onApply: (j: Job) => void;
   onCoverLetter: (j: Job) => void;
   onWhyMatch: (j: Job) => void;
@@ -823,13 +823,21 @@ function JobCard({
   const timeAgo = formatTimeAgo(job.posted_date);
 
   return (
-    <GlassCard radius={12} padding={20} style={{ position: 'relative' }}>
+    <View style={{
+      position: 'relative',
+      backgroundColor: '#FFFFFF',
+      borderRadius: 14,
+      padding: 18,
+      borderWidth: 1,
+      borderColor: 'rgba(0,0,0,0.08)',
+      ...(Platform.OS === 'web' ? { boxShadow: '0 2px 12px rgba(0,0,0,0.07)' } as any : { elevation: 2, shadowColor: '#000', shadowOpacity: 0.07, shadowRadius: 8 }),
+    }}>
       {/* Top right match badge and save bookmark */}
       <View style={{ position: 'absolute', top: 16, right: 16, flexDirection: 'row', alignItems: 'center', gap: 10, zIndex: 10 }}>
         {job.is_recommended && (
           <View style={{
-            backgroundColor: 'rgba(239, 68, 68, 0.1)',
-            borderColor: 'rgba(239, 68, 68, 0.3)',
+            backgroundColor: 'rgba(37,99,235,0.08)',
+            borderColor: 'rgba(37,99,235,0.25)',
             borderWidth: 1,
             borderRadius: 6,
             paddingHorizontal: 8,
@@ -839,18 +847,18 @@ function JobCard({
             gap: 4
           }}>
             <Text style={{ fontSize: 10 }}>🔥</Text>
-            <Text style={{ color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 10 }}>Recommended</Text>
+            <Text style={{ color: '#2563EB', fontFamily: FONTS.bold, fontSize: 10 }}>Recommended</Text>
           </View>
         )}
         <View style={{
-          backgroundColor: 'rgba(124, 58, 237, 0.1)',
-          borderColor: 'rgba(124, 58, 237, 0.3)',
+          backgroundColor: 'rgba(37,99,235,0.08)',
+          borderColor: 'rgba(37,99,235,0.20)',
           borderWidth: 1,
           borderRadius: 6,
           paddingHorizontal: 8,
           paddingVertical: 3,
         }}>
-          <Text style={{ color: '#C4B5FD', fontFamily: FONTS.bold, fontSize: 10 }}>{job.match_score !== undefined ? `${job.match_score}%` : `+${matchPct}%`} match</Text>
+          <Text style={{ color: '#2563EB', fontFamily: FONTS.bold, fontSize: 10 }}>{job.match_score !== undefined ? `${job.match_score}%` : `+${matchPct}%`} match</Text>
         </View>
         <Pressable
           onPress={() => onSave(job)}
@@ -858,9 +866,9 @@ function JobCard({
           accessibilityRole="button"
         >
           {job.saved ? (
-            <BookmarkCheck size={18} color="#A78BFA" />
+            <BookmarkCheck size={18} color="#2563EB" />
           ) : (
-            <Bookmark size={18} color="#9CA3AF" />
+            <Bookmark size={18} color="#94A3B8" />
           )}
         </Pressable>
       </View>
@@ -876,19 +884,24 @@ function JobCard({
           alignItems: 'center',
           justifyContent: 'center',
         }}>
-          <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 20 }}>{initials}</Text>
+          <Text style={{ color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 20 }}>{initials}</Text>
         </View>
 
         {/* Details Column */}
         <View style={{ flex: 1, minWidth: 0 }}>
           {/* Job Title */}
-          <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 16, letterSpacing: -0.2 }}>
+          <Text style={{ color: '#111827', fontFamily: FONTS.bold, fontSize: 16, letterSpacing: -0.2 }}>
             {job.title || '—'}
           </Text>
 
           {/* Company and Location */}
-          <Text style={{ color: '#9CA3AF', fontFamily: FONTS.med, fontSize: 12.5, marginTop: 2 }}>
-            {job.company} · {job.location || 'Remote'}
+          <Text style={{ color: '#64748B', fontFamily: FONTS.med, fontSize: 12.5, marginTop: 2 }}>
+            <Text
+              style={{ color: '#2563EB', ...(Platform.OS === 'web' ? { cursor: 'pointer', textDecorationLine: 'underline' } : { textDecorationLine: 'underline' }) }}
+              onPress={() => Linking.openURL(`https://www.google.com/search?q=${encodeURIComponent(job.company || '')}`)}
+            >
+              {job.company}
+            </Text> · {job.location || 'Remote'}
           </Text>
 
           {/* Tags row */}
@@ -905,8 +918,8 @@ function JobCard({
               paddingHorizontal: 8,
               paddingVertical: 3,
             }}>
-              <Briefcase size={10} color="#10B981" />
-              <Text style={{ color: '#34D399', fontFamily: FONTS.bold, fontSize: 10.5 }}>
+              <Briefcase size={10} color="#059669" />
+              <Text style={{ color: '#065F46', fontFamily: FONTS.bold, fontSize: 10.5 }}>
                 {job.job_type}
               </Text>
             </View>
@@ -916,15 +929,15 @@ function JobCard({
               flexDirection: 'row',
               alignItems: 'center',
               gap: 4,
-              backgroundColor: 'rgba(255, 255, 255, 0.05)',
-              borderColor: 'rgba(255, 255, 255, 0.08)',
+              backgroundColor: '#F1F5F9',
+              borderColor: 'rgba(0,0,0,0.08)',
               borderWidth: 1,
               borderRadius: 6,
               paddingHorizontal: 8,
               paddingVertical: 3,
             }}>
-              <Globe2 size={10} color="#9CA3AF" />
-              <Text style={{ color: '#D1D5DB', fontFamily: FONTS.bold, fontSize: 10.5 }}>
+              <Globe2 size={10} color="#475569" />
+              <Text style={{ color: '#334155', fontFamily: FONTS.bold, fontSize: 10.5 }}>
                 {job.work_mode}
               </Text>
             </View>
@@ -935,15 +948,15 @@ function JobCard({
                 flexDirection: 'row',
                 alignItems: 'center',
                 gap: 4,
-                backgroundColor: 'rgba(124, 58, 237, 0.1)',
-                borderColor: 'rgba(124, 58, 237, 0.25)',
+                backgroundColor: 'rgba(30, 64, 175, 0.1)',
+                borderColor: 'rgba(30, 64, 175, 0.25)',
                 borderWidth: 1,
                 borderRadius: 6,
                 paddingHorizontal: 8,
                 paddingVertical: 3,
               }}>
-                <IndianRupee size={10} color="#A78BFA" />
-                <Text style={{ color: '#C4B5FD', fontFamily: FONTS.bold, fontSize: 10.5 }}>
+                <IndianRupee size={10} color="#1D4ED8" />
+                <Text style={{ color: '#1E3A8A', fontFamily: FONTS.bold, fontSize: 10.5 }}>
                   {salary}
                 </Text>
               </View>
@@ -955,14 +968,14 @@ function JobCard({
                 flexDirection: 'row',
                 alignItems: 'center',
                 gap: 4,
-                backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                borderColor: 'rgba(255, 255, 255, 0.08)',
+                backgroundColor: '#F1F5F9',
+                borderColor: 'rgba(0,0,0,0.08)',
                 borderWidth: 1,
                 borderRadius: 6,
                 paddingHorizontal: 8,
                 paddingVertical: 3,
               }}>
-                <Text style={{ color: '#D1D5DB', fontFamily: FONTS.bold, fontSize: 10.5 }}>
+                <Text style={{ color: '#334155', fontFamily: FONTS.bold, fontSize: 10.5 }}>
                   {duration}
                 </Text>
               </View>
@@ -974,54 +987,22 @@ function JobCard({
                 flexDirection: 'row',
                 alignItems: 'center',
                 gap: 4,
-                backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                borderColor: 'rgba(255, 255, 255, 0.08)',
+                backgroundColor: '#F1F5F9',
+                borderColor: 'rgba(0,0,0,0.08)',
                 borderWidth: 1,
                 borderRadius: 6,
                 paddingHorizontal: 8,
                 paddingVertical: 3,
               }}>
-                <Clock size={10} color="#9CA3AF" />
-                <Text style={{ color: '#9CA3AF', fontFamily: FONTS.med, fontSize: 10.5 }}>
+                <Clock size={10} color="#475569" />
+                <Text style={{ color: '#1E293B', fontFamily: FONTS.med, fontSize: 10.5 }}>
                   {timeAgo}
                 </Text>
               </View>
             )}
           </View>
 
-          {/* Description */}
-          {job.description && (
-            <Text style={{
-              color: '#9CA3AF',
-              fontFamily: FONTS.med,
-              fontSize: 12.5,
-              lineHeight: 18,
-              marginTop: 10,
-            }}>
-              {job.description}
-            </Text>
-          )}
 
-          {/* Skill pills */}
-          {(job.tags || []).length > 0 && (
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 12 }}>
-              {(job.tags || []).slice(0, 5).map((t, idx) => (
-                <View
-                  key={idx}
-                  style={{
-                    backgroundColor: 'rgba(255,255,255,0.03)',
-                    borderColor: 'rgba(255,255,255,0.05)',
-                    borderWidth: 1,
-                    borderRadius: 20,
-                    paddingHorizontal: 12,
-                    paddingVertical: 4,
-                  }}
-                >
-                  <Text style={{ color: '#9CA3AF', fontFamily: FONTS.med, fontSize: 11 }}>{t}</Text>
-                </View>
-              ))}
-            </View>
-          )}
 
           {/* Footer Info & Actions */}
           <View style={{
@@ -1030,7 +1011,7 @@ function JobCard({
             alignItems: 'center',
             marginTop: 16,
             borderTopWidth: 1,
-            borderTopColor: 'rgba(255,255,255,0.04)',
+            borderTopColor: 'rgba(0,0,0,0.06)',
             paddingTop: 14,
             flexWrap: 'wrap',
             gap: 12,
@@ -1039,23 +1020,23 @@ function JobCard({
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
               {/* Applicants */}
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <Users size={12} color="#9CA3AF" />
-                <Text style={{ color: '#9CA3AF', fontFamily: FONTS.med, fontSize: 11.5 }}>
+                <Users size={12} color="#94A3B8" />
+                <Text style={{ color: '#64748B', fontFamily: FONTS.med, fontSize: 11.5 }}>
                   {applicants.toLocaleString()} applicants
                 </Text>
               </View>
 
-              <Text style={{ color: 'rgba(255,255,255,0.15)' }}>·</Text>
+              <Text style={{ color: 'rgba(0,0,0,0.15)' }}>·</Text>
 
               {/* Closes date */}
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <Calendar size={12} color="#9CA3AF" />
-                <Text style={{ color: '#9CA3AF', fontFamily: FONTS.med, fontSize: 11.5 }}>
+                <Calendar size={12} color="#94A3B8" />
+                <Text style={{ color: '#64748B', fontFamily: FONTS.med, fontSize: 11.5 }}>
                   {closes}
                 </Text>
               </View>
 
-              <Text style={{ color: 'rgba(255,255,255,0.15)' }}>·</Text>
+              <Text style={{ color: 'rgba(0,0,0,0.12)' }}>·</Text>
 
               {/* Why Match */}
               <Pressable
@@ -1064,16 +1045,16 @@ function JobCard({
                   flexDirection: 'row',
                   alignItems: 'center',
                   gap: 4,
-                  backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                  borderColor: 'rgba(139, 92, 246, 0.3)',
+                  backgroundColor: 'rgba(37,99,235,0.08)',
+                  borderColor: 'rgba(37,99,235,0.22)',
                   borderWidth: 1,
                   borderRadius: 14,
                   paddingHorizontal: 8,
                   paddingVertical: 3,
                 }}
               >
-                <Sparkles size={11} color="#A78BFA" />
-                <Text style={{ color: '#C4B5FD', fontFamily: FONTS.bold, fontSize: 10.5 }}>
+                <Sparkles size={11} color="#2563EB" />
+                <Text style={{ color: '#2563EB', fontFamily: FONTS.bold, fontSize: 10.5 }}>
                   Why match?
                 </Text>
               </Pressable>
@@ -1089,8 +1070,8 @@ function JobCard({
                     alignItems: 'center',
                     gap: 5,
                     borderWidth: 1,
-                    borderColor: 'rgba(255,255,255,0.1)',
-                    backgroundColor: 'rgba(255,255,255,0.03)',
+                    borderColor: 'rgba(37,99,235,0.20)',
+                    backgroundColor: 'rgba(37,99,235,0.06)',
                     borderRadius: 8,
                     paddingHorizontal: 12,
                     height: 32,
@@ -1099,8 +1080,8 @@ function JobCard({
                   pressed && { opacity: 0.7 },
                 ]}
               >
-                <Sparkles size={12} color="#A78BFA" />
-                <Text style={{ color: '#D1D5DB', fontFamily: FONTS.bold, fontSize: 11.5 }}>
+                <Sparkles size={12} color="#2563EB" />
+                <Text style={{ color: '#1E40AF', fontFamily: FONTS.bold, fontSize: 11.5 }}>
                   Cover Letter
                 </Text>
               </Pressable>
@@ -1112,7 +1093,7 @@ function JobCard({
                     flexDirection: 'row',
                     alignItems: 'center',
                     gap: 6,
-                    backgroundColor: '#7C3AED',
+                    backgroundColor: '#1E40AF',
                     borderRadius: 8,
                     paddingHorizontal: 14,
                     height: 32,
@@ -1121,7 +1102,7 @@ function JobCard({
                   pressed && { opacity: 0.8 },
                 ]}
               >
-                <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 11.5 }}>
+                <Text style={{ color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 11.5 }}>
                   {job.applied ? 'Applied Now' : 'Apply'}
                 </Text>
                 <ExternalLink size={11} color="#fff" />
@@ -1130,7 +1111,7 @@ function JobCard({
           </View>
         </View>
       </View>
-    </GlassCard>
+    </View>
   );
 }
 
@@ -1146,12 +1127,12 @@ function formatSalary(j: Job): string {
 }
 
 function shortMoney(n: number): string {
-  if (n >= 1_000_000) return `${(n/1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n/1_000).toFixed(0)}K`;
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
   return String(n);
 }
 
-const COLOR_PALETTE = ['#F59E0B', '#3B82F6', '#10B981', '#A78BFA', '#EC4899', '#F97316', '#06B6D4', '#84CC16'];
+const COLOR_PALETTE = ['#F59E0B', '#3B82F6', '#10B981', '#60A5FA', '#EC4899', '#F97316', '#06B6D4', '#84CC16'];
 function pickColor(seed: string): string {
   let h = 0; for (const c of seed) h = (h * 31 + c.charCodeAt(0)) >>> 0;
   return COLOR_PALETTE[h % COLOR_PALETTE.length];
@@ -1167,7 +1148,7 @@ function hashCode(str: string): number {
 
 function getStableMockData(jobId: string, company: string, jobType: string) {
   const hash = hashCode(jobId || company || 'default');
-  
+
   const matchPct = 82 + (hash % 16);
   const applicants = (hash % 230) * 10 + 80;
   const closesOptions = ['Rolling', 'Closes Jul 15, 2026', 'Closes Aug 1, 2026', 'Closes Sep 30, 2026'];
@@ -1219,8 +1200,8 @@ const s = StyleSheet.create({
   },
   tabsContainer: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: '#F1F5F9',
+    borderColor: 'rgba(15,38,71,0.08)',
     borderWidth: 1,
     borderRadius: 10,
     padding: 3,
@@ -1231,15 +1212,15 @@ const s = StyleSheet.create({
     borderRadius: 8,
   },
   tabButtonActive: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#2563EB',
   },
   tabButtonText: {
-    color: '#9CA3AF',
+    color: '#1E293B',
     fontFamily: FONTS.bold,
     fontSize: 12.5,
   },
   tabButtonTextActive: {
-    color: '#fff',
+    color: '#FFFFFF',
   },
   filtersContainer: {
     flexDirection: 'row',
@@ -1249,56 +1230,56 @@ const s = StyleSheet.create({
     zIndex: 100,
     ...(Platform.OS === 'web' ? ({ overflow: 'visible' } as any) : {}),
   },
-  searchBox: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    gap: 8, 
-    width: 200, 
-    height: 36, 
-    paddingHorizontal: 11, 
-    borderRadius: 10, 
-    backgroundColor: '#1E1B4B', 
-    borderColor: 'rgba(255,255,255,0.08)', 
-    borderWidth: 1 
+  searchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    width: 200,
+    height: 36,
+    paddingHorizontal: 11,
+    borderRadius: 10,
+    backgroundColor: '#F5F7FC',
+    borderColor: 'rgba(15,38,71,0.12)',
+    borderWidth: 1
   },
-  searchInput: { 
-    flex: 1, 
-    color: '#fff', 
-    fontFamily: FONTS.med, 
-    fontSize: 12.5, 
-    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) 
+  searchInput: {
+    flex: 1,
+    color: '#1E293B',
+    fontFamily: FONTS.med,
+    fontSize: 12.5,
+    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {})
   },
   refreshBtn: {
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: '#1E1B4B',
-    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: '#F5F7FC',
+    borderColor: 'rgba(15,38,71,0.12)',
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
-  metaCount: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 4 },
+  metaCount: { color: '#1E293B', fontFamily: FONTS.bold, fontSize: 11.5, marginTop: 4 },
 
   loadMore: {
     alignSelf: 'center', marginTop: 14, paddingHorizontal: 22, height: 38, borderRadius: 10,
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: '#1E1B4B', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1,
+    backgroundColor: '#F5F7FC', borderColor: 'rgba(15,38,71,0.12)', borderWidth: 1,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  loadMoreTxt: { color: '#C4B5FD', fontFamily: FONTS.bold, fontSize: 12 },
+  loadMoreTxt: { color: '#3B82F6', fontFamily: FONTS.bold, fontSize: 12 },
 
   modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', alignItems: 'center', justifyContent: 'center', padding: 20, zIndex: 99999 },
-  modalCard: { width: '100%', maxWidth: 480, backgroundColor: '#111827', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderRadius: 16, padding: 22 },
+  modalCard: { width: '100%', maxWidth: 480, backgroundColor: '#F5F7FC', borderColor: 'rgba(15,38,71,0.12)', borderWidth: 1, borderRadius: 16, padding: 22 },
   modalHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
-  modalIconDisc: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(124,58,237,0.16)', borderColor: 'rgba(124,58,237,0.40)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  modalTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 17, letterSpacing: -0.3 },
+  modalIconDisc: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(30,64,175,0.16)', borderColor: 'rgba(30,64,175,0.40)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  modalTitle: { color: '#0F172A', fontFamily: FONTS.xbold, fontSize: 17, letterSpacing: -0.3 },
   modalText: { color: SC.muted, fontFamily: FONTS.med, fontSize: 13, lineHeight: 18, marginBottom: 12 },
   modalSubtext: { color: SC.dim, fontFamily: FONTS.med, fontSize: 12, lineHeight: 16, marginBottom: 20 },
   modalBtnRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10 },
   modalCancelBtn: { paddingHorizontal: 16, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center', backgroundColor: 'transparent' },
   modalCancelTxt: { color: SC.muted, fontFamily: FONTS.bold, fontSize: 12.5 },
   modalConfirmBtn: { flexDirection: 'row', gap: 6, alignItems: 'center', paddingHorizontal: 18, height: 36, borderRadius: 10 },
-  modalConfirmTxt: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12.5 },
+  modalConfirmTxt: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 12.5 },
 });
