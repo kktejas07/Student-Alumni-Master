@@ -11,10 +11,8 @@
  * Uses exclusively existing student-portal tokens & primitives.
  */
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import {
-  View, Text, Pressable, Platform,
-  ActivityIndicator, useWindowDimensions, Modal, Image, Linking,
-} from 'react-native';
+import {View, Text, Pressable, Platform,
+  ActivityIndicator, useWindowDimensions, Modal, Image, Linking, StyleSheet} from "react-native";
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   ArrowLeft, ArrowRight, Share2, Calendar, Clock, MapPin, Users, Mic2,

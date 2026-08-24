@@ -9,7 +9,7 @@
  *   • All tiers have inset top highlight for glass-like depth
  */
 import React, { memo } from 'react';
-import { Platform, View, ViewStyle } from 'react-native';
+import { Platform, View, ViewStyle, StyleSheet } from 'react-native';
 import { COLORS, RADIUS, SPACING } from '@/src/lib/designTokens';
 
 interface Props {

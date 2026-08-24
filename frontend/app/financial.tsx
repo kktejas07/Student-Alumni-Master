@@ -3,7 +3,7 @@
  * Wired to /api/financial/* live backend.
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, TextInput, Platform, Linking } from 'react-native';
+import { View, Text, Pressable, ScrollView, ActivityIndicator, TextInput, Platform, Linking } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import FeaturePageShell, { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -70,7 +70,6 @@ function rangeFmt(it: Item): string {
   return `Up to ${fmtINR(it.amount_max)}`;
 }
 
-// Web-friendly slider (uses native range input on web; falls back to numeric input)
 function EmiSlider({ label, value, setValue, min, max, step, fmt, prefix = '', suffix = '' }: any) {
   const [typedValue, setTypedValue] = useState(String(value));
 
@@ -103,20 +102,20 @@ function EmiSlider({ label, value, setValue, min, max, step, fmt, prefix = '', s
 
   if (Platform.OS === 'web') {
     return (
-      <View style={s.emiSliderWrap}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-          <Text style={s.emiSliderLabel}>{label}</Text>
-          <Text style={s.emiSliderValue}>{fmt(value)}</Text>
+      <View className="flex-1 min-w-60 gap-1">
+        <View className="flex-row justify-between mb-1.5">
+          <Text className="text-muted text-xs font-body-semibold uppercase tracking-wider">{label}</Text>
+          <Text className="text-text font-body-bold text-sm">{fmt(value)}</Text>
         </View>
-        <View style={{ flex: 1 }}>
+        <View className="flex-1">
           {React.createElement('input' as any, {
             type: 'range', min, max, step, value,
             onChange: (e: any) => setValue(Number(e.target.value)),
             style: { width: '100%', accentColor: '#7C3AED', cursor: 'pointer' },
           })}
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 6, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', paddingHorizontal: 8, height: 28, marginTop: 6 }}>
-          {prefix ? <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginRight: 2 }}>{prefix}</Text> : null}
+        <View className="flex-row items-center bg-glass rounded-md border border-glass-border px-2 h-7 mt-1.5">
+          {prefix ? <Text className="text-muted text-xs mr-0.5">{prefix}</Text> : null}
           <TextInput
             value={typedValue}
             onChangeText={handleTextChange}
@@ -124,23 +123,25 @@ function EmiSlider({ label, value, setValue, min, max, step, fmt, prefix = '', s
             keyboardType="numeric"
             placeholder={`Enter ${label.toLowerCase()}...`}
             placeholderTextColor="rgba(255,255,255,0.3)"
-            style={{ color: '#fff', fontSize: 11.5, flex: 1, paddingVertical: 0, paddingHorizontal: 0, height: '100%', backgroundColor: 'transparent', outlineStyle: 'none', borderWidth: 0 } as any}
+            className="text-text text-xs flex-1 bg-transparent"
+            style={{ paddingVertical: 0, paddingHorizontal: 0, height: '100%', outlineStyle: 'none', borderWidth: 0 } as any}
           />
-          {suffix ? <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginLeft: 2 }}>{suffix}</Text> : null}
+          {suffix ? <Text className="text-muted text-xs ml-0.5">{suffix}</Text> : null}
         </View>
       </View>
     );
   }
 
   return (
-    <View style={s.emiSliderWrap}>
-      <Text style={s.emiSliderLabel}>{label} {fmt(value)}</Text>
+    <View className="flex-1 min-w-60 gap-1">
+      <Text className="text-muted text-xs font-body-semibold uppercase tracking-wider">{label} {fmt(value)}</Text>
       <TextInput
         value={typedValue}
         onChangeText={handleTextChange}
         onBlur={handleBlur}
         keyboardType="numeric"
-        style={{ color: '#fff', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', borderRadius: 8, padding: 8, marginTop: 4 }}
+        className="text-text text-sm border border-glass-border rounded-lg p-2 mt-1"
+        style={{ color: '#fff' }}
       />
     </View>
   );
@@ -169,7 +170,6 @@ export default function FinancialPage() {
   const [aiAnswers, setAiAnswers] = useState<Record<string, string>>({});
   const [aiSubmitting, setAiSubmitting] = useState(false);
   const [aiTop3, setAiTop3] = useState<any[]>([]);
-  // EMI calculator
   const [emiAmt, setEmiAmt] = useState(1500000);
   const [emiRate, setEmiRate] = useState(8.5);
   const [emiTen, setEmiTen] = useState(120);
@@ -177,7 +177,6 @@ export default function FinancialPage() {
   const [advisorChatOpen, setAdvisorChatOpen] = useState(false);
   const [advisorOpen, setAdvisorOpen] = useState(false);
 
-  // Load financial profile on mount to pre-fill AI helper answers
   useEffect(() => {
     if (!initialized || !user) return;
     let active = true;
@@ -213,9 +212,7 @@ export default function FinancialPage() {
       }
     }
     fetchProfile();
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, [initialized, user]);
 
   const tabInfo = TABS.find(t => t.id === tab)!;
@@ -232,7 +229,6 @@ export default function FinancialPage() {
 
   useEffect(() => { load(tab); setAiOpen(false); setAiTop3([]); }, [tab, load]);
 
-  // EMI auto-calculate (debounced)
   useEffect(() => {
     if (tab !== 'loans') return;
     const t = setTimeout(async () => {
@@ -288,7 +284,6 @@ export default function FinancialPage() {
     };
     setAiSubmitting(true);
     try {
-      // Coerce numeric fields
       const payload: any = {};
       for (const q of (aiQuestions[tab] || [])) {
         const v = aiAnswers[q.key];
@@ -307,9 +302,9 @@ export default function FinancialPage() {
       subtitle="Funding, education loans, investors, insurance — matched to your profile."
       heroEmoji="💰"
       accent="#5F259F"
-      rightSlot={<View style={s.savPill}><Icon name="wallet-outline" size={12} color="#86EFAC" /><Text style={s.savPillText}>SA Savings Advisor</Text></View>}
+      rightSlot={<View className="flex-row items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-glass border border-glass-border"><Icon name="wallet-outline" size={12} color="#86EFAC" /><Text className="text-teal font-body-bold text-xs">SA Savings Advisor</Text></View>}
     >
-      <View style={s.statsRow}>
+      <View className="flex-row gap-3 flex-wrap">
         <Stat label="HIGH MATCH FUNDING" value="3+" sub="Matched to you" color="#F97316" iconName="trophy-award" />
         <Stat label="FREE GRANTS" value="4+" sub="Zero repayment" color="#14B8A6" iconName="auto-fix" />
         <Stat label="ALUMNI INVESTORS" value="2+" sub="Active pitch pipeline" color="#6366F1" iconName="trending-up" />
@@ -320,36 +315,34 @@ export default function FinancialPage() {
         {TABS.map((t) => {
           const active = tab === t.id;
           return (
-            <Pressable key={t.id} onPress={() => setTab(t.id)} style={[s.tab, active && { backgroundColor: t.color + '22', borderColor: t.color + '66' }]}>
+            <Pressable key={t.id} onPress={() => setTab(t.id)} className="flex-row items-center gap-2 px-3 py-2.5 rounded-xl bg-glass border border-glass-border" style={active && { backgroundColor: t.color + '22', borderColor: t.color + '66' }}>
               <MaterialCommunityIcons name={t.icon} size={14} color={active ? t.color : 'rgba(255,255,255,0.65)'} />
-              <Text style={[s.tabText, active && { color: t.color }]}>{t.label}</Text>
+              <Text className="text-xs font-body-bold text-muted" style={active && { color: t.color }}>{t.label}</Text>
             </Pressable>
           );
         })}
       </ScrollView>
 
-      {/* AI Helper button */}
-      <Pressable style={s.aiHelper} onPress={() => setAiOpen(!aiOpen)}>
+      <Pressable className="flex-row items-center gap-2 self-start px-3.5 py-2.5 rounded-xl bg-glass border border-glass-border mt-2" onPress={() => setAiOpen(!aiOpen)}>
         <Icon name="auto-fix" size={14} color="#A78BFA" />
-        <Text style={s.aiHelperText}>{AI_LABELS[tab]}</Text>
+        <Text className="text-violet font-body-bold text-xs">{AI_LABELS[tab]}</Text>
         <Icon name="chevron-down" size={14} color="rgba(255,255,255,0.5)" style={{ transform: [{ rotate: aiOpen ? '180deg' : '0deg' }] }} />
       </Pressable>
 
-      {/* AI Helper expandable form */}
       {aiOpen && (
-        <View style={s.aiPanel}>
-          <Text style={s.aiPanelTitle}>Tell us about you — we'll re-rank by match score</Text>
-          <View style={s.aiPanelGrid}>
+        <View className="mt-2.5 p-4 rounded-2xl bg-glass border border-glass-border gap-3" style={{ backgroundColor: 'rgba(124,58,237,0.08)', borderColor: 'rgba(124,58,237,0.30)' }}>
+          <Text className="text-text font-body-bold text-xs">Tell us about you — we'll re-rank by match score</Text>
+          <View className="flex-row flex-wrap gap-2.5">
             {(aiQuestions[tab] || []).map((q) => (
-              <View key={q.key} style={s.aiField}>
-                <Text style={s.aiFieldLabel}>{q.label}</Text>
+              <View key={q.key} className="gap-1" style={{ width: '48%', minWidth: 200 }}>
+                <Text className="text-muted text-xs font-body-semibold">{q.label}</Text>
                 <TextInput
                   value={aiAnswers[q.key] || ''}
                   onChangeText={(v) => setAiAnswers({ ...aiAnswers, [q.key]: v })}
                   placeholder={q.placeholder}
                   placeholderTextColor="rgba(255,255,255,0.30)"
                   keyboardType={q.type === 'number' ? 'numeric' : 'default'}
-                  style={s.aiInput}
+                  className="px-2.5 py-2 bg-glass border border-glass-border rounded-lg text-text text-xs"
                 />
               </View>
             ))}
@@ -357,27 +350,28 @@ export default function FinancialPage() {
           <Pressable
             onPress={submitAi}
             disabled={aiSubmitting}
-            style={[s.aiSubmit, { opacity: aiSubmitting ? 0.6 : 1 }]}
+            className="flex-row items-center justify-center gap-2 py-2.5 rounded-xl bg-violet self-start px-4"
+            style={{ opacity: aiSubmitting ? 0.6 : 1 }}
           >
             {aiSubmitting ? <ActivityIndicator color="#fff" /> : (
               <>
                 <Icon name="auto-fix" size={14} color="#fff" />
-                <Text style={s.aiSubmitText}>Re-rank by match score</Text>
+                <Text className="text-text font-body-bold text-xs">Re-rank by match score</Text>
               </>
             )}
           </Pressable>
           {aiTop3.length > 0 && (
-            <View style={s.aiTop3Box}>
-              <Text style={s.aiTop3Title}>✨ Top 3 matches for you</Text>
+            <View className="p-3 rounded-xl bg-glass border border-glass-border gap-2" style={{ backgroundColor: 'rgba(34,197,94,0.08)', borderColor: 'rgba(34,197,94,0.30)' }}>
+              <Text className="text-teal font-body-bold text-xs">✨ Top 3 matches for you</Text>
               {aiTop3.map((t, i) => (
-                <View key={t.financial_id} style={s.aiTop3Row}>
-                  <View style={s.aiTop3Rank}><Text style={s.aiTop3RankText}>#{i + 1}</Text></View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={s.aiTop3Name}>{t.name}</Text>
+                <View key={t.financial_id} className="flex-row items-center gap-2.5 py-1">
+                  <View className="w-6 h-6 rounded-full items-center justify-center bg-teal"><Text className="text-text font-body-bold text-xs">#{i + 1}</Text></View>
+                  <View className="flex-1">
+                    <Text className="text-text font-body-semibold text-xs">{t.name}</Text>
                   </View>
-                  <View style={s.matchBadge}>
+                  <View className="flex-row items-center gap-1 px-2 py-0.5 rounded-full bg-glass border border-glass-border" style={{ backgroundColor: 'rgba(34,197,94,0.18)', borderColor: 'rgba(34,197,94,0.45)' }}>
                     <Icon name="auto-fix" size={10} color="#86EFAC" />
-                    <Text style={s.matchText}>{t.match_score}%</Text>
+                    <Text className="text-teal font-body-bold text-xs">{t.match_score}%</Text>
                   </View>
                 </View>
               ))}
@@ -386,31 +380,30 @@ export default function FinancialPage() {
         </View>
       )}
 
-      {/* EMI Calculator widget — Loans tab only */}
       {tab === 'loans' && (
-        <View style={s.emiBox}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+        <View className="mt-4 p-4 rounded-2xl bg-glass border border-glass-border" style={{ borderColor: 'rgba(167,139,250,0.30)' }}>
+          <View className="flex-row items-center gap-2 mb-3.5">
             <Icon name="calculator-variant" size={18} color="#A78BFA" />
-            <Text style={s.emiTitle}>EMI Calculator</Text>
+            <Text className="text-text font-body-bold text-base">EMI Calculator</Text>
           </View>
-          <View style={s.emiGrid}>
+          <View className="flex-row flex-wrap gap-3.5">
             <EmiSlider label="Loan Amount" value={emiAmt} setValue={setEmiAmt} min={50000} max={10000000} step={50000} fmt={(v) => `₹${(v/100000).toFixed(1)} L`} prefix="₹" suffix="INR" />
             <EmiSlider label="Interest Rate" value={emiRate} setValue={setEmiRate} min={5} max={20} step={0.1} fmt={(v) => `${v.toFixed(2)}% p.a.`} suffix="% p.a." />
             <EmiSlider label="Tenure" value={emiTen} setValue={setEmiTen} min={12} max={240} step={6} fmt={(v) => `${v} mo (${(v/12).toFixed(1)} yrs)`} suffix="months" />
           </View>
           {emi && (
-            <View style={s.emiSummary}>
-              <View style={s.emiCol}>
-                <Text style={s.emiColLabel}>Monthly EMI</Text>
-                <Text style={[s.emiColValue, { color: '#A78BFA' }]}>₹{Math.round(emi.monthly_emi).toLocaleString('en-IN')}</Text>
+            <View className="mt-4 p-3.5 rounded-xl flex-row gap-3" style={{ backgroundColor: 'rgba(124,58,237,0.10)', borderColor: 'rgba(124,58,237,0.40)', borderWidth: 1 }}>
+              <View className="flex-1 gap-1">
+                <Text className="text-muted text-xs font-body-semibold uppercase tracking-wider">Monthly EMI</Text>
+                <Text className="text-violet font-body-bold text-base mt-0.5">₹{Math.round(emi.monthly_emi).toLocaleString('en-IN')}</Text>
               </View>
-              <View style={s.emiCol}>
-                <Text style={s.emiColLabel}>Total Payable</Text>
-                <Text style={s.emiColValue}>₹{Math.round(emi.total_payable).toLocaleString('en-IN')}</Text>
+              <View className="flex-1 gap-1">
+                <Text className="text-muted text-xs font-body-semibold uppercase tracking-wider">Total Payable</Text>
+                <Text className="text-text font-body-bold text-base mt-0.5">₹{Math.round(emi.total_payable).toLocaleString('en-IN')}</Text>
               </View>
-              <View style={s.emiCol}>
-                <Text style={s.emiColLabel}>Total Interest</Text>
-                <Text style={[s.emiColValue, { color: '#FCA5A5' }]}>₹{Math.round(emi.total_interest).toLocaleString('en-IN')}</Text>
+              <View className="flex-1 gap-1">
+                <Text className="text-muted text-xs font-body-semibold uppercase tracking-wider">Total Interest</Text>
+                <Text className="font-body-bold text-base mt-0.5" style={{ color: '#FCA5A5' }}>₹{Math.round(emi.total_interest).toLocaleString('en-IN')}</Text>
               </View>
             </View>
           )}
@@ -418,13 +411,13 @@ export default function FinancialPage() {
       )}
 
       {loading ? (
-        <ActivityIndicator color="#7C3AED" style={{ marginTop: 32 }} />
+        <ActivityIndicator color="#7C3AED" className="mt-8" />
       ) : items.length === 0 ? (
-        <View style={{ paddingVertical: 40, alignItems: 'center' }}>
-          <Text style={{ color: 'rgba(255,255,255,0.5)' }}>No items found.</Text>
+        <View className="py-10 items-center">
+          <Text className="text-muted text-sm">No items found.</Text>
         </View>
       ) : (
-      <View style={s.grid}>
+      <View className="flex-row flex-wrap gap-3.5">
         {items.map((p) => {
           const tint = p.tint || tabInfo.color;
           const ms = p.match_score ?? 0;
@@ -434,59 +427,60 @@ export default function FinancialPage() {
               ? `Cover ${rangeFmt(p)} · ₹${p.interest_rate}/yr`
               : rangeFmt(p);
           return (
-            <View key={p.financial_id} style={[s.card, { borderColor: tint + '44' }]}>
-              <View style={s.cardHead}>
-                <View style={[s.iconBox, { backgroundColor: tint + '22', borderColor: tint + '55' }]}>
+            <View key={p.financial_id} className="flex-1 p-4 rounded-2xl bg-glass border" style={{ minWidth: 300, maxWidth: 380, borderColor: tint + '44', gap: 12 }}>
+              <View className="flex-row items-start gap-2.5">
+                <View className="w-9 h-9 rounded-xl items-center justify-center border" style={{ backgroundColor: tint + '22', borderColor: tint + '55' }}>
                   <MaterialCommunityIcons name={tabInfo.icon} size={18} color={tint} />
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.cardTitle} numberOfLines={2}>{p.name}</Text>
-                  <Text style={s.cardSub}>{p.provider}</Text>
+                <View className="flex-1">
+                  <Text className="text-text font-body-bold text-sm" numberOfLines={2}>{p.name}</Text>
+                  <Text className="text-dim text-xs mt-0.5">{p.provider}</Text>
                 </View>
                 {ms > 0 && (
-                  <View style={s.matchBadge}>
+                  <View className="flex-row items-center gap-1 px-2 py-0.5 rounded-full bg-glass border border-glass-border" style={{ backgroundColor: 'rgba(34,197,94,0.18)', borderColor: 'rgba(34,197,94,0.45)' }}>
                     <Icon name="auto-fix" size={10} color="#86EFAC" />
-                    <Text style={s.matchText}>{ms}%</Text>
+                    <Text className="text-teal font-body-bold text-xs">{ms}%</Text>
                   </View>
                 )}
               </View>
-              <View style={[s.amtBar, { backgroundColor: tint + '18', borderColor: tint + '55' }]}>
-                <Text style={s.amtLabel}>{tab === 'loans' ? 'AMOUNT · RATE' : tab === 'insurance' ? 'COVERAGE · PREMIUM' : 'AMOUNT'}</Text>
-                <Text style={[s.amtValue, { color: tint }]}>{amountStr}</Text>
+              <View className="p-3 rounded-xl border" style={{ backgroundColor: tint + '18', borderColor: tint + '55' }}>
+                <Text className="text-dim font-body-bold text-xs uppercase tracking-wider">{tab === 'loans' ? 'AMOUNT · RATE' : tab === 'insurance' ? 'COVERAGE · PREMIUM' : 'AMOUNT'}</Text>
+                <Text className="font-body-bold text-base mt-0.5" style={{ color: tint }}>{amountStr}</Text>
               </View>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+              <View className="flex-row flex-wrap gap-1.5">
                 {p.subcategory && (
-                  <View style={s.metaPill}><Text style={s.metaPillText}>{p.subcategory.replace('_', ' ')}</Text></View>
+                  <View className="px-2 py-0.5 rounded-md bg-glass border border-glass-border"><Text className="text-muted font-body-bold text-xs capitalize">{p.subcategory.replace('_', ' ')}</Text></View>
                 )}
                 {p.stage && (
-                  <View style={s.metaPill}><Text style={s.metaPillText}>{p.stage.replace('_', ' ')}</Text></View>
+                  <View className="px-2 py-0.5 rounded-md bg-glass border border-glass-border"><Text className="text-muted font-body-bold text-xs capitalize">{p.stage.replace('_', ' ')}</Text></View>
                 )}
                 {p.status && p.status !== 'open' && (
-                  <View style={[s.metaPill, p.status === 'closing_soon' && { backgroundColor: '#F59E0B22', borderColor: '#F59E0B' }, p.status === 'closed' && { backgroundColor: '#EF444422', borderColor: '#EF4444' }]}>
-                    <Text style={[s.metaPillText, p.status === 'closing_soon' && { color: '#FCD34D' }, p.status === 'closed' && { color: '#FCA5A5' }]}>
+                  <View className="px-2 py-0.5 rounded-md border" style={p.status === 'closing_soon' ? { backgroundColor: '#F59E0B22', borderColor: '#F59E0B' } : p.status === 'closed' ? { backgroundColor: '#EF444422', borderColor: '#EF4444' } : {}}>
+                    <Text className="font-body-bold text-xs" style={p.status === 'closing_soon' ? { color: '#FCD34D' } : p.status === 'closed' ? { color: '#FCA5A5' } : {}}>
                       {p.status === 'closing_soon' ? 'Closing soon' : 'Closed'}
                     </Text>
                   </View>
                 )}
               </View>
               {p.short_desc ? (
-                <Text style={[s.highlightText, { marginTop: 4 }]} numberOfLines={2}>{p.short_desc}</Text>
+                <Text className="text-muted text-xs mt-1" numberOfLines={2}>{p.short_desc}</Text>
               ) : null}
               {p.eligibility_criteria && p.eligibility_criteria.length > 0 && (
-                <View style={{ gap: 4 }}>
+                <View className="gap-1">
                   {p.eligibility_criteria.slice(0, 2).map((h, i) => (
-                    <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
-                      <View style={[s.bullet, { backgroundColor: tint }]} />
-                      <Text style={s.highlightText} numberOfLines={1}>{h}</Text>
+                    <View key={i} className="flex-row items-center gap-1.5">
+                      <View className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: tint }} />
+                      <Text className="text-muted text-xs" numberOfLines={1}>{h}</Text>
                     </View>
                   ))}
                 </View>
               )}
               <Pressable
-                style={[s.applyBtn, { backgroundColor: tint }]}
+                className="flex-row items-center justify-center gap-1.5 py-2.5 rounded-xl mt-auto"
+                style={{ backgroundColor: tint }}
                 onPress={() => p.application_url && p.application_url !== '#' && (window as any).open(p.application_url, '_blank')}
               >
-                <Text style={s.applyText}>
+                <Text className="text-text font-body-bold text-xs tracking-wider">
                   {tab === 'investors' ? 'Pitch / Connect' :
                    tab === 'loans' ? 'Check Eligibility' :
                    tab === 'insurance' ? 'Get Quote' :
@@ -500,172 +494,70 @@ export default function FinancialPage() {
       </View>
       )}
 
-
-
-      {/* Advisor + AI Chat CTAs */}
-      <View style={s.ctaRow}>
-        {/* Advisor card */}
-        <View style={[s.ctaCard, { borderColor: '#8B5CF655' }]}>
-          <View style={[s.iconBox, { backgroundColor: '#8B5CF622', borderColor: '#8B5CF655', width: 38, height: 38 }]}>
+      <View className="flex-row flex-wrap gap-3.5">
+        <View className="flex-1 p-4 rounded-2xl border gap-2" style={{ minWidth: 260, flexBasis: 260, borderColor: '#8B5CF655' }}>
+          <View className="w-9 h-9 rounded-xl items-center justify-center border" style={{ backgroundColor: '#8B5CF622', borderColor: '#8B5CF655' }}>
             <MaterialCommunityIcons name="target" size={18} color="#8B5CF6" />
           </View>
-          <Text style={s.ctaTitle}>Talk to a Student Advisor</Text>
-          <Text style={s.ctaSub}>Need personalised financial advice? Connect with our dedicated student advisors.</Text>
+          <Text className="text-text font-body-bold text-sm mt-1">Talk to a Student Advisor</Text>
+          <Text className="text-muted text-xs">Need personalised financial advice? Connect with our dedicated student advisors.</Text>
           <Pressable
-            style={[s.ctaBtn, { backgroundColor: '#8B5CF6', borderRadius: 8 }]}
+            className="self-start px-3.5 h-8.5 rounded-lg items-center justify-center mt-1"
+            style={{ backgroundColor: '#8B5CF6' }}
             onPress={() => setAdvisorOpen(!advisorOpen)}
           >
-            <Text style={s.ctaBtnText}>Connect with Advisor</Text>
+            <Text className="text-text font-body-bold text-xs">Connect with Advisor</Text>
           </Pressable>
           {advisorOpen && (
-            <View style={{ marginTop: 8, gap: 6 }}>
-              <Pressable style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }} onPress={() => Linking.openURL('tel:+919876543210').catch(() => {})}>
+            <View className="mt-2 gap-1.5">
+              <Pressable className="flex-row items-center gap-2" onPress={() => Linking.openURL('tel:+919876543210').catch(() => {})}>
                 <MaterialCommunityIcons name="phone" size={14} color="#8B5CF6" />
-                <Text style={{ color: '#8B5CF6', fontSize: 12.5, fontWeight: '600' }}>+919876543210</Text>
+                <Text className="text-violet text-xs font-body-semibold">+919876543210</Text>
               </Pressable>
-              <Pressable style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }} onPress={() => Linking.openURL('mailto:advisor@studentalumni.in?subject=Help with financial').catch(() => {})}>
+              <Pressable className="flex-row items-center gap-2" onPress={() => Linking.openURL('mailto:advisor@studentalumni.in?subject=Help with financial').catch(() => {})}>
                 <MaterialCommunityIcons name="email" size={14} color="#8B5CF6" />
-                <Text style={{ color: '#8B5CF6', fontSize: 12.5, fontWeight: '600' }}>advisor@studentalumni.in</Text>
+                <Text className="text-violet text-xs font-body-semibold">advisor@studentalumni.in</Text>
               </Pressable>
-              <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 11, fontStyle: 'italic', marginTop: 4 }}>
+              <Text className="text-dim text-xs italic mt-1">
                 Mon–Fri · 9am – 7pm IST · response within 4 hours
               </Text>
             </View>
           )}
         </View>
 
-        {/* AI card */}
-        <View style={[s.ctaCard, { borderColor: '#14B8A655' }]}>
-          <View style={[s.iconBox, { backgroundColor: '#14B8A622', borderColor: '#14B8A655', width: 38, height: 38 }]}>
+        <View className="flex-1 p-4 rounded-2xl border gap-2" style={{ minWidth: 260, flexBasis: 260, borderColor: '#14B8A655' }}>
+          <View className="w-9 h-9 rounded-xl items-center justify-center border" style={{ backgroundColor: '#14B8A622', borderColor: '#14B8A655' }}>
             <MaterialCommunityIcons name="auto-fix" size={18} color="#14B8A6" />
           </View>
-          <Text style={s.ctaTitle}>Ask the Financial AI</Text>
-          <Text style={s.ctaSub}>Got a question about financial products? Chat with our AI assistant 24x7.</Text>
+          <Text className="text-text font-body-bold text-sm mt-1">Ask the Financial AI</Text>
+          <Text className="text-muted text-xs">Got a question about financial products? Chat with our AI assistant 24x7.</Text>
           <Pressable
-            style={[s.ctaBtn, { backgroundColor: '#14B8A6', borderRadius: 8 }]}
+            className="self-start px-3.5 h-8.5 rounded-lg items-center justify-center mt-1"
+            style={{ backgroundColor: '#14B8A6' }}
             onPress={() => setAdvisorChatOpen(true)}
           >
-            <Text style={[s.ctaBtnText, { color: '#0A2E1A' }]}>Chat with AI</Text>
+            <Text className="font-body-bold text-xs" style={{ color: '#0A2E1A' }}>Chat with AI</Text>
           </Pressable>
         </View>
       </View>
 
-      {/* Floating Financial AI Coach (works same as Money Coach) */}
       <FinancialCoach open={advisorChatOpen} setOpen={setAdvisorChatOpen} />
 
-      {/* MD3 Floating Action Button — open AI chat */}
       <FAB icon="brain" label="Financial AI" color="#5F259F"
             onPress={() => setAdvisorChatOpen(true)} />
     </FeaturePageShell>
   );
 }
 
-
-
 function Stat({ label, value, sub, color, iconName }: any) {
   return (
-    <View style={s.statCard}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <View style={[s.statIcon, { backgroundColor: color + '22', borderColor: color + '55' }]}><MaterialCommunityIcons name={iconName} size={14} color={color} /></View>
-        <Text style={s.statLabel}>{label}</Text>
+    <View className="flex-1 min-w-44 p-3.5 rounded-xl bg-glass border border-glass-border gap-1.5">
+      <View className="flex-row items-center gap-2">
+        <View className="w-7 h-7 rounded-lg items-center justify-center border" style={{ backgroundColor: color + '22', borderColor: color + '55' }}><MaterialCommunityIcons name={iconName} size={14} color={color} /></View>
+        <Text className="text-dim font-body-bold text-xs flex-1 uppercase tracking-wider">{label}</Text>
       </View>
-      <Text style={[s.statValue, { color }]}>{value}</Text>
-      <Text style={s.statSub}>{sub}</Text>
+      <Text className="font-body-bold text-xl mt-0.5" style={{ color }}>{value}</Text>
+      <Text className="text-dim text-xs">{sub}</Text>
     </View>
   );
 }
-
-const s = StyleSheet.create({
-  savPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: 'rgba(34,197,94,0.14)', borderColor: 'rgba(34,197,94,0.40)', borderWidth: 1 },
-  savPillText: { color: '#86EFAC', fontFamily: 'DMSans_800ExtraBold', fontSize: 10.5 },
-
-  statsRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
-  statCard: { flex: 1, minWidth: 180, padding: 14, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.03)', borderColor: C.border, borderWidth: 1, gap: 6 },
-  statIcon: { width: 28, height: 28, borderRadius: 7, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  statLabel: { color: C.text3, fontFamily: 'DMSans_800ExtraBold', fontSize: 10, letterSpacing: 1, flex: 1 },
-  statValue: { fontFamily: 'DMSans_800ExtraBold', fontSize: 24, marginTop: 2 },
-  statSub: { color: C.text3, fontFamily: 'DMSans_500Medium', fontSize: 11 },
-
-  tab: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.04)', borderColor: C.border, borderWidth: 1, ...({ cursor: 'pointer' } as any) },
-  tabText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 12 },
-  tabCount: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.07)' },
-  tabCountText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 10 },
-
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
-  card: { flexGrow: 1, flexBasis: 300, maxWidth: 380, padding: 16, borderRadius: 14, borderWidth: 1, backgroundColor: 'rgba(255,255,255,0.02)', gap: 12 },
-  cardHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  iconBox: { width: 38, height: 38, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  cardTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 14.5 },
-  cardSub: { color: C.text3, fontFamily: 'DMSans_500Medium', fontSize: 11.5, marginTop: 2 },
-
-  amtBar: { padding: 12, borderRadius: 10, borderWidth: 1 },
-  amtLabel: { color: C.text3, fontFamily: 'DMSans_800ExtraBold', fontSize: 10, letterSpacing: 1 },
-  amtValue: { fontFamily: 'DMSans_800ExtraBold', fontSize: 18, marginTop: 3 },
-
-  bullet: { width: 6, height: 6, borderRadius: 3 },
-  highlightText: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12 },
-
-  applyBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: 9, marginTop: 'auto', ...({ cursor: 'pointer' } as any) },
-  applyText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 12, letterSpacing: 0.3 },
-
-  // Match% badge + AI helper + meta pills
-  matchBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, backgroundColor: 'rgba(34,197,94,0.18)', borderColor: 'rgba(34,197,94,0.45)', borderWidth: 1 },
-  matchText: { color: '#86EFAC', fontFamily: 'DMSans_800ExtraBold', fontSize: 11 },
-  aiHelper: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10, backgroundColor: 'rgba(124,58,237,0.14)', borderColor: 'rgba(124,58,237,0.40)', borderWidth: 1, marginTop: 8, ...({ cursor: 'pointer' } as any) },
-  aiHelperText: { color: '#C4B5FD', fontFamily: 'DMSans_700Bold', fontSize: 12 },
-  metaPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.05)', borderColor: C.border, borderWidth: 1 },
-  metaPillText: { color: 'rgba(255,255,255,0.75)', fontFamily: 'DMSans_700Bold', fontSize: 10, textTransform: 'capitalize' as any },
-
-  // AI Helper expandable panel
-  aiPanel: { marginTop: 10, padding: 16, borderRadius: 14, backgroundColor: 'rgba(124,58,237,0.08)', borderColor: 'rgba(124,58,237,0.30)', borderWidth: 1, gap: 12 },
-  aiPanelTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13 },
-  aiPanelGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  aiField: { width: '48%', minWidth: 200, gap: 4 },
-  aiFieldLabel: { color: 'rgba(255,255,255,0.65)', fontSize: 11, fontFamily: 'DMSans_600SemiBold' },
-  aiInput: { paddingHorizontal: 10, paddingVertical: 8, backgroundColor: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderRadius: 8, color: '#fff', fontSize: 13, ...(Platform.OS === 'web' ? { outlineStyle: 'none' as any } : {}) },
-  aiSubmit: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 11, borderRadius: 10, backgroundColor: '#7C3AED', alignSelf: 'flex-start', paddingHorizontal: 18, ...({ cursor: 'pointer' } as any) },
-  aiSubmitText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 13, letterSpacing: 0.3 },
-  aiTop3Box: { padding: 12, borderRadius: 10, backgroundColor: 'rgba(34,197,94,0.08)', borderColor: 'rgba(34,197,94,0.30)', borderWidth: 1, gap: 8 },
-  aiTop3Title: { color: '#86EFAC', fontFamily: 'DMSans_700Bold', fontSize: 12 },
-  aiTop3Row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
-  aiTop3Rank: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#22C55E', alignItems: 'center', justifyContent: 'center' },
-  aiTop3RankText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 11 },
-  aiTop3Name: { color: '#fff', fontFamily: 'DMSans_600SemiBold', fontSize: 13 },
-
-  // EMI Calculator widget
-  emiBox: { marginTop: 16, padding: 18, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.04)', borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1 },
-  emiTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 16 },
-  emiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
-  emiSliderWrap: { flex: 1, minWidth: 240, gap: 4 },
-  emiSliderLabel: { color: 'rgba(255,255,255,0.65)', fontFamily: 'DMSans_600SemiBold', fontSize: 11, textTransform: 'uppercase' as any, letterSpacing: 0.5 },
-  emiSliderValue: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 14 },
-  emiSummary: { marginTop: 16, padding: 14, borderRadius: 12, backgroundColor: 'rgba(124,58,237,0.10)', borderColor: 'rgba(124,58,237,0.40)', borderWidth: 1, flexDirection: 'row', gap: 12 },
-  emiCol: { flex: 1, gap: 4 },
-  emiColLabel: { color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_600SemiBold', fontSize: 10, textTransform: 'uppercase' as any, letterSpacing: 0.5 },
-  emiColValue: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 17 },
-
-  widgetCard: { padding: 18, borderRadius: 16, backgroundColor: 'rgba(59,130,246,0.07)', borderColor: 'rgba(59,130,246,0.30)', borderWidth: 1, flexDirection: 'row', gap: 18, flexWrap: 'wrap' },
-  widgetIcon: { width: 40, height: 40, borderRadius: 11, backgroundColor: 'rgba(59,130,246,0.18)', borderColor: 'rgba(59,130,246,0.40)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  widgetTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 16 },
-  widgetSub: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12 },
-
-  sliderLabel: { color: C.text2, fontFamily: 'DMSans_600SemiBold', fontSize: 11.5 },
-  sliderValue: { fontFamily: 'DMSans_800ExtraBold', fontSize: 12 },
-  sliderTrack: { height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.06)', position: 'relative' },
-  sliderFill: { height: '100%', borderRadius: 3 },
-  sliderKnob: { position: 'absolute', top: -3, width: 12, height: 12, borderRadius: 6 },
-
-  emiResult: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 14, marginTop: 8, paddingTop: 10, borderTopColor: 'rgba(255,255,255,0.07)', borderTopWidth: 1 },
-  emiLabel: { color: C.text3, fontFamily: 'DMSans_800ExtraBold', fontSize: 9.5, letterSpacing: 1 },
-  emiValue: { color: '#93C5FD', fontFamily: 'DMSans_800ExtraBold', fontSize: 18, marginTop: 2 },
-  optimizeBtn: { borderRadius: 999, overflow: 'hidden', ...({ cursor: 'pointer' } as any) },
-  optimizeBtnGrad: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 34, borderRadius: 999 },
-  optimizeText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 11 },
-
-  ctaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
-  ctaCard: { flex: 1, flexBasis: 260, padding: 18, borderRadius: 14, borderWidth: 1, gap: 8 },
-  ctaTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 15, marginTop: 4 },
-  ctaSub: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12.5 },
-  ctaBtn: { alignSelf: 'flex-start', paddingHorizontal: 14, height: 34, borderRadius: 999, alignItems: 'center', justifyContent: 'center', marginTop: 4, ...({ cursor: 'pointer' } as any) },
-  ctaBtnText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 11.5 },
-});

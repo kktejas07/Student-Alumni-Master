@@ -3,7 +3,7 @@
  * Migrated to NativeWind className.
  */
 import React, { useEffect, useRef } from 'react';
-import { View, Text, Pressable, Platform, Animated, Easing } from 'react-native';
+import {View, Text, Pressable, Platform, Animated, Easing, StyleSheet} from "react-native";
 import { LinearGradient } from 'expo-linear-gradient';
 import { Check, GraduationCap, UserCheck, Award, Building2, type LucideIcon } from 'lucide-react-native';
 
