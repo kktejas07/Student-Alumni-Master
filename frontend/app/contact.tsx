@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import {View, Text, ScrollView, Pressable, TextInput, Platform, Linking} from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  TextInput,
+  Platform,
+  Linking,
+} from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import {
   ArrowLeft,
@@ -21,30 +30,6 @@ import { SAWatermark } from '@/src/views/web/components/SAWatermark';
 import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
 import { Footer } from '@/src/views/web/nexus-glow-landing/Footer';
 import { useRouter } from 'expo-router';
-
-
-const styles = {
-  scrollContent: { paddingTop: 110, paddingBottom: 0 },
-  heroSubtitle: { fontSize: 15.5, lineHeight: 25, color: '#9AA0B4', textAlign: 'center', maxWidth: 680 },
-  hubDetailsList: { gap: 18 },
-  clickableTextWrap: { paddingVertical: 2, cursor: 'pointer' },
-  clickableTextHovered: { opacity: 0.8 },
-  hubIconWrap: { width: 48, height: 48, borderRadius: 14, backgroundColor: 'rgba(129,140,248,0.30)', borderWidth: 1, borderColor: 'rgba(129,140,248,0.30)', alignItems: 'center', justifyContent: 'center' },
-  hubRegion: { fontSize: 11, fontWeight: '700', color: '#818CF8', letterSpacing: 1.4, marginBottom: 2 },
-  topicPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: '#1B1E33', paddingVertical: 8, paddingHorizontal: 14, borderRadius: 100, cursor: 'pointer' },
-  topicPillActive: { backgroundColor: '#5B4FE9', borderColor: '#8B84FF' },
-  topicPillHovered: { borderColor: '#2A2A55', backgroundColor: 'rgba(255,255,255,0.06)' },
-  topicPillText: { fontSize: 12.5, fontWeight: '600', color: '#9AA0B4' },
-  topicPillTextActive: { color: '#FFFFFF' },
-  resetButton: { backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: '#2A2A55', paddingVertical: 12, paddingHorizontal: 24, borderRadius: 100, cursor: 'pointer' },
-  resetButtonHovered: { backgroundColor: 'rgba(255,255,255,0.06)' },
-  formFieldsGrid: { gap: 18 },
-  textInput: { backgroundColor: '#05060F', borderWidth: 1, borderColor: '#1B1E33', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, color: '#FFFFFF', fontSize: 14, outlineStyle: 'none' },
-  textArea: { minHeight: 120, textAlignVertical: 'top' },
-  submitButton: { backgroundColor: '#5B4FE9', borderRadius: 12, paddingVertical: 16, alignItems: 'center', justifyContent: 'center', marginTop: 8, cursor: 'pointer' },
-  submitButtonHovered: { backgroundColor: '#4B3EE0' },
-  submitButtonDisabled: { opacity: 0.5, cursor: 'not-allowed' },
-};
 
 export default function ContactPage() {
   const router = useRouter();
@@ -93,7 +78,7 @@ export default function ContactPage() {
   };
 
   return (
-    <View className="flex-1 relative">
+    <View style={styles.outerWrap}>
       {Platform.OS === 'web' && (
         <style
           dangerouslySetInnerHTML={{
@@ -116,8 +101,8 @@ export default function ContactPage() {
       )}
 
       {/* Ambient background glows matching verify portal */}
-      <View className="w-150 h-75 absolute" />
-      <View className="w-100 h-100 absolute" />
+      <View style={styles.ambientGlowTop} />
+      <View style={styles.ambientGlowBottom} />
 
       {/* Luxury SA Watermark inside visible page area */}
       <SAWatermark opacity={0.09} rotation="0deg" top={110} right={24} size={520} />
@@ -125,21 +110,21 @@ export default function ContactPage() {
       <Navbar />
 
       <ScrollView
-        className="flex-1"
+        style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View className="self-center px-5">
+        <View style={styles.container}>
           {/* Hero Section */}
-          <Animated.View entering={FadeInDown.duration(600).delay(100)} className="items-center mb-11">
-            <View className="flex-row items-center gap-2 px-4 py-2 mb-5">
+          <Animated.View entering={FadeInDown.duration(600).delay(100)} style={styles.heroSection}>
+            <View style={styles.pillBadge}>
               <Building2 size={13} color="#8B84FF" />
-              <Text className="font-bold">CONTACT & CAMPUS RELATIONS</Text>
+              <Text style={styles.pillBadgeText}>CONTACT & CAMPUS RELATIONS</Text>
             </View>
 
-            <Text className="mb-4 font-extrabold text-text">
+            <Text style={styles.heroTitle}>
               Get in Touch with{' '}
-              <Text className="font-extrabold">StudentAlumni Global</Text>
+              <Text style={styles.jewelTitle}>StudentAlumni Global</Text>
             </Text>
 
             <Text style={styles.heroSubtitle}>
@@ -149,39 +134,39 @@ export default function ContactPage() {
           </Animated.View>
 
           {/* Symmetrically Aligned Office Hubs Grid */}
-          <Animated.View entering={FadeInDown.duration(700).delay(200)} className="flex-row flex-wrap mb-9">
+          <Animated.View entering={FadeInDown.duration(700).delay(200)} style={styles.hubsGrid}>
             {/* India Hub */}
-            <View className="flex-1 rounded-2xl p-7 min-w-80">
-              <View className="flex-row items-center gap-4 pb-5 mb-6">
-                <View className="items-center justify-center rounded-xl w-12 h-12">
+            <View style={styles.hubCard}>
+              <View style={styles.hubHeader}>
+                <View style={styles.hubIconWrap}>
                   <MapPin size={22} color="#818CF8" />
                 </View>
-                <View className="justify-center">
-                  <Text className="mb-1 text-xs font-bold">APAC HEADQUARTERS</Text>
-                  <Text className="text-lg font-bold text-text">India Hub</Text>
+                <View style={styles.hubHeaderTitleWrap}>
+                  <Text style={styles.hubRegion}>APAC HEADQUARTERS</Text>
+                  <Text style={styles.hubCity}>India Hub</Text>
                 </View>
               </View>
 
               <View style={styles.hubDetailsList}>
                 {/* Row 1: Address */}
-                <View className="flex-row items-start">
-                  <View className="items-center justify-center rounded-lg mt-1 w-8 h-8">
+                <View style={styles.hubRow}>
+                  <View style={styles.iconContainer}>
                     <MapPin size={17} color="#818CF8" />
                   </View>
-                  <View className="flex-1 justify-center">
-                    <Text className="mb-1 font-bold">OFFICE ADDRESS</Text>
-                    <Text className="font-medium">Madhapur, Hyderabad, Telangana, India</Text>
+                  <View style={styles.rowContent}>
+                    <Text style={styles.rowLabel}>OFFICE ADDRESS</Text>
+                    <Text style={styles.rowValue}>Madhapur, Hyderabad, Telangana, India</Text>
                   </View>
                 </View>
 
                 {/* Row 2: Phone */}
-                <View className="flex-row items-start">
-                  <View className="items-center justify-center rounded-lg mt-1 w-8 h-8">
+                <View style={styles.hubRow}>
+                  <View style={styles.iconContainer}>
                     <Phone size={17} color="#38BDF8" />
                   </View>
-                  <View className="flex-1 justify-center">
-                    <Text className="mb-1 font-bold">PHONE NUMBER</Text>
-                    <View className="flex-row items-center">
+                  <View style={styles.rowContent}>
+                    <Text style={styles.rowLabel}>PHONE NUMBER</Text>
+                    <View style={styles.interactiveValueRow}>
                       <Pressable
                         onPress={handlePhoneCall}
                         style={({ hovered }: any) => [
@@ -189,11 +174,11 @@ export default function ContactPage() {
                           hovered && styles.clickableTextHovered,
                         ]}
                       >
-                        <Text className="font-semibold">+91 7569665077</Text>
+                        <Text style={styles.rowHighlightValue}>+91 7569665077</Text>
                       </Pressable>
                       <Pressable
                         onPress={() => copyToClipboard('+917569665077', 'india_phone')}
-                        className="items-center justify-center rounded-md p-1"
+                        style={styles.copyBtn}
                       >
                         {copiedField === 'india_phone' ? (
                           <Check size={14} color="#4ADE80" />
@@ -206,13 +191,13 @@ export default function ContactPage() {
                 </View>
 
                 {/* Row 3: Email */}
-                <View className="flex-row items-start">
-                  <View className="items-center justify-center rounded-lg mt-1 w-8 h-8">
+                <View style={styles.hubRow}>
+                  <View style={styles.iconContainer}>
                     <Mail size={17} color="#C084FC" />
                   </View>
-                  <View className="flex-1 justify-center">
-                    <Text className="mb-1 font-bold">OFFICIAL EMAIL</Text>
-                    <View className="flex-row items-center">
+                  <View style={styles.rowContent}>
+                    <Text style={styles.rowLabel}>OFFICIAL EMAIL</Text>
+                    <View style={styles.interactiveValueRow}>
                       <Pressable
                         onPress={() => handleEmailLaunch('hr@studentalumni.ai')}
                         style={({ hovered }: any) => [
@@ -220,11 +205,11 @@ export default function ContactPage() {
                           hovered && styles.clickableTextHovered,
                         ]}
                       >
-                        <Text className="font-semibold">hr@studentalumni.ai</Text>
+                        <Text style={styles.rowHighlightValue}>hr@studentalumni.ai</Text>
                       </Pressable>
                       <Pressable
                         onPress={() => copyToClipboard('hr@studentalumni.ai', 'india_email')}
-                        className="items-center justify-center rounded-md p-1"
+                        style={styles.copyBtn}
                       >
                         {copiedField === 'india_email' ? (
                           <Check size={14} color="#4ADE80" />
@@ -237,50 +222,50 @@ export default function ContactPage() {
                 </View>
 
                 {/* Row 4: Working Hours */}
-                <View className="flex-row items-start">
-                  <View className="items-center justify-center rounded-lg mt-1 w-8 h-8">
+                <View style={styles.hubRow}>
+                  <View style={styles.iconContainer}>
                     <Clock size={17} color="#9AA0B4" />
                   </View>
-                  <View className="flex-1 justify-center">
-                    <Text className="mb-1 font-bold">WORKING HOURS</Text>
-                    <Text className="font-medium">Mon – Sat: 9:00 AM – 7:00 PM IST</Text>
+                  <View style={styles.rowContent}>
+                    <Text style={styles.rowLabel}>WORKING HOURS</Text>
+                    <Text style={styles.rowSubValue}>Mon – Sat: 9:00 AM – 7:00 PM IST</Text>
                   </View>
                 </View>
               </View>
             </View>
 
             {/* USA Hub */}
-            <View className="flex-1 rounded-2xl p-7 min-w-80">
-              <View className="flex-row items-center gap-4 pb-5 mb-6">
+            <View style={styles.hubCard}>
+              <View style={styles.hubHeader}>
                 <View style={[styles.hubIconWrap, { backgroundColor: 'rgba(56, 189, 248, 0.12)', borderColor: 'rgba(56, 189, 248, 0.3)' }]}>
                   <Globe2 size={22} color="#38BDF8" />
                 </View>
-                <View className="justify-center">
+                <View style={styles.hubHeaderTitleWrap}>
                   <Text style={[styles.hubRegion, { color: '#38BDF8' }]}>AMERICAS & GLOBAL</Text>
-                  <Text className="text-lg font-bold text-text">USA Hub</Text>
+                  <Text style={styles.hubCity}>USA Hub</Text>
                 </View>
               </View>
 
               <View style={styles.hubDetailsList}>
                 {/* Row 1: Address */}
-                <View className="flex-row items-start">
-                  <View className="items-center justify-center rounded-lg mt-1 w-8 h-8">
+                <View style={styles.hubRow}>
+                  <View style={styles.iconContainer}>
                     <MapPin size={17} color="#818CF8" />
                   </View>
-                  <View className="flex-1 justify-center">
-                    <Text className="mb-1 font-bold">OFFICE ADDRESS</Text>
-                    <Text className="font-medium">Princeton, New Jersey, USA</Text>
+                  <View style={styles.rowContent}>
+                    <Text style={styles.rowLabel}>OFFICE ADDRESS</Text>
+                    <Text style={styles.rowValue}>Princeton, New Jersey, USA</Text>
                   </View>
                 </View>
 
                 {/* Row 2: Phone */}
-                <View className="flex-row items-start">
-                  <View className="items-center justify-center rounded-lg mt-1 w-8 h-8">
+                <View style={styles.hubRow}>
+                  <View style={styles.iconContainer}>
                     <Phone size={17} color="#38BDF8" />
                   </View>
-                  <View className="flex-1 justify-center">
-                    <Text className="mb-1 font-bold">PHONE NUMBER</Text>
-                    <View className="flex-row items-center">
+                  <View style={styles.rowContent}>
+                    <Text style={styles.rowLabel}>PHONE NUMBER</Text>
+                    <View style={styles.interactiveValueRow}>
                       <Pressable
                         onPress={handlePhoneCall}
                         style={({ hovered }: any) => [
@@ -288,11 +273,11 @@ export default function ContactPage() {
                           hovered && styles.clickableTextHovered,
                         ]}
                       >
-                        <Text className="font-semibold">+91 7569665077</Text>
+                        <Text style={styles.rowHighlightValue}>+91 7569665077</Text>
                       </Pressable>
                       <Pressable
                         onPress={() => copyToClipboard('+917569665077', 'usa_phone')}
-                        className="items-center justify-center rounded-md p-1"
+                        style={styles.copyBtn}
                       >
                         {copiedField === 'usa_phone' ? (
                           <Check size={14} color="#4ADE80" />
@@ -305,13 +290,13 @@ export default function ContactPage() {
                 </View>
 
                 {/* Row 3: Email */}
-                <View className="flex-row items-start">
-                  <View className="items-center justify-center rounded-lg mt-1 w-8 h-8">
+                <View style={styles.hubRow}>
+                  <View style={styles.iconContainer}>
                     <Mail size={17} color="#C084FC" />
                   </View>
-                  <View className="flex-1 justify-center">
-                    <Text className="mb-1 font-bold">OFFICIAL EMAIL</Text>
-                    <View className="flex-row items-center">
+                  <View style={styles.rowContent}>
+                    <Text style={styles.rowLabel}>OFFICIAL EMAIL</Text>
+                    <View style={styles.interactiveValueRow}>
                       <Pressable
                         onPress={() => handleEmailLaunch('hr@studentalumni.ai')}
                         style={({ hovered }: any) => [
@@ -319,11 +304,11 @@ export default function ContactPage() {
                           hovered && styles.clickableTextHovered,
                         ]}
                       >
-                        <Text className="font-semibold">hr@studentalumni.ai</Text>
+                        <Text style={styles.rowHighlightValue}>hr@studentalumni.ai</Text>
                       </Pressable>
                       <Pressable
                         onPress={() => copyToClipboard('hr@studentalumni.ai', 'usa_email')}
-                        className="items-center justify-center rounded-md p-1"
+                        style={styles.copyBtn}
                       >
                         {copiedField === 'usa_email' ? (
                           <Check size={14} color="#4ADE80" />
@@ -336,13 +321,13 @@ export default function ContactPage() {
                 </View>
 
                 {/* Row 4: Working Hours */}
-                <View className="flex-row items-start">
-                  <View className="items-center justify-center rounded-lg mt-1 w-8 h-8">
+                <View style={styles.hubRow}>
+                  <View style={styles.iconContainer}>
                     <Clock size={17} color="#9AA0B4" />
                   </View>
-                  <View className="flex-1 justify-center">
-                    <Text className="mb-1 font-bold">WORKING HOURS</Text>
-                    <Text className="font-medium">Mon – Fri: 9:00 AM – 6:00 PM EST</Text>
+                  <View style={styles.rowContent}>
+                    <Text style={styles.rowLabel}>WORKING HOURS</Text>
+                    <Text style={styles.rowSubValue}>Mon – Fri: 9:00 AM – 6:00 PM EST</Text>
                   </View>
                 </View>
               </View>
@@ -350,20 +335,20 @@ export default function ContactPage() {
           </Animated.View>
 
           {/* Main Interactive Contact Container */}
-          <Animated.View entering={FadeInDown.duration(700).delay(300)} className="p-9 mb-9">
-            <View className="mb-7">
-              <View className="flex-row items-center gap-1.5 mb-2">
+          <Animated.View entering={FadeInDown.duration(700).delay(300)} style={styles.formContainer}>
+            <View style={styles.formLeftHeader}>
+              <View style={styles.headerTag}>
                 <Headphones size={15} color="#818CF8" />
-                <Text className="font-bold">DIRECT INQUIRY & SUPPORT</Text>
+                <Text style={styles.headerTagText}>DIRECT INQUIRY & SUPPORT</Text>
               </View>
-              <Text className="mb-2 font-bold text-text">Send Us a Message</Text>
-              <Text className="mb-5">
+              <Text style={styles.formCardHeading}>Send Us a Message</Text>
+              <Text style={styles.formCardSub}>
                 Fill out the details below and our campus relations team will respond promptly.
               </Text>
 
               {/* Topic Selector Tabs */}
-              <Text className="mb-3 text-xs font-bold">SELECT PURPOSE</Text>
-              <View className="flex-row flex-wrap gap-2">
+              <Text style={styles.selectorLabel}>SELECT PURPOSE</Text>
+              <View style={styles.topicSelectorRow}>
                 {topics.map((t) => {
                   const isSelected = selectedTopic === t.id;
                   const IconComponent = t.icon;
@@ -397,12 +382,12 @@ export default function ContactPage() {
             </View>
 
             {submitted ? (
-              <Animated.View entering={FadeInUp.duration(400)} className="items-center px-5 py-10">
-                <View className="items-center justify-center mb-5 w-18 h-18">
+              <Animated.View entering={FadeInUp.duration(400)} style={styles.successState}>
+                <View style={styles.successIconCircle}>
                   <CheckCircle2 size={36} color="#4ADE80" />
                 </View>
-                <Text className="mb-3 text-xl font-bold text-text">Inquiry Sent Successfully!</Text>
-                <Text className="mb-7 text-base">
+                <Text style={styles.successTitle}>Inquiry Sent Successfully!</Text>
+                <Text style={styles.successDesc}>
                   Thank you for reaching out, <Text style={{ color: '#FFFFFF', fontWeight: '700' }}>{form.fullName || 'there'}</Text>.
                   We have routed your message to our {selectedTopic.toUpperCase()} team at <Text style={{ color: '#C084FC' }}>hr@studentalumni.ai</Text>. You will receive a response shortly.
                 </Text>
@@ -416,16 +401,16 @@ export default function ContactPage() {
                     hovered && styles.resetButtonHovered,
                   ]}
                 >
-                  <Text className="text-sm font-semibold text-text">Send Another Message</Text>
+                  <Text style={styles.resetButtonText}>Send Another Message</Text>
                 </Pressable>
               </Animated.View>
             ) : (
               <View style={styles.formFieldsGrid}>
-                <View className="flex-row flex-wrap gap-4">
-                  <View className="flex-1 min-w-65">
-                    <Text className="mb-2 font-semibold">Full Name *</Text>
+                <View style={styles.rowTwoCols}>
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Full Name *</Text>
                     <TextInput
-                      className="rounded-xl px-4 py-4 text-sm text-text"
+                      style={styles.textInput}
                       placeholder="e.g. Rahul Sharma"
                       placeholderTextColor="#555A70"
                       value={form.fullName}
@@ -433,10 +418,10 @@ export default function ContactPage() {
                     />
                   </View>
 
-                  <View className="flex-1 min-w-65">
-                    <Text className="mb-2 font-semibold">Official Email *</Text>
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Official Email *</Text>
                     <TextInput
-                      className="rounded-xl px-4 py-4 text-sm text-text"
+                      style={styles.textInput}
                       placeholder="e.g. rahul@example.com"
                       placeholderTextColor="#555A70"
                       keyboardType="email-address"
@@ -446,11 +431,11 @@ export default function ContactPage() {
                   </View>
                 </View>
 
-                <View className="flex-row flex-wrap gap-4">
-                  <View className="flex-1 min-w-65">
-                    <Text className="mb-2 font-semibold">Phone Number</Text>
+                <View style={styles.rowTwoCols}>
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Phone Number</Text>
                     <TextInput
-                      className="rounded-xl px-4 py-4 text-sm text-text"
+                      style={styles.textInput}
                       placeholder="+91 7569665077"
                       placeholderTextColor="#555A70"
                       keyboardType="phone-pad"
@@ -459,10 +444,10 @@ export default function ContactPage() {
                     />
                   </View>
 
-                  <View className="flex-1 min-w-65">
-                    <Text className="mb-2 font-semibold">College / University / Company</Text>
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>College / University / Company</Text>
                     <TextInput
-                      className="rounded-xl px-4 py-4 text-sm text-text"
+                      style={styles.textInput}
                       placeholder="e.g. Princeton / VNR VJIET"
                       placeholderTextColor="#555A70"
                       value={form.organization}
@@ -471,8 +456,8 @@ export default function ContactPage() {
                   </View>
                 </View>
 
-                <View className="flex-1 min-w-65">
-                  <Text className="mb-2 font-semibold">Your Message *</Text>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Your Message *</Text>
                   <TextInput
                     style={[styles.textInput, styles.textArea]}
                     placeholder="How can we assist you with our platform, mentorship, or institutional onboarding?"
@@ -494,11 +479,11 @@ export default function ContactPage() {
                   ]}
                 >
                   {sending ? (
-                    <Text className="text-base font-bold text-text">Sending Message...</Text>
+                    <Text style={styles.submitButtonText}>Sending Message...</Text>
                   ) : (
-                    <View className="flex-row items-center">
+                    <View style={styles.submitButtonInner}>
                       <Send size={16} color="#FFFFFF" style={{ marginRight: 8 }} />
-                      <Text className="text-base font-bold text-text">Transmit Message</Text>
+                      <Text style={styles.submitButtonText}>Transmit Message</Text>
                     </View>
                   )}
                 </Pressable>
@@ -507,18 +492,18 @@ export default function ContactPage() {
           </Animated.View>
 
           {/* Security and Trust Strip */}
-          <Animated.View entering={FadeInDown.duration(700).delay(400)} className="flex-row flex-wrap gap-4 rounded-2xl px-6 py-5 mb-15">
-            <View className="flex-row items-center gap-2">
+          <Animated.View entering={FadeInDown.duration(700).delay(400)} style={styles.trustBanner}>
+            <View style={styles.trustItem}>
               <ShieldCheck size={18} color="#4ADE80" />
-              <Text className="font-medium">Verified Institutional Support</Text>
+              <Text style={styles.trustText}>Verified Institutional Support</Text>
             </View>
-            <View className="flex-row items-center gap-2">
+            <View style={styles.trustItem}>
               <Clock size={18} color="#38BDF8" />
-              <Text className="font-medium">Direct Response Guarantee</Text>
+              <Text style={styles.trustText}>Direct Response Guarantee</Text>
             </View>
-            <View className="flex-row items-center gap-2">
+            <View style={styles.trustItem}>
               <Globe2 size={18} color="#C084FC" />
-              <Text className="font-medium">Accredited Global Campus Network</Text>
+              <Text style={styles.trustText}>Accredited Global Campus Network</Text>
             </View>
           </Animated.View>
         </View>
@@ -530,4 +515,480 @@ export default function ContactPage() {
   );
 }
 
+const styles = StyleSheet.create({
+  outerWrap: {
+    flex: 1,
+    backgroundColor: '#05060F',
+    position: 'relative',
+  },
+  ambientGlowTop: {
+    position: 'absolute',
+    top: 0,
+    left: '50%',
+    transform: [{ translateX: -300 }],
+    width: 600,
+    height: 300,
+    borderRadius: 300,
+    backgroundColor: 'rgba(91, 79, 233, 0.12)',
+    ...(Platform.OS === 'web'
+      ? {
+          filter: 'blur(100px)',
+          pointerEvents: 'none',
+        }
+      : {}),
+  },
+  ambientGlowBottom: {
+    position: 'absolute',
+    bottom: 200,
+    right: 0,
+    width: 400,
+    height: 400,
+    borderRadius: 200,
+    backgroundColor: 'rgba(139, 132, 255, 0.06)',
+    ...(Platform.OS === 'web'
+      ? {
+          filter: 'blur(120px)',
+          pointerEvents: 'none',
+        }
+      : {}),
+  },
+  backgroundWatermarkRight: {
+    position: 'absolute',
+    top: 100,
+    right: -240,
+    opacity: 0.05,
+    zIndex: 0,
+    transform: [{ rotate: '12deg' }],
+    ...(Platform.OS === 'web'
+      ? ({
+          pointerEvents: 'none',
+          userSelect: 'none',
+        } as any)
+      : {}),
+  },
+  scroll: {
+    flex: 1,
+    zIndex: 1,
+  },
+  scrollContent: {
+    paddingTop: 110,
+    paddingBottom: 0,
+  },
+  container: {
+    maxWidth: 1200,
+    width: '100%',
+    alignSelf: 'center',
+    paddingHorizontal: 20,
+  },
 
+  /* Top Navigation */
+  topBackRow: {
+    marginBottom: 24,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderWidth: 1,
+    borderColor: '#1B1E33',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 100,
+    gap: 8,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  backButtonHovered: {
+    borderColor: '#5B4FE9',
+    backgroundColor: 'rgba(91, 79, 233, 0.12)',
+  },
+  backButtonText: {
+    color: '#9AA0B4',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+
+  /* Hero Section */
+  heroSection: {
+    alignItems: 'center',
+    textAlign: 'center',
+    marginBottom: 44,
+  },
+  pillBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(91, 79, 233, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(139, 132, 255, 0.3)',
+    borderRadius: 100,
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    gap: 8,
+    marginBottom: 18,
+  },
+  pillBadgeText: {
+    color: '#8B84FF',
+    fontSize: 11.5,
+    fontWeight: '700',
+    letterSpacing: 1.6,
+  },
+  heroTitle: {
+    fontSize: 44,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: -1.2,
+    textAlign: 'center',
+    marginBottom: 16,
+    lineHeight: 52,
+  },
+  jewelTitle: {
+    color: '#C084FC',
+    fontWeight: '800',
+    ...(Platform.OS === 'web'
+      ? ({
+          backgroundImage: 'linear-gradient(135deg, #F5D0FE 0%, #C084FC 25%, #818CF8 50%, #38BDF8 75%, #E879F9 100%)',
+          WebkitBackgroundImage: 'linear-gradient(135deg, #F5D0FE 0%, #C084FC 25%, #818CF8 50%, #38BDF8 75%, #E879F9 100%)',
+          WebkitBackgroundClip: 'text',
+          backgroundClip: 'text',
+        } as any)
+      : {}),
+  },
+  heroSubtitle: {
+    fontSize: 15.5,
+    lineHeight: 25,
+    color: '#9AA0B4',
+    textAlign: 'center',
+    maxWidth: 680,
+  },
+
+  /* Symmetrical Office Hubs Grid */
+  hubsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 20,
+    marginBottom: 36,
+  },
+  hubCard: {
+    flex: 1,
+    minWidth: 320,
+    backgroundColor: '#0C0E1B',
+    borderWidth: 1,
+    borderColor: '#1B1E33',
+    borderRadius: 20,
+    padding: 28,
+  },
+  hubHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    marginBottom: 24,
+    paddingBottom: 18,
+    borderBottomWidth: 1,
+    borderBottomColor: '#171A2C',
+  },
+  hubIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: 'rgba(129, 140, 248, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(129, 140, 248, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  hubHeaderTitleWrap: {
+    justifyContent: 'center',
+  },
+  hubRegion: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#818CF8',
+    letterSpacing: 1.4,
+    marginBottom: 2,
+  },
+  hubCity: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+
+  /* Standardized Hub Rows */
+  hubDetailsList: {
+    gap: 18,
+  },
+  hubRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    minHeight: 46,
+  },
+  iconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    marginTop: 2,
+  },
+  rowContent: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  rowLabel: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#707790',
+    letterSpacing: 1.2,
+    marginBottom: 3,
+  },
+  rowValue: {
+    color: '#D5D8E4',
+    fontSize: 14.5,
+    fontWeight: '500',
+    lineHeight: 20,
+  },
+  interactiveValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  clickableTextWrap: {
+    paddingVertical: 2,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  clickableTextHovered: {
+    opacity: 0.8,
+  },
+  rowHighlightValue: {
+    color: '#F4F5FB',
+    fontSize: 14.5,
+    fontWeight: '600',
+  },
+  rowSubValue: {
+    color: '#9AA0B4',
+    fontSize: 13.5,
+    fontWeight: '500',
+  },
+  copyBtn: {
+    marginLeft: 10,
+    padding: 5,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderWidth: 1,
+    borderColor: '#1B1E33',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+
+  /* Form Container */
+  formContainer: {
+    backgroundColor: '#0C0E1B',
+    borderWidth: 1,
+    borderColor: '#1B1E33',
+    borderRadius: 24,
+    padding: 36,
+    marginBottom: 36,
+  },
+  formLeftHeader: {
+    marginBottom: 26,
+  },
+  headerTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  headerTagText: {
+    color: '#818CF8',
+    fontSize: 11.5,
+    fontWeight: '700',
+    letterSpacing: 1.4,
+  },
+  formCardHeading: {
+    fontSize: 26,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  formCardSub: {
+    fontSize: 14.5,
+    color: '#9AA0B4',
+    lineHeight: 22,
+    marginBottom: 20,
+  },
+  selectorLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#707790',
+    letterSpacing: 1.4,
+    marginBottom: 10,
+  },
+  topicSelectorRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  topicPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderWidth: 1,
+    borderColor: '#1B1E33',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 100,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  topicPillActive: {
+    backgroundColor: '#5B4FE9',
+    borderColor: '#8B84FF',
+  },
+  topicPillHovered: {
+    borderColor: '#2A2A55',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+  },
+  topicPillText: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: '#9AA0B4',
+  },
+  topicPillTextActive: {
+    color: '#FFFFFF',
+  },
+
+  /* Fields */
+  formFieldsGrid: {
+    gap: 18,
+  },
+  rowTwoCols: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+  },
+  inputGroup: {
+    flex: 1,
+    minWidth: 260,
+  },
+  inputLabel: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: '#D5D8E4',
+    marginBottom: 8,
+  },
+  textInput: {
+    backgroundColor: '#05060F',
+    borderWidth: 1,
+    borderColor: '#1B1E33',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    color: '#FFFFFF',
+    fontSize: 14,
+    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
+  },
+  textArea: {
+    minHeight: 120,
+    textAlignVertical: 'top',
+  },
+  submitButton: {
+    backgroundColor: '#5B4FE9',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  submitButtonHovered: {
+    backgroundColor: '#4B3EE0',
+  },
+  submitButtonDisabled: {
+    opacity: 0.5,
+    ...(Platform.OS === 'web' ? ({ cursor: 'not-allowed' } as any) : {}),
+  },
+  submitButtonInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  submitButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+
+  /* Success State */
+  successState: {
+    alignItems: 'center',
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+  },
+  successIconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: 'rgba(74, 222, 128, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(74, 222, 128, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  successTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  successDesc: {
+    fontSize: 15,
+    color: '#9AA0B4',
+    textAlign: 'center',
+    maxWidth: 540,
+    lineHeight: 24,
+    marginBottom: 26,
+  },
+  resetButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: '#2A2A55',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 100,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  resetButtonHovered: {
+    backgroundColor: 'rgba(255, 255, 255, 0.14)',
+  },
+  resetButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+
+  /* Trust Banner */
+  trustBanner: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-around',
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    borderWidth: 1,
+    borderColor: '#1B1E33',
+    borderRadius: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 24,
+    gap: 16,
+    marginBottom: 60,
+  },
+  trustItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  trustText: {
+    color: '#9AA0B4',
+    fontSize: 13.5,
+    fontWeight: '500',
+  },
+});

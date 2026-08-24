@@ -14,7 +14,10 @@
  *   POST   /api/opportunities/{id}/apply
  */
 import { useEffect, useMemo, useState, useCallback } from 'react';
-import {View, Text, ScrollView, ActivityIndicator, Pressable, TextInput, Image, Linking, Platform} from 'react-native';
+import {
+  View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable,
+  TextInput, Image, Linking, Platform,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
@@ -49,47 +52,6 @@ interface Opp {
 }
 
 type TabKey = 'recommended' | 'saved' | 'applied';
-
-
-const styles = {
-  screen: { screen: '{ flex: 1' },
-  title: { title: '{ color: '#fff'' },
-  subtitle: { color: 'rgba(255,255,255,0.06)' },
-  tabs: { tabs: '{ flexDirection: 'row'' },
-  tab: { flexDirection: 'row', paddingHorizontal: 14, backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.06)', cursor: 'pointer' },
-  tabActive: { backgroundColor: 'ACCENT' },
-  tabText: { color: 'rgba(255,255,255,0.06)' },
-  tabBadge: { tabBadge: '{ paddingHorizontal: 6' },
-  tabBadgeText: { color: 'rgba(255,255,255,0.06)' },
-  empty: { empty: '{ alignItems: 'center'' },
-  emptyTitle: { emptyTitle: '{ color: '#fff'' },
-  emptyText: { color: 'rgba(255,255,255,0.06)' },
-  list: { list: '{ padding: 16' },
-  toastText: { toastText: '{ color: '#10B981'' },
-  cardHeader: { cardHeader: '{ flexDirection: 'row'' },
-  cardImg: { cardImg: '{ width: 44' },
-  cardCompany: { color: 'rgba(255,255,255,0.06)' },
-  typeChip: { typeChip: '{ paddingHorizontal: 6' },
-  typeChipText: { typeChipText: '{ fontFamily: 'DMSans_800ExtraBold'' },
-  cardTitle: { cardTitle: '{ color: '#fff'' },
-  matchPill: { flexDirection: 'row', paddingHorizontal: 8 },
-  matchText: { matchText: '{ fontFamily: 'DMSans_800ExtraBold'' },
-  metaRow: { metaRow: '{ flexDirection: 'row'' },
-  cardDesc: { color: 'rgba(255,255,255,0.06)' },
-  skills: { skills: '{ flexDirection: 'row'' },
-  skillText: { skillText: '{ color: '#C4B5FD'' },
-  footerMeta: { color: 'rgba(255,255,255,0.06)' },
-  iconBtn: { width: 34, backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.06)', alignItems: 'center', cursor: 'pointer' },
-  applyBtn: { flexDirection: 'row', paddingHorizontal: 12, backgroundColor: 'ACCENT', cursor: 'pointer' },
-  applyText: { applyText: '{ color: '#fff'' },
-  metaText: { color: 'rgba(255,255,255,0.06)' },
-  filterChipWrapper: { position: 'relative', zIndex: 10, web: '{ overflow: 'visible'' },
-  filterChip: { flexDirection: 'row', paddingHorizontal: 10, backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.06)', cursor: 'pointer' },
-  filterChipLabel: { color: 'rgba(255,255,255,0.06)' },
-  filterChipValue: { filterChipValue: '{ color: '#fff'' },
-  dropdownItem: { dropdownItem: '{ paddingHorizontal: 12' },
-  dropdownText: { dropdownText: '{ color: '#fff'' },
-};
 
 export default function JobsInternshipsScreen() {
   const router = useRouter();
@@ -186,8 +148,8 @@ export default function JobsInternshipsScreen() {
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
       {/* Top bar */}
-      <View className="flex-row px-4">
-        <Pressable onPress={() => router.back()} className="items-center w-9" testID="opps-back">
+      <View style={styles.topBar}>
+        <Pressable onPress={() => router.back()} style={styles.backBtn} testID="opps-back">
           <ArrowLeft size={18} color="rgba(255,255,255,0.85)" />
         </Pressable>
         <View style={{ flex: 1 }}>
@@ -197,10 +159,10 @@ export default function JobsInternshipsScreen() {
       </View>
 
       {/* Search */}
-      <View className="flex-row px-4 mx-4">
+      <View style={styles.searchBar}>
         <Search size={15} color="rgba(255,255,255,0.45)" />
         <TextInput
-          className="flex-1"
+          style={styles.searchInput}
           value={q}
           onChangeText={setQ}
           placeholder="Search role, company, skill…"
@@ -252,7 +214,7 @@ export default function JobsInternshipsScreen() {
 
       {/* Filters (recommended tab only) */}
       {tab === 'recommended' && (
-        <View className="flex-row px-4">
+        <View style={styles.filters}>
           <FilterChip
             label="Type"
             value={filterType ? (filterType === 'internship' ? 'Opportunities' : 'Jobs') : 'All'}
@@ -313,7 +275,7 @@ export default function JobsInternshipsScreen() {
 
       {/* Toast */}
       {toast && (
-        <View className="flex-row px-4 absolute" pointerEvents="none">
+        <View style={styles.toast} pointerEvents="none">
           <Check size={14} color="#10B981" />
           <Text style={styles.toastText}>{toast}</Text>
         </View>
@@ -331,7 +293,7 @@ function OppCard({ opp, onSave, onApply }: { opp: Opp; onSave: () => void; onApp
   const tint = opp.type === 'job' ? '#F59E0B' : '#22D3EE';
   return (
     <HoverGlowCard tint={tint} radius={14} intensity="medium" testID={`opp-card-${opp.id}`} style={{ marginBottom: 12 }}>
-    <View className="rounded-xl p-4">
+    <View style={styles.cardInner}>
       {/* Header row */}
       <View style={styles.cardHeader}>
         {opp.image ? (
@@ -378,7 +340,7 @@ function OppCard({ opp, onSave, onApply }: { opp: Opp; onSave: () => void; onApp
       {opp.skills && opp.skills.length > 0 && (
         <View style={styles.skills}>
           {opp.skills.slice(0, 5).map((s) => (
-            <View key={s} className="px-2">
+            <View key={s} style={styles.skillChip}>
               <Text style={styles.skillText}>{s}</Text>
             </View>
           ))}
@@ -386,7 +348,7 @@ function OppCard({ opp, onSave, onApply }: { opp: Opp; onSave: () => void; onApp
       )}
 
       {/* Footer */}
-      <View className="flex-row pt-3">
+      <View style={styles.cardFooter}>
         <View style={{ flexDirection: 'row', gap: 14, flex: 1 }}>
           {opp.applicants_count != null && (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
@@ -428,7 +390,7 @@ function OppCard({ opp, onSave, onApply }: { opp: Opp; onSave: () => void; onApp
 
 function MetaPill({ icon: Icon, label }: { icon?: any; label: string }) {
   return (
-    <View className="flex-row px-2">
+    <View style={styles.metaPill}>
       {Icon && <Icon size={10} color="rgba(255,255,255,0.55)" />}
       <Text style={styles.metaText}>{label}</Text>
     </View>
@@ -450,7 +412,7 @@ function FilterChip({ label, value, options, onChange }:
         <Text style={styles.filterChipValue}>{value}</Text>
       </Pressable>
       {open && (
-        <View className="overflow-hidden absolute">
+        <View style={styles.dropdown}>
           {options.map((opt) => (
             <Pressable
               key={opt.v}
@@ -467,4 +429,145 @@ function FilterChip({ label, value, options, onChange }:
 }
 
 const ACCENT = '#A78BFA';
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: '#0C0818' },
+  topBar: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10,
+  },
+  backBtn: {
+    width: 36, height: 36, borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    alignItems: 'center', justifyContent: 'center',
+    ...({ cursor: 'pointer' } as any),
+  },
+  title: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 19 },
+  subtitle: { color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_400Regular', fontSize: 12, marginTop: 2 },
 
+  searchBar: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    marginHorizontal: 16, marginTop: 4,
+    paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderColor: 'rgba(255,255,255,0.09)', borderWidth: 1,
+  },
+  searchInput: {
+    flex: 1, color: '#fff',
+    fontFamily: 'DMSans_500Medium', fontSize: 13,
+    ...({ outlineStyle: 'none' } as any),
+  },
+
+  tabs: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 14 },
+  tab: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderColor: 'rgba(255,255,255,0.09)', borderWidth: 1,
+    ...({ cursor: 'pointer' } as any),
+  },
+  tabActive: {
+    backgroundColor: ACCENT, borderColor: ACCENT,
+  },
+  tabText: { color: 'rgba(255,255,255,0.65)', fontFamily: 'DMSans_700Bold', fontSize: 12 },
+  tabBadge: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 99, backgroundColor: 'rgba(255,255,255,0.10)' },
+  tabBadgeText: { color: 'rgba(255,255,255,0.65)', fontFamily: 'DMSans_700Bold', fontSize: 10 },
+
+  filters: {
+    flexDirection: 'row', flexWrap: 'wrap', gap: 8,
+    paddingHorizontal: 16, marginBottom: 10,
+    zIndex: 50,
+    ...Platform.select({ web: { overflow: 'visible' } as any, default: {} }),
+  },
+  filterChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderColor: 'rgba(255,255,255,0.09)', borderWidth: 1,
+    ...({ cursor: 'pointer' } as any),
+  },
+  filterChipLabel: { color: 'rgba(255,255,255,0.45)', fontFamily: 'DMSans_500Medium', fontSize: 11.5 },
+  filterChipValue: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 11.5 },
+  filterChipWrapper: {
+    position: 'relative',
+    zIndex: 10,
+    ...Platform.select({ web: { overflow: 'visible' } as any, default: {} }),
+  },
+  dropdown: {
+    position: 'absolute', top: 38, left: 0, minWidth: 140, zIndex: 999,
+    backgroundColor: '#1B102D',
+    borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1, borderRadius: 10,
+    overflow: 'hidden',
+    ...Platform.select({ web: { boxShadow: '0 12px 30px rgba(0,0,0,0.6)' } as any, default: {} }),
+  },
+  dropdownItem: { paddingHorizontal: 12, paddingVertical: 9, ...({ cursor: 'pointer' } as any) },
+  dropdownText: { color: '#fff', fontFamily: 'DMSans_500Medium', fontSize: 12 },
+
+  list: { padding: 16, gap: 14 },
+  cardInner: {
+    padding: 14, gap: 10,
+    borderRadius: 14,
+  },
+  cardHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  cardImg: { width: 44, height: 44, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.05)' },
+  cardCompany: { color: 'rgba(255,255,255,0.65)', fontFamily: 'DMSans_500Medium', fontSize: 12, flexShrink: 1 },
+  typeChip: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  typeChipText: { fontFamily: 'DMSans_800ExtraBold', fontSize: 9, letterSpacing: 0.6 },
+  cardTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 15, lineHeight: 20 },
+
+  matchPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, borderWidth: 1,
+  },
+  matchText: { fontFamily: 'DMSans_800ExtraBold', fontSize: 11 },
+
+  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  metaPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1,
+  },
+  metaText: { color: 'rgba(255,255,255,0.75)', fontFamily: 'DMSans_500Medium', fontSize: 11 },
+
+  cardDesc: { color: 'rgba(255,255,255,0.65)', fontFamily: 'DMSans_400Regular', fontSize: 12.5, lineHeight: 18 },
+  skills: { flexDirection: 'row', flexWrap: 'wrap', gap: 5 },
+  skillChip: {
+    paddingHorizontal: 7, paddingVertical: 2, borderRadius: 4,
+    backgroundColor: 'rgba(167,139,250,0.10)',
+  },
+  skillText: { color: '#C4B5FD', fontFamily: 'DMSans_500Medium', fontSize: 10.5 },
+
+  cardFooter: {
+    flexDirection: 'row', alignItems: 'center',
+    borderTopColor: 'rgba(255,255,255,0.06)', borderTopWidth: 1,
+    paddingTop: 10, marginTop: 4, gap: 8,
+  },
+  footerMeta: { color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_500Medium', fontSize: 11 },
+  iconBtn: {
+    width: 34, height: 34, borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderColor: 'rgba(255,255,255,0.09)', borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center',
+    ...({ cursor: 'pointer' } as any),
+  },
+  applyBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 12, height: 34, borderRadius: 8,
+    backgroundColor: ACCENT, borderColor: ACCENT, borderWidth: 1,
+    ...({ cursor: 'pointer' } as any),
+  },
+  applyText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12 },
+
+  empty: { alignItems: 'center', paddingVertical: 60, paddingHorizontal: 20 },
+  emptyTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 15, marginTop: 14 },
+  emptyText: { color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_400Regular', fontSize: 12.5, marginTop: 6, textAlign: 'center' },
+
+  toast: {
+    position: 'absolute', bottom: 30, alignSelf: 'center',
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10,
+    backgroundColor: 'rgba(16,185,129,0.16)',
+    borderColor: 'rgba(16,185,129,0.50)', borderWidth: 1,
+  },
+  toastText: { color: '#10B981', fontFamily: 'DMSans_700Bold', fontSize: 12 },
+});

@@ -8,7 +8,7 @@
  */
 import { useEffect, useState, useMemo } from 'react';
 import {
-  View, Text, ScrollView, ActivityIndicator, Pressable, Image,
+  View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, Image,
   useWindowDimensions, Linking, Platform, Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -83,9 +83,9 @@ export default function ProfileSocialView() {
     return (
       <SafeAreaView style={[styles.screen, { alignItems: 'center', justifyContent: 'center', padding: 30 }]}>
         <Lock size={48} color={C.text3} />
-        <Text className="" style={{  color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 16, marginTop: 18  }}>{error?.includes('private') ? 'Profile is private' : 'Profile not found'}</Text>
-        <Text className="text-center" style={{  color: C.text2, fontFamily: 'DMSans_400Regular', fontSize: 12, marginTop: 6  }}>{error || 'This profile is unavailable right now.'}</Text>
-        <Pressable onPress={() => router.back()} className="px-4 py-2.5 rounded-lg" style={{  marginTop: 18, backgroundColor: C.purple, ...({ cursor: 'pointer' } as any)  }}><Text className="" style={{  color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12  }}>Go Back</Text></Pressable>
+        <Text style={styles.errTitle}>{error?.includes('private') ? 'Profile is private' : 'Profile not found'}</Text>
+        <Text style={styles.errSub}>{error || 'This profile is unavailable right now.'}</Text>
+        <Pressable onPress={() => router.back()} style={styles.errBtn}><Text style={styles.errBtnText}>Go Back</Text></Pressable>
       </SafeAreaView>
     );
   }
@@ -109,7 +109,7 @@ export default function ProfileSocialView() {
         style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(12, 8, 24, 0.7)' }, Platform.OS === 'web' ? { backdropFilter: 'blur(12px)' } as any : {}]}
         onPress={() => router.back()}
       />
-      <View style={{  flex: 1, alignItems: 'center', justifyContent: 'center', padding: isMobile ? 0 : 40  }} pointerEvents="box-none">
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: isMobile ? 0 : 40 }} pointerEvents="box-none">
         <View style={{ 
           width: '100%', 
           maxWidth: 960, 
@@ -123,62 +123,62 @@ export default function ProfileSocialView() {
         }}>
           <ScrollView contentContainerStyle={{ paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
         {/* HERO */}
-        <View className="px-4 relative" style={{  paddingBottom: 18  }}>
-          <Pressable onPress={() => router.back()} className="z-[10] flex-row items-center gap-2 px-2.5 py-2 rounded-lg" style={{  alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.04)', borderColor: C.border, borderWidth: 1, marginVertical: 12, ...({ cursor: 'pointer' } as any)  }} testID="psv-back">
-            <ArrowLeft size={16} color={C.text2} /><Text className="" style={{  color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11.5, lineHeight: 16  }}>Back</Text>
+        <View style={styles.hero}>
+          <Pressable onPress={() => router.back()} style={styles.backBtn} testID="psv-back">
+            <ArrowLeft size={16} color={C.text2} /><Text style={styles.backText}>Back</Text>
           </Pressable>
 
           <LinearGradient
             colors={[`${roleColor}30`, `${roleColor}08`, 'transparent']}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
             pointerEvents="none"
-            className="absolute" style={{  top: 0, left: 0, right: 0, height: 240  }}
+            style={styles.heroGradient}
           />
 
           <View style={[styles.heroBody, isMobile && { flexDirection: 'column', gap: 16, alignItems: 'flex-start' }]}>
-            <View style={{  position: 'relative'  }}>
+            <View style={{ position: 'relative' }}>
               <View style={[styles.avatar, { borderColor: roleColor + '60' }]}>
                 {profile.photo_data ? (
-                  <Image source={{ uri: profile.photo_data }} style={{  width: '100%', height: '100%'  }} />
+                  <Image source={{ uri: profile.photo_data }} style={{ width: '100%', height: '100%' }} />
                 ) : (
                   <Text style={[styles.avatarText, { color: roleColor }]}>{initials}</Text>
                 )}
               </View>
-              {profile.is_online && <View className="absolute rounded-md border-2 z-[3]" style={{  right: 6, bottom: 6, width: 14, height: 14, backgroundColor: C.green, borderColor: C.bg  }} />}
+              {profile.is_online && <View style={styles.onlineDot} />}
               {profile.is_verified && (
-                <View className="absolute rounded-xl items-center justify-center border-2 z-[3]" style={{  right: 3, bottom: 3, width: 20, height: 20, backgroundColor: C.green, borderColor: C.bg  }}>
+                <View style={styles.avatarCheck}>
                   <Check size={11} color="#fff" />
                 </View>
               )}
             </View>
 
-            <View style={{  flex: 1, minWidth: 0, gap: 6  }}>
-              <View style={{  flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8  }}>
-                <Text className="" style={{  color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 22, letterSpacing: -0.3  }} numberOfLines={1}>{profile.full_name}</Text>
+            <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+                <Text style={styles.name} numberOfLines={1}>{profile.full_name}</Text>
                 <View style={[styles.roleChip, { backgroundColor: roleColor + '24', borderColor: roleColor + '60' }]}>
                   <Text style={[styles.roleText, { color: roleColor }]}>{profile.role.toUpperCase()}</Text>
                 </View>
                 {profile.is_mentor && profile.rating != null && (
-                  <View className="flex-row items-center gap-1 rounded-full" style={{  paddingHorizontal: 7, paddingVertical: 3, backgroundColor: 'rgba(245,158,11,0.10)', borderColor: 'rgba(245,158,11,0.30)', borderWidth: 1  }}>
+                  <View style={styles.ratingChip}>
                     <Star size={11} color="#F59E0B" fill="#F59E0B" />
-                    <Text className="" style={{  color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 11  }}>{Number(profile.rating).toFixed(1)}</Text>
-                    {profile.sessions != null && <Text className="" style={{  color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 10.5  }}>· {profile.sessions} sessions</Text>}
+                    <Text style={styles.ratingText}>{Number(profile.rating).toFixed(1)}</Text>
+                    {profile.sessions != null && <Text style={styles.ratingSub}>· {profile.sessions} sessions</Text>}
                   </View>
                 )}
               </View>
-              {!!profile.headline && <Text className="" style={{  color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 13.5, marginTop: 4  }}>{profile.headline}</Text>}
-              {!!titleLine && <Text className="" style={{  color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12  }}>{titleLine}</Text>}
-              {!!collegeLine && <Text className="" style={{  color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12  }}>{collegeLine}</Text>}
-              <View className="flex-row flex-wrap gap-3" style={{  marginTop: 6  }}>
+              {!!profile.headline && <Text style={styles.headline}>{profile.headline}</Text>}
+              {!!titleLine && <Text style={styles.subline}>{titleLine}</Text>}
+              {!!collegeLine && <Text style={styles.subline}>{collegeLine}</Text>}
+              <View style={styles.metaRow}>
                 {(profile.city || profile.state) && (
-                  <View className="flex-row items-center" style={{  gap: 5  }}><MapPin size={12} color={C.text2} /><Text className="" style={{  color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11.5, lineHeight: 14  }}>{[profile.city, profile.state].filter(Boolean).join(', ')}</Text></View>
+                  <View style={styles.metaItem}><MapPin size={12} color={C.text2} /><Text style={styles.metaText}>{[profile.city, profile.state].filter(Boolean).join(', ')}</Text></View>
                 )}
                 {profile.sa_id && (
-                  <View className="flex-row items-center" style={{  gap: 5  }}><Text className="" style={{  color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11.5, lineHeight: 14  }}>SA-ID</Text><Text style={[styles.metaText, styles.mono]}>{profile.sa_id}</Text></View>
+                  <View style={styles.metaItem}><Text style={styles.metaText}>SA-ID</Text><Text style={[styles.metaText, styles.mono]}>{profile.sa_id}</Text></View>
                 )}
-                <View className="flex-row items-center" style={{  gap: 5  }}>
+                <View style={styles.metaItem}>
                   {profile.profile_visibility === 'network' ? <Lock size={12} color={C.text2} /> : <Eye size={12} color={C.text2} />}
-                  <Text className="" style={{  color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11.5, lineHeight: 14  }}>{profile.profile_visibility === 'network' ? 'Network only' : 'Public'}</Text>
+                  <Text style={styles.metaText}>{profile.profile_visibility === 'network' ? 'Network only' : 'Public'}</Text>
                 </View>
               </View>
             </View>
@@ -188,7 +188,7 @@ export default function ProfileSocialView() {
               <View style={[styles.actions, isMobile && { width: '100%' }]}>
                 {profile.is_mentor ? (
                   <Pressable onPress={() => showToast('Booking — open Network → Mentor → Book Session')} style={[styles.btn, styles.btnGreen]} testID="psv-book">
-                    <Calendar size={14} color="#fff" /><Text className="" style={{  color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12  }}>Book Session</Text>
+                    <Calendar size={14} color="#fff" /><Text style={styles.btnTextWhite}>Book Session</Text>
                   </Pressable>
                 ) : (
                   profile.connection_state === 'connected' ? (
@@ -216,7 +216,7 @@ export default function ProfileSocialView() {
                       testID="psv-accept"
                     >
                       <Check size={14} color="#fff" />
-                      <Text className="" style={{  color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12  }}>Accept Connection</Text>
+                      <Text style={styles.btnTextWhite}>Accept Connection</Text>
                     </Pressable>
                   ) : (
                     <Pressable
@@ -240,12 +240,12 @@ export default function ProfileSocialView() {
                       testID="psv-connect"
                     >
                       <UserPlus size={14} color="#fff" />
-                      <Text className="" style={{  color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12  }}>Connect</Text>
+                      <Text style={styles.btnTextWhite}>Connect</Text>
                     </Pressable>
                   )
                 )}
                 <Pressable onPress={() => showToast('Direct messages coming soon ✨')} style={[styles.btn, styles.btnGhost]} testID="psv-message">
-                  <MessageSquare size={14} color={C.text} /><Text className="" style={{  color: C.text, fontFamily: 'DMSans_700Bold', fontSize: 12  }}>Message</Text>
+                  <MessageSquare size={14} color={C.text} /><Text style={styles.btnTextLight}>Message</Text>
                 </Pressable>
                 <Pressable onPress={() => {
                   if (Platform.OS === 'web') {
@@ -264,7 +264,7 @@ export default function ProfileSocialView() {
         </View>
 
         {/* TAB BAR */}
-        <View className="py-2" style={{  borderTopColor: C.border, borderTopWidth: 1, borderBottomColor: C.border, borderBottomWidth: 1  }}>
+        <View style={styles.tabBar}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}>
             {TABS.map((t) => {
               const Icon = t.icon; const active = tab === t.key;
@@ -288,9 +288,9 @@ export default function ProfileSocialView() {
       </ScrollView>
 
       {toast && (
-        <View className="absolute flex-row items-center gap-2 px-3.5 rounded-xl" style={{  bottom: 30, alignSelf: 'center', paddingVertical: 9, backgroundColor: 'rgba(16,185,129,0.16)', borderColor: 'rgba(16,185,129,0.50)', borderWidth: 1  }}>
+        <View style={styles.toast}>
           <Check size={14} color={C.green} />
-          <Text className="" style={{  color: C.green, fontFamily: 'DMSans_700Bold', fontSize: 12  }}>{toast}</Text>
+          <Text style={styles.toastText}>{toast}</Text>
         </View>
       )}
         </View>
@@ -305,13 +305,13 @@ export default function ProfileSocialView() {
 function OverviewTab({ profile }: { profile: any }) {
   const allSkills: string[] = Array.from(new Set([...(profile.skills || []), ...(profile.interests || [])]));
   return (
-    <View style={{  gap: 14  }}>
+    <View style={{ gap: 14 }}>
       {/* About */}
       <SectionCard title="About" icon={BadgeCheck} tint={C.purple}>
         {profile.bio ? (
-          <Text className="pb-6 gap-3.5" style={{  paddingTop: 18  }}>{profile.bio}</Text>
+          <Text style={styles.body}>{profile.bio}</Text>
         ) : (
-          <Text className="" style={{  color: C.text3, fontFamily: 'DMSans_400Regular', fontSize: 12  }}>No bio yet.</Text>
+          <Text style={styles.bodyDim}>No bio yet.</Text>
         )}
       </SectionCard>
 
@@ -327,7 +327,7 @@ function OverviewTab({ profile }: { profile: any }) {
       {/* Skills + Interests */}
       {allSkills.length > 0 && (
         <SectionCard title="Skills & Interests" icon={Award} tint={C.green}>
-          <View className="flex-row flex-wrap gap-1.5">
+          <View style={styles.chips}>
             {allSkills.map((s, i) => {
               const isPrimary = (profile.primary_skill || '').toLowerCase() === s.toLowerCase();
               return (
@@ -343,7 +343,7 @@ function OverviewTab({ profile }: { profile: any }) {
       {/* Badges */}
       {profile.badges && profile.badges.length > 0 && (
         <SectionCard title={`Credentials & Badges (${profile.badges_total})`} icon={Crown} tint={C.amber}>
-          <View style={{  flexDirection: 'row', flexWrap: 'wrap', gap: 6  }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
             {profile.badges.map((b: any, i: number) => <BadgePill key={`b-${i}`} badge={b} />)}
           </View>
         </SectionCard>
@@ -359,7 +359,7 @@ function LinkedInTab({ profile }: { profile: any }) {
   const exp: any[] = profile.experience || [];
   const edu: any[] = profile.education || [];
   return (
-    <View style={{  gap: 14  }}>
+    <View style={{ gap: 14 }}>
       {/* Profile header (link-out) */}
       {profile.linkedin_url && (
         <Pressable
@@ -367,9 +367,9 @@ function LinkedInTab({ profile }: { profile: any }) {
           style={[styles.section, styles.linkedinHead]}
         >
           <View style={[styles.linkedinIcon]}><Link2 size={16} color="#0B5FFF" /></View>
-          <View style={{  flex: 1, minWidth: 0  }}>
-            <Text className="" style={{  color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13  }}>LinkedIn Profile</Text>
-            <Text className="" style={{  color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11.5, marginTop: 2  }} numberOfLines={1}>{profile.linkedin_url}</Text>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={styles.lhTitle}>LinkedIn Profile</Text>
+            <Text style={styles.lhSub} numberOfLines={1}>{profile.linkedin_url}</Text>
           </View>
           <ChevronRight size={16} color={C.text2} />
         </Pressable>
@@ -377,11 +377,11 @@ function LinkedInTab({ profile }: { profile: any }) {
 
       {/* Highlights — College + Year */}
       <SectionCard title="Highlights" icon={GraduationCap} tint={C.amber}>
-        <View className="flex-row items-center gap-3.5 p-3 rounded-xl" style={{  backgroundColor: 'rgba(245,158,11,0.06)', borderColor: 'rgba(245,158,11,0.20)', borderWidth: 1  }}>
+        <View style={styles.highlightCard}>
           <Building2 size={20} color={C.amber} />
           <View>
-            <Text className="" style={{  color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13  }}>{profile.institution || '—'}</Text>
-            <Text className="" style={{  color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11.5, marginTop: 2  }}>{profile.branch || '—'}{profile.graduation_year ? ` · Class of ${profile.graduation_year}` : ''}</Text>
+            <Text style={styles.hlTitle}>{profile.institution || '—'}</Text>
+            <Text style={styles.hlSub}>{profile.branch || '—'}{profile.graduation_year ? ` · Class of ${profile.graduation_year}` : ''}</Text>
           </View>
         </View>
       </SectionCard>
@@ -389,17 +389,17 @@ function LinkedInTab({ profile }: { profile: any }) {
       {/* Experience timeline */}
       <SectionCard title="Experience" icon={Briefcase} tint={C.cyan}>
         {exp.length === 0 ? (
-          <Text className="" style={{  color: C.text3, fontFamily: 'DMSans_400Regular', fontSize: 12  }}>No experience added yet.</Text>
+          <Text style={styles.bodyDim}>No experience added yet.</Text>
         ) : (
           <View>{exp.map((e: any, i: number) => (
             <View key={`e-${i}`} style={[styles.timelineRow, i === exp.length - 1 && { paddingBottom: 0 }]}>
-              <View className="" style={{  width: 9, height: 9, borderRadius: 5, backgroundColor: C.cyan, marginTop: 6  }} />
-              {i !== exp.length - 1 && <View className="absolute" style={{  left: 4, top: 14, bottom: 0, width: 1, backgroundColor: 'rgba(255,255,255,0.12)'  }} />}
-              <View style={{  flex: 1, gap: 3  }}>
-                <Text className="" style={{  color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13  }}>{e.title || '—'}</Text>
-                <Text className="" style={{  color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12  }}>{e.company || '—'}</Text>
-                <Text className="" style={{  color: C.text3, fontFamily: 'DMSans_500Medium', fontSize: 11  }}>{e.from || ''}{e.to ? ` — ${e.to}` : ' — Present'}{e.location ? ` · ${e.location}` : ''}</Text>
-                {!!e.description && <Text className="" style={{  color: C.text2, fontFamily: 'DMSans_400Regular', fontSize: 12, lineHeight: 17, marginTop: 4  }}>{e.description}</Text>}
+              <View style={styles.timelineDot} />
+              {i !== exp.length - 1 && <View style={styles.timelineLine} />}
+              <View style={{ flex: 1, gap: 3 }}>
+                <Text style={styles.expTitle}>{e.title || '—'}</Text>
+                <Text style={styles.expCompany}>{e.company || '—'}</Text>
+                <Text style={styles.expMeta}>{e.from || ''}{e.to ? ` — ${e.to}` : ' — Present'}{e.location ? ` · ${e.location}` : ''}</Text>
+                {!!e.description && <Text style={styles.expDesc}>{e.description}</Text>}
               </View>
             </View>
           ))}</View>
@@ -409,15 +409,15 @@ function LinkedInTab({ profile }: { profile: any }) {
       {/* Education */}
       <SectionCard title="Education" icon={GraduationCap} tint={C.purple}>
         {edu.length === 0 ? (
-          <Text className="" style={{  color: C.text3, fontFamily: 'DMSans_400Regular', fontSize: 12  }}>No education info yet.</Text>
+          <Text style={styles.bodyDim}>No education info yet.</Text>
         ) : (
           edu.map((e: any, i: number) => (
-            <View key={`ed-${i}`} className="flex-row gap-3" style={{  paddingVertical: 6  }}>
+            <View key={`ed-${i}`} style={styles.eduRow}>
               <View style={[styles.timelineDot, { backgroundColor: C.purple }]} />
-              <View style={{  flex: 1  }}>
-                <Text className="" style={{  color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13  }}>{e.institution}</Text>
-                <Text className="" style={{  color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12  }}>{e.degree}</Text>
-                <Text className="" style={{  color: C.text3, fontFamily: 'DMSans_500Medium', fontSize: 11  }}>{e.year}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.expTitle}>{e.institution}</Text>
+                <Text style={styles.expCompany}>{e.degree}</Text>
+                <Text style={styles.expMeta}>{e.year}</Text>
               </View>
             </View>
           ))
@@ -436,16 +436,16 @@ function GitHubTab({ profile }: { profile: any }) {
   const repos: any[] = stats.pinned_repos || [];
 
   return (
-    <View style={{  gap: 14  }}>
+    <View style={{ gap: 14 }}>
       {/* Profile header (link-out) */}
       <Pressable
         onPress={() => Platform.OS === 'web' ? (window as any).open(profile.github_url, '_blank') : Linking.openURL(profile.github_url)}
         style={[styles.section, styles.githubHead]}
       >
         <View style={[styles.githubIcon]}><Code2 size={16} color="#fff" /></View>
-        <View style={{  flex: 1, minWidth: 0  }}>
-          <Text className="" style={{  color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13  }}>GitHub Profile</Text>
-          <Text className="" style={{  color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11.5, marginTop: 2  }} numberOfLines={1}>{profile.github_url}</Text>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={styles.lhTitle}>GitHub Profile</Text>
+          <Text style={styles.lhSub} numberOfLines={1}>{profile.github_url}</Text>
         </View>
         <ChevronRight size={16} color={C.text2} />
       </Pressable>
@@ -453,16 +453,16 @@ function GitHubTab({ profile }: { profile: any }) {
       {/* Top Languages */}
       {langs.length > 0 && (
         <SectionCard title="Top Languages" icon={Code2} tint={C.cyan}>
-          <View className="flex-row overflow-hidden" style={{  height: 10, borderRadius: 5, backgroundColor: 'rgba(255,255,255,0.04)'  }}>
+          <View style={styles.langBar}>
             {langs.map((l: any, i: number) => (
-              <View key={`lb-${i}`} style={{  flex: l.pct, backgroundColor: l.color, height: '100%'  }} />
+              <View key={`lb-${i}`} style={{ flex: l.pct, backgroundColor: l.color, height: '100%' }} />
             ))}
           </View>
-          <View style={{  flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10  }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
             {langs.map((l: any, i: number) => (
-              <View key={`ll-${i}`} className="flex-row items-center px-2 rounded-full" style={{  gap: 5, paddingVertical: 4, backgroundColor: 'rgba(255,255,255,0.03)', borderColor: C.border, borderWidth: 1  }}>
-                <View style={{  width: 8, height: 8, borderRadius: 4, backgroundColor: l.color  }} />
-                <Text className="" style={{  color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11  }}>{l.name} <Text className="" style={{  color: '#fff', fontFamily: 'DMSans_700Bold'  }}>{l.pct}%</Text></Text>
+              <View key={`ll-${i}`} style={styles.langPill}>
+                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: l.color }} />
+                <Text style={styles.langText}>{l.name} <Text style={styles.langPct}>{l.pct}%</Text></Text>
               </View>
             ))}
           </View>
@@ -471,23 +471,23 @@ function GitHubTab({ profile }: { profile: any }) {
 
       {/* Activity */}
       <SectionCard title="Recent Activity" icon={Calendar} tint={C.green}>
-        <View style={{  flexDirection: 'row', gap: 12, flexWrap: 'wrap'  }}>
-          <View className="flex-1 p-3 rounded-xl" style={{  minWidth: 110, backgroundColor: 'rgba(255,255,255,0.03)', borderColor: C.border, borderWidth: 1, alignItems: 'flex-start'  }}>
-            <Text className="" style={{  color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 22  }}>{stats.contributions_last_year ?? 0}</Text>
-            <Text className="" style={{  color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11, marginTop: 4  }}>Contributions (12 mo)</Text>
+        <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
+          <View style={styles.statBox}>
+            <Text style={styles.statValue}>{stats.contributions_last_year ?? 0}</Text>
+            <Text style={styles.statLabel}>Contributions (12 mo)</Text>
           </View>
-          <View className="flex-1 p-3 rounded-xl" style={{  minWidth: 110, backgroundColor: 'rgba(255,255,255,0.03)', borderColor: C.border, borderWidth: 1, alignItems: 'flex-start'  }}>
+          <View style={styles.statBox}>
             <Text style={[styles.statValue, { color: C.amber }]}>{stats.longest_streak ?? 0}</Text>
-            <Text className="" style={{  color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11, marginTop: 4  }}>Longest Streak</Text>
+            <Text style={styles.statLabel}>Longest Streak</Text>
           </View>
-          <View className="flex-1 p-3 rounded-xl" style={{  minWidth: 110, backgroundColor: 'rgba(255,255,255,0.03)', borderColor: C.border, borderWidth: 1, alignItems: 'flex-start'  }}>
+          <View style={styles.statBox}>
             <Text style={[styles.statValue, { color: C.green }]}>{stats.current_streak ?? 0}</Text>
-            <Text className="" style={{  color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11, marginTop: 4  }}>Current Streak</Text>
+            <Text style={styles.statLabel}>Current Streak</Text>
           </View>
         </View>
         {/* Mini contribution heatmap */}
-        <View style={{  marginTop: 14, gap: 4  }}>
-          <Text className="uppercase" style={{  color: C.text3, fontFamily: 'DMSans_700Bold', fontSize: 10.5, letterSpacing: 0.4  }}>52-week activity</Text>
+        <View style={{ marginTop: 14, gap: 4 }}>
+          <Text style={styles.heatLabel}>52-week activity</Text>
           <ContributionHeatmap />
         </View>
       </SectionCard>
@@ -495,22 +495,22 @@ function GitHubTab({ profile }: { profile: any }) {
       {/* Pinned Repos */}
       {repos.length > 0 && (
         <SectionCard title="Pinned Repositories" icon={GithubIcon} tint={C.purple}>
-          <View className="flex-row flex-wrap gap-2.5">
+          <View style={styles.repoGrid}>
             {repos.map((r: any, i: number) => (
-              <View key={`r-${i}`} className="flex-1 p-3 rounded-xl" style={{  minWidth: 220, backgroundColor: 'rgba(255,255,255,0.03)', borderColor: C.border, borderWidth: 1  }}>
-                <View style={{  flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6  }}>
+              <View key={`r-${i}`} style={styles.repoCard}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                   <Code2 size={13} color={C.cyan} />
-                  <Text className="" style={{  color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12.5  }} numberOfLines={1}>{r.name}</Text>
+                  <Text style={styles.repoName} numberOfLines={1}>{r.name}</Text>
                 </View>
-                <Text className="" style={{  color: C.text2, fontFamily: 'DMSans_400Regular', fontSize: 11.5, lineHeight: 15  }} numberOfLines={2}>{r.desc}</Text>
-                <View style={{  flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8  }}>
-                  <View style={{  flexDirection: 'row', alignItems: 'center', gap: 4  }}>
-                    <View style={{  width: 8, height: 8, borderRadius: 4, backgroundColor: r.language_color  }} />
-                    <Text className="" style={{  color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 10.5  }}>{r.language}</Text>
+                <Text style={styles.repoDesc} numberOfLines={2}>{r.desc}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: r.language_color }} />
+                    <Text style={styles.repoMeta}>{r.language}</Text>
                   </View>
-                  <View style={{  flexDirection: 'row', alignItems: 'center', gap: 3  }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
                     <Star size={11} color={C.text2} />
-                    <Text className="" style={{  color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 10.5  }}>{r.stars}</Text>
+                    <Text style={styles.repoMeta}>{r.stars}</Text>
                   </View>
                 </View>
               </View>
@@ -535,9 +535,161 @@ function ContributionHeatmap() {
   }, []);
   const COLORS = ['rgba(255,255,255,0.04)', '#0F4C2C', '#147A40', '#1F9D55', '#34D399'];
   return (
-    <View style={{  flexDirection: 'row', flexWrap: 'wrap', gap: 2, maxWidth: 580  }}>
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 2, maxWidth: 580 }}>
       {cells.map((v, i) => (
-        <View key={`c-${i}`} sRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 6 },
+        <View key={`c-${i}`} style={{ width: 9, height: 9, borderRadius: 2, backgroundColor: COLORS[Math.min(4, v)] }} />
+      ))}
+    </View>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// SESSIONS TAB (mentor only)
+// ─────────────────────────────────────────────────────────────────────────
+function SessionsTab({ profile }: { profile: any }) {
+  const ss = profile.session_stats || {};
+  return (
+    <View style={{ gap: 14 }}>
+      <SectionCard title="Session Stats" icon={Calendar} tint={C.green}>
+        <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
+          <View style={styles.statBox}>
+            <Text style={[styles.statValue, { color: C.green }]}>{ss.total ?? 0}</Text>
+            <Text style={styles.statLabel}>Total Sessions</Text>
+          </View>
+          <View style={styles.statBox}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Star size={14} color={C.amber} fill={C.amber} />
+              <Text style={[styles.statValue, { color: C.amber }]}>{ss.avg_rating != null ? Number(ss.avg_rating).toFixed(1) : '—'}</Text>
+            </View>
+            <Text style={styles.statLabel}>Avg Rating</Text>
+          </View>
+          <View style={styles.statBox}>
+            <Text style={[styles.statValue, { color: C.cyan }]}>{ss.active_mentees ?? 0}</Text>
+            <Text style={styles.statLabel}>Active Mentees</Text>
+          </View>
+        </View>
+      </SectionCard>
+
+      <SectionCard title="Pricing & Availability" icon={Clock} tint={C.purple}>
+        <View style={styles.priceRow}>
+          <Text style={styles.priceLabel}>Per session</Text>
+          <Text style={styles.priceValue}>{profile.expected_rate_inr ? `₹${Number(profile.expected_rate_inr).toLocaleString('en-IN')}` : 'Contact'}</Text>
+        </View>
+        <View style={styles.priceRow}>
+          <Text style={styles.priceLabel}>First 2 sessions</Text>
+          <Text style={[styles.priceValue, { color: C.green }]}>FREE</Text>
+        </View>
+        <View style={styles.priceRow}>
+          <Text style={styles.priceLabel}>Response time</Text>
+          <Text style={styles.priceValue}>~ 2 hours</Text>
+        </View>
+      </SectionCard>
+    </View>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Reusable bits
+// ─────────────────────────────────────────────────────────────────────────
+function SectionCard({ title, icon: Icon, tint, children }: { title: string; icon: any; tint: string; children: React.ReactNode }) {
+  return (
+    <View style={styles.section}>
+      <View style={styles.secHead}>
+        <View style={[styles.secIcon, { backgroundColor: tint + '24', borderColor: tint + '60' }]}>
+          <Icon size={14} color={tint} />
+        </View>
+        <Text style={styles.secTitle}>{title}</Text>
+      </View>
+      <View style={{ gap: 10 }}>{children}</View>
+    </View>
+  );
+}
+
+function SocialRow({ label, url, icon: Icon, color }: { label: string; url?: string; icon: any; color: string }) {
+  const open = () => url && (Platform.OS === 'web' ? (window as any).open(url, '_blank') : Linking.openURL(url));
+  return (
+    <View style={styles.row}>
+      <View style={[styles.rowIcon, { backgroundColor: color + '20' }]}><Icon size={14} color={color} /></View>
+      <Text style={styles.rowLabel}>{label}</Text>
+      <View style={{ flex: 1 }} />
+      {url ? (
+        <Pressable onPress={open} style={styles.linkBtn}>
+          <Text style={styles.linkText} numberOfLines={1}>Open</Text>
+          <ChevronRight size={12} color={C.purple} />
+        </Pressable>
+      ) : (
+        <Text style={styles.rowDim}>Not shared</Text>
+      )}
+    </View>
+  );
+}
+function ContactRow({ label, value, hidden, icon: Icon }: { label: string; value?: string; hidden: boolean; icon: any }) {
+  return (
+    <View style={styles.row}>
+      <View style={[styles.rowIcon, { backgroundColor: 'rgba(255,255,255,0.06)' }]}><Icon size={14} color={C.text2} /></View>
+      <Text style={styles.rowLabel}>{label}</Text>
+      <View style={{ flex: 1 }} />
+      {hidden ? (
+        <View style={styles.privacy}><Lock size={11} color={C.text3} /><Text style={styles.privacyText}>Private</Text></View>
+      ) : value ? (
+        <Text style={styles.rowValue} numberOfLines={1}>{value}</Text>
+      ) : (
+        <Text style={styles.rowDim}>—</Text>
+      )}
+    </View>
+  );
+}
+function BadgePill({ badge }: { badge: any }) {
+  const isTierOne = /tier[\s-]?1/i.test(badge.label) || badge.tier === 'high';
+  if (isTierOne) {
+    return (
+      <View style={{ overflow: 'hidden', borderRadius: 999 }}>
+        <LinearGradient colors={['#FCD34D', '#F59E0B', '#B45309']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.badgeChip, { borderColor: '#FCD34D', borderWidth: 1, backgroundColor: 'transparent' }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Crown size={9} color="#fff" />
+            <Text style={[styles.badgeChipText, { color: '#fff' }]} numberOfLines={1}>{badge.label}</Text>
+          </View>
+        </LinearGradient>
+      </View>
+    );
+  }
+  const tColor = badge.tier === 'special' ? C.purple : badge.tier === 'verified' ? C.green : badge.tier === 'moderate' ? '#2DD4BF' : '#94A3B8';
+  return (
+    <View style={[styles.badgeChip, { backgroundColor: tColor + '1F', borderColor: tColor + '60' }]}>
+      <Text style={[styles.badgeChipText, { color: tColor }]} numberOfLines={1}>{badge.label}</Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: C.bg },
+  errTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 16, marginTop: 18 },
+  errSub: { color: C.text2, fontFamily: 'DMSans_400Regular', fontSize: 12, marginTop: 6, textAlign: 'center' },
+  errBtn: { marginTop: 18, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, backgroundColor: C.purple, ...({ cursor: 'pointer' } as any) },
+  errBtnText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12 },
+
+  hero: { paddingHorizontal: 16, paddingBottom: 18, position: 'relative' },
+  heroGradient: { position: 'absolute', top: 0, left: 0, right: 0, height: 240 },
+  backBtn: { zIndex: 10, flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.04)', borderColor: C.border, borderWidth: 1, marginVertical: 12, ...({ cursor: 'pointer' } as any) },
+  backText: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11.5, lineHeight: 16 },
+
+  heroBody: { flexDirection: 'row', alignItems: 'flex-start', gap: 18, paddingTop: 16 },
+  avatar: { width: 88, height: 88, borderRadius: 44, overflow: 'hidden', backgroundColor: 'rgba(167,139,250,0.20)', alignItems: 'center', justifyContent: 'center', borderWidth: 2 },
+  avatarText: { fontFamily: 'DMSans_800ExtraBold', fontSize: 30 },
+  avatarCheck: { position: 'absolute', right: 3, bottom: 3, width: 20, height: 20, borderRadius: 10, backgroundColor: C.green, alignItems: 'center', justifyContent: 'center', borderColor: C.bg, borderWidth: 2, zIndex: 3 },
+  onlineDot: { position: 'absolute', right: 6, bottom: 6, width: 14, height: 14, borderRadius: 7, backgroundColor: C.green, borderColor: C.bg, borderWidth: 2, zIndex: 3 },
+
+  name: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 22, letterSpacing: -0.3 },
+  roleChip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1 },
+  roleText: { fontFamily: 'DMSans_800ExtraBold', fontSize: 9, letterSpacing: 0.6 },
+  ratingChip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 999, backgroundColor: 'rgba(245,158,11,0.10)', borderColor: 'rgba(245,158,11,0.30)', borderWidth: 1 },
+  ratingText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 11 },
+  ratingSub: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 10.5 },
+
+  headline: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 13.5, marginTop: 4 },
+  subline: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12 },
+
+  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 6 },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   metaText: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11.5, lineHeight: 14 },
   mono: { color: '#fff', fontFamily: Platform.OS === 'web' ? 'monospace' : 'DMSans_700Bold', fontSize: 10.5 },

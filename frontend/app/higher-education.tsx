@@ -337,8 +337,8 @@ export default function HigherEducationScreen() {
                   />
                   <Text className="text-text font-display-bold text-sm mt-1">{c.name}</Text>
                   <View className="flex-row gap-3.5 mt-1 flex-wrap">
-                    <Text className="text-muted text-xs">📚 {c.programmes} programmes</Text>
-                    <Text className="text-muted text-xs">🎖️ {c.scholarships} funding options</Text>
+                    <Text className="text-muted text-xs">{c.programmes} programmes</Text>
+                    <Text className="text-muted text-xs">{c.scholarships} funding options</Text>
                   </View>
                   <View className="flex-row flex-wrap gap-2 mt-1">
                     <Stat label="Avg fee/yr" value={fmtINR(c.avg_fee_inr)} />
@@ -725,12 +725,12 @@ function AIToolsModal({
   if (!tool) return null;
 
   const titleByType: Record<ToolType, string> = {
-    sop: '✨ Draft Statement of Purpose',
-    cv: '📄 Build Graduate-School CV',
-    cover: '✉️ Write Cover Letter',
-    lor: '📨 LOR Request Email',
-    elig: '🎯 Eligibility Check',
-    profile: '👤 Build Profile from Bio',
+    sop: 'Draft Statement of Purpose',
+    cv: 'Build Graduate-School CV',
+    cover: 'Write Cover Letter',
+    lor: 'LOR Request Email',
+    elig: 'Eligibility Check',
+    profile: 'Build Profile from Bio',
   };
 
   return (
@@ -798,7 +798,7 @@ function AIToolsModal({
                   onPress={submit}
                   disabled={!questions.every((q) => (answers[q.id] || '').trim())}
                 >
-                  <Text className="text-text font-body-bold text-sm">Generate ✨</Text>
+                  <Text className="text-text font-body-bold text-sm">Generate</Text>
                 </Pressable>
               </View>
             )}
@@ -815,7 +815,7 @@ function AIToolsModal({
                     <Text className="text-text text-xs leading-5">{content}</Text>
                   </View>
                 )}
-                <Text className="text-teal text-xs italic">✓ Saved to your SA Drive — retrievable from the AI Tools menu.</Text>
+                <Text className="text-teal text-xs italic">Saved to your SA Drive — retrievable from the AI Tools menu.</Text>
               </View>
             )}
           </ScrollView>

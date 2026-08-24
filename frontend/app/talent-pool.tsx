@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TextInput, ScrollView, Pressable, Platform, Linking, ActivityIndicator, Image } from 'react-native';
+import { View, Text, TextInput, ScrollView, Pressable, StyleSheet, Platform, Linking, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -113,14 +113,14 @@ export default function TalentPoolPage() {
   const renderSkillChips = (skills: string[]) => {
     const display = skills.slice(0, 5);
     return (
-      <View className="flex-row flex-wrap gap-1">
+      <View style={s.skillsRow}>
         {display.map((sk, i) => (
-          <View key={i} className="bg-violet/15 rounded-lg px-2 py-0.5">
-            <Text className="text-violet text-xs font-body-semibold">{sk}</Text>
+          <View key={i} style={s.skillChip}>
+            <Text style={s.skillChipText}>{sk}</Text>
           </View>
         ))}
         {skills.length > 5 && (
-          <Text className="text-muted text-xs self-center">+{skills.length - 5}</Text>
+          <Text style={s.moreSkills}>+{skills.length - 5}</Text>
         )}
       </View>
     );
@@ -129,13 +129,7 @@ export default function TalentPoolPage() {
   const renderProfileCard = (profile: TalentProfile) => (
     <Pressable
       key={profile.id}
-      className="rounded-xl border p-3.5 gap-2.5"
-      style={{
-        width: Platform.OS === 'web' ? 'calc(33.333% - 8px)' as any : '48%' as any,
-        minWidth: 280, flex: 1,
-        backgroundColor: COLORS.card, borderColor: COLORS.border,
-        ...(Platform.OS === 'web' ? { cursor: 'pointer' as any } : {}),
-      }}
+      style={s.card}
       onPress={() => {
         if (profile.linkedin_url) {
           Platform.OS === 'web'
@@ -145,44 +139,44 @@ export default function TalentPoolPage() {
       }}
     >
       {/* Header */}
-      <View className="flex-row items-center gap-2.5">
+      <View style={s.cardHeader}>
         {profile.photo_url || profile.photo_data ? (
-          <Image source={{ uri: resolveImageUrl(profile.photo_url) || profile.photo_data! }} className="w-10 h-10 rounded-full" style={{ backgroundColor: COLORS.card }} />
+          <Image source={{ uri: resolveImageUrl(profile.photo_url) || profile.photo_data! }} style={s.avatarImage} />
         ) : (
-          <View className="w-10 h-10 rounded-full bg-violet items-center justify-center">
-            <Text className="text-white text-base font-body-bold">
+          <View style={s.avatar}>
+            <Text style={s.avatarText}>
               {(profile.full_name || '?')[0].toUpperCase()}
             </Text>
           </View>
         )}
-        <View className="flex-1">
-          <Text className="text-white text-base font-body-semibold" numberOfLines={1}>{profile.full_name}</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={s.cardName} numberOfLines={1}>{profile.full_name}</Text>
           {profile.headline && (
-            <Text className="text-muted text-xs mt-0.5" numberOfLines={1}>{profile.headline}</Text>
+            <Text style={s.cardHeadline} numberOfLines={1}>{profile.headline}</Text>
           )}
         </View>
       </View>
 
       {/* Details */}
-      <View className="gap-1">
+      <View style={s.cardDetails}>
         {profile.current_role && profile.current_company && (
-          <View className="flex-row items-center gap-1.5">
+          <View style={s.detailRow}>
             <Briefcase size={12} color={COLORS.muted} />
-            <Text className="text-muted text-xs flex-1" numberOfLines={1}>
+            <Text style={s.detailText} numberOfLines={1}>
               {profile.current_role} at {profile.current_company}
             </Text>
           </View>
         )}
         {profile.location && (
-          <View className="flex-row items-center gap-1.5">
+          <View style={s.detailRow}>
             <MapPin size={12} color={COLORS.muted} />
-            <Text className="text-muted text-xs">{profile.location}</Text>
+            <Text style={s.detailText}>{profile.location}</Text>
           </View>
         )}
         {profile.education && (
-          <View className="flex-row items-center gap-1.5">
+          <View style={s.detailRow}>
             <GraduationCap size={12} color={COLORS.muted} />
-            <Text className="text-muted text-xs flex-1" numberOfLines={1}>
+            <Text style={s.detailText} numberOfLines={1}>
               {profile.education}
               {profile.graduation_year ? ` · ${profile.graduation_year}` : ''}
             </Text>
@@ -194,11 +188,10 @@ export default function TalentPoolPage() {
       {profile.skills && profile.skills.length > 0 && renderSkillChips(profile.skills)}
 
       {/* Actions */}
-      <View className="flex-row gap-1.5 items-center mt-0.5">
+      <View style={s.cardActions}>
         {profile.linkedin_url && (
           <Pressable
-            className="flex-row items-center gap-1 px-2.5 py-1.5 rounded-lg"
-            style={{ backgroundColor: COLORS.linkedin }}
+            style={[s.actionBtn, { backgroundColor: COLORS.linkedin }]}
             onPress={(e) => {
               e.stopPropagation?.();
               Platform.OS === 'web'
@@ -207,13 +200,12 @@ export default function TalentPoolPage() {
             }}
           >
             <LinkedInIcon size={12} />
-            <Text className="text-white text-xs font-body-semibold">LinkedIn</Text>
+            <Text style={s.actionBtnText}>LinkedIn</Text>
           </Pressable>
         )}
         {profile.github_url && (
           <Pressable
-            className="flex-row items-center gap-1 px-2.5 py-1.5 rounded-lg"
-            style={{ backgroundColor: COLORS.github }}
+            style={[s.actionBtn, { backgroundColor: COLORS.github }]}
             onPress={(e) => {
               e.stopPropagation?.();
               Platform.OS === 'web'
@@ -222,13 +214,13 @@ export default function TalentPoolPage() {
             }}
           >
             <GitHubIcon size={12} />
-            <Text className="text-white text-xs font-body-semibold">GitHub</Text>
+            <Text style={s.actionBtnText}>GitHub</Text>
           </Pressable>
         )}
         {profile.experience_years != null && (
-          <View className="flex-row items-center gap-0.5 ml-auto bg-amber/15 px-2 py-1 rounded-lg">
+          <View style={s.expBadge}>
             <Star size={10} color="#F59E0B" />
-            <Text className="text-amber text-xs font-body-semibold">{profile.experience_years}y exp</Text>
+            <Text style={s.expText}>{profile.experience_years}y exp</Text>
           </View>
         )}
       </View>
@@ -236,31 +228,29 @@ export default function TalentPoolPage() {
   );
 
   return (
-    <View className="flex-1">
-      <LinearGradient colors={['#1A0438', '#2D0760']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
-      <SafeAreaView className="flex-1 px-4" edges={['top', 'bottom']}>
+    <View style={s.root}>
+      <LinearGradient colors={['#1A0438', '#2D0760']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+      <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
         {/* Header */}
-        <View className="flex-row justify-between items-center pt-4 pb-3">
+        <View style={s.header}>
           <View>
-            className="text-white text-2xl font-body-bold"
-            <Text className="text-white text-2xl font-body-bold">Talent Pool</Text>
-            <Text className="text-muted text-sm mt-0.5">{total} profiles available</Text>
+            <Text style={s.title}>Talent Pool</Text>
+            <Text style={s.subtitle}>{total} profiles available</Text>
           </View>
         </View>
 
         {/* Search bar */}
-        <View className="flex-row gap-2 mb-3">
-          <View className="flex-1 flex-row items-center rounded-xl border px-3 gap-2 h-11" style={{ backgroundColor: COLORS.inputBg, borderColor: COLORS.border }}>
+        <View style={s.searchRow}>
+          <View style={s.searchInput}>
             <Search size={16} color={COLORS.muted} />
             <TextInput
-              className="flex-1 text-white text-base"
+              style={s.input}
               value={search}
               onChangeText={setSearch}
               placeholder="Search by name, skills, company..."
               placeholderTextColor={COLORS.muted}
               onSubmitEditing={onSearch}
               returnKeyType="search"
-              style={Platform.OS === 'web' ? { fontFamily: 'Inter, sans-serif', outlineStyle: 'none' as any } : {}}
             />
             {search.length > 0 && (
               <Pressable onPress={() => { setSearch(''); setTimeout(onSearch, 100); }}>
@@ -269,8 +259,7 @@ export default function TalentPoolPage() {
             )}
           </View>
           <Pressable
-            className="w-11 h-11 rounded-xl border items-center justify-center"
-            style={showFilters ? { backgroundColor: COLORS.accent, borderColor: COLORS.accent } : { backgroundColor: COLORS.inputBg, borderColor: COLORS.border }}
+            style={[s.filterBtn, showFilters && s.filterBtnActive]}
             onPress={() => setShowFilters(!showFilters)}
           >
             <Filter size={16} color={showFilters ? '#fff' : COLORS.muted} />
@@ -279,25 +268,21 @@ export default function TalentPoolPage() {
 
         {/* Filter chips */}
         {showFilters && (
-          <View className="rounded-xl border p-3 mb-3 gap-2" style={{ backgroundColor: COLORS.card, borderColor: COLORS.border }}>
-            <Text className="text-muted text-xs font-body-semibold">Filter by skill:</Text>
-            <View className="flex-row items-center rounded-xl border px-3 gap-2" style={{ backgroundColor: COLORS.inputBg, borderColor: COLORS.border, height: 36 }}>
-              <TextInput
-                className="flex-1 text-white"
-                value={skillFilter}
-                onChangeText={setSkillFilter}
-                placeholder="e.g. Python, React, AI"
-                placeholderTextColor={COLORS.muted}
-                onSubmitEditing={onSearch}
-                style={{ fontSize: 13 }}
-              />
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="max-h-9">
+          <View style={s.filterPanel}>
+            <Text style={s.filterLabel}>Filter by skill:</Text>
+            <TextInput
+              style={[s.searchInput, s.filterInput]}
+              value={skillFilter}
+              onChangeText={setSkillFilter}
+              placeholder="e.g. Python, React, AI"
+              placeholderTextColor={COLORS.muted}
+              onSubmitEditing={onSearch}
+            />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.skillChipScroll}>
               {allSkills.slice(0, 30).map((sk) => (
                 <Pressable
                   key={sk}
-                  className="px-2.5 py-1.5 rounded-2xl mr-1.5 border"
-                  style={skillFilter.includes(sk) ? { backgroundColor: COLORS.accent, borderColor: COLORS.accent } : { backgroundColor: 'rgba(255,255,255,0.05)', borderColor: COLORS.border }}
+                  style={[s.filterChip, skillFilter.includes(sk) && s.filterChipActive]}
                   onPress={() => {
                     const current = skillFilter.split(',').map(s => s.trim()).filter(Boolean);
                     if (current.includes(sk)) {
@@ -307,7 +292,7 @@ export default function TalentPoolPage() {
                     }
                   }}
                 >
-                  <Text style={skillFilter.includes(sk) ? { color: '#fff' } : { color: COLORS.muted }} className="text-xs">
+                  <Text style={[s.filterChipText, skillFilter.includes(sk) && s.filterChipTextActive]}>
                     {sk}
                   </Text>
                 </Pressable>
@@ -318,25 +303,25 @@ export default function TalentPoolPage() {
 
         {/* Error */}
         {error ? (
-          <View className="flex-1 items-center justify-center gap-2">
-            <Text className="text-rose text-base">{error}</Text>
-            <Pressable className="px-4 py-2 rounded-lg border" style={{ backgroundColor: COLORS.card, borderColor: COLORS.border }} onPress={() => fetchProfiles(page)}>
-              <Text className="text-white text-sm">Retry</Text>
+          <View style={s.centered}>
+            <Text style={s.errorText}>{error}</Text>
+            <Pressable style={s.retryBtn} onPress={() => fetchProfiles(page)}>
+              <Text style={s.retryText}>Retry</Text>
             </Pressable>
           </View>
         ) : loading ? (
-          <View className="flex-1 items-center justify-center gap-2">
+          <View style={s.centered}>
             <ActivityIndicator size="large" color={COLORS.accent} />
           </View>
         ) : profiles.length === 0 ? (
-          <View className="flex-1 items-center justify-center gap-2">
-            <Text className="text-muted text-base">No profiles found</Text>
-            <Text className="text-muted text-xs">Try adjusting your search or filters</Text>
+          <View style={s.centered}>
+            <Text style={s.mutedText}>No profiles found</Text>
+            <Text style={s.mutedSubtext}>Try adjusting your search or filters</Text>
           </View>
         ) : (
           <ScrollView
-            className="flex-1"
-            contentContainerStyle={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, paddingBottom: 80 }}
+            style={s.scroll}
+            contentContainerStyle={s.grid}
             showsVerticalScrollIndicator={false}
           >
             {profiles.map(renderProfileCard)}
@@ -345,21 +330,19 @@ export default function TalentPoolPage() {
 
         {/* Pagination */}
         {pages > 1 && (
-          <View className="flex-row justify-center items-center py-3 gap-4">
+          <View style={s.pagination}>
             <Pressable
-              className="px-4 py-2 rounded-lg border"
-              style={{ backgroundColor: COLORS.card, borderColor: COLORS.border, opacity: page <= 1 ? 0.4 : 1 }}
+              style={[s.pageBtn, page <= 1 && s.pageBtnDisabled]}
               onPress={() => page > 1 && (setPage(page - 1), fetchProfiles(page - 1))}
             >
-              <Text style={page <= 1 ? { color: COLORS.muted } : { color: '#fff' }} className="text-sm">Previous</Text>
+              <Text style={[s.pageBtnText, page <= 1 && s.pageBtnTextDisabled]}>Previous</Text>
             </Pressable>
-            <Text className="text-muted text-sm">{page} / {pages}</Text>
+            <Text style={s.pageInfo}>{page} / {pages}</Text>
             <Pressable
-              className="px-4 py-2 rounded-lg border"
-              style={{ backgroundColor: COLORS.card, borderColor: COLORS.border, opacity: page >= pages ? 0.4 : 1 }}
+              style={[s.pageBtn, page >= pages && s.pageBtnDisabled]}
               onPress={() => page < pages && (setPage(page + 1), fetchProfiles(page + 1))}
             >
-              <Text style={page >= pages ? { color: COLORS.muted } : { color: '#fff' }} className="text-sm">Next</Text>
+              <Text style={[s.pageBtnText, page >= pages && s.pageBtnTextDisabled]}>Next</Text>
             </Pressable>
           </View>
         )}
@@ -367,3 +350,101 @@ export default function TalentPoolPage() {
     </View>
   );
 }
+
+const s = StyleSheet.create({
+  root: { flex: 1 },
+  safe: { flex: 1, paddingHorizontal: 16 },
+  header: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingTop: 16, paddingBottom: 12,
+  },
+  title: {
+    fontSize: 24, fontWeight: '700', color: '#fff', fontFamily: Platform.OS === 'web' ? 'Outfit, sans-serif' : undefined,
+  },
+  subtitle: { fontSize: 13, color: COLORS.muted, marginTop: 2 },
+  searchRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
+  searchInput: {
+    flex: 1, flexDirection: 'row', alignItems: 'center',
+    backgroundColor: COLORS.inputBg, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border,
+    paddingHorizontal: 12, gap: 8, height: 44,
+  },
+  input: {
+    flex: 1, color: '#fff', fontSize: 14, fontFamily: Platform.OS === 'web' ? 'Inter, sans-serif' : undefined,
+    outlineStyle: 'none' as any,
+  },
+  filterBtn: {
+    width: 44, height: 44, borderRadius: 12, backgroundColor: COLORS.inputBg,
+    borderWidth: 1, borderColor: COLORS.border, alignItems: 'center', justifyContent: 'center',
+  },
+  filterBtnActive: { backgroundColor: COLORS.accent, borderColor: COLORS.accent },
+  filterPanel: {
+    backgroundColor: COLORS.card, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border,
+    padding: 12, marginBottom: 12, gap: 8,
+  },
+  filterLabel: { color: COLORS.muted, fontSize: 12, fontWeight: '600' },
+  filterInput: { height: 36, fontSize: 13 },
+  skillChipScroll: { maxHeight: 36 },
+  filterChip: {
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.05)', marginRight: 6, borderWidth: 1, borderColor: COLORS.border,
+  },
+  filterChipActive: { backgroundColor: COLORS.accent, borderColor: COLORS.accent },
+  filterChipText: { color: COLORS.muted, fontSize: 12 },
+  filterChipTextActive: { color: '#fff' },
+  scroll: { flex: 1 },
+  grid: {
+    flexDirection: 'row', flexWrap: 'wrap', gap: 12, paddingBottom: 80,
+  },
+  card: {
+    width: Platform.OS === 'web' ? 'calc(33.333% - 8px)' as any : '48%' as any,
+    minWidth: 280, flex: 1,
+    backgroundColor: COLORS.card, borderRadius: 14, borderWidth: 1, borderColor: COLORS.border,
+    padding: 14, gap: 10,
+    ...(Platform.OS === 'web' ? { cursor: 'pointer' as any } : {}),
+  },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  avatar: {
+    width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.accent,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  avatarImage: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.card },
+  avatarText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  cardName: { color: '#fff', fontSize: 15, fontWeight: '600', flex: 1 },
+  cardHeadline: { color: COLORS.muted, fontSize: 12, marginTop: 1 },
+  cardDetails: { gap: 4 },
+  detailRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  detailText: { color: COLORS.muted, fontSize: 12, flex: 1 },
+  skillsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
+  skillChip: {
+    backgroundColor: COLORS.chip, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3,
+  },
+  skillChipText: { color: COLORS.chipText, fontSize: 10, fontWeight: '600' },
+  moreSkills: { color: COLORS.muted, fontSize: 10, alignSelf: 'center' },
+  cardActions: { flexDirection: 'row', gap: 6, alignItems: 'center', marginTop: 2 },
+  actionBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
+  },
+  actionBtnText: { color: '#fff', fontSize: 11, fontWeight: '600' },
+  expBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    marginLeft: 'auto', backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8,
+  },
+  expText: { color: '#F59E0B', fontSize: 10, fontWeight: '600' },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8 },
+  errorText: { color: '#EF4444', fontSize: 14 },
+  retryBtn: { paddingHorizontal: 16, paddingVertical: 8, backgroundColor: COLORS.card, borderRadius: 8, borderWidth: 1, borderColor: COLORS.border },
+  retryText: { color: '#fff', fontSize: 13 },
+  mutedText: { color: COLORS.muted, fontSize: 15 },
+  mutedSubtext: { color: COLORS.muted, fontSize: 12 },
+  pagination: {
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
+    paddingVertical: 12, gap: 16,
+  },
+  pageBtn: { paddingHorizontal: 16, paddingVertical: 8, backgroundColor: COLORS.card, borderRadius: 8, borderWidth: 1, borderColor: COLORS.border },
+  pageBtnDisabled: { opacity: 0.4 },
+  pageBtnText: { color: '#fff', fontSize: 13 },
+  pageBtnTextDisabled: { color: COLORS.muted },
+  pageInfo: { color: COLORS.muted, fontSize: 13 },
+});
