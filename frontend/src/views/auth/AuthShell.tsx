@@ -5,7 +5,7 @@
  * Migrated to NativeWind className.
  */
 import React from 'react';
-import {View, Text, ScrollView, useWindowDimensions, Platform, KeyboardAvoidingView, Pressable, StyleSheet} from "react-native";
+import {View, Text, ScrollView, useWindowDimensions, Platform, KeyboardAvoidingView, Pressable} from "react-native";
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -79,16 +79,16 @@ export function AuthShell({ children, role }: { children: React.ReactNode; role?
   );
 }
 
-const s = StyleSheet.create({
+const s = {
   root: { flex: 1 },
-  row: { flex: 1, flexDirection: 'row' },
+  row: { flex: 1, flexDirection: 'row' as const },
   left: { flex: 1 },
   right: { flex: 1, minWidth: 480 },
-  formScroll: { flexGrow: 1, paddingHorizontal: 56, paddingVertical: 24, justifyContent: 'center' },
+  formScroll: { flexGrow: 1, paddingHorizontal: 56, paddingVertical: 24, justifyContent: 'center' as const },
   formCol: { 
     width: '100%', 
     maxWidth: 480, 
-    alignSelf: 'center',
+    alignSelf: 'center' as const,
     backgroundColor: 'rgba(12, 14, 27, 0.88)',
     borderRadius: 24,
     borderWidth: 1,
@@ -99,11 +99,11 @@ const s = StyleSheet.create({
       boxShadow: '0 24px 60px -15px rgba(0,0,0,0.8), 0 0 0 1px rgba(139,132,255,0.15)',
     } as any) : {}),
   },
-  mobileScroll: { flexGrow: 1, padding: 20, justifyContent: 'center' },
+  mobileScroll: { flexGrow: 1, padding: 20, justifyContent: 'center' as const },
   mobileForm: { 
     width: '100%', 
     maxWidth: 460, 
-    alignSelf: 'center', 
+    alignSelf: 'center' as const, 
     backgroundColor: 'rgba(12, 14, 27, 0.88)',
     borderRadius: 22,
     borderWidth: 1,
@@ -114,4 +114,4 @@ const s = StyleSheet.create({
       boxShadow: '0 20px 50px -10px rgba(0,0,0,0.8), 0 0 0 1px rgba(139,132,255,0.15)',
     } as any) : {}),
   },
-});
+};

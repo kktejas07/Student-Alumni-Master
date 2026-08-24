@@ -4,7 +4,7 @@
  * Powered by Universal Enterprise RAG.
  */
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, Platform, ActivityIndicator, ScrollView, Modal } from 'react-native';
+import { View, Text, TextInput, Pressable, Platform, ActivityIndicator, ScrollView, Modal } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Sparkles, Search, X, ArrowRight, ExternalLink, Bot, Briefcase, Users, Award, ShieldCheck } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -161,7 +161,7 @@ export function GlobalAiSpotlight({ visible, onClose }: { visible: boolean; onCl
   );
 }
 
-const s = StyleSheet.create({
+const s = {
   modalBg: {
     flex: 1, backgroundColor: 'rgba(0,0,0,0.7)',
     alignItems: 'center', justifyContent: 'flex-start', paddingTop: 90,
@@ -204,4 +204,4 @@ const s = StyleSheet.create({
 
   actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: 'rgba(124,58,237,0.18)', borderColor: 'rgba(124,58,237,0.3)', borderWidth: 1 },
   actionBtnText: { color: '#DDD6FE', fontFamily: FONTS.bold, fontSize: 11 }
-});
+} as const;

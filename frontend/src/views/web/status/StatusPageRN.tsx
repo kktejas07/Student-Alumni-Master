@@ -23,7 +23,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, Pressable, Platform, useWindowDimensions, ScrollView,
+  View, Text, Pressable, Platform, useWindowDimensions, ScrollView,
 } from 'react-native';
 import Svg, { Path, Rect, Circle, G, Text as SvgText, Defs, LinearGradient as SvgGradient, Stop, Ellipse } from 'react-native-svg';
 import { useRouter } from 'expo-router';
@@ -603,7 +603,7 @@ export function StatusPageRN({
 }
 
 // ── Styles Matching Master Status Specification ────────────────────────────
-const s = StyleSheet.create({
+const s = {
   root: { flex: 1, backgroundColor: '#0B0722' },
   bgWrap: { position: 'absolute' as any, inset: 0 },
   radialBg: { position: 'absolute' as any, inset: 0, backgroundColor: '#0B0722' },
@@ -658,4 +658,4 @@ const s = StyleSheet.create({
   emailMockBox: { borderWidth: 1, borderColor: '#2A1F5E', borderRadius: 11, backgroundColor: 'rgba(11,7,34,0.6)', paddingHorizontal: 16, paddingVertical: 12, minWidth: 200 },
   subBtn: { backgroundColor: '#6B4FE9', borderRadius: 11, paddingHorizontal: 24, paddingVertical: 12 },
   hashLogo: { fontSize: 32, fontWeight: '700', color: '#C08BFF', letterSpacing: -1.2 },
-});
+};

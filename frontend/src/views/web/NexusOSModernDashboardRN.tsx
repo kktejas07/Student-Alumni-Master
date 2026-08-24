@@ -21,7 +21,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, Pressable, Platform, useWindowDimensions, ScrollView,
+  View, Text, Pressable, Platform, useWindowDimensions, ScrollView,
   TextInput, Modal, Animated as RNAnimated, Easing, TouchableOpacity,
 } from 'react-native';
 import Svg, { Path, Rect, Circle, G, Text as SvgText, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
@@ -1235,7 +1235,7 @@ export function NexusOSModernDashboardRN({
 }
 
 // ── Styles Matching Web Dashboard Design Spec ───────────────────────────────
-const s = StyleSheet.create({
+const s = {{
   root: { flex: 1, backgroundColor: '#08080F' },
   bgfx: { position: 'absolute' as any, inset: 0, overflow: 'hidden' },
   aurora1: { position: 'absolute' as any, left: '-20%', top: '-30%', width: '90%', height: 700, backgroundColor: 'rgba(124,92,252,0.15)', borderRadius: 400 },
@@ -1440,4 +1440,4 @@ const s = StyleSheet.create({
   curtainPercent: { fontSize: 44, fontWeight: '800', color: '#FFFFFF' },
   agentFab: { position: 'absolute' as any, right: 24, bottom: 24, backgroundColor: '#7C5CFC', borderRadius: 100, paddingHorizontal: 20, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 8, shadowColor: '#7C5CFC', shadowOpacity: 0.5, shadowRadius: 15 },
   agentFabText: { color: '#fff', fontSize: 14, fontWeight: '700' },
-});
+};

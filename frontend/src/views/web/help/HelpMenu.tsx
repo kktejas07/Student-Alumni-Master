@@ -9,7 +9,7 @@
  * picked from the per-portal tour config so the active state matches.
  */
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
+import { View, Text, Pressable, Platform } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import {
   HelpCircle, PlayCircle, Shield, FileText, Cookie, ExternalLink,
@@ -120,7 +120,7 @@ export function HelpMenu({ portal }: { portal: TourKey }) {
   );
 }
 
-const s = StyleSheet.create({
+const s = {
   wrap: { position: 'relative', zIndex: 50 },
   btn: {
     width: 34, height: 34, borderRadius: 99,
@@ -165,4 +165,4 @@ const s = StyleSheet.create({
   itemTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12.5, flex: 1 },
   itemSub:   { color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_500Medium', fontSize: 11, marginTop: 1 },
   divider:   { height: 1, backgroundColor: 'rgba(255,255,255,0.07)', marginVertical: 6, marginHorizontal: 8 },
-});
+};

@@ -4,7 +4,7 @@
  * 10 categories grouped into 5 functional sections, each rendered as a card with
  * Lucide icon + title + 1-line description. Selected cards get a glowing purple ring.
  */
-import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
+import { View, Text, Pressable, Platform } from 'react-native';
 import {
   Cpu, Users, ClipboardList, UserSquare2, Briefcase, GraduationCap,
   Rocket, BarChart3, Building2, Sparkles, Check,
@@ -142,7 +142,7 @@ export function MentorCategoryGrid({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = {{
   groupHeader: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     marginBottom: 8, paddingHorizontal: 2,
@@ -197,4 +197,4 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.55)',
     fontFamily: 'DMSans_500Medium', fontSize: 11.5,
   },
-});
+};

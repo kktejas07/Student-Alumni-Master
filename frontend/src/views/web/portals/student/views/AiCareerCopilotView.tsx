@@ -5,7 +5,7 @@
  *   2. Real-Time Technical Mock Interviewer
  */
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, Pressable, ScrollView, Platform, ActivityIndicator } from 'react-native';
 import { Sparkles, Bot, Send, CheckCircle2, AlertTriangle, Briefcase, FileText, ArrowRight, Award } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { request } from '@/src/models/services/api';
@@ -232,7 +232,7 @@ export function AiCareerCopilotView() {
   );
 }
 
-const s = StyleSheet.create({
+const s = {
   container: { flex: 1, backgroundColor: '#0B0A10' },
   heroBanner: { padding: 18, borderRadius: 14 },
   sparkleBox: { width: 42, height: 42, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
@@ -278,4 +278,4 @@ const s = StyleSheet.create({
   finalCard: { padding: 16, borderRadius: 12, backgroundColor: 'rgba(245,158,11,0.15)', borderColor: '#F59E0B', borderWidth: 1, alignItems: 'center', gap: 6 },
   finalTitle: { color: '#FCD34D', fontFamily: FONTS.bold, fontSize: 14 },
   finalSub: { color: '#FEF3C7', fontFamily: FONTS.med, fontSize: 12, textAlign: 'center' }
-});
+};

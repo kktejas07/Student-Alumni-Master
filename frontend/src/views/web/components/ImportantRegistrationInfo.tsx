@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Platform, Linking, useWindowDimensions } from 'react-native';
+import { View, Text, Platform, Linking, useWindowDimensions } from 'react-native';
 import { PALETTE, FONTS } from '@/src/views/web/portals/student/tokens';
 import { Users, Info, HelpCircle, Check } from 'lucide-react-native';
 
@@ -103,7 +103,7 @@ export function ImportantRegistrationInfo({ phones = [] }: { phones?: string[] }
   );
 }
 
-const s = StyleSheet.create({
+const s = {
   container: {
     backgroundColor: 'rgba(167, 139, 250, 0.05)',
     borderWidth: 1,
@@ -168,4 +168,4 @@ const s = StyleSheet.create({
     fontSize: 13,
     marginHorizontal: 8,
   },
-});
+} as const;

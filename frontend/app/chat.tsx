@@ -4,7 +4,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, TextInput,
+  View, Text, ScrollView, TextInput,
   TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, Modal
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -282,38 +282,38 @@ export default function ChatScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = {
   safe: { flex: 1, backgroundColor: C.background },
   header: {
-    flexDirection: 'row', alignItems: 'center',
+    flexDirection: 'row' as const, alignItems: 'center' as const,
     paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm,
     backgroundColor: C.surface, borderBottomWidth: 1, borderBottomColor: C.palePurple,
   },
-  backBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  headerCenter: { flex: 1, alignItems: 'center' },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  actionBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 18, backgroundColor: C.background },
+  backBtn: { width: 40, height: 40, alignItems: 'center' as const, justifyContent: 'center' as const },
+  headerCenter: { flex: 1, alignItems: 'center' as const },
+  headerActions: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 8 },
+  actionBtn: { width: 36, height: 36, alignItems: 'center' as const, justifyContent: 'center' as const, borderRadius: 18, backgroundColor: C.background },
   messages: { padding: Spacing.md, paddingBottom: 24 },
-  empty: { alignItems: 'center', paddingVertical: 60, paddingHorizontal: 20 },
+  empty: { alignItems: 'center' as const, paddingVertical: 60, paddingHorizontal: 20 },
   emptyIcon: {
     width: 80, height: 80, borderRadius: 16,
     backgroundColor: C.brandPurple,
-    alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center' as const, justifyContent: 'center' as const,
   },
-  suggestions: { marginTop: 28, gap: 10, width: '100%' },
+  suggestions: { marginTop: 28, gap: 10, width: '100%' as any },
   suggestionChip: {
     backgroundColor: C.surface, padding: 14, borderRadius: 12,
     borderWidth: 1, borderColor: C.palePurple,
   },
   bubble: {
-    maxWidth: '85%', padding: 12, borderRadius: 14, marginBottom: 12,
+    maxWidth: '85%' as any, padding: 12, borderRadius: 14, marginBottom: 12,
   },
   userBubble: {
-    alignSelf: 'flex-end', backgroundColor: C.brandPurple,
+    alignSelf: 'flex-end' as const, backgroundColor: C.brandPurple,
     borderBottomRightRadius: 4,
   },
   aiBubble: {
-    alignSelf: 'flex-start', backgroundColor: C.surface,
+    alignSelf: 'flex-start' as const, backgroundColor: C.surface,
     borderWidth: 1, borderColor: C.palePurple,
     borderBottomLeftRadius: 4,
   },
@@ -328,8 +328,8 @@ const styles = StyleSheet.create({
     maxHeight: 40,
   },
   fileChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
     backgroundColor: C.brandPurple,
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -350,12 +350,12 @@ const styles = StyleSheet.create({
     padding: 2,
   },
   inputBar: {
-    flexDirection: 'row', gap: 8,
+    flexDirection: 'row' as const, gap: 8,
     padding: Spacing.md, paddingTop: 0,
-    alignItems: 'flex-end',
+    alignItems: 'flex-end' as const,
   },
   attachBtn: {
-    width: 44, height: 44, alignItems: 'center', justifyContent: 'center',
+    width: 44, height: 44, alignItems: 'center' as const, justifyContent: 'center' as const,
     backgroundColor: C.background, borderRadius: 12, borderWidth: 1, borderColor: C.palePurple,
     marginBottom: 2
   },
@@ -369,11 +369,11 @@ const styles = StyleSheet.create({
   sendBtn: {
     width: 48, height: 48, borderRadius: 12,
     backgroundColor: C.brandPurple,
-    alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center' as const, justifyContent: 'center' as const,
     marginBottom: 2
   },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: C.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '80%', padding: Spacing.md },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' as const },
+  modalContent: { backgroundColor: C.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '80%' as any, padding: Spacing.md },
+  modalHeader: { flexDirection: 'row' as const, justifyContent: 'space-between' as const, alignItems: 'center' as const, marginBottom: Spacing.md },
   sessionItem: { padding: Spacing.md, borderBottomWidth: 1, borderBottomColor: C.palePurple },
-});
+};

@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { EchoEventsPage } from '@/src/views/web/echo/EchoEventsPage';
 
@@ -14,9 +14,9 @@ export default function EchoRegisterIndexPage() {
   );
 }
 
-const s = StyleSheet.create({
+const s = {
   container: {
     flex: 1,
     backgroundColor: '#0A0A14',
   },
-});
+};

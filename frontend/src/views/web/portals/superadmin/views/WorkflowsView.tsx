@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState } from 'react';
-import { View, Text, Pressable, StyleSheet, Switch, Platform, Modal, ScrollView, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, Switch, Platform, Modal, ScrollView, TextInput, ActivityIndicator } from 'react-native';
 import {
   Workflow, Zap, Clock, ChevronRight, Plus, Play, AlertTriangle, X, Check,
   Trash2, Pencil, Eye, Bot, Sparkles, Database, Layers, ArrowRight, ArrowDown,
@@ -639,7 +639,7 @@ export function WorkflowsView() {
   );
 }
 
-const s = StyleSheet.create({
+const s = {
   container: { gap: 16 },
   banner: { flexDirection: 'row', gap: 12, padding: 16, borderRadius: 14, backgroundColor: 'rgba(99,102,241,0.08)', borderColor: SAC.border2, borderWidth: 1, alignItems: 'center' },
   bIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(99,102,241,0.18)', alignItems: 'center', justifyContent: 'center' },
@@ -716,4 +716,4 @@ const s = StyleSheet.create({
   eventToggleActive: { backgroundColor: SAC.primary, borderColor: SAC.accent },
   eventToggleText: { color: SAC.muted, fontSize: 11 },
   eventToggleTextActive: { color: '#fff', fontFamily: FONTS.bold }
-});
+};

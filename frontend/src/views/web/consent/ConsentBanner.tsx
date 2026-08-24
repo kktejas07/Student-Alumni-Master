@@ -9,7 +9,7 @@
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  View, Text, Pressable, StyleSheet, Platform, Modal, ScrollView,
+  View, Text, Pressable, Platform, Modal, ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Animated, { FadeInUp, FadeIn, FadeOut } from 'react-native-reanimated';
@@ -224,7 +224,7 @@ function CategoryRow({
   );
 }
 
-const s = StyleSheet.create({
+const s = {
   banner: {
     position: 'absolute', left: 0, right: 0, bottom: 0,
     paddingHorizontal: 16, paddingBottom: 16, paddingTop: 12,
@@ -315,4 +315,4 @@ const s = StyleSheet.create({
   toggleOn: { backgroundColor: 'rgba(167,139,250,0.65)' },
   toggleKnob: { width: 18, height: 18, borderRadius: 9, backgroundColor: '#fff', alignSelf: 'flex-start' },
   toggleKnobOn: { alignSelf: 'flex-end' },
-});
+};

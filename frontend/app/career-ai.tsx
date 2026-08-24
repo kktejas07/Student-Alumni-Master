@@ -117,20 +117,20 @@ interface RoadmapResp {
 ═══════════════════════════════════════════════════════════ */
 
 const styles = {
-  embeddedShell: { embeddedShell: '{', flex: 1, backgroundColor: 'transparent', gap: 'SPACING.xxl', paddingBottom: 60 },
-  shell: { shell: '{', flex: 1, backgroundColor: 'C.bg' },
-  contentContainer: { contentContainer: '{', paddingVertical: 'SPACING.xxl', paddingHorizontal: 'SPACING.xl', paddingBottom: 80, gap: 'SPACING.xxl', maxWidth: 1280, width: '100%' as any, alignSelf: 'center' as any },
-  regenBtn: { regenBtn: '{', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 'RADIUS.btn', borderWidth: 1, borderColor: 'rgba(129', backgroundColor: 'rgba(129' },
-  regenBtnHover: { regenBtnHover: '{', backgroundColor: 'rgba(129' },
-  reportBtn: { reportBtn: '{', flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 'RADIUS.btn', backgroundColor: 'C.purple2' },
-  reportBtnHover: { reportBtnHover: '{', backgroundColor: '#6366F1' },
-  heroLeftCol: { heroLeftCol: '{', flex: 3, gap: 'SPACING.xl' },
-  heroChipVal: { heroChipVal: '{', color: 'C.purpleXL', fontFamily: 'FT.bold' },
-  heroProgressFill: { heroProgressFill: '{', height: '100%', backgroundColor: 'C.purpleL', borderRadius: 3 },
-  continueBtn: { continueBtn: '{', backgroundColor: 'C.purple2', borderRadius: 'RADIUS.btn', paddingVertical: 8, paddingHorizontal: 14, marginTop: 8 },
-  continueBtnHover: { continueBtnHover: '{', backgroundColor: '#6366F1' },
-  twoColRow: { twoColRow: '{', flexDirection: 'Platform.OS === 'web' ? ('row' as any) : 'column'', gap: 'SPACING.xxl', alignItems: 'stretch' },
-  recruiterFill: { recruiterFill: '{', height: '100%', borderRadius: 1.5 },
+  embeddedShell: { flex: 1, backgroundColor: 'transparent', gap: 24, paddingBottom: 60 },
+  shell: { flex: 1, backgroundColor: '#08080F' },
+  contentContainer: { paddingVertical: 24, paddingHorizontal: 20, paddingBottom: 80, gap: 24, maxWidth: 1280, width: '100%' as any, alignSelf: 'center' as any },
+  regenBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(129,140,248,0.30)', backgroundColor: 'rgba(129,140,248,0.30)' },
+  regenBtnHover: { backgroundColor: 'rgba(129,140,248,0.30)' },
+  reportBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10, backgroundColor: '#7C3AED' },
+  reportBtnHover: { backgroundColor: '#6366F1' },
+  heroLeftCol: { flex: 3, gap: 20 },
+  heroChipVal: { color: '#C4B5FD', fontFamily: '700' },
+  heroProgressFill: { height: '100%', backgroundColor: '#A78BFA', borderRadius: 3 },
+  continueBtn: { backgroundColor: '#7C3AED', borderRadius: 10, paddingVertical: 8, paddingHorizontal: 14, marginTop: 8 },
+  continueBtnHover: { backgroundColor: '#6366F1' },
+  twoColRow: { flexDirection: 'row', gap: 24, alignItems: 'stretch' },
+  recruiterFill: { height: '100%', borderRadius: 1.5 },
 };
 
 export default function CareerAIPage({ embedded = false }: { embedded?: boolean } = {}) {

@@ -3,7 +3,7 @@
  * Migrated to NativeWind className.
  */
 import React, { useEffect, useRef } from 'react';
-import {View, Text, Pressable, Platform, Animated, Easing, StyleSheet} from "react-native";
+import {View, Text, Pressable, Platform, Animated, Easing} from "react-native";
 import { LinearGradient } from 'expo-linear-gradient';
 import { Check, GraduationCap, UserCheck, Award, Building2, type LucideIcon } from 'lucide-react-native';
 
@@ -87,13 +87,13 @@ export const ROLE_META: Record<Role, { label: string; emoji: string; gradient: [
   college: { label: ROLES[3].label, emoji: '🏫', gradient: ROLES[3].gradient, Icon: ROLES[3].Icon },
 };
 
-const s = StyleSheet.create({
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 24 },
+const s = {
+  grid: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 12, marginBottom: 24 },
   card: { width: '100%', padding: 16, borderRadius: 16, backgroundColor: 'rgba(18, 20, 43, 0.75)', borderWidth: 1, borderColor: 'rgba(139, 132, 255, 0.22)', ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transition: 'all 0.18s ease' } as any) : {}) },
   cardOn: { backgroundColor: 'rgba(91, 79, 233, 0.25)', borderColor: '#8B84FF' },
-  head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 },
-  iconBox: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  dot: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: 'rgba(139, 132, 255, 0.4)', alignItems: 'center', justifyContent: 'center' },
+  head: { flexDirection: 'row' as const, justifyContent: 'space-between' as const, alignItems: 'flex-start' as const, marginBottom: 14 },
+  iconBox: { width: 48, height: 48, borderRadius: 14, alignItems: 'center' as const, justifyContent: 'center' as const },
+  dot: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: 'rgba(139, 132, 255, 0.4)', alignItems: 'center' as const, justifyContent: 'center' as const },
   label: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 16, marginBottom: 4 },
   sub: { color: '#9AA0B4', fontFamily: FONTS.med, fontSize: 13, lineHeight: 19 },
-});
+};

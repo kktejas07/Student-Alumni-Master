@@ -15,7 +15,7 @@
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  View, Text, Pressable, StyleSheet, Platform, Image, Modal, Linking, ScrollView, TextInput, NativeSyntheticEvent, NativeScrollEvent,
+  View, Text, Pressable, Platform, Image, Modal, Linking, ScrollView, TextInput, NativeSyntheticEvent, NativeScrollEvent,
 } from 'react-native';
 import { Ticket, ExternalLink, X, Copy, Check, Tag, Plus, Pencil, Trash2, Save, Upload, AlertTriangle, Lock } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
@@ -609,9 +609,11 @@ export function CouponBanner({ portal, editable }: { portal: string; editable?: 
   );
 }
 
-const m = StyleSheet.create({
+const ABS_FILL = { position: 'absolute' as const, top: 0, left: 0, right: 0, bottom: 0 };
+
+const m = {
   overlay: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.72)' },
+  backdrop: { ...ABS_FILL, backgroundColor: 'rgba(0,0,0,0.72)' },
   box: {
     width: '92%', maxWidth: 440, backgroundColor: '#0d1326', borderRadius: 18,
     borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)', overflow: 'hidden',
@@ -670,7 +672,6 @@ const m = StyleSheet.create({
   },
   ctaText: { fontFamily: 'DMSans_800ExtraBold', fontSize: 13, color: '#fff' },
 
-  // ── Coupon editor modal ──
   editBox: {
     backgroundColor: '#0d1326', borderRadius: 18, padding: 20,
     borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)',
@@ -731,9 +732,9 @@ const m = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   uploadBtnText: { fontFamily: 'DMSans_700Bold', fontSize: 12, color: '#A78BFA' },
-});
+} as const;
 
-const s = StyleSheet.create({
+const s = {
   wrap: { marginBottom: 18, gap: 10 },
   headRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   headText: { fontFamily: 'DMSans_700Bold', fontSize: 12, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 0.8 },
@@ -787,9 +788,9 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? { cursor: 'pointer', transitionDuration: '200ms' } as any : {}),
   },
   dotActive: { backgroundColor: '#A78BFA', width: 22 },
-});
+} as const;
 
-const cbToast = StyleSheet.create({
+const cbToast = {
   wrap: {
     position: 'absolute', top: 84, right: 24, zIndex: 9999,
     flexDirection: 'row', alignItems: 'center', gap: 8,
@@ -799,4 +800,4 @@ const cbToast = StyleSheet.create({
   },
   error: { borderColor: 'rgba(248,113,113,0.45)' },
   text: { fontFamily: 'DMSans_700Bold', fontSize: 12, color: '#fff' },
-});
+} as const;

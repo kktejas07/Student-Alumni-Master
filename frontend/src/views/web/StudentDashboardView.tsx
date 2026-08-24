@@ -16,7 +16,7 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, Pressable, ScrollView, TextInput,
+  View, Text, Pressable, ScrollView, TextInput,
   useWindowDimensions, Platform, ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -317,7 +317,7 @@ export function StudentDashboardView({ showTopBar = true, onOpenNotifications, o
 
         {/* ── AI DAILY BRIEF BANNER ── */}
         <View style={s.briefCard}>
-          <LinearGradient colors={['rgba(88,28,135,0.6)', 'rgba(30,20,70,0.4)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+          <LinearGradient colors={['rgba(88,28,135,0.6)', 'rgba(30,20,70,0.4)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 14, position: 'relative' }}>
             <View style={s.briefBotIcon}>
               <Bot size={20} color={C.purpleXL} />
@@ -389,7 +389,7 @@ export function StudentDashboardView({ showTopBar = true, onOpenNotifications, o
         {/* ── AI COACH CARD ── */}
         {coach && (
           <View style={s.coachCard}>
-            <LinearGradient colors={['rgba(109,40,217,0.25)', 'rgba(30,20,70,0.15)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+            <LinearGradient colors={['rgba(109,40,217,0.25)', 'rgba(30,20,70,0.15)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
             <View style={[{ position: 'relative' }, isWide && { flexDirection: 'row', gap: 24, alignItems: 'flex-start' }]}>
               {/* Left: Coach Summary */}
               <View style={{ flex: 1, minWidth: 0 }}>
@@ -473,7 +473,7 @@ export function StudentDashboardView({ showTopBar = true, onOpenNotifications, o
 
         {/* ── CAREER READINESS HERO ── */}
         <View style={s.heroShell}>
-          <LinearGradient colors={['#4C1D95', '#5B21B6', '#1E1147']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+          <LinearGradient colors={['#4C1D95', '#5B21B6', '#1E1147']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
 
           <View style={[s.heroBody, !isWide && { flexDirection: 'column', gap: 20 }]}>
             <View style={{ flex: 1, minWidth: 0 }}>
@@ -808,7 +808,7 @@ export function StudentDashboardView({ showTopBar = true, onOpenNotifications, o
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
-const s = StyleSheet.create({
+const s = {{
   scroll: { flex: 1, backgroundColor: 'transparent' },
   content: { padding: 22, gap: 16, paddingBottom: 60 },
   contentNarrow: { padding: 14, gap: 12, paddingBottom: 90 },
@@ -920,4 +920,4 @@ const s = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, borderWidth: 1,
   },
   tierText: { fontFamily: FT.bold, fontSize: 12 },
-});
+};

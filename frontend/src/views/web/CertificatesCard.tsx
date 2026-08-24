@@ -12,7 +12,7 @@
  * Adding/deleting also refreshes badges (handled server-side).
  */
 import { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TextInput, Pressable, Platform } from 'react-native';
+import { View, Text, TextInput, Pressable, Platform } from 'react-native';
 import { Plus, Award, Trash2, X as CloseX, Save } from 'lucide-react-native';
 import { Colors as C } from '@/src/theme';
 import { request } from '@/src/models/services/api';
@@ -192,7 +192,7 @@ export function CertificatesCard({ onChanged }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = {{
   card: {
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderColor: 'rgba(255,255,255,0.09)',
@@ -267,4 +267,4 @@ const styles = StyleSheet.create({
   },
   empty: { paddingVertical: 14 },
   emptyText: { color: 'rgba(255,255,255,0.45)', fontFamily: 'DMSans_400Regular', fontSize: 12 },
-});
+};

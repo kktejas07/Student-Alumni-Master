@@ -9,7 +9,7 @@
  */
 import React, { useEffect, useRef, useState, useCallback, createRef } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, Pressable, Image,
+  View, Text, ScrollView, Pressable, Image,
   useWindowDimensions, Platform, Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -911,17 +911,17 @@ function FooterSection() {
 
 /* ════════════════════════════════════════════════════════════════════════
    ── Styles ──────────────────────────────────────────────────────────── */
-const st = StyleSheet.create({
+const st = {
   counter: { fontFamily: TYPO.mono700, fontSize: 30, color: C.text, letterSpacing: -1.5 },
-});
+};
 
-const sec = StyleSheet.create({
+const sec = {
   badge: { fontFamily: TYPO.body600, fontSize: 9.5, color: C.primary, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6 },
   h2: { color: C.text, fontFamily: TYPO.display700, fontSize: 24, letterSpacing: -0.5 },
   p: { color: C.text2, fontFamily: TYPO.body400, fontSize: 13, marginTop: 6, maxWidth: 600, lineHeight: 19 },
-});
+};
 
-const nb = StyleSheet.create({
+const nb = {
   bar: { backgroundColor: 'rgba(8,11,18,0.85)', borderBottomWidth: 1, borderBottomColor: C.border, width: '100%', zIndex: 50 } as any,
   barSc: { backgroundColor: 'rgba(8,11,18,0.92)', borderBottomColor: C.borderH } as any,
   in: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 24, paddingVertical: 12, maxWidth: 1400, alignSelf: 'center', width: '100%' },
@@ -935,10 +935,10 @@ const nb = StyleSheet.create({
   siT: { color: C.text2, fontFamily: TYPO.body600, fontSize: 12 },
   cta: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 7, backgroundColor: C.primary } as any,
   ctaT: { color: '#fff', fontFamily: TYPO.body700, fontSize: 12 },
-});
+};
 
-const hro = StyleSheet.create({
+const hro = {
   h1: { color: C.text, fontFamily: TYPO.display800 },
   sub: { color: C.text2, fontFamily: TYPO.body400, marginTop: 16, lineHeight: 25, fontSize: 14.5, maxWidth: 520 },
   cr: { flexDirection: 'row', gap: 10, marginTop: 24, flexWrap: 'wrap' },
-});
+};

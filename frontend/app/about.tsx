@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
@@ -25,11 +25,11 @@ export default function AboutPage() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = {
   safe: { flex: 1, backgroundColor: C.bg },
   scroll: { flex: 1 },
   content: { padding: 20 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 24 },
-  title: { fontSize: 20, fontWeight: '700', color: C.text },
+  header: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12, marginBottom: 24 },
+  title: { fontSize: 20, fontWeight: '700' as const, color: C.text },
   body: { fontSize: 15, color: C.text, lineHeight: 24 },
-});
+};
