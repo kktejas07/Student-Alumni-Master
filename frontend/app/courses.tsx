@@ -3,10 +3,7 @@
  * Matches screenshot: search + 2 hero cards + 3 sections × 8 sub-categories.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  View, Text, StyleSheet, Pressable, ScrollView,
-  ActivityIndicator, TextInput, Modal, Linking, Platform,
-} from 'react-native';
+import {View, Text, Pressable, ScrollView, ActivityIndicator, TextInput, Modal, Linking, Platform} from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import FeaturePageShell, { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
@@ -87,6 +84,131 @@ const fmtCount = (n: number) => {
   if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
   if (n >= 1000)    return (n / 1000).toFixed(n >= 10000 ? 0 : 1) + 'k';
   return String(n);
+};
+
+
+const styles = {
+  statsPills: { statsPills: '{ flexDirection: 'row'' },
+  statPillVal: { statPillVal: '{ color: '#86EFAC'' },
+  statPillLbl: { statPillLbl: '{ color: '#86EFAC'' },
+  statPill: { statPill: '{ flexDirection: 'row'', paddingHorizontal: 10, backgroundColor: 'rgba(16', borderColor: 'rgba(16' },
+  acDropdown: { acDropdown: '{ position: 'absolute'', backgroundColor: '#221538', borderColor: 'C.border', boxShadow: '0 16px 48px rgba(0' },
+  acSection: { acSection: '{ gap: 6' },
+  acTitle: { acTitle: '{ color: '#fff'' },
+  acMeta: { acMeta: '{ color: C.text3' },
+  smartTag: { smartTag: '{ paddingHorizontal: 7' },
+  smartTagText: { smartTagText: '{ fontFamily: 'DMSans_800ExtraBold'' },
+  acProviderText: { acProviderText: '{ color: '#C4B5FD'' },
+  heroRow: { heroRow: '{ flexDirection: 'row'' },
+  heroCard: { heroCard: '{ borderRadius: 20', overflow: 'hidden', cursor: 'pointer' },
+  heroCtaText: { heroCtaText: '{ color: '#fff'' },
+  loadingBox: { loadingBox: '{ paddingVertical: 40' },
+  loadingText: { loadingText: '{ color: C.text2' },
+  pill: { pill: '{ flexDirection: 'row'', paddingHorizontal: 12, backgroundColor: 'rgba(255', borderColor: 'rgba(255', cursor: 'pointer' },
+  pillText: { pillText: '{ color: C.text2' },
+  pillCount: { pillCount: '{ paddingHorizontal: 6', backgroundColor: 'rgba(0', alignItems: 'center' },
+  pillCountText: { pillCountText: '{ color: 'rgba(255', fontFamily: 'DMSans_800ExtraBold' },
+  pricingFilters: { pricingFilters: '{ flexDirection: 'row'' },
+  sortItem: { sortItem: '{ flexDirection: 'row'', justifyContent: 'space-between', borderRadius: 8 },
+  sortItemActive: { sortItemActive: '{ backgroundColor: 'rgba(124' },
+  sortItemText: { sortItemText: '{ color: C.text2' },
+  clearBtnText: { clearBtnText: '{ color: C.text2' },
+  activeChipsRow: { activeChipsRow: '{ flexDirection: 'row'' },
+  sectionHeader: { sectionHeader: '{ flexDirection: 'row'' },
+  sectionName: { sectionName: '{ color: '#fff'' },
+  sectionCountPill: { sectionCountPill: '{ paddingHorizontal: 10', borderRadius: 999 },
+  sectionCountText: { sectionCountText: '{ fontFamily: 'DMSans_800ExtraBold'' },
+  subcatBlock: { subcatBlock: '{ gap: 10' },
+  subcatHeader: { subcatHeader: '{ flexDirection: 'row'' },
+  subcatIcon: { subcatIcon: '{ width: 26', alignItems: 'center' },
+  subcatTitle: { subcatTitle: '{ color: '#fff'' },
+  subcatCountSmall: { subcatCountSmall: '{ color: C.text3' },
+  viewAllText: { viewAllText: '{ fontFamily: 'DMSans_800ExtraBold'' },
+  emptyBox: { emptyBox: '{ paddingVertical: 40' },
+  emptyTitle: { emptyTitle: '{ color: '#fff'' },
+  emptySub: { emptySub: '{ color: C.text3' },
+  clearBtnLargeText: { clearBtnLargeText: '{ color: '#fff'' },
+  tracksStrip: { tracksStrip: '{ gap: 10' },
+  trackChip: { trackChip: '{ flexDirection: 'row'', paddingHorizontal: 12, borderWidth: 1 },
+  trackChipText: { trackChipText: '{ fontFamily: 'DMSans_800ExtraBold'' },
+  trackChipMeta: { trackChipMeta: '{ paddingHorizontal: 8', backgroundColor: 'rgba(0' },
+  trackChipMetaText: { trackChipMetaText: '{ color: 'rgba(255', fontFamily: 'DMSans_700Bold' },
+  resultsBlock: { resultsBlock: '{ gap: 14' },
+  resultsHeader: { resultsHeader: '{ flexDirection: 'row'' },
+  resultsTitle: { resultsTitle: '{ color: '#fff'' },
+  resultsCount: { resultsCount: '{ color: C.text3' },
+  pricingChip: { pricingChip: '{ paddingHorizontal: 12', borderWidth: 1 },
+  pricingChipText: { pricingChipText: '{ color: C.text2' },
+  cardGrid: { cardGrid: '{ flexDirection: 'row'' },
+  providerStrip: { providerStrip: '{ flexDirection: 'row'' },
+  providerName: { providerName: '{ color: C.text2' },
+  thumbnailBox: { thumbnailBox: '{ aspectRatio: 16 / 9', backgroundColor: 'rgba(124' },
+  thumbnailEmoji: { thumbnailEmoji: '{ fontSize: 56' },
+  courseInstructor: { courseInstructor: '{ color: C.text3' },
+  metaTagRow: { metaTagRow: '{ flexDirection: 'row'' },
+  statsRow: { statsRow: '{ flexDirection: 'row'' },
+  ratingText: { ratingText: '{ color: '#fff'' },
+  ratingCount: { ratingCount: '{ color: C.text3' },
+  enrolledText: { enrolledText: '{ color: C.text3' },
+  tagRow: { tagRow: '{ flexDirection: 'row'' },
+  priceFree: { priceFree: '{ color: '#10B981'' },
+  priceSA: { priceSA: '{ color: '#A78BFA'' },
+  priceDiscNote: { priceDiscNote: '{ color: '#FCD34D'' },
+  enrollBtnText: { enrollBtnText: '{ color: '#fff'' },
+  metaTag: { metaTag: '{ paddingHorizontal: 8', backgroundColor: 'rgba(255' },
+  metaTagText: { metaTagText: '{ color: C.text2' },
+  priceBadge: { priceBadge: '{ paddingHorizontal: 9' },
+  priceBadgeText: { priceBadgeText: '{ color: '#fff'', fontSize: 9.5 },
+  certBadge: { certBadge: '{ flexDirection: 'row'', paddingHorizontal: 10 },
+  certBadgeText: { certBadgeText: '{ fontFamily: 'DMSans_700Bold'' },
+  removableChipText: { removableChipText: '{ color: '#C4B5FD'' },
+  sheetTitle: { sheetTitle: '{ color: '#fff'' },
+  filterGroup: { filterGroup: '{ gap: 10' },
+  filterChipRow: { filterChipRow: '{ flexDirection: 'row'' },
+  filterChoice: { filterChoice: '{ paddingHorizontal: 12', backgroundColor: 'rgba(255', borderColor: 'C.border', cursor: 'pointer' },
+  filterChoiceActive: { filterChoiceActive: '{ backgroundColor: '#7C3AED'' },
+  filterChoiceText: { filterChoiceText: '{ color: C.text2' },
+  toggleSwitch: { toggleSwitch: '{ width: 36', backgroundColor: 'rgba(255', paddingHorizontal: 2 },
+  toggleKnob: { toggleKnob: '{ width: 16', backgroundColor: '#fff' },
+  filterToggleText: { filterToggleText: '{ color: '#fff'' },
+  sheetClearBtn: { sheetClearBtn: '{ paddingHorizontal: 16', backgroundColor: 'rgba(255', cursor: 'pointer' },
+  sheetClearText: { sheetClearText: '{ color: C.text2' },
+  sheetApplyBtn: { sheetApplyBtn: '{ flex: 1', backgroundColor: '#7C3AED', cursor: 'pointer' },
+  sheetApplyText: { sheetApplyText: '{ color: '#fff'' },
+  enrollSheet: { enrollSheet: '{ width: '100%'', backgroundColor: '#13031F', borderColor: 'rgba(167' },
+  enrollHeader: { enrollHeader: '{ flexDirection: 'row'' },
+  enrollEmoji: { enrollEmoji: '{ width: 56', backgroundColor: 'rgba(124', borderWidth: 1 },
+  enrollTitle: { enrollTitle: '{ color: '#fff'' },
+  enrollProvider: { enrollProvider: '{ color: C.text3' },
+  enrollFacts: { enrollFacts: '{ flexDirection: 'row'' },
+  enrollPriceBox: { enrollPriceBox: '{ padding: 14', backgroundColor: 'rgba(124', borderColor: 'rgba(167' },
+  enrollCTA: { enrollCTA: '{ flexDirection: 'row'', gap: 7, marginTop: 12 },
+  enrollCTAText: { enrollCTAText: '{ color: '#fff'' },
+  errText: { errText: '{ color: '#FCA5A5'' },
+  successBox: { successBox: '{ alignItems: 'center'' },
+  successSub: { successSub: '{ color: C.text2' },
+  successCTAText: { successCTAText: '{ color: '#fff'' },
+  successDismiss: { successDismiss: '{ paddingVertical: 10' },
+  successDismissText: { successDismissText: '{ color: C.text3' },
+  factText: { factText: '{ color: C.text2' },
+  carouselWrap: { carouselWrap: '{ gap: 10' },
+  carouselHead: { carouselHead: '{ flexDirection: 'row'' },
+  carouselTitle: { carouselTitle: '{ color: '#fff'' },
+  carouselSub: { carouselSub: '{ color: C.text3', fontSize: 11.5 },
+  carouselCount: { carouselCount: '{ paddingHorizontal: 9', borderWidth: 1 },
+  carouselCountText: { carouselCountText: '{ fontFamily: 'DMSans_800ExtraBold'' },
+  miniCard: { miniCard: '{ width: 240', backgroundColor: '#261944', cursor: 'pointer' },
+  miniThumb: { miniThumb: '{ aspectRatio: 16 / 10', position: 'relative' },
+  miniThumbEmoji: { miniThumbEmoji: '{ fontSize: 44' },
+  miniFeaturedDot: { miniFeaturedDot: '{ position: 'absolute'', width: 22, alignItems: 'center' },
+  miniProvider: { miniProvider: '{ flexDirection: 'row'' },
+  miniProviderName: { miniProviderName: '{ color: C.text3', fontSize: 10.5 },
+  miniStats: { miniStats: '{ flexDirection: 'row'' },
+  miniStatText: { miniStatText: '{ color: C.text2' },
+  miniDot: { miniDot: '{ color: C.text3' },
+  miniPriceFree: { miniPriceFree: '{ color: '#10B981'' },
+  miniPriceSA: { miniPriceSA: '{ fontFamily: 'DMSans_800ExtraBold'' },
+  miniArrow: { miniArrow: '{ width: 22', alignItems: 'center' },
 };
 
 export default function CoursesPage() {
@@ -317,14 +439,14 @@ export default function CoursesPage() {
       accent="#7C3AED"
       rightSlot={
         <View style={s.statsPills}>
-          <View style={s.statPill}>
+          <View className="px-3">
             <Text style={s.statPillVal}>{stats.free_courses}</Text>
             <Text style={s.statPillLbl}>Free</Text>
           </View>
-          <View style={[s.statPill, { borderColor: 'rgba(245,158,11,0.4)',
+          <View style={[styles.statPill, { borderColor: 'rgba(245,158,11,0.4)',
                                        backgroundColor: 'rgba(245,158,11,0.12)' }]}>
-            <Text style={[s.statPillVal, { color: '#FCD34D' }]}>{stats.free_certs}</Text>
-            <Text style={[s.statPillLbl, { color: '#FCD34D' }]}>Free certs</Text>
+            <Text style={[styles.statPillVal, { color: '#FCD34D' }]}>{stats.free_certs}</Text>
+            <Text style={[styles.statPillLbl, { color: '#FCD34D' }]}>Free certs</Text>
           </View>
         </View>
       }
@@ -342,10 +464,10 @@ export default function CoursesPage() {
       {!activeTrackSlug && (<>
       {/* Search Bar */}
       <View>
-        <View style={s.searchBox}>
+        <View className="px-4 mt-1">
           <MaterialCommunityIcons name="magnify" size={18} color={C.text3} />
           <TextInput
-            style={s.searchInput}
+            className="text-sm"
             placeholder="Search courses, skills, instructors…"
             placeholderTextColor={C.text3}
             value={search}
@@ -368,11 +490,11 @@ export default function CoursesPage() {
           <View style={s.acDropdown}>
             {searchSuggestions.courses.length > 0 && (
               <View style={s.acSection}>
-                <Text style={s.acHeader}>Courses</Text>
+                <Text className="text-xs">Courses</Text>
                 {searchSuggestions.courses.map((c) => (
                   <Pressable key={c.id}
                     onPress={() => { setEnrollFor(c); setSearch(''); }}
-                    style={s.acRow}>
+                    className="px-2">
                     <Text style={{ fontSize: 18 }}>{c.thumbnail}</Text>
                     <View style={{ flex: 1 }}>
                       <Text style={s.acTitle} numberOfLines={1}>{c.title}</Text>
@@ -387,17 +509,17 @@ export default function CoursesPage() {
             )}
             {searchSuggestions.skills.length > 0 && (
               <View style={s.acSection}>
-                <Text style={s.acHeader}>Skills</Text>
+                <Text className="text-xs">Skills</Text>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
                   {searchSuggestions.skills.map((sk) => {
                     const m = TAG_META[sk];
                     return (
                       <Pressable key={sk}
                         onPress={() => setSearch(sk.toLowerCase().replace(/_/g, ' '))}
-                        style={[s.smartTag,
+                        style={[styles.smartTag,
                           { backgroundColor: (m?.color || '#A78BFA') + '22',
                             borderColor: (m?.color || '#A78BFA') + '55' }]}>
-                        <Text style={[s.smartTagText, { color: m?.color || '#A78BFA' }]}>
+                        <Text style={[styles.smartTagText, { color: m?.color || '#A78BFA' }]}>
                           {m?.label || sk}
                         </Text>
                       </Pressable>
@@ -408,12 +530,12 @@ export default function CoursesPage() {
             )}
             {searchSuggestions.providers.length > 0 && (
               <View style={s.acSection}>
-                <Text style={s.acHeader}>Providers</Text>
+                <Text className="text-xs">Providers</Text>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
                   {searchSuggestions.providers.map((p) => (
                     <Pressable key={p}
                       onPress={() => { setProviderFilter(p); setSearch(''); }}
-                      style={s.acProviderChip}>
+                      className="px-2">
                       <MaterialCommunityIcons name="school-outline" size={11} color="#A78BFA" />
                       <Text style={s.acProviderText}>{p}</Text>
                     </Pressable>
@@ -441,19 +563,19 @@ export default function CoursesPage() {
                 setActiveTrackSlug('ai-career-track');
               }
             }}
-            style={[s.heroCard, i === 0 ? { flex: 2 } : { flex: 1 }]}>
+            style={[styles.heroCard, i === 0 ? { flex: 2 } : { flex: 1 }]}>
             <LinearGradient
               colors={[h.from, h.to]}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
               style={StyleSheet.absoluteFill}
             />
-            <View style={s.heroBlur1} />
-            <View style={s.heroIconCircle}>
+            <View className="w-40" />
+            <View className="items-center">
               <Text style={{ fontSize: 22 }}>{h.emoji}</Text>
             </View>
-            <Text style={s.heroTitle}>{h.title}</Text>
-            <Text style={s.heroSub} numberOfLines={2}>{h.subtitle}</Text>
-            <View style={s.heroCta}>
+            <Text className="text-lg">{h.title}</Text>
+            <Text className="text-sm" numberOfLines={2}>{h.subtitle}</Text>
+            <View className="px-4">
               <Text style={s.heroCtaText}>{h.cta_label}</Text>
               <MaterialCommunityIcons name="arrow-right" size={14} color="#fff" />
             </View>
@@ -493,17 +615,17 @@ export default function CoursesPage() {
                 setActiveCategory(cat.id);
                 setActiveSubcat(null);
               }}
-              style={[s.pill,
+              style={[styles.pill,
                 active && { backgroundColor: cat.color, borderColor: cat.color }]}>
               <MaterialCommunityIcons name={cat.icon} size={14}
                 color={active ? '#fff' : cat.color} />
-              <Text style={[s.pillText, active && { color: '#fff' }]}>
+              <Text style={[styles.pillText, active && { color: '#fff' }]}>
                 {cat.label}
               </Text>
               {count > 0 && (
-                <View style={[s.pillCount,
+                <View style={[styles.pillCount,
                   active && { backgroundColor: 'rgba(255,255,255,0.25)' }]}>
-                  <Text style={[s.pillCountText, active && { color: '#fff' }]}>
+                  <Text style={[styles.pillCountText, active && { color: '#fff' }]}>
                     {count}
                   </Text>
                 </View>
@@ -525,11 +647,11 @@ export default function CoursesPage() {
             contentContainerStyle={{ gap: 8, paddingRight: 12 }}>
             <Pressable
               onPress={() => setActiveSubcat(null)}
-              style={[s.pill, !activeSubcat &&
+              style={[styles.pill, !activeSubcat &&
                 { backgroundColor: accent, borderColor: accent }]}>
               <MaterialCommunityIcons name="filter-variant" size={13}
                 color={!activeSubcat ? '#fff' : accent} />
-              <Text style={[s.pillText, !activeSubcat && { color: '#fff' }]}>
+              <Text style={[styles.pillText, !activeSubcat && { color: '#fff' }]}>
                 All {sec.name}
               </Text>
             </Pressable>
@@ -538,17 +660,17 @@ export default function CoursesPage() {
               return (
                 <Pressable key={it.key}
                   onPress={() => setActiveSubcat(active ? null : it.key)}
-                  style={[s.pill, active &&
+                  style={[styles.pill, active &&
                     { backgroundColor: accent, borderColor: accent }]}>
                   <MaterialCommunityIcons name={it.icon} size={13}
                     color={active ? '#fff' : accent} />
-                  <Text style={[s.pillText, active && { color: '#fff' }]}>
+                  <Text style={[styles.pillText, active && { color: '#fff' }]}>
                     {it.label}
                   </Text>
                   {it.count > 0 && (
-                    <View style={[s.pillCount,
+                    <View style={[styles.pillCount,
                       active && { backgroundColor: 'rgba(255,255,255,0.25)' }]}>
-                      <Text style={[s.pillCountText, active && { color: '#fff' }]}>
+                      <Text style={[styles.pillCountText, active && { color: '#fff' }]}>
                         {it.count}
                       </Text>
                     </View>
@@ -569,11 +691,11 @@ export default function CoursesPage() {
                                   p === 'free' ? 'gift' : 'currency-inr';
           return (
             <Pressable key={p} onPress={() => setPricingFilter(p)}
-              style={[s.pill,
+              style={[styles.pill,
                 active && { backgroundColor: '#7C3AED', borderColor: '#7C3AED' }]}>
               <MaterialCommunityIcons name={icon} size={13}
                 color={active ? '#fff' : '#A78BFA'} />
-              <Text style={[s.pillText, active && { color: '#fff' }]}>
+              <Text style={[styles.pillText, active && { color: '#fff' }]}>
                 {lbl}
               </Text>
             </Pressable>
@@ -582,11 +704,11 @@ export default function CoursesPage() {
 
         {/* More filters trigger */}
         <Pressable onPress={() => setShowFilterSheet(true)}
-          style={[s.pill, advancedFilterCount > 0 &&
+          style={[styles.pill, advancedFilterCount > 0 &&
             { backgroundColor: '#7C3AED', borderColor: '#7C3AED' }]}>
           <MaterialCommunityIcons name="tune-variant" size={13}
             color={advancedFilterCount > 0 ? '#fff' : '#A78BFA'} />
-          <Text style={[s.pillText, advancedFilterCount > 0 && { color: '#fff' }]}>
+          <Text style={[styles.pillText, advancedFilterCount > 0 && { color: '#fff' }]}>
             Filters{advancedFilterCount > 0 ? ` · ${advancedFilterCount}` : ''}
           </Text>
         </Pressable>
@@ -594,23 +716,23 @@ export default function CoursesPage() {
         {/* Sort dropdown trigger */}
         <View>
           <Pressable onPress={() => setShowSortMenu(!showSortMenu)}
-            style={[s.pill, sortBy !== 'popular' &&
+            style={[styles.pill, sortBy !== 'popular' &&
               { backgroundColor: '#7C3AED', borderColor: '#7C3AED' }]}>
             <MaterialCommunityIcons name="sort" size={13}
               color={sortBy !== 'popular' ? '#fff' : '#A78BFA'} />
-            <Text style={[s.pillText, sortBy !== 'popular' && { color: '#fff' }]}>
+            <Text style={[styles.pillText, sortBy !== 'popular' && { color: '#fff' }]}>
               Sort: {SORT_LABELS[sortBy]}
             </Text>
             <MaterialCommunityIcons name="chevron-down" size={12}
               color={sortBy !== 'popular' ? '#fff' : C.text2} />
           </Pressable>
           {showSortMenu && (
-            <View style={s.sortMenu}>
+            <View className="min-w-45">
               {(Object.keys(SORT_LABELS) as Array<keyof typeof SORT_LABELS>).map((k) => (
                 <Pressable key={k}
                   onPress={() => { setSortBy(k); setShowSortMenu(false); }}
-                  style={[s.sortItem, sortBy === k && s.sortItemActive]}>
-                  <Text style={[s.sortItemText, sortBy === k && { color: '#C4B5FD' }]}>
+                  style={[styles.sortItem, sortBy === k && s.sortItemActive]}>
+                  <Text style={[styles.sortItemText, sortBy === k && { color: '#C4B5FD' }]}>
                     {SORT_LABELS[k]}
                   </Text>
                   {sortBy === k && (
@@ -623,7 +745,7 @@ export default function CoursesPage() {
         </View>
 
         {filtersActive && (
-          <Pressable onPress={clearAllFilters} style={s.clearBtn}>
+          <Pressable onPress={clearAllFilters} className="px-3">
             <MaterialCommunityIcons name="close" size={12} color={C.text2} />
             <Text style={s.clearBtnText}>Clear all</Text>
           </Pressable>
@@ -663,9 +785,9 @@ export default function CoursesPage() {
 
       {/* Filter status banner */}
       {filtersActive && (
-        <View style={s.filterStatus}>
+        <View className="px-3">
           <MaterialCommunityIcons name="filter-check" size={13} color="#A78BFA" />
-          <Text style={s.filterStatusText}>
+          <Text className="text-xs">
             Showing {filteredCourses.length} {filteredCourses.length === 1 ? 'course' : 'courses'}
             {activeCategory !== 'all' ? ` in ${sections.find(s=>s.id===activeCategory)?.name}` : ''}
             {activeSubcat ? ` › ${sections.find(s=>s.id===activeCategory)?.items.find(i=>i.key===activeSubcat)?.label}` : ''}
@@ -720,14 +842,14 @@ export default function CoursesPage() {
         if (subcatGroups.length === 0) return null;
 
         return (
-          <View key={sec.id} style={s.sectionCard}>
+          <View key={sec.id} className="gap-4">
             <View style={s.sectionHeader}>
               <Text style={{ fontSize: 22 }}>{sec.emoji}</Text>
               <Text style={s.sectionName}>{sec.name}</Text>
-              <View style={[s.sectionCountPill,
+              <View style={[styles.sectionCountPill,
                 { backgroundColor: sectionAccent + '22',
                   borderColor: sectionAccent + '55' }]}>
-                <Text style={[s.sectionCountText, { color: sectionAccent }]}>
+                <Text style={[styles.sectionCountText, { color: sectionAccent }]}>
                   {subcatGroups.reduce((acc, g) => acc + g.courses.length, 0)} courses
                 </Text>
               </View>
@@ -736,7 +858,7 @@ export default function CoursesPage() {
             {subcatGroups.map(({ sub, courses }) => (
               <View key={sub.key} style={s.subcatBlock}>
                 <View style={s.subcatHeader}>
-                  <View style={[s.subcatIcon,
+                  <View style={[styles.subcatIcon,
                     { backgroundColor: sectionAccent + '22',
                       borderColor: sectionAccent + '55' }]}>
                     <MaterialCommunityIcons name={sub.icon} size={14}
@@ -753,8 +875,8 @@ export default function CoursesPage() {
                         setActiveCategory(sec.id);
                         setActiveSubcat(sub.key);
                       }}
-                      style={s.viewAllBtn}>
-                      <Text style={[s.viewAllText, { color: sectionAccent }]}>
+                      className="px-3">
+                      <Text style={[styles.viewAllText, { color: sectionAccent }]}>
                         Filter
                       </Text>
                       <MaterialCommunityIcons name="filter-variant" size={11}
@@ -781,7 +903,7 @@ export default function CoursesPage() {
           <MaterialCommunityIcons name="book-search" size={40} color={C.text3} />
           <Text style={s.emptyTitle}>No courses match these filters</Text>
           <Text style={s.emptySub}>Try clearing or switching pricing tier</Text>
-          <Pressable onPress={clearAllFilters} style={s.clearBtnLarge}>
+          <Pressable onPress={clearAllFilters} className="rounded-full">
             <Text style={s.clearBtnLargeText}>Reset filters</Text>
           </Pressable>
         </View>
@@ -790,15 +912,15 @@ export default function CoursesPage() {
       {/* Career tracks strip — visual only, opens advisor instead of navigating */}
       {!filtersActive && tracksMeta.length > 0 && (
         <View style={s.tracksStrip}>
-          <Text style={s.kicker}>CAREER TRACKS</Text>
+          <Text className="text-xs">CAREER TRACKS</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
             {tracksMeta.map((t: any) => (
               <Pressable key={t.slug}
                 onPress={() => setActiveTrackSlug(t.slug)}
-                style={[s.trackChip, { borderColor: t.color + '66',
+                style={[styles.trackChip, { borderColor: t.color + '66',
                                         backgroundColor: t.color + '14' }]}>
                 <MaterialCommunityIcons name="rocket-launch" size={14} color={t.color} />
-                <Text style={[s.trackChipText, { color: t.color }]}>{t.title}</Text>
+                <Text style={[styles.trackChipText, { color: t.color }]}>{t.title}</Text>
                 <View style={s.trackChipMeta}>
                   <Text style={s.trackChipMetaText}>
                     {t.duration_weeks}w · {t.enrolled_count} learners
@@ -882,7 +1004,7 @@ function ResultsBlock({ subcatLabel, searchQuery, pricing, onClear,
             {loading ? 'Loading…' : `${courses.length} courses found`}
           </Text>
         </View>
-        <Pressable onPress={onClear} style={s.clearBtn}>
+        <Pressable onPress={onClear} className="px-3">
           <MaterialCommunityIcons name="close" size={12} color={C.text2} />
           <Text style={s.clearBtnText}>Clear filters</Text>
         </Pressable>
@@ -894,9 +1016,9 @@ function ResultsBlock({ subcatLabel, searchQuery, pricing, onClear,
           const lbl = p === 'all' ? 'All' : p === 'free' ? 'Free / Free Cert' : 'Paid (with SA discount)';
           return (
             <Pressable key={p} onPress={() => onPricingChange(p)}
-              style={[s.pricingChip,
+              style={[styles.pricingChip,
                 active && { backgroundColor: '#7C3AED33', borderColor: '#A78BFA' }]}>
-              <Text style={[s.pricingChipText, active && { color: '#C4B5FD' }]}>
+              <Text style={[styles.pricingChipText, active && { color: '#C4B5FD' }]}>
                 {lbl}
               </Text>
             </Pressable>
@@ -933,8 +1055,8 @@ function CourseCard({ course, onEnroll }:
   const tags = (course.tags || []).slice(0, 3);
 
   return (
-    <View style={s.courseCard}>
-      <View style={s.courseTopRow}>
+    <View className="rounded-2xl">
+      <View className="justify-between">
         <View style={s.providerStrip}>
           <Text style={{ fontSize: 16 }}>{course.provider.logo}</Text>
           <Text style={s.providerName} numberOfLines={1}>
@@ -949,7 +1071,7 @@ function CourseCard({ course, onEnroll }:
       </View>
 
       <View style={{ padding: 14, gap: 8 }}>
-        <Text style={s.courseTitle} numberOfLines={2}>{course.title}</Text>
+        <Text className="text-base" numberOfLines={2}>{course.title}</Text>
         <Text style={s.courseInstructor} numberOfLines={1}>
           {course.instructors[0]} · {course.provider.name}
         </Text>
@@ -980,20 +1102,20 @@ function CourseCard({ course, onEnroll }:
               if (!meta) return null;
               return (
                 <View key={`${t}-${i}`}
-                  style={[s.smartTag,
+                  style={[styles.smartTag,
                     { backgroundColor: meta.color + '22',
                       borderColor: meta.color + '55' }]}>
-                  <Text style={[s.smartTagText, { color: meta.color }]}>
+                  <Text style={[styles.smartTagText, { color: meta.color }]}>
                     {meta.label}
                   </Text>
                 </View>
               );
             })}
             {(course.tags || []).length > 3 && (
-              <View style={[s.smartTag,
+              <View style={[styles.smartTag,
                 { backgroundColor: 'rgba(255,255,255,0.05)',
                   borderColor: 'rgba(255,255,255,0.10)' }]}>
-                <Text style={[s.smartTagText, { color: C.text2 }]}>
+                <Text style={[styles.smartTagText, { color: C.text2 }]}>
                   +{(course.tags || []).length - 3}
                 </Text>
               </View>
@@ -1001,13 +1123,13 @@ function CourseCard({ course, onEnroll }:
           </View>
         )}
 
-        <View style={s.priceRow}>
+        <View className="justify-between">
           <View>
             {isFree ? (
               <Text style={[s.priceFree]}>FREE</Text>
             ) : isDiscounted ? (
               <View>
-                <Text style={s.priceOrig}>{fmtINR(course.pricing.original_inr)}</Text>
+                <Text className="text-xs">{fmtINR(course.pricing.original_inr)}</Text>
                 <Text style={s.priceSA}>{fmtINR(course.pricing.sa_inr)}</Text>
                 <Text style={s.priceDiscNote}>
                   {course.pricing.sa_discount_percent}% SA discount
@@ -1017,7 +1139,7 @@ function CourseCard({ course, onEnroll }:
               <Text style={s.priceSA}>{fmtINR(course.pricing.original_inr)}</Text>
             )}
           </View>
-          <Pressable onPress={onEnroll} style={s.enrollBtn}>
+          <Pressable onPress={onEnroll} className="px-4">
             <Text style={s.enrollBtnText}>Enroll</Text>
             <MaterialCommunityIcons name="arrow-right" size={13} color="#fff" />
           </Pressable>
@@ -1046,7 +1168,7 @@ function PriceBadge({ type }: { type: string }) {
   };
   const c = cfg[type] || cfg.paid;
   return (
-    <View style={[s.priceBadge, { backgroundColor: c.color }]}>
+    <View style={[styles.priceBadge, { backgroundColor: c.color }]}>
       <Text style={s.priceBadgeText}>{c.label}</Text>
     </View>
   );
@@ -1071,9 +1193,9 @@ function CertBadge({ cert }: { cert: Course['certification'] }) {
     label = `🎖 Certificate · ${fmtINR(cert.cost_inr)}`;
   }
   return (
-    <View style={[s.certBadge, { backgroundColor: bg }]}>
+    <View style={[styles.certBadge, { backgroundColor: bg }]}>
       <MaterialCommunityIcons name="certificate" size={13} color={fg} />
-      <Text style={[s.certBadgeText, { color: fg }]} numberOfLines={1}>
+      <Text style={[styles.certBadgeText, { color: fg }]} numberOfLines={1}>
         {label}
       </Text>
     </View>
@@ -1083,7 +1205,7 @@ function CertBadge({ cert }: { cert: Course['certification'] }) {
 /* ─── Removable Chip helper ─────────────────────────────────── */
 function RemovableChip({ label, onClear }: { label: string; onClear: () => void }) {
   return (
-    <Pressable onPress={onClear} style={s.removableChip}>
+    <Pressable onPress={onClear} className="px-3">
       <Text style={s.removableChipText}>{label}</Text>
       <MaterialCommunityIcons name="close" size={11} color="#C4B5FD" />
     </Pressable>
@@ -1103,11 +1225,11 @@ function FilterSheet({
 }: any) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable onPress={onClose} style={s.sheetBackdrop}>
-        <Pressable onPress={(e) => e.stopPropagation()} style={s.sheetPanel}>
-          <View style={s.sheetHeader}>
+      <Pressable onPress={onClose} className="justify-end">
+        <Pressable onPress={(e) => e.stopPropagation()} className="flex-col">
+          <View className="px-5">
             <Text style={s.sheetTitle}>Refine results</Text>
-            <Pressable onPress={onClose} style={s.sheetCloseBtn}>
+            <Pressable onPress={onClose} className="items-center">
               <MaterialCommunityIcons name="close" size={18} color="#fff" />
             </Pressable>
           </View>
@@ -1115,14 +1237,14 @@ function FilterSheet({
           <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, gap: 22 }}>
             {/* Level */}
             <View style={s.filterGroup}>
-              <Text style={s.filterGroupLabel}>Level</Text>
+              <Text className="text-xs">Level</Text>
               <View style={s.filterChipRow}>
                 {LEVEL_OPTIONS.map((lv) => {
                   const active = levelFilter === lv;
                   return (
                     <Pressable key={lv} onPress={() => setLevelFilter(lv)}
-                      style={[s.filterChoice, active && s.filterChoiceActive]}>
-                      <Text style={[s.filterChoiceText, active && { color: '#fff' }]}>
+                      style={[styles.filterChoice, active && s.filterChoiceActive]}>
+                      <Text style={[styles.filterChoiceText, active && { color: '#fff' }]}>
                         {lv === 'all' ? 'All levels' : lv}
                       </Text>
                     </Pressable>
@@ -1133,14 +1255,14 @@ function FilterSheet({
 
             {/* Duration */}
             <View style={s.filterGroup}>
-              <Text style={s.filterGroupLabel}>Duration</Text>
+              <Text className="text-xs">Duration</Text>
               <View style={s.filterChipRow}>
                 {(Object.keys(DURATION_LABELS) as Array<keyof typeof DURATION_LABELS>).map((d) => {
                   const active = durationFilter === d;
                   return (
                     <Pressable key={d} onPress={() => setDurationFilter(d)}
-                      style={[s.filterChoice, active && s.filterChoiceActive]}>
-                      <Text style={[s.filterChoiceText, active && { color: '#fff' }]}>
+                      style={[styles.filterChoice, active && s.filterChoiceActive]}>
+                      <Text style={[styles.filterChoiceText, active && { color: '#fff' }]}>
                         {DURATION_LABELS[d]}
                       </Text>
                     </Pressable>
@@ -1151,14 +1273,14 @@ function FilterSheet({
 
             {/* Language */}
             <View style={s.filterGroup}>
-              <Text style={s.filterGroupLabel}>Language</Text>
+              <Text className="text-xs">Language</Text>
               <View style={s.filterChipRow}>
                 {(languageOptions || []).slice(0, 12).map((lang: string) => {
                   const active = languageFilter === lang;
                   return (
                     <Pressable key={lang} onPress={() => setLanguageFilter(lang)}
-                      style={[s.filterChoice, active && s.filterChoiceActive]}>
-                      <Text style={[s.filterChoiceText, active && { color: '#fff' }]}>
+                      style={[styles.filterChoice, active && s.filterChoiceActive]}>
+                      <Text style={[styles.filterChoiceText, active && { color: '#fff' }]}>
                         {lang === 'all' ? 'Any' : lang}
                       </Text>
                     </Pressable>
@@ -1169,14 +1291,14 @@ function FilterSheet({
 
             {/* Provider */}
             <View style={s.filterGroup}>
-              <Text style={s.filterGroupLabel}>Provider / University</Text>
+              <Text className="text-xs">Provider / University</Text>
               <View style={s.filterChipRow}>
                 {(providerOptions || []).slice(0, 16).map((p: string) => {
                   const active = providerFilter === p;
                   return (
                     <Pressable key={p} onPress={() => setProviderFilter(p)}
-                      style={[s.filterChoice, active && s.filterChoiceActive]}>
-                      <Text style={[s.filterChoiceText, active && { color: '#fff' }]} numberOfLines={1}>
+                      style={[styles.filterChoice, active && s.filterChoiceActive]}>
+                      <Text style={[styles.filterChoiceText, active && { color: '#fff' }]} numberOfLines={1}>
                         {p === 'all' ? 'Any' : p}
                       </Text>
                     </Pressable>
@@ -1187,21 +1309,21 @@ function FilterSheet({
 
             {/* Toggles */}
             <View style={s.filterGroup}>
-              <Text style={s.filterGroupLabel}>Includes</Text>
+              <Text className="text-xs">Includes</Text>
               <Pressable onPress={() => setHasMentorFilter(!hasMentorFilter)}
-                style={s.filterToggleRow}>
-                <View style={[s.toggleSwitch,
+                className="py-2">
+                <View style={[styles.toggleSwitch,
                   hasMentorFilter && { backgroundColor: '#7C3AED' }]}>
-                  <View style={[s.toggleKnob,
+                  <View style={[styles.toggleKnob,
                     hasMentorFilter && { left: 18 }]} />
                 </View>
                 <Text style={s.filterToggleText}>Has mentor / live sessions</Text>
               </Pressable>
               <Pressable onPress={() => setHasCertFilter(!hasCertFilter)}
-                style={s.filterToggleRow}>
-                <View style={[s.toggleSwitch,
+                className="py-2">
+                <View style={[styles.toggleSwitch,
                   hasCertFilter && { backgroundColor: '#7C3AED' }]}>
-                  <View style={[s.toggleKnob,
+                  <View style={[styles.toggleKnob,
                     hasCertFilter && { left: 18 }]} />
                 </View>
                 <Text style={s.filterToggleText}>Offers a certificate</Text>
@@ -1210,7 +1332,7 @@ function FilterSheet({
           </ScrollView>
 
           {/* Footer */}
-          <View style={s.sheetFooter}>
+          <View className="px-5">
             <Pressable onPress={onClearAll} style={s.sheetClearBtn}>
               <Text style={s.sheetClearText}>Reset</Text>
             </Pressable>
@@ -1254,7 +1376,7 @@ function EnrollModal({ course, onClose }:
 
   return (
     <Modal visible={!!course} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={s.overlay}>
+      <View className="justify-center">
         <View style={s.enrollSheet}>
           {course && (
             <ScrollView showsVerticalScrollIndicator={false}>
@@ -1275,7 +1397,7 @@ function EnrollModal({ course, onClose }:
                 </Pressable>
               </View>
 
-              <Text style={s.enrollDesc}>{course.short_desc}</Text>
+              <Text className="text-sm">{course.short_desc}</Text>
 
               <View style={s.enrollFacts}>
                 <Fact icon="signal-cellular-3" v={course.level} />
@@ -1295,34 +1417,34 @@ function EnrollModal({ course, onClose }:
                   <View style={s.enrollPriceBox}>
                     {course.pricing.type === 'discounted_for_sa' ? (
                       <>
-                        <Text style={s.enrollPriceOrig}>
+                        <Text className="text-sm">
                           {fmtINR(course.pricing.original_inr)}
                         </Text>
-                        <Text style={s.enrollPriceSA}>
+                        <Text className="text-xl">
                           {fmtINR(course.pricing.sa_inr)}
                         </Text>
-                        <Text style={s.enrollPriceNote}>
+                        <Text className="text-xs">
                           {course.pricing.sa_discount_percent}% SA exclusive discount
                         </Text>
                       </>
                     ) : course.pricing.type.startsWith('free') ? (
                       <>
-                        <Text style={s.enrollPriceSA}>FREE</Text>
+                        <Text className="text-xl">FREE</Text>
                         {(course.pricing.original_inr || 0) > 0 && (
-                          <Text style={s.enrollPriceNote}>
+                          <Text className="text-xs">
                             ₹{(course.pricing.original_inr || 0).toLocaleString('en-IN')} value
                           </Text>
                         )}
                       </>
                     ) : (
-                      <Text style={s.enrollPriceSA}>
+                      <Text className="text-xl">
                         {fmtINR(course.pricing.original_inr)}
                       </Text>
                     )}
                   </View>
 
                   <Pressable onPress={handleEnroll} disabled={busy}
-                    style={[s.enrollCTA, { opacity: busy ? 0.7 : 1 }]}>
+                    style={[styles.enrollCTA, { opacity: busy ? 0.7 : 1 }]}>
                     {busy ? <ActivityIndicator color="#fff" size="small" /> : (
                       <>
                         <MaterialCommunityIcons name="rocket-launch"
@@ -1337,7 +1459,7 @@ function EnrollModal({ course, onClose }:
               )}
 
               {err && (
-                <View style={s.errBox}>
+                <View className="px-3">
                   <MaterialCommunityIcons name="alert-circle" size={13} color="#FCA5A5" />
                   <Text style={s.errText}>{err}</Text>
                 </View>
@@ -1346,11 +1468,11 @@ function EnrollModal({ course, onClose }:
               {done && (
                 <View style={s.successBox}>
                   <MaterialCommunityIcons name="check-decagram" size={32} color="#86EFAC" />
-                  <Text style={s.successTitle}>You're enrolled!</Text>
+                  <Text className="text-lg">You're enrolled!</Text>
                   <Text style={s.successSub}>
                     Saved to My Learning · ID {done.enrollment_id}
                   </Text>
-                  <Pressable onPress={openExternal} style={s.successCTA}>
+                  <Pressable onPress={openExternal} className="px-5">
                     <MaterialCommunityIcons name="open-in-new" size={14} color="#fff" />
                     <Text style={s.successCTAText}>Open course on {course.provider.name}</Text>
                   </Pressable>
@@ -1369,7 +1491,7 @@ function EnrollModal({ course, onClose }:
 
 function Fact({ icon, v }: { icon: IconName; v: string }) {
   return (
-    <View style={s.factCell}>
+    <View className="px-2">
       <MaterialCommunityIcons name={icon} size={11} color={C.text3} />
       <Text style={s.factText}>{v}</Text>
     </View>
@@ -1387,9 +1509,9 @@ function Carousel({ title, subtitle, accent, courses, onEnroll }:
           <Text style={s.carouselTitle}>{title}</Text>
           <Text style={s.carouselSub}>{subtitle}</Text>
         </View>
-        <View style={[s.carouselCount,
+        <View style={[styles.carouselCount,
           { backgroundColor: accent + '22', borderColor: accent + '55' }]}>
-          <Text style={[s.carouselCountText, { color: accent }]}>
+          <Text style={[styles.carouselCountText, { color: accent }]}>
             {courses.length}
           </Text>
         </View>
@@ -1412,11 +1534,11 @@ function MiniCourseCard({ course, accent, onEnroll }:
   return (
     <AnimatedCard onPress={onEnroll}
       glowColor={accent + '55'}
-      style={[s.miniCard, { borderColor: accent + '44' }] as any}>
-      <View style={[s.miniThumb, { backgroundColor: accent + '14' }]}>
+      style={[styles.miniCard, { borderColor: accent + '44' }] as any}>
+      <View style={[styles.miniThumb, { backgroundColor: accent + '14' }]}>
         <Text style={s.miniThumbEmoji}>{course.thumbnail}</Text>
         {course.featured && (
-          <View style={[s.miniFeaturedDot, { backgroundColor: accent }]}>
+          <View style={[styles.miniFeaturedDot, { backgroundColor: accent }]}>
             <MaterialCommunityIcons name="star" size={10} color="#fff" />
           </View>
         )}
@@ -1428,7 +1550,7 @@ function MiniCourseCard({ course, accent, onEnroll }:
             {course.provider.name}
           </Text>
         </View>
-        <Text style={s.miniTitle} numberOfLines={2}>{course.title}</Text>
+        <Text className="text-sm" numberOfLines={2}>{course.title}</Text>
         <View style={s.miniStats}>
           <MaterialCommunityIcons name="star" size={10} color="#FCD34D" />
           <Text style={s.miniStatText}>{course.rating}</Text>
@@ -1438,22 +1560,22 @@ function MiniCourseCard({ course, accent, onEnroll }:
           <Text style={s.miniStatText}>{course.duration_label}</Text>
         </View>
         <View style={{ flex: 1 }} />
-        <View style={s.miniFooter}>
+        <View className="justify-between">
           {isFree ? (
             <Text style={s.miniPriceFree}>FREE</Text>
           ) : isDiscounted ? (
             <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4 }}>
-              <Text style={s.miniPriceOrig}>{fmtINR(course.pricing.original_inr)}</Text>
-              <Text style={[s.miniPriceSA, { color: accent }]}>
+              <Text className="text-xs">{fmtINR(course.pricing.original_inr)}</Text>
+              <Text style={[styles.miniPriceSA, { color: accent }]}>
                 {fmtINR(course.pricing.sa_inr)}
               </Text>
             </View>
           ) : (
-            <Text style={[s.miniPriceSA, { color: accent }]}>
+            <Text style={[styles.miniPriceSA, { color: accent }]}>
               {fmtINR(course.pricing.original_inr)}
             </Text>
           )}
-          <View style={[s.miniArrow, { backgroundColor: accent }]}>
+          <View style={[styles.miniArrow, { backgroundColor: accent }]}>
             <MaterialCommunityIcons name="arrow-right" size={11} color="#fff" />
           </View>
         </View>
@@ -1463,375 +1585,4 @@ function MiniCourseCard({ course, accent, onEnroll }:
 }
 
 /* ─── Styles ────────────────────────────────────────────────── */
-const s = StyleSheet.create({
-  statsPills: { flexDirection: 'row', gap: 6 },
-  statPill: { flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999,
-    backgroundColor: 'rgba(16,185,129,0.14)',
-    borderColor: 'rgba(16,185,129,0.40)', borderWidth: 1 },
-  statPillVal: { color: '#86EFAC', fontFamily: 'DMSans_800ExtraBold', fontSize: 11 },
-  statPillLbl: { color: '#86EFAC', fontFamily: 'DMSans_700Bold', fontSize: 10 },
 
-  searchBox: { flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingHorizontal: 14, height: 52, borderRadius: 14,
-    backgroundColor: '#261944', borderColor: '#3D2D5C', borderWidth: 1,
-    marginTop: 4 },
-  searchInput: { flex: 1, color: '#fff', fontFamily: 'DMSans_500Medium',
-    fontSize: 14, ...(Platform.OS === 'web' ? { outlineStyle: 'none' as any } : {}) },
-
-  heroRow: { flexDirection: 'row', gap: 12, marginTop: 4 },
-  heroCard: { borderRadius: 20, padding: 22, minHeight: 156,
-    overflow: 'hidden', justifyContent: 'flex-start' as const,
-    ...({ cursor: 'pointer' } as any) },
-  heroBlur1: { position: 'absolute', top: -40, right: -40,
-    width: 160, height: 160, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.18)' },
-  heroIconCircle: { width: 44, height: 44, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.22)',
-    alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  heroTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold',
-    fontSize: 22, marginBottom: 4 },
-  heroSub: { color: 'rgba(255,255,255,0.85)', fontFamily: 'DMSans_500Medium',
-    fontSize: 13, lineHeight: 18, marginBottom: 14 },
-  heroCta: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    borderColor: 'rgba(255,255,255,0.30)', borderWidth: 1 },
-  heroCtaText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12.5 },
-
-  loadingBox: { paddingVertical: 40, alignItems: 'center', gap: 10 },
-  loadingText: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12 },
-
-  sectionCard: { padding: 24, borderRadius: 22,
-    backgroundColor: 'rgba(67,41,109,0.40)', borderColor: '#3D2D5C', borderWidth: 1,
-    gap: 16 },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  sectionName: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 16 },
-
-  iconGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  tile: { flexBasis: '18%', flexGrow: 1, alignItems: 'center', gap: 8,
-    paddingVertical: 6, ...({ cursor: 'pointer' } as any) },
-  tileCircle: { width: 64, height: 64, borderRadius: 999,
-    backgroundColor: '#2F1F4D', borderColor: '#3D2D5C', borderWidth: 1,
-    alignItems: 'center', justifyContent: 'center' },
-  tileLabel: { color: '#fff', fontFamily: 'DMSans_600SemiBold',
-    fontSize: 12, textAlign: 'center' },
-  tileCount: { color: 'rgba(255,255,255,0.50)', fontFamily: 'DMSans_700Bold',
-    fontSize: 10 },
-
-  /* Section count pill (right of section title) */
-  sectionCountPill: { paddingHorizontal: 10, paddingVertical: 4,
-    borderRadius: 999, borderWidth: 1, marginLeft: 'auto' },
-  sectionCountText: { fontFamily: 'DMSans_800ExtraBold', fontSize: 11 },
-
-  /* Events-style filter pill (used for category, sub-category, and pricing) */
-  pill: { flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: 'rgba(255,255,255,0.10)', borderWidth: 1,
-    ...({ cursor: 'pointer' } as any) },
-  pillText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 12 },
-  pillCount: { paddingHorizontal: 6, height: 16, minWidth: 16, borderRadius: 8,
-    backgroundColor: 'rgba(0,0,0,0.30)',
-    alignItems: 'center', justifyContent: 'center', marginLeft: 2 },
-  pillCountText: { color: 'rgba(255,255,255,0.80)',
-    fontFamily: 'DMSans_800ExtraBold', fontSize: 10 },
-
-  /* Filter status banner */
-  filterStatus: { flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12,
-    backgroundColor: 'rgba(167,139,250,0.08)',
-    borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1 },
-  filterStatusText: { color: '#C4B5FD', fontFamily: 'DMSans_600SemiBold',
-    fontSize: 12, flex: 1 },
-
-  /* Large reset button (empty state) */
-  clearBtnLarge: { marginTop: 14, paddingHorizontal: 18, paddingVertical: 10,
-    borderRadius: 999, backgroundColor: '#7C3AED',
-    ...({ cursor: 'pointer' } as any) },
-  clearBtnLargeText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 12.5 },
-
-  /* Sub-category quick-filter chips strip */
-  subcatChip: { flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: 'rgba(255,255,255,0.10)', borderWidth: 1,
-    ...({ cursor: 'pointer' } as any) },
-  subcatChipText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 11.5 },
-  subcatChipCount: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999,
-    backgroundColor: 'rgba(0,0,0,0.30)' },
-  subcatChipCountText: { color: 'rgba(255,255,255,0.80)',
-    fontFamily: 'DMSans_800ExtraBold', fontSize: 9.5 },
-
-  /* Per-subcategory horizontal block */
-  subcatBlock: { gap: 10, marginTop: 6 },
-  subcatHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  subcatIcon: { width: 26, height: 26, borderRadius: 8, borderWidth: 1,
-    alignItems: 'center', justifyContent: 'center' },
-  subcatTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 14 },
-  subcatCountSmall: { color: C.text3, fontFamily: 'DMSans_600SemiBold', fontSize: 11 },
-  viewAllBtn: { flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    ...({ cursor: 'pointer' } as any) },
-  viewAllText: { fontFamily: 'DMSans_800ExtraBold', fontSize: 11 },
-
-  tracksStrip: { gap: 10, marginTop: 4 },
-  kicker: { color: C.text3, fontFamily: 'DMSans_800ExtraBold',
-    fontSize: 11, letterSpacing: 1.2 },
-  trackChip: { flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12,
-    borderWidth: 1, ...({ cursor: 'pointer' } as any) },
-  trackChipText: { fontFamily: 'DMSans_800ExtraBold', fontSize: 12 },
-  trackChipMeta: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999,
-    backgroundColor: 'rgba(0,0,0,0.30)' },
-  trackChipMetaText: { color: 'rgba(255,255,255,0.80)',
-    fontFamily: 'DMSans_700Bold', fontSize: 10 },
-
-  /* Results */
-  resultsBlock: { gap: 14 },
-  resultsHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  resultsTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 18 },
-  resultsCount: { color: C.text3, fontFamily: 'DMSans_500Medium', fontSize: 12, marginTop: 2 },
-  clearBtn: { flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.04)', borderColor: C.border,
-    borderWidth: 1, ...({ cursor: 'pointer' } as any) },
-  clearBtnText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 11 },
-
-  pricingFilters: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
-  pricingChip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999,    backgroundColor: 'rgba(255,255,255,0.04)', borderColor: C.border,
-    borderWidth: 1, ...({ cursor: 'pointer' } as any) },
-  pricingChipText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 11.5 },
-
-  /* Sort dropdown */
-  sortMenu: { position: 'absolute', top: 38, right: 0,
-    minWidth: 180, backgroundColor: '#221538', borderRadius: 12,
-    borderWidth: 1, borderColor: C.border, padding: 6,
-    boxShadow: '0 12px 40px rgba(0,0,0,0.55)' as any,
-    zIndex: 1000 },
-  sortItem: { flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'space-between', paddingHorizontal: 10, paddingVertical: 9,
-    borderRadius: 8, ...({ cursor: 'pointer' } as any) },
-  sortItemActive: { backgroundColor: 'rgba(124,58,237,0.18)' },
-  sortItemText: { color: C.text2, fontFamily: 'DMSans_600SemiBold', fontSize: 12 },
-
-  /* Active filter chips row */
-  activeChipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  removableChip: { flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999,
-    backgroundColor: 'rgba(167,139,250,0.16)',
-    borderColor: 'rgba(167,139,250,0.40)', borderWidth: 1,
-    ...({ cursor: 'pointer' } as any) },
-  removableChipText: { color: '#C4B5FD', fontFamily: 'DMSans_700Bold', fontSize: 11 },
-
-  /* Search autocomplete dropdown */
-  acDropdown: { position: 'absolute', top: 56, left: 0, right: 0,
-    backgroundColor: '#221538', borderRadius: 14, borderWidth: 1,
-    borderColor: C.border, padding: 12, gap: 14,
-    boxShadow: '0 16px 48px rgba(0,0,0,0.65)' as any, zIndex: 999 },
-  acSection: { gap: 6 },
-  acHeader: { color: C.text3, fontFamily: 'DMSans_800ExtraBold',
-    fontSize: 10, letterSpacing: 1, textTransform: 'uppercase' },
-  acRow: { flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingHorizontal: 8, paddingVertical: 8, borderRadius: 10,
-    ...({ cursor: 'pointer' } as any) },
-  acTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12.5 },
-  acMeta: { color: C.text3, fontFamily: 'DMSans_600SemiBold', fontSize: 10.5 },
-  acProviderChip: { flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 9, paddingVertical: 5, borderRadius: 999,
-    backgroundColor: 'rgba(167,139,250,0.10)',
-    borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1 },
-  acProviderText: { color: '#C4B5FD', fontFamily: 'DMSans_700Bold', fontSize: 11 },
-
-  /* Filter Sheet */
-  sheetBackdrop: { flex: 1, backgroundColor: 'rgba(10,5,22,0.65)',
-    justifyContent: 'flex-end', alignItems: 'flex-end' },
-  sheetPanel: { width: 420, maxWidth: '100%', height: '100%',
-    backgroundColor: '#1A0F2E', borderLeftWidth: 1, borderColor: C.border,
-    flexDirection: 'column' },
-  sheetHeader: { flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 20, paddingVertical: 16,
-    borderBottomWidth: 1, borderColor: C.border },
-  sheetTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 18, flex: 1 },
-  sheetCloseBtn: { width: 32, height: 32, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    alignItems: 'center', justifyContent: 'center',
-    ...({ cursor: 'pointer' } as any) },
-  filterGroup: { gap: 10 },
-  filterGroupLabel: { color: C.text3, fontFamily: 'DMSans_800ExtraBold',
-    fontSize: 11, letterSpacing: 1, textTransform: 'uppercase' },
-  filterChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  filterChoice: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: C.border, borderWidth: 1,
-    ...({ cursor: 'pointer' } as any) },
-  filterChoiceActive: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' },
-  filterChoiceText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 12 },
-  filterToggleRow: { flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingVertical: 8, ...({ cursor: 'pointer' } as any) },
-  toggleSwitch: { width: 36, height: 20, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.10)', justifyContent: 'center',
-    paddingHorizontal: 2, position: 'relative' },
-  toggleKnob: { width: 16, height: 16, borderRadius: 999,
-    backgroundColor: '#fff', position: 'absolute', top: 2, left: 2 },
-  filterToggleText: { color: '#fff', fontFamily: 'DMSans_600SemiBold', fontSize: 13 },
-  sheetFooter: { flexDirection: 'row', gap: 10,
-    paddingHorizontal: 20, paddingVertical: 16,
-    borderTopWidth: 1, borderColor: C.border },
-  sheetClearBtn: { paddingHorizontal: 16, paddingVertical: 11, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: C.border,
-    ...({ cursor: 'pointer' } as any) },
-  sheetClearText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 12.5 },
-  sheetApplyBtn: { flex: 1, paddingVertical: 11, borderRadius: 999,
-    backgroundColor: '#7C3AED', alignItems: 'center', justifyContent: 'center',
-    ...({ cursor: 'pointer' } as any) },
-  sheetApplyText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 13 },
-
-  emptyBox: { paddingVertical: 40, alignItems: 'center', gap: 6 },
-  emptyTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 14, marginTop: 6 },
-  emptySub: { color: C.text3, fontFamily: 'DMSans_500Medium', fontSize: 12 },
-
-  cardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
-
-  /* Course Card */
-  courseCard: { flexGrow: 1, flexBasis: 300, maxWidth: 360,
-    borderRadius: 16, borderWidth: 1, borderColor: '#3D2D5C',
-    backgroundColor: '#261944', overflow: 'hidden' },
-  courseTopRow: { flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'space-between', paddingHorizontal: 12, paddingVertical: 10 },
-  providerStrip: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 },
-  providerName: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 11, flex: 1 },
-  priceBadge: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 5 },
-  priceBadgeText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold',
-    fontSize: 9.5, letterSpacing: 0.6 },
-
-  thumbnailBox: { aspectRatio: 16 / 9, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(124,58,237,0.18)' },
-  thumbnailEmoji: { fontSize: 56 },
-
-  courseTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold',
-    fontSize: 15, lineHeight: 20 },
-  courseInstructor: { color: C.text3, fontFamily: 'DMSans_500Medium', fontSize: 11 },
-
-  metaTagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 5 },
-  metaTag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 5,
-    backgroundColor: 'rgba(255,255,255,0.05)' },
-  metaTagText: { color: C.text2, fontFamily: 'DMSans_600SemiBold', fontSize: 10.5 },
-
-  statsRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  ratingText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 12 },
-  ratingCount: { color: C.text3, fontFamily: 'DMSans_500Medium', fontSize: 10.5 },
-  enrolledText: { color: C.text3, fontFamily: 'DMSans_700Bold', fontSize: 10.5 },
-
-  certBadge: { flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8 },
-  certBadgeText: { fontFamily: 'DMSans_700Bold', fontSize: 11, flex: 1 },
-
-  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
-  smartTag: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 5, borderWidth: 1 },
-  smartTagText: { fontFamily: 'DMSans_800ExtraBold', fontSize: 9.5, letterSpacing: 0.4 },
-
-  priceRow: { flexDirection: 'row', alignItems: 'flex-end',
-    justifyContent: 'space-between', marginTop: 4 },
-  priceFree: { color: '#10B981', fontFamily: 'DMSans_800ExtraBold', fontSize: 18 },
-  priceOrig: { color: C.text3, fontFamily: 'DMSans_500Medium',
-    fontSize: 11, textDecorationLine: 'line-through' },
-  priceSA: { color: '#A78BFA', fontFamily: 'DMSans_800ExtraBold', fontSize: 16 },
-  priceDiscNote: { color: '#FCD34D', fontFamily: 'DMSans_700Bold', fontSize: 9.5, marginTop: 1 },
-  enrollBtn: { flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 14, height: 34, borderRadius: 999,
-    backgroundColor: '#7C3AED', justifyContent: 'center',
-    ...({ cursor: 'pointer' } as any) },
-  enrollBtnText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 11.5 },
-
-  /* Modal */
-  overlay: { flex: 1, backgroundColor: 'rgba(7,2,15,0.78)',
-    justifyContent: 'center', alignItems: 'center', padding: 16 },
-  enrollSheet: { width: '100%', maxWidth: 540, maxHeight: '92%',
-    backgroundColor: '#13031F', borderRadius: 18, padding: 18,
-    borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1 },
-  enrollHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
-  enrollEmoji: { width: 56, height: 56, borderRadius: 12,
-    backgroundColor: 'rgba(124,58,237,0.18)', borderColor: 'rgba(124,58,237,0.40)',
-    borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  enrollTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 16 },
-  enrollProvider: { color: C.text3, fontFamily: 'DMSans_500Medium', fontSize: 12, marginTop: 2 },
-  enrollDesc: { color: C.text2, fontFamily: 'DMSans_500Medium',
-    fontSize: 13, lineHeight: 18, marginVertical: 10 },
-  enrollFacts: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 },
-  factCell: { flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 8, paddingVertical: 5, borderRadius: 6,
-    backgroundColor: 'rgba(255,255,255,0.04)' },
-  factText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 11 },
-
-  enrollPriceBox: { padding: 14, borderRadius: 12, marginTop: 12,
-    backgroundColor: 'rgba(124,58,237,0.10)',
-    borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1, alignItems: 'center' },
-  enrollPriceOrig: { color: C.text3, fontFamily: 'DMSans_500Medium',
-    fontSize: 13, textDecorationLine: 'line-through' },
-  enrollPriceSA: { color: '#A78BFA', fontFamily: 'DMSans_800ExtraBold',
-    fontSize: 28, marginTop: 2 },
-  enrollPriceNote: { color: '#FCD34D', fontFamily: 'DMSans_700Bold',
-    fontSize: 11, marginTop: 4 },
-
-  enrollCTA: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 7, height: 46, borderRadius: 12, backgroundColor: '#7C3AED',
-    marginTop: 12, ...({ cursor: 'pointer' } as any) },
-  enrollCTAText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 13.5 },
-
-  errBox: { flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8,
-    backgroundColor: 'rgba(239,68,68,0.14)',
-    borderColor: 'rgba(239,68,68,0.40)', borderWidth: 1, marginTop: 12 },
-  errText: { color: '#FCA5A5', fontFamily: 'DMSans_600SemiBold', fontSize: 11.5 },
-
-  successBox: { alignItems: 'center', paddingVertical: 14, gap: 4 },
-  successTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold',
-    fontSize: 18, marginTop: 8 },
-  successSub: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12 },
-  successCTA: { flexDirection: 'row', alignItems: 'center', gap: 7,
-    paddingHorizontal: 18, height: 42, borderRadius: 10,
-    backgroundColor: '#7C3AED', marginTop: 14,
-    ...({ cursor: 'pointer' } as any) },
-  successCTAText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 12.5 },
-  successDismiss: { paddingVertical: 10, ...({ cursor: 'pointer' } as any) },
-  successDismissText: { color: C.text3, fontFamily: 'DMSans_700Bold', fontSize: 12 },
-
-  /* Carousel */
-  carouselWrap: { gap: 10 },
-  carouselHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  carouselTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 16 },
-  carouselSub: { color: C.text3, fontFamily: 'DMSans_500Medium',
-    fontSize: 11.5, marginTop: 2 },
-  carouselCount: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999,
-    borderWidth: 1 },
-  carouselCountText: { fontFamily: 'DMSans_800ExtraBold', fontSize: 11 },
-
-  /* Mini card */
-  miniCard: { width: 240, borderRadius: 14, borderWidth: 1,
-    backgroundColor: '#261944', overflow: 'hidden',
-    ...({ cursor: 'pointer' } as any) },
-  miniThumb: { aspectRatio: 16 / 10, alignItems: 'center', justifyContent: 'center',
-    position: 'relative' },
-  miniThumbEmoji: { fontSize: 44 },
-  miniFeaturedDot: { position: 'absolute', top: 8, right: 8,
-    width: 22, height: 22, borderRadius: 999,
-    alignItems: 'center', justifyContent: 'center' },
-  miniProvider: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  miniProviderName: { color: C.text3, fontFamily: 'DMSans_600SemiBold',
-    fontSize: 10.5, flex: 1 },
-  miniTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold',
-    fontSize: 13, lineHeight: 17 },
-  miniStats: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  miniStatText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 10 },
-  miniDot: { color: C.text3, fontSize: 10 },
-  miniFooter: { flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'space-between', marginTop: 4 },
-  miniPriceFree: { color: '#10B981', fontFamily: 'DMSans_800ExtraBold', fontSize: 13 },
-  miniPriceOrig: { color: C.text3, fontFamily: 'DMSans_500Medium',
-    fontSize: 10, textDecorationLine: 'line-through' },
-  miniPriceSA: { fontFamily: 'DMSans_800ExtraBold', fontSize: 13 },
-  miniArrow: { width: 22, height: 22, borderRadius: 999,
-    alignItems: 'center', justifyContent: 'center' },
-});

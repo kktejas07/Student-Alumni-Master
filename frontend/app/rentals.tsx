@@ -5,10 +5,7 @@
  * and a 2-step booking flow: View Details -> Proceed to Book.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  View, Text, StyleSheet, Pressable, ScrollView,
-  ActivityIndicator, TextInput, Modal, Platform, Linking, ImageBackground,
-} from 'react-native';
+import {View, Text, Pressable, ScrollView, ActivityIndicator, TextInput, Modal, Platform, Linking, ImageBackground} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Home, Car, Hotel, Building2, LayoutGrid, ShieldCheck, Star, Sparkles,
@@ -102,6 +99,135 @@ const fmtDate = (iso?: string) => {
   } catch { return '—'; }
 };
 
+
+const styles = {
+  rightRow: { rightRow: '{ flexDirection: 'row'' },
+  bookingsPillText: { bookingsPillText: '{ color: '#F59E0B'' },
+  bookingsBadge: { bookingsBadge: '{ paddingHorizontal: 6', backgroundColor: '#F59E0B' },
+  bookingsBadgeText: { bookingsBadgeText: '{ color: '#0B0D1A'' },
+  verifyText: { verifyText: '{ color: '#34D399'' },
+  heroArtContent: { heroArtContent: '{ padding: 20' },
+  heroBadgeText: { heroBadgeText: '{ color: '#A5B4FC'' },
+  heroTitle: { heroTitle: '{ color: C.text' },
+  heroSub: { heroSub: '{ color: C.textSub' },
+  statsRow: { statsRow: '{ flexDirection: 'row'' },
+  filterRow: { filterRow: '{ gap: 10' },
+  searchInput: { searchInput: '{ flex: 1', fontSize: 13.5 },
+  cityPill: { cityPill: '{ flexDirection: 'row'', paddingHorizontal: 12, backgroundColor: 'C.bgCard', borderWidth: 1 },
+  cityPillActive: { cityPillActive: '{ backgroundColor: 'rgba(99' },
+  cityPillText: { cityPillText: '{ color: C.textSub' },
+  tab: { tab: '{ flexDirection: 'row'', paddingHorizontal: 14, backgroundColor: 'C.bgCard', borderWidth: 1 },
+  tabText: { tabText: '{ color: C.textSub' },
+  tabCount: { tabCount: '{ paddingHorizontal: 7', backgroundColor: 'rgba(255' },
+  tabCountText: { tabCountText: '{ color: '#fff'' },
+  loadingBox: { loadingBox: '{ paddingVertical: 50' },
+  loadingText: { loadingText: '{ color: C.textSub' },
+  emptyBox: { emptyBox: '{ paddingVertical: 50' },
+  emptyTitle: { emptyTitle: '{ color: '#fff'' },
+  emptySub: { emptySub: '{ color: C.dim' },
+  grid: { grid: '{ flexDirection: 'row'' },
+  advisorRow: { advisorRow: '{ flexDirection: 'row'' },
+  advisorCard: { advisorCard: '{', flex: 1, padding: 20, backgroundColor: 'C.bgCard', borderWidth: 1, flexDirection: 'column' },
+  advisorIconBox: { advisorIconBox: '{', width: 44, alignItems: 'center', borderWidth: 1 },
+  advisorTitle: { advisorTitle: '{ color: C.text' },
+  advisorDesc: { advisorDesc: '{ color: C.textSub' },
+  advisorCTA: { advisorCTA: '{', flexDirection: 'row', paddingVertical: 12, cursor: 'pointer' },
+  advisorCTAText: { advisorCTAText: '{ color: '#fff'' },
+  advisorLinkRow: { advisorLinkRow: '{ flexDirection: 'row'' },
+  advisorLinkText: { advisorLinkText: '{ fontSize: 13' },
+  advisorNote: { advisorNote: '{ color: C.dim' },
+  card: { card: '{ flexGrow: 1', borderWidth: 1 },
+  cover: { cover: '{ height: 110', justifyContent: 'center' },
+  coverBadgeRow: { coverBadgeRow: '{ position: 'absolute'' },
+  badgeVerifyText: { badgeVerifyText: '{ color: '#34D399'' },
+  badgeFeatText: { badgeFeatText: '{ color: '#F59E0B'' },
+  discBadge: { discBadge: '{ position: 'absolute'', paddingHorizontal: 8 },
+  discText: { discText: '{ color: '#fff'' },
+  title: { title: '{ color: C.text' },
+  metaRow: { metaRow: '{ flexDirection: 'row'' },
+  loc: { loc: '{ color: C.textSub' },
+  dot: { dot: '{ color: C.dim' },
+  type: { type: '{ color: C.purpleL' },
+  amenRow: { amenRow: '{ flexDirection: 'row'' },
+  amenChip: { amenChip: '{ flexDirection: 'row'', backgroundColor: 'rgba(255', borderColor: 'C.border' },
+  amenText: { amenText: '{ color: C.textSub' },
+  ratingRow: { ratingRow: '{ flexDirection: 'row'' },
+  ratingText: { ratingText: '{ color: '#fff'' },
+  ratingCount: { ratingCount: '{ color: C.dim' },
+  available: { available: '{ color: '#34D399'' },
+  perkBar: { perkBar: '{ flexDirection: 'row'', paddingHorizontal: 10 },
+  perkText: { perkText: '{ flex: 1' },
+  priceOrig: { priceOrig: '{ color: C.dim', fontSize: 11.5 },
+  priceRent: { priceRent: '{ fontFamily: FT.xbold' },
+  bookBtn: { bookBtn: '{ flexDirection: 'row'', paddingHorizontal: 14, justifyContent: 'center' },
+  detailsSheet: { detailsSheet: '{ width: '100%'', backgroundColor: '#0F1222', borderColor: 'C.border2' },
+  detailsHero: { detailsHero: '{ height: 130', position: 'relative' },
+  detailsCategoryBox: { detailsCategoryBox: '{ width: 56', backgroundColor: 'rgba(255' },
+  detailsBadgeContainer: { detailsBadgeContainer: '{ flexDirection: 'row'' },
+  detailsTitle: { detailsTitle: '{ color: C.text' },
+  detailsStatsRow: { detailsStatsRow: '{ flexDirection: 'row'', backgroundColor: 'C.bgCard' },
+  detailsStatItem: { detailsStatItem: '{ flex: 1' },
+  detailsStatKey: { detailsStatKey: '{ color: C.dim' },
+  detailsStatVal: { detailsStatVal: '{ color: C.text' },
+  detailsSection: { detailsSection: '{ gap: 8' },
+  sectionLabel: { sectionLabel: '{ color: C.dim', fontSize: 10.5 },
+  detailsDesc: { detailsDesc: '{ color: C.textSub' },
+  detailsAmenGrid: { detailsAmenGrid: '{ flexDirection: 'row'' },
+  detailsAmenText: { detailsAmenText: '{ color: C.text2' },
+  confirmBtn: { confirmBtn: '{ flex: 1', alignItems: 'center', cursor: 'pointer' },
+  confirmBtnText: { confirmBtnText: '{ color: '#fff'' },
+  fineprint: { fineprint: '{ color: C.dim', textAlign: 'center' },
+  sheet: { sheet: '{ width: '100%'', backgroundColor: '#0F1222', borderColor: 'C.border2' },
+  sheetHeader: { sheetHeader: '{ flexDirection: 'row'' },
+  sheetIconBox: { sheetIconBox: '{ width: 48', borderWidth: 1 },
+  sheetTitle: { sheetTitle: '{ color: C.text' },
+  fieldRow: { fieldRow: '{ flexDirection: 'row'' },
+  priceTable: { priceTable: '{ gap: 8', backgroundColor: 'C.bgCard' },
+  priceDivider: { priceDivider: '{ height: 1' },
+  errText: { errText: '{ color: '#F87171'' },
+  actionRow: { actionRow: '{ flexDirection: 'row'' },
+  cancelBtn: { cancelBtn: '{ paddingHorizontal: 20', backgroundColor: 'C.bgCard', borderWidth: 1, cursor: 'pointer' },
+  cancelBtnText: { cancelBtnText: '{ color: C.textSub' },
+  fieldLabel: { fieldLabel: '{ color: C.textSub' },
+  fieldBox: { fieldBox: '{ flexDirection: 'row'', paddingHorizontal: 12, backgroundColor: 'C.bgCard' },
+  fieldInput: { fieldInput: '{ flex: 1', fontSize: 13 },
+  tableRow: { tableRow: '{ flexDirection: 'row'' },
+  tableK: { tableK: '{ color: C.textSub' },
+  tableV: { tableV: '{ color: C.text' },
+  confirmIdText: { confirmIdText: '{ color: '#A5B4FC'' },
+  confirmCell: { confirmCell: '{ flexBasis: '48%'', backgroundColor: 'C.bgCard' },
+  confirmCellLabel: { confirmCellLabel: '{ color: C.dim', fontSize: 9.5 },
+  confirmCellValue: { confirmCellValue: '{ color: C.text', fontSize: 13 },
+  savingsText: { savingsText: '{ color: '#F59E0B'' },
+  confirmCTAText: { confirmCTAText: '{ color: '#fff'' },
+  confirmDismissText: { confirmDismissText: '{ color: C.dim' },
+  drawer: { drawer: '{ width: '100%'', backgroundColor: '#0F1222', borderColor: 'C.border2' },
+  drawerTitle: { drawerTitle: '{ color: C.text' },
+  drawerCountBadge: { drawerCountBadge: '{ paddingHorizontal: 8', backgroundColor: 'rgba(165', borderColor: 'rgba(165' },
+  drawerCountText: { drawerCountText: '{ color: '#A5B4FC'' },
+  emptyDrawer: { emptyDrawer: '{ paddingVertical: 60' },
+  bookingCard: { bookingCard: '{ padding: 16', backgroundColor: 'C.bgCard' },
+  bookingTop: { bookingTop: '{ flexDirection: 'row'' },
+  bookingIconBox: { bookingIconBox: '{ width: 44', alignItems: 'center' },
+  bookingTitle: { bookingTitle: '{ color: C.text' },
+  bookingMeta: { bookingMeta: '{ color: C.dim' },
+  statusPill: { statusPill: '{ paddingHorizontal: 10' },
+  statusText: { statusText: '{ fontFamily: FT.xbold' },
+  bookingFacts: { bookingFacts: '{ flexDirection: 'row'' },
+  bookingTimeline: { bookingTimeline: '{ marginTop: 12' },
+  tlStep: { tlStep: '{ flexDirection: 'row'' },
+  tlDot: { tlDot: '{ width: 8' },
+  tlLabel: { tlLabel: '{ color: C.dim' },
+  tlBar: { tlBar: '{ width: 1' },
+  bookingActionRow: { bookingActionRow: '{ flexDirection: 'row'' },
+  cancelLinkText: { cancelLinkText: '{ color: '#F87171'' },
+  factText: { factText: '{ color: C.textSub' },
+  statCard: { statCard: '{ flex: 1', backgroundColor: 'C.bgCard', borderWidth: 1 },
+  statIcon: { statIcon: '{ width: 30', alignItems: 'center' },
+  statValue: { statValue: '{ fontFamily: FT.xbold' },
+  statSub: { statSub: '{ color: C.dim' },
+};
+
 export default function RentalsPage() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
@@ -178,7 +304,7 @@ export default function RentalsPage() {
       accent="#6366F1"
       rightSlot={
         <View style={s.rightRow}>
-          <Pressable onPress={() => setBookingsOpen(true)} style={s.bookingsPill}>
+          <Pressable onPress={() => setBookingsOpen(true)} className="px-3">
             <Ticket size={13} color="#F59E0B" />
             <Text style={s.bookingsPillText}>My Bookings</Text>
             {bookings.length > 0 && (
@@ -187,7 +313,7 @@ export default function RentalsPage() {
               </View>
             )}
           </Pressable>
-          <View style={s.verifyPill}>
+          <View className="px-3">
             <ShieldCheck size={13} color="#34D399" />
             <Text style={s.verifyText}>All SA Verified</Text>
           </View>
@@ -195,14 +321,14 @@ export default function RentalsPage() {
       }
     >
       {/* ── Career AI Ambient Glass Hero Artwork Background Container ── */}
-      <View style={s.heroArtBox}>
+      <View className="rounded-2xl mb-4">
         <LinearGradient
           colors={['rgba(99, 102, 241, 0.15)', 'rgba(45, 212, 191, 0.05)', 'transparent']}
           style={StyleSheet.absoluteFillObject}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         />
         <View style={s.heroArtContent}>
-          <View style={s.heroBadge}>
+          <View className="px-3">
             <Sparkles size={14} color="#A5B4FC" />
             <Text style={s.heroBadgeText}>AI-MATCHED ACCOMMODATIONS & VEHICLES</Text>
           </View>
@@ -227,7 +353,7 @@ export default function RentalsPage() {
 
       {/* Search + City filter */}
       <View style={s.filterRow}>
-        <View style={s.searchBox}>
+        <View className="px-4">
           <Search size={16} color={C.dim} />
           <TextInput
             style={s.searchInput}
@@ -249,9 +375,9 @@ export default function RentalsPage() {
             const active = city === cv;
             return (
               <Pressable key={cv} onPress={() => setCity(cv)}
-                style={[s.cityPill, active && s.cityPillActive]}>
+                style={[styles.cityPill, active && s.cityPillActive]}>
                 <MapPin size={11} color={active ? '#A5B4FC' : C.dim} />
-                <Text style={[s.cityPillText, active && { color: '#A5B4FC' }]}>
+                <Text style={[styles.cityPillText, active && { color: '#A5B4FC' }]}>
                   {cv === 'all' ? 'All Cities' : cv}
                 </Text>
               </Pressable>
@@ -261,16 +387,16 @@ export default function RentalsPage() {
       </View>
 
       {/* Category Tabs */}
-      <Text style={s.kicker}>BROWSE BY CATEGORY</Text>
+      <Text className="text-xs">BROWSE BY CATEGORY</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}
                   contentContainerStyle={{ gap: 8, paddingRight: 12 }}>
         {categories.map((c) => {
           const active = cat === c.id;
           return (
             <Pressable key={c.id} onPress={() => setCat(c.id)}
-              style={[s.tab, active && { backgroundColor: c.color + '22', borderColor: c.color + '66' }]}>
+              style={[styles.tab, active && { backgroundColor: c.color + '22', borderColor: c.color + '66' }]}>
               {getCategoryIcon(c.id, active ? c.color : C.textSub, 15)}
-              <Text style={[s.tabText, active && { color: c.color }]}>
+              <Text style={[styles.tabText, active && { color: c.color }]}>
                 {c.label}
               </Text>
               <View style={s.tabCount}>
@@ -309,8 +435,8 @@ export default function RentalsPage() {
       <View style={{ marginTop: 24 }}>
         <View style={s.advisorRow}>
           {/* Advisor Card */}
-          <View style={[s.advisorCard, { borderColor: 'rgba(244, 114, 182, 0.3)' }]}>
-            <View style={[s.advisorIconBox, { backgroundColor: 'rgba(244, 114, 182, 0.15)', borderColor: 'rgba(244, 114, 182, 0.4)' }]}>
+          <View style={[styles.advisorCard, { borderColor: 'rgba(244, 114, 182, 0.3)' }]}>
+            <View style={[styles.advisorIconBox, { backgroundColor: 'rgba(244, 114, 182, 0.15)', borderColor: 'rgba(244, 114, 182, 0.4)' }]}>
               <PhoneCall size={20} color="#F472B6" />
             </View>
             <Text style={s.advisorTitle}>Talk to a Stay Advisor</Text>
@@ -318,21 +444,21 @@ export default function RentalsPage() {
               Need custom housing, road-trip rentals, or group bookings near your university? Our advisors curate verified options in 4 hours.
             </Text>
             <Pressable
-              style={[s.advisorCTA, { backgroundColor: '#EC4899' }]}
+              style={[styles.advisorCTA, { backgroundColor: '#EC4899' }]}
               onPress={() => setAdvisorOpen(!advisorOpen)}
             >
               <Phone size={14} color="#fff" />
               <Text style={s.advisorCTAText}>Connect with Advisor</Text>
             </Pressable>
             {advisorOpen && (
-              <View style={s.advisorExpanded}>
+              <View className="gap-2.5 mt-2">
                 <Pressable style={s.advisorLinkRow} onPress={() => Linking.openURL('tel:+919876543210').catch(() => {})}>
                   <Phone size={14} color="#F472B6" />
-                  <Text style={[s.advisorLinkText, { color: '#F472B6' }]}>+91 9876543210</Text>
+                  <Text style={[styles.advisorLinkText, { color: '#F472B6' }]}>+91 9876543210</Text>
                 </Pressable>
                 <Pressable style={s.advisorLinkRow} onPress={() => Linking.openURL('mailto:advisor@studentalumni.in?subject=Help with rentals').catch(() => {})}>
                   <Mail size={14} color="#F472B6" />
-                  <Text style={[s.advisorLinkText, { color: '#F472B6' }]}>advisor@studentalumni.in</Text>
+                  <Text style={[styles.advisorLinkText, { color: '#F472B6' }]}>advisor@studentalumni.in</Text>
                 </Pressable>
                 <Text style={s.advisorNote}>Mon–Fri · 9am – 7pm IST · response within 4 hours</Text>
               </View>
@@ -340,8 +466,8 @@ export default function RentalsPage() {
           </View>
 
           {/* My Bookings Card */}
-          <View style={[s.advisorCard, { borderColor: 'rgba(139, 92, 246, 0.3)' }]}>
-            <View style={[s.advisorIconBox, { backgroundColor: 'rgba(139, 92, 246, 0.15)', borderColor: 'rgba(139, 92, 246, 0.4)' }]}>
+          <View style={[styles.advisorCard, { borderColor: 'rgba(139, 92, 246, 0.3)' }]}>
+            <View style={[styles.advisorIconBox, { backgroundColor: 'rgba(139, 92, 246, 0.15)', borderColor: 'rgba(139, 92, 246, 0.4)' }]}>
               <Ticket size={20} color="#8B5CF6" />
             </View>
             <Text style={s.advisorTitle}>My Active Bookings</Text>
@@ -358,7 +484,7 @@ export default function RentalsPage() {
                   <Text style={{ color: '#34D399', fontWeight: '800' }}>{currentStay.status?.toUpperCase() || 'UNKNOWN'}</Text>
                 </Text>
                 {displayCount > 1 && (
-                  <Text style={[s.advisorDesc, { color: C.dim, marginTop: 2 }]}>
+                  <Text style={[styles.advisorDesc, { color: C.dim, marginTop: 2 }]}>
                     + {displayCount - 1} more active booking(s)
                   </Text>
                 )}
@@ -369,7 +495,7 @@ export default function RentalsPage() {
               </Text>
             )}
             <Pressable
-              style={[s.advisorCTA, { backgroundColor: '#6366F1' }]}
+              style={[styles.advisorCTA, { backgroundColor: '#6366F1' }]}
               onPress={() => setBookingsOpen(true)}
             >
               <Ticket size={14} color="#fff" />
@@ -427,27 +553,27 @@ export default function RentalsPage() {
 /* ─── Rental Card Component ─────────────────────────────────── */
 function RentalCard({ r, onViewDetails }: { r: Listing; onViewDetails: () => void }) {
   return (
-    <View style={[s.card, { borderColor: r.color + '33' }]}>
-      <View style={[s.cover, { backgroundColor: r.color + '1F', borderColor: r.color + '33' }]}>
-        <View style={s.coverCategoryBadge}>
+    <View style={[styles.card, { borderColor: r.color + '33' }]}>
+      <View style={[styles.cover, { backgroundColor: r.color + '1F', borderColor: r.color + '33' }]}>
+        <View className="items-center">
           {getCategoryIcon(r.category, '#FFFFFF', 20)}
         </View>
 
         <View style={s.coverBadgeRow}>
           {r.verified && (
-            <View style={s.badgeVerify}>
+            <View className="px-2">
               <ShieldCheck size={11} color="#34D399" />
               <Text style={s.badgeVerifyText}>Verified</Text>
             </View>
           )}
           {r.featured && (
-            <View style={s.badgeFeat}>
+            <View className="px-2">
               <Star size={11} color="#F59E0B" />
               <Text style={s.badgeFeatText}>Featured</Text>
             </View>
           )}
         </View>
-        <View style={[s.discBadge, { backgroundColor: r.color + 'DD' }]}>
+        <View style={[styles.discBadge, { backgroundColor: r.color + 'DD' }]}>
           <Text style={s.discText}>{r.discount} OFF</Text>
         </View>
       </View>
@@ -483,24 +609,24 @@ function RentalCard({ r, onViewDetails }: { r: Listing; onViewDetails: () => voi
         </View>
 
         {!!r.perk && (
-          <View style={[s.perkBar, { borderColor: r.color + '44', backgroundColor: r.color + '15' }]}>
+          <View style={[styles.perkBar, { borderColor: r.color + '44', backgroundColor: r.color + '15' }]}>
             <Sparkles size={11} color={r.color} />
-            <Text style={[s.perkText, { color: r.color }]} numberOfLines={1}>
+            <Text style={[styles.perkText, { color: r.color }]} numberOfLines={1}>
               {r.perk}
             </Text>
           </View>
         )}
 
         {/* Price & Action Button */}
-        <View style={s.priceRow}>
+        <View className="justify-between">
           <View>
             <Text style={s.priceOrig}>{r.orig_label}</Text>
-            <Text style={[s.priceRent, { color: r.color }]}>{r.rent_label}</Text>
+            <Text style={[styles.priceRent, { color: r.color }]}>{r.rent_label}</Text>
           </View>
           <Pressable onPress={onViewDetails}
-            style={[s.bookBtn, { backgroundColor: r.color }]}>
+            style={[styles.bookBtn, { backgroundColor: r.color }]}>
             <Eye size={13} color="#fff" />
-            <Text style={s.bookText}>View Details</Text>
+            <Text className="text-xs">View Details</Text>
           </Pressable>
         </View>
       </View>
@@ -520,32 +646,32 @@ function ListingDetailsModal({
 
   return (
     <Modal visible={!!listing} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={s.overlay}>
+      <View className="justify-center">
         <View style={s.detailsSheet}>
           <ScrollView showsVerticalScrollIndicator={false}>
             {/* Header / Hero Cover */}
-            <View style={[s.detailsHero, { backgroundColor: listing.color + '22', borderColor: listing.color + '44' }]}>
+            <View style={[styles.detailsHero, { backgroundColor: listing.color + '22', borderColor: listing.color + '44' }]}>
               <View style={s.detailsCategoryBox}>
                 {getCategoryIcon(listing.category, listing.color, 32)}
               </View>
-              <Pressable onPress={onClose} style={s.detailsCloseBtn} hitSlop={12}>
+              <Pressable onPress={onClose} className="rounded-full" hitSlop={12}>
                 <X size={18} color="#FFFFFF" />
               </Pressable>
 
               <View style={s.detailsBadgeContainer}>
                 {listing.verified && (
-                  <View style={s.badgeVerify}>
+                  <View className="px-2">
                     <ShieldCheck size={11} color="#34D399" />
                     <Text style={s.badgeVerifyText}>SA Verified</Text>
                   </View>
                 )}
                 {listing.featured && (
-                  <View style={s.badgeFeat}>
+                  <View className="px-2">
                     <Star size={11} color="#F59E0B" />
                     <Text style={s.badgeFeatText}>Featured Pick</Text>
                   </View>
                 )}
-                <View style={[s.discBadge, { backgroundColor: listing.color, position: 'relative', top: 0, right: 0 }]}>
+                <View style={[styles.discBadge, { backgroundColor: listing.color, position: 'relative', top: 0, right: 0 }]}>
                   <Text style={s.discText}>{listing.discount} OFF</Text>
                 </View>
               </View>
@@ -555,11 +681,11 @@ function ListingDetailsModal({
               {/* Title & Location */}
               <View>
                 <Text style={s.detailsTitle}>{listing.title}</Text>
-                <View style={[s.metaRow, { marginTop: 6 }]}>
+                <View style={[styles.metaRow, { marginTop: 6 }]}>
                   <MapPin size={14} color="#A5B4FC" />
-                  <Text style={[s.loc, { fontSize: 13, color: C.text2 }]}>{listing.location}, {listing.city}</Text>
+                  <Text style={[styles.loc, { fontSize: 13, color: C.text2 }]}>{listing.location}, {listing.city}</Text>
                   <Text style={s.dot}>·</Text>
-                  <Text style={[s.type, { fontSize: 13, color: '#A5B4FC' }]}>{listing.type}</Text>
+                  <Text style={[styles.type, { fontSize: 13, color: '#A5B4FC' }]}>{listing.type}</Text>
                 </View>
               </View>
 
@@ -574,7 +700,7 @@ function ListingDetailsModal({
                 </View>
                 <View style={s.detailsStatItem}>
                   <Text style={s.detailsStatKey}>AVAILABILITY</Text>
-                  <Text style={[s.detailsStatVal, { color: '#34D399' }]}>{listing.available} units remaining</Text>
+                  <Text style={[styles.detailsStatVal, { color: '#34D399' }]}>{listing.available} units remaining</Text>
                 </View>
                 <View style={s.detailsStatItem}>
                   <Text style={s.detailsStatKey}>ACCOMMODATION</Text>
@@ -591,9 +717,9 @@ function ListingDetailsModal({
                 </Text>
 
                 {!!listing.perk && (
-                  <View style={[s.perkBar, { borderColor: listing.color + '44', backgroundColor: listing.color + '15', marginTop: 10 }]}>
+                  <View style={[styles.perkBar, { borderColor: listing.color + '44', backgroundColor: listing.color + '15', marginTop: 10 }]}>
                     <Sparkles size={13} color={listing.color} />
-                    <Text style={[s.perkText, { color: listing.color, fontSize: 12 }]}>
+                    <Text style={[styles.perkText, { color: listing.color, fontSize: 12 }]}>
                       {listing.perk}
                     </Text>
                   </View>
@@ -605,7 +731,7 @@ function ListingDetailsModal({
                 <Text style={s.sectionLabel}>AMENITIES & INCLUSIONS</Text>
                 <View style={s.detailsAmenGrid}>
                   {(listing.amenities || ['WiFi', 'AC', 'Security', 'Power Backup']).map((a, i) => (
-                    <View key={i} style={s.detailsAmenCell}>
+                    <View key={i} className="rounded-lg">
                       <CheckCircle2 size={13} color="#34D399" />
                       <Text style={s.detailsAmenText}>{a}</Text>
                     </View>
@@ -614,16 +740,16 @@ function ListingDetailsModal({
               </View>
 
               {/* Price & Action */}
-              <View style={s.detailsFooterBox}>
+              <View className="p-4">
                 <View>
                   <Text style={s.priceOrig}>{listing.orig_label}</Text>
-                  <Text style={[s.priceRent, { color: listing.color, fontSize: 20 }]}>{listing.rent_label}</Text>
+                  <Text style={[styles.priceRent, { color: listing.color, fontSize: 20 }]}>{listing.rent_label}</Text>
                   <Text style={{ color: C.dim, fontSize: 11, fontFamily: FT.med }}>Inclusive of all SA discount perks</Text>
                 </View>
 
                 <Pressable
                   onPress={() => onProceedToBook(listing)}
-                  style={[s.confirmBtn, { backgroundColor: listing.color, paddingHorizontal: 24 }]}
+                  style={[styles.confirmBtn, { backgroundColor: listing.color, paddingHorizontal: 24 }]}
                 >
                   <Calendar size={16} color="#fff" />
                   <Text style={s.confirmBtnText}>Proceed to Book</Text>
@@ -702,12 +828,12 @@ function BookingModal({ listing, onClose, onSuccess }:
 
   return (
     <Modal visible={!!listing} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={s.overlay}>
+      <View className="justify-center">
         <View style={s.sheet}>
           {listing && (
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={s.sheetHeader}>
-                <View style={[s.sheetIconBox, { backgroundColor: listing.color + '22', borderColor: listing.color + '55' }]}>
+                <View style={[styles.sheetIconBox, { backgroundColor: listing.color + '22', borderColor: listing.color + '55' }]}>
                   {getCategoryIcon(listing.category, listing.color, 24)}
                 </View>
                 <View style={{ flex: 1 }}>
@@ -759,7 +885,7 @@ function BookingModal({ listing, onClose, onSuccess }:
               </View>
 
               {err && (
-                <View style={s.errBox}>
+                <View className="px-3">
                   <Info size={14} color="#F87171" />
                   <Text style={s.errText}>{err}</Text>
                 </View>
@@ -770,7 +896,7 @@ function BookingModal({ listing, onClose, onSuccess }:
                   <Text style={s.cancelBtnText}>Cancel</Text>
                 </Pressable>
                 <Pressable onPress={submit} disabled={busy}
-                  style={[s.confirmBtn, { backgroundColor: listing.color, opacity: busy ? 0.7 : 1 }]}>
+                  style={[styles.confirmBtn, { backgroundColor: listing.color, opacity: busy ? 0.7 : 1 }]}>
                   {busy ? <ActivityIndicator color="#fff" size="small" /> : (
                     <>
                       <Lock size={14} color="#fff" />
@@ -800,9 +926,9 @@ function Field({ label, Icon, value, onChange, placeholder, keyboardType, multil
   return (
     <View style={{ flex: 1, gap: 6 }}>
       <Text style={s.fieldLabel}>{label}</Text>
-      <View style={[s.fieldBox, multiline && { height: 64, alignItems: 'flex-start', paddingTop: 10 }]}>
+      <View style={[styles.fieldBox, multiline && { height: 64, alignItems: 'flex-start', paddingTop: 10 }]}>
         <Icon size={14} color={C.dim} />
-        <TextInput style={[s.fieldInput, multiline && { textAlignVertical: 'top' }]}
+        <TextInput style={[styles.fieldInput, multiline && { textAlignVertical: 'top' }]}
                    placeholder={placeholder || ''}
                    placeholderTextColor={C.dim}
                    value={value}
@@ -818,10 +944,10 @@ function Row({ k, v, bold, valColor }:
   { k: string; v: string; bold?: boolean; valColor?: string }) {
   return (
     <View style={s.tableRow}>
-      <Text style={[s.tableK, bold && { color: '#fff', fontFamily: FT.xbold }]}>
+      <Text style={[styles.tableK, bold && { color: '#fff', fontFamily: FT.xbold }]}>
         {k}
       </Text>
-      <Text style={[s.tableV, bold && { fontFamily: FT.xbold, fontSize: 14 }, valColor ? { color: valColor } : null]}>
+      <Text style={[styles.tableV, bold && { fontFamily: FT.xbold, fontSize: 14 }, valColor ? { color: valColor } : null]}>
         {v}
       </Text>
     </View>
@@ -833,47 +959,47 @@ function ConfirmationModal({ booking, onClose, onViewBookings }:
   { booking: Booking | null; onClose: () => void; onViewBookings: () => void }) {
   return (
     <Modal visible={!!booking} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={s.overlay}>
-        <View style={s.confirmSheet}>
+      <View className="justify-center">
+        <View className="rounded-2xl">
           {booking && (
             <>
-              <View style={s.confirmIconBox}>
+              <View className="items-center">
                 <Sparkles size={36} color="#F59E0B" />
               </View>
-              <Text style={s.confirmHeading}>Booking Confirmed!</Text>
-              <Text style={s.confirmSub}>
+              <Text className="text-lg">Booking Confirmed!</Text>
+              <Text className="text-sm">
                 {booking.listing_snapshot?.title}
               </Text>
-              <View style={s.confirmIdPill}>
+              <View className="px-3">
                 <Ticket size={12} color="#A5B4FC" />
                 <Text style={s.confirmIdText}>{booking.booking_id}</Text>
               </View>
 
-              <View style={s.confirmGrid}>
+              <View className="mt-4">
                 <View style={s.confirmCell}>
                   <Text style={s.confirmCellLabel}>CHECK-IN</Text>
-                  <Text style={s.confirmCellValue}>{fmtDate(booking.check_in)}</Text>
+                  <Text className="text-sm">{fmtDate(booking.check_in)}</Text>
                 </View>
                 <View style={s.confirmCell}>
                   <Text style={s.confirmCellLabel}>CHECK-OUT</Text>
-                  <Text style={s.confirmCellValue}>{fmtDate(booking.check_out)}</Text>
+                  <Text className="text-sm">{fmtDate(booking.check_out)}</Text>
                 </View>
                 <View style={s.confirmCell}>
                   <Text style={s.confirmCellLabel}>DURATION</Text>
-                  <Text style={s.confirmCellValue}>
+                  <Text className="text-sm">
                     {booking.duration?.value} {booking.duration?.unit}
                   </Text>
                 </View>
                 <View style={s.confirmCell}>
                   <Text style={s.confirmCellLabel}>TOTAL</Text>
-                  <Text style={[s.confirmCellValue, { color: '#34D399' }]}>
+                  <Text style={[styles.confirmCellValue, { color: '#34D399' }]}>
                     {fmtINR(booking.cost_breakdown?.total_inr)}
                   </Text>
                 </View>
               </View>
 
               {booking.cost_breakdown?.sa_savings_inr > 0 && (
-                <View style={s.savingsPill}>
+                <View className="px-4">
                   <Sparkles size={12} color="#F59E0B" />
                   <Text style={s.savingsText}>
                     You saved {fmtINR(booking.cost_breakdown.sa_savings_inr)} via SA-ID
@@ -881,11 +1007,11 @@ function ConfirmationModal({ booking, onClose, onViewBookings }:
                 </View>
               )}
 
-              <Pressable onPress={onViewBookings} style={s.confirmCTA}>
+              <Pressable onPress={onViewBookings} className="px-5 mt-4">
                 <Ticket size={14} color="#fff" />
                 <Text style={s.confirmCTAText}>View My Bookings</Text>
               </Pressable>
-              <Pressable onPress={onClose} style={s.confirmDismiss}>
+              <Pressable onPress={onClose} className="items-center">
                 <Text style={s.confirmDismissText}>Done</Text>
               </Pressable>
             </>
@@ -913,9 +1039,9 @@ function BookingsDrawer({ open, bookings, onClose, onCancelled }:
 
   return (
     <Modal visible={open} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={s.overlay}>
+      <View className="justify-center">
         <View style={s.drawer}>
-          <View style={s.drawerHeader}>
+          <View className="justify-between">
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Ticket size={18} color="#F59E0B" />
               <Text style={s.drawerTitle}>My Bookings</Text>
@@ -940,9 +1066,9 @@ function BookingsDrawer({ open, bookings, onClose, onCancelled }:
             <ScrollView contentContainerStyle={{ gap: 12, paddingBottom: 30 }}>
               {bookings.map((b) => (
                 <View key={b.booking_id}
-                  style={[s.bookingCard, { borderColor: (b.listing_snapshot?.color || '#6366F1') + '44' }]}>
+                  style={[styles.bookingCard, { borderColor: (b.listing_snapshot?.color || '#6366F1') + '44' }]}>
                   <View style={s.bookingTop}>
-                    <View style={[s.bookingIconBox, { backgroundColor: (b.listing_snapshot?.color || '#6366F1') + '22' }]}>
+                    <View style={[styles.bookingIconBox, { backgroundColor: (b.listing_snapshot?.color || '#6366F1') + '22' }]}>
                       {getCategoryIcon(b.listing_snapshot?.category || 'housing', b.listing_snapshot?.color || '#818CF8', 20)}
                     </View>
                     <View style={{ flex: 1 }}>
@@ -953,8 +1079,8 @@ function BookingsDrawer({ open, bookings, onClose, onCancelled }:
                         {b.listing_snapshot?.location}
                       </Text>
                     </View>
-                    <View style={[s.statusPill, statusStyle(b.status)]}>
-                      <Text style={[s.statusText, { color: statusStyle(b.status).color }]}>
+                    <View style={[styles.statusPill, statusStyle(b.status)]}>
+                      <Text style={[styles.statusText, { color: statusStyle(b.status).color }]}>
                         {b.status?.toUpperCase() || 'UNKNOWN'}
                       </Text>
                     </View>
@@ -971,11 +1097,11 @@ function BookingsDrawer({ open, bookings, onClose, onCancelled }:
                     <View style={s.bookingTimeline}>
                       {b.timeline?.map((t, i) => (
                         <View key={t.id} style={s.tlStep}>
-                          <View style={[s.tlDot,
+                          <View style={[styles.tlDot,
                             t.status === 'done' && { backgroundColor: '#34D399' },
                             t.status === 'current' && { backgroundColor: '#F59E0B' },
                             t.status === 'pending' && { backgroundColor: C.dim }]} />
-                          <Text style={[s.tlLabel,
+                          <Text style={[styles.tlLabel,
                             t.status === 'done' && { color: '#34D399' },
                             t.status === 'current' && { color: '#F59E0B' }]}>
                             {t.label}
@@ -990,7 +1116,7 @@ function BookingsDrawer({ open, bookings, onClose, onCancelled }:
                     <View style={s.bookingActionRow}>
                       <Pressable onPress={() => cancel(b.booking_id)}
                         disabled={busyId === b.booking_id}
-                        style={s.cancelLinkBtn}>
+                        className="px-3">
                         {busyId === b.booking_id ? (
                           <ActivityIndicator size="small" color="#F87171" />
                         ) : (
@@ -1014,9 +1140,9 @@ function BookingsDrawer({ open, bookings, onClose, onCancelled }:
 
 function Fact({ Icon, v, bold }: { Icon: any; v: string; bold?: boolean }) {
   return (
-    <View style={s.factCell}>
+    <View className="px-2">
       <Icon size={11} color={C.dim} />
-      <Text style={[s.factText, bold && { color: '#34D399', fontFamily: FT.xbold }]}>
+      <Text style={[styles.factText, bold && { color: '#34D399', fontFamily: FT.xbold }]}>
         {v}
       </Text>
     </View>
@@ -1028,12 +1154,12 @@ function Stat({ label, value, sub, color, Icon }:
   return (
     <View style={s.statCard}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <View style={[s.statIcon, { backgroundColor: color + '22', borderColor: color + '55' }]}>
+        <View style={[styles.statIcon, { backgroundColor: color + '22', borderColor: color + '55' }]}>
           <Icon size={14} color={color} />
         </View>
-        <Text style={s.statLabel}>{label}</Text>
+        <Text className="text-xs">{label}</Text>
       </View>
-      <Text style={[s.statValue, { color }]}>{value}</Text>
+      <Text style={[styles.statValue, { color }]}>{value}</Text>
       <Text style={s.statSub}>{sub}</Text>
     </View>
   );
@@ -1050,323 +1176,4 @@ const statusStyle = (status: string) => {
 };
 
 /* ────────── Career AI Styles ────────── */
-const s = StyleSheet.create({
-  rightRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  bookingsPill: { flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
-    backgroundColor: 'rgba(245, 158, 11, 0.12)',
-    borderColor: 'rgba(245, 158, 11, 0.35)', borderWidth: 1,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  bookingsPillText: { color: '#F59E0B', fontFamily: FT.xbold, fontSize: 11 },
-  bookingsBadge: { paddingHorizontal: 6, height: 16, borderRadius: 999,
-    backgroundColor: '#F59E0B', alignItems: 'center', justifyContent: 'center' },
-  bookingsBadgeText: { color: '#0B0D1A', fontFamily: FT.xbold, fontSize: 9 },
 
-  verifyPill: { flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
-    backgroundColor: 'rgba(52, 211, 153, 0.12)',
-    borderColor: 'rgba(52, 211, 153, 0.35)', borderWidth: 1 },
-  verifyText: { color: '#34D399', fontFamily: FT.xbold, fontSize: 11 },
-
-  /* Hero Artwork Box */
-  heroArtBox: {
-    borderRadius: 16, overflow: 'hidden', borderWidth: 1,
-    borderColor: C.border2, backgroundColor: C.bgCard,
-    marginBottom: 16, position: 'relative',
-  },
-  heroArtContent: { padding: 20, gap: 8 },
-  heroBadge: { flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
-    backgroundColor: 'rgba(99, 102, 241, 0.20)', alignSelf: 'flex-start',
-    borderWidth: 1, borderColor: 'rgba(99, 102, 241, 0.35)' },
-  heroBadgeText: { color: '#A5B4FC', fontFamily: FT.xbold, fontSize: 10, letterSpacing: 0.8 },
-  heroTitle: { color: C.text, fontFamily: FT.xbold, fontSize: 22 },
-  heroSub: { color: C.textSub, fontFamily: FT.med, fontSize: 13, lineHeight: 19, maxWidth: 720 },
-
-  /* Stats */
-  statsRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
-  statCard: { flex: 1, minWidth: 180, padding: 14, borderRadius: 14,
-    backgroundColor: C.bgCard, borderColor: C.border,
-    borderWidth: 1, gap: 6 },
-  statIcon: { width: 30, height: 30, borderRadius: 8, borderWidth: 1,
-    alignItems: 'center', justifyContent: 'center' },
-  statLabel: { color: C.dim, fontFamily: FT.xbold,
-    fontSize: 10, letterSpacing: 1, flex: 1 },
-  statValue: { fontFamily: FT.xbold, fontSize: 24, marginTop: 2 },
-  statSub: { color: C.dim, fontFamily: FT.med, fontSize: 11 },
-
-  filterRow: { gap: 10, marginTop: 10 },
-  searchBox: { flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingHorizontal: 14, height: 42, borderRadius: 12,
-    backgroundColor: C.bgCard, borderColor: C.border2,
-    borderWidth: 1 },
-  searchInput: { flex: 1, color: C.text, fontFamily: FT.med,
-    fontSize: 13.5, ...(Platform.OS === 'web' ? { outlineStyle: 'none' as any } : {}) },
-  cityPill: { flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999,
-    backgroundColor: C.bgCard, borderColor: C.border,
-    borderWidth: 1, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  cityPillActive: { backgroundColor: 'rgba(99, 102, 241, 0.20)', borderColor: '#6366F1' },
-  cityPillText: { color: C.textSub, fontFamily: FT.bold, fontSize: 11.5 },
-
-  kicker: { color: C.dim, fontFamily: FT.xbold,
-    fontSize: 11, letterSpacing: 1.2, marginTop: 12 },
-
-  tab: { flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12,
-    backgroundColor: C.bgCard, borderColor: C.border,
-    borderWidth: 1, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  tabText: { color: C.textSub, fontFamily: FT.bold, fontSize: 12.5 },
-  tabCount: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 999,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)' },
-  tabCountText: { color: '#fff', fontFamily: FT.xbold, fontSize: 10 },
-
-  loadingBox: { paddingVertical: 50, alignItems: 'center', gap: 12 },
-  loadingText: { color: C.textSub, fontFamily: FT.med, fontSize: 13 },
-  emptyBox: { paddingVertical: 50, alignItems: 'center', gap: 10 },
-  emptyTitle: { color: '#fff', fontFamily: FT.xbold, fontSize: 15, marginTop: 4 },
-  emptySub: { color: C.dim, fontFamily: FT.med, fontSize: 12.5 },
-
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
-  card: { flexGrow: 1, flexBasis: 300, maxWidth: 360, borderRadius: 16,
-    borderWidth: 1, backgroundColor: C.bgCard, overflow: 'hidden' },
-  cover: { height: 110, borderBottomWidth: 1, alignItems: 'center',
-    justifyContent: 'center', position: 'relative' },
-  coverCategoryBadge: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.10)',
-    alignItems: 'center', justifyContent: 'center' },
-  coverBadgeRow: { position: 'absolute', top: 10, left: 10, flexDirection: 'row', gap: 6 },
-  badgeVerify: { flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999,
-    backgroundColor: 'rgba(52, 211, 153, 0.15)',
-    borderColor: 'rgba(52, 211, 153, 0.35)', borderWidth: 1 },
-  badgeVerifyText: { color: '#34D399', fontFamily: FT.xbold, fontSize: 9.5 },
-  badgeFeat: { flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999,
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
-    borderColor: 'rgba(245, 158, 11, 0.35)', borderWidth: 1 },
-  badgeFeatText: { color: '#F59E0B', fontFamily: FT.xbold, fontSize: 9.5 },
-  discBadge: { position: 'absolute', top: 10, right: 10,
-    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  discText: { color: '#fff', fontFamily: FT.xbold, fontSize: 10.5, letterSpacing: 0.4 },
-
-  title: { color: C.text, fontFamily: FT.xbold, fontSize: 14.5 },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
-  loc: { color: C.textSub, fontFamily: FT.med, fontSize: 11.5, flex: 1 },
-  dot: { color: C.dim, fontSize: 11 },
-  type: { color: C.purpleL, fontFamily: FT.bold, fontSize: 11.5 },
-
-  amenRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  amenChip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderColor: C.border, borderWidth: 1 },
-  amenText: { color: C.textSub, fontFamily: FT.bold, fontSize: 10.5 },
-
-  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  ratingText: { color: '#fff', fontFamily: FT.xbold, fontSize: 12.5 },
-  ratingCount: { color: C.dim, fontFamily: FT.med, fontSize: 11 },
-  available: { color: '#34D399', fontFamily: FT.bold, fontSize: 11 },
-
-  perkBar: { flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8, borderWidth: 1 },
-  perkText: { flex: 1, fontFamily: FT.bold, fontSize: 11 },
-
-  priceRow: { flexDirection: 'row', alignItems: 'flex-end',
-    justifyContent: 'space-between', marginTop: 4 },
-  priceOrig: { color: C.dim, fontFamily: FT.med,
-    fontSize: 11.5, textDecorationLine: 'line-through' },
-  priceRent: { fontFamily: FT.xbold, fontSize: 17, marginTop: 1 },
-  bookBtn: { flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, height: 36, borderRadius: 999,
-    justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  bookText: { color: '#fff', fontFamily: FT.xbold,
-    fontSize: 12, letterSpacing: 0.3 },
-
-  /* Modal Base */
-  overlay: { flex: 1, backgroundColor: 'rgba(7, 9, 20, 0.85)',
-    justifyContent: 'center', alignItems: 'center', padding: 16 },
-
-  /* STEP 1: Details Sheet */
-  detailsSheet: { width: '100%', maxWidth: 580, maxHeight: '92%',
-    backgroundColor: '#0F1222', borderRadius: 20,
-    borderColor: C.border2, borderWidth: 1, overflow: 'hidden' },
-  detailsHero: { height: 130, padding: 16, justifyContent: 'space-between',
-    position: 'relative', borderBottomWidth: 1 },
-  detailsCategoryBox: { width: 56, height: 56, borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
-  detailsCloseBtn: { position: 'absolute', top: 14, right: 14, width: 32, height: 32,
-    borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.10)', alignItems: 'center', justifyContent: 'center',
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  detailsBadgeContainer: { flexDirection: 'row', gap: 8, alignItems: 'center' },
-  detailsTitle: { color: C.text, fontFamily: FT.xbold, fontSize: 20 },
-  detailsStatsRow: { flexDirection: 'row', gap: 12, padding: 12, borderRadius: 12,
-    backgroundColor: C.bgCard, borderColor: C.border, borderWidth: 1 },
-  detailsStatItem: { flex: 1 },
-  detailsStatKey: { color: C.dim, fontFamily: FT.xbold, fontSize: 9.5, letterSpacing: 0.8 },
-  detailsStatVal: { color: C.text, fontFamily: FT.bold, fontSize: 12.5, marginTop: 2 },
-  detailsSection: { gap: 8 },
-  detailsDesc: { color: C.textSub, fontFamily: FT.med, fontSize: 13, lineHeight: 20 },
-  detailsAmenGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  detailsAmenCell: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6,
-    borderRadius: 8, backgroundColor: C.bgCard, borderColor: C.border, borderWidth: 1 },
-  detailsAmenText: { color: C.text2, fontFamily: FT.bold, fontSize: 11.5 },
-  detailsFooterBox: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    padding: 16, borderRadius: 14, backgroundColor: C.bgCard, borderColor: C.borderAccent, borderWidth: 1, marginTop: 6 },
-
-  /* STEP 2: Booking Sheet */
-  sheet: { width: '100%', maxWidth: 540, maxHeight: '92%',
-    backgroundColor: '#0F1222', borderRadius: 20, padding: 20,
-    borderColor: C.border2, borderWidth: 1 },
-  sheetHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
-  sheetIconBox: { width: 48, height: 48, borderRadius: 12,
-    borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  sheetTitle: { color: C.text, fontFamily: FT.xbold, fontSize: 16.5 },
-
-  sectionLabel: { color: C.dim, fontFamily: FT.xbold,
-    fontSize: 10.5, letterSpacing: 1.2, marginTop: 12, marginBottom: 6 },
-  fieldRow: { flexDirection: 'row', gap: 10, marginBottom: 10 },
-  fieldLabel: { color: C.textSub, fontFamily: FT.bold, fontSize: 11.5 },
-  fieldBox: { flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingHorizontal: 12, height: 42, borderRadius: 10,
-    backgroundColor: C.bgCard, borderColor: C.border, borderWidth: 1 },
-  fieldInput: { flex: 1, color: C.text, fontFamily: FT.med,
-    fontSize: 13, ...(Platform.OS === 'web' ? { outlineStyle: 'none' as any } : {}) },
-
-  priceTable: { gap: 8, padding: 14, borderRadius: 12,
-    backgroundColor: C.bgCard, borderColor: C.border, borderWidth: 1 },
-  tableRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  tableK: { color: C.textSub, fontFamily: FT.med, fontSize: 12.5, flex: 1 },
-  tableV: { color: C.text, fontFamily: FT.bold, fontSize: 12.5 },
-  priceDivider: { height: 1, backgroundColor: C.border, marginVertical: 4 },
-
-  errBox: { flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10,
-    backgroundColor: 'rgba(248, 113, 113, 0.15)',
-    borderColor: 'rgba(248, 113, 113, 0.40)', borderWidth: 1, marginTop: 12 },
-  errText: { color: '#F87171', fontFamily: FT.bold, fontSize: 12 },
-
-  actionRow: { flexDirection: 'row', gap: 10, marginTop: 16 },
-  cancelBtn: { paddingHorizontal: 20, height: 44, borderRadius: 12,
-    backgroundColor: C.bgCard, borderColor: C.border,
-    borderWidth: 1, alignItems: 'center', justifyContent: 'center',
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  cancelBtnText: { color: C.textSub, fontFamily: FT.bold, fontSize: 13 },
-  confirmBtn: { flex: 1, height: 44, borderRadius: 12, flexDirection: 'row',
-    alignItems: 'center', justifyContent: 'center', gap: 8,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  confirmBtnText: { color: '#fff', fontFamily: FT.xbold, fontSize: 13.5 },
-
-  fineprint: { color: C.dim, fontFamily: FT.med, fontSize: 10.5,
-    textAlign: 'center', marginTop: 12 },
-
-  /* Confirmation Modal */
-  confirmSheet: { width: '100%', maxWidth: 460, backgroundColor: '#0F1222',
-    borderRadius: 20, padding: 24, borderColor: 'rgba(245, 158, 11, 0.35)',
-    borderWidth: 1, alignItems: 'center' },
-  confirmIconBox: { width: 72, height: 72, borderRadius: 999,
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
-    borderColor: 'rgba(245, 158, 11, 0.40)', borderWidth: 1,
-    alignItems: 'center', justifyContent: 'center' },
-  confirmHeading: { color: C.text, fontFamily: FT.xbold,
-    fontSize: 20, marginTop: 14 },
-  confirmSub: { color: C.textSub, fontFamily: FT.med,
-    fontSize: 13, textAlign: 'center', marginTop: 4 },
-  confirmIdPill: { flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
-    backgroundColor: 'rgba(165, 180, 252, 0.15)',
-    borderColor: 'rgba(165, 180, 252, 0.35)', borderWidth: 1, marginTop: 12 },
-  confirmIdText: { color: '#A5B4FC', fontFamily: FT.xbold, fontSize: 11.5 },
-  confirmGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10,
-    marginTop: 16, width: '100%' },
-  confirmCell: { flexBasis: '48%', flexGrow: 1, padding: 12, borderRadius: 10,
-    backgroundColor: C.bgCard, borderColor: C.border, borderWidth: 1 },
-  confirmCellLabel: { color: C.dim, fontFamily: FT.xbold,
-    fontSize: 9.5, letterSpacing: 1 },
-  confirmCellValue: { color: C.text, fontFamily: FT.xbold,
-    fontSize: 13, marginTop: 4 },
-  savingsPill: { flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999,
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
-    borderColor: 'rgba(245, 158, 11, 0.40)', borderWidth: 1, marginTop: 14 },
-  savingsText: { color: '#F59E0B', fontFamily: FT.xbold, fontSize: 12 },
-  confirmCTA: { flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 20, height: 44, borderRadius: 12,
-    backgroundColor: '#6366F1', alignSelf: 'stretch', justifyContent: 'center',
-    marginTop: 16, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  confirmCTAText: { color: '#fff', fontFamily: FT.xbold, fontSize: 13.5 },
-  confirmDismiss: { paddingVertical: 8, alignSelf: 'stretch',
-    alignItems: 'center', marginTop: 4, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  confirmDismissText: { color: C.dim, fontFamily: FT.bold, fontSize: 12.5 },
-
-  /* Bookings Drawer */
-  drawer: { width: '100%', maxWidth: 600, maxHeight: '92%',
-    backgroundColor: '#0F1222', borderRadius: 20, padding: 20,
-    borderColor: C.border2, borderWidth: 1 },
-  drawerHeader: { flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'space-between', marginBottom: 16 },
-  drawerTitle: { color: C.text, fontFamily: FT.xbold, fontSize: 17 },
-  drawerCountBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999,
-    backgroundColor: 'rgba(165, 180, 252, 0.15)',
-    borderColor: 'rgba(165, 180, 252, 0.35)', borderWidth: 1 },
-  drawerCountText: { color: '#A5B4FC', fontFamily: FT.xbold, fontSize: 11 },
-  emptyDrawer: { paddingVertical: 60, alignItems: 'center', gap: 8 },
-
-  bookingCard: { padding: 16, borderRadius: 14, borderWidth: 1,
-    backgroundColor: C.bgCard },
-  bookingTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  bookingIconBox: { width: 44, height: 44, borderRadius: 12,
-    alignItems: 'center', justifyContent: 'center' },
-  bookingTitle: { color: C.text, fontFamily: FT.xbold, fontSize: 14 },
-  bookingMeta: { color: C.dim, fontFamily: FT.med, fontSize: 11.5, marginTop: 2 },
-  statusPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, borderWidth: 1 },
-  statusText: { fontFamily: FT.xbold, fontSize: 9.5, letterSpacing: 0.6 },
-
-  bookingFacts: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
-  factCell: { flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 9, paddingVertical: 5, borderRadius: 6,
-    backgroundColor: 'rgba(255,255,255,0.05)' },
-  factText: { color: C.textSub, fontFamily: FT.bold, fontSize: 11.5 },
-
-  bookingTimeline: { marginTop: 12, gap: 4 },
-  tlStep: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  tlDot: { width: 8, height: 8, borderRadius: 999, backgroundColor: C.dim },
-  tlBar: { width: 1, height: 8, backgroundColor: C.border, marginLeft: 3 },
-  tlLabel: { color: C.dim, fontFamily: FT.bold, fontSize: 11 },
-
-  bookingActionRow: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 12 },
-  cancelLinkBtn: { flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8,
-    backgroundColor: 'rgba(248, 113, 113, 0.12)',
-    borderColor: 'rgba(248, 113, 113, 0.35)', borderWidth: 1,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  cancelLinkText: { color: '#F87171', fontFamily: FT.bold, fontSize: 11.5 },
-
-  advisorRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, alignItems: 'stretch' },
-  advisorCard: {
-    flex: 1, minWidth: 270,
-    padding: 20, borderRadius: 16,
-    backgroundColor: C.bgCard,
-    borderWidth: 1, gap: 12,
-    flexDirection: 'column',
-  },
-  advisorIconBox: {
-    width: 44, height: 44, borderRadius: 14,
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1,
-  },
-  advisorTitle: { color: C.text, fontSize: 16, fontFamily: FT.xbold, marginTop: 2 },
-  advisorDesc: { color: C.textSub, fontSize: 13, lineHeight: 19, fontFamily: FT.med },
-  advisorCTA: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    paddingVertical: 12, borderRadius: 10, marginTop: 'auto',
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  advisorCTAText: { color: '#fff', fontSize: 13, fontFamily: FT.xbold },
-  advisorExpanded: {
-    marginTop: 8, paddingTop: 12,
-    borderTopWidth: 1, borderTopColor: C.border,
-    gap: 10,
-  },
-  advisorLinkRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  advisorLinkText: { fontSize: 13, fontFamily: FT.bold },
-  advisorNote: { color: C.dim, fontSize: 11, fontStyle: 'italic', marginTop: 2, fontFamily: FT.med },
-});

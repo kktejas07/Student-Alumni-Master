@@ -19,16 +19,15 @@ interface Props {
 export function SlidePanel({ open, onClose, title, subtitle, width = 440, children, footer }: Props) {
   return (
     <Modal visible={open} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable className="flex-1 flex-row justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.55)', ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(6px)' } as any) : {}) }} onPress={onClose}>
+      <Pressable style={styles.backdrop} onPress={onClose}>
         <Pressable
           onPress={(e: any) => e.stopPropagation && e.stopPropagation()}
-          className="flex-col"
-          style={{ width, height: '100%', backgroundColor: 'rgba(13,8,0,0.97)', borderLeftColor: T.borderMd, borderLeftWidth: 1, boxShadow: '-10px 0px 40px rgba(0,0,0,0.55)' }}
+          style={[styles.panel, { width }]}
         >
-          <View className="flex-row items-center gap-3" style={{ paddingHorizontal: 18, paddingVertical: 16, borderBottomColor: T.border, borderBottomWidth: 1 }}>
-            <View className="flex-1">
-              <Text className="text-text font-body-bold text-lg" style={{ letterSpacing: -0.2 }} numberOfLines={1}>{title}</Text>
-              {!!subtitle && <Text className="text-muted" style={{ fontFamily: 'DMSans_400Regular', fontSize: 11.5, marginTop: 3 }} numberOfLines={1}>{subtitle}</Text>}
+          <View style={styles.header}>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={styles.title} numberOfLines={1}>{title}</Text>
+              {!!subtitle && <Text style={styles.sub} numberOfLines={1}>{subtitle}</Text>}
             </View>
             <Pressable onPress={onClose} hitSlop={8} testID="slide-panel-close">
               <X size={18} color="rgba(255,255,255,0.55)" />
@@ -37,7 +36,7 @@ export function SlidePanel({ open, onClose, title, subtitle, width = 440, childr
           <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 18, paddingBottom: 30 }}>
             {children}
           </ScrollView>
-          {footer && <View className="flex-row gap-2" style={{ padding: 14, borderTopColor: T.border, borderTopWidth: 1, backgroundColor: 'rgba(13,8,0,0.7)' }}>{footer}</View>}
+          {footer && <View style={styles.footer}>{footer}</View>}
         </Pressable>
       </Pressable>
     </Modal>
@@ -47,9 +46,39 @@ export function SlidePanel({ open, onClose, title, subtitle, width = 440, childr
 export function PanelField({ label, value }: { label: string; value: any }) {
   if (value == null || value === '') return null;
   return (
-    <View className="py-2" style={{ borderBottomColor: 'rgba(245,158,11,0.08)', borderBottomWidth: 1 }}>
-      <Text style={{ color: T.textMute, fontFamily: 'DMSans_500Medium', fontSize: 11, letterSpacing: 0.5, textTransform: 'uppercase' }}>{label}</Text>
-      <Text className="text-text text-sm" style={{ fontFamily: 'DMSans_500Medium', marginTop: 4, lineHeight: 18 }}>{String(value)}</Text>
+    <View style={styles.field}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      <Text style={styles.fieldValue}>{String(value)}</Text>
     </View>
   );
 }
+
+const styles = {
+  backdrop: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.55)',
+    flexDirection: 'row', justifyContent: 'flex-end',
+    ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(6px)' } as any) : {}),
+  },
+  panel: {
+    height: '100%' as any,
+    backgroundColor: 'rgba(13,8,0,0.97)',
+    borderLeftColor: T.borderMd, borderLeftWidth: 1,
+    flexDirection: 'column',
+    shadowColor: '#000', shadowOpacity: 0.55, shadowRadius: 40, shadowOffset: { width: -10, height: 0 },
+  },
+  header: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingHorizontal: 18, paddingVertical: 16,
+    borderBottomColor: T.border, borderBottomWidth: 1,
+  },
+  title: { color: T.text, fontFamily: 'DMSans_700Bold', fontSize: 16, letterSpacing: -0.2 },
+  sub: { color: T.textMute, fontFamily: 'DMSans_400Regular', fontSize: 11.5, marginTop: 3 },
+  footer: {
+    flexDirection: 'row', gap: 8, padding: 14,
+    borderTopColor: T.border, borderTopWidth: 1,
+    backgroundColor: 'rgba(13,8,0,0.7)',
+  },
+  field: { paddingVertical: 8, borderBottomColor: 'rgba(245,158,11,0.08)', borderBottomWidth: 1 },
+  fieldLabel: { color: T.textMute, fontFamily: 'DMSans_500Medium', fontSize: 11, letterSpacing: 0.5, textTransform: 'uppercase' },
+  fieldValue: { color: T.text, fontFamily: 'DMSans_500Medium', fontSize: 13, marginTop: 4, lineHeight: 18 },
+};

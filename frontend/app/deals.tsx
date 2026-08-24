@@ -316,18 +316,18 @@ export default function DealsScreen() {
             </Text>
             <View className="gap-2">
               {stats.smart_bundle.map((b) => (
-                <View key={b.deal_id} style={[s.bundleItem, { borderColor: b.accent + '55' }]}>
+                <View key={b.deal_id} className="flex-row items-center gap-2.5 p-2.5 rounded-xl" style={{ backgroundColor: 'rgba(0,0,0,0.20)', borderWidth: 1, borderColor: b.accent + '55' }}>
                   {b.logo_url ? (
                     <Image source={{ uri: resolveImageUrl(b.logo_url) }} className="w-9 h-9 rounded-xl bg-white" resizeMode="contain" />
                   ) : (
-                    <View style={[s.bundleLogoFallback, { backgroundColor: b.accent + '33' }]}>
+                    <View className="w-9 h-9 rounded-xl items-center justify-center" style={{ backgroundColor: b.accent + '33' }}>
                       <Text style={{ color: b.accent, fontSize: 14, fontWeight: '800' }}>{b.brand?.[0] || '?'}</Text>
                     </View>
                   )}
                   <View style={{ flex: 1 }}>
                     <Text className="text-dim text-xs">{b.brand}</Text>
                     <Text className="text-text font-body-semibold text-sm" numberOfLines={1}>{b.title}</Text>
-                    <Text style={[s.bundleSavings, { color: '#FBCFE8' }]}>save {fmtINR(b.savings_inr)}</Text>
+                    <Text className="text-xs font-body-bold" style={{ color: '#FBCFE8' }}>save {fmtINR(b.savings_inr)}</Text>
                   </View>
                 </View>
               ))}
@@ -430,7 +430,7 @@ export default function DealsScreen() {
                   {claimDeal.logo_url ? (
                     <Image source={{ uri: resolveImageUrl(claimDeal.logo_url) }} className="w-12 h-12 rounded-xl bg-white" resizeMode="contain" />
                   ) : (
-                    <View style={[s.modalLogoFallback, { backgroundColor: claimDeal.accent + '33' }]}>
+                    <View className="w-12 h-12 rounded-xl items-center justify-center" style={{ backgroundColor: claimDeal.accent + '33' }}>
                       <Text style={{ color: claimDeal.accent, fontSize: 18, fontWeight: '800' }}>{claimDeal.brand[0]}</Text>
                     </View>
                   )}
@@ -445,7 +445,7 @@ export default function DealsScreen() {
 
                 <View className="items-center rounded-xl p-3.5" style={{ backgroundColor: "rgba(0,0,0,0.30)", borderColor: "rgba(255,255,255,0.10)", borderWidth: 1, gap: 4 }}>
                   <Text className="text-dim text-xs" style={{ letterSpacing: 0.5 }}>You save</Text>
-                  <Text style={[s.modalSavingsValue, { color: claimDeal.accent }]}>
+                  <Text className="text-3xl font-display-bold" style={{ color: claimDeal.accent, letterSpacing: -1 }}>
                     {fmtINR(claimDeal.absolute_savings_inr)}
                   </Text>
                   <Text className="text-muted text-xs">
@@ -479,14 +479,14 @@ export default function DealsScreen() {
                   </View>
                 )}
                 {claimResult && !claimResult.ok && (
-                  <View style={[s.claimSuccess, { backgroundColor: 'rgba(248,113,113,0.10)', borderColor: 'rgba(248,113,113,0.45)' }]}>
+                  <View className="flex-row items-center gap-2.5 p-3 rounded-xl" style={{ backgroundColor: 'rgba(248,113,113,0.10)', borderColor: 'rgba(248,113,113,0.45)', borderWidth: 1 }}>
                     <MaterialCommunityIcons name="alert-circle" size={16} color="#F87171" />
-                    <Text style={[s.claimSuccessSub, { color: '#FCA5A5' }]}>{claimResult.error}</Text>
+                    <Text className="text-muted text-xs mt-0.5" style={{ color: '#FCA5A5' }}>{claimResult.error}</Text>
                   </View>
                 )}
 
                 <Pressable
-                  style={[s.modalCTA, { backgroundColor: claimDeal.accent }]}
+                  className="flex-row items-center justify-center gap-1.5 py-3 rounded-xl" style={{ backgroundColor: claimDeal.accent }}
                   disabled={claimBusy}
                   onPress={onClaimConfirm}
                 >
@@ -522,7 +522,7 @@ function Accordion({ open, onToggle, title, icon, tint, bg, border, children }: 
     <View className="rounded-xl overflow-hidden" style={[{ backgroundColor: bg, borderColor: border }]}>
       <Pressable onPress={onToggle} className="flex-row items-center gap-2.5 px-4 py-3.5">
         <MaterialCommunityIcons name={icon} size={18} color={tint} />
-        <Text style={[s.accordionTitle, { color: tint }]}>{title}</Text>
+        <Text className="text-sm font-body-bold flex-1" style={{ color: tint }}>{title}</Text>
         <MaterialCommunityIcons
           name={open ? 'chevron-up' : 'chevron-down'}
           size={18} color={tint}
@@ -536,10 +536,10 @@ function Accordion({ open, onToggle, title, icon, tint, bg, border, children }: 
 
 function AdvisorMetric({ label, value, icon, tint }: { label: string; value: string; icon: IconName; tint: string }) {
   return (
-    <View style={[s.advisorMetric, { borderColor: tint + '44' }]}>
+    <View className="flex-1 p-3 rounded-xl gap-1" style={{ minWidth: 130, backgroundColor: 'rgba(0,0,0,0.20)', borderWidth: 1, borderColor: tint + '44' }}>
       <MaterialCommunityIcons name={icon} size={14} color={tint} />
       <Text className="text-dim text-xs mt-0.5">{label}</Text>
-      <Text style={[s.advisorMetricValue, { color: tint }]}>{value}</Text>
+      <Text className="text-lg font-display-bold mt-0.5" style={{ color: tint }}>{value}</Text>
     </View>
   );
 }
@@ -548,7 +548,7 @@ function DealCard({ d, onClaim }: { d: Deal; onClaim: (d: Deal) => void }) {
   const visible = (d.tags || []).filter((t) => t !== 'HOT').slice(0, 3);
   const overflow = (d.tags || []).filter((t) => t !== 'HOT').length - visible.length;
   return (
-    <View style={[s.card, { borderColor: d.accent + '44' }]}>
+    <View className="rounded-xl" style={{ flexGrow: 1, flexBasis: 260, maxWidth: 340, padding: 14, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, gap: 8, borderColor: d.accent + '44' }}>
       {/* Wrap top details in a flex: 1 view to push CTA to the bottom */}
       <View style={{ flex: 1, gap: 8 }}>
         {/* Top: Logo + title/brand + prices */}
@@ -558,7 +558,7 @@ function DealCard({ d, onClaim }: { d: Deal; onClaim: (d: Deal) => void }) {
             {d.logo_url ? (
               <Image source={{ uri: resolveImageUrl(d.logo_url) }} className="w-11 h-11 bg-white" resizeMode="contain" />
             ) : (
-              <View style={[s.cardLogoFallback, { backgroundColor: d.accent + '33' }]}>
+              <View className="w-11 h-11 rounded-xl items-center justify-center" style={{ backgroundColor: d.accent + '33' }}>
                 <Text style={{ color: d.accent, fontSize: 18, fontWeight: '800' }}>{d.brand[0]}</Text>
               </View>
             )}
@@ -572,12 +572,12 @@ function DealCard({ d, onClaim }: { d: Deal; onClaim: (d: Deal) => void }) {
 
           {/* Col 3: Prices */}
           <View style={{ alignItems: 'flex-end', justifyContent: 'center' }}>
-            <Text style={[s.cardPrice, { color: '#86EFAC' }]}>{d.price_label}</Text>
+            <Text className="text-lg font-display-bold" style={{ color: '#86EFAC', letterSpacing: -0.5 }}>{d.price_label}</Text>
             {d.original_inr > d.price_inr && (
               <Text className="text-dim text-xs line-through">{d.original_label}</Text>
             )}
             {d.discount_pct > 0 && (
-              <Text style={[s.cardPct, { color: '#FCD34D' }]}>{d.discount_pct}% off</Text>
+              <Text className="text-xs font-body-bold" style={{ color: '#FCD34D' }}>{d.discount_pct}% off</Text>
             )}
           </View>
         </View>
@@ -609,7 +609,7 @@ function DealCard({ d, onClaim }: { d: Deal; onClaim: (d: Deal) => void }) {
 
       {/* CTA */}
       <Pressable
-        style={[s.cardCTA, { backgroundColor: '#5D2EE6', marginTop: 'auto' }]}
+        className="py-2.5 rounded-xl items-center" style={{ backgroundColor: '#5D2EE6', marginTop: 'auto' }}
         onPress={() => onClaim(d)}
       >
         <Text className="text-text font-body-bold text-sm">Claim Deal</Text>

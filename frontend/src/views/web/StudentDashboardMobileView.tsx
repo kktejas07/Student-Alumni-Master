@@ -5,7 +5,7 @@
  * and live integrations with the Jobs, Events, and Courses APIs.
  */
 import { useEffect, useRef, useState } from 'react';
-import { Platform, View, Text, StyleSheet, Pressable, ScrollView, Animated, Easing, ActivityIndicator, Dimensions} from 'react-native';
+import { Platform, View, Text, Pressable, ScrollView, Animated, Easing, ActivityIndicator, Dimensions} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Bell, Briefcase, Calendar, BookOpen, MapPin, Clock

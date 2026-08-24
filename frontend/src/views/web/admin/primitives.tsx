@@ -9,7 +9,7 @@ import { ADMIN_THEME as T } from './theme';
 interface CardProps { children: ReactNode; style?: ViewStyle | ViewStyle[]; padding?: number; }
 export function GlassCard({ children, style, padding = 18 }: CardProps) {
   return (
-    <View className="bg-glass border border-glass-border rounded-2xl" style={[{ padding }, style as any]}>
+    <View style={[styles.card, { padding }, style as any]}>
       {children}
     </View>
   );
@@ -23,19 +23,19 @@ export function KpiCard({ icon: Icon, label, value, note, noteUp }: KpiProps) {
   const tone = noteUp ? T.good : T.bad;
   return (
     <GlassCard padding={16}>
-      <View className="flex-row items-center justify-between gap-3">
-        <View className="w-10 h-10 rounded-xl bg-glass border border-glass-border items-center justify-center">
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+        <View style={styles.kpiIcon}>
           <Icon size={18} color={T.light} />
         </View>
         {note && (
-          <View className="flex-row items-center gap-1 px-2 py-1 rounded-full border" style={{ backgroundColor: tone + '22', borderColor: tone + '55' }}>
+          <View style={[styles.note, { backgroundColor: tone + '22', borderColor: tone + '55' }]}>
             {noteUp ? <TrendingUp size={10} color={tone} /> : <TrendingDown size={10} color={tone} />}
-            <Text style={{ fontFamily: 'DMSans_700Bold', fontSize: 11, color: tone }}>{note}</Text>
+            <Text style={[styles.noteText, { color: tone }]}>{note}</Text>
           </View>
         )}
       </View>
-      <Text className="text-text font-body-bold text-lg" style={{ lineHeight: 28, marginTop: 14, letterSpacing: -0.5 }}>{value}</Text>
-      <Text className="text-muted text-sm" style={{ fontFamily: 'DMSans_500Medium', marginTop: 6 }}>{label}</Text>
+      <Text style={styles.kpiValue}>{value}</Text>
+      <Text style={styles.kpiLabel}>{label}</Text>
     </GlassCard>
   );
 }
@@ -44,7 +44,7 @@ export function MiniBar({ data, color, height = 48 }: { data: number[]; color?: 
   const max = Math.max(1, ...data);
   const c = color || T.mid;
   return (
-    <View className="flex-row items-end gap-2" style={{ height }}>
+    <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 4, height }}>
       {data.map((v, i) => (
         <View
           key={i}
@@ -69,8 +69,8 @@ export function StatusChip({ label, tone = 'neutral' }: { label: string; tone?: 
   } as const;
   const c = colors[tone];
   return (
-    <View className="rounded-full border" style={{ paddingHorizontal: 9, paddingVertical: 3, backgroundColor: c.bg, borderColor: c.bd, alignSelf: 'flex-start' }}>
-      <Text style={{ fontFamily: 'DMSans_700Bold', fontSize: 11, color: c.fg }}>{label}</Text>
+    <View style={[styles.chip, { backgroundColor: c.bg, borderColor: c.bd }]}>
+      <Text style={[styles.chipText, { color: c.fg }]}>{label}</Text>
     </View>
   );
 }
@@ -87,19 +87,39 @@ export function ActionButton({ label, onPress, variant = 'primary', icon: Icon, 
     : T.borderMd;
   const fg = variant === 'danger' ? '#FCA5A5' : T.text;
   const grad = variant === 'primary' && Platform.OS === 'web'
-    ? ({ backgroundImage: `linear-gradient(135deg,${T.accent},${T.mid})` } as any) : {};
+    ? ({ background: `linear-gradient(135deg,${T.accent},${T.mid})` } as any) : {};
   return (
     <Pressable
       onPress={onPress}
       testID={testID}
-      className="flex-row items-center gap-2 rounded-lg border"
       style={({ hovered, pressed }: any) => [
-        { paddingHorizontal: 14, paddingVertical: 9, backgroundColor: bg, borderColor: border }, grad,
+        styles.btn, { backgroundColor: bg, borderColor: border }, grad,
         hovered && { opacity: 0.92 }, pressed && { opacity: 0.85 },
       ]}
     >
       {Icon && <Icon size={14} color={fg} />}
-      <Text style={{ fontFamily: 'DMSans_700Bold', fontSize: 12.5, color: fg }}>{label}</Text>
+      <Text style={[styles.btnText, { color: fg }]}>{label}</Text>
     </Pressable>
   );
 }
+
+const styles = {
+  card: {
+    backgroundColor: T.glass, borderColor: T.border, borderWidth: 1,
+    borderRadius: 16,
+    ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(10px)' } as any) : {}),
+  },
+  kpiIcon: {
+    width: 40, height: 40, borderRadius: 11,
+    backgroundColor: T.glassMd, borderColor: T.borderMd, borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  note: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8, borderWidth: 1 },
+  noteText: { fontFamily: 'DMSans_700Bold', fontSize: 11 },
+  kpiValue: { color: T.text, fontFamily: 'DMSans_700Bold', fontSize: 28, lineHeight: 28, marginTop: 14, letterSpacing: -0.5 },
+  kpiLabel: { color: T.textMute, fontFamily: 'DMSans_500Medium', fontSize: 12, marginTop: 6 },
+  chip: { paddingHorizontal: 9, paddingVertical: 3, borderRadius: 999, borderWidth: 1, alignSelf: 'flex-start' },
+  chipText: { fontFamily: 'DMSans_700Bold', fontSize: 11 },
+  btn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10, borderWidth: 1 },
+  btnText: { fontFamily: 'DMSans_700Bold', fontSize: 12.5 },
+};

@@ -3,7 +3,7 @@
  * Specs: /tmp/ui_specs/platform-mentor.jsx
  */
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, useWindowDimensions } from 'react-native';
+import { View, Text, Pressable, useWindowDimensions } from 'react-native';
 import { GlassCard, Avatar, PageHeader, SectionLabel, ProgressStrip, KpiTile } from '../components';
 import { SA, SAGradients } from '../tokens';
 import { api } from '@/src/models/services/api';
@@ -93,7 +93,8 @@ export function MentorSessions() {
   const [bookings, setBookings] = useState<any[]>([]);
   useEffect(() => {
     if (!user) return;
-    api.myBookings().then((r) => setBookings(r.bookings || [])).catch(() => {});
+    api.myBookings().then((r) => setBookings(r.bookings || [])).catch(() => {};
+
   }, [user]);
 
   const upcoming = bookings.filter((b) => b.status === 'confirmed' || b.status === 'pending');
@@ -282,7 +283,7 @@ export function MentorAnalyticsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = {
   grid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -7 },
   split: { flexDirection: 'row', gap: 20 },
   kpiRow: { flexDirection: 'row', gap: 14, marginBottom: 24, flexWrap: 'wrap' as const },
@@ -318,4 +319,4 @@ const styles = StyleSheet.create({
     minHeight: 160, gap: 4,
     ...({ cursor: 'pointer' } as any),
   },
-});
+};

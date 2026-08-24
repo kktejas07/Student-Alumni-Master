@@ -4,10 +4,7 @@
  */
 import { useState, useEffect } from 'react';
 import { View, Text, ScrollView, Pressable, Image, Platform, Modal } from 'react-native';
-import {
-  Mail, Phone, MapPin, Building2, Link2, Link2 as GithubIcon, Globe, Sparkles, Check, X, Upload, Camera,
-  TrendingUp, AlertCircle, Plus, Trash2, Folder, Image as ImageIcon, ShieldCheck, Shield, Lock, Eye, EyeOff
-} from 'lucide-react-native';
+import { Mail, Phone, MapPin, Building2, Link2, Link2 as GithubIcon, Globe, Sparkles, Check, X, Upload, Camera, TrendingUp, AlertCircle, Plus, Trash2, Folder, Image as ImageIcon } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { WebcamModal } from '@/src/views/components/WebcamModal';
 import { CompletionRing } from './CompletionRing';
@@ -16,7 +13,6 @@ import { request } from '@/src/models/services/api';
 import { useToast } from '@/src/views/components';
 import { SuggestionAutocomplete } from '@/src/views/web/SuggestionAutocomplete';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
-import { DigiLockerOAuthModal } from './DigiLockerOAuthModal';
 
 const CITY_LIST = [
   'Mumbai', 'Delhi', 'Bengaluru', 'Hyderabad', 'Chennai', 'Kolkata',
@@ -91,9 +87,9 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
   const initials = ((draft.full_name || '?').split(' ').slice(0,2).map((s: string) => s[0] || '').join('') || '?').toUpperCase();
 
   const isMentor = !!onTakeSelfie;
-  const themeColor = isMentor ? '#14B8A6' : '#A78BFA';
-  const themeBg = isMentor ? 'rgba(20,184,166,0.15)' : 'rgba(167,139,250,0.15)';
-  const themeBadgeBg = isMentor ? '#14B8A6' : '#7C3AED';
+  const themeColor = isMentor ? '#14B8A6' : '#60A5FA';
+  const themeBg = isMentor ? 'rgba(20,184,166,0.15)' : 'rgba(37,99,235,0.15)';
+  const themeBadgeBg = isMentor ? '#14B8A6' : '#2563EB';
 
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -115,40 +111,6 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
   const [skillIntel, setSkillIntel] = useState<any>(null);
   const [loadingIntel, setLoadingIntel] = useState(false);
   const [selectedSkill, setSelectedSkill] = useState<any>(null); // For modal
-
-  // Identity & DigiLocker Verification State
-  const [showAadhaar, setShowAadhaar] = useState(false);
-  const [aadhaarVerifying, setAadhaarVerifying] = useState(false);
-  const [digilockerSyncing, setDigilockerSyncing] = useState(false);
-  const [digilockerModalVisible, setDigilockerModalVisible] = useState(false);
-
-  const handleDigiLockerOAuthSuccess = (res: any) => {
-    const fields = res.auto_filled_fields || {};
-    setDraft((d: any) => ({
-      ...d,
-      aadhaar_number: fields.aadhaar_number || d.aadhaar_number,
-      aadhaar_masked: fields.aadhaar_masked || d.aadhaar_masked,
-      aadhaar_verified: true,
-      digilocker_id: fields.digilocker_id || d.digilocker_id,
-      digilocker_verified: true,
-      digilocker_doc_count: fields.digilocker_doc_count || 3,
-      institution: d.institution || fields.institution,
-      board_or_university: d.board_or_university || fields.board_or_university,
-      city: d.city || fields.city,
-      state: d.state || fields.state,
-    }));
-    toast.success('DigiLocker & Aadhaar e-KYC Synced', 'Official identity and 3 academic credentials uploaded.');
-  };
-
-  const handleVerifyAadhaar = async () => {
-    // Launch the official MeriPehchaan DigiLocker / Aadhaar OTP gateway
-    setDigilockerModalVisible(true);
-  };
-
-  const handleLinkDigiLocker = async () => {
-    // Launch the official MeriPehchaan DigiLocker / Aadhaar OTP gateway
-    setDigilockerModalVisible(true);
-  };
 
   useEffect(() => {
     fetchSkillIntelligence();
@@ -183,7 +145,8 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
         base64: true,
         allowsEditing: true,
         aspect: [1, 1],
-      });
+      };
+
       if (!res.canceled && res.assets[0]?.base64) {
         const base64Photo = `data:image/jpeg;base64,${res.assets[0].base64}`;
         setPendingPhoto(base64Photo);
@@ -202,7 +165,8 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
         aspect: [3, 1],
         quality: 0.6,
         base64: true,
-      });
+      };
+
       if (!result.canceled && result.assets[0]?.base64) {
         setDraft((d: any) => ({ ...d, banner_data: `data:image/jpeg;base64,${result.assets[0].base64}` }));
       }
@@ -233,7 +197,8 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
         aspect: [1, 1],
         quality: 0.6,
         base64: true,
-      });
+      };
+
       if (!result.canceled && result.assets[0]?.base64) {
         setDraft((d: any) => ({ ...d, college_logo_data: `data:image/jpeg;base64,${result.assets[0].base64}` }));
       }
@@ -265,8 +230,8 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
       const res = await request<any>('/users/me/skills', {
         method: 'POST',
         body: { skill: raw }
-      });
-      
+      };
+
       if (res.status === 'exists') {
         toast.info('Skill exists', `${raw} is already on your profile.`);
         return;
@@ -318,8 +283,8 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
 
   const removeSkill = async (skillName: string) => {
     try {
-      await request(`/users/me/skills/${encodeURIComponent(skillName)}`, { method: 'DELETE' });
-      
+      await request(`/users/me/skills/${encodeURIComponent(skillName)}`, { method: 'DELETE' };
+
       const existing: string[] = draft.skills || [];
       setField('skills', existing.filter((s) => s.toLowerCase() !== skillName.toLowerCase()));
       
@@ -341,7 +306,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
       {/* Completion Banner */}
       {!isCollege && (
         <View style={[st.banner, completion.percentage >= 100 && st.bannerComplete]}>
-          <CompletionRing pct={completion.percentage} size={92} color={completion.percentage >= 100 ? '#10B981' : '#A78BFA'} />
+          <CompletionRing pct={completion.percentage} size={92} color={completion.percentage >= 100 ? '#10B981' : '#60A5FA'} />
           <View style={{ flex: 1, minWidth: 0, gap: 10 }}>
             <Text style={st.bannerTitle}>Profile Completion</Text>
             <Text style={st.bannerSub}>Complete your profile to unlock personalized recommendations & higher trust signals.</Text>
@@ -383,7 +348,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
             <View style={{ position: 'absolute', top: 16, left: 16, flexDirection: 'row', gap: 8 }}>
               <Pressable onPress={pickBannerImage} style={{ backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Upload size={14} color="#FFF" />
-                <Text style={{ color: '#FFF', fontSize: 13, fontFamily: 'DMSans_700Bold' }}>Upload Banner</Text>
+                <Text style={{ color: '#000', fontSize: 13, fontFamily: 'DMSans_700Bold' }}>Upload Banner</Text>
               </Pressable>
               {draft.banner_data && (
                 <Pressable onPress={() => setDraft((d: any) => ({ ...d, banner_data: '' }))} style={{ backgroundColor: 'rgba(0,0,0,0.6)', padding: 10, borderRadius: 20 }}>
@@ -394,17 +359,17 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
 
             {/* Profile Photo (Logo) on the Bottom Right */}
             <View style={{ position: 'absolute', bottom: 12, right: 12, zIndex: 20 }}>
-              <View style={{ width: 84, height: 84, borderRadius: 16, backgroundColor: '#0a0f1e', overflow: 'hidden', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
+              <View style={{ width: 84, height: 84, borderRadius: 16, backgroundColor: '#0a0f1e', overflow: 'hidden', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(0,0,0,0.05)' }}>
                 {photo ? (
                   <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} />
                 ) : (
-                  <Text style={{ color: '#C4B5FD', fontFamily: 'DMSans_800ExtraBold', fontSize: 32 }}>{initials}</Text>
+                  <Text style={{ color: '#93C5FD', fontFamily: 'DMSans_800ExtraBold', fontSize: 32 }}>{initials}</Text>
                 )}
               </View>
               {/* Small camera edit button */}
               <Pressable
                 onPress={pickCollegeLogo}
-                style={{ position: 'absolute', bottom: -6, right: -6, width: 28, height: 28, borderRadius: 14, backgroundColor: '#A78BFA', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#131938' }}
+                style={{ position: 'absolute', bottom: -6, right: -6, width: 28, height: 28, borderRadius: 14, backgroundColor: '#60A5FA', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#131938' }}
                 testID="pf-college-logo-upload"
               >
                 <Camera size={14} color="#FFF" />
@@ -491,7 +456,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
               <View style={st.modalHeader}>
                 <Text style={st.modalTitle}>Update Profile Photo</Text>
                 <Pressable onPress={handleCloseMenu} style={st.modalCloseBtn}>
-                  <X size={18} color="rgba(255,255,255,0.7)" />
+                  <X size={18} color="rgba(0,0,0,0.7)" />
                 </Pressable>
               </View>
 
@@ -570,168 +535,6 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
               placeholder="e.g. Maharashtra"
               suggestions={STATE_LIST}
             />
-          </View>
-        </View>
-      </Card>
-      </View>
-
-      {/* Government Identity & DigiLocker Verification */}
-      <View style={{ zIndex: 45, position: 'relative' }}>
-      <Card
-        title="Government Identity & DigiLocker Verification"
-        subtitle="Authenticate your National Identity (Aadhaar UIDAI) and link DigiLocker for instant academic credential verification."
-      >
-        <View style={{ gap: 14 }}>
-          {/* Aadhaar Number Input & Verification */}
-          <View style={{ backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', gap: 10 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <ShieldCheck size={18} color="#10B981" />
-                <Text style={{ color: '#F1F5F9', fontFamily: 'DMSans_700Bold', fontSize: 14 }}>Aadhaar Number (UIDAI)</Text>
-              </View>
-              {draft.aadhaar_verified ? (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(16,185,129,0.15)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(16,185,129,0.35)' }}>
-                  <Check size={12} color="#10B981" />
-                  <Text style={{ color: '#10B981', fontFamily: 'DMSans_700Bold', fontSize: 11 }}>UIDAI Authenticated</Text>
-                </View>
-              ) : (
-                <View style={{ backgroundColor: 'rgba(245,158,11,0.15)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(245,158,11,0.35)' }}>
-                  <Text style={{ color: '#F59E0B', fontFamily: 'DMSans_700Bold', fontSize: 11 }}>Pending Verification</Text>
-                </View>
-              )}
-            </View>
-
-            <Text style={{ color: '#94A3B8', fontSize: 12, lineHeight: 16 }}>
-              Enter your 12-digit Aadhaar number. In compliance with UIDAI security standards, your Aadhaar is stored encrypted and auto-masked as <Text style={{ color: '#CBD5E1', fontFamily: 'DMSans_700Bold' }}>•••• •••• {String(draft.aadhaar_number || '').replace(/\D/g, '').slice(-4) || 'XXXX'}</Text>.
-            </Text>
-
-            <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-              <View style={{ flex: 1, position: 'relative' }}>
-                <TF
-                  value={
-                    showAadhaar
-                      ? (draft.aadhaar_number || '')
-                      : (draft.aadhaar_masked || (draft.aadhaar_number ? `•••• •••• ${String(draft.aadhaar_number).replace(/\D/g, '').slice(-4)}` : ''))
-                  }
-                  onChangeText={(v) => {
-                    const clean = v.replace(/\D/g, '').slice(0, 12);
-                    setField('aadhaar_number', clean);
-                    if (clean.length >= 4) {
-                      setField('aadhaar_masked', `•••• •••• ${clean.slice(-4)}`);
-                    }
-                  }}
-                  leftIcon={<Lock size={14} color={C.text2} />}
-                  placeholder="12-digit Aadhaar (e.g. 5489 2310 9874)"
-                  testID="pf-aadhaar"
-                />
-              </View>
-
-              <Pressable
-                onPress={() => setShowAadhaar(!showAadhaar)}
-                style={{ height: 42, paddingHorizontal: 12, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' }}
-                testID="pf-toggle-aadhaar"
-              >
-                {showAadhaar ? <EyeOff size={16} color="#94A3B8" /> : <Eye size={16} color="#94A3B8" />}
-              </Pressable>
-
-              <Pressable
-                onPress={handleVerifyAadhaar}
-                disabled={aadhaarVerifying || !draft.aadhaar_number}
-                style={{
-                  height: 42,
-                  paddingHorizontal: 14,
-                  borderRadius: 10,
-                  backgroundColor: draft.aadhaar_verified ? 'rgba(16,185,129,0.20)' : '#7C3AED',
-                  borderWidth: 1,
-                  borderColor: draft.aadhaar_verified ? '#10B981' : '#8B5CF6',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  opacity: (aadhaarVerifying || !draft.aadhaar_number) ? 0.6 : 1
-                }}
-                testID="pf-verify-aadhaar-btn"
-              >
-                <Text style={{ color: '#FFF', fontFamily: 'DMSans_700Bold', fontSize: 12 }}>
-                  {aadhaarVerifying ? 'Verifying…' : (draft.aadhaar_verified ? 'Re-Verify' : 'Verify UIDAI')}
-                </Text>
-              </Pressable>
-            </View>
-          </View>
-
-          {/* DigiLocker Account Linking */}
-          <View style={{ backgroundColor: 'rgba(124,58,237,0.04)', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: 'rgba(124,58,237,0.22)', gap: 10 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Globe size={18} color="#8B5CF6" />
-                <Text style={{ color: '#F1F5F9', fontFamily: 'DMSans_700Bold', fontSize: 14 }}>DigiLocker & Academic Bank of Credits (ABC)</Text>
-              </View>
-              {draft.digilocker_verified ? (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(16,185,129,0.15)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(16,185,129,0.35)' }}>
-                  <Check size={12} color="#10B981" />
-                  <Text style={{ color: '#10B981', fontFamily: 'DMSans_700Bold', fontSize: 11 }}>Linked ({draft.digilocker_doc_count || 3} Docs)</Text>
-                </View>
-              ) : (
-                <View style={{ backgroundColor: 'rgba(255,255,255,0.06)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' }}>
-                  <Text style={{ color: '#94A3B8', fontFamily: 'DMSans_700Bold', fontSize: 11 }}>Not Connected</Text>
-                </View>
-              )}
-            </View>
-
-            <Text style={{ color: '#94A3B8', fontSize: 12, lineHeight: 16 }}>
-              Connect your Government DigiLocker account to automatically pull & verify your official degrees, marksheets, and Academic Bank of Credits (ABC) credentials.
-            </Text>
-
-            {draft.digilocker_verified && (
-              <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
-                <View style={{ backgroundColor: 'rgba(16,185,129,0.10)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(16,185,129,0.25)' }}>
-                  <Text style={{ color: '#34D399', fontSize: 11, fontWeight: '600' }}>✓ NAD Degree Certificate</Text>
-                </View>
-                <View style={{ backgroundColor: 'rgba(16,185,129,0.10)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(16,185,129,0.25)' }}>
-                  <Text style={{ color: '#34D399', fontSize: 11, fontWeight: '600' }}>✓ ABC ID (Ministry of Education)</Text>
-                </View>
-                <View style={{ backgroundColor: 'rgba(16,185,129,0.10)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(16,185,129,0.25)' }}>
-                  <Text style={{ color: '#34D399', fontSize: 11, fontWeight: '600' }}>✓ 10th & 12th Board Marksheet</Text>
-                </View>
-              </View>
-            )}
-
-            <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center', marginTop: 2 }}>
-              <Pressable
-                onPress={handleLinkDigiLocker}
-                disabled={digilockerSyncing}
-                style={{
-                  paddingHorizontal: 16,
-                  paddingVertical: 9,
-                  borderRadius: 10,
-                  backgroundColor: draft.digilocker_verified ? 'rgba(124,58,237,0.18)' : '#7C3AED',
-                  borderWidth: 1,
-                  borderColor: '#8B5CF6',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexDirection: 'row',
-                  gap: 6
-                }}
-                testID="pf-digilocker-link-btn"
-              >
-                <Globe size={14} color="#FFF" />
-                <Text style={{ color: '#FFF', fontFamily: 'DMSans_700Bold', fontSize: 12 }}>
-                  {digilockerSyncing ? 'Connecting to DigiLocker…' : (draft.digilocker_verified ? 'Re-Sync DigiLocker Documents' : 'Connect DigiLocker (1-Click)')}
-                </Text>
-              </Pressable>
-
-              {draft.digilocker_verified && (
-                <Pressable
-                  onPress={() => {
-                    setField('digilocker_verified', false);
-                    setField('digilocker_id', null);
-                    setField('digilocker_doc_count', 0);
-                    toast.info('DigiLocker Unlinked', 'Document connection has been removed.');
-                  }}
-                  style={{ paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10, backgroundColor: 'rgba(239,68,68,0.10)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.25)' }}
-                >
-                  <Text style={{ color: '#EF4444', fontSize: 11, fontWeight: '600' }}>Disconnect</Text>
-                </Pressable>
-              )}
-            </View>
           </View>
         </View>
       </Card>
@@ -849,7 +652,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
             <View style={st.suggestionsBox}>
               {filteredSuggestions.map(sug => (
                 <Pressable key={sug} onPress={() => addSkillsFromInput(sug)} style={st.suggestionItem}>
-                  <Sparkles size={12} color="#A78BFA" />
+                  <Sparkles size={12} color="#60A5FA" />
                   <Text style={st.suggestionText}>{sug}</Text>
                 </Pressable>
               ))}
@@ -866,7 +669,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
                 <View style={st.richChipTop}>
                   <Text style={st.richChipName}>{sk.skill_name}</Text>
                   <Pressable onPress={(e) => { e.stopPropagation(); removeSkill(sk.skill_name); }} style={st.richChipDel}>
-                    <X size={12} color="rgba(255,255,255,0.4)" />
+                    <X size={12} color="rgba(0,0,0,0.4)" />
                   </Pressable>
                 </View>
                 <View style={st.richChipBottom}>
@@ -886,7 +689,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
         {skillIntel && skillIntel.analytics && (
           <View style={st.intelPanel}>
             <View style={st.intelHeader}>
-              <TrendingUp size={16} color="#A78BFA" />
+              <TrendingUp size={16} color="#60A5FA" />
               <Text style={st.intelTitle}>Career Readiness Impact</Text>
             </View>
             
@@ -935,12 +738,12 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
             <View style={st.modalHeader}>
               <Text style={st.modalTitle}>Skill Intelligence Data</Text>
               <Pressable onPress={() => setSelectedSkill(null)} style={st.modalCloseBtn}>
-                <X size={18} color="rgba(255,255,255,0.7)" />
+                <X size={18} color="rgba(0,0,0,0.7)" />
               </Pressable>
             </View>
             
             <View style={{ width: '100%', gap: 12, alignItems: 'flex-start' }}>
-              <Text style={{ color: '#fff', fontSize: 24, fontFamily: 'DMSans_700Bold' }}>{selectedSkill.skill_name}</Text>
+              <Text style={{ color: '#000', fontSize: 24, fontFamily: 'DMSans_700Bold' }}>{selectedSkill.skill_name}</Text>
               
               <View style={st.modalDetailRow}>
                 <Text style={st.modalDetailLabel}>Subcategory:</Text>
@@ -980,7 +783,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
             <View style={st.modalHeader}>
               <Text style={st.modalTitle}>Add a New Project</Text>
               <Pressable onPress={() => { setProjModalVisible(false); setNewProjName(''); setNewProjDesc(''); }} style={st.modalCloseBtn}>
-                <X size={18} color="rgba(255,255,255,0.7)" />
+                <X size={18} color="rgba(0,0,0,0.7)" />
               </Pressable>
             </View>
 
@@ -1036,14 +839,323 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
           setWebcamVisible(false);
         }}
       />
-
-      <DigiLockerOAuthModal
-        visible={digilockerModalVisible}
-        onClose={() => setDigilockerModalVisible(false)}
-        userId={draft.id || draft._id}
-        onSuccess={handleDigiLockerOAuthSuccess}
-      />
     </View>
   );
 }
-;
+
+const st = {
+  banner: {
+    flexDirection: 'row', gap: 18, alignItems: 'center',
+    padding: 20, borderRadius: 16,
+    backgroundColor: 'rgba(37,99,235,0.07)',
+    borderColor: 'rgba(37,99,235,0.25)', borderWidth: 1,
+  },
+  bannerComplete: {
+    backgroundColor: 'rgba(16,185,129,0.07)',
+    borderColor: 'rgba(16,185,129,0.30)',
+  },
+  bannerTitle: { color: '#000', fontFamily: 'DMSans_700Bold', fontSize: 17 },
+  bannerSub:   { color: 'rgba(0,0,0,0.65)', fontFamily: 'DMSans_400Regular', fontSize: 12.5 },
+  completePill: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#fff', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999 },
+  completePillText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 11 },
+  itemsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  itemPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999,
+    backgroundColor: 'rgba(0,0,0,0.05)', borderColor: 'rgba(0,0,0,0.10)', borderWidth: 1,
+  },
+  itemPillDone: { backgroundColor: 'rgba(16,185,129,0.10)', borderColor: 'rgba(16,185,129,0.35)' },
+  itemPillText: { color: 'rgba(0,0,0,0.65)', fontFamily: 'DMSans_600SemiBold', fontSize: 11 },
+  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: 'rgba(0,0,0,0.30)' },
+
+  // Profile Photo section (new layout matching spec)
+  photoRow: { flexDirection: 'row', alignItems: 'center', gap: 18, marginBottom: 4 },
+  avatarLg: {
+    width: 92, height: 92, borderRadius: 46, overflow: 'hidden', position: 'relative',
+    backgroundColor: 'rgba(37,99,235,0.20)', alignItems: 'center', justifyContent: 'center',
+    ...({ cursor: 'pointer' } as any),
+  },
+  avatarLgText: { color: '#60A5FA', fontFamily: 'DMSans_800ExtraBold', fontSize: 28 },
+  avatarCheck: {
+    position: 'absolute', bottom: 2, right: 2,
+    width: 22, height: 22, borderRadius: 11,
+    backgroundColor: '#fff',
+    alignItems: 'center', justifyContent: 'center',
+    borderColor: '#0B0717', borderWidth: 2,
+  },
+  avatarBadge: {
+    position: 'absolute', bottom: 2, right: 2,
+    width: 22, height: 22, borderRadius: 11,
+    backgroundColor: '#2563EB',
+    alignItems: 'center', justifyContent: 'center',
+    borderColor: '#0B0717', borderWidth: 2,
+  },
+  modalBackdrop: {
+    position: Platform.OS === 'web' ? 'fixed' : 'absolute' as any,
+    top: 0, bottom: 0, left: 0, right: 0,
+    backgroundColor: 'rgba(0,0,0,0.80)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    zIndex: 9999,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 320,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(37,99,235,0.25)',
+    backgroundColor: '#fff',
+    padding: 20,
+    alignItems: 'center',
+    ...({
+      backgroundImage: 'linear-gradient(180deg, #1A0E2E 0%, #0A0512 100%)' as any,
+      boxShadow: '0px 16px 60px rgba(91,33,182,0.45)' as any,
+    } as any),
+  },
+  modalHeader: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    color: '#000',
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 16,
+  },
+  modalCloseBtn: {
+    padding: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(0,0,0,0.06)',
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    width: '100%',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0,0,0,0.03)',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  menuItemText: {
+    color: 'rgba(0,0,0,0.90)',
+    fontFamily: 'DMSans_600SemiBold',
+    fontSize: 14,
+  },
+  avatarOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionClickBox: {
+    flex: 1,
+    height: 80,
+    borderRadius: 12,
+    backgroundColor: 'rgba(37,99,235,0.06)',
+    borderColor: 'rgba(37,99,235,0.20)',
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 8,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transition: 'all 0.2s ease' } as any) : {}),
+  },
+  actionClickBoxText: {
+    color: 'rgba(0,0,0,0.90)',
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  photoTitle: { color: '#000', fontFamily: 'DMSans_700Bold', fontSize: 14 },
+  photoHint: { color: 'rgba(0,0,0,0.60)', fontFamily: 'DMSans_400Regular', fontSize: 12 },
+
+  btnPrimary: { flexDirection: 'row', gap: 6, paddingHorizontal: 14, height: 34, borderRadius: 8, backgroundColor: '#60A5FA', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ backgroundImage: 'linear-gradient(135deg, #60A5FA 0%, #2563EB 55%, #1D4ED8 100%)', boxShadow: '0 6px 18px rgba(37,99,235,0.35)' } as any) : {}), ...({ cursor: 'pointer' } as any) },
+  btnConfirm: { flexDirection: 'row', gap: 6, paddingHorizontal: 14, height: 34, borderRadius: 8, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ backgroundImage: 'linear-gradient(135deg, #34D399 0%, #10B981 55%, #059669 100%)', boxShadow: '0 6px 18px rgba(16,185,129,0.35)' } as any) : {}), ...({ cursor: 'pointer' } as any) },
+  btnPrimaryText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12 },
+  btnGhost: { paddingHorizontal: 14, height: 34, borderRadius: 8, backgroundColor: 'rgba(37,99,235,0.10)', borderColor: 'rgba(37,99,235,0.30)', borderWidth: 1, alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ boxShadow: '0 4px 14px rgba(37,99,235,0.20)' } as any) : {}), ...({ cursor: 'pointer' } as any) },
+  btnGhostText: { color: 'rgba(0,0,0,0.85)', fontFamily: 'DMSans_700Bold', fontSize: 12 },
+
+  // legacy (unused, kept to prevent runtime undef from any stray ref)
+  avatar: {
+    width: 84, height: 84, borderRadius: 42, overflow: 'hidden', position: 'relative',
+    backgroundColor: 'rgba(37,99,235,0.20)', alignItems: 'center', justifyContent: 'center',
+    ...({ cursor: 'pointer' } as any),
+  },
+  avatarText: { color: '#60A5FA', fontFamily: 'DMSans_800ExtraBold', fontSize: 26 },
+  avatarOver: {
+    position: 'absolute', bottom: 0, left: 0, right: 0, paddingVertical: 4,
+    backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 4,
+  },
+  avatarOverText: { color: '#000', fontFamily: 'DMSans_800ExtraBold', fontSize: 9, letterSpacing: 0.6 },
+
+  btnSm: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, backgroundColor: 'rgba(0,0,0,0.05)', borderColor: 'rgba(0,0,0,0.09)', borderWidth: 1, ...({ cursor: 'pointer' } as any) },
+  btnSmDanger: { backgroundColor: 'rgba(244,63,94,0.10)', borderColor: 'rgba(244,63,94,0.40)' },
+  btnSmText: { color: 'rgba(0,0,0,0.85)', fontFamily: 'DMSans_700Bold', fontSize: 11 },
+
+  row: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
+
+  skillInputRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  skillAddBtn: {
+    height: 40,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2563EB',
+    borderColor: '#2563EB',
+    borderWidth: 1,
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 10px 24px rgba(37,99,235,0.30)' } as any) : {}),
+    ...({ cursor: 'pointer' } as any),
+  },
+  skillAddBtnText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12 },
+  
+  // Suggestions
+  suggestionsBox: {
+    position: 'absolute', top: 48, left: 0, right: 0,
+    backgroundColor: '#fff', borderColor: 'rgba(37,99,235,0.25)', borderWidth: 1, borderRadius: 10,
+    padding: 6, gap: 4, zIndex: 9999,
+    ...(Platform.OS === 'web' ? { boxShadow: '0 10px 25px rgba(0,0,0,0.5)' } : {}),
+  },
+  suggestionItem: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 10, borderRadius: 6, backgroundColor: 'rgba(0,0,0,0.03)', ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {}) },
+  suggestionText: { color: '#1E3A8A', fontFamily: 'DMSans_700Bold', fontSize: 13 },
+
+  // Rich Chips
+  chipsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 12 },
+  richChip: {
+    width: 160, padding: 12, borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.03)', borderColor: 'rgba(37,99,235,0.15)', borderWidth: 1,
+    gap: 8,
+    ...(Platform.OS === 'web' ? { cursor: 'pointer', transition: 'all 0.2s' } : {}),
+  },
+  richChipTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  richChipName: { color: '#000', fontFamily: 'DMSans_700Bold', fontSize: 14 },
+  richChipDel: { padding: 4, backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: 6 },
+  richChipBottom: { flexDirection: 'row', gap: 6 },
+  richBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: 'rgba(37,99,235,0.08)' },
+  richBadgeText: { color: '#2563EB', fontFamily: 'DMSans_700Bold', fontSize: 10 },
+
+  // Intel Panel
+  intelPanel: {
+    marginTop: 20, padding: 16, borderRadius: 14,
+    backgroundColor: 'rgba(15,23,42,0.6)', borderColor: 'rgba(51,65,85,0.5)', borderWidth: 1,
+  },
+  intelHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  intelTitle: { color: '#000', fontFamily: 'DMSans_700Bold', fontSize: 14 },
+  intelGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  intelStat: { flex: 1, minWidth: 120, padding: 12, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.03)', borderColor: 'rgba(0,0,0,0.05)', borderWidth: 1 },
+  intelStatLabel: { color: '#94A3B8', fontFamily: 'DMSans_500Medium', fontSize: 11, marginBottom: 4 },
+  intelStatValue: { color: '#34D399', fontFamily: 'DMSans_800ExtraBold', fontSize: 16 },
+  intelSubHeading: { color: '#94A3B8', fontFamily: 'DMSans_700Bold', fontSize: 12, marginTop: 8 },
+  intelEmpty: { color: 'rgba(0,0,0,0.4)', fontFamily: 'DMSans_400Regular', fontSize: 12, marginTop: 6 },
+  strengthBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(16,185,129,0.1)' },
+  strengthText: { color: '#34D399', fontFamily: 'DMSans_600SemiBold', fontSize: 11 },
+  gapBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(245,158,11,0.1)' },
+  gapText: { color: '#FCD34D', fontFamily: 'DMSans_600SemiBold', fontSize: 11 },
+
+  // Modal specifics
+  modalDetailRow: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', paddingVertical: 8, borderBottomColor: 'rgba(0,0,0,0.05)', borderBottomWidth: 1 },
+  modalDetailLabel: { color: '#94A3B8', fontFamily: 'DMSans_500Medium', fontSize: 13 },
+  modalDetailValue: { color: '#000', fontFamily: 'DMSans_700Bold', fontSize: 13 },
+
+  // Projects section styles
+  emptyProj: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    gap: 8,
+  },
+  emptyProjText: {
+    color: 'rgba(0,0,0,0.45)',
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  projRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 12,
+    borderRadius: 11,
+    backgroundColor: 'rgba(0,0,0,0.03)',
+    borderColor: 'rgba(0,0,0,0.09)',
+    borderWidth: 1,
+  },
+  projIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: 'rgba(37,99,235,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  projName: {
+    color: '#000',
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 13,
+  },
+  projDesc: {
+    color: 'rgba(0,0,0,0.55)',
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 11.5,
+    marginTop: 2,
+  },
+  projDelBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 7,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    borderColor: 'rgba(244,63,94,0.40)',
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  projForm: {
+    marginTop: 10,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.06)',
+    gap: 12,
+  },
+  projFormTitle: {
+    color: '#000',
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 13,
+    marginBottom: 4,
+  },
+  projAddBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    height: 34,
+    borderRadius: 8,
+    backgroundColor: '#60A5FA',
+    ...(Platform.OS === 'web' ? ({ backgroundImage: 'linear-gradient(135deg, #60A5FA 0%, #2563EB 55%, #1D4ED8 100%)', boxShadow: '0 6px 18px rgba(37,99,235,0.35)' } as any) : {}),
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  projAddBtnText: {
+    color: '#000',
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 12,
+  },
+  projHeaderAddBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#60A5FA',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  projHeaderAddBtnText: {
+    color: '#000',
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 12,
+  },
+};
