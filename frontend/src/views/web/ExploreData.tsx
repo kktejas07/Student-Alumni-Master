@@ -21,7 +21,7 @@ export const COURSES_HERO: ExploreHeroTile[] = [
     title: 'AI Career Track',
     subtitle: '12-week roadmap with mentors, projects & free certifications.',
     cta: 'Start free',
-    emoji: '🤖',
+    icon: <Bot size={24} color="#FFFFFF" />,
     gradient: ['#5F259F', '#7C3AED', '#B07FDF'],
     span: 2,
   },
@@ -30,7 +30,7 @@ export const COURSES_HERO: ExploreHeroTile[] = [
     title: 'Free this month',
     subtitle: '24 premium courses unlocked for students.',
     cta: 'Browse',
-    emoji: '🎁',
+    icon: <Gift size={24} color="#FFFFFF" />,
     gradient: ['#10B981', '#34D399'],
     span: 1,
   },
@@ -40,7 +40,7 @@ export const COURSES_SECTIONS: ExploreSection[] = [
   {
     id: 'tech',
     title: 'Tech & Engineering',
-    emoji: '💻',
+    icon: <Code size={24} color="#FFFFFF" />,
     items: [
       { id: 'web',     label: 'Web Dev',          icon: ICON(Code) },
       { id: 'mobile',  label: 'Mobile Dev',       icon: ICON(Smartphone) },
@@ -55,7 +55,7 @@ export const COURSES_SECTIONS: ExploreSection[] = [
   {
     id: 'design',
     title: 'Design & Creative',
-    emoji: '🎨',
+    icon: <Paintbrush size={24} color="#FFFFFF" />,
     items: [
       { id: 'ui',     label: 'UI Design',         icon: ICON(Paintbrush) },
       { id: 'ux',     label: 'UX Research',       icon: ICON(Compass) },
@@ -70,7 +70,7 @@ export const COURSES_SECTIONS: ExploreSection[] = [
   {
     id: 'business',
     title: 'Business & Career',
-    emoji: '💼',
+    icon: <Briefcase size={24} color="#FFFFFF" />,
     items: [
       { id: 'pm',      label: 'Product Mgmt',     icon: ICON(Rocket) },
       { id: 'mkt',     label: 'Marketing',        icon: ICON(Megaphone) },
@@ -91,7 +91,7 @@ export const INTERNSHIPS_HERO: ExploreHeroTile[] = [
     title: 'Top matches just for you',
     subtitle: '42 roles match your career path & skills.',
     cta: 'See matches',
-    emoji: '🎯',
+    icon: <Target size={24} color="#FFFFFF" />,
     gradient: ['#7C3AED', '#B07FDF', '#EC4899'],
     span: 2,
   },
@@ -100,7 +100,7 @@ export const INTERNSHIPS_HERO: ExploreHeroTile[] = [
     title: 'Remote roles',
     subtitle: 'Work from anywhere',
     cta: 'Browse',
-    emoji: '🌍',
+    icon: <Globe size={24} color="#FFFFFF" />,
     gradient: ['#1D4ED8', '#3B82F6', '#60A5FA'],
     span: 1,
   },
@@ -110,7 +110,7 @@ export const INTERNSHIPS_SECTIONS: ExploreSection[] = [
   {
     id: 'role',
     title: 'By Role',
-    emoji: '👔',
+    icon: <User size={24} color="#FFFFFF" />,
     items: [
       { id: 'eng',     label: 'Engineering',     icon: ICON(Code) },
       { id: 'design',  label: 'Design',          icon: ICON(Paintbrush) },
@@ -125,7 +125,7 @@ export const INTERNSHIPS_SECTIONS: ExploreSection[] = [
   {
     id: 'industry',
     title: 'By Industry',
-    emoji: '🏭',
+    icon: <Building2 size={24} color="#FFFFFF" />,
     items: [
       { id: 'fintech', label: 'FinTech',         icon: ICON(DollarSign) },
       { id: 'healthtech', label: 'HealthTech',   icon: ICON(Stethoscope) },
@@ -140,7 +140,7 @@ export const INTERNSHIPS_SECTIONS: ExploreSection[] = [
   {
     id: 'company',
     title: 'Top Companies',
-    emoji: '⭐',
+    icon: <Star size={24} color="#FFFFFF" />,
     items: [
       { id: 'unicorns', label: 'Unicorns',        icon: ICON(Star) },
       { id: 'mnc',      label: 'MNCs',            icon: ICON(Globe) },
@@ -161,7 +161,7 @@ export const NETWORK_HERO: ExploreHeroTile[] = [
     title: 'Find a Mentor',
     subtitle: 'Browse 500+ verified mentors. Book 1:1 sessions instantly.',
     cta: 'Find mentor',
-    emoji: '🤝',
+    icon: <Handshake size={24} color="#FFFFFF" />,
     gradient: ['#10B981', '#34D399', '#86EFAC'],
     span: 2,
   },
@@ -170,7 +170,7 @@ export const NETWORK_HERO: ExploreHeroTile[] = [
     title: 'Knowledge Rooms',
     subtitle: 'Live discussions',
     cta: 'Join',
-    emoji: '💬',
+    icon: <MessageCircle size={24} color="#FFFFFF" />,
     gradient: ['#F59E0B', '#FCD34D'],
     span: 1,
   },
@@ -180,7 +180,7 @@ export const NETWORK_SECTIONS: ExploreSection[] = [
   {
     id: 'connect',
     title: 'Connect',
-    emoji: '🤝',
+    icon: <Handshake size={24} color="#FFFFFF" />,
     items: [
       { id: 'mentors',  label: 'Mentors',         icon: ICON(Users) },
       { id: 'alumni',   label: 'Alumni',          icon: ICON(GraduationCap) },
@@ -195,7 +195,7 @@ export const NETWORK_SECTIONS: ExploreSection[] = [
   {
     id: 'discover',
     title: 'Discover',
-    emoji: '✨',
+    icon: <Sparkles size={24} color="#FFFFFF" />,
     items: [
       { id: 'events',      label: 'Events',          icon: ICON(Calendar) },
       { id: 'live',        label: 'Live Sessions',   icon: ICON(Video) },
@@ -213,7 +213,7 @@ export const NETWORK_SECTIONS: ExploreSection[] = [
   {
     id: 'tools',
     title: 'Build Your Profile',
-    emoji: '🧰',
+    icon: <Wrench size={24} color="#FFFFFF" />,
     items: [
       { id: 'resume',   label: 'Resume',          icon: ICON(FileText) },
       { id: 'portfolio',label: 'Portfolio',       icon: ICON(Layers) },

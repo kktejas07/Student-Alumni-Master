@@ -194,7 +194,7 @@ export default function HigherEducationScreen() {
     <FeaturePageShell
       title="Higher Education"
       subtitle="AI-powered programme discovery + Application Tracker"
-      heroEmoji="🎓"
+      heroEmoji=""
       accent={themeColor}
       rightSlot={
         <Pressable
