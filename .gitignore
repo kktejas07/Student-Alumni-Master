@@ -219,6 +219,7 @@ backend/cryptography.whl
 # ── User uploaded files / media (always store in docker volume, never in Git)
 uploads/
 backend/uploads/
+SA New Theme/
 # Audit and removal records
 REMOVED_FILES_AUDIT.md
 docs/REMOVED_FILES_AUDIT.md

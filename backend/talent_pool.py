@@ -100,10 +100,24 @@ class TalentProfileIn(BaseModel):
     photo_url: Optional[str] = None
     bio: Optional[str] = None
     source: str = "manual"
+    # Extended ID & Evaluation fields
+    sa_id: Optional[str] = None
+    is_registered_user: Optional[bool] = False
+    account_status: Optional[str] = "unregistered"
+    certificate_id: Optional[str] = None
+    bgv_id: Optional[str] = None
+    visa: Optional[str] = None
+    exp_level: Optional[str] = None
+    c2c_w2: Optional[str] = None
+    f2f: Optional[str] = None
+    interest_status: Optional[str] = None
+    preferred_location: Optional[str] = None
+    screening_notes: Optional[str] = None
 
 
 class TalentProfileOut(BaseModel):
     id: str
+    sa_id: Optional[str] = None
     full_name: str
     headline: Optional[str] = None
     email: Optional[str] = None
@@ -122,6 +136,18 @@ class TalentProfileOut(BaseModel):
     bio: Optional[str] = None
     source: str = "manual"
     is_active: bool = True
+    is_registered_user: bool = False
+    account_status: str = "unregistered"
+    certificate_id: Optional[str] = None
+    bgv_id: Optional[str] = None
+    # Recruiter Evaluation Columns
+    visa: Optional[str] = None
+    exp_level: Optional[str] = None
+    c2c_w2: Optional[str] = None
+    f2f: Optional[str] = None
+    interest_status: Optional[str] = None
+    preferred_location: Optional[str] = None
+    screening_notes: Optional[str] = None
     imported_at: Optional[str] = None
     last_synced_at: Optional[str] = None
     created_at: Optional[str] = None
@@ -139,8 +165,11 @@ class TalentPoolSearch(BaseModel):
 
 
 def _profile_out(doc: dict) -> dict:
+    oid_str = str(doc["_id"])
+    is_reg = bool(doc.get("is_registered_user") or doc.get("user_id") or doc.get("source_platform_user_id"))
     return {
-        "id": str(doc["_id"]),
+        "id": oid_str,
+        "sa_id": doc.get("sa_id") or f"SA-{oid_str[-6:].upper()}",
         "full_name": doc.get("full_name", ""),
         "headline": doc.get("headline"),
         "email": doc.get("email"),
@@ -159,6 +188,18 @@ def _profile_out(doc: dict) -> dict:
         "bio": doc.get("bio"),
         "source": doc.get("source", "manual"),
         "is_active": doc.get("is_active", True),
+        "is_registered_user": is_reg,
+        "account_status": "registered" if is_reg else "unregistered",
+        "certificate_id": doc.get("certificate_id") or (f"CERT-{oid_str[-6:].upper()}" if doc.get("certified") else None),
+        "bgv_id": doc.get("bgv_id") or (f"BGV-{oid_str[-6:].upper()}" if doc.get("bgv_verified") else None),
+        # Recruiter Evaluation Columns
+        "visa": doc.get("visa") or doc.get("work_authorization"),
+        "exp_level": doc.get("exp_level") or doc.get("exp") or (f"{doc.get('experience_years')} yrs" if doc.get("experience_years") is not None else None),
+        "c2c_w2": doc.get("c2c_w2") or doc.get("c2c/w2") or doc.get("work_type"),
+        "f2f": doc.get("f2f") or doc.get("f2f_interview"),
+        "interest_status": doc.get("interest_status") or doc.get("intersted/notinter") or doc.get("status") or "Interested",
+        "preferred_location": doc.get("preferred_location") or doc.get("target_location") or doc.get("location"),
+        "screening_notes": doc.get("screening_notes") or doc.get("notes"),
         "imported_at": doc.get("imported_at").isoformat() if doc.get("imported_at") else None,
         "last_synced_at": doc.get("last_synced_at").isoformat() if doc.get("last_synced_at") else None,
         "created_at": doc.get("created_at").isoformat() if doc.get("created_at") else None,
@@ -185,6 +226,16 @@ CSV_HEADER_MAP: Dict[str, List[str]] = {
     "graduation_year": ["graduation year", "grad year", "year of graduation", "passing year"],
     "bio":          ["bio", "about", "summary", "description", "evaluation summary"],
     "zip_code":     ["zip code", "zip", "postal code", "postcode"],
+    # Recruiter Evaluation Aliases
+    "sa_id":        ["sa id", "sa_id", "student alumni id", "unique id", "candidate id"],
+    "visa":         ["visa", "visa status", "work authorization", "work status", "us visa", "visa type"],
+    "exp_level":    ["exp", "exp level", "evaluated exp", "recruiter exp", "experience level"],
+    "c2c_w2":       ["c2c/w2", "c2c_w2", "c2c", "w2", "work model", "employment type", "tax terms"],
+    "f2f":          ["f2f", "f2f interview", "face to face", "f2f ready", "in-person ready", "in person"],
+    "interest_status": ["intersted/notinter", "interested/not interested", "interest status", "interest", "status", "candidate interest", "intersted", "not interested"],
+    "preferred_location": ["preferred location", "relocation", "target location", "pref location"],
+    "certificate_id": ["certificate id", "cert id", "certification id", "cert_id"],
+    "bgv_id":       ["bgv id", "bgv", "background verification id", "bgv_id", "verification id"],
 }
 
 
@@ -571,6 +622,15 @@ async def admin_commit_talent_csv(
             "education": row.get("education") or row.get("education_institution"),
             "graduation_year": row.get("graduation_year"),
             "bio": row.get("bio"),
+            "sa_id": row.get("sa_id"),
+            "visa": row.get("visa"),
+            "exp_level": row.get("exp_level"),
+            "c2c_w2": row.get("c2c_w2"),
+            "f2f": row.get("f2f"),
+            "interest_status": row.get("interest_status") or "Interested",
+            "preferred_location": row.get("preferred_location") or location,
+            "certificate_id": row.get("certificate_id"),
+            "bgv_id": row.get("bgv_id"),
             "source": "csv",
             "is_active": True,
             "imported_at": now,
@@ -804,6 +864,141 @@ async def admin_bulk_action(
     return {"ok": True, "affected": len(oids)}
 
 
+class PromoteCandidateBody(BaseModel):
+    profile_id: str
+    category: str = "alumni"  # student, alumni, mentor
+    send_invite: bool = True
+
+
+@router.post("/admin/talent-pool/promote-to-user")
+async def promote_talent_to_user(
+    body: PromoteCandidateBody,
+    authorization: Optional[str] = Header(None),
+):
+    """Promote a candidate in talent_pool into a registered/approved platform user."""
+    await _require_admin(authorization)
+    try:
+        oid = ObjectId(body.profile_id)
+    except Exception:
+        raise HTTPException(400, "Invalid profile_id")
+
+    candidate = await _db.talent_pool.find_one({"_id": oid})
+    if not candidate:
+        raise HTTPException(404, "Candidate profile not found")
+
+    email = (candidate.get("email") or "").strip().lower()
+    full_name = (candidate.get("full_name") or "").strip()
+    name_parts = full_name.split(" ", 1)
+    first_name = name_parts[0] if name_parts else ""
+    last_name = name_parts[1] if len(name_parts) > 1 else ""
+
+    cat = body.category.lower()
+    if cat not in ("student", "alumni", "mentor", "masters"):
+        cat = "alumni"
+
+    now = datetime.now(timezone.utc)
+    user_data = {
+        "email": email,
+        "first_name": first_name,
+        "last_name": last_name,
+        "full_name": full_name,
+        "name": full_name,
+        "phone": candidate.get("phone"),
+        "linkedin_url": candidate.get("linkedin_url"),
+        "location": candidate.get("location"),
+        "company": candidate.get("current_company"),
+        "designation": candidate.get("current_role") or candidate.get("headline"),
+        "headline": candidate.get("headline"),
+        "college": candidate.get("education"),
+        "graduation_year": candidate.get("graduation_year"),
+        "experience_years": candidate.get("experience_years"),
+        "skills": candidate.get("skills", []),
+        "category": cat,
+        "role": cat,
+        "approved": True,
+        "approved_at": now,
+        "created_by": "talent_pool_promotion",
+        "created_at": now,
+        "updated_at": now,
+    }
+
+    existing_user = None
+    if email:
+        existing_user = await _db.users.find_one({"email": email})
+    if not existing_user and candidate.get("linkedin_url"):
+        existing_user = await _db.users.find_one({"linkedin_url": candidate["linkedin_url"]})
+
+    if existing_user:
+        await _db.users.update_one({"_id": existing_user["_id"]}, {"$set": user_data})
+        user_id = str(existing_user["_id"])
+    else:
+        res = await _db.users.insert_one(user_data)
+        user_id = str(res.inserted_id)
+
+    # Link back to talent pool
+    await _db.talent_pool.update_one(
+        {"_id": oid},
+        {"$set": {"source_platform_user_id": user_id, "updated_at": now}}
+    )
+
+    invite_sent = False
+    if body.send_invite and email:
+        try:
+            from core.email import send_email, render_html_email
+            portal_url = os.getenv("FRONTEND_URL") or "https://studentalumni.ai"
+            claim_url = f"{portal_url}/auth?mode=claim&email={email}"
+            content = f"""
+            <h2 style="color: #1E293B; margin-top: 0; font-size: 20px;">Welcome to Student Alumni Platform, {first_name or full_name}!</h2>
+            <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+                Your candidate profile has been connected and activated on the <strong>Student Alumni Network</strong> as a <strong>{cat.capitalize()}</strong>.
+            </p>
+            <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+                Connect with alumni mentors, participate in hiring tracks, and expand your campus reach.
+            </p>
+            <div style="text-align: center; margin: 32px 0;">
+                <a href="{claim_url}" style="background: linear-gradient(135deg, #7C3AED, #5B21B6); color: #ffffff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 15px; display: inline-block;">
+                    Access Your Account
+                </a>
+            </div>
+            """
+            await send_email(email, f"Welcome to Student Alumni — {cat.capitalize()} Account Ready", render_html_email(content))
+            invite_sent = True
+            await _db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"invite_sent_at": now, "invite_status": "sent"}})
+        except Exception as e:
+            print(f"[Promote] Invite send error: {e}")
+
+    return {"ok": True, "user_id": user_id, "invite_sent": invite_sent}
+
+
+# ─── Talent Pool AI Scraping Agents ─────────────────────────────────
+from services.agents.talent_scraper_ai_agent import (
+    talent_scraper_ai_agent,
+    ScrapeProfileRequest,
+    ScrapeProfileResponse,
+    BatchScrapeRequest,
+    BatchScrapeResponse,
+)
+
+@router.post("/admin/talent-pool/ai/scrape-and-store", response_model=ScrapeProfileResponse)
+async def ai_scrape_and_store(
+    req: ScrapeProfileRequest,
+    authorization: Optional[str] = Header(None)
+):
+    """Agent 1 & 2 & 3: Scrapes candidate URL/resume, extracts skills & seniority, and saves to MongoDB."""
+    await _require_admin(authorization)
+    return await talent_scraper_ai_agent.scrape_and_enrich_candidate(req, db=_db)
+
+
+@router.post("/admin/talent-pool/ai/batch-source", response_model=BatchScrapeResponse)
+async def ai_batch_source(
+    req: BatchScrapeRequest,
+    authorization: Optional[str] = Header(None)
+):
+    """Batch Agent: Ingests 50+ candidate URLs concurrently, normalizes data, and syncs talent pool."""
+    await _require_admin(authorization)
+    return await talent_scraper_ai_agent.batch_source_candidates(req, db=_db)
+
+
 # ─── Startup ────────────────────────────────────────────────────────
 def setup():
     import asyncio
@@ -812,3 +1007,4 @@ def setup():
         loop.create_task(_ensure_indexes())
     except RuntimeError:
         pass
+

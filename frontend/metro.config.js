@@ -7,6 +7,7 @@ if (!Array.prototype.toReversed) {
 }
 
 const { getDefaultConfig } = require("expo/metro-config");
+const { withNativeWind } = require("nativewind/metro");
 const path = require('path');
 const { FileStore } = require('metro-cache');
 
@@ -55,7 +56,7 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   }
   if (moduleName === 'lucide-react-native') {
     return {
-      filePath: require.resolve('lucide-react-native'),
+      filePath: path.join(__dirname, 'src', 'shims', 'lucide-react-native.js'),
       type: 'sourceFile',
     };
   }
@@ -79,4 +80,4 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
 // Reduce the number of workers to decrease resource usage
 config.maxWorkers = 2;
 
-module.exports = config;
+module.exports = withNativeWind(config, { input: './global.css' });

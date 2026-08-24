@@ -26,6 +26,7 @@ import { Sidebar as StudentSidebar } from '@/src/views/web/portals/student/Sideb
 import { Sidebar as AlumniSidebar } from '@/src/views/web/portals/alumni/Sidebar';
 import { SA } from '@/src/views/web/platform/tokens';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { SAWatermark } from '@/src/views/web/components/SAWatermark';
 
 /**
  * EmbeddedShellContext — set to true when this Shell is rendered INSIDE a
@@ -262,6 +263,7 @@ export default function FeaturePageShell({
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
+      <SAWatermark size={850} top={30} right={-30} opacity={0.16} />
 
       {/* Ambient floating orbs for depth */}
       <View pointerEvents="none" style={[styles.ambientOrb, { top: -160, right: -140, width: 520, height: 520, backgroundColor: orbColor1 }]} />

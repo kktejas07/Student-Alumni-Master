@@ -2117,7 +2117,7 @@ const s = StyleSheet.create({
   timePresetText: { color: MC.muted, fontFamily: FONTS.med, fontSize: 12 },
   
   overlay: {
-    position: Platform.OS === 'web' ? 'fixed' : 'absolute',
+    position: (Platform.OS === 'web' ? 'fixed' : 'absolute') as any,
     top: 0, left: 0, right: 0, bottom: 0,
     backgroundColor: 'rgba(5, 8, 16, 0.85)',
     zIndex: 9999,

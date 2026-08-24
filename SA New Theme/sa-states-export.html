@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+<template id="__bundler_thumbnail" data-bg-color="#0B0722">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#0B0722"/>
+    <defs>
+      <linearGradient id="ts-o" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#C9A7FF"/><stop offset=".5" stop-color="#8B5CF6"/><stop offset="1" stop-color="#5B3FD9"/></linearGradient>
+      <linearGradient id="ts-i" x1="0" y1="0" x2="0.4" y2="1"><stop offset="0" stop-color="#B683F5"/><stop offset="1" stop-color="#7331C9"/></linearGradient>
+    </defs>
+    <text x="330" y="470" text-anchor="middle" font-family="sans-serif" font-size="200" font-weight="800" fill="#F4F5FB">4</text>
+    <g transform="translate(478 236) scale(0.62)">
+      <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#ts-o)"/>
+      <path d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="url(#ts-i)"/>
+      <text x="150" y="214" text-anchor="middle" font-family="sans-serif" font-size="120" font-weight="800" fill="#FFFFFF">SA</text>
+    </g>
+    <text x="872" y="470" text-anchor="middle" font-family="sans-serif" font-size="200" font-weight="800" fill="#F4F5FB">4</text>
+    <rect x="400" y="596" width="400" height="12" rx="6" fill="#1B1E33"/>
+    <rect x="400" y="596" width="180" height="12" rx="6" fill="#5B4FE9"/>
+  </svg>
+</template>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  @media (max-width: 900px) { .st-tabs { display: none !important; } }
+  @media (max-width: 700px) { .st-hdrrow { padding: 14px 20px !important; } }
+  .st-tab[data-on]::after { content: ''; position: absolute; left: 0; right: 0; bottom: -6px; height: 2px; border-radius: 2px; background: var(--ind, #5B4FE9); }
+  .st-tab[data-on] { color: var(--text) !important; font-weight: 700 !important; }
+  html, body { margin: 0; padding: 0; background: #0B0722; }
+  * { box-sizing: border-box; }
+  a { color: #A99BFF; text-decoration: none; }
+  a:hover { color: #C4B8FF; }
+  @keyframes st-in { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes st-draw { from { stroke-dashoffset: var(--len); } to { stroke-dashoffset: 0; } }
+  @keyframes st-float { 0%, 100% { transform: translateY(0) rotate(-2.5deg); } 50% { transform: translateY(-18px) rotate(2.5deg); } }
+  @keyframes st-drift { 0%, 100% { transform: translate3d(0,0,0) rotate(0deg); } 50% { transform: translate3d(-10px, 14px, 0) rotate(3deg); } }
+  @keyframes st-spin { to { transform: rotate(360deg); } }
+  @keyframes st-pulse { 0%, 100% { opacity: .3; transform: scale(.95); } 50% { opacity: .85; transform: scale(1.05); } }
+  @keyframes st-twinkle { 0%, 100% { opacity: .16; } 50% { opacity: .9; } }
+  @keyframes st-dash { to { stroke-dashoffset: -36; } }
+  @keyframes st-type { from { width: 0; } to { width: 100%; } }
+  @keyframes st-caret { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+  @keyframes st-squiggle { from { stroke-dashoffset: 340; } to { stroke-dashoffset: 0; } }
+  @keyframes st-swing { 0%, 100% { transform: rotate(-7deg); } 50% { transform: rotate(7deg); } }
+  .st-pick[data-on] { background: rgba(169,155,255,.18) !important; border-color: #4B3A9E !important; color: #F3F1FF !important; }
+  .st-noscroll { scrollbar-width: none; }
+  .st-noscroll::-webkit-scrollbar { height: 0; width: 0; }
+</style>
+</helmet>
+<div id="st-root" style="--bg: #0B0722; --deep: #150C3C; --panel: #17103A; --panel2: #1C1447; --line: #2A1F5E; --line2: #382A78; --ind: #6B4FE9; --ind-lt: #A99BFF; --glow: #7C5CFC; --text: #F3F1FF; --muted: #A9A2C8; --dim: #857CAE; --ok: #4ADE9B; --warn: #FBBF5C; --danger: #FB7185; font-family: 'Manrope', -apple-system, sans-serif; color: var(--text); background: var(--bg); min-height: 100vh; overflow-x: hidden;">
+
+  <svg width="0" height="0" style="position: absolute;"><defs>
+    <linearGradient id="st-badge" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#C9BCFF"></stop><stop offset=".5" stop-color="#8B6CF6"></stop><stop offset="1" stop-color="#5B2FD0"></stop></linearGradient>
+    <linearGradient id="st-ghost" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6E5BD8" stop-opacity=".34"></stop><stop offset="1" stop-color="#8B6CF6" stop-opacity=".05"></stop></linearGradient>
+    <linearGradient id="st-line" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#D6CCFF"></stop><stop offset="1" stop-color="#9B87F5"></stop></linearGradient>
+  </defs></svg>
+
+  <div style="position: fixed; inset: 0; z-index: 0; pointer-events: none; background: radial-gradient(130% 84% at 50% 6%, #241463 0%, #170D40 42%, #0B0722 82%);"></div>
+  <div id="st-stars" style="position: fixed; inset: 0; z-index: 0; pointer-events: none;"></div>
+  <div style="position: fixed; left: 50%; bottom: -80vh; width: 190vw; height: 110vh; margin-left: -95vw; z-index: 0; pointer-events: none; border-radius: 50% 50% 0 0; background: linear-gradient(180deg, #4B32B8 0%, #33208A 26%, #1A1046 100%); box-shadow: 0 -1px 0 1px rgba(201,188,255,.22), 0 -30px 90px 20px rgba(124,92,252,.30);"></div>
+
+  <div id="st-hdr" style="position: sticky; top: 0; z-index: 90; background: rgba(11,7,34,.9); backdrop-filter: blur(18px); border-bottom: 1px solid var(--line);">
+    <div class="st-hdrrow" style="max-width: 1360px; margin: 0 auto; padding: 16px 40px; display: flex; align-items: center; gap: 24px;">
+      <div style="display: flex; align-items: center; gap: 11px; flex: 0 0 auto;">
+        <svg width="30" height="34" viewBox="0 0 300 350" style="flex: none;">
+          <defs>
+            <linearGradient id="st-hb-o" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#C9A7FF"></stop><stop offset=".5" stop-color="#8B5CF6"></stop><stop offset="1" stop-color="#5B3FD9"></stop></linearGradient>
+            <linearGradient id="st-hb-i" x1="0" y1="0" x2=".4" y2="1"><stop offset="0" stop-color="#B683F5"></stop><stop offset="1" stop-color="#7331C9"></stop></linearGradient>
+          </defs>
+          <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#st-hb-o)"></path>
+          <path d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="url(#st-hb-i)"></path>
+          <text x="150" y="214" text-anchor="middle" style="font-family: 'Manrope', sans-serif; font-size: 118px; font-weight: 800; letter-spacing: -5px; fill: #FFFFFF;">SA</text>
+        </svg>
+        <span style="font-size: 19px; font-weight: 700; letter-spacing: -.4px; white-space: nowrap;">StudentAlumni</span>
+      </div>
+      <div class="st-tabs" style="flex: 0 0 auto; margin: 0 auto; display: flex; align-items: center; gap: 30px;">
+        <a class="st-exit st-tab" data-tabkey href="Student Alumni Landing Motion v2.dc.html" style="position: relative; font-size: 15px; font-weight: 500; color: var(--muted); text-decoration: none; padding: 4px 0; white-space: nowrap;">Home</a>
+        <a class="st-exit st-tab" data-tabkey href="Student Alumni Events.dc.html" style="position: relative; font-size: 15px; font-weight: 500; color: var(--muted); text-decoration: none; padding: 4px 0; white-space: nowrap;">ECHO</a>
+        <a class="st-exit st-tab" data-tabkey href="Student Alumni Landing Motion v2.dc.html#verify" style="position: relative; font-size: 15px; font-weight: 500; color: var(--muted); text-decoration: none; padding: 4px 0; white-space: nowrap;">Verify</a>
+        <a class="st-exit st-tab" data-tabkey href="Student Alumni Landing Motion v2.dc.html#contact" style="position: relative; font-size: 15px; font-weight: 500; color: var(--muted); text-decoration: none; padding: 4px 0; white-space: nowrap;">Contact Us</a>
+      </div>
+      <div style="flex: 0 0 auto; display: flex; align-items: center; gap: 16px;">
+        <a class="st-exit" href="Student Alumni Auth.dc.html" style="font-size: 15px; font-weight: 500; color: var(--muted); text-decoration: none; white-space: nowrap;">Sign in</a>
+        <a class="st-exit" href="Student Alumni Onboarding.dc.html" style="font-size: 15px; font-weight: 700; color: #FFFFFF; background: var(--ind, #5B4FE9); border-radius: 100px; padding: 12px 24px; text-decoration: none; white-space: nowrap;">Get Started</a>
+      </div>
+    </div>
+  </div>
+
+  <div style="position: sticky; top: 74px; z-index: 28; background: rgba(11,7,34,.86); backdrop-filter: blur(14px); border-bottom: 1px solid var(--line);">
+    <div style="max-width: 1400px; margin: 0 auto; padding: 10px 28px; display: flex; align-items: center; gap: 16px;">
+      <span style="font-size: 11px; font-weight: 700; letter-spacing: 1.5px; color: var(--dim); flex: none;">STATE</span>
+      <div class="st-noscroll" id="st-picker" style="flex: 1; min-width: 0; display: flex; gap: 6px; overflow-x: auto; padding: 2px; scroll-behavior: smooth;"></div>
+    </div>
+  </div>
+
+
+  <div id="st-stage" style="position: relative; z-index: 1; min-height: 86vh; display: flex; align-items: center; justify-content: center; padding: 40px 28px 90px;">
+
+    <div class="st-screen" data-key="404" style="display: none; position: relative; width: 100%; max-width: 1160px; text-align: center;">
+      <div class="st-quote" style="position: relative; z-index: 3; display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 15px; letter-spacing: 5px; color: #E4DEFF; margin-bottom: 22px; white-space: nowrap; overflow: hidden;">Houston, we have a problem…</div>
+      <div style="position: relative; height: 420px;">
+        <div class="st-big" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 340px; font-weight: 800; letter-spacing: 34px; line-height: 1; background: linear-gradient(180deg, rgba(139,108,246,.30), rgba(139,108,246,.03)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; user-select: none;">4<span style="visibility: hidden;">0</span>4</div>
+        <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 480px; height: 480px; border-radius: 50%; background: radial-gradient(circle, rgba(10,6,28,.72), transparent 66%);"></div>
+        <div class="st-art" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none;">
+          <div class="st-artmove" style="width: 320px; animation: st-float 9s ease-in-out infinite;">
+          <svg viewBox="0 0 260 300" style="width: 100%; height: auto; overflow: visible;">
+            <g style="fill: none; stroke: url(#st-line); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;">
+              <circle class="st-d" cx="132" cy="66" r="34"></circle>
+              <path class="st-d" d="M112 52a24 24 0 0132 4"></path>
+              <path class="st-d" d="M104 96 q28 16 58 2"></path>
+              <path class="st-d" d="M110 100 l-12 26 6 62 44 10 34 -18 -6 -66 -22 -18"></path>
+              <rect class="st-d" x="118" y="122" width="34" height="30" rx="5"></rect>
+              <path class="st-d" d="M124 130h8M124 138h14M124 146h6"></path>
+              <path class="st-d" d="M98 122 l-42 26 -22 -6"></path>
+              <path class="st-d" d="M34 142 l-14 2 4 10 12 -4"></path>
+              <path class="st-d" d="M180 116 l40 -6 22 12"></path>
+              <path class="st-d" d="M242 122 l14 6 -6 10 -12 -6"></path>
+              <path class="st-d" d="M118 186 l-8 52 22 44"></path>
+              <path class="st-d" d="M126 278 l-10 12 16 8 10 -14"></path>
+              <path class="st-d" d="M164 190 l24 34 -6 40"></path>
+              <path class="st-d" d="M178 262 l-8 16 18 4 6 -16"></path>
+              <path class="st-d" d="M92 104 l-14 8 6 18 12 -6"></path>
+            </g>
+            <g style="stroke: rgba(214,204,255,.5); stroke-width: 1.2; stroke-linecap: round;">
+              <path d="M116 60 l6 4M120 54 l6 4M124 48 l6 4"></path>
+            </g>
+          </svg>
+          </div>
+        </div>
+      </div>
+      <div class="st-copy" style="position: relative; z-index: 3; margin-top: -22px;">
+        <div style="font-size: 32px; font-weight: 700; letter-spacing: -1.3px;">This page drifted out of orbit.</div>
+        <div style="font-size: 15.5px; line-height: 1.65; color: var(--muted); max-width: 440px; margin: 12px auto 26px;">The link you followed no longer exists. Here is where students usually head next.</div>
+        <div class="st-acts" style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;"></div>
+      </div>
+    </div>
+
+    <div class="st-screen" data-key="403" style="display: none; position: relative; width: 100%; max-width: 1160px; text-align: center;">
+      <div class="st-quote" style="position: relative; z-index: 3; display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 15px; letter-spacing: 5px; color: #E4DEFF; margin-bottom: 22px; white-space: nowrap; overflow: hidden;">Nice try. Wrong keycard.</div>
+      <div style="position: relative; height: 420px;">
+        <div class="st-big" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 340px; font-weight: 800; letter-spacing: 34px; line-height: 1; background: linear-gradient(180deg, rgba(251,191,92,.22), rgba(251,191,92,.02)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; user-select: none;">4<span style="visibility: hidden;">0</span>3</div>
+        <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 460px; height: 460px; border-radius: 50%; background: radial-gradient(circle, rgba(10,6,28,.72), transparent 66%);"></div>
+        <div class="st-art" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none;">
+          <div class="st-artmove" style="width: 250px;">
+          <svg viewBox="0 0 240 280" style="width: 100%; height: auto; overflow: visible;">
+            <g style="fill: none; stroke: url(#st-line); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;">
+              <path class="st-d" d="M60 96 h120 v150 H60 Z"></path>
+              <path class="st-d" d="M60 96 q60 -34 120 0"></path>
+              <path class="st-d" d="M78 116 v112 M162 116 v112"></path>
+              <circle class="st-d" cx="150" cy="176" r="7"></circle>
+              <path class="st-d" d="M96 148 h44 M96 168 h30"></path>
+            </g>
+            <g style="animation: st-swing 4.6s ease-in-out infinite; transform-origin: 120px 44px;">
+              <g style="fill: none; stroke: var(--warn); stroke-width: 2.8; stroke-linecap: round; stroke-linejoin: round;">
+                <path class="st-d" d="M120 20 v22"></path>
+                <rect class="st-d" x="88" y="42" width="64" height="50" rx="9"></rect>
+                <path class="st-d" d="M102 42 V30 a18 18 0 0136 0 v12"></path>
+                <circle class="st-d" cx="120" cy="62" r="5"></circle>
+                <path class="st-d" d="M120 67 v12"></path>
+              </g>
+            </g>
+          </svg>
+          </div>
+        </div>
+      </div>
+      <div class="st-copy" style="position: relative; z-index: 3; margin-top: -22px;">
+        <div style="font-size: 32px; font-weight: 700; letter-spacing: -1.3px;">Your account cannot open this.</div>
+        <div style="font-size: 15.5px; line-height: 1.65; color: var(--muted); max-width: 460px; margin: 12px auto 20px;">This area is limited to verified college admins. If you run placements at your institution, ask us to upgrade your role.</div>
+        <div style="display: inline-flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--dim); border: 1px solid var(--line); border-radius: 100px; padding: 9px 16px; margin-bottom: 24px;">
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--warn);"></span>
+          Signed in as devender@snist.ac.in · Student
+        </div>
+        <div class="st-acts" style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;"></div>
+      </div>
+    </div>
+
+    <div class="st-screen" data-key="401" style="display: none; position: relative; width: 100%; max-width: 1160px; text-align: center;">
+      <div class="st-quote" style="position: relative; z-index: 3; display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 15px; letter-spacing: 5px; color: #E4DEFF; margin-bottom: 22px; white-space: nowrap; overflow: hidden;">Your session drifted off…</div>
+      <div style="position: relative; height: 420px;">
+        <div class="st-big" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 340px; font-weight: 800; letter-spacing: 34px; line-height: 1; background: linear-gradient(180deg, rgba(139,108,246,.28), rgba(139,108,246,.03)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; user-select: none;">4<span style="visibility: hidden;">0</span>1</div>
+        <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 460px; height: 460px; border-radius: 50%; background: radial-gradient(circle, rgba(10,6,28,.72), transparent 66%);"></div>
+        <div class="st-art" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none;">
+          <div class="st-artmove" style="width: 220px; animation: st-drift 12s ease-in-out infinite;">
+          <svg viewBox="0 0 220 280" style="width: 100%; height: auto; overflow: visible;">
+            <g style="fill: none; stroke: url(#st-line); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;">
+              <path class="st-d" d="M64 30 h92 M64 250 h92"></path>
+              <path class="st-d" d="M74 30 v26 q0 26 36 54 q36 -28 36 -54 V30"></path>
+              <path class="st-d" d="M74 250 v-26 q0 -26 36 -54 q36 28 36 54 v26"></path>
+              <path class="st-d" d="M110 110 v60"></path>
+            </g>
+            <g style="fill: rgba(214,204,255,.5);">
+              <circle cx="110" cy="196" r="3"></circle><circle cx="100" cy="212" r="2.4"></circle><circle cx="120" cy="216" r="2.4"></circle>
+              <circle cx="108" cy="228" r="2"></circle>
+            </g>
+            <g style="fill: none; stroke: rgba(214,204,255,.34); stroke-width: 1.4; stroke-dasharray: 4 7;">
+              <ellipse cx="110" cy="140" rx="86" ry="30" style="animation: st-dash 8s linear infinite;"></ellipse>
+            </g>
+          </svg>
+          </div>
+        </div>
+      </div>
+      <div class="st-copy" style="position: relative; z-index: 3; margin-top: -22px;">
+        <div style="font-size: 32px; font-weight: 700; letter-spacing: -1.3px;">You have been signed out.</div>
+        <div style="font-size: 15.5px; line-height: 1.65; color: var(--muted); max-width: 430px; margin: 12px auto 26px;">Sessions end after 30 days for your security. Nothing was lost — your draft is saved.</div>
+        <div class="st-acts" style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;"></div>
+      </div>
+    </div>
+
+    <div class="st-screen" data-key="500" style="display: none; position: relative; width: 100%; max-width: 1160px; text-align: center;">
+      <div class="st-quote" style="position: relative; z-index: 3; display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 15px; letter-spacing: 5px; color: #E4DEFF; margin-bottom: 22px; white-space: nowrap; overflow: hidden;">Our side. Not yours.</div>
+      <div style="position: relative; height: 420px;">
+        <div class="st-big" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 340px; font-weight: 800; letter-spacing: 34px; line-height: 1; background: linear-gradient(180deg, rgba(251,113,133,.22), rgba(251,113,133,.02)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; user-select: none;">5<span style="visibility: hidden;">0</span>0</div>
+        <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 460px; height: 460px; border-radius: 50%; background: radial-gradient(circle, rgba(10,6,28,.72), transparent 66%);"></div>
+        <div class="st-art" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none;">
+          <div class="st-artmove" style="width: 280px; animation: st-drift 14s ease-in-out infinite;">
+          <svg viewBox="0 0 280 240" style="width: 100%; height: auto; overflow: visible;">
+            <g style="fill: none; stroke: url(#st-line); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;">
+              <rect class="st-d" x="96" y="84" width="88" height="72" rx="10"></rect>
+              <path class="st-d" d="M112 104 h30 M112 120 h44 M112 136 h20"></path>
+              <path class="st-d" d="M96 120 H40 l-16 -18 M40 120 l-16 18"></path>
+              <path class="st-d" d="M184 120 h56 l16 -18 M240 120 l16 18"></path>
+              <path class="st-d" d="M140 156 v34 M112 190 h56"></path>
+            </g>
+            <g style="fill: none; stroke: var(--danger); stroke-width: 2.8; stroke-linecap: round; stroke-linejoin: round;">
+              <path class="st-d" d="M196 46 l-14 26 20 4 -16 30"></path>
+              <circle class="st-d" cx="212" cy="70" r="4"></circle>
+            </g>
+            <g style="fill: rgba(251,113,133,.5);">
+              <circle cx="88" cy="58" r="3" style="animation: st-twinkle 3.2s ease-in-out infinite;"></circle>
+              <circle cx="240" cy="176" r="3.4" style="animation: st-twinkle 4.4s ease-in-out .8s infinite;"></circle>
+            </g>
+          </svg>
+          </div>
+        </div>
+      </div>
+      <div class="st-copy" style="position: relative; z-index: 3; margin-top: -22px;">
+        <div style="font-size: 32px; font-weight: 700; letter-spacing: -1.3px;">Something broke on our side.</div>
+        <div style="font-size: 15.5px; line-height: 1.65; color: var(--muted); max-width: 470px; margin: 12px auto 20px;">Not your fault and not your data. The team is already paged, and this reference tells them exactly where it failed.</div>
+        <div style="display: inline-flex; align-items: center; gap: 12px; border: 1px solid var(--line); border-radius: 11px; background: rgba(23,16,58,.7); padding: 11px 16px; margin-bottom: 24px;">
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 1.4px; color: var(--dim);">REF</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500;">SA-ERR-7F31C9</span>
+          <span class="st-copybtn" style="font-size: 11.5px; font-weight: 700; letter-spacing: .6px; color: var(--ind-lt); cursor: pointer;">COPY</span>
+        </div>
+        <div class="st-acts" style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;"></div>
+      </div>
+    </div>
+
+    <div class="st-screen" data-key="503" style="display: none; position: relative; width: 100%; max-width: 1160px; text-align: center;">
+      <div class="st-quote" style="position: relative; z-index: 3; display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 15px; letter-spacing: 5px; color: #E4DEFF; margin-bottom: 22px; white-space: nowrap; overflow: hidden;">Back in twenty minutes.</div>
+      <div style="position: relative; height: 420px;">
+        <div class="st-big" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 340px; font-weight: 800; letter-spacing: 34px; line-height: 1; background: linear-gradient(180deg, rgba(251,191,92,.22), rgba(251,191,92,.02)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; user-select: none;">5<span style="visibility: hidden;">0</span>3</div>
+        <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 460px; height: 460px; border-radius: 50%; background: radial-gradient(circle, rgba(10,6,28,.72), transparent 66%);"></div>
+        <div class="st-art" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none;">
+          <div class="st-artmove" style="width: 250px;">
+          <svg viewBox="0 0 240 240" style="width: 100%; height: auto; overflow: visible;">
+            <g style="animation: st-spin 16s linear infinite; transform-origin: 120px 120px;">
+              <g style="fill: none; stroke: url(#st-line); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;">
+                <circle class="st-d" cx="120" cy="120" r="46"></circle>
+                <circle class="st-d" cx="120" cy="120" r="20"></circle>
+                <path class="st-d" d="M120 74 V52 M120 166 v22 M74 120 H52 M166 120 h22 M88 88 L72 72 M152 152 l16 16 M88 152 L72 168 M152 88 l16 -16"></path>
+              </g>
+            </g>
+            <g style="fill: none; stroke: var(--warn); stroke-width: 2.8; stroke-linecap: round; stroke-linejoin: round; animation: st-swing 5s ease-in-out infinite; transform-origin: 186px 60px;">
+              <path class="st-d" d="M172 44 l30 30 -12 12 -30 -30 Z"></path>
+              <path class="st-d" d="M160 56 l-42 42"></path>
+            </g>
+          </svg>
+          </div>
+        </div>
+      </div>
+      <div class="st-copy" style="position: relative; z-index: 3; margin-top: -22px;">
+        <div style="font-size: 32px; font-weight: 700; letter-spacing: -1.3px;">Scheduled maintenance.</div>
+        <div style="font-size: 15.5px; line-height: 1.65; color: var(--muted); max-width: 470px; margin: 12px auto 22px;">We are moving the placement database ahead of HackWave. Bookings and tickets already issued are unaffected.</div>
+        <div style="max-width: 380px; margin: 0 auto 24px;">
+          <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 12.5px; color: var(--muted); margin-bottom: 8px;">
+            <span>Migration progress</span><span id="st-maintpct" style="font-weight: 700; color: var(--text);">72%</span>
+          </div>
+          <div style="height: 6px; border-radius: 3px; background: var(--line); overflow: hidden;">
+            <div id="st-maintbar" style="height: 100%; width: 0%; border-radius: 3px; background: linear-gradient(90deg, var(--warn), var(--ind-lt)); transition: width 1.3s cubic-bezier(.2,.8,.2,1);"></div>
+          </div>
+          <div style="font-size: 12px; color: var(--dim); margin-top: 10px;">Started 09:14 IST · ETA 09:56 IST</div>
+        </div>
+        <div class="st-acts" style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;"></div>
+      </div>
+    </div>
+
+    <div class="st-screen" data-key="408" style="display: none; position: relative; width: 100%; max-width: 1160px; text-align: center;">
+      <div class="st-quote" style="position: relative; z-index: 3; display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 15px; letter-spacing: 5px; color: #E4DEFF; margin-bottom: 22px; white-space: nowrap; overflow: hidden;">Still waiting… giving up.</div>
+      <div style="position: relative; height: 420px;">
+        <div class="st-big" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 340px; font-weight: 800; letter-spacing: 34px; line-height: 1; background: linear-gradient(180deg, rgba(139,108,246,.26), rgba(139,108,246,.03)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; user-select: none;">4<span style="visibility: hidden;">0</span>8</div>
+        <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 460px; height: 460px; border-radius: 50%; background: radial-gradient(circle, rgba(10,6,28,.72), transparent 66%);"></div>
+        <div class="st-art" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none;">
+          <div class="st-artmove" style="width: 230px; animation: st-float 10s ease-in-out infinite;">
+          <svg viewBox="0 0 220 260" style="width: 100%; height: auto; overflow: visible;">
+            <g style="fill: none; stroke: url(#st-line); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;">
+              <circle class="st-d" cx="110" cy="140" r="62"></circle>
+              <path class="st-d" d="M110 96 v-18 M96 70 h28 M110 62 v8"></path>
+              <path class="st-d" d="M156 96 l14 -14 M64 96 L50 82"></path>
+            </g>
+            <g style="fill: none; stroke: var(--ind-lt); stroke-width: 3; stroke-linecap: round; transform-origin: 110px 140px; animation: st-spin 5.5s linear infinite;">
+              <path class="st-d" d="M110 140 V102"></path>
+            </g>
+            <g style="fill: none; stroke: rgba(214,204,255,.6); stroke-width: 2.6; stroke-linecap: round; transform-origin: 110px 140px; animation: st-spin 26s linear infinite;">
+              <path class="st-d" d="M110 140 l28 16"></path>
+            </g>
+            <circle cx="110" cy="140" r="4" fill="var(--ind-lt)"></circle>
+            <g style="fill: none; stroke: rgba(214,204,255,.3); stroke-width: 1.4; stroke-dasharray: 4 8;">
+              <circle cx="110" cy="140" r="86" style="animation: st-dash 9s linear infinite;"></circle>
+            </g>
+          </svg>
+          </div>
+        </div>
+      </div>
+      <div class="st-copy" style="position: relative; z-index: 3; margin-top: -22px;">
+        <div style="font-size: 32px; font-weight: 700; letter-spacing: -1.3px;">That request timed out.</div>
+        <div style="font-size: 15.5px; line-height: 1.65; color: var(--muted); max-width: 450px; margin: 12px auto 20px;">We waited 30 seconds and heard nothing back. Your input is kept, so retrying costs you nothing.</div>
+        <div style="display: inline-flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--dim); border: 1px solid var(--line); border-radius: 100px; padding: 9px 16px; margin-bottom: 24px;">
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--warn); animation: st-pulse 2s ease-in-out infinite;"></span>
+          Attempt 2 of 3 · next retry automatic
+        </div>
+        <div class="st-acts" style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;"></div>
+      </div>
+    </div>
+
+    <div class="st-screen" data-key="offline" style="display: none; position: relative; width: 100%; max-width: 1160px; text-align: center;">
+      <div class="st-quote" style="position: relative; z-index: 3; display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 15px; letter-spacing: 5px; color: #E4DEFF; margin-bottom: 22px; white-space: nowrap; overflow: hidden;">You are off the grid.</div>
+      <div style="position: relative; height: 420px;">
+        <div class="st-big" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 250px; font-weight: 800; letter-spacing: 22px; line-height: 1; background: linear-gradient(180deg, rgba(251,113,133,.20), rgba(251,113,133,.02)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; user-select: none;">OFFLINE</div>
+        <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 440px; height: 440px; border-radius: 50%; background: radial-gradient(circle, rgba(10,6,28,.74), transparent 66%);"></div>
+        <div class="st-art" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none;">
+          <div class="st-artmove" style="width: 270px;">
+          <svg viewBox="0 0 260 220" style="width: 100%; height: auto; overflow: visible;">
+            <g style="fill: none; stroke: url(#st-line); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;">
+              <path class="st-d" d="M40 150 a90 90 0 01180 0" opacity=".45"></path>
+              <path class="st-d" d="M74 166 a56 56 0 01112 0" opacity=".7"></path>
+              <path class="st-d" d="M106 182 a24 24 0 0148 0"></path>
+            </g>
+            <circle cx="130" cy="196" r="7" fill="url(#st-line)"></circle>
+            <g style="fill: none; stroke: var(--danger); stroke-width: 3.4; stroke-linecap: round;">
+              <path class="st-d" d="M58 46 L204 186"></path>
+            </g>
+            <g style="fill: none; stroke: rgba(214,204,255,.4); stroke-width: 2; stroke-linecap: round;">
+              <path class="st-d" d="M204 52 l16 -12 M212 74 l20 -2 M188 34 l6 -18"></path>
+            </g>
+          </svg>
+          </div>
+        </div>
+      </div>
+      <div class="st-copy" style="position: relative; z-index: 3; margin-top: -22px;">
+        <div style="font-size: 32px; font-weight: 700; letter-spacing: -1.3px;">No connection.</div>
+        <div style="font-size: 15.5px; line-height: 1.65; color: var(--muted); max-width: 430px; margin: 12px auto 20px;">Your work is saved on this device. We will sync it the moment you are back online.</div>
+        <div style="display: inline-flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--dim); border: 1px solid var(--line); border-radius: 100px; padding: 9px 16px; margin-bottom: 24px;">
+          <span style="width: 7px; height: 7px; border-radius: 50%; background: var(--danger); animation: st-pulse 2s ease-in-out infinite;"></span>
+          Last synced 4 minutes ago · 2 changes pending
+        </div>
+        <div class="st-acts" style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;"></div>
+      </div>
+    </div>
+
+    <div class="st-screen" data-key="empty" style="display: none; position: relative; width: 100%; max-width: 1160px; text-align: center;">
+      <div class="st-quote" style="position: relative; z-index: 3; display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 15px; letter-spacing: 5px; color: #E4DEFF; margin-bottom: 22px; white-space: nowrap; overflow: hidden;">Scanned the sky. Nothing yet.</div>
+      <div style="position: relative; height: 420px;">
+        <div class="st-big" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 250px; font-weight: 800; letter-spacing: 22px; line-height: 1; background: linear-gradient(180deg, rgba(139,108,246,.24), rgba(139,108,246,.02)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; user-select: none;">EMPTY</div>
+        <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 440px; height: 440px; border-radius: 50%; background: radial-gradient(circle, rgba(10,6,28,.74), transparent 66%);"></div>
+        <div class="st-art" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none;">
+          <div class="st-artmove" style="width: 280px; animation: st-drift 15s ease-in-out infinite;">
+          <svg viewBox="0 0 280 240" style="width: 100%; height: auto; overflow: visible;">
+            <g style="fill: none; stroke: url(#st-line); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;">
+              <path class="st-d" d="M74 152 L188 62 l30 34 -114 90 Z"></path>
+              <path class="st-d" d="M188 62 l14 -14 30 34 -14 14"></path>
+              <path class="st-d" d="M96 172 l-22 42 M110 182 l-4 46"></path>
+              <path class="st-d" d="M56 226 h68"></path>
+              <circle class="st-d" cx="120" cy="124" r="8"></circle>
+            </g>
+            <g style="fill: rgba(214,204,255,.55);">
+              <circle cx="242" cy="42" r="3" style="animation: st-twinkle 3.6s ease-in-out infinite;"></circle>
+              <circle cx="58" cy="66" r="2.6" style="animation: st-twinkle 4.8s ease-in-out .6s infinite;"></circle>
+              <circle cx="216" cy="150" r="2.2" style="animation: st-twinkle 5.4s ease-in-out 1.2s infinite;"></circle>
+            </g>
+          </svg>
+          </div>
+        </div>
+      </div>
+      <div class="st-copy" style="position: relative; z-index: 3; margin-top: -22px;">
+        <div style="font-size: 32px; font-weight: 700; letter-spacing: -1.3px;">Nothing matches that yet.</div>
+        <div style="font-size: 15.5px; line-height: 1.65; color: var(--muted); max-width: 460px; margin: 12px auto 22px;">No roles match <strong style="color: var(--text); font-weight: 600;">"quant analyst, remote, 2027 grad"</strong>. Loosening the location usually finds forty or more.</div>
+        <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 24px;">
+          <span class="st-chip" style="font-size: 12.5px; font-weight: 500; color: var(--muted); border: 1px solid var(--line2); border-radius: 100px; padding: 8px 14px; cursor: pointer;">Remove "remote" ✕</span>
+          <span class="st-chip" style="font-size: 12.5px; font-weight: 500; color: var(--muted); border: 1px solid var(--line2); border-radius: 100px; padding: 8px 14px; cursor: pointer;">Widen to 2026–2028 ✕</span>
+          <span class="st-chip" style="font-size: 12.5px; font-weight: 500; color: var(--muted); border: 1px solid var(--line2); border-radius: 100px; padding: 8px 14px; cursor: pointer;">Any city ✕</span>
+        </div>
+        <div class="st-acts" style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;"></div>
+      </div>
+    </div>
+
+    <div class="st-screen" data-key="browser" style="display: none; position: relative; width: 100%; max-width: 1160px; text-align: center;">
+      <div class="st-quote" style="position: relative; z-index: 3; display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 15px; letter-spacing: 5px; color: #E4DEFF; margin-bottom: 22px; white-space: nowrap; overflow: hidden;">This browser is vintage.</div>
+      <div style="position: relative; height: 420px;">
+        <div class="st-big" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 210px; font-weight: 800; letter-spacing: 20px; line-height: 1; background: linear-gradient(180deg, rgba(251,191,92,.20), rgba(251,191,92,.02)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; user-select: none;">LEGACY</div>
+        <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 440px; height: 440px; border-radius: 50%; background: radial-gradient(circle, rgba(10,6,28,.74), transparent 66%);"></div>
+        <div class="st-art" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none;">
+          <div class="st-artmove" style="width: 280px; animation: st-float 11s ease-in-out infinite;">
+          <svg viewBox="0 0 280 220" style="width: 100%; height: auto; overflow: visible;">
+            <g style="fill: none; stroke: url(#st-line); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;">
+              <rect class="st-d" x="50" y="44" width="180" height="126" rx="12"></rect>
+              <path class="st-d" d="M50 76 h180"></path>
+              <path class="st-d" d="M110 170 v22 M170 170 v22 M96 196 h88"></path>
+            </g>
+            <g style="fill: rgba(214,204,255,.6);">
+              <circle cx="68" cy="60" r="3.6"></circle><circle cx="82" cy="60" r="3.6"></circle><circle cx="96" cy="60" r="3.6"></circle>
+            </g>
+            <g style="fill: none; stroke: var(--warn); stroke-width: 2.8; stroke-linecap: round; stroke-linejoin: round;">
+              <circle class="st-d" cx="140" cy="122" r="26"></circle>
+              <path class="st-d" d="M140 108 v16 M140 134 v.01"></path>
+            </g>
+          </svg>
+          </div>
+        </div>
+      </div>
+      <div class="st-copy" style="position: relative; z-index: 3; margin-top: -22px;">
+        <div style="font-size: 32px; font-weight: 700; letter-spacing: -1.3px;">This browser is a few years behind.</div>
+        <div style="font-size: 15.5px; line-height: 1.65; color: var(--muted); max-width: 450px; margin: 12px auto 22px;">Parts of the dashboard will not render correctly. Any of these will work, and your account carries across.</div>
+        <div style="display: flex; gap: 9px; justify-content: center; flex-wrap: wrap; margin-bottom: 24px;">
+          <span class="st-chip" style="font-size: 13px; font-weight: 600; border: 1px solid var(--line2); border-radius: 11px; padding: 11px 17px; cursor: pointer;">Chrome</span>
+          <span class="st-chip" style="font-size: 13px; font-weight: 600; border: 1px solid var(--line2); border-radius: 11px; padding: 11px 17px; cursor: pointer;">Edge</span>
+          <span class="st-chip" style="font-size: 13px; font-weight: 600; border: 1px solid var(--line2); border-radius: 11px; padding: 11px 17px; cursor: pointer;">Safari 16+</span>
+          <span class="st-chip" style="font-size: 13px; font-weight: 600; border: 1px solid var(--line2); border-radius: 11px; padding: 11px 17px; cursor: pointer;">Firefox</span>
+        </div>
+        <div class="st-acts" style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="st-tagline" style="position: relative; z-index: 2; text-align: center; padding: 0 28px 70px;">
+    <div style="position: relative; display: inline-block;">
+      <div id="st-rotq" style="font-size: 17px; font-weight: 600; letter-spacing: -.2px; color: #E4DEFF; transition: opacity .4s ease;">Built with love for students across all campus's.</div>
+      <svg viewBox="0 0 320 14" preserveAspectRatio="none" style="position: absolute; left: -6px; right: -6px; bottom: -12px; width: calc(100% + 12px); height: 12px; overflow: visible;">
+        <path d="M3 9 C 64 2 116 12 178 5 C 232 -1 278 9 317 3" style="fill: none; stroke: #C08BFF; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 340; animation: st-squiggle 1.3s cubic-bezier(.4,0,.2,1) .5s both;"></path>
+      </svg>
+    </div>
+  </div>
+
+  <div class="st-footer" style="position: relative; z-index: 1; border-top: 1px solid var(--line); background: rgba(11,7,34,.6); padding: 52px 28px 0;">
+    <div style="max-width: 1360px; margin: 0 auto;">
+      <div class="st-fgrid" style="display: grid; grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(0, 1fr)); gap: 36px;">
+        <div>
+          <div style="display: flex; align-items: center; gap: 11px; margin-bottom: 16px;">
+            <svg width="30" height="35" viewBox="0 0 300 350" style="flex: none;"><path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#st-badge)"></path><text x="150" y="214" text-anchor="middle" style="font-family: 'Manrope', sans-serif; font-size: 118px; font-weight: 800; letter-spacing: -5px; fill: #FFFFFF;">SA</text></svg>
+            <span style="font-size: 18px; font-weight: 700; letter-spacing: -.3px;">StudentAlumni</span>
+          </div>
+          <div style="font-size: 14.5px; line-height: 1.65; color: var(--muted); max-width: 320px;">The intelligent career companion built for the <strong style="color: var(--text); font-weight: 700;">next generation</strong> of students.</div>
+          <div style="display: flex; gap: 10px; margin-top: 22px;">
+            <span class="st-social" aria-label="LinkedIn" title="LinkedIn" style="width: 42px; height: 42px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: border-color .25s ease, transform .25s ease;">
+              <svg width="17" height="17" viewBox="0 0 24 24" style="fill: none; stroke: var(--muted); stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round;"><rect x="3.2" y="3.2" width="17.6" height="17.6" rx="4.4"></rect><path d="M7.6 10.4v6.2"></path><circle cx="7.6" cy="7.4" r=".9" style="fill: var(--muted); stroke: none;"></circle><path d="M11.6 16.6v-3.4a2.6 2.6 0 015.2 0v3.4M11.6 16.6v-6.2"></path></svg>
+            </span>
+            <span class="st-social" aria-label="Instagram" title="Instagram" style="width: 42px; height: 42px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: border-color .25s ease, transform .25s ease;">
+              <svg width="17" height="17" viewBox="0 0 24 24" style="fill: none; stroke: var(--muted); stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round;"><rect x="3.2" y="3.2" width="17.6" height="17.6" rx="5.2"></rect><circle cx="12" cy="12" r="4.1"></circle><circle cx="16.9" cy="7.1" r="1.05" style="fill: var(--muted); stroke: none;"></circle></svg>
+            </span>
+          </div>
+        </div>
+        <div>
+          <div style="font-size: 11px; font-weight: 700; letter-spacing: 1.6px; color: var(--dim); margin-bottom: 20px;">RESOURCES</div>
+          <div style="display: grid; gap: 14px;">
+            <span class="st-flink" style="font-size: 14.5px; color: var(--muted); cursor: pointer; transition: color .2s ease;">Verify Certificate</span>
+            <span class="st-flink" style="font-size: 14.5px; color: var(--muted); cursor: pointer; transition: color .2s ease;">Blog</span>
+            <span class="st-flink" style="font-size: 14.5px; color: var(--muted); cursor: pointer; transition: color .2s ease;">Help center</span>
+            <span class="st-flink" style="font-size: 14.5px; color: var(--muted); cursor: pointer; transition: color .2s ease;">Community</span>
+          </div>
+        </div>
+        <div>
+          <div style="font-size: 11px; font-weight: 700; letter-spacing: 1.6px; color: var(--dim); margin-bottom: 20px;">LEGAL</div>
+          <div style="display: grid; gap: 14px;">
+            <span class="st-flink" style="font-size: 14.5px; color: var(--muted); cursor: pointer; transition: color .2s ease;">Privacy &amp; Terms</span>
+            <span class="st-flink" style="font-size: 14.5px; color: var(--muted); cursor: pointer; transition: color .2s ease;">Security &amp; Cookies</span>
+          </div>
+        </div>
+        <div>
+          <div style="font-size: 11px; font-weight: 700; letter-spacing: 1.6px; color: var(--dim); margin-bottom: 20px;">COMPLIANCE</div>
+          <div style="display: grid; gap: 14px;">
+            <div>
+              <div style="display: flex; align-items: center; gap: 8px; font-size: 14.5px; color: var(--text);"><svg width="13" height="13" viewBox="0 0 24 24" style="fill: none; stroke: var(--ok); stroke-width: 2.4; flex: none;"><path d="M5 12.5l4 4 10-10.5"></path></svg>DPDP Act 2023</div>
+              <div style="font-size: 12px; color: var(--dim); margin-top: 3px; padding-left: 21px;">India · data principal rights</div>
+            </div>
+            <div>
+              <div style="display: flex; align-items: center; gap: 8px; font-size: 14.5px; color: var(--text);"><svg width="13" height="13" viewBox="0 0 24 24" style="fill: none; stroke: var(--ok); stroke-width: 2.4; flex: none;"><path d="M5 12.5l4 4 10-10.5"></path></svg>GDPR</div>
+              <div style="font-size: 12px; color: var(--dim); margin-top: 3px; padding-left: 21px;">EU · lawful basis and DPAs</div>
+            </div>
+            <div>
+              <div style="display: flex; align-items: center; gap: 8px; font-size: 14.5px; color: var(--text);"><svg width="13" height="13" viewBox="0 0 24 24" style="fill: none; stroke: var(--ok); stroke-width: 2.4; flex: none;"><path d="M5 12.5l4 4 10-10.5"></path></svg>SOC 2 Type II</div>
+              <div style="font-size: 12px; color: var(--dim); margin-top: 3px; padding-left: 21px;">Audited controls, annual</div>
+            </div>
+            <span class="st-flink" style="display: flex; align-items: center; gap: 8px; font-size: 14.5px; color: var(--ind-lt); cursor: pointer;">
+              <svg width="13" height="13" viewBox="0 0 24 24" style="fill: none; stroke: currentColor; stroke-width: 2; flex: none;"><path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6Z"></path></svg>Responsible disclosure
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="st-subrow" style="display: flex; align-items: center; justify-content: space-between; gap: 22px 26px; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 18px; background: var(--panel); padding: 24px 28px; margin-top: 46px;">
+        <div style="min-width: 0;">
+          <div style="font-size: 19px; font-weight: 700; letter-spacing: -.4px;">One email a month. Nothing else.</div>
+          <div style="font-size: 14.5px; color: var(--muted); margin-top: 5px;">New openings, mentor drops and campus events — no noise.</div>
+        </div>
+        <div style="display: flex; gap: 10px; flex: 1 1 340px; flex-wrap: wrap;">
+          <div style="flex: 1 1 220px; min-width: 0; border: 1px solid var(--line); border-radius: 11px; background: rgba(11,7,34,.6); padding: 15px 17px; font-size: 14.5px; color: var(--dim); cursor: text;">you@college.edu</div>
+          <span class="st-sub" style="display: inline-flex; align-items: center; justify-content: center; background: var(--ind); color: #FFFFFF; font-size: 14.5px; font-weight: 700; padding: 15px 26px; border-radius: 11px; cursor: pointer; white-space: nowrap;">Subscribe</span>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 32px; flex-wrap: wrap; margin: 48px 0 0;">
+        <div>
+          <div style="font-size: 36px; font-weight: 700; letter-spacing: -1.5px; line-height: 1.1; background: linear-gradient(96deg, #F0A6E8 0%, #C08BFF 32%, #A99BFF 66%, #6FA8F5 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">#studentalumni</div>
+          <div style="display: inline-flex; align-items: center; gap: 9px; font-size: 15px; color: var(--muted); margin-top: 12px;">
+            Built with love for students
+            <svg width="15" height="15" viewBox="0 0 24 24" style="fill: var(--ind-lt); flex: none;"><path d="M12 21s-8-4.9-8-10.4A4.6 4.6 0 0 1 12 7.6 4.6 4.6 0 0 1 20 10.6C20 16.1 12 21 12 21Z"></path></svg>
+            across all campus's
+          </div>
+        </div>
+        <div style="font-size: 14px; color: var(--muted);">All right are recived @ Studt Alumni 2026</div>
+      </div>
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; border-top: 1px solid var(--line); margin-top: 34px; padding: 18px 0 22px;">
+        <div style="font-size: 14.5px; color: var(--muted);">Free for students · about a minute to set up</div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <span class="st-fghost" style="font-size: 14px; font-weight: 600; padding: 12px 20px; border-radius: 10px; border: 1px solid var(--line2); cursor: pointer; transition: border-color .2s ease;">For colleges</span>
+          <span class="st-fcta" style="font-size: 14px; font-weight: 700; padding: 12px 22px; border-radius: 10px; background: var(--ind); color: #FFFFFF; cursor: pointer; transition: filter .2s ease;">Get started</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;startAt&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Not found (404)&quot;,&quot;options&quot;:[&quot;Not found (404)&quot;,&quot;Forbidden (403)&quot;,&quot;Session expired (401)&quot;,&quot;Server error (500)&quot;,&quot;Maintenance (503)&quot;,&quot;Timeout (408)&quot;,&quot;Offline&quot;,&quot;No results&quot;,&quot;Unsupported browser&quot;],&quot;tsType&quot;:&quot;string&quot;},&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#6B4FE9&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;options&quot;:[&quot;#6B4FE9&quot;,&quot;#7C3AED&quot;,&quot;#5B4FE9&quot;,&quot;#4F46C7&quot;]},&quot;reducedMotion&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  componentDidMount() {
+    const root = document.getElementById('st-root');
+    if (!root) return;
+    const reduced = !!this.props.reducedMotion;
+    root.style.setProperty('--ind', this.props.accent || '#6B4FE9');
+    this.timers = [];
+
+    // starfield, drawn once rather than hand-placed
+    const stars = document.getElementById('st-stars');
+    if (stars && !stars.childElementCount) {
+      let html = '';
+      for (let i = 0; i < 70; i++) {
+        const x = (i * 37 % 100) + (i % 5) * 0.7;
+        const y = (i * 53 % 96);
+        const r = 1 + (i % 3) * 0.5;
+        html += '<span style="position: absolute; left: ' + x.toFixed(1) + '%; top: ' + y.toFixed(1) + '%; width: ' + r + 'px; height: ' + r + 'px; border-radius: 50%; background: #E4DEFF; opacity: .3;' + (reduced ? '' : ' animation: st-twinkle ' + (3 + (i % 6)) + 's ease-in-out ' + ((i % 9) * 0.4).toFixed(1) + 's infinite;') + '"></span>';
+      }
+      stars.innerHTML = html;
+    }
+
+    const SCREENS = [
+      ['404', 'Not found'], ['403', 'Forbidden'], ['401', 'Session expired'],
+      ['500', 'Server error'], ['503', 'Maintenance'], ['408', 'Timeout'],
+      ['offline', 'Offline'], ['empty', 'No results'], ['browser', 'Unsupported']
+    ];
+    // one action set per screen, so every state offers a way out
+    const ACTS = {
+      '404': [['Back to dashboard', 1], ['Browse events', 0], ['Help centre', 0]],
+      '403': [['Request admin access', 1], ['Back to dashboard', 0]],
+      '401': [['Sign in again', 1], ['Use a different account', 0]],
+      '500': [['Try again', 1, 'retry'], ['Report a problem', 0]],
+      '503': [['Notify me when it is back', 1], ['Status page', 0]],
+      '408': [['Retry now', 1, 'retry'], ['Save and come back', 0]],
+      offline: [['Try again', 1, 'retry'], ['View saved pages', 0]],
+      empty: [['Clear all filters', 1], ['Save this search', 0]],
+      browser: [['Continue anyway', 0]]
+    };
+    const screens = Array.prototype.slice.call(root.querySelectorAll('.st-screen'));
+    const picker = document.getElementById('st-picker');
+    root.querySelectorAll('.st-tab, .st-exit').forEach((t) => {
+      t.addEventListener('mouseenter', () => { if (t.style.background.indexOf('var(--ind') === -1) t.style.color = 'var(--text)'; });
+      t.addEventListener('mouseleave', () => { if (t.style.background.indexOf('var(--ind') === -1) t.style.color = 'var(--muted)'; });
+    });
+
+
+    screens.forEach((s) => {
+      const box = s.querySelector('.st-acts');
+      if (!box || box.childElementCount) return;
+      (ACTS[s.dataset.key] || []).forEach(([label, primary, kind]) => {
+        const b = document.createElement('span');
+        b.className = 'st-btn' + (primary ? ' st-primary' : '') + (kind === 'retry' ? ' st-retry' : '');
+        b.style.cssText = 'display: inline-flex; align-items: center; gap: 9px; font-size: 14.5px; font-weight: ' + (primary ? '700' : '600') + '; border-radius: 11px; padding: 14px 22px; cursor: pointer; white-space: nowrap; transition: filter .2s ease, transform .2s ease, border-color .2s ease;'
+          + (primary ? ' background: var(--ind); color: #FFFFFF;' : ' border: 1px solid var(--line2); color: var(--text);');
+        b.innerHTML = (kind === 'retry' ? '<svg class="st-retryico" width="15" height="15" viewBox="0 0 24 24" style="fill: none; stroke: currentColor; stroke-width: 2;"><path d="M20 12a8 8 0 11-2.3-5.7M20 4v4h-4"></path></svg>' : '') + '<span class="st-retrylabel">' + label + '</span>';
+        box.appendChild(b);
+      });
+    });
+
+    // measured dash lengths, so each stroke finishes exactly on time
+    root.querySelectorAll('.st-d').forEach((p) => {
+      try {
+        const len = Math.ceil(p.getTotalLength());
+        if (len) { p.dataset.len = String(len); p.style.strokeDasharray = String(len); p.style.strokeDashoffset = String(len); }
+      } catch (err) {}
+    });
+
+    const drawArt = (scope) => {
+      const paths = Array.prototype.slice.call(scope.querySelectorAll('.st-d'));
+      paths.forEach((p, i) => {
+        const len = p.dataset.len || '400';
+        if (reduced) { p.style.strokeDashoffset = '0'; return; }
+        p.style.setProperty('--len', len);
+        p.style.animation = 'none';
+        void p.getBoundingClientRect();
+        p.style.animation = 'st-draw .9s cubic-bezier(.4,0,.2,1) ' + (0.1 + i * 0.055).toFixed(2) + 's both';
+      });
+    };
+
+    const show = (key) => {
+      screens.forEach((s) => { s.style.display = s.dataset.key === key ? 'block' : 'none'; });
+      if (picker) picker.querySelectorAll('.st-pick').forEach((b) => {
+        if (b.dataset.key === key) {
+          b.dataset.on = '1';
+          // the strip is right-justified and scrollable, so the active pill can start out of view
+          // measured from rects — the picker is static, so offsetLeft would include the brand block
+          const d = b.getBoundingClientRect().left - picker.getBoundingClientRect().left;
+          const target = picker.scrollLeft + d - (picker.clientWidth - b.offsetWidth) / 2;
+          picker.scrollLeft = Math.max(0, Math.min(target, picker.scrollWidth - picker.clientWidth));
+        } else delete b.dataset.on;
+      });
+      const live = screens.filter((s) => s.dataset.key === key)[0];
+      if (!live) return;
+      if (!reduced) {
+        const q = live.querySelector('.st-quote');
+        if (q) {
+          const chars = (q.textContent || '').length;
+          q.style.animation = 'none';
+          void q.offsetWidth;
+          q.style.animation = 'st-type ' + (chars * 0.045).toFixed(2) + 's steps(' + chars + ') both';
+        }
+        ['.st-big', '.st-copy'].forEach((sel, i) => {
+          const el = live.querySelector(sel);
+          if (!el) return;
+          el.style.animation = 'none';
+          void el.offsetWidth;
+          el.style.animation = 'st-in .6s cubic-bezier(.2,.8,.2,1) both ' + (0.15 + i * 0.12) + 's';
+        });
+      }
+      drawArt(live);
+      if (key === '503') {
+        const bar = document.getElementById('st-maintbar');
+        if (bar) {
+          bar.style.width = '0%';
+          void bar.offsetWidth;
+          const fill = () => { bar.style.width = '72%'; };
+          requestAnimationFrame(fill);
+          this.timers.push(setTimeout(fill, 320));
+        }
+      }
+    };
+
+    if (picker) SCREENS.forEach(([key, label]) => {
+      const b = document.createElement('span');
+      b.className = 'st-pick';
+      b.dataset.key = key;
+      b.style.cssText = 'flex: none; display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600; color: var(--muted); border: 1px solid var(--line); border-radius: 100px; padding: 8px 14px; cursor: pointer; white-space: nowrap; transition: background .2s ease, border-color .2s ease;';
+      b.innerHTML = (isNaN(parseInt(key, 10)) ? '' : '<span style="font-family: \'JetBrains Mono\', monospace; font-weight: 500; color: var(--ind-lt);">' + key + '</span>') + label;
+      b.addEventListener('click', () => show(key));
+      b.addEventListener('mouseenter', () => { if (!b.dataset.on) b.style.borderColor = 'var(--line2)'; });
+      b.addEventListener('mouseleave', () => { if (!b.dataset.on) b.style.borderColor = 'var(--line)'; });
+      picker.appendChild(b);
+    });
+
+    // rotating student quote under the stage, with the squiggle redrawn each time
+    const QUOTES = [
+      "Built with love for students across all campus's.",
+      'The network is a feed until it meets in person.',
+      'Every credential here was signed on issue.',
+      '86 ECHO events across 31 campuses.',
+      'Free forever for students. Verified by your college email.'
+    ];
+    const rot = document.getElementById('st-rotq');
+    const squiggle = root.querySelector('#st-tagline path');
+    if (rot && !reduced) {
+      let qi = 0;
+      const cycle = setInterval(() => {
+        rot.style.opacity = '0';
+        setTimeout(() => {
+          qi = (qi + 1) % QUOTES.length;
+          rot.textContent = QUOTES[qi];
+          rot.style.opacity = '1';
+          if (squiggle) { squiggle.style.animation = 'none'; void squiggle.getBoundingClientRect(); squiggle.style.animation = 'st-squiggle 1.2s cubic-bezier(.4,0,.2,1) both'; }
+        }, 420);
+      }, 5200);
+      this.timers.push(cycle);
+    }
+
+    // retry buttons spin, then report back honestly
+    root.querySelectorAll('.st-retry').forEach((r) => r.addEventListener('click', () => {
+      const ico = r.querySelector('.st-retryico');
+      const label = r.querySelector('.st-retrylabel');
+      const was = label ? label.textContent : '';
+      if (ico) ico.style.animation = 'st-spin .8s linear infinite';
+      if (label) label.textContent = 'Reconnecting…';
+      this.timers.push(setTimeout(() => {
+        if (ico) ico.style.animation = 'none';
+        if (label) label.textContent = 'Still failing — ' + was.toLowerCase();
+      }, 1600));
+    }));
+
+    const copy = root.querySelector('.st-copybtn');
+    if (copy) copy.addEventListener('click', () => {
+      copy.textContent = 'COPIED';
+      copy.style.color = 'var(--ok)';
+      this.timers.push(setTimeout(() => { copy.textContent = 'COPY'; copy.style.color = 'var(--ind-lt)'; }, 1500));
+    });
+
+    root.querySelectorAll('.st-chip').forEach((c) => {
+      c.addEventListener('mouseenter', () => { c.style.borderColor = 'var(--ind-lt)'; c.style.color = 'var(--text)'; });
+      c.addEventListener('mouseleave', () => { c.style.borderColor = 'var(--line2)'; c.style.color = 'var(--muted)'; });
+      c.addEventListener('click', () => { c.style.opacity = '.4'; c.style.pointerEvents = 'none'; });
+    });
+    root.querySelectorAll('.st-btn').forEach((b) => {
+      b.addEventListener('mouseenter', () => { b.style.filter = 'brightness(1.12)'; b.style.transform = 'translateY(-1px)'; if (!b.classList.contains('st-primary')) b.style.borderColor = 'var(--ind-lt)'; });
+      b.addEventListener('mouseleave', () => { b.style.filter = 'none'; b.style.transform = 'translateY(0)'; if (!b.classList.contains('st-primary')) b.style.borderColor = 'var(--line2)'; });
+    });
+
+    // footer
+    root.querySelectorAll('.st-flink').forEach((l) => {
+      const base = l.style.color;
+      l.addEventListener('mouseenter', () => { l.style.color = 'var(--text)'; });
+      l.addEventListener('mouseleave', () => { l.style.color = base; });
+    });
+    root.querySelectorAll('.st-social').forEach((s) => {
+      s.addEventListener('mouseenter', () => { s.style.borderColor = 'var(--ind-lt)'; s.style.transform = 'translateY(-2px)'; });
+      s.addEventListener('mouseleave', () => { s.style.borderColor = 'var(--line)'; s.style.transform = 'translateY(0)'; });
+    });
+    root.querySelectorAll('.st-sub').forEach((b) => b.addEventListener('click', () => {
+      b.textContent = 'Subscribed ✓';
+      this.timers.push(setTimeout(() => { b.textContent = 'Subscribe'; }, 2200));
+    }));
+    root.querySelectorAll('.st-fghost').forEach((b) => {
+      b.addEventListener('mouseenter', () => { b.style.borderColor = 'var(--ind-lt)'; });
+      b.addEventListener('mouseleave', () => { b.style.borderColor = 'var(--line2)'; });
+    });
+    root.querySelectorAll('.st-fcta').forEach((b) => {
+      b.addEventListener('mouseenter', () => { b.style.filter = 'brightness(1.12)'; });
+      b.addEventListener('mouseleave', () => { b.style.filter = 'none'; });
+    });
+
+    const flow = () => {
+      const w = root.getBoundingClientRect().width;
+      const narrow = w < 1040, tight = w < 720;
+      root.querySelectorAll('.st-fgrid').forEach((g) => {
+        g.style.gridTemplateColumns = tight ? 'minmax(0, 1fr)' : narrow ? 'repeat(2, minmax(0, 1fr))' : 'minmax(0, 1.5fr) repeat(3, minmax(0, 1fr))';
+      });
+      // the ghost glyph and its stage shrink together so the art never overflows
+      root.querySelectorAll('.st-big').forEach((b) => {
+        const long = (b.textContent || '').length > 3;
+        b.style.fontSize = tight ? (long ? '84px' : '150px') : narrow ? (long ? '130px' : '240px') : (long ? (b.textContent.length > 6 ? '210px' : '250px') : '340px');
+        b.style.letterSpacing = tight ? '8px' : narrow ? '18px' : (long ? '20px' : '34px');
+      });
+      root.querySelectorAll('.st-screen > div:nth-child(2)').forEach((s) => { s.style.height = tight ? '260px' : narrow ? '340px' : '420px'; });
+      root.querySelectorAll('.st-artmove').forEach((a) => { a.style.width = tight ? '180px' : narrow ? '230px' : (a.dataset.w || a.style.width); });
+      root.querySelectorAll('.st-quote').forEach((q) => { q.style.fontSize = tight ? '12px' : '15px'; q.style.letterSpacing = tight ? '2.4px' : '5px'; });
+    };
+    root.querySelectorAll('.st-artmove').forEach((a) => { a.dataset.w = a.style.width; });
+    this.flow = flow;
+    flow();
+    window.addEventListener('resize', flow);
+
+    const map = { 'Not found (404)': '404', 'Forbidden (403)': '403', 'Session expired (401)': '401', 'Server error (500)': '500', 'Maintenance (503)': '503', 'Timeout (408)': '408', 'Offline': 'offline', 'No results': 'empty', 'Unsupported browser': 'browser' };
+    show(map[this.props.startAt] || '404');
+  }
+
+  componentWillUnmount() {
+    (this.timers || []).forEach((t) => { clearTimeout(t); clearInterval(t); });
+    if (this.flow) window.removeEventListener('resize', this.flow);
+  }
+
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -162,50 +162,63 @@ async def _lifespan(application):
         except Exception as e:
             logger.warning(f"Skipping index creation for {collection.name} {args}: {e}")
 
-    await _safe_create_index(db.users, "email", unique=True)
-    await _safe_create_index(db.users, "unique_id")
-    await _safe_create_index(db.users, [("role", 1), ("_id", -1)])
-    await _safe_create_index(db.users, [("role", 1), ("mentor_status", 1)])
-    await _safe_create_index(db.users, "sa_id", unique=True, sparse=True)
-    await _safe_create_index(db.career_suggestions, "user_id")
-    await _safe_create_index(db.career_roadmaps, "user_id")
-    await _safe_create_index(db.college_students, [("college_id", 1), ("id", 1)])
-    await _safe_create_index(db.chat_messages, [("user_id", 1), ("session_id", 1)])
-    await _safe_create_index(db.bookings, [("student_id", 1), ("slot_start_iso", -1)])
-    await _safe_create_index(db.bookings, [("mentor_id", 1), ("slot_start_iso", -1)])
-    await _safe_create_index(db.audit_logs, "user_id")
-    await _safe_create_index(db.audit_logs, [("ts", -1)])
-    await _safe_create_index(db.sessions, "user_id")
-    await _safe_create_index(db.sessions, [("expires_at", 1)], expireAfterSeconds=0)
-    await _safe_create_index(db.agent_k_schedules, [("status", 1), ("next_run_at", 1)])
-    await _safe_create_index(db.agent_k_schedules, [("user_id", 1), ("created_at", -1)])
-    await _safe_create_index(db.agent_runs, [("schedule_id", 1), ("started_at", -1)])
-    await _safe_create_index(db.workflow_events, "event_type")
-    await _safe_create_index(db.workflow_events, [("fired_at", -1)])
-    await _safe_create_index(db.connections, "a")
-    await _safe_create_index(db.connections, "b")
-    await _safe_create_index(db.connections, [("from_id", 1), ("status", 1)])
-    await _safe_create_index(db.connections, [("to_id", 1), ("status", 1)])
-    await _safe_create_index(db.connections, "mentor_id")
-    await _safe_create_index(db.applications, "user_id")
-    await _safe_create_index(db.jobs_cache, "dedup_hash")
-    await _safe_create_index(db.jobs_cache, [("expires_at", 1), ("job_type", 1)])
-    await _safe_create_index(db.mentor_sessions, [("mentee_id", 1), ("status", 1)])
-    await _safe_create_index(db.mentor_sessions, [("mentor_id", 1), ("status", 1)])
-    await _safe_create_index(db.events, "mentor_id")
-    await _safe_create_index(db.events, [("status", 1), ("start_date", -1)])
-    await _safe_create_index(db.event_registrations, "event_id")
-    # Token blacklist for logout revocation — auto-expires with TTL
-    await _safe_create_index(
-        db.token_blacklist, [("expires_at", 1)], expireAfterSeconds=0
-    )
-    await _safe_create_index(db.token_blacklist, "jti", unique=True, sparse=True)
-    # Certificate registry — unique verification codes (guarantees no two
-    # certificates share a code, and lookups stay O(1) at 400+ scale)
-    await _safe_create_index(db.certificates, "verification_code", unique=True)
-    await _safe_create_index(db.certificates, "recipient_email")
-    await _safe_create_index(db.email_suppressions, "email", unique=True)
-    await _safe_create_index(db.email_quality_events, [("created_at", -1)])
+    # Create all database indexes concurrently to prevent startup latency
+    index_tasks = [
+        _safe_create_index(db.users, "email", unique=True),
+        _safe_create_index(db.users, "unique_id"),
+        _safe_create_index(db.users, [("role", 1), ("_id", -1)]),
+        _safe_create_index(db.users, [("role", 1), ("mentor_status", 1)]),
+        _safe_create_index(db.users, "sa_id", unique=True, sparse=True),
+        _safe_create_index(db.career_suggestions, "user_id"),
+        _safe_create_index(db.career_roadmaps, "user_id"),
+        _safe_create_index(db.college_students, [("college_id", 1), ("id", 1)]),
+        _safe_create_index(db.chat_messages, [("user_id", 1), ("session_id", 1)]),
+        _safe_create_index(db.bookings, [("student_id", 1), ("slot_start_iso", -1)]),
+        _safe_create_index(db.bookings, [("mentor_id", 1), ("slot_start_iso", -1)]),
+        _safe_create_index(db.audit_logs, "user_id"),
+        _safe_create_index(db.audit_logs, [("ts", -1)]),
+        _safe_create_index(db.sessions, "user_id"),
+        _safe_create_index(db.sessions, [("expires_at", 1)], expireAfterSeconds=0),
+        _safe_create_index(db.agent_k_schedules, [("status", 1), ("next_run_at", 1)]),
+        _safe_create_index(db.agent_k_schedules, [("user_id", 1), ("created_at", -1)]),
+        _safe_create_index(db.agent_runs, [("schedule_id", 1), ("started_at", -1)]),
+        _safe_create_index(db.workflow_events, "event_type"),
+        _safe_create_index(db.workflow_events, [("fired_at", -1)]),
+        _safe_create_index(db.connections, "a"),
+        _safe_create_index(db.connections, "b"),
+        _safe_create_index(db.connections, [("from_id", 1), ("status", 1)]),
+        _safe_create_index(db.connections, [("to_id", 1), ("status", 1)]),
+        _safe_create_index(db.connections, "mentor_id"),
+        _safe_create_index(db.applications, "user_id"),
+        _safe_create_index(db.jobs_cache, "dedup_hash"),
+        _safe_create_index(db.jobs_cache, [("expires_at", 1), ("job_type", 1)]),
+        _safe_create_index(db.mentor_sessions, [("mentee_id", 1), ("status", 1)]),
+        _safe_create_index(db.mentor_sessions, [("mentor_id", 1), ("status", 1)]),
+        _safe_create_index(db.events, "mentor_id"),
+        _safe_create_index(db.events, [("status", 1), ("start_date", -1)]),
+        _safe_create_index(db.event_registrations, "event_id"),
+        _safe_create_index(db.token_blacklist, [("expires_at", 1)], expireAfterSeconds=0),
+        _safe_create_index(db.token_blacklist, "jti", unique=True, sparse=True),
+        _safe_create_index(db.certificates, "verification_code", unique=True),
+        _safe_create_index(db.certificates, "recipient_email"),
+        _safe_create_index(db.email_suppressions, "email", unique=True),
+        _safe_create_index(db.email_quality_events, [("created_at", -1)]),
+        _safe_create_index(db.echo_showcases, "slug", unique=True, sparse=True),
+        _safe_create_index(db.echo_showcases, [("status", 1), ("date", -1)]),
+        _safe_create_index(db.echo_registrations, [("slug", 1), ("user_key", 1)]),
+        _safe_create_index(db.echo_registrations, [("payment.status", 1), ("slug", 1)]),
+        _safe_create_index(db.invoices, "invoice_no", unique=True, sparse=True),
+        _safe_create_index(db.invoices, [("user_id", 1), ("created_at", -1)]),
+        _safe_create_index(db.email_campaigns, "campaign_id", unique=True, sparse=True),
+        _safe_create_index(db.email_campaign_events, [("campaign_id", 1), ("email", 1)]),
+        _safe_create_index(db.coupons, "code", unique=True),
+        _safe_create_index(db.email_verifications, "email"),
+        _safe_create_index(db.email_verifications, [("expires_at", 1)], expireAfterSeconds=0),
+        _safe_create_index(db.echo_volunteers, "email"),
+        _safe_create_index(db.echo_volunteers, "slug"),
+        _safe_create_index(db.echo_volunteers, [("slug", 1), ("email", 1)], unique=True),
+    ]
+    await asyncio.gather(*index_tasks, return_exceptions=True)
 
     # 3. Auto seed certificates on startup if count is 0
     try:
@@ -213,27 +226,11 @@ async def _lifespan(application):
         await seed_certificates()
     except Exception as e:
         logger.warning(f"Auto certificate seeding skipped: {e}")
-    # ECHO Showcase indexes
-    await _safe_create_index(db.echo_showcases, "slug", unique=True, sparse=True)
-    await _safe_create_index(db.echo_showcases, [("status", 1), ("date", -1)])
-    await _safe_create_index(db.echo_registrations, [("slug", 1), ("user_key", 1)])
-    await _safe_create_index(db.echo_registrations, [("payment.status", 1), ("slug", 1)])
-    await _safe_create_index(db.invoices, "invoice_no", unique=True, sparse=True)
-    await _safe_create_index(db.invoices, [("user_id", 1), ("created_at", -1)])
-    await _safe_create_index(db.email_campaigns, "campaign_id", unique=True, sparse=True)
-    await _safe_create_index(db.email_campaign_events, [("campaign_id", 1), ("email", 1)])
     try:
         from echo_showcase import seed_echo_showcase
         await seed_echo_showcase(db)
     except Exception as _e:
         logger.warning("Could not seed ECHO showcases: %s", _e)
-    await _safe_create_index(db.coupons, "code", unique=True)
-    await _safe_create_index(db.email_verifications, "email")
-    await _safe_create_index(db.email_verifications, [("expires_at", 1)], expireAfterSeconds=0)
-    # ECHO Volunteer indexes
-    await _safe_create_index(db.echo_volunteers, "email")
-    await _safe_create_index(db.echo_volunteers, "slug")
-    await _safe_create_index(db.echo_volunteers, [("slug", 1), ("email", 1)], unique=True)
 
     # Seed admin account and baseline data
     # (seed_admin / seed_data are defined later in server.py and are in scope at runtime)
@@ -288,9 +285,35 @@ async def _lifespan(application):
     except Exception as _e:
         logger.warning("Could not warm email quality list: %s", _e)
 
+    # Start the 30-minute recurring multi-agent scheduler worker
+    try:
+        from services.agents.agent_scheduler import agent_scheduler
+        agent_scheduler.start(db=db)
+    except Exception as _e:
+        logger.warning("Could not start 30-minute Agent Scheduler: %s", _e)
+
+    # Start the 24-hour autonomous operations & audit swarm
+    try:
+        from services.agents.daily_audit_agents import daily_audit_service
+        daily_audit_service.start(db=db)
+    except Exception as _e:
+        logger.warning("Could not start 24-hour Daily Audit Swarm: %s", _e)
+
     yield  # ← application runs here
 
     # ── SHUTDOWN ─────────────────────────────────────────────────────────────
+
+    try:
+        from services.agents.daily_audit_agents import daily_audit_service
+        daily_audit_service.stop()
+    except Exception:
+        pass
+
+    try:
+        from services.agents.agent_scheduler import agent_scheduler
+        agent_scheduler.stop()
+    except Exception:
+        pass
 
     try:
         from background_sync import stop_sync_scheduler
@@ -1048,6 +1071,15 @@ def serialize_user(user: dict) -> dict | None:
         "preferences":    user.get("preferences"),
         "is_verified":    user.get("is_verified"),
         "ranking_tier":   user.get("ranking_tier"),
+        # Identity & DigiLocker
+        "aadhaar_number": user.get("aadhaar_number"),
+        "aadhaar_masked": user.get("aadhaar_masked") or (f"•••• •••• {str(user.get('aadhaar_number'))[-4:]}" if user.get("aadhaar_number") and len(str(user.get("aadhaar_number")).replace(" ","")) >= 4 else None),
+        "aadhaar_verified": bool(user.get("aadhaar_verified", False)),
+        "digilocker_id": user.get("digilocker_id"),
+        "digilocker_verified": bool(user.get("digilocker_verified", False)),
+        "digilocker_doc_count": int(user.get("digilocker_doc_count", 0)),
+        "digilocker_uri": user.get("digilocker_uri"),
+        "digilocker_linked_at": user.get("digilocker_linked_at"),
     }
 
 
@@ -2593,6 +2625,10 @@ api_router.include_router(college_router)
 from auth_analytics import router as auth_analytics_router
 api_router.include_router(auth_analytics_router)
 
+# Visitor analytics & telemetry engine (Unregistered + Registered visitors)
+from visitor_analytics import router as visitor_analytics_router
+api_router.include_router(visitor_analytics_router)
+
 # PostHog analytics proxy
 from posthog_proxy import router as posthog_proxy_router
 api_router.include_router(posthog_proxy_router)
@@ -2663,9 +2699,21 @@ api_router.include_router(certificates_router)
 from routers.ai_platform_services import router as ai_platform_services_router
 api_router.include_router(ai_platform_services_router)
 
+# Autonomous Agent Ecosystem (MetaGPT Swarm, AutoGPT Autopilot, QA & Security Agents)
+from routers.admin.agents import router as admin_agents_router
+api_router.include_router(admin_agents_router)
+
 # PDF Document Generation & Download Router
 from routers.pdf_routes import router as pdf_routes_router
 api_router.include_router(pdf_routes_router)
+
+# SuperAdmin Account Verticals & Background Verification (BGV) Router
+from routers.bgv import router as bgv_router
+api_router.include_router(bgv_router)
+
+# BGV Free & Semi-Paid API Integrations Register Router
+from routers.bgv_integrations import router as bgv_integrations_router
+api_router.include_router(bgv_integrations_router)
 
 app.include_router(api_router)
 

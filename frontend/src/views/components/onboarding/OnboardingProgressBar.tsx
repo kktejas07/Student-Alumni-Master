@@ -92,12 +92,12 @@ export const OnboardingProgressBar: React.FC<OnboardingProgressBarProps> = ({
         Animated.timing(labelOpacityAnim, {
           toValue: 0.65,
           duration: 120,
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== 'web',
         }),
         Animated.timing(labelOpacityAnim, {
           toValue: 1,
           duration: 200,
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== 'web',
         }),
       ]),
     ]).start();

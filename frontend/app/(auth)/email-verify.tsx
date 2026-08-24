@@ -155,8 +155,8 @@ function PendingView({
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(floatY, { toValue: -6, duration: 1400, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-        Animated.timing(floatY, { toValue: 0, duration: 1400, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        Animated.timing(floatY, { toValue: -6, duration: 1400, easing: Easing.inOut(Easing.quad), useNativeDriver: Platform.OS !== 'web' }),
+        Animated.timing(floatY, { toValue: 0, duration: 1400, easing: Easing.inOut(Easing.quad), useNativeDriver: Platform.OS !== 'web' }),
       ]),
     ).start();
   }, [floatY]);
@@ -239,8 +239,8 @@ function DoneView({ onSetup2FA, onSkip }: { onSetup2FA: () => void; onSkip: () =
   const opacity = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.parallel([
-      Animated.spring(scale, { toValue: 1, friction: 5, tension: 80, useNativeDriver: true }),
-      Animated.timing(opacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+      Animated.spring(scale, { toValue: 1, friction: 5, tension: 80, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(opacity, { toValue: 1, duration: 400, useNativeDriver: Platform.OS !== 'web' }),
     ]).start();
   }, [scale, opacity]);
 

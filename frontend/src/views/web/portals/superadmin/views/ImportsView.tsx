@@ -20,7 +20,7 @@ import {
   CheckCircle2, ChevronRight, Sparkles, GraduationCap, UserCheck, Briefcase,
   Mail, Phone, MapPin, Building2, Calendar, ExternalLink, Trash2,
   Pencil, Eye, EyeOff, RefreshCw, Filter, Download, FileText, Globe,
-  Square, SquareCheck, CheckSquare, ShieldCheck,
+  Square, SquareCheck, CheckSquare, ShieldCheck, LayoutGrid, Send, Tag, FileDown,
 } from 'lucide-react-native';
 import { SAC, FONTS } from '../tokens';
 import {
@@ -64,7 +64,7 @@ function CategoryBadge({ cat, small }: { cat: CatKey; small?: boolean }) {
 type TabId = 'upload' | 'manual' | 'history' | 'browse';
 
 export function ImportsView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
-  const [tab, setTab] = useSubTab<TabId>(['upload', 'manual', 'history', 'browse'], 'upload', { sub, onSub });
+  const [tab, setTab] = useSubTab<TabId>(['browse', 'upload', 'manual', 'history'], 'browse', { sub, onSub });
   const { toast, flash, hide } = useToast();
   const [refreshKey, setRefreshKey] = useState(0);
   const [profileId, setProfileId] = useState<string | null>(null);
@@ -80,10 +80,10 @@ export function ImportsView({ sub, onSub }: { sub?: string; onSub?: (s: string) 
   useEffect(() => { loadStats(); }, [loadStats, refreshKey]);
 
   const tabs = [
-    { id: 'upload',  label: 'Upload',       icon: Upload },
-    { id: 'manual',  label: 'Add Manually', icon: UserPlus },
-    { id: 'browse',  label: 'Browse',       icon: Users },
-    { id: 'history', label: 'History',      icon: History },
+    { id: 'browse',  label: 'Contacts Database', icon: Users },
+    { id: 'upload',  label: 'Bulk Upload',       icon: Upload },
+    { id: 'manual',  label: 'Add Manually',      icon: UserPlus },
+    { id: 'history', label: 'Upload History',    icon: History },
   ] as const;
 
   const counts = stats?.counts || {};
@@ -95,10 +95,10 @@ export function ImportsView({ sub, onSub }: { sub?: string; onSub?: (s: string) 
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <IconBox size={38}><Users size={18} color={GRAD.to} /></IconBox>
             <View>
-              <Text style={s.title}>Import Contacts</Text>
+              <Text style={s.title}>Contacts & Imports Database</Text>
               <Text style={s.sub}>
-                Manage all users and contacts. Upload spreadsheets, add manually,
-                or browse existing profiles. Send email invites to unregistered contacts.
+                Browse platform directory contacts with SA-IDs, account statuses, and data completeness.
+                Upload spreadsheets or add users manually with automatic role & profile classification.
               </Text>
             </View>
           </View>
@@ -156,9 +156,9 @@ export function ImportsView({ sub, onSub }: { sub?: string; onSub?: (s: string) 
 
       <TopTabs<TabId> tabs={tabs as any} active={tab} onChange={setTab} />
 
-      {tab === 'upload'  && <UploadTab onSaved={flash} onSwitchTab={setTab} bump={() => { setRefreshKey((k) => k + 1); loadStats(); }} />}
-      {tab === 'manual'  && <ManualTab onSaved={flash} />}
       {tab === 'browse'  && <BrowseTab onOpen={setProfileId} onAction={flash} key={refreshKey} />}
+      {tab === 'upload'  && <UploadTab onSaved={flash} onSwitchTab={setTab} bump={() => setRefreshKey((k) => k + 1)} />}
+      {tab === 'manual'  && <ManualTab onSaved={flash} />}
       {tab === 'history' && <HistoryTab key={refreshKey} />}
 
       <ProfilePanel userId={profileId} onClose={() => setProfileId(null)} onSaved={() => { flash('Profile updated'); setRefreshKey((k) => k + 1); }} />
@@ -324,15 +324,15 @@ function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => vo
           <LinearGradient colors={GRAD.soft} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.dropIcon}>
             <Upload size={22} color={GRAD.to} />
           </LinearGradient>
-          <Text style={s.dropTitle}>Drop your spreadsheets here</Text>
-          <Text style={s.dropSub}>Supports .xlsx, .xls, and .csv · Multiple files supported</Text>
+          <Text style={s.dropTitle}>Drop your spreadsheet or contacts file here</Text>
+          <Text style={s.dropSub}>Supports .xlsx, .xls, .csv, .pdf, .docx · max 500 MB</Text>
           <GradientButton onPress={onPick}>
             <FileSpreadsheet size={13} color="#fff" />
             <Text style={s.btnText}>Choose files</Text>
           </GradientButton>
           {Platform.OS === 'web' && (
             // @ts-ignore native input
-            <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" multiple style={{ display: 'none' }} />
+            <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv,.pdf,.docx,.doc,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword" style={{ display: 'none' }} />
           )}
           {busy && <View style={{ marginTop: 12 }}><ActivityIndicator color={GRAD.to} /></View>}
           {error && <Text style={[s.err, { marginTop: 12 }]}>{error}</Text>}
@@ -436,6 +436,35 @@ function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => vo
               <SumStat label="Errors"     value={data.summary.errors || 0}  tint={SAC.red} />
               <SumStat label="Review"     value={data.summary.needs_review || 0} tint="#FBBF24" />
             </View>
+
+            {/* Pre-Flight Ingestion Quality Report */}
+            {data.preflight && (
+              <View style={{ marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <ShieldCheck size={14} color="#22C55E" />
+                    <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.5 }}>PRE-FLIGHT INGESTION IMPACT</Text>
+                  </View>
+                  <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 5, backgroundColor: 'rgba(34,197,94,0.14)', borderWidth: 1, borderColor: 'rgba(34,197,94,0.3)' }}>
+                    <Text style={{ color: '#86EFAC', fontFamily: FONTS.bold, fontSize: 10 }}>Ready to Commit</Text>
+                  </View>
+                </View>
+                <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
+                  <View style={{ flex: 1, minWidth: 120, padding: 10, borderRadius: 8, backgroundColor: 'rgba(34,197,94,0.08)', borderWidth: 1, borderColor: 'rgba(34,197,94,0.2)' }}>
+                    <Text style={{ color: '#86EFAC', fontFamily: FONTS.xbold, fontSize: 16 }}>+{data.preflight.new_count}</Text>
+                    <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 10 }}>New Profiles to Create</Text>
+                  </View>
+                  <View style={{ flex: 1, minWidth: 120, padding: 10, borderRadius: 8, backgroundColor: 'rgba(59,130,246,0.08)', borderWidth: 1, borderColor: 'rgba(59,130,246,0.2)' }}>
+                    <Text style={{ color: '#93C5FD', fontFamily: FONTS.xbold, fontSize: 16 }}>~{data.preflight.update_count}</Text>
+                    <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 10 }}>Existing to Merge/Update</Text>
+                  </View>
+                  <View style={{ flex: 1, minWidth: 120, padding: 10, borderRadius: 8, backgroundColor: data.preflight.invalid_count > 0 ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: data.preflight.invalid_count > 0 ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.08)' }}>
+                    <Text style={{ color: data.preflight.invalid_count > 0 ? '#FCA5A5' : SAC.muted, fontFamily: FONTS.xbold, fontSize: 16 }}>{data.preflight.invalid_count}</Text>
+                    <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 10 }}>Invalid/Filtered Rows</Text>
+                  </View>
+                </View>
+              </View>
+            )}
           </Card>
 
           {/* Column mapping */}
@@ -465,18 +494,18 @@ function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => vo
             <View style={{ padding: 18, paddingBottom: 4 }}>
               <SectionLabel>PREVIEW · first {(data.preview || []).length} rows</SectionLabel>
             </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={true}>
-              <View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={true} contentContainerStyle={{ flexGrow: 1 }}>
+              <View style={{ flex: 1, minWidth: 1450 }}>
                 <View style={s.tableHead}>
                   <Text style={[s.th, { width: 50 }]}>Row</Text>
                   <Text style={[s.th, { width: 100 }]}>Category</Text>
-                  <Text style={[s.th, { width: 200 }]}>Name</Text>
-                  <Text style={[s.th, { width: 240 }]}>Email</Text>
-                  <Text style={[s.th, { width: 200 }]}>College</Text>
-                  <Text style={[s.th, { width: 160 }]}>Degree</Text>
+                  <Text style={[s.th, { flex: 1.5, minWidth: 200 }]}>Name</Text>
+                  <Text style={[s.th, { flex: 1.5, minWidth: 240 }]}>Email</Text>
+                  <Text style={[s.th, { flex: 1.5, minWidth: 200 }]}>College</Text>
+                  <Text style={[s.th, { flex: 1.5, minWidth: 160 }]}>Degree</Text>
                   <Text style={[s.th, { width: 80 }]}>Exp (yr)</Text>
-                  <Text style={[s.th, { width: 240 }]}>Rule fired</Text>
-                  <Text style={[s.th, { width: 180 }]}>Validation</Text>
+                  <Text style={[s.th, { flex: 1.5, minWidth: 240 }]}>Rule fired</Text>
+                  <Text style={[s.th, { flex: 1, minWidth: 180 }]}>Validation</Text>
                 </View>
                 {(data.preview || []).slice(0, 30).map((p: any, i: number) => {
                   const hasErr = (p.errors || []).length > 0;
@@ -484,13 +513,13 @@ function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => vo
                     <View key={i} style={[s.tableRow, hasErr && s.tableRowErr]}>
                       <Text style={[s.td, { width: 50, color: SAC.dim }]}>{p.row}</Text>
                       <View style={{ width: 100 }}>{p.category && <CategoryBadge cat={p.category} small />}</View>
-                      <Text numberOfLines={1} style={[s.td, { width: 200 }]}>{p.full_name || '—'}</Text>
-                      <Text numberOfLines={1} style={[s.td, { width: 240, color: SAC.muted }]}>{p.email || '—'}</Text>
-                      <Text numberOfLines={1} style={[s.td, { width: 200, color: SAC.muted }]}>{p.college || '—'}</Text>
-                      <Text numberOfLines={1} style={[s.td, { width: 160, color: SAC.muted }]}>{p.degree || '—'}</Text>
+                      <Text numberOfLines={1} style={[s.td, { flex: 1.5, minWidth: 200 }]}>{p.full_name || '—'}</Text>
+                      <Text numberOfLines={1} style={[s.td, { flex: 1.5, minWidth: 240, color: SAC.muted }]}>{p.email || '—'}</Text>
+                      <Text numberOfLines={1} style={[s.td, { flex: 1.5, minWidth: 200, color: SAC.muted }]}>{p.college || '—'}</Text>
+                      <Text numberOfLines={1} style={[s.td, { flex: 1.5, minWidth: 160, color: SAC.muted }]}>{p.degree || '—'}</Text>
                       <Text style={[s.td, { width: 80 }]}>{(p.experience_years ?? 0).toString()}</Text>
-                      <Text numberOfLines={1} style={[s.td, { width: 240, color: SAC.muted }]}>{p.category_rule || '—'}</Text>
-                      <View style={{ width: 180 }}>
+                      <Text numberOfLines={1} style={[s.td, { flex: 1.5, minWidth: 240, color: SAC.muted }]}>{p.category_rule || '—'}</Text>
+                      <View style={{ flex: 1, minWidth: 180 }}>
                         {hasErr ? (
                           <StatusPill kind="danger" label={(p.errors || []).join(', ')} />
                         ) : (
@@ -756,16 +785,16 @@ function PreviewRow({ label, value, pill }: { label: string; value: string; pill
 }
 
 /* ════════════════════════════════════════════════════════════════════
- *  BROWSE TAB — list imported users as ProfileCard grid
+ *  BROWSE TAB — list imported users as Spreadsheet Data Grid or Cards
  * ══════════════════════════════════════════════════════════════════ */
 function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onAction: (text: string) => void }) {
   const [cat, setCat] = useState<'all' | CatKey>('all');
+  const [accountFilter, setAccountFilter] = useState<'all' | 'registered' | 'unregistered' | 'complete'>('all');
   const [q, setQ] = useState('');
   const [data, setData] = useState<any>(null);
   const [busy, setBusy] = useState(false);
   const [showPendingOnly, setShowPendingOnly] = useState(false);
-  const [page, setPage] = useState(1);
-  const [perPage, setPerPage] = useState(25);
+  const [viewMode, setViewMode] = useState<'spreadsheet' | 'grid'>('spreadsheet');
   /* Bulk selection */
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
@@ -774,15 +803,13 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
   const load = useCallback(async (pageNum = page, limit = perPage) => {
     setBusy(true);
     try {
-      const offset = (pageNum - 1) * limit;
-      const r = await request<any>(`/admin/users/list?category=${cat}&q=${encodeURIComponent(q)}&limit=${limit}&offset=${offset}`);
+      const r = await request<any>(`/admin/users/list?category=${cat}&account_filter=${accountFilter}&q=${encodeURIComponent(q)}&limit=200`);
       setData(r);
     } catch (e: any) {
       if (/401|Not authenticated/i.test(String(e?.message || ''))) {
         await new Promise((r) => setTimeout(r, 600));
         try {
-          const offset = (pageNum - 1) * limit;
-          const r = await request<any>(`/admin/users/list?category=${cat}&q=${encodeURIComponent(q)}&limit=${limit}&offset=${offset}`);
+          const r = await request<any>(`/admin/users/list?category=${cat}&account_filter=${accountFilter}&q=${encodeURIComponent(q)}&limit=200`);
           setData(r);
           return;
         } catch {}
@@ -790,138 +817,347 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
       console.warn('Imports browse load failed', e);
       setData({ items: [], total: 0, counts: {} });
     } finally { setBusy(false); }
-  }, [cat, q, page, perPage]);
-  
+  }, [cat, accountFilter, q]);
   useEffect(() => { load(); }, [load]);
   
   const totalPages = data ? Math.ceil((data.total || 0) / perPage) : 1;
 
   const counts = data?.counts || {};
+  const totalDisplay = counts.all ?? 0;
+  const studentsDisplay = counts.student ?? 0;
+  const mentorsDisplay = counts.mentor ?? 0;
+  const alumniDisplay = counts.alumni ?? 0;
+  const mastersDisplay = counts.masters ?? 0;
+  const pendingCount = counts.pending_approval ?? 0;
+  const [editingCell, setEditingCell] = useState<{ id: string; field: string } | null>(null);
+  const [editValue, setEditValue] = useState('');
+  const [savingCell, setSavingCell] = useState(false);
+  const [tagModalOpen, setTagModalOpen] = useState(false);
+  const [tagInput, setTagInput] = useState('');
+
+  const registeredCount = counts.registered ?? 0;
+  const nonUserCount = Math.max(0, totalDisplay - registeredCount);
+
   const tabs = [
-    { id: 'all',     label: 'All',       count: counts.all || 0 },
-    { id: 'student', label: 'Student',   count: counts.student || 0 },
-    { id: 'masters', label: "Master's",  count: counts.masters || 0 },
-    { id: 'alumni',  label: 'Alumni',    count: counts.alumni || 0 },
-    { id: 'mentor',  label: 'Mentor',    count: counts.mentor || 0 },
+    { id: 'all',     label: 'All',       count: totalDisplay },
+    { id: 'student', label: 'Student',   count: studentsDisplay },
+    { id: 'masters', label: "Master's",  count: mastersDisplay },
+    { id: 'alumni',  label: 'Alumni',    count: alumniDisplay },
+    { id: 'mentor',  label: 'Mentor',    count: mentorsDisplay },
   ] as const;
 
   const items = useMemo(() => {
-    const list = data?.items || [];
-    if (showPendingOnly) return list.filter((u: any) => !u.approved);
+    let list = data?.items || [];
+    if (showPendingOnly) list = list.filter((u: any) => !u.approved);
     return list;
   }, [data, showPendingOnly]);
 
   const approve = async (id: string) => {
     try {
       await request(`/admin/users/profile/${id}/approve`, { method: 'POST' });
-      onAction('Approved');
-      // Mark in place so the card doesn't disappear from the grid
+      onAction('Approved profile');
       setData((d: any) => d ? { ...d, items: d.items.map((u: any) => u.id === id ? { ...u, approved: true, is_new: false } : u) } : d);
     } catch { onAction('Failed to approve'); }
   };
+
   const remove = async (id: string) => {
     try {
       await request(`/admin/users/profile/${id}`, { method: 'DELETE' });
-      onAction('Profile removed · archived for auto-restore');
+      onAction('Profile removed · archived');
       setData((d: any) => d ? { ...d, items: d.items.filter((u: any) => u.id !== id) } : d);
     } catch { onAction('Failed to remove'); }
+  };
+
+  const inviteSingle = async (id: string, email: string) => {
+    if (!email) { onAction('No email address for this contact'); return; }
+    try {
+      await request('/admin/users/bulk/invite', { method: 'POST', body: { user_ids: [id] } });
+      onAction(`Invitation sent to ${email}`);
+      setData((d: any) => d ? { ...d, items: d.items.map((u: any) => u.id === id ? { ...u, invite_status: 'sent', invite_sent_at: new Date().toISOString() } : u) } : d);
+    } catch { onAction('Failed to send invite'); }
+  };
+
+  /* ── Inline Cell Editing ── */
+  const startInlineEdit = (id: string, field: string, currentVal: any) => {
+    setEditingCell({ id, field });
+    setEditValue(String(currentVal || ''));
+  };
+
+  const saveInlineEdit = async () => {
+    if (!editingCell) return;
+    const { id, field } = editingCell;
+    const val = editValue.trim();
+    setSavingCell(true);
+    try {
+      await request('/admin/users/inline-update', {
+        method: 'POST',
+        body: { user_id: id, field, value: val },
+      });
+      setData((d: any) => d ? {
+        ...d,
+        items: d.items.map((u: any) => u.id === id ? { ...u, [field]: val } : u)
+      } : d);
+      onAction(`Updated ${field.replace('_', ' ')}`);
+    } catch (e: any) {
+      onAction('Failed to update field');
+    } finally {
+      setSavingCell(false);
+      setEditingCell(null);
+    }
+  };
+
+  /* ── Filtered CSV Export ── */
+  const exportFilteredCsv = () => {
+    if (!items || items.length === 0) {
+      onAction('No items to export');
+      return;
+    }
+    const headers = ['SA ID', 'Name', 'Email', 'Phone', 'Category', 'Account Status', 'Company', 'Role', 'College', 'Degree', 'Grad Year', 'Location', 'Experience (Yrs)', 'Completeness %', 'LinkedIn'];
+    const rows = items.map((u: any) => [
+      `"${(u.sa_id || '').replace(/"/g, '""')}"`,
+      `"${(u.name || '').replace(/"/g, '""')}"`,
+      `"${(u.email || '').replace(/"/g, '""')}"`,
+      `"${(u.phone || '').replace(/"/g, '""')}"`,
+      `"${(u.category || '').replace(/"/g, '""')}"`,
+      `"${(u.is_registered ? 'Registered' : 'Imported').replace(/"/g, '""')}"`,
+      `"${(u.company || '').replace(/"/g, '""')}"`,
+      `"${(u.designation || '').replace(/"/g, '""')}"`,
+      `"${(u.college || '').replace(/"/g, '""')}"`,
+      `"${(u.degree || '').replace(/"/g, '""')}"`,
+      `"${(u.graduation_year || '').toString().replace(/"/g, '""')}"`,
+      `"${(u.location || '').replace(/"/g, '""')}"`,
+      `"${(u.experience_years != null ? u.experience_years : '').toString().replace(/"/g, '""')}"`,
+      `"${(u.completeness_score || 0).toString()}%"`,
+      `"${(u.linkedin_url || '').replace(/"/g, '""')}"`,
+    ]);
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    if (Platform.OS === 'web') {
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `Contacts_Export_${new Date().toISOString().slice(0, 10)}.csv`;
+      link.click();
+      onAction(`Exported ${items.length} records to CSV`);
+    }
   };
 
   /* ── Bulk-action helpers ── */
   const toggleSelect = (id: string) => setSelected((s) => ({ ...s, [id]: !s[id] }));
   const selectedIds = useMemo(() => Object.keys(selected).filter((k) => selected[k]), [selected]);
-  const selectAllVisible = () => {
-    const all: Record<string, boolean> = {};
-    items.forEach((u: any) => { all[u.id] = true; });
-    setSelected(all);
+  const allSelected = items.length > 0 && selectedIds.length === items.length;
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelected({});
+    } else {
+      const all: Record<string, boolean> = {};
+      items.forEach((u: any) => { all[u.id] = true; });
+      setSelected(all);
+    }
   };
-  const selectAllPending = () => {
-    const sel: Record<string, boolean> = {};
-    (data?.items || []).filter((u: any) => !u.approved).forEach((u: any) => { sel[u.id] = true; });
-    setSelected(sel);
-    setSelectMode(true);
-  };
+
   const clearSelection = () => setSelected({});
 
-  const bulkRun = async (kind: 'approve' | 'delete', label: string) => {
-    const ids = selectedIds;
-    if (ids.length === 0) return;
+  const bulkApprove = async () => {
+    if (selectedIds.length === 0) return;
     setBulkBusy(true);
-    let ok = 0, fail = 0;
-    for (const id of ids) {
-      try {
-        if (kind === 'approve') {
-          await request(`/admin/users/profile/${id}/approve`, { method: 'POST' });
-        } else {
-          await request(`/admin/users/profile/${id}`, { method: 'DELETE' });
-        }
-        ok++;
-      } catch { fail++; }
-    }
-    onAction(`${label} · ${ok} done${fail ? ` · ${fail} failed` : ''}`);
-    setBulkBusy(false);
-    clearSelection();
-    setSelectMode(false);
-    // Re-load to get fresh `approved` flags
-    await load();
+    try {
+      const res = await request<any>('/admin/users/bulk/approve', { method: 'POST', body: { user_ids: selectedIds } });
+      onAction(`Approved ${res.modified_count} users`);
+      clearSelection();
+      setSelectMode(false);
+      await load();
+    } catch { onAction('Bulk approve failed'); }
+    finally { setBulkBusy(false); }
   };
 
-  /* One-click: approve every pending profile right now */
-  const approveAllPending = async () => {
-    const ids = (data?.items || []).filter((u: any) => !u.approved).map((u: any) => u.id);
-    if (ids.length === 0) return;
+  const bulkInvite = async () => {
+    if (selectedIds.length === 0) return;
     setBulkBusy(true);
-    let ok = 0, fail = 0;
-    for (const id of ids) {
-      try { await request(`/admin/users/profile/${id}/approve`, { method: 'POST' }); ok++; }
-      catch { fail++; }
-    }
-    onAction(`Approved ${ok} profile${ok === 1 ? '' : 's'}${fail ? ` · ${fail} failed` : ''}`);
-    setBulkBusy(false);
-    await load();
+    try {
+      const res = await request<any>('/admin/users/bulk/invite', { method: 'POST', body: { user_ids: selectedIds } });
+      onAction(`Dispatched ${res.sent_count} invitation emails`);
+      clearSelection();
+      setSelectMode(false);
+      await load();
+    } catch { onAction('Bulk invite failed'); }
+    finally { setBulkBusy(false); }
   };
 
-  const pendingCount = counts.pending_approval || 0;
+  const bulkPushToTalent = async () => {
+    if (selectedIds.length === 0) return;
+    setBulkBusy(true);
+    try {
+      const res = await request<any>('/admin/users/bulk/push-to-talent', { method: 'POST', body: { user_ids: selectedIds } });
+      onAction(`Bridged ${res.synced_count} contacts into Talent Pool`);
+      clearSelection();
+      setSelectMode(false);
+    } catch { onAction('Push to talent pool failed'); }
+    finally { setBulkBusy(false); }
+  };
+
+  const bulkApplyTag = async () => {
+    if (selectedIds.length === 0 || !tagInput.trim()) return;
+    setBulkBusy(true);
+    try {
+      const res = await request<any>('/admin/users/bulk/tag', {
+        method: 'POST',
+        body: { user_ids: selectedIds, tag: tagInput.trim(), action: 'add' }
+      });
+      onAction(`Tagged ${res.modified_count} profiles with "${res.tag}"`);
+      setTagModalOpen(false);
+      setTagInput('');
+      clearSelection();
+      setSelectMode(false);
+      await load();
+    } catch { onAction('Bulk tag failed'); }
+    finally { setBulkBusy(false); }
+  };
+
+  const bulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    setBulkBusy(true);
+    try {
+      await request('/admin/users/bulk/delete', { method: 'POST', body: { user_ids: selectedIds, permanent: false } });
+      onAction(`Archived ${selectedIds.length} profiles`);
+      clearSelection();
+      setSelectMode(false);
+      await load();
+    } catch { onAction('Bulk delete failed'); }
+    finally { setBulkBusy(false); }
+  };
 
   return (
     <View style={{ gap: 12 }}>
+      {/* Metric Summary KPI Tiles */}
+      <View style={s.summaryStats}>
+        <View style={s.sumStat}>
+          <Text style={[s.sumVal, { color: '#fff' }]}>{totalDisplay.toLocaleString()}</Text>
+          <Text style={s.sumLabel}>TOTAL CONTACTS</Text>
+        </View>
+        <View style={s.sumStat}>
+          <Text style={[s.sumVal, { color: '#22C55E' }]}>{registeredCount.toLocaleString()}</Text>
+          <Text style={s.sumLabel}>REGISTERED USERS</Text>
+        </View>
+        <View style={s.sumStat}>
+          <Text style={[s.sumVal, { color: '#94A3B8' }]}>{nonUserCount.toLocaleString()}</Text>
+          <Text style={s.sumLabel}>PROSPECTS / NON-USERS</Text>
+        </View>
+        <View style={s.sumStat}>
+          <Text style={[s.sumVal, { color: CAT.student.color }]}>{studentsDisplay.toLocaleString()}</Text>
+          <Text style={s.sumLabel}>STUDENTS</Text>
+        </View>
+        <View style={s.sumStat}>
+          <Text style={[s.sumVal, { color: CAT.mentor.color }]}>{mentorsDisplay.toLocaleString()}</Text>
+          <Text style={s.sumLabel}>MENTORS</Text>
+        </View>
+        <View style={s.sumStat}>
+          <Text style={[s.sumVal, { color: CAT.alumni.color }]}>{alumniDisplay.toLocaleString()}</Text>
+          <Text style={s.sumLabel}>ALUMNI</Text>
+        </View>
+      </View>
+
       <Card>
+        {/* Top Header: Categories & Actions */}
         <View style={s.browseHead}>
           <TopTabs<'all' | CatKey> tabs={tabs as any} active={cat} onChange={(c) => setCat(c as any)} />
-          <SearchField value={q} onChange={setQ} placeholder="Search name, email, college, company…" width={300} />
-          <Pressable
-            onPress={() => { setSelectMode(!selectMode); if (selectMode) clearSelection(); }}
-            style={[s.toggleBtn, selectMode && { borderColor: GRAD.to, backgroundColor: 'rgba(245,158,11,0.10)' }]}
-          >
-            <CheckSquare size={11} color={selectMode ? GRAD.to : SAC.muted} />
-            <Text style={[s.toggleBtnText, selectMode && { color: GRAD.to }]}>
-              {selectMode ? 'Cancel selection' : 'Select'}
-            </Text>
-          </Pressable>
-        </View>
-        {pendingCount > 0 && (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-            <Text style={s.muted}>
-              <Text style={{ color: '#FBBF24', fontFamily: FONTS.xbold }}>{pendingCount}</Text> profile{pendingCount === 1 ? '' : 's'} awaiting your approval
-            </Text>
-            <Pressable onPress={() => setShowPendingOnly(!showPendingOnly)} style={s.toggleBtn}>
-              <Filter size={11} color={showPendingOnly ? GRAD.to : SAC.muted} />
-              <Text style={[s.toggleBtnText, showPendingOnly && { color: GRAD.to }]}>
-                {showPendingOnly ? 'Showing pending only' : 'Show pending only'}
-              </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <SearchField value={q} onChange={setQ} placeholder="Search name, email, college, SA-ID…" width={240} />
+            
+            {/* View Mode Toggle: Spreadsheet vs Grid */}
+            <View style={{ flexDirection: 'row', backgroundColor: SAC.cardSolid, borderRadius: 8, padding: 3, borderWidth: 1, borderColor: SAC.border }}>
+              <Pressable
+                onPress={() => setViewMode('spreadsheet')}
+                style={[s.viewModeBtn, viewMode === 'spreadsheet' && { backgroundColor: GRAD.to }]}
+              >
+                <FileSpreadsheet size={13} color={viewMode === 'spreadsheet' ? '#fff' : SAC.muted} />
+                <Text style={[s.viewModeBtnText, viewMode === 'spreadsheet' && { color: '#fff' }]}>Grid</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setViewMode('grid')}
+                style={[s.viewModeBtn, viewMode === 'grid' && { backgroundColor: GRAD.to }]}
+              >
+                <LayoutGrid size={13} color={viewMode === 'grid' ? '#fff' : SAC.muted} />
+                <Text style={[s.viewModeBtnText, viewMode === 'grid' && { color: '#fff' }]}>Cards</Text>
+              </Pressable>
+            </View>
+
+            {/* Export CSV Button */}
+            <Pressable
+              onPress={exportFilteredCsv}
+              style={[s.toggleBtn, { backgroundColor: 'rgba(255,255,255,0.06)' }]}
+            >
+              <FileDown size={12} color="#fff" />
+              <Text style={[s.toggleBtnText, { color: '#fff' }]}>Export</Text>
             </Pressable>
-            <Pressable onPress={selectAllPending} style={s.toggleBtn}>
-              <CheckSquare size={11} color={SAC.muted} />
-              <Text style={s.toggleBtnText}>Select all pending</Text>
-            </Pressable>
-            <Pressable onPress={approveAllPending} disabled={bulkBusy} style={[s.toggleBtn, { borderColor: 'rgba(34,197,94,0.45)', backgroundColor: 'rgba(34,197,94,0.10)' }]}>
-              <ShieldCheck size={11} color="#86EFAC" />
-              <Text style={[s.toggleBtnText, { color: '#86EFAC' }]}>
-                {bulkBusy ? 'Approving…' : `Approve all (${pendingCount})`}
+
+            <Pressable
+              onPress={() => { setSelectMode(!selectMode); if (selectMode) clearSelection(); }}
+              style={[s.toggleBtn, selectMode && { borderColor: GRAD.to, backgroundColor: 'rgba(245,158,11,0.10)' }]}
+            >
+              <CheckSquare size={11} color={selectMode ? GRAD.to : SAC.muted} />
+              <Text style={[s.toggleBtnText, selectMode && { color: GRAD.to }]}>
+                {selectMode ? 'Cancel' : 'Select'}
               </Text>
             </Pressable>
           </View>
-        )}
+        </View>
+
+        {/* Account Status Filter Bar (Registered vs Prospects vs Complete info) */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)', flexWrap: 'wrap' }}>
+          <Text style={[s.sumLabel, { fontSize: 10, marginRight: 4 }]}>SEGREGATION:</Text>
+          
+          <Pressable
+            onPress={() => setAccountFilter('all')}
+            style={[s.toggleBtn, accountFilter === 'all' && { borderColor: '#fff', backgroundColor: 'rgba(255,255,255,0.12)' }]}
+          >
+            <Text style={[s.toggleBtnText, accountFilter === 'all' && { color: '#fff', fontFamily: FONTS.bold }]}>
+              All Contacts ({totalDisplay})
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => setAccountFilter('registered')}
+            style={[s.toggleBtn, accountFilter === 'registered' && { borderColor: '#22C55E', backgroundColor: 'rgba(34,197,94,0.14)' }]}
+          >
+            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#22C55E', marginRight: 4 }} />
+            <Text style={[s.toggleBtnText, accountFilter === 'registered' && { color: '#86EFAC', fontFamily: FONTS.bold }]}>
+              Registered Users ({registeredCount})
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => setAccountFilter('unregistered')}
+            style={[s.toggleBtn, accountFilter === 'unregistered' && { borderColor: '#94A3B8', backgroundColor: 'rgba(148,163,184,0.14)' }]}
+          >
+            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#94A3B8', marginRight: 4 }} />
+            <Text style={[s.toggleBtnText, accountFilter === 'unregistered' && { color: '#CBD5E1', fontFamily: FONTS.bold }]}>
+              Non-Users / Prospects ({nonUserCount})
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => setAccountFilter('complete')}
+            style={[s.toggleBtn, accountFilter === 'complete' && { borderColor: '#A78BFA', backgroundColor: 'rgba(167,139,250,0.14)' }]}
+          >
+            <Sparkles size={11} color="#C4B5FD" style={{ marginRight: 4 }} />
+            <Text style={[s.toggleBtnText, accountFilter === 'complete' && { color: '#DDD6FE', fontFamily: FONTS.bold }]}>
+              Complete Profiles
+            </Text>
+          </Pressable>
+
+          {pendingCount > 0 && (
+            <Pressable
+              onPress={() => setShowPendingOnly(!showPendingOnly)}
+              style={[s.toggleBtn, showPendingOnly && { borderColor: '#F59E0B', backgroundColor: 'rgba(245,158,11,0.14)' }]}
+            >
+              <Filter size={11} color="#FBBF24" style={{ marginRight: 4 }} />
+              <Text style={[s.toggleBtnText, { color: '#FBBF24' }]}>
+                Pending Review ({pendingCount})
+              </Text>
+            </Pressable>
+          )}
+        </View>
       </Card>
 
       {busy && !data ? (
@@ -933,10 +1169,307 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
       ) : (items || []).length === 0 ? (
         <EmptyState
           icon={Users}
-          title="No profiles to show"
-          sub={q ? 'No results match your search.' : 'Upload a spreadsheet or add users manually to populate this view.'}
+          title="No contacts found"
+          sub={q ? 'No results match your search.' : 'Upload a spreadsheet or add users manually to populate this database.'}
         />
+      ) : viewMode === 'spreadsheet' ? (
+        /* Unified Spreadsheet Data Grid View with Inline Editing & Quick Invites */
+        <Card padded={false}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={true}>
+            <View>
+              <View style={s.tableHead}>
+                <Pressable onPress={toggleSelectAll} style={{ width: 36, justifyContent: 'center' }}>
+                  {allSelected ? <SquareCheck size={16} color={GRAD.to} /> : <Square size={16} color="rgba(255,255,255,0.4)" />}
+                </Pressable>
+                <Text style={[s.th, { width: 100 }]}>SA-ID</Text>
+                <Text style={[s.th, { width: 120 }]}>ACCOUNT</Text>
+                <Text style={[s.th, { width: 100 }]}>TAGS</Text>
+                <Text style={[s.th, { width: 110 }]}>DATA QUALITY</Text>
+                <Text style={[s.th, { width: 210 }]}>NAME & EMAIL</Text>
+                <Text style={[s.th, { width: 100 }]}>CATEGORY</Text>
+                <Text style={[s.th, { width: 170 }]}>JOB ROLE ✎</Text>
+                <Text style={[s.th, { width: 150 }]}>COMPANY ✎</Text>
+                <Text style={[s.th, { width: 120 }]}>LOCATION ✎</Text>
+                <Text style={[s.th, { width: 130 }]}>PHONE ✎</Text>
+                <Text style={[s.th, { width: 90 }]}>LINKEDIN</Text>
+                <Text style={[s.th, { width: 170 }]}>COLLEGE & DEGREE</Text>
+                <Text style={[s.th, { width: 70 }]}>EXP</Text>
+                <Text style={[s.th, { width: 90 }]}>STATUS</Text>
+                <Text style={[s.th, { width: 160 }]}>ACTIONS & INVITE</Text>
+              </View>
+
+              {items.map((u: any) => {
+                const isSelected = !!selected[u.id];
+                const saId = u.sa_id || `SA-${u.id.slice(-6).toUpperCase()}`;
+                const isRegistered = !!u.is_registered;
+                const score = u.completeness_score ?? (isRegistered ? 85 : 50);
+                const isInvited = !!u.invite_sent_at || u.invite_status === 'sent';
+
+                return (
+                  <Pressable
+                    key={u.id}
+                    onPress={() => selectMode ? toggleSelect(u.id) : onOpen(u.id)}
+                    style={({ hovered }: any) => [
+                      s.tableRow,
+                      hovered && { backgroundColor: 'rgba(255,255,255,0.03)' },
+                      isSelected && { backgroundColor: 'rgba(245,158,11,0.08)' },
+                    ]}
+                  >
+                    {/* Select Checkbox */}
+                    <Pressable
+                      onPress={(e) => { e.stopPropagation(); toggleSelect(u.id); }}
+                      style={{ width: 36, justifyContent: 'center' }}
+                    >
+                      {isSelected
+                        ? <SquareCheck size={16} color={GRAD.to} />
+                        : <Square size={16} color="rgba(255,255,255,0.4)" />}
+                    </Pressable>
+
+                    {/* SA-ID */}
+                    <View style={{ width: 100, justifyContent: 'center' }}>
+                      <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, backgroundColor: 'rgba(245,158,11,0.12)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.3)', alignSelf: 'flex-start' }}>
+                        <Text style={{ color: '#FBBF24', fontFamily: FONTS.bold, fontSize: 10 }}>{saId}</Text>
+                      </View>
+                    </View>
+
+                    {/* Account Status */}
+                    <View style={{ width: 120, justifyContent: 'center' }}>
+                      {isRegistered ? (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, backgroundColor: 'rgba(34,197,94,0.12)', borderWidth: 1, borderColor: 'rgba(34,197,94,0.3)', alignSelf: 'flex-start' }}>
+                          <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#22C55E' }} />
+                          <Text style={{ color: '#86EFAC', fontFamily: FONTS.bold, fontSize: 9.5 }}>Registered</Text>
+                        </View>
+                      ) : (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, backgroundColor: 'rgba(148,163,184,0.12)', borderWidth: 1, borderColor: 'rgba(148,163,184,0.25)', alignSelf: 'flex-start' }}>
+                          <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#94A3B8' }} />
+                          <Text style={{ color: '#CBD5E1', fontFamily: FONTS.med, fontSize: 9.5 }}>Imported</Text>
+                        </View>
+                      )}
+                    </View>
+
+                    {/* Tags */}
+                    <View style={{ width: 100, justifyContent: 'center', flexDirection: 'row', gap: 4, flexWrap: 'wrap' }}>
+                      {(u.tags || []).slice(0, 1).map((t: string) => (
+                        <View key={t} style={{ paddingHorizontal: 5, paddingVertical: 1.5, borderRadius: 4, backgroundColor: 'rgba(168,85,247,0.12)', borderWidth: 1, borderColor: 'rgba(168,85,247,0.3)' }}>
+                          <Text style={{ color: '#D8B4FE', fontFamily: FONTS.bold, fontSize: 9 }}>{t}</Text>
+                        </View>
+                      ))}
+                      {(!u.tags || u.tags.length === 0) && <Text style={{ color: SAC.dim, fontSize: 10 }}>—</Text>}
+                    </View>
+
+                    {/* Completeness Score */}
+                    <View style={{ width: 110, justifyContent: 'center' }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                        <View style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                          <View style={{ width: `${score}%`, height: '100%', backgroundColor: score >= 80 ? '#22C55E' : score >= 50 ? '#F59E0B' : '#64748B' }} />
+                        </View>
+                        <Text style={{ color: score >= 80 ? '#86EFAC' : score >= 50 ? '#FCD34D' : '#94A3B8', fontFamily: FONTS.bold, fontSize: 9.5 }}>
+                          {score}%
+                        </Text>
+                      </View>
+                    </View>
+                    
+                    {/* Name & Avatar */}
+                    <View style={{ width: 210, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <LinearGradient
+                        colors={[GRAD.from, GRAD.to]}
+                        style={{ width: 26, height: 26, borderRadius: 6, alignItems: 'center', justifyContent: 'center' }}
+                      >
+                        <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 10 }}>
+                          {(u.first_name?.[0] || u.name?.[0] || 'U').toUpperCase()}
+                        </Text>
+                      </LinearGradient>
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <Text numberOfLines={1} style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 11.5 }}>
+                          {u.name || `${u.first_name || ''} ${u.last_name || ''}`.trim() || '—'}
+                        </Text>
+                        <Text numberOfLines={1} style={{ color: SAC.dim, fontFamily: FONTS.med, fontSize: 10 }}>
+                          {u.email || u.id.slice(-6)}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Category */}
+                    <View style={{ width: 100, justifyContent: 'center' }}>
+                      <CategoryBadge cat={u.category || 'student'} small />
+                    </View>
+
+                    {/* Inline Editable: Job Title / Role */}
+                    <View style={{ width: 170, justifyContent: 'center' }}>
+                      {editingCell?.id === u.id && editingCell.field === 'designation' ? (
+                        <TextInput
+                          value={editValue}
+                          onChangeText={setEditValue}
+                          onBlur={saveInlineEdit}
+                          onSubmitEditing={saveInlineEdit}
+                          autoFocus
+                          style={[s.inlineInput, { width: 160 }]}
+                        />
+                      ) : (
+                        <Pressable
+                          onPress={(e) => { e.stopPropagation(); startInlineEdit(u.id, 'designation', u.designation || u.headline); }}
+                          style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                        >
+                          <Text numberOfLines={1} style={[s.td, { width: 150 }]}>
+                            {u.designation || u.headline || '—'}
+                          </Text>
+                        </Pressable>
+                      )}
+                    </View>
+
+                    {/* Inline Editable: Company */}
+                    <View style={{ width: 150, justifyContent: 'center' }}>
+                      {editingCell?.id === u.id && editingCell.field === 'company' ? (
+                        <TextInput
+                          value={editValue}
+                          onChangeText={setEditValue}
+                          onBlur={saveInlineEdit}
+                          onSubmitEditing={saveInlineEdit}
+                          autoFocus
+                          style={[s.inlineInput, { width: 140 }]}
+                        />
+                      ) : (
+                        <Pressable
+                          onPress={(e) => { e.stopPropagation(); startInlineEdit(u.id, 'company', u.company); }}
+                          style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                        >
+                          <Text numberOfLines={1} style={[s.td, { width: 135, color: SAC.muted }]}>
+                            {u.company || '—'}
+                          </Text>
+                        </Pressable>
+                      )}
+                    </View>
+
+                    {/* Inline Editable: Location */}
+                    <View style={{ width: 120, justifyContent: 'center' }}>
+                      {editingCell?.id === u.id && editingCell.field === 'location' ? (
+                        <TextInput
+                          value={editValue}
+                          onChangeText={setEditValue}
+                          onBlur={saveInlineEdit}
+                          onSubmitEditing={saveInlineEdit}
+                          autoFocus
+                          style={[s.inlineInput, { width: 110 }]}
+                        />
+                      ) : (
+                        <Pressable
+                          onPress={(e) => { e.stopPropagation(); startInlineEdit(u.id, 'location', u.location); }}
+                          style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                        >
+                          <Text numberOfLines={1} style={[s.td, { width: 110, color: SAC.muted }]}>
+                            {u.location || '—'}
+                          </Text>
+                        </Pressable>
+                      )}
+                    </View>
+
+                    {/* Inline Editable: Phone */}
+                    <View style={{ width: 130, justifyContent: 'center' }}>
+                      {editingCell?.id === u.id && editingCell.field === 'phone' ? (
+                        <TextInput
+                          value={editValue}
+                          onChangeText={setEditValue}
+                          onBlur={saveInlineEdit}
+                          onSubmitEditing={saveInlineEdit}
+                          autoFocus
+                          style={[s.inlineInput, { width: 120 }]}
+                        />
+                      ) : (
+                        <Pressable
+                          onPress={(e) => { e.stopPropagation(); startInlineEdit(u.id, 'phone', u.phone); }}
+                          style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                        >
+                          <Text numberOfLines={1} style={[s.td, { width: 120, color: SAC.muted }]}>
+                            {u.phone || '—'}
+                          </Text>
+                        </Pressable>
+                      )}
+                    </View>
+
+                    {/* LinkedIn */}
+                    <View style={{ width: 90, justifyContent: 'center' }}>
+                      {u.linkedin_url ? (
+                        <Pressable
+                          onPress={(e) => { e.stopPropagation(); Platform.OS === 'web' ? (window as any).open(u.linkedin_url, '_blank') : Linking.openURL(u.linkedin_url!); }}
+                          style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}
+                        >
+                          <ExternalLink size={10} color="#60A5FA" />
+                          <Text style={{ color: '#60A5FA', fontFamily: FONTS.med, fontSize: 10.5 }}>Profile</Text>
+                        </Pressable>
+                      ) : (
+                        <Text style={{ color: SAC.dim, fontFamily: FONTS.med, fontSize: 10.5 }}>—</Text>
+                      )}
+                    </View>
+
+                    {/* College & Degree */}
+                    <View style={{ width: 170 }}>
+                      <Text numberOfLines={1} style={[s.td, { width: 170, color: '#fff', fontSize: 10.5 }]}>
+                        {u.college || '—'}
+                      </Text>
+                      {u.degree && (
+                        <Text numberOfLines={1} style={{ color: SAC.dim, fontFamily: FONTS.med, fontSize: 9.5 }}>
+                          {u.degree}{u.graduation_year ? ` · ${u.graduation_year}` : ''}
+                        </Text>
+                      )}
+                    </View>
+
+                    {/* Experience */}
+                    <Text style={[s.td, { width: 70, color: SAC.muted }]}>
+                      {u.experience_years != null ? `${u.experience_years}y` : '—'}
+                    </Text>
+
+                    {/* Status */}
+                    <View style={{ width: 90, justifyContent: 'center' }}>
+                      <StatusPill status={u.approved ? 'active' : 'pending'} />
+                    </View>
+
+                    {/* Actions & Invite */}
+                    <View style={{ width: 160, flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                      <Pressable
+                        onPress={(e) => { e.stopPropagation(); onOpen(u.id); }}
+                        style={{ paddingHorizontal: 5, paddingVertical: 2.5, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.06)' }}
+                      >
+                        <Text style={{ color: '#fff', fontSize: 10, fontFamily: FONTS.bold }}>View</Text>
+                      </Pressable>
+                      {!u.approved ? (
+                        <Pressable
+                          onPress={(e) => { e.stopPropagation(); approve(u.id); }}
+                          style={{ paddingHorizontal: 5, paddingVertical: 2.5, borderRadius: 4, backgroundColor: 'rgba(34,197,94,0.12)' }}
+                        >
+                          <Text style={{ color: '#22C55E', fontSize: 10, fontFamily: FONTS.bold }}>Approve</Text>
+                        </Pressable>
+                      ) : (
+                        <Pressable
+                          onPress={(e) => { e.stopPropagation(); remove(u.id); }}
+                          style={{ paddingHorizontal: 5, paddingVertical: 2.5, borderRadius: 4, backgroundColor: 'rgba(239,68,68,0.1)' }}
+                        >
+                          <Text style={{ color: '#EF4444', fontSize: 10, fontFamily: FONTS.bold }}>Remove</Text>
+                        </Pressable>
+                      )}
+                      {/* Invite Button */}
+                      {u.email ? (
+                        <Pressable
+                          onPress={(e) => { e.stopPropagation(); inviteSingle(u.id, u.email); }}
+                          style={{ flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 5, paddingVertical: 2.5, borderRadius: 4, backgroundColor: isInvited ? 'rgba(99,102,241,0.14)' : 'rgba(245,158,11,0.12)' }}
+                        >
+                          <Send size={9} color={isInvited ? '#A5B4FC' : '#FBBF24'} />
+                          <Text style={{ color: isInvited ? '#A5B4FC' : '#FBBF24', fontSize: 9.5, fontFamily: FONTS.bold }}>
+                            {isInvited ? 'Resend' : 'Invite'}
+                          </Text>
+                        </Pressable>
+                      ) : null}
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </ScrollView>
+          <Text style={[s.selectAllText, { textAlign: 'center', paddingVertical: 8 }]}>
+            Showing {items.length} contacts of {totalDisplay} · Double-click cells marked with ✎ to edit inline · Horizontal scroll for full columns
+          </Text>
+        </Card>
       ) : (
+        /* Grid Cards View */
         <>
           <View style={s.cardGrid}>
             {items.map((u: any) => (
@@ -1020,24 +1553,67 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
       )}
 
       {/* Floating bulk-action bar */}
-      {selectMode && selectedIds.length > 0 && (
+      {selectedIds.length > 0 && (
         <Animated.View entering={FadeInDown.duration(200)} style={s.bulkBar}>
           <Text style={s.bulkText}>{selectedIds.length} selected</Text>
-          <Pressable onPress={selectAllVisible} style={s.bulkLinkBtn}>
-            <Text style={s.bulkLink}>Select all visible ({items.length})</Text>
+          <Pressable onPress={toggleSelectAll} style={s.bulkLinkBtn}>
+            <Text style={s.bulkLink}>{allSelected ? 'Deselect all' : `Select all (${items.length})`}</Text>
           </Pressable>
           <View style={{ flex: 1 }} />
-          <SecondaryButton onPress={() => bulkRun('approve', 'Approved')} disabled={bulkBusy}>
+          <SecondaryButton onPress={bulkApprove} disabled={bulkBusy}>
             <ShieldCheck size={12} color={SAC.muted} /><Text style={s.secText}>{bulkBusy ? '…' : 'Approve'}</Text>
           </SecondaryButton>
-          <SecondaryButton danger onPress={() => bulkRun('delete', 'Deleted')} disabled={bulkBusy}>
-            <Trash2 size={12} color={'#FCA5A5'} /><Text style={[s.secText, { color: '#FCA5A5' }]}>{bulkBusy ? '…' : 'Delete'}</Text>
+          <SecondaryButton onPress={() => setTagModalOpen(true)} disabled={bulkBusy}>
+            <Tag size={12} color={SAC.muted} /><Text style={s.secText}>Add Tag</Text>
+          </SecondaryButton>
+          <SecondaryButton onPress={bulkInvite} disabled={bulkBusy}>
+            <Send size={12} color="#93C5FD" /><Text style={[s.secText, { color: '#93C5FD' }]}>Send Invites</Text>
+          </SecondaryButton>
+          <SecondaryButton onPress={bulkPushToTalent} disabled={bulkBusy}>
+            <Sparkles size={12} color="#FBBF24" /><Text style={[s.secText, { color: '#FBBF24' }]}>To Talent Pool</Text>
+          </SecondaryButton>
+          <SecondaryButton danger onPress={bulkDelete} disabled={bulkBusy}>
+            <Trash2 size={12} color={'#FCA5A5'} /><Text style={[s.secText, { color: '#FCA5A5' }]}>Delete</Text>
           </SecondaryButton>
           <Pressable onPress={clearSelection} style={s.bulkClose}>
             <X size={13} color="#fff" />
           </Pressable>
         </Animated.View>
       )}
+
+      {/* Tag Modal */}
+      <Modal visible={tagModalOpen} transparent animationType="fade" onRequestClose={() => setTagModalOpen(false)}>
+        <View style={s.modalBg}>
+          <Animated.View entering={FadeInDown.duration(200)} style={[s.modalCard, { maxWidth: 420 }]}>
+            <View style={s.modalHero}>
+              <IconBox size={36}><Tag size={18} color={GRAD.to} /></IconBox>
+              <View style={{ flex: 1 }}>
+                <Text style={s.modalTitle}>Tag Selected Profiles</Text>
+                <Text style={s.muted}>Applying tag to {selectedIds.length} candidate record(s)</Text>
+              </View>
+              <Pressable onPress={() => setTagModalOpen(false)}><X size={16} color={SAC.muted} /></Pressable>
+            </View>
+            <View style={{ padding: 18, gap: 14 }}>
+              <View>
+                <Text style={s.modalLabel}>TAG NAME (e.g. Batch 2025, VIP, Bengaluru Chapter)</Text>
+                <TextInput
+                  value={tagInput}
+                  onChangeText={setTagInput}
+                  placeholder="Enter tag name…"
+                  placeholderTextColor={SAC.dim}
+                  style={s.textInput}
+                />
+              </View>
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
+                <SecondaryButton onPress={() => setTagModalOpen(false)}><Text style={s.secText}>Cancel</Text></SecondaryButton>
+                <GradientButton onPress={bulkApplyTag} disabled={!tagInput.trim() || bulkBusy}>
+                  <Text style={s.btnText}>{bulkBusy ? 'Applying…' : 'Apply Tag'}</Text>
+                </GradientButton>
+              </View>
+            </View>
+          </Animated.View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1262,6 +1838,26 @@ function ProfilePanel({ userId, onClose, onSaved }: { userId: string | null; onC
                 <View style={s.actionsRow}>
                   {!edit ? (
                     <>
+                      {data.email ? (
+                        <SecondaryButton onPress={async () => {
+                          try {
+                            await request('/admin/users/bulk/invite', { method: 'POST', body: { user_ids: [userId] } });
+                            onSaved();
+                          } catch {}
+                        }}>
+                          <Send size={12} color="#93C5FD" />
+                          <Text style={[s.secText, { color: '#93C5FD' }]}>Send Invite</Text>
+                        </SecondaryButton>
+                      ) : null}
+                      <SecondaryButton onPress={async () => {
+                        try {
+                          await request('/admin/users/bulk/push-to-talent', { method: 'POST', body: { user_ids: [userId] } });
+                          onSaved();
+                        } catch {}
+                      }}>
+                        <Sparkles size={12} color="#FBBF24" />
+                        <Text style={[s.secText, { color: '#FBBF24' }]}>To Talent Pool</Text>
+                      </SecondaryButton>
                       <SecondaryButton onPress={() => setEdit(true)}>
                         <Pencil size={12} color={SAC.muted} />
                         <Text style={s.secText}>Edit</Text>
@@ -1445,6 +2041,12 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ display: 'grid' as any, gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' as any, gap: 16 } as any) : {}),
   },
   gridCell: { minWidth: 320, flexBasis: 320, flexGrow: 1 },
+  viewModeBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 9, paddingVertical: 4, borderRadius: 6,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '150ms' } as any) : {}),
+  },
+  viewModeBtnText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11 },
   toggleBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 9, paddingVertical: 4, borderRadius: 7,
@@ -1584,4 +2186,27 @@ const s = StyleSheet.create({
 
   btnText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12 },
   secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
+  inlineInput: {
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderColor: GRAD.to,
+    borderWidth: 1,
+    borderRadius: 5,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    color: '#fff',
+    fontSize: 11,
+    fontFamily: FONTS.med,
+  },
+  textInput: {
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderColor: SAC.border,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    color: '#fff',
+    fontSize: 13,
+    fontFamily: FONTS.med,
+    marginTop: 6,
+  },
 });

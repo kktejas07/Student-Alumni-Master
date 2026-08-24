@@ -81,9 +81,9 @@ export function OutlineButton({ label, onPress, icon, disabled, testID, accessib
 }
 
 const ob = StyleSheet.create({
-  wrap: { flexDirection: 'row', alignItems: 'center', paddingVertical: 13, paddingHorizontal: 18, borderRadius: 12, borderWidth: 1, borderColor: '#E5E7EB', backgroundColor: '#FFFFFF', position: 'relative', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  wrap: { flexDirection: 'row', alignItems: 'center', paddingVertical: 13, paddingHorizontal: 18, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(139, 132, 255, 0.25)', backgroundColor: 'rgba(18, 20, 43, 0.75)', position: 'relative', ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transition: 'all 0.2s ease' } as any) : {}) },
   iconWrap: { position: 'absolute', left: 16 },
-  text: { flex: 1, textAlign: 'center', color: '#111827', fontFamily: FONTS.bold, fontSize: 14 },
+  text: { flex: 1, textAlign: 'center', color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 14 },
 });
 
 // ─── Text Input ─────────────────────────────────────────────────
@@ -106,7 +106,7 @@ export const AuthInput = React.forwardRef<TextInput, {
   testID?: string;
   accessibilityLabel?: string;
   accessibilityHint?: string;
-}>((props, ref) => {
+}>(function AuthInput(props, ref) {
   const {
     label, value, onChangeText, placeholder, secureTextEntry,
     keyboardType, autoCapitalize, hint, error, leftIcon, rightSlot,
@@ -116,18 +116,18 @@ export const AuthInput = React.forwardRef<TextInput, {
   
   const [focused, setFocused] = React.useState(false);
   const { primary } = useRoleTheme();
-  const focusBg = primary ? `${primary}10` : 'rgba(37,99,235,0.06)';
+  const focusBg = primary ? `${primary}18` : 'rgba(91, 79, 233, 0.15)';
   return (
     <View style={inp.wrap}>
       {label ? <Text style={inp.label}>{typeof label === 'string' ? label : String(label ?? '')}</Text> : null}
-      <View style={[inp.row, focused && [inp.rowOn, { borderColor: primary, backgroundColor: focusBg }], error && inp.rowErr]}>
+      <View style={[inp.row, focused && [inp.rowOn, { borderColor: primary || '#8B84FF', backgroundColor: focusBg }], error && inp.rowErr]}>
         {leftIcon ? <View style={{ marginRight: 10 }}>{leftIcon}</View> : null}
         <TextInput
           ref={ref}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor="#6B7280"
           secureTextEntry={secureTextEntry}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize ?? 'none'}
@@ -154,13 +154,13 @@ export const AuthInput = React.forwardRef<TextInput, {
 
 const inp = StyleSheet.create({
   wrap: { width: '100%' },
-  label: { color: '#374151', fontFamily: FONTS.bold, fontSize: 13, marginBottom: 8 },
-  row: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, height: 48 },
-  rowOn: { borderColor: AC.primary, backgroundColor: 'rgba(37,99,235,0.06)' },
+  label: { color: '#D5D8E4', fontFamily: FONTS.bold, fontSize: 13, marginBottom: 8 },
+  row: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(18, 20, 43, 0.75)', borderColor: 'rgba(139, 132, 255, 0.22)', borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, height: 50 },
+  rowOn: { borderColor: '#8B84FF', backgroundColor: 'rgba(91, 79, 233, 0.15)' },
   rowErr: { borderColor: AC.red },
-  input: { flex: 1, color: '#111827', fontFamily: FONTS.med, fontSize: 14, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
-  hint: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 11.5, marginTop: 6 },
-  err: { color: AC.red, fontFamily: FONTS.bold, fontSize: 11.5, marginTop: 6 },
+  input: { flex: 1, color: '#F4F5FB', fontFamily: FONTS.med, fontSize: 14.5, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
+  hint: { color: '#9AA0B4', fontFamily: FONTS.med, fontSize: 11.5, marginTop: 6 },
+  err: { color: '#F87171', fontFamily: FONTS.bold, fontSize: 11.5, marginTop: 6 },
 });
 
 // ─── Password Rules — real-time checklist ────────────────────────

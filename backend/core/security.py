@@ -248,6 +248,15 @@ def serialize_user(user: dict) -> dict:
         "preferences":    user.get("preferences"),
         "is_verified":    user.get("is_verified"),
         "ranking_tier":   user.get("ranking_tier"),
+        # Identity & DigiLocker
+        "aadhaar_number": user.get("aadhaar_number"),
+        "aadhaar_masked": user.get("aadhaar_masked") or (f"•••• •••• {str(user.get('aadhaar_number'))[-4:]}" if user.get("aadhaar_number") and len(str(user.get("aadhaar_number")).replace(" ","")) >= 4 else None),
+        "aadhaar_verified": bool(user.get("aadhaar_verified", False)),
+        "digilocker_id": user.get("digilocker_id"),
+        "digilocker_verified": bool(user.get("digilocker_verified", False)),
+        "digilocker_doc_count": int(user.get("digilocker_doc_count", 0)),
+        "digilocker_uri": user.get("digilocker_uri"),
+        "digilocker_linked_at": user.get("digilocker_linked_at"),
     }
 
 

@@ -10,6 +10,8 @@ import { Slot, useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { portalPathForRole, rolesForPortal } from '@/src/lib/portalHome';
 
+import { SAModernLoader } from '@/src/views/components/SAModernLoader';
+
 export default function AlumniPortalLayoutRoute() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
@@ -28,11 +30,7 @@ export default function AlumniPortalLayoutRoute() {
   }, [user, initialized, router]);
 
   if (!initialized) {
-    return (
-      <View style={s.gate}>
-        <ActivityIndicator size="small" color="#FB923C" />
-      </View>
-    );
+    return <SAModernLoader subtitle="LOADING ALUMNI PORTAL" />;
   }
   if (!user) {
     return (

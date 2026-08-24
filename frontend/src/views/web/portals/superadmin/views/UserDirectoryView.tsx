@@ -73,14 +73,14 @@ export function UserDirectoryView({
     (async () => {
       try {
         const r = await request<any>(`/admin/users/list?category=${cat}&q=${encodeURIComponent(q)}&page=${p}&limit=24`);
-        setData(r);
-        setPages(r.pages || 1);
+        setData(r || { items: [], total: 0, counts: {} });
+        setPages(r?.pages || 1);
       } catch (e: any) {
         if (/401|Not authenticated/i.test(String(e?.message || ''))) {
           await new Promise((r) => setTimeout(r, 600));
           try {
             const r = await request<any>(`/admin/users/list?category=${cat}&q=${encodeURIComponent(q)}&page=${p}&limit=24`);
-            setData(r); setPages(r.pages || 1); return;
+            setData(r || { items: [], total: 0, counts: {} }); setPages(r?.pages || 1); return;
           } catch {}
         }
         console.warn('Users list load failed', e);

@@ -171,8 +171,8 @@ function Slide({
   const op = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(y, { toValue: 0, duration: 480, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-      Animated.timing(op, { toValue: 1, duration: 460, useNativeDriver: true }),
+      Animated.timing(y, { toValue: 0, duration: 480, easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(op, { toValue: 1, duration: 460, useNativeDriver: Platform.OS !== 'web' }),
     ]).start();
   }, [y, op]);
 

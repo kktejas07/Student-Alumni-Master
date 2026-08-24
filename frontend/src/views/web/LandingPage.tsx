@@ -504,6 +504,9 @@ const FEATURES = [
 ];
 
 function FeatureNarratives({ desk }: { desk: boolean }) {
+  const reveal0 = useScrollReveal({ threshold: 0.1, direction: 'right' });
+  const reveal1 = useScrollReveal({ threshold: 0.1, direction: 'left' });
+  const reveals = [reveal0, reveal1];
   return (
     <View style={{ paddingHorizontal: 24, marginTop: 52, marginBottom: 12 }}>
       <View style={{ maxWidth: 1300, width: '100%', alignSelf: 'center', gap: 40 }}>
@@ -513,7 +516,7 @@ function FeatureNarratives({ desk }: { desk: boolean }) {
         {FEATURES.map((f, i) => {
           const Ic = f.icon;
           const isReversed = i % 2 === 1;
-          const { ref, revealStyle } = useScrollReveal({ threshold: 0.1, direction: i % 2 === 0 ? 'right' : 'left' });
+          const { ref, revealStyle } = reveals[i % reveals.length];
           return (
             <View key={f.l} ref={ref as any} style={[revealStyle, { flexDirection: desk ? (isReversed ? 'row-reverse' : 'row') : 'column', gap: 28, alignItems: 'center' }]}>
               <View style={{ flex: 1, minWidth: 260, gap: 12 }}>

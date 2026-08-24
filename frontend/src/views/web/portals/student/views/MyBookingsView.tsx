@@ -303,7 +303,7 @@ const s = StyleSheet.create({
   cancelBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 11, height: 30, borderRadius: 8, borderColor: '#EF444466', borderWidth: 1, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   cancelText: { color: '#EF4444', fontFamily: FONTS.bold, fontSize: 11.5 },
   empty: { color: SC.muted, padding: 16, textAlign: 'center', fontFamily: FONTS.med },
-  modalOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 100, alignItems: 'center', justifyContent: 'center', padding: 20 },
+  modalOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', ...({ backdropFilter: 'blur(4px)' } as any), zIndex: 100, alignItems: 'center', justifyContent: 'center', padding: 20 },
   modalContent: { width: '100%', maxWidth: 450, backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 16, padding: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.5, shadowRadius: 20 },
   inputContainer: { gap: 6, marginBottom: 20 },
   inputLabel: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5, letterSpacing: 0.5 },

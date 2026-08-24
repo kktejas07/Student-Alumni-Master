@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowUpRight, Zap } from "lucide-react-native";
+import { ArrowUpRight, Zap } from "lucide-react";
 import { useRouter } from "expo-router";
 import { GradientShimmer } from "@/components/ui/gradient-shimmer";
 

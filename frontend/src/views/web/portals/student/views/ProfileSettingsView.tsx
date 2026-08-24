@@ -224,9 +224,10 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
     if (!user) return false;
     const watched = [
       'first_name','last_name','full_name','headline','bio','phone','city','state','location',
-      'photo_data','face_image_base64','institution','branch','graduation_year','cgpa','stream','department','class_or_year','year_of_study',
+      'photo_data','face_image_base64','institution','branch','graduation_year','cgpa','stream','department','class_or_year','year_of_study','year','board_or_university',
       'interests','skills','projects','linkedin_url','github_url','portfolio_url','profile_visibility',
-      'section_toggles','primary_skill','preferences','banner_data','college_logo_data'
+      'section_toggles','primary_skill','preferences','banner_data','college_logo_data',
+      'aadhaar_number','aadhaar_masked','aadhaar_verified','digilocker_id','digilocker_verified','digilocker_doc_count','digilocker_uri','digilocker_linked_at'
     ];
     return watched.some((k) => JSON.stringify((draft as any)[k] ?? null) !== JSON.stringify((user as any)[k] ?? null));
   }, [draft, user]);
@@ -256,7 +257,8 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
         'first_name','last_name','full_name','headline','bio','phone','city','state','location',
         'photo_data','face_image_base64','institution','branch','graduation_year','cgpa','stream','department','class_or_year','year_of_study','year','board_or_university',
         'interests','skills','projects','linkedin_url','github_url','portfolio_url','profile_visibility',
-        'section_toggles','primary_skill','preferences','banner_data','college_logo_data'
+        'section_toggles','primary_skill','preferences','banner_data','college_logo_data',
+        'aadhaar_number','aadhaar_masked','aadhaar_verified','digilocker_id','digilocker_verified','digilocker_doc_count','digilocker_uri','digilocker_linked_at'
       ];
       watched.forEach((k) => {
         if (JSON.stringify((draft as any)[k] ?? null) !== JSON.stringify((user as any)[k] ?? null)) {

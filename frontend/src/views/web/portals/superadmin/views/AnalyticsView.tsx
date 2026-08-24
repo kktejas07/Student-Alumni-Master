@@ -15,12 +15,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import {
   BarChart3, Users, TrendingUp, Activity, Calendar, Download, RefreshCw,
   Globe, Monitor, Smartphone, Sparkles, Eye,
-  Clock, FileText, AlertTriangle, Zap, Timer, Target,
+  Clock, FileText, AlertTriangle, Zap, Timer, Target, Radar, Layers,
 } from 'lucide-react-native';
 import { SAC, FONTS } from '../tokens';
-import { Card, KpiTile, GRAD, SecondaryButton, StatusPill, LoadingBox } from '../applekit';
+import { Card, KpiTile, GRAD, SecondaryButton, StatusPill, LoadingBox, TopTabs } from '../applekit';
 import { usePortalData } from '@/src/lib/portalApi';
 import { WorldMap } from './WorldMap';
+import { VisitorIntelligenceView } from './VisitorIntelligenceView';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 type KPIs = {
@@ -100,6 +101,7 @@ const timeAgo = (iso: string) => { if (!iso) return ''; const diff = Date.now() 
 export function AnalyticsView() {
   const { width } = useWindowDimensions();
   const stack = width < 1100;
+  const [analyticsMode, setAnalyticsMode] = useState<'platform' | 'visitors'>('platform');
   const { data, loading, refresh } = usePortalData<AnalyticsData>('/admin/super/analytics', FALLBACK, 15_000);
   const d = data || FALLBACK;
   const fb = d.firebase || FALLBACK.firebase;
@@ -136,12 +138,26 @@ export function AnalyticsView() {
   if (loading && !data?.generated_at) return <LoadingBox />;
 
   return (
-    <Animated.View entering={FadeIn.duration(200)} style={{ gap: 14 }}>
-      {/* Header */}
-      <Card style={{ padding: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(167,139,250,0.15)', alignItems: 'center', justifyContent: 'center' }}>
-            <BarChart3 size={18} color="#A78BFA" />
+    <View style={{ gap: 14 }}>
+      {/* Analytics Category Tabs */}
+      <TopTabs
+        active={analyticsMode}
+        onChange={(m) => setAnalyticsMode(m as any)}
+        tabs={[
+          { id: 'platform', label: 'Platform Growth & System Metrics', icon: BarChart3 },
+          { id: 'visitors', label: 'Live Visitor Telemetry & Modular Radar', icon: Radar },
+        ]}
+      />
+
+      {analyticsMode === 'visitors' ? (
+        <VisitorIntelligenceView />
+      ) : (
+        <Animated.View entering={FadeIn.duration(200)} style={{ gap: 14 }}>
+          {/* Header */}
+          <Card style={{ padding: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(167,139,250,0.15)', alignItems: 'center', justifyContent: 'center' }}>
+                <BarChart3 size={18} color="#A78BFA" />
           </View>
           <View>
             <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: '#F3F4F6' }}>Analytics Dashboard</Text>
@@ -246,7 +262,9 @@ export function AnalyticsView() {
         <View style={{ flex: 3 }}><ActivityFeedCard items={d.recent_activity} /></View>
         <View style={{ flex: 2 }}><TopCollegesCard colleges={d.top_colleges} /></View>
       </View>
-    </Animated.View>
+        </Animated.View>
+      )}
+    </View>
   );
 }
 
@@ -616,7 +634,7 @@ function PredictionsCard({ predictions }: { predictions: Predictions }) {
       )}
       <View style={{ marginTop: 4, padding: 8, borderRadius: 6, backgroundColor: 'rgba(167,139,250,0.05)' }}>
         <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.muted }}>
-          {predictions.trend === 'growing' ? '📈 User growth is accelerating. Consider scaling infrastructure.' : predictions.trend === 'declining' ? '📉 Growth is slowing. Review acquisition channels.' : '📊 Growth is stable. Focus on retention and engagement.'}
+                     {predictions.trend === 'growing' ? 'User growth is accelerating. Consider scaling infrastructure.' : predictions.trend === 'declining' ? '📉 Growth is slowing. Review acquisition channels.' : '📊 Growth is stable. Focus on retention and engagement.'}
         </Text>
       </View>
     </Card>

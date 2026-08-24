@@ -26,11 +26,11 @@ import { AIInsightsView } from './views/AIInsightsView';
 import { CareerIntelView } from './views/CareerIntelView';
 import { PlacementsView } from './views/PlacementsView';
 import { ProfileView } from './views/ProfileView';
-// Shared role-aware comprehensive profile view (purple theme, identical to student).
 import { ProfileSettingsView as SharedProfileSettingsView } from '../student/views/ProfileSettingsView';
 import { CreateEventView } from './views/CreateEventView';
 import { CollegeNotificationsPanel } from './views/NotificationsPanel';
-import { useAutoTour } from '@/src/views/web/tour/TourProvider';
+import { UniversalMotionTransition } from '@/src/views/web/components/UniversalMotionTransition';
+import { SAWatermark } from '@/src/views/web/components/SAWatermark';
 
 export function CollegePortalRN() {
   const router = useRouter();
@@ -39,7 +39,7 @@ export function CollegePortalRN() {
   const active = tab as any;
   const [showNotifs, setShowNotifs] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
-  useAutoTour('college');
+  // useAutoTour('college');
 
   const setActive = (id: any) => { if (String(id) !== tab) go(String(id)); };
 
@@ -63,7 +63,13 @@ export function CollegePortalRN() {
 
   return (
     <View style={s.shell}>
-
+      <LinearGradient
+        pointerEvents="none"
+        colors={['#030614', '#040816']}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFillObject as any}
+      />
+      <SAWatermark size={850} top={30} right={-30} opacity={0.16} />
 
       <Sidebar active={active} onNav={setActive} onLogout={onLogout} />
       <View style={{ flex: 1, minWidth: 0, flexDirection: 'row' }}>
@@ -83,23 +89,25 @@ export function CollegePortalRN() {
           >
             <View style={{ flex: 1, padding: 22, paddingBottom: 60 }}>
               <PromoBanner portal="college" />
-              {active === 'dashboard'    && (
-                <DashboardView
-                  onOpenProfile={() => setActive('profile')}
-                  onNavigate={setActive}
-                />
-              )}
-              {active === 'students'     && <StudentsView />}
-              {active === 'alumni'       && <AlumniView />}
-              {active === 'mentors'      && <MentorsView />}
-              {active === 'events'       && <EventsView onNavigate={setActive} />}
-              {active === 'create-event' && <CreateEventView onNavigate={setActive} />}
-              {active === 'announcements'&& <AnnouncementsView />}
-              {active === 'analytics'    && <AnalyticsView />}
-              {active === 'ai-insights'  && <AIInsightsView />}
-              {active === 'career-intel' && <CareerIntelView />}
-              {active === 'placements'   && <PlacementsView />}
-              {active === 'profile'      && <SharedProfileSettingsView roleOverride="college" />}
+              <UniversalMotionTransition deps={[active]}>
+                {active === 'dashboard'    && (
+                  <DashboardView
+                    onOpenProfile={() => setActive('profile')}
+                    onNavigate={setActive}
+                  />
+                )}
+                {active === 'students'     && <StudentsView />}
+                {active === 'alumni'       && <AlumniView />}
+                {active === 'mentors'      && <MentorsView />}
+                {active === 'events'       && <EventsView onNavigate={setActive} />}
+                {active === 'create-event' && <CreateEventView onNavigate={setActive} />}
+                {active === 'announcements'&& <AnnouncementsView />}
+                {active === 'analytics'    && <AnalyticsView />}
+                {active === 'ai-insights'  && <AIInsightsView />}
+                {active === 'career-intel' && <CareerIntelView />}
+                {active === 'placements'   && <PlacementsView />}
+                {active === 'profile'      && <SharedProfileSettingsView roleOverride="college" />}
+              </UniversalMotionTransition>
             </View>
             <DashboardFooter portal="college" />
           </ScrollView>

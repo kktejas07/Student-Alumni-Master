@@ -5,10 +5,8 @@
  * Theme: dark navy/blue (#0F172A → #1E3A8A), accent #60A5FA.
  */
 import { useEffect, useRef } from 'react';
-import {
-  View, Text, StyleSheet, Pressable, ScrollView, Animated, Easing,
-  useWindowDimensions,
-} from 'react-native';
+import { Platform, View, Text, StyleSheet, Pressable, ScrollView, Animated, Easing,
+  useWindowDimensions,} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Bell, GraduationCap, Users, Calendar, TrendingUp, Megaphone,
@@ -61,7 +59,7 @@ export function CollegeDashboardView({
 
   const fade = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    Animated.timing(fade, { toValue: 1, duration: 420, easing: Easing.out(Easing.quad), useNativeDriver: true }).start();
+    Animated.timing(fade, { toValue: 1, duration: 420, easing: Easing.out(Easing.quad), useNativeDriver: Platform.OS !== 'web' }).start();
   }, []);
   const translateY = fade.interpolate({ inputRange: [0, 1], outputRange: [12, 0] });
 
@@ -165,8 +163,8 @@ function QuickActionTile({ action, onPress }: { action: typeof QUICK_ACTIONS[num
   const scale = useRef(new Animated.Value(1)).current;
   return (
     <Pressable onPress={onPress} testID={`college-qa-${action.id}`}
-      onPressIn={() => Animated.spring(scale, { toValue: 0.92, useNativeDriver: true, friction: 6, tension: 200 }).start()}
-      onPressOut={() => Animated.spring(scale, { toValue: 1, useNativeDriver: true, friction: 6, tension: 200 }).start()}
+      onPressIn={() => Animated.spring(scale, { toValue: 0.92, useNativeDriver: Platform.OS !== 'web', friction: 6, tension: 200 }).start()}
+      onPressOut={() => Animated.spring(scale, { toValue: 1, useNativeDriver: Platform.OS !== 'web', friction: 6, tension: 200 }).start()}
       style={({ hovered }: any) => [styles.qaTile, hovered && { transform: [{ translateY: -2 }] }]}>
       <Animated.View style={{ transform: [{ scale }] }}>
         <LinearGradient colors={action.gradient as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}

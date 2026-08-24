@@ -7,7 +7,7 @@
  */
 import React, { useEffect, useState, useCallback } from 'react';
 import {
-  View, Text, Pressable, StyleSheet, Platform, Modal, ScrollView, Image,
+  View, Text, Pressable, StyleSheet, Platform, Modal, ScrollView, Image, ImageStyle, DimensionValue,
 } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
@@ -61,7 +61,6 @@ const TONE_GRAD: Record<string, string[]> = {
 };
 
 export function AnnouncementPopup() {
-  if (Platform.OS !== 'web') return null;
   const router = useRouter();
   const pathname = usePathname();
   const isLanding = pathname === '/' || pathname === '/index' || pathname === '';
@@ -123,15 +122,16 @@ export function AnnouncementPopup() {
       window.open(url, '_blank', 'noopener,noreferrer');
     } else {
       onDismiss();
-      router.push(url);
+      router.push(url as any);
     }
   }, [onDismiss, router]);
 
   const onEventPress = useCallback((slug: string) => {
     onDismiss();
-    router.push(`/echo/${slug}`);
+    router.push(`/echo/${slug}` as any);
   }, [onDismiss, router]);
 
+  if (Platform.OS !== 'web') return null;
   if (!open || loading) return null;
   if (promos.length === 0 && events.length === 0) return null;
   if (!isLanding) return null;
@@ -164,7 +164,7 @@ export function AnnouncementPopup() {
                   </View>
                 )}
                 {activePromo.image_url ? (
-                  <Image source={{ uri: resolveImageUrl(activePromo.image_url) }} style={s.promoImage} resizeMode="cover" />
+                  <Image source={{ uri: resolveImageUrl(activePromo.image_url) }} style={s.promoImage as ImageStyle} resizeMode="cover" />
                 ) : null}
                 <Text style={s.promoTitle}>{activePromo.title}</Text>
                 {activePromo.body ? <Text style={s.promoBody}>{activePromo.body}</Text> : null}
@@ -198,7 +198,7 @@ export function AnnouncementPopup() {
                 {events.map((ev) => (
                   <Pressable key={ev.id} onPress={() => onEventPress(ev.slug)} style={s.eventCard}>
                     {ev.hero_image_url ? (
-                      <Image source={{ uri: resolveImageUrl(ev.hero_image_url) }} style={s.eventImg} resizeMode="cover" />
+                      <Image source={{ uri: resolveImageUrl(ev.hero_image_url) }} style={s.eventImg as ImageStyle} resizeMode="cover" />
                     ) : (
                       <View style={[s.eventImg, s.eventImgPlaceholder]}>
                         <Sparkles size={18} color="#A78BFA" />
@@ -249,7 +249,7 @@ const s = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 620,
-    maxHeight: '82vh',
+    maxHeight: '82vh' as DimensionValue,
     backgroundColor: 'rgba(13,18,38,0.97)',
     borderWidth: 1,
     borderColor: 'rgba(167,139,250,0.28)',
