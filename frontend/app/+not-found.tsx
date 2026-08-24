@@ -43,7 +43,7 @@ export default function NotFoundScreen() {
           <SALogo size={64} variant="glass" />
 
           <View style={styles.badge}>
-            <Sparkles size={12} color="#A78BFA" />
+            <Sparkles size={12} color="#60A5FA" />
             <Text style={styles.badgeText}>ERROR 404</Text>
           </View>
 
@@ -59,7 +59,7 @@ export default function NotFoundScreen() {
               onPress={() => router.replace('/welcome')}
             >
               <LinearGradient
-                colors={['#8B5CF6', '#6D28D9']}
+                colors={['#8B5CF6', '#1D4ED8']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.btnGradient}
@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   badgeText: {
-    color: '#A78BFA',
+    color: '#60A5FA',
     fontFamily: 'DMSans_700Bold',
     fontSize: 11,
     letterSpacing: 1.5,

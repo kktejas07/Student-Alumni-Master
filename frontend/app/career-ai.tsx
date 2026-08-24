@@ -58,14 +58,14 @@ import { COLORS as DT_COLORS, FONT_FAMILIES, FONT_SIZES, RADIUS, SPACING } from 
 /* ────────── Design tokens ────────── */
 const C = {
   bg: '#0B0D1A',
-  bgCard: 'rgba(18, 22, 35, 0.75)',
-  bgCardH: 'rgba(26, 30, 50, 0.90)',
+  bgCard: '#F5F7FA',
+  bgCardH: '#FFFFFF',
   border: 'rgba(255, 255, 255, 0.08)',
   border2: 'rgba(255, 255, 255, 0.14)',
-  text: '#F0EEFF',
-  text2: 'rgba(240, 238, 255, 0.80)',
-  textSub: 'rgba(240, 238, 255, 0.60)',
-  dim: 'rgba(240, 238, 255, 0.45)',
+  text: '#FFFFFF',
+  text2: 'rgba(255, 255, 255, 0.95)',
+  textSub: 'rgba(255, 255, 255, 0.85)',
+  dim: 'rgba(255, 255, 255, 0.70)',
   purple: '#4F46E5',
   purple2: '#6366F1',
   purpleL: '#818CF8',
@@ -285,14 +285,22 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
   const studentName = user?.full_name?.split(' ')[0] || 'Krishna';
 
   return (
-    <Container {...containerProps}>
+    <View style={{ flex: 1, width: '100%', overflow: 'hidden' }}>
+        <LinearGradient
+          colors={['#FFFFFF', '#F8FAFC', '#EFF6FF', '#E2E8F0']}
+          locations={[0, 0.3, 0.7, 1]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[StyleSheet.absoluteFillObject, { zIndex: -1 }]}
+        />
+      <Container {...containerProps} style={[containerProps.style, { backgroundColor: 'transparent' }]}>
 
-      {/* ══════════════ 1. HEADER BANNER ══════════════ */}
-      <View style={s.headerBar}>
-        <View style={s.headerLeft}>
-          <Text style={{ position: 'absolute', opacity: 0 }}>AI Career Roadmap</Text>
-          <Text style={s.greetingText}>
-            Welcome back, {studentName}! Let's accelerate your career journey.
+        {/* ══════════════ 1. HEADER BANNER ══════════════ */}
+        <View style={s.headerBar}>
+          <View style={s.headerLeft}>
+            <Text style={{ position: 'absolute', opacity: 0 }}>AI Career Roadmap</Text>
+            <Text style={s.greetingText}>
+              Welcome back, {studentName}! Let's accelerate your career journey.
           </Text>
         </View>
 
@@ -558,6 +566,14 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
             <AIInsightBubble
               text="LinkedIn optimization can improve your visibility and add 5% to your readiness score."
             />
+            {/* Prompt Suggestion Fill */}
+            <View style={{ marginTop: 'auto', backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderRadius: 12, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <MessageSquare size={16} color={C.dim} />
+              <Text style={{ color: C.dim, fontFamily: FT.reg, fontSize: 13, flex: 1 }}>Ask a follow-up question...</Text>
+              <View style={{ backgroundColor: 'rgba(99, 102, 241, 0.15)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6 }}>
+                <Text style={{ color: C.purpleL, fontFamily: FT.bold, fontSize: 11 }}>Send</Text>
+              </View>
+            </View>
           </View>
           <Pressable
             onPress={() => toast.info('AI Advice', 'Personalized advice engine active.')}
@@ -569,7 +585,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
         </View>
 
         {/* Right (50%): Goal Simulator */}
-        <View style={s.colCard}>
+        <View style={{ flex: 1 }}>
           <GoalSimulator currentReadiness={readinessScore} />
         </View>
       </View>
@@ -623,10 +639,11 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
               </View>
             </View>
           </View>
-          <Text style={s.recruiterSubhead}>How recruiters see your profile today</Text>
+          <View style={{ flex: 1, gap: 16 }}>
+            <Text style={s.recruiterSubhead}>How recruiters see your profile today</Text>
 
-          {/* 4 Compact Cards Inline */}
-          <View style={s.recruiterGrid}>
+            {/* 4 Compact Cards Inline */}
+            <View style={s.recruiterGrid}>
             <View style={s.recruiterCard}>
               <Text style={s.recruiterLabel}>Resume</Text>
               <Text style={s.recruiterVal}>42%</Text>
@@ -656,6 +673,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
               </View>
             </View>
           </View>
+          </View>
 
           <Pressable
             onPress={() => router.push('/student-portal?tab=profile' as any)}
@@ -670,6 +688,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
 
 
     </Container>
+    </View>
   );
 }
 
@@ -682,10 +701,10 @@ const s = StyleSheet.create({
     backgroundColor: C.bg,
   },
   embeddedShell: {
-    flex: 1,
     backgroundColor: 'transparent',
     gap: SPACING.xxl,
     paddingBottom: 60,
+    gap: SPACING.xxl,
   },
   contentContainer: {
     paddingVertical: SPACING.xxl,
@@ -823,7 +842,7 @@ const s = StyleSheet.create({
   heroPanel: {
     flex: 1,
     minWidth: 160,
-    backgroundColor: 'rgba(18, 22, 35, 0.65)',
+    backgroundColor: '#0A0A2A',
     borderColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 1,
     borderRadius: RADIUS.card,
@@ -832,7 +851,7 @@ const s = StyleSheet.create({
     alignItems: 'flex-start',
   },
   heroPanelLabel: {
-    color: C.textSub,
+    color: C.text,
     fontFamily: FT.bold,
     fontSize: 11,
     letterSpacing: 0.8,
@@ -945,7 +964,7 @@ const s = StyleSheet.create({
     width: 2,
     height: 2,
     borderRadius: 1,
-    backgroundColor: '#FFF',
+    backgroundColor: '#0A0A2A',
     opacity: 0.4,
   },
   heroStar4: {
@@ -1002,14 +1021,14 @@ const s = StyleSheet.create({
   },
   colCard: {
     flex: 1,
-    backgroundColor: 'rgba(18, 22, 35, 0.75)',
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: '#0A0A2A',
+    borderColor: 'rgba(0,0,0,0.07)',
     borderWidth: 1,
     borderRadius: RADIUS.card,
     padding: SPACING.lg,
     gap: SPACING.lg,
     justifyContent: 'space-between',
-    ...(Platform.OS === 'web' ? { boxShadow: '0 4px 20px rgba(0,0,0,0.35)' } as any : {}),
+    ...(Platform.OS === 'web' ? { boxShadow: '0 4px 20px rgba(0,0,0,0.15)' } as any : {}),
   },
   cardHeader: {
     flexDirection: 'row',
@@ -1039,11 +1058,13 @@ const s = StyleSheet.create({
   /* Skills Breakdown */
   skillBarsList: {
     gap: 12,
+    flex: 1,
   },
 
   /* Next Best Actions */
   actionsList: {
     gap: 10,
+    flex: 1,
   },
   actionRow: {
     flexDirection: 'row',
@@ -1111,12 +1132,15 @@ const s = StyleSheet.create({
   /* AI Insights */
   insightsList: {
     gap: 10,
+    flex: 1,
   },
 
   /* Weekly Focus */
   weeklyFocusSplitRow: {
     flexDirection: 'row',
     gap: SPACING.lg,
+    alignItems: 'stretch',
+    flex: 1,
   },
   weeklyChecklistCol: {
     flex: 1,
