@@ -109,8 +109,8 @@ export function CollegeAutocomplete({ value, onChangeText, onSelect, placeholder
                 {...(Platform.OS === 'web' ? ({ onMouseDown: (e: any) => e.preventDefault() } as any) : {})}
                 style={({ hovered, pressed }: any) => [
                   s.row,
-                  hovered && { backgroundColor: 'rgba(124,58,237,0.12)' },
-                  pressed && { backgroundColor: 'rgba(124,58,237,0.18)' },
+                  hovered && { backgroundColor: 'rgba(37,99,235,0.12)' },
+                  pressed && { backgroundColor: 'rgba(37,99,235,0.18)' },
                 ]}
               >
                 <View style={s.rowIcon}><Building2 size={14} color={GRAD.from} /></View>
@@ -173,7 +173,7 @@ const s = StyleSheet.create({
   rowAdd: { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },
   rowIcon: {
     width: 28, height: 28, borderRadius: 8,
-    backgroundColor: 'rgba(124,58,237,0.18)',
+    backgroundColor: 'rgba(37,99,235,0.18)',
     alignItems: 'center', justifyContent: 'center',
   },
   rowIconManual: {

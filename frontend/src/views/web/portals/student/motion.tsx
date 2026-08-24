@@ -214,7 +214,7 @@ export function PulseDot({ size = 8, color = '#22C55E', style }: { size?: number
 
 /* ─── SparkIcon — gentle 360° rotation for AI / sparkle glyphs ─────────── */
 export function SparkIcon({
-  Icon, size = 14, color = '#A78BFA', durationMs = 4200,
+  Icon, size = 14, color = '#60A5FA', durationMs = 4200,
 }: { Icon: React.ComponentType<{ size?: number; color?: string }>; size?: number; color?: string; durationMs?: number }) {
   const reduced = useReducedMotion();
   const v = useSharedValue(0);
@@ -317,7 +317,7 @@ export function SkeletonBlock({
     >
       <Animated.View style={[StyleSheet.absoluteFill, aStyle]}>
         <LinearGradient
-          colors={['rgba(255,255,255,0.04)', 'rgba(167,139,250,0.18)', 'rgba(255,255,255,0.04)'] as any}
+          colors={['rgba(255,255,255,0.04)', 'rgba(37,99,235,0.18)', 'rgba(255,255,255,0.04)'] as any}
           start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }}
           style={StyleSheet.absoluteFill}
         />

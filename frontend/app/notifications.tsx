@@ -63,7 +63,7 @@ export default function NotificationsScreen() {
       // auto-mark all unread as read
       const unreadIds = list.filter((n) => !n.read).map((n) => n.id);
       if (unreadIds.length > 0) {
-        api.markNotificationsRead(unreadIds).catch(() => {});
+        api.markNotificationsRead(unreadIds).catch(() => { });
       }
     } catch (e) {
       // swallow — UI shows empty state
@@ -112,10 +112,10 @@ export default function NotificationsScreen() {
                 onPress={() => {
                   // Route depending on type, supporting nested and title-based fallbacks
                   const resolvedType = (n.type || n.data?.type || '').toLowerCase();
-                  const isBooking = resolvedType.includes('booking') || 
-                                    (n.title || '').toLowerCase().includes('booking') || 
-                                    !!n.booking_id;
-                  
+                  const isBooking = resolvedType.includes('booking') ||
+                    (n.title || '').toLowerCase().includes('booking') ||
+                    !!n.booking_id;
+
                   if (resolvedType === 'connection_request' || resolvedType === 'connection_accepted') {
                     router.push('/network');
                   } else if (isBooking) {
@@ -144,7 +144,7 @@ function EmptyState() {
   return (
     <View style={styles.empty}>
       <View style={styles.emptyIconWrap}>
-        <Bell size={36} color="#A78BFA" />
+        <Bell size={36} color="#60A5FA" />
       </View>
       <Text style={[Typography.h3, { color: '#F4F4F8', marginTop: 12 }]}>You're all caught up</Text>
       <Text style={[Typography.body, { color: '#A1A6B7', marginTop: 6, textAlign: 'center' }]}>
@@ -221,7 +221,7 @@ function iconForType(type?: string, title?: string) {
     case 'event':
       return { Icon: Trophy, tint: { bg: 'rgba(139, 92, 246, 0.18)', fg: '#8B5CF6' } };
     default:
-      return { Icon: Bell, tint: { bg: 'rgba(139, 92, 246, 0.18)', fg: '#A78BFA' } };
+      return { Icon: Bell, tint: { bg: 'rgba(139, 92, 246, 0.18)', fg: '#60A5FA' } };
   }
 }
 

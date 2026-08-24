@@ -82,15 +82,15 @@ export function MyWorkshopsView() {
           const pct = w.status === 'registered' ? 0 : Math.max(0, Math.min(100, Math.round((currentWeek / Math.max(1, w.weeks)) * 100)));
 
           return (
-            <GlassCard key={w.id} delay={idx * 30} radius={12} padding={16} style={{ gap: 12 }}>
+            <View key={w.id} style={s.card}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <View style={s.iconBox}><GraduationCap size={18} color={SC.accentBright} /></View>
+                <View style={s.iconBox}><GraduationCap size={22} color="#2563EB" /></View>
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Text style={s.title}>{w.title}</Text>
                   <Text style={s.meta}>{w.weeks}-week program · ₹{Number(w.fee_inr || 0).toLocaleString()} · enrolled {w.registered_at ? String(w.registered_at).slice(0, 10) : '—'}</Text>
                 </View>
                 <View style={[s.statusPill, w.status === 'registered' ? s.statusRegistered : s.statusPending]}>
-                  <Text style={[s.statusText, { color: w.status === 'registered' ? '#60A5FA' : '#FBBF24' }]}>
+                  <Text style={[s.statusText, { color: w.status === 'registered' ? '#2563EB' : '#D97706' }]}>
                     {w.status === 'registered' ? 'Enrolled' : `Week ${currentWeek} of ${w.weeks}`}
                   </Text>
                 </View>
@@ -122,7 +122,7 @@ export function MyWorkshopsView() {
 
               <View style={s.actionRow}>
                 {updatingId === w.id ? (
-                  <ActivityIndicator size="small" color={SC.accentBright} style={{ paddingVertical: 4 }} />
+                  <ActivityIndicator size="small" color="#2563EB" style={{ paddingVertical: 4 }} />
                 ) : w.status === 'registered' ? (
                   <Pressable
                     onPress={() => handleProgress(w.id, 'start')}
@@ -147,7 +147,7 @@ export function MyWorkshopsView() {
                   </>
                 )}
               </View>
-            </GlassCard>
+            </View>
           );
         })}
         {ongoing.length === 0 && <Text style={s.empty}>No ongoing workshops.</Text>}
@@ -155,9 +155,9 @@ export function MyWorkshopsView() {
 
       <Section title={`Completed (${completed.length})`}>
         {completed.map((w, idx) => (
-          <GlassCard key={w.id} delay={idx * 30} radius={12} padding={14} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <View style={[s.iconBox, { backgroundColor: 'rgba(34,197,94,0.10)', borderColor: 'rgba(34,197,94,0.30)' }]}>
-              <CheckCircle size={18} color="#22C55E" />
+          <View key={w.id} style={[s.card, { flexDirection: 'row', alignItems: 'center', gap: 12 }]}>
+            <View style={[s.iconBox, { backgroundColor: 'rgba(34,197,94,0.08)', borderColor: 'rgba(34,197,94,0.30)', borderWidth: 1 }]}>
+              <CheckCircle size={22} color="#16A34A" />
             </View>
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={s.title}>{w.title}</Text>
@@ -166,14 +166,14 @@ export function MyWorkshopsView() {
             {w.certificate_url && (
               <Pressable
                 onPress={() => Linking.openURL(w.certificate_url!)}
-                style={({ hovered }: any) => [s.certBtn, hovered && { backgroundColor: SC.cardH }]}
+                style={({ hovered }: any) => [s.certBtn, hovered && { backgroundColor: 'rgba(0,0,0,0.04)' }]}
               >
-                <Award size={12} color="#FCD34D" />
+                <Award size={12} color="#2563EB" />
                 <Text style={s.certText}>Certificate</Text>
-                <ExternalLink size={11} color="#FCD34D" />
+                <ExternalLink size={11} color="#2563EB" />
               </Pressable>
             )}
-          </GlassCard>
+          </View>
         ))}
         {completed.length === 0 && <Text style={s.empty}>No workshops completed yet.</Text>}
       </Section>
@@ -183,7 +183,7 @@ export function MyWorkshopsView() {
           {POPULAR_WORKSHOPS.map((item) => {
             const isAlreadyEnrolled = items.some((w) => w.title === item.title);
             return (
-              <GlassCard key={item.title} radius={12} padding={16} style={{ gap: 8 }}>
+              <View key={item.title} style={s.card}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Text style={s.exploreTitle}>{item.title}</Text>
                   <Text style={s.exploreMeta}>{item.weeks} weeks · ₹{item.fee.toLocaleString()}</Text>
@@ -191,10 +191,10 @@ export function MyWorkshopsView() {
                 <Text style={s.exploreDesc}>{item.desc}</Text>
                 <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 4 }}>
                   {enrollingTitle === item.title ? (
-                    <ActivityIndicator size="small" color={SC.accentBright} />
+                    <ActivityIndicator size="small" color="#2563EB" />
                   ) : isAlreadyEnrolled ? (
                     <View style={[s.actionBtn, s.statusRegistered, { height: 28, pointerEvents: 'none' }]}>
-                      <Text style={[s.btnText, { color: '#60A5FA' }]}>✓ Enrolled</Text>
+                      <Text style={[s.btnText, { color: '#2563EB' }]}>✓ Enrolled</Text>
                     </View>
                   ) : (
                     <Pressable
@@ -205,7 +205,7 @@ export function MyWorkshopsView() {
                     </Pressable>
                   )}
                 </View>
-              </GlassCard>
+              </View>
             );
           })}
         </View>
@@ -224,49 +224,199 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 const s = StyleSheet.create({
-  h1: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4 },
-  sub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4 },
-  sectionTitle: { color: SC.muted, fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 1, marginBottom: 8 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 12, padding: 14 },
-  iconBox: { width: 38, height: 38, borderRadius: 10, backgroundColor: 'rgba(167,139,250,0.10)', borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  title: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13.5 },
-  meta: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 3 },
-  statusPill: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 6, borderWidth: 1 },
-  statusPending: { backgroundColor: 'rgba(251,191,36,0.10)', borderColor: 'rgba(251,191,36,0.30)' },
-  statusRegistered: { backgroundColor: 'rgba(96,165,250,0.10)', borderColor: 'rgba(96,165,250,0.30)' },
-  statusText: { fontFamily: FONTS.bold, fontSize: 10.5 },
-  certBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 11, height: 30, borderRadius: 8, backgroundColor: 'rgba(252,211,77,0.10)', borderColor: 'rgba(252,211,77,0.40)', borderWidth: 1, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  certText: { color: '#FCD34D', fontFamily: FONTS.bold, fontSize: 11.5 },
-  empty: { color: SC.muted, padding: 16, textAlign: 'center', fontFamily: FONTS.med },
-
-  trackingContainer: {
-    backgroundColor: 'rgba(255,255,255,0.02)',
-    borderColor: 'rgba(255,255,255,0.05)',
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 10,
+  // ── Page header ──────────────────────────────────────────────────────────
+  h1: {
+    color: '#000',
+    fontFamily: 'DMSans_800ExtraBold',
+    fontSize: 22,
+    letterSpacing: -0.4,
+  },
+  sub: {
+    color: 'rgba(0,0,0,0.65)',
+    fontFamily: 'DMSans_500Medium',
+    fontSize: 12.5,
     marginTop: 4,
   },
-  trackingLabel: { color: SC.muted, fontFamily: FONTS.bold, fontSize: 11 },
-  trackingPct: { color: '#fff', fontFamily: FONTS.bold, fontSize: 11 },
-  progressBarBg: { height: 6, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden' },
-  progressBarFill: { height: '100%', backgroundColor: SC.accentBright },
 
-  timeline: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
+  // ── Section title ─────────────────────────────────────────────────────────
+  sectionTitle: {
+    color: 'rgba(0,0,0,0.85)',
+    fontFamily: 'DMSans_800ExtraBold',
+    fontSize: 11,
+    letterSpacing: 1,
+    marginBottom: 8,
+    textTransform: 'uppercase' as any,
+  },
+
+  // ── Card base ─────────────────────────────────────────────────────────────
+  card: {
+    padding: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+    backgroundColor: 'rgba(0,0,0,0.02)',
+    borderColor: 'rgba(0,0,0,0.12)',
+    gap: 12,
+  },
+
+  // ── Icon box ──────────────────────────────────────────────────────────────
+  iconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(37,99,235,0.08)',
+    borderColor: 'rgba(37,99,235,0.30)',
+  },
+
+  // ── Card text ─────────────────────────────────────────────────────────────
+  title: {
+    color: '#000',
+    fontFamily: 'DMSans_800ExtraBold',
+    fontSize: 14.5,
+  },
+  meta: {
+    color: 'rgba(0,0,0,0.65)',
+    fontFamily: 'DMSans_500Medium',
+    fontSize: 11.5,
+    marginTop: 3,
+  },
+
+  // ── Status pill ───────────────────────────────────────────────────────────
+  statusPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  statusPending: {
+    backgroundColor: 'rgba(245,158,11,0.08)',
+    borderColor: 'rgba(245,158,11,0.30)',
+  },
+  statusRegistered: {
+    backgroundColor: 'rgba(37,99,235,0.08)',
+    borderColor: 'rgba(37,99,235,0.30)',
+  },
+  statusText: { fontFamily: 'DMSans_700Bold', fontSize: 10.5 },
+
+  // ── Certificate button ────────────────────────────────────────────────────
+  certBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: 'rgba(37,99,235,0.06)',
+    borderColor: 'rgba(37,99,235,0.20)',
+    borderWidth: 1,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  certText: { color: '#2563EB', fontFamily: 'DMSans_700Bold', fontSize: 11.5 },
+
+  // ── Empty state ───────────────────────────────────────────────────────────
+  empty: {
+    color: 'rgba(0,0,0,0.55)',
+    padding: 18,
+    textAlign: 'center',
+    fontFamily: 'DMSans_500Medium',
+    fontSize: 13,
+  },
+
+  // ── Progress tracking container ───────────────────────────────────────────
+  trackingContainer: {
+    backgroundColor: 'rgba(0,0,0,0.04)',
+    borderColor: 'rgba(37,99,235,0.30)',
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 6,
+  },
+  trackingLabel: {
+    color: 'rgba(0,0,0,0.85)',
+    fontFamily: 'DMSans_600SemiBold',
+    fontSize: 11.5,
+  },
+  trackingPct: {
+    color: '#2563EB',
+    fontFamily: 'DMSans_800ExtraBold',
+    fontSize: 11.5,
+  },
+  progressBarBg: {
+    height: 6,
+    backgroundColor: 'rgba(0,0,0,0.06)',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#2563EB',
+  },
+
+  // ── Timeline ──────────────────────────────────────────────────────────────
+  timeline: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
   timelineStep: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.2)' },
-  dotDone: { backgroundColor: '#10B981', ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 6px #10B981' } as any) : {}) } as any,
-  stepText: { color: SC.muted, fontFamily: FONTS.med, fontSize: 10.5 },
-  stepTextDone: { color: '#fff', fontFamily: FONTS.bold },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(0,0,0,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.20)',
+  },
+  dotDone: {
+    backgroundColor: '#2563EB',
+    borderColor: '#2563EB',
+  } as any,
+  stepText: {
+    color: 'rgba(0,0,0,0.55)',
+    fontFamily: 'DMSans_500Medium',
+    fontSize: 11,
+  },
+  stepTextDone: {
+    color: '#000',
+    fontFamily: 'DMSans_700Bold',
+  },
 
-  actionRow: { flexDirection: 'row', gap: 8, justifyContent: 'flex-end', marginTop: 4 },
-  actionBtn: { paddingHorizontal: 12, height: 28, borderRadius: 6, justifyContent: 'center', alignItems: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  btnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 11.5 },
-  startBtn: { backgroundColor: 'rgba(167,139,250,0.2)', borderColor: 'rgba(167,139,250,0.4)', borderWidth: 1 },
-  nextBtn: { backgroundColor: 'rgba(251,191,36,0.15)', borderColor: 'rgba(251,191,36,0.3)', borderWidth: 1 },
-  completeBtn: { backgroundColor: 'rgba(16,185,129,0.15)', borderColor: 'rgba(16,185,129,0.3)', borderWidth: 1 },
+  // ── Action buttons ────────────────────────────────────────────────────────
+  actionRow: { flexDirection: 'row', gap: 8, justifyContent: 'flex-end', marginTop: 8 },
+  actionBtn: {
+    paddingHorizontal: 14,
+    height: 32,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  btnText: { color: '#FFFFFF', fontFamily: 'DMSans_800ExtraBold', fontSize: 11.5 },
+  startBtn: {
+    backgroundColor: '#2563EB',
+  },
+  nextBtn: {
+    backgroundColor: '#D97706',
+  },
+  completeBtn: {
+    backgroundColor: '#059669',
+  },
 
-  exploreTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 14 },
-  exploreMeta: { color: SC.muted, fontFamily: FONTS.med, fontSize: 12 },
-  exploreDesc: { color: 'rgba(255,255,255,0.6)', fontFamily: FONTS.med, fontSize: 12, lineHeight: 16, marginTop: 4 },
+  // ── Explore section ───────────────────────────────────────────────────────
+  exploreTitle: {
+    color: '#000',
+    fontFamily: 'DMSans_800ExtraBold',
+    fontSize: 14,
+    letterSpacing: -0.2,
+  },
+  exploreMeta: {
+    color: 'rgba(0,0,0,0.65)',
+    fontFamily: 'DMSans_500Medium',
+    fontSize: 12,
+  },
+  exploreDesc: {
+    color: 'rgba(0,0,0,0.85)',
+    fontFamily: 'DMSans_500Medium',
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 4,
+  },
 });

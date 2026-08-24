@@ -43,7 +43,7 @@ export function ProfileView() {
         <View style={s.card}>
           <Text style={s.cardTitle}>Accreditations</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 12 }}>
-            {[{ l:'AICTE',c:'#A78BFA' }, { l:'Autonomous',c:'#22C55E' }].map((x) => (
+            {[{ l:'AICTE',c:'#60A5FA' }, { l:'Autonomous',c:'#22C55E' }].map((x) => (
               <View key={x.l} style={[s.accBox, { borderColor: x.c + '60' }]}>
                 <Award size={20} color={x.c} />
                 <Text style={s.accLabel}>{x.l}</Text>
@@ -54,9 +54,9 @@ export function ProfileView() {
       </View>
       <View style={{ width: stack ? '100%' : 320 }}>
         <LinearGradient colors={[CC.primary, CC.primaryD] as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.idCard}>
-          <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 1 }}>ADMIN PORTAL · DIGITAL ID</Text>
+          <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 1 }}>ADMIN PORTAL · DIGITAL ID</Text>
           <Av initials={initials} size={56} color="#fff" />
-          <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 18, marginTop: 10 }}>{collegeName}</Text>
+          <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 18, marginTop: 10 }}>{collegeName}</Text>
           <Text style={{ color: CC.accentBright, fontFamily: FONTS.bold, fontSize: 11.5, marginTop: 2 }}>Admin Code: ADM-2026</Text>
           <View style={s.idStats}>
             <Stat label="Students" value={studentsCount} /><View style={s.divider} />
@@ -78,18 +78,18 @@ function Row({ Icon, label, value }: any) {
   );
 }
 function Stat({ label, value }: any) {
-  return (<View style={{ flex: 1, alignItems: 'center' }}><Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 }}>{value}</Text><Text style={{ color: 'rgba(255,255,255,0.7)', fontFamily: FONTS.bold, fontSize: 9.5, letterSpacing: 0.6, marginTop: 2 }}>{label}</Text></View>);
+  return (<View style={{ flex: 1, alignItems: 'center' }}><Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 16 }}>{value}</Text><Text style={{ color: 'rgba(255,255,255,0.7)', fontFamily: FONTS.bold, fontSize: 9.5, letterSpacing: 0.6, marginTop: 2 }}>{label}</Text></View>);
 }
 const s = StyleSheet.create({
   card: { backgroundColor: CC.card, borderColor: CC.border, borderWidth: 1, borderRadius: 14, padding: 18 },
-  cardTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 },
-  name: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 20 },
+  cardTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 14 },
+  name: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 20 },
   editBtn: { paddingHorizontal: 14, height: 32, borderRadius: 8, borderWidth: 1, borderColor: CC.border2, backgroundColor: CC.card, alignItems: 'center', justifyContent: 'center' },
   rowIcon: { width: 26, height: 26, borderRadius: 8, backgroundColor: 'rgba(99,102,241,0.10)', alignItems: 'center', justifyContent: 'center' },
   rowLabel: { color: CC.muted, fontFamily: FONTS.bold, fontSize: 11, width: 90 },
-  rowValue: { color: '#fff', fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
+  rowValue: { color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
   accBox: { width: 110, alignItems: 'center', padding: 12, borderRadius: 12, borderWidth: 1, backgroundColor: CC.card, gap: 6 },
-  accLabel: { color: '#fff', fontFamily: FONTS.bold, fontSize: 10.5, textAlign: 'center' },
+  accLabel: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 10.5, textAlign: 'center' },
   idCard: { borderRadius: 18, padding: 22, alignItems: 'flex-start' },
   idStats: { flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch', marginTop: 14, paddingVertical: 10, borderTopWidth: 1, borderBottomWidth: 1, borderColor: 'rgba(255,255,255,0.20)' },
   divider: { width: 1, height: 24, backgroundColor: 'rgba(255,255,255,0.20)' },

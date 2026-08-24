@@ -30,7 +30,7 @@ type Props = {
   left?: number;
 };
 
-export function FAB({ onPress, icon, label, color = '#7C3AED',
+export function FAB({ onPress, icon, label, color = '#2563EB',
                        bottom = Layout.floatingOffset, right, left }: Props) {
   const scale  = useSharedValue(0);
   const opacity = useSharedValue(0);

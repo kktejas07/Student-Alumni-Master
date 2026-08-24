@@ -16,7 +16,7 @@ export default function AdvisorAIBlock({
   advisorDesc = 'Need personalised advice? Connect with our dedicated student advisors.',
   aiTitle = 'Ask the AI Assistant',
   aiDesc = 'Got a question? Chat with our AI assistant 24×7 — instant answers.',
-  advisorAccent = '#A78BFA',
+  advisorAccent = '#60A5FA',
   aiAccent = '#10B981',
   advisorIcon = 'account-tie',
   aiIcon = 'robot-excited',
@@ -127,8 +127,8 @@ export default function AdvisorAIBlock({
           style={[s.cta, { backgroundColor: aiAccent }]}
           onPress={() => setAiOpen(!aiOpen)}
         >
-          <MaterialCommunityIcons name="message-text" size={14} color="#0A2E1A" />
-          <Text style={[s.ctaText, { color: '#0A2E1A' }]}>Chat with AI</Text>
+          <MaterialCommunityIcons name="message-text" size={14} color="#fff" />
+          <Text style={[s.ctaText, { color: '#fff' }]}>Chat with AI</Text>
         </Pressable>
         {aiOpen && (
           <View style={s.expanded}>
@@ -147,8 +147,8 @@ export default function AdvisorAIBlock({
                 onPress={onAskAI}
                 disabled={aiBusy}
               >
-                {aiBusy ? <ActivityIndicator color="#0A2E1A" size="small" />
-                        : <MaterialCommunityIcons name="send" size={14} color="#0A2E1A" />}
+                {aiBusy ? <ActivityIndicator color="#fff" size="small" />
+                        : <MaterialCommunityIcons name="send" size={14} color="#fff" />}
               </Pressable>
             </View>
             {aiAnswer && (
@@ -169,7 +169,8 @@ const s = StyleSheet.create({
   card: {
     flex: 1, minWidth: 260,
     padding: 18, borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: '#ffffff',
+    borderColor: 'rgba(0,0,0,0.08)',
     borderWidth: 1, gap: 10,
   },
   iconBox: {
@@ -177,8 +178,8 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 1,
   },
-  title: { color: '#fff', fontSize: 15, fontWeight: '800', marginTop: 4 },
-  desc: { color: 'rgba(255,255,255,0.70)', fontSize: 12.5, lineHeight: 18 },
+  title: { color: '#111827', fontSize: 15, fontWeight: '800', marginTop: 4 },
+  desc: { color: 'rgba(17,24,39,0.80)', fontSize: 12.5, lineHeight: 18 },
   cta: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
     paddingVertical: 11, borderRadius: 8, marginTop: 6,
@@ -188,20 +189,20 @@ const s = StyleSheet.create({
 
   expanded: {
     marginTop: 6, paddingTop: 10,
-    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)',
+    borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.08)',
     gap: 8,
   },
   linkRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   linkText: { fontSize: 12.5, fontWeight: '600' },
-  note: { color: 'rgba(255,255,255,0.45)', fontSize: 11, fontStyle: 'italic', marginTop: 4 },
+  note: { color: 'rgba(0,0,0,0.6)', fontSize: 11, fontStyle: 'italic', marginTop: 4 },
 
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   input: {
-    flex: 1, color: '#fff', fontSize: 13,
+    flex: 1, color: '#000', fontSize: 13,
     paddingHorizontal: 12, paddingVertical: 9,
     borderRadius: 10, borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-    backgroundColor: 'rgba(0,0,0,0.30)',
+    borderColor: 'rgba(0,0,0,0.12)',
+    backgroundColor: 'rgba(0,0,0,0.05)',
     ...Platform.select({ web: { outlineWidth: 0 as any } as any, default: {} }),
   },
   sendBtn: {
@@ -214,5 +215,5 @@ const s = StyleSheet.create({
     borderColor: 'rgba(16,185,129,0.30)', borderWidth: 1,
     borderRadius: 10, padding: 10,
   },
-  answerText: { color: 'rgba(255,255,255,0.85)', fontSize: 12.5, lineHeight: 18, flex: 1 },
+  answerText: { color: '#000', fontSize: 12.5, lineHeight: 18, flex: 1 },
 });

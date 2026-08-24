@@ -46,8 +46,8 @@ type Course = {
 };
 
 const C = {
-  text: '#fff', text2: 'rgba(255,255,255,0.72)', text3: 'rgba(255,255,255,0.46)',
-  border: 'rgba(255,255,255,0.10)', card: 'rgba(255,255,255,0.04)',
+  text: '#1F2937', text2: '#4B5563', text3: '#6B7280',
+  border: 'rgba(0,0,0,0.08)', card: '#FFFFFF',
 };
 
 const TAG_META: Record<string, { label: string; color: string }> = {
@@ -57,12 +57,44 @@ const TAG_META: Record<string, { label: string; color: string }> = {
   TRENDING:           { label: 'TRENDING',         color: '#EF4444' },
   NEW:                { label: 'NEW',              color: '#06B6D4' },
   GOVT_CERTIFIED:     { label: 'GOVT-CERTIFIED',   color: '#6366F1' },
-  IVY_LEAGUE:         { label: 'IVY LEAGUE',       color: '#A78BFA' },
+  IVY_LEAGUE:         { label: 'IVY LEAGUE',       color: '#60A5FA' },
   QUICK_WIN:          { label: 'QUICK WIN',        color: '#F59E0B' },
-  BEGINNER_FRIENDLY:  { label: 'BEGINNER FRIENDLY',color: '#14B8A6' },
-  JOB_READY:          { label: 'JOB-READY',        color: '#EC4899' },
-  HAS_MENTOR:         { label: 'HAS MENTOR',       color: '#22D3EE' },
+  JOB_READY:          { label: 'JOB-READY',        color: '#10B981' },
+  BEGINNER_FRIENDLY:  { label: 'BEGINNER',         color: '#3B82F6' },
 };
+ 
+const SUBCAT_THEMES: Record<string, { icon: string, colors: readonly [string, string], iconColor: string }> = {
+  'web-dev': { icon: 'code-tags', colors: ['#EFF6FF', '#DBEAFE'], iconColor: '#2563EB' },
+  'mobile-dev': { icon: 'cellphone', colors: ['#ECFDF5', '#D1FAE5'], iconColor: '#059669' },
+  'ai-ml': { icon: 'brain', colors: ['#EFF6FF', '#DBEAFE'], iconColor: '#2563EB' },
+  'data-science': { icon: 'database-outline', colors: ['#FFFBEB', '#FEF3C7'], iconColor: '#D97706' },
+  'cloud': { icon: 'cloud-outline', colors: ['#F0F9FF', '#E0F2FE'], iconColor: '#0284C7' },
+  'cybersecurity': { icon: 'shield-lock-outline', colors: ['#FEF2F2', '#FEE2E2'], iconColor: '#DC2626' },
+  'system-design': { icon: 'sitemap-outline', colors: ['#EEF2FF', '#E0E7FF'], iconColor: '#4F46E5' },
+  'devops': { icon: 'infinity', colors: ['#F0FDFA', '#CCFBF1'], iconColor: '#0D9488' },
+  
+  'ui-design': { icon: 'palette-outline', colors: ['#FDF2F8', '#FCE7F3'], iconColor: '#DB2777' },
+  'figma-mastery': { icon: 'vector-curve', colors: ['#FFF1F2', '#FFE4E6'], iconColor: '#E11D48' },
+  'ux-research': { icon: 'card-search-outline', colors: ['#EFF6FF', '#DBEAFE'], iconColor: '#2563EB' },
+  'video-editing': { icon: 'movie-open-outline', colors: ['#FFF7ED', '#FFEDD5'], iconColor: '#EA580C' },
+  'photography': { icon: 'camera-outline', colors: ['#F8FAFC', '#F1F5F9'], iconColor: '#475569' },
+  'graphic-design': { icon: 'format-paint', colors: ['#FDF4FF', '#FAE8FF'], iconColor: '#C026D3' },
+  'motion-graphics': { icon: 'animation-play', colors: ['#FFF1F2', '#FFE4E6'], iconColor: '#E11D48' },
+  '3d-modeling': { icon: 'cube-outline', colors: ['#ECFEFF', '#CFFAFE'], iconColor: '#0891B2' },
+  
+  'product-mgmt': { icon: 'clipboard-list-outline', colors: ['#ECFDF5', '#D1FAE5'], iconColor: '#059669' },
+  'marketing': { icon: 'bullhorn-outline', colors: ['#FFFBEB', '#FEF3C7'], iconColor: '#D97706' },
+  'finance': { icon: 'wallet-outline', colors: ['#F0FDFA', '#CCFBF1'], iconColor: '#0D9488' },
+  'analytics': { icon: 'chart-bar', colors: ['#EFF6FF', '#DBEAFE'], iconColor: '#2563EB' },
+  'startup': { icon: 'rocket-launch-outline', colors: ['#EFF6FF', '#DBEAFE'], iconColor: '#2563EB' },
+  'leadership': { icon: 'account-tie-outline', colors: ['#F8FAFC', '#F1F5F9'], iconColor: '#475569' },
+  'communication': { icon: 'forum-outline', colors: ['#FDF2F8', '#FCE7F3'], iconColor: '#DB2777' },
+  'sales': { icon: 'handshake-outline', colors: ['#FFFBEB', '#FEF3C7'], iconColor: '#D97706' },
+};
+
+function getTheme(course: Course) {
+  return SUBCAT_THEMES[course.subcategory] || { icon: 'book-open-variant', colors: ['#EEF2FF', '#E0E7FF'] as const, iconColor: '#4F46E5' };
+}
 
 const SORT_LABELS = {
   popular:  'Most popular',
@@ -314,7 +346,7 @@ export default function CoursesPage() {
       title="Courses"
       subtitle="Skill up with curated tracks, free certifications & expert mentors."
       heroEmoji="🎓"
-      accent="#7C3AED"
+      accent="#2563EB"
       rightSlot={
         <View style={s.statsPills}>
           <View style={s.statPill}>
@@ -343,11 +375,11 @@ export default function CoursesPage() {
       {/* Search Bar */}
       <View>
         <View style={s.searchBox}>
-          <MaterialCommunityIcons name="magnify" size={18} color={C.text3} />
+          <MaterialCommunityIcons name="magnify" size={18} color="#6B7280" />
           <TextInput
             style={s.searchInput}
             placeholder="Search courses, skills, instructors…"
-            placeholderTextColor={C.text3}
+            placeholderTextColor="#9CA3AF"
             value={search}
             onChangeText={setSearch}
             onFocus={() => setSearchFocused(true)}
@@ -356,7 +388,7 @@ export default function CoursesPage() {
           />
           {!!search && (
             <Pressable onPress={() => setSearch('')}>
-              <MaterialCommunityIcons name="close-circle" size={16} color={C.text3} />
+              <MaterialCommunityIcons name="close-circle" size={16} color="#9CA3AF" />
             </Pressable>
           )}
         </View>
@@ -373,7 +405,11 @@ export default function CoursesPage() {
                   <Pressable key={c.id}
                     onPress={() => { setEnrollFor(c); setSearch(''); }}
                     style={s.acRow}>
-                    <Text style={{ fontSize: 18 }}>{c.thumbnail}</Text>
+                    <View style={{ width: 24, height: 24, borderRadius: 4, overflow: 'hidden', marginRight: 8 }}>
+                      <LinearGradient colors={getTheme(c).colors} style={[StyleSheet.absoluteFillObject, { alignItems: 'center', justifyContent: 'center' }]}>
+                        <MaterialCommunityIcons name={getTheme(c).icon as any} size={14} color={getTheme(c).iconColor} />
+                      </LinearGradient>
+                    </View>
                     <View style={{ flex: 1 }}>
                       <Text style={s.acTitle} numberOfLines={1}>{c.title}</Text>
                       <Text style={s.acMeta} numberOfLines={1}>
@@ -395,9 +431,9 @@ export default function CoursesPage() {
                       <Pressable key={sk}
                         onPress={() => setSearch(sk.toLowerCase().replace(/_/g, ' '))}
                         style={[s.smartTag,
-                          { backgroundColor: (m?.color || '#A78BFA') + '22',
-                            borderColor: (m?.color || '#A78BFA') + '55' }]}>
-                        <Text style={[s.smartTagText, { color: m?.color || '#A78BFA' }]}>
+                          { backgroundColor: (m?.color || '#60A5FA') + '22',
+                            borderColor: (m?.color || '#60A5FA') + '55' }]}>
+                        <Text style={[s.smartTagText, { color: m?.color || '#60A5FA' }]}>
                           {m?.label || sk}
                         </Text>
                       </Pressable>
@@ -414,7 +450,7 @@ export default function CoursesPage() {
                     <Pressable key={p}
                       onPress={() => { setProviderFilter(p); setSearch(''); }}
                       style={s.acProviderChip}>
-                      <MaterialCommunityIcons name="school-outline" size={11} color="#A78BFA" />
+                      <MaterialCommunityIcons name="school-outline" size={11} color="#60A5FA" />
                       <Text style={s.acProviderText}>{p}</Text>
                     </Pressable>
                   ))}
@@ -464,7 +500,7 @@ export default function CoursesPage() {
       {/* Loading state for catalog */}
       {loading && sections.length === 0 ? (
         <View style={s.loadingBox}>
-          <ActivityIndicator color="#A78BFA" />
+          <ActivityIndicator color="#60A5FA" />
           <Text style={s.loadingText}>Loading curated catalog…</Text>
         </View>
       ) : null}
@@ -472,7 +508,7 @@ export default function CoursesPage() {
       {/* Primary Category tab strip (events-style — solid filled when active) */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ gap: 8, paddingRight: 12 }}>
-        {[{ id: 'all', label: 'All', icon: 'view-grid' as IconName, color: '#7C3AED' },
+        {[{ id: 'all', label: 'All', icon: 'view-grid' as IconName, color: '#2563EB' },
           ...sections.map((sec) => ({
             id: sec.id, label: sec.name,
             icon: (sec.id === 'tech' ? 'laptop' :
@@ -480,7 +516,7 @@ export default function CoursesPage() {
                    sec.id === 'business' ? 'briefcase' : 'school') as IconName,
             color: sec.id === 'tech' ? '#06B6D4' :
                    sec.id === 'design' ? '#EC4899' :
-                   sec.id === 'business' ? '#F59E0B' : '#A78BFA',
+                   sec.id === 'business' ? '#F59E0B' : '#60A5FA',
           }))].map((cat) => {
           const active = activeCategory === cat.id;
           // Compute count for this category
@@ -519,7 +555,7 @@ export default function CoursesPage() {
         if (!sec) return null;
         const accent = activeCategory === 'tech' ? '#06B6D4' :
                        activeCategory === 'design' ? '#EC4899' :
-                       activeCategory === 'business' ? '#F59E0B' : '#A78BFA';
+                       activeCategory === 'business' ? '#F59E0B' : '#60A5FA';
         return (
           <ScrollView horizontal showsHorizontalScrollIndicator={false}
             contentContainerStyle={{ gap: 8, paddingRight: 12 }}>
@@ -570,9 +606,9 @@ export default function CoursesPage() {
           return (
             <Pressable key={p} onPress={() => setPricingFilter(p)}
               style={[s.pill,
-                active && { backgroundColor: '#7C3AED', borderColor: '#7C3AED' }]}>
+                active && { backgroundColor: '#2563EB', borderColor: '#2563EB' }]}>
               <MaterialCommunityIcons name={icon} size={13}
-                color={active ? '#fff' : '#A78BFA'} />
+                color={active ? '#fff' : '#60A5FA'} />
               <Text style={[s.pillText, active && { color: '#fff' }]}>
                 {lbl}
               </Text>
@@ -583,9 +619,9 @@ export default function CoursesPage() {
         {/* More filters trigger */}
         <Pressable onPress={() => setShowFilterSheet(true)}
           style={[s.pill, advancedFilterCount > 0 &&
-            { backgroundColor: '#7C3AED', borderColor: '#7C3AED' }]}>
+            { backgroundColor: '#2563EB', borderColor: '#2563EB' }]}>
           <MaterialCommunityIcons name="tune-variant" size={13}
-            color={advancedFilterCount > 0 ? '#fff' : '#A78BFA'} />
+            color={advancedFilterCount > 0 ? '#fff' : '#60A5FA'} />
           <Text style={[s.pillText, advancedFilterCount > 0 && { color: '#fff' }]}>
             Filters{advancedFilterCount > 0 ? ` · ${advancedFilterCount}` : ''}
           </Text>
@@ -595,9 +631,9 @@ export default function CoursesPage() {
         <View>
           <Pressable onPress={() => setShowSortMenu(!showSortMenu)}
             style={[s.pill, sortBy !== 'popular' &&
-              { backgroundColor: '#7C3AED', borderColor: '#7C3AED' }]}>
+              { backgroundColor: '#2563EB', borderColor: '#2563EB' }]}>
             <MaterialCommunityIcons name="sort" size={13}
-              color={sortBy !== 'popular' ? '#fff' : '#A78BFA'} />
+              color={sortBy !== 'popular' ? '#fff' : '#60A5FA'} />
             <Text style={[s.pillText, sortBy !== 'popular' && { color: '#fff' }]}>
               Sort: {SORT_LABELS[sortBy]}
             </Text>
@@ -610,11 +646,11 @@ export default function CoursesPage() {
                 <Pressable key={k}
                   onPress={() => { setSortBy(k); setShowSortMenu(false); }}
                   style={[s.sortItem, sortBy === k && s.sortItemActive]}>
-                  <Text style={[s.sortItemText, sortBy === k && { color: '#C4B5FD' }]}>
+                  <Text style={[s.sortItemText, sortBy === k && { color: '#0EA5E9' }]}>
                     {SORT_LABELS[k]}
                   </Text>
                   {sortBy === k && (
-                    <MaterialCommunityIcons name="check" size={13} color="#A78BFA" />
+                    <MaterialCommunityIcons name="check" size={13} color="#60A5FA" />
                   )}
                 </Pressable>
               ))}
@@ -664,7 +700,7 @@ export default function CoursesPage() {
       {/* Filter status banner */}
       {filtersActive && (
         <View style={s.filterStatus}>
-          <MaterialCommunityIcons name="filter-check" size={13} color="#A78BFA" />
+          <MaterialCommunityIcons name="filter-check" size={13} color="#60A5FA" />
           <Text style={s.filterStatusText}>
             Showing {filteredCourses.length} {filteredCourses.length === 1 ? 'course' : 'courses'}
             {activeCategory !== 'all' ? ` in ${sections.find(s=>s.id===activeCategory)?.name}` : ''}
@@ -688,7 +724,7 @@ export default function CoursesPage() {
       {/* Carousels — Featured / Trending Free / Top Universities (filtered in-place) */}
       {fFeatured.length > 0 && (
         <Carousel title="✨ Featured this month" subtitle="Hand-picked by SA editors"
-                   accent="#A78BFA" courses={fFeatured} onEnroll={setEnrollFor} />
+                   accent="#60A5FA" courses={fFeatured} onEnroll={setEnrollFor} />
       )}
       {fTrendingFree.length > 0 && (
         <Carousel title="🔥 Trending Free Courses"
@@ -705,7 +741,7 @@ export default function CoursesPage() {
         const sectionAccent =
           sec.id === 'tech' ? '#06B6D4' :
           sec.id === 'design' ? '#EC4899' :
-          sec.id === 'business' ? '#F59E0B' : '#A78BFA';
+          sec.id === 'business' ? '#F59E0B' : '#60A5FA';
         // Subcategory groups, filtered by active filters
         const subcatGroups = sec.items
           .filter((it) => !activeSubcat || it.key === activeSubcat)
@@ -818,7 +854,7 @@ export default function CoursesPage() {
           advisorDesc="Need a personalised learning path? Connect with an SA mentor."
           aiTitle="Ask the SA Course AI"
           aiDesc="Tell us your goal & weekly hours — we'll plan free + paid courses for you."
-          advisorAccent="#A78BFA"
+          advisorAccent="#60A5FA"
           aiAccent="#10B981"
           advisorIcon="account-tie-voice"
           aiIcon="brain"
@@ -858,7 +894,7 @@ export default function CoursesPage() {
       <FAB
         icon="brain"
         label="Course AI"
-        color="#7C3AED"
+        color="#2563EB"
         onPress={() => setAdvisorOpen(true)}
       />
     </FeaturePageShell>
@@ -895,8 +931,8 @@ function ResultsBlock({ subcatLabel, searchQuery, pricing, onClear,
           return (
             <Pressable key={p} onPress={() => onPricingChange(p)}
               style={[s.pricingChip,
-                active && { backgroundColor: '#7C3AED33', borderColor: '#A78BFA' }]}>
-              <Text style={[s.pricingChipText, active && { color: '#C4B5FD' }]}>
+                active && { backgroundColor: '#2563EB33', borderColor: '#60A5FA' }]}>
+              <Text style={[s.pricingChipText, active && { color: '#2563EB' }]}>
                 {lbl}
               </Text>
             </Pressable>
@@ -906,7 +942,7 @@ function ResultsBlock({ subcatLabel, searchQuery, pricing, onClear,
 
       {loading ? (
         <View style={s.loadingBox}>
-          <ActivityIndicator color="#A78BFA" />
+          <ActivityIndicator color="#60A5FA" />
         </View>
       ) : courses.length === 0 ? (
         <View style={s.emptyBox}>
@@ -944,8 +980,24 @@ function CourseCard({ course, onEnroll }:
         <PriceBadge type={course.pricing.type} />
       </View>
 
-      <View style={s.thumbnailBox}>
-        <Text style={s.thumbnailEmoji}>{course.thumbnail}</Text>
+      <View style={[s.thumbnailBox, { overflow: 'hidden' }]}>
+        <LinearGradient colors={getTheme(course).colors} style={[StyleSheet.absoluteFillObject, { alignItems: 'center', justifyContent: 'center' }]}>
+          <View style={{
+            width: 72,
+            height: 72,
+            borderRadius: 36,
+            backgroundColor: '#FFFFFF',
+            alignItems: 'center',
+            justifyContent: 'center',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.08,
+            shadowRadius: 8,
+            elevation: 4,
+          }}>
+            <MaterialCommunityIcons name={getTheme(course).icon as any} size={32} color={getTheme(course).iconColor} />
+          </View>
+        </LinearGradient>
       </View>
 
       <View style={{ padding: 14, gap: 8 }}>
@@ -991,8 +1043,8 @@ function CourseCard({ course, onEnroll }:
             })}
             {(course.tags || []).length > 3 && (
               <View style={[s.smartTag,
-                { backgroundColor: 'rgba(255,255,255,0.05)',
-                  borderColor: 'rgba(255,255,255,0.10)' }]}>
+                { backgroundColor: 'rgba(0,0,0,0.05)',
+                  borderColor: 'rgba(0,0,0,0.10)' }]}>
                 <Text style={[s.smartTagText, { color: C.text2 }]}>
                   +{(course.tags || []).length - 3}
                 </Text>
@@ -1040,7 +1092,7 @@ function PriceBadge({ type }: { type: string }) {
     free: { label: 'FREE', color: '#10B981' },
     free_audit: { label: 'FREE AUDIT', color: '#06B6D4' },
     free_with_sa: { label: 'FREE · SA', color: '#10B981' },
-    paid: { label: 'PAID', color: '#7C3AED' },
+    paid: { label: 'PAID', color: '#2563EB' },
     discounted_for_sa: { label: 'SA DEAL', color: '#EC4899' },
     subscription: { label: 'SUBSCRIPTION', color: '#F59E0B' },
   };
@@ -1056,8 +1108,8 @@ function CertBadge({ cert }: { cert: Course['certification'] }) {
   const free = cert.free;
   const recognised = cert.recognised;
   let label = 'Certificate of completion';
-  let bg = 'rgba(124,58,237,0.14)';
-  let fg = '#C4B5FD';
+  let bg = 'rgba(37,99,235,0.14)';
+  let fg = '#93C5FD';
   if (free && recognised) {
     label = '✨ Free industry-recognised certificate';
     bg = 'rgba(16,185,129,0.14)'; fg = '#6EE7B7';
@@ -1085,7 +1137,7 @@ function RemovableChip({ label, onClear }: { label: string; onClear: () => void 
   return (
     <Pressable onPress={onClear} style={s.removableChip}>
       <Text style={s.removableChipText}>{label}</Text>
-      <MaterialCommunityIcons name="close" size={11} color="#C4B5FD" />
+      <MaterialCommunityIcons name="close" size={11} color="#93C5FD" />
     </Pressable>
   );
 }
@@ -1191,7 +1243,7 @@ function FilterSheet({
               <Pressable onPress={() => setHasMentorFilter(!hasMentorFilter)}
                 style={s.filterToggleRow}>
                 <View style={[s.toggleSwitch,
-                  hasMentorFilter && { backgroundColor: '#7C3AED' }]}>
+                  hasMentorFilter && { backgroundColor: '#2563EB' }]}>
                   <View style={[s.toggleKnob,
                     hasMentorFilter && { left: 18 }]} />
                 </View>
@@ -1200,7 +1252,7 @@ function FilterSheet({
               <Pressable onPress={() => setHasCertFilter(!hasCertFilter)}
                 style={s.filterToggleRow}>
                 <View style={[s.toggleSwitch,
-                  hasCertFilter && { backgroundColor: '#7C3AED' }]}>
+                  hasCertFilter && { backgroundColor: '#2563EB' }]}>
                   <View style={[s.toggleKnob,
                     hasCertFilter && { left: 18 }]} />
                 </View>
@@ -1259,8 +1311,10 @@ function EnrollModal({ course, onClose }:
           {course && (
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={s.enrollHeader}>
-                <View style={s.enrollEmoji}>
-                  <Text style={{ fontSize: 28 }}>{course.thumbnail}</Text>
+                <View style={[s.enrollEmoji, { overflow: 'hidden', padding: 0, backgroundColor: 'transparent', borderWidth: 0 }]}>
+                  <LinearGradient colors={getTheme(course).colors} style={[StyleSheet.absoluteFillObject, { alignItems: 'center', justifyContent: 'center' }]}>
+                    <MaterialCommunityIcons name={getTheme(course).icon as any} size={36} color={getTheme(course).iconColor} />
+                  </LinearGradient>
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={s.enrollTitle} numberOfLines={2}>
@@ -1413,8 +1467,24 @@ function MiniCourseCard({ course, accent, onEnroll }:
     <AnimatedCard onPress={onEnroll}
       glowColor={accent + '55'}
       style={[s.miniCard, { borderColor: accent + '44' }] as any}>
-      <View style={[s.miniThumb, { backgroundColor: accent + '14' }]}>
-        <Text style={s.miniThumbEmoji}>{course.thumbnail}</Text>
+      <View style={[s.miniThumb, { overflow: 'hidden' }]}>
+        <LinearGradient colors={getTheme(course).colors} style={[StyleSheet.absoluteFillObject, { alignItems: 'center', justifyContent: 'center' }]}>
+          <View style={{
+            width: 52,
+            height: 52,
+            borderRadius: 26,
+            backgroundColor: '#FFFFFF',
+            alignItems: 'center',
+            justifyContent: 'center',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 3 },
+            shadowOpacity: 0.06,
+            shadowRadius: 6,
+            elevation: 3,
+          }}>
+            <MaterialCommunityIcons name={getTheme(course).icon as any} size={24} color={getTheme(course).iconColor} />
+          </View>
+        </LinearGradient>
         {course.featured && (
           <View style={[s.miniFeaturedDot, { backgroundColor: accent }]}>
             <MaterialCommunityIcons name="star" size={10} color="#fff" />
@@ -1474,9 +1544,10 @@ const s = StyleSheet.create({
 
   searchBox: { flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingHorizontal: 14, height: 52, borderRadius: 14,
-    backgroundColor: '#261944', borderColor: '#3D2D5C', borderWidth: 1,
+    backgroundColor: '#FFFFFF', borderColor: 'rgba(0, 0, 0, 0.08)', borderWidth: 1,
+    boxShadow: '0 4px 20px rgba(124, 58, 237, 0.08)' as any,
     marginTop: 4 },
-  searchInput: { flex: 1, color: '#fff', fontFamily: 'DMSans_500Medium',
+  searchInput: { flex: 1, color: '#1F2937', fontFamily: 'DMSans_500Medium',
     fontSize: 14, ...(Platform.OS === 'web' ? { outlineStyle: 'none' as any } : {}) },
 
   heroRow: { flexDirection: 'row', gap: 12, marginTop: 4 },
@@ -1485,28 +1556,26 @@ const s = StyleSheet.create({
     ...({ cursor: 'pointer' } as any) },
   heroBlur1: { position: 'absolute', top: -40, right: -40,
     width: 160, height: 160, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.18)' },
+    backgroundColor: 'rgba(0,0,0,0.18)' },
   heroIconCircle: { width: 44, height: 44, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.22)',
+    backgroundColor: 'rgba(0,0,0,0.22)',
     alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  heroTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold',
+  heroTitle: { color: '#000', fontFamily: 'DMSans_800ExtraBold',
     fontSize: 22, marginBottom: 4 },
-  heroSub: { color: 'rgba(255,255,255,0.85)', fontFamily: 'DMSans_500Medium',
+  heroSub: { color: 'rgba(0,0,0,0.85)', fontFamily: 'DMSans_500Medium',
     fontSize: 13, lineHeight: 18, marginBottom: 14 },
   heroCta: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    borderColor: 'rgba(255,255,255,0.30)', borderWidth: 1 },
-  heroCtaText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12.5 },
+    backgroundColor: 'rgba(0,0,0,0.18)',
+    borderColor: 'rgba(0,0,0,0.30)', borderWidth: 1 },
+  heroCtaText: { color: '#000', fontFamily: 'DMSans_700Bold', fontSize: 12.5 },
 
   loadingBox: { paddingVertical: 40, alignItems: 'center', gap: 10 },
   loadingText: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12 },
 
-  sectionCard: { padding: 24, borderRadius: 22,
-    backgroundColor: 'rgba(67,41,109,0.40)', borderColor: '#3D2D5C', borderWidth: 1,
-    gap: 16 },
+  sectionCard: { gap: 16, marginBottom: 28 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  sectionName: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 16 },
+  sectionName: { color: '#1F2937', fontFamily: 'DMSans_800ExtraBold', fontSize: 16 },
 
   iconGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   tile: { flexBasis: '18%', flexGrow: 1, alignItems: 'center', gap: 8,
@@ -1514,148 +1583,157 @@ const s = StyleSheet.create({
   tileCircle: { width: 64, height: 64, borderRadius: 999,
     backgroundColor: '#2F1F4D', borderColor: '#3D2D5C', borderWidth: 1,
     alignItems: 'center', justifyContent: 'center' },
-  tileLabel: { color: '#fff', fontFamily: 'DMSans_600SemiBold',
+  tileLabel: { color: '#000', fontFamily: 'DMSans_600SemiBold',
     fontSize: 12, textAlign: 'center' },
-  tileCount: { color: 'rgba(255,255,255,0.50)', fontFamily: 'DMSans_700Bold',
+  tileCount: { color: '#000', fontFamily: 'DMSans_700Bold',
     fontSize: 10 },
 
   /* Section count pill (right of section title) */
   sectionCountPill: { paddingHorizontal: 10, paddingVertical: 4,
     borderRadius: 999, borderWidth: 1, marginLeft: 'auto' },
-  sectionCountText: { fontFamily: 'DMSans_800ExtraBold', fontSize: 11 },
+  sectionCountText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 11 },
 
   /* Events-style filter pill (used for category, sub-category, and pricing) */
   pill: { flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: 'rgba(255,255,255,0.10)', borderWidth: 1,
+    backgroundColor: 'rgba(0,0,0,0.04)',
+    bordercolor: 'rgba(0,0,0,0.10)', borderWidth: 1,
     ...({ cursor: 'pointer' } as any) },
   pillText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 12 },
   pillCount: { paddingHorizontal: 6, height: 16, minWidth: 16, borderRadius: 8,
     backgroundColor: 'rgba(0,0,0,0.30)',
     alignItems: 'center', justifyContent: 'center', marginLeft: 2 },
-  pillCountText: { color: 'rgba(255,255,255,0.80)',
+  pillCountText: { color: '#000',
     fontFamily: 'DMSans_800ExtraBold', fontSize: 10 },
 
   /* Filter status banner */
   filterStatus: { flexDirection: 'row', alignItems: 'center', gap: 8,
     paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12,
-    backgroundColor: 'rgba(167,139,250,0.08)',
-    borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1 },
-  filterStatusText: { color: '#C4B5FD', fontFamily: 'DMSans_600SemiBold',
+    backgroundColor: 'rgba(37,99,235,0.08)',
+    borderColor: 'rgba(37,99,235,0.30)', borderWidth: 1 },
+  filterStatusText: { color: '#000', fontFamily: 'DMSans_600SemiBold',
     fontSize: 12, flex: 1 },
 
   /* Large reset button (empty state) */
   clearBtnLarge: { marginTop: 14, paddingHorizontal: 18, paddingVertical: 10,
-    borderRadius: 999, backgroundColor: '#7C3AED',
+    borderRadius: 999, backgroundColor: '#2563EB',
     ...({ cursor: 'pointer' } as any) },
-  clearBtnLargeText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 12.5 },
+  clearBtnLargeText: { color: '#000', fontFamily: 'DMSans_800ExtraBold', fontSize: 12.5 },
 
   /* Sub-category quick-filter chips strip */
   subcatChip: { flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: 'rgba(255,255,255,0.10)', borderWidth: 1,
+    backgroundColor: 'rgba(0,0,0,0.04)',
+    bordercolor: 'rgba(0,0,0,0.10)', borderWidth: 1,
     ...({ cursor: 'pointer' } as any) },
   subcatChipText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 11.5 },
   subcatChipCount: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999,
     backgroundColor: 'rgba(0,0,0,0.30)' },
-  subcatChipCountText: { color: 'rgba(255,255,255,0.80)',
+  subcatChipCountText: { color: '#000',
     fontFamily: 'DMSans_800ExtraBold', fontSize: 9.5 },
 
   /* Per-subcategory horizontal block */
-  subcatBlock: { gap: 10, marginTop: 6 },
+  subcatBlock: { 
+    backgroundColor: '#0F172A', 
+    borderColor: 'rgba(255,255,255,0.1)', 
+    borderWidth: 1, 
+    borderRadius: 18, 
+    padding: 16, 
+    gap: 12, 
+    marginTop: 10 
+  },
   subcatHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   subcatIcon: { width: 26, height: 26, borderRadius: 8, borderWidth: 1,
     alignItems: 'center', justifyContent: 'center' },
   subcatTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 14 },
-  subcatCountSmall: { color: C.text3, fontFamily: 'DMSans_600SemiBold', fontSize: 11 },
+  subcatCountSmall: { color: 'rgba(255,255,255,0.6)', fontFamily: 'DMSans_600SemiBold', fontSize: 11 },
   viewAllBtn: { flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: 'rgba(0,0,0,0.04)',
     ...({ cursor: 'pointer' } as any) },
   viewAllText: { fontFamily: 'DMSans_800ExtraBold', fontSize: 11 },
 
   tracksStrip: { gap: 10, marginTop: 4 },
-  kicker: { color: C.text3, fontFamily: 'DMSans_800ExtraBold',
+  kicker: { color: 'rgba(255,255,255,0.6)', fontFamily: 'DMSans_800ExtraBold',
     fontSize: 11, letterSpacing: 1.2 },
   trackChip: { flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12,
+    borderColor: 'rgba(255,255,255,0.2)',
     borderWidth: 1, ...({ cursor: 'pointer' } as any) },
-  trackChipText: { fontFamily: 'DMSans_800ExtraBold', fontSize: 12 },
+  trackChipText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 12 },
   trackChipMeta: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999,
     backgroundColor: 'rgba(0,0,0,0.30)' },
-  trackChipMetaText: { color: 'rgba(255,255,255,0.80)',
+  trackChipMetaText: { color: '#000',
     fontFamily: 'DMSans_700Bold', fontSize: 10 },
 
   /* Results */
   resultsBlock: { gap: 14 },
   resultsHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  resultsTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 18 },
+  resultsTitle: { color: '#000', fontFamily: 'DMSans_800ExtraBold', fontSize: 18 },
   resultsCount: { color: C.text3, fontFamily: 'DMSans_500Medium', fontSize: 12, marginTop: 2 },
   clearBtn: { flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.04)', borderColor: C.border,
+    backgroundColor: 'rgba(0,0,0,0.04)', borderColor: C.border,
     borderWidth: 1, ...({ cursor: 'pointer' } as any) },
   clearBtnText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 11 },
 
   pricingFilters: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
-  pricingChip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999,    backgroundColor: 'rgba(255,255,255,0.04)', borderColor: C.border,
+  pricingChip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999,    backgroundColor: 'rgba(0,0,0,0.04)', borderColor: C.border,
     borderWidth: 1, ...({ cursor: 'pointer' } as any) },
   pricingChipText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 11.5 },
 
   /* Sort dropdown */
   sortMenu: { position: 'absolute', top: 38, right: 0,
-    minWidth: 180, backgroundColor: '#221538', borderRadius: 12,
-    borderWidth: 1, borderColor: C.border, padding: 6,
-    boxShadow: '0 12px 40px rgba(0,0,0,0.55)' as any,
+    minWidth: 180, backgroundColor: '#F0F9FF', borderRadius: 12,
+    borderWidth: 1, borderColor: 'rgba(0,0,0,0.1)', padding: 6,
+    boxShadow: '0 12px 40px rgba(0,0,0,0.15)' as any,
     zIndex: 1000 },
   sortItem: { flexDirection: 'row', alignItems: 'center',
     justifyContent: 'space-between', paddingHorizontal: 10, paddingVertical: 9,
     borderRadius: 8, ...({ cursor: 'pointer' } as any) },
-  sortItemActive: { backgroundColor: 'rgba(124,58,237,0.18)' },
+  sortItemActive: { backgroundColor: 'rgba(14,165,233,0.15)' },
   sortItemText: { color: C.text2, fontFamily: 'DMSans_600SemiBold', fontSize: 12 },
 
   /* Active filter chips row */
   activeChipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   removableChip: { flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999,
-    backgroundColor: 'rgba(167,139,250,0.16)',
-    borderColor: 'rgba(167,139,250,0.40)', borderWidth: 1,
+    backgroundColor: 'rgba(37,99,235,0.16)',
+    borderColor: 'rgba(37,99,235,0.40)', borderWidth: 1,
     ...({ cursor: 'pointer' } as any) },
-  removableChipText: { color: '#C4B5FD', fontFamily: 'DMSans_700Bold', fontSize: 11 },
+  removableChipText: { color: '#000', fontFamily: 'DMSans_700Bold', fontSize: 11 },
 
   /* Search autocomplete dropdown */
   acDropdown: { position: 'absolute', top: 56, left: 0, right: 0,
-    backgroundColor: '#221538', borderRadius: 14, borderWidth: 1,
-    borderColor: C.border, padding: 12, gap: 14,
-    boxShadow: '0 16px 48px rgba(0,0,0,0.65)' as any, zIndex: 999 },
+    backgroundColor: '#F0F9FF', borderRadius: 14, borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.1)', padding: 12, gap: 14,
+    boxShadow: '0 16px 48px rgba(0,0,0,0.15)' as any, zIndex: 999 },
   acSection: { gap: 6 },
   acHeader: { color: C.text3, fontFamily: 'DMSans_800ExtraBold',
     fontSize: 10, letterSpacing: 1, textTransform: 'uppercase' },
   acRow: { flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingHorizontal: 8, paddingVertical: 8, borderRadius: 10,
     ...({ cursor: 'pointer' } as any) },
-  acTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12.5 },
+  acTitle: { color: '#000', fontFamily: 'DMSans_700Bold', fontSize: 12.5 },
   acMeta: { color: C.text3, fontFamily: 'DMSans_600SemiBold', fontSize: 10.5 },
   acProviderChip: { flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 9, paddingVertical: 5, borderRadius: 999,
-    backgroundColor: 'rgba(167,139,250,0.10)',
-    borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1 },
-  acProviderText: { color: '#C4B5FD', fontFamily: 'DMSans_700Bold', fontSize: 11 },
+    backgroundColor: 'rgba(37,99,235,0.10)',
+    borderColor: 'rgba(37,99,235,0.30)', borderWidth: 1 },
+  acProviderText: { color: '#000', fontFamily: 'DMSans_700Bold', fontSize: 11 },
 
   /* Filter Sheet */
   sheetBackdrop: { flex: 1, backgroundColor: 'rgba(10,5,22,0.65)',
     justifyContent: 'flex-end', alignItems: 'flex-end' },
   sheetPanel: { width: 420, maxWidth: '100%', height: '100%',
-    backgroundColor: '#1A0F2E', borderLeftWidth: 1, borderColor: C.border,
+    backgroundColor: '#F0F9FF', borderLeftWidth: 1, borderColor: 'rgba(0,0,0,0.1)',
     flexDirection: 'column' },
   sheetHeader: { flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 20, paddingVertical: 16,
     borderBottomWidth: 1, borderColor: C.border },
-  sheetTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 18, flex: 1 },
+  sheetTitle: { color: '#000', fontFamily: 'DMSans_800ExtraBold', fontSize: 18, flex: 1 },
   sheetCloseBtn: { width: 32, height: 32, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(0,0,0,0.06)',
     alignItems: 'center', justifyContent: 'center',
     ...({ cursor: 'pointer' } as any) },
   filterGroup: { gap: 10 },
@@ -1663,66 +1741,66 @@ const s = StyleSheet.create({
     fontSize: 11, letterSpacing: 1, textTransform: 'uppercase' },
   filterChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   filterChoice: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: C.border, borderWidth: 1,
+    backgroundColor: 'rgba(0,0,0,0.04)',
+    borderColor: 'rgba(0,0,0,0.15)', borderWidth: 1,
     ...({ cursor: 'pointer' } as any) },
-  filterChoiceActive: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' },
+  filterChoiceActive: { backgroundColor: '#0EA5E9', borderColor: '#0EA5E9' },
   filterChoiceText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 12 },
   filterToggleRow: { flexDirection: 'row', alignItems: 'center', gap: 12,
     paddingVertical: 8, ...({ cursor: 'pointer' } as any) },
   toggleSwitch: { width: 36, height: 20, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.10)', justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.10)', justifyContent: 'center',
     paddingHorizontal: 2, position: 'relative' },
   toggleKnob: { width: 16, height: 16, borderRadius: 999,
-    backgroundColor: '#fff', position: 'absolute', top: 2, left: 2 },
-  filterToggleText: { color: '#fff', fontFamily: 'DMSans_600SemiBold', fontSize: 13 },
+    backgroundColor: '#000', position: 'absolute', top: 2, left: 2 },
+  filterToggleText: { color: '#000', fontFamily: 'DMSans_600SemiBold', fontSize: 13 },
   sheetFooter: { flexDirection: 'row', gap: 10,
     paddingHorizontal: 20, paddingVertical: 16,
     borderTopWidth: 1, borderColor: C.border },
   sheetClearBtn: { paddingHorizontal: 16, paddingVertical: 11, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: C.border,
+    backgroundColor: 'rgba(0,0,0,0.06)', borderWidth: 1, borderColor: 'rgba(0,0,0,0.15)',
     ...({ cursor: 'pointer' } as any) },
-  sheetClearText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 12.5 },
+  sheetClearText: { color: '#000', fontFamily: 'DMSans_700Bold', fontSize: 12.5 },
   sheetApplyBtn: { flex: 1, paddingVertical: 11, borderRadius: 999,
-    backgroundColor: '#7C3AED', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#0EA5E9', alignItems: 'center', justifyContent: 'center',
     ...({ cursor: 'pointer' } as any) },
   sheetApplyText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 13 },
 
   emptyBox: { paddingVertical: 40, alignItems: 'center', gap: 6 },
-  emptyTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 14, marginTop: 6 },
+  emptyTitle: { color: '#000', fontFamily: 'DMSans_800ExtraBold', fontSize: 14, marginTop: 6 },
   emptySub: { color: C.text3, fontFamily: 'DMSans_500Medium', fontSize: 12 },
 
   cardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
 
   /* Course Card */
   courseCard: { flexGrow: 1, flexBasis: 300, maxWidth: 360,
-    borderRadius: 16, borderWidth: 1, borderColor: '#3D2D5C',
-    backgroundColor: '#261944', overflow: 'hidden' },
+    borderRadius: 16, borderWidth: 1, borderColor: 'rgba(0, 0, 0, 0.08)',
+    backgroundColor: '#FFFFFF', overflow: 'hidden',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.04)' as any },
   courseTopRow: { flexDirection: 'row', alignItems: 'center',
     justifyContent: 'space-between', paddingHorizontal: 12, paddingVertical: 10 },
   providerStrip: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 },
-  providerName: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 11, flex: 1 },
+  providerName: { color: '#4B5563', fontFamily: 'DMSans_700Bold', fontSize: 11, flex: 1 },
   priceBadge: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 5 },
-  priceBadgeText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold',
+  priceBadgeText: { color: '#000', fontFamily: 'DMSans_800ExtraBold',
     fontSize: 9.5, letterSpacing: 0.6 },
 
-  thumbnailBox: { aspectRatio: 16 / 9, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(124,58,237,0.18)' },
+  thumbnailBox: { aspectRatio: 16 / 9, alignItems: 'center', justifyContent: 'center' },
   thumbnailEmoji: { fontSize: 56 },
 
-  courseTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold',
+  courseTitle: { color: '#1F2937', fontFamily: 'DMSans_800ExtraBold',
     fontSize: 15, lineHeight: 20 },
-  courseInstructor: { color: C.text3, fontFamily: 'DMSans_500Medium', fontSize: 11 },
+  courseInstructor: { color: '#6B7280', fontFamily: 'DMSans_500Medium', fontSize: 11 },
 
   metaTagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 5 },
   metaTag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 5,
-    backgroundColor: 'rgba(255,255,255,0.05)' },
-  metaTagText: { color: C.text2, fontFamily: 'DMSans_600SemiBold', fontSize: 10.5 },
+    backgroundColor: 'rgba(0,0,0,0.05)' },
+  metaTagText: { color: '#4B5563', fontFamily: 'DMSans_600SemiBold', fontSize: 10.5 },
 
   statsRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  ratingText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 12 },
-  ratingCount: { color: C.text3, fontFamily: 'DMSans_500Medium', fontSize: 10.5 },
-  enrolledText: { color: C.text3, fontFamily: 'DMSans_700Bold', fontSize: 10.5 },
+  ratingText: { color: '#1F2937', fontFamily: 'DMSans_800ExtraBold', fontSize: 12 },
+  ratingCount: { color: '#6B7280', fontFamily: 'DMSans_500Medium', fontSize: 10.5 },
+  enrolledText: { color: '#6B7280', fontFamily: 'DMSans_700Bold', fontSize: 10.5 },
 
   certBadge: { flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8 },
@@ -1737,48 +1815,48 @@ const s = StyleSheet.create({
   priceFree: { color: '#10B981', fontFamily: 'DMSans_800ExtraBold', fontSize: 18 },
   priceOrig: { color: C.text3, fontFamily: 'DMSans_500Medium',
     fontSize: 11, textDecorationLine: 'line-through' },
-  priceSA: { color: '#A78BFA', fontFamily: 'DMSans_800ExtraBold', fontSize: 16 },
+  priceSA: { color: '#60A5FA', fontFamily: 'DMSans_800ExtraBold', fontSize: 16 },
   priceDiscNote: { color: '#FCD34D', fontFamily: 'DMSans_700Bold', fontSize: 9.5, marginTop: 1 },
   enrollBtn: { flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 14, height: 34, borderRadius: 999,
-    backgroundColor: '#7C3AED', justifyContent: 'center',
+    backgroundColor: '#2563EB', justifyContent: 'center',
     ...({ cursor: 'pointer' } as any) },
-  enrollBtnText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 11.5 },
+  enrollBtnText: { color: '#000', fontFamily: 'DMSans_800ExtraBold', fontSize: 11.5 },
 
   /* Modal */
   overlay: { flex: 1, backgroundColor: 'rgba(7,2,15,0.78)',
     justifyContent: 'center', alignItems: 'center', padding: 16 },
   enrollSheet: { width: '100%', maxWidth: 540, maxHeight: '92%',
-    backgroundColor: '#13031F', borderRadius: 18, padding: 18,
-    borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1 },
+    backgroundColor: '#F0F9FF', borderRadius: 18, padding: 18,
+    borderColor: 'rgba(0,0,0,0.1)', borderWidth: 1 },
   enrollHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
   enrollEmoji: { width: 56, height: 56, borderRadius: 12,
-    backgroundColor: 'rgba(124,58,237,0.18)', borderColor: 'rgba(124,58,237,0.40)',
+    backgroundColor: 'rgba(37,99,235,0.18)', borderColor: 'rgba(37,99,235,0.40)',
     borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  enrollTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 16 },
+  enrollTitle: { color: '#000', fontFamily: 'DMSans_800ExtraBold', fontSize: 16 },
   enrollProvider: { color: C.text3, fontFamily: 'DMSans_500Medium', fontSize: 12, marginTop: 2 },
   enrollDesc: { color: C.text2, fontFamily: 'DMSans_500Medium',
     fontSize: 13, lineHeight: 18, marginVertical: 10 },
   enrollFacts: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 },
   factCell: { flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 8, paddingVertical: 5, borderRadius: 6,
-    backgroundColor: 'rgba(255,255,255,0.04)' },
+    backgroundColor: 'rgba(0,0,0,0.04)' },
   factText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 11 },
 
   enrollPriceBox: { padding: 14, borderRadius: 12, marginTop: 12,
-    backgroundColor: 'rgba(124,58,237,0.10)',
-    borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1, alignItems: 'center' },
+    backgroundColor: 'rgba(37,99,235,0.10)',
+    borderColor: 'rgba(37,99,235,0.30)', borderWidth: 1, alignItems: 'center' },
   enrollPriceOrig: { color: C.text3, fontFamily: 'DMSans_500Medium',
     fontSize: 13, textDecorationLine: 'line-through' },
-  enrollPriceSA: { color: '#A78BFA', fontFamily: 'DMSans_800ExtraBold',
+  enrollPriceSA: { color: '#60A5FA', fontFamily: 'DMSans_800ExtraBold',
     fontSize: 28, marginTop: 2 },
   enrollPriceNote: { color: '#FCD34D', fontFamily: 'DMSans_700Bold',
     fontSize: 11, marginTop: 4 },
 
   enrollCTA: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 7, height: 46, borderRadius: 12, backgroundColor: '#7C3AED',
+    gap: 7, height: 46, borderRadius: 12, backgroundColor: '#2563EB',
     marginTop: 12, ...({ cursor: 'pointer' } as any) },
-  enrollCTAText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 13.5 },
+  enrollCTAText: { color: '#000', fontFamily: 'DMSans_800ExtraBold', fontSize: 13.5 },
 
   errBox: { flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8,
@@ -1787,21 +1865,21 @@ const s = StyleSheet.create({
   errText: { color: '#FCA5A5', fontFamily: 'DMSans_600SemiBold', fontSize: 11.5 },
 
   successBox: { alignItems: 'center', paddingVertical: 14, gap: 4 },
-  successTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold',
+  successTitle: { color: '#000', fontFamily: 'DMSans_800ExtraBold',
     fontSize: 18, marginTop: 8 },
   successSub: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12 },
   successCTA: { flexDirection: 'row', alignItems: 'center', gap: 7,
     paddingHorizontal: 18, height: 42, borderRadius: 10,
-    backgroundColor: '#7C3AED', marginTop: 14,
+    backgroundColor: '#2563EB', marginTop: 14,
     ...({ cursor: 'pointer' } as any) },
-  successCTAText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 12.5 },
+  successCTAText: { color: '#000', fontFamily: 'DMSans_800ExtraBold', fontSize: 12.5 },
   successDismiss: { paddingVertical: 10, ...({ cursor: 'pointer' } as any) },
   successDismissText: { color: C.text3, fontFamily: 'DMSans_700Bold', fontSize: 12 },
 
   /* Carousel */
   carouselWrap: { gap: 10 },
   carouselHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  carouselTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 16 },
+  carouselTitle: { color: '#1F2937', fontFamily: 'DMSans_800ExtraBold', fontSize: 16 },
   carouselSub: { color: C.text3, fontFamily: 'DMSans_500Medium',
     fontSize: 11.5, marginTop: 2 },
   carouselCount: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999,
@@ -1810,7 +1888,8 @@ const s = StyleSheet.create({
 
   /* Mini card */
   miniCard: { width: 240, borderRadius: 14, borderWidth: 1,
-    backgroundColor: '#261944', overflow: 'hidden',
+    backgroundColor: '#FFFFFF', borderColor: 'rgba(0, 0, 0, 0.08)', overflow: 'hidden',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.04)' as any,
     ...({ cursor: 'pointer' } as any) },
   miniThumb: { aspectRatio: 16 / 10, alignItems: 'center', justifyContent: 'center',
     position: 'relative' },
@@ -1819,17 +1898,17 @@ const s = StyleSheet.create({
     width: 22, height: 22, borderRadius: 999,
     alignItems: 'center', justifyContent: 'center' },
   miniProvider: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  miniProviderName: { color: C.text3, fontFamily: 'DMSans_600SemiBold',
+  miniProviderName: { color: '#4B5563', fontFamily: 'DMSans_600SemiBold',
     fontSize: 10.5, flex: 1 },
-  miniTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold',
+  miniTitle: { color: '#1F2937', fontFamily: 'DMSans_800ExtraBold',
     fontSize: 13, lineHeight: 17 },
   miniStats: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  miniStatText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 10 },
-  miniDot: { color: C.text3, fontSize: 10 },
+  miniStatText: { color: '#4B5563', fontFamily: 'DMSans_700Bold', fontSize: 10 },
+  miniDot: { color: '#9CA3AF', fontSize: 10 },
   miniFooter: { flexDirection: 'row', alignItems: 'center',
     justifyContent: 'space-between', marginTop: 4 },
   miniPriceFree: { color: '#10B981', fontFamily: 'DMSans_800ExtraBold', fontSize: 13 },
-  miniPriceOrig: { color: C.text3, fontFamily: 'DMSans_500Medium',
+  miniPriceOrig: { color: '#9CA3AF', fontFamily: 'DMSans_500Medium',
     fontSize: 10, textDecorationLine: 'line-through' },
   miniPriceSA: { fontFamily: 'DMSans_800ExtraBold', fontSize: 13 },
   miniArrow: { width: 22, height: 22, borderRadius: 999,

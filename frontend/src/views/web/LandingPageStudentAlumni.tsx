@@ -665,7 +665,7 @@ function CTABanner({ router }: { router: ReturnType<typeof useRouter> }) {
             style={cta.banner}
           >
             <View pointerEvents="none" style={cta.glow} />
-            <Kicker color="rgba(167,139,250,0.9)">Launch with confidence</Kicker>
+            <Kicker color="rgba(37,99,235,0.9)">Launch with confidence</Kicker>
             <Text style={cta.headline}>Get mentors, AI guidance and student opportunities in one place.</Text>
             <Text style={cta.sub}>
               Join StudentAlumni today — free for students, no card required, and built for every step of your career journey.
@@ -773,7 +773,7 @@ function Section({ kicker, title, sub, children }: { kicker: string; title: stri
     <View style={{ paddingHorizontal: 20, marginTop: 80, marginBottom: 20 }}>
       <View style={{ maxWidth: 1280, width: '100%', alignSelf: 'center' }}>
         <RevealOnScroll distance={18} style={{ alignItems: 'center', maxWidth: 720, alignSelf: 'center' }}>
-          <Kicker color="rgba(167,139,250,0.85)">{kicker}</Kicker>
+          <Kicker color="rgba(37,99,235,0.85)">{kicker}</Kicker>
           <Text style={[section.title, { textAlign: 'center' }]}>{title}</Text>
           {sub && <Text style={[section.sub, { textAlign: 'center' }]}>{sub}</Text>}
         </RevealOnScroll>
@@ -992,7 +992,7 @@ const cta = StyleSheet.create({
 
 const footer = StyleSheet.create({
   wrap: {
-    backgroundColor: 'rgba(10,15,30,0.72)',
+    backgroundColor: '#0A0A2A',
     borderTopWidth: 1, borderTopColor: PALETTE.glassBorder,
     paddingHorizontal: 20, paddingVertical: 56,
     marginTop: 0,

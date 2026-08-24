@@ -47,13 +47,7 @@ export default function ReferralCode() {
       // Route by role — students get the spec-compliant 7-step wizard,
       // mentors get the spec-compliant 8-step wizard, alumni get the
       // 6-step wizard, others use the shorter flat quick-setup form.
-      const dest =
-        role === 'student' ? '/(onboarding)/student-onboard' :
-        role === 'mentor'  ? '/(onboarding)/mentor-onboard'  :
-        role === 'alumni'  ? '/(onboarding)/alumni-onboard'  :
-        role === 'college' ? '/(onboarding)/college-onboard' :
-        '/(onboarding)/quick-setup';
-      router.replace(dest as any);
+      router.replace('/onboarding' as any);
     } catch {
       setError('Could not apply code. Try again or skip.');
     } finally {
@@ -63,13 +57,7 @@ export default function ReferralCode() {
 
   const onSkip = () => {
     trackAuth({ event: 'referral_skipped' as any });
-    const dest =
-      role === 'student' ? '/(onboarding)/student-onboard' :
-      role === 'mentor'  ? '/(onboarding)/mentor-onboard'  :
-      role === 'alumni'  ? '/(onboarding)/alumni-onboard'  :
-      role === 'college' ? '/(onboarding)/college-onboard' :
-      '/(onboarding)/quick-setup';
-    router.replace(dest as any);
+    router.replace('/onboarding' as any);
   };
 
   return (
@@ -124,8 +112,8 @@ const s = StyleSheet.create({
   giftWrap: { alignItems: 'center', marginBottom: 20 },
   giftCircle: {
     width: 72, height: 72, borderRadius: 36,
-    backgroundColor: 'rgba(124,58,237,0.18)',
-    borderColor: 'rgba(124,58,237,0.4)', borderWidth: 1.5,
+    backgroundColor: 'rgba(37,99,235,0.18)',
+    borderColor: 'rgba(37,99,235,0.4)', borderWidth: 1.5,
     alignItems: 'center', justifyContent: 'center',
   },
   head: { marginBottom: 20, alignItems: 'center' },

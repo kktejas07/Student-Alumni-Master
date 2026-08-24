@@ -115,7 +115,7 @@ export default function DigitalIDScreen() {
     return (
       <SafeAreaView style={styles.screen}>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <ActivityIndicator color="#A78BFA" size="large" />
+          <ActivityIndicator color="#60A5FA" size="large" />
           <Text style={styles.loadingText}>Generating your ID card…</Text>
         </View>
       </SafeAreaView>
@@ -309,7 +309,7 @@ export default function DigitalIDScreen() {
             </Pressable>
           )}
           <Pressable onPress={handleShare} style={[styles.btn, styles.btnGhost]} testID="id-share">
-            <Share2 size={16} color="#A78BFA" />
+            <Share2 size={16} color="#60A5FA" />
             <Text style={styles.btnGhostText}>Share</Text>
           </Pressable>
         </View>
@@ -339,9 +339,9 @@ function DetailItem({ icon, label, value }: { icon: any; label: string; value: s
 }
 
 const CARD_BG    = '#130A28';
-const CARD_GLOW  = 'rgba(167,139,250,0.18)';
-const CARD_BORDER = 'rgba(167,139,250,0.30)';
-const ACCENT     = '#A78BFA';
+const CARD_GLOW  = 'rgba(37,99,235,0.18)';
+const CARD_BORDER = 'rgba(37,99,235,0.30)';
+const ACCENT     = '#60A5FA';
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#0C0818' },
@@ -377,14 +377,14 @@ const styles = StyleSheet.create({
     borderColor: CARD_BORDER, borderWidth: 1,
     borderRadius: 22, overflow: 'hidden',
     ...Platform.select({
-      web: { boxShadow: `0 20px 60px ${CARD_GLOW}, 0 0 0 1px rgba(167,139,250,0.18) inset` } as any,
+      web: { boxShadow: `0 20px 60px ${CARD_GLOW}, 0 0 0 1px rgba(37,99,235,0.18) inset` } as any,
       default: {},
     }),
   },
   cardHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 18, paddingVertical: 14,
-    backgroundColor: 'rgba(167,139,250,0.10)',
+    backgroundColor: 'rgba(37,99,235,0.10)',
     borderBottomColor: CARD_BORDER, borderBottomWidth: 1,
   },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -451,7 +451,7 @@ const styles = StyleSheet.create({
   hologramStrip: {
     height: 6, backgroundColor: ACCENT,
     ...Platform.select({
-      web: { backgroundImage: 'linear-gradient(90deg,#A78BFA 0%,#7B3DBF 50%,#A78BFA 100%)' } as any,
+      web: { backgroundImage: 'linear-gradient(90deg,#60A5FA 0%,#7B3DBF 50%,#60A5FA 100%)' } as any,
       default: {},
     }),
   },
@@ -469,8 +469,8 @@ const styles = StyleSheet.create({
   btnPrimary: { backgroundColor: ACCENT },
   btnPrimaryText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13 },
   btnGhost: {
-    backgroundColor: 'rgba(167,139,250,0.10)',
-    borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1,
+    backgroundColor: 'rgba(37,99,235,0.10)',
+    borderColor: 'rgba(37,99,235,0.30)', borderWidth: 1,
   },
   btnGhostText: { color: ACCENT, fontFamily: 'DMSans_700Bold', fontSize: 13 },
 

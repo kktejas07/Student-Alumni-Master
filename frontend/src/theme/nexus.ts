@@ -1,18 +1,7 @@
-/**
- * NexusOS — Shared Design System
- * ===============================
- * Single source of truth for the NexusOS dark-glass palette,
- * spacing scale, radii, motion/timing constants, and shadow recipes.
- *
- * Every portal (Student, Alumni, College, Super Admin) consumes
- * these tokens so the visual language stays unified while each
- * portal layers its own accent identity (orange / cyan / blue / red).
- *
- * Usage:
- *   import { NX } from '@/src/theme/nexus';
- *   <View style={{ backgroundColor: NX.surface2, borderColor: NX.border }} />
- */
 import { Platform } from 'react-native';
+import { PORTAL_ACCENTS, NX_MOTION } from '@/src/theme/tokens';
+export { PORTAL_ACCENTS, NX_MOTION };
+export type { PortalKey } from '@/src/theme/tokens';
 
 // ── Core palette ─────────────────────────────────────────────
 export const NX = {
@@ -56,25 +45,6 @@ export const NX = {
   infoBg:    'rgba(59,130,246,0.12)',
 } as const;
 
-// Per-portal accent identity overlays — FinTax360 Jewel palette
-// Each portal shares the same dark-navy glass canvas; only the
-// primary CTA / chip / active-rail / hover-border colour shifts per
-// portal so users can tell which portal they're in at a glance.
-export const PORTAL_ACCENTS = {
-  // Student — Indigo
-  student: { primary: '#6366F1', primaryD: '#4F46E5', primaryL: '#818CF8', accent: '#6366F1', accentSoft: 'rgba(99,102,241,0.18)' },
-  // Alumni — Indigo
-  alumni:  { primary: '#6366F1', primaryD: '#4F46E5', primaryL: '#818CF8', accent: '#6366F1', accentSoft: 'rgba(99,102,241,0.18)' },
-  // College — Indigo
-  college: { primary: '#6366F1', primaryD: '#4F46E5', primaryL: '#818CF8', accent: '#6366F1', accentSoft: 'rgba(99,102,241,0.18)' },
-  // Mentor — Indigo
-  mentor:  { primary: '#6366F1', primaryD: '#4F46E5', primaryL: '#818CF8', accent: '#6366F1', accentSoft: 'rgba(99,102,241,0.18)' },
-  // Super Admin — Amber (NexusOS / Apple HIG warmth)
-  admin:   { primary: '#F59E0B', primaryD: '#D97706', primaryL: '#FBBF24', accent: '#F59E0B', accentSoft: 'rgba(245,158,11,0.18)' },
-} as const;
-
-export type PortalKey = keyof typeof PORTAL_ACCENTS;
-
 // ── Type scale (Apple HIG-aligned, fluid) ────────────────────
 export const NX_TYPE = {
   // size, weight, lineHeight, tracking
@@ -112,14 +82,7 @@ export const NX_SHADOW = {
   }),
 } as const;
 
-// ── Motion timing ───────────────────────────────────────────
-export const NX_MOTION = {
-  fast: 160,
-  base: 220,
-  slow: 320,
-  cinematic: 480,
-  ease: 'cubic-bezier(0.4, 0, 0.2, 1)',
-} as const;
+
 
 // ── Web helpers (no-op on native) ───────────────────────────
 export const nxWebTransition = (props = 'background-color, border-color, transform, box-shadow', dur = NX_MOTION.base) =>

@@ -2,7 +2,7 @@ import { View, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ExploreScreen } from '@/src/views/web/ExploreScreen';
-import { INTERNSHIPS_HERO, INTERNSHIPS_SECTIONS } from '@/src/views/web/exploreData';
+import { INTERNSHIPS_HERO, INTERNSHIPS_SECTIONS } from '@/src/views/web/ExploreData';
 
 export default function ExploreInternshipsPreview() {
   return (
