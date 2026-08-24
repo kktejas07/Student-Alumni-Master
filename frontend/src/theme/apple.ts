@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
-export { BRAND } from '@/src/theme/tokens';
+import { BRAND } from '@/src/theme/tokens';
+export { BRAND };
 
 // ── Typography ─────────────────────────────────────────────────────────
 export const FONT_FAMILY = Platform.select({

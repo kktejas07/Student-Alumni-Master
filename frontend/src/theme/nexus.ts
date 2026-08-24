@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
-export { PORTAL_ACCENTS, NX_MOTION } from '@/src/theme/tokens';
+import { PORTAL_ACCENTS, NX_MOTION } from '@/src/theme/tokens';
+export { PORTAL_ACCENTS, NX_MOTION };
 export type { PortalKey } from '@/src/theme/tokens';
 
 // ── Core palette ─────────────────────────────────────────────
