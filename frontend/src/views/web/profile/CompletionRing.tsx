@@ -2,7 +2,7 @@
  * CompletionRing — circular progress ring with center percentage.
  * Pure SVG, works on web + native via react-native-svg.
  */
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 
 interface Props {
@@ -25,7 +25,7 @@ export function CompletionRing({
   const offset = c * (1 - safe / 100);
 
   return (
-    <View style={[styles.wrap, { width: size, height: size }]}>
+    <View className="items-center justify-center" style={{ width: size, height: size }}>
       <Svg width={size} height={size}>
         <Circle
           cx={size / 2} cy={size / 2} r={r}
@@ -41,16 +41,10 @@ export function CompletionRing({
         />
       </Svg>
       {!hideText && (
-        <View style={styles.label}>
-          <Text style={[styles.pct, { color }]}>{safe}%</Text>
+        <View className="absolute items-center justify-center">
+          <Text style={{ color, fontFamily: 'DMSans_800ExtraBold', fontSize: 20 }}>{safe}%</Text>
         </View>
       )}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  wrap: { alignItems: 'center', justifyContent: 'center' },
-  label: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
-  pct: { fontFamily: 'DMSans_800ExtraBold', fontSize: 20 },
-});

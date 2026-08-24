@@ -2,7 +2,7 @@
  * PaymentsPage — KPIs + Revenue/Payouts dual bar + Transactions table.
  */
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, ActivityIndicator } from 'react-native';
 import { Wallet, ArrowDownRight, ArrowUpRight, Receipt } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
 import { AdminLayout } from './AdminLayout';
@@ -96,23 +96,4 @@ function Legend({ color, label }: { color: string; label: string }) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  kpiGrid: { ...({ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 14 } as any) },
-  cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  cardTitle: { color: T.text, fontFamily: 'DMSans_700Bold', fontSize: 14 },
-  cardSub: { color: T.textMute, fontFamily: 'DMSans_400Regular', fontSize: 11, marginTop: 2 },
-  barLabel: { color: T.textMute, fontFamily: 'DMSans_500Medium', fontSize: 11, marginTop: 4 },
-  tableHead: {
-    paddingHorizontal: 4, paddingVertical: 10,
-    borderBottomColor: T.border, borderBottomWidth: 1,
-    ...({ display: 'grid', alignItems: 'center', gap: 12 } as any),
-  },
-  tableRow: {
-    paddingHorizontal: 4, paddingVertical: 11,
-    borderBottomColor: 'rgba(245,158,11,0.06)', borderBottomWidth: 1,
-    ...({ display: 'grid', alignItems: 'center', gap: 12 } as any),
-  },
-  th: { color: 'rgba(255,255,255,0.32)', fontFamily: 'DMSans_700Bold', fontSize: 11, letterSpacing: 0.6, textTransform: 'uppercase' },
-  td: { color: 'rgba(255,255,255,0.78)', fontFamily: 'DMSans_500Medium', fontSize: 12.5 },
-});
+;

@@ -1,15 +1,8 @@
-/**
- * SkeletonLoader.tsx
- * Premium skeleton loading placeholders for the Career AI page.
- * Replaces the page-level spinner with section-accurate shape hints.
- */
 import React, { useEffect, useRef, memo } from 'react';
-import {Platform, View, Animated, StyleSheet} from "react-native";
-import { COLORS, RADIUS, SPACING } from '@/src/lib/designTokens';
+import {Platform, View, Animated} from "react-native";
 
-// ── Primitive animated block ──────────────────────────────────────────────────
 const SkeletonBlock = memo(function SkeletonBlock({
-  width, height, radius = RADIUS.chip, style,
+  width, height, radius = 8, style,
 }: {
   width?: number | string;
   height: number;
@@ -31,12 +24,12 @@ const SkeletonBlock = memo(function SkeletonBlock({
 
   return (
     <Animated.View
+      className="bg-white/[0.07]"
       style={[
         {
           width: width ?? '100%',
           height,
           borderRadius: radius,
-          backgroundColor: 'rgba(255,255,255,0.07)',
           opacity: anim,
         },
         style,
@@ -45,35 +38,33 @@ const SkeletonBlock = memo(function SkeletonBlock({
   );
 });
 
-// ── Hero skeleton ─────────────────────────────────────────────────────────────
 export const HeroSkeleton = memo(function HeroSkeleton() {
   return (
-    <View style={sk.heroCard}>
-      <View style={{ flex: 1, gap: SPACING.sm }}>
+    <View className="flex-row items-start gap-2 bg-[rgba(18,22,35,0.75)] border border-white/[0.08] rounded-xl p-5 overflow-hidden">
+      <View className="flex-1 gap-2">
         <SkeletonBlock height={10} width={80} />
-        <SkeletonBlock height={28} width="70%" radius={RADIUS.chip} />
+        <SkeletonBlock height={28} width="70%" radius={8} />
         <SkeletonBlock height={14} width="40%" />
-        <View style={{ flexDirection: 'row', gap: SPACING.xs, marginTop: SPACING.xs }}>
+        <View className="flex-row gap-1 mt-1">
           <SkeletonBlock height={10} width={80} />
           <SkeletonBlock height={10} width={80} />
           <SkeletonBlock height={10} width={80} />
         </View>
-        <SkeletonBlock height={6} radius={3} style={{ marginTop: SPACING.md }} />
+        <SkeletonBlock height={6} radius={3} style={{ marginTop: 16 }} />
       </View>
       <SkeletonBlock height={88} width={88} radius={44} />
     </View>
   );
 });
 
-// ── KPI strip skeleton ────────────────────────────────────────────────────────
 export const KpiStripSkeleton = memo(function KpiStripSkeleton() {
   return (
-    <View style={sk.kpiRow}>
+    <View className="flex-row gap-2">
       {[0, 1, 2, 3].map((i) => (
-        <View key={i} style={sk.kpiCard}>
+        <View key={i} className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-xl p-4 gap-1">
           <SkeletonBlock height={10} width={60} />
           <SkeletonBlock height={28} width={70} radius={4} />
-          <SkeletonBlock height={3}  radius={2} />
+          <SkeletonBlock height={3} radius={2} />
           <SkeletonBlock height={10} width={90} />
           <SkeletonBlock height={10} width={110} />
         </View>
@@ -82,21 +73,20 @@ export const KpiStripSkeleton = memo(function KpiStripSkeleton() {
   );
 });
 
-// ── Generic section card skeleton ─────────────────────────────────────────────
 export const SectionCardSkeleton = memo(function SectionCardSkeleton({ rows = 3 }: { rows?: number }) {
   return (
-    <View style={sk.section}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: SPACING.md }}>
-        <View style={{ gap: 6 }}>
+    <View className="bg-[rgba(18,22,35,0.75)] border border-white/[0.08] rounded-xl p-5">
+      <View className="flex-row justify-between mb-4">
+        <View className="gap-1.5">
           <SkeletonBlock height={14} width={130} />
           <SkeletonBlock height={10} width={90} />
         </View>
-        <SkeletonBlock height={28} width={70} radius={RADIUS.btn} />
+        <SkeletonBlock height={28} width={70} radius={8} />
       </View>
       {Array.from({ length: rows }).map((_, i) => (
-        <View key={i} style={{ flexDirection: 'row', gap: SPACING.xs, alignItems: 'center', marginBottom: 8 }}>
-          <SkeletonBlock height={32} width={32} radius={RADIUS.chip} />
-          <View style={{ flex: 1, gap: 6 }}>
+        <View key={i} className="flex-row gap-1 items-center mb-2">
+          <SkeletonBlock height={32} width={32} radius={8} />
+          <View className="flex-1 gap-1.5">
             <SkeletonBlock height={13} width="80%" />
             <SkeletonBlock height={10} width="50%" />
           </View>
@@ -107,53 +97,17 @@ export const SectionCardSkeleton = memo(function SectionCardSkeleton({ rows = 3 
   );
 });
 
-// ── Full page skeleton ────────────────────────────────────────────────────────
 export const CareerPageSkeleton = memo(function CareerPageSkeleton({
   isLarge,
 }: { isLarge: boolean }) {
   return (
-    <View style={{ gap: SPACING.md }}>
+    <View className="gap-4">
       <HeroSkeleton />
       <KpiStripSkeleton />
-      <View style={isLarge ? sk.grid : {}}>
+      <View className={isLarge ? 'flex-row gap-4' : ''}>
         <SectionCardSkeleton rows={4} />
         <SectionCardSkeleton rows={3} />
       </View>
     </View>
   );
-});
-
-const sk = StyleSheet.create({
-  heroCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: SPACING.xl,
-    backgroundColor: COLORS.cardSolid,
-    borderColor: COLORS.border,
-    borderWidth: 1,
-    borderRadius: RADIUS.card,
-    padding: SPACING.xl,
-    overflow: 'hidden',
-  },
-  kpiRow:  { flexDirection: 'row', gap: SPACING.sm },
-  kpiCard: {
-    flex: 1,
-    backgroundColor: COLORS.card,
-    borderColor: COLORS.border,
-    borderWidth: 1,
-    borderRadius: RADIUS.card,
-    padding: SPACING.md,
-    gap: SPACING.xxs,
-  },
-  section: {
-    backgroundColor: COLORS.cardSolid,
-    borderColor: COLORS.border,
-    borderWidth: 1,
-    borderRadius: RADIUS.card,
-    padding: SPACING.lg,
-  },
-  grid: {
-    flexDirection: 'row',
-    gap: SPACING.md,
-  },
 });

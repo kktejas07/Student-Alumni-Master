@@ -4,7 +4,7 @@
  * Spec: /tmp/ui_specs/platform-mentor.jsx
  */
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, useWindowDimensions } from 'react-native';
+import { View, Text, ScrollView, Pressable, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
@@ -295,41 +295,4 @@ function formatDate(iso?: string) {
     return d.toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
   } catch { return iso; }
 }
-
-const styles = StyleSheet.create({
-  shell: { flex: 1, flexDirection: 'row', height: '100%' as any },
-  main: { padding: 36, paddingBottom: 80 },
-  kpiRow: { flexDirection: 'row', gap: 14, marginBottom: 24, flexWrap: 'wrap' as const },
-  split: { flexDirection: 'row', gap: 20 },
-  pendingRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingVertical: 12,
-    borderBottomColor: 'rgba(255,255,255,0.05)', borderBottomWidth: 1,
-  },
-  acceptBtn: {
-    backgroundColor: '#0F9D58',
-    paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999,
-    ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
-  },
-  declineBtn: {
-    borderColor: 'rgba(252,165,165,0.4)', borderWidth: 1.5,
-    paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999,
-    ...({ cursor: 'pointer' } as any),
-  },
-  upcomingRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingVertical: 11,
-    borderBottomColor: 'rgba(255,255,255,0.05)', borderBottomWidth: 1,
-  },
-  upcomingDate: {
-    width: 36, height: 36, borderRadius: 10,
-    backgroundColor: 'rgba(22,163,74,0.18)',
-    borderColor: 'rgba(134,239,172,0.4)', borderWidth: 1,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  qrRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingVertical: 10,
-    ...({ cursor: 'pointer' } as any),
-  },
-});
+;

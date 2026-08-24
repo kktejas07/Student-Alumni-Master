@@ -3,7 +3,7 @@
  * Spec: /tmp/ui_specs/platform-student.jsx
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Image, useWindowDimensions } from 'react-native';
+import { View, Text, ScrollView, Pressable, Image, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
@@ -430,85 +430,4 @@ const DEFAULT_MENTORS = [
   { name: 'Priya Singh', role: 'PM @ Google', rate: '4.9' },
   { name: 'Vikram Gupta', role: 'Founder @ TechStart', rate: '4.8' },
 ];
-
-const styles = StyleSheet.create({
-  shell: { flex: 1, flexDirection: 'row', height: '100%' as any },
-  main: { padding: 36, paddingBottom: 80 },
-  kpiRow: { flexDirection: 'row', gap: 14, marginBottom: 24, flexWrap: 'wrap' as const },
-  split: { flexDirection: 'row', gap: 20 },
-  viewFullBtn: {
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderColor: 'rgba(255,255,255,0.18)',
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 8,
-    ...({ cursor: 'pointer' } as any),
-  },
-  stepRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 9,
-    borderBottomColor: 'rgba(255,255,255,0.06)',
-    borderBottomWidth: 1,
-  },
-  stepDot: {
-    width: 24, height: 24, borderRadius: 12,
-    borderWidth: 1, alignItems: 'center', justifyContent: 'center',
-  },
-  listRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    paddingVertical: 12,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
-    borderBottomWidth: 1,
-  },
-  listRowIcon: {
-    width: 40, height: 40, borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderColor: 'rgba(255,255,255,0.1)',
-    borderWidth: 1,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  cardCTA: {
-    backgroundColor: 'rgba(255,255,255,0.07)',
-    borderColor: 'rgba(255,255,255,0.1)',
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 8,
-    alignItems: 'center',
-    marginTop: 4,
-    ...({ cursor: 'pointer' } as any),
-  },
-  mentorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 12,
-  },
-  connectBtn: {
-    backgroundColor: 'rgba(176,127,223,0.18)',
-    borderColor: 'rgba(176,127,223,0.28)',
-    borderWidth: 1,
-    paddingHorizontal: 11,
-    paddingVertical: 5,
-    borderRadius: 7,
-    ...({ cursor: 'pointer' } as any),
-  },
-  qrRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 10,
-    ...({ cursor: 'pointer' } as any),
-  },
-  milestoneNode: {
-    width: 32, height: 32, borderRadius: 16,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.12)',
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    alignItems: 'center', justifyContent: 'center',
-  },
-});
+;

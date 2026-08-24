@@ -21,7 +21,7 @@
  * for real once the user provides client credentials per provider.
  */
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, Platform, ScrollView } from 'react-native';
+import { View, Text, Pressable, TextInput, Platform, ScrollView } from 'react-native';
 import {
   Sparkles, Plug, Video, Calendar, Mail, BookOpen, Bell, Send,
   CheckCircle2, X, Star, Globe,
@@ -363,88 +363,6 @@ const C = {
   text2: 'rgba(255,255,255,0.65)',
   teal: '#5EEAD4',
 };
-
-const st = StyleSheet.create({
-  banner: {
-    flexDirection: 'row', gap: 12, alignItems: 'center',
-    padding: 16, borderRadius: 12,
-    backgroundColor: 'rgba(20,184,166,0.06)',
-    borderColor: 'rgba(20,184,166,0.30)', borderWidth: 1,
-  },
-  bannerTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 15 },
-  bannerSub:   { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12, marginTop: 3, lineHeight: 17 },
-
-  card: {
-    backgroundColor: C.card, borderColor: C.border, borderWidth: 1,
-    borderRadius: 14, padding: 16,
-  },
-  sectionTitle: { color: C.text2, fontFamily: 'DMSans_800ExtraBold', fontSize: 11, letterSpacing: 1.0 },
-  sectionSub:   { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11.5, marginTop: 2 },
-
-  row: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingVertical: 12, paddingHorizontal: 12, borderRadius: 10,
-    backgroundColor: 'rgba(0,0,0,0.18)',
-    borderColor: C.border, borderWidth: 1,
-  },
-  iconBox: { width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  label: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13.5 },
-  sub:   { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11.5, marginTop: 2 },
-
-  input: {
-    width: 200,
-    height: 34, borderRadius: 8, paddingHorizontal: 10,
-    color: '#fff', fontFamily: 'DMSans_500Medium', fontSize: 12.5,
-    backgroundColor: 'rgba(0,0,0,0.30)',
-    borderColor: C.border, borderWidth: 1,
-    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
-  },
-
-  btnConnect: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 12, height: 34, borderRadius: 8,
-    backgroundColor: C.teal,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  btnConnectText: { color: '#0F2922', fontFamily: 'DMSans_700Bold', fontSize: 12 },
-
-  btnGhost: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 10, height: 30, borderRadius: 8,
-    backgroundColor: 'rgba(167,139,250,0.10)',
-    borderColor: 'rgba(167,139,250,0.32)', borderWidth: 1,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  btnGhostText: { color: '#C4B5FD', fontFamily: 'DMSans_700Bold', fontSize: 11 },
-
-  btnDanger: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 10, height: 30, borderRadius: 8,
-    backgroundColor: 'rgba(239,68,68,0.08)',
-    borderColor: 'rgba(239,68,68,0.40)', borderWidth: 1,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  btnDangerText: { color: '#FCA5A5', fontFamily: 'DMSans_700Bold', fontSize: 11 },
-
-  pill: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 7, paddingVertical: 2, borderRadius: 999,
-    borderWidth: 1,
-  },
-  pillText: { fontFamily: 'DMSans_700Bold', fontSize: 9.5, letterSpacing: 0.4 },
-
-  platformChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: C.border2, borderWidth: 1,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  platformChipActive: {
-    backgroundColor: C.teal,
-    borderColor: C.teal,
-  },
-  platformChipText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12 },
-});
+;
 
 export default IntegrationsView;

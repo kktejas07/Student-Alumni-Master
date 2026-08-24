@@ -4,7 +4,7 @@
  * Spec: /tmp/ui_specs/platform-college.jsx
  */
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, useWindowDimensions } from 'react-native';
+import { View, Text, ScrollView, Pressable, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
@@ -238,32 +238,4 @@ function Stub({ title, emoji, sub }: { title: string; emoji: string; sub: string
     </>
   );
 }
-
-const styles = StyleSheet.create({
-  shell: { flex: 1, flexDirection: 'row', height: '100%' as any },
-  main: { padding: 36, paddingBottom: 80 },
-  kpiRow: { flexDirection: 'row', gap: 14, marginBottom: 24, flexWrap: 'wrap' as const },
-  split: { flexDirection: 'row', gap: 20 },
-  recruiterRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingVertical: 12,
-    borderBottomColor: 'rgba(255,255,255,0.05)', borderBottomWidth: 1,
-  },
-  recruiterIcon: {
-    width: 40, height: 40, borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  eventRow: {
-    flexDirection: 'row', gap: 12,
-    paddingVertical: 10,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
-    borderBottomWidth: 1,
-  },
-  eventDot: {
-    width: 8, height: 8, borderRadius: 4,
-    backgroundColor: SA.purpleLight,
-    marginTop: 6,
-  },
-});
+;

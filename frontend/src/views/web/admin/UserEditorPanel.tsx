@@ -3,7 +3,7 @@
  * Shows badges, all profile fields, and admin actions.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, ActivityIndicator, Pressable, Platform } from 'react-native';
+import { View, Text, TextInput, ActivityIndicator, Pressable, Platform } from 'react-native';
 import { Edit3, Trash2, Save, X as CloseX, Link2 as Linkedin, AlertTriangle } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
 import { SlidePanel } from './SlidePanel';
@@ -353,48 +353,4 @@ export function UserEditorPanel({ open, mode: initMode, role, user, onClose, onC
     </SlidePanel>
   );
 }
-
-const styles = StyleSheet.create({
-  headerChips: { flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginBottom: 14 },
-  section: {
-    marginTop: 4, marginBottom: 14,
-    borderTopColor: 'rgba(245,158,11,0.10)', borderTopWidth: 1, paddingTop: 14,
-  },
-  sectionLabel: {
-    color: T.light, fontFamily: 'DMSans_700Bold',
-    fontSize: 11, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 10,
-  },
-  field: { paddingVertical: 8 },
-  fieldLabel: {
-    color: T.textMute, fontFamily: 'DMSans_500Medium',
-    fontSize: 11, letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 4,
-  },
-  fieldValue: { color: T.text, fontFamily: 'DMSans_500Medium', fontSize: 13, lineHeight: 18 },
-  input: {
-    paddingHorizontal: 12, paddingVertical: 9,
-    backgroundColor: T.glass, borderColor: T.borderMd, borderWidth: 1, borderRadius: 9,
-    color: T.text, fontFamily: 'DMSans_500Medium', fontSize: 13,
-    ...({ outlineStyle: 'none' } as any),
-  },
-  empty: { color: T.textMute, fontFamily: 'DMSans_400Regular', fontSize: 12 },
-  confirmBox: {
-    backgroundColor: 'rgba(239,68,68,0.10)',
-    borderColor: 'rgba(239,68,68,0.40)', borderWidth: 1,
-    padding: 14, borderRadius: 12, marginBottom: 14,
-  },
-  confirmTitle: { color: T.text, fontFamily: 'DMSans_700Bold', fontSize: 14 },
-  confirmBody: { color: T.textDim, fontFamily: 'DMSans_400Regular', fontSize: 12, marginTop: 6, lineHeight: 18 },
-  notice: {
-    backgroundColor: 'rgba(16,185,129,0.10)',
-    borderColor: 'rgba(16,185,129,0.40)', borderWidth: 1,
-    padding: 12, borderRadius: 10, marginBottom: 14,
-  },
-  noticeTitle: { color: '#10B981', fontFamily: 'DMSans_700Bold', fontSize: 12 },
-  noticeBody: { color: T.textDim, fontFamily: 'DMSans_500Medium', fontSize: 12, marginTop: 4 },
-  errorBox: {
-    backgroundColor: 'rgba(239,68,68,0.10)',
-    borderColor: 'rgba(239,68,68,0.40)', borderWidth: 1,
-    padding: 10, borderRadius: 9, marginTop: 14,
-  },
-  errorText: { color: '#FCA5A5', fontFamily: 'DMSans_500Medium', fontSize: 12 },
-});
+;

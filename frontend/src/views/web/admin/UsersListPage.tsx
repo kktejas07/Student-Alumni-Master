@@ -3,7 +3,7 @@
  * Filters by role, supports search, opens detail SlidePanel on row click.
  */
 import { useEffect, useMemo, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, TextInput, ActivityIndicator } from 'react-native';
 import { Search, ChevronRight, Building2, GraduationCap, Briefcase, Users, Plus } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
 import { AdminLayout } from './AdminLayout';
@@ -193,39 +193,4 @@ export default function UsersListPage({ role, pageTitle, pageSubtitle }: Props) 
     </AdminLayout>
   );
 }
-
-const styles = StyleSheet.create({
-  toolbar: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
-  searchWrap: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 12, height: 40, borderRadius: 10, flex: 1,
-    backgroundColor: T.glass, borderColor: T.border, borderWidth: 1,
-  },
-  searchInput: {
-    flex: 1, color: T.text, fontFamily: 'DMSans_500Medium', fontSize: 13,
-    ...({ outlineStyle: 'none' } as any),
-  },
-  tableHead: {
-    paddingHorizontal: 18, paddingVertical: 12,
-    borderBottomColor: T.border, borderBottomWidth: 1,
-    ...({ display: 'grid', alignItems: 'center', gap: 14 } as any),
-  },
-  tableRow: {
-    paddingHorizontal: 18, paddingVertical: 13,
-    borderBottomColor: 'rgba(245,158,11,0.06)', borderBottomWidth: 1,
-    ...({ display: 'grid', alignItems: 'center', gap: 14, cursor: 'pointer' } as any),
-  },
-  th: { color: 'rgba(255,255,255,0.32)', fontFamily: 'DMSans_700Bold', fontSize: 11, letterSpacing: 0.6, textTransform: 'uppercase' },
-  td: { color: 'rgba(255,255,255,0.78)', fontFamily: 'DMSans_500Medium', fontSize: 12.5 },
-  cellPrimary: { flexDirection: 'row', alignItems: 'center', gap: 10, minWidth: 0 },
-  avatar: { width: 32, height: 32, borderRadius: 9, backgroundColor: T.glassMd, borderColor: T.borderMd, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  name: { color: T.text, fontFamily: 'DMSans_700Bold', fontSize: 13 },
-  email: { color: 'rgba(255,255,255,0.42)', fontFamily: 'DMSans_400Regular', fontSize: 11, marginTop: 2 },
-  panelTopRow: { flexDirection: 'row', gap: 14, alignItems: 'center', paddingBottom: 12, borderBottomColor: T.border, borderBottomWidth: 1 },
-  panelAvatar: {
-    width: 56, height: 56, borderRadius: 14,
-    backgroundColor: T.glassMd, borderColor: T.borderMd, borderWidth: 1,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  panelAvatarText: { color: T.light, fontFamily: 'DMSans_700Bold', fontSize: 16, letterSpacing: 0.5 },
-});
+;

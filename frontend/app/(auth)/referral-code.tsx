@@ -1,13 +1,6 @@
 import { getBaseUrl } from '@/src/lib/env';
-/**
- * Referral Code — per HTML spec screen "Referral Code".
- *
- * Users can enter a referral/invite code to unlock bonus credits.
- * This screen is optional — Skip for now routes to the next step.
- * Typically shown after Register but before Onboarding.
- */
 import React, { useState } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { ArrowLeft, Gift } from 'lucide-react-native';
@@ -36,17 +29,12 @@ export default function ReferralCode() {
     setLoading(true);
     trackAuth({ event: 'referral_applied' as any, extra: { code: trimmed } });
     try {
-      // Persist locally for backend to consume later during onboarding-complete.
       await AsyncStorage.setItem('sa_referral_code', trimmed);
-      // Best-effort call — endpoint may not exist yet; frontend UX still works.
       await fetch(`${BASE}/api/referrals/validate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: trimmed }),
       }).catch(() => {});
-      // Route by role — students get the spec-compliant 7-step wizard,
-      // mentors get the spec-compliant 8-step wizard, alumni get the
-      // 6-step wizard, others use the shorter flat quick-setup form.
       router.replace('/onboarding' as any);
     } catch {
       setError('Could not apply code. Try again or skip.');
@@ -70,21 +58,22 @@ export default function ReferralCode() {
             router.replace('/(auth)/login');
           }
         }}
-        style={s.back}
+        className="flex-row items-center"
+        style={{ gap: 4, marginBottom: 14 }}
       >
         <ArrowLeft size={16} color="#6B7280" />
-        <Text style={s.backText}>Back</Text>
+        <Text style={{ color: '#374151', fontFamily: FONTS.med, fontSize: 13 }}>Back</Text>
       </Pressable>
 
-      <View style={s.giftWrap}>
-        <View style={s.giftCircle}>
+      <View className="items-center" style={{ marginBottom: 20 }}>
+        <View className="items-center justify-center rounded-full" style={{ width: 72, height: 72, backgroundColor: 'rgba(124,58,237,0.18)', borderColor: 'rgba(124,58,237,0.4)', borderWidth: 1.5 }}>
           <Gift size={28} color="#B07FDF" />
         </View>
       </View>
 
-      <View style={s.head}>
-        <Text style={s.title}>Have a referral code?</Text>
-        <Text style={s.sub}>
+      <View className="items-center" style={{ marginBottom: 20 }}>
+        <Text className="text-text font-display-bold" style={{ fontSize: 26, marginBottom: 8, textAlign: 'center' }}>Have a referral code?</Text>
+        <Text className="text-muted" style={{ fontFamily: FONTS.med, fontSize: 14, lineHeight: 20, textAlign: 'center', paddingHorizontal: 10 }}>
           Enter your referral code to unlock exclusive benefits and bonus credits
         </Text>
       </View>
@@ -105,21 +94,3 @@ export default function ReferralCode() {
     </AuthShell>
   );
 }
-
-const s = StyleSheet.create({
-  back: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 14 },
-  backText: { color: '#374151', fontFamily: FONTS.med, fontSize: 13 },
-  giftWrap: { alignItems: 'center', marginBottom: 20 },
-  giftCircle: {
-    width: 72, height: 72, borderRadius: 36,
-    backgroundColor: 'rgba(124,58,237,0.18)',
-    borderColor: 'rgba(124,58,237,0.4)', borderWidth: 1.5,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  head: { marginBottom: 20, alignItems: 'center' },
-  title: { color: '#111827', fontFamily: FONTS.bold, fontSize: 26, marginBottom: 8, textAlign: 'center' },
-  sub: {
-    color: '#6B7280', fontFamily: FONTS.med, fontSize: 14,
-    lineHeight: 20, textAlign: 'center', paddingHorizontal: 10,
-  },
-});

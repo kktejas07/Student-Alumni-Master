@@ -10,7 +10,7 @@
  * mentor as a notification.
  */
 import { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, Pressable, ActivityIndicator, Linking, TextInput } from 'react-native';
+import { View, Text, Pressable, ActivityIndicator, Linking, TextInput } from 'react-native';
 import {
   Check, X, Clock, Briefcase, Link2 as Linkedin, ChevronRight, AlertTriangle,
   Mail, Phone, GraduationCap, Languages, Tag, IndianRupee,
@@ -423,80 +423,4 @@ function Row({ icon: Icon, label, value }: { icon: any; label: string; value?: a
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  tabs: { flexDirection: 'row', gap: 8, marginBottom: 18 },
-  tab: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10,
-    backgroundColor: T.glass, borderColor: T.border, borderWidth: 1,
-    ...({ cursor: 'pointer' } as any),
-  },
-  tabActive: { backgroundColor: T.glassMd, borderColor: T.borderMd },
-  tabText: { color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_700Bold', fontSize: 13 },
-  tabCount: { minWidth: 22, paddingHorizontal: 6, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.08)' },
-  tabCountText: { color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_700Bold', fontSize: 11 },
-  cardRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  avatar: { width: 38, height: 38, borderRadius: 11, backgroundColor: T.glassMd, borderColor: T.borderMd, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  name: { color: T.text, fontFamily: 'DMSans_700Bold', fontSize: 14 },
-  email: { color: 'rgba(255,255,255,0.45)', fontFamily: 'DMSans_400Regular', fontSize: 11.5, marginTop: 2 },
-  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginTop: 4 },
-  meta: { color: 'rgba(255,255,255,0.65)', fontFamily: 'DMSans_500Medium', fontSize: 12 },
-  metaLink: { color: T.light, fontFamily: 'DMSans_700Bold', fontSize: 12 },
-  emptyText: { color: T.textMute, fontFamily: 'DMSans_500Medium', fontSize: 13 },
-
-  // ── Detail panel
-  headerChips: { flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginBottom: 14 },
-  section: {
-    marginTop: 4, marginBottom: 14,
-    borderTopColor: 'rgba(245,158,11,0.10)', borderTopWidth: 1, paddingTop: 14,
-  },
-  sectionLabel: {
-    color: T.light, fontFamily: 'DMSans_700Bold',
-    fontSize: 11, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 10,
-  },
-  field: { paddingVertical: 8 },
-  fieldLabel: {
-    color: T.textMute, fontFamily: 'DMSans_500Medium',
-    fontSize: 11, letterSpacing: 0.4, textTransform: 'uppercase',
-  },
-  fieldValue: { color: T.text, fontFamily: 'DMSans_500Medium', fontSize: 13, marginTop: 4, lineHeight: 18 },
-  bodyText: { color: T.textDim, fontFamily: 'DMSans_400Regular', fontSize: 13, lineHeight: 20 },
-  linkedinBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10,
-    paddingHorizontal: 12, paddingVertical: 9, borderRadius: 9,
-    backgroundColor: T.glassMd, borderColor: T.borderMd, borderWidth: 1,
-    ...({ cursor: 'pointer' } as any),
-  },
-  linkedinText: { color: T.light, fontFamily: 'DMSans_700Bold', fontSize: 12 },
-  chipWrap: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
-  softChip: {
-    paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999,
-    backgroundColor: 'rgba(245,158,11,0.10)', borderColor: 'rgba(245,158,11,0.25)', borderWidth: 1,
-  },
-  softChipText: { color: T.light, fontFamily: 'DMSans_700Bold', fontSize: 11 },
-  eduDegree: { color: T.text, fontFamily: 'DMSans_700Bold', fontSize: 13 },
-  eduInst:   { color: T.textDim, fontFamily: 'DMSans_400Regular', fontSize: 12, marginLeft: 21, marginTop: 2 },
-
-  rejectBox: {
-    backgroundColor: 'rgba(239,68,68,0.10)',
-    borderColor: 'rgba(239,68,68,0.40)', borderWidth: 1,
-    padding: 14, borderRadius: 12, marginBottom: 14,
-  },
-  rejectTitle: { color: T.text, fontFamily: 'DMSans_700Bold', fontSize: 14 },
-  rejectHint: { color: T.textDim, fontFamily: 'DMSans_400Regular', fontSize: 12, marginTop: 6, lineHeight: 18 },
-  rejectInput: {
-    marginTop: 10, paddingHorizontal: 12, paddingVertical: 10,
-    minHeight: 96, textAlignVertical: 'top',
-    backgroundColor: 'rgba(0,0,0,0.30)',
-    borderColor: 'rgba(239,68,68,0.30)', borderWidth: 1, borderRadius: 9,
-    color: T.text, fontFamily: 'DMSans_500Medium', fontSize: 13,
-    ...({ outlineStyle: 'none' } as any),
-  },
-  errorBox: {
-    backgroundColor: 'rgba(239,68,68,0.10)',
-    borderColor: 'rgba(239,68,68,0.40)', borderWidth: 1,
-    padding: 10, borderRadius: 9, marginTop: 14,
-  },
-  errorText: { color: '#FCA5A5', fontFamily: 'DMSans_500Medium', fontSize: 12 },
-});
+;

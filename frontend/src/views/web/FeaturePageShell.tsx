@@ -14,7 +14,7 @@
  *   • Active item is auto-detected from the current route.
  */
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, useWindowDimensions, Platform } from 'react-native';
+import { View, Text, ScrollView, Pressable, useWindowDimensions, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, usePathname } from 'expo-router';
 import {
@@ -224,18 +224,19 @@ export default function FeaturePageShell({
   // because the parent portal already provides them. Render only hero + body.
   if (isEmbedded) {
     return (
-      <View style={{ gap: 22 }}>
+      <View className="gap-5">
         {!hideHero && (
-          <View style={[
-            styles.heroShell,
-            { borderColor: heroBorder, backgroundColor: heroBg },
-            Platform.OS === 'web' ? ({ boxShadow: heroBoxShadow } as any) : {}
-          ]}>
-            <View style={[styles.heroBody, !isWide && { flexDirection: 'column', alignItems: 'flex-start', gap: 16 }]}>
-              <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
-                <View style={styles.heroBadge}><Text style={styles.heroBadgeText}>{heroEmoji}</Text></View>
-                <Text style={styles.heroTitle}>{title}</Text>
-                {!!subtitle && <Text style={styles.heroSub}>{subtitle}</Text>}
+          <View
+            className="rounded-2xl overflow-hidden border"
+            style={{ borderColor: heroBorder, backgroundColor: heroBg, ...(Platform.OS === 'web' ? { boxShadow: heroBoxShadow } as any : {}) }}
+          >
+            <View className="flex-row items-center gap-4 p-7 min-h-[150px] relative z-10" style={!isWide ? { flexDirection: 'column', alignItems: 'flex-start', gap: 16 } : {}}>
+              <View className="flex-1 min-w-0 gap-1.5">
+                <View className="self-start bg-white/8 border border-white/15 rounded-xl px-2.5 py-1 mb-1" style={{ ...(Platform.OS === 'web' ? { backdropFilter: 'blur(10px)' } as any : {}) }}>
+                  <Text className="text-2xl">{heroEmoji}</Text>
+                </View>
+                <Text className="text-white font-body-bold text-2xl tracking-tight leading-8">{title}</Text>
+                {!!subtitle && <Text className="font-body-medium text-sm mt-1" style={{ color: 'rgba(255,255,255,0.82)', maxWidth: 720 }}>{subtitle}</Text>}
               </View>
               {!!rightSlot && <View>{rightSlot}</View>}
             </View>
