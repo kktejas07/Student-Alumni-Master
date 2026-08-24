@@ -9,7 +9,7 @@
  *   Step 5: Upcoming (Grey '5') | Practice Interviews | Locked
  */
 import React, { memo } from 'react';
-import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
+import { View, Text, Pressable, Platform } from 'react-native';
 import { CircleCheck as CheckCircle2, ChevronRight, Lock } from 'lucide-react-native';
 import { COLORS, FONT_FAMILIES, FONT_SIZES, RADIUS, SPACING } from '@/src/lib/designTokens';
 

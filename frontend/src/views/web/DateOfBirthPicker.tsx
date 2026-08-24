@@ -11,7 +11,7 @@
  * The widget displays the value in DD/MM/YYYY for users while storing ISO.
  */
 import React, { useEffect, useMemo, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TextInput, Keyboard } from 'react-native';
+import { View, Text, TextInput, Keyboard } from 'react-native';
 import { Dropdown } from '@/src/views/web/Dropdown';
 
 export function DateOfBirthPicker({
@@ -237,12 +237,12 @@ export function DateOfBirthPicker({
   };
 
   return (
-    <View style={styles.wrap}>
-      <Text style={styles.label}>
+    <View className="mb-3.5">
+      <Text className="text-[13px] font-body-bold text-gray-700 mb-2">
         {label}{required ? <Text style={{ color: '#EF4444' }}> *</Text> : null}
       </Text>
-      <View style={styles.row}>
-        <View style={{ flex: 1 }}>
+      <View className="flex-row gap-2">
+        <View className="flex-1">
           <Dropdown
             label="Day"
             value={d}
@@ -258,7 +258,7 @@ export function DateOfBirthPicker({
             onBlur={handleDayBlur}
           />
         </View>
-        <View style={{ flex: 1.4 }}>
+        <View className="flex-[1.4]">
           <Dropdown
             label="Month"
             value={m}
@@ -274,7 +274,7 @@ export function DateOfBirthPicker({
             onBlur={handleMonthBlur}
           />
         </View>
-        <View style={{ flex: 1 }}>
+        <View className="flex-1">
           <Dropdown
             label="Year"
             value={y}
@@ -291,9 +291,9 @@ export function DateOfBirthPicker({
         </View>
       </View>
       {errorMsg ? (
-        <Text style={styles.err}>{errorMsg}</Text>
+        <Text className="text-[12px] font-body-semibold text-rose mt-1">{errorMsg}</Text>
       ) : helper ? (
-        <Text style={styles.helper}>{helper}</Text>
+        <Text className="text-[12px] font-body-semibold text-muted mt-1">{helper}</Text>
       ) : null}
     </View>
   );
@@ -313,11 +313,3 @@ export function isDobValid(iso: string, minAge = 18): { ok: boolean; message?: s
   if (age < minAge) return { ok: false, message: `You must be at least ${minAge} years old.` };
   return { ok: true };
 }
-
-const styles = StyleSheet.create({
-  wrap: { marginBottom: 14 },
-  label: { color: '#374151', fontFamily: 'DMSans_700Bold', fontSize: 13, marginBottom: 8 },
-  row: { flexDirection: 'row', gap: 8 },
-  err: { color: '#EF4444', fontFamily: 'DMSans_500Medium', fontSize: 12, marginTop: 4 },
-  helper: { color: '#9CA3AF', fontFamily: 'DMSans_500Medium', fontSize: 12, marginTop: 4 },
-});

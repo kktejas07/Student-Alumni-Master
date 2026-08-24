@@ -10,7 +10,7 @@
  */
 import React, { useEffect, useState, useCallback } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, Pressable,
+  View, Text, ScrollView, Pressable,
   ActivityIndicator, RefreshControl, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -50,12 +50,12 @@ export default function AnalyticsScreen() {
 
   if (!data) {
     return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.center}>
+      <SafeAreaView className="flex-1 bg-bg2">
+        <View className="flex-1 items-center justify-center">
           {loading ? (
             <ActivityIndicator size="large" color={C.brandPurple} />
           ) : (
-            <Text style={{ color: C.white }}>Failed to load analytics data.</Text>
+            <Text className="text-text">Failed to load analytics data.</Text>
           )}
         </View>
       </SafeAreaView>
@@ -76,25 +76,25 @@ export default function AnalyticsScreen() {
     'Dashboard';
 
   return (
-    <View style={styles.safe}>
+    <View className="flex-1 bg-bg2">
       {/* Hero */}
-      <LinearGradient colors={Gradients.heroDiagonal as any} style={styles.hero}>
+      <LinearGradient colors={Gradients.heroDiagonal as any} className="px-4 pb-4 rounded-b-3xl">
         <SafeAreaView edges={['top']}>
-          <View style={styles.heroRow}>
-            <Pressable onPress={() => router.back()} style={styles.backBtn} testID="analytics-back">
+          <View className="flex-row items-center pt-2">
+            <Pressable onPress={() => router.back()} className="w-10 h-10 rounded-full items-center justify-center bg-glass border border-glass-border" testID="analytics-back">
               <ArrowLeft size={20} color={C.white} />
             </Pressable>
-            <View style={{ flex: 1, marginLeft: 12 }}>
-              <Text style={styles.heroKicker}>{roleLabel}</Text>
-              <Text style={styles.heroGreeting} numberOfLines={1}>{greeting}</Text>
+            <View className="flex-1 ml-3">
+              <Text className="text-muted text-xs font-body-semibold">ROLE_LABEL</Text>
+              <Text className="text-text font-display-bold text-lg mt-0.5" numberOfLines={1}>{greeting}</Text>
             </View>
           </View>
         </SafeAreaView>
       </LinearGradient>
 
       <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={styles.scroll}
+        className="flex-1"
+        contentContainerStyle={{ padding: Spacing.lg, paddingTop: Spacing.lg }}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchData} tintColor={C.brandPurple} />}
         showsVerticalScrollIndicator={false}
       >
@@ -102,16 +102,16 @@ export default function AnalyticsScreen() {
         {scope === 'college' && <CollegeDashboard data={data} />}
         {scope === 'mentor' && <MentorDashboard data={data} />}
         {scope === 'none' && (
-          <View style={styles.emptyState}>
-            <Text style={[Typography.h3, { color: C.textPrimary, textAlign: 'center' }]}>
+          <View className="flex-1 py-16 items-center justify-center">
+            <Text className="text-text text-center text-lg">
               Analytics not available for this role
             </Text>
-            <Text style={[Typography.body, { color: C.textSecondary, textAlign: 'center', marginTop: 8 }]}>
+            <Text className="text-muted text-center text-sm mt-2">
               Sign in as admin, college, or mentor to view your dashboard.
             </Text>
           </View>
         )}
-        <View style={{ height: 60 }} />
+        <View className="h-16" />
       </ScrollView>
     </View>
   );
@@ -124,8 +124,7 @@ function PlatformDashboard({ data }: { data: any }) {
   const k = data.kpis;
   return (
     <>
-      {/* KPI grid */}
-      <View style={styles.kpiGrid}>
+      <View className="flex-row flex-wrap gap-3 mb-4">
         <KpiCard label="Total users" value={k.total_users} accent={C.brandPurple} testID="kpi-total-users" />
         <KpiCard label="Students" value={k.students} accent="#5F259F" />
         <KpiCard label="Alumni" value={k.alumni} accent="#00A78E" />
@@ -134,10 +133,7 @@ function PlatformDashboard({ data }: { data: any }) {
         <KpiCard label="Pending mentors" value={k.pending_mentors} accent={C.danger} />
       </View>
 
-      <ChartSection
-        title="User growth"
-        subtitle="New signups (last 14 days)"
-      >
+      <ChartSection title="User growth" subtitle="New signups (last 14 days)">
         <LineChart data={data.growth_series.map((g: any) => ({ value: g.count, label: g.date }))} />
       </ChartSection>
 
@@ -153,17 +149,17 @@ function PlatformDashboard({ data }: { data: any }) {
 
       {data.top_colleges?.length > 0 && (
         <ChartSection title="Top institutions" subtitle="By total user count">
-          <View style={{ gap: 8 }}>
+          <View className="gap-2">
             {data.top_colleges.map((c: any, idx: number) => (
-              <View key={c.name} style={styles.row}>
-                <Text style={[Typography.bodyBold, { color: C.brandPurple, width: 22 }]}>#{idx + 1}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={[Typography.bodyBold, { color: C.textPrimary }]} numberOfLines={1}>{c.name}</Text>
-                  <Text style={[Typography.bodySm, { color: C.textSecondary }]}>
+              <View key={c.name} className="flex-row items-center gap-3 py-1.5">
+                <Text className="text-violet font-body-bold text-sm" style={{ width: 22 }}>#{idx + 1}</Text>
+                <View className="flex-1">
+                  <Text className="text-text font-body-bold text-sm" numberOfLines={1}>{c.name}</Text>
+                  <Text className="text-muted text-xs">
                     {c.students} students · {c.alumni} alumni
                   </Text>
                 </View>
-                <Text style={[Typography.h4, { color: C.brandPurple }]}>{c.total}</Text>
+                <Text className="text-violet font-display-bold text-base">{c.total}</Text>
               </View>
             ))}
           </View>
@@ -172,7 +168,7 @@ function PlatformDashboard({ data }: { data: any }) {
 
       {data.revenue && (
         <ChartSection title="Revenue (mocked)" subtitle="Connect a payments collection to wire real numbers">
-          <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
+          <View className="flex-row gap-3 mb-3">
             <KpiCard label="MTD" value={`₹${data.revenue.mtd.toLocaleString()}`} accent={C.brandPurple} />
             <KpiCard label="YTD" value={`₹${(data.revenue.ytd / 1000).toFixed(0)}K`} accent="#00A78E" />
           </View>
@@ -185,14 +181,14 @@ function PlatformDashboard({ data }: { data: any }) {
 
       {data.recent_signups?.length > 0 && (
         <ChartSection title="Recent signups" subtitle="Latest activity">
-          <View style={{ gap: 8 }}>
+          <View className="gap-2">
             {data.recent_signups.slice(0, 5).map((s: any, idx: number) => (
-              <View key={idx} style={styles.activityRow}>
-                <View style={[styles.dot, { backgroundColor: roleColor(s.role) }]} />
-                <Text style={[Typography.body, { flex: 1, color: C.textPrimary }]} numberOfLines={1}>
+              <View key={idx} className="flex-row items-center gap-2 py-1">
+                <View className="w-2 h-2 rounded-full" style={{ backgroundColor: roleColor(s.role) }} />
+                <Text className="text-text text-sm flex-1" numberOfLines={1}>
                   {s.name}
                 </Text>
-                <Text style={[Typography.bodySm, { color: C.textSecondary }]}>{s.role}</Text>
+                <Text className="text-muted text-xs">{s.role}</Text>
               </View>
             ))}
           </View>
@@ -209,7 +205,7 @@ function CollegeDashboard({ data }: { data: any }) {
   const k = data.kpis;
   return (
     <>
-      <View style={styles.kpiGrid}>
+      <View className="flex-row flex-wrap gap-3 mb-4">
         <KpiCard label="Students" value={k.total_students} accent="#5F259F" />
         <KpiCard label="Alumni" value={k.total_alumni} accent="#00A78E" />
         <KpiCard label="Mentors" value={k.total_mentors} accent="#F4A22C" />
@@ -234,17 +230,17 @@ function CollegeDashboard({ data }: { data: any }) {
 
       {data.top_alumni?.length > 0 && (
         <ChartSection title="Notable alumni" subtitle="Recent / top profiles">
-          <View style={{ gap: 8 }}>
+          <View className="gap-2">
             {data.top_alumni.map((a: any, idx: number) => (
-              <View key={idx} style={styles.row}>
-                <View style={styles.alumniAvatar}>
-                  <Text style={{ color: C.white, fontFamily: 'DMSans_700Bold' }}>
+              <View key={idx} className="flex-row items-center gap-3 py-1.5">
+                <View className="w-9 h-9 rounded-full items-center justify-center bg-violet">
+                  <Text className="text-text font-body-bold text-sm">
                     {(a.name || '?').split(' ').map((s: string) => s[0]).join('')}
                   </Text>
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[Typography.bodyBold, { color: C.textPrimary }]} numberOfLines={1}>{a.name}</Text>
-                  <Text style={[Typography.bodySm, { color: C.textSecondary }]} numberOfLines={1}>
+                <View className="flex-1">
+                  <Text className="text-text font-body-bold text-sm" numberOfLines={1}>{a.name}</Text>
+                  <Text className="text-muted text-xs" numberOfLines={1}>
                     {a.role || 'Alumnus'} {a.employer ? `· ${a.employer}` : ''}
                   </Text>
                 </View>
@@ -264,7 +260,7 @@ function MentorDashboard({ data }: { data: any }) {
   const k = data.kpis;
   return (
     <>
-      <View style={styles.kpiGrid}>
+      <View className="flex-row flex-wrap gap-3 mb-4">
         <KpiCard label="Total bookings" value={k.total_bookings} accent={C.brandPurple} testID="kpi-total-bookings" />
         <KpiCard label="Completed" value={k.completed_sessions} accent="#00A78E" />
         <KpiCard label="Upcoming" value={k.upcoming_sessions} accent="#F4A22C" />
@@ -288,23 +284,23 @@ function MentorDashboard({ data }: { data: any }) {
 
       {data.upcoming_sessions_list?.length > 0 && (
         <ChartSection title="Upcoming sessions" subtitle={`${data.upcoming_sessions_list.length} scheduled`}>
-          <View style={{ gap: 10 }}>
+          <View className="gap-2.5">
             {data.upcoming_sessions_list.map((s: any, idx: number) => (
-              <AnimatedCard key={s.id || idx} style={styles.sessionCard} index={idx}>
-                <View style={{ flex: 1 }}>
-                  <Text style={[Typography.bodyBold, { color: C.textPrimary }]} numberOfLines={1}>
+              <AnimatedCard key={s.id || idx} className="flex-row items-center gap-3" index={idx}>
+                <View className="flex-1">
+                  <Text className="text-text font-body-bold text-sm" numberOfLines={1}>
                     {s.student_name}
                   </Text>
-                  <Text style={[Typography.bodySm, { color: C.textSecondary }]} numberOfLines={1}>{s.topic}</Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                  <Text className="text-muted text-xs" numberOfLines={1}>{s.topic}</Text>
+                  <View className="flex-row items-center gap-1.5 mt-1">
                     <Clock size={12} color={C.brandPurple} />
-                    <Text style={[Typography.bodySm, { color: C.brandPurple }]}>
+                    <Text className="text-violet text-xs">
                       {formatDate(s.scheduled_at)}
                     </Text>
                   </View>
                 </View>
-                <View style={[styles.statusPill, statusColor(s.status)]}>
-                  <Text style={[Typography.label, { color: C.white, fontSize: 9 }]}>
+                <View className="px-2 py-0.5 rounded-full" style={statusColor(s.status)}>
+                  <Text className="text-text text-xs font-body-bold" style={{ fontSize: 9 }}>
                     {(s.status || 'pending').toUpperCase()}
                   </Text>
                 </View>
@@ -344,52 +340,3 @@ function formatDate(iso?: string) {
     return d.toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
   } catch { return iso; }
 }
-
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.background },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  hero: {
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.lg,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
-  },
-  heroRow: { flexDirection: 'row', alignItems: 'center', paddingTop: Spacing.sm },
-  backBtn: {
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.16)',
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.24)',
-  },
-  heroKicker: { ...Typography.label, color: 'rgba(255,255,255,0.78)', fontSize: 10 },
-  heroGreeting: { ...Typography.h2, color: C.white, marginTop: 2, fontSize: 22 },
-  scroll: { padding: Spacing.lg, paddingTop: Spacing.lg },
-  kpiGrid: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: 12,
-    marginBottom: Spacing.lg,
-  },
-  emptyState: {
-    flex: 1, padding: Spacing.xl, alignItems: 'center', justifyContent: 'center',
-  },
-  row: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingVertical: 6,
-  },
-  alumniAvatar: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: C.brandPurple,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  activityRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingVertical: 4,
-  },
-  dot: { width: 8, height: 8, borderRadius: 4 },
-  sessionCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-  },
-  statusPill: {
-    paddingHorizontal: 8, paddingVertical: 3,
-    borderRadius: Radius.pill,
-  },
-});

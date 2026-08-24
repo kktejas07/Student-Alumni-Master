@@ -9,7 +9,7 @@
  *   • marginBottom increased for breathing room below header
  */
 import React, { memo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
 import { COLORS, FONT_FAMILIES, FONT_SIZES, SPACING } from '@/src/lib/designTokens';
 
 interface Props {

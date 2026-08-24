@@ -4,7 +4,7 @@
  * Replaces the page-level spinner with section-accurate shape hints.
  */
 import React, { useEffect, useRef, memo } from 'react';
-import { Platform, View, Animated, StyleSheet} from 'react-native';
+import { Platform, View, Animated } from 'react-native';
 import { COLORS, RADIUS, SPACING } from '@/src/lib/designTokens';
 
 // ── Primitive animated block ──────────────────────────────────────────────────

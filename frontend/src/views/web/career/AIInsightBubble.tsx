@@ -10,7 +10,7 @@
  *   • Subtle bg gradient from purple to transparent
  */
 import React, { memo } from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { Platform, Text, View } from 'react-native';
 import { Sparkles } from 'lucide-react-native';
 import { COLORS, FONT_FAMILIES, FONT_SIZES, RADIUS, SPACING } from '@/src/lib/designTokens';
 
