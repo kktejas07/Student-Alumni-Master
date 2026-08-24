@@ -120,7 +120,6 @@ export function TalentPoolView() {
     })();
   }, [search, sourceFilter]);
 
-  const goToPage = useCallback((p: number) => { setPage(p); setLoading(true); (async () => { try { const params = new URLSearchParams(); params.set('page', String(p)); params.set('limit', '50'); if (search.trim()) params.set('q', search.trim()); if (sourceFilter) params.set('source', sourceFilter); const data = await request<{ items: TalentProfile[]; total: number; pages: number }>(`/admin/talent-pool?${params.toString()}`); setProfiles(data.items); setTotal(data.total); setPages(data.pages); } catch (e: any) { setMessage('Error: ' + (e?.message || 'Failed to load')); } finally { setLoading(false); } })(); }, [search, sourceFilter]);
   const fetchProfiles = useCallback(async (p: number = 1) => { goToPage(p); }, [goToPage]);
   useEffect(() => { fetchProfiles(1); }, []);
 
