@@ -7,7 +7,13 @@ if (!Array.prototype.toReversed) {
 }
 
 const { getDefaultConfig } = require("expo/metro-config");
-const { withNativeWind } = require("nativewind/metro");
+let withNativeWind;
+try {
+  const nw = require("nativewind/metro");
+  withNativeWind = nw.withNativeWind || nw;
+} catch (e) {
+  withNativeWind = (c) => c;
+}
 const path = require('path');
 const { FileStore } = require('metro-cache');
 
