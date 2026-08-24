@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, Platform, ActivityIndicator, Linking, Image, Modal } from 'react-native';
+import { View, Text, TextInput, Pressable, ScrollView, Platform, ActivityIndicator, Linking, Image, Modal, StyleSheet } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { Search, Trash2, CheckCircle, XCircle, MapPin, Briefcase, GraduationCap, Star, X, Mail, ExternalLink, Calendar, UserPlus } from 'lucide-react-native';
+import { Search, Trash2, CheckCircle, XCircle, MapPin, Briefcase, GraduationCap, Star, X, Mail, ExternalLink, Calendar, UserPlus, Sparkles } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { request, tokenStore, resolveImageUrl } from '@/src/models/services/api';
 import { SAC, FONTS } from '../tokens';
@@ -553,3 +553,18 @@ function ProfileDetailModal({ visible, profile, onClose, onPromote }: { visible:
     </Modal>
   );
 }
+
+const s = StyleSheet.create({
+  headerActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  btn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1 },
+  btnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
+  btnOutline: { backgroundColor: 'transparent', borderColor: 'rgba(139,92,246,0.3)' },
+  modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
+  modalCard: { backgroundColor: '#1A0438', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(139,92,246,0.2)', width: '92%', maxHeight: '85%', overflow: 'hidden' },
+  modalHero: { paddingHorizontal: 20, paddingVertical: 16 },
+  modalTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 18 },
+  modalRole: { color: 'rgba(255,255,255,0.7)', fontFamily: FONTS.med, fontSize: 12, marginTop: 4 },
+  modalCloseBtn: { padding: 8 },
+  modalSectionLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 0.8, marginBottom: 6 },
+  searchInput: { backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(139,92,246,0.2)', borderRadius: 10, color: '#fff', fontFamily: FONTS.med, fontSize: 13, padding: 12 },
+});

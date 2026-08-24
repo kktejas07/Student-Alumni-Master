@@ -46,8 +46,8 @@ module.exports = {
           amber: '#F59E0B',
         },
         // ── Status ───────────────────────────────────────────
-        success: { DEFAULT: '#10B981', bg: 'rgba(16,185,129,0.12)' },
-        danger: { DEFAULT: '#EF4444', bg: 'rgba(239,68,68,0.12)' },
+        success: { DEFAULT: '#34D399', bg: 'rgba(52,211,153,0.12)' },
+        danger: { DEFAULT: '#F0616B', bg: 'rgba(240,97,107,0.13)' },
         warning: { DEFAULT: '#F59E0B', bg: 'rgba(245,158,11,0.12)' },
         info: { DEFAULT: '#3B82F6', bg: 'rgba(59,130,246,0.12)' },
         // ── Glass Surfaces ───────────────────────────────────
@@ -60,11 +60,11 @@ module.exports = {
         // ── Named Colors (direct hex for non-CSS-var usage) ──
         white: '#FFFFFF',
         black: '#000000',
-        purple: { DEFAULT: '#7C3AED', light: '#A78BFA', dark: '#5B21B6', soft: 'rgba(139,92,246,0.15)' },
+        purple: { DEFAULT: '#7C3AED', light: '#A78BFA', dark: '#5B21B6', soft: 'rgba(124,58,237,0.15)' },
         blue: { DEFAULT: '#3B82F6', light: '#60A5FA', dark: '#2563EB', soft: 'rgba(59,130,246,0.15)' },
-        green: { DEFAULT: '#10B981', light: '#34D399', dark: '#059669', soft: 'rgba(16,185,129,0.15)' },
+        green: { DEFAULT: '#34D399', light: '#6EE7B7', dark: '#059669', soft: 'rgba(52,211,153,0.15)' },
         amber: { DEFAULT: '#F59E0B', light: '#FBBF24', dark: '#D97706', soft: 'rgba(245,158,11,0.15)' },
-        red: { DEFAULT: '#EF4444', light: '#F87171', dark: '#DC2626', soft: 'rgba(239,68,68,0.15)' },
+        red: { DEFAULT: '#F0616B', light: '#F87171', dark: '#DC2626', soft: 'rgba(240,97,107,0.15)' },
         cyan: { DEFAULT: '#22D3EE', light: '#67E8F9', dark: '#06B6D4', soft: 'rgba(34,211,238,0.15)' },
         teal: { DEFAULT: '#14B8A6', light: '#5EEAD4', dark: '#0D9488' },
         rose: { DEFAULT: '#F43F5E', light: '#FB7185', dark: '#E11D48' },

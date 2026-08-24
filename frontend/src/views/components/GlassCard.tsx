@@ -3,7 +3,7 @@
  * Migrated to NativeWind className.
  */
 import React from 'react';
-import { View, StyleSheet, Platform, ViewStyle, StyleProp } from 'react-native';
+import { View, Platform, ViewStyle, StyleProp } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 type Intensity = 'sm' | 'md' | 'lg';
