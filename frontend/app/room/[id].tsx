@@ -4,7 +4,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, TextInput, TouchableOpacity,
+  View, Text, ScrollView, TextInput, TouchableOpacity,
   KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -23,7 +23,6 @@ export default function RoomDetail() {
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
 
-  // Load messages on mount + poll every 5s for live-ish chat
   useEffect(() => {
     if (!params.id) return;
     const load = () => api.roomMessages(String(params.id))
@@ -51,11 +50,11 @@ export default function RoomDetail() {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <KeyboardAvoidingView style={{ flex: 1 }}
+    <SafeAreaView className="flex-1" style={{ backgroundColor: C.background }} edges={['top', 'bottom']}>
+      <KeyboardAvoidingView className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.back}>
+        <View className="flex-row items-center" style={{ paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, backgroundColor: C.surface, borderBottomWidth: 1, borderBottomColor: C.palePurple }}>
+          <TouchableOpacity onPress={() => router.back()} className="items-center justify-center" style={{ width: 40, height: 40 }}>
             <ArrowLeft size={22} color={C.textPrimary} />
           </TouchableOpacity>
           <Text style={[Typography.bodyBold, { flex: 1, textAlign: 'center', color: C.textPrimary }]}>
@@ -64,7 +63,7 @@ export default function RoomDetail() {
           <View style={{ width: 40 }} />
         </View>
 
-        <ScrollView ref={scrollRef} contentContainerStyle={styles.messages}>
+        <ScrollView ref={scrollRef} contentContainerStyle={{ padding: Spacing.md, paddingBottom: 24 }}>
           {messages.length === 0 && (
             <Text style={[Typography.body, { color: C.textMuted, textAlign: 'center', marginTop: 40 }]}>
               Be the first to start the conversation 👋
@@ -73,7 +72,7 @@ export default function RoomDetail() {
           {messages.map((m, i) => {
             const isMe = m.user_id === String(user?.id);
             return (
-              <View key={i} style={[styles.bubble, isMe ? styles.myBubble : styles.otherBubble]}>
+              <View key={i} className={isMe ? 'self-end' : 'self-start'} style={{ maxWidth: '85%', padding: 12, borderRadius: 14, marginBottom: 8, backgroundColor: isMe ? C.brandPurple : C.surface, borderBottomRightRadius: isMe ? 4 : 14, borderBottomLeftRadius: isMe ? 14 : 4, borderWidth: isMe ? 0 : 1, borderColor: isMe ? undefined : C.palePurple }}>
                 {!isMe && (
                   <Text style={[Typography.label, { color: C.brandPurple, fontSize: 10, marginBottom: 2 }]}>
                     {m.user_name} · {m.user_role?.toUpperCase()}
@@ -87,14 +86,15 @@ export default function RoomDetail() {
           })}
         </ScrollView>
 
-        <View style={styles.inputBar}>
+        <View className="flex-row items-end" style={{ gap: 8, padding: Spacing.md, borderTopWidth: 1, borderTopColor: C.palePurple, backgroundColor: C.surface }}>
           <TextInput value={input} onChangeText={setInput}
             placeholder="Type a message..." placeholderTextColor={C.textMuted}
-            style={styles.input} testID="room-input"
+            className="flex-1" style={{ padding: 12, borderRadius: 14, backgroundColor: C.background, borderWidth: 1, borderColor: C.palePurple, fontFamily: 'DMSans_400Regular', fontSize: 15, color: C.textPrimary, maxHeight: 120 }}
+            testID="room-input"
             onSubmitEditing={send} multiline maxLength={500} />
           <TouchableOpacity onPress={send} disabled={!input.trim() || loading}
             testID="room-send-btn"
-            style={[styles.sendBtn, (!input.trim() || loading) && { opacity: 0.5 }]}>
+            className="items-center justify-center" style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: C.brandPurple, opacity: (!input.trim() || loading) ? 0.5 : 1 }}>
             <Send size={18} color={C.white} />
           </TouchableOpacity>
         </View>
@@ -102,31 +102,3 @@ export default function RoomDetail() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.background },
-  header: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm,
-    backgroundColor: C.surface, borderBottomWidth: 1, borderBottomColor: C.palePurple,
-  },
-  back: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  messages: { padding: Spacing.md, paddingBottom: 24 },
-  bubble: { maxWidth: '85%', padding: 12, borderRadius: 14, marginBottom: 8 },
-  myBubble: { alignSelf: 'flex-end', backgroundColor: C.brandPurple, borderBottomRightRadius: 4 },
-  otherBubble: { alignSelf: 'flex-start', backgroundColor: C.surface, borderWidth: 1, borderColor: C.palePurple, borderBottomLeftRadius: 4 },
-  inputBar: {
-    flexDirection: 'row', gap: 8, padding: Spacing.md,
-    borderTopWidth: 1, borderTopColor: C.palePurple,
-    backgroundColor: C.surface, alignItems: 'flex-end',
-  },
-  input: {
-    flex: 1, padding: 12, borderRadius: 14,
-    backgroundColor: C.background, borderWidth: 1, borderColor: C.palePurple,
-    fontFamily: 'DMSans_400Regular', fontSize: 15, color: C.textPrimary, maxHeight: 120,
-  },
-  sendBtn: {
-    width: 48, height: 48, borderRadius: 12, backgroundColor: C.brandPurple,
-    alignItems: 'center', justifyContent: 'center',
-  },
-});

@@ -5,7 +5,7 @@
  * Matches Image 1 reference design.
  */
 import React, { memo } from 'react';
-import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
+import { View, Text, Pressable, Platform } from 'react-native';
 import {
   COLORS, FONT_FAMILIES, FONT_SIZES, RADIUS, SPACING, ELEVATION,
 } from '@/src/lib/designTokens';

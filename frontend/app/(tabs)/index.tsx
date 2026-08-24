@@ -5,7 +5,7 @@
  *   • mentor          → MentorDashboardView
  *   • college         → CollegeDashboardView
  */
-import { View, StyleSheet, Platform } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -29,9 +29,9 @@ export default function HomeTab() {
   const bg = PAGE_BG[role] || PAGE_BG.student;
 
   return (
-    <View style={styles.shell}>
+    <View className="flex-1 bg-navy">
       <LinearGradient colors={bg} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+      <SafeAreaView className="flex-1" edges={['top']}>
         {role === 'mentor' ? (
           <MentorDashboardView
             userName={fullName}
@@ -82,6 +82,4 @@ export default function HomeTab() {
   );
 }
 
-const styles = StyleSheet.create({
-  shell: { flex: 1, backgroundColor: '#1A0438' },
-});
+
