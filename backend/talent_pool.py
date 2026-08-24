@@ -970,6 +970,35 @@ async def promote_talent_to_user(
     return {"ok": True, "user_id": user_id, "invite_sent": invite_sent}
 
 
+# ─── Talent Pool AI Scraping Agents ─────────────────────────────────
+from services.agents.talent_scraper_ai_agent import (
+    talent_scraper_ai_agent,
+    ScrapeProfileRequest,
+    ScrapeProfileResponse,
+    BatchScrapeRequest,
+    BatchScrapeResponse,
+)
+
+@router.post("/admin/talent-pool/ai/scrape-and-store", response_model=ScrapeProfileResponse)
+async def ai_scrape_and_store(
+    req: ScrapeProfileRequest,
+    authorization: Optional[str] = Header(None)
+):
+    """Agent 1 & 2 & 3: Scrapes candidate URL/resume, extracts skills & seniority, and saves to MongoDB."""
+    await _require_admin(authorization)
+    return await talent_scraper_ai_agent.scrape_and_enrich_candidate(req, db=_db)
+
+
+@router.post("/admin/talent-pool/ai/batch-source", response_model=BatchScrapeResponse)
+async def ai_batch_source(
+    req: BatchScrapeRequest,
+    authorization: Optional[str] = Header(None)
+):
+    """Batch Agent: Ingests 50+ candidate URLs concurrently, normalizes data, and syncs talent pool."""
+    await _require_admin(authorization)
+    return await talent_scraper_ai_agent.batch_source_candidates(req, db=_db)
+
+
 # ─── Startup ────────────────────────────────────────────────────────
 def setup():
     import asyncio
@@ -978,3 +1007,4 @@ def setup():
         loop.create_task(_ensure_indexes())
     except RuntimeError:
         pass
+

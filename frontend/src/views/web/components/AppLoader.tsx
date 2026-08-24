@@ -95,14 +95,14 @@ export function LiveDataLoader({
           toValue: 1,
           duration: 1100,
           easing: Easing.linear,
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== 'web',
         }),
       ).start();
 
       Animated.loop(
         Animated.sequence([
-          Animated.timing(pulseOpacity, { toValue: 1, duration: 600, useNativeDriver: true }),
-          Animated.timing(pulseOpacity, { toValue: 0.4, duration: 600, useNativeDriver: true }),
+          Animated.timing(pulseOpacity, { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+          Animated.timing(pulseOpacity, { toValue: 0.4, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
         ]),
       ).start();
     }
@@ -157,8 +157,8 @@ export function SkeletonPulse({
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(pulse, { toValue: 0.8, duration: 750, useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 0.3, duration: 750, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0.8, duration: 750, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.timing(pulse, { toValue: 0.3, duration: 750, useNativeDriver: Platform.OS !== 'web' }),
       ]),
     ).start();
   }, [pulse]);

@@ -465,8 +465,20 @@ export const api = {
     request<any>(`/echo/admin/registrations/${regId}`, { method: 'DELETE' }),
   adminEchoSendPaymentReminder: (regId: string) =>
     request<any>(`/echo/admin/registrations/${regId}/remind`, { method: 'POST' }),
+  adminEchoResendAccountTickets: (regId: string) =>
+    request<any>(`/echo/admin/registrations/${regId}/resend-account-tickets`, { method: 'POST' }),
+  adminEchoSyncTeams: () =>
+    request<any>('/echo/admin/registrations/sync-teams', { method: 'POST' }),
+  adminEchoBroadcastSummary: (slug?: string) =>
+    request<any>(`/echo/admin/broadcast/audience-summary${slug ? '?slug=' + slug : ''}`),
+  adminEchoBroadcastSend: (payload: any) =>
+    request<any>('/echo/admin/broadcast/send', { method: 'POST', body: payload }),
   adminEchoMarkRegistrationFailed: (regId: string) =>
     request<any>(`/echo/admin/registrations/${regId}/mark-failed`, { method: 'POST' }),
+  adminEchoUpdateTeam: (regId: string, teamMembers: any[], teamName?: string) =>
+    request<any>(`/echo/admin/registrations/${regId}/team`, { method: 'PUT', body: { team_members: teamMembers, team_name: teamName } }),
+  adminEchoResendTickets: (regId: string) =>
+    request<any>(`/echo/admin/registrations/${regId}/resend-tickets`, { method: 'POST' }),
   adminEchoRevenue: () =>
     request<any>('/echo/admin/revenue'),
   myEchoInvoices: () =>
@@ -515,6 +527,46 @@ export const api = {
     request<any>(`/newsletter/admin/search-users?q=${encodeURIComponent(q)}`),
   sendIndividualNotification: (payload: any) =>
     request<any>('/newsletter/admin/send-individual', { method: 'POST', body: payload }),
+
+  // ── BGV & Account Verticals ──────────────────────────────────────────────
+  getAccountAnalytics: () =>
+    request<any>('/bgv/admin/analytics'),
+  listAccountsByVertical: (vertical = 'all', q = '', page = 1, limit = 25, country = 'all', has_linkedin = 'all') =>
+    request<any>(`/bgv/admin/list?vertical=${encodeURIComponent(vertical)}&q=${encodeURIComponent(q)}&page=${page}&limit=${limit}&country=${encodeURIComponent(country)}&has_linkedin=${encodeURIComponent(has_linkedin)}`),
+  toggleAccountTestStatus: (payload: { id: string; collection?: string; is_test: boolean }) =>
+    request<any>('/bgv/admin/toggle-test', { method: 'POST', body: payload }),
+  purgeTestAccounts: (confirm = true) =>
+    request<any>('/bgv/admin/purge-test', { method: 'POST', body: { confirm } }),
+  lookupBGVRecord: (identifier: string) =>
+    request<any>(`/bgv/lookup?identifier=${encodeURIComponent(identifier)}`),
+  backfillBGVIdentifiers: () =>
+    request<any>('/bgv/admin/backfill', { method: 'POST', body: {} }),
+  getMonthlyRemindersStatus: () =>
+    request<any>('/bgv/admin/monthly-reminders/status'),
+  updateMonthlyRemindersSettings: (payload: { auto_reminders_enabled?: boolean; interval_days?: number; claim_base_url?: string; subject_template?: string; test_email?: string }) =>
+    request<any>('/bgv/admin/monthly-reminders/settings', { method: 'POST', body: payload }),
+  runMonthlyReminders: (payload?: { dry_run?: boolean; limit?: number }) =>
+    request<any>('/bgv/admin/monthly-reminders/run', { method: 'POST', body: payload || {} }),
+  sendSingleClaimEmail: (payload: { id: string; collection?: string; custom_url?: string; email?: string }) =>
+    request<any>('/bgv/admin/monthly-reminders/send-single', { method: 'POST', body: payload }),
+  updateAccountProfile: (payload: { id: string; collection?: string; name?: string; email?: string; phone?: string; country?: string; location?: string; linkedin_url?: string; college?: string; degree?: string; graduation_year?: string; roll_number?: string }) =>
+    request<any>('/bgv/admin/update-profile', { method: 'POST', body: payload }),
+  autoEnrichProfiles: () =>
+    request<any>('/bgv/admin/enrich-profiles', { method: 'POST', body: {} }),
+  getBGVProvidersRegister: () =>
+    request<any>('/bgv/integrations/providers'),
+  listFakeUniversities: (q = '') =>
+    request<any>(`/bgv/integrations/fake-universities?q=${encodeURIComponent(q)}`),
+  verifyDegreeInstitution: (payload: { college: string }) =>
+    request<any>('/bgv/integrations/verify-degree-institution', { method: 'POST', body: payload }),
+  screenWatchlist: (payload: { name: string; dob?: string; country?: string }) =>
+    request<any>('/bgv/integrations/screen-watchlist', { method: 'POST', body: payload }),
+  runComprehensiveBGVScan: (payload: { name: string; email?: string; college?: string; degree?: string; pan?: string; uan?: string; country?: string; dob?: string; location?: string }) =>
+    request<any>('/bgv/integrations/scan', { method: 'POST', body: payload }),
+  getPublicBGVRecord: (identifier: string) =>
+    request<any>(`/bgv/verify-public/${encodeURIComponent(identifier)}`),
+  downloadBGVReportPdf: (identifier: string) =>
+    request<any>(`/bgv/report/pdf/${encodeURIComponent(identifier)}`),
 };
 
 export function resolveImageUrl(url?: string | null): string {

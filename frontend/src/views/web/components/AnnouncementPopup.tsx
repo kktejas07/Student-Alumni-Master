@@ -122,13 +122,13 @@ export function AnnouncementPopup() {
       window.open(url, '_blank', 'noopener,noreferrer');
     } else {
       onDismiss();
-      router.push(url);
+      router.push(url as any);
     }
   }, [onDismiss, router]);
 
   const onEventPress = useCallback((slug: string) => {
     onDismiss();
-    router.push(`/echo/${slug}`);
+    router.push(`/echo/${slug}` as any);
   }, [onDismiss, router]);
 
   if (Platform.OS !== 'web') return null;

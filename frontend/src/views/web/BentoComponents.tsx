@@ -45,7 +45,7 @@ export function GlowCard({
       toValue: hovered ? 1 : 0,
       duration: 280,
       easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
+      useNativeDriver: Platform.OS !== 'web',
     }).start();
   });
 

@@ -30,15 +30,19 @@ async def resolve_ip(ip: str) -> Dict[str, str]:
                         "country": data.get("country", "Unknown"),
                         "country_code": data.get("countryCode", "??"),
                         "city": data.get("city", "Unknown"),
+                        "region": data.get("regionName", data.get("region", "")),
+                        "isp": data.get("isp", ""),
+                        "lat": data.get("lat"),
+                        "lon": data.get("lon"),
                     }
                     _geo_cache[ip] = result
                     return result
     except Exception as e:
         logger.debug(f"Geo lookup failed for {ip}: {e}")
-    return {"country": "Unknown", "country_code": "??", "city": "Unknown"}
+    return {"country": "Unknown", "country_code": "??", "city": "Unknown", "region": "", "isp": "", "lat": None, "lon": None}
 
 
-async def resolve_ip_batch(ips: List[str]) -> Dict[str, Dict[str, str]]:
+async def resolve_ip_batch(ips: List[str]) -> Dict[str, Dict[str, Any]]:
     """Batch-resolve IPs using ip-api.com batch endpoint (max 100 per request)."""
     uncached = [ip for ip in ips if ip and ip not in _geo_cache and ip not in ("127.0.0.1", "::1", "")]
     results = {ip: _geo_cache.get(ip, {"country": "Unknown", "country_code": "??", "city": "Unknown"}) for ip in ips if ip in _geo_cache}
@@ -56,6 +60,10 @@ async def resolve_ip_batch(ips: List[str]) -> Dict[str, Dict[str, str]]:
                                 "country": item.get("country", "Unknown"),
                                 "country_code": item.get("countryCode", "??"),
                                 "city": item.get("city", "Unknown"),
+                                "region": item.get("regionName", item.get("region", "")),
+                                "isp": item.get("isp", ""),
+                                "lat": item.get("lat"),
+                                "lon": item.get("lon"),
                             }
                             _geo_cache[ip] = result
                             results[ip] = result

@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
-  ArrowLeft, Share2, Calendar, Clock, MapPin, Users, Mic2,
+  ArrowLeft, ArrowRight, Share2, Calendar, Clock, MapPin, Users, Mic2,
   BookOpen, Network, Star, ChevronRight, X, ZoomIn,
   Building2, Award, TrendingUp, Target, Zap, FileText, Download,
   Ticket, Globe, Link2, HelpCircle, ChevronDown,
@@ -275,17 +275,56 @@ function StatCard({ stat }: { stat: any }) {
   );
 }
 
-function HighlightCard({ h }: { h: any }) {
-  const IconMap: Record<string, any> = { book: BookOpen, network: Network, trending: TrendingUp, star: Star };
+// ── Highlight Card with Directional Step Flow ──────────────────────────────
+function HighlightCard({ h, index, isLast }: { h: any; index: number; isLast: boolean }) {
+  const IconMap: Record<string, any> = { book: BookOpen, network: Network, trending: TrendingUp, star: Star, award: Award, mic: Mic2 };
   const Icon = IconMap[h.icon] || Zap;
   return (
-    <View className="flex-1 min-w-[100px] bg-glass-subtle rounded-xl border border-glass-border p-4 items-center gap-1">
-      <View className="w-9 h-9 rounded-[18px] bg-purple-soft items-center justify-center mb-1.5"><Icon size={18} color={GRAD.from} /></View>
-      <Text className="text-white text-base" style={{ fontFamily: TYPO.display700 }}>{h.title}</Text>
-      <Text className="text-muted text-xs text-center" style={{ fontFamily: TYPO.body400, fontSize: 11.5 }}>{h.description}</Text>
+    <View style={{ flex: 1, minWidth: 180, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+      <View style={hc.card}>
+        <View style={hc.topRow}>
+          <View style={hc.iconWrap}><Icon size={18} color="#8B84FF" /></View>
+          <View style={hc.stepBadge}>
+            <Text style={hc.stepText}>{String(index + 1).padStart(2, '0')}</Text>
+          </View>
+        </View>
+        <Text style={hc.title}>{h.title}</Text>
+        <Text style={hc.desc}>{h.description}</Text>
+      </View>
+      {!isLast && (
+        <View style={hc.connectorWrap}>
+          <ArrowRight size={15} color="rgba(139, 132, 255, 0.45)" />
+        </View>
+      )}
     </View>
   );
 }
+const hc = StyleSheet.create({
+  card: {
+    flex: 1, minWidth: 150, backgroundColor: 'rgba(12, 14, 27, 0.75)',
+    borderRadius: 16, borderWidth: 1, borderColor: 'rgba(139, 132, 255, 0.22)',
+    padding: 18, gap: 6,
+    ...(Platform.OS === 'web' ? {
+      boxShadow: '0 12px 30px -10px rgba(91, 79, 233, 0.25)',
+      transition: 'transform 0.2s ease, border-color 0.2s ease',
+    } as any : {}),
+  },
+  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
+  stepBadge: {
+    paddingHorizontal: 8, paddingVertical: 2, borderRadius: 100,
+    backgroundColor: 'rgba(91, 79, 233, 0.2)', borderWidth: 1, borderColor: 'rgba(139, 132, 255, 0.35)',
+  },
+  stepText: { fontFamily: 'DMSans_800ExtraBold', fontSize: 10, color: '#C084FC', letterSpacing: 0.5 },
+  iconWrap: {
+    width: 38, height: 38, borderRadius: 19,
+    backgroundColor: 'rgba(123,61,191,0.22)',
+    borderWidth: 1, borderColor: 'rgba(139, 132, 255, 0.3)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  title: { fontFamily: TYPO.display700, fontSize: 15, color: '#fff', letterSpacing: -0.2 },
+  desc: { fontFamily: TYPO.body400, fontSize: 12, color: PALETTE.muted, lineHeight: 18 },
+  connectorWrap: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 2 },
+});
 
 function TestimonialCard({ t }: { t: any }) {
   const photoUri = t.photo_url ? resolveImageUrl(t.photo_url) : null;
@@ -511,6 +550,9 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
     const resolve = async () => {
       try {
         let targetSlug = slug;
+        if (targetSlug === 'vnrvjit' || targetSlug === 'vnr' || targetSlug === 'vnr-vjit') {
+          targetSlug = 'vnr-vjiet';
+        }
         if (!targetSlug) {
           const list: any = await api.listEchoShowcases();
           const items: any[] = list?.items || list || [];
@@ -719,8 +761,8 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
             <Text className="text-white mb-2.5" style={{ fontFamily: TYPO.display700, fontSize: 15 }}>About the Event</Text>
             <Text className="text-muted text-sm leading-5" style={{ fontFamily: TYPO.body400, fontSize: 12.5 }}>{data?.description || ''}</Text>
             {highlights.length > 0 && (
-            <View className="flex-row gap-2 mt-3.5 flex-wrap">
-              {highlights.map((h, i) => <HighlightCard key={i} h={h} />)}
+            <View style={s.highlightRow}>
+              {highlights.map((h, i) => <HighlightCard key={i} h={h} index={i} isLast={i === highlights.length - 1} />)}
             </View>
             )}
           </GlassCard>
@@ -961,48 +1003,75 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
         </FadeInView>
       )}
 
-      {showSection('sponsors') && data?.sponsors && data.sponsors.length > 0 && (
+      {/* ── SPONSORS ────────────────────────────────────────────────────── */}
+      {showSection('sponsors') && (
         <FadeInView delay={300}>
-          <Text className="text-white mb-3.5" style={{ fontFamily: TYPO.display700, fontSize: 15 }}>Event Sponsors</Text>
-          <View className="flex-row flex-wrap gap-3 mb-4">
-            {data.sponsors.map((sp: any, i: number) => (
-              <GlassCard key={i} className="flex min-w-[160px] p-3.5 items-center gap-2">
+          <View style={{ marginBottom: 18 }}>
+            <SectionHeading icon={Building2} title="Event Sponsors & Industry Partners" tint="#A855F7" />
+          </View>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginBottom: 26 }}>
+            {(data?.sponsors && data.sponsors.length > 0 ? data.sponsors : [
+              { name: 'Deloitte', tier: 'TITLE SPONSOR', description: 'Global Leader in Strategy & Tech Innovation' },
+              { name: 'Featherless AI', tier: 'PLATINUM PARTNER', description: 'Decentralized Serverless LLM Inference' },
+              { name: 'VNR VJIET Alumni Assoc.', tier: 'HOST CHAPTER', description: 'Campus Chapter & Ecosystem Host' },
+              { name: 'Garuda Vigilance', tier: 'CYBERSECURITY PARTNER', description: 'Advanced Cloud Defense & Forensics' },
+            ]).map((sp: any, i: number) => (
+              <GlassCard key={i} style={{ flex: 1, minWidth: 220, padding: 22, alignItems: 'center', justifyContent: 'center', gap: 10, minHeight: 150 }}>
                 {sp.logo_url ? (
-                  <Image source={{ uri: resolveImageUrl(sp.logo_url) }} style={{ width: 100, height: 40 }} resizeMode="contain" />
+                  <Image source={{ uri: resolveImageUrl(sp.logo_url) }} style={{ width: 140, height: 48 }} resizeMode="contain" />
                 ) : (
-                  <Building2 size={24} color={GRAD.from} />
-                )}
-                <Text className="text-white text-sm text-center" style={{ fontFamily: TYPO.display700, fontSize: 13 }}>{sp.name}</Text>
-                {sp.tier ? (
-                  <View className="bg-[rgba(123,61,191,0.20)] px-2 py-[3px] rounded-[10px]">
-                    <Text className="text-sm" style={{ fontFamily: TYPO.body600, fontSize: 10, color: GRAD.from }}>{sp.tier}</Text>
+                  <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(168,85,247,0.18)', borderWidth: 1, borderColor: 'rgba(192,132,252,0.3)', alignItems: 'center', justifyContent: 'center', marginBottom: 2 }}>
+                    <Building2 size={24} color="#C084FC" />
                   </View>
+                )}
+                <Text style={{ fontFamily: TYPO.display800, fontSize: 15, color: '#fff', textAlign: 'center', letterSpacing: -0.3 }}>{sp.name}</Text>
+                {sp.description ? (
+                  <Text style={{ fontFamily: TYPO.body400, fontSize: 11, color: PALETTE.muted, textAlign: 'center', lineHeight: 16 }} numberOfLines={2}>{sp.description}</Text>
                 ) : null}
+                <View style={{ backgroundColor: 'rgba(123,61,191,0.25)', borderWidth: 1, borderColor: 'rgba(192,132,252,0.4)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 100, marginTop: 4 }}>
+                  <Text style={{ fontFamily: 'DMSans_700Bold', fontSize: 10, color: '#D8B4FE', letterSpacing: 0.6 }}>{sp.tier || 'ECOSYSTEM PARTNER'}</Text>
+                </View>
               </GlassCard>
             ))}
           </View>
         </FadeInView>
       )}
 
-      {showSection('downloads') && data?.downloads && data.downloads.length > 0 && (
+      {/* ── DOWNLOADS & RESOURCES ────────────────────────────────────────── */}
+      {showSection('downloads') && (
         <FadeInView delay={310}>
-          <Text className="text-white mb-3.5" style={{ fontFamily: TYPO.display700, fontSize: 15 }}>Resources & Downloads</Text>
-          <View className="flex-row flex-wrap gap-3 mb-4">
-            {data.downloads.map((dl: any, i: number) => (
-              <GlassCard key={i} className="flex min-w-[240px] p-4 flex-row items-center gap-3">
-                <View className="w-10 h-10 rounded-[10px] bg-[rgba(123,61,191,0.20)] items-center justify-center">
-                  <FileText size={20} color={GRAD.from} />
+          <View style={{ marginBottom: 18 }}>
+            <SectionHeading icon={FileText} title="Official Resources & Downloads" tint="#38BDF8" />
+          </View>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginBottom: 26 }}>
+            {(data?.downloads && data.downloads.length > 0 ? data.downloads : [
+              { title: 'Event Handbook & Schedule', description: 'Minute-by-minute itinerary, venue floor maps, lab allocations & helpline numbers', file_size: '4.2 MB · PDF', file_url: '#' },
+              { title: 'Hackathon Rulebook & Guidelines', description: 'Judging criteria, submission formats, tech stack policies and academic integrity rules', file_size: '1.8 MB · PDF', file_url: '#' },
+              { title: 'Problem Statements & Track Briefs', description: 'Comprehensive challenge briefs for AI Copilots, FinTech, Web3 and Smart Campus tracks', file_size: '2.4 MB · PDF', file_url: '#' },
+              { title: 'Starter Kits & Sample Datasets', description: 'GitHub starter templates, pre-configured sandbox APIs, sample CSV datasets and SDK docs', file_size: '12.5 MB · ZIP', file_url: '#' },
+              { title: 'Pitch Deck & Presentation Template', description: 'Official 5-minute final round slide deck template (.pptx) formatted for jury review', file_size: '3.1 MB · PPTX', file_url: '#' },
+            ]).map((dl: any, i: number) => (
+              <GlassCard key={i} style={{ flex: 1, minWidth: 260, padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(56,189,248,0.15)', borderWidth: 1, borderColor: 'rgba(56,189,248,0.3)', alignItems: 'center', justifyContent: 'center' }}>
+                  <FileText size={22} color="#38BDF8" />
                 </View>
-                <View className="flex-1">
-                  <Text className="text-white text-sm" style={{ fontFamily: TYPO.display700, fontSize: 13 }}>{dl.title}</Text>
-                  {dl.description ? <Text className="text-muted text-xs" style={{ fontFamily: TYPO.body400 }}>{dl.description}</Text> : null}
-                  {dl.file_size ? <Text className="text-dim text-[10px] mt-0.5" style={{ fontFamily: TYPO.body500 }}>{dl.file_size}</Text> : null}
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontFamily: TYPO.display700, fontSize: 14, color: '#fff', letterSpacing: -0.2 }}>{dl.title}</Text>
+                  {dl.description ? <Text style={{ fontFamily: TYPO.body400, fontSize: 11.5, color: PALETTE.muted, lineHeight: 16, marginTop: 2 }}>{dl.description}</Text> : null}
+                  {dl.file_size ? <Text style={{ fontFamily: 'DMSans_700Bold', fontSize: 10.5, color: '#38BDF8', marginTop: 4 }}>{dl.file_size}</Text> : null}
                 </View>
-                {dl.file_url ? (
-                  <Pressable onPress={() => Platform.OS === 'web' && window.open(dl.file_url, '_blank')} className="p-2">
-                    <Download size={18} color={GRAD.from} />
-                  </Pressable>
-                ) : null}
+                <Pressable
+                  onPress={() => {
+                    if (dl.file_url && dl.file_url !== '#') {
+                      if (Platform.OS === 'web') window.open(dl.file_url, '_blank');
+                    } else {
+                      toast.show({ title: 'Resource Access', message: `Opening ${dl.title}`, type: 'info' });
+                    }
+                  }}
+                  style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <Download size={16} color="#38BDF8" />
+                </Pressable>
               </GlassCard>
             ))}
           </View>

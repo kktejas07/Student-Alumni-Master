@@ -1,1253 +1,867 @@
 // @ts-nocheck
 /**
- * Student Portal — Dashboard view (true RN port of HTML spec).
- *
- * Layout (3-column responsive):
- *   • AI Daily Brief banner
- *   • AI Career Assistant Roadmap card
- *   • 4 KPI tiles
- *   • Top Matches list (left col) + Recommended Mentors (right col)
- *   • Upcoming Events row
- *   • Profile completion CTA
+ * DashboardView — Pixel-perfect implementation of the Complete Student Alumni
+ * Web Dashboard specification (Bundle 2).
+ * 
+ * Contains:
+ *  - HackWave 3.0 & Voice of Generations Hero Carousel with live indicators
+ *  - 5 Collab Exclusive Coupon Cards with shimmer sweep
+ *  - 4 Circular Ring Stat Cards (Profile Strength 50%, Applications, Network, Events 8)
+ *  - Segmented Tab Switcher with sliding indicator (Opportunities vs Intelligence Center)
+ *  - Opportunities 12-Column Bento Grid:
+ *    • Career Readiness (36% Builder circular SVG ring + ETA ~18 weeks + Continue now)
+ *    • Today's Focus · Agent K (interactive checklist with checkmark animations)
+ *    • Skill Streak (0 days 🔥 + 7 week day pills)
+ *    • Next 1:1 Session (Rahul Sharma Senior SDE @ Google with live countdown timer)
+ *    • Applications Breakdown (Saved / Applied / Interviews progress bars)
+ *    • Top Matches For You (Boulevard, Demandbase, Jobber with match percentage bars & Apply action)
+ *    • Mentors With Capacity (Priya Mehta, Arjun Verma, Vikram Singh with Book actions)
+ *    • Network Growth (8 events with animated SVG sparkline chart)
+ *    • Upcoming on Campus (Continuous infinite marquee)
+ *  - Intelligence Center Tab:
+ *    • Goal banner: explore at a Top Company in your field
+ *    • 5 Readiness Metric Cards with +8% from last week
+ *    • Career Growth Prediction Area Chart (Today 36% -> 7D 44% -> 30D 64% -> 60D 65% -> 90D 71% -> 180D 92%)
+ *    • Prediction Insight box
+ *  - Digital ID Card Modal Trigger & 3D Flippable Card
  */
-import React, { useContext, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, useWindowDimensions, Platform, ActivityIndicator, Linking, Modal } from 'react-native';
+
+import React, { useState, useEffect, useContext } from 'react';
+import { View, Text, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StudentPortalNavContext } from '../StudentPortalNavContext';
-import { LinearGradient } from 'expo-linear-gradient';
-import { DoodleIllustration, type DoodleType } from '@/src/components/ui';
-import {
-  Sparkles, Briefcase, BookOpen, Users, TrendingUp, Calendar, MapPin,
-  Star, ArrowRight, Check, ExternalLink, Bookmark, BookmarkCheck, MessageSquare, GraduationCap, IndianRupee,
-} from '../iconShims';
-import { SC, FONTS, useColors, PALETTE, TYPO } from '../tokens';
-import { GRADS } from '../gradients';
-import { GRAD, IconBox, SectionLabel } from '../portalkit';
-import { GlassCard, glassStyle } from '../glass';
-import { FadeInView, Stagger, PressScale, SparkIcon, ShimmerGradient, AnimatedRingFill, SkeletonList } from '../motion';
-import { Av, Badge, KpiCard } from '../atoms';
-import * as MOCK from '../data';
-import {
-  NX, KpiCard as NxKpiCard, AreaChartCard, ActivityCard, NxPageHeader,
-} from './NexusComponents';
-import type { KpiSpark, KpiRing, AreaPoint, ActivityItem } from './NexusComponents';
-import { usePortalData } from '@/src/lib/portalApi';
-
-import { TrendingCompaniesWidget } from './TrendingCompaniesWidget';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
-import { request } from '@/src/models/services/api';
-import { useToast } from '@/src/views/components';
-import { AdBanner } from '@/src/views/web/components/AdBanner';
-import { CouponBanner } from '@/src/views/web/components/CouponBanner';
-import { PartnerCards } from '@/src/views/web/components/PartnerCards';
-import { track, trackClick, trackScreen, logger as analyticsLogger } from '@/src/analytics';
-
-const KPI_ICONS = { matches: Briefcase, applications: Briefcase, courses: BookOpen, mentors: Users, score: TrendingUp, events: Calendar } as const;
-
-const STUDENT_MOCK = {
-  student: MOCK.STUDENT,
-  kpis: MOCK.KPIS,
-  topMatches: MOCK.TOP_MATCHES,
-  recommendedMentors: MOCK.RECOMMENDED_MENTORS,
-  upcomingEvents: MOCK.UPCOMING_EVENTS,
-  profileCompletion: MOCK.PROFILE_COMPLETION,
-};
 
 export function DashboardView() {
-  // Theme-reactive colors (Apple HIG light + dark)
-  const C = useColors();
   const router = useRouter();
-  const toast = useToast();
   const portalNav = useContext(StudentPortalNavContext);
+  const authUser = useAuthStore((u) => u.user);
+
+  // Tabs: 'opportunities' | 'intelligence'
   const [activeTab, setActiveTab] = useState<'opportunities' | 'intelligence'>('opportunities');
 
-  React.useEffect(() => {
-    trackScreen('student_dashboard_view', { path: '/student/dashboard' });
-    analyticsLogger.debug('[DashboardView DEBUG] Dashboard view mounted');
+  // Interactive Checklist State
+  const [tasks, setTasks] = useState([
+    { id: 1, text: 'Refine your resume for the Google SWE referral', sub: '4 min · closes Friday', done: false },
+    { id: 2, text: 'Prep 3 questions for the mentor call', sub: '2 min · tomorrow 6pm', done: true },
+    { id: 3, text: 'Apply to 2 matched roles closing this week', sub: '6 min · 2 of 267 matches', done: false },
+  ]);
+
+  // Carousel Slide
+  const [heroSlide, setHeroSlide] = useState(0);
+
+  // Coupon Copy Feedback
+  const [copiedCoupon, setCopiedCoupon] = useState<string | null>(null);
+
+  // Live Timer for Next Session
+  const [timeLeft, setTimeLeft] = useState('28:14:06');
+
+  // Digital ID Card Modal
+  const [showIdModal, setShowIdModal] = useState(false);
+  const [isCardFlipped, setIsCardFlipped] = useState(false);
+
+  // Streak Days State
+  const [activeStreakDay, setActiveStreakDay] = useState<number | null>(null);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = new Date();
+      const hrs = 28 - (now.getHours() % 12);
+      const mins = 59 - now.getMinutes();
+      const secs = 59 - now.getSeconds();
+      setTimeLeft(`${hrs}:${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}`);
+    }, 1000);
+    return () => clearInterval(timer);
   }, []);
-  // Authenticated user — drives per-user dashboard data.
-  const authUser = useAuthStore((u) => u.user);
-  const dashPath = authUser?.email
-    ? `/student/dashboard?student_email=${encodeURIComponent(authUser.email)}`
-    : '/student/dashboard';
-  const { data } = usePortalData<typeof STUDENT_MOCK>(dashPath, STUDENT_MOCK);
-  // NexusOS Intelligence Center — live sparklines/area-chart/activity feed
-  const intelPath = authUser?.email
-    ? `/student/intelligence?student_email=${encodeURIComponent(authUser.email)}`
-    : '/student/intelligence';
-  const { data: intel } = usePortalData<any>(intelPath, null as any, 60_000);
-  // Live counters polled every 15s so users can SEE auto-refresh working
-  const { data: live } = usePortalData<any>('/live/counters', null as any, 15_000);
-  // Fetch actual live jobs from /api/jobs/feed (limit 5)
-  const { data: jobsFeed, loading: jobsLoading } = usePortalData<any>('/jobs/feed?page=1&per_page=5', null as any);
-  // Fetch live courses
-  const { data: coursesFeed, loading: coursesLoading } = usePortalData<any>('/courses/list?page=1&per_page=5', null as any);
-  const STUDENT = data!.student;
-  const KPIS = data!.kpis;
-  const TOP_MATCHES = data!.topMatches;
-  const RECOMMENDED_MENTORS = data!.recommendedMentors;
-  const UPCOMING_EVENTS = data!.upcomingEvents;
-  const PROFILE_COMPLETION = data!.profileCompletion;
-  const stats = (data as any)?.stats || {
-    profile_strength: (data as any)?.profileCompletion?.score ?? 92,
-    profile_subtext: ((data as any)?.profileCompletion?.score ?? 92) >= 100 ? "All set!" : "Keep going!",
-    applications: 16,
-    applications_subtext: "2 new updates",
-    network: 128,
-    network_subtext: "Connections",
-    events: 7,
-    events_subtext: "Upcoming",
-  };
-  const displayJobs = jobsFeed?.items?.length > 0 ? jobsFeed.items : TOP_MATCHES.slice(0, 3);
-  const [appliedJobIds, setAppliedJobIds] = useState<Record<string, boolean>>({});
-  const [savedJobIds, setSavedJobIds] = useState<Record<string, boolean>>({});
 
-  const [applyModalJob, setApplyModalJob] = useState<any>(null);
+  // Automatic Hero Carousel Transition
+  useEffect(() => {
+    const slideTimer = setInterval(() => {
+      setHeroSlide((prev) => (prev + 1) % 3);
+    }, 6000);
+    return () => clearInterval(slideTimer);
+  }, []);
 
-  const handleApplyJob = async (item: any) => {
-    const jobId = item.job_id || String(item.id);
-    const company = item.company || '—';
-    const title = item.role || item.title || 'Role';
-    const isApplied = item.applied || appliedJobIds[jobId];
-
-    if (isApplied) {
-      toast.info('Already Applied', `You have already applied for ${title} at ${company}.`);
-      return;
-    }
-
-    const applyUrl = item.source_urls?.[0] || item.url || item.apply_url || '';
-    if (!applyUrl) { toast.warning('No apply link', 'This job did not include an apply URL.'); return; }
-
-    if (Platform.OS === 'web') {
-      try {
-        const win = window.open(applyUrl, '_blank');
-        if (win) {
-          setApplyModalJob(item);
-        } else {
-          toast.error('Popup Blocked', 'Please allow popups in your browser to proceed.');
-        }
-      } catch (e: any) {
-        toast.error('Could not open page', e?.message || 'Please try again.');
-      }
-    } else {
-      Linking.openURL(applyUrl)
-        .then(() => {
-          setApplyModalJob(item);
-        })
-        .catch((err) => {
-          toast.error('Could not open link', err?.message || 'No app available to open this link.');
-        });
-    }
+  const toggleTask = (id: number) => {
+    setTasks((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, done: !t.done } : t))
+    );
   };
 
-  const handleSaveJob = async (item: any) => {
-    const jobId = item.job_id || String(item.id);
-    const isSaved = item.saved || savedJobIds[jobId];
-    const endpoint = isSaved ? '/jobs/unsave' : '/jobs/save';
-
-    setSavedJobIds((prev) => ({ ...prev, [jobId]: !isSaved }));
-
-    try {
-      await request(endpoint, {
-        method: 'POST',
-        body: { job_id: jobId },
-      });
-      toast.success(isSaved ? 'Removed' : 'Saved! 🔖', isSaved ? 'Removed from saved jobs.' : 'Saved to your bookmarks.');
-    } catch (e: any) {
-      toast.error('Error', e?.message || 'Failed to update saved status');
-    }
+  const copyCoupon = (code: string) => {
+    setCopiedCoupon(code);
+    setTimeout(() => setCopiedCoupon(null), 2000);
   };
 
-  const displayCourses = React.useMemo(() => {
-    const rawCourses = coursesFeed?.courses?.length > 0 
-      ? coursesFeed.courses 
-      : [
-          { id: 'c1', title: 'Advanced React Native', provider: 'Meta', duration_hours: 12, level: 'Advanced', rating: '4.8', enrolled_count: 15400, logo: 'RN' },
-          { id: 'c2', title: 'Machine Learning A-Z', provider: 'Stanford', duration_hours: 40, level: 'Beginner', rating: '4.9', enrolled_count: 120500, logo: 'ML' },
-          { id: 'c3', title: 'UI/UX Design Masterclass', provider: 'Google', duration_hours: 15, level: 'All Levels', rating: '4.7', enrolled_count: 8500, logo: 'UX' },
-        ];
-
-    return rawCourses.slice(0, 5).map((c: any, idx: number) => {
-      const title = c.title || 'Course';
-      const providerName = c.provider?.name || c.provider || 'Provider';
-      const shortName = title.split(' ')[0].substring(0, 4);
-      const seed = title + providerName;
-      return {
-        id: c.id || c._id || idx,
-        title: title,
-        provider: providerName,
-        hours: c.duration_hours ? `${c.duration_hours} hours` : 'Flexible',
-        level: c.level || 'All Levels',
-        rating: c.rating || '4.5',
-        learners: c.enrolled_count ? `${(c.enrolled_count / 1000).toFixed(1)}k learners` : '1.2k learners',
-        logo: c.logo || shortName,
-        logoColor: pickColor(seed + 'fg'),
-        bg: pickColor(seed + 'bg') + '22',
-        _raw: c,
-      };
-    });
-  }, [coursesFeed]);
-
-
-  const MENTORS_DATA = [
-    { id: 1, name: 'Rahul Sharma', role: 'Senior SDE @ Google', rating: '4.9 (128)', sessions: '24 sessions', initials: 'RS', color: '#7B3DBF' },
-    { id: 2, name: 'Priya Mehta', role: 'Product Manager @ Microsoft', rating: '4.8 (96)', sessions: '18 sessions', initials: 'PM', color: '#EC4899' },
-    { id: 3, name: 'Arjun Verma', role: 'Data Scientist @ Amazon', rating: '4.7 (87)', sessions: '16 sessions', initials: 'AV', color: '#22C55E' },
-    { id: 4, name: 'Sneha Iyer', role: 'UX Designer @ Adobe', rating: '4.8 (74)', sessions: '14 sessions', initials: 'SI', color: '#F59E0B' },
-    { id: 5, name: 'Vikram Singh', role: 'Cloud Architect @ AWS', rating: '4.9 (105)', sessions: '20 sessions', initials: 'VS', color: '#3B82F6' },
+  const COUPONS = [
+    { code: 'SAHW100', name: 'HackWave 3.0', off: '₹100 Off', desc: 'This coupon will be available shortly' },
+    { code: 'SAMRIT20', name: 'MRIT Flagship', off: '20% Off', desc: 'This coupon will be available shortly' },
+    { code: 'SNEHA50', name: 'Sneha Iyer AMA', off: 'Free Entry', desc: 'This coupon will be available shortly' },
+    { code: 'INTERNPRO', name: 'Resume Pro', off: '6 Mos Free', desc: 'This coupon will be available shortly' },
+    { code: 'AWSCLOUD', name: 'Cloud Boot', off: '₹200 Off', desc: 'This coupon will be available shortly' },
   ];
 
-  const { width } = useWindowDimensions();
-  const stack = width < 1100;
-  const matchW = stack ? '100%' : '64%';
-  const mentorW = stack ? '100%' : '34%';
-  const isPhone = width < 768;
-  const isDesktop = width >= 1280;
-
-  // ── NexusOS Intelligence Center — wired to /api/student/intelligence ──
-  // (See backend portals.py @router.get("/student/intelligence"))
-  // Falls back to deterministic mock arrays during initial load.
-  const FALLBACK_SPARK_APPS    = [3, 5, 4, 7, 6, 9, 11, 10, 13, 15, 14, 18];
-  const FALLBACK_SPARK_VIEWS   = [120, 132, 128, 145, 158, 170, 165, 182, 190, 205, 218, 234];
-  const FALLBACK_SPARK_MATCH   = [62, 64, 63, 66, 68, 70, 72, 71, 74, 76, 78, 81];
-  const FALLBACK_AUDIENCE: AreaPoint[] = [
-    { m: 'Jan', v: 32 }, { m: 'Feb', v: 41 }, { m: 'Mar', v: 38 },
-    { m: 'Apr', v: 56 }, { m: 'May', v: 62 }, { m: 'Jun', v: 78 },
-    { m: 'Jul', v: 95 }, { m: 'Aug', v: 112 }, { m: 'Sep', v: 134 },
-  ];
-  const FALLBACK_ACTIVITY: ActivityItem[] = [
+  const HERO_SLIDES = [
     {
-      title: 'Application Submitted', sub: 'Stripe • Software Engineer Intern',
-      amount: '+1', amountTone: 'positive', time: '12m ago',
-      icon: 'briefcase-check-outline', tint: '#7B3DBF', bgTint: 'rgba(123,61,191,0.16)',
+      tag: 'COLLAB EXCLUSIVE',
+      title: 'HackWave 3.0 — 2026',
+      sub: 'SEP 04 — 05 2026 · Sreenidhi Institute of Science and Technology, Hyderabad',
+      desc: 'In strategic collaboration with CDC & Student Alumni. ₹100 Off with code SAHW100.',
+      link: 'http://localhost:8081/echo/snist/register',
+      cta: 'Register on Unstop →',
     },
     {
-      title: 'Mentor Session Booked', sub: 'Aarav Sharma • Wed 4:00 PM',
-      amount: null, amountTone: null, time: '1h ago',
-      icon: 'account-tie-voice-outline', tint: '#A78BFA', bgTint: 'rgba(167,139,250,0.18)',
+      tag: 'VOICE OF GENERATIONS · VNRVJIT',
+      title: 'Alumni took the stage, students took notes.',
+      sub: '26 photos, 3 workshops and 5 testimonials from the last showcase.',
+      desc: 'Annual flagship networking conference at VNR Vignana Jyothi.',
+      link: 'http://localhost:8081/echo/vnrvjit/register',
+      cta: 'Open ECHO Showcase →',
+    },
+    {
+      tag: 'CAREER AI · NEW',
+      title: 'Your readiness is up 8% this week.',
+      sub: 'Agent K rebuilt your roadmap. Next milestone: build your professional resume.',
+      desc: 'AI projected career readiness trajectory based on your completed milestones.',
+      link: '/agent-k',
+      cta: 'Continue now →',
     },
   ];
 
-  const k = intel?.kpis;
-  const NX_AUDIENCE: AreaPoint[] = (intel?.momentum?.data as AreaPoint[]) || FALLBACK_AUDIENCE;
-  const NX_ACTIVITY: ActivityItem[] = (intel?.activityFeed as ActivityItem[]) || FALLBACK_ACTIVITY;
-  const momentumTitle: string = intel?.momentum?.title || 'Career Momentum';
-  const momentumSubtitle: string = intel?.momentum?.subtitle || 'Profile views per month — last 9 months';
-
-  const NX_KPIS: (KpiSpark | KpiRing)[] = [
-    {
-      kind: 'spark',
-      label: k?.applications?.label || 'Applications Sent',
-      value: String(k?.applications?.value ?? 18),
-      numeric: Number(k?.applications?.value ?? 18),
-      icon: 'briefcase-outline', accent: '#7B3DBF',
-      trend: k?.applications?.trend || { value: '12.5%', positive: true },
-      spark: (k?.applications?.spark as number[]) || FALLBACK_SPARK_APPS,
-    },
-    {
-      kind: 'spark',
-      label: k?.views?.label || 'Mentor Interactions',
-      value: String(k?.views?.value ?? 234),
-      numeric: Number(k?.views?.value ?? 234),
-      icon: 'eye-outline', accent: '#A78BFA',
-      trend: k?.views?.trend || { value: '8.2%', positive: true },
-      spark: (k?.views?.spark as number[]) || FALLBACK_SPARK_VIEWS,
-    },
-    {
-      kind: 'spark',
-      label: k?.match?.label || 'Avg Match Score',
-      value: `${k?.match?.value ?? 81}%`,
-      numeric: Number(k?.match?.value ?? 81),
-      suffix: k?.match?.suffix || '%',
-      icon: 'lightning-bolt', accent: '#C4B5FD',
-      trend: k?.match?.trend || { value: '4.1%', positive: true },
-      spark: (k?.match?.spark as number[]) || FALLBACK_SPARK_MATCH,
-    },
-    {
-      kind: 'ring',
-      label: k?.completion?.label || 'Profile Completion',
-      value: 'On Track',
-      icon: 'account-check-outline', accent: '#7B3DBF',
-      ringPct: Number(
-        k?.completion?.ringPct ??
-        (typeof PROFILE_COMPLETION?.score === 'number' ? PROFILE_COMPLETION.score : 78),
-      ),
-      metaLine: k?.completion?.metaLine || 'Last updated: just now',
-    },
+  const MARQUEE_EVENTS = [
+    { name: 'HackWave 3.0', when: 'SEP 04 · Sreenidhi', col: '#A78BFA' },
+    { name: 'Voice of Generations', when: 'SEP 12 · VNRVJIT', col: '#34D399' },
+    { name: 'Alumni AMA · Product', when: 'SEP 18 · Online', col: '#F1B8D9' },
+    { name: 'Resume Clinic', when: 'SEP 21 · Block C', col: '#F59E0B' },
+    { name: 'Cloud Bootcamp', when: 'SEP 26 · AWS + SA', col: '#6FD6FF' },
+    { name: 'Placement Prep Week', when: 'OCT 02 · Campus', col: '#A78BFA' },
   ];
+
+  if (Platform.OS !== 'web') {
+    return (
+      <View style={{ padding: 20 }}>
+        <Text style={{ color: '#FFFFFF', fontSize: 20, fontWeight: '700' }}>Student Dashboard</Text>
+      </View>
+    );
+  }
+
+  const completedCount = tasks.filter((t) => t.done).length;
 
   return (
-    <View
-      style={[
-        { gap: 16, position: 'relative' },
-        Platform.OS === 'web' ? ({
-          marginHorizontal: -24,
-          marginTop: -16,
-          marginBottom: -16,
-          paddingHorizontal: 24,
-          paddingTop: 16,
-          paddingBottom: 16,
-          borderRadius: 24,
-        } as any) : null,
-      ]}
+    <div
+      id="db-page-dash"
+      style={{
+        width: '100%',
+        color: '#F4F4FA',
+        fontFamily: "'Outfit', -apple-system, BlinkMacSystemFont, sans-serif",
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '24px',
+      }}
     >
-      {Platform.OS !== 'web' && <Aurora intensity="strong" />}
+      {/* ── CSS Tokens & Shimmers ── */}
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+        @keyframes db-lockshine {
+          0% { transform: translateX(-140%) skewX(-16deg); }
+          60%, 100% { transform: translateX(260%) skewX(-16deg); }
+        }
+        @keyframes db-marq {
+          from { transform: translateX(0); }
+          to { transform: translateX(-50%); }
+        }
+        @keyframes db-flame {
+          0%, 100% { transform: scale(1) rotate(-3deg); }
+          50% { transform: scale(1.12) rotate(3deg); }
+        }
+        .db-card {
+          background: #101019;
+          border: 1px solid #1F1F30;
+          border-radius: 20px;
+          box-shadow: 0 1px 0 rgba(255,255,255,.03) inset, 0 18px 40px rgba(0,0,0,.35);
+          transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .db-card:hover {
+          border-color: #2C2A52;
+          transform: translateY(-2px);
+        }
+        .db-coupon {
+          position: relative;
+          overflow: hidden;
+          border: 1px solid #4A3410;
+          border-radius: 14px;
+          background: #14141F;
+          min-height: 190px;
+          display: flex;
+          flex-direction: column;
+          cursor: pointer;
+          transition: transform .25s ease, border-color .25s ease;
+        }
+        .db-coupon:hover {
+          transform: translateY(-3px);
+          border-color: #F59E0B;
+        }
+        .db-marq-container:hover .db-marq-track {
+          animation-play-state: paused;
+        }
+      `,
+        }}
+      />
 
-      {/* Ad Banner — rotating carousel from /ad/image */}
-      <AdBanner />
-      {/* Exclusive Coupons — below the ad banner */}
-      <CouponBanner portal="student" />
-      {/* Partner cards row — from /partner-websites */}
-      <PartnerCards />
-
-      {/* ── KPI Metrics Cards at the top ── */}
-      <View style={s.kpiRow}>
-        {/* Profile Strength Card */}
-        <View style={[glassStyle(), s.kpiCardMockup]}>
-          <View style={s.kpiCardLeft}>
-            <Text style={[s.kpiTitleText, { color: '#C084FC' }]}>Profile Strength</Text>
-            <Text style={s.kpiValText}>{stats.profile_strength}%</Text>
-            <Text style={s.kpiSubText}>{stats.profile_subtext}</Text>
-          </View>
-          <View style={s.kpiCardRight}>
-            <View style={s.progressRingOuter}>
-              <View style={s.progressRingFill} />
-              <View style={s.progressRingInner} />
-            </View>
-          </View>
-        </View>
-
-        {/* Applications Card */}
-        <View style={[glassStyle(), s.kpiCardMockup]}>
-          <View style={s.kpiCardLeft}>
-            <Text style={[s.kpiTitleText, { color: '#818CF8' }]}>Applications</Text>
-            <Text style={s.kpiValText}>{stats.applications}</Text>
-            <Text style={s.kpiSubText}>{stats.applications_subtext}</Text>
-          </View>
-          <View style={s.kpiCardRight}>
-            <View style={[s.kpiIconBox, { backgroundColor: 'rgba(99, 102, 241, 0.15)', borderColor: 'rgba(99, 102, 241, 0.3)' }]}>
-              <Briefcase size={15} color="#818CF8" />
-            </View>
-          </View>
-        </View>
-
-        {/* Network Card */}
-        <View style={[glassStyle(), s.kpiCardMockup]}>
-          <View style={s.kpiCardLeft}>
-            <Text style={[s.kpiTitleText, { color: '#C084FC' }]}>Network</Text>
-            <Text style={s.kpiValText}>{stats.network}</Text>
-            <Text style={s.kpiSubText}>{stats.network_subtext}</Text>
-          </View>
-          <View style={s.kpiCardRight}>
-            <View style={[s.kpiIconBox, { backgroundColor: 'rgba(192, 132, 252, 0.15)', borderColor: 'rgba(192, 132, 252, 0.3)' }]}>
-              <Users size={15} color="#C084FC" />
-            </View>
-          </View>
-        </View>
-
-        {/* Events Card */}
-        <View style={[glassStyle(), s.kpiCardMockup]}>
-          <View style={s.kpiCardLeft}>
-            <Text style={[s.kpiTitleText, { color: '#F87171' }]}>Events</Text>
-            <Text style={s.kpiValText}>{stats.events}</Text>
-            <Text style={s.kpiSubText}>{stats.events_subtext}</Text>
-          </View>
-          <View style={s.kpiCardRight}>
-            <View style={[s.kpiIconBox, { backgroundColor: 'rgba(248, 113, 113, 0.15)', borderColor: 'rgba(248, 113, 113, 0.3)' }]}>
-              <Calendar size={15} color="#F87171" />
-            </View>
-          </View>
-        </View>
-      </View>
-
-      {/* ── Tab Switcher (Opportunities vs Intelligence Center) ── */}
-      <View style={s.tabContainer}>
-        <Pressable
-          style={[s.tabButton, activeTab === 'opportunities' && s.tabButtonActive]}
-          onPress={() => setActiveTab('opportunities')}
-        >
-          <Briefcase size={14} color={activeTab === 'opportunities' ? '#fff' : SC.muted} />
-          <Text style={[s.tabText, activeTab === 'opportunities' && s.tabTextActive]}>Opportunities</Text>
-        </Pressable>
-        <Pressable
-          style={[s.tabButton, activeTab === 'intelligence' && s.tabButtonActive]}
-          onPress={() => setActiveTab('intelligence')}
-        >
-          <TrendingUp size={14} color={activeTab === 'intelligence' ? '#fff' : SC.muted} />
-          <Text style={[s.tabText, activeTab === 'intelligence' && s.tabTextActive]}>Intelligence Center</Text>
-        </Pressable>
-      </View>
-
-      {activeTab === 'opportunities' && (
-        <View style={{ flexDirection: 'column', gap: 20 }}>
-        {/* Jobs Section */}
-        <View style={[glassStyle(), s.mockupSection, { borderColor: 'rgba(139, 92, 246, 0.25)' }]}>
-          <View style={s.sectionHeader}>
-            <View style={s.sectionHeaderTitle}>
-              <View style={[s.sectionIconBox, { backgroundColor: 'rgba(139, 92, 246, 0.2)' }]}>
-                <Briefcase size={16} color="#A78BFA" />
-              </View>
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={s.sectionTitleText}>Jobs</Text>
-                <Text style={s.sectionDescText}>Find the right job opportunities and kickstart your career.</Text>
-              </View>
-            </View>
-            <Pressable 
-              onPress={() => portalNav?.navigate('internships')}
-              style={s.seeAllBtnPurple}
-            >
-              <Text style={s.seeAllBtnText}>View all Jobs</Text>
-              <ArrowRight size={12} color="#fff" style={{ marginLeft: 6 }} />
-            </Pressable>
-          </View>
-          
-          <View style={s.sectionList}>
-            {jobsLoading && !displayJobs.length ? (
-              <View style={{ paddingVertical: 14 }}>
-                <SkeletonList n={3} kind="job" />
-              </View>
-            ) : (
-              displayJobs.map((item: any, idx: number) => {
-                const jobId = item.job_id || String(item.id);
-                const role = item.role || item.title || 'Intern';
-                const company = item.company || '—';
-                const jobType = item.type || item.job_type || 'Internship';
-                const location = item.location || 'Remote';
-                const matchPct = item.match_score !== undefined ? item.match_score : (item.match || getStableMockData(jobId, company, jobType).matchPct);
-                const salary = formatSalary(item) || getStableMockData(jobId, company, jobType).fallbackSalary;
-                const initials = (company || '?')[0].toUpperCase();
-                const logoColor = item.logoColor || '#fff';
-                const logoBg = item.bg || pickColor(company);
-                const isApplied = item.applied || appliedJobIds[jobId];
-                const isSaved = item.saved || savedJobIds[jobId];
-                return (
-                  <React.Fragment key={jobId}>
-                    {idx > 0 && <View style={s.divider} />}
-                    <View style={s.sectionItem}>
-                      <View style={[s.companyLogoShim, { backgroundColor: logoBg }]}>
-                        <Text style={[s.companyLogoShimText, { color: logoColor }]}>{initials}</Text>
-                      </View>
-                      <View style={{ flex: 2, minWidth: 0 }}>
-                        <Text numberOfLines={1} style={s.itemMainText}>{role}</Text>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 2 }}>
-                          <Text style={s.itemSubText}>{company} · {jobType}</Text>
-                          {item.is_recommended && (
-                            <View style={[s.matchPill, { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4, backgroundColor: 'rgba(239, 68, 68, 0.1)', borderColor: 'rgba(239, 68, 68, 0.3)' }]}><Text style={[s.matchPillText, { fontSize: 9.5, color: '#FCA5A5' }]}>🔥 Recommended</Text></View>
-                          )}
-                          <View style={[s.matchPill, { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 }]}><Text style={[s.matchPillText, { fontSize: 9.5 }]}>✦ {matchPct}% match</Text></View>
-                        </View>
-                      </View>
-                      <View style={{ flex: 1.5, minWidth: 0 }}>
-                        <View style={s.metaTextRow}>
-                          <MapPin size={10} color={SC.muted} />
-                          <Text numberOfLines={1} style={s.metaText}>{location}</Text>
-                        </View>
-                        <View style={[s.metaTextRow, { marginTop: 2 }]}>
-                          <IndianRupee size={10} color={SC.muted} />
-                          <Text style={s.metaText}>{salary}</Text>
-                        </View>
-                      </View>
-                      <View style={s.itemActionCol}>
-                        <Pressable onPress={() => handleSaveJob(item)} style={s.bookmarkBtn}>
-                          {isSaved ? (
-                            <BookmarkCheck size={14} color="#A78BFA" />
-                          ) : (
-                            <Bookmark size={14} color="#A78BFA" />
-                          )}
-                        </Pressable>
-                        <Pressable 
-                          onPress={() => handleApplyJob(item)}
-                          style={[s.applyBtn, isApplied && { backgroundColor: 'rgba(16, 185, 129, 0.2)', borderColor: 'rgba(16, 185, 129, 0.4)' }]}
-                        >
-                          <Text style={[s.applyBtnText, isApplied && { color: '#34D399' }]}>
-                            {isApplied ? 'Applied' : 'Apply'}
-                          </Text>
-                        </Pressable>
-                      </View>
-                    </View>
-                  </React.Fragment>
-                );
-              })
-            )}
-          </View>
-        </View>
-
-        {/* Courses Section */}
-        <View style={[glassStyle(), s.mockupSection, { borderColor: 'rgba(59, 130, 246, 0.25)' }]}>
-          <View style={s.sectionHeader}>
-            <View style={s.sectionHeaderTitle}>
-              <View style={[s.sectionIconBox, { backgroundColor: 'rgba(59, 130, 246, 0.2)' }]}>
-                <BookOpen size={16} color="#60A5FA" />
-              </View>
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={s.sectionTitleText}>Courses</Text>
-                <Text style={s.sectionDescText}>Discover expert-led courses to enhance your skills and grow.</Text>
-              </View>
-            </View>
-            <Pressable 
-              onPress={() => portalNav?.navigate('courses')}
-              style={s.seeAllBtnBlue}
-            >
-              <Text style={s.seeAllBtnText}>View all Courses</Text>
-              <ArrowRight size={12} color="#fff" style={{ marginLeft: 6 }} />
-            </Pressable>
-          </View>
-          
-          <View style={s.sectionList}>
-            {coursesLoading && !displayCourses.length ? (
-              <View style={{ paddingVertical: 14 }}>
-                <SkeletonList n={3} kind="list" />
-              </View>
-            ) : (
-              displayCourses.map((item: any, idx: number) => (
-                <React.Fragment key={item.id}>
-                  {idx > 0 && <View style={s.divider} />}
-                <View style={s.sectionItem}>
-                  <View style={[s.companyLogoShim, { backgroundColor: item.bg }]}>
-                    <Text style={[s.companyLogoShimText, { color: item.logoColor, fontSize: 11 }]}>{item.logo}</Text>
-                  </View>
-                  <View style={{ flex: 2, minWidth: 0 }}>
-                    <Text numberOfLines={1} style={s.itemMainText}>{item.title}</Text>
-                    <Text numberOfLines={1} style={s.itemSubText}>{item.provider} · {item.hours} · {item.level}</Text>
-                  </View>
-                  <View style={{ flex: 1.5, minWidth: 0 }}>
-                    <View style={s.metaTextRow}>
-                      <Star size={10} color="#F59E0B" fill="#F59E0B" />
-                      <Text style={[s.metaText, { color: '#F59E0B', fontFamily: FONTS.bold }]}>{item.rating}</Text>
-                    </View>
-                    <Text style={[s.metaText, { marginTop: 2 }]}>{item.learners}</Text>
-                  </View>
-                  <View style={s.itemActionCol}>
-                    <Pressable 
-                      onPress={() => portalNav?.navigate('courses', { detailCourse: item._raw })}
-                      style={s.continueBtn}
-                    >
-                      <Text style={s.continueBtnText}>Continue</Text>
-                    </Pressable>
-                  </View>
-                </View>
-              </React.Fragment>
-              ))
-            )}
-          </View>
-        </View>
-
-        {/* Mentors Section */}
-        <View style={[glassStyle(), s.mockupSection, { borderColor: 'rgba(16, 185, 129, 0.25)' }]}>
-          <View style={s.sectionHeader}>
-            <View style={s.sectionHeaderTitle}>
-              <View style={[s.sectionIconBox, { backgroundColor: 'rgba(16, 185, 129, 0.2)' }]}>
-                <Users size={16} color="#34D399" />
-              </View>
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={s.sectionTitleText}>Mentors</Text>
-                <Text style={s.sectionDescText}>Connect with experienced mentors and get guidance.</Text>
-              </View>
-            </View>
-            <Pressable 
-              onPress={() => portalNav?.navigate('network')}
-              style={s.seeAllBtnGreen}
-            >
-              <Text style={s.seeAllBtnText}>View all Mentors</Text>
-              <ArrowRight size={12} color="#fff" style={{ marginLeft: 6 }} />
-            </Pressable>
-          </View>
-          
-          <View style={s.sectionList}>
-            {MENTORS_DATA.map((item, idx) => (
-              <React.Fragment key={item.id}>
-                {idx > 0 && <View style={s.divider} />}
-                <View style={s.sectionItem}>
-                  <Av initials={item.initials} size={36} color={item.color} />
-                  <View style={{ flex: 2, minWidth: 0, marginLeft: 12 }}>
-                    <Text numberOfLines={1} style={s.itemMainText}>{item.name}</Text>
-                    <Text numberOfLines={1} style={s.itemSubText}>{item.role}</Text>
-                  </View>
-                  <View style={{ flex: 1.5, minWidth: 0 }}>
-                    <View style={s.metaTextRow}>
-                      <Star size={10} color="#F59E0B" fill="#F59E0B" />
-                      <Text style={[s.metaText, { color: '#F59E0B', fontFamily: FONTS.bold }]}>{item.rating}</Text>
-                    </View>
-                    <Text style={[s.metaText, { marginTop: 2 }]}>{item.sessions}</Text>
-                  </View>
-                  <View style={s.itemActionCol}>
-                    <Pressable 
-                      onPress={() => portalNav?.navigate('network')}
-                      style={s.bookSessionBtn}
-                    >
-                      <Text style={s.bookSessionBtnText}>Book Session</Text>
-                    </Pressable>
-                    <Pressable 
-                      onPress={() => portalNav?.navigate('network')}
-                      style={s.chatBtn}
-                    >
-                      <MessageSquare size={13} color={SC.muted} />
-                    </Pressable>
-                  </View>
-                </View>
-              </React.Fragment>
-            ))}
-          </View>
-        </View>
-      </View>
-      )}
-
-      {/* ── NexusOS Intelligence Center ─────────────────────────
-          Sparkline KPI tiles + Audience growth area chart + Activity stream.
-          Mock arrays for now; backend wiring is the next pass. */}
-      {activeTab === 'intelligence' && (
-        <View style={s.nxFrame}>
-          <NxPageHeader
-          title="Intelligence Center"
-          subtitle="Real-time signals across applications, profile views and momentum."
-          statusLabel="Live"
-          ctaLabel="Generate Report"
-          onCta={() => {
-            toast.success("Intelligence Report Request", "Your profile intelligence report has been requested from Agent K. It will be generated and sent to your registered email address shortly!");
-          }}
-        />
-
-        {/* KPI cards row */}
-        <View style={{
-          flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginTop: 18, marginBottom: 16,
-        }}>
-          {NX_KPIS.map((k, i) => {
-            const w = isPhone ? '100%' : (!isDesktop ? ('48%' as any) : undefined);
-            return (
-              <View key={k.label} style={{ flex: isDesktop ? 1 : undefined, minWidth: isPhone ? 0 : 220, width: w }}>
-                <NxKpiCard data={k} delay={50 + i * 80} sparkWidth={260} />
-              </View>
-            );
-          })}
-        </View>
-
-        {/* Main row: chart (2fr) + activity (1fr) */}
-        <View style={{
-          flexDirection: isDesktop ? 'row' : 'column',
-          gap: 16, alignItems: 'stretch',
-        }}>
-          <AreaChartCard
-            delay={400}
-            title={momentumTitle}
-            subtitle={momentumSubtitle}
-            data={intel?.momentum || FALLBACK_AUDIENCE}
-            color="#7B3DBF"
-          />
-          <ActivityCard
-            delay={480}
-            title="Recent Activity"
-            items={NX_ACTIVITY}
-            ctaLabel="View All Activity"
-            onCta={() => toast.success("Activity Stream", "Opening full activity history...")}
-          />
-        </View>
-      </View>
-      )}
-
-
-      {/* Did you apply modal? */}
-      <Modal
-        visible={applyModalJob !== null}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setApplyModalJob(null)}
+      {/* ── 1. Hero Event Carousel Banner (HackWave 3.0 & Voice of Generations) ── */}
+      <div
+        id="db-banner"
+        className="db-card"
+        style={{
+          position: 'relative',
+          borderRadius: '20px',
+          overflow: 'hidden',
+          border: '1px solid #3B2B7A',
+          minHeight: '300px',
+          background:
+            heroSlide === 0
+              ? 'linear-gradient(115deg, #5A2DBE 0%, #6B34D6 42%, #4A1F9E 100%)'
+              : heroSlide === 1
+              ? 'linear-gradient(115deg, #14324D 0%, #0E5548 60%, #103F3A 100%)'
+              : 'linear-gradient(115deg, #3A2352 0%, #5B2E5F 55%, #2C1B3F 100%)',
+          color: '#FFFFFF',
+          transition: 'background 0.7s ease',
+        }}
       >
-        <View style={s.modalBg}>
-          <GlassCard radius={16} padding={22} style={s.modalCard}>
-            <View style={s.modalHeader}>
-              <View style={s.modalIconDisc}>
-                <Briefcase size={18} color="#FCD34D" />
-              </View>
-              <Text style={s.modalTitle}>Applying to External Job?</Text>
-            </View>
-            <Text style={s.modalText}>
-              We redirected you to the recruiter's page for{" "}
-              <Text style={{ fontFamily: FONTS.bold, color: '#fff' }}>
-                {applyModalJob?.role || applyModalJob?.title || 'the role'}
-              </Text>{" "}
-              at{" "}
-              <Text style={{ fontFamily: FONTS.bold, color: '#fff' }}>
-                {applyModalJob?.company || 'the company'}
-              </Text>.
-            </Text>
-            <Text style={s.modalSubtext}>
-              Once you finish submitting your details on their platform, confirm it here to track its progress in your dashboard!
-            </Text>
-
-            <View style={s.modalBtnRow}>
-              <Pressable
-                onPress={() => setApplyModalJob(null)}
-                style={({ hovered }: any) => [
-                  s.modalCancelBtn,
-                  hovered && { backgroundColor: 'rgba(255,255,255,0.06)' }
-                ]}
-              >
-                <Text style={s.modalCancelTxt}>Cancel</Text>
-              </Pressable>
-
-              <Pressable
-                onPress={async () => {
-                  if (!applyModalJob) return;
-                  const job = applyModalJob;
-                  const jobId = job.job_id || String(job.id);
-                  setApplyModalJob(null);
-                  try {
-                    await request(`/student/internships/${jobId}/apply`, {
-                      method: 'POST',
-                      body: {
-                        student_email: authUser?.email || undefined,
-                        cover_note: 'Applied via external redirection link.'
-                      }
-                    });
-                    toast.success(
-                      'Application Tracked! 🎉',
-                      `Successfully added ${job.role || job.title} at ${job.company} to your My Applications dashboard.`
-                    );
-                    
-                    setAppliedJobIds((prev) => ({ ...prev, [jobId]: true }));
-                  } catch (err: any) {
-                    try {
-                      await request('/jobs/track-apply', {
-                        method: 'POST',
-                        body: { job_id: jobId, source_url: job.source_urls?.[0] || job.url || job.apply_url || '' },
-                      });
-                      toast.success(
-                        'Application Tracked! 🎉',
-                        `Successfully added ${job.role || job.title} at ${job.company} to your My Applications dashboard.`
-                      );
-                      
-                      setAppliedJobIds((prev) => ({ ...prev, [jobId]: true }));
-                    } catch (e: any) {
-                      toast.error('Could not track application', e.message);
-                    }
-                  }
+        <div style={{ padding: '34px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '300px', boxSizing: 'border-box' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '24px' }}>
+            <div style={{ maxWidth: '680px' }}>
+              <div style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '3px', color: '#E9DDFF', marginBottom: '12px' }}>
+                {HERO_SLIDES[heroSlide].tag}
+              </div>
+              <h1 style={{ fontSize: '38px', fontWeight: 700, letterSpacing: '-1.4px', lineHeight: 1.1, margin: '0 0 10px' }}>
+                {HERO_SLIDES[heroSlide].title}
+              </h1>
+              <div style={{ fontSize: '15px', color: '#DCCEF7', marginBottom: '12px', fontWeight: 500 }}>
+                {HERO_SLIDES[heroSlide].sub}
+              </div>
+              <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.85)', lineHeight: 1.6, margin: '0 0 24px' }}>
+                {HERO_SLIDES[heroSlide].desc}
+              </p>
+              <a
+                href={HERO_SLIDES[heroSlide].link}
+                target={HERO_SLIDES[heroSlide].link.startsWith('http') ? '_blank' : '_self'}
+                rel="noreferrer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  background: '#FFFFFF',
+                  color: '#4A1F9E',
+                  padding: '12px 24px',
+                  borderRadius: '10px',
+                  fontSize: '14.5px',
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                  boxShadow: '0 6px 20px rgba(0,0,0,0.25)',
                 }}
               >
-                <LinearGradient
-                  colors={[GRAD.from, GRAD.to]}
-                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-                  style={s.modalConfirmBtn}
-                >
-                  <Text style={s.modalConfirmTxt}>Yes, I've Applied</Text>
-                </LinearGradient>
-              </Pressable>
-            </View>
-          </GlassCard>
-        </View>
-      </Modal>
+                {HERO_SLIDES[heroSlide].cta}
+              </a>
+            </div>
 
-    </View>
+            {/* Badge & Promo Block */}
+            <div style={{ background: 'rgba(255, 255, 255, 0.12)', border: '1px solid rgba(255, 255, 255, 0.25)', borderRadius: '16px', padding: '20px 24px', textAlign: 'center', minWidth: '200px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.4px', color: '#F6C86B' }}>SA COLLAB SPECIAL</div>
+              <div style={{ fontFamily: 'ui-monospace, monospace', fontSize: '24px', fontWeight: 800, color: '#FFFFFF', margin: '6px 0' }}>SAHW100</div>
+              <div style={{ fontSize: '12px', color: '#DCCEF7' }}>₹100 Off per team</div>
+            </div>
+          </div>
+
+          {/* Slide Indicator Dots */}
+          <div style={{ display: 'flex', gap: '8px', marginTop: '20px' }}>
+            {HERO_SLIDES.map((_, i) => (
+              <span
+                key={i}
+                onClick={() => setHeroSlide(i)}
+                style={{
+                  width: heroSlide === i ? '26px' : '8px',
+                  height: '6px',
+                  borderRadius: '3px',
+                  background: heroSlide === i ? '#FFFFFF' : 'rgba(255, 255, 255, 0.4)',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── 2. Collab Exclusive Coupons ── */}
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '9px', margin: '10px 0 14px' }}>
+          <span style={{ fontSize: '12.5px', fontWeight: 700, letterSpacing: '1.6px', color: '#F59E0B' }}>
+            COLLAB EXCLUSIVE COUPONS
+          </span>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '14px' }}>
+          {COUPONS.map((c) => (
+            <div key={c.code} className="db-coupon">
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1px solid #1F1F30', minHeight: '90px' }}>
+                <span style={{ fontSize: '26px' }}>🔒</span>
+              </div>
+              <div style={{ padding: '13px 14px 15px' }}>
+                <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#F59E0B', marginBottom: '5px' }}>{c.name}</div>
+                <div style={{ fontSize: '12px', lineHeight: 1.45, color: '#8A8A9E', marginBottom: '10px' }}>{c.desc}</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ display: 'inline-block', fontSize: '11px', fontWeight: 700, color: '#F59E0B', border: '1px solid #4A3410', borderRadius: '6px', padding: '4px 8px' }}>
+                    {c.off}
+                  </span>
+                  <button
+                    onClick={() => copyCoupon(c.code)}
+                    style={{
+                      background: copiedCoupon === c.code ? 'rgba(52, 211, 153, 0.2)' : 'rgba(124, 92, 252, 0.15)',
+                      border: `1px solid ${copiedCoupon === c.code ? '#34D399' : '#7C5CFC'}`,
+                      color: copiedCoupon === c.code ? '#34D399' : '#A78BFA',
+                      padding: '4px 8px',
+                      borderRadius: '6px',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      fontFamily: 'ui-monospace, monospace',
+                    }}
+                  >
+                    {copiedCoupon === c.code ? 'COPIED' : c.code}
+                  </button>
+                </div>
+              </div>
+              <span
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  bottom: 0,
+                  width: '40%',
+                  background: 'linear-gradient(90deg, transparent, rgba(245, 158, 11, 0.1), transparent)',
+                  pointerEvents: 'none',
+                  animation: 'db-lockshine 4.6s ease-in-out infinite',
+                }}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── 3. Top 4 Metric Ring / Stat Cards ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '16px' }}>
+        {/* Profile Strength */}
+        <div className="db-card" style={{ padding: '20px 22px 22px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '14px' }}>
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: '#A78BFA', marginBottom: '10px' }}>Profile Strength</div>
+              <div style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.3px', lineHeight: 1 }}>50%</div>
+              <div style={{ fontSize: '12.5px', color: '#8A8A9E', marginTop: '8px' }}>Keep going!</div>
+            </div>
+            <svg width="46" height="46" viewBox="0 0 46 46" style={{ flex: 'none' }}>
+              <circle cx="23" cy="23" r="19" style={{ fill: 'none', stroke: '#262638', strokeWidth: 4 }} />
+              <circle cx="23" cy="23" r="19" style={{ fill: 'none', stroke: '#7C5CFC', strokeWidth: 4, strokeLinecap: 'round', transform: 'rotate(-90deg)', transformOrigin: '23px 23px', strokeDasharray: 119.4, strokeDashoffset: 59.7 }} />
+            </svg>
+          </div>
+        </div>
+
+        {/* Applications */}
+        <div className="db-card" style={{ padding: '20px 22px 22px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '14px' }}>
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: '#A78BFA', marginBottom: '10px' }}>Applications</div>
+              <div style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.3px', lineHeight: 1 }}>0</div>
+              <div style={{ fontSize: '12.5px', color: '#8A8A9E', marginTop: '8px' }}>0 applied</div>
+            </div>
+            <span style={{ width: '38px', height: '38px', borderRadius: '11px', background: 'rgba(124,92,252,.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', color: '#A78BFA' }}>
+              💼
+            </span>
+          </div>
+        </div>
+
+        {/* Network */}
+        <div className="db-card" style={{ padding: '20px 22px 22px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '14px' }}>
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: '#34D399', marginBottom: '10px' }}>Network</div>
+              <div style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.3px', lineHeight: 1 }}>0</div>
+              <div style={{ fontSize: '12.5px', color: '#8A8A9E', marginTop: '8px' }}>Connections</div>
+            </div>
+            <span style={{ width: '38px', height: '38px', borderRadius: '11px', background: 'rgba(16, 185, 129, 0.13)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', color: '#34D399' }}>
+              👥
+            </span>
+          </div>
+        </div>
+
+        {/* Events */}
+        <div className="db-card" style={{ padding: '20px 22px 22px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '14px' }}>
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: '#F0616B', marginBottom: '10px' }}>Events</div>
+              <div style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.3px', lineHeight: 1 }}>8</div>
+              <div style={{ fontSize: '12.5px', color: '#8A8A9E', marginTop: '8px' }}>Registered</div>
+            </div>
+            <span style={{ width: '38px', height: '38px', borderRadius: '11px', background: 'rgba(240, 97, 107, 0.13)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', color: '#F0616B' }}>
+              📅
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── 4. Interactive Tabs Switcher ── */}
+      <div style={{ display: 'inline-flex', gap: '6px', padding: '6px', border: '1px solid #1F1F30', borderRadius: '14px', background: '#101019', width: 'fit-content' }}>
+        <span
+          onClick={() => setActiveTab('opportunities')}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '9px',
+            height: '42px',
+            padding: '0 20px',
+            borderRadius: '10px',
+            fontSize: '14.5px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            background: activeTab === 'opportunities' ? 'rgba(124,92,252,.18)' : 'transparent',
+            color: activeTab === 'opportunities' ? '#F4F4FA' : '#8A8A9E',
+            border: activeTab === 'opportunities' ? '1px solid #3A2E72' : '1px solid transparent',
+          }}
+        >
+          💼 Opportunities
+        </span>
+        <span
+          onClick={() => setActiveTab('intelligence')}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '9px',
+            height: '42px',
+            padding: '0 20px',
+            borderRadius: '10px',
+            fontSize: '14.5px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            background: activeTab === 'intelligence' ? 'rgba(124,92,252,.18)' : 'transparent',
+            color: activeTab === 'intelligence' ? '#F4F4FA' : '#8A8A9E',
+            border: activeTab === 'intelligence' ? '1px solid #3A2E72' : '1px solid transparent',
+          }}
+        >
+          📈 Intelligence Center
+        </span>
+      </div>
+
+      {/* ── 5. Opportunities Tab (Bento Grid) ── */}
+      {activeTab === 'opportunities' && (
+        <div id="db-bento" style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: '16px' }}>
+          {/* Career Readiness */}
+          <div className="db-tile db-card" style={{ gridColumn: 'span 5', gridRow: 'span 2', padding: '20px 22px 22px' }}>
+            <div style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.4px', color: '#A78BFA', marginBottom: '14px' }}>
+              CAREER READINESS
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '22px', marginBottom: '22px' }}>
+              <svg width="112" height="112" viewBox="0 0 112 112" style={{ flex: 'none' }}>
+                <circle cx="56" cy="56" r="46" style={{ fill: 'none', stroke: '#262638', strokeWidth: 9 }} />
+                <circle cx="56" cy="56" r="46" style={{ fill: 'none', stroke: 'url(#dbRingGrad)', strokeWidth: 9, strokeLinecap: 'round', transform: 'rotate(-90deg)', transformOrigin: '56px 56px', strokeDasharray: 289, strokeDashoffset: 185 }} />
+                <defs>
+                  <linearGradient id="dbRingGrad" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stopColor="#8B7BFF" />
+                    <stop offset="1" stopColor="#2FB8C6" />
+                  </linearGradient>
+                </defs>
+                <text x="56" y="63" textAnchor="middle" style={{ fontFamily: "'Outfit', sans-serif", fontSize: '26px', fontWeight: 700, fill: '#F4F4FA' }}>
+                  36%
+                </text>
+              </svg>
+              <div>
+                <div style={{ fontSize: '22px', fontWeight: 700, letterSpacing: '-.6px' }}>Builder</div>
+                <div style={{ fontSize: '13px', color: '#8A8A9E', marginTop: '3px' }}>Target: Industry Ready</div>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '12px', fontSize: '12px', fontWeight: 600, color: '#34D399', background: 'rgba(16, 185, 129, 0.13)', borderRadius: '7px', padding: '5px 9px' }}>
+                  ↗ +8% this week
+                </div>
+              </div>
+            </div>
+            <div style={{ borderTop: '1px solid #1F1F30', paddingTop: '18px' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '10px' }}>
+                <span style={{ fontSize: '14px', fontWeight: 600 }}>Build your professional resume</span>
+                <span style={{ fontSize: '12.5px', color: '#A78BFA' }}>60%</span>
+              </div>
+              <div style={{ height: '6px', borderRadius: '3px', background: '#262638', overflow: 'hidden', marginBottom: '16px' }}>
+                <div style={{ height: '100%', width: '60%', borderRadius: '3px', background: 'linear-gradient(90deg, #7C5CFC, #2FB8C6)' }} />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                <span style={{ fontSize: '12.5px', color: '#8A8A9E' }}>ETA ~18 weeks</span>
+                <button onClick={() => router.push('/career-ai')} style={{ fontSize: '13px', fontWeight: 600, background: '#7C5CFC', color: '#FFFFFF', borderRadius: '9px', padding: '9px 16px', border: 'none', cursor: 'pointer' }}>
+                  Continue now
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Today's Focus - Agent K */}
+          <div className="db-tile db-card" style={{ gridColumn: 'span 4', gridRow: 'span 2', padding: '20px 22px 22px' }}>
+            <div style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.4px', color: '#A78BFA', marginBottom: '14px' }}>
+              TODAY'S FOCUS · AGENT K
+            </div>
+            <div style={{ display: 'grid', gap: '9px' }}>
+              {tasks.map((t) => (
+                <div
+                  key={t.id}
+                  onClick={() => toggleTask(t.id)}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'max-content minmax(0, 1fr)',
+                    gap: '12px',
+                    alignItems: 'start',
+                    border: '1px solid #262638',
+                    borderRadius: '12px',
+                    background: '#14141F',
+                    padding: '13px 14px',
+                    cursor: 'pointer',
+                    opacity: t.done ? 0.72 : 1,
+                  }}
+                >
+                  <span style={{ width: '18px', height: '18px', borderRadius: '6px', border: `1.5px solid ${t.done ? '#7C5CFC' : '#262638'}`, background: t.done ? '#7C5CFC' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '1px' }}>
+                    {t.done && <span style={{ color: '#FFFFFF', fontSize: '11px', fontWeight: 800 }}>✓</span>}
+                  </span>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 500, lineHeight: 1.4, textDecoration: t.done ? 'line-through' : 'none', color: t.done ? '#8A8A9E' : '#FFFFFF' }}>
+                      {t.text}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#6A6A7E', marginTop: '4px' }}>{t.sub}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '16px', fontSize: '12.5px', color: '#8A8A9E' }}>
+              <span style={{ color: '#A78BFA', fontWeight: 600 }}>{completedCount} of 3</span> done today
+            </div>
+          </div>
+
+          {/* Skill Streak */}
+          <div className="db-tile db-card" style={{ gridColumn: 'span 3', padding: '20px 22px 22px' }}>
+            <div style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.4px', color: '#8A8A9E', marginBottom: '14px' }}>
+              SKILL STREAK
+            </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '9px' }}>
+              <span style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.2px' }}>0</span>
+              <span style={{ fontSize: '14px', color: '#8A8A9E' }}>days</span>
+              <span style={{ fontSize: '20px', marginLeft: 'auto', animation: 'db-flame 2.2s ease-in-out infinite', display: 'inline-block' }}>🔥</span>
+            </div>
+            <div style={{ display: 'flex', gap: '5px', marginTop: '16px' }}>
+              {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, idx) => (
+                <span
+                  key={idx}
+                  onClick={() => setActiveStreakDay(idx)}
+                  style={{
+                    flex: 1,
+                    height: '26px',
+                    borderRadius: '6px',
+                    background: activeStreakDay !== null && idx <= activeStreakDay ? 'linear-gradient(180deg, #F59E0B, #C2410C)' : '#262638',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    color: '#FFFFFF',
+                  }}
+                >
+                  {day}
+                </span>
+              ))}
+            </div>
+            <div style={{ fontSize: '12.5px', color: '#F0616B', marginTop: '12px' }}>Start your streak today</div>
+          </div>
+
+          {/* Next 1:1 Session */}
+          <div className="db-tile db-card" style={{ gridColumn: 'span 4', padding: '20px 22px 22px' }}>
+            <div style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.4px', color: '#8A8A9E', marginBottom: '14px' }}>
+              NEXT SESSION
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '13px', marginBottom: '16px' }}>
+              <span style={{ width: '44px', height: '44px', borderRadius: '50%', background: '#7C5CFC', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 700, flex: 'none' }}>
+                RS
+              </span>
+              <div style={{ minWidth: 0, flex: '1 1 auto' }}>
+                <div style={{ fontSize: '15.5px', fontWeight: 600 }}>Rahul Sharma</div>
+                <div style={{ fontSize: '12.5px', color: '#8A8A9E', marginTop: '2px' }}>Senior SDE @ Google</div>
+              </div>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', fontWeight: 700, color: '#34D399' }}>
+                CONFIRMED
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', borderTop: '1px solid #1F1F30', paddingTop: '15px' }}>
+              <div>
+                <div style={{ fontSize: '19px', fontWeight: 700, letterSpacing: '-.4px' }}>{timeLeft}</div>
+                <div style={{ fontSize: '12px', color: '#8A8A9E', marginTop: '3px' }}>Thursday · 6:00 pm IST</div>
+              </div>
+              <button style={{ fontSize: '13px', fontWeight: 600, background: '#7C5CFC', color: '#FFFFFF', borderRadius: '9px', padding: '9px 16px', border: 'none', cursor: 'pointer' }}>
+                Join room
+              </button>
+            </div>
+          </div>
+
+          {/* Applications Breakdown */}
+          <div className="db-tile db-card" style={{ gridColumn: 'span 3', padding: '20px 22px 22px' }}>
+            <div style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.4px', color: '#8A8A9E', marginBottom: '14px' }}>
+              APPLICATIONS
+            </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '9px', marginBottom: '18px' }}>
+              <span style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.2px' }}>267</span>
+              <span style={{ fontSize: '13.5px', color: '#8A8A9E' }}>matches open</span>
+            </div>
+            <div style={{ display: 'grid', gap: '10px' }}>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#8A8A9E', marginBottom: '5px' }}>
+                  <span>Saved</span><span>0</span>
+                </div>
+                <div style={{ height: '5px', borderRadius: '3px', background: '#262638', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: '4%', background: '#7C5CFC' }} />
+                </div>
+              </div>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#8A8A9E', marginBottom: '5px' }}>
+                  <span>Applied</span><span>0</span>
+                </div>
+                <div style={{ height: '5px', borderRadius: '3px', background: '#262638', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: '0%', background: '#2FB8C6' }} />
+                </div>
+              </div>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#8A8A9E', marginBottom: '5px' }}>
+                  <span>Interviews</span><span>0</span>
+                </div>
+                <div style={{ height: '5px', borderRadius: '3px', background: '#262638', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: '0%', background: '#10B981' }} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Top Matches For You */}
+          <div className="db-tile db-card" style={{ gridColumn: 'span 7', padding: '20px 22px 22px' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '14px', marginBottom: '16px' }}>
+              <div style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.4px', color: '#A78BFA' }}>TOP MATCHES FOR YOU</div>
+              <span onClick={() => portalNav?.navigate('internships')} style={{ fontSize: '12.5px', fontWeight: 600, color: '#A78BFA', cursor: 'pointer' }}>
+                View all 267 →
+              </span>
+            </div>
+            <div style={{ display: 'grid', gap: '8px' }}>
+              {[
+                { initial: 'B', color: '#22D3EE', textColor: '#06323B', title: 'Account Executive', sub: 'Boulevard · USA · ₹22-28 LPA', match: 30 },
+                { initial: 'D', color: '#F59E0B', textColor: '#3A2404', title: 'Senior Brand Content Manager', sub: 'Demandbase · USA · ₹14-18 LPA', match: 30 },
+                { initial: 'J', color: '#10B981', textColor: '#04291D', title: 'Principal Revenue Operations Manager', sub: 'Jobber · Canada · ₹32-38 LPA', match: 30 },
+              ].map((m) => (
+                <div key={m.title} style={{ display: 'grid', gridTemplateColumns: '38px minmax(0, 1fr) 92px max-content', gap: '13px', alignItems: 'center', borderRadius: '11px', padding: '10px 11px', background: 'rgba(255,255,255,0.02)' }}>
+                  <span style={{ width: '38px', height: '38px', borderRadius: '10px', background: m.color, color: m.textColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: 700 }}>
+                    {m.initial}
+                  </span>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '14.5px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.title}</div>
+                    <div style={{ fontSize: '12.5px', color: '#8A8A9E', marginTop: '2px' }}>{m.sub}</div>
+                  </div>
+                  <div>
+                    <div style={{ height: '5px', borderRadius: '3px', background: '#262638', overflow: 'hidden', marginBottom: '4px' }}>
+                      <div style={{ height: '100%', width: `${m.match}%`, background: 'linear-gradient(90deg, #7C5CFC, #34D399)' }} />
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#8A8A9E' }}>{m.match}% match</div>
+                  </div>
+                  <button style={{ fontSize: '12.5px', fontWeight: 600, background: '#7C5CFC', color: '#FFFFFF', borderRadius: '8px', padding: '8px 14px', border: 'none', cursor: 'pointer' }}>
+                    Apply
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Mentors With Capacity */}
+          <div className="db-tile db-card" style={{ gridColumn: 'span 5', padding: '20px 22px 22px' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '14px', marginBottom: '16px' }}>
+              <div style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.4px', color: '#34D399' }}>MENTORS WITH CAPACITY</div>
+              <span onClick={() => portalNav?.navigate('network')} style={{ fontSize: '12.5px', fontWeight: 600, color: '#34D399', cursor: 'pointer' }}>
+                View all →
+              </span>
+            </div>
+            <div style={{ display: 'grid', gap: '8px' }}>
+              {[
+                { initial: 'PM', color: '#DB2777', name: 'Priya Mehta', role: 'PM @ Microsoft · ★ 4.8' },
+                { initial: 'AV', color: '#10B981', name: 'Arjun Verma', role: 'Data Scientist @ Amazon · ★ 4.7' },
+                { initial: 'VS', color: '#2563EB', name: 'Vikram Singh', role: 'Cloud Architect @ AWS · ★ 4.9' },
+              ].map((men) => (
+                <div key={men.name} style={{ display: 'grid', gridTemplateColumns: '36px minmax(0, 1fr) max-content', gap: '12px', alignItems: 'center', borderRadius: '11px', padding: '9px 11px', background: 'rgba(255,255,255,0.02)' }}>
+                  <span style={{ width: '36px', height: '36px', borderRadius: '50%', background: men.color, color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 700 }}>
+                    {men.initial}
+                  </span>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '14px', fontWeight: 600 }}>{men.name}</div>
+                    <div style={{ fontSize: '12px', color: '#8A8A9E', marginTop: '2px' }}>{men.role}</div>
+                  </div>
+                  <button style={{ fontSize: '12.5px', fontWeight: 600, color: '#34D399', border: '1px solid #17503E', background: 'transparent', borderRadius: '8px', padding: '8px 13px', cursor: 'pointer' }}>
+                    Book
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Network Growth */}
+          <div className="db-tile db-card" style={{ gridColumn: 'span 4', padding: '20px 22px 22px' }}>
+            <div style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.4px', color: '#8A8A9E', marginBottom: '14px' }}>
+              NETWORK GROWTH
+            </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '9px', marginBottom: '12px' }}>
+              <span style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.2px' }}>8</span>
+              <span style={{ fontSize: '13.5px', color: '#8A8A9E' }}>events registered</span>
+            </div>
+            <svg viewBox="0 0 300 90" style={{ width: '100%', height: '90px' }}>
+              <defs>
+                <linearGradient id="dbSpark" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stopColor="#2FB8C6" stopOpacity="0.3" />
+                  <stop offset="1" stopColor="#2FB8C6" stopOpacity="0" />
+                </linearGradient>
+              </defs>
+              <path d="M6 78 L60 70 L114 56 L168 58 L222 38 L294 14 L294 88 L6 88 Z" fill="url(#dbSpark)" />
+              <path d="M6 78 L60 70 L114 56 L168 58 L222 38 L294 14" fill="none" stroke="#2FB8C6" strokeWidth="2.4" />
+            </svg>
+            <div style={{ fontSize: '12.5px', color: '#8A8A9E' }}>
+              Profile strength <strong style={{ color: '#F4F4FA', fontWeight: 600 }}>50%</strong> · 0 connections yet
+            </div>
+          </div>
+
+          {/* Continuous Infinite Marquee: Upcoming on Campus */}
+          <div className="db-tile db-card db-marq-container" style={{ gridColumn: 'span 12', padding: '20px 22px 22px', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '14px', marginBottom: '14px' }}>
+              <div style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.4px', color: '#F59E0B' }}>UPCOMING ON CAMPUS</div>
+              <span onClick={() => portalNav?.navigate('events')} style={{ fontSize: '12.5px', fontWeight: 600, color: '#F59E0B', cursor: 'pointer' }}>
+                My events →
+              </span>
+            </div>
+            <div style={{ overflow: 'hidden' }}>
+              <div
+                className="db-marq-track"
+                style={{
+                  display: 'flex',
+                  width: 'max-content',
+                  gap: '10px',
+                  animation: 'db-marq 32s linear infinite',
+                }}
+              >
+                {[...MARQUEE_EVENTS, ...MARQUEE_EVENTS].map((ev, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      flex: 'none',
+                      minWidth: '210px',
+                      border: '1px solid #262638',
+                      borderRadius: '12px',
+                      background: '#14141F',
+                      padding: '13px 15px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '7px' }}>
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: ev.col }} />
+                      <span style={{ fontSize: '10.5px', fontWeight: 700, letterSpacing: '1.2px', color: ev.col }}>
+                        {ev.when.split(' · ')[0]}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '3px' }}>{ev.name}</div>
+                    <div style={{ fontSize: '12px', color: '#8A8A9E' }}>{ev.when.split(' · ')[1]}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 6. Intelligence Center Tab ── */}
+      {activeTab === 'intelligence' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Current Goal Banner */}
+          <div className="db-card" style={{ border: '1px solid #2C2A52', background: 'linear-gradient(150deg, #14141F, #101019 60%)', padding: '26px 28px 28px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+              <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#A78BFA' }} />
+              <span style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '1.6px', color: '#A78BFA' }}>CURRENT GOAL</span>
+            </div>
+            <div style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.3px', marginBottom: '12px' }}>
+              explore at a Top Company in your field
+            </div>
+            <div style={{ display: 'flex', gap: '22px', flexWrap: 'wrap', fontSize: '13.5px', color: '#8A8A9E', marginBottom: '26px' }}>
+              <span>✦ Level: <strong style={{ color: '#A78BFA', fontWeight: 600 }}>Builder</strong></span>
+              <span>✦ Target: <strong style={{ color: '#A78BFA', fontWeight: 600 }}>Industry Ready</strong></span>
+              <span>✦ ETA: <strong style={{ color: '#A78BFA', fontWeight: 600 }}>~18 Weeks</strong></span>
+            </div>
+          </div>
+
+          {/* 5 Stats Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '14px' }}>
+            {[
+              { title: 'READINESS SCORE', val: '36%', sub: '+8% from last week', subCol: '#34D399' },
+              { title: 'TARGET READINESS', val: '100%', sub: 'Industry Ready', subCol: '#34D399' },
+              { title: 'CAREER LEVEL', val: 'Builder', sub: 'Current Level', subCol: '#F59E0B' },
+              { title: 'PROFILE STRENGTH', val: '50%', sub: '+8% from last week', subCol: '#34D399' },
+              { title: 'SKILL STREAK', val: '0 Days', sub: 'Start your streak!', subCol: '#F0616B' },
+            ].map((stat) => (
+              <div key={stat.title} className="db-card" style={{ padding: '18px 20px 20px' }}>
+                <div style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.2px', color: '#8A8A9E', marginBottom: '12px' }}>
+                  {stat.title}
+                </div>
+                <div style={{ fontSize: '30px', fontWeight: 700, letterSpacing: '-1.2px' }}>{stat.val}</div>
+                <div style={{ fontSize: '12.5px', color: stat.subCol, marginTop: '8px' }}>{stat.sub}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Career Growth Prediction Area Chart */}
+          <div className="db-card" style={{ padding: '24px 26px 26px' }}>
+            <div style={{ fontSize: '12.5px', fontWeight: 700, letterSpacing: '1.8px', color: '#8A8A9E', marginBottom: '22px' }}>
+              CAREER GROWTH PREDICTION
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 300px', gap: '24px', alignItems: 'center' }}>
+              <div style={{ width: '100%', height: '180px', position: 'relative' }}>
+                <svg width="100%" height="100%" viewBox="0 0 780 200" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="dbCg" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0" stopColor="#7C5CFC" stopOpacity="0.34" />
+                      <stop offset="1" stopColor="#7C5CFC" stopOpacity="0" />
+                    </linearGradient>
+                  </defs>
+                  <path d="M40 190 L180 168 L320 132 L460 128 L600 106 L740 60 L740 210 L40 210 Z" fill="url(#dbCg)" />
+                  <path d="M40 190 L180 168 L320 132 L460 128 L600 106 L740 60" fill="none" stroke="#8B7BFF" strokeWidth="2.6" />
+                  {[
+                    { cx: 40, cy: 190, label: '36%', time: 'Today' },
+                    { cx: 180, cy: 168, label: '44%', time: '7 Days' },
+                    { cx: 320, cy: 132, label: '64%', time: '30 Days' },
+                    { cx: 460, cy: 128, label: '65%', time: '60 Days' },
+                    { cx: 600, cy: 106, label: '71%', time: '90 Days' },
+                    { cx: 740, cy: 60, label: '92%', time: '180 Days' },
+                  ].map((p) => (
+                    <g key={p.time}>
+                      <circle cx={p.cx} cy={p.cy} r="5" fill="#B9AEFF" />
+                      <text x={p.cx} y={p.cy - 12} textAnchor="middle" fill="#F4F4FA" fontSize="14" fontWeight="600">
+                        {p.label}
+                      </text>
+                      <text x={p.cx} y={195} textAnchor="middle" fill="#8A8A9E" fontSize="12">
+                        {p.time}
+                      </text>
+                    </g>
+                  ))}
+                </svg>
+              </div>
+              <div style={{ border: '1px solid #2C2A52', borderRadius: '16px', background: 'rgba(124,92,252,.07)', padding: '22px 24px 24px' }}>
+                <div style={{ fontSize: '17px', fontWeight: 700, marginBottom: '12px' }}>Prediction Insight</div>
+                <div style={{ fontSize: '14px', lineHeight: 1.6, color: '#8A8A9E', marginBottom: '20px' }}>
+                  You're on the right track! Consistent action can take you from <strong style={{ color: '#A78BFA', fontWeight: 600 }}>36%</strong> to <strong style={{ color: '#A78BFA', fontWeight: 600 }}>92%</strong> readiness in 18 weeks.
+                </div>
+                <button style={{ width: '100%', padding: '11px', fontSize: '13.5px', fontWeight: 600, color: '#A78BFA', border: '1px solid #2C2A52', background: 'transparent', borderRadius: '9px', cursor: 'pointer' }}>
+                  View Full Analysis
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
-
-const s = StyleSheet.create({
-  nxFrame: {
-    backgroundColor: NX.bg,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: NX.border,
-    padding: 22,
-    overflow: 'hidden',
-    ...(Platform.OS === 'web' ? ({
-      // Subtle radial accent to match standalone NexusOS spec
-      backgroundImage: 'radial-gradient(circle at 90% 0%, rgba(6,182,212,0.06) 0%, rgba(7,7,10,0) 50%), radial-gradient(circle at 10% 100%, rgba(168,85,247,0.05) 0%, rgba(7,7,10,0) 60%)',
-      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
-    } as any) : {}),
-  },
-  briefRowPad: { padding: 14, paddingHorizontal: 18 },
-  briefRowInner: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  briefRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 14,
-    paddingVertical: 14, paddingHorizontal: 18,
-  },
-  briefIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: 'rgba(123,61,191,0.18)', alignItems: 'center', justifyContent: 'center' },
-  briefTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 },
-  briefSub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 1 },
-  briefCta: { borderRadius: 10, overflow: 'hidden', ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
-  gradCta: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 34, borderRadius: 10 },
-  briefCtaText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
-
-  liveStrip: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10,
-    backgroundColor: 'rgba(34,197,94,0.06)',
-    borderColor: 'rgba(34,197,94,0.25)', borderWidth: 1,
-  },
-  livePulse: {
-    width: 8, height: 8, borderRadius: 4, backgroundColor: '#22C55E',
-    ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 8px #22C55E, 0 0 14px #22C55E' } as any) : {}),
-  },
-  liveLabel: { color: '#22C55E', fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 1 },
-  liveTxt: { color: SC.muted, fontFamily: FONTS.med, fontSize: 12 },
-  liveAsOf: { color: SC.dim, fontFamily: FONTS.med, fontSize: 11, fontStyle: 'italic' },
-
-  tierCard: {
-    backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 14,
-    padding: 18,
-  },
-  tierKicker: { color: SC.accent, fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 1 },
-  tierTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4, marginTop: 2 },
-  tierScore: { color: SC.muted, fontFamily: FONTS.bold, fontSize: 14 },
-  tierSub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
-  tierChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 9, paddingVertical: 4, borderRadius: 6,
-    backgroundColor: 'rgba(167,139,250,0.10)', borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1,
-  },
-  tierChipText: { fontFamily: FONTS.bold, fontSize: 11 },
-
-  roadmapCard: {
-    backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 16,
-    padding: 22,
-  },
-  kicker: { color: SC.accent, fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 1 },
-  roadmapTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 26, letterSpacing: -0.6 },
-  roadmapGoal: { color: SC.accentBright, fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4, marginTop: 4 },
-  progLabel: { color: SC.muted, fontFamily: FONTS.bold, fontSize: 11.5, letterSpacing: 0.2 },
-  progPct:   { color: SC.accent, fontFamily: FONTS.xbold, fontSize: 12 },
-  progTrack: { height: 6, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.06)', overflow: 'hidden' },
-  progFill:  { height: '100%', borderRadius: 4 },
-
-  primaryCta: { paddingHorizontal: 16, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
-  primaryCtaText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12.5 },
-  secCta: { paddingHorizontal: 16, height: 36, borderRadius: 10, backgroundColor: SC.card, borderWidth: 1, borderColor: SC.border, alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
-  secCtaText: { color: SC.accentBright, fontFamily: FONTS.bold, fontSize: 12.5 },
-
-  col: {},
-  colHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  colTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 16, letterSpacing: -0.3 },
-  seeAll: { color: SC.accent, fontFamily: FONTS.bold, fontSize: 11.5 },
-
-  matchRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: SC.glassBg, borderColor: SC.glassBorder, borderWidth: 1, borderRadius: 12,
-    paddingHorizontal: 14, paddingVertical: 12,
-    ...(Platform.OS === 'web' ? ({
-      cursor: 'pointer', transitionDuration: '160ms',
-      backdropFilter: 'blur(18px) saturate(140%)',
-      WebkitBackdropFilter: 'blur(18px) saturate(140%)',
-      boxShadow: SC.glassShadow,
-    } as any) : {}),
-  },
-  companyLogo: { width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  companyLogoText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 },
-  matchRole: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13.5 },
-  matchCompany: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
-  matchDot: { color: SC.dim, fontFamily: FONTS.med, fontSize: 11 },
-  matchPill: { paddingHorizontal: 9, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(34,197,94,0.15)', borderColor: 'rgba(34,197,94,0.30)', borderWidth: 1 },
-  matchPillText: { color: '#86EFAC', fontFamily: FONTS.bold, fontSize: 11 },
-
-  mentorCard: {
-    backgroundColor: SC.glassBg, borderColor: SC.glassBorder, borderWidth: 1, borderRadius: 12,
-    padding: 14,
-    ...(Platform.OS === 'web' ? ({
-      backdropFilter: 'blur(18px) saturate(140%)',
-      WebkitBackdropFilter: 'blur(18px) saturate(140%)',
-      boxShadow: SC.glassShadow,
-    } as any) : {}),
-  },
-  mentorName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13.5 },
-  mentorRole: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
-  mentorMeta: { color: SC.muted, fontFamily: FONTS.bold, fontSize: 11 },
-  mentorPrice: { color: SC.accentBright, fontFamily: FONTS.xbold, fontSize: 12 },
-  bookCta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 12, height: 34, borderRadius: 8, ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
-  bookCtaText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
-
-  eventCard: {
-    flex: 1, minWidth: 220,
-    backgroundColor: SC.glassBg, borderColor: SC.glassBorder, borderWidth: 1, borderRadius: 12,
-    padding: 14,
-    ...(Platform.OS === 'web' ? ({
-      cursor: 'pointer', transitionDuration: '160ms',
-      backdropFilter: 'blur(18px) saturate(140%)',
-      WebkitBackdropFilter: 'blur(18px) saturate(140%)',
-      boxShadow: SC.glassShadow,
-    } as any) : {}),
-  },
-  eventIcon: { width: 30, height: 30, borderRadius: 8, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  eventTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13.5, lineHeight: 18 },
-  eventDate: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 4 },
-
-  completionCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 16,
-    borderRadius: 16, padding: 18,
-  },
-  completionLabel: { color: 'rgba(255,255,255,0.85)', fontFamily: FONTS.xbold, fontSize: 11.5, letterSpacing: 0.5 },
-  completionScorePill: { backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 },
-  completionScoreText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 11 },
-  completionTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 14, marginTop: 4 },
-  missingChip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.10)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
-  missingText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 10.5 },
-  completeCta: { paddingHorizontal: 18, height: 40, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.92)', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
-  completeCtaText: { color: SC.primaryD, fontFamily: FONTS.xbold, fontSize: 12.5 },
-  kpiRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 12,
-  },
-  kpiCardMockup: {
-    flex: 1,
-    minWidth: 200,
-    borderRadius: 12,
-    padding: 14,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: SC.glassBg,
-    borderColor: SC.glassBorder,
-    borderWidth: 1,
-    ...(Platform.OS === 'web' ? ({
-      backdropFilter: 'blur(18px) saturate(140%)',
-      WebkitBackdropFilter: 'blur(18px) saturate(140%)',
-      boxShadow: SC.glassShadow,
-    } as any) : {}),
-  },
-  kpiCardLeft: {
-    flex: 1,
-  },
-  kpiCardRight: {
-    marginLeft: 8,
-  },
-  kpiTitleText: {
-    fontFamily: FONTS.bold,
-    fontSize: 10.5,
-    letterSpacing: 0.2,
-  },
-  kpiValText: {
-    color: '#fff',
-    fontFamily: FONTS.xbold,
-    fontSize: 22,
-    marginTop: 4,
-    letterSpacing: -0.4,
-  },
-  kpiSubText: {
-    color: SC.muted,
-    fontFamily: FONTS.med,
-    fontSize: 11,
-    marginTop: 2,
-  },
-  kpiIconBox: {
-    width: 30,
-    height: 30,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-  },
-  progressRingOuter: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    borderWidth: 3,
-    borderColor: 'rgba(192, 132, 252, 0.25)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  progressRingFill: {
-    position: 'absolute',
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    borderWidth: 3,
-    borderColor: '#C084FC',
-    borderLeftColor: 'transparent',
-    borderBottomColor: 'transparent',
-  },
-  progressRingInner: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: 'transparent',
-  },
-  mockupSection: {
-    backgroundColor: 'rgba(10, 8, 22, 0.65)',
-    borderWidth: 1,
-    borderRadius: 18,
-    padding: 20,
-    ...(Platform.OS === 'web' ? ({
-      backdropFilter: 'blur(18px) saturate(140%)',
-      WebkitBackdropFilter: 'blur(18px) saturate(140%)',
-      boxShadow: SC.glassShadow,
-    } as any) : {}),
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 18,
-  },
-  sectionHeaderTitle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    flex: 1,
-    marginRight: 16,
-  },
-  sectionIconBox: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sectionTitleText: {
-    color: '#fff',
-    fontFamily: FONTS.xbold,
-    fontSize: 18,
-    letterSpacing: -0.3,
-  },
-  sectionDescText: {
-    color: SC.muted,
-    fontFamily: FONTS.med,
-    fontSize: 11.5,
-    marginTop: 2,
-  },
-  seeAllBtnPurple: {
-    backgroundColor: '#6D28D9',
-    paddingHorizontal: 14,
-    height: 34,
-    borderRadius: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
-  },
-  seeAllBtnBlue: {
-    backgroundColor: '#2563EB',
-    paddingHorizontal: 14,
-    height: 34,
-    borderRadius: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
-  },
-  seeAllBtnGreen: {
-    backgroundColor: '#059669',
-    paddingHorizontal: 14,
-    height: 34,
-    borderRadius: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
-  },
-  seeAllBtnText: {
-    color: '#fff',
-    fontFamily: FONTS.bold,
-    fontSize: 11.5,
-  },
-  sectionList: {
-    gap: 0,
-  },
-  sectionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
-  companyLogoShim: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  companyLogoShimText: {
-    fontFamily: FONTS.xbold,
-    fontSize: 16,
-  },
-  itemMainText: {
-    color: '#fff',
-    fontFamily: FONTS.bold,
-    fontSize: 13.5,
-  },
-  itemSubText: {
-    color: SC.muted,
-    fontFamily: FONTS.med,
-    fontSize: 11.5,
-    marginTop: 2,
-  },
-  metaTextRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  metaText: {
-    color: SC.muted,
-    fontFamily: FONTS.med,
-    fontSize: 11.5,
-  },
-  itemActionCol: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: 10,
-    width: 150,
-  },
-  bookmarkBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
-  },
-  applyBtn: {
-    backgroundColor: '#6D28D9',
-    width: 76,
-    height: 34,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
-  },
-  applyBtnText: {
-    color: '#fff',
-    fontFamily: FONTS.bold,
-    fontSize: 12,
-  },
-  continueBtn: {
-    backgroundColor: '#2563EB',
-    width: 76,
-    height: 34,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
-  },
-  continueBtnText: {
-    color: '#fff',
-    fontFamily: FONTS.bold,
-    fontSize: 12,
-  },
-  bookSessionBtn: {
-    borderColor: '#10B981',
-    borderWidth: 1,
-    width: 105,
-    height: 34,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.05)',
-    ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
-  },
-  bookSessionBtnText: {
-    color: '#34D399',
-    fontFamily: FONTS.bold,
-    fontSize: 11.5,
-  },
-  chatBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
-  },
-  divider: {
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    marginVertical: 2,
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    borderWidth: 1,
-    borderRadius: 14,
-    padding: 4,
-    marginBottom: 8,
-    gap: 4,
-  },
-  tabButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'transparent',
-    ...(Platform.OS === 'web' ? ({
-      cursor: 'pointer',
-      transitionDuration: '180ms',
-    } as any) : {}),
-  },
-  tabButtonActive: {
-    backgroundColor: 'rgba(123, 61, 191, 0.25)',
-    borderColor: 'rgba(123, 61, 191, 0.4)',
-  },
-  tabText: {
-    color: SC.muted,
-    fontFamily: FONTS.bold,
-    fontSize: 13,
-  },
-  tabTextActive: {
-    color: '#fff',
-  },
-});
-
-/* ── Helpers ── */
-function formatSalary(j: any): string {
-  if (j.salary) return j.salary;
-  if (j.salary_min || j.salary_max) {
-    const cur = j.currency || 'USD';
-    const sym = cur === 'INR' ? '₹' : cur === 'EUR' ? '€' : '$';
-    const shortMoney = (n: number) => {
-      if (n >= 1_000_000) return `${(n/1_000_000).toFixed(1)}M`;
-      if (n >= 1_000) return `${(n/1_000).toFixed(0)}K`;
-      return String(n);
-    };
-    if (j.salary_min && j.salary_max) return `${sym}${shortMoney(j.salary_min)}–${sym}${shortMoney(j.salary_max)}/yr`;
-    if (j.salary_min) return `${sym}${shortMoney(j.salary_min)}+/yr`;
-  }
-  return '';
-}
-
-function pickColor(seed: string): string {
-  const COLOR_PALETTE = ['#F59E0B', '#3B82F6', '#10B981', '#A78BFA', '#EC4899', '#F97316', '#06B6D4', '#84CC16'];
-  let h = 0; for (const c of seed) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  return COLOR_PALETTE[h % COLOR_PALETTE.length];
-}
-
-function getStableMockData(jobId: string, company: string, jobType: string) {
-  let hash = 0;
-  const str = jobId || company || 'default';
-  for (let i = 0; i < str.length; i++) {
-    hash = (hash * 31 + str.charCodeAt(i)) >>> 0;
-  }
-  const matchPct = 82 + (hash % 16);
-  let fallbackSalary = '';
-  if (jobType === 'Internship') {
-    const salaries = ['₹35,000/mo', '₹60,000/mo', '₹85,000/mo', '₹1,20,000/mo'];
-    fallbackSalary = salaries[hash % salaries.length];
-  } else {
-    const salaries = ['₹8-12 LPA', '₹14-18 LPA', '₹22-28 LPA', '₹32-38 LPA'];
-    fallbackSalary = salaries[hash % salaries.length];
-  }
-    return { matchPct, fallbackSalary };
-}
-
-  // Inject modal styles directly into s
-  Object.assign(s, StyleSheet.create({
-    modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', alignItems: 'center', justifyContent: 'center', padding: 20, zIndex: 99999 },
-    modalCard: { width: '100%', maxWidth: 480, backgroundColor: '#111827', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderRadius: 16, padding: 22 },
-    modalHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
-    modalIconDisc: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(124,58,237,0.16)', borderColor: 'rgba(124,58,237,0.40)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-    modalTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 17, letterSpacing: -0.3 },
-    modalText: { color: SC.muted, fontFamily: FONTS.med, fontSize: 13, lineHeight: 18, marginBottom: 12 },
-    modalSubtext: { color: SC.dim, fontFamily: FONTS.med, fontSize: 12, lineHeight: 16, marginBottom: 20 },
-    modalBtnRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10 },
-    modalCancelBtn: { paddingHorizontal: 16, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center', backgroundColor: 'transparent' },
-    modalCancelTxt: { color: SC.muted, fontFamily: FONTS.bold, fontSize: 12.5 },
-    modalConfirmBtn: { flexDirection: 'row', gap: 6, alignItems: 'center', paddingHorizontal: 18, height: 36, borderRadius: 10 },
-    modalConfirmTxt: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12.5 },
-  }));

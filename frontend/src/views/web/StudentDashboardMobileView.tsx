@@ -5,9 +5,7 @@
  * and live integrations with the Jobs, Events, and Courses APIs.
  */
 import { useEffect, useRef, useState } from 'react';
-import {
-  View, Text, StyleSheet, Pressable, ScrollView, Animated, Easing, ActivityIndicator, Dimensions
-} from 'react-native';
+import { Platform, View, Text, StyleSheet, Pressable, ScrollView, Animated, Easing, ActivityIndicator, Dimensions} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Bell, Briefcase, Calendar, BookOpen, MapPin, Clock
@@ -32,7 +30,7 @@ export function StudentDashboardMobileView({
   const fade = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.timing(fade, {
-      toValue: 1, duration: 600, easing: Easing.out(Easing.exp), useNativeDriver: true,
+      toValue: 1, duration: 600, easing: Easing.out(Easing.exp), useNativeDriver: Platform.OS !== 'web',
     }).start();
   }, []);
   const translateY = fade.interpolate({ inputRange: [0, 1], outputRange: [20, 0] });
