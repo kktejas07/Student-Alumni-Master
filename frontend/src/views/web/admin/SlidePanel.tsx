@@ -2,7 +2,7 @@
  * SlidePanel — right-side drawer for detail views & compose forms.
  */
 import { ReactNode } from 'react';
-import { View, Text, Pressable, ScrollView, Modal, Platform } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, Modal, Platform } from 'react-native';
 import { X } from 'lucide-react-native';
 import { ADMIN_THEME as T } from './theme';
 
@@ -53,7 +53,7 @@ export function PanelField({ label, value }: { label: string; value: any }) {
   );
 }
 
-const styles = {
+const styles = StyleSheet.create({
   backdrop: {
     flex: 1, backgroundColor: 'rgba(0,0,0,0.55)',
     flexDirection: 'row', justifyContent: 'flex-end',
@@ -64,7 +64,7 @@ const styles = {
     backgroundColor: 'rgba(13,8,0,0.97)',
     borderLeftColor: T.borderMd, borderLeftWidth: 1,
     flexDirection: 'column',
-    shadowColor: '#000', shadowOpacity: 0.55, shadowRadius: 40, shadowOffset: { width: -10, height: 0 },
+    boxShadow: '-10px 0px 40px rgba(0,0,0,0.55)',
   },
   header: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
@@ -81,4 +81,4 @@ const styles = {
   field: { paddingVertical: 8, borderBottomColor: 'rgba(245,158,11,0.08)', borderBottomWidth: 1 },
   fieldLabel: { color: T.textMute, fontFamily: 'DMSans_500Medium', fontSize: 11, letterSpacing: 0.5, textTransform: 'uppercase' },
   fieldValue: { color: T.text, fontFamily: 'DMSans_500Medium', fontSize: 13, marginTop: 4, lineHeight: 18 },
-};
+});

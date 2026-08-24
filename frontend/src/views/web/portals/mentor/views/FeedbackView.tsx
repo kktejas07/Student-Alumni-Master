@@ -7,6 +7,7 @@ import {
   View, 
   Text, 
   Pressable, 
+  StyleSheet, 
   ScrollView, 
   TextInput, 
   ActivityIndicator, 
@@ -37,13 +38,104 @@ type Review = {
 };
 
 const INITIAL_REVIEWS: Review[] = [
-  { id: 1, student: 'Arjun Sharma', avatar: 'AS', color: '#14B8A6', topic: 'LLD Patterns & OOP', date: 'Apr 22, 2026', rating: 5, ratingText: '5.0', text: 'Dr. Rao explained complex design patterns with real-world examples. The session was incredibly structured and I walked away with a clear action plan.', read: true, reply: 'Thank you Arjun! Your dedication really shows. Keep practicing those concurrency patterns before our next session.', replyDate: 'Apr 23, 2026' },
-  { id: 2, student: 'Kabir Das', avatar: 'KD', color: '#F97316', topic: 'Investor Pitch Feedback', date: 'Apr 29, 2026', rating: 5, ratingText: '5.0', text: 'Suresh gave razor-sharp feedback on our deck. He spotted issues I had completely missed and gave very actionable advice.', read: false, reply: null, replyDate: null },
-  { id: 3, student: 'Meera Pillai', avatar: 'MP', color: '#FCD34D', topic: 'APM Case Study Prep', date: 'Apr 24, 2026', rating: 4, ratingText: '4.0', text: 'Great session overall. Dr. Rao helped me structure PM case studies much better. Would have loved more time on metrics frameworks.', read: true, reply: 'Thanks Meera! We will dive deep into north star frameworks next session.', replyDate: 'Apr 25, 2026' },
-  { id: 4, student: 'Priya Nair', avatar: 'PN', color: '#EC4899', topic: 'Research Career Paths', date: 'Apr 28, 2026', rating: 5, ratingText: '5.0', text: 'Dr. Rao has a rare ability to connect industry experience with academic research. This session changed my PhD application strategy completely.', read: false, reply: null, replyDate: null },
-  { id: 5, student: 'Rohan Bhat', avatar: 'RB', color: '#14B8A6', topic: 'Final Session — Google Prep', date: 'Apr 1, 2026', rating: 5, ratingText: '5.0', text: '5 sessions with Dr. Rao and I cracked Google SWE Intern! He pushed me beyond my comfort zone every single time.', read: true, reply: 'Congratulations Rohan!! You earned this. All the best at Google!', replyDate: 'Apr 2, 2026' },
-  { id: 6, student: 'Riya Shah', avatar: 'RS', color: '#EC4899', topic: 'Startup Pitch Deck', date: 'Apr 20, 2026', rating: 5, ratingText: '5.0', text: 'Suresh has a very structured approach. He helped us streamline our value proposition slide completely in just 30 minutes.', read: false, reply: null, replyDate: null },
-  { id: 7, student: 'Tanvi Rao', avatar: 'TR', color: '#8B5CF6', topic: 'Career Transition Advice', date: 'Apr 18, 2026', rating: 4, ratingText: '4.0', text: 'Highly insightful session. Provided great clarity on engineering management roles compared to individual contributor paths.', read: true, reply: null, replyDate: null },
+  {
+    id: 1,
+    student: 'Arjun Sharma',
+    avatar: 'AS',
+    color: '#14B8A6',
+    topic: 'LLD Patterns & OOP',
+    date: 'Apr 22, 2026',
+    rating: 5,
+    ratingText: '5.0',
+    text: 'Dr. Rao explained complex design patterns with real-world examples. The session was incredibly structured and I walked away with a clear action plan.',
+    read: true,
+    reply: 'Thank you Arjun! Your dedication really shows. Keep practicing those concurrency patterns before our next session.',
+    replyDate: 'Apr 23, 2026',
+  },
+  {
+    id: 2,
+    student: 'Kabir Das',
+    avatar: 'KD',
+    color: '#F97316',
+    topic: 'Investor Pitch Feedback',
+    date: 'Apr 29, 2026',
+    rating: 5,
+    ratingText: '5.0',
+    text: 'Suresh gave razor-sharp feedback on our deck. He spotted issues I had completely missed and gave very actionable advice.',
+    read: false,
+    reply: null,
+    replyDate: null,
+  },
+  {
+    id: 3,
+    student: 'Meera Pillai',
+    avatar: 'MP',
+    color: '#FCD34D',
+    topic: 'APM Case Study Prep',
+    date: 'Apr 24, 2026',
+    rating: 4,
+    ratingText: '4.0',
+    text: 'Great session overall. Dr. Rao helped me structure PM case studies much better. Would have loved more time on metrics frameworks.',
+    read: true,
+    reply: 'Thanks Meera! We will dive deep into north star frameworks next session.',
+    replyDate: 'Apr 25, 2026',
+  },
+  {
+    id: 4,
+    student: 'Priya Nair',
+    avatar: 'PN',
+    color: '#EC4899',
+    topic: 'Research Career Paths',
+    date: 'Apr 28, 2026',
+    rating: 5,
+    ratingText: '5.0',
+    text: 'Dr. Rao has a rare ability to connect industry experience with academic research. This session changed my PhD application strategy completely.',
+    read: false,
+    reply: null,
+    replyDate: null,
+  },
+  {
+    id: 5,
+    student: 'Rohan Bhat',
+    avatar: 'RB',
+    color: '#14B8A6',
+    topic: 'Final Session — Google Prep',
+    date: 'Apr 1, 2026',
+    rating: 5,
+    ratingText: '5.0',
+    text: '5 sessions with Dr. Rao and I cracked Google SWE Intern! He pushed me beyond my comfort zone every single time.',
+    read: true,
+    reply: 'Congratulations Rohan!! You earned this. All the best at Google!',
+    replyDate: 'Apr 2, 2026',
+  },
+  {
+    id: 6,
+    student: 'Riya Shah',
+    avatar: 'RS',
+    color: '#EC4899',
+    topic: 'Startup Pitch Deck',
+    date: 'Apr 20, 2026',
+    rating: 5,
+    ratingText: '5.0',
+    text: 'Suresh has a very structured approach. He helped us streamline our value proposition slide completely in just 30 minutes.',
+    read: false,
+    reply: null,
+    replyDate: null,
+  },
+  {
+    id: 7,
+    student: 'Tanvi Rao',
+    avatar: 'TR',
+    color: '#8B5CF6',
+    topic: 'Career Transition Advice',
+    date: 'Apr 18, 2026',
+    rating: 4,
+    ratingText: '4.0',
+    text: 'Highly insightful session. Provided great clarity on engineering management roles compared to individual contributor paths.',
+    read: true,
+    reply: null,
+    replyDate: null,
+  }
 ];
 
 const MOCK_MONTHLY_TREND = [
@@ -62,6 +154,7 @@ export function FeedbackView({ demoMode = false, setDemoMode }: { demoMode?: boo
   
   const { id: mentorId } = useCurrentUser('mentor1@persona.demo');
 
+  // Local stateful list of reviews
   const [reviews, setReviews] = useState<Review[]>([]);
   const [stats, setStats] = useState<any>(null);
 
@@ -87,19 +180,26 @@ export function FeedbackView({ demoMode = false, setDemoMode }: { demoMode?: boo
     }).catch(e => console.error(e));
   }, [mentorId]);
 
+  // Accordion flags
   const [showImprovementPlan, setShowImprovementPlan] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  // Filter selection state
   const [activeFilter, setActiveFilter] = useState<'all' | '5' | '4' | '3_below' | 'unread' | 'unanswered'>('all');
+
+  // Inline drafting/replying state
   const [replyingId, setReplyingId] = useState<string | number | null>(null);
   const [replyText, setReplyText] = useState('');
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
 
+  // Dynamic status counters
   const displayReviews = demoMode ? reviews : [];
   const displayStats = demoMode ? stats : { average: 0, total: 0, distribution: { '5': 0, '4': 0, '3': 0, '2': 0, '1': 0 } };
 
   const unreadCount = displayReviews.filter((r) => !r.read).length;
   const unansweredCount = displayReviews.filter((r) => r.reply === null).length;
 
+  // Filter handlers
   const filteredReviews = displayReviews.filter((r) => {
     if (activeFilter === 'all') return true;
     if (activeFilter === '5') return r.rating === 5;
@@ -110,12 +210,16 @@ export function FeedbackView({ demoMode = false, setDemoMode }: { demoMode?: boo
     return true;
   });
 
+  // Action simulations
   const handleAnalyzeReviews = () => {
     if (isAnalyzing) return;
     setIsAnalyzing(true);
     setTimeout(() => {
       setIsAnalyzing(false);
-      toast.success('Reviews Analyzed', 'Overall sentiment is 96% positive! Focus keywords: structured guidance, system design depth, actionable pitch deck audits.');
+      toast.success(
+        'Reviews Analyzed',
+        'Overall sentiment is 96% positive! Focus keywords: structured guidance, system design depth, actionable pitch deck audits.'
+      );
     }, 1200);
   };
 
@@ -125,6 +229,7 @@ export function FeedbackView({ demoMode = false, setDemoMode }: { demoMode?: boo
       setIsGeneratingAi(false);
       const selected = reviews.find((r) => r.id === reviewId);
       if (!selected) return;
+
       let draft = '';
       if (selected.student === 'Kabir Das') {
         draft = 'Thank you Kabir! Glad the deck feedback was actionable. Looking forward to refining Slide 2 narrative together before your pitch mock next week.';
@@ -143,9 +248,22 @@ export function FeedbackView({ demoMode = false, setDemoMode }: { demoMode?: boo
 
   const handleSendReply = async (reviewId: string | number) => {
     if (!replyText.trim()) return;
+
     try {
       await api.replyToReview(String(reviewId), replyText);
-      setReviews(reviews.map((r) => r.id === reviewId ? { ...r, reply: replyText, replyDate: new Date().toLocaleDateString(), read: true } : r));
+      setReviews(
+        reviews.map((r) => {
+          if (r.id === reviewId) {
+            return {
+              ...r,
+              reply: replyText,
+              replyDate: new Date().toLocaleDateString(),
+              read: true,
+            };
+          }
+          return r;
+        })
+      );
       setReplyingId(null);
       setReplyText('');
       toast.success('Reply Sent', 'Your response has been published to the student portal.');
@@ -160,40 +278,47 @@ export function FeedbackView({ demoMode = false, setDemoMode }: { demoMode?: boo
   };
 
   const handleMarkAsRead = (reviewId: string | number) => {
-    setReviews(reviews.map((r) => (r.id === reviewId ? { ...r, read: true } : r)));
+    setReviews(
+      reviews.map((r) => (r.id === reviewId ? { ...r, read: true } : r))
+    );
   };
 
   return (
-    <ScrollView className="flex-1" contentContainerStyle={{ gap: 16 }} showsVerticalScrollIndicator={false}>
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: 16 }} showsVerticalScrollIndicator={false}>
       {demoMode && (
-        <View className="bg-amber/[0.08] border border-amber/30 rounded-xl py-2.5 px-4 items-center mb-4">
-          <Text className="text-amber font-body-bold text-xs text-center">
+        <View style={s.demoBadgeBanner}>
+          <Text style={s.demoBadgeText}>
             Demo Mode · Sample data is displayed for demonstration purposes.{' '}
-            <Text onPress={() => setDemoMode?.(false)} className="underline text-white font-body-bold">Switch to Live Mode</Text>
+            <Text 
+              onPress={() => setDemoMode?.(false)}
+              style={{ textDecorationLine: 'underline', color: '#fff', fontFamily: FONTS.bold }}
+            >
+              Switch to Live Mode
+            </Text>
           </Text>
         </View>
       )}
-
-      <View className="flex-row items-center justify-between mb-1">
+      {/* Header section */}
+      <View style={s.headerRow}>
         <View>
-          <Text className="text-white font-display-bold text-[22px] tracking-[-0.5px]">Feedback</Text>
-          <Text className="text-dim font-body-semibold text-xs mt-0.5">{unreadCount} unread · {unansweredCount} awaiting reply</Text>
+          <Text style={s.mainTitle}>Feedback</Text>
+          <Text style={s.mainSubtitle}>{unreadCount} unread · {unansweredCount} awaiting reply</Text>
         </View>
       </View>
 
-      <View className="flex-row items-center gap-3">
+      {/* AI actions row */}
+      <View style={s.aiActionsRow}>
         <Pressable 
           onPress={handleAnalyzeReviews}
           disabled={!demoMode}
-          className="flex-row items-center gap-1.5 rounded-xl px-[14px] py-2"
-          style={{ borderColor: 'rgba(252,211,77,0.35)', borderWidth: 1, backgroundColor: 'rgba(252,211,77,0.06)', cursor: 'pointer', ...(!demoMode ? { opacity: 0.5 } : {}) } as any}
+          style={[s.analyzeBtn, !demoMode && { opacity: 0.5 }]}
         >
           {isAnalyzing ? (
             <ActivityIndicator size="small" color="#FCD34D" />
           ) : (
             <>
               <Sparkles size={13} color="#FCD34D" />
-              <Text className="text-amber font-body-bold text-xs">{demoMode ? 'Analyze All Reviews' : 'AI Analysis (Requires 3+ reviews)'}</Text>
+              <Text style={s.analyzeBtnText}>{demoMode ? 'Analyze All Reviews' : 'AI Analysis (Requires 3+ reviews)'}</Text>
             </>
           )}
         </Pressable>
@@ -201,107 +326,128 @@ export function FeedbackView({ demoMode = false, setDemoMode }: { demoMode?: boo
         <Pressable 
           onPress={() => demoMode && setShowImprovementPlan(!showImprovementPlan)}
           disabled={!demoMode}
-          className="flex-row items-center gap-1.5 rounded-xl px-[14px] py-2 border"
-          style={{
-            borderColor: showImprovementPlan ? '#D97706' : 'rgba(245,158,11,0.30)',
-            backgroundColor: showImprovementPlan ? '#F59E0B' : 'rgba(245,158,11,0.04)',
-            cursor: 'pointer',
-            ...(!demoMode ? { opacity: 0.5 } : {}),
-          }}
+          style={[
+            s.accordionTrigger,
+            showImprovementPlan && s.accordionTriggerActive,
+            !demoMode && { opacity: 0.5 }
+          ]}
         >
           <Sparkles size={13} color={showImprovementPlan ? '#fff' : '#F59E0B'} />
-          <Text className="font-body-bold text-xs" style={{ color: showImprovementPlan ? '#fff' : '#FCD34D' }}>
+          <Text style={[s.accordionTriggerText, showImprovementPlan && s.accordionTriggerTextActive]}>
             {demoMode ? 'AI: How do I reach 5.0?' : 'AI Guidance (Requires 3+ reviews)'}
           </Text>
         </Pressable>
       </View>
 
+      {/* Collapsible improvement plan drawer */}
       {showImprovementPlan && demoMode && (
-        <View className="bg-amber/[0.02] border border-amber/25 rounded-[16px] p-4 gap-2">
-          <Text className="text-amber font-body-semibold text-[12.5px] leading-[18px]">1. Reserve last 10 minutes for student questions — 2 reviews mention sessions feeling rushed.</Text>
-          <Text className="text-amber font-body-semibold text-[12.5px] leading-[18px]">2. Send a 1-line follow-up after each session to reinforce key learnings.</Text>
-          <Text className="text-amber font-body-semibold text-[12.5px] leading-[18px]">3. Start with a 2-min recap of previous action items to show continuity.</Text>
+        <View style={s.accordionBody}>
+          <Text style={s.accordionBullet}>
+            1. Reserve last 10 minutes for student questions — 2 reviews mention sessions feeling rushed.
+          </Text>
+          <Text style={s.accordionBullet}>
+            2. Send a 1-line follow-up after each session to reinforce key learnings.
+          </Text>
+          <Text style={s.accordionBullet}>
+            3. Start with a 2-min recap of previous action items to show continuity.
+          </Text>
         </View>
       )}
 
-      <View className="gap-3.5" style={{ flexDirection: stack ? 'column' : 'row' }}>
-        <View className="bg-card border border-glass-border rounded-[16px] p-[18px] flex-1 min-w-[180px]">
-          <Text className="text-dim font-display-bold text-[10px] tracking-[1px] mb-1">OVERALL RATING</Text>
-          <Text className="text-white font-display-bold text-[38px] tracking-[-1px]">{demoMode && displayStats?.average ? displayStats.average.toFixed(1) : '—'}</Text>
-          <View className="my-1">
+      {/* Rating summaries horizontal row */}
+      <View style={{ flexDirection: stack ? 'column' : 'row', gap: 14 }}>
+        {/* OVERALL RATING Card */}
+        <View style={[s.card, { flex: 1, minWidth: 180 }]}>
+          <Text style={s.cardKicker}>OVERALL RATING</Text>
+          <Text style={s.hugeValue}>{demoMode && displayStats?.average ? displayStats.average.toFixed(1) : '—'}</Text>
+          <View style={{ marginVertical: 4 }}>
             <StarRow rating={demoMode && displayStats?.average ? Math.round(displayStats.average) : 0} size={15} />
           </View>
-          <Text className="text-muted font-body-semibold text-xs mt-1">{demoMode && displayStats?.total ? displayStats.total : 0} reviews</Text>
+          <Text style={s.reviewsCountLabel}>{demoMode && displayStats?.total ? displayStats.total : 0} reviews</Text>
         </View>
 
-        <View className="bg-card border border-glass-border rounded-[16px] p-[18px] flex-[1.5] min-w-[260px]">
-          <Text className="text-dim font-display-bold text-[10px] tracking-[1px] mb-1">RATING BREAKDOWN</Text>
-          <View className="mt-2 gap-[5px]">
+        {/* RATING BREAKDOWN Card */}
+        <View style={[s.card, { flex: 1.5, minWidth: 260 }]}>
+          <Text style={s.cardKicker}>RATING BREAKDOWN</Text>
+          <View style={{ marginTop: 8, gap: 5 }}>
             {[5, 4, 3, 2, 1].map((star) => {
               const count = demoMode ? (displayStats?.distribution?.[String(star)] || 0) : 0;
               const total = demoMode ? (displayStats?.total || 1) : 1;
               const pct = demoMode ? Math.round((count / total) * 100) : 0;
               return (
-                <View key={star} className="flex-row items-center gap-2">
-                  <Text className="text-dim font-body-bold text-[11px] w-6">{star} ★</Text>
-                  <View className="flex-1 h-1.5 rounded-[3px] bg-white/[0.05] overflow-hidden">
-                    <View className="h-full rounded-[3px]" style={{ width: `${pct}%` as any, backgroundColor: '#0D9488' }} />
+                <View key={star} style={s.breakdownRow}>
+                  <Text style={s.starText}>{star} ★</Text>
+                  <View style={s.progressBarTrack}>
+                    <View style={[s.progressBarFill, { width: `${pct}%` as any }]} />
                   </View>
-                  <Text className="text-dim font-body-bold text-[11px] w-[14px] text-right">{count}</Text>
+                  <Text style={s.breakdownCountText}>{count}</Text>
                 </View>
               );
             })}
           </View>
         </View>
 
-        <View className="bg-card border border-glass-border rounded-[16px] p-[18px] flex-[2] min-w-[320px]">
-          <View className="flex-row items-center justify-between mb-2">
-            <Text className="text-dim font-display-bold text-[10px] tracking-[1px] mb-1">RATING TREND</Text>
-            <Text className="font-body-bold text-[10.5px]" style={{ color: '#86EFAC' }}>{demoMode ? 'Trending up · Best: Mar 2026' : 'No trend data'}</Text>
+        {/* RATING TREND Card */}
+        <View style={[s.card, { flex: 2, minWidth: 320 }]}>
+          <View style={s.trendHeader}>
+            <Text style={s.cardKicker}>RATING TREND</Text>
+            <Text style={s.growthLabel}>{demoMode ? 'Trending up · Best: Mar 2026' : 'No trend data'}</Text>
           </View>
+          
           {demoMode ? (
-            <View className="flex-row items-end justify-between h-[75px] px-1 mt-2.5">
+            <View style={s.customChartContainer}>
               {MOCK_MONTHLY_TREND.map((c) => {
                 const isApr = c.month === 'Apr';
-                const barHeight = Math.round((c.score / 5.0) * 55);
+                const maxVal = 5.0;
+                const barHeight = Math.round((c.score / maxVal) * 55);
+                
                 return (
-                  <View key={c.month} className="flex-1 items-center gap-1">
-                    <Text className="font-body-bold text-[9.5px]" style={{ color: isApr ? '#F97316' : MC.dim }}>{c.label}</Text>
+                  <View key={c.month} style={s.chartBarColumn}>
+                    <Text style={[s.chartBarLabel, isApr && s.chartBarLabelActive]}>
+                      {c.label}
+                    </Text>
                     <View 
-                      className="w-[60%] rounded-t"
-                      style={{ 
-                        height: barHeight,
-                        backgroundColor: isApr ? '#F97316' : MC.teal,
-                        opacity: isApr ? 1 : 0.45,
-                      }} 
+                      style={[
+                        s.chartBarTrack, 
+                        { height: barHeight },
+                        isApr ? s.chartBarActive : s.chartBarInactive
+                      ]} 
                     />
-                    <Text className="text-[9.5px] font-body-semibold" style={{ color: isApr ? '#fff' : MC.dim, ...(isApr ? { fontFamily: FONTS.bold } : {}) }}>{c.month}</Text>
+                    <Text style={[s.chartBarMonth, isApr && s.chartBarMonthActive]}>
+                      {c.month}
+                    </Text>
                   </View>
                 );
               })}
             </View>
           ) : (
-            <View className="flex-row items-center justify-center h-[70px] mt-2.5 border border-dashed rounded-[10px]" style={{ borderColor: MC.border }}>
-              <Text className="text-dim font-body-semibold text-xs text-center px-5">No trend data yet. Complete sessions to generate feedback history.</Text>
+            <View style={[s.customChartContainer, { alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderStyle: 'dashed', borderColor: MC.border, borderRadius: 10, height: 70, marginTop: 10 }]}>
+              <Text style={{ color: MC.dim, fontFamily: FONTS.med, fontSize: 12, textAlign: 'center', paddingHorizontal: 20 }}>
+                No trend data yet. Complete sessions to generate feedback history.
+              </Text>
             </View>
           )}
         </View>
       </View>
 
-      <View className="gap-2.5 mt-1">
-        <View className="flex-row flex-wrap gap-2">
+      {/* Filter pills container */}
+      <View style={s.filterContainer}>
+        {/* Left indicators */}
+        <View style={s.badgePillsContainer}>
           {unreadCount > 0 && (
-            <View className="rounded-[20px] px-2.5 py-[3px] border" style={{ backgroundColor: 'rgba(239,68,68,0.15)', borderColor: 'rgba(239,68,68,0.30)' }}>
-              <Text className="text-rose font-body-bold text-[11px]">{unreadCount} unread</Text>
+            <View style={s.unreadBadge}>
+              <Text style={s.unreadBadgeText}>{unreadCount} unread</Text>
             </View>
           )}
           {unansweredCount > 0 && (
-            <View className="rounded-[20px] px-2.5 py-[3px] border" style={{ backgroundColor: 'rgba(245,158,11,0.15)', borderColor: 'rgba(245,158,11,0.30)' }}>
-              <Text className="text-amber font-body-bold text-[11px]">{unansweredCount} awaiting reply</Text>
+            <View style={s.unansweredBadge}>
+              <Text style={s.unansweredBadgeText}>{unansweredCount} awaiting reply</Text>
             </View>
           )}
         </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 2 }}>
+
+        {/* Filter Selection Pills */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filterScroll}>
           {[
             { id: 'all', label: `All (${displayReviews.length})` },
             { id: '5', label: '5 ★' },
@@ -316,112 +462,610 @@ export function FeedbackView({ demoMode = false, setDemoMode }: { demoMode?: boo
                 key={item.id}
                 onPress={() => demoMode && setActiveFilter(item.id as any)}
                 disabled={!demoMode}
-                className="px-[14px] py-2 rounded-[20px] border"
-                style={active
-                  ? { backgroundColor: '#0D9488', borderColor: '#0F766E' }
-                  : { backgroundColor: MC.card, borderColor: MC.border, cursor: 'pointer', ...(!demoMode ? { opacity: 0.5 } : {}) }
-                }
+                style={[
+                  s.filterPill, 
+                  active && s.filterPillActive,
+                  !demoMode && { opacity: 0.5, cursor: 'default' }
+                ]}
               >
-                <Text className="text-[12.5px]" style={{ color: active ? '#fff' : MC.muted, fontFamily: active ? FONTS.bold : FONTS.semi }}>{item.label}</Text>
+                <Text style={[s.filterPillText, active && s.filterPillTextActive]}>{item.label}</Text>
               </Pressable>
             );
           })}
         </ScrollView>
       </View>
 
-      <View className="gap-3">
+      {/* Reviews list */}
+      <View style={{ gap: 12 }}>
         {demoMode ? (
           filteredReviews.map((r) => {
             const isDrafting = replyingId === r.id;
             return (
               <View 
                 key={r.id} 
-                className="bg-card border border-glass-border rounded-[16px] p-4"
-                style={!r.read ? { borderColor: 'rgba(20,184,166,0.35)', backgroundColor: 'rgba(20,184,166,0.02)' } : undefined}
-                onStartShouldSetResponder={() => { if (!r.read) handleMarkAsRead(r.id); return false; }}
+                style={[
+                  s.reviewCard, 
+                  !r.read && { borderColor: 'rgba(20,184,166,0.35)', backgroundColor: 'rgba(20,184,166,0.02)' }
+                ]}
+                onStartShouldSetResponder={() => {
+                  if (!r.read) handleMarkAsRead(r.id);
+                  return false;
+                }}
               >
-                <View className="flex-row items-start justify-between gap-2.5">
-                  <View className="flex-row items-center gap-3 flex-1">
+                {/* Header: Avatar, Info, Stars */}
+                <View style={s.reviewCardHeader}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
                     <Av initials={r.avatar} size={42} color={r.color} />
-                    <View className="flex-1">
-                      <View className="flex-row items-center gap-2">
-                        <Text className="text-white font-body-bold text-[13.5px]">{r.student}</Text>
+                    <View style={{ flex: 1 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Text style={s.studentName}>{r.student}</Text>
                         {!r.read && (
-                          <View className="px-1.5 py-0.5 rounded-[5px] border" style={{ backgroundColor: 'rgba(239,68,68,0.2)', borderColor: 'rgba(239,68,68,0.4)' }}>
-                            <Text className="text-rose font-display-bold text-[9.5px]">New</Text>
+                          <View style={s.newDotBadge}>
+                            <Text style={s.newDotBadgeText}>New</Text>
                           </View>
                         )}
                       </View>
-                      <Text className="text-dim font-body-semibold text-[11.5px] mt-0.5">{r.topic} · {r.date}</Text>
+                      <Text style={s.sessionDetails}>{r.topic} · {r.date}</Text>
                     </View>
                   </View>
-                  <View className="items-end gap-0.5">
+                  
+                  {/* Rating display */}
+                  <View style={{ alignItems: 'flex-end', gap: 2 }}>
                     <StarRow rating={r.rating} size={14} />
-                    <Text className="font-body-bold text-xs" style={{ color: MC.amber }}>{r.ratingText}</Text>
+                    <Text style={s.starsTextDisplay}>{r.ratingText}</Text>
                   </View>
+              </View>
+
+              {/* Review Text */}
+              <Text style={s.reviewTextBody}>“{r.text}”</Text>
+
+              {/* Reply Section */}
+              {r.reply && !isDrafting ? (
+                <View style={s.replyBoxContainer}>
+                  <Text style={s.replyBoxHeader}>YOUR REPLY · {r.replyDate}</Text>
+                  <Text style={s.replyBoxBody}>{r.reply}</Text>
+                  <Pressable 
+                    onPress={() => handleEditReply(r.id, r.reply || '')}
+                    style={s.editReplyBtn}
+                  >
+                    <Text style={s.editReplyBtnText}>Edit Reply</Text>
+                  </Pressable>
                 </View>
-
-                <Text className="text-muted font-body-semibold text-[13px] leading-5 mt-3">"{r.text}"</Text>
-
-                {r.reply && !isDrafting ? (
-                  <View className="mt-3 p-3 rounded-xl gap-1.5" style={{ backgroundColor: 'rgba(20,184,166,0.06)', borderColor: 'rgba(20,184,166,0.15)', borderWidth: 1 }}>
-                    <Text className="text-tealP font-display-bold text-[10px] tracking-[0.6px]">YOUR REPLY · {r.replyDate}</Text>
-                    <Text className="text-white font-body-semibold text-[12.5px] leading-[18px]">{r.reply}</Text>
-                    <Pressable onPress={() => handleEditReply(r.id, r.reply || '')} className="self-start mt-1 px-2.5 py-[5px] rounded-md bg-white/[0.05] border border-glass-border" style={Platform.OS === 'web' ? { cursor: 'pointer' } as any : undefined}>
-                      <Text className="text-muted font-body-bold text-[11px]">Edit Reply</Text>
-                    </Pressable>
+              ) : isDrafting ? (
+                /* Inline Editor Drawer */
+                <View style={s.inlineEditor}>
+                  <View style={s.inputContainer}>
+                    <TextInput
+                      value={replyText}
+                      onChangeText={setReplyText}
+                      placeholder="Write a reply..."
+                      placeholderTextColor="rgba(255,255,255,0.3)"
+                      multiline
+                      style={s.replyTextInput}
+                    />
                   </View>
-                ) : isDrafting ? (
-                  <View className="mt-3 gap-2.5">
-                    <View className="bg-[rgba(20,12,40,0.6)] border border-glass-border rounded-xl p-2.5 min-h-[60px]">
-                      <TextInput
-                        value={replyText}
-                        onChangeText={setReplyText}
-                        placeholder="Write a reply..."
-                        placeholderTextColor="rgba(255,255,255,0.3)"
-                        multiline
-                        className="text-white font-body-semibold text-[13px] min-h-[40px]"
-                        style={{ textAlignVertical: 'top', ...(Platform.OS === 'web' ? { outlineStyle: 'none' } as any : {}) }}
-                      />
-                    </View>
-                    <View className="flex-row items-center justify-between flex-wrap gap-2">
-                      <View className="flex-row gap-2 flex-1">
-                        <Pressable onPress={() => handleAiDraftReply(r.id)} disabled={isGeneratingAi} className="flex-row items-center gap-1.5 px-3 py-[7px] rounded-lg border" style={{ backgroundColor: 'rgba(252,211,77,0.10)', borderColor: 'rgba(252,211,77,0.30)', cursor: 'pointer' }}>
-                          {isGeneratingAi ? <ActivityIndicator size="small" color="#FCD34D" /> : <><Sparkles size={11} color="#FCD34D" /><Text className="text-amber font-body-bold text-[11.5px]">AI Draft Reply</Text></>}
-                        </Pressable>
-                        <Pressable onPress={() => handleSendReply(r.id)} className="px-[14px] py-[7px] rounded-lg bg-tealP items-center justify-center" style={{ cursor: 'pointer' }}>
-                          <Text className="text-bg font-display-bold text-[11.5px]">Send Reply</Text>
-                        </Pressable>
-                      </View>
-                      <Pressable onPress={() => { setReplyingId(null); setReplyText(''); }} className="px-2.5 py-[7px]" style={{ cursor: 'pointer' }}>
-                        <Text className="text-muted font-body-bold text-[11.5px]">Cancel</Text>
+                  <View style={s.editorActionsRow}>
+                    <View style={{ flexDirection: 'row', gap: 8, flex: 1 }}>
+                      <Pressable 
+                        onPress={() => handleAiDraftReply(r.id)}
+                        disabled={isGeneratingAi}
+                        style={s.aiDraftBtn}
+                      >
+                        {isGeneratingAi ? (
+                          <ActivityIndicator size="small" color="#FCD34D" />
+                        ) : (
+                          <>
+                            <Sparkles size={11} color="#FCD34D" />
+                            <Text style={s.aiDraftBtnText}>AI Draft Reply</Text>
+                          </>
+                        )}
+                      </Pressable>
+                      
+                      <Pressable 
+                        onPress={() => handleSendReply(r.id)}
+                        style={s.sendReplyBtn}
+                      >
+                        <Text style={s.sendReplyBtnText}>Send Reply</Text>
                       </Pressable>
                     </View>
-                  </View>
-                ) : (
-                  <View className="mt-3">
-                    <Pressable onPress={() => { setReplyingId(r.id); setReplyText(''); }} className="self-start px-3 py-[7px] rounded-lg bg-white/[0.05] border border-glass-border" style={{ cursor: 'pointer' }}>
-                      <Text className="text-muted font-body-bold text-[11.5px]">Reply to Review</Text>
+
+                    <Pressable 
+                      onPress={() => {
+                        setReplyingId(null);
+                        setReplyText('');
+                      }}
+                      style={s.cancelReplyBtn}
+                    >
+                      <Text style={s.cancelReplyText}>Cancel</Text>
                     </Pressable>
                   </View>
-                )}
-              </View>
-            );
-          })
-        ) : (
-          <View className="bg-card border border-glass-border rounded-[16px] p-[18px] items-center py-10">
-            <Star size={48} color={MC.dim} style={{ marginBottom: 12 }} />
-            <Text className="text-white font-body-bold text-[13px] mb-1">No student reviews yet</Text>
-            <Text className="text-muted font-body-semibold text-[13px] text-center px-5">Reviews and student feedback will appear here after you conduct mentoring sessions.</Text>
-          </View>
-        )}
+                </View>
+              ) : (
+                /* Reply action button */
+                <View style={{ marginTop: 12 }}>
+                  <Pressable 
+                    onPress={() => {
+                      setReplyingId(r.id);
+                      setReplyText('');
+                    }}
+                    style={s.replyTriggerBtn}
+                  >
+                    <Text style={s.replyTriggerText}>Reply to Review</Text>
+                  </Pressable>
+                </View>
+              )}
+            </View>
+          );
+        })
+      ) : (
+        <View style={[s.card, { alignItems: 'center', paddingVertical: 40 }]}>
+          <Star size={48} color={MC.dim} style={{ marginBottom: 12 }} />
+          <Text style={[s.cardTitle, { marginBottom: 4 }]}>No student reviews yet</Text>
+          <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 13, textAlign: 'center', paddingHorizontal: 20 }}>
+            Reviews and student feedback will appear here after you conduct mentoring sessions.
+          </Text>
+        </View>
+      )}
 
-        {demoMode && filteredReviews.length === 0 && (
-          <View className="py-6 items-center justify-center">
-            <Text className="text-muted font-body-semibold text-[13.5px]">No reviews match the selected filter.</Text>
-          </View>
-        )}
+      {demoMode && filteredReviews.length === 0 && (
+        <View style={s.emptyStateBox}>
+          <Text style={s.emptyStateText}>No reviews match the selected filter.</Text>
+        </View>
+      )}
       </View>
     </ScrollView>
   );
 }
+
+const s = StyleSheet.create({
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  mainTitle: {
+    color: '#fff',
+    fontFamily: FONTS.xbold,
+    fontSize: 22,
+    letterSpacing: -0.5,
+  },
+  mainSubtitle: {
+    color: MC.dim,
+    fontFamily: FONTS.med,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  aiActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  analyzeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderColor: 'rgba(252,211,77,0.35)',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(252,211,77,0.06)',
+    cursor: 'pointer',
+  } as any,
+  analyzeBtnText: {
+    color: '#FCD34D',
+    fontFamily: FONTS.bold,
+    fontSize: 12,
+  },
+  accordionTrigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderColor: 'rgba(245,158,11,0.30)',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(245,158,11,0.04)',
+    cursor: 'pointer',
+  } as any,
+  accordionTriggerActive: {
+    backgroundColor: '#F59E0B',
+    borderColor: '#D97706',
+  },
+  accordionTriggerText: {
+    color: '#FCD34D',
+    fontFamily: FONTS.bold,
+    fontSize: 12,
+  },
+  accordionTriggerTextActive: {
+    color: '#fff',
+  },
+  accordionBody: {
+    backgroundColor: 'rgba(245,158,11,0.02)',
+    borderColor: 'rgba(245,158,11,0.25)',
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 16,
+    gap: 8,
+  },
+  accordionBullet: {
+    color: '#FCD34D',
+    fontFamily: FONTS.med,
+    fontSize: 12.5,
+    lineHeight: 18,
+  },
+  card: {
+    backgroundColor: MC.card,
+    borderColor: MC.border,
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 18,
+  },
+  cardKicker: {
+    color: MC.dim,
+    fontFamily: FONTS.xbold,
+    fontSize: 10,
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  cardTitle: {
+    color: '#fff',
+    fontFamily: FONTS.bold,
+    fontSize: 13,
+  },
+  hugeValue: {
+    color: '#fff',
+    fontFamily: FONTS.xbold,
+    fontSize: 38,
+    letterSpacing: -1,
+  },
+  reviewsCountLabel: {
+    color: MC.muted,
+    fontFamily: FONTS.semi,
+    fontSize: 12,
+    marginTop: 4,
+  },
+  breakdownRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  starText: {
+    color: MC.dim,
+    fontFamily: FONTS.bold,
+    fontSize: 11,
+    width: 24,
+  },
+  progressBarTrack: {
+    flex: 1,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#0D9488',
+    borderRadius: 3,
+  },
+  breakdownCountText: {
+    color: MC.dim,
+    fontFamily: FONTS.bold,
+    fontSize: 11,
+    width: 14,
+    textAlign: 'right',
+  },
+  trendHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  growthLabel: {
+    color: '#86EFAC',
+    fontFamily: FONTS.bold,
+    fontSize: 10.5,
+  },
+  customChartContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    height: 75,
+    paddingHorizontal: 4,
+    marginTop: 10,
+  },
+  chartBarColumn: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 4,
+  },
+  chartBarLabel: {
+    color: MC.dim,
+    fontFamily: FONTS.bold,
+    fontSize: 9.5,
+  },
+  chartBarLabelActive: {
+    color: '#F97316',
+    fontFamily: FONTS.xbold,
+  },
+  chartBarTrack: {
+    width: '60%',
+    borderTopLeftRadius: 4,
+    borderTopRightRadius: 4,
+  },
+  chartBarInactive: {
+    backgroundColor: MC.teal,
+    opacity: 0.45,
+  },
+  chartBarActive: {
+    backgroundColor: '#F97316',
+    opacity: 1,
+  },
+  chartBarMonth: {
+    color: MC.dim,
+    fontFamily: FONTS.med,
+    fontSize: 9.5,
+  },
+  chartBarMonthActive: {
+    color: '#fff',
+    fontFamily: FONTS.bold,
+  },
+  filterContainer: {
+    gap: 10,
+    marginTop: 4,
+  },
+  badgePillsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  unreadBadge: {
+    backgroundColor: 'rgba(239,68,68,0.15)',
+    borderColor: 'rgba(239,68,68,0.30)',
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+  },
+  unreadBadgeText: {
+    color: '#FCA5A5',
+    fontFamily: FONTS.bold,
+    fontSize: 11,
+  },
+  unansweredBadge: {
+    backgroundColor: 'rgba(245,158,11,0.15)',
+    borderColor: 'rgba(245,158,11,0.30)',
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+  },
+  unansweredBadgeText: {
+    color: '#FCD34D',
+    fontFamily: FONTS.bold,
+    fontSize: 11,
+  },
+  filterScroll: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  filterPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: MC.card,
+    borderWidth: 1,
+    borderColor: MC.border,
+    cursor: 'pointer',
+  } as any,
+  filterPillActive: {
+    backgroundColor: '#0D9488',
+    borderColor: '#0F766E',
+  },
+  filterPillText: {
+    color: MC.muted,
+    fontFamily: FONTS.semi,
+    fontSize: 12.5,
+  },
+  filterPillTextActive: {
+    color: '#fff',
+    fontFamily: FONTS.bold,
+  },
+  reviewCard: {
+    backgroundColor: MC.card,
+    borderColor: MC.border,
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 16,
+  },
+  reviewCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  studentName: {
+    color: '#fff',
+    fontFamily: FONTS.bold,
+    fontSize: 13.5,
+  },
+  newDotBadge: {
+    backgroundColor: 'rgba(239,68,68,0.2)',
+    borderColor: 'rgba(239,68,68,0.4)',
+    borderWidth: 1,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 5,
+  },
+  newDotBadgeText: {
+    color: '#FCA5A5',
+    fontFamily: FONTS.xbold,
+    fontSize: 9.5,
+  },
+  sessionDetails: {
+    color: MC.dim,
+    fontFamily: FONTS.med,
+    fontSize: 11.5,
+    marginTop: 1,
+  },
+  starsTextDisplay: {
+    color: MC.amber,
+    fontFamily: FONTS.bold,
+    fontSize: 12,
+  },
+  reviewTextBody: {
+    color: MC.muted,
+    fontFamily: FONTS.med,
+    fontSize: 13,
+    lineHeight: 20,
+    marginTop: 12,
+  },
+  replyBoxContainer: {
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: 'rgba(20,184,166,0.06)',
+    borderColor: 'rgba(20,184,166,0.15)',
+    borderWidth: 1,
+    gap: 6,
+  },
+  replyBoxHeader: {
+    color: MC.tealP,
+    fontFamily: FONTS.xbold,
+    fontSize: 10,
+    letterSpacing: 0.6,
+  },
+  replyBoxBody: {
+    color: '#fff',
+    fontFamily: FONTS.med,
+    fontSize: 12.5,
+    lineHeight: 18,
+  },
+  editReplyBtn: {
+    alignSelf: 'flex-start',
+    marginTop: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: MC.border,
+    cursor: 'pointer',
+  } as any,
+  editReplyBtnText: {
+    color: MC.muted,
+    fontFamily: FONTS.bold,
+    fontSize: 11,
+  },
+  inlineEditor: {
+    marginTop: 12,
+    gap: 10,
+  },
+  inputContainer: {
+    backgroundColor: 'rgba(20,12,40,0.6)',
+    borderColor: MC.border,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 10,
+    minHeight: 60,
+  },
+  replyTextInput: {
+    color: '#fff',
+    fontFamily: FONTS.med,
+    fontSize: 13,
+    minHeight: 40,
+    textAlignVertical: 'top',
+    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
+  },
+  editorActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  aiDraftBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+    backgroundColor: 'rgba(252,211,77,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(252,211,77,0.30)',
+    cursor: 'pointer',
+  } as any,
+  aiDraftBtnText: {
+    color: '#FCD34D',
+    fontFamily: FONTS.bold,
+    fontSize: 11.5,
+  },
+  sendReplyBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 8,
+    backgroundColor: MC.tealP,
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+  } as any,
+  sendReplyBtnText: {
+    color: MC.bg,
+    fontFamily: FONTS.xbold,
+    fontSize: 11.5,
+  },
+  cancelReplyBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    cursor: 'pointer',
+  } as any,
+  cancelReplyText: {
+    color: MC.muted,
+    fontFamily: FONTS.bold,
+    fontSize: 11.5,
+  },
+  replyTriggerBtn: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: MC.border,
+    cursor: 'pointer',
+  } as any,
+  replyTriggerText: {
+    color: MC.muted,
+    fontFamily: FONTS.bold,
+    fontSize: 11.5,
+  },
+  emptyStateBox: {
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyStateText: {
+    color: MC.muted,
+    fontFamily: FONTS.med,
+    fontSize: 13.5,
+  },
+  demoBadgeBanner: {
+    backgroundColor: 'rgba(245, 158, 11, 0.08)',
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  demoBadgeText: {
+    color: '#FBBF24',
+    fontFamily: FONTS.bold,
+    fontSize: 12,
+    textAlign: 'center',
+  },
+});

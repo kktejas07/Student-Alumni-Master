@@ -8,7 +8,7 @@
  * 3. Global CSS injection for web route transitions.
  */
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Animated, Easing, Platform } from 'react-native';
+import { View, Animated, Easing, Platform, StyleSheet } from 'react-native';
 import { GlobalTopProgressBar } from './AppLoader';
 
 export interface MotionTransitionProps {
@@ -123,9 +123,9 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
   }
 }
 
-const styles = {
+const styles = StyleSheet.create({
   container: {
     flex: 1,
     width: '100%',
   },
-} as const;
+});

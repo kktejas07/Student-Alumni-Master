@@ -2,16 +2,15 @@
  * AuthShell — Responsive 2-pane wrapper.
  * Desktop (>= 980px): left brand panel + right form panel.
  * Mobile (< 980px):   single column, top compact brand strip.
- * Migrated to NativeWind className.
  */
 import React from 'react';
-import {View, Text, ScrollView, useWindowDimensions, Platform, KeyboardAvoidingView, Pressable} from "react-native";
+import { View, Text, ScrollView, StyleSheet, useWindowDimensions, Platform, KeyboardAvoidingView, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path, Text as SvgText } from 'react-native-svg';
 import { AuthBrand } from './AuthBrand';
-import { AC } from './tokens';
+import { AC, FONTS } from './tokens';
 import { RoleThemeProvider } from './RoleTheme';
 import { StarryBackground } from '../web/nexus-glow-landing/StarryBackground';
 import { SAWatermark } from '../web/components/SAWatermark';
@@ -27,13 +26,19 @@ function MobileBrand() {
           <SvgText x="16" y="22.5" textAnchor="middle" fontFamily="Manrope, sans-serif" fontWeight="800" fontSize="12" fill="#FFFFFF">SA</SvgText>
         </Svg>
         <View>
-          <Text className="text-white font-display text-lg">StudentAlumni</Text>
-          <Text className="text-white/85 font-body text-xs mt-0.5">AI-powered career platform</Text>
+          <Text style={ms.title}>StudentAlumni</Text>
+          <Text style={ms.sub}>AI-powered career platform</Text>
         </View>
       </LinearGradient>
     </Pressable>
   );
 }
+
+const ms = StyleSheet.create({
+  bar: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingVertical: 14 },
+  title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 },
+  sub: { color: 'rgba(255,255,255,0.85)', fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },
+});
 
 export function AuthShell({ children, role }: { children: React.ReactNode; role?: 'student' | 'mentor' | 'alumni' | 'college' | null }) {
   const { width } = useWindowDimensions();
@@ -46,30 +51,24 @@ export function AuthShell({ children, role }: { children: React.ReactNode; role?
       {Platform.OS === 'web' ? (
         <StarryBackground />
       ) : (
-        <LinearGradient colors={[AC.bgFrom, AC.bgVia, AC.bgTo] as any} className="absolute inset-0" />
+        <LinearGradient colors={[AC.bgFrom, AC.bgVia, AC.bgTo] as any} style={StyleSheet.absoluteFill} />
       )}
 
       {isDesktop ? (
-        <View className="flex-1 flex-row">
-          <View className="flex-1"><AuthBrand role={role || undefined} /></View>
-          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1 min-w-[480px]">
-            <ScrollView contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 56, paddingVertical: 24, justifyContent: 'center' }} keyboardShouldPersistTaps="handled">
-              <View className="w-full max-w-[460px] self-center bg-white rounded-3xl px-10 py-10"
-                style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 24 }, shadowOpacity: 0.1, shadowRadius: 48, elevation: 10 }}>
-                {children}
-              </View>
+        <View style={s.row}>
+          <View style={s.left}><AuthBrand role={role || undefined} /></View>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={s.right}>
+            <ScrollView contentContainerStyle={s.formScroll} keyboardShouldPersistTaps="handled">
+              <View style={s.formCol}>{children}</View>
             </ScrollView>
           </KeyboardAvoidingView>
         </View>
       ) : (
-        <SafeAreaView className="flex-1" edges={['top']}>
+        <SafeAreaView style={{ flex: 1 }} edges={['top']}>
           <MobileBrand />
-          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1">
-            <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 22, justifyContent: 'center' }} keyboardShouldPersistTaps="handled">
-              <View className="w-full max-w-[460px] self-center bg-white rounded-3xl px-6 py-8"
-                style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.1, shadowRadius: 24, elevation: 8 }}>
-                {children}
-              </View>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+            <ScrollView contentContainerStyle={s.mobileScroll} keyboardShouldPersistTaps="handled">
+              <View style={s.mobileForm}>{children}</View>
             </ScrollView>
           </KeyboardAvoidingView>
         </SafeAreaView>
@@ -79,16 +78,16 @@ export function AuthShell({ children, role }: { children: React.ReactNode; role?
   );
 }
 
-const s = {
+const s = StyleSheet.create({
   root: { flex: 1 },
-  row: { flex: 1, flexDirection: 'row' as const },
+  row: { flex: 1, flexDirection: 'row' },
   left: { flex: 1 },
   right: { flex: 1, minWidth: 480 },
-  formScroll: { flexGrow: 1, paddingHorizontal: 56, paddingVertical: 24, justifyContent: 'center' as const },
+  formScroll: { flexGrow: 1, paddingHorizontal: 56, paddingVertical: 24, justifyContent: 'center' },
   formCol: { 
     width: '100%', 
     maxWidth: 480, 
-    alignSelf: 'center' as const,
+    alignSelf: 'center',
     backgroundColor: 'rgba(12, 14, 27, 0.88)',
     borderRadius: 24,
     borderWidth: 1,
@@ -99,11 +98,11 @@ const s = {
       boxShadow: '0 24px 60px -15px rgba(0,0,0,0.8), 0 0 0 1px rgba(139,132,255,0.15)',
     } as any) : {}),
   },
-  mobileScroll: { flexGrow: 1, padding: 20, justifyContent: 'center' as const },
+  mobileScroll: { flexGrow: 1, padding: 20, justifyContent: 'center' },
   mobileForm: { 
     width: '100%', 
     maxWidth: 460, 
-    alignSelf: 'center' as const, 
+    alignSelf: 'center', 
     backgroundColor: 'rgba(12, 14, 27, 0.88)',
     borderRadius: 22,
     borderWidth: 1,
@@ -114,4 +113,4 @@ const s = {
       boxShadow: '0 20px 50px -10px rgba(0,0,0,0.8), 0 0 0 1px rgba(139,132,255,0.15)',
     } as any) : {}),
   },
-};
+});

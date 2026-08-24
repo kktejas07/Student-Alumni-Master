@@ -4,7 +4,7 @@
  */
 import { useEffect, useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, ActivityIndicator,
+  View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -23,14 +23,14 @@ export default function RoomsScreen() {
   }, []);
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: C.background }} edges={['top', 'bottom']}>
-      <ScrollView contentContainerStyle={{ padding: Spacing.lg, paddingBottom: 60 }}>
-        <TouchableOpacity onPress={() => router.back()} className="items-center justify-center" style={{ width: 40, height: 40, marginBottom: 8 }} testID="rooms-back-btn">
+    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.back} testID="rooms-back-btn">
           <ArrowLeft size={24} color={C.textPrimary} />
         </TouchableOpacity>
 
-        <Text style={[{ fontSize: 28, fontWeight: '800', color: C.textPrimary }]}>{'Knowledge Rooms'}</Text>
-        <Text style={[Typography.body, { color: C.textSecondary, marginTop: 4 }]}>Join topical discussions with peers, alumni, and mentors.</Text>
+        <Text style={styles.h1}>Knowledge Rooms</Text>
+        <Text style={styles.subtitle}>Join topical discussions with peers, alumni, and mentors.</Text>
 
         {loading ? (
           <ActivityIndicator color={C.brandPurple} style={{ padding: 40 }} />
@@ -45,14 +45,14 @@ export default function RoomsScreen() {
                 index={idx}
                 testID={`room-${r.id}`}
               >
-                <View className="flex-row items-center" style={{ gap: 12 }}>
-                  <View className="items-center justify-center" style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: C.palePurple }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  <View style={styles.iconCircle}>
                     <Text style={{ fontSize: 26 }}>{r.icon}</Text>
                   </View>
-                  <View className="flex-1">
-                    <Text style={[{ fontSize: 18, fontWeight: '700', color: C.textPrimary }]}>{r.name}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[Typography.h4, { color: C.textPrimary }]}>{r.name}</Text>
                     <Text style={[Typography.bodySm, { color: C.textSecondary }]}>{r.description}</Text>
-                    <View className="flex-row items-center" style={{ gap: 4, marginTop: 4 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
                       <Users size={12} color={C.textMuted} />
                       <Text style={[Typography.bodySm, { color: C.textMuted }]}>
                         {r.members.toLocaleString()} members
@@ -69,3 +69,15 @@ export default function RoomsScreen() {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: C.background },
+  container: { padding: Spacing.lg, paddingBottom: 60 },
+  back: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  h1: { ...Typography.h2, color: C.textPrimary },
+  subtitle: { ...Typography.body, color: C.textSecondary, marginTop: 4 },
+  iconCircle: {
+    width: 52, height: 52, borderRadius: 26,
+    backgroundColor: C.palePurple, alignItems: 'center', justifyContent: 'center',
+  },
+});

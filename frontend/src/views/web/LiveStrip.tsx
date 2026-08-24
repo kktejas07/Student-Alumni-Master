@@ -11,7 +11,7 @@
  *   />
  */
 import React from 'react';
-import { View, Text, Platform } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { usePortalData } from '@/src/lib/portalApi';
 
 type Counters = Record<string, number | string> & { as_of?: string };
@@ -65,7 +65,7 @@ export function LiveStrip({
   );
 }
 
-const s = {{
+const s = StyleSheet.create({
   strip: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10,
@@ -89,4 +89,4 @@ const s = {{
     fontSize: 11, fontStyle: 'italic',
     fontFamily: Platform.select({ web: 'Inter, system-ui, sans-serif', default: 'System' }) as string,
   },
-};
+});

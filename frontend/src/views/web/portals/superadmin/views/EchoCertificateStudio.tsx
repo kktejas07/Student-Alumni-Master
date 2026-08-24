@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  View, Text, Pressable, TextInput, ScrollView, Platform, ActivityIndicator
+  View, Text, Pressable, StyleSheet, TextInput, ScrollView, Platform, ActivityIndicator
 } from 'react-native';
 import {
   Award, Sparkles, Printer, Download, CheckCircle2, ShieldCheck,
@@ -840,7 +840,7 @@ export function EchoCertificateStudio({ onSaved }: { onSaved?: (msg: string) => 
   );
 }
 
-const s = {
+const s = StyleSheet.create({
   container: { gap: 14 },
   headerBanner: { flexDirection: 'row', gap: 12, padding: 16, borderRadius: 14, backgroundColor: 'rgba(99,102,241,0.08)', borderColor: SAC.border2, borderWidth: 1, alignItems: 'center' },
   hIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(99,102,241,0.18)', alignItems: 'center', justifyContent: 'center' },
@@ -933,4 +933,4 @@ const s = {
   aiResultCard: { backgroundColor: 'rgba(0,0,0,0.4)', borderColor: SAC.border2, borderWidth: 1, borderRadius: 10, padding: 10, gap: 4, marginTop: 6 },
   aiResultTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
   aiResultSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 }
-};
+});

@@ -1,6 +1,9 @@
 // @ts-nocheck
+/**
+ * Super Admin Portal — left sidebar with 12 nav items.
+ */
 import React from 'react';
-import { View, Text, Pressable, ScrollView, Platform } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   LayoutDashboard, Building2, GraduationCap, UserCheck, Users, Calendar, CreditCard,
@@ -64,22 +67,26 @@ export function Sidebar({
   const profile = useAdminProfile();
 
   return (
-    <View style={{ width: 232, height: '100%' as any, backgroundColor: SAC.bg2, borderRightWidth: 1, borderRightColor: SAC.border, paddingHorizontal: 12, paddingTop: 14, paddingBottom: 10 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16, paddingHorizontal: 4 }} nativeID="superadmin-brand">
+    <View style={s.aside}>
+      {/* Brand */}
+      <View style={s.brand} nativeID="superadmin-brand">
         <SALogo size={32} variant="glass" />
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 14, letterSpacing: -0.2 }}>Super Admin</Text>
-          <Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 9.5, letterSpacing: 1 }}>STUDENT ALUMNI</Text>
+          <Text style={s.brandTitle}>Super Admin</Text>
+          <Text style={s.brandSub}>STUDENT ALUMNI</Text>
         </View>
       </View>
 
-      <View style={{ backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 12, padding: 11, marginBottom: 12, flexDirection: 'row', alignItems: 'center', gap: 10, alignItems: 'center' }}>
-        <Text numberOfLines={1} style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5, textAlign: 'center' }}>{profile.name}</Text>
-        <Text numberOfLines={1} style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 10.5, marginTop: 2, textAlign: 'center' }}>{profile.role}</Text>
+      {/* Profile card — opens settings/profile in same tab */}
+      <View style={[s.profileCard, { alignItems: 'center' }]}>
+        <Text numberOfLines={1} style={[s.profileName, { textAlign: 'center' }]}>{profile.name}</Text>
+        <Text numberOfLines={1} style={[s.profileRole, { textAlign: 'center', marginTop: 2 }]}>{profile.role}</Text>
       </View>
 
+      {/* Agent K launcher */}
       <AgentKLauncher />
 
+      {/* Nav */}
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: 4, paddingBottom: 8 }} showsVerticalScrollIndicator={false}>
         {NAV.map(({ id, label, Icon, count, tag }) => {
           const isActive = id === active;
@@ -90,13 +97,13 @@ export function Sidebar({
                 <LinearGradient
                   colors={[GRAD.from, GRAD.to]}
                   start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 11, paddingHorizontal: 11, paddingVertical: 9, marginBottom: 2, borderRadius: 8, ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) }}
+                  style={s.navItem}
                 >
                   <Icon size={16} color="#fff" />
-                  <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5, flex: 1 }} numberOfLines={1}>{label}</Text>
+                  <Text style={[s.navLabel, s.navLabelActive]} numberOfLines={1}>{label}</Text>
                   {count != null && (
-                    <View style={{ paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.22)', minWidth: 20, alignItems: 'center' }}>
-                      <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 10 }}>{count}</Text>
+                    <View style={s.countPillActive}>
+                      <Text style={s.countTextActive}>{count}</Text>
                     </View>
                   )}
                   {tag && <Badge label={tag} color="amber" />}
@@ -109,16 +116,13 @@ export function Sidebar({
               key={id}
               onPress={() => onNav(id)}
               nativeID={tourId}
-              style={({ hovered }: any) => [
-                { flexDirection: 'row', alignItems: 'center', gap: 11, paddingHorizontal: 11, paddingVertical: 9, marginBottom: 2, borderRadius: 8, ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
-                hovered && { backgroundColor: 'rgba(245,158,11,0.10)' },
-              ]}
+              style={({ hovered }: any) => [s.navItem, hovered && s.navItemHover]}
             >
               <Icon size={16} color={SAC.muted} />
-              <Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12.5, flex: 1 }} numberOfLines={1}>{label}</Text>
+              <Text style={s.navLabel} numberOfLines={1}>{label}</Text>
               {count != null && (
-                <View style={{ paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6, backgroundColor: 'rgba(245,158,11,0.18)', minWidth: 20, alignItems: 'center' }}>
-                  <Text style={{ color: SAC.accentBright, fontFamily: FONTS.xbold, fontSize: 10 }}>{count}</Text>
+                <View style={s.countPill}>
+                  <Text style={s.countText}>{count}</Text>
                 </View>
               )}
               {tag && <Badge label={tag} color="orange" />}
@@ -127,14 +131,13 @@ export function Sidebar({
         })}
       </ScrollView>
 
+      {/* Footer profile */}
       <Pressable
         onPress={onLogout}
-        style={({ hovered }: any) => [
-          { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 10, paddingVertical: 9, borderRadius: 10, backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, marginTop: 6, ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
-          hovered && { backgroundColor: 'rgba(239,68,68,0.10)' },
-        ]}
+        style={({ hovered }: any) => [s.footer, hovered && { backgroundColor: 'rgba(239,68,68,0.10)' }]}
         testID="logout-button"
       >
+
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text numberOfLines={1} style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>{profile.name}</Text>
           <Text numberOfLines={1} style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 10.5 }}>{profile.email}</Text>
@@ -144,3 +147,42 @@ export function Sidebar({
     </View>
   );
 }
+
+const s = StyleSheet.create({
+  aside: {
+    width: 232, height: '100%' as any, backgroundColor: SAC.bg2,
+    borderRightWidth: 1, borderRightColor: SAC.border,
+    paddingHorizontal: 12, paddingTop: 14, paddingBottom: 10,
+  },
+  brand: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16, paddingHorizontal: 4 },
+  brandLogo: { width: 32, height: 32, borderRadius: 8, backgroundColor: SAC.primary, alignItems: 'center', justifyContent: 'center' },
+  brandLogoText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12, letterSpacing: 0.5 },
+  brandTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 14, letterSpacing: -0.2 },
+  brandSub: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 9.5, letterSpacing: 1 },
+
+  profileCard: { backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 12, padding: 11, marginBottom: 12, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  profileName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
+  profileRole: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 10.5, marginTop: 2 },
+
+  navItem: {
+    flexDirection: 'row', alignItems: 'center', gap: 11,
+    paddingHorizontal: 11, paddingVertical: 9, marginBottom: 2,
+    borderRadius: 8,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}),
+  },
+  navItemHover: { backgroundColor: 'rgba(245,158,11,0.10)' },
+  navLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12.5, flex: 1 },
+  navLabelActive: { color: '#fff' },
+  countPill: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6, backgroundColor: 'rgba(245,158,11,0.18)', minWidth: 20, alignItems: 'center' },
+  countText: { color: SAC.accentBright, fontFamily: FONTS.xbold, fontSize: 10 },
+  countPillActive: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.22)', minWidth: 20, alignItems: 'center' },
+  countTextActive: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 10 },
+
+  footer: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingHorizontal: 10, paddingVertical: 9, borderRadius: 10,
+    backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1,
+    marginTop: 6,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}),
+  },
+});

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, Platform, Animated } from 'react-native';
+import { View, Text, StyleSheet, Platform, Animated } from 'react-native';
 import Svg, { Path, Text as SvgText, Defs, LinearGradient as SvgGrad, Stop } from 'react-native-svg';
 
 export function SAModernLoader({
@@ -123,42 +123,42 @@ export function SAModernLoader({
   );
 }
 
-const styles = {
+const styles = StyleSheet.create({
   shell: {
     flex: 1,
     backgroundColor: '#05060D',
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    overflow: 'hidden' as const,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
   overlayShell: {
-    position: 'absolute' as const,
+    position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
     zIndex: 999,
     backgroundColor: '#05060D',
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    overflow: 'hidden' as const,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
   glow: {
-    position: 'absolute' as const,
+    position: 'absolute',
     width: 380,
     height: 380,
     borderRadius: 190,
     backgroundColor: 'rgba(139, 90, 255, 0.35)',
   },
   center: {
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
+    alignItems: 'center',
+    justifyContent: 'center',
     zIndex: 2,
     gap: 10,
   },
   counterText: {
     fontSize: 76,
-    fontWeight: '800' as const,
+    fontWeight: '800',
     color: '#8B84FF',
     letterSpacing: -3,
     lineHeight: 80,
@@ -166,9 +166,9 @@ const styles = {
   tag: {
     color: '#9AA0B4',
     fontSize: 11,
-    fontWeight: '700' as const,
+    fontWeight: '700',
     letterSpacing: 6,
-    textTransform: 'uppercase' as const,
+    textTransform: 'uppercase',
     marginTop: 4,
   },
-};
+});

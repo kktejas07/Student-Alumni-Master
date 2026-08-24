@@ -4,7 +4,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, Pressable, Modal, TextInput, Platform, ActivityIndicator, ScrollView
+  View, Text, StyleSheet, Pressable, Modal, TextInput, Platform, ActivityIndicator, ScrollView
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
@@ -439,7 +439,7 @@ export function DigiLockerOAuthModal({
   );
 }
 
-const s = {
+const s = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.85)',
@@ -736,4 +736,4 @@ const s = {
     fontSize: 9,
     fontWeight: '800',
   },
-};
+});

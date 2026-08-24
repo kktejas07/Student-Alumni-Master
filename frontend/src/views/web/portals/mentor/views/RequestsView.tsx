@@ -3,7 +3,7 @@
  * Each card has student info, topic, date, AI fit-score and Accept/Decline.
  */
 import React, { useMemo, useState, useEffect } from 'react';
-import { View, Text, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { Sparkles, Check, X } from 'lucide-react-native';
 import { MC, FONTS } from '../tokens';
 import { Av, Badge, Countdown } from '../atoms';
@@ -63,6 +63,7 @@ export function RequestsView({ decisions, onSetDecision, demoMode = false }: Req
   };
 
   const allRequests = useMemo(() => {
+    // 1. Map mock requests
     const mocks = demoMode ? SESSION_REQUESTS.map(req => {
       const d = decisions[req.id] || 'pending';
       return {
@@ -73,6 +74,7 @@ export function RequestsView({ decisions, onSetDecision, demoMode = false }: Req
       };
     }) : [];
 
+    // 2. Map real bookings
     const reals = realBookings.map(b => {
       const initials = (b.student_name || 'Student')
         .split(' ')
@@ -119,6 +121,7 @@ export function RequestsView({ decisions, onSetDecision, demoMode = false }: Req
     return { score: 72, label: 'Fair fit' };
   };
 
+
   const stats = useMemo(() => {
     let pending = 0;
     let accepted = 0;
@@ -137,7 +140,7 @@ export function RequestsView({ decisions, onSetDecision, demoMode = false }: Req
 
   if (loading) {
     return (
-      <View className="p-10 items-center justify-center">
+      <View style={{ padding: 40, alignItems: 'center', justifyContent: 'center' }}>
         <ActivityIndicator size="large" color={MC.tealP} />
       </View>
     );
@@ -145,59 +148,57 @@ export function RequestsView({ decisions, onSetDecision, demoMode = false }: Req
 
   return (
     <View>
-      <View className="flex-row gap-3 mb-4">
+      {/* Stats strip */}
+      <View style={s.stats}>
         {[{ k: 'Pending', v: stats.pending, c: MC.amber },
           { k: 'Accepted', v: stats.accepted, c: MC.green },
           { k: 'Declined', v: stats.declined, c: MC.red }].map((st) => (
-          <View key={st.k} className="flex-1 bg-card border border-glass-border rounded-xl p-3.5">
-            <Text className="text-[22px] font-display-bold" style={{ color: st.c }}>{st.v}</Text>
-            <Text className="text-muted font-body-bold text-[11px]">{st.k}</Text>
+          <View key={st.k} style={s.statCard}>
+            <Text style={{ color: st.c, fontFamily: FONTS.xbold, fontSize: 22 }}>{st.v}</Text>
+            <Text style={{ color: MC.muted, fontFamily: FONTS.bold, fontSize: 11 }}>{st.k}</Text>
           </View>
         ))}
       </View>
 
-      <View className="gap-3">
+      {/* Cards */}
+      <View style={{ gap: 12 }}>
         {allRequests.map((req) => {
           const ai = aiScore(req.topic);
           return (
-            <View key={req.id} className="bg-card border border-glass-border rounded-[14px] p-4">
-              <View className="flex-row items-center gap-3">
+            <View key={req.id} style={s.card}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                 <Av initials={req.avatar} size={48} color={req.color} />
-                <View className="flex-1 min-w-0">
-                  <View className="flex-row items-center gap-2">
-                    <Text className="text-white font-body-bold text-[14px]">{req.studentName}</Text>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 14 }}>{req.studentName}</Text>
                     <Badge label={req.type === 'paid' ? `Paid ₹${req.amount}` : 'Free'} color={req.type === 'paid' ? 'green' : 'teal'} />
                   </View>
-                  <Text className="text-muted font-body-semibold text-xs mt-0.5">{req.college} · {req.branch} · {req.year}</Text>
-                  <Text className="text-white font-body-semibold text-[13px] mt-1.5">"{req.topic}"</Text>
-                  <Text className="text-dim font-body-semibold text-[11px] mt-1">{req.time}</Text>
+                  <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 }}>{req.college} · {req.branch} · {req.year}</Text>
+                  <Text style={{ color: '#fff', fontFamily: FONTS.med, fontSize: 13, marginTop: 6 }}>“{req.topic}”</Text>
+                  <Text style={{ color: MC.dim, fontFamily: FONTS.med, fontSize: 11, marginTop: 4 }}>{req.time}</Text>
                 </View>
                 <Countdown days={req.daysAway} />
               </View>
 
-              <View className="flex-row gap-2.5 items-center mt-3.5 p-3 rounded-[10px]" style={{ backgroundColor: 'rgba(252,211,77,0.06)', borderColor: 'rgba(252,211,77,0.20)', borderWidth: 1 }}>
-                <View className="w-7 h-7 rounded-[8px] items-center justify-center" style={{ backgroundColor: 'rgba(252,211,77,0.15)' }}>
-                  <Sparkles size={13} color="#FCD34D" />
-                </View>
-                <View className="flex-1 min-w-0">
-                  <Text className="text-amber font-display-bold text-[11px] tracking-[0.6px]">AI FIT SCORE · {ai.score}/100 · {ai.label}</Text>
-                  <View className="h-1 rounded-[2px] bg-white/[0.06] overflow-hidden mt-1.5">
-                    <View className="h-full bg-amber rounded-[2px]" style={{ width: `${ai.score}%` }} />
+              {/* AI Fit score */}
+              <View style={s.aiBox}>
+                <View style={s.aiIcon}><Sparkles size={13} color="#FCD34D" /></View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={{ color: '#FCD34D', fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 0.6 }}>AI FIT SCORE · {ai.score}/100 · {ai.label}</Text>
+                  <View style={s.aiTrack}>
+                    <View style={[s.aiFill, { width: `${ai.score}%` as any }]} />
                   </View>
                 </View>
               </View>
 
+              {/* Actions */}
               {req.status === 'pending' ? (
-                <View className="flex-row gap-2.5 mt-3">
-                  <Pressable onPress={() => handleDecision(req, 'accepted')} className="flex-row gap-1.5 items-center px-4 h-9 rounded-[10px] bg-tealP">
-                    <Check size={14} color={MC.bg} /><Text className="text-bg font-display-bold text-xs">Accept</Text>
-                  </Pressable>
-                  <Pressable onPress={() => handleDecision(req, 'declined')} className="flex-row gap-1.5 items-center px-4 h-9 rounded-[10px] border" style={{ borderColor: 'rgba(239,68,68,0.40)', backgroundColor: 'rgba(239,68,68,0.10)' }}>
-                    <X size={14} color={MC.red} /><Text className="text-rose font-body-bold text-xs">Decline</Text>
-                  </Pressable>
+                <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+                  <Pressable onPress={() => handleDecision(req, 'accepted')} style={s.acceptBtn}><Check size={14} color={MC.bg} /><Text style={{ color: MC.bg, fontFamily: FONTS.xbold, fontSize: 12 }}>Accept</Text></Pressable>
+                  <Pressable onPress={() => handleDecision(req, 'declined')} style={s.declineBtn}><X size={14} color={MC.red} /><Text style={{ color: MC.red, fontFamily: FONTS.bold, fontSize: 12 }}>Decline</Text></Pressable>
                 </View>
               ) : (
-                <View className="mt-3 self-start">
+                <View style={{ marginTop: 12, alignSelf: 'flex-start' }}>
                   <Badge 
                     label={
                       req.status === 'confirmed' || req.status === 'accepted'
@@ -223,3 +224,15 @@ export function RequestsView({ decisions, onSetDecision, demoMode = false }: Req
     </View>
   );
 }
+
+const s = StyleSheet.create({
+  stats: { flexDirection: 'row', gap: 12, marginBottom: 16 },
+  statCard: { flex: 1, backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 12, padding: 14 },
+  card: { backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 14, padding: 16 },
+  aiBox: { flexDirection: 'row', gap: 10, alignItems: 'center', marginTop: 14, padding: 12, borderRadius: 10, backgroundColor: 'rgba(252,211,77,0.06)', borderColor: 'rgba(252,211,77,0.20)', borderWidth: 1 },
+  aiIcon: { width: 28, height: 28, borderRadius: 8, backgroundColor: 'rgba(252,211,77,0.15)', alignItems: 'center', justifyContent: 'center' },
+  aiTrack: { height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.06)', overflow: 'hidden', marginTop: 6 },
+  aiFill: { height: '100%', backgroundColor: '#FCD34D', borderRadius: 2 },
+  acceptBtn: { flexDirection: 'row', gap: 6, alignItems: 'center', paddingHorizontal: 16, height: 36, borderRadius: 10, backgroundColor: MC.tealP },
+  declineBtn: { flexDirection: 'row', gap: 6, alignItems: 'center', paddingHorizontal: 16, height: 36, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(239,68,68,0.40)', backgroundColor: 'rgba(239,68,68,0.10)' },
+});

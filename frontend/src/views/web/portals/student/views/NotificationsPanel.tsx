@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { View, Text, Pressable, ScrollView, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet, Platform, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { PALETTE, TYPO } from '../tokens';
@@ -11,7 +11,7 @@ interface Notif {
   id: string;
   title: string;
   message: string;
-  type?: string;
+  type?: string;        // booking_request | booking_confirmed | review | event | system
   read?: boolean;
   created_at?: string;
   booking_id?: string;
@@ -27,7 +27,7 @@ export function StudentNotificationsPanel({ onClose, onOpenSettings }: Notificat
   const toast = useToast();
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
-
+  
   const [list, setList] = useState<Notif[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<'all' | 'unread' | 'booking' | 'review' | 'event'>('all');
@@ -36,9 +36,11 @@ export function StudentNotificationsPanel({ onClose, onOpenSettings }: Notificat
     try {
       const r = await api.notifications();
       const items: Notif[] = (r.notifications || r.items || []) as Notif[];
+      // sort newest first
       items.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
       setList(items);
     } catch (e) {
+      // swallow
     } finally {
       setLoading(false);
     }
@@ -63,7 +65,7 @@ export function StudentNotificationsPanel({ onClose, onOpenSettings }: Notificat
   const handleMarkAllRead = async () => {
     const unreadIds = list.filter((n) => !n.read).map((n) => n.id);
     if (unreadIds.length === 0) return;
-
+    
     try {
       await api.markNotificationsRead(unreadIds);
       setList((prev) => prev.map((item) => ({ ...item, unread: false, read: true })));
@@ -77,7 +79,8 @@ export function StudentNotificationsPanel({ onClose, onOpenSettings }: Notificat
     try {
       await api.dismissNotifications([item.id]);
     } catch (e) {}
-
+    
+    // Make notification disappear from the list
     setList((prev) => prev.filter((i) => i.id !== item.id));
 
     const role = user?.role || 'student';
@@ -131,47 +134,29 @@ export function StudentNotificationsPanel({ onClose, onOpenSettings }: Notificat
   }, [list, activeFilter]);
 
   return (
-    <View
-      className="bg-navy border-l border-glass-border p-4 gap-4"
-      style={{ width: 360, height: '100%', zIndex: 9999 }}
-    >
-      <View className="flex-row items-center justify-between">
-        <View className="flex-row items-center gap-2">
-          <Text className="text-white" style={{ fontFamily: TYPO.display700, fontSize: 16 }}>
-            Notifications
-          </Text>
+    <View style={s.drawer}>
+      {/* Header */}
+      <View style={s.header}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Text style={s.headerTitle}>Notifications</Text>
           {unreadCount > 0 && (
-            <View
-              className="border rounded-full px-2 py-0.5"
-              style={{
-                backgroundColor: PALETTE.rose + '22',
-                borderColor: PALETTE.rose + '50',
-              }}
-            >
-              <Text className="text-rose-400" style={{ fontFamily: TYPO.body700, fontSize: 10 }}>
-                {unreadCount} new
-              </Text>
+            <View style={s.unreadBadge}>
+              <Text style={s.unreadBadgeText}>{unreadCount} new</Text>
             </View>
           )}
         </View>
-        <View className="flex-row items-center gap-2.5">
-          <Pressable onPress={handleMarkAllRead} className={Platform.OS === 'web' ? 'cursor-pointer' : ''}>
-            <Text className="text-violet" style={{ fontFamily: TYPO.body700, fontSize: 12.5, marginRight: 4 }}>
-              Mark all read
-            </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <Pressable onPress={handleMarkAllRead} style={Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}}>
+            <Text style={s.markReadText}>Mark all read</Text>
           </Pressable>
-          <Pressable
-            onPress={onClose}
-            className="w-[26px] h-[26px] rounded-full bg-white/4 items-center justify-center"
-          >
-            <Text className="text-muted" style={{ fontSize: 16, lineHeight: 16, textAlign: 'center' }}>
-              &times;
-            </Text>
+          <Pressable onPress={onClose} style={s.closeBtn}>
+            <Text style={s.closeBtnText}>&times;</Text>
           </Pressable>
         </View>
       </View>
 
-      <View className="h-8">
+      {/* Filter Tabs */}
+      <View style={s.tabsContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
           {[
             { key: 'all', label: 'All' },
@@ -185,94 +170,57 @@ export function StudentNotificationsPanel({ onClose, onOpenSettings }: Notificat
               <Pressable
                 key={tab.key}
                 onPress={() => setActiveFilter(tab.key as any)}
-                className={`px-3 h-7 rounded-full border items-center justify-center ${
-                  active ? 'bg-violet/14 border-violet' : 'bg-white/3 border-glass-border'
-                } ${Platform.OS === 'web' ? 'cursor-pointer' : ''}`}
+                style={[s.tab, active && s.tabActive]}
               >
-                <Text
-                  className={active ? 'text-violet' : 'text-muted'}
-                  style={{ fontFamily: TYPO.body700, fontSize: 11 }}
-                >
-                  {tab.label}
-                </Text>
+                <Text style={[s.tabText, active && s.tabTextActive]}>{tab.label}</Text>
               </Pressable>
             );
           })}
         </ScrollView>
       </View>
 
+      {/* List */}
       {loading ? (
-        <View className="flex-1 items-center justify-center">
+        <View style={s.loadingState}>
           <ActivityIndicator color={PALETTE.violet} />
         </View>
       ) : (
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: 12, paddingBottom: 16 }} showsVerticalScrollIndicator={false}>
           {filteredList.length === 0 ? (
-            <View className="items-center justify-center py-16 gap-2">
+            <View style={s.emptyState}>
               <MaterialCommunityIcons name="bell-off-outline" size={24} color={PALETTE.dim} />
-              <Text className="text-dim" style={{ fontFamily: TYPO.body500, fontSize: 12 }}>
-                No notifications found
-              </Text>
+              <Text style={s.emptyStateText}>No notifications found</Text>
             </View>
           ) : (
             filteredList.map((item) => {
               const { glyph, color } = iconForType(item.type);
               const actionText = getActionText(item.type);
               return (
-                <Pressable
-                  key={item.id}
-                  className={`border rounded-xl p-3 ${
-                    !item.read
-                      ? 'bg-violet/3 border-violet/15'
-                      : 'bg-white/1 border-white/4'
-                  }`}
-                  onPress={() => handleAction(item)}
-                >
-                  <View className="flex-row gap-3">
-                    <View
-                      className="w-9 h-9 rounded-lg border items-center justify-center"
-                      style={{ borderColor: color + '30', backgroundColor: color + '10' }}
-                    >
+                <Pressable key={item.id} style={[s.card, !item.read && s.cardUnread]} onPress={() => handleAction(item)}>
+                  <View style={{ flexDirection: 'row', gap: 12 }}>
+                    {/* Icon Outline Box */}
+                    <View style={[s.iconBox, { borderColor: color + '30', backgroundColor: color + '10' }]}>
                       <MaterialCommunityIcons name={glyph as any} size={18} color={color} />
                     </View>
-
-                    <View className="flex-1 gap-1">
-                      <View className="flex-row justify-between items-start gap-2">
-                        <Text className="text-white flex-1" style={{ fontFamily: TYPO.body700, fontSize: 13 }} numberOfLines={1}>
-                          {item.title}
-                        </Text>
-                        <View className="flex-row items-center gap-1.5">
-                          <Text className="text-dim" style={{ fontFamily: TYPO.body500, fontSize: 10.5 }}>
-                            {formatRelative(item.created_at)}
-                          </Text>
-                          {!item.read && (
-                            <View className="w-[7px] h-[7px] rounded-full bg-violet" />
-                          )}
+                    
+                    {/* Detail column */}
+                    <View style={{ flex: 1, gap: 4 }}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                        <Text style={s.cardTitle} numberOfLines={1}>{item.title}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <Text style={s.cardTime}>{formatRelative(item.created_at)}</Text>
+                          {!item.read && <View style={s.unreadDot} />}
                         </View>
                       </View>
-                      <Text
-                        className="text-muted mt-0.5"
-                        style={{ fontFamily: TYPO.body500, fontSize: 11.5, lineHeight: 15.5 }}
-                      >
-                        {item.message}
-                      </Text>
-
-                      <View className="flex-row items-center gap-2 mt-2">
-                        <Pressable
-                          onPress={() => handleAction(item)}
-                          className="px-2.5 py-1 rounded-md border border-violet/40 bg-violet/10"
-                        >
-                          <Text className="text-violet" style={{ fontFamily: TYPO.body700, fontSize: 11 }}>
-                            {actionText}
-                          </Text>
+                      <Text style={s.cardDesc}>{item.message}</Text>
+                      
+                      {/* Buttons */}
+                      <View style={s.cardActions}>
+                        <Pressable onPress={() => handleAction(item)} style={s.actionBtn}>
+                          <Text style={s.actionBtnText}>{actionText}</Text>
                         </Pressable>
-                        <Pressable
-                          onPress={() => handleDismiss(item.id)}
-                          className="px-2.5 py-1 rounded-md bg-white/3 border border-glass-border"
-                        >
-                          <Text className="text-muted" style={{ fontFamily: TYPO.body500, fontSize: 11 }}>
-                            Dismiss
-                          </Text>
+                        <Pressable onPress={() => handleDismiss(item.id)} style={s.dismissBtn}>
+                          <Text style={s.dismissBtnText}>Dismiss</Text>
                         </Pressable>
                       </View>
                     </View>
@@ -284,21 +232,18 @@ export function StudentNotificationsPanel({ onClose, onOpenSettings }: Notificat
         </ScrollView>
       )}
 
-      <View className="border-t border-glass-border pt-3 items-center">
-        <Pressable
-          onPress={onOpenSettings}
-          className="flex-row items-center gap-1.5 py-2 px-4 rounded-lg bg-white/2 border border-glass-border"
-        >
+      {/* Footer */}
+      <View style={s.footer}>
+        <Pressable onPress={onOpenSettings} style={s.settingsBtn}>
           <MaterialCommunityIcons name="cog-outline" size={14} color={PALETTE.muted} />
-          <Text className="text-muted" style={{ fontFamily: TYPO.body700, fontSize: 12 }}>
-            Notification Settings
-          </Text>
+          <Text style={s.settingsBtnText}>Notification Settings</Text>
         </Pressable>
       </View>
     </View>
   );
 }
 
+// ----- helpers -----------------------------------------------------------
 function iconForType(type?: string) {
   const t = (type || '').toLowerCase();
   if (t.startsWith('booking_request') || t.startsWith('booking_pending')) {
@@ -353,3 +298,202 @@ function formatRelative(iso?: string): string {
     return iso;
   }
 }
+
+const s = StyleSheet.create({
+  drawer: {
+    width: 360,
+    height: '100%',
+    backgroundColor: PALETTE.bg1,
+    borderLeftWidth: 1,
+    borderLeftColor: PALETTE.glassBorder,
+    padding: 16,
+    gap: 16,
+    zIndex: 9999,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  headerTitle: {
+    color: '#ffffff',
+    fontFamily: TYPO.display700,
+    fontSize: 16,
+  },
+  unreadBadge: {
+    backgroundColor: PALETTE.rose + '22',
+    borderColor: PALETTE.rose + '50',
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+  },
+  unreadBadgeText: {
+    color: '#FC5C5C',
+    fontFamily: TYPO.body700,
+    fontSize: 10,
+  },
+  markReadText: {
+    color: PALETTE.violetL,
+    fontFamily: TYPO.body700,
+    fontSize: 12.5,
+    marginRight: 4,
+  },
+  closeBtn: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...({ cursor: 'pointer' } as any),
+  },
+  closeBtnText: {
+    color: PALETTE.muted,
+    fontSize: 16,
+    lineHeight: 16,
+    textAlign: 'center',
+  },
+  tabsContainer: {
+    height: 32,
+  },
+  tab: {
+    paddingHorizontal: 12,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderColor: PALETTE.glassBorder,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...({ cursor: 'pointer' } as any),
+  },
+  tabActive: {
+    backgroundColor: PALETTE.violetL + '14',
+    borderColor: PALETTE.violetL,
+  },
+  tabText: {
+    color: PALETTE.muted,
+    fontFamily: TYPO.body700,
+    fontSize: 11,
+  },
+  tabTextActive: {
+    color: PALETTE.violetL,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    gap: 8,
+  },
+  emptyStateText: {
+    color: PALETTE.dim,
+    fontFamily: TYPO.body500,
+    fontSize: 12,
+  },
+  loadingState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  card: {
+    backgroundColor: 'rgba(255, 255, 255, 0.01)',
+    borderColor: 'rgba(255, 255, 255, 0.04)',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+  },
+  cardUnread: {
+    backgroundColor: 'rgba(139, 92, 246, 0.03)',
+    borderColor: 'rgba(139, 92, 246, 0.15)',
+  },
+  iconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardTitle: {
+    color: '#ffffff',
+    fontFamily: TYPO.body700,
+    fontSize: 13,
+    flex: 1,
+  },
+  cardTime: {
+    color: PALETTE.dim,
+    fontFamily: TYPO.body500,
+    fontSize: 10.5,
+  },
+  unreadDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: PALETTE.violetL,
+  },
+  cardDesc: {
+    color: PALETTE.muted,
+    fontFamily: TYPO.body500,
+    fontSize: 11.5,
+    lineHeight: 15.5,
+    marginTop: 2,
+  },
+  cardActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+  },
+  actionBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: PALETTE.violetL + '40',
+    backgroundColor: PALETTE.violetL + '0a',
+    ...({ cursor: 'pointer' } as any),
+  },
+  actionBtnText: {
+    color: PALETTE.violetL,
+    fontFamily: TYPO.body700,
+    fontSize: 11,
+  },
+  dismissBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderColor: PALETTE.glassBorder,
+    borderWidth: 1,
+    ...({ cursor: 'pointer' } as any),
+  },
+  dismissBtnText: {
+    color: PALETTE.muted,
+    fontFamily: TYPO.body500,
+    fontSize: 11,
+  },
+  footer: {
+    borderTopWidth: 1,
+    borderTopColor: PALETTE.glassBorder,
+    paddingTop: 12,
+    alignItems: 'center',
+  },
+  settingsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    borderColor: PALETTE.glassBorder,
+    borderWidth: 1,
+    ...({ cursor: 'pointer' } as any),
+  },
+  settingsBtnText: {
+    color: PALETTE.muted,
+    fontFamily: TYPO.body700,
+    fontSize: 12,
+  },
+});

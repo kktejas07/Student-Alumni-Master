@@ -4,7 +4,7 @@
  * Spec: /tmp/ui_specs/platform-mentor.jsx
  */
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, Pressable, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
@@ -296,7 +296,7 @@ function formatDate(iso?: string) {
   } catch { return iso; }
 }
 
-const styles = {
+const styles = StyleSheet.create({
   shell: { flex: 1, flexDirection: 'row', height: '100%' as any },
   main: { padding: 36, paddingBottom: 80 },
   kpiRow: { flexDirection: 'row', gap: 14, marginBottom: 24, flexWrap: 'wrap' as const },
@@ -332,4 +332,4 @@ const styles = {
     paddingVertical: 10,
     ...({ cursor: 'pointer' } as any),
   },
-};
+});

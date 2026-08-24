@@ -10,7 +10,7 @@
  */
 import React, { useMemo, useState } from 'react';
 import {
-  View, Text, Pressable, Platform, TextInput as RNTextInput,
+  View, Text, Pressable, StyleSheet, Platform, TextInput as RNTextInput,
 } from 'react-native';
 import { Edit3, Search } from 'lucide-react-native';
 import { useRoleTheme } from '@/src/views/auth/RoleTheme';
@@ -56,17 +56,12 @@ export function SuggestionAutocomplete({
   const showDropdown = focused && !manualMode && (filtered.length > 0 || allowOther);
 
   return (
-    <View className="relative mb-3.5" style={{ zIndex: showDropdown ? 9999 : 30, ...(Platform.OS === 'web' ? { isolation: 'isolate' } as any : {}) }}>
-      {label ? <Text className="font-body-bold text-gray-800 text-sm mb-2">{label}</Text> : null}
-      <View
-        className="flex-row items-center rounded-xl border px-3.5 gap-2"
-        style={{
-          height: 48,
-          borderColor: focused ? primary : '#E5E7EB',
-          backgroundColor: focused ? `${primary}10` : '#FFFFFF',
-          ...(Platform.OS === 'web' ? { transitionDuration: '160ms' } as any : {}),
-        }}
-      >
+    <View style={[styles.container, { zIndex: showDropdown ? 9999 : 30 }]}>
+      {label ? <Text style={styles.label}>{label}</Text> : null}
+      <View style={[styles.wrap, {
+        borderColor: focused ? primary : '#E5E7EB',
+        backgroundColor: focused ? `${primary}10` : '#FFFFFF',
+      }]}>
         {!manualMode && <Search size={14} color="#6B7280" />}
         <RNTextInput
           value={value}
@@ -77,27 +72,26 @@ export function SuggestionAutocomplete({
           onBlur={() => setTimeout(() => setFocused(false), 180)}
           testID={testID}
           autoCapitalize="words"
-          className="flex-1 text-gray-800 text-base font-body-medium"
-          style={{ ...(Platform.OS === 'web' ? { outlineWidth: 0, outlineStyle: 'none' } as any : {}) }}
+          style={styles.input}
         />
         {manualMode && (
           <Pressable
             onPress={() => { setManualMode(false); onChangeText(''); setFocused(true); }}
-            className="flex-row items-center gap-1 rounded-full px-2 py-0.5"
-            style={{ backgroundColor: 'rgba(124,58,237,0.4)' }}
+            style={styles.editPill}
           >
             <Edit3 size={12} color="#111827" />
-            <Text className="font-body-bold text-xs text-gray-800">Pick</Text>
+            <Text style={styles.editPillText}>Pick</Text>
           </Pressable>
         )}
       </View>
-      {helper ? <Text className="font-body-medium text-xs mt-1.5" style={{ color: '#6B7280' }}>{helper}</Text> : null}
+      {helper ? <Text style={styles.helper}>{helper}</Text> : null}
       {!focused && value && (isMatchedSuggestion || manualMode) ? (
-        <Text className="font-body-semibold text-xs mt-1.5" style={{ color: '#9CA3AF' }}>{isMatchedSuggestion ? '✓ Selected from list' : '✎ Manual entry'}</Text>
+        <Text style={styles.statusHint}>{isMatchedSuggestion ? '✓ Selected from list' : '✎ Manual entry'}</Text>
       ) : null}
 
+      {/* Inline dropdown — uses the same canonical card as <Dropdown/> */}
       {showDropdown && (
-        <View className="absolute left-0 right-0" style={{ top: 78, zIndex: 99 }} pointerEvents="box-none">
+        <View style={styles.dropdownAnchor} pointerEvents="box-none">
           <OptionListCard
             headerLabel={label.toUpperCase()}
             options={filtered.map((label) => ({ value: label, label }))}
@@ -112,3 +106,50 @@ export function SuggestionAutocomplete({
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    position: 'relative',
+    marginBottom: 14,
+    ...(Platform.OS === 'web' ? ({ isolation: 'isolate' } as any) : {}),
+  },
+  label: { color: '#111827', fontFamily: 'DMSans_700Bold', fontSize: 13, marginBottom: 8 },
+  wrap: {
+    flexDirection: 'row', alignItems: 'center',
+    height: 48,
+    borderRadius: 12, borderWidth: 1,
+    paddingHorizontal: 14, gap: 8,
+    ...(Platform.OS === 'web' ? ({ transitionDuration: '160ms' } as any) : {}),
+  },
+  input: {
+    flex: 1,
+    color: '#111827',
+    fontSize: 14,
+    fontFamily: 'DMSans_500Medium',
+    ...(Platform.OS === 'web' ? ({ outlineWidth: 0, outlineStyle: 'none' } as any) : {}),
+  },
+  helper: {
+    color: '#6B7280',
+    fontFamily: 'DMSans_500Medium',
+    fontSize: 11.5,
+    marginTop: 6,
+  },
+  statusHint: {
+    color: '#9CA3AF',
+    fontFamily: 'DMSans_500Medium',
+    fontSize: 11,
+    marginTop: 6,
+  },
+  editPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: 'rgba(124,58,237,0.4)',
+    borderRadius: 999,
+    paddingHorizontal: 8, paddingVertical: 3,
+  },
+  editPillText: { color: '#111827', fontFamily: 'DMSans_700Bold', fontSize: 10 },
+  dropdownAnchor: {
+    position: 'absolute',
+    top: 78, left: 0, right: 0,
+    zIndex: 99,
+  },
+});

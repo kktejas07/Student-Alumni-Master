@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Image, Pressable, Platform, Linking } from 'react-native';
+import { View, Text, Image, Pressable, StyleSheet, Platform, Linking } from 'react-native';
 import { fetchPortal } from '@/src/lib/portalApi';
 import { resolveImageUrl } from '@/src/models/services/api';
 
@@ -44,7 +44,7 @@ export function PartnerCards() {
   );
 }
 
-const s = {
+const s = StyleSheet.create({
   row: {
     flexDirection: 'row', gap: 12, flexWrap: 'wrap',
   },
@@ -65,4 +65,4 @@ const s = {
   ref: {
     color: 'rgba(255,255,255,0.5)', fontFamily: 'DMSans_600SemiBold', fontSize: 10,
   },
-} as const;
+});

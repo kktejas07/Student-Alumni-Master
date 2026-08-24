@@ -1,20 +1,27 @@
+/**
+ * Lightweight chart primitives using react-native-svg (no extra deps).
+ * Used in the analytics dashboard. All charts respect the SA brand palette.
+ */
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Path, Rect, Circle, Line, G, Text as SvgText, Defs, LinearGradient as SvgLG, Stop } from 'react-native-svg';
 import { Colors as C, Typography, Spacing, Radius, Shadows } from '@/src/theme';
 
+// ---------------------------------------------------------------------------
+// KPI card (number + label + optional trend)
+// ---------------------------------------------------------------------------
 export function KpiCard({ label, value, suffix, trend, accent = C.brandPurple, testID }: {
   label: string; value: number | string; suffix?: string; trend?: number; accent?: string; testID?: string;
 }) {
   return (
-    <View className="bg-white/[0.04] rounded-lg p-3.5 min-w-[150px] flex-1" style={{ borderLeftWidth: 4, borderLeftColor: accent, ...Shadows.sm } as any} testID={testID}>
-      <Text className="text-gray-500 text-[9px] mb-1" style={Typography.label}>{label.toUpperCase()}</Text>
-      <View className="flex-row items-baseline gap-1">
-        <Text className="font-display-bold text-[24px] leading-7" style={{ color: accent }}>{value}</Text>
-        {suffix && <Text className="text-gray-500 text-sm" style={Typography.bodySm}>{suffix}</Text>}
+    <View style={[styles.kpi, { borderLeftColor: accent }]} testID={testID}>
+      <Text style={styles.kpiLabel}>{label.toUpperCase()}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4 }}>
+        <Text style={[styles.kpiValue, { color: accent }]}>{value}</Text>
+        {suffix && <Text style={styles.kpiSuffix}>{suffix}</Text>}
       </View>
       {typeof trend === 'number' && (
-        <Text className="text-sm mt-1 font-semibold text-[11px]" style={{ color: trend >= 0 ? '#0F9D58' : C.danger }}>
+        <Text style={[styles.kpiTrend, { color: trend >= 0 ? '#0F9D58' : C.danger }]}>
           {trend >= 0 ? '▲' : '▼'} {Math.abs(trend).toFixed(1)}%
         </Text>
       )}
@@ -22,11 +29,14 @@ export function KpiCard({ label, value, suffix, trend, accent = C.brandPurple, t
   );
 }
 
+// ---------------------------------------------------------------------------
+// Line chart (smooth) — for time-series like growth, weekly bookings
+// ---------------------------------------------------------------------------
 export function LineChart({ data, height = 140, color = C.brandPurple }: {
   data: Array<{ label?: string; value: number }>; height?: number; color?: string;
 }) {
   const padding = 16;
-  const W = 320;
+  const W = 320;  // logical width; SVG scales via viewBox
   const H = height;
   const maxV = Math.max(...data.map(d => d.value), 1);
   const stepX = (W - padding * 2) / Math.max(data.length - 1, 1);
@@ -34,6 +44,7 @@ export function LineChart({ data, height = 140, color = C.brandPurple }: {
     x: padding + i * stepX,
     y: H - padding - (d.value / maxV) * (H - padding * 2),
   }));
+  // Simple smooth curve via cubic Bezier
   const path = points.reduce((acc, p, i) => {
     if (i === 0) return `M${p.x},${p.y}`;
     const prev = points[i - 1];
@@ -50,10 +61,14 @@ export function LineChart({ data, height = 140, color = C.brandPurple }: {
           <Stop offset="1" stopColor={color} stopOpacity="0" />
         </SvgLG>
       </Defs>
+      {/* Grid baseline */}
       <Line x1={padding} y1={H - padding} x2={W - padding} y2={H - padding}
         stroke={C.border} strokeWidth="1" />
+      {/* Filled area */}
       <Path d={fillPath} fill="url(#lineFill)" />
+      {/* Line */}
       <Path d={path} stroke={color} strokeWidth="2.5" fill="none" />
+      {/* Points */}
       {points.map((p, i) => (
         <Circle key={i} cx={p.x} cy={p.y} r="3" fill={color} />
       ))}
@@ -61,6 +76,9 @@ export function LineChart({ data, height = 140, color = C.brandPurple }: {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Bar chart (vertical) — for distributions
+// ---------------------------------------------------------------------------
 export function BarChart({ data, height = 160, color = C.brandPurple }: {
   data: Array<{ label: string; value: number }>; height?: number; color?: string;
 }) {
@@ -95,6 +113,9 @@ export function BarChart({ data, height = 160, color = C.brandPurple }: {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Donut chart — for role distribution etc.
+// ---------------------------------------------------------------------------
 export function DonutChart({ data, size = 140, thickness = 22 }: {
   data: Array<{ label: string; value: number; color?: string }>; size?: number; thickness?: number;
 }) {
@@ -121,7 +142,7 @@ export function DonutChart({ data, size = 140, thickness = 22 }: {
     );
   }
   return (
-    <View className="flex-row items-center gap-4">
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
       <Svg width={size} height={size}>
         <Circle cx={cx} cy={cy} r={r} stroke={C.border} strokeWidth={thickness} fill="none" />
         {data.map((d, i) => {
@@ -134,13 +155,13 @@ export function DonutChart({ data, size = 140, thickness = 22 }: {
         <SvgText x={cx} y={cy + 14} fontSize="10" textAnchor="middle"
           fill={C.textSecondary} fontFamily="DMSans_500Medium">TOTAL</SvgText>
       </Svg>
-      <View className="flex-1 gap-1.5">
+      <View style={{ flex: 1, gap: 6 }}>
         {data.map((d, i) => (
-          <View key={d.label} className="flex-row items-center gap-2">
-            <View className="w-2.5 h-2.5 rounded-full"
-              style={{ backgroundColor: d.color || palette[i % palette.length] }} />
-            <Text className="flex-1 text-sm" style={Typography.bodySm} numberOfLines={1}>{d.label}</Text>
-            <Text className="text-white font-bold" style={Typography.bodyBold}>{d.value}</Text>
+          <View key={d.label} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View style={{ width: 10, height: 10, borderRadius: 5,
+              backgroundColor: d.color || palette[i % palette.length] }} />
+            <Text style={[Typography.bodySm, { flex: 1 }]} numberOfLines={1}>{d.label}</Text>
+            <Text style={[Typography.bodyBold, { color: C.textPrimary }]}>{d.value}</Text>
           </View>
         ))}
       </View>
@@ -148,16 +169,47 @@ export function DonutChart({ data, size = 140, thickness = 22 }: {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Section card wrapper
+// ---------------------------------------------------------------------------
 export function ChartSection({ title, subtitle, children }: {
   title: string; subtitle?: string; children: React.ReactNode;
 }) {
   return (
-    <View className="bg-white/[0.04] rounded-lg p-3.5 mb-3.5" style={Shadows.sm as any}>
-      <View className="mb-3">
-        <Text className="text-white text-lg font-bold" style={Typography.h4}>{title}</Text>
-        {subtitle && <Text className="text-gray-500 text-sm mt-0.5" style={Typography.bodySm}>{subtitle}</Text>}
+    <View style={styles.section}>
+      <View style={{ marginBottom: 12 }}>
+        <Text style={[Typography.h4, { color: C.textPrimary }]}>{title}</Text>
+        {subtitle && <Text style={[Typography.bodySm, { color: C.textSecondary, marginTop: 2 }]}>{subtitle}</Text>}
       </View>
       {children}
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  kpi: {
+    backgroundColor: C.surface,
+    borderRadius: Radius.lg,
+    padding: 14,
+    borderLeftWidth: 4,
+    minWidth: 150,
+    flex: 1,
+    ...Shadows.sm,
+  },
+  kpiLabel: {
+    ...Typography.label,
+    color: C.textSecondary,
+    fontSize: 9,
+    marginBottom: 4,
+  },
+  kpiValue: { ...Typography.h2, fontSize: 24, lineHeight: 28 },
+  kpiSuffix: { ...Typography.bodySm, color: C.textSecondary },
+  kpiTrend: { ...Typography.bodySm, fontFamily: 'DMSans_600SemiBold', fontSize: 11, marginTop: 4 },
+  section: {
+    backgroundColor: C.surface,
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+    ...Shadows.sm,
+  },
+});

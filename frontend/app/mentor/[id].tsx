@@ -14,6 +14,7 @@ import {
   View,
   Text,
   ScrollView,
+  StyleSheet,
   Image,
   TouchableOpacity,
   Linking,
@@ -140,31 +141,31 @@ export default function MentorProfileScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-bg2" edges={['top', 'bottom']}>
-      <ScrollView contentContainerStyle={{ padding: Spacing.lg, paddingBottom: 60 }}>
-        <TouchableOpacity onPress={() => router.back()} testID="mentor-back-btn" className="w-10 h-10 items-center justify-center mb-2">
+    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <TouchableOpacity onPress={() => router.back()} testID="mentor-back-btn" style={styles.back}>
           <ArrowLeft size={24} color={C.textPrimary} />
         </TouchableOpacity>
 
         {/* ===== Mentor profile header ===== */}
-        <Card className="p-6">
-          <View className="items-center gap-2">
-            <Image source={{ uri: displayAvatar }} className="w-[88px] h-[88px] rounded-full mb-1" style={{ backgroundColor: C.surfaceMuted }} />
+        <Card style={styles.profileCard}>
+          <View style={{ alignItems: 'center', gap: 8 }}>
+            <Image source={{ uri: displayAvatar }} style={styles.avatar} />
             <Text style={[Typography.h3, { color: C.textPrimary }]} testID="mentor-name">
               {displayName}
             </Text>
             <Text style={[Typography.body, { color: C.textSecondary, textAlign: 'center' }]}>
               {displayTitle}
             </Text>
-            <View className="flex-row items-center gap-1.5 mt-1">
+            <View style={styles.ratingRow}>
               <Star size={14} color={C.warning} fill={C.warning} />
               <Text style={[Typography.bodyBold, { color: C.textPrimary }]}>{displayRating}</Text>
               <Text style={[Typography.bodySm, { color: C.textSecondary }]}>· {displaySessions} sessions</Text>
             </View>
             {displayTags.length > 0 && (
-              <View className="flex-row flex-wrap gap-1.5 mt-2 justify-center">
+              <View style={styles.tagsRow}>
                 {displayTags.map((t) => (
-                  <View key={t} className="bg-violet/20 px-2.5 py-1 rounded-full">
+                  <View key={t} style={styles.tag}>
                     <Text style={[Typography.label, { color: C.deepPurple, fontSize: 10 }]}>{t}</Text>
                   </View>
                 ))}
@@ -173,7 +174,7 @@ export default function MentorProfileScreen() {
             {displayLinkedin && (
               <TouchableOpacity
                 onPress={() => Linking.openURL(displayLinkedin)}
-                className="flex-row items-center gap-1.5 bg-blue-500/10 px-3.5 py-2 rounded-full mt-2"
+                style={styles.linkedinBtn}
                 testID="mentor-linkedin-btn"
               >
                 <ExternalLink size={16} color={C.info} />
@@ -185,20 +186,20 @@ export default function MentorProfileScreen() {
 
         {/* ===== Bio ===== */}
         {displayBio && (
-          <Card className="mt-3">
+          <Card style={{ marginTop: 12 }}>
             <Text style={[Typography.label, { color: C.textSecondary }]}>ABOUT</Text>
             <Text style={[Typography.body, { color: C.textPrimary, marginTop: 8 }]}>{displayBio}</Text>
           </Card>
         )}
 
         {/* ===== Available slots ===== */}
-        <Text className="text-white text-base mt-6 mb-1" style={{ ...Typography.h4, color: C.textPrimary }}>
+        <Text style={styles.sectionTitle}>
           <Calendar size={18} color={C.brandPurple} />  Available Slots
         </Text>
         <Text style={[Typography.bodySm, { color: C.textSecondary, marginBottom: 12 }]}>
           30-minute 1:1 sessions. Pick a slot that works for you.
         </Text>
-        <View className="flex-row flex-wrap gap-2">
+        <View style={styles.slotsGrid}>
           {slots.slice(0, 9).map((s) => {
             const active = selectedSlot?.iso === s.iso;
             return (
@@ -210,8 +211,7 @@ export default function MentorProfileScreen() {
                   }
                 }}
                 disabled={booked}
-                className={`flex-row items-center gap-1.5 px-3 py-2.5 rounded-xl border ${active ? 'bg-violet border-violet' : 'bg-surface border-violet/20'}`}
-                style={!active ? { borderWidth: 1.5, borderColor: C.palePurple, backgroundColor: C.surface } : {}}
+                style={[styles.slotChip, active && styles.slotChipActive]}
                 testID={`slot-${s.iso}`}
                 activeOpacity={0.7}
               >
@@ -230,7 +230,7 @@ export default function MentorProfileScreen() {
         </View>
 
         {/* ===== Topic ===== */}
-        <View className="mt-4">
+        <View style={{ marginTop: 16 }}>
           <Input
             label="What would you like to discuss?"
             placeholder="e.g., How do I prepare for FAANG interviews?"
@@ -257,3 +257,41 @@ export default function MentorProfileScreen() {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: C.background },
+  container: { padding: Spacing.lg, paddingBottom: 60 },
+  back: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  profileCard: { padding: 24 },
+  avatar: { width: 88, height: 88, borderRadius: 44, backgroundColor: C.surfaceMuted, marginBottom: 4 },
+  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
+  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8, justifyContent: 'center' },
+  tag: { backgroundColor: C.palePurple, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
+  linkedinBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: C.infoSoft,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    marginTop: 8,
+  },
+  sectionTitle: { ...Typography.h4, color: C.textPrimary, marginTop: 24, marginBottom: 4 },
+  slotsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  slotChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: C.surface,
+    borderWidth: 1.5,
+    borderColor: C.palePurple,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  slotChipActive: {
+    backgroundColor: C.brandPurple,
+    borderColor: C.brandPurple,
+  },
+});

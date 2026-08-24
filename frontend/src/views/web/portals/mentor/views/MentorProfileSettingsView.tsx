@@ -4,7 +4,7 @@
  * Built on top of unified project icon shims and MaterialCommunityIcons.
  */
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { View, Text, Pressable, ScrollView, Image, Platform, ActivityIndicator, useWindowDimensions, TextInput } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, Image, Platform, ActivityIndicator, useWindowDimensions, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
@@ -713,33 +713,33 @@ export function MentorProfileSettingsView({
     <View style={{ gap: 16 }}>
       
       {/* Dynamic Header Card */}
-      <View style={[{backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 16, padding: 18}, stack && { flexDirection: 'column' }]}>
+      <View style={[st.headerCard, stack && { flexDirection: 'column' }]}>
         <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 16, minWidth: 0 }}>
           <View style={{ position: 'relative' }}>
-            <View style={{width: 72, height: 72, borderRadius: 36, backgroundColor: MC.teal + '20', alignItems: 'center', justifyContent: 'center', borderColor: MC.teal + '40', borderWidth: 2}}>
+            <View style={st.avatar}>
               {photo ? (
                 <Image source={{ uri: photo }} style={{ width: '100%', height: '100%', borderRadius: 36 }} />
               ) : (
-                <Text className="text-white font-display-bold text-2xl">{initials}</Text>
+                <Text style={st.avatarText}>{initials}</Text>
               )}
             </View>
-            <View style={{position: 'absolute', bottom: 1, right: 1, width: 20, height: 20, borderRadius: 10, backgroundColor: '#10B981', alignItems: 'center', justifyContent: 'center', borderColor: MC.bg, borderWidth: 2}}><CheckCircle2 size={11} color="#fff" /></View>
+            <View style={st.avatarCheck}><CheckCircle2 size={11} color="#fff" /></View>
           </View>
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text className="text-white font-display-bold text-xl tracking-tight">{fullName}</Text>
-            <Text className="text-muted font-body-semibold text-sm mt-0.5">{role} - {company}</Text>
+            <Text style={st.name}>{fullName}</Text>
+            <Text style={st.subline}>{role} - {company}</Text>
             
-            <View className="flex-row flex-wrap gap-1.5 mt-2 items-center">
-              <View className="flex-row items-center gap-1 px-2 py-0.5 rounded-2xl border" style={{backgroundColor: 'rgba(245,158,11,0.14)', borderColor: 'rgba(245,158,11,0.4)'}}>
+            <View style={st.badgeRow}>
+              <View style={[st.headerBadge, { backgroundColor: 'rgba(245,158,11,0.14)', borderColor: 'rgba(245,158,11,0.4)' }]}>
                 <Star size={11} color="#F59E0B" fill="#F59E0B" />
-                <Text className="font-body-bold text-[10.5px]" style={{color: '#F59E0B'}}>4.9 rating</Text>
+                <Text style={[st.headerBadgeText, { color: '#F59E0B' }]}>4.9 rating</Text>
               </View>
-              <View className="flex-row items-center gap-1 px-2 py-0.5 rounded-2xl border" style={{backgroundColor: 'rgba(34,197,94,0.14)', borderColor: 'rgba(34,197,94,0.4)'}}>
-                <Text className="font-body-bold text-[10.5px]" style={{color: '#4ADE80'}}>142 sessions</Text>
+              <View style={[st.headerBadge, { backgroundColor: 'rgba(34,197,94,0.14)', borderColor: 'rgba(34,197,94,0.4)' }]}>
+                <Text style={[st.headerBadgeText, { color: '#4ADE80' }]}>142 sessions</Text>
               </View>
-              <View className="flex-row items-center gap-1 px-2 py-0.5 rounded-2xl border" style={{backgroundColor: 'rgba(20,184,166,0.14)', borderColor: 'rgba(20,184,166,0.4)'}}>
+              <View style={[st.headerBadge, { backgroundColor: 'rgba(20,184,166,0.14)', borderColor: 'rgba(20,184,166,0.4)' }]}>
                 <CheckCircle2 size={11} color={MC.tealP} />
-                <Text className="font-body-bold text-[10.5px]" style={{color: MC.tealP}}>Verified Mentor</Text>
+                <Text style={[st.headerBadgeText, { color: MC.tealP }]}>Verified Mentor</Text>
               </View>
             </View>
           </View>
@@ -747,7 +747,7 @@ export function MentorProfileSettingsView({
       </View>
 
       {/* Tabs list */}
-      <View style={{backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 12, padding: 6}}>
+      <View style={st.tabBar}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingHorizontal: 6 }}>
           {TABS.map((t) => {
             const Icon = t.Icon;
@@ -758,10 +758,10 @@ export function MentorProfileSettingsView({
                 onPress={() => {
                   setActiveTab(t.key);
                 }}
-                className="flex-row items-center gap-1.5 px-3 py-2 rounded-lg" style={active ? {backgroundColor: MC.tealP} : undefined}
+                style={[st.tab, active && st.tabActive]}
               >
                 <Icon size={14} color={active ? '#0F2922' : MC.muted} />
-                <Text className="text-muted font-body-bold text-[11.5px]" style={active ? { color: '#0F2922', fontFamily: FONTS.bold } : undefined}>{t.label}</Text>
+                <Text style={[st.tabText, active && { color: '#0F2922', fontFamily: FONTS.bold }]}>{t.label}</Text>
               </Pressable>
             );
           })}
@@ -779,66 +779,66 @@ export function MentorProfileSettingsView({
             <View style={{ gap: 16 }}>
               
               {/* Basic Information */}
-              <View style={{backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 14, padding: 16}}>
-                <Text className="text-muted font-display-bold text-[10.5px] tracking-widest uppercase mb-3">BASIC INFORMATION</Text>
+              <View style={st.formSectionCard}>
+                <Text style={st.sectionTitle}>BASIC INFORMATION</Text>
                 
                 {/* Photo editor */}
-                <View className="flex-row items-center gap-3.5 mb-3.5">
-                  <Pressable style={{width: 64, height: 64, borderRadius: 32, backgroundColor: MC.tealP + '18', borderColor: MC.tealP + '35', borderWidth: 2, alignItems: 'center', justifyContent: 'center'}} onPress={() => setOptionsModalVisible(true)}>
+                <View style={st.photoEditBox}>
+                  <Pressable style={st.photoPill} onPress={() => setOptionsModalVisible(true)}>
                     {photo ? (
                       <Image source={{ uri: photo }} style={{ width: '100%', height: '100%', borderRadius: 32 }} />
                     ) : (
-                      <Text className="text-white font-display-bold text-[22px]">{initials}</Text>
+                      <Text style={st.photoPillText}>{initials}</Text>
                     )}
                   </Pressable>
                   <View style={{ gap: 6 }}>
-                    <Text className="text-white font-body-bold text-[13.5px]">Profile Photo</Text>
-                    <Text className="text-dim font-body-semibold text-[11px]">JPG, PNG up to 5MB · Recommended 400×400px</Text>
+                    <Text style={st.photoTitle}>Profile Photo</Text>
+                    <Text style={st.photoMeta}>JPG, PNG up to 5MB · Recommended 400×400px</Text>
                     <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
-                      <Pressable className="h-7 rounded-md items-center justify-center" style={{paddingHorizontal: 11, backgroundColor: MC.tealP}} onPress={() => setOptionsModalVisible(true)}><Text className="text-bg font-body-bold text-[11.5px]">Upload Photo</Text></Pressable>
+                      <Pressable style={st.uploadBtn} onPress={() => setOptionsModalVisible(true)}><Text style={st.uploadBtnText}>Upload Photo</Text></Pressable>
                       {photo ? (
-                        <Pressable className="h-7 rounded-md items-center justify-center" style={{paddingHorizontal: 11, borderWidth: 1, borderColor: MC.border2, backgroundColor: 'rgba(255,255,255,0.02)'}} onPress={handleRemovePhoto}><Text className="text-muted font-body-semibold text-[11.5px]">Remove</Text></Pressable>
+                        <Pressable style={st.removeBtn} onPress={handleRemovePhoto}><Text style={st.removeBtnText}>Remove</Text></Pressable>
                       ) : null}
                     </View>
                   </View>
                 </View>
 
                 {/* Name & Role Title row */}
-                <View className="flex-row gap-3">
+                <View style={st.inputGridRow}>
                   <View style={{ flex: 1 }}>
-                    <Text className="text-muted font-body-bold text-[11.5px] mb-[5px]">Full Name</Text>
-                    <View style={{backgroundColor: MC.bg2, borderColor: MC.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 4, height: 38}}>
-                      <TextInput value={fullName} onChangeText={setFullName} placeholder="Dr. Suresh Rao" className="text-white font-body-semibold text-[12.5px] py-1.5 w-full" placeholderTextColor={MC.dim} />
+                    <Text style={st.inputLabel}>Full Name</Text>
+                    <View style={st.inputBox}>
+                      <TextInput value={fullName} onChangeText={setFullName} placeholder="Dr. Suresh Rao" style={st.input} placeholderTextColor={MC.dim} />
                     </View>
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text className="text-muted font-body-bold text-[11.5px] mb-[5px]">Role / Title</Text>
-                    <View style={{backgroundColor: MC.bg2, borderColor: MC.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 4, height: 38}}>
-                      <TextInput value={role} onChangeText={setRole} placeholder="CTO" className="text-white font-body-semibold text-[12.5px] py-1.5 w-full" placeholderTextColor={MC.dim} />
+                    <Text style={st.inputLabel}>Role / Title</Text>
+                    <View style={st.inputBox}>
+                      <TextInput value={role} onChangeText={setRole} placeholder="CTO" style={st.input} placeholderTextColor={MC.dim} />
                     </View>
                   </View>
                 </View>
 
                 {/* Company & Alma Mater row */}
-                <View className="flex-row gap-3">
+                <View style={st.inputGridRow}>
                   <View style={{ flex: 1 }}>
-                    <Text className="text-muted font-body-bold text-[11.5px] mb-[5px]">Company</Text>
-                    <View style={{backgroundColor: MC.bg2, borderColor: MC.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 4, height: 38}}>
-                      <TextInput value={company} onChangeText={setCompany} placeholder="Zepto" className="text-white font-body-semibold text-[12.5px] py-1.5 w-full" placeholderTextColor={MC.dim} />
+                    <Text style={st.inputLabel}>Company</Text>
+                    <View style={st.inputBox}>
+                      <TextInput value={company} onChangeText={setCompany} placeholder="Zepto" style={st.input} placeholderTextColor={MC.dim} />
                     </View>
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text className="text-muted font-body-bold text-[11.5px] mb-[5px]">Alma Mater</Text>
-                    <View style={{backgroundColor: MC.bg2, borderColor: MC.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 4, height: 38}}>
-                      <TextInput value={college} onChangeText={setCollege} placeholder="IIT Bombay" className="text-white font-body-semibold text-[12.5px] py-1.5 w-full" placeholderTextColor={MC.dim} />
+                    <Text style={st.inputLabel}>Alma Mater</Text>
+                    <View style={st.inputBox}>
+                      <TextInput value={college} onChangeText={setCollege} placeholder="IIT Bombay" style={st.input} placeholderTextColor={MC.dim} />
                     </View>
                   </View>
                 </View>
 
                 {/* Bio text field */}
                 <View style={{ marginTop: 12 }}>
-                  <Text className="text-muted font-body-bold text-[11.5px] mb-[5px]">Bio</Text>
-                  <View style={{backgroundColor: MC.bg2, borderColor: MC.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 4, height: 38, minHeight: 80, alignItems: 'flex-start'}}>
+                  <Text style={st.inputLabel}>Bio</Text>
+                  <View style={[st.inputBox, { minHeight: 80, alignItems: 'flex-start' }]}>
                     <TextInput
                       value={bio}
                       onChangeText={setBio}
@@ -846,54 +846,54 @@ export function MentorProfileSettingsView({
                       numberOfLines={3}
                       placeholder="Tell students about your background and what you offer as a mentor."
                       placeholderTextColor={MC.dim}
-                      className="text-white font-body-semibold text-[12.5px] py-1.5 w-full" style={{ flex: 1, height: '100%', textAlignVertical: 'top' }}
+                      style={[st.input, { flex: 1, height: '100%', textAlignVertical: 'top' }]}
                     />
                   </View>
-                  <Text className="text-dim font-body-semibold text-[10.5px] mt-1">Tell students about your background and what you offer as a mentor.</Text>
+                  <Text style={st.inputHelpText}>Tell students about your background and what you offer as a mentor.</Text>
                 </View>
               </View>
 
               {/* Social Links & Session Price */}
-              <View style={{backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 14, padding: 16}}>
-                <Text className="text-muted font-display-bold text-[10.5px] tracking-widest uppercase mb-3">SOCIAL LINKS & SESSION PRICE</Text>
+              <View style={st.formSectionCard}>
+                <Text style={st.sectionTitle}>SOCIAL LINKS & SESSION PRICE</Text>
 
-                <View className="flex-row gap-3">
+                <View style={st.inputGridRow}>
                   <View style={{ flex: 1 }}>
-                    <Text className="text-muted font-body-bold text-[11.5px] mb-[5px]">LinkedIn</Text>
-                    <View style={{backgroundColor: MC.bg2, borderColor: MC.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', height: 38}}>
+                    <Text style={st.inputLabel}>LinkedIn</Text>
+                    <View style={st.inputBoxIcon}>
                       <Linkedin size={14} color={MC.dim} style={{ marginRight: 8 }} />
-                      <TextInput value={linkedinUrl} onChangeText={setLinkedinUrl} placeholder="linkedin.com/in/sureshrao" className="text-white font-body-semibold text-[12.5px] py-1.5 w-full" style={{ flex: 1 }} placeholderTextColor={MC.dim} />
+                      <TextInput value={linkedinUrl} onChangeText={setLinkedinUrl} placeholder="linkedin.com/in/sureshrao" style={[st.input, { flex: 1 }]} placeholderTextColor={MC.dim} />
                     </View>
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text className="text-muted font-body-bold text-[11.5px] mb-[5px]">GitHub</Text>
-                    <View style={{backgroundColor: MC.bg2, borderColor: MC.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', height: 38}}>
+                    <Text style={st.inputLabel}>GitHub</Text>
+                    <View style={st.inputBoxIcon}>
                       <Github size={14} color={MC.dim} style={{ marginRight: 8 }} />
-                      <TextInput value={githubUrl} onChangeText={setGithubUrl} placeholder="github.com/sureshrao" className="text-white font-body-semibold text-[12.5px] py-1.5 w-full" style={{ flex: 1 }} placeholderTextColor={MC.dim} />
+                      <TextInput value={githubUrl} onChangeText={setGithubUrl} placeholder="github.com/sureshrao" style={[st.input, { flex: 1 }]} placeholderTextColor={MC.dim} />
                     </View>
                   </View>
                 </View>
 
                 <View style={{ marginTop: 12 }}>
-                  <Text className="text-muted font-body-bold text-[11.5px] mb-[5px]">Session Price (₹)</Text>
-                  <View style={{backgroundColor: MC.bg2, borderColor: MC.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', height: 38}}>
+                  <Text style={st.inputLabel}>Session Price (₹)</Text>
+                  <View style={st.inputBoxIcon}>
                     <IndianRupee size={14} color={MC.dim} style={{ marginRight: 6 }} />
-                    <TextInput value={sessionPrice} onChangeText={setSessionPrice} keyboardType="numeric" placeholder="999" className="text-white font-body-semibold text-[12.5px] py-1.5 w-full" style={{ flex: 1 }} placeholderTextColor={MC.dim} />
+                    <TextInput value={sessionPrice} onChangeText={setSessionPrice} keyboardType="numeric" placeholder="999" style={[st.input, { flex: 1 }]} placeholderTextColor={MC.dim} />
                   </View>
-                  <Text className="text-dim font-body-semibold text-[10.5px] mt-1">Shown to students when booking a session with you.</Text>
+                  <Text style={st.inputHelpText}>Shown to students when booking a session with you.</Text>
                 </View>
               </View>
 
               {/* Areas of Expertise */}
-              <View style={{backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 14, padding: 16}}>
-                <Text className="text-muted font-display-bold text-[10.5px] tracking-widest uppercase mb-3">AREAS OF EXPERTISE</Text>
+              <View style={st.formSectionCard}>
+                <Text style={st.sectionTitle}>AREAS OF EXPERTISE</Text>
                 
                 {/* Pills list */}
-                <View className="flex-row flex-wrap gap-1.5 mb-2.5">
+                <View style={st.skillsRow}>
                   {expertise.map((tag) => (
-                    <View key={tag} className="flex-row items-center gap-1.5 rounded-lg pl-2.5 pr-1.5 h-7" style={{backgroundColor: 'rgba(20,184,166,0.1)', borderColor: MC.border2, borderWidth: 1}}>
-                      <Text className="text-teal font-body-bold text-[11.5px]">{tag}</Text>
-                      <Pressable onPress={() => handleRemoveExpertise(tag)} className="p-0.5 rounded bg-white/[0.02]">
+                    <View key={tag} style={st.skillPill}>
+                      <Text style={st.skillPillText}>{tag}</Text>
+                      <Pressable onPress={() => handleRemoveExpertise(tag)} style={st.skillRemoveBtn}>
                         <X size={11} color={MC.tealP} />
                       </Pressable>
                     </View>
@@ -901,28 +901,28 @@ export function MentorProfileSettingsView({
                 </View>
 
                 {/* Add Input */}
-                <View className="flex-row gap-2.5">
-                  <View style={{backgroundColor: MC.bg2, borderColor: MC.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 4, height: 38, flex: 1}}>
+                <View style={st.addExpertiseRow}>
+                  <View style={[st.inputBox, { flex: 1 }]}>
                     <TextInput
                       value={newExpertiseInput}
                       onChangeText={setNewExpertiseInput}
                       placeholder="Add expertise..."
                       placeholderTextColor={MC.dim}
                       onSubmitEditing={handleAddExpertise}
-                      className="text-white font-body-semibold text-[12.5px] py-1.5 w-full"
+                      style={st.input}
                     />
                   </View>
-                  <Pressable onPress={handleAddExpertise} className="flex-row items-center gap-1 px-3 rounded-lg" style={{backgroundColor: MC.tealP}}>
+                  <Pressable onPress={handleAddExpertise} style={st.addBtn}>
                     <Plus size={14} color={MC.bg} />
-                    <Text className="text-bg font-body-bold text-xs">Add</Text>
+                    <Text style={st.addBtnText}>Add</Text>
                   </Pressable>
                 </View>
               </View>
 
               {/* Profile Visibility */}
-              <View style={{backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 14, padding: 16}}>
-                <Text className="text-muted font-display-bold text-[10.5px] tracking-widest uppercase mb-3">PROFILE VISIBILITY</Text>
-                <Text className="text-dim font-body-semibold text-xs -mt-2 mb-3">Control who can see your mentor profile.</Text>
+              <View style={st.formSectionCard}>
+                <Text style={st.sectionTitle}>PROFILE VISIBILITY</Text>
+                <Text style={st.sectionHelpText}>Control who can see your mentor profile.</Text>
 
                 <View style={{ gap: 10, marginTop: 4 }}>
                   <CustomRadio
@@ -947,9 +947,9 @@ export function MentorProfileSettingsView({
               </View>
 
               {/* Profile Sections Toggles */}
-              <View style={{backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 14, padding: 16}}>
-                <Text className="text-muted font-display-bold text-[10.5px] tracking-widest uppercase mb-3">PROFILE SECTIONS</Text>
-                <Text className="text-dim font-body-semibold text-xs -mt-2 mb-3">Choose which sections appear on your public mentor profile.</Text>
+              <View style={st.formSectionCard}>
+                <Text style={st.sectionTitle}>PROFILE SECTIONS</Text>
+                <Text style={st.sectionHelpText}>Choose which sections appear on your public mentor profile.</Text>
 
                 <View style={{ gap: 12, marginTop: 12 }}>
                   <ToggleRow
@@ -981,28 +981,28 @@ export function MentorProfileSettingsView({
               </View>
 
               {/* Profile Strength Analysis */}
-              <View style={{backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 14, padding: 16}}>
-                <Text className="text-muted font-display-bold text-[10.5px] tracking-widest uppercase mb-3">PROFILE STRENGTH ANALYSIS</Text>
-                <Text className="text-dim font-body-semibold text-xs -mt-2 mb-3">Get AI recommendations to improve your profile and increase session bookings.</Text>
+              <View style={st.formSectionCard}>
+                <Text style={st.sectionTitle}>PROFILE STRENGTH ANALYSIS</Text>
+                <Text style={st.sectionHelpText}>Get AI recommendations to improve your profile and increase session bookings.</Text>
                 
                 <View style={{ marginTop: 12, gap: 10, alignItems: 'flex-start' }}>
                   <Pressable
                     onPress={handleAnalyzeProfile}
                     disabled={aiAnalyzing}
-                    className="flex-row items-center gap-1.5 px-3 h-8 rounded-lg border" style={{borderColor: MC.border2, backgroundColor: 'rgba(255,255,255,0.02)'}}
+                    style={st.aiAnalyzeBtn}
                   >
                     {aiAnalyzing ? (
                       <ActivityIndicator size="small" color={MC.tealP} />
                     ) : (
                       <>
                         <Sparkles size={14} color={MC.tealP} />
-                        <Text className="text-teal font-body-bold text-[11.5px]">Analyze Profile Strength</Text>
+                        <Text style={st.aiAnalyzeBtnText}>Analyze Profile Strength</Text>
                       </>
                     )}
                   </Pressable>
 
                   {aiError && (
-                    <Text className="text-rose font-body-bold text-[11px]">AI unavailable. Please try again.</Text>
+                    <Text style={st.aiErrorText}>AI unavailable. Please try again.</Text>
                   )}
                 </View>
               </View>
@@ -1015,9 +1015,9 @@ export function MentorProfileSettingsView({
             <View style={{ gap: 16 }}>
               
               {/* Main title banner */}
-              <View style={{backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 14, padding: 16}}>
+              <View style={st.formSectionCard}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  <View className="w-[34px] h-[34px] rounded-[17px] items-center justify-center" style={{backgroundColor: MC.tealP + '14', borderColor: MC.tealP + '30', borderWidth: 1}}>
+                  <View style={st.toolsIconCircle}>
                     <MaterialCommunityIcons name="briefcase-edit-outline" size={16} color={MC.tealP} />
                   </View>
                   <View style={{ flex: 1 }}>
@@ -1028,28 +1028,28 @@ export function MentorProfileSettingsView({
               </View>
 
               {/* Video Conferencing */}
-              <View style={{backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 14, padding: 16}}>
-                <Text className="text-muted font-display-bold text-[10.5px] tracking-widest uppercase mb-3">VIDEO CONFERENCING</Text>
+              <View style={st.formSectionCard}>
+                <Text style={st.sectionTitle}>VIDEO CONFERENCING</Text>
 
                 <View style={{ gap: 12, marginTop: 4 }}>
                   
                   {/* Google Meet (Connected) */}
-                  <View className="flex-row items-center justify-between py-3" style={{borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.04)'}}>
-                    <View className="flex-row gap-3 flex-1 min-w-0">
-                      <View className="w-9 h-9 rounded-lg items-center justify-center" style={{backgroundColor: 'rgba(255,255,255,0.03)'}}>
+                  <View style={st.integrationRow}>
+                    <View style={st.integrationLeft}>
+                      <View style={st.integrationIconSquare}>
                         <MaterialCommunityIcons name="video-outline" size={18} color={googleMeetConnected ? MC.tealP : MC.dim} />
                       </View>
                       <View style={{ flex: 1, gap: 4 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                          <Text className="text-white font-body-bold text-[13px]">Google Meet</Text>
-                          {googleMeetConnected && <View className="px-1.5 py-0.5 rounded" style={{backgroundColor: 'rgba(34,197,94,0.12)'}}><Text className="text-[#4ADE80] font-body-bold text-[9.5px]">Connected</Text></View>}
+                          <Text style={st.integrationName}>Google Meet</Text>
+                          {googleMeetConnected && <View style={st.connectedBadge}><Text style={st.connectedBadgeText}>Connected</Text></View>}
                         </View>
                         {!googleMeetConnected && (
-                          <View style={{backgroundColor: MC.bg2, borderColor: MC.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 4, height: 38}}>
-                            <TextInput value={googleMeetEmail} onChangeText={setGoogleMeetEmail} placeholder="your@email.com" placeholderTextColor={MC.dim} className="text-white font-body-semibold text-[12.5px] py-1.5 w-full" />
+                          <View style={st.inputBox}>
+                            <TextInput value={googleMeetEmail} onChangeText={setGoogleMeetEmail} placeholder="your@email.com" placeholderTextColor={MC.dim} style={st.input} />
                           </View>
                         )}
-                        {googleMeetConnected && <Text className="text-teal font-body-semibold text-[11.5px] mt-px">{googleMeetEmail}</Text>}
+                        {googleMeetConnected && <Text style={st.integrationEmail}>{googleMeetEmail}</Text>}
                       </View>
                     </View>
                     <Pressable
@@ -1057,27 +1057,27 @@ export function MentorProfileSettingsView({
                         if (googleMeetConnected) { setGoogleMeetConnected(false); setGoogleMeetEmail(''); }
                         else { if (!googleMeetEmail) { toast.warning('Email required', 'Please enter Google Meet email'); return; } setGoogleMeetConnected(true); }
                       }}
-                      className="h-7 rounded-md items-center justify-center" style={[{paddingHorizontal: 12, backgroundColor: MC.tealP}, googleMeetConnected && {backgroundColor: 'rgba(239,68,68,0.05)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.2)'}]}
+                      style={[st.connectBtnStyle, googleMeetConnected && st.disconnectBtnStyle]}
                     >
-                      <Text className="text-bg font-body-bold text-[11px]" style={googleMeetConnected ? { color: MC.red } : undefined}>{googleMeetConnected ? 'Disconnect' : 'Connect'}</Text>
+                      <Text style={[st.connectBtnStyleText, googleMeetConnected && { color: MC.red }]}>{googleMeetConnected ? 'Disconnect' : 'Connect'}</Text>
                     </Pressable>
                   </View>
 
                   {/* Zoom */}
-                  <View className="flex-row items-center justify-between py-3" style={{borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.04)'}}>
-                    <View className="flex-row gap-3 flex-1 min-w-0">
-                      <View className="w-9 h-9 rounded-lg items-center justify-center" style={{backgroundColor: 'rgba(255,255,255,0.03)'}}>
+                  <View style={st.integrationRow}>
+                    <View style={st.integrationLeft}>
+                      <View style={st.integrationIconSquare}>
                         <MaterialCommunityIcons name="video-outline" size={18} color={MC.dim} />
                       </View>
                       <View style={{ flex: 1, gap: 4 }}>
-                        <Text className="text-white font-body-bold text-[13px]">Zoom</Text>
-                        <Text className="text-dim font-body-semibold text-[11px] mt-px">Host sessions on Zoom with auto-generated links</Text>
+                        <Text style={st.integrationName}>Zoom</Text>
+                        <Text style={st.integrationDesc}>Host sessions on Zoom with auto-generated links</Text>
                         {!zoomConnected && (
-                          <View style={{backgroundColor: MC.bg2, borderColor: MC.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 4, height: 38}}>
-                            <TextInput value={zoomEmail} onChangeText={setZoomEmail} placeholder="your@email.com" placeholderTextColor={MC.dim} className="text-white font-body-semibold text-[12.5px] py-1.5 w-full" />
+                          <View style={st.inputBox}>
+                            <TextInput value={zoomEmail} onChangeText={setZoomEmail} placeholder="your@email.com" placeholderTextColor={MC.dim} style={st.input} />
                           </View>
                         )}
-                        {zoomConnected && <Text className="text-teal font-body-semibold text-[11.5px] mt-px">{zoomEmail}</Text>}
+                        {zoomConnected && <Text style={st.integrationEmail}>{zoomEmail}</Text>}
                       </View>
                     </View>
                     <Pressable
@@ -1085,27 +1085,27 @@ export function MentorProfileSettingsView({
                         if (zoomConnected) { setZoomConnected(false); setZoomEmail(''); }
                         else { if (!zoomEmail) { toast.warning('Email required', 'Please enter Zoom email'); return; } setZoomConnected(true); }
                       }}
-                      className="h-7 rounded-md items-center justify-center" style={[{paddingHorizontal: 12, backgroundColor: MC.tealP}, zoomConnected && {backgroundColor: 'rgba(239,68,68,0.05)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.2)'}]}
+                      style={[st.connectBtnStyle, zoomConnected && st.disconnectBtnStyle]}
                     >
-                      <Text className="text-bg font-body-bold text-[11px]" style={zoomConnected ? { color: MC.red } : undefined}>{zoomConnected ? 'Disconnect' : 'Connect'}</Text>
+                      <Text style={[st.connectBtnStyleText, zoomConnected && { color: MC.red }]}>{zoomConnected ? 'Disconnect' : 'Connect'}</Text>
                     </Pressable>
                   </View>
 
                   {/* Microsoft Teams */}
-                  <View className="flex-row items-center justify-between py-3" style={{borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.04)'}}>
-                    <View className="flex-row gap-3 flex-1 min-w-0">
-                      <View className="w-9 h-9 rounded-lg items-center justify-center" style={{backgroundColor: 'rgba(255,255,255,0.03)'}}>
+                  <View style={st.integrationRow}>
+                    <View style={st.integrationLeft}>
+                      <View style={st.integrationIconSquare}>
                         <MaterialCommunityIcons name="microsoft-teams" size={18} color={MC.dim} />
                       </View>
                       <View style={{ flex: 1, gap: 4 }}>
-                        <Text className="text-white font-body-bold text-[13px]">Microsoft Teams</Text>
-                        <Text className="text-dim font-body-semibold text-[11px] mt-px">Schedule and host via Microsoft Teams</Text>
+                        <Text style={st.integrationName}>Microsoft Teams</Text>
+                        <Text style={st.integrationDesc}>Schedule and host via Microsoft Teams</Text>
                         {!teamsConnected && (
-                          <View style={{backgroundColor: MC.bg2, borderColor: MC.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 4, height: 38}}>
-                            <TextInput value={teamsEmail} onChangeText={setTeamsEmail} placeholder="your@email.com" placeholderTextColor={MC.dim} className="text-white font-body-semibold text-[12.5px] py-1.5 w-full" />
+                          <View style={st.inputBox}>
+                            <TextInput value={teamsEmail} onChangeText={setTeamsEmail} placeholder="your@email.com" placeholderTextColor={MC.dim} style={st.input} />
                           </View>
                         )}
-                        {teamsConnected && <Text className="text-teal font-body-semibold text-[11.5px] mt-px">{teamsEmail}</Text>}
+                        {teamsConnected && <Text style={st.integrationEmail}>{teamsEmail}</Text>}
                       </View>
                     </View>
                     <Pressable
@@ -1113,9 +1113,9 @@ export function MentorProfileSettingsView({
                         if (teamsConnected) { setTeamsConnected(false); setTeamsEmail(''); }
                         else { if (!teamsEmail) { toast.warning('Email required', 'Please enter Teams email'); return; } setTeamsConnected(true); }
                       }}
-                      className="h-7 rounded-md items-center justify-center" style={[{paddingHorizontal: 12, backgroundColor: MC.tealP}, teamsConnected && {backgroundColor: 'rgba(239,68,68,0.05)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.2)'}]}
+                      style={[st.connectBtnStyle, teamsConnected && st.disconnectBtnStyle]}
                     >
-                      <Text className="text-bg font-body-bold text-[11px]" style={teamsConnected ? { color: MC.red } : undefined}>{teamsConnected ? 'Disconnect' : 'Connect'}</Text>
+                      <Text style={[st.connectBtnStyleText, teamsConnected && { color: MC.red }]}>{teamsConnected ? 'Disconnect' : 'Connect'}</Text>
                     </Pressable>
                   </View>
 
@@ -1123,28 +1123,28 @@ export function MentorProfileSettingsView({
               </View>
 
               {/* Calendar & Productivity */}
-              <View style={{backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 14, padding: 16}}>
-                <Text className="text-muted font-display-bold text-[10.5px] tracking-widest uppercase mb-3">CALENDAR & PRODUCTIVITY</Text>
+              <View style={st.formSectionCard}>
+                <Text style={st.sectionTitle}>CALENDAR & PRODUCTIVITY</Text>
 
                 <View style={{ gap: 12, marginTop: 4 }}>
                   
                   {/* Google Calendar */}
-                  <View className="flex-row items-center justify-between py-3" style={{borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.04)'}}>
-                    <View className="flex-row gap-3 flex-1 min-w-0">
-                      <View className="w-9 h-9 rounded-lg items-center justify-center" style={{backgroundColor: 'rgba(255,255,255,0.03)'}}>
+                  <View style={st.integrationRow}>
+                    <View style={st.integrationLeft}>
+                      <View style={st.integrationIconSquare}>
                         <MaterialCommunityIcons name="calendar-outline" size={18} color={googleCalendarConnected ? MC.tealP : MC.dim} />
                       </View>
                       <View style={{ flex: 1, gap: 4 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                          <Text className="text-white font-body-bold text-[13px]">Google Calendar</Text>
-                          {googleCalendarConnected && <View className="px-1.5 py-0.5 rounded" style={{backgroundColor: 'rgba(34,197,94,0.12)'}}><Text className="text-[#4ADE80] font-body-bold text-[9.5px]">Connected</Text></View>}
+                          <Text style={st.integrationName}>Google Calendar</Text>
+                          {googleCalendarConnected && <View style={st.connectedBadge}><Text style={st.connectedBadgeText}>Connected</Text></View>}
                         </View>
                         {!googleCalendarConnected && (
-                          <View style={{backgroundColor: MC.bg2, borderColor: MC.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 4, height: 38}}>
-                            <TextInput value={googleCalendarEmail} onChangeText={setGoogleCalendarEmail} placeholder="your@email.com" placeholderTextColor={MC.dim} className="text-white font-body-semibold text-[12.5px] py-1.5 w-full" />
+                          <View style={st.inputBox}>
+                            <TextInput value={googleCalendarEmail} onChangeText={setGoogleCalendarEmail} placeholder="your@email.com" placeholderTextColor={MC.dim} style={st.input} />
                           </View>
                         )}
-                        {googleCalendarConnected && <Text className="text-teal font-body-semibold text-[11.5px] mt-px">{googleCalendarEmail}</Text>}
+                        {googleCalendarConnected && <Text style={st.integrationEmail}>{googleCalendarEmail}</Text>}
                       </View>
                     </View>
                     <Pressable
@@ -1152,27 +1152,27 @@ export function MentorProfileSettingsView({
                         if (googleCalendarConnected) { setGoogleCalendarConnected(false); setGoogleCalendarEmail(''); }
                         else { if (!googleCalendarEmail) { toast.warning('Email required', 'Please enter Google Calendar email'); return; } setGoogleCalendarConnected(true); }
                       }}
-                      className="h-7 rounded-md items-center justify-center" style={[{paddingHorizontal: 12, backgroundColor: MC.tealP}, googleCalendarConnected && {backgroundColor: 'rgba(239,68,68,0.05)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.2)'}]}
+                      style={[st.connectBtnStyle, googleCalendarConnected && st.disconnectBtnStyle]}
                     >
-                      <Text className="text-bg font-body-bold text-[11px]" style={googleCalendarConnected ? { color: MC.red } : undefined}>{googleCalendarConnected ? 'Disconnect' : 'Connect'}</Text>
+                      <Text style={[st.connectBtnStyleText, googleCalendarConnected && { color: MC.red }]}>{googleCalendarConnected ? 'Disconnect' : 'Connect'}</Text>
                     </Pressable>
                   </View>
 
                   {/* Notion */}
-                  <View className="flex-row items-center justify-between py-3" style={{borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.04)'}}>
-                    <View className="flex-row gap-3 flex-1 min-w-0">
-                      <View className="w-9 h-9 rounded-lg items-center justify-center" style={{backgroundColor: 'rgba(255,255,255,0.03)'}}>
+                  <View style={st.integrationRow}>
+                    <View style={st.integrationLeft}>
+                      <View style={st.integrationIconSquare}>
                         <MaterialCommunityIcons name="notebook-outline" size={18} color={MC.dim} />
                       </View>
                       <View style={{ flex: 1, gap: 4 }}>
-                        <Text className="text-white font-body-bold text-[13px]">Notion</Text>
-                        <Text className="text-dim font-body-semibold text-[11px] mt-px">Auto-create session notes in Notion</Text>
+                        <Text style={st.integrationName}>Notion</Text>
+                        <Text style={st.integrationDesc}>Auto-create session notes in Notion</Text>
                         {!notionConnected && (
-                          <View style={{backgroundColor: MC.bg2, borderColor: MC.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 4, height: 38}}>
-                            <TextInput value={notionEmail} onChangeText={setNotionEmail} placeholder="your@email.com" placeholderTextColor={MC.dim} className="text-white font-body-semibold text-[12.5px] py-1.5 w-full" />
+                          <View style={st.inputBox}>
+                            <TextInput value={notionEmail} onChangeText={setNotionEmail} placeholder="your@email.com" placeholderTextColor={MC.dim} style={st.input} />
                           </View>
                         )}
-                        {notionConnected && <Text className="text-teal font-body-semibold text-[11.5px] mt-px">{notionEmail}</Text>}
+                        {notionConnected && <Text style={st.integrationEmail}>{notionEmail}</Text>}
                       </View>
                     </View>
                     <Pressable
@@ -1180,27 +1180,27 @@ export function MentorProfileSettingsView({
                         if (notionConnected) { setNotionConnected(false); setNotionEmail(''); }
                         else { if (!notionEmail) { toast.warning('Email required', 'Please enter Notion email'); return; } setNotionConnected(true); }
                       }}
-                      className="h-7 rounded-md items-center justify-center" style={[{paddingHorizontal: 12, backgroundColor: MC.tealP}, notionConnected && {backgroundColor: 'rgba(239,68,68,0.05)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.2)'}]}
+                      style={[st.connectBtnStyle, notionConnected && st.disconnectBtnStyle]}
                     >
-                      <Text className="text-bg font-body-bold text-[11px]" style={notionConnected ? { color: MC.red } : undefined}>{notionConnected ? 'Disconnect' : 'Connect'}</Text>
+                      <Text style={[st.connectBtnStyleText, notionConnected && { color: MC.red }]}>{notionConnected ? 'Disconnect' : 'Connect'}</Text>
                     </Pressable>
                   </View>
 
                   {/* Slack */}
-                  <View className="flex-row items-center justify-between py-3" style={{borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.04)'}}>
-                    <View className="flex-row gap-3 flex-1 min-w-0">
-                      <View className="w-9 h-9 rounded-lg items-center justify-center" style={{backgroundColor: 'rgba(255,255,255,0.03)'}}>
+                  <View style={st.integrationRow}>
+                    <View style={st.integrationLeft}>
+                      <View style={st.integrationIconSquare}>
                         <MaterialCommunityIcons name="slack" size={18} color={MC.dim} />
                       </View>
                       <View style={{ flex: 1, gap: 4 }}>
-                        <Text className="text-white font-body-bold text-[13px]">Slack</Text>
-                        <Text className="text-dim font-body-semibold text-[11px] mt-px">Get session reminders and alerts on Slack</Text>
+                        <Text style={st.integrationName}>Slack</Text>
+                        <Text style={st.integrationDesc}>Get session reminders and alerts on Slack</Text>
                         {!slackConnected && (
-                          <View style={{backgroundColor: MC.bg2, borderColor: MC.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 4, height: 38}}>
-                            <TextInput value={slackEmail} onChangeText={setSlackEmail} placeholder="your@email.com" placeholderTextColor={MC.dim} className="text-white font-body-semibold text-[12.5px] py-1.5 w-full" />
+                          <View style={st.inputBox}>
+                            <TextInput value={slackEmail} onChangeText={setSlackEmail} placeholder="your@email.com" placeholderTextColor={MC.dim} style={st.input} />
                           </View>
                         )}
-                        {slackConnected && <Text className="text-teal font-body-semibold text-[11.5px] mt-px">{slackEmail}</Text>}
+                        {slackConnected && <Text style={st.integrationEmail}>{slackEmail}</Text>}
                       </View>
                     </View>
                     <Pressable
@@ -1208,9 +1208,9 @@ export function MentorProfileSettingsView({
                         if (slackConnected) { setSlackConnected(false); setSlackEmail(''); }
                         else { if (!slackEmail) { toast.warning('Email required', 'Please enter Slack email'); return; } setSlackConnected(true); }
                       }}
-                      className="h-7 rounded-md items-center justify-center" style={[{paddingHorizontal: 12, backgroundColor: MC.tealP}, slackConnected && {backgroundColor: 'rgba(239,68,68,0.05)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.2)'}]}
+                      style={[st.connectBtnStyle, slackConnected && st.disconnectBtnStyle]}
                     >
-                      <Text className="text-bg font-body-bold text-[11px]" style={slackConnected ? { color: MC.red } : undefined}>{slackConnected ? 'Disconnect' : 'Connect'}</Text>
+                      <Text style={[st.connectBtnStyleText, slackConnected && { color: MC.red }]}>{slackConnected ? 'Disconnect' : 'Connect'}</Text>
                     </Pressable>
                   </View>
 
@@ -1218,19 +1218,21 @@ export function MentorProfileSettingsView({
               </View>
 
               {/* Default Session Platform */}
-              <View style={{backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 14, padding: 16}}>
-                <Text className="text-muted font-display-bold text-[10.5px] tracking-widest uppercase mb-3">DEFAULT SESSION PLATFORM</Text>
-                <Text className="text-dim font-body-semibold text-xs -mt-2 mb-3">When a student books a session, links will be auto-generated using your default platform.</Text>
+              <View style={st.formSectionCard}>
+                <Text style={st.sectionTitle}>DEFAULT SESSION PLATFORM</Text>
+                <Text style={st.sectionHelpText}>When a student books a session, links will be auto-generated using your default platform.</Text>
                 
-                <View className="flex-row gap-2.5 mt-2">
+                <View style={st.platformSelectorRow}>
                   {['Google Meet', 'Zoom', 'Microsoft Teams'].map((plat: any) => {
                     const isSelected = defaultSessionPlatform === plat;
                     return (
                       <Pressable
                         key={plat}
                         onPress={() => setDefaultSessionPlatform(plat)}
-                        className="flex-1 flex-row items-center justify-center h-9 rounded-lg border"
-                        style={[{borderColor: MC.border, backgroundColor: MC.bg2}, isSelected && { backgroundColor: MC.tealP + '14', borderColor: MC.tealP }]}
+                        style={[
+                          st.platformTab,
+                          isSelected && { backgroundColor: MC.tealP + '14', borderColor: MC.tealP }
+                        ]}
                       >
                         <View style={{
                           width: 14, height: 14, borderRadius: 7, borderWidth: 2,
@@ -1239,7 +1241,7 @@ export function MentorProfileSettingsView({
                         }}>
                           {isSelected && <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: MC.tealP }} />}
                         </View>
-                        <Text className="text-dim font-body-bold text-[11.5px]" style={isSelected ? { color: '#fff', fontFamily: FONTS.bold } : undefined}>{plat}</Text>
+                        <Text style={[st.platformTabText, isSelected && { color: '#fff', fontFamily: FONTS.bold }]}>{plat}</Text>
                       </Pressable>
                     );
                   })}
@@ -1253,8 +1255,8 @@ export function MentorProfileSettingsView({
             <View style={{ gap: 16 }}>
               
               {/* PRIVACY CONTROLS */}
-              <View style={{backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 14, padding: 16}}>
-                <Text className="text-muted font-display-bold text-[10.5px] tracking-widest uppercase mb-3">PRIVACY CONTROLS</Text>
+              <View style={st.formSectionCard}>
+                <Text style={st.sectionTitle}>PRIVACY CONTROLS</Text>
                 <View style={{ gap: 4 }}>
                   <ToggleRow
                     label="Show Email on Profile"
@@ -1297,8 +1299,8 @@ export function MentorProfileSettingsView({
               </View>
 
               {/* AI & SUGGESTIONS */}
-              <View style={{backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 14, padding: 16}}>
-                <Text className="text-muted font-display-bold text-[10.5px] tracking-widest uppercase mb-3">AI & SUGGESTIONS</Text>
+              <View style={st.formSectionCard}>
+                <Text style={st.sectionTitle}>AI & SUGGESTIONS</Text>
                 <View style={{ gap: 4 }}>
                   <ToggleRow
                     label="AI Session Summaries"
@@ -1323,9 +1325,9 @@ export function MentorProfileSettingsView({
               </View>
 
               {/* APP PREFERENCES */}
-              <View style={{backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 14, padding: 16}}>
-                <Text className="text-muted font-display-bold text-[10.5px] tracking-widest uppercase mb-3">APP PREFERENCES</Text>
-                <View className="flex-row gap-3">
+              <View style={st.formSectionCard}>
+                <Text style={st.sectionTitle}>APP PREFERENCES</Text>
+                <View style={st.inputGridRow}>
                   <CustomDropdown
                     label="Language"
                     value={language}
@@ -1340,8 +1342,8 @@ export function MentorProfileSettingsView({
                   />
                 </View>
                 <View style={{ marginTop: 12 }}>
-                  <Text className="text-muted font-body-bold text-[11.5px] mb-[5px]">Theme</Text>
-                  <View className="flex-row gap-2.5 mt-2">
+                  <Text style={st.inputLabel}>Theme</Text>
+                  <View style={st.themeSelectorRow}>
                     {(['Dark', 'Light', 'System'] as const).map((t) => {
                       const isSelected = theme === t;
                       const emoji = t === 'Dark' ? '🌙' : t === 'Light' ? '☀️' : '💻';
@@ -1349,10 +1351,12 @@ export function MentorProfileSettingsView({
                         <Pressable
                           key={t}
                           onPress={() => setTheme(t)}
-                          className="flex-1 flex-row items-center justify-center h-9 rounded-lg border"
-                          style={[{borderColor: MC.border, backgroundColor: MC.bg2}, isSelected && { backgroundColor: MC.tealP + '14', borderColor: MC.tealP }]}
+                          style={[
+                            st.themeTab,
+                            isSelected && { backgroundColor: MC.tealP + '14', borderColor: MC.tealP }
+                          ]}
                         >
-                          <Text className="text-dim font-body-bold text-[11.5px]" style={isSelected ? { color: '#fff', fontFamily: FONTS.bold } : undefined}>
+                          <Text style={[st.themeTabText, isSelected && { color: '#fff', fontFamily: FONTS.bold }]}>
                             {emoji} {t}
                           </Text>
                         </Pressable>
@@ -1363,8 +1367,8 @@ export function MentorProfileSettingsView({
               </View>
 
               {/* ACCOUNT */}
-              <View style={{backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 14, padding: 16}}>
-                <Text className="text-muted font-display-bold text-[10.5px] tracking-widest uppercase mb-3">ACCOUNT</Text>
+              <View style={st.formSectionCard}>
+                <Text style={st.sectionTitle}>ACCOUNT</Text>
                 <View style={{ gap: 4 }}>
                   <AccountActionRow
                     title="Change Password"
@@ -1435,8 +1439,8 @@ export function MentorProfileSettingsView({
 
               {/* DEMO SANDBOX SETTINGS */}
               {setDemoMode && (
-                <View style={{backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 14, padding: 16}}>
-                  <Text className="text-muted font-display-bold text-[10.5px] tracking-widest uppercase mb-3">DEMO SANDBOX SETTINGS</Text>
+                <View style={st.formSectionCard}>
+                  <Text style={st.sectionTitle}>DEMO SANDBOX SETTINGS</Text>
                   <View style={{ gap: 4 }}>
                     <ToggleRow
                       label="Enable Demo Mode"
@@ -1456,70 +1460,73 @@ export function MentorProfileSettingsView({
             <View style={{ gap: 16 }}>
               
               {/* PASSWORD */}
-              <View style={{backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 14, padding: 16}}>
-                <Text className="text-muted font-display-bold text-[10.5px] tracking-widest uppercase mb-3">PASSWORD</Text>
+              <View style={st.formSectionCard}>
+                <Text style={st.sectionTitle}>PASSWORD</Text>
                 
-                <View className="flex-row gap-3">
+                <View style={st.inputGridRow}>
                   <View style={{ flex: 1 }}>
-                    <Text className="text-muted font-body-bold text-[11.5px] mb-[5px]">Current Password</Text>
-                    <View style={{backgroundColor: MC.bg2, borderColor: MC.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', height: 38}}>
+                    <Text style={st.inputLabel}>Current Password</Text>
+                    <View style={st.inputBoxIcon}>
                       <MaterialCommunityIcons name="lock-outline" size={14} color={MC.dim} style={{ marginRight: 8 }} />
                       <TextInput
                         value={currentPassword}
                         onChangeText={setCurrentPassword}
                         placeholder="Enter current password"
                         secureTextEntry
-                        className="text-white font-body-semibold text-[12.5px] py-1.5 w-full"
+                        style={st.input}
                         placeholderTextColor={MC.dim}
                       />
                     </View>
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text className="text-muted font-body-bold text-[11.5px] mb-[5px]">New Password</Text>
-                    <View style={{backgroundColor: MC.bg2, borderColor: MC.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', height: 38}}>
+                    <Text style={st.inputLabel}>New Password</Text>
+                    <View style={st.inputBoxIcon}>
                       <MaterialCommunityIcons name="lock-outline" size={14} color={MC.dim} style={{ marginRight: 8 }} />
                       <TextInput
                         value={newPassword}
                         onChangeText={setNewPassword}
                         placeholder="Enter new password"
                         secureTextEntry
-                        className="text-white font-body-semibold text-[12.5px] py-1.5 w-full"
+                        style={st.input}
                         placeholderTextColor={MC.dim}
                       />
                     </View>
                   </View>
                 </View>
 
-                <View className="flex-row gap-3" style={{ marginTop: 12, alignItems: 'flex-end' }}>
+                <View style={[st.inputGridRow, { marginTop: 12, alignItems: 'flex-end' }]}>
                   <View style={{ flex: 1 }}>
-                    <Text className="text-muted font-body-bold text-[11.5px] mb-[5px]">Confirm New Password</Text>
-                    <View style={{backgroundColor: MC.bg2, borderColor: MC.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', height: 38}}>
+                    <Text style={st.inputLabel}>Confirm New Password</Text>
+                    <View style={st.inputBoxIcon}>
                       <MaterialCommunityIcons name="lock-outline" size={14} color={MC.dim} style={{ marginRight: 8 }} />
                       <TextInput
                         value={confirmPassword}
                         onChangeText={setConfirmPassword}
                         placeholder="Re-enter new password"
                         secureTextEntry
-                        className="text-white font-body-semibold text-[12.5px] py-1.5 w-full"
+                        style={st.input}
                         placeholderTextColor={MC.dim}
                       />
                     </View>
                   </View>
                   <View style={{ flex: 1, alignItems: 'flex-end' }}>
-                    <Pressable onPress={handleUpdatePassword} className="px-4 h-[38px] rounded-lg items-center justify-center" style={{backgroundColor: MC.tealP}}>
-                      <Text className="text-bg font-body-bold text-[12.5px]">Update Password</Text>
+                    <Pressable onPress={handleUpdatePassword} style={st.updatePasswordBtn}>
+                      <Text style={st.updatePasswordBtnText}>Update Password</Text>
                     </Pressable>
                   </View>
                 </View>
               </View>
 
               {/* TWO-FACTOR AUTHENTICATION */}
-              <View style={{backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 14, padding: 16}}>
+              <View style={st.formSectionCard}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Text className="text-muted font-display-bold text-[10.5px] tracking-widest uppercase mb-3">TWO-FACTOR AUTHENTICATION</Text>
+                  <Text style={st.sectionTitle}>TWO-FACTOR AUTHENTICATION</Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                    <View className="px-2 py-[3px] rounded border" style={twoFactorEnabled ? {backgroundColor: 'rgba(34,197,94,0.06)', borderColor: 'rgba(34,197,94,0.2)'} : {backgroundColor: 'rgba(245,158,11,0.06)', borderColor: 'rgba(245,158,11,0.2)'}}>
-                      <Text className={twoFactorEnabled ? 'text-[#4ADE80] font-body-bold text-[10.5px]' : 'text-[#F59E0B] font-body-bold text-[10.5px]'}>
+                    <View style={[
+                      st.tfaBadge,
+                      twoFactorEnabled ? st.tfaBadgeEnabled : st.tfaBadgeDisabled
+                    ]}>
+                      <Text style={twoFactorEnabled ? st.tfaBadgeTextEnabled : st.tfaBadgeTextDisabled}>
                         {twoFactorEnabled ? 'Enabled' : 'Disabled'}
                       </Text>
                     </View>
@@ -1533,25 +1540,27 @@ export function MentorProfileSettingsView({
                           toast.info('2FA Disabled', 'Two-factor authentication has been disabled.');
                         }
                       }}
-                      className="w-9 h-5 rounded-full border items-center px-0.5"
-                      style={twoFactorEnabled ? { backgroundColor: MC.tealP, borderColor: MC.tealP } : { backgroundColor: 'rgba(255,255,255,0.06)', borderColor: MC.border }}
+                      style={[
+                        st.switchTrack,
+                        twoFactorEnabled ? { backgroundColor: MC.tealP, borderColor: MC.tealP } : { backgroundColor: 'rgba(255,255,255,0.06)', borderColor: MC.border }
+                      ]}
                     >
-                      <View className="w-3.5 h-3.5 rounded-full bg-white" style={{ transform: [{ translateX: twoFactorEnabled ? 16 : 0 }] }} />
+                      <View style={[st.switchThumb, { transform: [{ translateX: twoFactorEnabled ? 16 : 0 }] }]} />
                     </Pressable>
                   </View>
                 </View>
-                <Text className="text-dim font-body-semibold text-xs" style={{ marginBottom: 0, marginTop: 4 }}>Add an extra layer of security to your account.</Text>
+                <Text style={[st.sectionHelpText, { marginBottom: 0, marginTop: 4 }]}>Add an extra layer of security to your account.</Text>
               </View>
 
               {/* ACTIVE SESSIONS */}
-              <View style={{backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 14, padding: 16}}>
-                <Text className="text-muted font-display-bold text-[10.5px] tracking-widest uppercase mb-3">ACTIVE SESSIONS</Text>
-                <Text className="text-dim font-body-semibold text-xs -mt-2 mb-3">Devices currently signed into your account.</Text>
+              <View style={st.formSectionCard}>
+                <Text style={st.sectionTitle}>ACTIVE SESSIONS</Text>
+                <Text style={st.sectionHelpText}>Devices currently signed into your account.</Text>
                 <View style={{ gap: 12, marginTop: 4 }}>
                   {sessions.map((s, idx) => (
-                    <View key={s.id} className="flex-row items-center justify-between py-3" style={idx < sessions.length - 1 ? { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.04)' } : undefined}>
+                    <View key={s.id} style={[st.sessionRow, idx < sessions.length - 1 && st.settingRowDivider]}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
-                        <View className="w-9 h-9 rounded-lg items-center justify-center" style={{backgroundColor: 'rgba(255,255,255,0.03)'}}>
+                        <View style={st.sessionIconBox}>
                           <MaterialCommunityIcons
                             name={s.type === 'desktop' ? 'monitor' : 'cellphone'}
                             size={18}
@@ -1559,17 +1568,17 @@ export function MentorProfileSettingsView({
                           />
                         </View>
                         <View style={{ flex: 1 }}>
-                          <Text className="text-white font-body-bold text-[13px]">{s.device}</Text>
-                          <Text className="text-dim font-body-semibold text-[11.5px] mt-0.5">{s.location}</Text>
+                          <Text style={st.sessionDevice}>{s.device}</Text>
+                          <Text style={st.sessionMeta}>{s.location}</Text>
                         </View>
                       </View>
                       {s.isCurrent ? (
-                        <View className="px-2.5 py-[5px] rounded-md" style={{backgroundColor: 'rgba(34,197,94,0.08)', borderColor: 'rgba(34,197,94,0.25)', borderWidth: 1}}>
-                          <Text className="text-[#4ADE80] font-body-bold text-[11px]">This device</Text>
+                        <View style={st.currentDeviceBadge}>
+                          <Text style={st.currentDeviceText}>This device</Text>
                         </View>
                       ) : (
-                        <Pressable onPress={() => handleRevokeSession(s.id)} className="h-7 rounded-md items-center justify-center" style={{backgroundColor: 'rgba(239,68,68,0.05)', borderColor: 'rgba(239,68,68,0.2)', borderWidth: 1, paddingHorizontal: 12}}>
-                          <Text className="text-rose font-body-bold text-[11px]">Revoke</Text>
+                        <Pressable onPress={() => handleRevokeSession(s.id)} style={st.revokeBtnStyle}>
+                          <Text style={st.revokeBtnText}>Revoke</Text>
                         </Pressable>
                       )}
                     </View>
@@ -1578,12 +1587,15 @@ export function MentorProfileSettingsView({
               </View>
 
               {/* LOGIN ACTIVITY */}
-              <View style={{backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 14, padding: 16}}>
-                <Text className="text-muted font-display-bold text-[10.5px] tracking-widest uppercase mb-3">LOGIN ACTIVITY</Text>
+              <View style={st.formSectionCard}>
+                <Text style={st.sectionTitle}>LOGIN ACTIVITY</Text>
                 <View style={{ gap: 14, marginTop: 4 }}>
                   {loginActivity.map((act) => (
                     <View key={act.id} style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start' }}>
-                      <View className="w-[22px] h-[22px] rounded-[11px] items-center justify-center mt-0.5" style={act.type === 'success' ? {backgroundColor: 'rgba(34,197,94,0.12)'} : {backgroundColor: 'rgba(239,68,68,0.12)'}}>
+                      <View style={[
+                        st.activityIconCircle,
+                        act.type === 'success' ? st.activitySuccessCircle : st.activityFailedCircle
+                      ]}>
                         <MaterialCommunityIcons
                           name={act.type === 'success' ? 'check' : 'alert-circle-outline'}
                           size={13}
@@ -1591,8 +1603,8 @@ export function MentorProfileSettingsView({
                         />
                       </View>
                       <View style={{ flex: 1 }}>
-                        <Text className="text-white font-body-bold text-[12.5px]">{act.event}</Text>
-                        <Text className="text-dim font-body-semibold text-[11.5px] mt-0.5">{act.details}</Text>
+                        <Text style={st.activityEventTitle}>{act.event}</Text>
+                        <Text style={st.activityMeta}>{act.details}</Text>
                       </View>
                     </View>
                   ))}
@@ -1606,8 +1618,8 @@ export function MentorProfileSettingsView({
             <View style={{ gap: 16 }}>
               
               {/* SESSION & BOOKING ALERTS */}
-              <View style={{backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 14, padding: 16}}>
-                <Text className="text-muted font-display-bold text-[10.5px] tracking-widest uppercase mb-3">SESSION & BOOKING ALERTS</Text>
+              <View style={st.formSectionCard}>
+                <Text style={st.sectionTitle}>SESSION & BOOKING ALERTS</Text>
                 <View style={{ gap: 4 }}>
                   <ToggleRow
                     label="New Session Booking"
@@ -1632,8 +1644,8 @@ export function MentorProfileSettingsView({
               </View>
 
               {/* MESSAGES & CONNECTIONS */}
-              <View style={{backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 14, padding: 16}}>
-                <Text className="text-muted font-display-bold text-[10.5px] tracking-widest uppercase mb-3">MESSAGES & CONNECTIONS</Text>
+              <View style={st.formSectionCard}>
+                <Text style={st.sectionTitle}>MESSAGES & CONNECTIONS</Text>
                 <View style={{ gap: 4 }}>
                   <ToggleRow
                     label="Student Messages"
@@ -1658,8 +1670,8 @@ export function MentorProfileSettingsView({
               </View>
 
               {/* REPORTS & EARNINGS */}
-              <View style={{backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 14, padding: 16}}>
-                <Text className="text-muted font-display-bold text-[10.5px] tracking-widest uppercase mb-3">REPORTS & EARNINGS</Text>
+              <View style={st.formSectionCard}>
+                <Text style={st.sectionTitle}>REPORTS & EARNINGS</Text>
                 <View style={{ gap: 4 }}>
                   <ToggleRow
                     label="Weekly Performance Report"
@@ -1684,8 +1696,8 @@ export function MentorProfileSettingsView({
               </View>
 
               {/* PLATFORM & MARKETING */}
-              <View style={{backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 14, padding: 16}}>
-                <Text className="text-muted font-display-bold text-[10.5px] tracking-widest uppercase mb-3">PLATFORM & MARKETING</Text>
+              <View style={st.formSectionCard}>
+                <Text style={st.sectionTitle}>PLATFORM & MARKETING</Text>
                 <View style={{ gap: 4 }}>
                   <ToggleRow
                     label="Platform News & Updates"
@@ -1703,56 +1715,56 @@ export function MentorProfileSettingsView({
           {activeTab === 'digital-id' && (
             <View style={{ gap: 16 }}>
               {/* Interactive Flip Card */}
-              <View className="items-center gap-3">
-                <Pressable onPress={handleFlipCard} className="w-full max-w-[440px] h-[240px] cursor-pointer">
-                  <View className="w-full h-full relative">
+              <View style={st.cardSection}>
+                <Pressable onPress={handleFlipCard} style={st.flipCardContainer}>
+                  <View style={st.flipCardInner}>
                     
                     {/* FRONT OF CARD */}
-                    <Animated.View style={[{width: '100%', height: 240, borderRadius: 16, borderWidth: 1.5, borderColor: 'rgba(20,184,166,0.25)', padding: 18, position: 'absolute', top: 0, left: 0, overflow: 'hidden', justifyContent: 'space-between', shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 15, shadowOffset: { width: 0, height: 8 }, elevation: 8}, frontAnimatedStyle as any]}>
+                    <Animated.View style={[st.idCardFace, frontAnimatedStyle as any]}>
                       <LinearGradient
                         colors={['#062E25', '#0B4D3F']}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
-                        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+                        style={StyleSheet.absoluteFillObject}
                       />
                       
-                      <View className="flex-row items-center justify-between z-[2]">
-                        <View className="flex-row items-center gap-2">
-                          <View className="w-8 h-8 rounded-lg items-center justify-center" style={{backgroundColor: '#14B8A6'}}>
-                            <Text className="text-[#0F2922] font-display-bold text-sm">SA</Text>
+                      <View style={st.cardHeaderRow}>
+                        <View style={st.cardLogoContainer}>
+                          <View style={st.cardLogoBadge}>
+                            <Text style={st.cardLogoText}>SA</Text>
                           </View>
                           <View style={{ gap: 1 }}>
-                            <Text className="text-white font-body-bold text-[12.5px]">Student Alumni</Text>
-                            <Text className="text-[rgba(20,184,166,0.75)] font-body-bold text-[9px] tracking-wide mt-px">MENTOR ID · 2028</Text>
+                            <Text style={st.cardLogoTitle}>Student Alumni</Text>
+                            <Text style={st.cardLogoSubtitle}>MENTOR ID · 2028</Text>
                           </View>
                         </View>
-                        <View className="flex-row items-center gap-1 px-2 py-[3px] rounded-[12px] border" style={{backgroundColor: 'rgba(16,185,129,0.12)', borderColor: 'rgba(16,185,129,0.4)'}}>
-                          <View className="w-1.5 h-1.5 rounded-full" style={{backgroundColor: '#10B981'}} />
-                          <Text className="text-[#10B981] font-body-bold text-[9.5px] tracking-wide">VERIFIED</Text>
+                        <View style={st.cardVerifiedBadge}>
+                          <View style={st.cardVerifiedDot} />
+                          <Text style={st.cardVerifiedText}>VERIFIED</Text>
                         </View>
                       </View>
 
-                      <View className="flex-row items-center gap-3.5 z-[2] -mt-2.5">
-                        <View className="w-[60px] h-[60px] rounded-[30px] items-center justify-center border-[1.5px]" style={{backgroundColor: 'rgba(20,184,166,0.1)', borderColor: '#14B8A6'}}>
+                      <View style={st.cardBodyRow}>
+                        <View style={st.cardAvatar}>
                           {photo ? (
                             <Image source={{ uri: photo }} style={{ width: '100%', height: '100%', borderRadius: 30 }} />
                           ) : (
-                            <Text className="text-white font-display-bold text-xl">{initials}</Text>
+                            <Text style={st.cardAvatarText}>{initials}</Text>
                           )}
                         </View>
-                        <View className="flex-1 gap-0.5">
-                          <Text className="text-white font-body-bold text-[17px]">{fullName}</Text>
-                          <Text className="text-white/70 font-body-semibold text-xs">{role} · {company}</Text>
-                          <Text className="text-white/70 font-body-semibold text-xs">{college} · Batch of 2008</Text>
+                        <View style={st.cardDetailsContainer}>
+                          <Text style={st.cardName}>{fullName}</Text>
+                          <Text style={st.cardSubtext}>{role} · {company}</Text>
+                          <Text style={st.cardSubtext}>{college} · Batch of 2008</Text>
                         </View>
                       </View>
 
-                      <View className="flex-row items-end justify-between z-[2]">
+                      <View style={st.cardFooterRow}>
                         <View>
-                          <Text className="text-white/45 font-body-bold text-[8.5px] tracking-widest">MENTOR ID</Text>
-                          <Text className="text-white font-display-bold text-base tracking-wide mt-0.5">SM-8-687562</Text>
+                          <Text style={st.cardFooterLabel}>MENTOR ID</Text>
+                          <Text style={st.cardFooterId}>SM-8-687562</Text>
                         </View>
-                        <View className="opacity-90">
+                        <View style={st.cardChipContainer}>
                           <Svg width={28} height={20} viewBox="0 0 28 20">
                             <Rect x={0} y={0} width={28} height={20} rx={4} fill="#e5c158" opacity={0.8} />
                             <Rect x={4} y={3} width={8} height={14} rx={1} fill="none" stroke="#2c2c2c" strokeWidth={1} />
@@ -1764,83 +1776,83 @@ export function MentorProfileSettingsView({
                     </Animated.View>
 
                     {/* BACK OF CARD */}
-                    <Animated.View style={[{width: '100%', height: 240, borderRadius: 16, borderWidth: 1.5, borderColor: 'rgba(20,184,166,0.25)', padding: 18, position: 'absolute', top: 0, left: 0, overflow: 'hidden', justifyContent: 'space-between', shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 15, shadowOffset: { width: 0, height: 8 }, elevation: 8}, backAnimatedStyle as any]}>
+                    <Animated.View style={[st.idCardFace, backAnimatedStyle as any]}>
                       <LinearGradient
                         colors={['#062E25', '#0B4D3F']}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
-                        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+                        style={StyleSheet.absoluteFillObject}
                       />
                       
-                      <View className="flex-row items-center justify-between z-[2]">
-                        <View className="flex-row items-center gap-2">
-                          <View className="w-8 h-8 rounded-lg items-center justify-center" style={{backgroundColor: '#14B8A6'}}>
-                            <Text className="text-[#0F2922] font-display-bold text-sm">SA</Text>
+                      <View style={st.cardHeaderRow}>
+                        <View style={st.cardLogoContainer}>
+                          <View style={st.cardLogoBadge}>
+                            <Text style={st.cardLogoText}>SA</Text>
                           </View>
                           <View style={{ gap: 1 }}>
-                            <Text className="text-white font-body-bold text-[12.5px]">Student Alumni</Text>
-                            <Text className="text-[rgba(20,184,166,0.75)] font-body-bold text-[9px] tracking-wide mt-px">MENTOR ID · 2028</Text>
+                            <Text style={st.cardLogoTitle}>Student Alumni</Text>
+                            <Text style={st.cardLogoSubtitle}>MENTOR ID · 2028</Text>
                           </View>
                         </View>
-                        <View className="flex-row items-center gap-1 px-2 py-[3px] rounded-[12px] border" style={{backgroundColor: 'rgba(16,185,129,0.12)', borderColor: 'rgba(16,185,129,0.4)'}}>
-                          <View className="w-1.5 h-1.5 rounded-full" style={{backgroundColor: '#10B981'}} />
-                          <Text className="text-[#10B981] font-body-bold text-[9.5px] tracking-wide">VERIFIED</Text>
+                        <View style={st.cardVerifiedBadge}>
+                          <View style={st.cardVerifiedDot} />
+                          <Text style={st.cardVerifiedText}>VERIFIED</Text>
                         </View>
                       </View>
 
-                      <View className="z-[2] mt-2.5 gap-1">
-                        <Text className="text-white/45 font-body-bold text-[9px] tracking-widest">MEMBER ID</Text>
-                        <Text className="text-white font-display-bold text-xl tracking-widest">SM-8-687562</Text>
-                        <View className="rounded-lg p-2 mt-1.5" style={{backgroundColor: 'rgba(0,0,0,0.25)'}}>
+                      <View style={st.cardBackBody}>
+                        <Text style={st.cardBackLabel}>MEMBER ID</Text>
+                        <Text style={st.cardBackId}>SM-8-687562</Text>
+                        <View style={st.barcodeWrapper}>
                           <Barcode value="SM-8-687562" color={MC.tealP} height={50} />
                         </View>
                       </View>
 
-                      <View className="flex-row justify-between items-center z-[2]">
-                        <Text className="text-white/60 font-body-semibold text-[10.5px]">Valid from 2008 · Lifetime membership</Text>
-                        <Text className="text-white/40 font-body-semibold text-[10.5px]">Tap to flip</Text>
+                      <View style={st.cardBackFooter}>
+                        <Text style={st.cardBackFooterText}>Valid from 2008 · Lifetime membership</Text>
+                        <Text style={st.cardFlipHint}>Tap to flip</Text>
                       </View>
                     </Animated.View>
 
                   </View>
                 </Pressable>
                 
-                <Text className="text-white/40 font-body-semibold text-[11px] text-center mt-1">Tap card to flip · Front & back</Text>
+                <Text style={st.cardTapHint}>Tap card to flip · Front & back</Text>
               </View>
 
               {/* YOUR MENTOR ID Display */}
-              <View className="px-4 py-3 flex-row items-center justify-between w-full max-w-[440px] self-center rounded-xl" style={{backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1}}>
+              <View style={st.idDetailsBox}>
                 <View>
-                  <Text className="text-dim font-body-bold text-[10.5px] tracking-wide">YOUR MENTOR ID</Text>
-                  <Text className="text-white font-display-bold text-base tracking-wide mt-0.5">SM-8-687562</Text>
+                  <Text style={st.idDetailsLabel}>YOUR MENTOR ID</Text>
+                  <Text style={st.idDetailsValue}>SM-8-687562</Text>
                 </View>
-                <Pressable onPress={handleCopyId} className="flex-row items-center gap-1.5 px-3 py-2 rounded-lg" style={{backgroundColor: 'rgba(255,255,255,0.05)', borderColor: MC.border, borderWidth: 1}}>
+                <Pressable onPress={handleCopyId} style={st.idCopyBtn}>
                   <MaterialCommunityIcons name="content-copy" size={14} color="#ffffff" />
-                  <Text className="text-white font-body-bold text-xs">Copy ID</Text>
+                  <Text style={st.idCopyBtnText}>Copy ID</Text>
                 </Pressable>
               </View>
 
               {/* Action Buttons Row */}
-              <View className="flex-row gap-2 w-full max-w-[440px] self-center">
-                <Pressable onPress={handleDownloadCard} className="flex-[1.3] flex-row items-center justify-center gap-1.5 h-[38px] rounded-lg cursor-pointer" style={{backgroundColor: MC.tealP}}>
+              <View style={st.actionRow}>
+                <Pressable onPress={handleDownloadCard} style={st.actionTealBtn}>
                   <MaterialCommunityIcons name="download" size={15} color="#0F2922" />
-                  <Text className="text-[#0F2922] font-body-bold text-xs">Download ID Card</Text>
+                  <Text style={st.actionTealBtnText}>Download ID Card</Text>
                 </Pressable>
                 
-                <Pressable onPress={handleShareProfile} className="flex-1 flex-row items-center justify-center gap-1.5 h-[38px] rounded-lg border cursor-pointer" style={{borderColor: MC.border, backgroundColor: 'transparent'}}>
+                <Pressable onPress={handleShareProfile} style={st.actionOutlineBtn}>
                   <MaterialCommunityIcons name="share-variant-outline" size={14} color="#ffffff" />
-                  <Text className="text-white font-body-bold text-xs">Share Profile</Text>
+                  <Text style={st.actionOutlineBtnText}>Share Profile</Text>
                 </Pressable>
 
-                <Pressable onPress={handleFlipCard} className="flex-1 flex-row items-center justify-center gap-1.5 h-[38px] rounded-lg border cursor-pointer" style={{borderColor: MC.border, backgroundColor: 'transparent'}}>
+                <Pressable onPress={handleFlipCard} style={st.actionOutlineBtn}>
                   <MaterialCommunityIcons name="refresh" size={14} color="#ffffff" />
-                  <Text className="text-white font-body-bold text-xs">Flip Card</Text>
+                  <Text style={st.actionOutlineBtnText}>Flip Card</Text>
                 </Pressable>
               </View>
 
               {/* Scan to Connect Block */}
-              <View className="px-4 py-4 flex-row items-center gap-4 w-full max-w-[440px] self-center rounded-xl" style={{backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1}}>
-                <View className="p-2 bg-white rounded-lg items-center justify-center">
+              <View style={st.qrSectionCard}>
+                <View style={st.qrCodeWrapper}>
                   <QRCode
                     value="https://studentalumni.in/mentor/SM-8-687562"
                     size={80}
@@ -1849,55 +1861,55 @@ export function MentorProfileSettingsView({
                   />
                 </View>
                 <View style={{ flex: 1, gap: 4 }}>
-                  <Text className="text-white font-body-bold text-sm">Scan to Connect</Text>
-                  <Text className="text-dim font-body-semibold text-[11px] leading-[15.5px]">
+                  <Text style={st.qrSectionTitle}>Scan to Connect</Text>
+                  <Text style={st.qrSectionDesc}>
                     Students scan this QR to view your mentor profile, book a session, or register for your events.
                   </Text>
-                  <Text className="text-teal font-body-bold text-[11.5px] mt-0.5">studentalumni.in/mentor/SM-8-687562</Text>
+                  <Text style={st.qrSectionLink}>studentalumni.in/mentor/SM-8-687562</Text>
                 </View>
               </View>
 
               {/* Grid Header & Grid */}
-              <Text className="text-dim font-display-bold text-[10px] tracking-widest text-center mt-2 mb-1">THIS ID WORKS ACROSS THE PLATFORM</Text>
+              <Text style={st.gridMainHeader}>THIS ID WORKS ACROSS THE PLATFORM</Text>
               
-              <View className="flex-row flex-wrap gap-3 w-full max-w-[440px] self-center">
-                <View className="w-[48.5%] rounded-xl p-3 flex-row items-start gap-2.5" style={[{backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1}, stack && { width: '100%' }]}>
-                  <View className="w-[30px] h-[30px] rounded-md items-center justify-center border" style={{backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.08)'}}>
+              <View style={st.featuresGrid}>
+                <View style={[st.gridItem, stack && { width: '100%' }]}>
+                  <View style={st.gridIconBox}>
                     <MaterialCommunityIcons name="calendar-clock" size={16} color={MC.tealP} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text className="text-white font-body-bold text-xs">Session Booking</Text>
-                    <Text className="text-dim font-body-semibold text-[10px] leading-[13.5px] mt-[3px]">Students book you via your verified mentor link</Text>
+                    <Text style={st.gridItemTitle}>Session Booking</Text>
+                    <Text style={st.gridItemDesc}>Students book you via your verified mentor link</Text>
                   </View>
                 </View>
                 
-                <View className="w-[48.5%] rounded-xl p-3 flex-row items-start gap-2.5" style={[{backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1}, stack && { width: '100%' }]}>
-                  <View className="w-[30px] h-[30px] rounded-md items-center justify-center border" style={{backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.08)'}}>
+                <View style={[st.gridItem, stack && { width: '100%' }]}>
+                  <View style={st.gridIconBox}>
                     <MaterialCommunityIcons name="shield-check-outline" size={16} color="#F59E0B" />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text className="text-white font-body-bold text-xs">Institution Badge</Text>
-                    <Text className="text-dim font-body-semibold text-[10px] leading-[13.5px] mt-[3px]">Verified by SA as a trusted industry mentor</Text>
+                    <Text style={st.gridItemTitle}>Institution Badge</Text>
+                    <Text style={st.gridItemDesc}>Verified by SA as a trusted industry mentor</Text>
                   </View>
                 </View>
 
-                <View className="w-[48.5%] rounded-xl p-3 flex-row items-start gap-2.5" style={[{backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1}, stack && { width: '100%' }]}>
-                  <View className="w-[30px] h-[30px] rounded-md items-center justify-center border" style={{backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.08)'}}>
+                <View style={[st.gridItem, stack && { width: '100%' }]}>
+                  <View style={st.gridIconBox}>
                     <MaterialCommunityIcons name="qrcode-scan" size={16} color="#3B82F6" />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text className="text-white font-body-bold text-xs">Instant Share</Text>
-                    <Text className="text-dim font-body-semibold text-[10px] leading-[13.5px] mt-[3px]">Share QR at talks, panels, or networking events</Text>
+                    <Text style={st.gridItemTitle}>Instant Share</Text>
+                    <Text style={st.gridItemDesc}>Share QR at talks, panels, or networking events</Text>
                   </View>
                 </View>
 
-                <View className="w-[48.5%] rounded-xl p-3 flex-row items-start gap-2.5" style={[{backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1}, stack && { width: '100%' }]}>
-                  <View className="w-[30px] h-[30px] rounded-md items-center justify-center border" style={{backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.08)'}}>
+                <View style={[st.gridItem, stack && { width: '100%' }]}>
+                  <View style={st.gridIconBox}>
                     <MaterialCommunityIcons name="check-decagram-outline" size={16} color="#10B981" />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text className="text-white font-body-bold text-xs">Trusted Identity</Text>
-                    <Text className="text-dim font-body-semibold text-[10px] leading-[13.5px] mt-[3px]">Students trust your profile is verified & authentic</Text>
+                    <Text style={st.gridItemTitle}>Trusted Identity</Text>
+                    <Text style={st.gridItemDesc}>Students trust your profile is verified & authentic</Text>
                   </View>
                 </View>
               </View>
@@ -1907,16 +1919,16 @@ export function MentorProfileSettingsView({
 
           {/* Action buttons (Manage Profile, Integrations, Settings & Notifications) */}
           {(activeTab === 'manage' || activeTab === 'tools-integrations' || activeTab === 'settings' || activeTab === 'notifications') && (
-            <View className="flex-row items-center justify-between px-4 py-3 rounded-xl" style={{backgroundColor: 'rgba(20,184,166,0.08)', borderColor: 'rgba(20,184,166,0.24)', borderWidth: 1}}>
-              <Text className="text-muted font-body-semibold text-[11.5px]">
+            <View style={st.saveBar}>
+              <Text style={st.saveBarStatusText}>
                 {isDirty() ? 'You have unsaved changes' : (lastSavedAt ? `Last saved at ${lastSavedAt}` : 'All changes saved')}
               </Text>
               <View style={{ flexDirection: 'row', gap: 10 }}>
-                <Pressable onPress={handleDiscard} disabled={!isDirty()} className="px-3.5 h-[34px] rounded-lg items-center justify-center" style={[{backgroundColor: 'rgba(255,255,255,0.04)', borderColor: MC.border, borderWidth: 1}, !isDirty() && { opacity: 0.5 }]}>
-                  <Text className="text-muted font-body-bold text-xs">Discard</Text>
+                <Pressable onPress={handleDiscard} disabled={!isDirty()} style={[st.discardBtn, !isDirty() && { opacity: 0.5 }]}>
+                  <Text style={st.discardBtnText}>Discard</Text>
                 </Pressable>
-                <Pressable onPress={handleSave} disabled={saving} className="px-4 h-[34px] rounded-lg items-center justify-center" style={{backgroundColor: MC.tealP}}>
-                  <Text className="text-bg font-body-bold text-xs">{saving ? 'Saving...' : 'Save Changes'}</Text>
+                <Pressable onPress={handleSave} disabled={saving} style={[st.saveBtn, { backgroundColor: MC.tealP }]}>
+                  <Text style={st.saveBtnText}>{saving ? 'Saving...' : 'Save Changes'}</Text>
                 </Pressable>
               </View>
             </View>
@@ -1928,7 +1940,7 @@ export function MentorProfileSettingsView({
         <View style={{ width: stack ? '100%' : 320, gap: 16 }}>
           
           {/* Profile Score Card */}
-          <View style={{backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 14, padding: 16}}>
+          <View style={st.sidebarCard}>
             <View style={{ alignItems: 'center', gap: 10 }}>
               <CompletionRing
                 pct={completionPct}
@@ -1936,17 +1948,17 @@ export function MentorProfileSettingsView({
                 stroke={8}
                 color={completionPct >= 100 ? '#10B981' : MC.tealP}
               />
-              <Text className="text-white font-body-bold text-[13.5px] mt-1">Profile Score</Text>
-              <Text className="text-muted font-body-semibold text-[11px]">{completionPct >= 100 ? 'All complete!' : `${100 - completionPct}% to go`}</Text>
-              <View className="px-2 py-[3px] rounded" style={{backgroundColor: 'rgba(20,184,166,0.08)', borderColor: 'rgba(20,184,166,0.3)', borderWidth: 1, marginTop: 6}}>
-                <Text className="text-teal font-body-bold text-[11px] tracking-wide">SA-08-438291</Text>
+              <Text style={st.sidebarCardTitle}>Profile Score</Text>
+              <Text style={st.sidebarCardSub}>{completionPct >= 100 ? 'All complete!' : `${100 - completionPct}% to go`}</Text>
+              <View style={st.saIdBadge}>
+                <Text style={st.saIdText}>SA-08-438291</Text>
               </View>
             </View>
           </View>
 
           {/* Mentor Stats Card */}
-          <View style={{backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 14, padding: 16}}>
-            <Text className="text-dim font-display-bold text-[10.5px] tracking-widest">MENTOR STATS</Text>
+          <View style={st.sidebarCard}>
+            <Text style={st.sidebarHeading}>MENTOR STATS</Text>
             <View style={{ marginTop: 8, gap: 2 }}>
               <SidebarStatRow Icon={CalendarCheck} label="Sessions Hosted" value="142 completed" color="#10B981" />
               <SidebarStatRow Icon={UsersRound} label="Active Mentees" value="18" color="#3B82F6" />
@@ -1957,7 +1969,7 @@ export function MentorProfileSettingsView({
           </View>
 
           {/* Mentor ID Card */}
-          <View style={{backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 14, padding: 16}}>
+          <View style={st.sidebarCard}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
               <ShieldCheck size={14} color={MC.tealP} />
               <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13 }}>Mentor ID</Text>
@@ -1966,10 +1978,10 @@ export function MentorProfileSettingsView({
             <Text style={{ color: MC.dim, fontFamily: FONTS.med, fontSize: 11, marginTop: 4 }}>Verified · since 2008</Text>
             <Pressable
               onPress={() => router.push('/member-id')}
-              className="mt-3 flex-row items-center justify-center gap-1.5 py-2.5 rounded-lg" style={{backgroundColor: MC.tealP}}
+              style={st.viewIdBtn}
             >
               <IdCard size={14} color="#0F2922" />
-              <Text className="text-[#0F2922] font-body-bold text-[11.5px]">View Digital ID Card →</Text>
+              <Text style={st.viewIdBtnText}>View Digital ID Card →</Text>
             </Pressable>
           </View>
 
@@ -1979,12 +1991,12 @@ export function MentorProfileSettingsView({
 
       {/* Inline Action Selection Modal */}
       {optionsModalVisible && (
-        <View style={{position: Platform.OS === 'web' ? 'fixed' : 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.80)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24, zIndex: 9999}}>
-          <View style={{width: '100%', maxWidth: 320, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(20,184,166,0.30)', backgroundColor: '#0F1E1A', padding: 20, alignItems: 'center', ...(Platform.OS === 'web' ? { backgroundImage: 'linear-gradient(180deg, #0C2822 0%, #061411 100%)', boxShadow: '0px 16px 60px rgba(6,77,63,0.45)' } : {})}}>
+        <View style={st.modalBackdrop}>
+          <View style={st.modalCard}>
             {/* Header */}
-            <View className="w-full flex-row items-center justify-between mb-4">
-              <Text className="text-white font-body-bold text-base">Update Profile Photo</Text>
-              <Pressable onPress={() => setOptionsModalVisible(false)} className="p-1 rounded-full" style={{backgroundColor: 'rgba(255,255,255,0.06)'}}>
+            <View style={st.modalHeader}>
+              <Text style={st.modalTitle}>Update Profile Photo</Text>
+              <Pressable onPress={() => setOptionsModalVisible(false)} style={st.modalCloseBtn}>
                 <MaterialCommunityIcons name="close" size={18} color="rgba(255,255,255,0.7)" />
               </Pressable>
             </View>
@@ -1996,11 +2008,11 @@ export function MentorProfileSettingsView({
                   setOptionsModalVisible(false);
                   handleTakeSelfie();
                 }}
-                className="flex-row items-center gap-3 w-full py-3 px-3.5 rounded-[10px]" style={{backgroundColor: 'rgba(255,255,255,0.03)', ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {})}}
+                style={st.menuItem}
                 testID="pf-select-take-selfie"
               >
                 <MaterialCommunityIcons name="camera" size={18} color={MC.tealP} />
-                <Text className="text-white/90 font-body-bold text-sm">Take Selfie</Text>
+                <Text style={st.menuItemText}>Take Selfie</Text>
               </Pressable>
 
               <Pressable
@@ -2008,11 +2020,11 @@ export function MentorProfileSettingsView({
                   setOptionsModalVisible(false);
                   handleUploadPhoto();
                 }}
-                className="flex-row items-center gap-3 w-full py-3 px-3.5 rounded-[10px]" style={{backgroundColor: 'rgba(255,255,255,0.03)', ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {})}}
+                style={st.menuItem}
                 testID="pf-select-upload-photo"
               >
                 <MaterialCommunityIcons name="upload" size={18} color={MC.tealP} />
-                <Text className="text-white/90 font-body-bold text-sm">Upload Photo</Text>
+                <Text style={st.menuItemText}>Upload Photo</Text>
               </Pressable>
             </View>
           </View>
@@ -2048,17 +2060,19 @@ function ToggleRow({
   isLast?: boolean;
 }) {
   return (
-    <View className="flex-row items-center justify-between py-2" style={[subtext ? {paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'} : null, !isLast && subtext ? { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.04)' } : null]}>
+    <View style={[st.toggleRow, subtext ? st.settingToggleRow : null, !isLast && subtext ? st.settingRowDivider : null]}>
       <View style={{ flex: 1, marginRight: 16 }}>
-        <Text className="text-muted font-body-semibold text-[12.5px]" style={subtext ? { color: '#fff', fontFamily: FONTS.bold, fontSize: 13 } : null}>{label}</Text>
+        <Text style={[st.toggleRowLabel, subtext ? { color: '#fff', fontFamily: FONTS.bold, fontSize: 13 } : null]}>{label}</Text>
         {subtext ? <Text style={{ color: MC.dim, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 3 }}>{subtext}</Text> : null}
       </View>
       <Pressable
         onPress={() => onValueChange(!value)}
-        className="w-9 h-5 rounded-full border items-center px-0.5"
-        style={value ? { backgroundColor: MC.tealP, borderColor: MC.tealP } : { backgroundColor: 'rgba(255,255,255,0.06)', borderColor: MC.border }}
+        style={[
+          st.switchTrack,
+          value ? { backgroundColor: MC.tealP, borderColor: MC.tealP } : { backgroundColor: 'rgba(255,255,255,0.06)', borderColor: MC.border }
+        ]}
       >
-        <View className="w-3.5 h-3.5 rounded-full bg-white" style={{ transform: [{ translateX: value ? 16 : 0 }] }} />
+        <View style={[st.switchThumb, { transform: [{ translateX: value ? 16 : 0 }] }]} />
       </Pressable>
     </View>
   );
@@ -2095,16 +2109,16 @@ function CustomDropdown({
 
   return (
     <View ref={wrapRef} style={[{ flex: 1, position: 'relative' }, Platform.OS === 'web' ? { zIndex: open ? 9999 : 1 } as any : { zIndex: open ? 9999 : 1 }]}>
-      <Text className="text-muted font-body-bold text-[11.5px] mb-[5px]">{label}</Text>
+      <Text style={st.inputLabel}>{label}</Text>
       <Pressable
-        style={[{backgroundColor: MC.bg2, borderColor: MC.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', height: 38}, open && { borderColor: MC.tealP, backgroundColor: MC.tealP + '08' }]}
+        style={[st.inputBoxIcon, open && { borderColor: MC.tealP, backgroundColor: MC.tealP + '08' }]}
         onPress={() => setOpen((o) => !o)}
       >
         <Text style={{ color: '#fff', fontFamily: FONTS.med, fontSize: 12.5, flex: 1 }}>{value}</Text>
         <MaterialCommunityIcons name={open ? "chevron-up" : "chevron-down"} size={16} color={MC.dim} />
       </Pressable>
       {open && (
-        <View style={{position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, backgroundColor: MC.bg2, borderColor: MC.border, borderWidth: 1, borderRadius: 10, overflow: 'hidden', zIndex: 9999, ...(Platform.OS === 'web' ? { boxShadow: '0 8px 32px rgba(0,0,0,0.5)' } : { elevation: 8 })}}>
+        <View style={st.ddMenu}>
           <ScrollView nestedScrollEnabled={true} keyboardShouldPersistTaps="handled" style={{ maxHeight: 220 }}>
             {options.map((o) => (
               <Pressable
@@ -2113,9 +2127,9 @@ function CustomDropdown({
                   onSelect(o);
                   setOpen(false);
                 }}
-                className="px-3 py-2.5" style={{borderBottomColor: 'rgba(255,255,255,0.05)', borderBottomWidth: 1}}
+                style={st.ddItem}
               >
-                <Text className="text-white font-body-semibold text-[12.5px]" style={value === o ? { color: MC.tealP, fontFamily: FONTS.bold } : undefined}>{o}</Text>
+                <Text style={[st.ddText, value === o && { color: MC.tealP, fontFamily: FONTS.bold }]}>{o}</Text>
               </Pressable>
             ))}
           </ScrollView>
@@ -2141,17 +2155,19 @@ function AccountActionRow({
   isLast?: boolean;
 }) {
   return (
-    <View className="flex-row items-center justify-between py-3.5" style={!isLast ? { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.04)' } : undefined}>
+    <View style={[st.accountRow, !isLast && st.settingRowDivider]}>
       <View style={{ flex: 1, marginRight: 16 }}>
-        <Text className="text-white font-body-bold text-[13px]">{title}</Text>
-        <Text className="text-dim font-body-semibold text-[11.5px] mt-[3px]">{subtext}</Text>
+        <Text style={st.accountRowTitle}>{title}</Text>
+        <Text style={st.accountRowSub}>{subtext}</Text>
       </View>
       <Pressable
         onPress={onPress}
-        className="px-4 h-8 rounded-lg items-center justify-center min-w-[80px]"
-        style={isDelete ? {backgroundColor: 'rgba(239,68,68,0.05)', borderColor: 'rgba(239,68,68,0.2)', borderWidth: 1} : {backgroundColor: 'rgba(255,255,255,0.04)', borderColor: MC.border, borderWidth: 1}}
+        style={[
+          st.accountBtn,
+          isDelete ? st.accountBtnDelete : st.accountBtnNormal
+        ]}
       >
-        <Text className="text-muted font-body-bold text-[11.5px]" style={isDelete ? { color: MC.red } : undefined}>{btnText}</Text>
+        <Text style={[st.accountBtnText, isDelete && { color: MC.red }]}>{btnText}</Text>
       </Pressable>
     </View>
   );
@@ -2161,15 +2177,17 @@ function CustomRadio({ selected, onPress, label, sub }: { selected: boolean; onP
   return (
     <Pressable
       onPress={onPress}
-      className="flex-row items-center rounded-[10px] p-3"
-      style={[{borderWidth: 1, borderColor: MC.border, backgroundColor: MC.bg2}, selected && { borderColor: MC.tealP, backgroundColor: MC.tealP + '0a' }]}
+      style={[
+        st.radioOption,
+        selected && { borderColor: MC.tealP, backgroundColor: MC.tealP + '0a' }
+      ]}
     >
-      <View className="w-4 h-4 rounded-full border-[1.5px] items-center justify-center mr-2.5" style={[{borderColor: MC.dim}, selected && { borderColor: MC.tealP }]}>
-        {selected && <View className="w-2 h-2 rounded-full" style={{backgroundColor: MC.tealP}} />}
+      <View style={[st.radioOutline, selected && { borderColor: MC.tealP }]}>
+        {selected && <View style={st.radioCircle} />}
       </View>
       <View style={{ flex: 1 }}>
-        <Text className="text-muted font-body-bold text-[12.5px]" style={selected ? { color: '#fff', fontFamily: FONTS.bold } : undefined}>{label}</Text>
-        <Text className="text-dim font-body-semibold text-[11px] mt-0.5">{sub}</Text>
+        <Text style={[st.radioLabel, selected && { color: '#fff', fontFamily: FONTS.bold }]}>{label}</Text>
+        <Text style={st.radioSub}>{sub}</Text>
       </View>
     </Pressable>
   );
@@ -2177,12 +2195,12 @@ function CustomRadio({ selected, onPress, label, sub }: { selected: boolean; onP
 
 function SidebarStatRow({ Icon, label, value, color, isLast }: { Icon: any; label: string; value: string; color: string; isLast?: boolean }) {
   return (
-    <View className="flex-row items-center gap-2.5 py-2.5" style={!isLast ? { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.04)' } : undefined}>
-      <View className="w-7 h-7 rounded-md items-center justify-center border" style={{ backgroundColor: color + '15', borderColor: color + '30' }}>
+    <View style={[st.statRow, !isLast && st.statRowDivider]}>
+      <View style={[st.statIconContainer, { backgroundColor: color + '15', borderColor: color + '30' }]}>
         <Icon size={13} color={color} />
       </View>
-      <Text className="flex-1 text-muted font-body-semibold text-xs">{label}</Text>
-      <Text className="text-white font-body-bold text-[13.5px]">{value}</Text>
+      <Text style={st.statLabel}>{label}</Text>
+      <Text style={st.statValue}>{value}</Text>
     </View>
   );
 }
@@ -2215,6 +2233,629 @@ function Barcode({ value, color = '#14B8A6', height = 64 }: { value: string; col
   );
 }
 
+const st = StyleSheet.create({
+  modalBackdrop: {
+    position: Platform.OS === 'web' ? 'fixed' : 'absolute' as any,
+    top: 0, bottom: 0, left: 0, right: 0,
+    backgroundColor: 'rgba(0,0,0,0.80)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    zIndex: 9999,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 320,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(20,184,166,0.30)',
+    backgroundColor: '#0F1E1A',
+    padding: 20,
+    alignItems: 'center',
+    ...(Platform.OS === 'web' ? ({
+      backgroundImage: 'linear-gradient(180deg, #0C2822 0%, #061411 100%)',
+      boxShadow: '0px 16px 60px rgba(6,77,63,0.45)',
+    } as any) : {}),
+  },
+  modalHeader: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    color: '#FFF',
+    fontFamily: FONTS.bold,
+    fontSize: 16,
+  },
+  modalCloseBtn: {
+    padding: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    width: '100%',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  menuItemText: {
+    color: 'rgba(255,255,255,0.90)',
+    fontFamily: FONTS.bold,
+    fontSize: 14,
+  },
+  headerCard: {
+    backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1,
+    borderRadius: 16, padding: 18,
+  },
+  avatar: {
+    width: 72, height: 72, borderRadius: 36,
+    backgroundColor: MC.teal + '20', alignItems: 'center', justifyContent: 'center',
+    borderColor: MC.teal + '40', borderWidth: 2
+  },
+  avatarText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 24 },
+  avatarCheck: {
+    position: 'absolute', bottom: 1, right: 1,
+    width: 20, height: 20, borderRadius: 10, backgroundColor: '#10B981',
+    alignItems: 'center', justifyContent: 'center', borderColor: MC.bg, borderWidth: 2
+  },
+  name: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 20, letterSpacing: -0.4 },
+  subline: { color: MC.muted, fontFamily: FONTS.med, fontSize: 13, marginTop: 2 },
+  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8, alignItems: 'center' },
+  headerBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20, borderWidth: 1,
+  },
+  headerBadgeText: { fontFamily: FONTS.bold, fontSize: 10.5 },
+
+  // Tab bar styles
+  tabBar: {
+    backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1,
+    borderRadius: 12, padding: 6,
+  },
+  tab: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8,
+    ...({ cursor: 'pointer' } as any)
+  },
+  tabActive: { backgroundColor: MC.tealP },
+  tabText: { color: MC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
+
+  // Left Column Content card
+  formSectionCard: { backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 14, padding: 16 },
+  sectionTitle: { color: MC.muted, fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 12 },
+  sectionHelpText: { color: MC.dim, fontFamily: FONTS.med, fontSize: 12, marginTop: -8, marginBottom: 12 },
+  
+  // Basic Info details
+  photoEditBox: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 14 },
+  photoPill: { width: 64, height: 64, borderRadius: 32, backgroundColor: MC.tealP + '18', borderColor: MC.tealP + '35', borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  photoPillText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 22 },
+  photoTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13.5 },
+  photoMeta: { color: MC.dim, fontFamily: FONTS.med, fontSize: 11 },
+  uploadBtn: { paddingHorizontal: 11, height: 28, borderRadius: 6, backgroundColor: MC.tealP, alignItems: 'center', justifyContent: 'center', ...({ cursor: 'pointer' } as any) },
+  uploadBtnText: { color: MC.bg, fontFamily: FONTS.bold, fontSize: 11.5 },
+  removeBtn: { paddingHorizontal: 11, height: 28, borderRadius: 6, borderWidth: 1, borderColor: MC.border2, backgroundColor: 'rgba(255,255,255,0.02)', alignItems: 'center', justifyContent: 'center', ...({ cursor: 'pointer' } as any) },
+  removeBtnText: { color: MC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
+
+  // Inputs
+  inputGridRow: { flexDirection: 'row', gap: 12 },
+  inputLabel: { color: MC.muted, fontFamily: FONTS.bold, fontSize: 11.5, marginBottom: 5 },
+  inputBox: { backgroundColor: MC.bg2, borderColor: MC.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 4, height: 38 },
+  inputBoxIcon: { backgroundColor: MC.bg2, borderColor: MC.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', height: 38 },
+  input: { color: '#fff', fontFamily: FONTS.med, fontSize: 12.5, paddingVertical: 6, width: '100%', ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
+  inputHelpText: { color: MC.dim, fontFamily: FONTS.med, fontSize: 10.5, marginTop: 4 },
+
+  // Skills Section
+  skillsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 },
+  skillPill: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(20,184,166,0.1)', borderColor: MC.border2, borderWidth: 1, borderRadius: 8, paddingLeft: 10, paddingRight: 6, height: 28 },
+  skillPillText: { color: MC.tealP, fontFamily: FONTS.bold, fontSize: 11.5 },
+  skillRemoveBtn: { padding: 2, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.02)', ...({ cursor: 'pointer' } as any) },
+  addExpertiseRow: { flexDirection: 'row', gap: 10 },
+  addBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, borderRadius: 8, backgroundColor: MC.tealP, ...({ cursor: 'pointer' } as any) },
+  addBtnText: { color: MC.bg, fontFamily: FONTS.bold, fontSize: 12 },
+
+  // Radio button visibility options
+  radioOption: { flexDirection: 'row', alignItems: 'center', borderWithValue: 1, borderColor: MC.border, borderWidth: 1, borderRadius: 10, padding: 12, backgroundColor: MC.bg2, ...({ cursor: 'pointer' } as any) },
+  radioOutline: { width: 16, height: 16, borderRadius: 8, borderWidth: 1.5, borderColor: MC.dim, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
+  radioCircle: { width: 8, height: 8, borderRadius: 4, backgroundColor: MC.tealP },
+  radioLabel: { color: MC.muted, fontFamily: FONTS.bold, fontSize: 12.5 },
+  radioSub: { color: MC.dim, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },
+
+  // Toggle switch row
+  toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8 },
+  toggleRowLabel: { color: MC.muted, fontFamily: FONTS.med, fontSize: 12.5 },
+  switchTrack: { width: 36, height: 20, borderRadius: 10, borderWidth: 1, justifyContent: 'center', paddingHorizontal: 2, ...({ cursor: 'pointer', transitionDuration: '180ms' } as any) },
+  switchThumb: { width: 14, height: 14, borderRadius: 7, backgroundColor: '#fff', ...({ transitionDuration: '180ms' } as any) },
+
+  // AI profile strength
+  aiAnalyzeBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 32, borderRadius: 8, borderWidth: 1, borderColor: MC.border2, backgroundColor: 'rgba(255,255,255,0.02)', ...({ cursor: 'pointer' } as any) },
+  aiAnalyzeBtnText: { color: MC.tealP, fontFamily: FONTS.bold, fontSize: 11.5 },
+  aiErrorText: { color: MC.red, fontFamily: FONTS.bold, fontSize: 11 },
+
+  // Tools icon banner header
+  toolsIconCircle: { width: 34, height: 34, borderRadius: 17, backgroundColor: MC.tealP + '14', borderColor: MC.tealP + '30', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+
+  // Integration card details
+  integrationRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.04)' },
+  integrationLeft: { flexDirection: 'row', gap: 12, flex: 1, minWidth: 0 },
+  integrationIconSquare: { width: 36, height: 36, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.03)', alignItems: 'center', justifyContent: 'center' },
+  integrationName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13 },
+  integrationEmail: { color: MC.tealP, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 1 },
+  integrationDesc: { color: MC.dim, fontFamily: FONTS.med, fontSize: 11, marginTop: 1 },
+  connectedBadge: { backgroundColor: 'rgba(34,197,94,0.12)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  connectedBadgeText: { color: '#4ADE80', fontFamily: FONTS.bold, fontSize: 9.5 },
+  disconnectBtn: { paddingHorizontal: 10, paddingVertical: 6, ...({ cursor: 'pointer' } as any) },
+  disconnectBtnText: { color: MC.red, fontFamily: FONTS.bold, fontSize: 12 },
+  connectBtnStyle: { paddingHorizontal: 12, height: 28, borderRadius: 6, backgroundColor: MC.tealP, alignItems: 'center', justifyContent: 'center', ...({ cursor: 'pointer' } as any) },
+  connectBtnStyleText: { color: MC.bg, fontFamily: FONTS.bold, fontSize: 11 },
+  disconnectBtnStyle: { backgroundColor: 'rgba(239,68,68,0.05)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.2)' },
+
+  // Default Session platform tabs
+  platformSelectorRow: { flexDirection: 'row', gap: 10, marginTop: 8 },
+  platformTab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 36, borderRadius: 8, borderWidth: 1, borderColor: MC.border, backgroundColor: MC.bg2, ...({ cursor: 'pointer' } as any) },
+  platformTabText: { color: MC.dim, fontFamily: FONTS.bold, fontSize: 11.5 },
+
+  // Discard & Save changes footer bar
+  saveBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: 'rgba(20,184,166,0.08)', borderColor: 'rgba(20,184,166,0.24)', borderWidth: 1, borderRadius: 12 },
+  saveBarStatusText: { color: MC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
+  discardBtn: { paddingHorizontal: 14, height: 34, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.04)', borderColor: MC.border, borderWidth: 1, alignItems: 'center', justifyContent: 'center', ...({ cursor: 'pointer' } as any) },
+  discardBtnText: { color: MC.muted, fontFamily: FONTS.bold, fontSize: 12 },
+  saveBtn: { paddingHorizontal: 16, height: 34, borderRadius: 8, alignItems: 'center', justifyContent: 'center', ...({ cursor: 'pointer' } as any) },
+  saveBtnText: { color: MC.bg, fontFamily: FONTS.bold, fontSize: 12 },
+
+  // Sidebar cards
+  sidebarCard: { backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 14, padding: 16 },
+  sidebarCardTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13.5, marginTop: 4 },
+  sidebarCardSub: { color: MC.muted, fontFamily: FONTS.med, fontSize: 11 },
+  saIdBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4, backgroundColor: 'rgba(20,184,166,0.08)', borderColor: 'rgba(20,184,166,0.3)', borderWidth: 1, marginTop: 6 },
+  saIdText: { color: MC.tealP, fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.3 },
+  sidebarHeading: { color: MC.dim, fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 0.8 },
+
+  // Sidebar stats
+  statRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10 },
+  statRowDivider: { borderBottomColor: 'rgba(255,255,255,0.04)', borderBottomWidth: 1 },
+  statIconContainer: { width: 28, height: 28, borderRadius: 6, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  statLabel: { flex: 1, color: MC.muted, fontFamily: FONTS.med, fontSize: 12 },
+  statValue: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13.5 },
+
+  // ID View button
+  viewIdBtn: { marginTop: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: 8, backgroundColor: MC.tealP, ...({ cursor: 'pointer' } as any) },
+  viewIdBtnText: { color: '#0F2922', fontFamily: FONTS.bold, fontSize: 11.5 },
+
+  // Placeholder views
+  comingSoonCard: { backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 14, padding: 36, alignItems: 'center', gap: 8 },
+  comingSoonTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 15 },
+  comingSoonDesc: { color: MC.muted, fontFamily: FONTS.med, fontSize: 12, textAlign: 'center' },
+
+  // Settings custom styles
+  settingToggleRow: { paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  settingRowDivider: { borderBottomColor: 'rgba(255,255,255,0.04)', borderBottomWidth: 1 },
+  themeSelectorRow: { flexDirection: 'row', gap: 10, marginTop: 8 },
+  themeTab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 36, borderRadius: 8, borderWidth: 1, borderColor: MC.border, backgroundColor: MC.bg2, ...({ cursor: 'pointer' } as any) },
+  themeTabText: { color: MC.dim, fontFamily: FONTS.bold, fontSize: 11.5 },
+  ddMenu: {
+    position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4,
+    backgroundColor: MC.bg2, borderColor: MC.border, borderWidth: 1, borderRadius: 10,
+    overflow: 'hidden', zIndex: 9999,
+    ...(Platform.OS === 'web' ? { boxShadow: '0 8px 32px rgba(0,0,0,0.5)' } as any : { elevation: 8 }),
+  },
+  ddItem: { paddingHorizontal: 12, paddingVertical: 10, borderBottomColor: 'rgba(255,255,255,0.05)', borderBottomWidth: 1 },
+  ddText: { color: '#fff', fontFamily: FONTS.med, fontSize: 12.5 },
+  accountRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14 },
+  accountRowTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13 },
+  accountRowSub: { color: MC.dim, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 3 },
+  accountBtn: { paddingHorizontal: 16, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center', minWidth: 80, ...({ cursor: 'pointer' } as any) },
+  accountBtnNormal: { backgroundColor: 'rgba(255,255,255,0.04)', borderColor: MC.border, borderWidth: 1 },
+  accountBtnDelete: { backgroundColor: 'rgba(239,68,68,0.05)', borderColor: 'rgba(239,68,68,0.2)', borderWidth: 1 },
+  accountBtnText: { color: MC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
+
+  // Security custom styles
+  updatePasswordBtn: { backgroundColor: MC.tealP, paddingHorizontal: 16, height: 38, borderRadius: 8, alignItems: 'center', justifyContent: 'center', ...({ cursor: 'pointer' } as any) },
+  updatePasswordBtnText: { color: MC.bg, fontFamily: FONTS.bold, fontSize: 12.5 },
+  tfaBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4, borderWidth: 1 },
+  tfaBadgeDisabled: { backgroundColor: 'rgba(245,158,11,0.06)', borderColor: 'rgba(245,158,11,0.2)' },
+  tfaBadgeEnabled: { backgroundColor: 'rgba(34,197,94,0.06)', borderColor: 'rgba(34,197,94,0.2)' },
+  tfaBadgeTextDisabled: { color: '#F59E0B', fontFamily: FONTS.bold, fontSize: 10.5 },
+  tfaBadgeTextEnabled: { color: '#4ADE80', fontFamily: FONTS.bold, fontSize: 10.5 },
+  sessionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12 },
+  sessionIconBox: { width: 36, height: 36, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.03)', alignItems: 'center', justifyContent: 'center' },
+  sessionDevice: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13 },
+  sessionMeta: { color: MC.dim, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
+  currentDeviceBadge: { backgroundColor: 'rgba(34,197,94,0.08)', borderColor: 'rgba(34,197,94,0.25)', borderWidth: 1, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6 },
+  currentDeviceText: { color: '#4ADE80', fontFamily: FONTS.bold, fontSize: 11 },
+  revokeBtnStyle: { backgroundColor: 'rgba(239,68,68,0.05)', borderColor: 'rgba(239,68,68,0.2)', borderWidth: 1, paddingHorizontal: 12, height: 28, borderRadius: 6, alignItems: 'center', justifyContent: 'center', ...({ cursor: 'pointer' } as any) },
+  revokeBtnText: { color: MC.red, fontFamily: FONTS.bold, fontSize: 11 },
+  activityIconCircle: { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
+  activitySuccessCircle: { backgroundColor: 'rgba(34,197,94,0.12)' },
+  activityFailedCircle: { backgroundColor: 'rgba(239,68,68,0.12)' },
+  activityEventTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
+  activityMeta: { color: MC.dim, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
+
+  // Digital ID Card Styles
+  cardSection: {
+    alignItems: 'center',
+    gap: 12,
+  },
+  flipCardContainer: {
+    width: '100%',
+    maxWidth: 440,
+    height: 240,
+    cursor: 'pointer',
+  },
+  flipCardInner: {
+    width: '100%',
+    height: '100%',
+    position: 'relative',
+  },
+  idCardFace: {
+    width: '100%',
+    height: 240,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: 'rgba(20, 184, 166, 0.25)',
+    padding: 18,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    overflow: 'hidden',
+    justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOpacity: 0.4,
+    shadowRadius: 15,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    zIndex: 2,
+  },
+  cardLogoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  cardLogoBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#14B8A6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardLogoText: {
+    color: '#0F2922',
+    fontFamily: FONTS.xbold,
+    fontSize: 14,
+  },
+  cardLogoTitle: {
+    color: '#ffffff',
+    fontFamily: FONTS.bold,
+    fontSize: 12.5,
+  },
+  cardLogoSubtitle: {
+    color: 'rgba(20, 184, 166, 0.75)',
+    fontFamily: FONTS.bold,
+    fontSize: 9,
+    letterSpacing: 0.5,
+    marginTop: 1,
+  },
+  cardVerifiedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    borderColor: 'rgba(16, 185, 129, 0.4)',
+    borderWidth: 1,
+  },
+  cardVerifiedDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10B981',
+  },
+  cardVerifiedText: {
+    color: '#10B981',
+    fontFamily: FONTS.bold,
+    fontSize: 9.5,
+    letterSpacing: 0.5,
+  },
+  cardBodyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    zIndex: 2,
+    marginTop: -10,
+  },
+  cardAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(20, 184, 166, 0.1)',
+    borderColor: '#14B8A6',
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardAvatarText: {
+    color: '#ffffff',
+    fontFamily: FONTS.xbold,
+    fontSize: 20,
+  },
+  cardDetailsContainer: {
+    flex: 1,
+    gap: 2,
+  },
+  cardName: {
+    color: '#ffffff',
+    fontFamily: FONTS.bold,
+    fontSize: 17,
+  },
+  cardSubtext: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontFamily: FONTS.med,
+    fontSize: 12,
+  },
+  cardFooterRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    zIndex: 2,
+  },
+  cardFooterLabel: {
+    color: 'rgba(255, 255, 255, 0.45)',
+    fontFamily: FONTS.bold,
+    fontSize: 8.5,
+    letterSpacing: 0.8,
+  },
+  cardFooterId: {
+    color: '#ffffff',
+    fontFamily: FONTS.xbold,
+    fontSize: 16,
+    letterSpacing: 0.5,
+    marginTop: 2,
+  },
+  cardChipContainer: {
+    opacity: 0.9,
+  },
+  cardTapHint: {
+    color: 'rgba(255, 255, 255, 0.4)',
+    fontFamily: FONTS.med,
+    fontSize: 11,
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  
+  // Back Body & footer
+  cardBackBody: {
+    zIndex: 2,
+    marginTop: 10,
+    gap: 4,
+  },
+  cardBackLabel: {
+    color: 'rgba(255, 255, 255, 0.45)',
+    fontFamily: FONTS.bold,
+    fontSize: 9,
+    letterSpacing: 0.8,
+  },
+  cardBackId: {
+    color: '#ffffff',
+    fontFamily: FONTS.xbold,
+    fontSize: 20,
+    letterSpacing: 0.8,
+  },
+  barcodeWrapper: {
+    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+    borderRadius: 8,
+    padding: 8,
+    marginTop: 6,
+  },
+  cardBackFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    zIndex: 2,
+  },
+  cardBackFooterText: {
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontFamily: FONTS.med,
+    fontSize: 10.5,
+  },
+  cardFlipHint: {
+    color: 'rgba(255, 255, 255, 0.4)',
+    fontFamily: FONTS.med,
+    fontSize: 10.5,
+  },
+
+  // Mentor ID details box
+  idDetailsBox: {
+    backgroundColor: MC.card,
+    borderColor: MC.border,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    maxWidth: 440,
+    alignSelf: 'center',
+  },
+  idDetailsLabel: {
+    color: MC.dim,
+    fontFamily: FONTS.bold,
+    fontSize: 10.5,
+    letterSpacing: 0.5,
+  },
+  idDetailsValue: {
+    color: '#ffffff',
+    fontFamily: FONTS.xbold,
+    fontSize: 16,
+    letterSpacing: 0.5,
+    marginTop: 2,
+  },
+  idCopyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: MC.border,
+    borderWidth: 1,
+    cursor: 'pointer',
+  },
+  idCopyBtnText: {
+    color: '#ffffff',
+    fontFamily: FONTS.bold,
+    fontSize: 12,
+  },
+
+  // Buttons row
+  actionRow: {
+    flexDirection: 'row',
+    gap: 8,
+    width: '100%',
+    maxWidth: 440,
+    alignSelf: 'center',
+  },
+  actionTealBtn: {
+    flex: 1.3,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    height: 38,
+    borderRadius: 8,
+    backgroundColor: MC.tealP,
+    cursor: 'pointer',
+  },
+  actionTealBtnText: {
+    color: '#0F2922',
+    fontFamily: FONTS.bold,
+    fontSize: 12,
+  },
+  actionOutlineBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    height: 38,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: MC.border,
+    backgroundColor: 'transparent',
+    cursor: 'pointer',
+  },
+  actionOutlineBtnText: {
+    color: '#ffffff',
+    fontFamily: FONTS.bold,
+    fontSize: 12,
+  },
+
+  // QR section card
+  qrSectionCard: {
+    backgroundColor: MC.card,
+    borderColor: MC.border,
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    width: '100%',
+    maxWidth: 440,
+    alignSelf: 'center',
+  },
+  qrCodeWrapper: {
+    padding: 8,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  qrSectionTitle: {
+    color: '#ffffff',
+    fontFamily: FONTS.bold,
+    fontSize: 14,
+  },
+  qrSectionDesc: {
+    color: MC.dim,
+    fontFamily: FONTS.med,
+    fontSize: 11,
+    lineHeight: 15.5,
+  },
+  qrSectionLink: {
+    color: MC.tealP,
+    fontFamily: FONTS.bold,
+    fontSize: 11.5,
+    marginTop: 2,
+  },
+
+  // Grid
+  gridMainHeader: {
+    color: MC.dim,
+    fontFamily: FONTS.xbold,
+    fontSize: 10,
+    letterSpacing: 0.8,
+    textAlign: 'center',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  featuresGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    width: '100%',
+    maxWidth: 440,
+    alignSelf: 'center',
+  },
+  gridItem: {
+    width: '48.5%',
+    backgroundColor: MC.card,
+    borderColor: MC.border,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  gridIconBox: {
+    width: 30,
+    height: 30,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  gridItemTitle: {
+    color: '#ffffff',
+    fontFamily: FONTS.bold,
+    fontSize: 12,
+  },
+  gridItemDesc: {
+    color: MC.dim,
+    fontFamily: FONTS.med,
+    fontSize: 10,
+    lineHeight: 13.5,
+    marginTop: 3,
+  }
+});
 
 export default MentorProfileSettingsView;
-

@@ -2,7 +2,7 @@
  * Admin primitives — GlassCard, KpiCard, MiniBar, StatusChip, ActionButton.
  */
 import { ReactNode } from 'react';
-import { View, Text, Pressable, Platform, ViewStyle } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Platform, ViewStyle } from 'react-native';
 import { TrendingUp, TrendingDown } from 'lucide-react-native';
 import { ADMIN_THEME as T } from './theme';
 
@@ -87,7 +87,7 @@ export function ActionButton({ label, onPress, variant = 'primary', icon: Icon, 
     : T.borderMd;
   const fg = variant === 'danger' ? '#FCA5A5' : T.text;
   const grad = variant === 'primary' && Platform.OS === 'web'
-    ? ({ background: `linear-gradient(135deg,${T.accent},${T.mid})` } as any) : {};
+    ? ({ backgroundImage: `linear-gradient(135deg,${T.accent},${T.mid})` } as any) : {};
   return (
     <Pressable
       onPress={onPress}
@@ -103,7 +103,7 @@ export function ActionButton({ label, onPress, variant = 'primary', icon: Icon, 
   );
 }
 
-const styles = {
+const styles = StyleSheet.create({
   card: {
     backgroundColor: T.glass, borderColor: T.border, borderWidth: 1,
     borderRadius: 16,
@@ -122,4 +122,4 @@ const styles = {
   chipText: { fontFamily: 'DMSans_700Bold', fontSize: 11 },
   btn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10, borderWidth: 1 },
   btnText: { fontFamily: 'DMSans_700Bold', fontSize: 12.5 },
-};
+});

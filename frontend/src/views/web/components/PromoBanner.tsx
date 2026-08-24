@@ -13,7 +13,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  View, Text, Pressable, Platform, Image, Linking,
+  View, Text, Pressable, StyleSheet, Platform, Image, Linking,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { X, ArrowRight, Sparkles } from 'lucide-react-native';
@@ -185,7 +185,7 @@ export function PromoBanner({ portal }: { portal: 'student' | 'alumni' | 'colleg
   );
 }
 
-const s = {
+const s = StyleSheet.create({
   wrap: { marginBottom: 14 },
   shell: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
@@ -229,4 +229,4 @@ const s = {
     alignItems: 'center', justifyContent: 'center',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-} as const;
+});

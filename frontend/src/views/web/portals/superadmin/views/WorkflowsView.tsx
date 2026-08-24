@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState } from 'react';
-import { View, Text, Pressable, Switch, Platform, Modal, ScrollView, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Switch, Platform, Modal, ScrollView, TextInput, ActivityIndicator } from 'react-native';
 import {
   Workflow, Zap, Clock, ChevronRight, Plus, Play, AlertTriangle, X, Check,
   Trash2, Pencil, Eye, Bot, Sparkles, Database, Layers, ArrowRight, ArrowDown,
@@ -8,10 +8,11 @@ import {
 } from 'lucide-react-native';
 import { SAC, FONTS } from '../tokens';
 import { Badge } from '../atoms';
-import { GradientButton, SecondaryButton, Toast, useToast, IconBox, GRAD } from '../applekit';
+import { GradientButton, SecondaryButton, Toast, useToast, IconBox } from '../applekit';
 import { usePortalData, postPortal, patchPortal, deletePortal } from '@/src/lib/portalApi';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
+import { GRAD } from '../applekit';
 
 type WorkflowRunLog = { at: string; success: boolean; steps: { step: string; success: boolean; message: string }[]; params: any };
 
@@ -106,71 +107,6 @@ const TEMPLATE_PRESETS = [
 
 const FALLBACK = { items: [] as Wf[] };
 
-const S = {
-  banner: { flexDirection: 'row' as const, gap: 12, padding: 14, marginBottom: 14, borderRadius: 14, backgroundColor: 'rgba(249,115,22,0.06)', borderColor: SAC.border2, borderWidth: 1, alignItems: 'center' as const },
-  bIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(249,115,22,0.15)', borderColor: 'rgba(249,115,22,0.30)', borderWidth: 1, alignItems: 'center' as const, justifyContent: 'center' as const },
-  bTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
-  bSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 4, lineHeight: 17 },
-  cta: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 6, paddingHorizontal: 14, height: 36, borderRadius: 10, backgroundColor: SAC.primary, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  ctaText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
-  muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
-  btnText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
-  secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
-  modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', alignItems: 'center' as const, justifyContent: 'center' as const, padding: 20, ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(8px)' } as any) : {}) },
-  modalCard: { width: '100%', maxWidth: 560, maxHeight: '92%', backgroundColor: SAC.bg2, borderRadius: 16, borderWidth: 1, borderColor: SAC.border2, overflow: 'hidden', ...(Platform.OS === 'web' ? ({ boxShadow: '0 24px 60px rgba(0,0,0,0.7)' } as any) : {}) },
-  modalHero: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12, padding: 18, backgroundColor: SAC.card },
-  modalTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
-  input: { flex: 1, color: '#fff', fontFamily: FONTS.med, fontSize: 13, backgroundColor: SAC.cardSolid, borderRadius: 9, borderWidth: 1, borderColor: SAC.border, paddingHorizontal: 12, paddingVertical: 10, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
-  label: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
-  hint: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11 },
-  sectionLabel: { color: SAC.dim, fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 1.4, marginBottom: 8 },
-  card: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 10, padding: 12, backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 12 },
-  dot: { width: 4, alignSelf: 'stretch' as const, borderRadius: 2 },
-  name: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13.5 },
-  trigger: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
-  dotSep: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11.5 },
-  step: { color: SAC.dim, fontFamily: FONTS.bold, fontSize: 10.5, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 5, backgroundColor: 'rgba(255,255,255,0.04)' },
-  noSteps: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11, fontStyle: 'italic' as const },
-  statRuns: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
-  statSuccess: { fontFamily: FONTS.bold, fontSize: 11 },
-  lastRun: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 10 },
-  iconBtn: { width: 28, height: 28, borderRadius: 7, alignItems: 'center' as const, justifyContent: 'center' as const, borderWidth: 1, borderColor: SAC.border, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  runBtn: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 4, paddingHorizontal: 10, height: 28, borderRadius: 7, borderWidth: 1, borderColor: SAC.border, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  runText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11 },
-  eventPill: { color: SAC.accent, fontFamily: FONTS.bold, fontSize: 10, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 5, backgroundColor: 'rgba(245,158,11,0.10)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.20)' },
-  eventToggle: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 7, borderWidth: 1, borderColor: SAC.border, backgroundColor: SAC.cardSolid, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  eventToggleActive: { borderColor: SAC.accent, backgroundColor: 'rgba(245,158,11,0.12)' },
-  eventToggleText: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 },
-  eventToggleTextActive: { color: SAC.accent, fontFamily: FONTS.bold },
-  emptyState: { alignItems: 'center' as const, gap: 10, padding: 40 },
-  emptyTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 15 },
-  emptySub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, textAlign: 'center' as const, lineHeight: 18 },
-  closePressable: { width: 28, height: 28, borderRadius: 7, alignItems: 'center' as const, justifyContent: 'center' as const, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  stepRow: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: SAC.border },
-  stepNum: { width: 22, height: 22, borderRadius: 6, backgroundColor: SAC.cardSolid, alignItems: 'center' as const, justifyContent: 'center' as const, borderWidth: 1, borderColor: SAC.border },
-  stepName: { flex: 1, color: SAC.text, fontFamily: FONTS.med, fontSize: 13 },
-  statCard: { backgroundColor: SAC.cardSolid, borderRadius: 10, borderWidth: 1, borderColor: SAC.border, padding: 12, alignItems: 'center' as const },
-  statVal: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 22 },
-  statLbl: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 10.5, marginTop: 4 },
-  logCard: { backgroundColor: SAC.cardSolid, borderRadius: 8, borderWidth: 1, borderColor: SAC.border, padding: 10 },
-  logDate: { fontFamily: FONTS.bold, fontSize: 11.5 },
-  logStep: { fontFamily: FONTS.med, fontSize: 11 },
-  runBtnLarge: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 6, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 9, backgroundColor: SAC.primary, borderWidth: 1, borderColor: SAC.primary + '55', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  runTextLarge: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
-  stepEditRow: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 8 },
-  stepNumSmall: { width: 20, height: 20, borderRadius: 6, backgroundColor: SAC.cardSolid, alignItems: 'center' as const, justifyContent: 'center' as const, borderWidth: 1, borderColor: SAC.border, color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11, textAlign: 'center' as const },
-  stepRemoveBtn: { width: 28, height: 28, borderRadius: 7, alignItems: 'center' as const, justifyContent: 'center' as const, borderWidth: 1, borderColor: SAC.red + '44', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  addStepBtn: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 6, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: SAC.accent + '44', borderStyle: 'dashed' as const, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  addStepText: { color: SAC.accent, fontFamily: FONTS.bold, fontSize: 12 },
-  colorSwatch: { width: 28, height: 28, borderRadius: 7, borderWidth: 2, borderColor: 'transparent' },
-  colorSwatchActive: { borderColor: '#fff' },
-  iconCircle: { width: 56, height: 56, borderRadius: 28, alignItems: 'center' as const, justifyContent: 'center' as const },
-  cancelBtn: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'center' as const, gap: 6, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 9, borderWidth: 1, borderColor: SAC.border, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  cancelText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
-  deleteBtn: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'center' as const, gap: 6, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 9, backgroundColor: SAC.red, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  deleteBtnText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
-};
-
 export function WorkflowsView() {
   const { data, refresh } = usePortalData<typeof FALLBACK>('/admin/super/workflows', FALLBACK);
   const [viewMode, setViewMode] = useState<'canvas' | 'list'>('canvas');
@@ -206,22 +142,58 @@ export function WorkflowsView() {
   };
 
   const runWorkflow = async (id: string) => {
-    try { await postPortal(`/admin/super/workflows/${id}/run`, { body: {} }); flash('Workflow executed'); refresh(); } catch { flash('Failed to run'); }
+    try {
+      await postPortal(`/admin/super/workflows/${id}/run`, { body: {} });
+      flash('Workflow executed');
+      refresh();
+    } catch {
+      flash('Failed to run');
+    }
   };
 
   const createWorkflow = async () => {
     if (!newWorkflow.name.trim()) return;
-    try { await postPortal('/admin/super/workflows', { body: newWorkflow }); flash('Workflow created'); setCreating(false); setNewWorkflow({ name: '', trigger: '', event_triggers: [] }); refresh(); } catch { flash('Failed to create'); }
+    try {
+      await postPortal('/admin/super/workflows', { body: newWorkflow });
+      flash('Workflow created');
+      setCreating(false);
+      setNewWorkflow({ name: '', trigger: '', event_triggers: [] });
+      refresh();
+    } catch {
+      flash('Failed to create');
+    }
   };
 
   const saveEdit = async () => {
     if (!editWf) return;
-    try { await patchPortal(`/admin/super/workflows/${editWf.id}`, { body: { name: editWf.name, trigger: editWf.trigger, steps: editWf.steps, color: editWf.color, event_triggers: editWf.event_triggers } }); flash('Workflow updated'); setEditWf(null); refresh(); } catch { flash('Failed to update'); }
+    try {
+      await patchPortal(`/admin/super/workflows/${editWf.id}`, {
+        body: {
+          name: editWf.name,
+          trigger: editWf.trigger,
+          steps: editWf.steps,
+          color: editWf.color,
+          event_triggers: editWf.event_triggers,
+        },
+      });
+      flash('Workflow updated');
+      setEditWf(null);
+      refresh();
+    } catch {
+      flash('Failed to update');
+    }
   };
 
   const confirmDelete = async () => {
     if (!deleteWf) return;
-    try { await deletePortal(`/admin/super/workflows/${deleteWf.id}`); flash('Workflow deleted'); setDeleteWf(null); refresh(); } catch { flash('Failed to delete'); }
+    try {
+      await deletePortal(`/admin/super/workflows/${deleteWf.id}`);
+      flash('Workflow deleted');
+      setDeleteWf(null);
+      refresh();
+    } catch {
+      flash('Failed to delete');
+    }
   };
 
   // Live Canvas Graph Test Execution
@@ -570,33 +542,42 @@ export function WorkflowsView() {
       {/* ─────────────────── MODALS ─────────────────── */}
       {/* Create Modal */}
       <Modal visible={creating} transparent animationType="fade" onRequestClose={() => setCreating(false)}>
-        <View style={S.modalBg}>
-          <Animated.View entering={FadeInDown.duration(200)} style={[S.modalCard, { maxWidth: 440 }]}>
-            <LinearGradient colors={GRAD.soft} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={S.modalHero}>
+        <View style={s.modalBg}>
+          <Animated.View entering={FadeInDown.duration(200)} style={[s.modalCard, { maxWidth: 440 }]}>
+            <LinearGradient colors={GRAD.soft} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.modalHero}>
               <IconBox size={36}><Workflow size={16} color={GRAD.to} /></IconBox>
-              <View style={{ flex: 1 }}><Text style={S.modalTitle}>New workflow</Text><Text style={S.muted}>Define the name and trigger for your automation.</Text></View>
+              <View style={{ flex: 1 }}><Text style={s.modalTitle}>New workflow</Text><Text style={s.muted}>Define the name and trigger for your automation.</Text></View>
               <Pressable onPress={() => setCreating(false)}><X size={16} color={SAC.muted} /></Pressable>
             </LinearGradient>
             <View style={{ padding: 18, gap: 12 }}>
-              <TextInput value={newWorkflow.name} onChangeText={(v) => setNewWorkflow({ ...newWorkflow, name: v })} placeholder="Workflow name (e.g. Welcome Series)" placeholderTextColor={SAC.dim} style={S.input} />
-              <TextInput value={newWorkflow.trigger} onChangeText={(v) => setNewWorkflow({ ...newWorkflow, trigger: v })} placeholder="Trigger (e.g. New signup, Cron daily, Attendance < 70%)" placeholderTextColor={SAC.dim} style={S.input} />
+              <TextInput value={newWorkflow.name} onChangeText={(v) => setNewWorkflow({ ...newWorkflow, name: v })} placeholder="Workflow name (e.g. Welcome Series)" placeholderTextColor={SAC.dim} style={s.input} />
+              <TextInput value={newWorkflow.trigger} onChangeText={(v) => setNewWorkflow({ ...newWorkflow, trigger: v })} placeholder="Trigger (e.g. New signup, Cron daily, Attendance < 70%)" placeholderTextColor={SAC.dim} style={s.input} />
               <View style={{ gap: 6 }}>
-                <Text style={S.label}>Event Triggers</Text>
-                <Text style={S.hint}>Select events that should trigger this workflow.</Text>
+                <Text style={s.label}>Event Triggers</Text>
+                <Text style={s.hint}>Select events that should trigger this workflow.</Text>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
                   {(['user.signup', 'mentor.signup', 'session.no_show', 'attendance.low', 'cron.daily', 'cron.1st_of_month']).map((evt) => {
                     const active = newWorkflow.event_triggers.includes(evt);
                     return (
-                      <Pressable key={evt} onPress={() => setNewWorkflow((p) => ({ ...p, event_triggers: active ? p.event_triggers.filter((e) => e !== evt) : [...p.event_triggers, evt] }))} style={[S.eventToggle, active && S.eventToggleActive]}>
-                        <Text style={[S.eventToggleText, active && S.eventToggleTextActive]}>{evt}</Text>
+                      <Pressable
+                        key={evt}
+                        onPress={() => {
+                          setNewWorkflow((p) => ({
+                            ...p,
+                            event_triggers: active ? p.event_triggers.filter((e) => e !== evt) : [...p.event_triggers, evt],
+                          }));
+                        }}
+                        style={[s.eventToggle, active && s.eventToggleActive]}
+                      >
+                        <Text style={[s.eventToggleText, active && s.eventToggleTextActive]}>{evt}</Text>
                       </Pressable>
                     );
                   })}
                 </View>
               </View>
               <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
-                <SecondaryButton onPress={() => setCreating(false)}><Text style={S.secText}>Cancel</Text></SecondaryButton>
-                <GradientButton onPress={createWorkflow} disabled={!newWorkflow.name.trim()}><Check size={13} color="#fff" /><Text style={S.btnText}>Create</Text></GradientButton>
+                <SecondaryButton onPress={() => setCreating(false)}><Text style={s.secText}>Cancel</Text></SecondaryButton>
+                <GradientButton onPress={createWorkflow} disabled={!newWorkflow.name.trim()}><Check size={13} color="#fff" /><Text style={s.btnText}>Create</Text></GradientButton>
               </View>
             </View>
           </Animated.View>
@@ -639,7 +620,7 @@ export function WorkflowsView() {
   );
 }
 
-const s = {
+const s = StyleSheet.create({
   container: { gap: 16 },
   banner: { flexDirection: 'row', gap: 12, padding: 16, borderRadius: 14, backgroundColor: 'rgba(99,102,241,0.08)', borderColor: SAC.border2, borderWidth: 1, alignItems: 'center' },
   bIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(99,102,241,0.18)', alignItems: 'center', justifyContent: 'center' },
@@ -716,4 +697,4 @@ const s = {
   eventToggleActive: { backgroundColor: SAC.primary, borderColor: SAC.accent },
   eventToggleText: { color: SAC.muted, fontSize: 11 },
   eventToggleTextActive: { color: '#fff', fontFamily: FONTS.bold }
-};
+});

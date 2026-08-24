@@ -13,7 +13,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, Pressable, ActivityIndicator, TextInput, Image, Platform, ScrollView,
+  View, Text, StyleSheet, Pressable, ActivityIndicator, TextInput, Image, Platform, ScrollView,
 } from 'react-native';
 import { GraduationCap, Building2, Search, Plus } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
@@ -119,59 +119,77 @@ export function InstitutionAutocomplete({
   };
 
   return (
-    <View style={{ position: 'relative', zIndex: open ? 9999 : 50, ...(Platform.OS === 'web' ? { isolation: 'isolate' } as any : {}) }}>
-      <View className="flex-row items-center gap-2.5 px-3.5 bg-white rounded-xl border" style={{ height: 48, borderColor: '#E5E7EB' }}>
+    <View style={{
+      position: 'relative',
+      // Lift above any later siblings (e.g. Batch Year + YoE row, Session
+      // Price chips) when the suggestion list is open. Otherwise stay at
+      // a moderate z so the field itself sits flat with neighbours.
+      zIndex: open ? 9999 : 50,
+      ...(Platform.OS === 'web' ? ({ isolation: 'isolate' } as any) : {}),
+    }}>
+      <View style={styles.inputWrap}>
         <Search size={16} color="#9CA3AF" />
         <TextInput
           value={value}
-          onChangeText={(v) => { setSuppress(false); onChangeText(v); }}
+          onChangeText={(v) => {
+            setSuppress(false);   // any new keystroke re-enables search
+            onChangeText(v);
+          }}
           onFocus={() => { if (results.length && !suppress) setOpen(true); }}
           placeholder={ph}
           placeholderTextColor="#9CA3AF"
-          className="flex-1 text-gray-800 font-body-medium text-base"
-          style={{ outlineStyle: 'none' } as any}
+          style={styles.input}
           testID={testID}
         />
         {loading && <ActivityIndicator size="small" color="#A78BFA" />}
       </View>
 
       {open && (
-        <View className="mt-1.5 bg-white rounded-2xl border overflow-hidden" style={{ zIndex: 200, borderColor: '#E5E7EB', boxShadow: '0px 8px 24px rgba(0,0,0,0.1)' } as any}>
+        <View style={styles.dropdown}>
           {results.length === 0 && !loading && (
             <Pressable
               onPress={useAsIs}
-              {...({ onMouseDown: Platform.OS === 'web' ? (e: any) => e.preventDefault() : undefined } as any)}
+              {...({
+                onMouseDown: Platform.OS === 'web' ? (e: any) => e.preventDefault() : undefined,
+              } as any)}
               testID="institution-add-manual-empty"
-              className="flex-row items-center gap-2.5 px-3.5 py-2.5"
-              style={({ hovered }: any) => ({ cursor: 'pointer', transitionDuration: '120ms', backgroundColor: hovered ? '#CCFBF1' : undefined })}
+              style={({ hovered }: any) => [
+                styles.row,
+                hovered && { backgroundColor: '#CCFBF1' },
+              ]}
             >
-              <View className="rounded-lg items-center justify-center" style={{ width: 28, height: 28, backgroundColor: '#CCFBF1' }}>
+              <View style={[styles.rowIcon, { backgroundColor: '#CCFBF1' }]}>
                 <Plus size={14} color="#0D9488" />
               </View>
-              <View className="flex-1">
-                <Text className="font-body-semibold text-sm" style={{ color: '#0D9488' }} numberOfLines={1}>
-                  Use "{value}" as my institution
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.rowName, { color: '#0D9488' }]} numberOfLines={1}>
+                  Use “{value}” as my institution
                 </Text>
-                <Text className="font-body-regular text-xs" style={{ color: '#6B7280', marginTop: 2 }}>No matches — type your address manually below.</Text>
+                <Text style={styles.rowMeta}>No matches — type your address manually below.</Text>
               </View>
             </Pressable>
           )}
-          <ScrollView style={{ maxHeight: 220 }} nestedScrollEnabled={true} showsVerticalScrollIndicator={true}>
+          <ScrollView style={styles.scroll} nestedScrollEnabled={true} showsVerticalScrollIndicator={true}>
             {results.map((r) => (
               <Pressable
                 key={r.id}
                 onPress={() => pick(r)}
-                {...({ onMouseDown: Platform.OS === 'web' ? (e: any) => e.preventDefault() : undefined } as any)}
+                {...({
+                  onMouseDown: Platform.OS === 'web' ? (e: any) => e.preventDefault() : undefined,
+                } as any)}
                 testID={`institution-result-${r.id}`}
-                className="flex-row items-center gap-2.5 px-3.5 py-2.5"
-                style={({ hovered, pressed }: any) => ({ cursor: 'pointer', transitionDuration: '120ms', backgroundColor: hovered ? '#F3E8FF' : pressed ? '#E9D5FF' : undefined })}
+                style={({ hovered, pressed }: any) => [
+                  styles.row,
+                  hovered && { backgroundColor: '#F3E8FF' },
+                  pressed && { backgroundColor: '#E9D5FF' },
+                ]}
               >
-                <View className="rounded-lg items-center justify-center" style={{ width: 28, height: 28, backgroundColor: '#F3E8FF' }}>
+                <View style={styles.rowIcon}>
                   <Building2 size={14} color="#A78BFA" />
                 </View>
-                <View className="flex-1 min-w-0">
-                  <Text className="font-body-semibold text-sm text-gray-800" numberOfLines={1}>{r.name}</Text>
-                  <Text className="font-body-regular text-xs text-gray-500" numberOfLines={1}>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={styles.rowName} numberOfLines={1}>{r.name}</Text>
+                  <Text style={styles.rowMeta} numberOfLines={1}>
                     {[r.city, r.state, r.country].filter(Boolean).join(' · ')}
                   </Text>
                 </View>
@@ -181,16 +199,21 @@ export function InstitutionAutocomplete({
           {results.length > 0 && (
             <Pressable
               onPress={useAsIs}
-              {...({ onMouseDown: Platform.OS === 'web' ? (e: any) => e.preventDefault() : undefined } as any)}
+              {...({
+                onMouseDown: Platform.OS === 'web' ? (e: any) => e.preventDefault() : undefined,
+              } as any)}
               testID="institution-add-manual"
-              className="flex-row items-center gap-2.5 px-3.5 py-2.5 border-t"
-              style={({ hovered, pressed }: any) => ({ cursor: 'pointer', transitionDuration: '120ms', borderColor: '#E5E7EB', backgroundColor: hovered ? '#CCFBF1' : pressed ? '#99F6E4' : undefined })}
+              style={({ hovered, pressed }: any) => [
+                styles.row, styles.rowAdd,
+                hovered && { backgroundColor: '#CCFBF1' },
+                pressed && { backgroundColor: '#99F6E4' },
+              ]}
             >
-              <View className="rounded-lg items-center justify-center" style={{ width: 28, height: 28, backgroundColor: '#CCFBF1' }}>
+              <View style={[styles.rowIcon, { backgroundColor: '#CCFBF1' }]}>
                 <Plus size={14} color="#0D9488" />
               </View>
-              <Text className="font-body-semibold text-sm" style={{ color: '#0D9488' }}>
-                Can't find it? Use "{value}" as-is
+              <Text style={[styles.rowName, { color: '#0D9488' }]}>
+                Can’t find it? Use “{value}” as-is
               </Text>
             </Pressable>
           )}
@@ -225,13 +248,13 @@ export function InstitutionLogo({
 
   if (failed || !candidates.length) {
     return (
-      <View className="bg-purple-100 border-2 border-purple-300 items-center justify-center" style={{ width: size, height: size, borderRadius: size * 0.22 }}>
+      <View style={[styles.defaultLogo, { width: size, height: size, borderRadius: size * 0.22 }]}>
         <GraduationCap size={size * 0.55} color="#C4B5FD" />
       </View>
     );
   }
   return (
-    <View className="bg-white items-center justify-center border border-purple-300/40 overflow-hidden" style={{ width: size, height: size, borderRadius: size * 0.22 }}>
+    <View style={[styles.logoWrap, { width: size, height: size, borderRadius: size * 0.22 }]}>
       <Image
         key={idx}
         source={{ uri: candidates[idx] }}
@@ -245,3 +268,52 @@ export function InstitutionLogo({
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  inputWrap: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingHorizontal: 14, height: 48,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E5E7EB',
+    borderWidth: 1, borderRadius: 12,
+  },
+  input: {
+    flex: 1, color: '#111827', fontFamily: 'DMSans_500Medium', fontSize: 14,
+    ...({ outlineStyle: 'none' } as any),
+  },
+  dropdown: {
+    marginTop: 6, zIndex: 200,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E5E7EB', borderWidth: 1, borderRadius: 14,
+    overflow: 'hidden',
+    ...({ boxShadow: '0px 8px 24px rgba(0,0,0,0.1)' } as any),
+  },
+  row: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingHorizontal: 14, paddingVertical: 11,
+    ...({ cursor: 'pointer', transitionDuration: '120ms' } as any),
+  },
+  rowAdd: { borderTopWidth: 1, borderTopColor: '#E5E7EB' },
+  rowIcon: {
+    width: 28, height: 28, borderRadius: 8,
+    backgroundColor: '#F3E8FF',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  rowName: { color: '#111827', fontFamily: 'DMSans_600SemiBold', fontSize: 13 },
+  rowMeta: { color: '#6B7280', fontFamily: 'DMSans_400Regular', fontSize: 11.5, marginTop: 2 },
+
+  logoWrap: {
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center', justifyContent: 'center',
+    borderColor: 'rgba(196,181,253,0.40)', borderWidth: 1,
+    overflow: 'hidden',
+  },
+  defaultLogo: {
+    backgroundColor: '#F3E8FF',
+    borderColor: '#C4B5FD', borderWidth: 1.5,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  scroll: {
+    maxHeight: 220,
+  },
+});

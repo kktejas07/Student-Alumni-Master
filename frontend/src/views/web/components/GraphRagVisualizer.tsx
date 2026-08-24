@@ -3,7 +3,7 @@
  * Visualizes multi-dimensional relationships: Students ➔ Mentors ➔ Companies ➔ Skills ➔ Events
  */
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Pressable, Platform, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, Platform, ActivityIndicator, ScrollView } from 'react-native';
 import { Network, Sparkles, Filter, Search, RefreshCw, Layers, ShieldCheck, Award } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
 import { SAC, FONTS } from '../portals/superadmin/tokens';
@@ -154,7 +154,7 @@ export function GraphRagVisualizer() {
   );
 }
 
-const s = {
+const s = StyleSheet.create({
   container: { gap: 14, padding: 18, borderRadius: 14, backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   iconBox: { width: 38, height: 38, borderRadius: 10, backgroundColor: '#7C3AED', alignItems: 'center', justifyContent: 'center' },
@@ -188,4 +188,4 @@ const s = {
   edgeRel: { color: '#A78BFA', fontFamily: FONTS.bold, fontSize: 11 },
   edgeTarget: { color: '#fff', fontFamily: FONTS.bold, fontSize: 11 },
   edgeWeight: { color: SAC.muted, fontSize: 10 }
-} as const;
+});

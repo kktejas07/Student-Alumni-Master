@@ -1,5 +1,11 @@
+/**
+ * Forgot Password — 3-step flow inside one screen.
+ *  Step 1: Enter email
+ *  Step 2: Enter OTP (mocked / would come via email)
+ *  Step 3: Set new password
+ */
 import React, { useRef, useState, useEffect } from 'react';
-import { View, Text, Pressable, Platform, TextInput } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Platform, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Mail, Lock, Check, Eye, EyeOff } from 'lucide-react-native';
 import { AuthShell } from '@/src/views/auth/AuthShell';
@@ -18,10 +24,11 @@ export default function ForgotPassword() {
   const [pwd2, setPwd2] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [otpError, setOtpError] = useState(false);
+  const [otpError, setOtpError] = useState(false); // highlights OTP boxes red on failure
   const [showPwd, setShowPwd] = useState(false);
   const [showPwd2, setShowPwd2] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
+  // Guard against double-submit within the same animation frame
   const submittingRef = useRef(false);
   const otpRefs = useRef<Array<TextInput | null>>([]);
 
@@ -86,12 +93,13 @@ export default function ForgotPassword() {
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         const detail: string = data.detail || 'Invalid OTP';
+        // Surface a precise message based on what the backend returned
         if (detail.toLowerCase().includes('expired')) {
           setError('Verification code has expired. Please request a new code.');
         } else {
           setError('Incorrect code — please try again.');
         }
-        setOtpError(true);
+        setOtpError(true); // highlights OTP inputs in red
         return;
       }
       trackAuth({ event: 'otp_verified', email, success: true });
@@ -108,7 +116,7 @@ export default function ForgotPassword() {
   const onResetPwd = async () => {
     setError('');
     if (strength.score < 2) { setError('Pick a stronger password'); return; }
-    if (pwd !== pwd2) { setError('Passwords don\u2019t match'); return; }
+    if (pwd !== pwd2) { setError('Passwords don’t match'); return; }
     if (submittingRef.current) return;
     submittingRef.current = true;
     setLoading(true);
@@ -137,23 +145,23 @@ export default function ForgotPassword() {
 
   return (
     <AuthShell>
-      <Pressable onPress={() => (step === 1 ? router.back() : setStep((step - 1) as 1 | 2 | 3))} className="flex-row items-center self-start" style={{ gap: 6, marginBottom: 14, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) }} testID={step === 1 ? "forgot-back" : "otp-back"}>
+      <Pressable onPress={() => (step === 1 ? router.back() : setStep((step - 1) as 1 | 2 | 3))} style={s.back} testID={step === 1 ? "forgot-back" : "otp-back"}>
         <ArrowLeft size={16} color={AC.muted} />
-        <Text style={{ color: AC.muted, fontFamily: FONTS.med, fontSize: 13 }}>Back</Text>
+        <Text style={s.backText}>Back</Text>
       </Pressable>
 
-      <View className="flex-row items-center" style={{ gap: 8, marginBottom: 22 }}>
+      <View style={s.steps}>
         {[1, 2, 3].map((n) => (
-          <View key={n} className="items-center justify-center rounded-full" style={[{ width: 26, height: 26, borderWidth: 1, borderColor: AC.border, backgroundColor: AC.card }, step >= (n as 1 | 2 | 3) && { borderColor: AC.primary, backgroundColor: AC.primary }]}>
-            {step > (n as 1 | 2 | 3) ? <Check size={12} color="#fff" strokeWidth={3} /> : <Text className="font-body-bold" style={{ color: step >= (n as 1 | 2 | 3) ? '#fff' : AC.muted, fontSize: 12 }}>{n}</Text>}
+          <View key={n} style={[s.step, step >= (n as 1 | 2 | 3) && s.stepOn]}>
+            {step > (n as 1 | 2 | 3) ? <Check size={12} color="#fff" strokeWidth={3} /> : <Text style={[s.stepNum, step >= (n as 1 | 2 | 3) && s.stepNumOn]}>{n}</Text>}
           </View>
         ))}
       </View>
 
       {step === 1 && (
         <>
-          <Text className="text-text font-display-bold" style={{ letterSpacing: -0.5, marginBottom: 8, fontSize: 28 }}>Forgot password?</Text>
-          <Text className="text-muted" style={{ fontFamily: FONTS.med, fontSize: 14, lineHeight: 22 }}>Enter the email associated with your account and we'll send a verification code.</Text>
+          <Text style={s.title}>Forgot password?</Text>
+          <Text style={s.sub}>Enter the email associated with your account and we'll send a verification code.</Text>
           <View style={{ marginTop: 22, gap: 14 }}>
             <AuthInput label="Email" value={email} onChangeText={(t) => { setEmail(t); setError(''); }} placeholder="you@university.edu" keyboardType="email-address" error={error} onSubmitEditing={onSendOtp} autoFocus={true} editable={!loading} testID="forgot-email" />
             <PrimaryButton label="Send verification code" onPress={onSendOtp} loading={loading} testID="forgot-send-code" />
@@ -163,10 +171,10 @@ export default function ForgotPassword() {
 
       {step === 2 && (
         <>
-          <Text className="text-text font-display-bold" style={{ letterSpacing: -0.5, marginBottom: 8, fontSize: 28 }}>Check your email</Text>
-          <Text className="text-muted" style={{ fontFamily: FONTS.med, fontSize: 14, lineHeight: 22 }}>We sent a 6-digit code to <Text className="text-text">{maskEmail(email)}</Text></Text>
+          <Text style={s.title}>Check your email</Text>
+          <Text style={s.sub}>We sent a 6-digit code to <Text style={{ color: '#fff' }}>{maskEmail(email)}</Text></Text>
           <View style={{ marginTop: 24 }}>
-            <View className="flex-row" style={{ gap: 10, justifyContent: 'space-between' }}>
+            <View style={s.otpRow}>
               {otp.map((d, i) => (
                 <TextInput
                   key={i}
@@ -203,13 +211,8 @@ export default function ForgotPassword() {
                     }
                   }}
                   keyboardType="number-pad"
-                  maxLength={6}
-                  className="font-display-bold text-text items-center justify-center"
-                  style={[
-                    { width: 50, height: 56, borderRadius: 12, backgroundColor: AC.card, borderColor: AC.border, borderWidth: 1, fontSize: 22, textAlign: 'center', ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
-                    d && { borderColor: AC.primary, backgroundColor: 'rgba(124,58,237,0.10)' },
-                    otpError && { borderColor: AC.red, backgroundColor: 'rgba(239,68,68,0.08)' },
-                  ]}
+                  maxLength={6} // Allow pasting up to 6
+                  style={[s.otpBox, d ? s.otpBoxOn : null, otpError ? s.otpBoxErr : null]}
                   editable={!loading}
                   testID={`otp-input-${i + 1}`}
                   accessible={true}
@@ -217,12 +220,12 @@ export default function ForgotPassword() {
                 />
               ))}
             </View>
-            {error ? <Text className="font-body-bold" style={{ color: AC.red, fontSize: 12, marginTop: 10, textAlign: 'center' }}>{error}</Text> : null}
+            {error ? <Text style={s.errText}>{error}</Text> : null}
             <View style={{ marginTop: 22, gap: 12 }}>
               <PrimaryButton label="Verify code" onPress={onVerifyOtp} loading={loading} testID="otp-verify" />
               <Pressable onPress={(loading || resendTimer > 0) ? undefined : onSendOtp} disabled={loading || resendTimer > 0} testID="otp-resend">
-                <Text className="text-muted text-sm text-center" style={{ opacity: (loading || resendTimer > 0) ? 0.4 : 1 }}>
-                  Didn't receive code? <Text className="font-body-bold" style={{ color: AC.primaryL }}>{resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Resend'}</Text>
+                <Text style={[s.resend, (loading || resendTimer > 0) && { opacity: 0.4 }]}>
+                  Didn't receive code? <Text style={s.resendLink}>{resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Resend'}</Text>
                 </Text>
               </Pressable>
             </View>
@@ -232,8 +235,8 @@ export default function ForgotPassword() {
 
       {step === 3 && (
         <>
-          <Text className="text-text font-display-bold" style={{ letterSpacing: -0.5, marginBottom: 8, fontSize: 28 }}>Set new password</Text>
-          <Text className="text-muted" style={{ fontFamily: FONTS.med, fontSize: 14, lineHeight: 22 }}>Choose a strong password you don't use anywhere else.</Text>
+          <Text style={s.title}>Set new password</Text>
+          <Text style={s.sub}>Choose a strong password you don't use anywhere else.</Text>
           <View style={{ marginTop: 22, gap: 14 }}>
             <AuthInput 
               label="New password" 
@@ -267,7 +270,7 @@ export default function ForgotPassword() {
               }
             />
             {pwd.length > 0 && pwd2.length > 0 && (
-              <View className="flex-row items-center" style={{ gap: 6 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <Check size={14} color={pwd === pwd2 ? AC.green : AC.dim} />
                 <Text style={{ color: pwd === pwd2 ? AC.green : AC.dim, fontFamily: FONTS.med, fontSize: 12 }}>
                   {pwd === pwd2 ? 'Passwords match' : 'Passwords do not match yet'}
@@ -281,9 +284,9 @@ export default function ForgotPassword() {
 
       {step === 4 && (
         <>
-          <View className="items-center justify-center rounded-full" style={{ alignSelf: 'center', width: 84, height: 84, backgroundColor: AC.green, marginBottom: 22 }}><Check size={36} color="#fff" strokeWidth={3} /></View>
-          <Text className="text-text font-display-bold" style={{ letterSpacing: -0.5, marginBottom: 8, fontSize: 28, textAlign: 'center' }}>Password reset!</Text>
-          <Text className="text-muted" style={{ fontFamily: FONTS.med, fontSize: 14, lineHeight: 22, textAlign: 'center' }}>Your password has been updated. Sign in to continue.</Text>
+          <View style={s.successCircle}><Check size={36} color="#fff" strokeWidth={3} /></View>
+          <Text style={[s.title, { textAlign: 'center' }]}>Password reset!</Text>
+          <Text style={[s.sub, { textAlign: 'center' }]}>Your password has been updated. Sign in to continue.</Text>
           <View style={{ marginTop: 26 }}>
             <PrimaryButton label="Back to sign in" onPress={() => router.replace('/(auth)/login')} testID="reset-success-signin" />
           </View>
@@ -292,3 +295,27 @@ export default function ForgotPassword() {
     </AuthShell>
   );
 }
+
+const s = StyleSheet.create({
+  back: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', marginBottom: 14, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  backText: { color: AC.muted, fontFamily: FONTS.med, fontSize: 13 },
+
+  steps: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 22 },
+  step: { width: 26, height: 26, borderRadius: 13, borderWidth: 1, borderColor: AC.border, backgroundColor: AC.card, alignItems: 'center', justifyContent: 'center' },
+  stepOn: { borderColor: AC.primary, backgroundColor: AC.primary },
+  stepNum: { color: AC.muted, fontFamily: FONTS.bold, fontSize: 12 },
+  stepNumOn: { color: '#fff' },
+
+  title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 28, letterSpacing: -0.5, marginBottom: 8 },
+  sub: { color: AC.muted, fontFamily: FONTS.med, fontSize: 14, lineHeight: 22 },
+
+  otpRow: { flexDirection: 'row', gap: 10, justifyContent: 'space-between' },
+  otpBox: { width: 50, height: 56, borderRadius: 12, backgroundColor: AC.card, borderColor: AC.border, borderWidth: 1, color: '#fff', fontFamily: FONTS.xbold, fontSize: 22, textAlign: 'center', ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
+  otpBoxErr: { borderColor: AC.red, backgroundColor: 'rgba(239,68,68,0.08)' },
+  otpBoxOn: { borderColor: AC.primary, backgroundColor: 'rgba(124,58,237,0.10)' },
+  errText: { color: AC.red, fontFamily: FONTS.bold, fontSize: 12, marginTop: 10, textAlign: 'center' },
+  resend: { color: AC.muted, fontFamily: FONTS.med, fontSize: 13, textAlign: 'center' },
+  resendLink: { color: AC.primaryL, fontFamily: FONTS.bold, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+
+  successCircle: { alignSelf: 'center', width: 84, height: 84, borderRadius: 42, backgroundColor: AC.green, alignItems: 'center', justifyContent: 'center', marginBottom: 22 },
+});

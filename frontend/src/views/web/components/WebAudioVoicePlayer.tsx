@@ -4,7 +4,7 @@
  * with real-time soundwave equalizer animation.
  */
 import React, { useState, useEffect } from 'react';
-import { View, Text, Pressable, Platform } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
 import { Volume2, VolumeX, Play, Pause, Sparkles } from 'lucide-react-native';
 import { SAC, FONTS } from '../portals/superadmin/tokens';
 
@@ -70,7 +70,7 @@ export function WebAudioVoicePlayer({ textToSpeak, label = 'Listen to AI Questio
   );
 }
 
-const s = {
+const s = StyleSheet.create({
   btn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -102,4 +102,4 @@ const s = {
     backgroundColor: '#fff',
     borderRadius: 2,
   },
-} as const;
+});

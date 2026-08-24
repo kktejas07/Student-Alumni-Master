@@ -5,7 +5,7 @@
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  View, Text, Pressable, ScrollView, ActivityIndicator, StyleSheet,
+  View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -363,7 +363,7 @@ function HeroStat({ icon, label, value }: { icon: IconName; label: string; value
   );
 }
 
-const s = {
+const s = StyleSheet.create({
   loading: { padding: 60, alignItems: 'center', gap: 12 },
   loadingText: { color: C.text2, fontFamily: 'DMSans_600SemiBold', fontSize: 13 },
   errorBox: { padding: 60, alignItems: 'center', gap: 12 },
@@ -451,4 +451,4 @@ const s = {
   capDesc: { color: C.text2, fontFamily: 'DMSans_600SemiBold', fontSize: 12.5,
     lineHeight: 19 },
   capDeliverable: { color: C.text2, fontFamily: 'DMSans_600SemiBold', fontSize: 11.5 },
-};
+});

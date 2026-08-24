@@ -1,6 +1,16 @@
+/**
+ * Two-Factor Authentication setup — web (centered glass card) + native (full screen).
+ *
+ * Steps:
+ *   0 = Choose method  (Authenticator / SMS / Email)
+ *   1 = Setup          (QR code | phone number | confirm email)
+ *   2 = Verify         (6-digit OTP entry)
+ *   3 = Backup codes   (6 codes to save)
+ *   4 = Done           (success summary + go to dashboard)
+ */
 import { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, Pressable, Animated, ActivityIndicator,
+  View, Text, StyleSheet, Pressable, Animated, ActivityIndicator,
   TextInput as RNTextInput, Platform, ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -77,15 +87,16 @@ export default function TwoFASetup() {
         <WebStepBar steps={['Method', 'Setup', 'Verify', 'Backup']} current={step as 0 | 1 | 2 | 3} />
       )}
 
+      {/* STEP 0 — Choose method */}
       {step === 0 && (
         <View>
-          <View className="items-center" style={{ marginBottom: 18 }}>
-            <View className="items-center justify-center" style={{ width: 72, height: 72, borderRadius: 20, backgroundColor: 'rgba(124,58,237,0.28)', borderWidth: 1, borderColor: 'rgba(196,181,253,0.28)' }}>
+          <View style={{ alignItems: 'center', marginBottom: 18 }}>
+            <View style={styles.heroIcon}>
               <Text style={{ fontSize: 32 }}>🛡️</Text>
             </View>
           </View>
-          <Text className="text-text font-body-bold text-center" style={{ fontSize: 22, letterSpacing: -0.4, marginBottom: 6 }}>Two-Factor Authentication</Text>
-          <Text className="text-muted" style={{ fontFamily: 'DMSans_400Regular', fontSize: 13.5, lineHeight: 21, marginBottom: 22, textAlign: 'left' }}>Add an extra layer of security to your account. Choose how you'd like to receive your verification codes.</Text>
+          <Text style={styles.h1}>Two-Factor Authentication</Text>
+          <Text style={styles.sub}>Add an extra layer of security to your account. Choose how you'd like to receive your verification codes.</Text>
           <View style={{ marginBottom: 8 }}>
             {METHODS.map((m) => (
               <WebOptionRow
@@ -106,21 +117,22 @@ export default function TwoFASetup() {
         </View>
       )}
 
+      {/* STEP 1 — Setup */}
       {step === 1 && method === 'authenticator' && (
         <View>
-          <Text className="text-text font-body-bold" style={{ fontSize: 21, letterSpacing: -0.4, marginBottom: 6 }}>Scan QR Code 📱</Text>
-          <Text className="text-muted" style={{ fontFamily: 'DMSans_400Regular', fontSize: 13.5, lineHeight: 21, marginBottom: 22, textAlign: 'left' }}>Open your authenticator app and scan this code, or enter the key manually.</Text>
-          <View className="items-center" style={{ marginBottom: 16 }}>
-            <View className="items-center justify-center" style={{ width: 168, height: 168, borderRadius: 16, backgroundColor: '#FFFFFF', padding: 12, overflow: 'hidden', position: 'relative' }}>
+          <Text style={styles.h2}>Scan QR Code 📱</Text>
+          <Text style={styles.sub}>Open your authenticator app and scan this code, or enter the key manually.</Text>
+          <View style={{ alignItems: 'center', marginBottom: 16 }}>
+            <View style={styles.qrFrame}>
               <FakeQR />
-              <View className="items-center justify-center" style={{ position: 'absolute', width: 32, height: 32, borderRadius: 8, backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: '#7C3AED' }}>
+              <View style={styles.qrLogo}>
                 <Text style={{ color: '#7C3AED', fontFamily: 'DMSans_700Bold', fontSize: 11 }}>SA</Text>
               </View>
             </View>
           </View>
-          <View className="rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 20 }}>
-            <Text className="text-dim font-body-bold" style={{ fontSize: 10, letterSpacing: 1, marginBottom: 6 }}>MANUAL KEY</Text>
-            <Text className="text-violet" style={{ fontFamily: 'DMSans_500Medium', fontSize: 13, letterSpacing: 1.5 }}>JBSWY3DPEHPK3PXP{'\n'}QRST UVWX YZAB 2345</Text>
+          <View style={styles.manualKeyBox}>
+            <Text style={styles.manualKeyLabel}>MANUAL KEY</Text>
+            <Text style={styles.manualKeyVal}>JBSWY3DPEHPK3PXP{'\n'}QRST UVWX YZAB 2345</Text>
           </View>
           <WebPrimaryBtn label="I've scanned the code →" onPress={onContinue} testID="twofa-scanned-btn" />
         </View>
@@ -128,8 +140,8 @@ export default function TwoFASetup() {
 
       {step === 1 && method === 'sms' && (
         <View>
-          <Text className="text-text font-body-bold" style={{ fontSize: 21, letterSpacing: -0.4, marginBottom: 6 }}>Add your number 💬</Text>
-          <Text className="text-muted" style={{ fontFamily: 'DMSans_400Regular', fontSize: 13.5, lineHeight: 21, marginBottom: 22, textAlign: 'left' }}>We'll send you a verification code via SMS or WhatsApp.</Text>
+          <Text style={styles.h2}>Add your number 💬</Text>
+          <Text style={styles.sub}>We'll send you a verification code via SMS or WhatsApp.</Text>
           <WebField label="Country code" value="🇮🇳 +91" onChangeText={() => {}} />
           <WebField label="Mobile number" value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="98765 43210" />
           <WebPrimaryBtn label="Send code" onPress={onContinue} testID="twofa-sms-send-btn" />
@@ -138,15 +150,15 @@ export default function TwoFASetup() {
 
       {step === 1 && method === 'email' && (
         <View>
-          <Text className="text-text font-body-bold" style={{ fontSize: 21, letterSpacing: -0.4, marginBottom: 6 }}>Email verification 📧</Text>
-          <Text className="text-muted" style={{ fontFamily: 'DMSans_400Regular', fontSize: 13.5, lineHeight: 21, marginBottom: 22, textAlign: 'left' }}>We'll send a 6-digit code to your verified email whenever you log in.</Text>
-          <View className="rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, paddingHorizontal: 16, paddingVertical: 14, marginBottom: 20 }}>
-            <Text className="text-dim font-body-bold" style={{ fontSize: 10, letterSpacing: 1, marginBottom: 6 }}>VERIFIED EMAIL</Text>
-            <View className="flex-row items-center" style={{ gap: 10 }}>
+          <Text style={styles.h2}>Email verification 📧</Text>
+          <Text style={styles.sub}>We'll send a 6-digit code to your verified email whenever you log in.</Text>
+          <View style={styles.verifiedEmailCard}>
+            <Text style={styles.verifiedEmailLabel}>VERIFIED EMAIL</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
               <Text style={{ fontSize: 18 }}>✉️</Text>
-              <Text className="text-text font-body-semibold" style={{ fontSize: 15 }}>rahul@alumni.edu</Text>
-              <View className="flex-row items-center rounded-full" style={{ gap: 4, backgroundColor: 'rgba(16,185,129,0.18)', borderColor: 'rgba(110,231,183,0.35)', borderWidth: 1, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, marginLeft: 'auto' }}>
-                <Text className="font-body-bold" style={{ color: '#86EFAC', fontSize: 10.5 }}>✓ Verified</Text>
+              <Text style={styles.verifiedEmailVal}>rahul@alumni.edu</Text>
+              <View style={styles.smallBadge}>
+                <Text style={styles.smallBadgeText}>✓ Verified</Text>
               </View>
             </View>
           </View>
@@ -154,10 +166,11 @@ export default function TwoFASetup() {
         </View>
       )}
 
+      {/* STEP 2 — Verify */}
       {step === 2 && (
         <View>
-          <Text className="text-text font-body-bold" style={{ fontSize: 21, letterSpacing: -0.4, marginBottom: 6 }}>Enter verification code 🔢</Text>
-          <Text className="text-muted" style={{ fontFamily: 'DMSans_400Regular', fontSize: 13.5, lineHeight: 21, marginBottom: 22, textAlign: 'left' }}>
+          <Text style={styles.h2}>Enter verification code 🔢</Text>
+          <Text style={styles.sub}>
             {method === 'authenticator'
               ? 'Enter the 6-digit code from your authenticator app.'
               : method === 'sms'
@@ -166,74 +179,74 @@ export default function TwoFASetup() {
           </Text>
           <OTPInput value={otp} onChange={setOtp} state={otpState} />
           {otpState === 'success' && (
-            <Text className="text-teal font-body-bold text-center" style={{ fontSize: 13, marginBottom: 12 }}>✓ Code verified!</Text>
+            <Text style={styles.otpSuccess}>✓ Code verified!</Text>
           )}
           <WebPrimaryBtn label="Verify & enable" onPress={verifyOTP} testID="twofa-verify-btn" />
         </View>
       )}
 
+      {/* STEP 3 — Backup codes */}
       {step === 3 && (
         <View>
-          <Text className="text-text font-body-bold" style={{ fontSize: 21, letterSpacing: -0.4, marginBottom: 6 }}>Save backup codes 📋</Text>
-          <Text className="text-muted" style={{ fontFamily: 'DMSans_400Regular', fontSize: 13.5, lineHeight: 21, marginBottom: 22, textAlign: 'left' }}>Keep these somewhere safe. Each code can only be used once if you lose access to your 2FA device.</Text>
-          <View className="rounded-xl flex-row flex-wrap" style={{ backgroundColor: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, padding: 14, marginBottom: 16, gap: 10 }}>
+          <Text style={styles.h2}>Save backup codes 📋</Text>
+          <Text style={styles.sub}>Keep these somewhere safe. Each code can only be used once if you lose access to your 2FA device.</Text>
+          <View style={styles.codesGrid}>
             {BACKUP_CODES.map((code, i) => (
-              <View key={i} className="items-center" style={{ flexBasis: '47%', flexGrow: 1, backgroundColor: 'rgba(196,181,253,0.10)', paddingVertical: 9, paddingHorizontal: 8, borderRadius: 8 }}>
-                <Text className="text-violet font-body-bold" style={{ fontSize: 14, letterSpacing: 1.2 }}>{code}</Text>
+              <View key={i} style={styles.codeBox}>
+                <Text style={styles.codeText}>{code}</Text>
               </View>
             ))}
           </View>
-          <View className="flex-row" style={{ gap: 10, marginBottom: 16 }}>
+          <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}>
             <Pressable
               onPress={() => toast.success('Codes copied', 'Backup codes copied to clipboard.')}
-              className="flex-row items-center justify-center flex-1"
-              style={({ hovered }: any) => [{ gap: 8, paddingVertical: 11, backgroundColor: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.10)', borderWidth: 1, borderRadius: 10, cursor: 'pointer', transitionDuration: '160ms' }, hovered && { backgroundColor: 'rgba(255,255,255,0.10)', borderColor: 'rgba(255,255,255,0.20)' }]}
+              style={({ hovered }: any) => [styles.actionBtn, { flex: 1 }, hovered && styles.actionBtnHover]}
             >
               <Copy size={15} color="#FFFFFF" />
-              <Text className="text-text font-body-semibold" style={{ fontSize: 13 }}>Copy codes</Text>
+              <Text style={styles.actionText}>Copy codes</Text>
             </Pressable>
             <Pressable
               onPress={() => toast.success('Codes downloaded', 'A .txt file has been saved.')}
-              className="flex-row items-center justify-center flex-1"
-              style={({ hovered }: any) => [{ gap: 8, paddingVertical: 11, backgroundColor: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.10)', borderWidth: 1, borderRadius: 10, cursor: 'pointer', transitionDuration: '160ms' }, hovered && { backgroundColor: 'rgba(255,255,255,0.10)', borderColor: 'rgba(255,255,255,0.20)' }]}
+              style={({ hovered }: any) => [styles.actionBtn, { flex: 1 }, hovered && styles.actionBtnHover]}
             >
               <Download size={15} color="#FFFFFF" />
-              <Text className="text-text font-body-semibold" style={{ fontSize: 13 }}>Download</Text>
+              <Text style={styles.actionText}>Download</Text>
             </Pressable>
           </View>
-          <View className="flex-row items-start rounded-xl" style={{ gap: 10, backgroundColor: 'rgba(245,158,11,0.12)', borderColor: 'rgba(252,211,77,0.30)', borderWidth: 1, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 18 }}>
+          <View style={styles.warnBox}>
             <Text style={{ fontSize: 16 }}>⚠️</Text>
-            <Text className="text-amber" style={{ fontFamily: 'DMSans_500Medium', fontSize: 12, lineHeight: 17, flex: 1 }}>Store these codes securely. They won't be shown again.</Text>
+            <Text style={styles.warnText}>Store these codes securely. They won't be shown again.</Text>
           </View>
           <WebPrimaryBtn label="I've saved my codes →" onPress={onContinue} testID="twofa-saved-btn" />
         </View>
       )}
 
+      {/* STEP 4 — Done */}
       {step === 4 && (
-        <View className="items-center">
-          <View className="items-center justify-center rounded-full" style={{ width: 88, height: 88, backgroundColor: 'rgba(16,185,129,0.18)', borderWidth: 2, borderColor: 'rgba(52,211,153,0.5)', marginBottom: 14, marginTop: 4 }}>
+        <View style={{ alignItems: 'center' }}>
+          <View style={styles.successRing}>
             <ShieldCheck size={36} color="#34D399" />
           </View>
-          <Text className="text-text font-body-bold text-center" style={{ fontSize: 21, letterSpacing: -0.4, marginTop: 4 }}>2FA Enabled! 🎉</Text>
-          <Text className="text-muted text-center" style={{ fontFamily: 'DMSans_400Regular', fontSize: 13.5, lineHeight: 21, maxWidth: 320, marginBottom: 22 }}>
+          <Text style={[styles.h2, { textAlign: 'center', marginTop: 4 }]}>2FA Enabled! 🎉</Text>
+          <Text style={[styles.sub, { textAlign: 'center', maxWidth: 320 }]}>
             Your account is now protected with two-factor authentication via{' '}
-            <Text className="text-text font-body-bold">
+            <Text style={{ color: '#FFFFFF', fontFamily: 'DMSans_700Bold' }}>
               {METHODS.find((m) => m.id === method)?.title}
             </Text>.
           </Text>
-          <View className="flex-row items-center rounded-full" style={{ gap: 4, backgroundColor: 'rgba(16,185,129,0.18)', borderColor: 'rgba(110,231,183,0.35)', borderWidth: 1, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, marginLeft: 'auto', marginTop: 4, marginBottom: 22 }}>
-            <Text className="font-body-bold" style={{ color: '#86EFAC', fontSize: 10.5 }}>🛡️  Account Secured</Text>
+          <View style={[styles.smallBadge, { marginTop: 4, marginBottom: 22 }]}>
+            <Text style={styles.smallBadgeText}>🛡️  Account Secured</Text>
           </View>
 
-          <View className="rounded-xl" style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, paddingHorizontal: 16, paddingVertical: 4, marginBottom: 22 }}>
+          <View style={styles.summaryCard}>
             {[
               { l: 'Method',        v: METHODS.find((m) => m.id === method)?.title || '—' },
               { l: 'Status',        v: 'Active' },
               { l: 'Backup codes',  v: '6 saved' },
             ].map((r, i, arr) => (
-              <View key={r.l} className="flex-row justify-between" style={[{ paddingVertical: 9 }, i < arr.length - 1 && { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' }]}>
-                <Text className="text-muted" style={{ fontFamily: 'DMSans_500Medium', fontSize: 12 }}>{r.l}</Text>
-                <Text className="text-text font-body-bold" style={{ fontSize: 12 }}>{r.v}</Text>
+              <View key={r.l} style={[styles.summaryRow, i < arr.length - 1 && styles.summaryRowDiv]}>
+                <Text style={styles.summaryLabel}>{r.l}</Text>
+                <Text style={styles.summaryVal}>{r.v}</Text>
               </View>
             ))}
           </View>
@@ -246,26 +259,27 @@ export default function TwoFASetup() {
     </View>
   );
 
+  // ─── Web ─────────────────────────────────────────────────────────────────
   if (IS_WEB) {
     return (
       <AuthShell role={role}>
         <Pressable
           onPress={goBackInternal}
-          className="flex-row items-center self-start"
-          style={({ hovered }: any) => [{ gap: 6, paddingVertical: 6, marginBottom: 4, opacity: 0.75, cursor: 'pointer', transitionDuration: '160ms' }, hovered && { opacity: 1 }]}
+          style={({ hovered }: any) => [styles.back, hovered && { opacity: 1 }]}
         >
           <ArrowLeft size={16} color="rgba(255,255,255,0.75)" />
-          <Text className="text-muted" style={{ fontFamily: 'DMSans_500Medium', fontSize: 13 }}>Back</Text>
+          <Text style={styles.backText}>Back</Text>
         </Pressable>
         {Body}
       </AuthShell>
     );
   }
 
+  // ─── Native ──────────────────────────────────────────────────────────────
   return (
-    <SafeAreaView className="flex-1 bg-navy" edges={['top', 'bottom']}>
-      <ScrollView contentContainerStyle={{ padding: 24, gap: 14, paddingBottom: 60 }}>
-        <Pressable onPress={goBackInternal} className="items-center justify-center" style={{ width: 40, height: 40, marginBottom: 8 }}>
+    <SafeAreaView style={nativeStyles.safe} edges={['top', 'bottom']}>
+      <ScrollView contentContainerStyle={nativeStyles.container}>
+        <Pressable onPress={goBackInternal} style={nativeStyles.backNative}>
           <ArrowLeft size={22} color="rgba(255,255,255,0.85)" />
         </Pressable>
         {Body}
@@ -274,6 +288,7 @@ export default function TwoFASetup() {
   );
 }
 
+// ─── OTP input ───────────────────────────────────────────────────────────────
 function OTPInput({
   value, onChange, state,
 }: {
@@ -303,7 +318,7 @@ function OTPInput({
     : 'rgba(255,255,255,0.16)';
 
   return (
-    <View className="flex-row justify-center" style={{ gap: 8, marginBottom: 16 }}>
+    <View style={otpStyles.row}>
       {value.map((d, i) => (
         <RNTextInput
           key={i}
@@ -313,8 +328,7 @@ function OTPInput({
           onKeyPress={(e) => handleKey(i, (e.nativeEvent as any).key)}
           keyboardType="number-pad"
           maxLength={1}
-          className="font-body-bold text-text text-center"
-          style={[{ width: 46, height: 56, borderRadius: 12, borderWidth: 1.5, backgroundColor: 'rgba(255,255,255,0.05)', fontSize: 22, borderColor, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) }]}
+          style={[otpStyles.cell, { borderColor }]}
           testID={`twofa-otp-${i}`}
         />
       ))}
@@ -322,13 +336,14 @@ function OTPInput({
   );
 }
 
+// ─── Fake QR (decorative) ────────────────────────────────────────────────────
 function FakeQR() {
   const onCells = new Set([
     0,1,2,3,4,5,6,9,15,18,24,30,27,28,29,30,31,32,33,36,42,45,46,47,48,49,50,51,
     54,60,63,69,72,73,74,75,76,77,78,40,41,55,56,57,38,44,64,65,67,68,
   ]);
   return (
-    <View className="flex-row flex-wrap" style={{ width: '100%', height: '100%' }}>
+    <View style={{ width: '100%', height: '100%', flexDirection: 'row', flexWrap: 'wrap' }}>
       {Array.from({ length: 81 }).map((_, i) => (
         <View
           key={i}
@@ -342,3 +357,235 @@ function FakeQR() {
     </View>
   );
 }
+
+// ─── styles ──────────────────────────────────────────────────────────────────
+const styles = StyleSheet.create({
+  back: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    marginBottom: 4,
+    opacity: 0.75,
+    alignSelf: 'flex-start',
+    ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
+  },
+  backText: { color: 'rgba(255,255,255,0.75)', fontFamily: 'DMSans_500Medium', fontSize: 13 },
+
+  heroIcon: {
+    width: 72, height: 72, borderRadius: 20,
+    backgroundColor: 'rgba(124,58,237,0.28)',
+    borderWidth: 1, borderColor: 'rgba(196,181,253,0.28)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  h1: {
+    color: '#FFFFFF',
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 22,
+    letterSpacing: -0.4,
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  h2: {
+    color: '#FFFFFF',
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 21,
+    letterSpacing: -0.4,
+    marginBottom: 6,
+  },
+  sub: {
+    color: 'rgba(255,255,255,0.55)',
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 13.5,
+    lineHeight: 21,
+    marginBottom: 22,
+    textAlign: 'left',
+  },
+
+  qrFrame: {
+    width: 168, height: 168, borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    padding: 12,
+    alignItems: 'center', justifyContent: 'center',
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  qrLogo: {
+    position: 'absolute',
+    width: 32, height: 32, borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2, borderColor: '#7C3AED',
+    alignItems: 'center', justifyContent: 'center',
+  },
+
+  manualKeyBox: {
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 20,
+  },
+  manualKeyLabel: {
+    color: 'rgba(255,255,255,0.42)',
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 10,
+    letterSpacing: 1,
+    marginBottom: 6,
+  },
+  manualKeyVal: {
+    color: '#C4B5FD',
+    fontFamily: 'DMSans_500Medium',
+    fontSize: 13,
+    letterSpacing: 1.5,
+  },
+
+  verifiedEmailCard: {
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 20,
+  },
+  verifiedEmailLabel: {
+    color: 'rgba(255,255,255,0.42)',
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 10,
+    letterSpacing: 1,
+    marginBottom: 6,
+  },
+  verifiedEmailVal: { color: '#FFFFFF', fontFamily: 'DMSans_600SemiBold', fontSize: 15 },
+
+  smallBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(16,185,129,0.18)',
+    borderColor: 'rgba(110,231,183,0.35)',
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    marginLeft: 'auto',
+  },
+  smallBadgeText: { color: '#86EFAC', fontFamily: 'DMSans_700Bold', fontSize: 10.5 },
+
+  otpSuccess: {
+    color: '#34D399',
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 13,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+
+  codesGrid: {
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 16,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  codeBox: {
+    flexBasis: '47%',
+    flexGrow: 1,
+    backgroundColor: 'rgba(196,181,253,0.10)',
+    paddingVertical: 9,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  codeText: { color: '#C4B5FD', fontFamily: 'DMSans_700Bold', fontSize: 14, letterSpacing: 1.2 },
+
+  actionBtn: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 11,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 1,
+    borderRadius: 10,
+    ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
+  },
+  actionBtnHover: {
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderColor: 'rgba(255,255,255,0.20)',
+  },
+  actionText: { color: '#FFFFFF', fontFamily: 'DMSans_600SemiBold', fontSize: 13 },
+
+  warnBox: {
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'flex-start',
+    backgroundColor: 'rgba(245,158,11,0.12)',
+    borderColor: 'rgba(252,211,77,0.30)',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 18,
+  },
+  warnText: { color: '#FCD34D', fontFamily: 'DMSans_500Medium', fontSize: 12, lineHeight: 17, flex: 1 },
+
+  successRing: {
+    width: 88, height: 88, borderRadius: 44,
+    backgroundColor: 'rgba(16,185,129,0.18)',
+    borderWidth: 2, borderColor: 'rgba(52,211,153,0.5)',
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: 14,
+    marginTop: 4,
+  },
+
+  summaryCard: {
+    width: '100%',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    marginBottom: 22,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 9,
+  },
+  summaryRowDiv: { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
+  summaryLabel: { color: 'rgba(255,255,255,0.5)', fontFamily: 'DMSans_500Medium', fontSize: 12 },
+  summaryVal: { color: '#FFFFFF', fontFamily: 'DMSans_700Bold', fontSize: 12 },
+});
+
+const otpStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 16,
+    justifyContent: 'center',
+  },
+  cell: {
+    width: 46, height: 56,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    color: '#FFFFFF',
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 22,
+    textAlign: 'center',
+    ...({ outlineStyle: 'none' } as any),
+  },
+});
+
+const nativeStyles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: '#0F0820' },
+  container: { padding: 24, gap: 14, paddingBottom: 60 },
+  backNative: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+});

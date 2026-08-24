@@ -10,7 +10,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  View, Text, Pressable, TextInput, ScrollView, Platform, Modal,
+  View, Text, Pressable, StyleSheet, TextInput, ScrollView, Platform, Modal,
   ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -1941,81 +1941,84 @@ function EditRow({ label, value, onChange }: { label: string; value: string; onC
 /* ────────────────────────────────────────────────────────────────────
  * Styles
  * ────────────────────────────────────────────────────────────────── */
-const s = {
-  headRow: { flexDirection: 'row' as const, alignItems: 'flex-start' as const, gap: 12 },
+const s = StyleSheet.create({
+  headRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 },
   sub:   { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 720 },
   muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
   err: { color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 12 },
-
+  
+  // Stats row
   statsRow: {
-    flexDirection: 'row' as const, gap: 10, flexWrap: 'wrap' as const,
+    flexDirection: 'row', gap: 10, flexWrap: 'wrap',
   },
   statCard: {
-    flex: 1, minWidth: 120, flexDirection: 'row' as const, alignItems: 'center' as const, gap: 10,
+    flex: 1, minWidth: 120, flexDirection: 'row', alignItems: 'center', gap: 10,
     backgroundColor: SAC.cardSolid, borderRadius: 12, borderWidth: 1, borderColor: SAC.border,
     padding: 12,
   },
   statIcon: {
-    width: 36, height: 36, borderRadius: 10, alignItems: 'center' as const, justifyContent: 'center' as const,
+    width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center',
   },
   statValue: { fontFamily: FONTS.xbold, fontSize: 18, color: '#fff' },
   statLabel: { fontFamily: FONTS.med, fontSize: 11, color: SAC.muted, marginTop: 2 },
 
   catBadge: {
-    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 5,
-    paddingHorizontal: 9, paddingVertical: 3.5, borderRadius: 999, borderWidth: 1, alignSelf: 'flex-start' as const,
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 9, paddingVertical: 3.5, borderRadius: 999, borderWidth: 1, alignSelf: 'flex-start',
   },
   catBadgeText: { fontFamily: FONTS.xbold, letterSpacing: 0.3 },
 
+  // Upload
   dropZone: {
     backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 14,
-    borderStyle: 'dashed' as const, padding: 40, alignItems: 'center' as const, gap: 10,
+    borderStyle: 'dashed', padding: 40, alignItems: 'center', gap: 10,
     ...(Platform.OS === 'web' ? ({ transitionDuration: '150ms' } as any) : {}),
   },
-  dropIcon: { width: 56, height: 56, borderRadius: 14, alignItems: 'center' as const, justifyContent: 'center' as const },
+  dropIcon: { width: 56, height: 56, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   dropTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15, marginTop: 6 },
   dropSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
 
-  summaryRow: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 10 },
+  summaryRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   fileName: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 },
   summaryStats: {
-    flexDirection: 'row' as const, gap: 8, marginTop: 14, flexWrap: 'wrap' as const,
+    flexDirection: 'row', gap: 8, marginTop: 14, flexWrap: 'wrap',
   },
   sumStat: {
     flex: 1, minWidth: 80, paddingVertical: 10, paddingHorizontal: 12,
     backgroundColor: SAC.cardSolid, borderRadius: 10, borderColor: SAC.border, borderWidth: 1,
-    alignItems: 'center' as const, gap: 2,
+    alignItems: 'center', gap: 2,
   },
   sumVal: { fontFamily: FONTS.xbold, fontSize: 18 },
   sumLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 10.5, letterSpacing: 0.4 },
 
-  mapRow: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 8, paddingVertical: 4 },
+  mapRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
   mapSrc: { color: SAC.text, fontFamily: FONTS.med, fontSize: 12, width: 220,
     ...(Platform.OS === 'web' ? ({ fontFamily: '"JetBrains Mono", "SF Mono", monospace' } as any) : {}) },
   mapUnused: { backgroundColor: 'rgba(255,255,255,0.04)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, borderWidth: 1, borderColor: SAC.border },
   mapUnusedText: { color: SAC.dim, fontFamily: FONTS.bold, fontSize: 10.5 },
 
   tableHead: {
-    flexDirection: 'row' as const, paddingHorizontal: 14, paddingVertical: 10,
+    flexDirection: 'row', paddingHorizontal: 14, paddingVertical: 10,
     backgroundColor: 'rgba(255,255,255,0.03)', borderBottomWidth: 1, borderBottomColor: SAC.border,
   },
   th: { color: SAC.muted, fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 1.2, paddingRight: 10 },
   tableRow: {
-    flexDirection: 'row' as const, alignItems: 'center' as const, paddingHorizontal: 14, paddingVertical: 10,
+    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10,
     borderBottomWidth: 1, borderBottomColor: SAC.border,
   },
   tableRowErr: { backgroundColor: 'rgba(239,68,68,0.04)' },
   td: { color: '#fff', fontFamily: FONTS.med, fontSize: 11.5, paddingRight: 10 },
 
-  commitRow: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12, flexWrap: 'wrap' as const },
+  commitRow: { flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' },
   commitTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
-  checkRow: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 6, marginTop: 8, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  checkBox: { width: 16, height: 16, borderRadius: 5, borderWidth: 1.4, borderColor: SAC.border2, alignItems: 'center' as const, justifyContent: 'center' as const },
+  checkRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  checkBox: { width: 16, height: 16, borderRadius: 5, borderWidth: 1.4, borderColor: SAC.border2, alignItems: 'center', justifyContent: 'center' },
   checkLabel: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 11.5 },
 
-  manualGrid: { flexDirection: 'row' as const, gap: 14, flexWrap: 'wrap' as any },
-  formGrid: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 12, marginTop: 12 },
+  // Manual
+  manualGrid: { flexDirection: 'row', gap: 14, flexWrap: 'wrap' as any },
+  formGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 12 },
   formField: { flex: 1, minWidth: 180, gap: 6 },
   formLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
   formInput: {
@@ -2025,34 +2028,36 @@ const s = {
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
   },
   previewBigVal: { fontFamily: FONTS.xbold, fontSize: 18 },
-  previewRule: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 6, padding: 10, borderRadius: 9, backgroundColor: 'rgba(245,158,11,0.08)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.25)' },
+  previewRule: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 10, borderRadius: 9, backgroundColor: 'rgba(245,158,11,0.08)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.25)' },
   previewRuleText: { color: GRAD.to, fontFamily: FONTS.xbold, fontSize: 11.5, flex: 1 },
   previewLbl: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
   previewVal: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
-  warnBox: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 6, padding: 8, borderRadius: 8, backgroundColor: 'rgba(251,191,36,0.08)', borderWidth: 1, borderColor: 'rgba(251,191,36,0.30)' },
+  warnBox: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 8, borderRadius: 8, backgroundColor: 'rgba(251,191,36,0.08)', borderWidth: 1, borderColor: 'rgba(251,191,36,0.30)' },
 
-  browseHead: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12, justifyContent: 'space-between' as const, flexWrap: 'wrap' as const },
+  // Browse
+  browseHead: { flexDirection: 'row', alignItems: 'center', gap: 12, justifyContent: 'space-between', flexWrap: 'wrap' },
   cardGrid: {
-    flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 16,
+    flexDirection: 'row', flexWrap: 'wrap', gap: 16,
     ...(Platform.OS === 'web' ? ({ display: 'grid' as any, gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' as any, gap: 16 } as any) : {}),
   },
   gridCell: { minWidth: 320, flexBasis: 320, flexGrow: 1 },
   viewModeBtn: {
-    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 5,
+    flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 9, paddingVertical: 4, borderRadius: 6,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '150ms' } as any) : {}),
   },
   viewModeBtnText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11 },
   toggleBtn: {
-    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 5,
+    flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 9, paddingVertical: 4, borderRadius: 7,
     borderWidth: 1, borderColor: SAC.border, backgroundColor: SAC.cardSolid,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   toggleBtnText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11 },
-
+  
+  // File list
   fileRow: {
-    flexDirection: 'row' as const, alignItems: 'center' as const, padding: 10, borderRadius: 8,
+    flexDirection: 'row', alignItems: 'center', padding: 10, borderRadius: 8,
     backgroundColor: SAC.cardSolid, borderWidth: 1, borderColor: SAC.border,
   },
   clearBtn: {
@@ -2062,13 +2067,14 @@ const s = {
   clearBtnText: { color: '#F87171', fontFamily: FONTS.bold, fontSize: 11 },
   removeFileBtn: {
     width: 28, height: 28, borderRadius: 14,
-    backgroundColor: 'rgba(239,68,68,0.1)', alignItems: 'center' as const, justifyContent: 'center' as const,
+    backgroundColor: 'rgba(239,68,68,0.1)', alignItems: 'center', justifyContent: 'center',
   },
-
+  
+  // Pagination
   paginationRow: {
-    flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingVertical: 12, paddingHorizontal: 14, borderTopWidth: 1, borderTopColor: SAC.border,
-    flexWrap: 'wrap' as const, gap: 10,
+    flexWrap: 'wrap', gap: 10,
   },
   perPageBtn: {
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6,
@@ -2088,9 +2094,10 @@ const s = {
   pageBtnDisabled: { opacity: 0.4 },
   pageBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
 
+  /* selection mode */
   selectBox: {
-    position: 'absolute' as const, top: 14, left: 14, width: 28, height: 28, borderRadius: 8,
-    alignItems: 'center' as const, justifyContent: 'center' as const, zIndex: 12,
+    position: 'absolute', top: 14, left: 14, width: 28, height: 28, borderRadius: 8,
+    alignItems: 'center', justifyContent: 'center', zIndex: 12,
     backgroundColor: 'rgba(0,0,0,0.55)', borderColor: 'rgba(251,146,60,0.25)', borderWidth: 1,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
@@ -2100,9 +2107,9 @@ const s = {
     ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 0 4px rgba(251,146,60,0.18)' } as any) : {}),
   },
   bulkBar: {
-    position: 'absolute' as const, bottom: 18, left: 0, right: 0,
+    position: 'absolute', bottom: 18, left: 0, right: 0,
     marginHorizontal: 'auto', maxWidth: 880,
-    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 10, flexWrap: 'wrap' as const,
+    flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap',
     paddingHorizontal: 18, paddingVertical: 12,
     backgroundColor: '#1A0E04', borderColor: 'rgba(251,146,60,0.45)', borderWidth: 1,
     borderRadius: 14,
@@ -2115,22 +2122,24 @@ const s = {
   bulkLinkBtn:{ ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   bulkLink:   { color: GRAD.to, fontFamily: FONTS.bold,  fontSize: 12 },
   bulkClose: {
-    width: 28, height: 28, borderRadius: 8, alignItems: 'center' as const, justifyContent: 'center' as const,
+    width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.06)',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
+  secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
   userRow: {
-    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12,
+    flexDirection: 'row', alignItems: 'center', gap: 12,
     paddingVertical: 11, paddingHorizontal: 14,
     backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 12,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '150ms' } as any) : {}),
   },
-  avatar: { width: 38, height: 38, borderRadius: 10, borderWidth: 1, alignItems: 'center' as const, justifyContent: 'center' as const },
+  avatar: { width: 38, height: 38, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   avatarInit: { fontFamily: FONTS.xbold, fontSize: 12.5 },
   userName: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
 
+  // History
   runCard: {
-    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12,
+    flexDirection: 'row', alignItems: 'center', gap: 12,
     paddingVertical: 12, paddingHorizontal: 14,
     backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 12,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '150ms' } as any) : {}),
@@ -2140,40 +2149,43 @@ const s = {
   miniLabel: { color: SAC.muted, fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 1.4 },
   kpiVal: { fontFamily: FONTS.xbold, fontSize: 22, marginTop: 4 },
 
+  // Modal
   modalBg: {
     flex: 1, backgroundColor: 'rgba(0,0,0,0.65)',
-    alignItems: 'center' as const, justifyContent: 'center' as const, padding: 20,
+    alignItems: 'center', justifyContent: 'center', padding: 20,
     ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(8px)' } as any) : {}),
   },
   modalCard: {
     width: '100%', maxWidth: 720, maxHeight: '92%',
     backgroundColor: SAC.bg2, borderRadius: 16, borderWidth: 1, borderColor: SAC.border2,
-    overflow: 'hidden' as const,
+    overflow: 'hidden',
     ...(Platform.OS === 'web' ? ({ boxShadow: '0 24px 60px rgba(0,0,0,0.7)' } as any) : {}),
   },
   modalHero: {
-    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12,
+    flexDirection: 'row', alignItems: 'center', gap: 12,
     padding: 18, borderBottomWidth: 1, borderBottomColor: SAC.border,
   },
   modalTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
   modalLabel: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
 
-  resultGrid: { flexDirection: 'row' as const, gap: 8, flexWrap: 'wrap' as const },
-  resultTile: { flex: 1, minWidth: 100, padding: 12, borderRadius: 10, backgroundColor: SAC.cardSolid, borderWidth: 1, borderColor: SAC.border, alignItems: 'center' as const, gap: 2 },
-  skipRow: { flexDirection: 'row' as const, gap: 10, paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: SAC.border },
+  resultGrid: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  resultTile: { flex: 1, minWidth: 100, padding: 12, borderRadius: 10, backgroundColor: SAC.cardSolid, borderWidth: 1, borderColor: SAC.border, alignItems: 'center', gap: 2 },
+  skipRow: { flexDirection: 'row', gap: 10, paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: SAC.border },
 
-  avatarLg: { width: 56, height: 56, borderRadius: 14, borderWidth: 1.5, backgroundColor: 'rgba(0,0,0,0.25)', alignItems: 'center' as const, justifyContent: 'center' as const },
+  // Profile panel
+  avatarLg: { width: 56, height: 56, borderRadius: 14, borderWidth: 1.5, backgroundColor: 'rgba(0,0,0,0.25)', alignItems: 'center', justifyContent: 'center' },
   avatarLgText: { fontFamily: FONTS.xbold, fontSize: 18 },
 
-  detailRow: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 10 },
+  detailRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   detailLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5, width: 130 },
   detailValue: { color: '#fff', fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
   catPick: { paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: SAC.border, marginRight: 6, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
 
-  actionsRow: { flexDirection: 'row' as const, justifyContent: 'flex-end' as const, gap: 8, marginTop: 4 },
+  actionsRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 4 },
   destructiveBtn: { backgroundColor: SAC.red, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
 
   btnText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
+  secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
   inlineInput: {
     backgroundColor: 'rgba(0,0,0,0.6)',
     borderColor: GRAD.to,
@@ -2197,4 +2209,4 @@ const s = {
     fontFamily: FONTS.med,
     marginTop: 6,
   },
-};
+});

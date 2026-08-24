@@ -23,7 +23,7 @@
  */
 import { ReactNode } from 'react';
 import {
-  View, Text, ScrollView, Pressable, Platform, KeyboardAvoidingView,
+  View, Text, ScrollView, StyleSheet, Pressable, Platform, KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft } from 'lucide-react-native';
@@ -225,7 +225,7 @@ export function DarkToggle({
 }
 
 // ─── styles ──────────────────────────────────────────────────────────────────
-const styles = {{
+const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -276,9 +276,9 @@ const styles = {{
     paddingTop: 8,
     paddingBottom: 60,
   },
-};
+});
 
-const chipStyles = {{
+const chipStyles = StyleSheet.create({
   chip: {
     paddingHorizontal: 14,
     paddingVertical: 8,
@@ -301,9 +301,9 @@ const chipStyles = {{
     color: '#6D28D9',
     fontFamily: 'DMSans_700Bold',
   },
-};
+});
 
-const infoStyles = {{
+const infoStyles = StyleSheet.create({
   card: {
     borderWidth: 1,
     borderRadius: 12,
@@ -311,9 +311,9 @@ const infoStyles = {{
     paddingVertical: 12,
     marginBottom: 14,
   },
-};
+});
 
-const toggleStyles = {{
+const toggleStyles = StyleSheet.create({
   track: {
     width: 44,
     height: 26,
@@ -332,4 +332,4 @@ const toggleStyles = {{
     alignSelf: 'flex-start',
   },
   knobOn: { alignSelf: 'flex-end' },
-};
+});

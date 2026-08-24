@@ -160,49 +160,38 @@ export function Footer() {
         <div className="sa-footer-main-grid">
           {/* Brand column */}
           <div className="sa-footer-brand-col" style={{ minWidth: "220px" }}>
-            <div
-              onClick={() => {
-                if (typeof window !== "undefined") {
-                  if (pathname === "/" || pathname === "/welcome") {
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  } else {
-                    router.push("/");
-                  }
-                }
-              }}
-              style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}
-            >
-              <svg width="28" height="33" viewBox="0 0 300 350" style={{ display: "block", flexShrink: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <svg height="36" style={{ display: "block", flexShrink: 0 }} viewBox="0 0 32 36" width="32">
                 <defs>
-                  <linearGradient id="saFooterMainBadgeGrad" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="#C9A7FF" />
-                    <stop offset="48%" stopColor="#8B5CF6" />
-                    <stop offset="100%" stopColor="#5B2FD0" />
+                  <linearGradient id="saFooterMainBadgeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#D8B6FF" />
+                    <stop offset="45%" stopColor="#9A5CE8" />
+                    <stop offset="100%" stopColor="#5B1FB0" />
                   </linearGradient>
-                  <linearGradient id="saFooterInnerBadgeGrad" x1="0" y1="0" x2="0.4" y2="1">
+                  <linearGradient id="saFooterInnerBadgeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stopColor="#B683F5" />
                     <stop offset="100%" stopColor="#7331C9" />
                   </linearGradient>
                 </defs>
                 <path
-                  d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z"
+                  d="M16 2 L29 6.5 v13.5 c0 9 -7.5 13.5 -13 16 C10.5 33.5 3 29 3 20 V6.5 Z"
                   fill="url(#saFooterMainBadgeGrad)"
                 />
                 <path
-                  d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z"
+                  d="M16 4.5 L26.5 8.2 v11.8 c0 7 -6 11 -10.5 13 C11.5 31 5.5 27 5.5 20 V8.2 Z"
                   fill="url(#saFooterInnerBadgeGrad)"
                 />
                 <text
                   style={{
-                    fontFamily: "'Manrope', -apple-system, sans-serif",
-                    fontSize: "118px",
+                    fontFamily: "'Manrope', sans-serif",
+                    fontSize: "12px",
                     fontWeight: "800",
-                    letterSpacing: "-5px",
+                    letterSpacing: "-0.5px",
                     fill: "#FFFFFF",
                   }}
                   textAnchor="middle"
-                  x="150"
-                  y="214"
+                  x="16"
+                  y="22.5"
                 >
                   SA
                 </text>
@@ -212,9 +201,11 @@ export function Footer() {
                   fontSize: "20px",
                   fontWeight: 800,
                   letterSpacing: "-0.4px",
-                  color: "#FFFFFF",
-                  whiteSpace: "nowrap",
+                  background: "linear-gradient(135deg, #FFFFFF 0%, #E8E6FF 40%, #B487FF 80%, #8B84FF 100%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
                   fontFamily: "'Manrope', sans-serif",
+                  filter: "drop-shadow(0 2px 10px rgba(139, 132, 255, 0.35))",
                 }}
               >
                 StudentAlumni
@@ -373,82 +364,10 @@ export function Footer() {
           ))}
         </div>
 
-        {/* Newsletter Subscription Row */}
-        <div
-          style={{
-            marginTop: "48px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: "22px",
-            flexWrap: "wrap",
-            border: "1px solid #2A2A55",
-            borderRadius: "18px",
-            background: "#0E1020",
-            padding: "24px 28px",
-          }}
-        >
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: "19px", fontWeight: 700, letterSpacing: "-0.4px", color: "#F4F5FB" }}>
-              One email a month. Nothing else.
-            </div>
-            <div style={{ fontSize: "14.5px", color: "#B6BACB", marginTop: "5px" }}>
-              New openings, mentor drops and campus events — no noise.
-            </div>
-          </div>
-          <div style={{ display: "flex", gap: "10px", flex: "1 1 340px", flexWrap: "wrap" }}>
-            <input
-              type="email"
-              placeholder="you@college.edu"
-              style={{
-                flex: "1 1 220px",
-                minWidth: 0,
-                border: "1px solid #1B1E33",
-                borderRadius: "11px",
-                background: "#0A0C18",
-                padding: "14px 16px",
-                fontSize: "14.5px",
-                color: "#F4F5FB",
-                outline: "none",
-                fontFamily: "inherit",
-              }}
-            />
-            <button
-              type="button"
-              onClick={(e) => {
-                const btn = e.currentTarget;
-                btn.textContent = "Subscribed ✓";
-                btn.style.background = "#047857";
-                setTimeout(() => {
-                  btn.textContent = "Subscribe";
-                  btn.style.background = "#5B4FE9";
-                }, 2200);
-              }}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "9px",
-                background: "#5B4FE9",
-                color: "#FFFFFF",
-                fontSize: "14.5px",
-                fontWeight: 600,
-                padding: "14px 24px",
-                borderRadius: "11px",
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-                border: "none",
-                boxShadow: "0 0 16px rgba(91,79,233,0.35)",
-              }}
-            >
-              Subscribe
-            </button>
-          </div>
-        </div>
-
         {/* Signature StudentAlumni Brand Banner */}
         <div
           style={{
-            marginTop: "36px",
+            marginTop: "56px",
             paddingTop: "32px",
             borderTop: "1px solid rgba(255, 255, 255, 0.08)",
             display: "flex",
@@ -511,6 +430,62 @@ export function Footer() {
             </div>
             <div style={{ fontSize: "13.5px", color: "#9AA0B4", fontWeight: 500 }}>
               All rights reserved © StudentAlumni 2026
+            </div>
+          </div>
+
+          {/* Bottom Action Row */}
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "16px",
+              paddingTop: "20px",
+              borderTop: "1px solid rgba(255, 255, 255, 0.06)",
+            }}
+          >
+            <p style={{ margin: 0, fontSize: "14px", color: "#9AA0B4", fontWeight: 500 }}>
+              Free for students · about a minute to set up
+            </p>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <button
+                type="button"
+                onClick={() => router.push("/get-started" as any)}
+                style={{
+                  padding: "10px 18px",
+                  borderRadius: "8px",
+                  backgroundColor: "#0C0E1B",
+                  border: "1px solid #2A2E45",
+                  fontSize: "13.5px",
+                  fontWeight: 500,
+                  color: "#F4F5FB",
+                  cursor: "pointer",
+                  fontFamily: "'Manrope', sans-serif",
+                  transition: "border-color 0.2s ease",
+                }}
+              >
+                For colleges
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push("/get-started")}
+                style={{
+                  padding: "10px 20px",
+                  borderRadius: "8px",
+                  backgroundColor: "#5B4FE9",
+                  border: "none",
+                  fontSize: "13.5px",
+                  fontWeight: 600,
+                  color: "#FFFFFF",
+                  cursor: "pointer",
+                  fontFamily: "'Manrope', sans-serif",
+                  boxShadow: "0 0 16px rgba(91, 79, 233, 0.4)",
+                  transition: "background-color 0.2s ease",
+                }}
+              >
+                Get started
+              </button>
             </div>
           </div>
         </div>

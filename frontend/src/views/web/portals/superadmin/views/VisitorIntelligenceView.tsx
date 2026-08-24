@@ -14,7 +14,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  View, Text, Pressable, Platform, useWindowDimensions, ScrollView,
+  View, Text, StyleSheet, Pressable, Platform, useWindowDimensions, ScrollView,
   TextInput, ActivityIndicator,
 } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
@@ -974,7 +974,7 @@ export function VisitorIntelligenceView() {
 }
 
 // ── Styles ──────────────────────────────────────────────────────────────────
-const s = {
+const s = StyleSheet.create({
   container: {
     gap: 16,
   },
@@ -1539,4 +1539,4 @@ const s = {
     fontSize: 12,
     marginTop: 4,
   },
-};
+});

@@ -12,7 +12,7 @@
 import * as React from 'react';
 import { useState, useMemo, useEffect } from 'react';
 import {
-  View, Text, Pressable, Modal, Platform, ScrollView,
+  View, Text, StyleSheet, Pressable, Modal, Platform, ScrollView,
 } from 'react-native';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, ChevronDown, X } from 'lucide-react-native';
 import { PALETTE, FONTS, TYPO } from '../portals/student/tokens';
@@ -284,7 +284,7 @@ export function CalendarDatePicker({
   );
 }
 
-const s = {
+const s = StyleSheet.create({
   wrap: { marginBottom: 4 },
   label: { color: '#94a3b8', fontFamily: FONTS.semi, fontSize: 11, marginTop: 6, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
   inputTrigger: {
@@ -360,4 +360,4 @@ const s = {
   yearItemActive: { backgroundColor: 'rgba(124,58,237,0.3)' },
   yearItemText: { color: PALETTE.muted, fontFamily: FONTS.med, fontSize: 14 },
   yearItemTextActive: { color: '#fff', fontFamily: TYPO.display700 },
-} as const;
+});

@@ -1,20 +1,19 @@
 /**
  * Student Portal — reusable atoms (Avatar, Badge, KpiCard, etc).
- * Migrated to NativeWind className.
  */
 import React from 'react';
-import { View, Text, Image } from 'react-native';
+import { View, Text, StyleSheet, Image } from 'react-native';
 import { LucideIcon } from './iconShims';
 import { SC, FONTS } from './tokens';
 
 export function Av({ initials, size = 40, color, photo }: { initials: string; size?: number; color?: string; photo?: string }) {
   const bg = (color || SC.primary) + 'CC';
   return (
-    <View className="items-center justify-center overflow-hidden border-white/10" style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: bg, borderWidth: 2 }}>
+    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: bg, borderWidth: 2, borderColor: 'rgba(255,255,255,0.10)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
       {photo ? (
-        <Image source={{ uri: photo }} className="w-full h-full" />
+        <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} />
       ) : (
-        <Text className="text-white font-bold" style={{ fontSize: size * 0.36 }}>{initials}</Text>
+        <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: size * 0.36 }}>{initials}</Text>
       )}
     </View>
   );
@@ -35,8 +34,8 @@ export type BadgeColor = keyof typeof BADGE_COLORS;
 export function Badge({ label, color = 'purple' }: { label: string; color?: BadgeColor }) {
   const p = BADGE_COLORS[color] || BADGE_COLORS.gray;
   return (
-    <View className="self-start rounded-md border px-2 py-[3px]" style={{ backgroundColor: p.bg, borderColor: p.bc }}>
-      <Text className="font-bold text-[10.5px] tracking-wide" style={{ color: p.c }}>{label}</Text>
+    <View style={[styles.badge, { backgroundColor: p.bg, borderColor: p.bc }]}>
+      <Text style={{ color: p.c, fontFamily: FONTS.bold, fontSize: 10.5, letterSpacing: 0.3 }}>{label}</Text>
     </View>
   );
 }
@@ -54,13 +53,24 @@ export function KpiCard({
   const p = PALETTES[color] || PALETTES.purple;
   const IconComp = Icon;
   return (
-    <View className="flex-1 min-w-[160px] py-4 px-4 rounded-xl border" style={{ backgroundColor: p.tint, borderColor: p.border }}>
-      <View className="flex-row items-center gap-2 mb-1.5">
+    <View style={[styles.kpi, { backgroundColor: p.tint, borderColor: p.border }]}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
         {IconComp && <IconComp size={14} color={p.ic} />}
-        <Text className="font-bold text-[11.5px] tracking-wider" style={{ color: SC.muted }}>{label}</Text>
+        <Text style={{ color: SC.muted, fontFamily: FONTS.bold, fontSize: 11.5, letterSpacing: 0.4 }}>{label}</Text>
       </View>
-      <Text className="text-white font-display text-[30px] tracking-tight">{value}</Text>
-      <Text className="font-body text-[11px] mt-0.5" style={{ color: p.ic }}>{delta}</Text>
+      <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 30, letterSpacing: -0.5 }}>{value}</Text>
+      <Text style={{ color: p.ic, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 }}>{delta}</Text>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  badge: {
+    paddingHorizontal: 8, paddingVertical: 3,
+    borderRadius: 6, borderWidth: 1, alignSelf: 'flex-start',
+  },
+  kpi: {
+    flex: 1, minWidth: 160, paddingVertical: 16, paddingHorizontal: 16,
+    borderRadius: 12, borderWidth: 1,
+  },
+});

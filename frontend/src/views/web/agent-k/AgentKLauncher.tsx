@@ -11,7 +11,7 @@
  * (handled separately in AgentKQuickLauncher).
  */
 import React from 'react';
-import { View, Text, Pressable, Platform } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Bot, Sparkles } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
@@ -119,7 +119,7 @@ export function AgentKLauncher({ collapsed = false }: { collapsed?: boolean }) {
   );
 }
 
-const styles = {
+const styles = StyleSheet.create({
   outer: {
     marginHorizontal: 12,
     marginBottom: 14,
@@ -254,4 +254,4 @@ const styles = {
     borderWidth: 1.5,
     borderColor: '#0F172A',
   },
-} as const;
+});

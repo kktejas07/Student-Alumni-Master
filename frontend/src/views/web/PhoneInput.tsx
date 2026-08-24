@@ -10,7 +10,7 @@
  * strict validation is needed.
  */
 import React, { useMemo, useState } from 'react';
-import { View, Text, Pressable, Platform, TextInput as RNTextInput, ScrollView } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Platform, TextInput as RNTextInput, ScrollView } from 'react-native';
 import { ChevronDown, Search } from 'lucide-react-native';
 import { FONTS } from '@/src/views/auth/tokens';
 
@@ -179,9 +179,9 @@ export const PhoneInput = React.forwardRef<RNTextInput, {
       {helper ? <Text style={s.helper}>{helper}</Text> : null}
     </View>
   );
-};
+});
 
-const s = {{
+const s = StyleSheet.create({
   label: {
     color: '#374151', fontFamily: FONTS.bold,
     fontSize: 11, letterSpacing: 1, textTransform: 'uppercase',
@@ -240,4 +240,4 @@ const s = {{
   itemHover: { backgroundColor: '#F3F4F6' },
   itemName: { flex: 1, color: '#111827', fontFamily: FONTS.med, fontSize: 13 },
   itemDial: { color: '#6B7280', fontFamily: FONTS.bold, fontSize: 12 },
-};
+});

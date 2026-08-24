@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, Pressable, ScrollView, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, Platform, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons as MCI } from '@expo/vector-icons';
 import { MC, FONTS } from '../tokens';
@@ -41,6 +41,8 @@ const AI_INSIGHTS = [
   { title: 'Schedule Mock Interviews for 12 students', icon: 'account-voice' },
   { title: 'Share Python Practice Resources', icon: 'language-python' },
 ];
+
+// UPCOMING_SESSIONS is now fetched dynamically from bookings
 
 const RECENT_ACTIVITY = [
   { text: 'Rahul completed SQL Assessment', icon: 'check-circle', color: '#10B981' },
@@ -124,11 +126,11 @@ export function MentorAIStudioView() {
   }, [prepLoading]);
 
   const renderSectionHeader = (title: string, icon: string, color: string = TINT) => (
-    <View className="flex-row items-center gap-2.5">
-      <View className="w-7 h-7 rounded-lg items-center justify-center border" style={{ backgroundColor: `${color}24`, borderColor: `${color}66` }}>
+    <View style={s.sectionHead}>
+      <View style={[s.sectionIcon, { backgroundColor: `${color}24`, borderColor: `${color}66` }]}>
         <MCI name={icon as any} size={14} color={color} />
       </View>
-      <Text className="text-white font-display-bold text-[15px]">{title}</Text>
+      <Text style={s.sectionTitle}>{title}</Text>
     </View>
   );
 
@@ -141,25 +143,25 @@ export function MentorAIStudioView() {
   const topPerformers = [...pulse].sort((a, b) => b.progress_pct - a.progress_pct).slice(0, 5);
 
   return (
-    <View className="flex-1 bg-bg">
-      <ScrollView className="flex-1" contentContainerStyle={{ padding: 22, paddingBottom: 60, gap: 24 }}>
+    <View style={{ flex: 1, backgroundColor: MC.bg }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 22, paddingBottom: 60, gap: 24 }}>
         {/* Header */}
-        <View className="flex-row items-center gap-3 mb-1">
-          <View className="w-[44px] h-[44px] rounded-[12px] items-center justify-center border" style={{ backgroundColor: TINT_GLOW, borderColor: `${TINT}80` }}>
+        <View style={s.headerRow}>
+          <View style={[s.headerIcon, { backgroundColor: TINT_GLOW, borderColor: `${TINT}80` }]}>
             <MCI name="head-cog-outline" size={20} color={TINT} />
           </View>
-          <View className="flex-1">
-            <Text className="text-white font-display-bold text-xl">Mentor AI Studio</Text>
-            <Text className="text-muted font-body-semibold text-[13px] mt-0.5">Comprehensive analytics, risk tracking, and AI session preparation.</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={s.h1}>Mentor AI Studio</Text>
+            <Text style={s.h1Sub}>Comprehensive analytics, risk tracking, and AI session preparation.</Text>
           </View>
-          <Pressable onPress={load} disabled={loading} className="flex-row items-center gap-[5px] h-8 px-3 rounded-[9px] bg-card border" style={{ borderColor: MC.border2, ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}) }}>
+          <Pressable onPress={load} disabled={loading} style={s.refreshBtn}>
             {loading ? <ActivityIndicator size="small" color={TINT} /> : <MCI name="refresh" size={14} color={TINT} />}
-            <Text className="text-teal font-body-bold text-[11.5px]">{loading ? 'Loading' : 'Refresh'}</Text>
+            <Text style={s.refreshText}>{loading ? 'Loading' : 'Refresh'}</Text>
           </Pressable>
         </View>
 
         {/* Overview Cards */}
-        <View className="flex-row flex-wrap gap-3">
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
           <ImpactTile icon="account-multiple" label="Total Mentees" value={impact?.mentees_total ?? '—'} accent={TINT} />
           <ImpactTile icon="calendar-check" label="Active Sessions" value={impact?.sessions_last_30d ?? '—'} accent={GOLD} />
           <ImpactTile icon="flag-checkered" label="Milestones" value={impact?.milestones_completed_total ?? '—'} accent="#3B82F6" />
@@ -169,52 +171,53 @@ export function MentorAIStudioView() {
 
         <View style={{ flexDirection: Platform.OS === 'web' && typeof window !== 'undefined' && window.innerWidth > 1000 ? 'row' : 'column', gap: 24 }}>
           {/* LEFT COLUMN */}
-          <View className="flex-[2] gap-6">
+          <View style={{ flex: 2, gap: 24 }}>
+            
             {/* Top Skill Gaps */}
-            <View className="bg-card border border-glass-border rounded-[14px] p-4">
+            <View style={s.sectionCard}>
               {renderSectionHeader('Top Skill Gaps', 'chart-bar', '#F59E0B')}
-              <View className="gap-3 mt-3">
-                {gaps.length === 0 && !loading && <Text className="text-dim mt-2.5">No skill gaps detected.</Text>}
+              <View style={{ gap: 12, marginTop: 12 }}>
+                {gaps.length === 0 && !loading && <Text style={{color: MC.dim, marginTop: 10}}>No skill gaps detected.</Text>}
                 {gaps.map((g, i) => (
-                  <View key={g.skill} className="flex-row items-center gap-2.5">
-                    <Text className="text-white font-body-bold text-xs w-[120px]">{g.skill}</Text>
-                    <View className="flex-1 h-2 rounded bg-white/[0.06] overflow-hidden">
-                      <View className="h-full rounded" style={{ width: `${g.avg_score}%` as any, backgroundColor: ['#3B82F6','#F59E0B','#10B981','#8B5CF6','#EC4899'][i%5] }} />
+                  <View key={g.skill} style={s.gapRow}>
+                    <Text style={s.gapName}>{g.skill}</Text>
+                    <View style={s.gapBarTrack}>
+                      <View style={[s.gapBarFill, { width: `${g.avg_score}%` as any, backgroundColor: ['#3B82F6','#F59E0B','#10B981','#8B5CF6','#EC4899'][i%5] }]} />
                     </View>
-                    <Text className="text-muted font-body-semibold text-[11px] w-[130px] text-right">{g.mentees_below_60} mentees under 60%</Text>
+                    <Text style={s.gapScore}>{g.mentees_below_60} mentees under 60%</Text>
                   </View>
                 ))}
               </View>
             </View>
 
             {/* Mentee Pulse */}
-            <View className="bg-card border border-glass-border rounded-[14px] p-4">
+            <View style={s.sectionCard}>
               {renderSectionHeader('Mentee Pulse', 'heart-pulse', TINT)}
-              <View className="gap-2 mt-3">
-                <View className="flex-row px-2 pb-2 border-b border-glass-border">
-                  <Text className="text-dim font-body-bold text-[11px] uppercase flex-[2]">Student</Text>
-                  <Text className="text-dim font-body-bold text-[11px] uppercase flex-1">Progress</Text>
-                  <Text className="text-dim font-body-bold text-[11px] uppercase flex-1">Risk Level</Text>
-                  <View className="w-20" />
+              <View style={{ gap: 8, marginTop: 12 }}>
+                <View style={{ flexDirection: 'row', paddingHorizontal: 8, paddingBottom: 8, borderBottomWidth: 1, borderColor: MC.border }}>
+                  <Text style={[s.colHeader, { flex: 2 }]}>Student</Text>
+                  <Text style={[s.colHeader, { flex: 1 }]}>Progress</Text>
+                  <Text style={[s.colHeader, { flex: 1 }]}>Risk Level</Text>
+                  <View style={{ width: 80 }} />
                 </View>
-                {pulse.length === 0 && !loading && <Text className="text-dim mt-2.5 pl-2">No mentees found.</Text>}
+                {pulse.length === 0 && !loading && <Text style={{color: MC.dim, marginTop: 10, paddingLeft: 8}}>No mentees found.</Text>}
                 {pulse.map(m => {
                   const risk = getRisk(m);
                   return (
-                    <View key={m.user_id} className="flex-row py-3 border-b" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
-                      <View className="flex-[2]">
-                        <Text className="text-white font-body-bold text-[13px]">{m.name}</Text>
-                        {m.stuck && <Text className="text-rose text-[10px] mt-0.5">⚠️ Stuck on roadmap</Text>}
+                    <View key={m.user_id} style={s.tableRow}>
+                      <View style={{ flex: 2 }}>
+                        <Text style={s.menteeName}>{m.name}</Text>
+                        {m.stuck && <Text style={s.flagText}>⚠️ Stuck on roadmap</Text>}
                       </View>
-                      <Text className="text-white font-body-bold text-[13px] flex-1">{m.progress_pct}%</Text>
-                      <View className="flex-1 flex-row">
-                        <View className="px-2 py-1 rounded-md border" style={{ backgroundColor: `${risk.color}22`, borderColor: risk.color }}>
-                          <Text className="font-body-bold text-[10px] uppercase" style={{ color: risk.color }}>{risk.label}</Text>
+                      <Text style={[s.menteeName, { flex: 1 }]}>{m.progress_pct}%</Text>
+                      <View style={{ flex: 1, flexDirection: 'row' }}>
+                        <View style={[s.riskBadge, { backgroundColor: `${risk.color}22`, borderColor: risk.color }]}>
+                          <Text style={[s.riskText, { color: risk.color }]}>{risk.label}</Text>
                         </View>
                       </View>
-                      <Pressable onPress={() => generatePrep(m)} disabled={!!prepLoading} className="flex-row items-center gap-[5px] px-[11px] h-[30px] rounded-lg bg-teal" style={{ ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}), ...(!!prepLoading ? { opacity: 0.6 } : {}) }}>
+                      <Pressable onPress={() => generatePrep(m)} disabled={!!prepLoading} style={[s.prepCta, !!prepLoading && { opacity: 0.6 }]}>
                         {prepLoading === m.user_id ? <ActivityIndicator size="small" color="#fff" /> : <MCI name="lightbulb-on-outline" size={12} color="#fff" />}
-                        <Text className="text-white font-display-bold text-[11px]">{prepLoading === m.user_id ? 'Wait' : 'AI Prep'}</Text>
+                        <Text style={s.prepCtaText}>{prepLoading === m.user_id ? 'Wait' : 'AI Prep'}</Text>
                       </Pressable>
                     </View>
                   );
@@ -222,76 +225,78 @@ export function MentorAIStudioView() {
               </View>
             </View>
 
-            {/* AI Session Preparation Panel */}
+            {/* AI Session Preparation Panel (Appears when prep generated) */}
             {prep && (
-              <View className="bg-card border-2 rounded-[14px] p-4" style={{ borderColor: TINT }}>
-                <View className="flex-row justify-between items-center">
+              <View style={[s.sectionCard, { borderColor: TINT, borderWidth: 2 }]}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   {renderSectionHeader(`AI Prep Brief: ${prep.mentee.name}`, 'robot-outline', TINT)}
                   <Pressable onPress={() => setPrep(null)}><MCI name="close" size={20} color={MC.muted} /></Pressable>
                 </View>
-                <View className="gap-3 mt-3">
-                  <View className="flex-row gap-2"><Text className="text-teal font-body-bold text-xs w-[60px]">Goal:</Text><Text className="text-white font-body-semibold text-xs flex-1 leading-[18px]">{prep.mentee.target_role}</Text></View>
-                  <View className="flex-row gap-2">
-                    <Text className="text-teal font-body-bold text-xs w-[60px]">Plan:</Text>
-                    <View className="flex-1 gap-1.5">
+                <View style={{ gap: 12, marginTop: 12 }}>
+                  <View style={s.prepRow}><Text style={s.prepLabel}>Goal:</Text><Text style={s.prepValue}>{prep.mentee.target_role}</Text></View>
+                  <View style={s.prepRow}>
+                    <Text style={s.prepLabel}>Plan:</Text>
+                    <View style={{ flex: 1, gap: 6 }}>
                       {prep.bullets.map((b, i) => (
-                        <Text key={i} className="text-white font-body-semibold text-xs flex-1 leading-[18px]">• {b}</Text>
+                        <Text key={i} style={s.prepValue}>• {b}</Text>
                       ))}
                     </View>
                   </View>
                 </View>
               </View>
             )}
+
           </View>
 
           {/* RIGHT COLUMN */}
-          <View className="flex-1 gap-6">
+          <View style={{ flex: 1, gap: 24 }}>
+            
             {/* AI Recommendations */}
-            <View className="bg-card border border-glass-border rounded-[14px] p-4">
+            <View style={s.sectionCard}>
               {renderSectionHeader('💡 AI Recommendations', 'lightbulb-on', '#FCD34D')}
-              <View className="gap-2.5 mt-3">
+              <View style={{ gap: 10, marginTop: 12 }}>
                 {AI_INSIGHTS.map((ins, i) => (
-                  <View key={i} className="flex-row items-center gap-2.5 bg-white/[0.03] p-3 rounded-lg border" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+                  <View key={i} style={s.insightCard}>
                     <MCI name={ins.icon as any} size={18} color={TINT} />
-                    <Text className="text-white font-body-semibold text-[13px] flex-1">{ins.title}</Text>
+                    <Text style={s.insightText}>{ins.title}</Text>
                   </View>
                 ))}
               </View>
             </View>
 
-            {/* Student Leaderboard */}
-            <View className="bg-card border border-glass-border rounded-[14px] p-4">
+            {/* Student Leaderboard (Synced with Pulse) */}
+            <View style={s.sectionCard}>
               {renderSectionHeader('🏆 Top Performers', 'trophy', '#F59E0B')}
-              <View className="gap-3 mt-3">
-                {topPerformers.length === 0 && !loading && <Text className="text-dim">No data.</Text>}
+              <View style={{ gap: 12, marginTop: 12 }}>
+                {topPerformers.length === 0 && !loading && <Text style={{color: MC.dim}}>No data.</Text>}
                 {topPerformers.map((l, i) => (
-                  <View key={l.user_id} className="flex-row justify-between items-center">
-                    <View className="flex-row items-center gap-2">
-                      <Text className="font-display-bold text-[14px]" style={{ color: GOLD }}>#{i+1}</Text>
-                      <Text className="text-white font-body-bold text-[13px]">{l.name}</Text>
+                  <View key={l.user_id} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <Text style={s.rankNum}>#{i+1}</Text>
+                      <Text style={s.menteeName}>{l.name}</Text>
                     </View>
-                    <Text className="text-white font-body-bold text-[14px]">{l.progress_pct}%</Text>
+                    <Text style={s.scoreText}>{l.progress_pct}%</Text>
                   </View>
                 ))}
               </View>
             </View>
 
             {/* Upcoming Sessions & Activity */}
-            <View className="bg-card border border-glass-border rounded-[14px] p-4">
+            <View style={s.sectionCard}>
               {renderSectionHeader('Upcoming Sessions', 'calendar', '#3B82F6')}
-              <View className="gap-3 mt-3">
+              <View style={{ gap: 12, marginTop: 12 }}>
                 {upcoming.length === 0 && !loading && (
-                  <Text className="text-dim text-[12.5px]">No upcoming sessions scheduled.</Text>
+                  <Text style={{ color: MC.dim, fontSize: 12.5 }}>No upcoming sessions scheduled.</Text>
                 )}
                 {upcoming.map((sess, i) => (
-                  <View key={sess.id || i} className="flex-row items-center gap-3">
-                    <View className="flex-row items-center gap-1 bg-blue/[0.1] px-1.5 py-0.5 rounded">
+                  <View key={sess.id || i} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    <View style={s.dateBox}>
                       <MCI name="calendar-blank" size={14} color="#3B82F6" />
-                      <Text className="font-body-bold text-[11px]" style={{ color: '#3B82F6' }}>
+                      <Text style={[s.dateText, { color: '#3B82F6' }]}>
                         {formatSessionDate(sess.slot_start_iso || sess.scheduled_at)}
                       </Text>
                     </View>
-                    <Text className="text-gray-300 font-body-semibold text-[12.5px] flex-1" numberOfLines={1}>
+                    <Text style={s.activityText} numberOfLines={1}>
                       {sess.student_name ? `${sess.student_name}: ` : ''}{sess.topic}
                     </Text>
                   </View>
@@ -299,17 +304,18 @@ export function MentorAIStudioView() {
               </View>
             </View>
 
-            <View className="bg-card border border-glass-border rounded-[14px] p-4">
+            <View style={s.sectionCard}>
               {renderSectionHeader('📚 Recommended Resources', 'book-open-variant', '#10B981')}
-              <View className="gap-2 mt-3">
+              <View style={{ gap: 8, marginTop: 12 }}>
                 {RESOURCES.map((r, i) => (
-                  <View key={i} className="flex-row items-center gap-1.5">
+                  <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <MCI name="link-variant" size={14} color="#10B981" />
-                    <Text className="text-white font-body-semibold text-[12.5px] underline">{r}</Text>
+                    <Text style={s.resourceText}>{r}</Text>
                   </View>
                 ))}
               </View>
             </View>
+
           </View>
         </View>
       </ScrollView>
@@ -319,12 +325,69 @@ export function MentorAIStudioView() {
 
 function ImpactTile({ icon, label, value, accent }: { icon: any; label: string; value: any; accent: string }) {
   return (
-    <View className="min-w-[140px] flex-1 bg-card border rounded-xl p-3.5" style={{ borderColor: `${accent}40` }}>
-      <View className="flex-row items-center gap-1.5 mb-2">
+    <View style={[s.kpi, { borderColor: `${accent}40` }]}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
         <MCI name={icon} size={14} color={accent} />
-        <Text className="font-body-bold text-[11px] tracking-[0.5px]" style={{ color: accent }}>{label}</Text>
+        <Text style={[s.kpiLabel, { color: accent }]}>{label}</Text>
       </View>
-      <Text className="text-white font-display-bold text-[24px]">{value}</Text>
+      <Text style={s.kpiValue}>{value}</Text>
     </View>
   );
 }
+
+const s = StyleSheet.create({
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 4 },
+  headerIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  h1: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 20 },
+  h1Sub: { color: MC.muted, fontFamily: FONTS.med, fontSize: 13, marginTop: 2 },
+  refreshBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 5, height: 32, paddingHorizontal: 12, borderRadius: 9,
+    backgroundColor: MC.card, borderColor: MC.border2, borderWidth: 1,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  refreshText: { color: TINT, fontFamily: FONTS.bold, fontSize: 11.5 },
+  
+  kpi: { minWidth: 140, flex: 1, backgroundColor: MC.card, borderWidth: 1, borderRadius: 12, padding: 14 },
+  kpiLabel: { fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.5 },
+  kpiValue: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 24 },
+
+  sectionCard: { backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 14, padding: 16 },
+  sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  sectionIcon: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  sectionTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
+
+  gapRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  gapName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12, width: 120 },
+  gapBarTrack: { flex: 1, height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.06)', overflow: 'hidden' },
+  gapBarFill: { height: '100%', borderRadius: 4 },
+  gapScore: { color: MC.muted, fontFamily: FONTS.med, fontSize: 11, width: 130, textAlign: 'right' },
+
+  colHeader: { color: MC.dim, fontFamily: FONTS.bold, fontSize: 11, textTransform: 'uppercase' },
+  tableRow: { flexDirection: 'row', paddingVertical: 12, borderBottomWidth: 1, borderColor: 'rgba(255,255,255,0.05)', alignItems: 'center' },
+  menteeName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13 },
+  flagText: { color: '#FCA5A5', fontSize: 10, marginTop: 2 },
+  riskBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1 },
+  riskText: { fontFamily: FONTS.bold, fontSize: 10, textTransform: 'uppercase' },
+
+  prepCta: {
+    flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 11, height: 30, borderRadius: 8,
+    backgroundColor: TINT, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  prepCtaText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 11 },
+
+  prepRow: { flexDirection: 'row', gap: 8 },
+  prepLabel: { color: TINT, fontFamily: FONTS.bold, fontSize: 12, width: 60 },
+  prepValue: { color: '#fff', fontFamily: FONTS.med, fontSize: 12, flex: 1, lineHeight: 18 },
+
+  insightCard: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: 'rgba(255,255,255,0.03)', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
+  insightText: { color: '#fff', fontFamily: FONTS.med, fontSize: 13, flex: 1 },
+
+  activityText: { color: '#D1D5DB', fontFamily: FONTS.med, fontSize: 12.5 },
+  dateBox: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: `rgba(59,130,246,0.1)`, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  dateText: { fontFamily: FONTS.bold, fontSize: 11 },
+
+  rankNum: { color: GOLD, fontFamily: FONTS.xbold, fontSize: 14 },
+  scoreText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 14 },
+
+  resourceText: { color: '#fff', fontFamily: FONTS.med, fontSize: 12.5, textDecorationLine: 'underline' },
+});

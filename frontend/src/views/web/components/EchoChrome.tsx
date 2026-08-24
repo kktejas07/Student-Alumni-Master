@@ -6,7 +6,7 @@
  */
 // @ts-nocheck
 import React, { useState } from 'react';
-import { View, Image, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Image, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
 import { Footer } from '@/src/views/web/nexus-glow-landing/Footer';
@@ -74,10 +74,10 @@ export function EchoImg({ source, fallbackGradient, fallbackLabel, style, resize
   );
 }
 
-const styles = {
+const styles = StyleSheet.create({
   body: {
     flex: 1,
     paddingTop: ECHO_TOP_PADDING,
     position: 'relative',
   },
-} as const;
+});

@@ -2,7 +2,7 @@
  * Student → My Applications — lists internship applications.
  */
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Briefcase, CheckCircle, Clock } from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { GlassCard } from '../glass';
@@ -22,22 +22,12 @@ export function MyApplicationsView() {
   const items = data?.items || [];
 
   return (
-    <View className="gap-3.5">
+    <View style={{ gap: 14 }}>
       <View>
-        <Text
-          className="text-white text-[22px] tracking-tight"
-          style={{ fontFamily: FONTS.xbold }}
-        >
-          My Applications
-        </Text>
-        <Text
-          className="text-muted text-xs mt-1"
-          style={{ fontFamily: FONTS.med }}
-        >
-          {items.length} applications · auto-refreshes every 30s
-        </Text>
+        <Text style={s.h1}>My Applications</Text>
+        <Text style={s.sub}>{items.length} applications · auto-refreshes every 30s</Text>
       </View>
-      <View className="gap-2">
+      <View style={{ gap: 8 }}>
         {items.map((a, idx) => (
           <GlassCard
             key={a.id}
@@ -46,40 +36,14 @@ export function MyApplicationsView() {
             padding={14}
             style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}
           >
-            <View className="w-[38px] h-[38px] rounded-[10px] bg-violet/10 border border-violet/30 items-center justify-center">
-              <Briefcase size={18} color={SC.accentBright} />
+            <View style={s.iconBox}><Briefcase size={18} color={SC.accentBright} /></View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={s.title}>{a.internship_title}</Text>
+              <Text style={s.meta}>{a.company} · applied {a.applied_at ? String(a.applied_at).slice(0, 10) : '—'}</Text>
             </View>
-            <View className="flex-1 min-w-0">
-              <Text
-                className="text-white text-[13.5px]"
-                style={{ fontFamily: FONTS.bold }}
-              >
-                {a.internship_title}
-              </Text>
-              <Text
-                className="text-muted text-[11.5px] mt-0.5"
-                style={{ fontFamily: FONTS.med }}
-              >
-                {a.company} · applied {a.applied_at ? String(a.applied_at).slice(0, 10) : '—'}
-              </Text>
-            </View>
-            <View
-              className={`flex-row items-center gap-1.5 px-[9px] py-1 rounded-md border ${
-                a.status === 'submitted'
-                  ? 'bg-yellow-400/10 border-yellow-400/30'
-                  : 'bg-green-500/10 border-green-500/30'
-              }`}
-            >
+            <View style={[s.statusPill, a.status === 'submitted' ? s.statusPending : s.statusOk]}>
               {a.status === 'submitted' ? <Clock size={11} color="#FBBF24" /> : <CheckCircle size={11} color="#22C55E" />}
-              <Text
-                className="text-[10.5px] capitalize"
-                style={{
-                  fontFamily: FONTS.bold,
-                  color: a.status === 'submitted' ? '#FBBF24' : '#22C55E',
-                }}
-              >
-                {a.status}
-              </Text>
+              <Text style={[s.statusText, { color: a.status === 'submitted' ? '#FBBF24' : '#22C55E' }]}>{a.status}</Text>
             </View>
           </GlassCard>
         ))}
@@ -94,3 +58,17 @@ export function MyApplicationsView() {
     </View>
   );
 }
+
+const s = StyleSheet.create({
+  h1: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4 },
+  sub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 12, padding: 14 },
+  iconBox: { width: 38, height: 38, borderRadius: 10, backgroundColor: 'rgba(167,139,250,0.10)', borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  title: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13.5 },
+  meta: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 3 },
+  statusPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 6, borderWidth: 1 },
+  statusPending: { backgroundColor: 'rgba(251,191,36,0.10)', borderColor: 'rgba(251,191,36,0.30)' },
+  statusOk: { backgroundColor: 'rgba(34,197,94,0.10)', borderColor: 'rgba(34,197,94,0.30)' },
+  statusText: { fontFamily: FONTS.bold, fontSize: 10.5, textTransform: 'capitalize' },
+  empty: { color: SC.muted, padding: 20, textAlign: 'center', fontFamily: FONTS.med },
+});

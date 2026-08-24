@@ -2,7 +2,7 @@
  * Student Resources - Insurance, Housing, Loans
  */
 import { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Linking, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Linking, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, Shield, Home, CreditCard, ExternalLink } from 'lucide-react-native';
@@ -27,28 +27,28 @@ export default function ResourcesScreen() {
   const tabInfo = TABS.find((t) => t.id === tab);
 
   return (
-    <SafeAreaView className="flex-1 bg-bg2" edges={['top', 'bottom']}>
-      <ScrollView className="p-4 pb-16">
-        <TouchableOpacity onPress={() => router.back()} testID="resources-back-btn" className="w-10 h-10 items-center justify-center">
+    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <TouchableOpacity onPress={() => router.back()} testID="resources-back-btn" style={styles.back}>
           <ArrowLeft size={24} color={C.textPrimary} />
         </TouchableOpacity>
 
-        <Text className="text-text font-display-bold text-lg mt-1">Student Resources</Text>
-        <Text className="text-muted text-sm mt-1 mb-4">Insurance, housing & education loan options curated for you</Text>
+        <Text style={styles.title}>Student Resources</Text>
+        <Text style={styles.subtitle}>Insurance, housing & education loan options curated for you</Text>
 
-        <View className="flex-row gap-2.5">
+        <View style={styles.tabRow}>
           {TABS.map((t) => (
             <TouchableOpacity
               key={t.id}
               onPress={() => setTab(t.id)}
               activeOpacity={0.85}
               testID={`resource-tab-${t.id}`}
-              className="flex-1"
+              style={{ flex: 1 }}
             >
               <NeoCard bg={tab === t.id ? t.color : C.surface} shadow={tab === t.id ? 'md' : 'sm'}>
-                <View className="items-center" style={{ gap: 6 }}>
+                <View style={{ alignItems: 'center', gap: 6 }}>
                   <t.icon size={22} color={C.textPrimary} />
-                  <Text className="text-text font-body-bold text-sm">{t.label}</Text>
+                  <Text style={[Typography.bodyBold, { color: C.textPrimary, fontSize: 13 }]}>{t.label}</Text>
                 </View>
               </NeoCard>
             </TouchableOpacity>
@@ -56,9 +56,9 @@ export default function ResourcesScreen() {
         </View>
 
         {loading ? (
-          <ActivityIndicator color={C.primary} className="mt-10" />
+          <ActivityIndicator color={C.primary} style={{ padding: 40 }} />
         ) : (
-          <View className="mt-4" style={{ gap: Spacing.md }}>
+          <View style={{ gap: Spacing.md, marginTop: Spacing.md }}>
             {items.map((r: any) => (
               <TouchableOpacity
                 key={r.id}
@@ -67,19 +67,19 @@ export default function ResourcesScreen() {
                 testID={`resource-item-${r.id}`}
               >
                 <NeoCard shadow="sm">
-                  <View className="flex-row justify-between items-start">
-                    <View className="flex-1">
-                      <Text className="text-muted text-xs">{r.provider}</Text>
-                      <Text className="text-text font-display-bold text-base">{r.title}</Text>
-                      <Text className="text-muted text-sm mt-1">{r.description}</Text>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[Typography.caption, { color: C.textSecondary }]}>{r.provider}</Text>
+                      <Text style={[Typography.h4, { color: C.textPrimary }]}>{r.title}</Text>
+                      <Text style={[Typography.bodySm, { color: C.textSecondary, marginTop: 4 }]}>{r.description}</Text>
                     </View>
-                    <View className="rounded-md ml-2" style={{ borderWidth: 1.5, borderColor: C.border, paddingHorizontal: 8, paddingVertical: 4, backgroundColor: tabInfo?.color || C.accentYellow }}>
-                      <Text className="text-text font-body-bold text-xs">{r.highlight}</Text>
+                    <View style={[styles.highlight, { backgroundColor: tabInfo?.color || C.accentYellow }]}>
+                      <Text style={[Typography.caption, { color: C.textPrimary, fontSize: 10 }]}>{r.highlight}</Text>
                     </View>
                   </View>
-                  <View className="flex-row items-center mt-3" style={{ gap: 6 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 }}>
                     <ExternalLink size={14} color={C.accentBlue} />
-                    <Text className="text-teal text-sm">Learn more</Text>
+                    <Text style={[Typography.bodySm, { color: C.accentBlue }]}>Learn more</Text>
                   </View>
                 </NeoCard>
               </TouchableOpacity>
@@ -90,3 +90,20 @@ export default function ResourcesScreen() {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: C.background },
+  container: { padding: Spacing.lg, paddingBottom: 60 },
+  back: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  title: { ...Typography.h2, color: C.textPrimary, marginTop: 4 },
+  subtitle: { ...Typography.body, color: C.textSecondary, marginTop: 4, marginBottom: Spacing.lg },
+  tabRow: { flexDirection: 'row', gap: 10 },
+  highlight: {
+    borderWidth: 1.5,
+    borderColor: C.border,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginLeft: 8,
+  },
+});

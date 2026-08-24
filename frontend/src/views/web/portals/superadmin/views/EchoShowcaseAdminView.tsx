@@ -18,7 +18,7 @@
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  View, Text, Pressable, Platform, ActivityIndicator,
+  View, Text, StyleSheet, Pressable, Platform, ActivityIndicator,
   TextInput, Modal, ScrollView, Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -233,14 +233,14 @@ function IsoDateField({ value, onChangeText, placeholder }: { value: string; onC
   );
 }
 
-const fi = {
+const fi = StyleSheet.create({
   input: {
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1, borderColor: SAC.border,
     borderRadius: 8, paddingHorizontal: 12, paddingVertical: 9,
     fontFamily: FONTS.med, fontSize: 13, color: SAC.text,
   },
-};
+});
 
 function Field({ value, onChangeText, placeholder, multiline = false, rows = 3 }: any) {
   return (
@@ -280,7 +280,7 @@ function SelectNative({ value, onChange, options }: any) {
 }
 
 // ── Icon button ───────────────────────────────────────────────────────────────
-const cs = {
+const cs = StyleSheet.create({
   meta: { fontFamily: FONTS.med, fontSize: 11.5, color: SAC.muted },
   iconBtn: {
     width: 32, height: 32, borderRadius: 8,
@@ -288,7 +288,7 @@ const cs = {
     alignItems: 'center', justifyContent: 'center',
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
   },
-};
+});
 
 // ── Hover-tooltip icon action button (super-admin rows) ──────────────────────
 function IconAction({ icon, label, color, bg, onPress, disabled = false, danger = false }: {
@@ -1805,7 +1805,7 @@ function MediaLibraryPanel() {
       {/* Image preview modal */}
       <Modal visible={!!preview} transparent animationType="fade" onRequestClose={() => setPreview(null)}>
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.88)', alignItems: 'center', justifyContent: 'center' }}>
-          <Pressable style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} onPress={() => setPreview(null)} />
+          <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setPreview(null)} />
           {preview && (
             <View style={{ width: '90%', maxWidth: 700, backgroundColor: '#0d1326',
               borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: SAC.border, zIndex: 2 }}>
@@ -2731,9 +2731,9 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
   );
 }
 
-const ml = {
+const ml = StyleSheet.create({
   overlay: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  backdrop: { position: 'absolute' as const, top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.70)' },
+  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.70)' },
   box: {
     width: '96%', maxWidth: 900, maxHeight: '95%',
     backgroundColor: '#0d1326', borderRadius: 18,
@@ -2744,7 +2744,7 @@ const ml = {
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14 },
   headerTitle: { fontFamily: FONTS.bold, fontSize: 16, color: '#fff' },
   footer: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, padding: 16, borderTopWidth: 1, borderTopColor: SAC.border },
-};
+});
 
 // ── Registrations & Payments panel ───────────────────────────────────────────
 // ── Session Passes Overview ───────────────────────────────────────────────────

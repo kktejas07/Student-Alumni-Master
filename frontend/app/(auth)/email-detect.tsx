@@ -1,6 +1,20 @@
 import { getBaseUrl } from '@/src/lib/env';
+/**
+ * Smart Email Detect — per HTML spec (Welcome / Option B flow).
+ *
+ * Flow:
+ *   1. User enters email + clicks Continue
+ *   2. Frontend calls POST /api/auth/check-email
+ *      - exists=true  → navigate to /(auth)/login  with ?email=... (password step)
+ *      - exists=false → navigate to /get-started with ?email=... (role picker → register)
+ *   3. Social shortcuts: LinkedIn / Google / "Sign in with Email OTP"
+ *   4. Footer: "← Change role" returns to /get-started
+ *
+ * Reuses AuthShell + AuthControls + ROLE_META tokens for consistency with the
+ * rest of the auth flow. No backend schema changes other than /auth/check-email.
+ */
 import React, { useState } from 'react';
-import { View, Text, Pressable } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import Svg, { Path, G } from 'react-native-svg';
 import { ArrowLeft, Mail } from 'lucide-react-native';
@@ -56,6 +70,8 @@ export default function EmailDetect() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
+        // Pydantic 422 returns `detail` as an array of error objects
+        // [{type, loc, msg, input, ctx}, ...]. Convert to a readable string.
         const raw = data?.detail;
         const msg = Array.isArray(raw)
           ? raw.map((e: any) => e?.msg || e?.message || JSON.stringify(e)).filter(Boolean).join(', ')
@@ -74,11 +90,13 @@ export default function EmailDetect() {
         return;
       }
       if (data.exists) {
+        // Existing account — go to Login with email prefilled + role branding
         router.replace({
           pathname: '/(auth)/login',
           params: { email: trimmed, role: data.role || role },
         });
       } else {
+        // New account — route through Get Started (pick role if not chosen) → Register
         if (role) {
           router.replace({
             pathname: '/(auth)/register',
@@ -96,30 +114,33 @@ export default function EmailDetect() {
   };
 
   const onOtpSignin = () => {
+    // Dedicated Email OTP screen per spec
     router.push({ pathname: '/(auth)/email-otp', params: { email } });
   };
 
   const onOAuth = (provider: 'google' | 'linkedin') => {
     trackAuth({ event: 'oauth_attempt', role, extra: { provider } });
+    // NOTE: OAuth client IDs must be configured before production. For now this
+    // is a placeholder; provider selection is captured in analytics.
     setError(`${provider === 'google' ? 'Google' : 'LinkedIn'} sign-in is coming soon.`);
   };
 
   return (
     <AuthShell role={role}>
-      <Pressable onPress={() => router.back()} className="flex-row items-center" style={{ gap: 4, marginBottom: 8 }}>
+      <Pressable onPress={() => router.back()} style={s.back}>
         <ArrowLeft size={16} color={AC.muted} />
-        <Text style={{ color: AC.muted, fontFamily: FONTS.med, fontSize: 13 }}>Back</Text>
+        <Text style={s.backText}>Back</Text>
       </Pressable>
 
-      <View style={{ marginBottom: 16 }}>
+      <View style={s.head}>
         {role && (
-          <View className="flex-row items-center self-start rounded-full border" style={{ gap: 8, backgroundColor: 'rgba(124,58,237,0.14)', borderColor: 'rgba(124,58,237,0.38)', borderWidth: 1, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, marginBottom: 12 }}>
-            <Text style={{ fontSize: 14 }}>{ROLE_META[role].emoji}</Text>
-            <Text style={{ color: '#E9D5FF', fontFamily: FONTS.med, fontSize: 12 }}>Continuing as {ROLE_META[role].label}</Text>
+          <View style={s.roleStripe}>
+            <Text style={s.roleEmoji}>{ROLE_META[role].emoji}</Text>
+            <Text style={s.roleText}>Continuing as {ROLE_META[role].label}</Text>
           </View>
         )}
-        <Text className="text-text font-display-bold" style={{ fontSize: 28, marginBottom: 6 }}>Welcome</Text>
-        <Text className="text-muted" style={{ fontFamily: FONTS.med, fontSize: 14 }}>Enter your email — we'll detect if you have an account.</Text>
+        <Text style={s.title}>Welcome</Text>
+        <Text style={s.sub}>Enter your email — we'll detect if you have an account.</Text>
       </View>
 
       <View style={{ gap: 14 }}>
@@ -136,17 +157,17 @@ export default function EmailDetect() {
         <PrimaryButton label="Continue" onPress={onContinue} loading={loading} />
       </View>
 
-      <View className="flex-row items-center" style={{ gap: 10, marginVertical: 18 }}>
-        <View className="flex-1" style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.14)' }} />
-        <Text className="text-dim" style={{ fontFamily: FONTS.med, fontSize: 11.5, letterSpacing: 0.4 }}>or sign in with</Text>
-        <View className="flex-1" style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.14)' }} />
+      <View style={s.divider}>
+        <View style={s.line} />
+        <Text style={s.dividerText}>or sign in with</Text>
+        <View style={s.line} />
       </View>
 
-      <View className="flex-row" style={{ gap: 10 }}>
-        <View className="flex-1">
+      <View style={s.oauthRow}>
+        <View style={{ flex: 1 }}>
           <OutlineButton label="LinkedIn" icon={<LinkedInIn size={16} />} onPress={() => onOAuth('linkedin')} />
         </View>
-        <View className="flex-1">
+        <View style={{ flex: 1 }}>
           <OutlineButton label="Google" icon={<GoogleG size={16} />} onPress={() => onOAuth('google')} />
         </View>
       </View>
@@ -155,11 +176,35 @@ export default function EmailDetect() {
         <OutlineButton label="Sign in with Email OTP" icon={<Mail size={16} color={AC.muted} />} onPress={onOtpSignin} />
       </View>
 
-      <View className="items-center" style={{ marginTop: 24 }}>
+      <View style={s.footerRow}>
         <Pressable onPress={() => router.replace('/get-started')}>
-          <Text style={{ color: '#B07FDF', fontFamily: FONTS.med, fontSize: 13 }}>← Change role</Text>
+          <Text style={s.changeRole}>← Change role</Text>
         </Pressable>
       </View>
     </AuthShell>
   );
 }
+
+const s = StyleSheet.create({
+  back: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 8 },
+  backText: { color: AC.muted, fontFamily: FONTS.med, fontSize: 13 },
+  head: { marginBottom: 16 },
+  roleStripe: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(124,58,237,0.14)',
+    borderColor: 'rgba(124,58,237,0.38)', borderWidth: 1,
+    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999,
+    marginBottom: 12,
+  },
+  roleEmoji: { fontSize: 14 },
+  roleText: { color: '#E9D5FF', fontFamily: FONTS.med, fontSize: 12 },
+  title: { color: '#FFF', fontFamily: FONTS.bold, fontSize: 28, marginBottom: 6 },
+  sub: { color: 'rgba(255,255,255,0.6)', fontFamily: FONTS.med, fontSize: 14 },
+  divider: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 18 },
+  line: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.14)' },
+  dividerText: { color: AC.muted, fontFamily: FONTS.med, fontSize: 11.5, letterSpacing: 0.4 },
+  oauthRow: { flexDirection: 'row', gap: 10 },
+  footerRow: { marginTop: 24, alignItems: 'center' },
+  changeRole: { color: '#B07FDF', fontFamily: FONTS.med, fontSize: 13 },
+});

@@ -3,8 +3,8 @@
  * Shows badges, all profile fields, and admin actions.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { View, Text, TextInput, ActivityIndicator, Pressable, Platform } from 'react-native';
-import { Edit3, Trash2, Save, X as CloseX, Linkedin, AlertTriangle } from 'lucide-react-native';
+import { View, Text, StyleSheet, TextInput, ActivityIndicator, Pressable, Platform } from 'react-native';
+import { Edit3, Trash2, Save, X as CloseX, Link2 as Linkedin, AlertTriangle } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
 import { SlidePanel } from './SlidePanel';
 import { StatusChip, ActionButton } from './primitives';
@@ -354,7 +354,7 @@ export function UserEditorPanel({ open, mode: initMode, role, user, onClose, onC
   );
 }
 
-const styles = {
+const styles = StyleSheet.create({
   headerChips: { flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginBottom: 14 },
   section: {
     marginTop: 4, marginBottom: 14,
@@ -397,4 +397,4 @@ const styles = {
     padding: 10, borderRadius: 9, marginTop: 14,
   },
   errorText: { color: '#FCA5A5', fontFamily: 'DMSans_500Medium', fontSize: 12 },
-};
+});

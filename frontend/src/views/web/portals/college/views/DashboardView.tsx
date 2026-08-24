@@ -1,11 +1,21 @@
+/**
+ * College Admin Portal — Dashboard view (true RN port).
+ *
+ * Sections:
+ *   • Hero greeting
+ *   • 4 KPI tiles
+ *   • AI Daily Briefing card (Powered by Claude)
+ *   • Dept Placement Rates (left) + Upcoming Events (right)
+ *   • Recent Activity (left) + Top Recruiters (right)
+ */
 import React from 'react';
-import { View, Text, Pressable, useWindowDimensions, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, StyleSheet, useWindowDimensions, Platform, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   GraduationCap, Users, Trophy, CalendarDays, Sparkles, ArrowRight,
   UserPlus, Calendar, Briefcase, Bell, TrendingUp, Building2, Plus,
 } from 'lucide-react-native';
-import { CC } from '../tokens';
+import { CC, FONTS } from '../tokens';
 import { Av, Badge, KpiCard } from '../atoms';
 import * as MOCK from '../data';
 import { usePortalData } from '@/src/lib/portalApi';
@@ -57,7 +67,7 @@ export function DashboardView({
 
   if (loading && data === COLLEGE_MOCK) {
     return (
-      <View className="flex-1 justify-center items-center min-h-[400px]">
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
         <ActivityIndicator size="large" color="#FCD34D" />
       </View>
     );
@@ -71,49 +81,56 @@ export function DashboardView({
   const TOP_RECRUITERS = data!.topRecruiters;
 
   return (
-    <View className="gap-4">
-      <View className={stack ? 'flex-col gap-4' : 'flex-row items-center gap-4'}>
-        <View className="flex-1 min-w-0">
-          <Text className="text-text font-display-bold text-[22px] tracking-tight">Good morning, {(user?.full_name || 'Admin').split(' ')[0]} 👋</Text>
-          <Text className="text-muted font-body text-[12.5px] mt-1">{COLLEGE.placementRate}% placement rate · {COLLEGE.upcomingHighlight}</Text>
+    <View style={{ gap: 16 }}>
+      {/* Live counters */}
+
+
+      {/* Hero */}
+      <View style={{ flexDirection: stack ? 'column' : 'row', alignItems: stack ? 'flex-start' : 'center', gap: 16 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={s.heroTitle}>Good morning, {(user?.full_name || 'Admin').split(' ')[0]} 👋</Text>
+          <Text style={s.heroSub}>{COLLEGE.placementRate}% placement rate · {COLLEGE.upcomingHighlight}</Text>
         </View>
+        {/* TIER BANNER */}
         {(COLLEGE as any).tier && (
-          <View className="flex-row items-center gap-3 bg-[rgba(252,211,77,0.06)] border border-[rgba(252,211,77,0.22)] rounded-[14px] p-[14px] min-w-[280px]">
+          <View style={s.tierBanner}>
             <TierBadge tier={(COLLEGE as any).tier.tier} size="lg" />
-            <View className="flex-1 min-w-0">
-              <Text className="text-[#FCD34D] font-display-bold text-[9.5px] tracking-widest">INSTITUTIONAL TIER · NAAC {(COLLEGE as any).tier.naac}</Text>
-              <Text className="text-text font-display-bold text-[18px] tracking-tight mt-[2px]">
-                {(COLLEGE as any).tier.tier} <Text className="text-muted font-body-bold text-[13px]">· {(COLLEGE as any).tier.score}/100</Text>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={s.tierKicker}>INSTITUTIONAL TIER · NAAC {(COLLEGE as any).tier.naac}</Text>
+              <Text style={s.tierTitle}>
+                {(COLLEGE as any).tier.tier} <Text style={s.tierScore}>· {(COLLEGE as any).tier.score}/100</Text>
               </Text>
             </View>
           </View>
         )}
       </View>
 
-      <View className="flex-row flex-wrap gap-3">
+      {/* 4 KPI tiles */}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
         {KPIS.map((k) => {
           const Icon = KPI_ICONS[k.id as keyof typeof KPI_ICONS];
           return <KpiCard key={k.id} Icon={Icon} label={k.label} value={k.value} delta={k.delta} color={k.color} />;
         })}
       </View>
 
+      {/* Ad Banner */}
       <AdBanner />
 
+      {/* Exclusive Coupons — below the ad banner */}
       <CouponBanner portal="college" />
 
-      <View className="flex-row gap-[14px] items-start bg-[rgba(99,102,241,0.10)] border border-glass-border rounded-[14px] p-4">
-        <View className="w-9 h-9 rounded-[10px] bg-[rgba(252,211,77,0.15)] border border-[rgba(252,211,77,0.30)] items-center justify-center">
-          <Sparkles size={18} color="#FCD34D" />
-        </View>
-        <View className="flex-1 min-w-0">
-          <View className="flex-row items-center gap-2 mb-1">
-            <Text className="text-text font-display-bold text-[14px]">AI Daily Briefing</Text>
+      {/* AI Daily Briefing */}
+      <View style={s.briefCard}>
+        <View style={s.briefIcon}><Sparkles size={18} color="#FCD34D" /></View>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <Text style={s.briefTitle}>AI Daily Briefing</Text>
             <Badge label="Powered by Claude" color="purple" />
           </View>
-          <Text className="text-muted font-body text-[12.5px] leading-[19px]">
+          <Text style={s.briefBody}>
             {briefText || (
               <>
-                <Text className="text-text font-body-bold">Tap Generate AI Brief</Text> for a personalized summary on placement insights, alumni metrics and an action item for today.
+                <Text style={{ color: '#fff', fontFamily: FONTS.bold }}>Tap Generate AI Brief</Text> for a personalized summary on placement insights, alumni metrics and an action item for today.
               </>
             )}
           </Text>
@@ -131,34 +148,35 @@ export function DashboardView({
             finally { setBriefLoading(false); }
           }}
           disabled={briefLoading}
-          className={`flex-row items-center gap-[5px] px-3 h-8 rounded-lg bg-[rgba(252,211,77,0.10)] border border-[rgba(252,211,77,0.40)] ${briefLoading ? 'opacity-60' : ''}`}
-          style={Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}}>
+          style={({ hovered }: any) => [s.briefBtn, hovered && { backgroundColor: 'rgba(252,211,77,0.20)' }, briefLoading && { opacity: 0.6 }]}
+        >
           <Sparkles size={12} color="#FCD34D" />
-          <Text className="text-[#FCD34D] font-display-bold text-[11.5px]">
+          <Text style={{ color: '#FCD34D', fontFamily: FONTS.xbold, fontSize: 11.5 }}>
             {briefLoading ? 'Generating…' : (briefText ? 'Regenerate' : 'Generate AI Brief')}
           </Text>
         </Pressable>
       </View>
 
-      <View className={stack ? 'flex-col gap-4' : 'flex-row gap-4'}>
-        <View className={`bg-glass-soft border border-glass-border rounded-[14px] p-[18px] ${stack ? '' : 'flex-[1.7]'}`}>
-          <View className="flex-row items-center justify-between">
-            <Text className="text-dim font-display-bold text-[10.5px] tracking-widest">DEPT. PLACEMENT RATES 2025–26</Text>
-            <Pressable onPress={() => onNavigate?.('analytics')}><Text className="text-teal font-body-bold text-[11.5px]">Full report →</Text></Pressable>
+      {/* Dept Placement + Upcoming Events */}
+      <View style={{ flexDirection: stack ? 'column' : 'row', gap: 16 }}>
+        {/* Dept Placement rates */}
+        <View style={[s.card, { flex: stack ? undefined : 1.7 }]}>
+          <View style={s.cardHead}>
+            <Text style={s.kicker}>DEPT. PLACEMENT RATES 2025–26</Text>
+            <Pressable onPress={() => onNavigate?.('analytics')}><Text style={s.linkRight}>Full report →</Text></Pressable>
           </View>
-          <View className="gap-[14px] mt-[14px]">
+          <View style={{ gap: 14, marginTop: 14 }}>
             {DEPT_PLACEMENT.map((d) => (
               <View key={d.dept}>
-                <View className="flex-row justify-between mb-[6px]">
-                  <Text className="text-text font-body-bold text-[12.5px]">{d.dept}</Text>
-                  <Text className="text-text font-display-bold text-[13px]">{d.pct}%   <Text className="text-muted font-body text-[11px]">({d.placed} placed)</Text></Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <Text style={s.deptName}>{d.dept}</Text>
+                  <Text style={s.deptValue}>{d.pct}%   <Text style={s.deptCount}>({d.placed} placed)</Text></Text>
                 </View>
-                <View className="h-[5px] rounded-[3px] bg-[rgba(255,255,255,0.04)] overflow-hidden">
+                <View style={s.deptTrack}>
                   <LinearGradient
                     colors={[d.color, d.color + '80'] as any}
                     start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                    className="h-full rounded-[3px]"
-                    style={{ width: `${d.pct}%` as any }}
+                    style={[s.deptFill, { width: `${d.pct}%` as any }]}
                   />
                 </View>
               </View>
@@ -166,50 +184,51 @@ export function DashboardView({
           </View>
         </View>
 
-        <View className={`bg-glass-soft border border-glass-border rounded-[14px] p-[18px] ${stack ? '' : 'flex-1'}`}>
-          <View className="flex-row items-center justify-between">
-            <Text className="text-dim font-display-bold text-[10.5px] tracking-widest">UPCOMING EVENTS</Text>
-            <Pressable onPress={() => onNavigate?.('events')}><Text className="text-teal font-body-bold text-[11.5px]">See all →</Text></Pressable>
+        {/* Upcoming Events */}
+        <View style={[s.card, { flex: stack ? undefined : 1 }]}>
+          <View style={s.cardHead}>
+            <Text style={s.kicker}>UPCOMING EVENTS</Text>
+            <Pressable onPress={() => onNavigate?.('events')}><Text style={s.linkRight}>See all →</Text></Pressable>
           </View>
-          <View className="gap-[10px] mt-3">
+          <View style={{ gap: 10, marginTop: 12 }}>
             {UPCOMING_EVENTS.map((e) => (
-              <View key={e.id} className="flex-row items-center gap-[10px]">
-                <View className="w-9 h-9 rounded-lg border items-center justify-center" style={{ backgroundColor: e.color + '15', borderColor: e.color + '40' }}>
-                  <Text className="font-display-bold text-[14px]" style={{ color: e.color }}>17</Text>
+              <View key={e.id} style={s.eventRow}>
+                <View style={[s.eventDate, { backgroundColor: e.color + '15', borderColor: e.color + '40' }]}>
+                  <Text style={[s.eventDateNum, { color: e.color }]}>17</Text>
                 </View>
-                <View className="flex-1 min-w-0">
-                  <Text numberOfLines={1} className="text-text font-body-bold text-[12.5px]">{e.title}</Text>
-                  <Text className="text-muted font-body text-[11px] mt-[2px]">{e.date} · {e.attending} attending</Text>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text numberOfLines={1} style={s.eventTitle}>{e.title}</Text>
+                  <Text style={s.eventMeta}>{e.date} · {e.attending} attending</Text>
                 </View>
               </View>
             ))}
           </View>
-          <Pressable onPress={() => onNavigate?.('create-event')}
-            className="flex-row items-center justify-center gap-[6px] mt-[14px] h-[38px] rounded-[10px] bg-violet"
-            style={Platform.OS === 'web' ? { cursor: 'pointer', transitionDuration: '160ms' } as any : {}}>
+          <Pressable onPress={() => onNavigate?.('create-event')} style={({ hovered }: any) => [s.createBtn, hovered && { backgroundColor: CC.primaryD }]}>
             <Plus size={14} color="#fff" />
-            <Text className="text-text font-display-bold text-[12.5px]">Create New Event</Text>
+            <Text style={s.createBtnText}>Create New Event</Text>
           </Pressable>
         </View>
       </View>
 
-      <View className={stack ? 'flex-col gap-4' : 'flex-row gap-4'}>
-        <View className={`bg-glass-soft border border-glass-border rounded-[14px] p-[18px] ${stack ? '' : 'flex-[1.7]'}`}>
-          <View className="flex-row items-center justify-between">
-            <Text className="text-dim font-display-bold text-[10.5px] tracking-widest">RECENT ACTIVITY</Text>
-            <Pressable onPress={() => onNavigate?.('analytics')}><Text className="text-teal font-body-bold text-[11.5px]">View all →</Text></Pressable>
+      {/* Recent Activity + Top Recruiters */}
+      <View style={{ flexDirection: stack ? 'column' : 'row', gap: 16 }}>
+        {/* Recent Activity */}
+        <View style={[s.card, { flex: stack ? undefined : 1.7 }]}>
+          <View style={s.cardHead}>
+            <Text style={s.kicker}>RECENT ACTIVITY</Text>
+            <Pressable onPress={() => onNavigate?.('analytics')}><Text style={s.linkRight}>View all →</Text></Pressable>
           </View>
-          <View className="gap-3 mt-3">
+          <View style={{ gap: 12, marginTop: 12 }}>
             {RECENT_ACTIVITY.map((a) => {
               const Icon = ACTIVITY_ICONS[a.icon] || Bell;
               return (
-                <View key={a.id} className="flex-row gap-[10px] items-center">
-                  <View className="w-8 h-8 rounded-lg border items-center justify-center" style={{ backgroundColor: a.tint + '20', borderColor: a.tint + '50' }}>
+                <View key={a.id} style={s.activityRow}>
+                  <View style={[s.activityIcon, { backgroundColor: a.tint + '20', borderColor: a.tint + '50' }]}>
                     <Icon size={14} color={a.tint} />
                   </View>
-                  <View className="flex-1 min-w-0">
-                    <Text className="text-text font-body text-[12.5px]">{a.text}</Text>
-                    <Text className="text-dim font-body text-[10.5px] mt-[2px]">{a.time}</Text>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={s.activityText}>{a.text}</Text>
+                    <Text style={s.activityTime}>{a.time}</Text>
                   </View>
                 </View>
               );
@@ -217,62 +236,142 @@ export function DashboardView({
           </View>
         </View>
 
-        <View className={`bg-glass-soft border border-glass-border rounded-[14px] p-[18px] ${stack ? '' : 'flex-1'}`}>
-          <View className="flex-row items-center justify-between">
-            <Text className="text-dim font-display-bold text-[10.5px] tracking-widest">TOP RECRUITERS</Text>
-            <Pressable onPress={() => onNavigate?.('placements')}><Text className="text-teal font-body-bold text-[11.5px]">All →</Text></Pressable>
+        {/* Top Recruiters */}
+        <View style={[s.card, { flex: stack ? undefined : 1 }]}>
+          <View style={s.cardHead}>
+            <Text style={s.kicker}>TOP RECRUITERS</Text>
+            <Pressable onPress={() => onNavigate?.('placements')}><Text style={s.linkRight}>All →</Text></Pressable>
           </View>
-          <View className="gap-[10px] mt-3">
+          <View style={{ gap: 10, marginTop: 12 }}>
             {TOP_RECRUITERS.map((r) => (
-              <View key={r.id} className="flex-row items-center gap-[10px] py-1">
-                <View className="w-[30px] h-[30px] rounded-lg items-center justify-center" style={{ backgroundColor: r.color }}>
-                  <Text className="text-text font-display-bold text-xs">{r.name[0]}</Text>
+              <View key={r.id} style={s.recruiterRow}>
+                <View style={[s.recruiterLogo, { backgroundColor: r.color }]}>
+                  <Text style={s.recruiterLogoText}>{r.name[0]}</Text>
                 </View>
-                <View className="flex-1 min-w-0">
-                  <Text numberOfLines={1} className="text-text font-body-bold text-[12.5px]">{r.name}</Text>
-                  <Text className="text-muted font-body text-[10.5px] mt-[2px]">{r.offers} offers · {r.ctc}</Text>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text numberOfLines={1} style={s.recruiterName}>{r.name}</Text>
+                  <Text style={s.recruiterMeta}>{r.offers} offers · {r.ctc}</Text>
                 </View>
               </View>
             ))}
           </View>
-          <Pressable onPress={() => onNavigate?.('alumni')}
-            className="flex-row items-center justify-center gap-[6px] mt-[14px] h-9 rounded-[10px] bg-glass-soft border border-glass-border"
-            style={Platform.OS === 'web' ? { cursor: 'pointer', transitionDuration: '160ms' } as any : {}}>
+          <Pressable onPress={() => onNavigate?.('alumni')} style={({ hovered }: any) => [s.alumniCta, hovered && { backgroundColor: CC.cardH }]}>
             <Building2 size={13} color={CC.accentBright} />
-            <Text className="text-teal font-body-bold text-xs">View Alumni Network</Text>
+            <Text style={s.alumniCtaText}>View Alumni Network</Text>
             <ArrowRight size={13} color={CC.accentBright} />
           </Pressable>
         </View>
       </View>
 
+      {/* Profile completion CTA */}
       {COLLEGE.tier && (
         <LinearGradient
           colors={[CC.primary, CC.primaryD] as any}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          className="flex-row items-center gap-4 rounded-[16px] p-[18px] mt-4">
-          <View className="flex-1 min-w-0">
-            <View className="flex-row items-center gap-2 mb-[6px]">
-              <Text className="text-[rgba(255,255,255,0.85)] font-display-bold text-[11.5px] tracking-wider">Profile Score</Text>
-              <View className="bg-[rgba(255,255,255,0.15)] rounded-md px-2 py-[2px]">
-                <Text className="text-text font-display-bold text-[11px]">{COLLEGE.tier.score}%</Text>
+          style={s.completionCard}
+        >
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <Text style={s.completionLabel}>Profile Score</Text>
+              <View style={s.completionScorePill}>
+                <Text style={s.completionScoreText}>{COLLEGE.tier.score}%</Text>
               </View>
             </View>
-            <Text className="text-text font-body-bold text-[14px] mt-1">Complete your profile to unlock Platinum status</Text>
-            <View className="flex-row flex-wrap gap-[6px] mt-2">
-              {(!user?.college_info?.logo) && <View className="px-[10px] py-1 rounded-md bg-[rgba(255,255,255,0.10)] border border-[rgba(255,255,255,0.15)]"><Text className="text-text font-body-bold text-[10.5px]">Logo</Text></View>}
-              {(!user?.college_info?.cover_photo) && <View className="px-[10px] py-1 rounded-md bg-[rgba(255,255,255,0.10)] border border-[rgba(255,255,255,0.15)]"><Text className="text-text font-body-bold text-[10.5px]">Cover Photo</Text></View>}
-              {(!user?.college_info?.bio) && <View className="px-[10px] py-1 rounded-md bg-[rgba(255,255,255,0.10)] border border-[rgba(255,255,255,0.15)]"><Text className="text-text font-body-bold text-[10.5px]">Description / Bio</Text></View>}
-              {(user?.college_info?.accreditations?.length || 0) === 0 && <View className="px-[10px] py-1 rounded-md bg-[rgba(255,255,255,0.10)] border border-[rgba(255,255,255,0.15)]"><Text className="text-text font-body-bold text-[10.5px]">Accreditations</Text></View>}
-              {(!user?.college_info?.official_website) && <View className="px-[10px] py-1 rounded-md bg-[rgba(255,255,255,0.10)] border border-[rgba(255,255,255,0.15)]"><Text className="text-text font-body-bold text-[10.5px]">Official Website</Text></View>}
+            <Text style={s.completionTitle}>Complete your profile to unlock Platinum status</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+              {(!user?.college_info?.logo) && <View style={s.missingChip}><Text style={s.missingText}>Logo</Text></View>}
+              {(!user?.college_info?.cover_photo) && <View style={s.missingChip}><Text style={s.missingText}>Cover Photo</Text></View>}
+              {(!user?.college_info?.bio) && <View style={s.missingChip}><Text style={s.missingText}>Description / Bio</Text></View>}
+              {(user?.college_info?.accreditations?.length || 0) === 0 && <View style={s.missingChip}><Text style={s.missingText}>Accreditations</Text></View>}
+              {(!user?.college_info?.official_website) && <View style={s.missingChip}><Text style={s.missingText}>Official Website</Text></View>}
             </View>
           </View>
-          <Pressable onPress={onOpenProfile}
-            className="px-[18px] h-10 rounded-[10px] bg-[rgba(255,255,255,0.92)] items-center justify-center"
-            style={Platform.OS === 'web' ? { cursor: 'pointer', transitionDuration: '160ms' } as any : {}}>
-            <Text className="text-violet font-display-bold text-[12.5px]">Complete Profile →</Text>
+          <Pressable onPress={onOpenProfile} style={({ hovered }: any) => [s.completeCta, hovered && { backgroundColor: '#fff' }]}>
+            <Text style={s.completeCtaText}>Complete Profile →</Text>
           </Pressable>
         </LinearGradient>
       )}
     </View>
   );
 }
+
+const s = StyleSheet.create({
+  heroTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.5 },
+  heroSub:   { color: CC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4 },
+
+  tierBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: 'rgba(252,211,77,0.06)',
+    borderColor: 'rgba(252,211,77,0.22)', borderWidth: 1, borderRadius: 14,
+    padding: 14, minWidth: 280,
+  },
+  tierKicker: { color: '#FCD34D', fontFamily: FONTS.xbold, fontSize: 9.5, letterSpacing: 1 },
+  tierTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 18, letterSpacing: -0.4, marginTop: 2 },
+  tierScore: { color: CC.muted, fontFamily: FONTS.bold, fontSize: 13 },
+
+  briefCard: {
+    flexDirection: 'row', gap: 14, alignItems: 'flex-start',
+    backgroundColor: 'rgba(99,102,241,0.10)', borderColor: CC.border2, borderWidth: 1,
+    borderRadius: 14, padding: 16,
+  },
+  briefIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(252,211,77,0.15)', borderColor: 'rgba(252,211,77,0.30)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  briefBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 12, height: 32, borderRadius: 8,
+    backgroundColor: 'rgba(252,211,77,0.10)',
+    borderColor: 'rgba(252,211,77,0.40)', borderWidth: 1,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  briefTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 },
+  briefBody:  { color: CC.muted, fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 19 },
+
+  card: {
+    backgroundColor: CC.card, borderColor: CC.border, borderWidth: 1, borderRadius: 14,
+    padding: 18,
+  },
+  cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  kicker:   { color: CC.dim, fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 1 },
+  linkRight:{ color: CC.accentBright, fontFamily: FONTS.bold, fontSize: 11.5 },
+
+  deptName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
+  deptValue:{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
+  deptCount:{ color: CC.muted, fontFamily: FONTS.med, fontSize: 11 },
+  deptTrack:{ height: 5, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.04)', overflow: 'hidden' },
+  deptFill: { height: '100%', borderRadius: 3 },
+
+  eventRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  eventDate:{ width: 36, height: 36, borderRadius: 8, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  eventDateNum: { fontFamily: FONTS.xbold, fontSize: 14 },
+  eventTitle:{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
+  eventMeta: { color: CC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },
+
+  createBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 14, height: 38, borderRadius: 10, backgroundColor: CC.primary, ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
+  createBtnText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12.5 },
+
+  activityRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
+  activityIcon: { width: 32, height: 32, borderRadius: 8, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  activityText: { color: '#fff', fontFamily: FONTS.med, fontSize: 12.5 },
+  activityTime: { color: CC.dim, fontFamily: FONTS.med, fontSize: 10.5, marginTop: 2 },
+
+  recruiterRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
+  recruiterLogo: { width: 30, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  recruiterLogoText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
+  recruiterName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
+  recruiterMeta: { color: CC.muted, fontFamily: FONTS.med, fontSize: 10.5, marginTop: 1 },
+
+  alumniCta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 14, height: 36, borderRadius: 10, backgroundColor: CC.card, borderWidth: 1, borderColor: CC.border2, ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}), },
+  alumniCtaText: { color: CC.accentBright, fontFamily: FONTS.bold, fontSize: 12 },
+
+  completionCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 16,
+    borderRadius: 16, padding: 18, marginTop: 16,
+  },
+  completionLabel: { color: 'rgba(255,255,255,0.85)', fontFamily: FONTS.xbold, fontSize: 11.5, letterSpacing: 0.5 },
+  completionScorePill: { backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 },
+  completionScoreText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 11 },
+  completionTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 14, marginTop: 4 },
+  missingChip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.10)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
+  missingText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 10.5 },
+  completeCta: { paddingHorizontal: 18, height: 40, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.92)', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
+  completeCtaText: { color: CC.primaryD, fontFamily: FONTS.xbold, fontSize: 12.5 },
+});

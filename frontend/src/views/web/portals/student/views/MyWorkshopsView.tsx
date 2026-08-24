@@ -2,7 +2,7 @@
  * Student → My Workshops — registered + completed workshops with real-time tracking.
  */
 import React, { useState } from 'react';
-import { View, Text, Pressable, Platform, Linking, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Platform, Linking, ActivityIndicator } from 'react-native';
 import { GraduationCap, CheckCircle, Award, ExternalLink } from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { GlassCard } from '../glass';
@@ -58,7 +58,7 @@ export function MyWorkshopsView() {
         body: { student_email: email, workshop_title: title, fee_inr: fee, weeks: weeks },
       });
       refresh();
-      toast.success('Enrolled', `You're now enrolled in ${title}.`);
+      toast.success('Enrolled', `You’re now enrolled in ${title}.`);
     } catch (e: any) {
       toast.error('Enrollment failed', e?.message || 'Please try again.');
     } finally {
@@ -73,8 +73,8 @@ export function MyWorkshopsView() {
   return (
     <View style={{ gap: 20 }}>
       <View>
-        <Text className="font-display-bold text-2xl tracking-tight text-primary">My Workshops</Text>
-        <Text className="text-muted text-sm mt-1" style={{ fontFamily: FONTS.med }}>{items.length} total · {completed.length} completed · auto-refreshes every 5s</Text>
+        <Text style={s.h1}>My Workshops</Text>
+        <Text style={s.sub}>{items.length} total · {completed.length} completed · auto-refreshes every 5s</Text>
       </View>
 
       <Section title={`Ongoing (${ongoing.length})`}>
@@ -84,71 +84,73 @@ export function MyWorkshopsView() {
 
           return (
             <GlassCard key={w.id} delay={idx * 30} radius={12} padding={16} style={{ gap: 12 }}>
-              <View className="flex-row items-center gap-3">
-                <View className="w-[38px] h-[38px] rounded-md bg-purple-soft border border-purple/30 items-center justify-center"><GraduationCap size={18} color={SC.accentBright} /></View>
-                <View className="flex-1 min-w-0">
-                  <Text className="font-body-bold text-base text-primary" style={{ fontFamily: FONTS.bold }}>{w.title}</Text>
-                  <Text className="text-muted text-xs mt-[3px]" style={{ fontFamily: FONTS.med }}>{w.weeks}-week program · ₹{Number(w.fee_inr || 0).toLocaleString()} · enrolled {w.registered_at ? String(w.registered_at).slice(0, 10) : '—'}</Text>
+              {/* Top Meta info */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <View style={s.iconBox}><GraduationCap size={18} color={SC.accentBright} /></View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={s.title}>{w.title}</Text>
+                  <Text style={s.meta}>{w.weeks}-week program · ₹{Number(w.fee_inr || 0).toLocaleString()} · enrolled {w.registered_at ? String(w.registered_at).slice(0, 10) : '—'}</Text>
                 </View>
-                <View className={`px-[9px] py-1 rounded-md border ${w.status === 'registered' ? 'bg-blue-soft border-blue/30' : 'bg-amber-soft border-amber/30'}`}>
-                  <Text className={`font-body-bold text-[10.5px] ${w.status === 'registered' ? 'text-blue-light' : 'text-amber-light'}`}>
+                <View style={[s.statusPill, w.status === 'registered' ? s.statusRegistered : s.statusPending]}>
+                  <Text style={[s.statusText, { color: w.status === 'registered' ? '#60A5FA' : '#FBBF24' }]}>
                     {w.status === 'registered' ? 'Enrolled' : `Week ${currentWeek} of ${w.weeks}`}
                   </Text>
                 </View>
               </View>
 
-              <View className="bg-white/[0.02] border border-white/[0.05] rounded-sm p-2.5 mt-1">
-                <View className="flex-row justify-between items-center mb-1.5">
-                  <Text className="font-body-bold text-xs text-muted">Progress Tracing</Text>
-                  <Text className="font-body-bold text-xs text-primary">{pct}% complete</Text>
+              {/* Progress and Timeline Tracking */}
+              <View style={s.trackingContainer}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <Text style={s.trackingLabel}>Progress Tracing</Text>
+                  <Text style={s.trackingPct}>{pct}% complete</Text>
                 </View>
 
-                <View className="h-[6px] bg-white/[0.06] rounded-[3px] overflow-hidden">
-                  <View className="h-full bg-indigo-light" style={{ width: `${pct}%` }} />
+                {/* Progress Bar */}
+                <View style={s.progressBarBg}>
+                  <View style={[s.progressBarFill, { width: `${pct}%` }]} />
                 </View>
 
-                <View className="flex-row justify-between mt-2.5">
-                  <View className="flex-row items-center gap-[5px]">
-                    <View className={`w-2 h-2 rounded-full ${w.status !== 'registered' ? 'bg-success shadow-[0_0_6px_#10B981]' : 'bg-white/20'}`} />
-                    <Text className={`text-[10.5px] ${w.status !== 'registered' ? 'text-primary font-body-bold' : 'text-muted'}`} style={{ fontFamily: FONTS.med }}>Orientation</Text>
+                {/* Dynamic Milestones Stepper */}
+                <View style={s.timeline}>
+                  <View style={s.timelineStep}>
+                    <View style={[s.dot, w.status !== 'registered' && s.dotDone]} />
+                    <Text style={[s.stepText, w.status !== 'registered' && s.stepTextDone]}>Orientation</Text>
                   </View>
-                  <View className="flex-row items-center gap-[5px]">
-                    <View className={`w-2 h-2 rounded-full ${w.status !== 'registered' && currentWeek >= Math.ceil(w.weeks / 2) ? 'bg-success shadow-[0_0_6px_#10B981]' : 'bg-white/20'}`} />
-                    <Text className={`text-[10.5px] ${w.status !== 'registered' && currentWeek >= Math.ceil(w.weeks / 2) ? 'text-primary font-body-bold' : 'text-muted'}`} style={{ fontFamily: FONTS.med }}>Mid-term</Text>
+                  <View style={s.timelineStep}>
+                    <View style={[s.dot, w.status !== 'registered' && currentWeek >= Math.ceil(w.weeks / 2) && s.dotDone]} />
+                    <Text style={[s.stepText, w.status !== 'registered' && currentWeek >= Math.ceil(w.weeks / 2) && s.stepTextDone]}>Mid-term</Text>
                   </View>
-                  <View className="flex-row items-center gap-[5px]">
-                    <View className={`w-2 h-2 rounded-full ${w.status !== 'registered' && currentWeek >= w.weeks ? 'bg-success shadow-[0_0_6px_#10B981]' : 'bg-white/20'}`} />
-                    <Text className={`text-[10.5px] ${w.status !== 'registered' && currentWeek >= w.weeks ? 'text-primary font-body-bold' : 'text-muted'}`} style={{ fontFamily: FONTS.med }}>Final evaluation</Text>
+                  <View style={s.timelineStep}>
+                    <View style={[s.dot, w.status !== 'registered' && currentWeek >= w.weeks && s.dotDone]} />
+                    <Text style={[s.stepText, w.status !== 'registered' && currentWeek >= w.weeks && s.stepTextDone]}>Final evaluation</Text>
                   </View>
                 </View>
               </View>
 
-              <View className="flex-row gap-2 justify-end mt-1">
+              {/* Simulation Actions */}
+              <View style={s.actionRow}>
                 {updatingId === w.id ? (
                   <ActivityIndicator size="small" color={SC.accentBright} style={{ paddingVertical: 4 }} />
                 ) : w.status === 'registered' ? (
                   <Pressable
                     onPress={() => handleProgress(w.id, 'start')}
-                    style={({ hovered }: any) => [{ opacity: hovered ? 0.85 : 1 }]}
-                    className="px-3 h-7 rounded-sm bg-purple-soft border border-purple/40 items-center justify-center"
+                    style={({ hovered }: any) => [s.actionBtn, s.startBtn, hovered && { opacity: 0.85 }]}
                   >
-                    <Text className="font-body-bold text-xs text-primary" style={{ fontFamily: FONTS.bold }}>Start Program</Text>
+                    <Text style={s.btnText}>Start Program</Text>
                   </Pressable>
                 ) : (
                   <>
                     <Pressable
                       onPress={() => handleProgress(w.id, 'advance')}
-                      style={({ hovered }: any) => [{ opacity: hovered ? 0.85 : 1 }]}
-                      className="px-3 h-7 rounded-sm bg-amber-soft border border-amber/30 items-center justify-center"
+                      style={({ hovered }: any) => [s.actionBtn, s.nextBtn, hovered && { opacity: 0.85 }]}
                     >
-                      <Text className="font-body-bold text-xs text-primary" style={{ fontFamily: FONTS.bold }}>Advance 1 Week</Text>
+                      <Text style={s.btnText}>Advance 1 Week</Text>
                     </Pressable>
                     <Pressable
                       onPress={() => handleProgress(w.id, 'complete')}
-                      style={({ hovered }: any) => [{ opacity: hovered ? 0.85 : 1 }]}
-                      className="px-3 h-7 rounded-sm bg-green-soft border border-success/30 items-center justify-center"
+                      style={({ hovered }: any) => [s.actionBtn, s.completeBtn, hovered && { opacity: 0.85 }]}
                     >
-                      <Text className="font-body-bold text-xs text-primary" style={{ fontFamily: FONTS.bold }}>Simulate Completion</Text>
+                      <Text style={s.btnText}>Simulate Completion</Text>
                     </Pressable>
                   </>
                 )}
@@ -169,27 +171,26 @@ export function MyWorkshopsView() {
       <Section title={`Completed (${completed.length})`}>
         {completed.map((w, idx) => (
           <GlassCard key={w.id} delay={idx * 30} radius={12} padding={14} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <View className="w-[38px] h-[38px] rounded-md bg-green-soft border border-success/30 items-center justify-center">
+            <View style={[s.iconBox, { backgroundColor: 'rgba(34,197,94,0.10)', borderColor: 'rgba(34,197,94,0.30)' }]}>
               <CheckCircle size={18} color="#22C55E" />
             </View>
-            <View className="flex-1 min-w-0">
-              <Text className="font-body-bold text-base text-primary" style={{ fontFamily: FONTS.bold }}>{w.title}</Text>
-              <Text className="text-muted text-xs mt-[3px]" style={{ fontFamily: FONTS.med }}>Completed {w.completed_at ? String(w.completed_at).slice(0, 10) : '—'} · {w.weeks} weeks</Text>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={s.title}>{w.title}</Text>
+              <Text style={s.meta}>Completed {w.completed_at ? String(w.completed_at).slice(0, 10) : '—'} · {w.weeks} weeks</Text>
             </View>
             {w.certificate_url && (
               <Pressable
                 onPress={() => Linking.openURL(w.certificate_url!)}
-                style={({ hovered }: any) => [hovered && { backgroundColor: SC.cardH }]}
-                className="flex-row items-center gap-[5px] px-[11px] h-[30px] rounded-lg bg-amber-light/10 border border-amber-light/40"
+                style={({ hovered }: any) => [s.certBtn, hovered && { backgroundColor: SC.cardH }]}
               >
                 <Award size={12} color="#FCD34D" />
-                <Text className="font-body-bold text-xs text-amber-light" style={{ fontFamily: FONTS.bold }}>Certificate</Text>
+                <Text style={s.certText}>Certificate</Text>
                 <ExternalLink size={11} color="#FCD34D" />
               </Pressable>
             )}
           </GlassCard>
         ))}
-        {completed.length === 0 && <Text className="text-muted p-4 text-center" style={{ fontFamily: FONTS.med }}>No workshops completed yet.</Text>}
+        {completed.length === 0 && <Text style={s.empty}>No workshops completed yet.</Text>}
       </Section>
 
       <Section title="Explore Structured Workshops">
@@ -198,25 +199,24 @@ export function MyWorkshopsView() {
             const isAlreadyEnrolled = items.some((w) => w.title === item.title);
             return (
               <GlassCard key={item.title} radius={12} padding={16} style={{ gap: 8 }}>
-                <View className="flex-row items-center justify-between">
-                  <Text className="font-body-bold text-md text-primary" style={{ fontFamily: FONTS.bold }}>{item.title}</Text>
-                  <Text className="text-muted text-sm" style={{ fontFamily: FONTS.med }}>{item.weeks} weeks · ₹{item.fee.toLocaleString()}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Text style={s.exploreTitle}>{item.title}</Text>
+                  <Text style={s.exploreMeta}>{item.weeks} weeks · ₹{item.fee.toLocaleString()}</Text>
                 </View>
-                <Text className="text-[rgba(255,255,255,0.6)] text-sm leading-[16px] mt-1" style={{ fontFamily: FONTS.med }}>{item.desc}</Text>
-                <View className="flex-row justify-end mt-1">
+                <Text style={s.exploreDesc}>{item.desc}</Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 4 }}>
                   {enrollingTitle === item.title ? (
                     <ActivityIndicator size="small" color={SC.accentBright} />
                   ) : isAlreadyEnrolled ? (
-                    <View className="px-3 h-7 rounded-sm bg-blue-soft border border-blue/30 items-center justify-center pointer-events-none">
-                      <Text className="font-body-bold text-sm text-blue-light" style={{ fontFamily: FONTS.bold }}>✓ Enrolled</Text>
+                    <View style={[s.actionBtn, s.statusRegistered, { height: 28, pointerEvents: 'none' }]}>
+                      <Text style={[s.btnText, { color: '#60A5FA' }]}>✓ Enrolled</Text>
                     </View>
                   ) : (
                     <Pressable
                       onPress={() => handleEnroll(item.title, item.fee, item.weeks)}
-                      style={({ hovered }: any) => [{ opacity: hovered ? 0.85 : 1 }]}
-                      className="px-3 h-7 rounded-sm bg-purple-soft border border-purple/40 items-center justify-center"
+                      style={({ hovered }: any) => [s.actionBtn, s.startBtn, hovered && { opacity: 0.85 }]}
                     >
-                      <Text className="font-body-bold text-xs text-primary" style={{ fontFamily: FONTS.bold }}>Quick Enroll</Text>
+                      <Text style={s.btnText}>Quick Enroll</Text>
                     </Pressable>
                   )}
                 </View>
@@ -232,8 +232,62 @@ export function MyWorkshopsView() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <View>
-      <Text className="font-body-bold text-xs text-muted uppercase tracking-widest mb-2">{title}</Text>
+      <Text style={s.sectionTitle}>{title}</Text>
       <View style={{ gap: 8 }}>{children}</View>
     </View>
   );
 }
+
+const s = StyleSheet.create({
+  h1: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4 },
+  sub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4 },
+  sectionTitle: { color: SC.muted, fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 1, marginBottom: 8 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 12, padding: 14 },
+  iconBox: { width: 38, height: 38, borderRadius: 10, backgroundColor: 'rgba(167,139,250,0.10)', borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  title: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13.5 },
+  meta: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 3 },
+  statusPill: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 6, borderWidth: 1 },
+  statusPending: { backgroundColor: 'rgba(251,191,36,0.10)', borderColor: 'rgba(251,191,36,0.30)' },
+  statusRegistered: { backgroundColor: 'rgba(96,165,250,0.10)', borderColor: 'rgba(96,165,250,0.30)' },
+  statusText: { fontFamily: FONTS.bold, fontSize: 10.5 },
+  certBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 11, height: 30, borderRadius: 8, backgroundColor: 'rgba(252,211,77,0.10)', borderColor: 'rgba(252,211,77,0.40)', borderWidth: 1, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  certText: { color: '#FCD34D', fontFamily: FONTS.bold, fontSize: 11.5 },
+  empty: { color: SC.muted, padding: 16, textAlign: 'center', fontFamily: FONTS.med },
+
+  // Tracking Progress Styles
+  trackingContainer: {
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    borderColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 4,
+  },
+  trackingLabel: { color: SC.muted, fontFamily: FONTS.bold, fontSize: 11 },
+  trackingPct: { color: '#fff', fontFamily: FONTS.bold, fontSize: 11 },
+  progressBarBg: { height: 6, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden' },
+  progressBarFill: { height: '100%', backgroundColor: SC.accentBright },
+
+  // Milestones Timeline Styles
+  timeline: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
+  timelineStep: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.2)' },
+  dotDone: { backgroundColor: '#10B981', ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 6px #10B981' } as any) : {}) } as any,
+  stepText: { color: SC.muted, fontFamily: FONTS.med, fontSize: 10.5 },
+  stepTextDone: { color: '#fff', fontFamily: FONTS.bold },
+
+  // Simulator Buttons Row Styles
+  actionRow: { flexDirection: 'row', gap: 8, justifyContent: 'flex-end', marginTop: 4 },
+  actionBtn: { paddingHorizontal: 12, height: 28, borderRadius: 6, justifyContent: 'center', alignItems: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  btnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 11.5 },
+  startBtn: { backgroundColor: 'rgba(167,139,250,0.2)', borderColor: 'rgba(167,139,250,0.4)', borderWidth: 1 },
+  nextBtn: { backgroundColor: 'rgba(251,191,36,0.15)', borderColor: 'rgba(251,191,36,0.3)', borderWidth: 1 },
+  completeBtn: { backgroundColor: 'rgba(16,185,129,0.15)', borderColor: 'rgba(16,185,129,0.3)', borderWidth: 1 },
+
+  // Explore Catalog Styles
+  exploreTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 14 },
+  exploreMeta: { color: SC.muted, fontFamily: FONTS.med, fontSize: 12 },
+  exploreDesc: { color: 'rgba(255,255,255,0.6)', fontFamily: FONTS.med, fontSize: 12, lineHeight: 16, marginTop: 4 },
+});
+
+

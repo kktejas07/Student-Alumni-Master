@@ -1,4 +1,4 @@
-import { NETWORK_SECTIONS } from '../ExploreData';
+import { NETWORK_SECTIONS } from '../exploreData';
 
 describe('exploreData Network Discover section', () => {
   const discoverSection = NETWORK_SECTIONS.find((s) => s.id === 'discover');

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView } from 'react-native';
 import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
 import { Footer } from '@/src/views/web/nexus-glow-landing/Footer';
 import { ShieldCheck, Lock, Key, Server, CheckCircle2 } from 'lucide-react-native';
@@ -72,7 +72,7 @@ export default function SecurityPage() {
   );
 }
 
-const styles = {
+const styles = StyleSheet.create({
   outerWrap: {
     flex: 1,
     backgroundColor: '#05060F',
@@ -81,4 +81,4 @@ const styles = {
   scrollContainer: {
     flexGrow: 1,
   },
-};
+});

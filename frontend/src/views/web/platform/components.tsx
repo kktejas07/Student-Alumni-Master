@@ -3,7 +3,7 @@
  * NOT used on mobile.
  */
 import React, { useRef } from 'react';
-import { View, Text, Pressable, TextInput, Animated, Easing, Platform } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput, Animated, Easing, Platform } from 'react-native';
 import Svg, { Path, Text as SvgText } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { LucideIcon } from 'lucide-react-native';
@@ -517,7 +517,7 @@ export function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-const styles = {
+const styles = StyleSheet.create({
   glass: {
     backgroundColor: SA.glass,
     borderColor: SA.border,
@@ -660,4 +660,4 @@ const styles = {
     position: 'relative',
     ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
   },
-};
+});

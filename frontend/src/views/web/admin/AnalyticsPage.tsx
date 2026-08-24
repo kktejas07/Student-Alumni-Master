@@ -2,7 +2,7 @@
  * AnalyticsPage — career path + stream + mentor category breakdown + engagement.
  */
 import { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { TrendingUp, Activity, Users, Clock } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
 import { AdminLayout } from './AdminLayout';
@@ -71,7 +71,7 @@ function Breakdown({ title, data }: { title: string; data: { label: string; valu
   );
 }
 
-const styles = {
+const styles = StyleSheet.create({
   kpiGrid: { ...({ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 14 } as any) },
   row2: { ...({ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginTop: 18 } as any) },
   cardTitle: { color: T.text, fontFamily: 'DMSans_700Bold', fontSize: 14, letterSpacing: -0.2 },
@@ -80,4 +80,4 @@ const styles = {
   barValue: { color: T.light, fontFamily: 'DMSans_700Bold', fontSize: 12 },
   barTrack: { height: 8, borderRadius: 4, backgroundColor: 'rgba(245,158,11,0.08)' },
   barFill: { height: 8, borderRadius: 4, backgroundColor: T.mid },
-};
+});

@@ -2,7 +2,7 @@
  * Super Admin Portal — Overview/Dashboard view (true RN port).
  */
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, Pressable, useWindowDimensions, Platform, Image, TextInput, ScrollView } from 'react-native';
+import { View, Text, Pressable, StyleSheet, useWindowDimensions, Platform, Image, TextInput, ScrollView } from 'react-native';
 import {
   Building2, GraduationCap, UserCheck, Users, CreditCard, Calendar,
   CheckCircle, BarChart3, Sparkles, AlertTriangle, FileText, Eye,
@@ -470,27 +470,27 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
   );
 }
 
-const s = {
+const s = StyleSheet.create({
   hero: {
-    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12, flexWrap: 'wrap' as const,
+    flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap',
     backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 14,
     paddingHorizontal: 22, paddingVertical: 18,
   },
   heroKicker: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 1.2, marginBottom: 6 },
   heroTitle:  { color: '#fff', fontFamily: FONTS.xbold, fontSize: 19, letterSpacing: -0.4 },
-  heroPrimary: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 6, paddingHorizontal: 14, height: 36, borderRadius: 10, backgroundColor: SAC.primary, ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
+  heroPrimary: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 36, borderRadius: 10, backgroundColor: SAC.primary, ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
   heroPrimaryText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
-  heroSec: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 6, paddingHorizontal: 14, height: 36, borderRadius: 10, backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
+  heroSec: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 36, borderRadius: 10, backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
   heroSecText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
 
   card: { backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 14, padding: 18 },
-  cardHead: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const },
+  cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   cardTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15, letterSpacing: -0.2 },
   cardSub:   { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 3 },
   linkRight: { color: SAC.accentBright, fontFamily: FONTS.bold, fontSize: 11.5 },
 
-  activityRow: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12 },
-  activityIcon: { width: 34, height: 34, borderRadius: 9, backgroundColor: 'rgba(245,158,11,0.10)', borderColor: 'rgba(245,158,11,0.30)', borderWidth: 1, alignItems: 'center' as const, justifyContent: 'center' as const },
+  activityRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  activityIcon: { width: 34, height: 34, borderRadius: 9, backgroundColor: 'rgba(245,158,11,0.10)', borderColor: 'rgba(245,158,11,0.30)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   activityText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13 },
   activitySub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 },
   activityDot: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11 },
@@ -499,13 +499,14 @@ const s = {
   distLabel: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
   distPct:   { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12.5 },
   distCount: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 5 },
-  distTrack: { height: 5, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.04)', overflow: 'hidden' as const },
-  distFill:  { height: '100%' as any, borderRadius: 3 },
+  distTrack: { height: 5, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.04)', overflow: 'hidden' },
+  distFill:  { height: '100%', borderRadius: 3 },
   revAmount: { color: SAC.accentBright, fontFamily: FONTS.xbold, fontSize: 12.5 },
 
   barValue: { fontFamily: FONTS.bold, fontSize: 10 },
   barMonth: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 10.5 },
 
+  // Ad Manager
   adManagerWrap: {
     backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1,
     borderRadius: 14, padding: 14,
@@ -518,9 +519,9 @@ const s = {
   adEditBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 11 },
 
   adEditorOverlay: {
-    position: 'absolute' as const, top: 0, left: 0, right: 0, bottom: 0,
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.72)', zIndex: 1000,
-    justifyContent: 'center' as const, alignItems: 'center' as const,
+    justifyContent: 'center', alignItems: 'center',
     ...(Platform.OS === 'web' ? { position: 'fixed' } as any : {}),
   },
   adEditorModal: {
@@ -537,8 +538,8 @@ const s = {
     color: '#fff', fontFamily: FONTS.med, fontSize: 13,
   },
   adEmptyDrop: {
-    alignItems: 'center' as const, gap: 8, paddingVertical: 22, paddingHorizontal: 12,
-    backgroundColor: SAC.bg2, borderColor: SAC.border, borderWidth: 1, borderStyle: 'dashed' as const,
+    alignItems: 'center', gap: 8, paddingVertical: 22, paddingHorizontal: 12,
+    backgroundColor: SAC.bg2, borderColor: SAC.border, borderWidth: 1, borderStyle: 'dashed',
     borderRadius: 10,
   },
   adDraftCard: {
@@ -546,15 +547,15 @@ const s = {
     borderRadius: 10, padding: 10, gap: 6,
   },
   adFilePicker: {
-    flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'center' as const, gap: 8,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     backgroundColor: SAC.bg2, borderColor: SAC.border, borderWidth: 1,
     borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10,
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
   },
   adSaveBtn: {
-    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 8, justifyContent: 'center' as const,
+    flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center',
     backgroundColor: SAC.accent, borderRadius: 10,
     paddingVertical: 12, marginTop: 14,
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
   },
-};
+});

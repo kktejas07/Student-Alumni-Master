@@ -4,7 +4,7 @@
  * Spec: /tmp/ui_specs/platform-college.jsx
  */
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, Pressable, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
@@ -26,7 +26,7 @@ import { CollegeDashboardView } from '@/src/views/web/CollegeDashboardView';
 
 const NAV: NavItem[] = [
   { id: 'overview',     Icon: BarChart3,    label: 'Overview',       color: '#60A5FA' },
-  { id: 'students',     Icon: GraduationCap, label: 'Students',      color: '#60A5FA' },
+  { id: 'students',     Icon: GraduationCap, label: 'Students',      color: '#A78BFA' },
   { id: 'alumni',       Icon: Users,        label: 'Alumni',         color: '#34D399' },
   { id: 'events',       Icon: Calendar,     label: 'Events',         color: '#FB923C' },
   { id: 'announcements',Icon: Megaphone,    label: 'Announcements',  color: '#EF4444' },
@@ -239,7 +239,7 @@ function Stub({ title, emoji, sub }: { title: string; emoji: string; sub: string
   );
 }
 
-const styles = {
+const styles = StyleSheet.create({
   shell: { flex: 1, flexDirection: 'row', height: '100%' as any },
   main: { padding: 36, paddingBottom: 80 },
   kpiRow: { flexDirection: 'row', gap: 14, marginBottom: 24, flexWrap: 'wrap' as const },
@@ -266,4 +266,4 @@ const styles = {
     backgroundColor: SA.purpleLight,
     marginTop: 6,
   },
-};
+});

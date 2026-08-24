@@ -1,6 +1,16 @@
 // @ts-nocheck
+/**
+ * MemberIdCard — interactive flip card showing Member ID details.
+ *
+ * Front: Identity badge, role-aware title, QR code (Scan to Verify), verify link.
+ * Back:  Member ID, barcode, validity, "Tap to flip" hint.
+ *
+ * Tap (or click on web) to trigger a 3D Y-axis flip (~700ms ease-in-out).
+ *
+ * Spec source: /app/customer-assets screenshots (May 2026 hand-off).
+ */
 import React, { useMemo } from 'react';
-import { View, Text, Image, Pressable, Platform } from 'react-native';
+import { View, Text, StyleSheet, Image, Pressable, Platform } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -70,13 +80,16 @@ const TIER_META: Record<MemberTier, { label: string; bg: string; border: string;
   platinum: { label: 'Platinum', bg: 'rgba(229,228,226,0.20)', border: 'rgba(229,228,226,0.6)',  text: '#F1F1F0' },
 };
 
+/* ---------- Barcode (SVG, deterministic from id) ---------- */
 function Barcode({ value, color = '#7C3AED', height = 64 }: { value: string; color?: string; height?: number }) {
   const bars = useMemo(() => {
+    // Deterministic bar widths from the id chars
     const pattern: Array<{ w: number; gap: number }> = [];
     const chars = (value || 'SA').split('');
     let i = 0;
     while (pattern.length < 56) {
       const c = chars[i % chars.length].charCodeAt(0);
+      // bar width 1..4, gap 1..3
       pattern.push({ w: (c % 4) + 1, gap: ((c >> 2) % 3) + 1 });
       i += 1;
     }
@@ -98,16 +111,15 @@ function Barcode({ value, color = '#7C3AED', height = 64 }: { value: string; col
   );
 }
 
-const CARD_HEIGHT = 270;
-
+/* ---------- Component ---------- */
 export interface MemberIdCardProps {
   uniqueId: string;
   role: MemberRole;
   tier?: MemberTier;
-  qrBase64?: string;
-  validFromYear?: number;
-  verifyBaseUrl?: string;
-  onTapHint?: () => void;
+  qrBase64?: string;            // "data:image/png;base64,..." or raw base64
+  validFromYear?: number;       // default = current year
+  verifyBaseUrl?: string;       // default "studentalumni.ai/verify"
+  onTapHint?: () => void;       // optional callback when flipped
   testID?: string;
 }
 
@@ -125,11 +137,12 @@ export function MemberIdCard({
   const tierMeta = TIER_META[tier] || TIER_META.gold;
   const year = validFromYear || new Date().getFullYear();
 
+  // Last 6 chars of id for verify URL (eg. "612450")
   const verifySuffix = (uniqueId || '').split('-').pop() || (uniqueId || '').slice(-6);
   const verifyUrl = `${verifyBaseUrl}/${verifySuffix}`;
 
   const rotation = useSharedValue(0);
-  const flipped = useSharedValue(0);
+  const flipped = useSharedValue(0); // 0 = front, 1 = back
 
   const flip = () => {
     const next = flipped.value === 0 ? 180 : 0;
@@ -143,12 +156,12 @@ export function MemberIdCard({
 
   const frontStyle = useAnimatedStyle(() => ({
     transform: [{ perspective: 1200 }, { rotateY: `${rotation.value}deg` }],
-    backfaceVisibility: 'hidden',
+    backfaceVisibility: 'hidden' as any,
   }));
 
   const backStyle = useAnimatedStyle(() => ({
     transform: [{ perspective: 1200 }, { rotateY: `${rotation.value + 180}deg` }],
-    backfaceVisibility: 'hidden',
+    backfaceVisibility: 'hidden' as any,
   }));
 
   const RoleIcon = meta.Icon;
@@ -160,90 +173,86 @@ export function MemberIdCard({
   return (
     <Pressable
       onPress={flip}
-      className="w-full"
-      style={{ minHeight: CARD_HEIGHT, ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {}) }}
+      style={s.flipWrap}
       testID={testID || 'member-id-card'}
       accessibilityRole="button"
       accessibilityLabel="Member ID card. Tap to flip."
     >
-      <View className="w-full relative" style={{ minHeight: CARD_HEIGHT }}>
-        <Animated.View
-          className="w-full absolute top-0 left-0 rounded-2xl border-[1.5px] bg-white p-4"
-          style={[{ minHeight: CARD_HEIGHT, borderColor: meta.cardBorder, shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 6 }, frontStyle]}
-        >
-          <View className="flex-row items-center">
-            <View className="w-10 h-10 rounded-[10px] items-center justify-center border" style={{ backgroundColor: meta.iconBg, borderColor: meta.cardBorder }}>
+      {/* Both faces stacked absolutely; container has fixed minHeight to reserve space */}
+      <View style={s.flipInner}>
+        {/* FRONT */}
+        <Animated.View style={[s.face, { borderColor: meta.cardBorder }, frontStyle]}>
+          <View style={s.headerRow}>
+            <View style={[s.iconSquare, { backgroundColor: meta.iconBg, borderColor: meta.cardBorder }]}>
               <RoleIcon size={20} color={meta.iconColor} />
             </View>
-            <View className="flex-1 ml-3">
-              <Text className="text-gray-900 font-body-bold text-sm">{meta.label}</Text>
-              <Text className="text-gray-500 font-body-bold text-[9.5px] tracking-wider mt-0.5">{meta.sub}</Text>
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={s.headerTitle}>{meta.label}</Text>
+              <Text style={s.headerSub}>{meta.sub}</Text>
             </View>
-            <View className="flex-row items-center gap-1 px-[9px] py-1 rounded-full border" style={{ backgroundColor: tierMeta.bg, borderColor: tierMeta.border }}>
+            <View style={[s.tierPill, { backgroundColor: tierMeta.bg, borderColor: tierMeta.border }]}>
               <Award size={11} color={tierMeta.text} />
-              <Text className="font-body-bold text-[10.5px] tracking-wider" style={{ color: tierMeta.text }}>{tierMeta.label}</Text>
+              <Text style={[s.tierText, { color: tierMeta.text }]}>{tierMeta.label}</Text>
             </View>
           </View>
 
-          <View className="flex-row items-start mt-3.5 flex-1">
-            <View className="flex-1 pr-3">
-              <Text className="text-gray-500 font-body-bold text-[9.5px] tracking-wider">SCAN TO VERIFY</Text>
-              <Text className="text-gray-900 font-body-bold text-base tracking-wider mt-1">{uniqueId}</Text>
-              <Text className="text-gray-500 font-body-semibold text-[11px] leading-4 mt-2">
+          <View style={s.frontBody}>
+            <View style={{ flex: 1, paddingRight: 12 }}>
+              <Text style={s.miniLabel}>SCAN TO VERIFY</Text>
+              <Text style={s.idText}>{uniqueId}</Text>
+              <Text style={s.helperText}>
                 This QR code can be scanned by mentors, colleges and employers to verify your SA membership.
               </Text>
-              <Text className="font-body-bold text-[11px] mt-2 tracking-wider" style={{ color: meta.iconColor }}>{verifyUrl}</Text>
+              <Text style={[s.verifyLink, { color: meta.iconColor }]}>{verifyUrl}</Text>
             </View>
 
-            <View className="w-24 h-24 p-1.5 bg-white rounded-[10px]">
+            <View style={s.qrWrap}>
               {qrUri ? (
-                <Image source={{ uri: qrUri }} className="w-full h-full" resizeMode="contain" />
+                <Image source={{ uri: qrUri }} style={s.qrImg} resizeMode="contain" />
               ) : (
-                <View className="w-full h-full items-center justify-center bg-white/[0.06] rounded-lg">
+                <View style={[s.qrImg, s.qrFallback]}>
                   <ShieldCheck size={28} color={meta.qrTint} />
-                  <Text className="font-body-bold text-[11px] mt-1 tracking-wider" style={{ color: meta.iconColor }}>QR</Text>
+                  <Text style={[s.qrFallbackText, { color: meta.iconColor }]}>QR</Text>
                 </View>
               )}
             </View>
           </View>
 
-          <View className="mt-2.5 items-end">
-            <Text className="text-gray-400 font-body-semibold text-[10.5px]">Tap to flip</Text>
+          <View style={s.flipHintRow}>
+            <Text style={s.flipHint}>Tap to flip</Text>
           </View>
         </Animated.View>
 
-        <Animated.View
-          className="w-full absolute top-0 left-0 rounded-2xl border-[1.5px] bg-white p-4"
-          style={[{ minHeight: CARD_HEIGHT, borderColor: meta.cardBorder, shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 6 }, backStyle]}
-        >
-          <View className="flex-row items-center">
-            <View className="w-10 h-10 rounded-[10px] items-center justify-center border" style={{ backgroundColor: meta.iconBg, borderColor: meta.cardBorder }}>
+        {/* BACK */}
+        <Animated.View style={[s.face, s.faceBack, { borderColor: meta.cardBorder }, backStyle]}>
+          <View style={s.headerRow}>
+            <View style={[s.iconSquare, { backgroundColor: meta.iconBg, borderColor: meta.cardBorder }]}>
               <RoleIcon size={20} color={meta.iconColor} />
             </View>
-            <View className="flex-1 ml-3">
-              <Text className="text-gray-900 font-body-bold text-sm">{meta.label}</Text>
-              <Text className="text-gray-500 font-body-bold text-[9.5px] tracking-wider mt-0.5">{meta.sub}</Text>
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={s.headerTitle}>{meta.label}</Text>
+              <Text style={s.headerSub}>{meta.sub}</Text>
             </View>
-            <View className="flex-row items-center gap-1 px-[9px] py-1 rounded-full border" style={{ backgroundColor: tierMeta.bg, borderColor: tierMeta.border }}>
+            <View style={[s.tierPill, { backgroundColor: tierMeta.bg, borderColor: tierMeta.border }]}>
               <Award size={11} color={tierMeta.text} />
-              <Text className="font-body-bold text-[10.5px] tracking-wider" style={{ color: tierMeta.text }}>{tierMeta.label}</Text>
+              <Text style={[s.tierText, { color: tierMeta.text }]}>{tierMeta.label}</Text>
             </View>
           </View>
 
-          <View className="mt-3.5">
-            <Text className="text-gray-500 font-body-bold text-[9.5px] tracking-wider">MEMBER ID</Text>
-            <Text className="text-gray-900 font-body-bold text-[22px] tracking-wider mt-1">{uniqueId}</Text>
+          <View style={s.backBody}>
+            <Text style={s.miniLabel}>MEMBER ID</Text>
+            <Text style={s.idTextLarge}>{uniqueId}</Text>
 
-            <View className="mt-3.5 p-2 rounded-[10px] border bg-gray-100" style={{ borderColor: 'rgba(255,255,255,0.10)' }}>
+            <View style={[s.barcodeBox, { borderColor: 'rgba(255,255,255,0.10)' }]}>
               <Barcode value={uniqueId} color={meta.iconColor} height={68} />
             </View>
 
-            <View className="flex-row justify-between items-center mt-3">
-              <View className="flex-row items-center gap-1.5">
+            <View style={s.backFootRow}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <BadgeCheck size={12} color={meta.iconColor} />
-                <Text className="text-gray-500 font-body-semibold text-[11px]">Valid from {year} · Lifetime membership</Text>
+                <Text style={s.validityText}>Valid from {year} · Lifetime membership</Text>
               </View>
-              <Text className="text-gray-400 font-body-semibold text-[10.5px]">Tap to flip</Text>
+              <Text style={s.flipHint}>Tap to flip</Text>
             </View>
           </View>
         </Animated.View>
@@ -251,5 +260,94 @@ export function MemberIdCard({
     </Pressable>
   );
 }
+
+const CARD_HEIGHT = 270;
+
+const s = StyleSheet.create({
+  flipWrap: {
+    width: '100%',
+    minHeight: CARD_HEIGHT,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  flipInner: {
+    width: '100%',
+    minHeight: CARD_HEIGHT,
+    position: 'relative',
+  },
+  face: {
+    width: '100%',
+    minHeight: CARD_HEIGHT,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    // subtle shadow
+    shadowColor: '#000',
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
+  },
+  faceBack: {
+    backgroundColor: '#FFFFFF',
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconSquare: {
+    width: 40, height: 40, borderRadius: 10,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1,
+  },
+  headerTitle: { color: '#111827', fontFamily: FONTS.bold, fontSize: 14 },
+  headerSub: { color: '#6B7280', fontFamily: FONTS.bold, fontSize: 9.5, letterSpacing: 0.8, marginTop: 2 },
+  tierPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 9, paddingVertical: 4,
+    borderRadius: 999, borderWidth: 1,
+  },
+  tierText: { fontFamily: FONTS.bold, fontSize: 10.5, letterSpacing: 0.4 },
+
+  /* Front body */
+  frontBody: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginTop: 14,
+    flex: 1,
+  },
+  miniLabel: { color: '#6B7280', fontFamily: FONTS.bold, fontSize: 9.5, letterSpacing: 0.8 },
+  idText: { color: '#111827', fontFamily: FONTS.bold, fontSize: 16, letterSpacing: 0.6, marginTop: 4 },
+  helperText: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 11, lineHeight: 16, marginTop: 8 },
+  verifyLink: { fontFamily: FONTS.bold, fontSize: 11, marginTop: 8, letterSpacing: 0.3 },
+  qrWrap: {
+    width: 96, height: 96, padding: 6,
+    backgroundColor: '#FFF', borderRadius: 10,
+  },
+  qrImg: { width: '100%', height: '100%' },
+  qrFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 8 },
+  qrFallbackText: { fontFamily: FONTS.bold, fontSize: 11, marginTop: 4, letterSpacing: 1 },
+  flipHintRow: { marginTop: 10, alignItems: 'flex-end' },
+  flipHint: { color: '#9CA3AF', fontFamily: FONTS.med, fontSize: 10.5 },
+
+  /* Back body */
+  backBody: { marginTop: 14 },
+  idTextLarge: { color: '#111827', fontFamily: FONTS.bold, fontSize: 22, letterSpacing: 1, marginTop: 4 },
+  barcodeBox: {
+    marginTop: 14, padding: 8,
+    borderRadius: 10, borderWidth: 1,
+    backgroundColor: '#F3F4F6',
+  },
+  backFootRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  validityText: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 11 },
+});
 
 export default MemberIdCard;

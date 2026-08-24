@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, Pressable, ScrollView, ActivityIndicator, Platform, TextInput, Image, Modal } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, ActivityIndicator, Platform, TextInput, Image, Modal } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Calendar as CalIcon, MapPin, Users as UsersIcon, Check, Award, ArrowRight, Globe2, Sparkles, X, Clock, ExternalLink, ShieldCheck } from '../iconShims';
 import { SC, FONTS } from '../tokens';
@@ -153,8 +153,8 @@ export function DropdownSelect({ label, value, options, onSelect }: DropdownSele
   }, [open]);
 
   return (
-    <View ref={wrapRef} className="relative min-w-[160px]" style={{ zIndex: open ? 9999 : 1 }}>
-      <Text className="text-white/40 text-[10px] font-body-bold uppercase mb-1 tracking-wider">
+    <View ref={wrapRef} style={{ position: 'relative', minWidth: 160, zIndex: open ? 9999 : 1 }}>
+      <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, fontFamily: FONTS.bold, textTransform: 'uppercase', marginBottom: 4, letterSpacing: 0.5 }}>
         {label}
       </Text>
       <Pressable
@@ -167,10 +167,21 @@ export function DropdownSelect({ label, value, options, onSelect }: DropdownSele
         accessibilityHint="Tap to toggle dropdown options list"
         testID={`dropdown-toggle-${label.toLowerCase().replace(/\s+/g, '-')}`}
         accessibilityRole="combobox"
-        className="flex-row items-center justify-between h-[38px] px-3 rounded-lg bg-white/[0.03]"
-        style={{ borderWidth: 1, borderColor: open ? '#6366F1' : 'rgba(255,255,255,0.08)', cursor: 'pointer' as any }}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          height: 38,
+          paddingHorizontal: 12,
+          borderRadius: 8,
+          backgroundColor: 'rgba(255,255,255,0.03)',
+          borderWidth: 1,
+          borderColor: open ? '#6366F1' : 'rgba(255,255,255,0.08)',
+          // @ts-ignore
+          cursor: 'pointer',
+        }}
       >
-        <Text className="text-white text-xs font-body-medium">
+        <Text style={{ color: '#fff', fontSize: 12, fontFamily: FONTS.med }}>
           {selectedOption?.label}
         </Text>
         <MaterialCommunityIcons name={open ? 'chevron-up' : 'chevron-down'} size={15} color="rgba(255,255,255,0.6)" />
@@ -178,8 +189,20 @@ export function DropdownSelect({ label, value, options, onSelect }: DropdownSele
       
       {open && (
         <View
-          className="absolute left-0 right-0 mt-1 bg-navy border border-white/[0.09] rounded-lg overflow-hidden"
-          style={{ top: '100%', boxShadow: '0 8px 32px rgba(0,0,0,0.5)' } as any}
+          style={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            right: 0,
+            marginTop: 4,
+            backgroundColor: '#13091F',
+            borderColor: 'rgba(255,255,255,0.09)',
+            borderWidth: 1,
+            borderRadius: 8,
+            overflow: 'hidden',
+            // @ts-ignore
+            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+          }}
         >
           <ScrollView nestedScrollEnabled style={{ maxHeight: 200 }}>
             {options.map((opt) => {
@@ -196,15 +219,17 @@ export function DropdownSelect({ label, value, options, onSelect }: DropdownSele
                   accessibilityLabel={`Select ${opt.label}`}
                   accessibilityRole={'option' as any}
                   testID={`dropdown-opt-${opt.id.toLowerCase().replace(/\s+/g, '-')}`}
-                  className="px-3 py-2.5"
                   style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
                     backgroundColor: isSel ? 'rgba(139, 92, 246, 0.12)' : 'transparent',
                     borderBottomWidth: 1,
                     borderBottomColor: 'rgba(255,255,255,0.04)',
-                    cursor: 'pointer' as any,
+                    // @ts-ignore
+                    cursor: 'pointer',
                   }}
                 >
-                  <Text className="text-xs" style={{ color: isSel ? '#A78BFA' : '#fff', fontFamily: isSel ? FONTS.bold : FONTS.med }}>
+                  <Text style={{ color: isSel ? '#A78BFA' : '#fff', fontSize: 12, fontFamily: isSel ? FONTS.bold : FONTS.med }}>
                     {opt.label}
                   </Text>
                 </Pressable>
@@ -302,35 +327,37 @@ export function EventsView() {
     });
 
   return (
-    <View className="flex-1 relative">
-      <View className="rounded-[14px] overflow-hidden mb-4 border border-violet/30 min-h-[110px] justify-center" accessibilityRole="image" accessibilityLabel="My Events Hero Banner">
+    <View style={{ flex: 1, position: 'relative' }}>
+      {/* Background aesthetics with banner overlay */}
+      <View style={s.heroBannerWrap} accessibilityRole="image" accessibilityLabel="My Events Hero Banner">
         <Image
           source={{ uri: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1600&auto=format&fit=crop&q=80' }}
-          className="absolute inset-0 w-full h-full"
+          style={StyleSheet.absoluteFillObject}
           resizeMode="cover"
           accessibilityLabel="Event hero banner background image"
         />
         <LinearGradient
           colors={['rgba(3,6,20,0.85)', 'rgba(3,6,20,0.98)']}
-          className="absolute inset-0"
+          style={StyleSheet.absoluteFillObject}
         />
-        <View className="relative z-[2] p-5">
-          <View className="flex-row items-center gap-2 mb-1.5">
-            <View className="w-2 h-2 rounded-full bg-teal" />
-            <Text className="text-teal font-body-bold text-[11px] tracking-wider uppercase">
+        <View style={{ position: 'relative', zIndex: 2, padding: 20 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+            <View style={s.livePulse} />
+            <Text style={{ color: '#10B981', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.5, textTransform: 'uppercase' }}>
               AI Scraper Pipeline Active • Auto-Sync Every 30m
             </Text>
           </View>
-          <Text className="text-white font-body-bold text-[24px] tracking-tight">
+          <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 24, letterSpacing: -0.5 }}>
             Global Open Events & Competitions
           </Text>
-          <Text className="text-white/70 font-body-medium text-[13px] mt-1">
+          <Text style={{ color: 'rgba(255,255,255,0.7)', fontFamily: FONTS.med, fontSize: 13, marginTop: 4 }}>
             Explore live hackathons, workshops, quizzes, and competitions. Register directly through our portal.
           </Text>
         </View>
       </View>
 
-      <View className="flex-row items-center h-10 rounded-lg bg-white/[0.03] border border-white/[0.08] px-3 mb-4">
+      {/* Search Input */}
+      <View style={s.searchWrap}>
         <MaterialCommunityIcons name="magnify" size={18} color="rgba(255,255,255,0.45)" style={{ marginRight: 8 }} />
         <TextInput
           value={searchQuery}
@@ -343,7 +370,7 @@ export function EventsView() {
           }}
           placeholder="Search global events by title, description, or mode..."
           placeholderTextColor="rgba(255,255,255,0.35)"
-          className="flex-1 text-white font-body-medium text-[13px]"
+          style={s.searchInput}
           accessibilityLabel="Search global open events"
           accessibilityHint="Type to filter hackathons, workshops, and quizzes by keyword"
           testID="myevent-search-input"
@@ -358,14 +385,15 @@ export function EventsView() {
             accessibilityLabel="Clear search input"
             accessibilityHint="Resets the search query"
             testID="myevent-search-clear-btn"
-            className="p-1"
+            style={{ padding: 4 }}
           >
             <MaterialCommunityIcons name="close-circle" size={16} color="rgba(255,255,255,0.4)" />
           </Pressable>
         )}
       </View>
 
-      <View className="flex-row gap-3 mb-[18px] z-[99]">
+      {/* Dropdown Filters Row */}
+      <View style={{ flexDirection: 'row', gap: 12, marginBottom: 18, zIndex: 99 }}>
         <DropdownSelect
           label="Event Category"
           value={filter}
@@ -383,34 +411,34 @@ export function EventsView() {
         />
       </View>
 
-      <View className="mb-[18px]">
-        <Text className="text-white font-body-bold text-lg">Live Events Feed</Text>
-        <Text className="text-muted font-body-medium text-xs mt-0.5">
+      <View style={{ marginBottom: 18 }}>
+        <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 18 }}>Live Events Feed</Text>
+        <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 }}>
           {processedList.length} open global events available
         </Text>
       </View>
 
       {eventsLoading ? (
         <LiveDataLoader loading={true} message="Fetching live events feed…">
-          <View className="flex-row flex-wrap gap-4">
+          <View style={s.grid}>
             {Array.from({ length: 6 }).map((_, idx) => (
               <EventCardSkeleton key={idx} />
             ))}
           </View>
         </LiveDataLoader>
       ) : processedList.length === 0 ? (
-        <View className="py-20 items-center justify-center">
+        <View style={{ paddingVertical: 80, alignItems: 'center', justifyContent: 'center' }}>
           <MaterialCommunityIcons name="calendar-search" size={48} color="rgba(255,255,255,0.15)" />
-          <Text className="text-white/50 font-body-bold text-sm mt-3">
+          <Text style={{ color: 'rgba(255,255,255,0.5)', fontFamily: FONTS.bold, fontSize: 14, marginTop: 12 }}>
             No open events found
           </Text>
-          <Text className="text-white/30 font-body-medium text-xs mt-1">
+          <Text style={{ color: 'rgba(255,255,255,0.3)', fontFamily: FONTS.med, fontSize: 12, marginTop: 4 }}>
             Try adjusting your search query or category filters
           </Text>
         </View>
       ) : (
         <>
-          <View className="flex-row flex-wrap gap-4">
+          <View style={s.grid}>
             {processedList.map((e, idx) => {
               const isReg = e.registered || rsvpd.has(e.id);
               const spotsColor = e.spotsLeft <= 5 ? '#EF4444'
@@ -431,7 +459,7 @@ export function EventsView() {
                   accessibilityHint="Tap to open detailed event information and portal registration"
                   accessibilityRole="button"
                   testID={`myevent-card-${e.id}`}
-                  className="flex-1 basis-[300px] max-w-[360px]"
+                  style={{ flexGrow: 1, flexBasis: 300, maxWidth: 360 }}
                 >
                   <GlassCard
                     delay={idx * 40}
@@ -439,19 +467,18 @@ export function EventsView() {
                     padding={16}
                     glow={shouldGlow}
                     style={{
+                      height: '100%' as any,
                       overflow: 'hidden',
                       borderColor: shouldGlow ? e.accentColor : e.accentColor + '22',
                     }}
                   >
-                    <View className="flex-row items-center justify-between mb-3">
-                      <View className="flex-row items-center gap-2">
-                        <View
-                          className="w-7 h-7 rounded-md border items-center justify-center"
-                          style={{ backgroundColor: e.accentColor + '15', borderColor: e.accentColor + '30' }}
-                        >
+                    {/* Top Row: Icon on left, Category/Featured badges, Price on right */}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <View style={[s.iconBox, { backgroundColor: e.accentColor + '15', borderColor: e.accentColor + '30' }]}>
                           <CalIcon size={14} color={e.accentColor} />
                         </View>
-                        <View className="flex-row items-center gap-1">
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                           <Badge label={(e.cat || "EVENT").toUpperCase()} color={e.badgeColor} />
                           <Badge label="OPEN" color="green" />
                         </View>
@@ -459,46 +486,53 @@ export function EventsView() {
                       <Badge label={e.kind === 'free' ? 'FREE' : `₹${e.price}`} color={e.kind === 'free' ? 'green' : 'purple'} />
                     </View>
 
-                    <Text numberOfLines={2} className="text-white font-body-bold text-[15px] leading-5 mt-1 mb-0.5">{e.title}</Text>
-                    <Text numberOfLines={1} className="text-[#A5B4FC] font-body-bold text-[11px] mb-1">Organized by {e.orgName}</Text>
+                    {/* Title */}
+                    <Text numberOfLines={2} style={s.cardTitle}>{e.title}</Text>
+                    <Text numberOfLines={1} style={s.orgSubtitle}>Organized by {e.orgName}</Text>
 
+                    {/* Prize Pool Row (if applicable) */}
                     {!!e.prizePool && (
-                      <View className="flex-row items-center gap-1.5 mt-1 mb-0.5">
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4, marginBottom: 2 }}>
                         <Award size={13} color="#FBBF24" />
-                        <Text className="text-amber font-body-bold text-[11.5px]">{e.prizePool}</Text>
+                        <Text style={s.prizeText}>{e.prizePool}</Text>
                       </View>
                     )}
 
-                    <Text numberOfLines={3} className="text-muted font-body-medium text-xs leading-4 mt-1 mb-2.5">{e.description}</Text>
+                    {/* Description */}
+                    <Text numberOfLines={3} style={s.description}>{e.description}</Text>
 
-                    <View className="flex-row items-center gap-2 my-2 flex-wrap">
-                      <View className="flex-row items-center gap-0.5">
+                    {/* Meta details: Date, Mode, City */}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginVertical: 8, flexWrap: 'wrap' }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
                         <CalIcon size={10} color={SC.muted} />
-                        <Text className="text-muted font-body-medium text-[11px]">{e.date}</Text>
+                        <Text style={s.metaText}>{e.date}</Text>
                       </View>
-                      <View className="flex-row items-center gap-0.5">
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
                         <Globe2 size={10} color={SC.muted} />
-                        <Text className="text-muted font-body-medium text-[11px]">{e.mode}</Text>
+                        <Text style={s.metaText}>{e.mode}</Text>
                       </View>
                     </View>
 
-                    <View className="flex-row gap-1 flex-wrap mb-3">
+                    {/* Tags */}
+                    <View style={{ flexDirection: 'row', gap: 4, flexWrap: 'wrap', marginBottom: 12 }}>
                       {e.tags.map((tag) => (
-                        <View key={tag} className="bg-white/[0.06] px-2 py-0.5 rounded-md">
-                          <Text className="text-muted font-body-medium text-[10px]">{tag}</Text>
+                        <View key={tag} style={s.tagBox}>
+                          <Text style={s.tagText}>{tag}</Text>
                         </View>
                       ))}
                     </View>
 
-                    <View className="h-px bg-white/[0.06] my-1 mt-auto" />
+                    {/* Divider */}
+                    <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.06)', marginVertical: 4, marginTop: 'auto' }} />
 
-                    <View className="flex-row items-center justify-between mt-2.5">
-                      <Text className="font-body-bold text-[11.5px]" style={{ color: spotsColor }}>{e.spotsLeft} seats available</Text>
+                    {/* Card Footer: Spots left & Register Button */}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>
+                      <Text style={[s.spotsText, { color: spotsColor }]}>{e.spotsLeft} seats available</Text>
                       
                       {isReg ? (
-                        <View className="flex-row items-center justify-center bg-teal/10 border border-teal/25 h-[30px] px-3 rounded-lg" accessibilityLabel={`Registered for ${e.title}`}>
+                        <View style={s.btnReg} accessibilityLabel={`Registered for ${e.title}`}>
                           <Check size={11} color="#10B981" style={{ marginRight: 3 }} />
-                          <Text className="text-teal font-body-bold text-xs">Registered</Text>
+                          <Text style={s.btnRegText}>Registered</Text>
                         </View>
                       ) : (
                         <Pressable
@@ -515,9 +549,9 @@ export function EventsView() {
                           <LinearGradient
                             colors={['#7C3AED', '#6D28D9']}
                             start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-                            className="flex-row items-center justify-center h-[30px] px-3.5 rounded-lg"
+                            style={s.btnRegister}
                           >
-                            <Text className="text-white font-body-bold text-xs">Register</Text>
+                            <Text style={s.btnRegisterText}>Register</Text>
                             <ArrowRight size={10} color="#fff" style={{ marginLeft: 3 }} />
                           </LinearGradient>
                         </Pressable>
@@ -530,10 +564,9 @@ export function EventsView() {
           </View>
 
           {eventsPages > 1 && (
-            <View className="flex-row justify-center items-center py-4 gap-3.5">
+            <View style={s.pagination}>
               <Pressable
-                className="px-3.5 py-1.5 bg-white/[0.06] rounded-lg border border-white/10"
-                style={{ opacity: eventsPage <= 1 ? 0.4 : 1, cursor: 'pointer' as any }}
+                style={[s.pageBtn, eventsPage <= 1 && { opacity: 0.4 }]}
                 onPress={() => {
                   if (eventsPage > 1) {
                     trackClick('myevent_pagination_prev', { page: eventsPage - 1 });
@@ -544,12 +577,11 @@ export function EventsView() {
                 accessibilityRole="button"
                 testID="myevent-page-prev"
               >
-                <Text className="text-white font-body-bold text-xs">Prev</Text>
+                <Text style={s.pageBtnText}>Prev</Text>
               </Pressable>
-              <Text className="text-muted font-body-medium text-xs">{eventsPage} / {eventsPages}</Text>
+              <Text style={s.pageInfo}>{eventsPage} / {eventsPages}</Text>
               <Pressable
-                className="px-3.5 py-1.5 bg-white/[0.06] rounded-lg border border-white/10"
-                style={{ opacity: eventsPage >= eventsPages ? 0.4 : 1, cursor: 'pointer' as any }}
+                style={[s.pageBtn, eventsPage >= eventsPages && { opacity: 0.4 }]}
                 onPress={() => {
                   if (eventsPage < eventsPages) {
                     trackClick('myevent_pagination_next', { page: eventsPage + 1 });
@@ -560,13 +592,14 @@ export function EventsView() {
                 accessibilityRole="button"
                 testID="myevent-page-next"
               >
-                <Text className="text-white font-body-bold text-xs">Next</Text>
+                <Text style={s.pageBtnText}>Next</Text>
               </Pressable>
             </View>
           )}
         </>
       )}
 
+      {/* EVENT DETAIL MODAL */}
       {selectedEvent && (
         <Modal
           visible={!!selectedEvent}
@@ -574,82 +607,87 @@ export function EventsView() {
           animationType="fade"
           onRequestClose={() => setSelectedEvent(null)}
         >
-          <View className="flex-1 bg-black/85 justify-center items-center p-4">
-            <View className="w-full max-w-[520px] bg-bg2 rounded-2xl border border-violet/30 overflow-hidden" testID="myevent-modal-container">
-              <View className="h-[180px] relative w-full">
+          <View style={s.modalOverlay}>
+            <View style={s.modalContainer} testID="myevent-modal-container">
+              {/* Banner Image */}
+              <View style={{ height: 180, position: 'relative', width: '100%' }}>
                 <Image
                   source={{ uri: selectedEvent.bannerUrl }}
-                  className="w-full h-full"
+                  style={{ width: '100%', height: '100%' }}
                   resizeMode="cover"
                   accessibilityLabel={`Banner image for ${selectedEvent.title}`}
                 />
                 <LinearGradient
                   colors={['transparent', 'rgba(10,15,30,0.95)']}
-                  className="absolute inset-0"
+                  style={StyleSheet.absoluteFillObject}
                 />
                 <Pressable
                   onPress={() => {
                     trackClick('myevent_modal_close', { event_id: selectedEvent.id });
                     setSelectedEvent(null);
                   }}
-                  className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 items-center justify-center z-10"
-                  style={{ cursor: 'pointer' as any }}
+                  style={s.closeModalBtn}
                   accessibilityLabel="Close event details modal"
                   accessibilityRole="button"
                   testID="myevent-modal-close-btn"
                 >
                   <X size={16} color="#fff" />
                 </Pressable>
-                <View className="absolute bottom-3 left-4 right-4">
+                <View style={{ position: 'absolute', bottom: 12, left: 16, right: 16 }}>
                   <Badge label={(selectedEvent.cat || "EVENT").toUpperCase()} color={selectedEvent.badgeColor} />
-                  <Text className="text-white font-body-bold text-lg mt-1">
+                  <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 18, marginTop: 4 }}>
                     {selectedEvent.title}
                   </Text>
                 </View>
               </View>
 
-              <ScrollView className="p-4 max-h-[380px]">
-                <Text className="text-violet font-body-bold text-[13px] mb-2">
+              {/* Modal Body */}
+              <ScrollView style={{ padding: 16, maxHeight: 380 }}>
+                <Text style={{ color: '#A78BFA', fontFamily: FONTS.bold, fontSize: 13, marginBottom: 8 }}>
                   Organized by {selectedEvent.orgName}
                 </Text>
 
-                <View className="flex-row gap-2.5 mb-4 flex-wrap">
-                  <View className="flex-row items-center gap-1.5 bg-glass border border-glass-border px-2.5 py-1 rounded-lg">
+                {/* Status & Date Pills */}
+                <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+                  <View style={s.modalMetaPill}>
                     <CalIcon size={12} color="#A5B4FC" />
-                    <Text className="text-[#A5B4FC] font-body-medium text-[11.5px]">{selectedEvent.date}</Text>
+                    <Text style={s.modalMetaText}>{selectedEvent.date}</Text>
                   </View>
-                  <View className="flex-row items-center gap-1.5 bg-glass border border-glass-border px-2.5 py-1 rounded-lg">
+                  <View style={s.modalMetaPill}>
                     <Globe2 size={12} color="#A5B4FC" />
-                    <Text className="text-[#A5B4FC] font-body-medium text-[11.5px]">{selectedEvent.mode}</Text>
+                    <Text style={s.modalMetaText}>{selectedEvent.mode}</Text>
                   </View>
                   {!!selectedEvent.prizePool && (
-                    <View className="flex-row items-center gap-1.5 bg-amber/10 border border-amber/25 px-2.5 py-1 rounded-lg">
+                    <View style={[s.modalMetaPill, { backgroundColor: 'rgba(245,158,11,0.15)', borderColor: 'rgba(245,158,11,0.3)' }]}>
                       <Award size={12} color="#FBBF24" />
-                      <Text className="text-amber font-body-medium text-[11.5px]">{selectedEvent.prizePool}</Text>
+                      <Text style={[s.modalMetaText, { color: '#FBBF24' }]}>{selectedEvent.prizePool}</Text>
                     </View>
                   )}
                 </View>
 
-                <Text className="text-[#E2E8F0] font-body-medium text-[13px] leading-5 mb-4">
+                {/* Description */}
+                <Text style={{ color: '#E2E8F0', fontFamily: FONTS.med, fontSize: 13, lineHeight: 20, marginBottom: 16 }}>
                   {selectedEvent.description}
                 </Text>
 
-                <View className="flex-row gap-1.5 flex-wrap mb-4">
+                {/* Tags */}
+                <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
                   {selectedEvent.tags.map((t: string) => (
-                    <View key={t} className="bg-white/[0.06] px-2 py-0.5 rounded-md">
-                      <Text className="text-muted font-body-medium text-[10px]">{t}</Text>
+                    <View key={t} style={s.tagBox}>
+                      <Text style={s.tagText}>{t}</Text>
                     </View>
                   ))}
                 </View>
 
+                {/* Confirmation Box if Registered */}
                 {(selectedEvent.registered || rsvpd.has(selectedEvent.id)) && (
-                  <View className="flex-row items-center gap-3 bg-teal/10 border border-teal/30 p-3 rounded-[10px] mb-4">
+                  <View style={s.confirmedBox}>
                     <ShieldCheck size={20} color="#10B981" />
-                    <View className="flex-1">
-                      <Text className="text-teal font-body-bold text-[13px]">
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: '#10B981', fontFamily: FONTS.bold, fontSize: 13 }}>
                         Registered on Student Alumni Portal
                       </Text>
-                      <Text className="text-white/70 font-body-medium text-[11px] mt-0.5">
+                      <Text style={{ color: 'rgba(255,255,255,0.7)', fontFamily: FONTS.med, fontSize: 11, marginTop: 2 }}>
                         Confirmation Code: {regDetails[selectedEvent.id] || 'REG-SA-CONFIRMED'}
                       </Text>
                     </View>
@@ -671,34 +709,44 @@ export function EventsView() {
                       accessibilityHint="Downloads official PDF registration ticket pass"
                       accessibilityRole="button"
                       testID="myevent-download-pdf-btn"
-                      className="flex-row items-center gap-1 bg-teal/20 border border-teal px-2.5 py-1.5 rounded-md"
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 4,
+                        backgroundColor: 'rgba(16,185,129,0.2)',
+                        borderWidth: 1,
+                        borderColor: '#10B981',
+                        paddingHorizontal: 10,
+                        paddingVertical: 6,
+                        borderRadius: 6,
+                      }}
                     >
                       <MaterialCommunityIcons name="file-pdf-box" size={16} color="#10B981" />
-                      <Text className="text-teal font-body-bold text-[11px]">Download PDF</Text>
+                      <Text style={{ color: '#10B981', fontFamily: FONTS.bold, fontSize: 11 }}>Download PDF</Text>
                     </Pressable>
                   </View>
                 )}
               </ScrollView>
 
-              <View className="flex-row items-center justify-between p-4 border-t border-white/[0.08] bg-white/[0.02]">
+              {/* Modal Footer */}
+              <View style={s.modalFooter}>
                 <Pressable
                   onPress={() => {
                     trackClick('myevent_modal_close_footer');
                     setSelectedEvent(null);
                   }}
-                  className="px-4 py-2 rounded-lg bg-white/[0.06]"
-                  style={{ cursor: 'pointer' as any }}
+                  style={s.secondaryBtn}
                   accessibilityLabel="Close event popup"
                   accessibilityRole="button"
                   testID="myevent-modal-close-footer-btn"
                 >
-                  <Text className="text-white font-body-bold text-xs">Close</Text>
+                  <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>Close</Text>
                 </Pressable>
 
                 {selectedEvent.registered || rsvpd.has(selectedEvent.id) ? (
-                  <View className="flex-row items-center justify-center bg-teal/10 border border-teal/25 h-[30px] px-3 rounded-lg" accessibilityLabel="Registration Confirmed">
+                  <View style={s.btnReg} accessibilityLabel="Registration Confirmed">
                     <Check size={12} color="#10B981" style={{ marginRight: 4 }} />
-                    <Text className="text-teal font-body-bold text-xs">Registered ✓</Text>
+                    <Text style={s.btnRegText}>Registered ✓</Text>
                   </View>
                 ) : (
                   <Pressable
@@ -713,10 +761,9 @@ export function EventsView() {
                     <LinearGradient
                       colors={['#7C3AED', '#6D28D9']}
                       start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-                      className="flex-row items-center justify-center h-9 px-[18px] rounded-lg"
-                      style={{ cursor: 'pointer' as any }}
+                      style={s.modalRegisterBtn}
                     >
-                      <Text className="text-white font-body-bold text-[13px]">Register on Portal</Text>
+                      <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13 }}>Register on Portal</Text>
                       <ArrowRight size={14} color="#fff" style={{ marginLeft: 6 }} />
                     </LinearGradient>
                   </Pressable>
@@ -730,36 +777,257 @@ export function EventsView() {
   );
 }
 
+const s = StyleSheet.create({
+  heroBannerWrap: {
+    borderRadius: 14,
+    overflow: 'hidden',
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(124,58,237,0.3)',
+    minHeight: 110,
+    justifyContent: 'center',
+  },
+  livePulse: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#10B981',
+  },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
+  iconBox: {
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardTitle: {
+    color: '#fff',
+    fontFamily: FONTS.bold,
+    fontSize: 15,
+    lineHeight: 20,
+    marginTop: 4,
+    marginBottom: 2,
+  },
+  orgSubtitle: {
+    color: '#A5B4FC',
+    fontFamily: FONTS.bold,
+    fontSize: 11,
+    marginBottom: 4,
+  },
+  prizeText: {
+    color: '#FBBF24',
+    fontFamily: FONTS.bold,
+    fontSize: 11.5,
+  },
+  description: {
+    color: SC.muted,
+    fontFamily: FONTS.med,
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: 4,
+    marginBottom: 10,
+  },
+  metaText: {
+    color: SC.muted,
+    fontFamily: FONTS.med,
+    fontSize: 11,
+  },
+  tagBox: {
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  tagText: {
+    color: SC.muted,
+    fontFamily: FONTS.med,
+    fontSize: 10,
+  },
+  spotsText: {
+    fontFamily: FONTS.bold,
+    fontSize: 11.5,
+  },
+  btnRegister: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 30,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+  },
+  btnRegisterText: {
+    color: '#fff',
+    fontFamily: FONTS.bold,
+    fontSize: 11,
+  },
+  btnReg: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.25)',
+    height: 30,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  btnRegText: {
+    color: '#10B981',
+    fontFamily: FONTS.bold,
+    fontSize: 11,
+  },
+  pagination: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 16, gap: 14 },
+  pageBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  pageBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
+  pageInfo: { color: SC.muted, fontFamily: FONTS.med, fontSize: 12 },
+  searchWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    paddingHorizontal: 12,
+    marginBottom: 16,
+  },
+  searchInput: {
+    flex: 1,
+    color: '#fff',
+    fontFamily: FONTS.med,
+    fontSize: 13,
+    paddingVertical: 0,
+    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
+  },
+
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  modalContainer: {
+    width: '100%',
+    maxWidth: 520,
+    backgroundColor: '#0F1528',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(124,58,237,0.3)',
+    overflow: 'hidden',
+  },
+  closeModalBtn: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  modalMetaPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(99,102,241,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(99,102,241,0.25)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  modalMetaText: {
+    color: '#A5B4FC',
+    fontFamily: FONTS.med,
+    fontSize: 11.5,
+  },
+  confirmedBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 16,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.02)',
+  },
+  secondaryBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  modalRegisterBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 36,
+    paddingHorizontal: 18,
+    borderRadius: 8,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+});
+
 function EventCardSkeleton() {
   return (
-    <View className="flex-1 basis-[300px] max-w-[360px] p-4 rounded-[14px] bg-white/[0.025] border border-white/[0.06]">
-      <View className="flex-row items-center justify-between mb-3">
-        <View className="flex-row items-center gap-2">
+    <View style={{
+      flexGrow: 1, flexBasis: 300, maxWidth: 360,
+      padding: 16, borderRadius: 14,
+      backgroundColor: 'rgba(255,255,255,0.025)',
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)'
+    }}>
+      {/* Top Row */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <SkeletonBlock w={28} h={28} br={6} />
-          <View className="flex-row gap-1">
+          <View style={{ flexDirection: 'row', gap: 4 }}>
             <SkeletonBlock w={60} h={20} br={10} />
             <SkeletonBlock w={70} h={20} br={10} />
           </View>
         </View>
         <SkeletonBlock w={40} h={20} br={10} />
       </View>
+      {/* Title */}
       <SkeletonBlock w="80%" h={18} br={4} style={{ marginTop: 4, marginBottom: 8 }} />
       <SkeletonBlock w="60%" h={18} br={4} style={{ marginBottom: 14 }} />
+      {/* Description */}
       <SkeletonBlock w="100%" h={12} br={4} style={{ marginBottom: 6 }} />
       <SkeletonBlock w="90%" h={12} br={4} style={{ marginBottom: 6 }} />
       <SkeletonBlock w="70%" h={12} br={4} style={{ marginBottom: 14 }} />
-      <View className="flex-row gap-2 mb-3">
+      {/* Meta details */}
+      <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
         <SkeletonBlock w={60} h={12} br={4} />
         <SkeletonBlock w={50} h={12} br={4} />
         <SkeletonBlock w={70} h={12} br={4} />
       </View>
-      <View className="flex-row gap-1.5 mb-5">
+      {/* Tags */}
+      <View style={{ flexDirection: 'row', gap: 6, marginBottom: 20 }}>
         <SkeletonBlock w={50} h={16} br={4} />
         <SkeletonBlock w={60} h={16} br={4} />
         <SkeletonBlock w={40} h={16} br={4} />
       </View>
-      <View className="h-px bg-white/[0.06] mt-auto mb-2.5" />
-      <View className="flex-row justify-between items-center">
+      {/* Divider */}
+      <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.06)', marginTop: 'auto', marginBottom: 10 }} />
+      {/* Footer */}
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
         <SkeletonBlock w={80} h={14} br={4} />
         <SkeletonBlock w={90} h={30} br={8} />
       </View>

@@ -14,7 +14,7 @@
  *   • Active item is auto-detected from the current route.
  */
 import React from 'react';
-import { View, Text, ScrollView, Pressable, useWindowDimensions, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, useWindowDimensions, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, usePathname } from 'expo-router';
 import {
@@ -224,19 +224,18 @@ export default function FeaturePageShell({
   // because the parent portal already provides them. Render only hero + body.
   if (isEmbedded) {
     return (
-      <View className="gap-5">
+      <View style={{ gap: 22 }}>
         {!hideHero && (
-          <View
-            className="rounded-2xl overflow-hidden border"
-            style={{ borderColor: heroBorder, backgroundColor: heroBg, ...(Platform.OS === 'web' ? { boxShadow: heroBoxShadow } as any : {}) }}
-          >
-            <View className="flex-row items-center gap-4 p-7 min-h-[150px] relative z-10" style={!isWide ? { flexDirection: 'column', alignItems: 'flex-start', gap: 16 } : {}}>
-              <View className="flex-1 min-w-0 gap-1.5">
-                <View className="self-start bg-white/8 border border-white/15 rounded-xl px-2.5 py-1 mb-1" style={{ ...(Platform.OS === 'web' ? { backdropFilter: 'blur(10px)' } as any : {}) }}>
-                  <Text className="text-2xl">{heroEmoji}</Text>
-                </View>
-                <Text className="text-white font-body-bold text-2xl tracking-tight leading-8">{title}</Text>
-                {!!subtitle && <Text className="font-body-medium text-sm mt-1" style={{ color: 'rgba(255,255,255,0.82)', maxWidth: 720 }}>{subtitle}</Text>}
+          <View style={[
+            styles.heroShell,
+            { borderColor: heroBorder, backgroundColor: heroBg },
+            Platform.OS === 'web' ? ({ boxShadow: heroBoxShadow } as any) : {}
+          ]}>
+            <View style={[styles.heroBody, !isWide && { flexDirection: 'column', alignItems: 'flex-start', gap: 16 }]}>
+              <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
+                <View style={styles.heroBadge}><Text style={styles.heroBadgeText}>{heroEmoji}</Text></View>
+                <Text style={styles.heroTitle}>{title}</Text>
+                {!!subtitle && <Text style={styles.heroSub}>{subtitle}</Text>}
               </View>
               {!!rightSlot && <View>{rightSlot}</View>}
             </View>
@@ -248,24 +247,35 @@ export default function FeaturePageShell({
   }
 
   return (
-    <View className="flex-row flex-1 overflow-hidden">
+    <View style={{ flex: 1, flexDirection: 'row', overflow: 'hidden' }}>
+      {/* Full-page role gradient */}
       <LinearGradient
         colors={pageBgColors as any}
         locations={SA.pageBgGradientStops as any}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        className="absolute inset-0"
+        style={StyleSheet.absoluteFill}
       />
       <SAWatermark size={850} top={30} right={-30} opacity={0.16} />
 
-      <View pointerEvents="none" className="absolute rounded-full" style={{ top: -160, right: -140, width: 520, height: 520, backgroundColor: orbColor1, filter: 'blur(80px)' } as any} />
-      <View pointerEvents="none" className="absolute rounded-full" style={{ top: 280, left: -180, width: 440, height: 440, backgroundColor: orbColor2, filter: 'blur(80px)' } as any} />
+      {/* Ambient floating orbs for depth */}
+      <View pointerEvents="none" style={[styles.ambientOrb, { top: -160, right: -140, width: 520, height: 520, backgroundColor: orbColor1 }]} />
+      <View pointerEvents="none" style={[styles.ambientOrb, { top: 280, left: -180, width: 440, height: 440, backgroundColor: orbColor2 }]} />
 
+      {/* Persistent sidebar */}
       {isWide && (
         role === 'student' ? (
-          <StudentSidebar active={portalActiveId as any} onNav={onNav} onLogout={onLogout} />
+          <StudentSidebar
+            active={portalActiveId as any}
+            onNav={onNav}
+            onLogout={onLogout}
+          />
         ) : role === 'alumni' ? (
-          <AlumniSidebar active={portalActiveId as any} onNav={onNav} onLogout={onLogout} />
+          <AlumniSidebar
+            active={portalActiveId as any}
+            onNav={onNav}
+            onLogout={onLogout}
+          />
         ) : (
           <Sidebar
             navItems={NAV}
@@ -286,38 +296,122 @@ export default function FeaturePageShell({
       )}
 
       <ScrollView
-        className="flex-1"
+        style={{ flex: 1 }}
         contentContainerStyle={{ padding: isWide ? 28 : 16, gap: 22 }}
       >
-        <View className="flex-row items-center gap-2.5 pb-1">
-          <View className="flex-1" />
+        {/* Top bar — bell only (back button removed; sidebar is the nav) */}
+        <View style={styles.topBar}>
+          <View style={{ flex: 1 }} />
           <Pressable
-            className="rounded-full items-center justify-center"
-            style={({ pressed }) => ({ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.10)', borderColor: 'rgba(255,255,255,0.16)', borderWidth: 1, alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? { backdropFilter: 'blur(12px)', cursor: 'pointer' } as any : {}), ...(pressed ? { opacity: 0.7 } : {}) })}
+            style={({ pressed }) => [styles.bellBtn, pressed && { opacity: 0.7 }]}
             onPress={() => router.push('/notifications')}
           >
             <Bell size={16} color="#fff" />
           </Pressable>
         </View>
 
+        {/* Hero — glass card */}
         {!hideHero && (
-          <View
-            className="rounded-2xl overflow-hidden border"
-            style={{ borderColor: heroBorder, backgroundColor: heroBg, ...(Platform.OS === 'web' ? { boxShadow: heroBoxShadow } as any : {}) }}
-          >
-            <View className="flex-row items-center gap-4 p-7 min-h-[150px] relative z-10" style={!isWide ? { flexDirection: 'column', alignItems: 'flex-start', gap: 16 } : {}}>
-              <View className="flex-1 min-w-0 gap-1.5">
-                <Text style={{ fontSize: 30 }}>{heroEmoji}</Text>
-                <Text className="text-white font-body-bold tracking-tight leading-8" style={!isWide ? { fontSize: 22, lineHeight: 28 } : { fontSize: 28 }}>{title}</Text>
-                {subtitle ? <Text className="font-body-medium text-sm mt-1" style={{ color: 'rgba(255,255,255,0.82)', maxWidth: 720 }}>{subtitle}</Text> : null}
+          <View style={[
+            styles.heroShell,
+            { borderColor: heroBorder, backgroundColor: heroBg },
+            Platform.OS === 'web' ? ({ boxShadow: heroBoxShadow } as any) : {}
+          ]}>
+            <View style={[styles.heroBody, !isWide && { flexDirection: 'column', alignItems: 'flex-start', gap: 16 }]}>
+              <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
+                <Text style={styles.heroEmoji}>{heroEmoji}</Text>
+                <Text style={[styles.heroTitle, !isWide && { fontSize: 22, lineHeight: 28 }]}>{title}</Text>
+                {subtitle ? <Text style={styles.heroSub}>{subtitle}</Text> : null}
               </View>
               {rightSlot}
             </View>
           </View>
         )}
 
-        <View className="gap-4">{children}</View>
+        {/* Page body */}
+        <View style={{ gap: 18 }}>{children}</View>
       </ScrollView>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  ambientOrb: {
+    position: 'absolute',
+    borderRadius: 9999,
+    ...(Platform.OS === 'web' ? ({ filter: 'blur(80px)' } as any) : {}),
+  },
+
+  topBar: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingBottom: 4 },
+  backBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, height: 32, borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderColor: 'rgba(255,255,255,0.16)', borderWidth: 1,
+    ...({ backdropFilter: 'blur(12px)', cursor: 'pointer' } as any),
+  },
+  backText: { color: '#fff', fontFamily: SA.fontBold, fontSize: 11.5 },
+  bellBtn: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderColor: 'rgba(255,255,255,0.16)', borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center',
+    ...({ backdropFilter: 'blur(12px)', cursor: 'pointer' } as any),
+  },
+
+  heroShell: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(176,127,223,0.30)',
+    backgroundColor: 'rgba(95,37,159,0.28)',
+    ...(Platform.OS === 'web'
+      ? ({
+          backdropFilter: 'blur(20px)',
+          boxShadow: '0 20px 60px -12px rgba(95,37,159,0.40), 0 0 0 1px rgba(176,127,223,0.15) inset',
+        } as any)
+      : {}),
+  },
+  heroBody: {
+    padding: 28,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 18,
+    minHeight: 150,
+    zIndex: 2,
+  },
+  heroOrb: { position: 'absolute', borderRadius: 9999 },
+  heroEmoji: { fontSize: 30 },
+  heroTitle: {
+    color: '#fff',
+    fontFamily: SA.fontBold,
+    fontSize: 28,
+    letterSpacing: -0.4,
+    lineHeight: 34,
+  },
+  heroSub: {
+    color: 'rgba(255,255,255,0.82)',
+    fontFamily: SA.fontMedium,
+    fontSize: 14,
+    marginTop: 4,
+    maxWidth: 720,
+  },
+  heroBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 4,
+    ...(Platform.OS === 'web'
+      ? ({
+          backdropFilter: 'blur(10px)',
+        } as any)
+      : {}),
+  },
+  heroBadgeText: {
+    fontSize: 22,
+  },
+});

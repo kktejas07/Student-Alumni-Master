@@ -16,7 +16,7 @@
  *   - score?: number — append "/100" to label tooltip
  */
 import React from 'react';
-import { View, Text, Platform } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Crown, Star, Award, Shield, Gem } from 'lucide-react-native';
 
@@ -82,7 +82,7 @@ export function TierBadge({
   }
 
   return (
-    <View className="flex-row items-center" style={{ gap: sz.gap }}>
+    <View style={[styles.row, { gap: sz.gap }]}>
       <LinearGradient
         colors={palette.gradient}
         start={{ x: 0, y: 0 }}
@@ -93,11 +93,11 @@ export function TierBadge({
       </LinearGradient>
       {showLabel && (
         <View>
-          <Text className="font-body-bold tracking-wider" style={{ color: palette.glow, fontSize: sz.font }}>
+          <Text style={[styles.label, { color: palette.glow, fontSize: sz.font }]}>
             {t}
-            {typeof score === 'number' ? <Text className="font-body-semibold opacity-75">  {score}/100</Text> : null}
+            {typeof score === 'number' ? <Text style={styles.score}>  {score}/100</Text> : null}
           </Text>
-          <Text className="text-[10px] font-body-semibold text-white/45 tracking-wider uppercase mt-px">Tier</Text>
+          <Text style={styles.sub}>Tier</Text>
         </View>
       )}
     </View>
@@ -112,16 +112,52 @@ export function TierPill({ tier, score }: { tier?: string; score?: number }) {
   const palette = PALETTE[t];
   const Icon = ICONS[t];
   return (
-    <View className="flex-row items-center gap-1.5 px-2.5 py-1 rounded-full border self-start" style={{
-      backgroundColor: palette.primary + '22',
-      borderColor: palette.ring,
-      ...(Platform.OS === 'web' ? ({ boxShadow: `0 0 8px ${palette.glow}66` } as any) : {}),
-    }}>
+    <View style={[
+      styles.pill,
+      {
+        backgroundColor: palette.primary + '22',
+        borderColor: palette.ring,
+        ...(Platform.OS === 'web' ? ({ boxShadow: `0 0 8px ${palette.glow}66` } as any) : {}),
+      },
+    ]}>
       <Icon size={11} color={palette.glow} strokeWidth={2.6} />
-      <Text className="text-[10.5px] font-body-bold tracking-wider" style={{ color: palette.glow }}>{t}</Text>
+      <Text style={[styles.pillText, { color: palette.glow }]}>{t}</Text>
       {typeof score === 'number' && (
-        <Text className="text-[10.5px] font-body-bold tracking-wider opacity-70" style={{ color: palette.glow }}>· {score}</Text>
+        <Text style={[styles.pillText, { color: palette.glow, opacity: 0.7 }]}>· {score}</Text>
       )}
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  row: { flexDirection: 'row', alignItems: 'center' },
+  label: {
+    fontFamily: Platform.select({ web: 'Inter, system-ui, sans-serif', default: 'System' }) as string,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+  },
+  score: { fontWeight: '600', opacity: 0.75 },
+  sub: {
+    color: 'rgba(255,255,255,0.45)',
+    fontSize: 10,
+    fontWeight: '600',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    marginTop: 1,
+  },
+  pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+    alignSelf: 'flex-start',
+  },
+  pillText: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+  },
+});

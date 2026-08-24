@@ -15,6 +15,7 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
+  StyleSheet,
   ScrollView,
   Pressable,
   Platform,
@@ -85,7 +86,10 @@ export default function PreferencesScreen() {
         education_level: eduLevel,
         interests,
       });
-      try { await refreshUser?.(); } catch {}
+      // Refresh user in store
+      try {
+        await refreshUser?.();
+      } catch {}
       if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.back();
     } catch (e: any) {
@@ -112,47 +116,48 @@ export default function PreferencesScreen() {
   };
 
   return (
-    <View className="flex-1 bg-bg2">
-      <LinearGradient colors={Gradients.heroDiagonal as any} className="px-4 pb-4 rounded-b-3xl">
+    <View style={styles.safe}>
+      <LinearGradient colors={Gradients.heroDiagonal as any} style={styles.hero}>
         <SafeAreaView edges={['top']}>
-          <View className="flex-row items-center pt-2 gap-3">
-            <Pressable onPress={() => router.back()} className="w-10 h-10 rounded-full items-center justify-center bg-glass border border-glass-border" testID="prefs-back-btn">
+          <View style={styles.heroRow}>
+            <Pressable onPress={() => router.back()} style={styles.backBtn} testID="prefs-back-btn">
               <ArrowLeft size={20} color={C.white} />
             </Pressable>
-            <View className="flex-1">
-              <Text className="text-muted text-xs font-body-semibold">SETTINGS</Text>
-              <Text className="text-text font-display-bold text-lg">Your Preferences</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={[Typography.label, { color: 'rgba(255,255,255,0.78)' }]}>SETTINGS</Text>
+              <Text style={[Typography.h2, { color: C.white }]}>Your Preferences</Text>
             </View>
           </View>
-          <Text className="text-muted text-sm mt-1">
+          <Text style={[Typography.body, { color: 'rgba(255,255,255,0.86)', marginTop: 4 }]}>
             Update your focus to re-prioritize your feed.
           </Text>
         </SafeAreaView>
       </LinearGradient>
 
       <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ padding: Spacing.lg, paddingTop: Spacing.lg }}
+        style={{ flex: 1 }}
+        contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
-        <Text className="text-text font-display-bold text-lg">What's your goal?</Text>
-        <Text className="text-muted text-xs mt-1 mb-3">Drives mentors, courses, and jobs you see</Text>
+        {/* ===== Career Path Dropdown ===== */}
+        <Text style={styles.sectionTitle}>What's your goal?</Text>
+        <Text style={styles.sectionHint}>Drives mentors, courses, and jobs you see</Text>
 
         <Menu
           visible={showCareerMenu}
           onDismiss={() => setShowCareerMenu(false)}
           anchorPosition="bottom"
-          contentStyle={{ backgroundColor: C.surface, borderRadius: 14, minWidth: 280, maxWidth: '92%' }}
+          contentStyle={styles.menuContent}
           anchor={
             <AnimatedCard
               onPress={() => setShowCareerMenu(true)}
-              className="bg-glass p-4 border border-glass-border"
+              style={styles.dropdown}
               testID="career-dropdown"
               index={0}
             >
-              <Text className="text-violet text-xs font-body-semibold">CAREER PATH</Text>
-              <View className="flex-row items-center justify-between mt-1">
-                <Text className="text-text font-body-bold text-base">
+              <Text style={[Typography.label, { color: C.brandPurple, fontSize: 9 }]}>CAREER PATH</Text>
+              <View style={styles.dropdownRow}>
+                <Text style={[Typography.bodyBold, { color: C.textPrimary, fontSize: 15 }]}>
                   {careerLabel}
                 </Text>
                 <ChevronDown size={20} color={C.textSecondary} />
@@ -163,9 +168,13 @@ export default function PreferencesScreen() {
           {CAREER_OPTIONS.map((opt, idx) => (
             <React.Fragment key={opt.id}>
               <Menu.Item
-                onPress={() => { setCareerPath(opt.id); setShowCareerMenu(false); }}
+                onPress={() => {
+                  setCareerPath(opt.id);
+                  setShowCareerMenu(false);
+                }}
                 title={opt.label}
                 titleStyle={[
+                  Typography.body,
                   { color: opt.id === careerPath ? C.brandPurple : C.textPrimary, fontFamily: 'DMSans_500Medium' },
                 ]}
                 trailingIcon={opt.id === careerPath ? () => <Check size={18} color={C.brandPurple} /> : undefined}
@@ -176,24 +185,25 @@ export default function PreferencesScreen() {
           ))}
         </Menu>
 
-        <Text className="text-text font-display-bold text-lg mt-4">Your level</Text>
-        <Text className="text-muted text-xs mt-1 mb-3">Tunes content for your stage</Text>
+        {/* ===== Education Level Dropdown ===== */}
+        <Text style={[styles.sectionTitle, { marginTop: Spacing.lg }]}>Your level</Text>
+        <Text style={styles.sectionHint}>Tunes content for your stage</Text>
 
         <Menu
           visible={showEduMenu}
           onDismiss={() => setShowEduMenu(false)}
           anchorPosition="bottom"
-          contentStyle={{ backgroundColor: C.surface, borderRadius: 14, minWidth: 280, maxWidth: '92%' }}
+          contentStyle={styles.menuContent}
           anchor={
             <AnimatedCard
               onPress={() => setShowEduMenu(true)}
-              className="bg-glass p-4 border border-glass-border"
+              style={styles.dropdown}
               testID="edu-dropdown"
               index={1}
             >
-              <Text className="text-violet text-xs font-body-semibold">EDUCATION LEVEL</Text>
-              <View className="flex-row items-center justify-between mt-1">
-                <Text className="text-text font-body-bold text-base">
+              <Text style={[Typography.label, { color: C.brandPurple, fontSize: 9 }]}>EDUCATION LEVEL</Text>
+              <View style={styles.dropdownRow}>
+                <Text style={[Typography.bodyBold, { color: C.textPrimary, fontSize: 15 }]}>
                   {eduLabel}
                 </Text>
                 <ChevronDown size={20} color={C.textSecondary} />
@@ -204,9 +214,13 @@ export default function PreferencesScreen() {
           {EDU_OPTIONS.map((opt, idx) => (
             <React.Fragment key={opt.id}>
               <Menu.Item
-                onPress={() => { setEduLevel(opt.id); setShowEduMenu(false); }}
+                onPress={() => {
+                  setEduLevel(opt.id);
+                  setShowEduMenu(false);
+                }}
                 title={opt.label}
                 titleStyle={[
+                  Typography.body,
                   { color: opt.id === eduLevel ? C.brandPurple : C.textPrimary, fontFamily: 'DMSans_500Medium' },
                 ]}
                 trailingIcon={opt.id === eduLevel ? () => <Check size={18} color={C.brandPurple} /> : undefined}
@@ -217,20 +231,20 @@ export default function PreferencesScreen() {
           ))}
         </Menu>
 
-        <Text className="text-text font-display-bold text-lg mt-4">Your interests</Text>
-        <Text className="text-muted text-xs mt-1 mb-3">Tap to add/remove (powers AI matching)</Text>
-        <View className="flex-row flex-wrap gap-2">
+        {/* ===== Interests ===== */}
+        <Text style={[styles.sectionTitle, { marginTop: Spacing.lg }]}>Your interests</Text>
+        <Text style={styles.sectionHint}>Tap to add/remove (powers AI matching)</Text>
+        <View style={styles.tagsWrap}>
           {INTEREST_TAGS.map((tag) => {
             const active = interests.includes(tag);
             return (
               <Pressable
                 key={tag}
                 onPress={() => toggleInterest(tag)}
-                className="px-3.5 py-2 rounded-full border-2"
-                style={active ? { backgroundColor: C.brandPurple, borderColor: C.brandPurple } : { backgroundColor: C.surface, borderColor: 'rgba(95,37,159,0.18)' }}
+                style={[styles.tag, active ? styles.tagActive : styles.tagInactive]}
                 testID={`tag-${tag.replace(/[^a-zA-Z0-9]/g, '-')}`}
               >
-                <Text className="text-sm font-body-semibold" style={{ color: active ? C.white : C.textPrimary }}>
+                <Text style={[styles.tagText, { color: active ? C.white : C.textPrimary }]}>
                   {tag}
                 </Text>
               </Pressable>
@@ -238,22 +252,23 @@ export default function PreferencesScreen() {
           })}
         </View>
 
+        {/* ===== Alumni transition CTA (only for current students) ===== */}
         {user?.role === 'student' && (
           <AnimatedCard
-            className="mt-4 bg-glass border-l-4 border-l-violet"
+            style={styles.alumniCard}
             onPress={onTransitionAlumni}
             index={2}
             testID="prefs-alumni-cta"
           >
-            <View className="flex-row items-center gap-3">
-              <View className="w-10 h-10 rounded-full items-center justify-center bg-violet">
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <View style={styles.alumniIcon}>
                 <GraduationCap size={22} color={C.white} />
               </View>
-              <View className="flex-1">
-                <Text className="text-text font-body-bold" style={{ color: C.deepPurple }}>
+              <View style={{ flex: 1 }}>
+                <Text style={[Typography.bodyBold, { color: C.deepPurple }]}>
                   Just graduated?
                 </Text>
-                <Text className="text-muted text-xs mt-0.5">
+                <Text style={[Typography.bodySm, { color: C.textSecondary, marginTop: 2 }]}>
                   Transition to alumni → unlock mentor mode + Knowledge Rooms.
                 </Text>
               </View>
@@ -261,10 +276,11 @@ export default function PreferencesScreen() {
           </AnimatedCard>
         )}
 
-        <View className="h-28" />
+        <View style={{ height: 100 }} />
       </ScrollView>
 
-      <SafeAreaView edges={['bottom']} className="absolute bottom-0 left-0 right-0 px-4 pt-3 bg-glass border-t border-glass-border">
+      {/* ===== Bottom save bar ===== */}
+      <SafeAreaView edges={['bottom']} style={styles.saveBar}>
         <Button
           title={saving ? 'Saving…' : 'Save preferences'}
           onPress={onSave}
@@ -276,3 +292,108 @@ export default function PreferencesScreen() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: C.background },
+  hero: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.lg,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+  },
+  heroRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: Spacing.sm,
+    gap: 12,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.24)',
+  },
+  scroll: { padding: Spacing.lg, paddingTop: Spacing.lg },
+  sectionTitle: {
+    ...Typography.h3,
+    color: C.textPrimary,
+    fontSize: 18,
+  },
+  sectionHint: {
+    ...Typography.bodySm,
+    color: C.textSecondary,
+    marginTop: 4,
+    marginBottom: 12,
+  },
+  dropdown: {
+    backgroundColor: C.surface,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  dropdownRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  menuContent: {
+    backgroundColor: C.surface,
+    borderRadius: 14,
+    minWidth: 280,
+    maxWidth: '92%',
+  },
+  tagsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  tag: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: Radius.pill,
+    borderWidth: 1.5,
+  },
+  tagActive: {
+    backgroundColor: C.brandPurple,
+    borderColor: C.brandPurple,
+  },
+  tagInactive: {
+    backgroundColor: C.surface,
+    borderColor: 'rgba(95,37,159,0.18)',
+  },
+  tagText: {
+    fontSize: 13,
+    fontFamily: 'DMSans_600SemiBold',
+  },
+  alumniCard: {
+    marginTop: Spacing.lg,
+    backgroundColor: C.palePurple,
+    borderLeftWidth: 4,
+    borderLeftColor: C.brandPurple,
+  },
+  alumniIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: C.brandPurple,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    backgroundColor: C.surface,
+    borderTopWidth: 1,
+    borderTopColor: C.border,
+    ...Shadows.md,
+  },
+});

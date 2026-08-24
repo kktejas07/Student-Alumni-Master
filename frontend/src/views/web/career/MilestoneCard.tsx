@@ -1,6 +1,20 @@
+/**
+ * MilestoneCard.tsx
+ * A single step in the Career Journey timeline.
+ * Handles its own visual state (done, active, future) via props.
+ *
+ * Premium redesign (reference-match):
+ *   • Active card: 3px left accent bar + 12% purple bg + glow border
+ *   • Completed: green connector + softer opacity (rewarding feel)
+ *   • Future: dim but readable (not invisible)
+ *   • Timeline dot: 26×26, stronger state colours
+ *   • Badge pills: colored bg, not just text
+ *   • Hover: translateY(-1px) + border brightening
+ */
 import React, { memo } from 'react';
-import {View, Text, Pressable, Platform} from "react-native";
+import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
 import { ChevronRight, CircleCheck as CheckCircle2, Lock } from 'lucide-react-native';
+import { COLORS, FONT_FAMILIES, FONT_SIZES, RADIUS, SPACING } from '@/src/lib/designTokens';
 import type { Milestone } from '@/src/viewmodels/hooks/useCareerAI';
 
 interface Props {
@@ -23,102 +37,225 @@ export const MilestoneCard = memo(function MilestoneCard({
   const isCompleted = milestone.completed;
 
   return (
-    <View className="flex-row items-stretch min-h-16">
-      <View className="w-8 items-center">
+    <View style={s.row}>
+      {/* ── Timeline column ── */}
+      <View style={s.timeline}>
         {showTopConnector && (
-          <View className="w-0.5 flex-1 rounded-sm bg-white/[0.07]" style={isCompleted ? { backgroundColor: 'rgba(52,211,153,0.67)' } : undefined} />
+          <View style={[s.connector, isCompleted && s.connectorDone]} />
         )}
-        <View
-          className="w-[26px] h-[26px] rounded-[13px] items-center justify-center border z-[2]"
-          style={{
-            backgroundColor: isCompleted ? '#34D399' : isActive ? 'rgba(79,70,229,0.22)' : isFuture ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.04)',
-            borderColor: isCompleted ? '#34D399' : isActive ? '#818CF8' : isFuture ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.08)',
-            borderWidth: isActive ? 2 : 1,
-            opacity: isFuture ? 0.45 : 1,
-            ...(Platform.OS === 'web' && isActive ? { boxShadow: '0 0 8px rgba(129,140,248,0.35)' } : {}),
-          }}
-        >
+        <View style={[
+          s.dot,
+          isCompleted && s.dotDone,
+          isActive    && s.dotActive,
+          isFuture    && s.dotFuture,
+        ]}>
           {isCompleted
-            ? <CheckCircle2 size={12} color="#fff" fill="#34D399" />
+            ? <CheckCircle2 size={12} color="#fff" fill={COLORS.green} />
             : isFuture
-              ? <Lock size={9} color="rgba(238,240,255,0.3)" />
-              : <Icon size={10} color={isActive ? '#818CF8' : 'rgba(238,240,255,0.3)'} />
+              ? <Lock size={9} color={COLORS.dim} />
+              : <Icon size={10} color={isActive ? COLORS.purpleL : COLORS.dim} />
           }
         </View>
         {!isLast && (
-          <View className="w-0.5 flex-1 rounded-sm bg-white/[0.07]" style={isCompleted ? { backgroundColor: 'rgba(52,211,153,0.67)' } : undefined} />
+          <View style={[s.connector, isCompleted && s.connectorDone]} />
         )}
       </View>
 
+      {/* ── Card ── */}
       <Pressable
         accessibilityRole="button"
         onPress={onPress}
-        className="flex-1 flex-row items-center justify-between ml-1 mb-2 rounded-xl border overflow-hidden"
-        style={({ pressed, hovered }: any) => ({
-          backgroundColor: isCompleted ? 'rgba(52,211,153,0.03)' : isActive ? 'rgba(79,70,229,0.10)' : isFuture ? 'rgba(255,255,255,0.025)' : 'rgba(255,255,255,0.025)',
-          borderColor: isCompleted ? 'rgba(52,211,153,0.12)' : isActive ? 'rgba(79,70,229,0.32)' : isFuture ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.08)',
-          opacity: isCompleted ? 0.65 : isFuture ? 0.52 : 1,
-          ...(Platform.OS === 'web' ? { transition: 'all 200ms cubic-bezier(0.16, 1, 0.3, 1)', cursor: 'pointer' } : {}),
-          ...(Platform.OS === 'web' && isActive ? { boxShadow: '0 2px 16px rgba(79,70,229,0.15)' } : {}),
-          ...(pressed || hovered) && !isFuture ? {
-            backgroundColor: 'rgba(255,255,255,0.05)',
-            borderColor: 'rgba(255,255,255,0.15)',
-            ...(Platform.OS === 'web' ? { transform: 'translateY(-1px)' } : {}),
-          } : {},
-        })}
+        style={({ pressed, hovered }: any) => [
+          s.card,
+          isCompleted && s.cardDone,
+          isActive    && s.cardActive,
+          isFuture    && s.cardFuture,
+          (pressed || hovered) && !isFuture && s.cardHover,
+        ]}
       >
-        {isActive && (
-          <View
-            className="absolute left-0 top-0 bottom-0 w-[3px] bg-indigo-400 rounded-l-xl"
-            style={Platform.OS === 'web' ? { boxShadow: '2px 0 8px rgba(129,140,248,0.40)' } : undefined}
-          />
-        )}
+        {/* Left accent bar for active milestone */}
+        {isActive && <View style={s.accentBar} />}
 
-        <View className="flex-row items-center justify-between py-2 px-2 pl-4" style={{ paddingLeft: 16 }}>
-          <View className="flex-1 min-w-0">
-            <View className="flex-row items-center gap-1.5 mb-1">
+        <View style={s.cardInner}>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            {/* Header row: status badge + gain chip */}
+            <View style={s.cardHeader}>
               {isCompleted && (
-                <View className="px-[7px] py-0.5 rounded-full bg-[rgba(52,211,153,0.12)]">
-                  <Text className="text-green-400 font-body-bold text-xs tracking-wider">Completed</Text>
+                <View style={[s.badge, s.badgeDone]}>
+                  <Text style={[s.badgeText, { color: COLORS.green }]}>Completed</Text>
                 </View>
               )}
               {isActive && (
-                <View className="px-[7px] py-0.5 rounded-full bg-[rgba(129,140,248,0.14)]">
-                  <Text className="text-indigo-400 font-body-bold text-xs tracking-wider">Next Action</Text>
+                <View style={[s.badge, s.badgeActive]}>
+                  <Text style={[s.badgeText, { color: COLORS.purpleL }]}>Next Action</Text>
                 </View>
               )}
               {isFuture && (
-                <View className="px-[7px] py-0.5 rounded-full bg-white/[0.04]">
-                  <Text className="text-white/30 font-body-bold text-xs tracking-wider">Locked</Text>
+                <View style={[s.badge, s.badgeFuture]}>
+                  <Text style={[s.badgeText, { color: COLORS.dim }]}>Locked</Text>
                 </View>
               )}
-              <View className="px-1.5 py-0.5 rounded-full bg-[rgba(34,211,238,0.10)] border border-[rgba(34,211,238,0.22)] ml-auto">
-                <Text className="text-cyan-400 font-body-bold text-xs tracking-wider">+{gain}%</Text>
+              <View style={s.gainChip}>
+                <Text style={s.gainText}>+{gain}%</Text>
               </View>
             </View>
 
+            {/* Title */}
             <Text
-              className="text-white font-body-bold text-[13px] leading-[18px]"
-              style={{
-                textDecorationLine: isCompleted ? 'line-through' : 'none',
-                color: isFuture ? 'rgba(238,240,255,0.5)' : isCompleted ? 'rgba(238,240,255,0.5)' : 'white',
-              }}
+              style={[
+                s.title,
+                isCompleted && s.titleDone,
+                isFuture    && { color: COLORS.text2 },
+              ]}
               numberOfLines={1}
             >
               {milestone.title}
             </Text>
 
+            {/* Description */}
             <Text
-              className="text-white/50 font-body-semibold text-sm mt-0.5 leading-4"
-              style={isFuture ? { color: 'rgba(238,240,255,0.3)' } : undefined}
+              style={[s.desc, isFuture && { color: COLORS.dim }]}
               numberOfLines={2}
             >
               {milestone.description}
             </Text>
           </View>
-          <ChevronRight size={13} color={isFuture ? 'rgba(238,240,255,0.3)' : 'rgba(238,240,255,0.5)'} />
+          <ChevronRight size={13} color={isFuture ? COLORS.dim : COLORS.textSub} />
         </View>
       </Pressable>
     </View>
   );
+});
+
+const CARD_WEB = Platform.OS === 'web'
+  ? ({ transition: 'all 200ms cubic-bezier(0.16, 1, 0.3, 1)', cursor: 'pointer' } as any)
+  : {};
+
+const s = StyleSheet.create({
+  row:      { flexDirection: 'row', alignItems: 'stretch', minHeight: 64 },
+  timeline: { width: 32, alignItems: 'center' },
+  connector: {
+    width: 2,
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    borderRadius: 1,
+  },
+  connectorDone: { backgroundColor: COLORS.green + 'aa' },
+
+  dot: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    zIndex: 2,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  dotDone:   {
+    backgroundColor: COLORS.green,
+    borderColor: COLORS.green,
+  },
+  dotActive: {
+    backgroundColor: 'rgba(79,70,229,0.22)',
+    borderColor: COLORS.purpleL,
+    borderWidth: 2,
+    ...(Platform.OS === 'web'
+      ? ({ boxShadow: '0 0 8px rgba(129,140,248,0.35)' } as any)
+      : {}),
+  },
+  dotFuture: { opacity: 0.45 },
+
+  card: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.025)',
+    borderColor: COLORS.border,
+    borderWidth: 1,
+    borderRadius: RADIUS.card,
+    marginLeft: SPACING.xs,
+    marginBottom: 8,
+    overflow: 'hidden',
+    ...CARD_WEB,
+  },
+  cardDone: {
+    opacity: 0.65,
+    backgroundColor: 'rgba(52,211,153,0.03)',
+    borderColor: 'rgba(52,211,153,0.12)',
+  },
+  cardActive: {
+    backgroundColor: 'rgba(79,70,229,0.10)',
+    borderColor: 'rgba(79,70,229,0.32)',
+    ...(Platform.OS === 'web'
+      ? ({ boxShadow: '0 2px 16px rgba(79,70,229,0.15)' } as any)
+      : {}),
+  },
+  cardFuture: { opacity: 0.52 },
+  cardHover: {
+    backgroundColor: COLORS.cardHover,
+    borderColor: COLORS.borderMed,
+    ...(Platform.OS === 'web' ? ({ transform: 'translateY(-1px)' } as any) : {}),
+  },
+
+  /* Left accent bar — only rendered for active card */
+  accentBar: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 3,
+    backgroundColor: COLORS.purpleL,
+    borderTopLeftRadius: RADIUS.card,
+    borderBottomLeftRadius: RADIUS.card,
+    ...(Platform.OS === 'web'
+      ? ({ boxShadow: '2px 0 8px rgba(129,140,248,0.40)' } as any)
+      : {}),
+  },
+
+  cardInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: SPACING.sm,
+    paddingLeft: SPACING.md,
+  },
+
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+
+  badge:       { paddingHorizontal: 7, paddingVertical: 2, borderRadius: RADIUS.full },
+  badgeDone:   { backgroundColor: 'rgba(52,211,153,0.12)' },
+  badgeActive: { backgroundColor: 'rgba(129,140,248,0.14)' },
+  badgeFuture: { backgroundColor: 'rgba(255,255,255,0.04)' },
+  badgeText:   { fontSize: FONT_SIZES.xs, fontFamily: FONT_FAMILIES.bold, letterSpacing: 0.3 },
+
+  gainChip: {
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: RADIUS.full,
+    backgroundColor: 'rgba(34,211,238,0.10)',
+    borderColor: 'rgba(34,211,238,0.22)',
+    borderWidth: 1,
+    marginLeft: 'auto' as any,
+  },
+  gainText: {
+    color: COLORS.cyan,
+    fontFamily: FONT_FAMILIES.bold,
+    fontSize: FONT_SIZES.xs,
+    letterSpacing: 0.2,
+  },
+
+  title:     { color: COLORS.text, fontFamily: FONT_FAMILIES.bold, fontSize: 13, lineHeight: 18 },
+  titleDone: { textDecorationLine: 'line-through', color: COLORS.text2 },
+  desc:      {
+    color: COLORS.text2,
+    fontFamily: FONT_FAMILIES.med,
+    fontSize: FONT_SIZES.sm,
+    marginTop: 2,
+    lineHeight: 16,
+  },
 });

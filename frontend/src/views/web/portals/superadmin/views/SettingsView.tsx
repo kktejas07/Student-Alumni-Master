@@ -28,7 +28,7 @@
  */
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import {
-  View, Text, Pressable, Switch, Platform, Modal,
+  View, Text, Pressable, StyleSheet, Switch, Platform, Modal,
   TextInput, ScrollView, ActivityIndicator, Image,
 } from 'react-native';
 import {
@@ -3082,7 +3082,7 @@ function Loading() {
 /* ─────────────────────────────────────────────────────────────────
  * Styles
  * ───────────────────────────────────────────────────────────────── */
-const s = {
+const s = StyleSheet.create({
   // Top tab bar
   tabBarOuter: {
     backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 14,
@@ -3639,9 +3639,9 @@ const s = {
     backgroundColor: 'rgba(245,158,11,0.14)', borderColor: 'rgba(245,158,11,0.32)', borderWidth: 1 },
   roleUserName: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 12.5 },
   roleUserMeta: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11, marginTop: 1 },
-};
+});
 
-const previewStyles = {
+const previewStyles = StyleSheet.create({
   container: {
     gap: 8,
   },
@@ -3678,5 +3678,5 @@ const previewStyles = {
     fontSize: 10.5,
     paddingHorizontal: 4,
   },
-};
+});
 

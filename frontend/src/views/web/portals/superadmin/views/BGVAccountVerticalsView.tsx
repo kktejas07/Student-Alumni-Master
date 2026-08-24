@@ -12,7 +12,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  View, Text, Pressable, Platform, Modal, ScrollView, TextInput, ActivityIndicator,
+  View, Text, Pressable, StyleSheet, Platform, Modal, ScrollView, TextInput, ActivityIndicator,
 } from 'react-native';
 import {
   ShieldCheck, ShieldAlert, Users, UserCheck, GraduationCap, Sparkles, Search,
@@ -1800,7 +1800,7 @@ export function BGVAccountVerticalsView() {
   );
 }
 
-const st = {
+const st = StyleSheet.create({
   container: {
     flex: 1,
     paddingBottom: 40,
@@ -3117,4 +3117,4 @@ const st = {
     fontSize: 13,
     fontWeight: '700',
   },
-};
+});

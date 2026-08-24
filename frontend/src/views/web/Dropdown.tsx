@@ -10,7 +10,7 @@
  */
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  View, Text, Pressable, Modal, Platform, TextInput,
+  View, Text, StyleSheet, Pressable, Modal, Platform, TextInput,
 } from 'react-native';
 import { ChevronDown, Check, Edit3 } from 'lucide-react-native';
 import { OptionListCard } from '@/src/views/components/OptionListCard';
@@ -282,7 +282,7 @@ export function Dropdown({
   );
 }
 
-const s = {{
+const s = StyleSheet.create({
   label: { color: '#374151', fontFamily: 'DMSans_700Bold', fontSize: 13, marginBottom: 8 },
   optional: { color: '#9CA3AF', fontFamily: 'DMSans_500Medium', fontSize: 11 },
   triggerRow: {
@@ -340,4 +340,4 @@ const s = {{
     width: '100%',
     maxWidth: 420,
   },
-};
+});

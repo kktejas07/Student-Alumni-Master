@@ -4,7 +4,7 @@
  * Uses MaterialCommunityIcons + RN primitives — no web-only deps.
  */
 import React, { useState } from 'react';
-import { View, Text, Pressable, ActivityIndicator, TextInput, Linking, Platform } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ActivityIndicator, TextInput, Linking, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { request } from '@/src/models/services/api';
 
@@ -164,7 +164,7 @@ export default function AdvisorAIBlock({
   );
 }
 
-const s = {
+const s = StyleSheet.create({
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, alignItems: 'flex-start' },
   card: {
     flex: 1, minWidth: 260,
@@ -215,4 +215,4 @@ const s = {
     borderRadius: 10, padding: 10,
   },
   answerText: { color: 'rgba(255,255,255,0.85)', fontSize: 12.5, lineHeight: 18, flex: 1 },
-};
+});

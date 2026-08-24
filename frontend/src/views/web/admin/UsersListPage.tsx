@@ -3,7 +3,7 @@
  * Filters by role, supports search, opens detail SlidePanel on row click.
  */
 import { useEffect, useMemo, useState, useCallback } from 'react';
-import { View, Text, Pressable, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput, ActivityIndicator } from 'react-native';
 import { Search, ChevronRight, Building2, GraduationCap, Briefcase, Users, Plus } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
 import { AdminLayout } from './AdminLayout';
@@ -194,7 +194,7 @@ export default function UsersListPage({ role, pageTitle, pageSubtitle }: Props) 
   );
 }
 
-const styles = {
+const styles = StyleSheet.create({
   toolbar: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
   searchWrap: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
@@ -228,4 +228,4 @@ const styles = {
     alignItems: 'center', justifyContent: 'center',
   },
   panelAvatarText: { color: T.light, fontFamily: 'DMSans_700Bold', fontSize: 16, letterSpacing: 0.5 },
-};
+});

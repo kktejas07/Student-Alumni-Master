@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState } from 'react';
-import { View, Text, Pressable, TextInput, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, ActivityIndicator } from 'react-native';
 import { Bot, Sparkles, Play, ShieldCheck, Database, CheckCircle, Code, Layers, FileText, Zap, RefreshCw } from 'lucide-react-native';
 import { SAC, FONTS } from '../tokens';
 import { Badge } from '../atoms';
@@ -517,7 +517,7 @@ export function AutonomousAgentsView() {
   );
 }
 
-const s = {
+const s = StyleSheet.create({
   container: { gap: 16 },
   header: { flexDirection: 'row', gap: 12, padding: 16, borderRadius: 14, backgroundColor: 'rgba(99,102,241,0.08)', borderColor: SAC.border2, borderWidth: 1, alignItems: 'center' },
   hIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(99,102,241,0.18)', alignItems: 'center', justifyContent: 'center' },
@@ -556,4 +556,4 @@ const s = {
   latencyTag: { color: '#4ade80', fontFamily: FONTS.bold, fontSize: 11.5 },
   specBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, backgroundColor: SAC.primary },
   specBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }
-};
+});

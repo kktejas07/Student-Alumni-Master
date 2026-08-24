@@ -3,7 +3,7 @@
  * Spec: /tmp/ui_specs/platform-student.jsx
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, ScrollView, Pressable, Image, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Image, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
@@ -23,8 +23,8 @@ import {
 import { StudentDashboardView } from '@/src/views/web/StudentDashboardView';
 
 const NAV: NavItem[] = [
-  { id: 'home',              Icon: HomeIcon,       label: 'Dashboard',        color: '#60A5FA' },
-  { id: 'career',            Icon: Sparkles,       label: 'Career AI',        color: '#60A5FA' },
+  { id: 'home',              Icon: HomeIcon,       label: 'Dashboard',        color: '#A78BFA' },
+  { id: 'career',            Icon: Sparkles,       label: 'Career AI',        color: '#A78BFA' },
   { id: 'internships',       Icon: Briefcase,      label: 'Opportunities',   color: '#34D399' },
   { id: 'courses',           Icon: BookOpen,       label: 'Courses',          color: '#22D3EE' },
   { id: 'higher-education',  Icon: GraduationCap,  label: 'Higher Education', color: '#FCD34D' },
@@ -32,9 +32,9 @@ const NAV: NavItem[] = [
   { id: 'events',            Icon: Calendar,       label: 'Events',           color: '#FB923C' },
   { id: 'financial',         Icon: Wallet,         label: 'Funding',          color: '#FCD34D' },
   { id: 'insurance',         Icon: Shield,         label: 'Insurance',        color: '#60A5FA' },
-  { id: 'rentals',           Icon: Building2,      label: 'Rentals',          color: '#60A5FA' },
+  { id: 'rentals',           Icon: Building2,      label: 'Rentals',          color: '#A78BFA' },
   { id: 'deals',             Icon: Gift,           label: 'Deals',            color: '#F472B6' },
-  { id: 'profile',           Icon: UserIcon,       label: 'Profile',          color: '#60A5FA' },
+  { id: 'profile',           Icon: UserIcon,       label: 'Profile',          color: '#A78BFA' },
 ];
 
 export default function StudentPlatform() {
@@ -431,7 +431,7 @@ const DEFAULT_MENTORS = [
   { name: 'Vikram Gupta', role: 'Founder @ TechStart', rate: '4.8' },
 ];
 
-const styles = {
+const styles = StyleSheet.create({
   shell: { flex: 1, flexDirection: 'row', height: '100%' as any },
   main: { padding: 36, paddingBottom: 80 },
   kpiRow: { flexDirection: 'row', gap: 14, marginBottom: 24, flexWrap: 'wrap' as const },
@@ -511,4 +511,4 @@ const styles = {
     backgroundColor: 'rgba(255,255,255,0.08)',
     alignItems: 'center', justifyContent: 'center',
   },
-};
+});

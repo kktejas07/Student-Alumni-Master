@@ -5,7 +5,7 @@ const features = [
   {
     icon: Bot,
     title: "Agent K",
-    badge: "Most Used",
+    badge: "🔥 Most Used",
     desc: "Your always-on AI career copilot. Ask anything resume tips, interview prep, salary negotiation. Agent K remembers your goals and grows with you.",
     span: "lg:col-span-2",
     num: "01",
@@ -13,7 +13,7 @@ const features = [
   {
     icon: Users,
     title: "Mentors",
-    badge: "Top Rated",
+    badge: "⭐ Top Rated",
     desc: "One-on-one sessions with alumni from Google, McKinsey, Goldman & more. Book, chat, level up.",
     span: "",
     num: "02",
@@ -21,7 +21,7 @@ const features = [
   {
     icon: CalendarDays,
     title: "Events",
-    badge: "Live Now",
+    badge: "📅 Live Now",
     desc: "Workshops, hackathons, and industry panels curated to your track and semester.",
     span: "",
     num: "03",
@@ -29,7 +29,7 @@ const features = [
   {
     icon: Gift,
     title: "Student Perks",
-    badge: "Exclusive Deals",
+    badge: "🎁 Exclusive Deals",
     desc: "Unlock exclusive student deals and discounts on mentorship, courses, and partner services.",
     span: "",
     num: "04",
@@ -37,7 +37,7 @@ const features = [
   {
     icon: Briefcase,
     title: "Career Opportunities",
-    badge: "Verified",
+    badge: "✅ Verified",
     desc: "Personalized opportunity feed sourced from partner companies and warm alumni referrals.",
     span: "",
     num: "05",
@@ -45,7 +45,7 @@ const features = [
   {
     icon: FileText,
     title: "Resume Polish",
-    badge: "AI Powered",
+    badge: "🤖 AI Powered",
     desc: "Instant AI rewrites with ATS scoring, role-specific keywords, and beautiful design templates.",
     span: "",
     num: "06",
@@ -53,7 +53,7 @@ const features = [
   {
     icon: Map,
     title: "Career Roadmap",
-    badge: "Personalized",
+    badge: "🗺️ Personalized",
     desc: "Visual step-by-step plan from Day 1 to your first offer auto-updated as your goals evolve.",
     span: "lg:col-span-2",
     num: "07",

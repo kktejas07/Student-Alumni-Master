@@ -1,5 +1,8 @@
+/**
+ * Super Admin Portal — reusable atoms.
+ */
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { SAC, FONTS } from './tokens';
 
@@ -25,7 +28,7 @@ export type BadgeColor = keyof typeof BADGE_COLORS;
 export function Badge({ label, color = 'amber' }: { label: string; color?: BadgeColor }) {
   const p = BADGE_COLORS[color] || BADGE_COLORS.gray;
   return (
-    <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1, alignSelf: 'flex-start', backgroundColor: p.bg, borderColor: p.bc }}>
+    <View style={[styles.badge, { backgroundColor: p.bg, borderColor: p.bc }]}>
       <Text style={{ color: p.c, fontFamily: FONTS.bold, fontSize: 10.5, letterSpacing: 0.3 }}>{label}</Text>
     </View>
   );
@@ -44,7 +47,7 @@ export function KpiCard({
   const p = PALETTES[color] || PALETTES.purple;
   const IconComp = Icon;
   return (
-    <View style={{ flex: 1, minWidth: 200, paddingVertical: 16, paddingHorizontal: 18, borderWidth: 1, borderRadius: 14, backgroundColor: p.tint, borderColor: p.border }}>
+    <View style={[styles.kpi, { backgroundColor: p.tint, borderColor: p.border }]}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
         {IconComp && <IconComp size={14} color={p.ic} />}
         <Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5, letterSpacing: 0.4 }}>{label}</Text>
@@ -54,3 +57,19 @@ export function KpiCard({
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1, alignSelf: 'flex-start' },
+  kpi: {
+    flex: 1, minWidth: 200, paddingVertical: 16, paddingHorizontal: 18,
+    backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 14,
+  },
+  kpiIcon: {
+    width: 32, height: 32, borderRadius: 9, backgroundColor: 'rgba(245,158,11,0.10)',
+    borderColor: 'rgba(245,158,11,0.30)', borderWidth: 1, alignItems: 'center', justifyContent: 'center',
+    marginBottom: 14,
+  },
+  kpiLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5, letterSpacing: 0.3, marginBottom: 4 },
+  kpiValue: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 26, letterSpacing: -0.5 },
+  kpiDelta: { fontFamily: FONTS.med, fontSize: 11, marginTop: 4 },
+});

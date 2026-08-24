@@ -4,7 +4,7 @@
  */
 import { ReactNode, useState } from 'react';
 import {
-  View, Text, Pressable, TextInput as RNTextInput, Platform,
+  View, Text, StyleSheet, Pressable, TextInput as RNTextInput, Platform,
 } from 'react-native';
 import { Colors as C } from '@/src/theme';
 import { useRoleTheme } from '@/src/views/auth/RoleTheme';
@@ -43,16 +43,14 @@ export function WebField({
     : focused ? '#B07FDF'
     : '#E5E7EB';
   return (
-    <View className="mb-3.5">
-      {label ? <Text className="font-body-medium text-xs tracking-wide mb-1.5" style={{ color: 'rgba(255,255,255,0.72)', letterSpacing: 0.4 }}>{label}</Text> : null}
+    <View style={{ marginBottom: 14 }}>
+      {label ? <Text style={controlStyles.label}>{label}</Text> : null}
       <View
-        className="flex-row items-center bg-white rounded-xl"
-        style={{
-          borderWidth: 1,
-          borderColor,
-          ...(Platform.OS === 'web' ? { transitionDuration: '160ms' } as any : {}),
-          ...(focused ? { backgroundColor: '#E5E7EB', boxShadow: '0px 0px 16px rgba(176,127,223,0.25)' } : {}),
-        }}
+        style={[
+          controlStyles.wrap,
+          { borderColor },
+          focused && controlStyles.wrapFocus,
+        ]}
       >
         <RNTextInput
           value={value}
@@ -65,15 +63,17 @@ export function WebField({
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           testID={testID}
-          className="flex-1 text-white font-body-regular text-base"
-          style={{ paddingHorizontal: 16, paddingVertical: 13, ...(Platform.OS === 'web' ? { outlineStyle: 'none' } as any : {}) }}
+          style={controlStyles.input}
         />
-        {rightSlot ? <View className="pr-3">{rightSlot}</View> : null}
+        {rightSlot ? <View style={controlStyles.rightSlot}>{rightSlot}</View> : null}
       </View>
       {helper ? (
         <Text
-          className="font-body-regular text-xs mt-1"
-          style={{ color: state === 'error' ? '#FCA5A5' : state === 'ok' ? '#86EFAC' : '#9CA3AF' }}
+          style={[
+            controlStyles.helper,
+            state === 'error' && { color: '#FCA5A5' },
+            state === 'ok' && { color: '#86EFAC' },
+          ]}
         >
           {helper}
         </Text>
@@ -100,19 +100,16 @@ export function WebPrimaryBtn({
       <Pressable
         disabled={disabled || loading}
         testID={testID}
-        className="items-center rounded-xl mt-1"
-        style={({ hovered, pressed }: any) => ({
-          backgroundColor: hovered ? primaryL : primary,
-          paddingVertical: 14,
-          boxShadow: hovered ? `0px 8px 22px ${primary}88` : `0px 8px 18px ${primary}66`,
-          ...(Platform.OS === 'web' ? { cursor: 'pointer', transitionDuration: '160ms' } as any : {}),
-          ...(hovered ? { transform: [{ translateY: -1 }] } : {}),
-          ...(pressed ? { transform: [{ scale: 0.985 }] } : {}),
-          ...((disabled || loading) ? { opacity: 0.55 } : {}),
-          ...style,
-        })}
+        style={({ hovered, pressed }: any) => [
+          controlStyles.primary,
+          { backgroundColor: primary, boxShadow: `0px 8px 18px ${primary}66` },
+          hovered && { backgroundColor: primaryL, transform: [{ translateY: -1 }], boxShadow: `0px 8px 22px ${primary}88` },
+          pressed && { transform: [{ scale: 0.985 }] },
+          (disabled || loading) && { opacity: 0.55 },
+          style,
+        ]}
       >
-        <Text className="text-white font-body-bold text-base">{loading ? 'Working…' : label}</Text>
+        <Text style={controlStyles.primaryText}>{loading ? 'Working…' : label}</Text>
       </Pressable>
     </Trackable>
   );
@@ -135,22 +132,16 @@ export function WebGhostBtn({
       <Pressable
         testID={testID}
         disabled={disabled || loading}
-        className="flex-row items-center justify-center gap-2.5 rounded-xl"
-        style={({ hovered, pressed }: any) => ({
-          backgroundColor: hovered && !disabled && !loading ? '#E5E7EB' : '#F9FAFB',
-          borderColor: hovered && !disabled && !loading ? '#D1D5DB' : '#E5E7EB',
-          borderWidth: 1,
-          paddingVertical: 12,
-          paddingHorizontal: 16,
-          ...(Platform.OS === 'web' ? { cursor: 'pointer', transitionDuration: '160ms' } as any : {}),
-          ...(hovered && !disabled && !loading ? { transform: [{ translateY: -1 }] } : {}),
-          ...(pressed && !disabled && !loading ? { transform: [{ scale: 0.985 }] } : {}),
-          ...((disabled || loading) ? { opacity: 0.5 } : {}),
-          ...style,
-        })}
+        style={({ hovered, pressed }: any) => [
+          controlStyles.ghost,
+          hovered && !disabled && !loading && controlStyles.ghostHover,
+          pressed && !disabled && !loading && { transform: [{ scale: 0.985 }] },
+          (disabled || loading) && { opacity: 0.5 },
+          style,
+        ]}
       >
       {leftIcon ? <View>{leftIcon}</View> : null}
-      <Text className="font-body-semibold text-base text-gray-800">{loading ? 'Working...' : label}</Text>
+      <Text style={controlStyles.ghostText}>{loading ? 'Working...' : label}</Text>
     </Pressable>
     </Trackable>
   );
@@ -159,40 +150,31 @@ export function WebGhostBtn({
 // ─── Step progress bar (used in onboarding + 2FA) ────────────────────────────
 export function WebStepBar({ steps, current }: { steps: string[]; current: number }) {
   return (
-    <View className="flex-row w-full py-3 mb-2">
+    <View style={controlStyles.stepBar}>
       {steps.map((s, i) => (
-        <View key={s} className="flex-1 items-center relative">
+        <View key={s} style={{ flex: 1, alignItems: 'center', position: 'relative' }}>
           <View
-            className="rounded-full border-2 mb-1.5"
-            style={{
-              width: i === current ? 12 : 10,
-              height: i === current ? 12 : 10,
-              backgroundColor: i <= current ? '#7C3AED' : '#E5E7EB',
-              borderColor: i === current ? '#7C3AED' : '#E5E7EB',
-              zIndex: 2,
-              ...(i === current ? { boxShadow: '0px 0px 8px rgba(124,58,237,0.6)' } as any : {}),
-            }}
+            style={[
+              controlStyles.dot,
+              i <= current && controlStyles.dotActive,
+              i === current && controlStyles.dotCurrent,
+            ]}
           />
           <Text
-            className="font-body-medium text-xs"
-            style={{
-              color: i === current ? '#C4B5FD' : '#9CA3AF',
-              ...(i === current ? { fontFamily: 'DMSans_700Bold' } : {}),
-            }}
+            style={[
+              controlStyles.stepLabel,
+              i === current && { color: '#C4B5FD', fontFamily: 'DMSans_700Bold' },
+            ]}
             numberOfLines={1}
           >
             {s}
           </Text>
           {i < steps.length - 1 && (
             <View
-              className="absolute h-0.5"
-              style={{
-                top: 5,
-                left: '50%',
-                right: '-50%',
-                backgroundColor: i < current ? '#7C3AED' : '#E5E7EB',
-                zIndex: 1,
-              }}
+              style={[
+                controlStyles.connector,
+                i < current && { backgroundColor: '#7C3AED' },
+              ]}
             />
           )}
         </View>
@@ -203,7 +185,7 @@ export function WebStepBar({ steps, current }: { steps: string[]; current: numbe
 
 // ─── Section header (small caption) ──────────────────────────────────────────
 export function WebSectionLabel({ children }: { children: ReactNode }) {
-  return <Text className="font-body-bold text-xs tracking-widest uppercase mt-1 mb-2.5" style={{ color: '#6B7280' }}>{children}</Text>;
+  return <Text style={controlStyles.section}>{children}</Text>;
 }
 
 // ─── Selectable option row (for role selection / 2fa method) ─────────────────
@@ -222,51 +204,217 @@ export function WebOptionRow({
     <Pressable
       onPress={onPress}
       testID={testID}
-      className="flex-row items-center gap-3 rounded-2xl mb-2.5"
-      style={({ hovered, pressed }: any) => ({
-        paddingVertical: 12,
-        paddingHorizontal: 14,
-        backgroundColor: selected ? 'rgba(124,58,237,0.16)' : '#F9FAFB',
-        borderColor: selected ? '#7C3AED' : (hovered ? 'rgba(196,181,253,0.35)' : '#E5E7EB'),
-        borderWidth: 1,
-        ...(Platform.OS === 'web' ? { cursor: 'pointer', transitionDuration: '160ms' } as any : {}),
-        ...(hovered ? { backgroundColor: 'rgba(124,58,237,0.10)' } : {}),
-        ...(pressed ? { transform: [{ scale: 0.99 }] } : {}),
-      })}
+      style={({ hovered, pressed }: any) => [
+        controlStyles.optRow,
+        hovered && { borderColor: 'rgba(196,181,253,0.35)', backgroundColor: 'rgba(124,58,237,0.10)' },
+        selected && controlStyles.optRowSel,
+        pressed && { transform: [{ scale: 0.99 }] },
+      ]}
     >
       <View
-        className="rounded-xl items-center justify-center"
-        style={{
-          width: 38, height: 38,
-          backgroundColor: selected ? 'rgba(124,58,237,0.28)' : '#E5E7EB',
-          borderColor: selected ? 'rgba(196,181,253,0.45)' : '#E5E7EB',
-          borderWidth: 1,
-        }}
+        style={[
+          controlStyles.optIcon,
+          selected && { backgroundColor: 'rgba(124,58,237,0.28)', borderColor: 'rgba(196,181,253,0.45)' },
+        ]}
       >
         <Text style={{ fontSize: 18 }}>{emoji}</Text>
       </View>
-      <View className="flex-1">
-        <View className="flex-row items-center gap-2">
-          <Text className="font-body-bold text-base text-gray-800">{title}</Text>
+      <View style={{ flex: 1 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Text style={controlStyles.optTitle}>{title}</Text>
           {recommended && (
-            <View className="rounded-full border" style={{ backgroundColor: 'rgba(16,185,129,0.18)', borderColor: 'rgba(110,231,183,0.35)', paddingHorizontal: 7, paddingVertical: 2 }}>
-              <Text className="font-body-bold text-xs" style={{ color: '#86EFAC', letterSpacing: 0.3 }}>Recommended</Text>
+            <View style={controlStyles.recBadge}>
+              <Text style={controlStyles.recBadgeText}>Recommended</Text>
             </View>
           )}
         </View>
-        {subtitle ? <Text className="font-body-regular text-xs text-gray-500 mt-0.5">{subtitle}</Text> : null}
+        {subtitle ? <Text style={controlStyles.optSub}>{subtitle}</Text> : null}
       </View>
       <View
-        className="rounded-full items-center justify-center"
-        style={{
-          width: 22, height: 22,
-          borderWidth: 2,
-          borderColor: selected ? '#7C3AED' : '#D1D5DB',
-          backgroundColor: selected ? '#7C3AED' : 'transparent',
-        }}
+        style={[
+          controlStyles.radio,
+          selected && { borderColor: '#7C3AED', backgroundColor: '#7C3AED' },
+        ]}
       >
-        {selected && <Text className="text-gray-800 text-xs">✓</Text>}
+        {selected && <Text style={{ color: '#111827', fontSize: 11 }}>✓</Text>}
       </View>
     </Pressable>
   );
 }
+
+// ─── styles ──────────────────────────────────────────────────────────────────
+const controlStyles = StyleSheet.create({
+  label: {
+    color: 'rgba(255,255,255,0.72)',
+    fontFamily: 'DMSans_500Medium',
+    fontSize: 12,
+    letterSpacing: 0.4,
+    marginBottom: 6,
+  },
+  wrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderRadius: 12,
+    ...({ transitionDuration: '160ms' } as any),
+  },
+  wrapFocus: {
+    backgroundColor: '#E5E7EB',
+    boxShadow: '0px 0px 16px rgba(176,127,223,0.25)',
+  },
+  input: {
+    flex: 1,
+    color: C.white,
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 15,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    ...({ outlineStyle: 'none' } as any),
+  },
+  rightSlot: { paddingRight: 12 },
+  helper: {
+    color: '#9CA3AF',
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 12,
+    marginTop: 5,
+  },
+
+  primary: {
+    backgroundColor: '#7C3AED',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 4,
+    boxShadow: '0px 8px 18px rgba(124,58,237,0.4)',
+    ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
+  },
+  primaryHover: {
+    backgroundColor: '#9059D9',
+    transform: [{ translateY: -1 }],
+    boxShadow: '0px 8px 22px rgba(124,58,237,0.55)',
+  },
+  primaryText: { color: C.white, fontFamily: 'DMSans_700Bold', fontSize: 15 },
+
+  ghost: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: '#F9FAFB',
+    borderColor: '#E5E7EB',
+    borderWidth: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
+  },
+  ghostHover: {
+    backgroundColor: '#E5E7EB',
+    borderColor: '#D1D5DB',
+    transform: [{ translateY: -1 }],
+  },
+  ghostText: { color: '#111827', fontFamily: 'DMSans_600SemiBold', fontSize: 14 },
+
+  stepBar: {
+    flexDirection: 'row',
+    width: '100%',
+    paddingVertical: 12,
+    marginBottom: 8,
+  },
+  dot: {
+    width: 10, height: 10,
+    borderRadius: 5,
+    backgroundColor: '#E5E7EB',
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    marginBottom: 6,
+    zIndex: 2,
+  },
+  dotActive: {
+    backgroundColor: '#7C3AED',
+    borderColor: '#7C3AED',
+  },
+  dotCurrent: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#7C3AED',
+    width: 12, height: 12, borderRadius: 6,
+    boxShadow: '0px 0px 8px rgba(124,58,237,0.6)',
+  },
+  stepLabel: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    fontFamily: 'DMSans_500Medium',
+  },
+  connector: {
+    position: 'absolute',
+    top: 5,
+    left: '50%',
+    right: '-50%',
+    height: 2,
+    backgroundColor: '#E5E7EB',
+    zIndex: 1,
+  },
+
+  section: {
+    color: '#6B7280',
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 11,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginTop: 4,
+    marginBottom: 10,
+  },
+
+  optRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    backgroundColor: '#F9FAFB',
+    borderColor: '#E5E7EB',
+    borderWidth: 1,
+    borderRadius: 14,
+    marginBottom: 10,
+    ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
+  },
+  optRowSel: {
+    backgroundColor: 'rgba(124,58,237,0.16)',
+    borderColor: '#7C3AED',
+  },
+  optIcon: {
+    width: 38, height: 38,
+    borderRadius: 11,
+    backgroundColor: '#E5E7EB',
+    borderColor: '#E5E7EB',
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  optTitle: { color: '#111827', fontFamily: 'DMSans_700Bold', fontSize: 14 },
+  optSub: { color: '#6B7280', fontFamily: 'DMSans_400Regular', fontSize: 12, marginTop: 2 },
+  radio: {
+    width: 22, height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: '#D1D5DB',
+    backgroundColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  recBadge: {
+    backgroundColor: 'rgba(16,185,129,0.18)',
+    borderColor: 'rgba(110,231,183,0.35)',
+    borderWidth: 1,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 999,
+  },
+  recBadgeText: {
+    color: '#86EFAC',
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 9,
+    letterSpacing: 0.3,
+  },
+});

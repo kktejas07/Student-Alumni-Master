@@ -9,7 +9,7 @@
  */
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, TextInput, Pressable, Modal, Platform,
+  View, Text, TextInput, Pressable, StyleSheet, Modal, Platform,
   TouchableWithoutFeedback,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -126,7 +126,7 @@ export function AgentKQuickLauncher() {
   );
 }
 
-const s = {
+const s = StyleSheet.create({
   backdrop: {
     flex: 1, backgroundColor: 'rgba(0,0,0,0.6)',
     alignItems: 'center', justifyContent: 'center', padding: 16,
@@ -178,4 +178,4 @@ const s = {
 
   footer: { marginTop: 12, alignItems: 'center' },
   footerText: { color: NX.textT, fontFamily: FONT, fontSize: 11 },
-} as const;
+});

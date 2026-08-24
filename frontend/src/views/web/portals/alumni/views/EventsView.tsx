@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, Pressable, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { Calendar as CalIcon, MapPin, Users as UsersIcon, Check } from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { Badge } from '../atoms';
@@ -38,7 +38,7 @@ export function EventsView() {
     setRsvpd((p) => new Set(p).add(id));
     try {
       await postPortal(`/student/events/${id}/rsvp`);
-      toast.success('RSVP confirmed', 'You\'re registered for this event.');
+      toast.success('RSVP confirmed', 'You’re registered for this event.');
     } catch (e: any) {
       setRsvpd((p) => { const n = new Set(p); n.delete(id); return n; });
       toast.error('RSVP failed', e?.message || 'Please try again.');
@@ -56,51 +56,51 @@ export function EventsView() {
 
   return (
     <View>
-      <View className="flex-row gap-1.5 flex-wrap mb-4">
+      <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
         {FILTERS.map((f) => (
-          <Pressable key={f} onPress={() => { setFilter(f); setPage(1); fetchPage(1); }} style={[{ paddingHorizontal: 14, height: 32, borderRadius: 8, backgroundColor: SC.card, borderWidth: 1, borderColor: SC.border, justifyContent: 'center' as const }, filter === f && { backgroundColor: SC.primary, borderColor: SC.primary }]}>
+          <Pressable key={f} onPress={() => { setFilter(f); setPage(1); fetchPage(1); }} style={[s.chip, filter === f && s.chipOn]}>
             <Text style={{ color: filter === f ? '#fff' : SC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>{f}</Text>
           </Pressable>
         ))}
       </View>
 
       {loading ? (
-        <View className="py-15 items-center"><ActivityIndicator size="large" color={SC.primary} /></View>
+        <View style={{ paddingVertical: 60, alignItems: 'center' }}><ActivityIndicator size="large" color={SC.primary} /></View>
       ) : (
         <>
-          <View className="flex-row flex-wrap gap-3">
+          <View style={s.grid}>
             {list.map((e) => {
               const isReg = e.registered || rsvpd.has(e.id);
               return (
-                <View key={e.id} style={{ flexGrow: 1, flexBasis: 300, maxWidth: 360, backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 14, overflow: 'hidden' as const }}>
-                  <View style={{ height: 90, borderBottomWidth: 1, alignItems: 'center' as const, justifyContent: 'center' as const, backgroundColor: e.accent + '22', borderColor: e.accent + '40' }}>
+                <View key={e.id} style={[s.card, { flexGrow: 1, flexBasis: 300, maxWidth: 360 }]}>
+                  <View style={[s.cover, { backgroundColor: e.accent + '22', borderColor: e.accent + '40' }]}>
                     <CalIcon size={28} color={e.accent} />
                   </View>
-                  <View className="p-3.5">
-                    <View className="flex-row items-center justify-between mb-1.5">
+                  <View style={{ padding: 14 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                       <Badge label={e.cat} color="purple" />
                       <Badge label={e.kind === 'free' ? 'FREE' : `₹${e.price}`} color={e.kind === 'free' ? 'green' : 'amber'} />
                     </View>
-                    <Text numberOfLines={2} className="text-white font-body-bold text-sm leading-4.5">{e.title}</Text>
-                    <View className="flex-row items-center gap-1.5 mt-2">
+                    <Text numberOfLines={2} style={s.title}>{e.title}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 }}>
                       <CalIcon size={11} color={SC.muted} />
-                      <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 11 }}>{e.date}</Text>
-                      <Text style={{ color: SC.dim, fontSize: 11 }}>·</Text>
+                      <Text style={s.meta}>{e.date}</Text>
+                      <Text style={s.dot}>·</Text>
                       <MapPin size={11} color={SC.muted} />
-                      <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 11 }}>{e.city}</Text>
+                      <Text style={s.meta}>{e.city}</Text>
                     </View>
-                    <View className="flex-row items-center gap-1.5 mt-1">
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
                       <UsersIcon size={11} color={SC.muted} />
-                      <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 11 }}>{e.attending} attending</Text>
+                      <Text style={s.meta}>{e.attending} attending</Text>
                     </View>
                     {isReg ? (
-                      <View style={{ marginTop: 12, height: 34, borderRadius: 8, backgroundColor: SC.green, flexDirection: 'row' as const, gap: 6, alignItems: 'center' as const, justifyContent: 'center' as const }}>
+                      <View style={[s.cta, { backgroundColor: SC.green, flexDirection: 'row', gap: 6 }]}>
                         <Check size={14} color="#fff" />
-                        <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 }}>Registered</Text>
+                        <Text style={s.ctaText}>Registered</Text>
                       </View>
                     ) : (
-                      <Pressable style={{ marginTop: 12, height: 34, borderRadius: 8, backgroundColor: SC.primary, alignItems: 'center' as const, justifyContent: 'center' as const }} onPress={() => onRSVP(e.id)}>
-                        <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 }}>{e.kind === 'free' ? 'RSVP' : 'Book seat'}</Text>
+                      <Pressable style={s.cta} onPress={() => onRSVP(e.id)}>
+                        <Text style={s.ctaText}>{e.kind === 'free' ? 'RSVP' : 'Book seat'}</Text>
                       </Pressable>
                     )}
                   </View>
@@ -110,13 +110,13 @@ export function EventsView() {
           </View>
 
           {pages > 1 && (
-            <View className="flex-row justify-center items-center py-4 gap-3.5">
-              <Pressable style={[{ paddingHorizontal: 14, paddingVertical: 7, backgroundColor: SC.card, borderRadius: 8, borderWidth: 1, borderColor: SC.border, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) }, page <= 1 && { opacity: 0.4 }]} onPress={() => page > 1 && fetchPage(page - 1)}>
-                <Text className="text-white font-body-bold text-xs">Prev</Text>
+            <View style={s.pagination}>
+              <Pressable style={[s.pageBtn, page <= 1 && { opacity: 0.4 }]} onPress={() => page > 1 && fetchPage(page - 1)}>
+                <Text style={s.pageBtnText}>Prev</Text>
               </Pressable>
-              <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 12 }}>{page} / {pages}</Text>
-              <Pressable style={[{ paddingHorizontal: 14, paddingVertical: 7, backgroundColor: SC.card, borderRadius: 8, borderWidth: 1, borderColor: SC.border, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) }, page >= pages && { opacity: 0.4 }]} onPress={() => page < pages && fetchPage(page + 1)}>
-                <Text className="text-white font-body-bold text-xs">Next</Text>
+              <Text style={s.pageInfo}>{page} / {pages}</Text>
+              <Pressable style={[s.pageBtn, page >= pages && { opacity: 0.4 }]} onPress={() => page < pages && fetchPage(page + 1)}>
+                <Text style={s.pageBtnText}>Next</Text>
               </Pressable>
             </View>
           )}
@@ -125,3 +125,20 @@ export function EventsView() {
     </View>
   );
 }
+
+const s = StyleSheet.create({
+  chip: { paddingHorizontal: 14, height: 32, borderRadius: 8, backgroundColor: SC.card, borderWidth: 1, borderColor: SC.border, justifyContent: 'center' },
+  chipOn: { backgroundColor: SC.primary, borderColor: SC.primary },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  card: { backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 14, overflow: 'hidden' },
+  cover: { height: 90, borderBottomWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  title: { color: '#fff', fontFamily: FONTS.bold, fontSize: 14, lineHeight: 18 },
+  meta: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11 },
+  dot: { color: SC.dim, fontSize: 11 },
+  cta: { marginTop: 12, height: 34, borderRadius: 8, backgroundColor: SC.primary, alignItems: 'center', justifyContent: 'center' },
+  ctaText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
+  pagination: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 16, gap: 14 },
+  pageBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: SC.card, borderRadius: 8, borderWidth: 1, borderColor: SC.border, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  pageBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
+  pageInfo: { color: SC.muted, fontFamily: FONTS.med, fontSize: 12 },
+});

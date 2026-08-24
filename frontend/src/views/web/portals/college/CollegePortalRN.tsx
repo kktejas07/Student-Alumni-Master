@@ -1,12 +1,17 @@
+/**
+ * College Admin Portal — outer shell.
+ */
 import React, { useState, useRef, useEffect } from 'react';
-import { View, ScrollView, DeviceEventEmitter, Platform } from 'react-native';
+import { View, ScrollView, StyleSheet, DeviceEventEmitter, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { usePortalUrl } from '@/src/views/web/portals/portalUrl';
 
+import { CC } from './tokens';
 import { Sidebar, CollegeNavId, NAV } from './Sidebar';
 import { TopBar } from './TopBar';
 import { LinearGradient } from 'expo-linear-gradient';
+import { StarryBackground } from '@/src/views/web/nexus-glow-landing/StarryBackground';
 import { DashboardFooter } from '../../components/SponsorStrip';
 import { PromoBanner } from '../../components/PromoBanner';
 import { DashboardView } from './views/DashboardView';
@@ -57,7 +62,7 @@ export function CollegePortalRN() {
   const titleFor = (id: CollegeNavId) => NAV.find((n) => n.id === id)?.label || 'Dashboard';
 
   return (
-    <View className="flex-1 flex-row bg-bg h-full">
+    <View style={s.shell}>
       <LinearGradient
         pointerEvents="none"
         colors={['#030614', '#040816']}
@@ -67,8 +72,8 @@ export function CollegePortalRN() {
       <SAWatermark size={850} top={30} right={-30} opacity={0.16} />
 
       <Sidebar active={active} onNav={setActive} onLogout={onLogout} />
-      <View className="flex-1 min-w-0 flex-row">
-        <View className="flex-1 min-w-0">
+      <View style={{ flex: 1, minWidth: 0, flexDirection: 'row' }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <TopBar
             title={titleFor(active)}
             onCalendarPress={() => setActive('events')}
@@ -78,12 +83,11 @@ export function CollegePortalRN() {
           />
           <ScrollView
             ref={scrollRef}
-            className="flex-1"
-            style={Platform.OS === 'web' ? { scrollBehavior: 'smooth' } as any : {}}
+            style={[{ flex: 1 }, Platform.OS === 'web' && ({ scrollBehavior: 'smooth' } as any)]}
             contentContainerStyle={{ flexGrow: 1 }}
             showsVerticalScrollIndicator={false}
           >
-            <View className="flex-1 p-[22px] pb-[60px]">
+            <View style={{ flex: 1, padding: 22, paddingBottom: 60 }}>
               <PromoBanner portal="college" />
               <UniversalMotionTransition deps={[active]}>
                 {active === 'dashboard'    && (
@@ -122,3 +126,7 @@ export function CollegePortalRN() {
     </View>
   );
 }
+
+const s = StyleSheet.create({
+  shell: { flex: 1, flexDirection: 'row', backgroundColor: CC.bg, height: '100%' as any },
+});

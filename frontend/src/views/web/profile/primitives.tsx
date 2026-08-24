@@ -3,19 +3,19 @@
  * Toggle, ToggleRow, ChipPicker, SaveBar.
  */
 import { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, Pressable, Animated, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Pressable, Animated, Platform, ScrollView } from 'react-native';
 import { ChevronDown, Check } from 'lucide-react-native';
 import { COUNTRY_CODES } from './countryCodes';
 
 export const C = {
-  bg: '#F9FAFB',
-  card: '#FFFFFF',
-  border: 'rgba(0,0,0,0.08)',
-  borderHi: 'rgba(0,0,0,0.18)',
-  text: '#111827',
-  text2: '#334155',
-  text3: '#64748B',
-  purple: '#2563EB',
+  bg: '#0C0818',
+  card: 'rgba(255,255,255,0.04)',
+  border: 'rgba(255,255,255,0.09)',
+  borderHi: 'rgba(255,255,255,0.18)',
+  text: '#fff',
+  text2: 'rgba(255,255,255,0.65)',
+  text3: 'rgba(255,255,255,0.45)',
+  purple: '#A78BFA',
   green: '#10B981',
   amber: '#F59E0B',
   rose: '#F43F5E',
@@ -91,7 +91,7 @@ export function TA({ value, onChangeText, placeholder, rows = 3, testID }: {
         s.ta,
         {
           minHeight: rows * 22 + 16,
-          backgroundColor: '#FFFFFF',
+          backgroundColor: 'rgba(255,255,255,0.04)',
           borderColor: C.border,
           borderWidth: 1,
           borderRadius: 10,
@@ -128,7 +128,7 @@ export function SF({ value, onChange, options, placeholder, testID }: {
 
   return (
     <View ref={wrapRef} style={[{ position: 'relative' }, Platform.OS === 'web' ? { zIndex: open ? 9999 : 1 } as any : { zIndex: open ? 9999 : 1 }]}>
-      <Pressable style={[s.tfWrap, open && { borderColor: C.purple, backgroundColor: 'rgba(37,99,235,0.08)' }]} onPress={() => setOpen((o) => !o)} testID={testID}>
+      <Pressable style={[s.tfWrap, open && { borderColor: C.purple, backgroundColor: 'rgba(167,139,250,0.08)' }]} onPress={() => setOpen((o) => !o)} testID={testID}>
         <Text style={[s.tf, { color: value ? C.text : C.text3, paddingVertical: 0 }]}>
           {value || placeholder || 'Select…'}
         </Text>
@@ -179,7 +179,7 @@ export function SSF({ value, onChange, options, placeholder, testID }: {
 
   return (
     <View ref={wrapRef} style={[{ position: 'relative' }, Platform.OS === 'web' ? { zIndex: open ? 9999 : 1 } as any : { zIndex: open ? 9999 : 1 }]}>
-      <Pressable style={[s.tfWrap, open && { borderColor: C.purple, backgroundColor: 'rgba(37,99,235,0.08)' }]} onPress={() => setOpen((o) => !o)} testID={testID}>
+      <Pressable style={[s.tfWrap, open && { borderColor: C.purple, backgroundColor: 'rgba(167,139,250,0.08)' }]} onPress={() => setOpen((o) => !o)} testID={testID}>
         <Text style={[s.tf, { color: value ? C.text : C.text3, paddingVertical: 0 }]} numberOfLines={1}>
           {value || placeholder || 'Select…'}
         </Text>
@@ -193,7 +193,7 @@ export function SSF({ value, onChange, options, placeholder, testID }: {
               onChangeText={setSearch}
               placeholder="Search..."
               placeholderTextColor={C.text3}
-              style={[{ color: C.text, fontFamily: 'DMSans_500Medium', fontSize: 13, padding: 6, backgroundColor: '#FFFFFF', borderRadius: 6 }, Platform.OS === 'web' ? { outlineStyle: 'none' } as any : {}]}
+              style={[{ color: C.text, fontFamily: 'DMSans_500Medium', fontSize: 13, padding: 6, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 6 }, Platform.OS === 'web' ? { outlineStyle: 'none' } as any : {}]}
               autoFocus
             />
           </View>
@@ -283,17 +283,17 @@ export function SaveBar({ dirty, saving, onSave, onDiscard, lastSavedAt }: {
       )}
       <View style={{ flexDirection: 'row', gap: 8 }}>
         {dirty && (
-          <Pressable onPress={onDiscard} style={[s.btn, { backgroundColor: 'rgba(255,255,255,0.25)', borderColor: 'rgba(255,255,255,0.4)', borderWidth: 1, shadowColor: '#000', shadowOffset: {width: 0, height: 4}, shadowOpacity: 0.4, shadowRadius: 6, elevation: 8, ...(Platform.OS === 'web' ? ({ boxShadow: '0 4px 12px rgba(0,0,0,0.3)' } as any) : {}) }]} testID="profile-discard">
-            <Text style={[s.btnGhostText, { color: '#fff' }]}>Discard</Text>
+          <Pressable onPress={onDiscard} style={[s.btn, s.btnGhost]} testID="profile-discard">
+            <Text style={s.btnGhostText}>Discard</Text>
           </Pressable>
         )}
         <Pressable
           onPress={onSave}
           disabled={!dirty || saving}
-          style={[s.btn, { backgroundColor: '#fff', borderColor: '#fff', borderWidth: 1, shadowColor: '#000', shadowOffset: {width: 0, height: 6}, shadowOpacity: 0.5, shadowRadius: 8, elevation: 10, ...(Platform.OS === 'web' ? ({ boxShadow: '0 6px 16px rgba(0,0,0,0.4)' } as any) : {}) }, (!dirty || saving) && { opacity: 0.5 }]}
+          style={[s.btn, s.btnPrimary, (!dirty || saving) && { opacity: 0.5 }]}
           testID="profile-save"
         >
-          <Text style={[s.btnPrimaryText, { color: '#8B5CF6' }]}>{saving ? 'Saving...' : 'Save Changes'}</Text>
+          <Text style={s.btnPrimaryText}>{saving ? 'Saving…' : 'Save Changes'}</Text>
         </Pressable>
       </View>
     </View>
@@ -359,7 +359,7 @@ export function PhoneField({ value, onChange, placeholder, testID }: {
   );
 }
 
-const s = {
+const s = StyleSheet.create({
   card: {
     backgroundColor: C.card,
     borderColor: C.border, borderWidth: 1, borderRadius: 16,
@@ -372,7 +372,7 @@ const s = {
   hint:      { color: C.text3, fontFamily: 'DMSans_400Regular', fontSize: 11, marginTop: 2 },
   tfWrap: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderColor: C.border, borderWidth: 1, borderRadius: 10,
     paddingHorizontal: 12, paddingVertical: Platform.OS === 'web' ? 10 : 8,
   },
@@ -380,16 +380,16 @@ const s = {
   ta: { textAlignVertical: 'top', paddingTop: 8 },
   ddMenu: {
     position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4,
-    backgroundColor: '#FFFFFF', borderColor: C.border, borderWidth: 1, borderRadius: 10,
+    backgroundColor: '#13091F', borderColor: C.border, borderWidth: 1, borderRadius: 10,
     overflow: 'hidden', zIndex: 9999,
     ...(Platform.OS === 'web' ? { boxShadow: '0 8px 32px rgba(0,0,0,0.4)' } as any : { elevation: 8 }),
   },
-  ddItem: { paddingHorizontal: 12, paddingVertical: 10, borderBottomColor: 'rgba(0,0,0,0.06)', borderBottomWidth: 1 },
+  ddItem: { paddingHorizontal: 12, paddingVertical: 10, borderBottomColor: 'rgba(255,255,255,0.05)', borderBottomWidth: 1 },
   ddText: { color: C.text, fontFamily: 'DMSans_500Medium', fontSize: 13 },
 
   toggle: {
     width: 38, height: 22, borderRadius: 99,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: 'rgba(255,255,255,0.10)',
     borderColor: C.border, borderWidth: 1,
     padding: 2, ...({ cursor: 'pointer' } as any),
   },
@@ -398,7 +398,7 @@ const s = {
   },
   toggleRow: {
     flexDirection: 'row', alignItems: 'center',
-    paddingVertical: 10, borderBottomColor: 'rgba(0,0,0,0.06)', borderBottomWidth: 1,
+    paddingVertical: 10, borderBottomColor: 'rgba(255,255,255,0.04)', borderBottomWidth: 1,
   },
   trTitle: { color: C.text, fontFamily: 'DMSans_700Bold', fontSize: 13 },
   trDesc:  { color: C.text3, fontFamily: 'DMSans_400Regular', fontSize: 11.5, marginTop: 2 },
@@ -407,7 +407,7 @@ const s = {
   chip: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderColor: C.border, borderWidth: 1,
     ...({ cursor: 'pointer' } as any),
   },
@@ -417,18 +417,17 @@ const s = {
   saveBar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 18, paddingVertical: 14, marginTop: 4,
-    backgroundColor: '#8B5CF6',
-    borderColor: '#2563EB', borderWidth: 1, borderRadius: 14,
-    shadowColor: '#8B5CF6', shadowOffset: {width: 0, height: 4}, shadowOpacity: 0.3, shadowRadius: 8,
+    backgroundColor: 'rgba(167,139,250,0.10)',
+    borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1, borderRadius: 14,
   },
-  saveStatus: { color: '#fff', fontFamily: 'DMSans_500Medium', fontSize: 12, flexShrink: 1 },
+  saveStatus: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12, flexShrink: 1 },
   btn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 14, height: 34, borderRadius: 9,
     ...({ cursor: 'pointer' } as any),
   },
-  btnGhost: { backgroundColor: '#FFFFFF', borderColor: C.border, borderWidth: 1 },
-  btnGhostText: { color: '#475569', fontFamily: 'DMSans_700Bold', fontSize: 12 },
+  btnGhost: { backgroundColor: 'rgba(255,255,255,0.05)', borderColor: C.border, borderWidth: 1 },
+  btnGhostText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 12 },
   btnPrimary: { backgroundColor: C.purple, borderColor: C.purple, borderWidth: 1 },
   btnPrimaryText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12 },
-};
+});

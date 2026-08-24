@@ -12,7 +12,7 @@
  * fallback if no inverted variant exists.
  */
 import React, { useEffect, useState } from 'react';
-import { View, Text, Image, Pressable, Platform } from 'react-native';
+import { View, Text, StyleSheet, Image, Pressable, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import { request, resolveImageUrl } from '@/src/models/services/api';
@@ -212,7 +212,7 @@ export function DashboardFooter({ portal }: { portal: 'student' | 'alumni' | 'co
   );
 }
 
-const s = {
+const s = StyleSheet.create({
   sectionTitle: {
     color: '#fff',
     fontFamily: TYPO.display700,
@@ -226,6 +226,7 @@ const s = {
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 28, alignItems: 'center', justifyContent: 'center' },
   logoTile: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
   footerStrip: { flexDirection: 'row', flexWrap: 'wrap', gap: 20, alignItems: 'center', justifyContent: 'center', paddingVertical: 4 },
+  // dashboard footer
   dashFoot: {
     paddingHorizontal: 22, paddingVertical: 18,
     backgroundColor: 'rgba(10,15,30,0.55)',
@@ -236,4 +237,4 @@ const s = {
   dashFootRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 },
   dashFootCopy: { color: 'rgba(255,255,255,0.45)', fontFamily: TYPO.body500, fontSize: 12 },
   dashFootLink: { color: 'rgba(255,255,255,0.72)', fontFamily: TYPO.body600, fontSize: 12.5 },
-} as const;
+});

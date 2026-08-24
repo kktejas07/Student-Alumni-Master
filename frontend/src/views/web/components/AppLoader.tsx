@@ -8,7 +8,7 @@
  *  3. SkeletonPulse — pulsing shimmer block for placeholder data cards
  */
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, Animated, Easing, Platform } from 'react-native';
+import { View, Text, StyleSheet, Animated, Easing, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Sparkles, RefreshCw } from 'lucide-react-native';
 
@@ -179,9 +179,7 @@ export function SkeletonPulse({
   );
 }
 
-const ABS_FILL = { position: 'absolute' as const, top: 0, left: 0, right: 0, bottom: 0 };
-
-const s = {
+const s = StyleSheet.create({
   topBarWrap: {
     position: 'absolute',
     top: 0,
@@ -207,7 +205,7 @@ const s = {
     alignItems: 'center',
   },
   overlayCenter: {
-    ...ABS_FILL,
+    ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,
@@ -240,4 +238,4 @@ const s = {
     color: '#94A3B8',
     fontSize: 11,
   },
-} as const;
+});

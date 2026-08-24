@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, Pressable, TextInput, Platform, Animated } from 'react-native';
+import { View, Text, Pressable, StyleSheet, TextInput, Platform, Animated } from 'react-native';
 import { Megaphone, Pin, Send, CheckCircle } from 'lucide-react-native';
-import { CC } from '../tokens';
+import { CC, FONTS } from '../tokens';
 import { usePortalData } from '@/src/lib/portalApi';
 import { useToast } from '@/src/views/components';
 
@@ -52,59 +52,56 @@ export function AnnouncementsView() {
   };
 
   return (
-    <View className="flex-row gap-4 flex-wrap">
-      <View className="flex-[2] min-w-[320px] gap-[10px]">
+    <View style={{ flexDirection: 'row', gap: 16, flexWrap: 'wrap' }}>
+      <View style={{ flex: 2, minWidth: 320, gap: 10 }}>
         {ANN.map((a) => {
           const color = TAG_COLORS[a.tag] || '#A78BFA';
           return (
-            <View key={a.id} className={`bg-glass-soft border rounded-[14px] p-[14px] ${a.pinned ? 'border-glass-border' : 'border-glass-border'}`}>
-              <View className="flex-row items-center gap-[10px]">
-                <View className="w-8 h-8 rounded-[9px] border items-center justify-center" style={{ backgroundColor: color + '20', borderColor: color + '40' }}>
-                  <Megaphone size={14} color={color} />
-                </View>
-                <View className="flex-1 min-w-0">
-                  <View className="flex-row items-center gap-[6px]">
-                    <Text numberOfLines={1} className="text-text font-body-bold text-[13px]">{a.title}</Text>
+            <View key={a.id} style={[s.card, a.pinned && { borderColor: CC.border2 }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <View style={[s.icon, { backgroundColor: color + '20', borderColor: color + '40' }]}><Megaphone size={14} color={color} /></View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text numberOfLines={1} style={s.title}>{a.title}</Text>
                     {a.pinned && <Pin size={11} color={CC.accentBright} />}
                   </View>
-                  <Text className="text-dim font-body text-[11px] mt-[2px]">{a.audience} · {a.author}{a.posted_at ? ' · ' + new Date(a.posted_at).toLocaleDateString() : ''}</Text>
+                  <Text style={s.meta}>{a.audience} · {a.author}{a.posted_at ? ' · ' + new Date(a.posted_at).toLocaleDateString() : ''}</Text>
                 </View>
               </View>
-              <Text className="text-muted font-body text-[12.5px] mt-[10px] leading-[18px]">{a.body}</Text>
+              <Text style={s.body}>{a.body}</Text>
             </View>
           );
         })}
       </View>
-      <View className="flex-1 min-w-[280px]">
-        <View className="bg-glass-soft border border-glass-border rounded-[14px] p-[14px]">
-          <Text className="text-text font-display-bold text-[14px] mb-3">New announcement</Text>
+      <View style={{ flex: 1, minWidth: 280 }}>
+        <View style={s.card}>
+          <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 14, marginBottom: 12 }}>New announcement</Text>
 
+          {/* ── Success confirmation banner ── */}
           {sent && (
-            <Animated.View className="flex-row items-center gap-2 bg-[rgba(52,211,153,0.12)] border border-[rgba(52,211,153,0.35)] rounded-[10px] px-3 py-[9px] mb-3" style={{ opacity: fadeAnim }}>
+            <Animated.View style={[s.successBanner, { opacity: fadeAnim }]}>
               <CheckCircle size={15} color="#34D399" />
-              <Text className="text-green-400 font-body-bold text-[12.5px]">Announcement sent to all!</Text>
+              <Text style={s.successText}>Announcement sent to all!</Text>
             </Animated.View>
           )}
 
-          <TextInput value={draft} onChangeText={setDraft} placeholder="Title…" placeholderTextColor={CC.dim}
-            className="bg-bg2 text-text font-body text-[12.5px] border border-glass-border rounded-[10px] px-3 py-[10px]"
-            style={Platform.OS === 'web' ? { outlineStyle: 'none' } as any : {}} />
+          <TextInput value={draft} onChangeText={setDraft} placeholder="Title…" placeholderTextColor={CC.dim} style={s.input} />
           <TextInput
             value={bodyText}
             onChangeText={setBodyText}
             placeholder="Body…"
             placeholderTextColor={CC.dim}
             multiline
-            className="bg-bg2 text-text font-body text-[12.5px] border border-glass-border rounded-[10px] px-3 py-[10px] h-[90px] mt-[10px]"
-            style={Platform.OS === 'web' ? { outlineStyle: 'none' } as any : {}} />
+            style={[s.input, { height: 90, marginTop: 10 }]}
+          />
           <Pressable
-            className={`flex-row gap-[6px] items-center justify-center mt-3 h-9 rounded-[10px] bg-violet ${(sending || sent) ? 'opacity-70' : ''}`}
+            style={[s.send, (sending || sent) && { opacity: 0.7 }]}
             onPress={handlePublish}
             disabled={sending || sent}
           >
             {sent
-              ? <><CheckCircle size={13} color="#34D399" /><Text className="text-green-400 font-display-bold text-xs">Sent!</Text></>
-              : <><Send size={13} color="#fff" /><Text className="text-text font-display-bold text-xs">{sending ? 'Sending…' : 'Send to all'}</Text></>
+              ? <><CheckCircle size={13} color="#34D399" /><Text style={[s.sendText, { color: '#34D399' }]}>Sent!</Text></>
+              : <><Send size={13} color="#fff" /><Text style={s.sendText}>{sending ? 'Sending…' : 'Send to all'}</Text></>
             }
           </Pressable>
         </View>
@@ -112,3 +109,22 @@ export function AnnouncementsView() {
     </View>
   );
 }
+const s = StyleSheet.create({
+  card: { backgroundColor: CC.card, borderColor: CC.border, borderWidth: 1, borderRadius: 14, padding: 14 },
+  icon: { width: 32, height: 32, borderRadius: 9, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  title: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13 },
+  meta: { color: CC.dim, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },
+  body: { color: CC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 10, lineHeight: 18 },
+  input: { backgroundColor: CC.bg2, color: '#fff', fontFamily: FONTS.med, fontSize: 12.5, borderColor: CC.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
+  send: { flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center', marginTop: 12, height: 36, borderRadius: 10, backgroundColor: CC.primary },
+  sendText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
+  successBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: 'rgba(52, 211, 153, 0.12)',
+    borderColor: 'rgba(52, 211, 153, 0.35)',
+    borderWidth: 1, borderRadius: 10,
+    paddingHorizontal: 12, paddingVertical: 9,
+    marginBottom: 12,
+  },
+  successText: { color: '#34D399', fontFamily: FONTS.bold, fontSize: 12.5 },
+});

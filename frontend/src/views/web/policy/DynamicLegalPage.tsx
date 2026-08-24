@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import LegalShell from './LegalShell';
 import HtmlRenderer from './HtmlRenderer';
 import { FONTS } from '@/src/views/web/portals/superadmin/tokens';
@@ -55,7 +55,7 @@ export default function DynamicLegalPage({ pageKey }: { pageKey: string }) {
   );
 }
 
-const s = {
+const s = StyleSheet.create({
   loader: { paddingVertical: 60, alignItems: 'center' },
   p: { color: '#94a3b8', fontFamily: FONTS.med, fontSize: 14, lineHeight: 22 },
-};
+});

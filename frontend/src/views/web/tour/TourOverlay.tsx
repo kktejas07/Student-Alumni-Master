@@ -9,7 +9,7 @@
  * highlight the target with a clean cutout.
  */
 import React, { useEffect, useLayoutEffect, useState } from 'react';
-import { View, Text, Pressable, Platform, Dimensions } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Platform, Dimensions } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { Sparkles, X, ArrowRight, ArrowLeft, Check } from 'lucide-react-native';
 import { useTour } from './TourProvider';
@@ -169,7 +169,8 @@ function SpotlightSVG({ rect, viewport, accent }: { rect: Rect | null; viewport:
 function computeTooltipPos(
   rect: Rect | null,
   viewport: { w: number; h: number },
-  placement?: 'top' | 'right' | 'bottom' | 'left' | 'center') {
+  placement?: 'top' | 'right' | 'bottom' | 'left' | 'center',
+) {
   const TT_W = 360;
   const TT_H_EST = 220;
   const GAP = 14;
@@ -216,7 +217,7 @@ function computeTooltipPos(
   return { x, y, maxW };
 }
 
-const s = {
+const s = StyleSheet.create({
   root: {
     position: 'absolute' as any,
     left: 0, top: 0, right: 0, bottom: 0,
@@ -258,4 +259,4 @@ const s = {
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   primaryBtnText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 11.5 },
-};
+});

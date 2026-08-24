@@ -4,7 +4,7 @@
  * a grid of rich student cards, next sessions, and a profile detail/message drawer.
  */
 import React, { useMemo, useState, useEffect } from 'react';
-import { View, Text, Pressable, TextInput, Modal, ScrollView, useWindowDimensions, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, TextInput, StyleSheet, Modal, ScrollView, useWindowDimensions, Platform, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { MC, FONTS } from '../tokens';
 import { Av, Badge } from '../atoms';
@@ -67,7 +67,9 @@ export function ConnectionsView() {
     }
   };
 
-  useEffect(() => { loadConnections(1); }, [user]);
+  useEffect(() => {
+    loadConnections(1);
+  }, [user]);
 
   const handleConnectionDecision = async (otherId: string, decision: 'accept' | 'decline' | 'withdraw' | 'connect') => {
     setActioningId(otherId);
@@ -117,6 +119,7 @@ export function ConnectionsView() {
     return true;
   }), [studentsList, filter, q]);
 
+  // Dynamic statistics
   const stats = useMemo(() => {
     const total = studentsList.length;
     const active = studentsList.filter(s => s.status === 'active').length;
@@ -126,164 +129,309 @@ export function ConnectionsView() {
     return { total, active, sessions, upcoming, rating };
   }, [studentsList]);
 
+  // Responsive card sizing
   const cardW = width >= 1440 ? '31.5%' : width >= 768 ? '48%' : '100%';
 
   if (loading) {
     return (
-      <View className="p-[60px] items-center justify-center">
+      <View style={{ padding: 60, alignItems: 'center', justifyContent: 'center' }}>
         <ActivityIndicator color={MC.tealP} size="large" />
       </View>
     );
   }
 
   return (
-    <View className="gap-5">
-      <View className="gap-3.5">
-        <View className="flex-row justify-between items-center flex-wrap gap-2.5">
+    <View style={{ gap: 20 }}>
+      {/* Header and stats */}
+      <View style={{ gap: 14 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
           <View>
-            <Text className="text-white font-display-bold text-xl tracking-[-0.4px]">My Connections</Text>
-            <Text className="text-muted font-body-semibold text-xs mt-0.5">{stats.total} students · {stats.upcoming} upcoming sessions</Text>
+            <Text style={s.sectionTitle}>My Connections</Text>
+            <Text style={s.sub}>{stats.total} students · {stats.upcoming} upcoming sessions</Text>
           </View>
-          <View className="flex-row items-center gap-2.5 flex-wrap">
-            <View className="flex-row gap-1.5 items-center">
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            {/* Inline Filter Chips next to search bar */}
+            <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
               {FILTERS.map((f) => {
                 const on = f.id === filter;
                 return (
-                  <Pressable key={f.id} onPress={() => setFilter(f.id)} className="px-3.5 h-8 rounded-lg justify-center" style={on ? { backgroundColor: MC.teal, borderColor: MC.teal } : { backgroundColor: MC.card, borderWidth: 1, borderColor: MC.border }}>
-                    <Text className="font-body-bold text-xs" style={{ color: on ? '#fff' : MC.muted }}>{f.label}</Text>
+                  <Pressable key={f.id} onPress={() => setFilter(f.id)} style={[s.chip, on && s.chipOn]}>
+                    <Text style={{ color: on ? '#fff' : MC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>{f.label}</Text>
                   </Pressable>
                 );
               })}
             </View>
-            <View className="flex-row items-center gap-2 w-[260px] h-9 px-[11px] rounded-[10px] bg-card border border-glass-border">
+
+            <View style={s.searchBox}>
               <MaterialCommunityIcons name="magnify" size={16} color={MC.dim} />
-              <TextInput value={q} onChangeText={setQ} placeholder="Search students..." placeholderTextColor={MC.dim} className="flex-1 text-white font-body-semibold text-[12.5px]" style={Platform.OS === 'web' ? { outlineStyle: 'none' } as any : undefined} />
+              <TextInput value={q} onChangeText={setQ} placeholder="Search students..." placeholderTextColor={MC.dim} style={s.searchInput} />
             </View>
           </View>
         </View>
 
-        <View className="flex-row gap-2.5 flex-wrap mt-1">
-          <View className="flex-1 min-w-[120px] flex-row items-center gap-2.5 bg-card border border-glass-border rounded-xl px-3 py-2.5">
-            <View className="w-7 h-7 rounded-lg items-center justify-center bg-teal/[0.1]"><MaterialCommunityIcons name="account-group" size={16} color={MC.tealP} /></View>
-            <View><Text className="text-white font-body-bold text-[15px]">{stats.total}</Text><Text className="text-muted font-body-semibold text-[10.5px] mt-0.5">Total</Text></View>
+        {/* Stats Row */}
+        <View style={s.statsRow}>
+          <View style={s.statCard}>
+            <View style={[s.statIconBg, { backgroundColor: 'rgba(20,184,166,0.1)' }]}>
+              <MaterialCommunityIcons name="account-group" size={16} color={MC.tealP} />
+            </View>
+            <View>
+              <Text style={s.statVal}>{stats.total}</Text>
+              <Text style={s.statLabel}>Total</Text>
+            </View>
           </View>
-          <View className="flex-1 min-w-[120px] flex-row items-center gap-2.5 bg-card border border-glass-border rounded-xl px-3 py-2.5">
-            <View className="w-7 h-7 rounded-lg items-center justify-center bg-green/[0.1]"><MaterialCommunityIcons name="pulse" size={16} color={MC.green} /></View>
-            <View><Text className="text-white font-body-bold text-[15px]">{stats.active}</Text><Text className="text-muted font-body-semibold text-[10.5px] mt-0.5">Active</Text></View>
+          <View style={s.statCard}>
+            <View style={[s.statIconBg, { backgroundColor: 'rgba(34,197,94,0.1)' }]}>
+              <MaterialCommunityIcons name="pulse" size={16} color={MC.green} />
+            </View>
+            <View>
+              <Text style={s.statVal}>{stats.active}</Text>
+              <Text style={s.statLabel}>Active</Text>
+            </View>
           </View>
-          <View className="flex-1 min-w-[120px] flex-row items-center gap-2.5 bg-card border border-glass-border rounded-xl px-3 py-2.5">
-            <View className="w-7 h-7 rounded-lg items-center justify-center bg-blue/[0.1]"><MaterialCommunityIcons name="play-circle-outline" size={16} color={MC.blue} /></View>
-            <View><Text className="text-white font-body-bold text-[15px]">{stats.sessions}</Text><Text className="text-muted font-body-semibold text-[10.5px] mt-0.5">Sessions</Text></View>
+          <View style={s.statCard}>
+            <View style={[s.statIconBg, { backgroundColor: 'rgba(59,130,246,0.1)' }]}>
+              <MaterialCommunityIcons name="play-circle-outline" size={16} color={MC.blue} />
+            </View>
+            <View>
+              <Text style={s.statVal}>{stats.sessions}</Text>
+              <Text style={s.statLabel}>Sessions</Text>
+            </View>
           </View>
-          <View className="flex-1 min-w-[120px] flex-row items-center gap-2.5 bg-card border border-glass-border rounded-xl px-3 py-2.5">
-            <View className="w-7 h-7 rounded-lg items-center justify-center bg-amber/[0.1]"><MaterialCommunityIcons name="calendar-blank-outline" size={16} color={MC.amber} /></View>
-            <View><Text className="text-white font-body-bold text-[15px]">{stats.upcoming}</Text><Text className="text-muted font-body-semibold text-[10.5px] mt-0.5">Upcoming</Text></View>
+          <View style={s.statCard}>
+            <View style={[s.statIconBg, { backgroundColor: 'rgba(245,158,11,0.1)' }]}>
+              <MaterialCommunityIcons name="calendar-blank-outline" size={16} color={MC.amber} />
+            </View>
+            <View>
+              <Text style={s.statVal}>{stats.upcoming}</Text>
+              <Text style={s.statLabel}>Upcoming</Text>
+            </View>
           </View>
-          <View className="flex-1 min-w-[120px] flex-row items-center gap-2.5 bg-card border border-glass-border rounded-xl px-3 py-2.5">
-            <View className="w-7 h-7 rounded-lg items-center justify-center" style={{ backgroundColor: 'rgba(251,191,36,0.1)' }}><MaterialCommunityIcons name="star" size={16} color="#FBBF24" /></View>
-            <View><Text className="text-white font-body-bold text-[15px]">{stats.rating}</Text><Text className="text-muted font-body-semibold text-[10.5px] mt-0.5">Rating</Text></View>
+          <View style={s.statCard}>
+            <View style={[s.statIconBg, { backgroundColor: 'rgba(251,191,36,0.1)' }]}>
+              <MaterialCommunityIcons name="star" size={16} color="#FBBF24" />
+            </View>
+            <View>
+              <Text style={s.statVal}>{stats.rating}</Text>
+              <Text style={s.statLabel}>Rating</Text>
+            </View>
           </View>
         </View>
       </View>
 
-      <View className="w-full">
-        <View className="flex-1 w-full">
-          <View className="flex-row flex-wrap gap-3 w-full">
+      {/* Main Content Cards Grid */}
+      <View style={{ width: '100%' }}>
+        <View style={{ flex: 1, width: '100%' }}>
+          <View style={s.grid}>
             {list.map((st) => {
               const meta = statusMeta(st.status);
               const zapScore = st.progress + 10;
               const hasUnread = st.messages > 0 && st.status === 'pending';
+
               return (
-                <Pressable key={st.id} onPress={() => setPicked(st)} className="bg-card border border-glass-border rounded-[14px] p-3.5" style={{ width: cardW as any, cursor: 'pointer', ...(Platform.OS === 'web' ? { transitionDuration: '160ms' } as any : {}) }}>
-                  <View className="flex-row items-start gap-2.5 mb-3">
+                <Pressable
+                  key={st.id}
+                  onPress={() => setPicked(st)}
+                  style={({ hovered }: any) => [
+                    s.card,
+                    { width: cardW as any },
+                    hovered && s.cardHovered
+                  ]}
+                >
+                  {/* Card Header */}
+                  <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 12 }}>
                     <Av initials={st.avatar} size={42} color={st.color} />
-                    <View className="flex-1 min-w-0">
-                      <Text numberOfLines={1} className="text-white font-body-bold text-[13.5px]">{st.name}</Text>
-                      <Text numberOfLines={1} className="text-muted font-body-semibold text-[11px] mt-0.5">{st.branch} · {st.college}</Text>
-                      <Text className="text-dim font-body-semibold text-[10px] mt-0.5">Batch {st.year} - {st.saId}</Text>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text numberOfLines={1} style={s.cardName}>{st.name}</Text>
+                      <Text numberOfLines={1} style={s.cardSubtitle}>{st.branch} · {st.college}</Text>
+                      <Text style={s.cardSaId}>Batch {st.year} - {st.saId}</Text>
                     </View>
-                    <View className="items-end gap-1">
+                    <View style={{ alignItems: 'flex-end', gap: 4 }}>
                       <Badge label={meta.label} color={meta.color as any} />
                       {hasUnread ? (
-                        <View className="bg-red rounded-[10px] min-w-4 h-4 items-center justify-center px-1"><Text className="text-white font-display-bold text-[9.5px]">{st.messages}</Text></View>
+                        <View style={s.unreadBadge}>
+                          <Text style={s.unreadText}>{st.messages}</Text>
+                        </View>
                       ) : (
-                        <View className="flex-row items-center gap-0.5 bg-teal/[0.08] border border-teal/20 rounded-[6px] px-[5px] py-0.5"><MaterialCommunityIcons name="flash" size={10} color={MC.tealP} /><Text className="text-tealP font-display-bold text-[9px]">{zapScore}</Text></View>
+                        <View style={s.zapBadge}>
+                          <MaterialCommunityIcons name="flash" size={10} color={MC.tealP} />
+                          <Text style={s.zapText}>{zapScore}</Text>
+                        </View>
                       )}
                     </View>
                   </View>
-                  <View className="gap-1 mb-3">
+
+                  {/* Goals List */}
+                  <View style={{ gap: 4, marginBottom: 12 }}>
                     {st.goals.map((g, i) => (
-                      <Text key={i} numberOfLines={1} className="text-muted font-body-semibold text-[11.5px] leading-4"><Text className="text-tealP">&gt; </Text>{g}</Text>
+                      <Text key={i} numberOfLines={1} style={s.goalText}>
+                        <Text style={{ color: MC.tealP }}>&gt; </Text>{g}
+                      </Text>
                     ))}
                   </View>
-                  <View className="gap-1.5 mb-3">
-                    <View className="flex-row justify-between items-center">
-                      <Text className="text-dim font-body-bold text-[9px] tracking-[0.4px]">PROGRESS</Text>
-                      <Text className="text-tealP font-body-bold text-[10px]">{st.progress}%</Text>
+
+                  {/* Progress Section */}
+                  <View style={{ gap: 6, marginBottom: 12 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Text style={s.progressLabel}>PROGRESS</Text>
+                      <Text style={s.progressVal}>{st.progress}%</Text>
                     </View>
-                    <View className="h-1 rounded bg-white/[0.07] overflow-hidden">
-                      <View className="h-full rounded" style={{ width: `${st.progress}%` as any, backgroundColor: st.progress === 100 ? MC.green : st.progress > 60 ? MC.teal : MC.amber }} />
+                    <View style={s.bar}>
+                      <View style={{
+                        height: '100%',
+                        width: `${st.progress}%` as any,
+                        borderRadius: 2,
+                        backgroundColor: st.progress === 100 ? MC.green : st.progress > 60 ? MC.teal : MC.amber,
+                      }} />
                     </View>
                   </View>
-                  <View className="flex-row gap-3 items-center mb-3">
-                    <View className="flex-row items-center gap-1"><MaterialCommunityIcons name="checkbox-marked-outline" size={12} color={MC.dim} /><Text className="text-dim font-body-semibold text-[10.5px]">{st.sessionsCompleted} / {st.sessionsTotal}</Text></View>
-                    <Text className="text-dim font-body-semibold text-[10.5px]">CGPA {st.cgpa}</Text>
+
+                  {/* Bottom Stats Meta */}
+                  <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center', marginBottom: 12 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <MaterialCommunityIcons name="checkbox-marked-outline" size={12} color={MC.dim} />
+                      <Text style={s.metaText}>{st.sessionsCompleted} / {st.sessionsTotal}</Text>
+                    </View>
+                    <Text style={s.metaText}>CGPA {st.cgpa}</Text>
                   </View>
-                  <View className="flex-row flex-wrap gap-[5px] mb-3">
+
+                  {/* Tags */}
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginBottom: 12 }}>
                     {st.tags.slice(0, 3).map((t) => (
-                      <View key={t} className="bg-teal/[0.08] border border-glass-border rounded-[6px] px-[7px] py-[3px]"><Text className="text-tealP text-[9.5px] font-body-bold">{t}</Text></View>
+                      <View key={t} style={s.tag}>
+                        <Text style={s.tagText}>{t}</Text>
+                      </View>
                     ))}
                   </View>
+
+                  {/* Next Session Box */}
                   {st.nextSession ? (
-                    <View className="bg-teal/[0.04] border border-teal/[0.15] rounded-lg p-2 gap-0.5">
-                      <Text className="text-tealP font-body-bold text-[9.5px]">📅 Next Session</Text>
-                      <Text className="text-white font-body-bold text-[11px]">{st.nextSession.date} · {st.nextSession.time}</Text>
-                      <Text numberOfLines={1} className="text-muted font-body-semibold text-[10.5px]">{st.nextSession.topic}</Text>
+                    <View style={s.nextBox}>
+                      <Text style={s.nextLabel}>📅 Next Session</Text>
+                      <Text style={s.nextDateTime}>{st.nextSession.date} · {st.nextSession.time}</Text>
+                      <Text numberOfLines={1} style={s.nextTopic}>{st.nextSession.topic}</Text>
                     </View>
                   ) : (
-                    <View className="border rounded-lg p-2 gap-0.5" style={{ borderColor: 'rgba(255,255,255,0.05)', backgroundColor: 'transparent' }}>
-                      <Text className="text-dim font-body-bold text-[9.5px]">No upcoming session</Text>
-                      <Text className="text-muted font-body-semibold text-[10.5px]">Set availability to invite booking.</Text>
+                    <View style={[s.nextBox, { borderColor: 'rgba(255,255,255,0.05)', backgroundColor: 'transparent' }]}>
+                      <Text style={[s.nextLabel, { color: MC.dim }]}>No upcoming session</Text>
+                      <Text style={s.nextTopic}>Set availability to invite booking.</Text>
                     </View>
                   )}
+
+                  {/* Footer Action Buttons */}
                   {st.status === 'pending' || st.status === 'pending_sent' ? (
                     st.status === 'pending' ? (
-                      <View className="flex-row gap-2 w-full mt-2">
-                        <Pressable disabled={actioningId === String(st.id)} onPress={() => handleConnectionDecision(st.id, 'accept')} className="flex-1 flex-row gap-1.5 items-center justify-center py-2 rounded-lg bg-tealP">
+                      <View style={{ flexDirection: 'row', gap: 8, width: '100%', marginTop: 8 }}>
+                        <Pressable
+                          disabled={actioningId === String(st.id)}
+                          onPress={() => handleConnectionDecision(st.id, 'accept')}
+                          style={{
+                            flex: 1,
+                            flexDirection: 'row',
+                            gap: 6,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            paddingVertical: 8,
+                            borderRadius: 8,
+                            backgroundColor: MC.tealP,
+                            cursor: 'pointer',
+                          }}
+                        >
                           <MaterialCommunityIcons name="check" size={14} color={MC.bg} />
-                          <Text className="text-bg font-display-bold text-xs">{actioningId === String(st.id) ? 'Processing...' : 'Accept'}</Text>
+                          <Text style={{ color: MC.bg, fontFamily: FONTS.xbold, fontSize: 12 }}>
+                            {actioningId === String(st.id) ? 'Processing...' : 'Accept'}
+                          </Text>
                         </Pressable>
-                        <Pressable disabled={actioningId === String(st.id)} onPress={() => handleConnectionDecision(st.id, 'decline')} className="flex-1 flex-row gap-1.5 items-center justify-center py-2 rounded-lg border" style={{ borderColor: 'rgba(239,68,68,0.40)', backgroundColor: 'rgba(239,68,68,0.10)' }}>
+                        <Pressable
+                          disabled={actioningId === String(st.id)}
+                          onPress={() => handleConnectionDecision(st.id, 'decline')}
+                          style={{
+                            flex: 1,
+                            flexDirection: 'row',
+                            gap: 6,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            paddingVertical: 8,
+                            borderRadius: 8,
+                            borderWidth: 1,
+                            borderColor: 'rgba(239,68,68,0.40)',
+                            backgroundColor: 'rgba(239,68,68,0.10)',
+                            cursor: 'pointer',
+                          }}
+                        >
                           <MaterialCommunityIcons name="close" size={14} color={MC.red} />
-                          <Text className="text-rose font-body-bold text-xs">Decline</Text>
+                          <Text style={{ color: MC.red, fontFamily: FONTS.bold, fontSize: 12 }}>
+                            Decline
+                          </Text>
                         </Pressable>
                       </View>
                     ) : (
-                      <View className="flex-row gap-2 w-full mt-2">
-                        <Pressable disabled={actioningId === String(st.id)} onPress={() => handleConnectionDecision(st.id, 'withdraw')} className="flex-1 flex-row gap-1.5 items-center justify-center py-2 rounded-lg border" style={{ borderColor: 'rgba(239,68,68,0.40)', backgroundColor: 'rgba(239,68,68,0.10)' }}>
+                      <View style={{ flexDirection: 'row', gap: 8, width: '100%', marginTop: 8 }}>
+                        <Pressable
+                          disabled={actioningId === String(st.id)}
+                          onPress={() => handleConnectionDecision(st.id, 'withdraw')}
+                          style={{
+                            flex: 1,
+                            flexDirection: 'row',
+                            gap: 6,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            paddingVertical: 8,
+                            borderRadius: 8,
+                            borderWidth: 1,
+                            borderColor: 'rgba(239,68,68,0.40)',
+                            backgroundColor: 'rgba(239,68,68,0.10)',
+                            cursor: 'pointer',
+                          }}
+                        >
                           <MaterialCommunityIcons name="close" size={14} color={MC.red} />
-                          <Text className="text-rose font-body-bold text-xs">{actioningId === String(st.id) ? 'Processing...' : 'Withdraw'}</Text>
+                          <Text style={{ color: MC.red, fontFamily: FONTS.bold, fontSize: 12 }}>
+                            {actioningId === String(st.id) ? 'Processing...' : 'Withdraw'}
+                          </Text>
                         </Pressable>
                       </View>
                     )
                   ) : st.status === 'none' || st.status === 'withdrawn' || st.status === 'declined' || st.status === 'rejected' ? (
-                    <View className="flex-row gap-2 w-full mt-2">
-                      <Pressable disabled={actioningId === String(st.id)} onPress={() => handleConnectionDecision(st.id, 'connect')} className="flex-1 flex-row gap-1.5 items-center justify-center py-2 rounded-lg bg-tealP">
+                    <View style={{ flexDirection: 'row', gap: 8, width: '100%', marginTop: 8 }}>
+                      <Pressable
+                        disabled={actioningId === String(st.id)}
+                        onPress={() => handleConnectionDecision(st.id, 'connect')}
+                        style={{
+                          flex: 1,
+                          flexDirection: 'row',
+                          gap: 6,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          paddingVertical: 8,
+                          borderRadius: 8,
+                          backgroundColor: MC.tealP,
+                          cursor: 'pointer',
+                        }}
+                      >
                         <MaterialCommunityIcons name="plus" size={14} color={MC.bg} />
-                        <Text className="text-bg font-display-bold text-xs">{actioningId === String(st.id) ? 'Processing...' : 'Connect'}</Text>
+                        <Text style={{ color: MC.bg, fontFamily: FONTS.xbold, fontSize: 12 }}>
+                          {actioningId === String(st.id) ? 'Processing...' : 'Connect'}
+                        </Text>
                       </Pressable>
                     </View>
                   ) : (
-                    <View className="flex-row justify-between items-center mt-1.5 border-t pt-2.5" style={{ borderColor: 'rgba(255,255,255,0.04)' }}>
-                      <Pressable className="flex-row items-center gap-1 px-2 h-[26px] rounded-[6px] border" style={{ borderColor: MC.border2, backgroundColor: 'rgba(20, 184, 166, 0.05)' }} onPress={() => setPicked(st)}>
-                        <MaterialCommunityIcons name="eye-outline" size={12} color={MC.tealP} /><Text className="text-tealP font-body-bold text-[10.5px]">View Profile</Text>
+                    <View style={s.cardFooter}>
+                      <Pressable style={s.footerBtn} onPress={() => setPicked(st)}>
+                        <MaterialCommunityIcons name="eye-outline" size={12} color={MC.tealP} style={{ marginRight: 2 }} />
+                        <Text style={s.footerBtnText}>View Profile</Text>
                       </Pressable>
-                      <View className="flex-row gap-1">
-                        <Pressable className="w-6 h-[26px] rounded-[6px] border items-center justify-center" style={{ borderColor: MC.border, backgroundColor: 'rgba(255,255,255,0.02)' }} onPress={() => toast.info('Coming soon', 'Social profile is not available yet.')}><Text className="text-muted font-body-bold text-[10.5px] leading-3">in</Text></Pressable>
-                        <Pressable className="w-6 h-[26px] rounded-[6px] border items-center justify-center" style={{ borderColor: MC.border, backgroundColor: 'rgba(255,255,255,0.02)' }} onPress={() => toast.info('Coming soon', 'GitHub profile is not available yet.')}><MaterialCommunityIcons name="github" size={12} color={MC.muted} /></Pressable>
+                      <View style={{ flexDirection: 'row', gap: 4 }}>
+                        <Pressable style={s.socialBtn} onPress={() => toast.info('Coming soon', 'Social profile is not available yet.')}>
+                          <Text style={s.socialText}>in</Text>
+                        </Pressable>
+                        <Pressable style={s.socialBtn} onPress={() => toast.info('Coming soon', 'GitHub profile is not available yet.')}>
+                          <MaterialCommunityIcons name="github" size={12} color={MC.muted} />
+                        </Pressable>
                       </View>
-                      <Pressable className="flex-row items-center gap-1 px-2 h-[26px] rounded-[6px] border" style={{ borderColor: MC.border2, backgroundColor: 'rgba(34,197,94,0.08)' }} onPress={() => toast.success('Checked in')}>
-                        <MaterialCommunityIcons name="check" size={12} color={MC.green} /><Text className="text-green font-body-bold text-[10.5px]">Check-in</Text>
+                      <Pressable style={[s.footerBtn, { backgroundColor: 'rgba(34,197,94,0.08)' }]} onPress={() => toast.success('Checked in')}>
+                        <MaterialCommunityIcons name="check" size={12} color={MC.green} style={{ marginRight: 2 }} />
+                        <Text style={[s.footerBtnText, { color: MC.green }]}>Check-in</Text>
                       </Pressable>
                     </View>
                   )}
@@ -292,24 +440,36 @@ export function ConnectionsView() {
             })}
           </View>
           {list.length === 0 && (
-            <View className="w-full py-6 items-center"><Text className="text-muted font-body-semibold">No connections match those filters.</Text></View>
+            <View style={s.empty}>
+              <Text style={{ color: MC.muted, fontFamily: FONTS.med }}>No connections match those filters.</Text>
+            </View>
           )}
           {pages > 1 && (
-            <View className="flex-row justify-center items-center py-4 gap-3.5">
-              <Pressable className="px-3.5 py-[7px] bg-card rounded-lg border border-glass-border" style={page <= 1 ? { opacity: 0.4 } : undefined} onPress={() => page > 1 && loadConnections(page - 1)}><Text className="text-white font-body-bold text-xs">Prev</Text></Pressable>
-              <Text className="text-muted font-body-semibold text-xs">{page} / {pages}</Text>
-              <Pressable className="px-3.5 py-[7px] bg-card rounded-lg border border-glass-border" style={page >= pages ? { opacity: 0.4 } : undefined} onPress={() => page < pages && loadConnections(page + 1)}><Text className="text-white font-body-bold text-xs">Next</Text></Pressable>
+            <View style={s.pagination}>
+              <Pressable style={[s.pageBtn, page <= 1 && { opacity: 0.4 }]} onPress={() => page > 1 && loadConnections(page - 1)}>
+                <Text style={s.pageBtnText}>Prev</Text>
+              </Pressable>
+              <Text style={s.pageInfo}>{page} / {pages}</Text>
+              <Pressable style={[s.pageBtn, page >= pages && { opacity: 0.4 }]} onPress={() => page < pages && loadConnections(page + 1)}>
+                <Text style={s.pageBtnText}>Next</Text>
+              </Pressable>
             </View>
           )}
         </View>
       </View>
 
+      {/* Profile/Actions Drawer */}
       <Modal visible={!!picked} animationType="fade" transparent onRequestClose={() => setPicked(null)}>
-        <View className="flex-1 bg-black/65 flex-row justify-end">
-          <Pressable onPress={() => setPicked(null)} className="flex-1" />
-          <View className="w-[460px] max-w-full bg-black border-l" style={{ borderColor: MC.border2 }}>
+        <View style={s.backdrop}>
+          <Pressable onPress={() => setPicked(null)} style={{ flex: 1 }} />
+          <View style={s.drawer}>
             {picked && (
-              <DrawerInner st={picked} onClose={() => setPicked(null)} onUpdateStudent={handleUpdateStudent} onRefresh={loadConnections} />
+              <DrawerInner 
+                st={picked} 
+                onClose={() => setPicked(null)} 
+                onUpdateStudent={handleUpdateStudent}
+                onRefresh={loadConnections}
+              />
             )}
           </View>
         </View>
@@ -323,15 +483,19 @@ const parseToISO = (dateStr: string, timeStr: string) => {
   const monthName = parts[0];
   const day = parseInt(parts[1], 10);
   const year = parseInt(parts[2], 10);
+  
   const monthIdx = MONTH_NAMES.indexOf(monthName);
-  const month = monthIdx !== -1 ? monthIdx : 4;
+  const month = monthIdx !== -1 ? monthIdx : 4; // default May
+  
   const timeParts = timeStr.split(' ');
   const hm = timeParts[0].split(':');
   let hours = parseInt(hm[0], 10);
   const minutes = parseInt(hm[1], 10);
   const ampm = timeParts[1];
+  
   if (ampm === 'PM' && hours < 12) hours += 12;
   if (ampm === 'AM' && hours === 12) hours = 0;
+  
   const d = new Date(year, month, day, hours, minutes, 0);
   return d.toISOString();
 };
@@ -344,207 +508,390 @@ function DrawerInner({ st, onClose, onUpdateStudent, onRefresh }: { st: Student;
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
   const [isScheduling, setIsScheduling] = useState(false);
+
+  // Sessions Tab: Local Mock Scheduling States
   const [calYear, setCalYear] = useState(2026);
-  const [calMonth, setCalMonth] = useState(4);
+  const [calMonth, setCalMonth] = useState(4); // Default to May
   const [pendingDate, setPendingDate] = useState<string | null>(st.nextSession?.date || null);
   const [selectedTime, setSelectedTime] = useState(st.nextSession?.time || '10:00 AM');
   const [sessionTopic, setSessionTopic] = useState(st.nextSession?.topic || '1:1 Mentorship Session');
 
-  const handlePrevMonth = () => { if (calMonth === 0) { setCalMonth(11); setCalYear((y) => y - 1); } else { setCalMonth((m) => m - 1); } };
-  const handleNextMonth = () => { if (calMonth === 11) { setCalMonth(0); setCalYear((y) => y + 1); } else { setCalMonth((m) => m + 1); } };
-  const handleDaySelect = (day: number) => { setPendingDate(`${MONTH_NAMES[calMonth]} ${day}, 2026`); };
+  const handlePrevMonth = () => {
+    if (calMonth === 0) {
+      setCalMonth(11);
+      setCalYear((y) => y - 1);
+    } else {
+      setCalMonth((m) => m - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (calMonth === 11) {
+      setCalMonth(0);
+      setCalYear((y) => y + 1);
+    } else {
+      setCalMonth((m) => m + 1);
+    }
+  };
+
+  const handleDaySelect = (day: number) => {
+    const formatted = `${MONTH_NAMES[calMonth]} ${day}, 2026`;
+    setPendingDate(formatted);
+  };
+
   const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
   const firstDayIndex = (new Date(calYear, calMonth, 1).getDay() + 6) % 7;
-  const calendarCells: (number | null)[] = [];
-  for (let i = 0; i < firstDayIndex; i++) calendarCells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) calendarCells.push(d);
+  const calendarCells = [];
+  
+  for (let i = 0; i < firstDayIndex; i++) {
+    calendarCells.push(null);
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    calendarCells.push(d);
+  }
 
   const handleConfirmSchedule = async () => {
     if (!pendingDate) return;
     setIsScheduling(true);
     try {
       const slot_start_iso = parseToISO(pendingDate, selectedTime);
-      await api.createMentorBooking({ student_id: String(st.id), slot_start_iso, topic: sessionTopic });
+      await api.createMentorBooking({
+        student_id: String(st.id),
+        slot_start_iso,
+        topic: sessionTopic,
+      });
       await onRefresh();
       setActiveTab('overview');
       toast.success('Session scheduled', `Booked with ${st.name || 'student'}.`);
-    } catch (e: any) { toast.error('Schedule failed', e?.message || 'Please try again.'); }
-    finally { setIsScheduling(false); }
+    } catch (e: any) {
+      toast.error('Schedule failed', e?.message || 'Please try again.');
+    } finally {
+      setIsScheduling(false);
+    }
   };
 
-  const handleSaveNotes = () => { onUpdateStudent({ ...st, lastSession: { date: st.lastSession?.date || 'Today', notes: notesText } }); setIsSaved(true); setTimeout(() => setIsSaved(false), 2000); };
+  const handleSaveNotes = () => {
+    const updated = {
+      ...st,
+      lastSession: {
+        date: st.lastSession?.date || 'Today',
+        notes: notesText
+      }
+    };
+    onUpdateStudent(updated);
+    setIsSaved(true);
+    setTimeout(() => setIsSaved(false), 2000);
+  };
 
   const handleRunAiAnalysis = () => {
-    setIsAnalyzing(true); setAiAnalysis(null);
-    setTimeout(() => { setIsAnalyzing(false); setAiAnalysis('✨ AI STRENGTH ASSESSMENT:\n• Exceptional analytical abilities and strong system design foundation.\n• Arjun demonstrates deep understanding of horizontal scaling, caching strategies (Redis), and load balancers.\n\n📈 DEVELOPMENT AREAS:\n• Concurrency models in Python (asyncio) need more hands-on practice.\n• Focus on database sharding and CAP theorem trade-offs in the next mock interview.\n\n🎯 NEXT ACTION MILESTONES:\n• Mock Session on May 7th focusing entirely on high-throughput system bottlenecks.'); }, 1800);
+    setIsAnalyzing(true);
+    setAiAnalysis(null);
+    setTimeout(() => {
+      setIsAnalyzing(false);
+      setAiAnalysis(
+        `✨ AI STRENGTH ASSESSMENT:\n• Exceptional analytical abilities and strong system design foundation.\n• Arjun demonstrates deep understanding of horizontal scaling, caching strategies (Redis), and load balancers.\n\n📈 DEVELOPMENT AREAS:\n• Concurrency models in Python (asyncio) need more hands-on practice.\n• Focus on database sharding and CAP theorem trade-offs in the next mock interview.\n\n🎯 NEXT ACTION MILESTONES:\n• Mock Session on May 7th focusing entirely on high-throughput system bottlenecks.`
+      );
+    }, 1800);
   };
 
   const zapScore = st.progress + 10;
 
   return (
-    <View className="flex-1 bg-[#050810]">
-      <View className="px-5 py-4 border-b flex-row items-center justify-between" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-        <Text className="text-white font-display-bold text-lg tracking-[-0.4px]">Student Profile</Text>
-        <Pressable onPress={onClose} className="w-7 h-7 rounded-[14px] items-center justify-center" style={{ backgroundColor: 'rgba(0, 255, 204, 0.08)', borderColor: 'rgba(0, 255, 204, 0.20)', borderWidth: 1 }}>
+    <View style={{ flex: 1, backgroundColor: '#050810' }}>
+      
+      {/* Top Title/Header Bar */}
+      <View style={d.drawerTopHeader}>
+        <Text style={d.drawerTopTitle}>Student Profile</Text>
+        <Pressable onPress={onClose} style={d.drawerCloseBtn}>
           <MaterialCommunityIcons name="close" size={16} color="#00ffcc" />
         </Pressable>
       </View>
+
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-        <View className="flex-row items-center gap-3.5 bg-teal/[0.04] border border-teal/[0.15] rounded-[16px] p-4 mb-4">
+        
+        {/* Inner Student Profile Header Card */}
+        <View style={d.innerCard}>
           <Av initials={st.avatar} size={56} color={st.color} />
-          <View className="flex-1 min-w-0">
-            <Text numberOfLines={1} className="text-white font-body-bold text-[16px]">{st.name}</Text>
-            <Text numberOfLines={1} className="text-muted font-body-semibold text-[11.5px] mt-0.5">{st.branch} · {st.college} · {st.year}</Text>
-            <View className="flex-row items-center gap-2.5 mt-1.5">
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text numberOfLines={1} style={d.stName}>{st.name}</Text>
+            <Text numberOfLines={1} style={d.stSub}>{st.branch} · {st.college} · {st.year}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 6 }}>
               <Badge label={statusMeta(st.status).label} color={statusMeta(st.status).color as any} />
-              <View className="flex-row items-center gap-0.5 bg-teal/[0.08] border border-teal/20 rounded-[6px] px-[5px] py-0.5"><MaterialCommunityIcons name="flash" size={10} color={MC.tealP} /><Text className="text-tealP font-display-bold text-[9px]">{zapScore}</Text></View>
-              <Text className="text-dim font-body-semibold text-[11px]">CGPA {st.cgpa}</Text>
+              <View style={d.stZapBadge}>
+                <MaterialCommunityIcons name="flash" size={10} color={MC.tealP} />
+                <Text style={d.stZapText}>{zapScore}</Text>
+              </View>
+              <Text style={d.stCgpaText}>CGPA {st.cgpa}</Text>
             </View>
           </View>
-          <View className="gap-1.5 justify-center">
-            <Pressable className="w-6 h-6 rounded-[12px] border items-center justify-center" style={{ borderColor: 'rgba(255,255,255,0.08)', backgroundColor: 'rgba(255,255,255,0.02)' }} onPress={() => toast.info('Coming soon', 'Social profile is not available yet.')}><Text className="text-[#00ffcc] font-body-bold text-[11px]">in</Text></Pressable>
-            <Pressable className="w-6 h-6 rounded-[12px] border items-center justify-center" style={{ borderColor: 'rgba(255,255,255,0.08)', backgroundColor: 'rgba(255,255,255,0.02)' }} onPress={() => toast.info('Coming soon', 'GitHub profile is not available yet.')}><MaterialCommunityIcons name="github" size={12} color="#fff" /></Pressable>
+          <View style={{ gap: 6, justifyContent: 'center' }}>
+            <Pressable style={d.iconCircleBtn} onPress={() => toast.info('Coming soon', 'Social profile is not available yet.')}>
+              <Text style={{ color: '#00ffcc', fontFamily: FONTS.bold, fontSize: 11 }}>in</Text>
+            </Pressable>
+            <Pressable style={d.iconCircleBtn} onPress={() => toast.info('Coming soon', 'GitHub profile is not available yet.')}>
+              <MaterialCommunityIcons name="github" size={12} color="#fff" />
+            </Pressable>
           </View>
         </View>
 
-        <View className="flex-row gap-2 mb-5">
-          <View className="flex-1 bg-white/[0.01] border rounded-xl py-2.5 items-center gap-1" style={{ borderColor: 'rgba(255,255,255,0.05)' }}><MaterialCommunityIcons name="play-circle-outline" size={16} color={MC.tealP} /><Text className="text-white font-body-bold text-[13px]">{st.sessionsCompleted}/{st.sessionsTotal}</Text><Text className="text-dim font-body-semibold text-[9.5px]">Sessions</Text></View>
-          <View className="flex-1 bg-white/[0.01] border rounded-xl py-2.5 items-center gap-1" style={{ borderColor: 'rgba(255,255,255,0.05)' }}><MaterialCommunityIcons name="pulse" size={16} color={MC.tealP} /><Text className="text-white font-body-bold text-[13px]">{st.progress}%</Text><Text className="text-dim font-body-semibold text-[9.5px]">Progress</Text></View>
-          <View className="flex-1 bg-white/[0.01] border rounded-xl py-2.5 items-center gap-1" style={{ borderColor: 'rgba(255,255,255,0.05)' }}><MaterialCommunityIcons name="school-outline" size={16} color={MC.tealP} /><Text className="text-white font-body-bold text-[13px]">{st.cgpa}</Text><Text className="text-dim font-body-semibold text-[9.5px]">CGPA</Text></View>
-          <View className="flex-1 bg-white/[0.01] border rounded-xl py-2.5 items-center gap-1" style={{ borderColor: 'rgba(255,255,255,0.05)' }}><MaterialCommunityIcons name="calendar-blank-outline" size={16} color={MC.tealP} /><Text className="text-white font-body-bold text-[13px]">{st.joinedOn.split(',')[0]}</Text><Text className="text-dim font-body-semibold text-[9.5px]">Joined</Text></View>
+        {/* 4 Stats Grid Row */}
+        <View style={d.fourStatsRow}>
+          <View style={d.fourStatCard}>
+            <MaterialCommunityIcons name="play-circle-outline" size={16} color={MC.tealP} />
+            <Text style={d.fourStatVal}>{st.sessionsCompleted}/{st.sessionsTotal}</Text>
+            <Text style={d.fourStatLabel}>Sessions</Text>
+          </View>
+          <View style={d.fourStatCard}>
+            <MaterialCommunityIcons name="pulse" size={16} color={MC.tealP} />
+            <Text style={d.fourStatVal}>{st.progress}%</Text>
+            <Text style={d.fourStatLabel}>Progress</Text>
+          </View>
+          <View style={d.fourStatCard}>
+            <MaterialCommunityIcons name="school-outline" size={16} color={MC.tealP} />
+            <Text style={d.fourStatVal}>{st.cgpa}</Text>
+            <Text style={d.fourStatLabel}>CGPA</Text>
+          </View>
+          <View style={d.fourStatCard}>
+            <MaterialCommunityIcons name="calendar-blank-outline" size={16} color={MC.tealP} />
+            <Text style={d.fourStatVal}>{st.joinedOn.split(',')[0]}</Text>
+            <Text style={d.fourStatLabel}>Joined</Text>
+          </View>
         </View>
 
-        <View className="flex-row gap-2 border-b pb-0.5 mb-[18px]" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
-          <Pressable onPress={() => setActiveTab('overview')} className="py-2 px-4 rounded-lg" style={activeTab === 'overview' ? { backgroundColor: MC.tealP, borderColor: MC.tealP } : { backgroundColor: 'rgba(255,255,255,0.02)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
-            <Text className="font-body-bold text-[12.5px]" style={{ color: activeTab === 'overview' ? MC.bg : MC.muted }}>Overview</Text>
+        {/* Tabs Row */}
+        <View style={d.tabsContainer}>
+          <Pressable 
+            onPress={() => setActiveTab('overview')} 
+            style={[d.tabBtn, activeTab === 'overview' && d.tabBtnActive]}
+          >
+            <Text style={[d.tabText, activeTab === 'overview' && d.tabTextActive]}>Overview</Text>
           </Pressable>
-          <Pressable onPress={() => setActiveTab('sessions')} className="py-2 px-4 rounded-lg" style={activeTab === 'sessions' ? { backgroundColor: MC.tealP, borderColor: MC.tealP } : { backgroundColor: 'rgba(255,255,255,0.02)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
-            <Text className="font-body-bold text-[12.5px]" style={{ color: activeTab === 'sessions' ? MC.bg : MC.muted }}>Sessions</Text>
+          <Pressable 
+            onPress={() => setActiveTab('sessions')} 
+            style={[d.tabBtn, activeTab === 'sessions' && d.tabBtnActive]}
+          >
+            <Text style={[d.tabText, activeTab === 'sessions' && d.tabTextActive]}>Sessions</Text>
           </Pressable>
-          <Pressable onPress={() => setActiveTab('notes')} className="py-2 px-4 rounded-lg" style={activeTab === 'notes' ? { backgroundColor: MC.tealP, borderColor: MC.tealP } : { backgroundColor: 'rgba(255,255,255,0.02)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
-            <Text className="font-body-bold text-[12.5px]" style={{ color: activeTab === 'notes' ? MC.bg : MC.muted }}>Notes</Text>
+          <Pressable 
+            onPress={() => setActiveTab('notes')} 
+            style={[d.tabBtn, activeTab === 'notes' && d.tabBtnActive]}
+          >
+            <Text style={[d.tabText, activeTab === 'notes' && d.tabTextActive]}>Notes</Text>
           </Pressable>
         </View>
 
+        {/* OVERVIEW TAB CONTENT */}
         {activeTab === 'overview' && (
-          <View className="gap-[18px]">
-            <View className="gap-2">
-              <Text className="text-dim font-body-bold text-[10px] tracking-[0.8px]">GOALS</Text>
+          <View style={{ gap: 18 }}>
+            
+            {/* Goals Capsule Cards */}
+            <View style={{ gap: 8 }}>
+              <Text style={d.kicker}>GOALS</Text>
               {st.goals.map((goal, i) => (
-                <View key={i} className="flex-row items-center gap-2 bg-teal/[0.02] border border-teal/[0.12] rounded-[10px] p-2.5">
+                <View key={i} style={d.goalCapsule}>
                   <MaterialCommunityIcons name="compass-outline" size={14} color={MC.tealP} />
-                  <Text className="text-white font-body-bold text-[12.5px]">{goal}</Text>
+                  <Text style={d.goalCapsuleText}>{goal}</Text>
                 </View>
               ))}
             </View>
-            <View className="flex-row gap-4">
-              <View className="flex-1 gap-1.5">
-                <Text className="text-dim font-body-bold text-[10px] tracking-[0.8px]">INTERESTS</Text>
-                <View className="flex-row flex-wrap gap-1">{st.interests.slice(0, 3).map((it) => <View key={it} className="bg-teal/[0.05] border border-teal/[0.18] rounded-[6px] px-2 py-1"><Text className="text-tealP text-[10px] font-body-bold">{it}</Text></View>)}</View>
+
+            {/* Interests & Skills Side-by-side */}
+            <View style={{ flexDirection: 'row', gap: 16 }}>
+              <View style={{ flex: 1, gap: 6 }}>
+                <Text style={d.kicker}>INTERESTS</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>
+                  {st.interests.slice(0, 3).map((it) => (
+                    <View key={it} style={d.tagInterests}>
+                      <Text style={d.tagInterestsText}>{it}</Text>
+                    </View>
+                  ))}
+                </View>
               </View>
-              <View className="flex-1 gap-1.5">
-                <Text className="text-dim font-body-bold text-[10px] tracking-[0.8px]">SKILLS</Text>
-                <View className="flex-row flex-wrap gap-1">{st.skills.slice(0, 4).map((sk) => <View key={sk} className="bg-white/[0.02] border border-white/[0.08] rounded-[6px] px-2 py-1"><Text className="text-muted text-[10px] font-body-bold">{sk}</Text></View>)}</View>
+              <View style={{ flex: 1, gap: 6 }}>
+                <Text style={d.kicker}>SKILLS</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>
+                  {st.skills.slice(0, 4).map((sk) => (
+                    <View key={sk} style={d.tagSkills}>
+                      <Text style={d.tagSkillsText}>{sk}</Text>
+                    </View>
+                  ))}
+                </View>
               </View>
             </View>
-            <View className="bg-white/[0.02] border border-white/[0.06] rounded-[14px] p-3.5 gap-2">
-              <View className="flex-row justify-between items-center"><Text className="text-white font-body-bold text-[13px]">Mentorship Progress</Text><Text className="text-tealP font-body-bold text-[13px]">{st.progress}%</Text></View>
-              <View className="h-[6px] rounded-[3px] bg-white/[0.05] overflow-hidden"><View className="h-full rounded-[3px] bg-tealP" style={{ width: `${st.progress}%` as any }} /></View>
-              <Text className="text-dim font-body-semibold text-[11px]">{st.sessionsCompleted} of {st.sessionsTotal} sessions · Joined {st.joinedOn}</Text>
+
+            {/* Mentorship Progress Card */}
+            <View style={d.panelCard}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={d.cardTitle}>Mentorship Progress</Text>
+                <Text style={d.progressValText}>{st.progress}%</Text>
+              </View>
+              <View style={d.progressBarWrapper}>
+                <View style={[d.progressBarFilled, { width: `${st.progress}%` as any }]} />
+              </View>
+              <Text style={d.progressSub}>{st.sessionsCompleted} of {st.sessionsTotal} sessions · Joined {st.joinedOn}</Text>
             </View>
+
+            {/* Upcoming Session Action Box */}
             {st.nextSession ? (
-              <View className="bg-white/[0.02] border border-white/[0.06] rounded-[14px] p-3.5 gap-2">
-                <View className="flex-row items-center gap-1.5 mb-2"><MaterialCommunityIcons name="calendar-blank-outline" size={14} color={MC.tealP} /><Text className="text-tealP font-body-bold text-[13px]">Upcoming Session</Text></View>
-                <Text className="text-white font-body-bold text-[15px]">{st.nextSession.date} · {st.nextSession.time}</Text>
-                <Text className="text-muted font-body-semibold text-xs">{st.nextSession.topic}</Text>
-                <View className="mt-3 border-t pt-3" style={{ borderTopColor: 'rgba(255,255,255,0.06)' }}>
-                  <Text className="text-dim font-body-bold text-[9.5px] tracking-[0.5px]">🟢 START SESSION VIA</Text>
-                  <View className="flex-row gap-2 mt-2">
-                    <Pressable className="flex-row gap-1 items-center px-2.5 h-8 rounded-lg border flex-1 justify-center" style={{ borderColor: 'rgba(34, 197, 94, 0.20)', backgroundColor: 'rgba(34, 197, 94, 0.08)' }} onPress={() => Platform.OS === 'web' ? window.open('https://meet.google.com', '_blank') : toast.info('Opening Meet')}><MaterialCommunityIcons name="video-outline" size={14} color="#fff" /><Text className="text-white font-body-bold text-[10.5px]">Google Meet</Text></Pressable>
-                    <Pressable className="flex-row gap-1 items-center px-2.5 h-8 rounded-lg border flex-1 justify-center" style={{ borderColor: 'rgba(34, 197, 94, 0.20)', backgroundColor: 'rgba(34, 197, 94, 0.08)' }} onPress={() => Platform.OS === 'web' ? window.open('https://zoom.us', '_blank') : toast.info('Opening Zoom')}><MaterialCommunityIcons name="video-box" size={14} color="#fff" /><Text className="text-white font-body-bold text-[10.5px]">Zoom</Text></Pressable>
-                    <Pressable className="flex-row gap-1 items-center px-2.5 h-8 rounded-lg border flex-1 justify-center" style={{ backgroundColor: '#3f2a56', borderColor: '#5c3e7f' }} onPress={() => Platform.OS === 'web' ? window.open('https://teams.microsoft.com', '_blank') : toast.info('Opening Teams')}><MaterialCommunityIcons name="microsoft-teams" size={14} color="#fff" /><Text className="text-white font-body-bold text-[10.5px]">Teams</Text></Pressable>
+              <View style={d.panelCard}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                  <MaterialCommunityIcons name="calendar-blank-outline" size={14} color={MC.tealP} />
+                  <Text style={d.upcomingTitle}>Upcoming Session</Text>
+                </View>
+                <Text style={d.upcomingDateTime}>{st.nextSession.date} · {st.nextSession.time}</Text>
+                <Text style={d.upcomingTopic}>{st.nextSession.topic}</Text>
+                
+                {/* Meet Launch Section */}
+                <View style={{ marginTop: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)', paddingTop: 12 }}>
+                  <Text style={d.sessionStartLabel}>🟢 START SESSION VIA</Text>
+                  <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+                    <Pressable style={d.meetBtn} onPress={() => Platform.OS === 'web' ? window.open('https://meet.google.com', '_blank') : toast.info('Opening Meet')}>
+                      <MaterialCommunityIcons name="video-outline" size={14} color="#fff" />
+                      <Text style={d.meetBtnText}>Google Meet</Text>
+                    </Pressable>
+                    <Pressable style={d.meetBtn} onPress={() => Platform.OS === 'web' ? window.open('https://zoom.us', '_blank') : toast.info('Opening Zoom')}>
+                      <MaterialCommunityIcons name="video-box" size={14} color="#fff" />
+                      <Text style={d.meetBtnText}>Zoom</Text>
+                    </Pressable>
+                    <Pressable style={[d.meetBtn, { backgroundColor: '#3f2a56', borderColor: '#5c3e7f' }]} onPress={() => Platform.OS === 'web' ? window.open('https://teams.microsoft.com', '_blank') : toast.info('Opening Teams')}>
+                      <MaterialCommunityIcons name="microsoft-teams" size={14} color="#fff" />
+                      <Text style={d.meetBtnText}>Teams</Text>
+                    </Pressable>
                   </View>
                 </View>
-                <Pressable className="flex-row gap-1.5 items-center px-3.5 h-9 rounded-lg border justify-center mt-2.5" style={{ borderColor: 'rgba(20, 184, 166, 0.20)', backgroundColor: 'rgba(20, 184, 166, 0.05)' }} onPress={() => toast.info('Generating agenda', 'Creating a tailored agenda with AI...')}>
-                  <MaterialCommunityIcons name="calendar-check-outline" size={14} color="#00ffcc" /><Text className="text-[#00ffcc] font-body-bold text-[11.5px]">Generate Session Agenda</Text>
+
+                {/* Agenda Generator */}
+                <Pressable style={d.agendaBtn} onPress={() => toast.info('Generating agenda', 'Creating a tailored agenda with AI...')}>
+                  <MaterialCommunityIcons name="calendar-check-outline" size={14} color="#00ffcc" />
+                  <Text style={d.agendaBtnText}>Generate Session Agenda</Text>
                 </Pressable>
               </View>
             ) : (
-              <View className="bg-white/[0.02] border border-white/[0.06] rounded-[14px] p-3.5 items-center py-5">
+              <View style={[d.panelCard, { alignItems: 'center', paddingVertical: 20 }]}>
                 <MaterialCommunityIcons name="calendar-question" size={24} color={MC.dim} />
-                <Text className="text-white font-body-bold text-[13px] mt-2">No Upcoming Sessions Scheduled</Text>
-                <Pressable onPress={() => setActiveTab('sessions')} className="h-8 px-3.5 bg-tealP rounded-lg justify-center mt-3"><Text className="text-bg font-display-bold text-[11.5px]">Schedule New Session Now</Text></Pressable>
+                <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13, marginTop: 8 }}>No Upcoming Sessions Scheduled</Text>
+                <Pressable onPress={() => setActiveTab('sessions')} style={d.schedulePromptBtn}>
+                  <Text style={{ color: MC.bg, fontFamily: FONTS.xbold, fontSize: 11.5 }}>Schedule New Session Now</Text>
+                </Pressable>
               </View>
             )}
-            <View className="gap-2 mt-1">
-              <Text className="text-dim font-body-bold text-[10px] tracking-[0.8px]">✨ AI PROGRESS ANALYSIS</Text>
+
+            {/* AI Progress Analysis */}
+            <View style={{ gap: 8, marginTop: 4 }}>
+              <Text style={d.kicker}>✨ AI PROGRESS ANALYSIS</Text>
               {isAnalyzing ? (
-                <View className="p-3 rounded-[10px] border items-center" style={{ borderColor: 'rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.01)' }}>
-                  <MaterialCommunityIcons name="loading" size={16} color={MC.tealP} />
-                  <Text className="text-dim font-body-semibold text-[11.5px]">Synthesizing custom student progress models...</Text>
+                <View style={d.aiAnalysisBox}>
+                  <MaterialCommunityIcons name="loading" size={16} color={MC.tealP} style={d.loadingSpin} />
+                  <Text style={d.aiAnalysisPlaceholder}>Synthesizing custom student progress models...</Text>
                 </View>
               ) : aiAnalysis ? (
-                <View className="p-3 rounded-[10px] border" style={{ borderColor: 'rgba(20,184,166,0.30)', backgroundColor: 'rgba(20,184,166,0.03)' }}>
-                  <Text className="text-white font-body-semibold text-xs leading-[18px]">{aiAnalysis}</Text>
+                <View style={[d.aiAnalysisBox, { borderColor: 'rgba(20,184,166,0.30)', backgroundColor: 'rgba(20,184,166,0.03)' }]}>
+                  <Text style={d.aiAnalysisText}>{aiAnalysis}</Text>
                 </View>
               ) : (
-                <Pressable className="flex-row gap-1.5 items-center px-3.5 h-9 rounded-lg border self-start" style={{ borderColor: 'rgba(20, 184, 166, 0.20)', backgroundColor: 'rgba(20, 184, 166, 0.05)' }} onPress={handleRunAiAnalysis}>
-                  <MaterialCommunityIcons name="sparkles" size={14} color="#00ffcc" /><Text className="text-[#00ffcc] font-body-bold text-[11.5px]">Analyze Progress</Text>
+                <Pressable style={d.aiBtn} onPress={handleRunAiAnalysis}>
+                  <MaterialCommunityIcons name={"sparkles" as any} size={14} color="#00ffcc" />
+                  <Text style={d.aiBtnText}>Analyze Progress</Text>
                 </Pressable>
               )}
             </View>
+
           </View>
         )}
 
+        {/* SESSIONS TAB CONTENT */}
         {activeTab === 'sessions' && (
-          <View className="gap-3.5">
+          <View style={{ gap: 14 }}>
+            {/* Last session report */}
             {st.lastSession && (
-              <View className="bg-white/[0.02] border border-white/[0.06] rounded-[14px] p-3.5 gap-2">
-                <Text className="text-dim font-body-bold text-[10px] tracking-[0.8px]">LAST COMPLETED SESSION</Text>
-                <Text className="text-white font-body-bold text-[13px] mt-1">Covered Core Topics</Text>
-                <Text className="text-muted font-body-semibold text-xs mt-1 leading-[18px]">{st.lastSession.notes}</Text>
+              <View style={d.panelCard}>
+                <Text style={d.kicker}>LAST COMPLETED SESSION</Text>
+                <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13, marginTop: 4 }}>Covered Core Topics</Text>
+                <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 4, lineHeight: 18 }}>{st.lastSession.notes}</Text>
               </View>
             )}
-            <View className="bg-white/[0.02] border border-white/[0.06] rounded-[14px] p-3.5 gap-2">
-              <Text className="text-dim font-body-bold text-[10px] tracking-[0.8px]">SCHEDULE A NEW SESSION</Text>
-              <View className="gap-3 mt-2.5">
+
+            {/* Interactive Scheduler Card */}
+            <View style={d.panelCard}>
+              <Text style={d.kicker}>SCHEDULE A NEW SESSION</Text>
+              
+              <View style={{ gap: 12, marginTop: 10 }}>
                 <View>
-                  <Text className="text-muted font-body-bold text-[10.5px] mb-1.5">SESSION TOPIC</Text>
-                  <TextInput value={sessionTopic} onChangeText={setSessionTopic} placeholder="Enter session topic..." placeholderTextColor={MC.dim} className="bg-card border border-glass-border rounded-[10px] px-2.5 py-2 text-white text-[13px] font-body-semibold h-10" style={Platform.OS === 'web' ? { outlineStyle: 'none' } as any : undefined} />
+                  <Text style={d.inputLabel}>SESSION TOPIC</Text>
+                  <TextInput
+                    value={sessionTopic}
+                    onChangeText={setSessionTopic}
+                    placeholder="Enter session topic..."
+                    placeholderTextColor={MC.dim}
+                    style={d.topicInput}
+                  />
                 </View>
+
                 <View>
-                  <Text className="text-muted font-body-bold text-[10.5px] mb-1.5">SELECT TIME SLOT</Text>
-                  <View className="flex-row gap-1.5 flex-wrap">
-                    {['09:00 AM', '10:00 AM', '11:30 AM', '02:00 PM', '04:00 PM', '06:00 PM'].map((t) => (
-                      <Pressable key={t} onPress={() => setSelectedTime(t)} className="px-2.5 py-1.5 rounded-lg border" style={selectedTime === t ? { backgroundColor: MC.tealP, borderColor: MC.tealP } : { borderColor: MC.border2, backgroundColor: 'rgba(20, 184, 166, 0.05)' }}>
-                        <Text className="font-body-bold text-[11px]" style={{ color: selectedTime === t ? '#fff' : MC.tealP }}>{t}</Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                </View>
-                <View className="bg-card border border-glass-border rounded-xl p-3 mt-[5px]">
-                  <View className="flex-row justify-between items-center mb-2.5">
-                    <Pressable onPress={handlePrevMonth} className="w-7 h-7 rounded-[6px] items-center justify-center bg-white/[0.05]"><MaterialCommunityIcons name="chevron-left" size={16} color="#fff" /></Pressable>
-                    <Text className="text-white font-body-bold text-[12.5px]">{MONTH_NAMES[calMonth]} {calYear}</Text>
-                    <Pressable onPress={handleNextMonth} className="w-7 h-7 rounded-[6px] items-center justify-center bg-white/[0.05]"><MaterialCommunityIcons name="chevron-right" size={16} color="#fff" /></Pressable>
-                  </View>
-                  <View className="flex-row justify-between mb-2">{['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, i) => <Text key={i} className="text-dim font-body-bold text-[10.5px] w-[13%] text-center">{day}</Text>)}</View>
-                  <View className="flex-row flex-wrap gap-[1.5%]">
-                    {calendarCells.map((day, idx) => {
-                      if (day === null) return <View key={`empty-${idx}`} className="w-[13%] h-[30px] mb-1" />;
-                      const formatted = `${MONTH_NAMES[calMonth]} ${day}, 2026`;
-                      const isSelected = pendingDate === formatted;
+                  <Text style={d.inputLabel}>SELECT TIME SLOT</Text>
+                  <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+                    {['09:00 AM', '10:00 AM', '11:30 AM', '02:00 PM', '04:00 PM', '06:00 PM'].map((t) => {
+                      const active = selectedTime === t;
                       return (
-                        <Pressable key={`day-${day}`} onPress={() => handleDaySelect(day)} className="w-[13%] h-[30px] items-center justify-center rounded-md mb-1" style={isSelected ? { backgroundColor: MC.tealP } : undefined}>
-                          <Text className="font-body-semibold text-[11px]" style={{ color: isSelected ? MC.bg : '#fff', ...(isSelected ? { fontFamily: FONTS.bold } : {}) }}>{day}</Text>
+                        <Pressable key={t} onPress={() => setSelectedTime(t)} style={[d.timeSlot, active && d.timeSlotActive]}>
+                          <Text style={{ color: active ? '#fff' : MC.tealP, fontFamily: FONTS.bold, fontSize: 11 }}>{t}</Text>
                         </Pressable>
                       );
                     })}
                   </View>
                 </View>
+
+                {/* Calendar Grid card */}
+                <View style={d.calCard}>
+                  <View style={d.monthRow}>
+                    <Pressable onPress={handlePrevMonth} style={d.navArrow}>
+                      <MaterialCommunityIcons name="chevron-left" size={16} color="#fff" />
+                    </Pressable>
+                    <Text style={d.monthLabel}>{MONTH_NAMES[calMonth]} {calYear}</Text>
+                    <Pressable onPress={handleNextMonth} style={d.navArrow}>
+                      <MaterialCommunityIcons name="chevron-right" size={16} color="#fff" />
+                    </Pressable>
+                  </View>
+
+                  <View style={d.weekDaysRow}>
+                    {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, i) => (
+                      <Text key={i} style={d.weekDayName}>{day}</Text>
+                    ))}
+                  </View>
+
+                  <View style={d.daysGrid}>
+                    {calendarCells.map((day, idx) => {
+                      if (day === null) {
+                        return <View key={`empty-${idx}`} style={d.dayCellEmpty} />;
+                      }
+                      const formatted = `${MONTH_NAMES[calMonth]} ${day}, 2026`;
+                      const isSelected = pendingDate === formatted;
+                      return (
+                        <Pressable
+                          key={`day-${day}`}
+                          onPress={() => handleDaySelect(day)}
+                          style={[d.dayCell, isSelected && d.dayCellSelected]}
+                        >
+                          <Text style={[d.dayText, isSelected && d.dayTextSelected]}>{day}</Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
+
                 {pendingDate && (
-                  <Pressable disabled={isScheduling} onPress={handleConfirmSchedule} className="bg-tealP h-[42px] rounded-[10px] items-center justify-center mt-2.5" style={{ cursor: 'pointer', ...(isScheduling ? { opacity: 0.7 } : {}) }}>
-                    {isScheduling ? <ActivityIndicator size="small" color={MC.bg} /> : <Text className="text-bg font-display-bold text-xs">Confirm Session for {pendingDate} at {selectedTime}</Text>}
+                  <Pressable 
+                    disabled={isScheduling} 
+                    onPress={handleConfirmSchedule} 
+                    style={[d.confirmBtn, isScheduling && { opacity: 0.7 }]}
+                  >
+                    {isScheduling ? (
+                      <ActivityIndicator size="small" color={MC.bg} />
+                    ) : (
+                      <Text style={{ color: MC.bg, fontFamily: FONTS.xbold, fontSize: 12 }}>
+                        Confirm Session for {pendingDate} at {selectedTime}
+                      </Text>
+                    )}
                   </Pressable>
                 )}
               </View>
@@ -552,19 +899,274 @@ function DrawerInner({ st, onClose, onUpdateStudent, onRefresh }: { st: Student;
           </View>
         )}
 
+        {/* NOTES TAB CONTENT */}
         {activeTab === 'notes' && (
-          <View className="gap-3.5">
-            <View className="bg-white/[0.02] border border-white/[0.06] rounded-[14px] p-3.5 gap-2">
-              <Text className="text-dim font-body-bold text-[10px] tracking-[0.8px]">SESSION NOTES & FEEDBACK</Text>
-              <Text className="text-muted font-body-semibold text-xs mt-1 mb-3">Write specific developmental notes, task assignments, or remarks. Arjun will see these on their profile.</Text>
-              <TextInput value={notesText} onChangeText={setNotesText} placeholder="Type session logs, key takeaways, and action items..." placeholderTextColor={MC.dim} multiline numberOfLines={6} className="bg-card border border-glass-border rounded-[10px] p-3 text-white text-[13px] font-body-semibold min-h-[100px]" style={{ textAlignVertical: 'top', ...(Platform.OS === 'web' ? { outlineStyle: 'none' } as any : {}) }} />
-              <Pressable onPress={handleSaveNotes} className="flex-row gap-1.5 items-center px-3.5 h-[38px] rounded-lg bg-tealP justify-center mt-3">
-                {isSaved ? <><MaterialCommunityIcons name="check" size={14} color="#fff" /><Text className="text-white font-display-bold text-xs">Notes Saved!</Text></> : <><MaterialCommunityIcons name="content-save-outline" size={14} color="#fff" /><Text className="text-white font-display-bold text-xs">Save Remarks & Notes</Text></>}
+          <View style={{ gap: 14 }}>
+            <View style={d.panelCard}>
+              <Text style={d.kicker}>SESSION NOTES & FEEDBACK</Text>
+              <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 4, marginBottom: 12 }}>Write specific developmental notes, task assignments, or remarks. Arjun will see these on their profile.</Text>
+              
+              <TextInput
+                value={notesText}
+                onChangeText={setNotesText}
+                placeholder="Type session logs, key takeaways, and action items..."
+                placeholderTextColor={MC.dim}
+                multiline
+                numberOfLines={6}
+                style={d.notesTextarea}
+              />
+              
+              <Pressable onPress={handleSaveNotes} style={d.saveNotesBtn}>
+                {isSaved ? (
+                  <>
+                    <MaterialCommunityIcons name="check" size={14} color="#fff" />
+                    <Text style={d.saveBtnText}>Notes Saved!</Text>
+                  </>
+                ) : (
+                  <>
+                    <MaterialCommunityIcons name="content-save-outline" size={14} color="#fff" />
+                    <Text style={d.saveBtnText}>Save Remarks & Notes</Text>
+                  </>
+                )}
               </Pressable>
             </View>
           </View>
         )}
+
       </ScrollView>
     </View>
   );
 }
+
+const d = StyleSheet.create({
+  drawerTopHeader: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.06)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between'
+  },
+  drawerTopTitle: {
+    color: '#fff',
+    fontFamily: FONTS.xbold,
+    fontSize: 18,
+    letterSpacing: -0.4
+  },
+  drawerCloseBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(0, 255, 204, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 255, 204, 0.20)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer'
+  },
+  innerCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: 'rgba(20, 184, 166, 0.04)',
+    borderColor: 'rgba(20, 184, 166, 0.15)',
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16
+  },
+  stName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 16 },
+  stSub: { color: MC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
+  stCgpaText: { color: MC.dim, fontFamily: FONTS.med, fontSize: 11 },
+  stZapBadge: { flexDirection: 'row', alignItems: 'center', gap: 2, backgroundColor: 'rgba(20, 184, 166, 0.08)', borderWidth: 1, borderColor: 'rgba(20, 184, 166, 0.2)', borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1 },
+  stZapText: { color: MC.tealP, fontFamily: FONTS.xbold, fontSize: 9 },
+  iconCircleBtn: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer'
+  },
+
+  // 4 Stats Card Grid
+  fourStatsRow: { flexDirection: 'row', gap: 8, marginBottom: 20 },
+  fourStatCard: { flex: 1, backgroundColor: 'rgba(255,255,255,0.01)', borderColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderRadius: 12, paddingVertical: 10, alignItems: 'center', gap: 4 },
+  fourStatVal: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13 },
+  fourStatLabel: { color: MC.dim, fontFamily: FONTS.med, fontSize: 9.5 },
+
+  // Tabs style
+  tabsContainer: { flexDirection: 'row', gap: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)', paddingBottom: 1, marginBottom: 18 },
+  tabBtn: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 8, cursor: 'pointer', backgroundColor: 'rgba(255,255,255,0.02)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+  tabBtnActive: { backgroundColor: MC.tealP, borderColor: MC.tealP },
+  tabText: { color: MC.muted, fontFamily: FONTS.bold, fontSize: 12.5 },
+  tabTextActive: { color: MC.bg },
+
+  // Overview items
+  kicker: { color: MC.dim, fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 0.8 },
+  goalCapsule: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(20, 184, 166, 0.02)', borderColor: 'rgba(20, 184, 166, 0.12)', borderWidth: 1, borderRadius: 10, padding: 10 },
+  goalCapsuleText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
+  
+  tagInterests: { backgroundColor: 'rgba(20,184,166,0.05)', borderColor: 'rgba(20,184,166,0.18)', borderWidth: 1, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
+  tagInterestsText: { color: MC.tealP, fontSize: 10, fontFamily: FONTS.bold },
+  tagSkills: { backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
+  tagSkillsText: { color: MC.muted, fontSize: 10, fontFamily: FONTS.bold },
+
+  panelCard: { backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderRadius: 14, padding: 14, gap: 8 },
+  cardTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13 },
+  progressValText: { color: MC.tealP, fontFamily: FONTS.bold, fontSize: 13 },
+  progressBarWrapper: { height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.05)', overflow: 'hidden' },
+  progressBarFilled: { height: '100%', backgroundColor: MC.tealP, borderRadius: 3 },
+  progressSub: { color: MC.dim, fontFamily: FONTS.med, fontSize: 11 },
+
+  upcomingTitle: { color: MC.tealP, fontFamily: FONTS.bold, fontSize: 13 },
+  upcomingDateTime: { color: '#fff', fontFamily: FONTS.bold, fontSize: 15 },
+  upcomingTopic: { color: MC.muted, fontFamily: FONTS.med, fontSize: 12 },
+  
+  sessionStartLabel: { color: MC.dim, fontFamily: FONTS.bold, fontSize: 9.5, letterSpacing: 0.5 },
+  meetBtn: { flexDirection: 'row', gap: 4, alignItems: 'center', paddingHorizontal: 10, height: 32, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(34, 197, 94, 0.20)', backgroundColor: 'rgba(34, 197, 94, 0.08)', flex: 1, justifyContent: 'center', cursor: 'pointer' },
+  meetBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 10.5 },
+  agendaBtn: { flexDirection: 'row', gap: 6, alignItems: 'center', paddingHorizontal: 14, height: 36, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(20, 184, 166, 0.20)', backgroundColor: 'rgba(20, 184, 166, 0.05)', justifyContent: 'center', marginTop: 10, cursor: 'pointer' },
+  agendaBtnText: { color: '#00ffcc', fontFamily: FONTS.bold, fontSize: 11.5 },
+  schedulePromptBtn: { height: 32, paddingHorizontal: 14, backgroundColor: MC.tealP, borderRadius: 8, justifyContent: 'center', marginTop: 12, cursor: 'pointer' },
+
+  // AI Progress Analysis
+  aiBtn: { flexDirection: 'row', gap: 6, alignItems: 'center', paddingHorizontal: 14, height: 36, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(20, 184, 166, 0.20)', backgroundColor: 'rgba(20, 184, 166, 0.05)', alignSelf: 'flex-start', cursor: 'pointer' },
+  aiBtnText: { color: '#00ffcc', fontFamily: FONTS.bold, fontSize: 11.5 },
+  aiAnalysisBox: { padding: 12, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.01)', gap: 6 },
+  aiAnalysisPlaceholder: { color: MC.dim, fontFamily: FONTS.med, fontSize: 11.5 },
+  aiAnalysisText: { color: '#fff', fontFamily: FONTS.med, fontSize: 12, lineHeight: 18 },
+  loadingSpin: { alignSelf: 'center' },
+
+  // Interactive scheduler inside drawer
+  inputLabel: { color: MC.muted, fontFamily: FONTS.bold, fontSize: 10.5, marginBottom: 5 },
+  topicInput: { backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 10, padding: 10, color: '#fff', fontSize: 13, fontFamily: FONTS.med, height: 40, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
+  timeSlot: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: MC.border2, backgroundColor: 'rgba(20, 184, 166, 0.05)', cursor: 'pointer' },
+  timeSlotActive: { backgroundColor: MC.tealP, borderColor: MC.tealP },
+  calCard: { backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 12, padding: 12, marginTop: 5 },
+  monthRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  monthLabel: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
+  navArrow: { width: 28, height: 28, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.05)', cursor: 'pointer' },
+  weekDaysRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  weekDayName: { color: MC.dim, fontFamily: FONTS.bold, fontSize: 10.5, width: '13%', textAlign: 'center' },
+  daysGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: '1.5%' as any },
+  dayCell: { width: '13%', height: 30, alignItems: 'center', justifyContent: 'center', borderRadius: 6, marginBottom: 4, cursor: 'pointer' },
+  dayCellEmpty: { width: '13%', height: 30, marginBottom: 4 },
+  dayCellSelected: { backgroundColor: MC.tealP },
+  dayText: { color: '#fff', fontFamily: FONTS.med, fontSize: 11 },
+  dayTextSelected: { color: MC.bg, fontFamily: FONTS.bold },
+  confirmBtn: { backgroundColor: MC.tealP, height: 42, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginTop: 10, cursor: 'pointer' },
+
+  // Notes tab
+  notesTextarea: { backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 10, padding: 12, color: '#fff', fontSize: 13, fontFamily: FONTS.med, minHeight: 100, textAlignVertical: 'top', ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
+  saveNotesBtn: { flexDirection: 'row', gap: 6, alignItems: 'center', paddingHorizontal: 14, height: 38, borderRadius: 8, backgroundColor: MC.tealP, justifyContent: 'center', marginTop: 12, cursor: 'pointer' },
+  saveBtnText: { color: MC.bg, fontFamily: FONTS.xbold, fontSize: 12 },
+});
+
+const s = StyleSheet.create({
+  sectionTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 20, letterSpacing: -0.4 },
+  sub: { color: MC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
+  searchBox: { flexDirection: 'row', alignItems: 'center', gap: 8, width: 260, height: 36, paddingHorizontal: 11, borderRadius: 10, backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1 },
+  searchInput: { flex: 1, color: '#fff', fontFamily: FONTS.med, fontSize: 12.5, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
+  
+  // Stats Row Styles
+  statsRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap', marginTop: 4 },
+  statCard: { flex: 1, minWidth: 120, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10 },
+  statIconBg: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  statVal: { color: '#fff', fontFamily: FONTS.bold, fontSize: 15 },
+  statLabel: { color: MC.muted, fontFamily: FONTS.med, fontSize: 10.5, marginTop: 1 },
+
+  // Left Sidebar Filter Styles
+  sidebarFilters: { width: 180, gap: 4, borderRightWidth: 1, borderRightColor: MC.border, paddingRight: 10, minHeight: 300 },
+  filterHeader: { color: MC.muted, fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 0.8, marginBottom: 8, paddingLeft: 8 },
+  filterRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 8, cursor: 'pointer' },
+  filterRowActive: { backgroundColor: 'rgba(20, 184, 166, 0.08)' },
+  filterDot: { width: 5, height: 5, borderRadius: 3 },
+  filterText: { color: MC.muted, fontFamily: FONTS.bold, fontSize: 12.5 },
+  filterTextActive: { color: MC.tealP },
+
+  // Cards Grid & Layout Styles
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, width: '100%' },
+  card: { backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 14, padding: 14, cursor: 'pointer', position: 'relative' },
+  cardHovered: { borderColor: MC.border2 },
+  cardName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13.5 },
+  cardSubtitle: { color: MC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },
+  cardSaId: { color: MC.dim, fontFamily: FONTS.med, fontSize: 10, marginTop: 1 },
+  
+  // Custom Card Badges
+  unreadBadge: { backgroundColor: '#EF4444', borderRadius: 10, minWidth: 16, height: 16, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
+  unreadText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 9.5 },
+  zapBadge: { flexDirection: 'row', alignItems: 'center', gap: 2, backgroundColor: 'rgba(20, 184, 166, 0.08)', borderWidth: 1, borderColor: 'rgba(20, 184, 166, 0.2)', borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1 },
+  zapText: { color: MC.tealP, fontFamily: FONTS.xbold, fontSize: 9 },
+
+  goalText: { color: MC.muted, fontFamily: FONTS.med, fontSize: 11.5, lineHeight: 16 },
+  progressLabel: { color: MC.dim, fontFamily: FONTS.bold, fontSize: 9, letterSpacing: 0.4 },
+  progressVal: { color: MC.tealP, fontFamily: FONTS.bold, fontSize: 10 },
+  bar: { height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.07)', overflow: 'hidden' },
+  metaText: { color: MC.dim, fontFamily: FONTS.med, fontSize: 10.5 },
+  
+  tag: { backgroundColor: 'rgba(20,184,166,0.08)', borderColor: MC.border, borderWidth: 1, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 },
+  tagText: { color: MC.tealP, fontSize: 9.5, fontFamily: FONTS.bold },
+  
+  nextBox: { backgroundColor: 'rgba(20,184,166,0.04)', borderColor: 'rgba(20,184,166,0.15)', borderWidth: 1, borderRadius: 8, padding: 8, gap: 2 },
+  nextLabel: { color: MC.tealP, fontFamily: FONTS.bold, fontSize: 9.5 },
+  nextDateTime: { color: '#fff', fontFamily: FONTS.bold, fontSize: 11 },
+  nextTopic: { color: MC.muted, fontFamily: FONTS.med, fontSize: 10.5 },
+
+  // Card Action Footer
+  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.04)', paddingTop: 10 },
+  footerBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, height: 26, borderRadius: 6, borderWidth: 1, borderColor: MC.border2, backgroundColor: 'rgba(20, 184, 166, 0.05)', cursor: 'pointer' },
+  footerBtnText: { color: MC.tealP, fontFamily: FONTS.bold, fontSize: 10.5 },
+  socialBtn: { width: 24, height: 26, borderRadius: 6, borderWidth: 1, borderColor: MC.border, backgroundColor: 'rgba(255,255,255,0.02)', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
+  socialText: { color: MC.muted, fontFamily: FONTS.bold, fontSize: 10.5, lineHeight: 12 },
+  socialTextGithub: { color: MC.muted, fontFamily: FONTS.med, fontSize: 10.5 },
+
+  // Drawer Layout Styles
+  empty: { width: '100%', padding: 24, alignItems: 'center' },
+  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', flexDirection: 'row', justifyContent: 'flex-end' },
+  drawer: { width: 460, maxWidth: '100%' as any, backgroundColor: '#000000', borderLeftWidth: 1, borderLeftColor: MC.border2 },
+  iconBtn: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.05)', cursor: 'pointer' },
+  kicker: { color: MC.muted, fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 1, marginTop: 18, marginBottom: 8 },
+
+  // CTA & Action Tabs in Drawer
+  ctaBtn: { flexDirection: 'row', gap: 6, alignItems: 'center', paddingHorizontal: 14, height: 36, borderRadius: 10, borderWidth: 1, flex: 1, justifyContent: 'center', cursor: 'pointer' },
+  ctaActive: { backgroundColor: MC.tealP, borderColor: MC.tealP },
+  ctaInactive: { borderColor: MC.border2, backgroundColor: 'rgba(20, 184, 166, 0.07)' },
+  
+  // Message tab in Drawer
+  chatContainer: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 12, gap: 10, minHeight: 180, maxHeight: 300, borderWidth: 1, borderColor: MC.border },
+  chatBubble: { padding: 10, borderRadius: 10, maxWidth: '85%' },
+  bubbleMentor: { backgroundColor: 'rgba(20, 184, 166, 0.15)', alignSelf: 'flex-end', borderBottomRightRadius: 2 },
+  bubbleStudent: { backgroundColor: 'rgba(255,255,255,0.06)', alignSelf: 'flex-start', borderBottomLeftRadius: 2 },
+  inputWrapper: { flexDirection: 'row', gap: 8, alignItems: 'flex-end', marginTop: 10 },
+  msgInput: { flex: 1, backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 10, padding: 10, color: '#fff', fontSize: 13, fontFamily: FONTS.med, minHeight: 40, maxHeight: 80, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
+  sendBtn: { height: 40, width: 60, backgroundColor: MC.tealP, borderRadius: 10, alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
+  
+  // Schedule tab in Drawer
+  topicInput: { backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 10, padding: 10, color: '#fff', fontSize: 13, fontFamily: FONTS.med, height: 40, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
+  chip: { paddingHorizontal: 14, height: 32, borderRadius: 8, backgroundColor: MC.card, borderWidth: 1, borderColor: MC.border, justifyContent: 'center', cursor: 'pointer' },
+  chipOn: { backgroundColor: MC.teal, borderColor: MC.teal },
+  timeSlot: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: MC.border2, backgroundColor: 'rgba(20, 184, 166, 0.05)', cursor: 'pointer' },
+  timeSlotActive: { backgroundColor: MC.tealP, borderColor: MC.tealP },
+  calCard: { backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 12, padding: 12, marginTop: 5 },
+  monthRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  monthLabel: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
+  navArrow: { width: 28, height: 28, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.05)', cursor: 'pointer' },
+  weekDaysRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  weekDayName: { color: MC.dim, fontFamily: FONTS.bold, fontSize: 10.5, width: '13%', textAlign: 'center' },
+  daysGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: '1.5%' as any },
+  dayCell: { width: '13%', height: 30, alignItems: 'center', justifyContent: 'center', borderRadius: 6, marginBottom: 4, cursor: 'pointer' },
+  dayCellEmpty: { width: '13%', height: 30, marginBottom: 4 },
+  dayCellSelected: { backgroundColor: MC.tealP },
+  dayText: { color: '#fff', fontFamily: FONTS.med, fontSize: 11 },
+  dayTextSelected: { color: MC.bg, fontFamily: FONTS.bold },
+  confirmBtn: { backgroundColor: MC.tealP, height: 42, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginTop: 10, cursor: 'pointer' },
+  pagination: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 16, gap: 14 },
+  pageBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: MC.card, borderRadius: 8, borderWidth: 1, borderColor: MC.border, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  pageBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
+  pageInfo: { color: MC.muted, fontFamily: FONTS.med, fontSize: 12 },
+});

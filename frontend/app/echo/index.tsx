@@ -7,13 +7,20 @@
  *   3. Registration View: Dynamic fees (Individual vs Team), form details & Razorpay checkout
  */
 import React from 'react';
-import { View } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { EchoEventsPage } from '@/src/views/web/echo/EchoEventsPage';
 
 export default function EchoIndexPage() {
   return (
-    <View className="flex-1 bg-navy">
+    <View style={s.root}>
       <EchoEventsPage initialView="list" />
     </View>
   );
 }
+
+const s = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: '#0A0A14',
+  },
+});

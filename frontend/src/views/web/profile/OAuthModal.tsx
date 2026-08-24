@@ -20,7 +20,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, Pressable, Modal, TextInput, Platform, ActivityIndicator,
+  View, Text, StyleSheet, Pressable, Modal, TextInput, Platform, ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CheckCircle2, X, ShieldCheck } from '../portals/student/iconShims';
@@ -256,7 +256,7 @@ export function OAuthModal({
   );
 }
 
-const s = {
+const s = StyleSheet.create({
   backdrop: {
     flex: 1, backgroundColor: 'rgba(5,3,12,0.70)',
     alignItems: 'center', justifyContent: 'center',
@@ -264,23 +264,23 @@ const s = {
   },
   popup: {
     width: 460, maxWidth: '92%' as any, borderRadius: 14, overflow: 'hidden',
-    backgroundColor: '#fff', borderWidth: 1, borderColor: 'rgba(0,0,0,0.08)',
+    backgroundColor: '#15101F', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
     ...(Platform.OS === 'web' ? ({ boxShadow: '0 24px 64px rgba(0,0,0,0.55)' } as any) : {}),
   },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 14, paddingVertical: 10,
-    borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.08)',
+    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   urlBar: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6,
     backgroundColor: 'rgba(0,0,0,0.32)',
   },
-  urlText: { color: 'rgba(0,0,0,0.85)', fontFamily: 'DMSans_500Medium', fontSize: 11 },
+  urlText: { color: 'rgba(255,255,255,0.85)', fontFamily: 'DMSans_500Medium', fontSize: 11 },
   closeBtn: {
     width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.10)',
+    backgroundColor: 'rgba(255,255,255,0.10)',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
 
@@ -290,7 +290,7 @@ const s = {
     marginBottom: 8,
   },
   title: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 17, textAlign: 'center', marginTop: 4 },
-  sub: { color: 'rgba(0,0,0,0.66)', fontFamily: 'DMSans_500Medium', fontSize: 12.5, textAlign: 'center', marginTop: 4, lineHeight: 18, maxWidth: 360 },
+  sub: { color: 'rgba(255,255,255,0.66)', fontFamily: 'DMSans_500Medium', fontSize: 12.5, textAlign: 'center', marginTop: 4, lineHeight: 18, maxWidth: 360 },
 
   scopeBox: {
     width: '100%', marginTop: 16, padding: 14, borderRadius: 10,
@@ -299,14 +299,14 @@ const s = {
   },
   scopeHeader: { color: '#86EFAC', fontFamily: 'DMSans_700Bold', fontSize: 11, letterSpacing: 0.4 },
   scopeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  scopeText: { color: 'rgba(0,0,0,0.85)', fontFamily: 'DMSans_500Medium', fontSize: 12 },
+  scopeText: { color: 'rgba(255,255,255,0.85)', fontFamily: 'DMSans_500Medium', fontSize: 12 },
 
-  fineprint: { color: 'rgba(0,0,0,0.46)', fontFamily: 'DMSans_500Medium', fontSize: 10.5, marginTop: 14, textAlign: 'center' },
+  fineprint: { color: 'rgba(255,255,255,0.46)', fontFamily: 'DMSans_500Medium', fontSize: 10.5, marginTop: 14, textAlign: 'center' },
 
   input: {
     width: '100%', height: 42, marginTop: 14, paddingHorizontal: 14, borderRadius: 10,
-    backgroundColor: 'rgba(0,0,0,0.32)', borderWidth: 1, borderColor: 'rgba(0,0,0,0.12)',
-    color: '#000', fontFamily: 'DMSans_500Medium', fontSize: 13,
+    backgroundColor: 'rgba(0,0,0,0.32)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
+    color: '#fff', fontFamily: 'DMSans_500Medium', fontSize: 13,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
   },
   errorText: { color: '#FCA5A5', fontFamily: 'DMSans_500Medium', fontSize: 11.5, marginTop: 6, textAlign: 'center' },
@@ -314,13 +314,13 @@ const s = {
   btnRow: { width: '100%', flexDirection: 'row', gap: 10, marginTop: 18 },
   btnSecondary: {
     flex: 1, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.06)', borderWidth: 1, borderColor: 'rgba(0,0,0,0.12)',
+    backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  btnSecondaryText: { color: 'rgba(0,0,0,0.85)', fontFamily: 'DMSans_700Bold', fontSize: 12.5 },
+  btnSecondaryText: { color: 'rgba(255,255,255,0.85)', fontFamily: 'DMSans_700Bold', fontSize: 12.5 },
   btnPrimaryWrap: { flex: 1, borderRadius: 10, overflow: 'hidden' },
   btnPrimary: { height: 40, alignItems: 'center', justifyContent: 'center' },
   btnPrimaryText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 12.5 },
-};
+});
 
 export default OAuthModal;

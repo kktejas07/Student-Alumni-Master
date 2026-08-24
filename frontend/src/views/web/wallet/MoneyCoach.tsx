@@ -4,7 +4,7 @@
  */
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, Pressable, ScrollView, TextInput, ActivityIndicator,
+  View, Text, StyleSheet, Pressable, ScrollView, TextInput, ActivityIndicator,
   Modal, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -574,7 +574,7 @@ export default function MoneyCoach({ initialCmd, onAction }: {
   );
 }
 
-const s = {
+const s = StyleSheet.create({
   bubble: { position: 'absolute', bottom: Layout.floatingOffset, right: 20,
     width: 56, height: 56, borderRadius: 999,
     backgroundColor: '#7C3AED', alignItems: 'center', justifyContent: 'center',
@@ -665,4 +665,4 @@ const s = {
   sendBtn: { width: 38, height: 38, borderRadius: 999,
     backgroundColor: '#7C3AED', alignItems: 'center', justifyContent: 'center',
     ...({ cursor: 'pointer' } as any) },
-};
+});

@@ -21,7 +21,7 @@
  * reacts at xs/sm/md/lg/xl/2xl/3xl.
  */
 import React, { useState, useRef } from 'react';
-import { View, ScrollView, Pressable, NativeSyntheticEvent, NativeScrollEvent, Platform, useWindowDimensions } from 'react-native';
+import { View, ScrollView, StyleSheet, Pressable, NativeSyntheticEvent, NativeScrollEvent, Platform, useWindowDimensions } from 'react-native';
 import { ThemeProvider, useTheme } from '@/src/theme/ThemeContext';
 import { SP, RADII, BRAND, APPLE_SEMANTIC } from '@/src/theme/apple';
 import { useBreakpoint } from '@/src/theme/breakpoints';

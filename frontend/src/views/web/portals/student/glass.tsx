@@ -1,17 +1,34 @@
 // @ts-nocheck
 /**
  * Student Portal — FinTax360 Glass-Dark primitives (v0.18.0).
- * Migrated to NativeWind className where possible.
- * Complex effects (blur, backdrop-filter, animations) stay as web-only inline.
+ *
+ * Exports
+ * ────────
+ *   <AnimatedAurora />  — four drifting colored orbs across the navy canvas
+ *                          (web: CSS-transform loops; native: Reanimated)
+ *   <GridOverlay />     — 64px grid with radial mask (web only — no-op native)
+ *   <GlassCard />       — fade+slide-in on mount, hover-lift on web, press
+ *                          scale on native. THE primary card primitive.
+ *   <GlassSoft />       — nested soft surface (form fields, chips background)
+ *   <KpiTile />         — eyebrow + big mono number + delta footer + glow
+ *   <PillChip />        — semantic pill with variants
+ *   <GradientButton />  — pill with violet gradient + glow
+ *   <AiCopilotFab />    — fixed FAB, scales 1.1× on hover
+ *   <RouteTransition /> — fade+y-shift wrapper for view changes
+ *
+ *   glassStyle()        — legacy spread-style helper (kept for migration)
+ *   Aurora              — legacy alias (now renders AnimatedAurora)
+ *   GlassSurface        — legacy alias (now renders GlassCard)
  */
 import React, { useEffect, useRef } from 'react';
-import { View, Platform, Pressable, Text, Animated, Easing } from 'react-native';
+import { View, Platform, StyleSheet, Pressable, Text, Animated, Easing } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { PALETTE, SC, TYPO } from './tokens';
 
 /* ─────────────────────────────────────────────────────────────────
- * AnimatedAurora — four drifting colored orbs
+ * AnimatedAurora — four drifting colored orbs (violet · blue · teal · rose)
+ *                  that sit behind every glass surface.
  * ───────────────────────────────────────────────────────────────── */
 export function AnimatedAurora({ intensity = 'normal' }: {
   intensity?: 'subtle' | 'normal' | 'strong';
@@ -19,9 +36,13 @@ export function AnimatedAurora({ intensity = 'normal' }: {
   const mul = intensity === 'subtle' ? 0.3 : intensity === 'strong' ? 0.9 : 0.55;
 
   if (Platform.OS === 'web') {
+    // Pure CSS: three positioned div "orbs" with their own keyframe loops.
+    // Wrapping in a single layer so the parent only sees one absolutely-
+    // positioned descendant. Pink/rose orb dropped per design feedback;
+    // remaining palette is violet · blue · teal for a calmer canvas.
     return (
-      <View pointerEvents="none" className="absolute inset-0 overflow-hidden">
-        {/* @ts-expect-error web-only */}
+      <View pointerEvents="none" style={[a.layer]}>
+        {/* @ts-expect-error web-only — styled via inline JSX style sheet */}
         <style>{`
 @keyframes orbA { 0%{transform:translate(0,0)} 50%{transform:translate(15vw,10vh)} 100%{transform:translate(0,0)} }
 @keyframes orbB { 0%{transform:translate(0,0)} 50%{transform:translate(-18vw,12vh)} 100%{transform:translate(0,0)} }
@@ -37,89 +58,106 @@ export function AnimatedAurora({ intensity = 'normal' }: {
 @keyframes db-aurora1 { 0%, 100% { transform: translate3d(-6%, 0, 0) rotate(-8deg); } 50% { transform: translate3d(10%, 4%, 0) rotate(-2deg); } }
 @keyframes db-aurora2 { 0%, 100% { transform: translate3d(8%, 2%, 0) rotate(6deg); } 50% { transform: translate3d(-8%, -3%, 0) rotate(12deg); } }
         `}</style>
-        <View
-          className="absolute rounded-full"
-          style={{
-            top: '-12%', left: '-10%', width: 540, height: 540,
-            backgroundColor: PALETTE.violet, opacity: 0.26 * mul,
-            filter: 'blur(140px)', animation: 'orbA 22s ease-in-out infinite',
-          } as any}
-        />
-        <View
-          className="absolute rounded-full"
-          style={{
-            top: '8%', right: '-14%', width: 500, height: 500,
-            backgroundColor: PALETTE.blue, opacity: 0.20 * mul,
-            filter: 'blur(140px)', animation: 'orbB 28s ease-in-out infinite',
-          } as any}
-        />
-        <View
-          className="absolute rounded-full"
-          style={{
-            bottom: '-18%', left: '25%', width: 620, height: 620,
-            backgroundColor: PALETTE.teal, opacity: 0.16 * mul,
-            filter: 'blur(160px)', animation: 'orbC 32s ease-in-out infinite',
-          } as any}
-        />
+        <View style={[a.orb, {
+          top: '-12%', left: '-10%', width: 540, height: 540,
+          backgroundColor: PALETTE.violet,
+          opacity: 0.26 * mul,
+          // @ts-expect-error web-only
+          filter: 'blur(140px)',
+          animation: 'orbA 22s ease-in-out infinite',
+        } as any]} />
+        <View style={[a.orb, {
+          top: '8%', right: '-14%', width: 500, height: 500,
+          backgroundColor: PALETTE.blue,
+          opacity: 0.20 * mul,
+          // @ts-expect-error web-only
+          filter: 'blur(140px)',
+          animation: 'orbB 28s ease-in-out infinite',
+        } as any]} />
+        <View style={[a.orb, {
+          bottom: '-18%', left: '25%', width: 620, height: 620,
+          backgroundColor: PALETTE.teal,
+          opacity: 0.16 * mul,
+          // @ts-expect-error web-only
+          filter: 'blur(160px)',
+          animation: 'orbC 32s ease-in-out infinite',
+        } as any]} />
       </View>
     );
   }
 
+  // Native — static orbs (Animated.View support would be ideal but the blur
+  // hit on a moving image is too costly on lower-end devices).
   return (
-    <View pointerEvents="none" className="absolute inset-0 overflow-hidden">
-      <View className="absolute rounded-full" style={{ top: -50, left: -50, width: 360, height: 360, backgroundColor: PALETTE.violet, opacity: 0.24 * mul }} />
-      <View className="absolute rounded-full" style={{ top: 80, right: -70, width: 320, height: 320, backgroundColor: PALETTE.blue, opacity: 0.18 * mul }} />
-      <View className="absolute rounded-full" style={{ bottom: 60, left: 120, width: 400, height: 400, backgroundColor: PALETTE.teal, opacity: 0.14 * mul }} />
+    <View pointerEvents="none" style={a.layer}>
+      <View style={[a.orb, { top: -50,  left: -50,  width: 360, height: 360,
+                             backgroundColor: PALETTE.violet, opacity: 0.24 * mul }]} />
+      <View style={[a.orb, { top: 80,   right: -70, width: 320, height: 320,
+                             backgroundColor: PALETTE.blue,   opacity: 0.18 * mul }]} />
+      <View style={[a.orb, { bottom: 60, left: 120, width: 400, height: 400,
+                             backgroundColor: PALETTE.teal,   opacity: 0.14 * mul }]} />
     </View>
   );
 }
 
+// Legacy alias
 export const Aurora = AnimatedAurora;
 
+const a = StyleSheet.create({
+  layer: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    overflow: 'hidden',
+  },
+  orb: { position: 'absolute', borderRadius: 9999 },
+});
+
 /* ─────────────────────────────────────────────────────────────────
- * GridOverlay — 64px grid with radial fade (web only)
+ * GridOverlay — 64px grid with radial fade (web only). Adds the
+ *               subtle technical-blueprint texture to the canvas.
  * ───────────────────────────────────────────────────────────────── */
 export function GridOverlay() {
   if (Platform.OS !== 'web') return null;
   return (
     <View
       pointerEvents="none"
-      className="absolute inset-0 overflow-hidden"
-      style={{
-        backgroundImage:
-          'linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), ' +
-          'linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)',
-        backgroundSize: '64px 64px, 64px 64px',
-        maskImage: 'radial-gradient(60vw 70vh at 50% 30%, #000 0%, transparent 75%)',
-        WebkitMaskImage: 'radial-gradient(60vw 70vh at 50% 30%, #000 0%, transparent 75%)',
-      } as any}
+      style={[
+        a.layer,
+        {
+          // @ts-expect-error web-only
+          backgroundImage:
+            'linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), ' +
+            'linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)',
+          backgroundSize: '64px 64px, 64px 64px',
+          maskImage: 'radial-gradient(60vw 70vh at 50% 30%, #000 0%, transparent 75%)',
+          WebkitMaskImage: 'radial-gradient(60vw 70vh at 50% 30%, #000 0%, transparent 75%)',
+        } as any,
+      ]}
     />
   );
 }
 
 /* ─────────────────────────────────────────────────────────────────
  * GlassCard — primary card surface, animated on mount + hover.
- * Complex: uses splitStyles, Animated.View, BlurView (native).
  * ───────────────────────────────────────────────────────────────── */
 const splitStyles = (style: any) => {
   if (!style) return { layout: {}, inner: {} };
-  const flattened = Platform.OS === 'web' ? {} : require('react-native').StyleSheet.flatten(style);
-  if (Platform.OS === 'web') {
-    // On web we pass all style to inner (simpler path)
-    return { layout: {}, inner: style };
-  }
+  const flattened = StyleSheet.flatten(style);
   const layoutKeys = [
     'position', 'top', 'bottom', 'left', 'right',
     'flex', 'flexGrow', 'flexShrink', 'flexBasis',
     'width', 'height', 'minWidth', 'maxWidth', 'minHeight', 'maxHeight',
     'margin', 'marginHorizontal', 'marginVertical', 'marginTop', 'marginBottom', 'marginLeft', 'marginRight',
-    'alignSelf', 'zIndex',
+    'alignSelf', 'zIndex'
   ];
   const layout: any = {};
   const inner: any = {};
   Object.keys(flattened).forEach(key => {
-    if (layoutKeys.includes(key)) layout[key] = flattened[key];
-    else inner[key] = flattened[key];
+    if (layoutKeys.includes(key)) {
+      layout[key] = flattened[key];
+    } else {
+      inner[key] = flattened[key];
+    }
   });
   return { layout, inner };
 };
@@ -140,6 +178,7 @@ export function GlassCard({
   onPress?: () => void;
   accessibilityLabel?: string;
 }) {
+  // Fade + slide-in on mount
   const opacity = useRef(new Animated.Value(0)).current;
   const ty = useRef(new Animated.Value(8)).current;
   const [hover, setHover] = React.useState(false);
@@ -180,19 +219,16 @@ export function GlassCard({
 
   const inner = (
     <Animated.View
-      className="w-full h-full"
       style={[
         { opacity, transform: [{ translateY: ty }] },
         base,
         innerStyle,
+        { width: '100%', height: '100%' },
       ]}
     >
-      {/* 1px top highlight */}
-      <View
-        pointerEvents="none"
-        className="absolute top-0 left-0 right-0 h-px"
-        style={{ backgroundColor: PALETTE.glassHighlight, borderTopLeftRadius: radius, borderTopRightRadius: radius }}
-      />
+      {/* 1px top highlight (the glass-edge sparkle) */}
+      <View pointerEvents="none"
+            style={[g.highlight, { borderTopLeftRadius: radius, borderTopRightRadius: radius }]} />
       {children}
     </Animated.View>
   );
@@ -214,6 +250,7 @@ export function GlassCard({
       );
     }
     return (
+      // Wrap in a View so hover events propagate even when no onPress.
       <View
         // @ts-expect-error web-only
         onMouseEnter={() => setHover(true)}
@@ -225,31 +262,31 @@ export function GlassCard({
     );
   }
 
+  // Native — BlurView for actual frosted-glass effect + Pressable for scale.
   const content = (
     <BlurView
       intensity={strong ? 50 : 32}
       tint="dark"
-      className="w-full h-full"
-      style={[{ borderRadius: radius, overflow: 'hidden' }, base, innerStyle]}
+      style={[{ borderRadius: radius, overflow: 'hidden', width: '100%', height: '100%' }, base, innerStyle]}
     >
-      <View
-        pointerEvents="none"
-        className="absolute top-0 left-0 right-0 h-px"
-        style={{ backgroundColor: PALETTE.glassHighlight, borderTopLeftRadius: radius, borderTopRightRadius: radius }}
-      />
+      <View pointerEvents="none"
+            style={[g.highlight, { borderTopLeftRadius: radius, borderTopRightRadius: radius }]} />
       {children}
     </BlurView>
   );
 
   if (onPress) {
     return (
-      <Animated.View className="w-full h-full" style={[{ opacity, transform: [{ translateY: ty }] }, layout]}>
+      <Animated.View style={[{ opacity, transform: [{ translateY: ty }] }, layout]}>
         <Pressable
           onPress={onPress}
           onPressIn={() => setPressed(true)}
           onPressOut={() => setPressed(false)}
           accessibilityLabel={accessibilityLabel}
-          style={({ pressed: p }) => [{ transform: [{ scale: p ? 0.985 : 1 }] }, { width: '100%', height: '100%' }]}
+          style={({ pressed: p }) => [
+            { transform: [{ scale: p ? 0.985 : 1 }] },
+            { width: '100%', height: '100%' }
+          ]}
         >
           {content}
         </Pressable>
@@ -258,24 +295,34 @@ export function GlassCard({
   }
 
   return (
-    <Animated.View className="w-full h-full" style={[{ opacity, transform: [{ translateY: ty }] }, layout]}>
+    <Animated.View style={[{ opacity, transform: [{ translateY: ty }] }, layout]}>
       {content}
     </Animated.View>
   );
 }
 
+// Legacy alias
 export const GlassSurface = GlassCard;
 
+const g = StyleSheet.create({
+  highlight: {
+    position: 'absolute', top: 0, left: 0, right: 0, height: 1,
+    backgroundColor: PALETTE.glassHighlight,
+  },
+});
+
 /* ─────────────────────────────────────────────────────────────────
- * GlassSoft — nested soft surface
+ * GlassSoft — nested soft surface (used inside GlassCard for inputs,
+ *             segmented controls, list rows).
  * ───────────────────────────────────────────────────────────────── */
 export function GlassSoft({ children, style, radius = 12 }: {
   children: React.ReactNode; style?: any; radius?: number;
 }) {
   return (
-    <View className="border" style={[{
+    <View style={[{
       backgroundColor: PALETTE.glassSoft,
       borderColor: PALETTE.glassBorder,
+      borderWidth: 1,
       borderRadius: radius,
     }, style]}>
       {children}
@@ -284,7 +331,7 @@ export function GlassSoft({ children, style, radius = 12 }: {
 }
 
 /* ─────────────────────────────────────────────────────────────────
- * KpiTile — eyebrow + big mono number + delta footer + radial glow
+ * KpiTile — eyebrow + big mono number + delta footer + radial glow.
  * ───────────────────────────────────────────────────────────────── */
 export function KpiTile({
   label, value, delta, deltaTone = 'positive', glowColor = PALETTE.violet,
@@ -305,27 +352,44 @@ export function KpiTile({
   return (
     <GlassCard delay={delay} radius={16} padding={18} style={[{ minWidth: 180 }, style]}>
       {/* corner glow */}
-      <View
-        pointerEvents="none"
-        className="absolute -top-10 -right-10 w-[140px] h-[140px] rounded-full opacity-20"
-        style={{ backgroundColor: glowColor, ...(Platform.OS === 'web' ? { filter: 'blur(40px)' } : {}) } as any}
-      />
-      <Text className="font-body-semibold text-[11px] uppercase tracking-[1.4px]" style={{ color: PALETTE.muted }}>{label}</Text>
-      <View className="h-1.5" />
+      <View pointerEvents="none" style={[k.glow, { backgroundColor: glowColor }]} />
+      <Text style={k.label}>{label}</Text>
+      <View style={{ height: 6 }} />
       {typeof value === 'string' || typeof value === 'number' ? (
-        <Text className="font-mono-bold text-[28px] tracking-[-0.6px]" style={{ color: PALETTE.text }}>{value}</Text>
+        <Text style={k.value}>{value}</Text>
       ) : value}
       {!!delta && (
-        <View className="flex-row items-center mt-1.5 gap-1">
-          <Text className="font-mono-semibold text-xs" style={{ color: deltaColor }}>{delta}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 4 }}>
+          <Text style={[k.delta, { color: deltaColor }]}>{delta}</Text>
         </View>
       )}
     </GlassCard>
   );
 }
 
+const k = StyleSheet.create({
+  glow: {
+    position: 'absolute', top: -40, right: -40, width: 140, height: 140,
+    borderRadius: 9999, opacity: 0.20,
+    ...(Platform.OS === 'web' ? ({
+      filter: 'blur(40px)',
+    } as any) : {}),
+  },
+  label: {
+    fontFamily: TYPO.body600, fontSize: 11, color: PALETTE.muted,
+    letterSpacing: 1.4, textTransform: 'uppercase' as any,
+  },
+  value: {
+    fontFamily: TYPO.mono700, fontSize: 28, color: PALETTE.text,
+    letterSpacing: -0.6,
+  },
+  delta: {
+    fontFamily: TYPO.mono600, fontSize: 12,
+  },
+});
+
 /* ─────────────────────────────────────────────────────────────────
- * PillChip — semantic pill with variants
+ * PillChip — semantic pill (success / warning / danger / violet / blue)
  * ───────────────────────────────────────────────────────────────── */
 type ChipVariant = 'success' | 'warning' | 'danger' | 'violet' | 'blue' | 'neutral';
 export function PillChip({
@@ -345,18 +409,23 @@ export function PillChip({
     neutral: PALETTE.muted,
   }[variant];
   return (
-    <View
-      className="flex-row items-center gap-[5px] h-6 rounded-full border"
-      style={[{ paddingHorizontal: 10, borderColor: tone + '55', backgroundColor: tone + '1A' }, style]}
-    >
+    <View style={[p.chip, { borderColor: tone + '55', backgroundColor: tone + '1A' }, style]}>
       {icon}
-      <Text className="font-body-bold text-[11px]" style={{ color: tone, letterSpacing: 0.3 }}>{label}</Text>
+      <Text style={[p.label, { color: tone }]}>{label}</Text>
     </View>
   );
 }
 
+const p = StyleSheet.create({
+  chip: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 10, height: 24, borderRadius: 999, borderWidth: 1,
+  },
+  label: { fontFamily: TYPO.body700, fontSize: 11, letterSpacing: 0.3 },
+});
+
 /* ─────────────────────────────────────────────────────────────────
- * GradientButton — pill primary with violet gradient + glow
+ * GradientButton — pill primary with violet gradient + glow.
  * ───────────────────────────────────────────────────────────────── */
 export function GradientButton({
   label, onPress, icon, disabled, size = 'md', style,
@@ -384,9 +453,7 @@ export function GradientButton({
       <LinearGradient
         colors={[PALETTE.violet, PALETTE.violetD]}
         start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
-        className="flex-row items-center justify-center gap-[7px] rounded-full"
-        style={{
-          height: h, paddingHorizontal: px,
+        style={[gb.btn, { height: h, paddingHorizontal: px,
           ...(Platform.OS === 'web' ? ({
             boxShadow: hover
               ? '0 14px 36px rgba(139,92,246,0.45), 0 0 0 1px rgba(139,92,246,0.30)'
@@ -396,17 +463,33 @@ export function GradientButton({
             transform: hover ? 'translateY(-1px)' : 'translateY(0)',
             cursor: 'pointer',
           } as any) : {}),
-        } as any}
+        }]}
       >
         {icon}
-        <Text className="text-white font-body-bold" style={{ fontSize: fs, letterSpacing: 0.2 }}>{label}</Text>
+        <Text style={[gb.label, { fontSize: fs }]}>{label}</Text>
       </LinearGradient>
     </Pressable>
   );
 }
 
+const gb = StyleSheet.create({
+  btn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 7, borderRadius: 999,
+  },
+  label: { color: '#fff', fontFamily: TYPO.body700, letterSpacing: 0.2 },
+});
+
 /* ─────────────────────────────────────────────────────────────────
- * AiCopilotFab — fixed FAB that opens Agent K
+ * AiCopilotFab — fixed floating action button that opens Agent K.
+ *
+ * Visible on every Student screen INCLUDING /agent-k itself. Sits at
+ * bottom-right, breathes with a soft violet glow, scales 1.08× on
+ * hover (web) and 0.96× on press (native). Z-index above scroll
+ * content via absolute positioning.
+ *
+ * Placement contract: render INSIDE the Student shell root (after the
+ * scroll content) so it overlays every embedded view.
  * ───────────────────────────────────────────────────────────────── */
 export function AiCopilotFab({
   onPress, label = 'Agent K', accessibilityLabel = 'Open AI Copilot — Agent K',
@@ -418,6 +501,7 @@ export function AiCopilotFab({
   const [hover, setHover] = React.useState(false);
   const [pressed, setPressed] = React.useState(false);
 
+  // Soft "breathing" glow loop
   const pulse = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.loop(
@@ -428,6 +512,7 @@ export function AiCopilotFab({
     ).start();
   }, [pulse]);
 
+  // Mount-in entrance
   const opacity = useRef(new Animated.Value(0)).current;
   const ty = useRef(new Animated.Value(16)).current;
   useEffect(() => {
@@ -444,8 +529,7 @@ export function AiCopilotFab({
   return (
     <Animated.View
       pointerEvents="box-none"
-      className="absolute z-[1000]"
-      style={[{ right: 22, bottom: 22, opacity, transform: [{ translateY: ty }], ...(Platform.OS === 'web' ? { position: 'fixed' } : {}) } as any]}
+      style={[fab.layer, { opacity, transform: [{ translateY: ty }] }]}
     >
       <Pressable
         onPress={onPress}
@@ -457,19 +541,24 @@ export function AiCopilotFab({
         accessibilityLabel={accessibilityLabel}
         testID="ai-copilot-fab"
       >
-        <View className="relative items-center justify-center">
+        <View style={fab.wrap}>
+          {/* breathing glow ring (behind the button) */}
           <Animated.View
             pointerEvents="none"
-            className="absolute w-20 h-20 rounded-full -top-2.5 -left-2.5"
-            style={{ backgroundColor: PALETTE.violet, opacity: glowOpacity, ...(Platform.OS === 'web' ? { filter: 'blur(20px)' } : {}) } as any}
+            style={[
+              fab.glow,
+              {
+                opacity: glowOpacity,
+                ...(Platform.OS === 'web' ? ({ filter: 'blur(20px)' } as any) : {}),
+              },
+            ]}
           />
           <LinearGradient
             colors={[PALETTE.violet, PALETTE.violetD]}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-            className="flex-row items-center justify-center gap-2 h-14 rounded-full"
-            style={{
-              paddingHorizontal: 22,
-              ...(Platform.OS === 'web' ? ({
+            style={[
+              fab.btn,
+              Platform.OS === 'web' && ({
                 boxShadow: hover
                   ? '0 18px 44px rgba(139,92,246,0.55), 0 0 0 1px rgba(139,92,246,0.42)'
                   : '0 12px 32px rgba(139,92,246,0.40), 0 0 0 1px rgba(139,92,246,0.28)',
@@ -477,17 +566,44 @@ export function AiCopilotFab({
                 transitionDuration: '180ms',
                 transform: hover ? 'scale(1.08)' : pressed ? 'scale(0.96)' : 'scale(1)',
                 cursor: 'pointer',
-              } as any) : {}),
-            } as any}
+              } as any),
+            ]}
           >
-            <Text className="text-white text-lg font-display-bold" style={{ lineHeight: 22 }}>✦</Text>
-            <Text className="text-white text-sm font-body-bold" style={{ letterSpacing: 0.3 }}>{label}</Text>
+            <Text style={fab.spark}>✦</Text>
+            <Text style={fab.label}>{label}</Text>
           </LinearGradient>
         </View>
       </Pressable>
     </Animated.View>
   );
 }
+
+const fab = StyleSheet.create({
+  layer: {
+    position: 'absolute',
+    right: 22,
+    bottom: 22,
+    zIndex: 1000,
+    ...(Platform.OS === 'web' ? ({ position: 'fixed' as any } as any) : {}),
+  },
+  wrap: { position: 'relative', alignItems: 'center', justifyContent: 'center' },
+  glow: {
+    position: 'absolute',
+    width: 80, height: 80,
+    borderRadius: 9999,
+    backgroundColor: PALETTE.violet,
+    top: -10, left: -10,
+  },
+  btn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 8,
+    height: 56,
+    paddingHorizontal: 22,
+    borderRadius: 9999,
+  },
+  spark: { color: '#fff', fontSize: 18, fontFamily: TYPO.display700, lineHeight: 22 },
+  label: { color: '#fff', fontSize: 14, fontFamily: TYPO.body700, letterSpacing: 0.3 },
+});
 
 import { GlobalTopProgressBar } from '../../components/AppLoader';
 
@@ -527,7 +643,7 @@ export function RouteTransition({ children, deps = [] }: {
   }, deps);
 
   return (
-    <Animated.View className="flex-1" style={{ opacity, transform: [{ translateY: ty }] }}>
+    <Animated.View style={{ flex: 1, opacity, transform: [{ translateY: ty }] }}>
       <GlobalTopProgressBar active={navigating} />
       {children}
     </Animated.View>
@@ -535,7 +651,7 @@ export function RouteTransition({ children, deps = [] }: {
 }
 
 /* ─────────────────────────────────────────────────────────────────
- * glassStyle — legacy spread helper
+ * glassStyle — legacy spread helper (kept for migration).
  * ───────────────────────────────────────────────────────────────── */
 export function glassStyle(opts: { strong?: boolean; blur?: number } = {}) {
   const { strong = false, blur = 22 } = opts;
@@ -554,15 +670,24 @@ export function glassStyle(opts: { strong?: boolean; blur?: number } = {}) {
   } as any;
 }
 
+
 /* ─────────────────────────────────────────────────────────────────
- * StatusChip — pill with 4 spec-tinted variants
+ * StatusChip — pill with 4 spec-tinted variants. Use for state
+ *              indicators (Pending, Active, Completed, Cancelled).
+ *
+ *   <StatusChip tone="success">Registered</StatusChip>
+ *   <StatusChip tone="warning">Pending</StatusChip>
+ *   <StatusChip tone="danger">Cancelled</StatusChip>
+ *   <StatusChip tone="neutral">Draft</StatusChip>
+ *
+ * Per FinTax360 Jewel spec — tinted bg/text/border at fixed alphas.
  * ───────────────────────────────────────────────────────────────── */
 type StatusTone = 'success' | 'warning' | 'danger' | 'neutral';
 
 const STATUS_PALETTE: Record<StatusTone, { bg: string; fg: string; bd: string }> = {
   success: { bg: 'rgba(16,185,129,0.10)', fg: '#34D399', bd: 'rgba(16,185,129,0.20)' },
   warning: { bg: 'rgba(245,158,11,0.10)', fg: '#FBBF24', bd: 'rgba(245,158,11,0.20)' },
-  danger:  { bg: 'rgba(239,68,68,0.10)',  fg: '#F87171', bd: 'rgba(239,68,68,0.20)' },
+  danger:  { bg: 'rgba(239,68,68,0.10)',  fg: '#F87171', bd: 'rgba(239,68,68,0.20)'  },
   neutral: { bg: 'rgba(255,255,255,0.05)', fg: 'rgba(255,255,255,0.70)', bd: 'rgba(255,255,255,0.10)' },
 };
 
@@ -575,24 +700,42 @@ export function StatusChip({
 }) {
   const c = STATUS_PALETTE[tone];
   return (
-    <View
-      className="flex-row items-center gap-[5px] rounded-full self-start"
-      style={{ paddingHorizontal: 10, paddingVertical: 3, backgroundColor: c.bg, borderWidth: 1, borderColor: c.bd }}
-    >
+    <View style={{
+      flexDirection: 'row', alignItems: 'center', gap: 5,
+      paddingHorizontal: 10, paddingVertical: 3,
+      backgroundColor: c.bg,
+      borderWidth: 1, borderColor: c.bd,
+      borderRadius: 9999,
+      alignSelf: 'flex-start',
+    }}>
       {icon}
-      <Text className="font-body-semibold text-[11px]" style={{ color: c.fg, letterSpacing: 0.2 }}>{children}</Text>
+      <Text style={{
+        color: c.fg,
+        fontFamily: TYPO.body600,
+        fontSize: 11,
+        letterSpacing: 0.2,
+      }}>{children}</Text>
     </View>
   );
 }
 
 /* ─────────────────────────────────────────────────────────────────
- * Kicker — uppercase eyebrow label
+ * Kicker — uppercase eyebrow label. The spec calls it the
+ *          "hierarchy label" — text-xs font-semibold tracking-[0.2em]
+ *          uppercase text-white/50. Use ABOVE section/card titles.
+ *
+ *   <Kicker>Today's brief</Kicker>
+ *   <h2>Your career intelligence</h2>
  * ───────────────────────────────────────────────────────────────── */
 export function Kicker({ children, color }: { children: React.ReactNode; color?: string }) {
   return (
-    <Text
-      className="font-body-semibold text-[11px] uppercase mb-1.5"
-      style={{ color: color ?? 'rgba(255,255,255,0.50)', letterSpacing: 2.4 }}
-    >{children}</Text>
+    <Text style={{
+      color: color ?? 'rgba(255,255,255,0.50)',
+      fontFamily: TYPO.body600,
+      fontSize: 11,
+      letterSpacing: 2.4,                // ~0.2em on 12px
+      textTransform: 'uppercase',
+      marginBottom: 6,
+    }}>{children}</Text>
   );
 }

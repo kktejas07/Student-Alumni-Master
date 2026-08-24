@@ -1,7 +1,17 @@
+/**
+ * WeeklyTaskCard.tsx
+ * A single item in the Weekly Focus section.
+ *
+ * Premium redesign (reference-match):
+ *   • Priority badge (1/2/3) with purple tint for #1
+ *   • 32×32 icon container
+ *   • Gain chip right-aligned with cyan tint
+ *   • Hover: translateY(-1px) + border brightening
+ */
 import React, { memo } from 'react';
-import {View, Text, Pressable, Platform} from "react-native";
+import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
 import { ChevronRight } from 'lucide-react-native';
-import { COLORS } from '@/src/lib/designTokens';
+import { COLORS, FONT_FAMILIES, FONT_SIZES, RADIUS, SPACING } from '@/src/lib/designTokens';
 
 interface Props {
   num: number;
@@ -22,36 +32,124 @@ export const WeeklyTaskCard = memo(function WeeklyTaskCard({
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
-      className="flex-row items-center gap-1 px-2 py-3 rounded-xl border"
-      style={({ pressed, hovered }: any) => ({
-        backgroundColor: isTop ? 'rgba(79,70,229,0.05)' : 'rgba(255,255,255,0.03)',
-        borderColor: isTop ? 'rgba(79,70,229,0.22)' : 'rgba(255,255,255,0.08)',
-        ...(Platform.OS === 'web' ? { transition: 'all 200ms cubic-bezier(0.16, 1, 0.3, 1)', cursor: 'pointer' } : {}),
-        ...(pressed || hovered) ? {
-          backgroundColor: COLORS.cardHover,
-          borderColor: COLORS.borderMed,
-          ...(Platform.OS === 'web' ? { transform: 'translateY(-1px)' } : {}),
-        } : {},
-      })}
+      style={({ pressed, hovered }: any) => [
+        s.row,
+        isTop && s.rowTop,
+        (pressed || hovered) && s.rowHover,
+      ]}
     >
-      <View className="w-[26px] h-[26px] rounded-lg items-center justify-center shrink-0" style={{ backgroundColor: isTop ? 'rgba(79,70,229,0.22)' : 'rgba(255,255,255,0.06)' }}>
-        <Text className="font-body-bold text-sm" style={{ color: isTop ? '#818CF8' : 'rgba(238,240,255,0.5)' }}>{num}</Text>
+      {/* Priority badge */}
+      <View style={[s.num, isTop && s.numTop]}>
+        <Text style={[s.numText, isTop && s.numTextTop]}>{num}</Text>
       </View>
 
-      <View className="w-8 h-8 rounded-lg items-center justify-center border shrink-0" style={{ backgroundColor: color + '18', borderColor: color + '30' }}>
+      {/* Icon */}
+      <View style={[s.icon, { backgroundColor: color + '18', borderColor: color + '30' }]}>
         <Icon size={15} color={color} />
       </View>
 
-      <View className="flex-1 min-w-0">
-        <Text className="text-white font-body-bold text-base leading-[19px]" numberOfLines={1}>{title}</Text>
-        <Text className="text-white/50 font-body-semibold text-sm mt-0.5 leading-4" numberOfLines={1}>{description}</Text>
+      {/* Info */}
+      <View style={s.info}>
+        <Text style={s.title} numberOfLines={1}>{title}</Text>
+        <Text style={s.desc} numberOfLines={1}>{description}</Text>
       </View>
 
-      <View className="px-2 py-1 rounded-full bg-[rgba(34,211,238,0.10)] border border-[rgba(34,211,238,0.22)] shrink-0">
-        <Text className="text-cyan-400 font-body-bold text-xs tracking-wider">+{gain}%</Text>
+      {/* Gain chip */}
+      <View style={s.gainChip}>
+        <Text style={s.gainText}>+{gain}%</Text>
       </View>
 
-      <ChevronRight size={13} color="rgba(238,240,255,0.3)" />
+      <ChevronRight size={13} color={COLORS.dim} />
     </Pressable>
   );
+});
+
+const ROW_WEB = Platform.OS === 'web'
+  ? ({ transition: 'all 200ms cubic-bezier(0.16, 1, 0.3, 1)', cursor: 'pointer' } as any)
+  : {};
+
+const s = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 12,
+    borderRadius: RADIUS.card,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderColor: COLORS.border,
+    borderWidth: 1,
+    ...ROW_WEB,
+  },
+  rowTop: {
+    backgroundColor: 'rgba(79,70,229,0.05)',
+    borderColor: 'rgba(79,70,229,0.22)',
+  },
+  rowHover: {
+    backgroundColor: COLORS.cardHover,
+    borderColor: COLORS.borderMed,
+    ...(Platform.OS === 'web' ? ({ transform: 'translateY(-1px)' } as any) : {}),
+  },
+
+  num: {
+    width: 26,
+    height: 26,
+    borderRadius: RADIUS.chip,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  numTop: {
+    backgroundColor: 'rgba(79,70,229,0.22)',
+  },
+  numText: {
+    color: COLORS.text2,
+    fontFamily: FONT_FAMILIES.bold,
+    fontSize: FONT_SIZES.sm,
+  },
+  numTextTop: {
+    color: COLORS.purpleL,
+  },
+
+  icon: {
+    width: 32,
+    height: 32,
+    borderRadius: RADIUS.chip,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    flexShrink: 0,
+  },
+
+  info: { flex: 1, minWidth: 0 },
+  title: {
+    color: COLORS.text,
+    fontFamily: FONT_FAMILIES.bold,
+    fontSize: FONT_SIZES.md,
+    lineHeight: 19,
+  },
+  desc: {
+    color: COLORS.text2,
+    fontFamily: FONT_FAMILIES.med,
+    fontSize: FONT_SIZES.sm,
+    marginTop: 2,
+    lineHeight: 16,
+  },
+
+  gainChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: RADIUS.full,
+    backgroundColor: 'rgba(34,211,238,0.10)',
+    borderColor: 'rgba(34,211,238,0.22)',
+    borderWidth: 1,
+    flexShrink: 0,
+  },
+  gainText: {
+    color: COLORS.cyan,
+    fontFamily: FONT_FAMILIES.bold,
+    fontSize: FONT_SIZES.xs,
+    letterSpacing: 0.2,
+  },
 });

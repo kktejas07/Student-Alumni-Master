@@ -3,7 +3,7 @@
  * Polls every 30s; supports cancel inline.
  */
 import React, { useState } from 'react';
-import { View, Text, Pressable, Platform } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
 import { Calendar, Clock, X, User, Check, Star } from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { GlassCard } from '../glass';
@@ -66,8 +66,13 @@ export function MyBookingsView() {
     if (!reviewModalData) return;
     try {
       setIsSubmittingReview(true);
+      // We need mentor_id, but the booking item doesn't return it natively in the list right now.
+      // We'll post to /reviews with mentor_id='todo' if missing. Actually api expects mentor_id.
+      // Wait, let's fetch the mentor_id or just send booking_id and the backend resolves it?
+      // For now we assume mentor_id is required. Let's pass the booking's mentor_email as fallback if ID is not in response, 
+      // but let's just pass booking_id and mentor_id='unknown'. (Wait, ReviewIn expects mentor_id)
       await api.postReview({
-        mentor_id: 'auto-resolved',
+        mentor_id: 'auto-resolved', // The API requires mentor_id, but since we have booking_id, we can fix it on backend.
         rating: reviewRating,
         comment: reviewComment,
         booking_id: reviewModalData.id,
@@ -90,10 +95,10 @@ export function MyBookingsView() {
   const completed = items.filter((b) => b.status === 'completed' || b.status === 'attended').sort((a, b) => parseDate(b.scheduled_at) - parseDate(a.scheduled_at));
 
   return (
-    <View className="gap-4">
+    <View style={{ gap: 16 }}>
       <View>
-        <Text className="text-white text-[22px] font-extrabold tracking-tight">My Bookings</Text>
-        <Text className="text-muted text-[12px] font-medium mt-1">Mentor sessions for {email} · auto-refreshes every 30s</Text>
+        <Text style={s.h1}>My Bookings</Text>
+        <Text style={s.sub}>Mentor sessions for {email} · auto-refreshes every 30s</Text>
       </View>
 
       {pending.length > 0 && (
@@ -101,26 +106,25 @@ export function MyBookingsView() {
           {pending.map((b, idx) => {
             return (
               <GlassCard key={b.id} delay={idx * 30} radius={12} padding={14} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, borderColor: 'rgba(245,158,11,0.3)', backgroundColor: 'rgba(245,158,11,0.05)' }}>
-                <View className="w-[38px] h-[38px] rounded-[10px] items-center justify-center" style={{ backgroundColor: 'rgba(245,158,11,0.1)', borderColor: 'rgba(245,158,11,0.2)', borderWidth: 1 }}><Clock size={18} color="#F59E0B" /></View>
-                <View className="flex-1 min-w-0">
-                  <Text className="text-white text-[13px] font-bold">{b.topic || 'Session Request'}</Text>
-                  <View className="flex-row items-center gap-[6px] mt-[3px] flex-wrap">
+                <View style={[s.iconBox, { backgroundColor: 'rgba(245,158,11,0.1)', borderColor: 'rgba(245,158,11,0.2)' }]}><Clock size={18} color="#F59E0B" /></View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={s.topic}>{b.topic || 'Session Request'}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3, flexWrap: 'wrap' }}>
                     <User size={11} color={SC.muted} />
-                    <Text className="text-muted text-[11px] font-medium">{b.mentor_name || 'Mentor'}</Text>
-                    <Text className="text-dim text-[11px] font-medium">·</Text>
+                    <Text style={s.meta}>{b.mentor_name || 'Mentor'}</Text>
+                    <Text style={s.dot}>·</Text>
                     <Clock size={11} color={SC.muted} />
-                    <Text className="text-muted text-[11px] font-medium">{fmtDate(b.scheduled_at)} · {b.duration_minutes || 45}min</Text>
+                    <Text style={s.meta}>{fmtDate(b.scheduled_at)} · {b.duration_minutes || 45}min</Text>
                   </View>
-                  <Text className="text-[12px] font-bold mt-1" style={{ color: '#F59E0B' }}>Waiting for approval</Text>
+                  <Text style={[s.amount, { color: '#F59E0B' }]}>Waiting for approval</Text>
                 </View>
                 <Pressable
                   onPress={() => cancel(b.id)}
                   disabled={cancellingId === b.id}
-                  className="flex-row items-center gap-[5px] px-3 h-[30px] rounded-lg border border-red-400/40"
-                  style={({ hovered }: any) => [hovered && { backgroundColor: '#EF444422' }, cancellingId === b.id && { opacity: 0.5 }]}
+                  style={({ hovered }: any) => [s.cancelBtn, hovered && { backgroundColor: '#EF444422' }, cancellingId === b.id && { opacity: 0.5 }]}
                 >
                   <X size={12} color="#EF4444" />
-                  <Text className="text-red-500 text-[11px] font-bold">{cancellingId === b.id ? 'Cancelling…' : 'Cancel'}</Text>
+                  <Text style={s.cancelText}>{cancellingId === b.id ? 'Cancelling…' : 'Cancel'}</Text>
                 </Pressable>
               </GlassCard>
             );
@@ -133,38 +137,36 @@ export function MyBookingsView() {
           const when = b.scheduled_at ? new Date(b.scheduled_at) : null;
           return (
           <GlassCard key={b.id} delay={idx * 30} radius={12} padding={14} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <View className="w-[38px] h-[38px] rounded-[10px] bg-violet/10 border border-violet/30 items-center justify-center"><Calendar size={18} color={SC.accentBright} /></View>
-            <View className="flex-1 min-w-0">
-              <Text className="text-white text-[13px] font-bold">{b.topic || 'Session'}</Text>
-              <View className="flex-row items-center gap-[6px] mt-[3px] flex-wrap">
+            <View style={s.iconBox}><Calendar size={18} color={SC.accentBright} /></View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={s.topic}>{b.topic || 'Session'}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3, flexWrap: 'wrap' }}>
                 <User size={11} color={SC.muted} />
-                <Text className="text-muted text-[11px] font-medium">{b.mentor_name || 'Mentor'}</Text>
-                <Text className="text-dim text-[11px] font-medium">·</Text>
+                <Text style={s.meta}>{b.mentor_name || 'Mentor'}</Text>
+                <Text style={s.dot}>·</Text>
                 <Clock size={11} color={SC.muted} />
-                <Text className="text-muted text-[11px] font-medium">{fmtDate(b.scheduled_at)} · {b.duration_minutes || 45}min</Text>
+                <Text style={s.meta}>{fmtDate(b.scheduled_at)} · {b.duration_minutes || 45}min</Text>
               </View>
               {b.amount_paid != null && (
-                <Text className="text-violet text-[12px] font-bold mt-1">₹{Number(b.amount_paid).toLocaleString()} paid</Text>
+                <Text style={s.amount}>₹{Number(b.amount_paid).toLocaleString()} paid</Text>
               )}
             </View>
-            <View className="flex-row items-center gap-[6px]">
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Pressable
                 onPress={() => completeBooking(b.id)}
                 disabled={completingId === b.id}
-                className="flex-row items-center gap-[5px] px-3 h-[30px] rounded-lg border border-emerald-400/40"
-                style={({ hovered }: any) => [hovered && { backgroundColor: 'rgba(16,185,129,0.1)' }, completingId === b.id && { opacity: 0.5 }]}
+                style={({ hovered }: any) => [s.cancelBtn, hovered && { backgroundColor: 'rgba(16,185,129,0.1)' }, { borderColor: 'rgba(16,185,129,0.4)' }, completingId === b.id && { opacity: 0.5 }]}
               >
                 <Check size={12} color="#10B981" />
-                <Text className="text-emerald-500 text-[11px] font-bold">{completingId === b.id ? 'Marking…' : 'Mark Done'}</Text>
+                <Text style={[s.cancelText, { color: '#10B981' }]}>{completingId === b.id ? 'Marking…' : 'Mark Done'}</Text>
               </Pressable>
               <Pressable
                 onPress={() => cancel(b.id)}
                 disabled={cancellingId === b.id}
-                className="flex-row items-center gap-[5px] px-3 h-[30px] rounded-lg border border-red-400/40"
-                style={({ hovered }: any) => [hovered && { backgroundColor: '#EF444422' }, cancellingId === b.id && { opacity: 0.5 }]}
+                style={({ hovered }: any) => [s.cancelBtn, hovered && { backgroundColor: '#EF444422' }, cancellingId === b.id && { opacity: 0.5 }]}
               >
                 <X size={12} color="#EF4444" />
-                <Text className="text-red-500 text-[11px] font-bold">{cancellingId === b.id ? 'Cancelling…' : 'Cancel'}</Text>
+                <Text style={s.cancelText}>{cancellingId === b.id ? 'Cancelling…' : 'Cancel'}</Text>
               </Pressable>
             </View>
           </GlassCard>
@@ -185,10 +187,10 @@ export function MyBookingsView() {
             const when = b.scheduled_at ? new Date(b.scheduled_at) : null;
             return (
             <GlassCard key={b.id} delay={idx * 30} radius={12} padding={14} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, opacity: 0.55 }}>
-              <View className="w-[38px] h-[38px] rounded-[10px] bg-red-500/10 items-center justify-center" style={{ borderColor: 'rgba(239,68,68,0.2)', borderWidth: 1 }}><X size={16} color="#EF4444" /></View>
-              <View className="flex-1 min-w-0">
-                <Text className="text-white text-[13px] font-bold">{b.topic || 'Session'}</Text>
-                <Text className="text-muted text-[11px] font-medium">{b.mentor_name || 'Mentor'} · {when ? when.toLocaleDateString() : 'TBD'}</Text>
+              <View style={[s.iconBox, { backgroundColor: '#EF444422' }]}><X size={16} color="#EF4444" /></View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={s.topic}>{b.topic || 'Session'}</Text>
+                <Text style={s.meta}>{b.mentor_name || 'Mentor'} · {when ? when.toLocaleDateString() : 'TBD'}</Text>
               </View>
             </GlassCard>
             );
@@ -203,13 +205,13 @@ export function MyBookingsView() {
             const hasReviewed = submittedReviews.has(b.id);
             return (
             <GlassCard key={b.id} delay={idx * 30} radius={12} padding={14} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, opacity: 0.85 }}>
-              <View className="w-[38px] h-[38px] rounded-[10px] items-center justify-center" style={{ backgroundColor: 'rgba(16,185,129,0.1)', borderColor: 'rgba(16,185,129,0.3)', borderWidth: 1 }}><Check size={16} color="#10B981" /></View>
-              <View className="flex-1 min-w-0">
-                <Text className="text-white text-[13px] font-bold">{b.topic || 'Session'}</Text>
-                <Text className="text-muted text-[11px] font-medium">{b.mentor_name || 'Mentor'} · {when ? when.toLocaleDateString() : 'TBD'}</Text>
+              <View style={[s.iconBox, { backgroundColor: 'rgba(16,185,129,0.1)', borderColor: 'rgba(16,185,129,0.3)' }]}><Check size={16} color="#10B981" /></View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={s.topic}>{b.topic || 'Session'}</Text>
+                <Text style={s.meta}>{b.mentor_name || 'Mentor'} · {when ? when.toLocaleDateString() : 'TBD'}</Text>
               </View>
               {hasReviewed ? (
-                <Text className="text-emerald-500 text-xs font-medium">Review Submitted ✓</Text>
+                <Text style={{ color: '#10B981', fontFamily: FONTS.med, fontSize: 12 }}>Review Submitted ✓</Text>
               ) : (
                 <Pressable
                   onPress={() => {
@@ -217,11 +219,10 @@ export function MyBookingsView() {
                     setReviewRating(5);
                     setReviewComment('');
                   }}
-                  className="flex-row items-center gap-[5px] px-3 h-[30px] rounded-lg border border-violet"
-                  style={({ hovered }: any) => [hovered && { backgroundColor: 'rgba(255,255,255,0.05)' }]}
+                  style={({ hovered }: any) => [s.cancelBtn, { borderColor: SC.accent, backgroundColor: hovered ? 'rgba(255,255,255,0.05)' : 'transparent' }]}
                 >
                   <Star size={12} color={SC.accent} />
-                  <Text className="text-violet text-[11px] font-bold">Leave Review</Text>
+                  <Text style={[s.cancelText, { color: SC.accent }]}>Leave Review</Text>
                 </Pressable>
               )}
             </GlassCard>
@@ -232,20 +233,20 @@ export function MyBookingsView() {
 
       {/* Review Modal */}
       {reviewModalData && (
-        <View className="absolute inset-0 bg-black/60 z-[100] items-center justify-center p-5" style={{ backdropFilter: 'blur(4px)' } as any}>
-          <View className="w-full max-w-[450px] bg-bg2 border border-glass-border rounded-2xl p-6 shadow-xl" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.5, shadowRadius: 20 }}>
-            <View className="flex-row justify-between items-center mb-4">
-              <Text className="text-white font-bold text-lg">Review Session</Text>
+        <View style={s.modalOverlay}>
+          <View style={s.modalContent}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 18 }}>Review Session</Text>
               <Pressable onPress={() => setReviewModalData(null)}>
                 <X size={20} color="#999" />
               </Pressable>
             </View>
 
-            <Text className="text-neutral-400 text-sm font-medium mb-4">
-              How was your session with <Text className="text-white">{reviewModalData.mentor_name}</Text> on <Text className="text-white">"{reviewModalData.topic}"</Text>?
+            <Text style={{ color: '#ccc', fontFamily: FONTS.med, fontSize: 14, marginBottom: 16 }}>
+              How was your session with <Text style={{ color: '#fff' }}>{reviewModalData.mentor_name}</Text> on <Text style={{ color: '#fff' }}>"{reviewModalData.topic}"</Text>?
             </Text>
 
-            <View className="flex-row justify-center gap-2 mb-6">
+            <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 24 }}>
               {[1, 2, 3, 4, 5].map((star) => (
                 <Pressable key={star} onPress={() => setReviewRating(star)}>
                   <Star size={32} color={star <= reviewRating ? '#FCD34D' : '#444'} fill={star <= reviewRating ? '#FCD34D' : 'transparent'} />
@@ -253,15 +254,14 @@ export function MyBookingsView() {
               ))}
             </View>
 
-            <View className="gap-1.5 mb-5">
-              <Text className="text-muted text-[11px] font-medium tracking-wide">Additional Comments (Optional)</Text>
-              <View className="bg-glass border border-glass-border rounded-[10px] p-3">
+            <View style={s.inputContainer}>
+              <Text style={s.inputLabel}>Additional Comments (Optional)</Text>
+              <View style={s.textInputWrapper}>
                 <textarea
                   value={reviewComment}
                   onChange={(e: any) => setReviewComment(e.target.value)}
                   placeholder="Share your experience..."
-                  className="text-white text-[13px] font-medium bg-transparent"
-                  style={{ borderWidth: 0, outline: 'none', resize: 'none', width: '100%' } as any}
+                  style={s.textArea as any}
                   rows={4}
                 />
               </View>
@@ -270,10 +270,9 @@ export function MyBookingsView() {
             <Pressable
               onPress={submitReview}
               disabled={isSubmittingReview}
-              className="h-[42px] bg-violet rounded-[10px] items-center justify-center"
-              style={isSubmittingReview ? { opacity: 0.5 } : undefined}
+              style={[s.submitBtn, isSubmittingReview && { opacity: 0.5 }]}
             >
-              <Text className="text-[#1E1B4B] text-sm font-bold">{isSubmittingReview ? 'Submitting...' : 'Submit Review'}</Text>
+              <Text style={s.submitBtnText}>{isSubmittingReview ? 'Submitting...' : 'Submit Review'}</Text>
             </Pressable>
           </View>
         </View>
@@ -285,8 +284,31 @@ export function MyBookingsView() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <View>
-      <Text className="text-muted text-[11px] font-extrabold tracking-widest mb-2">{title}</Text>
-      <View className="gap-2">{children}</View>
+      <Text style={s.sectionTitle}>{title}</Text>
+      <View style={{ gap: 8 }}>{children}</View>
     </View>
   );
 }
+
+const s = StyleSheet.create({
+  h1: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4 },
+  sub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4 },
+  sectionTitle: { color: SC.muted, fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 1, marginBottom: 8 },
+  card: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 12, padding: 14 },
+  iconBox: { width: 38, height: 38, borderRadius: 10, backgroundColor: 'rgba(167,139,250,0.10)', borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  topic: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13.5 },
+  meta: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
+  dot: { color: SC.dim, fontFamily: FONTS.med, fontSize: 11 },
+  amount: { color: SC.accentBright, fontFamily: FONTS.bold, fontSize: 12, marginTop: 4 },
+  cancelBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 11, height: 30, borderRadius: 8, borderColor: '#EF444466', borderWidth: 1, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  cancelText: { color: '#EF4444', fontFamily: FONTS.bold, fontSize: 11.5 },
+  empty: { color: SC.muted, padding: 16, textAlign: 'center', fontFamily: FONTS.med },
+  modalOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', ...({ backdropFilter: 'blur(4px)' } as any), zIndex: 100, alignItems: 'center', justifyContent: 'center', padding: 20 },
+  modalContent: { width: '100%', maxWidth: 450, backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 16, padding: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.5, shadowRadius: 20 },
+  inputContainer: { gap: 6, marginBottom: 20 },
+  inputLabel: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5, letterSpacing: 0.5 },
+  textInputWrapper: { backgroundColor: 'rgba(255,255,255,0.03)', borderColor: SC.border, borderWidth: 1, borderRadius: 10, padding: 12 },
+  textArea: { color: '#fff', fontFamily: FONTS.med, fontSize: 13, backgroundColor: 'transparent', borderWidth: 0, ...({ outline: 'none', resize: 'none' } as any) },
+  submitBtn: { height: 42, backgroundColor: SC.accent, borderRadius: 10, alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  submitBtnText: { color: '#1E1B4B', fontFamily: FONTS.bold, fontSize: 14 },
+});

@@ -11,7 +11,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  View, Text, Pressable, Platform, Modal, ScrollView, TextInput, Image,
+  View, Text, Pressable, StyleSheet, Platform, Modal, ScrollView, TextInput, Image,
 } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import {
@@ -595,25 +595,26 @@ function EditRow({ label, value, onChange }: any) {
 }
 
 /* ─── Styles ─────────────────────────────────────────────────────── */
-const s = {
-  headRow: { flexDirection: 'row' as const, alignItems: 'flex-start' as const, gap: 12 },
+const s = StyleSheet.create({
+  headRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 },
   sub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 760 },
   muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
   btnText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
   secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
 
-  kpiRow: { flexDirection: 'row' as const, gap: 12, flexWrap: 'wrap' as const },
-  browseHead: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12, justifyContent: 'space-between' as const, flexWrap: 'wrap' as const },
+  kpiRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
+  browseHead: { flexDirection: 'row', alignItems: 'center', gap: 12, justifyContent: 'space-between', flexWrap: 'wrap' },
   cardGrid: {
-    flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 16,
+    flexDirection: 'row', flexWrap: 'wrap', gap: 16,
     ...(Platform.OS === 'web' ? ({ display: 'grid' as any, gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))' as any, gap: 16 } as any) : {}),
   },
   gridCell: { minWidth: 340, flexBasis: 340, flexGrow: 1 },
 
+  /* card */
   card: {
     borderRadius: 20, borderWidth: 1, borderColor: PC_AMBER.border,
-    backgroundColor: PC_AMBER.bgFrom, position: 'relative' as const,
+    backgroundColor: PC_AMBER.bgFrom, position: 'relative',
     ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 0 1px rgba(251,146,60,0.06), 0 10px 30px rgba(0,0,0,0.45)', transitionDuration: '200ms', cursor: 'pointer' } as any) : {}),
   },
   cardHover: {
@@ -627,9 +628,9 @@ const s = {
   cName: { color: PC_AMBER.text, fontFamily: FONTS.xbold, fontSize: 14.5, lineHeight: 18 },
   cLine: { color: PC_AMBER.text2, fontFamily: FONTS.med, fontSize: 11.5 },
 
-  statRow: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 10, marginTop: 14, flexWrap: 'wrap' as const },
+  statRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 14, flexWrap: 'wrap' },
   statBox: {
-    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 8,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
     paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10,
     backgroundColor: 'rgba(249,115,22,0.08)', borderWidth: 1, borderColor: 'rgba(249,115,22,0.22)',
   },
@@ -637,59 +638,60 @@ const s = {
   statLbl: { color: PC_AMBER.muted, fontFamily: FONTS.xbold, fontSize: 9, letterSpacing: 0.8 },
 
   tag: {
-    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 4,
+    flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 10, paddingVertical: 4.5, borderRadius: 999,
     backgroundColor: PC_AMBER.pill, borderWidth: 1, borderColor: PC_AMBER.pillBd,
   },
   tagText: { color: PC_AMBER.text2, fontFamily: FONTS.bold, fontSize: 10.5 },
 
   rankPill: {
-    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 4,
+    flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999,
     backgroundColor: 'rgba(245,158,11,0.10)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.30)',
   },
   rankText: { color: PC_AMBER.bright, fontFamily: FONTS.xbold, fontSize: 10.5 },
 
-  actionRow: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 8, marginTop: 16 },
-  viewBtn: { height: 42, borderRadius: 12, alignItems: 'center' as const, justifyContent: 'center' as const, flexDirection: 'row' as const, gap: 6 },
+  actionRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16 },
+  viewBtn: { height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 },
   viewBtnText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
   socialBtn: {
-    width: 42, height: 42, borderRadius: 10, alignItems: 'center' as const, justifyContent: 'center' as const,
+    width: 42, height: 42, borderRadius: 10, alignItems: 'center', justifyContent: 'center',
     backgroundColor: '#1F1208', borderColor: PC_AMBER.border, borderWidth: 1,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
 
   menuTrigger: {
-    width: 28, height: 28, borderRadius: 8, alignItems: 'center' as const, justifyContent: 'center' as const,
+    width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.45)', borderColor: 'rgba(251,146,60,0.25)', borderWidth: 1,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   menu: {
-    position: 'absolute' as const, top: 58, right: 18, minWidth: 180, zIndex: 20,
+    position: 'absolute', top: 58, right: 18, minWidth: 180, zIndex: 20,
     backgroundColor: '#170D04', borderColor: 'rgba(251,146,60,0.30)', borderWidth: 1,
     borderRadius: 10, padding: 6, gap: 2,
     ...(Platform.OS === 'web' ? ({ boxShadow: '0 12px 32px rgba(0,0,0,0.55)' } as any) : {}),
   },
   menuItem: {
-    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 8,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
     paddingVertical: 7, paddingHorizontal: 10, borderRadius: 7,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   menuLabel: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
 
+  /* modal */
   modalBg: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', alignItems: 'center' as const, justifyContent: 'center' as const, padding: 20,
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', alignItems: 'center', justifyContent: 'center', padding: 20,
     ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(8px)' } as any) : {}),
   },
   modalCard: {
     width: '100%', maxWidth: 620, maxHeight: '92%',
-    backgroundColor: SAC.bg2, borderRadius: 16, borderWidth: 1, borderColor: SAC.border2, overflow: 'hidden' as const,
+    backgroundColor: SAC.bg2, borderRadius: 16, borderWidth: 1, borderColor: SAC.border2, overflow: 'hidden',
     ...(Platform.OS === 'web' ? ({ boxShadow: '0 24px 60px rgba(0,0,0,0.7)' } as any) : {}),
   },
-  modalHero: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12, padding: 18, borderBottomWidth: 1, borderBottomColor: SAC.border },
+  modalHero: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, borderBottomWidth: 1, borderBottomColor: SAC.border },
   modalTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
 
-  detailRow: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 10 },
+  detailRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   detailLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5, width: 110 },
   detailValue: { color: '#fff', fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
   input: {
@@ -698,13 +700,13 @@ const s = {
     paddingHorizontal: 12, paddingVertical: 10,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
   },
-  actionsRow: { flexDirection: 'row' as const, justifyContent: 'flex-end' as const, gap: 8, marginTop: 4 },
+  actionsRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 4 },
   destructiveBtn: { backgroundColor: SAC.red, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  warnBox: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 6, padding: 8, borderRadius: 8, backgroundColor: 'rgba(239,68,68,0.08)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.30)' },
+  warnBox: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 8, borderRadius: 8, backgroundColor: 'rgba(239,68,68,0.08)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.30)' },
 
   skBox: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 6 },
-  pagination: { flexDirection: 'row' as const, justifyContent: 'center' as const, alignItems: 'center' as const, paddingVertical: 12, gap: 14 },
+  pagination: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 12, gap: 14 },
   pageBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: SAC.card, borderRadius: 8, borderWidth: 1, borderColor: SAC.border, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   pageBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
   pageInfo: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
-};
+});

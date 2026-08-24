@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, Pressable, TextInput, Platform } from 'react-native';
+import { View, Text, Pressable, TextInput, StyleSheet, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { displayName, displayInitials } from '@/src/lib/portalHome';
@@ -46,13 +46,13 @@ export function TopBar({
   };
 
   return (
-    <View className="flex-row items-center gap-3.5 px-[22px] py-3.5 border-b border-glass-border bg-bg2 relative z-10">
-      <View className="flex-1 min-w-0">
-        <Text className="text-white font-display-bold text-[17px] tracking-tight">{greeting()}, {firstName} 👋</Text>
-        <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 }}>Here's your personalised dashboard for today</Text>
+    <View style={s.bar}>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text style={s.greet}>{greeting()}, {firstName} 👋</Text>
+        <Text style={s.sub}>Here’s your personalised dashboard for today</Text>
       </View>
 
-      <View className="flex-row items-center gap-2 w-60 h-9 px-[11px] rounded-[10px] bg-glass border border-glass-border">
+      <View style={s.searchBox}>
         <Pressable
           onPress={handleSearch}
           style={Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}}
@@ -66,20 +66,16 @@ export function TopBar({
           onSubmitEditing={handleSearch}
           placeholder="Search anything…"
           placeholderTextColor={SC.dim}
-          className="flex-1 text-white font-body-medium text-[12.5px]"
-          style={Platform.OS === 'web' ? { outlineStyle: 'none' } as any : {}}
+          style={s.searchInput}
         />
       </View>
 
       <Pressable
         onPress={() => router.push('/notifications')}
-        style={({ hovered }: any) => [
-          { width: 36, height: 36, borderRadius: 10, backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? { cursor: 'pointer', transitionDuration: '160ms' } : {}) },
-          hovered && { backgroundColor: SC.cardH }
-        ]}
+        style={({ hovered }: any) => [s.bell, hovered && { backgroundColor: SC.cardH }]}
       >
         <Bell size={16} color={SC.accent} />
-        <View className="absolute top-2 right-[9px] w-[7px] h-[7px] rounded-full border-[1.5px]" style={{ backgroundColor: '#EF4444', borderColor: SC.bg2 }} />
+        <View style={s.bellDot} />
       </Pressable>
 
       <HelpMenu portal="alumni" />
@@ -93,3 +89,30 @@ export function TopBar({
     </View>
   );
 }
+
+const s = StyleSheet.create({
+  bar: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    paddingHorizontal: 22, paddingVertical: 14,
+    borderBottomWidth: 1, borderBottomColor: SC.border,
+    backgroundColor: SC.bg2,
+    position: 'relative', zIndex: 10,
+  },
+  greet: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 17, letterSpacing: -0.4 },
+  sub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
+  searchBox: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    width: 240, height: 36, paddingHorizontal: 11,
+    borderRadius: 10, backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1,
+  },
+  searchInput: { flex: 1, color: '#fff', fontFamily: FONTS.med, fontSize: 12.5, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
+  bell: {
+    width: 36, height: 36, borderRadius: 10, backgroundColor: SC.card,
+    borderColor: SC.border, borderWidth: 1, alignItems: 'center', justifyContent: 'center',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}),
+  },
+  bellDot: {
+    position: 'absolute', top: 8, right: 9, width: 7, height: 7, borderRadius: 4,
+    backgroundColor: '#EF4444', borderWidth: 1.5, borderColor: SC.bg2,
+  },
+});

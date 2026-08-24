@@ -11,7 +11,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  View, Text, Pressable, Platform, Modal, ScrollView, TextInput,
+  View, Text, Pressable, StyleSheet, Platform, Modal, ScrollView, TextInput,
 } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import {
@@ -536,50 +536,52 @@ function EditRow({ label, value, onChange }: any) {
   );
 }
 
-const st = {
-  headRow: { flexDirection: 'row' as const, alignItems: 'flex-start' as const, gap: 12 },
+const st = StyleSheet.create({
+  headRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 },
   sub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 760 },
   muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
-  kpiRow: { flexDirection: 'row' as const, gap: 12, flexWrap: 'wrap' as const },
-  browseHead: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12, justifyContent: 'space-between' as const, flexWrap: 'wrap' as const },
+  kpiRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
+  browseHead: { flexDirection: 'row', alignItems: 'center', gap: 12, justifyContent: 'space-between', flexWrap: 'wrap' },
   cardGrid: {
-    flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 16,
+    flexDirection: 'row', flexWrap: 'wrap', gap: 16,
     ...(Platform.OS === 'web' ? ({ display: 'grid' as any, gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' as any, gap: 16 } as any) : {}),
   },
   gridCell: { minWidth: 320, flexBasis: 320, flexGrow: 1 },
 
   toggleBtn: {
-    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 5,
+    flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 9, paddingVertical: 4, borderRadius: 7,
     borderWidth: 1, borderColor: SAC.border, backgroundColor: SAC.cardSolid,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   toggleBtnText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11 },
 
+  /* card overflow menu */
   menuTrigger: {
-    position: 'absolute' as const, top: 14, right: 14, width: 28, height: 28, borderRadius: 8,
-    alignItems: 'center' as const, justifyContent: 'center' as const,
+    position: 'absolute', top: 14, right: 14, width: 28, height: 28, borderRadius: 8,
+    alignItems: 'center', justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.45)', borderColor: 'rgba(251,146,60,0.25)', borderWidth: 1,
     zIndex: 12,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   menu: {
-    position: 'absolute' as const, top: 48, right: 14, minWidth: 160, zIndex: 20,
+    position: 'absolute', top: 48, right: 14, minWidth: 160, zIndex: 20,
     backgroundColor: '#170D04', borderColor: 'rgba(251,146,60,0.30)', borderWidth: 1,
     borderRadius: 10, padding: 6, gap: 2,
     ...(Platform.OS === 'web' ? ({ boxShadow: '0 12px 32px rgba(0,0,0,0.55)' } as any) : {}),
   },
   menuItem: {
-    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 8,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
     paddingVertical: 7, paddingHorizontal: 10, borderRadius: 7,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   menuLabel: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
 
+  /* selection */
   selectBox: {
-    position: 'absolute' as const, top: 14, left: 14, width: 28, height: 28, borderRadius: 8,
-    alignItems: 'center' as const, justifyContent: 'center' as const,
+    position: 'absolute', top: 14, left: 14, width: 28, height: 28, borderRadius: 8,
+    alignItems: 'center', justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.55)', borderColor: 'rgba(251,146,60,0.25)', borderWidth: 1,
     zIndex: 12,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
@@ -589,10 +591,11 @@ const st = {
     ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 0 4px rgba(251,146,60,0.18)' } as any) : {}),
   },
 
+  /* floating bulk-action bar */
   bulkBar: {
-    position: 'absolute' as const, bottom: 18, left: 0, right: 0,
+    position: 'absolute', bottom: 18, left: 0, right: 0,
     marginHorizontal: 'auto', maxWidth: 880,
-    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 10, flexWrap: 'wrap' as const,
+    flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap',
     paddingHorizontal: 18, paddingVertical: 12,
     backgroundColor: '#1A0E04', borderColor: 'rgba(251,146,60,0.45)', borderWidth: 1,
     borderRadius: 14,
@@ -605,25 +608,26 @@ const st = {
   bulkLinkBtn: { ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   bulkLink: { color: GRAD.to, fontFamily: FONTS.bold, fontSize: 12 },
   bulkClose: {
-    width: 28, height: 28, borderRadius: 8, alignItems: 'center' as const, justifyContent: 'center' as const,
+    width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.06)',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
 
+  /* modal */
   modalBg: {
     flex: 1, backgroundColor: 'rgba(0,0,0,0.65)',
-    alignItems: 'center' as const, justifyContent: 'center' as const, padding: 20,
+    alignItems: 'center', justifyContent: 'center', padding: 20,
     ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(8px)' } as any) : {}),
   },
   modalCard: {
     width: '100%', maxWidth: 540, maxHeight: '92%',
-    backgroundColor: SAC.bg2, borderRadius: 16, borderWidth: 1, borderColor: SAC.border2, overflow: 'hidden' as const,
+    backgroundColor: SAC.bg2, borderRadius: 16, borderWidth: 1, borderColor: SAC.border2, overflow: 'hidden',
     ...(Platform.OS === 'web' ? ({ boxShadow: '0 24px 60px rgba(0,0,0,0.7)' } as any) : {}),
   },
-  modalHero: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12, padding: 18, borderBottomWidth: 1, borderBottomColor: SAC.border },
+  modalHero: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, borderBottomWidth: 1, borderBottomColor: SAC.border },
   modalTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
 
-  detailRow: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 10 },
+  detailRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   detailLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5, width: 130 },
   detailValue: { color: '#fff', fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
   formInput: {
@@ -632,13 +636,13 @@ const st = {
     paddingHorizontal: 12, paddingVertical: 9,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
   },
-  actionsRow: { flexDirection: 'row' as const, justifyContent: 'flex-end' as const, gap: 8, marginTop: 4 },
+  actionsRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 4 },
   destructiveBtn: { backgroundColor: SAC.red, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  warnBox: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 6, padding: 8, borderRadius: 8, backgroundColor: 'rgba(239,68,68,0.08)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.30)' },
+  warnBox: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 8, borderRadius: 8, backgroundColor: 'rgba(239,68,68,0.08)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.30)' },
   btnText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
   secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
-  pagination: { flexDirection: 'row' as const, justifyContent: 'center' as const, alignItems: 'center' as const, paddingVertical: 12, gap: 14 },
+  pagination: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 12, gap: 14 },
   pageBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: SAC.card, borderRadius: 8, borderWidth: 1, borderColor: SAC.border, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   pageBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
   pageInfo: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
-};
+});

@@ -3,7 +3,7 @@
  * Specs: /tmp/ui_specs/platform-college.jsx
  */
 import React, { useState } from 'react';
-import { View, Text, Pressable, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, Pressable, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GlassCard, Avatar, SearchBar, PageHeader, SectionLabel, ProgressStrip, KpiTile } from '../components';
 import { SA, SAGradients } from '../tokens';
@@ -316,7 +316,7 @@ export function CollegeSettings() {
   );
 }
 
-const styles = {
+const styles = StyleSheet.create({
   filterRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 24 },
   chip: {
     paddingHorizontal: 16, paddingVertical: 7, borderRadius: 20,
@@ -346,4 +346,4 @@ const styles = {
     width: 36, height: 20, borderRadius: 10, padding: 2,
   },
   toggleKnob: { width: 16, height: 16, borderRadius: 8, backgroundColor: SA.white },
-};
+});

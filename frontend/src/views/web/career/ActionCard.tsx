@@ -1,10 +1,23 @@
+/**
+ * ActionCard.tsx
+ * A single item in the "Next Best Actions" ranked list.
+ * Props-only — no business logic, no API calls.
+ *
+ * Premium redesign (reference-match):
+ *   • Rank #1 gets purple glow border (highest priority emphasis)
+ *   • 36×36 icon container (up from 32)
+ *   • Time estimate chip with structured layout
+ *   • Gain chip with colored text right-aligned
+ *   • Hover: translateY(-1px) + border brightening
+ */
 import React, { memo } from 'react';
-import {View, Text, Pressable, Platform} from "react-native";
+import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
 import { ChevronRight, Clock } from 'lucide-react-native';
-import { COLORS } from '@/src/lib/designTokens';
+import { COLORS, FONT_FAMILIES, FONT_SIZES, RADIUS, SPACING } from '@/src/lib/designTokens';
 
 interface Props {
   rank: number;
+  /** Lucide icon component */
   icon: React.ComponentType<{ size: number; color: string }>;
   color: string;
   title: string;
@@ -25,44 +38,143 @@ export const ActionCard = memo(function ActionCard({
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
-      className="flex-row items-center gap-2 px-2 py-3.5 rounded-xl border"
-      style={({ pressed, hovered }: any) => ({
-        backgroundColor: isTopAction ? 'rgba(79,70,229,0.07)' : 'rgba(255,255,255,0.03)',
-        borderColor: isTopAction ? 'rgba(79,70,229,0.28)' : 'rgba(255,255,255,0.08)',
-        ...(Platform.OS === 'web' ? { transition: 'all 200ms cubic-bezier(0.16, 1, 0.3, 1)', cursor: 'pointer' } : {}),
-        ...(Platform.OS === 'web' && isTopAction ? { boxShadow: '0 0 0 1px rgba(79,70,229,0.18) inset' } : {}),
-        ...(pressed || hovered) ? {
-          backgroundColor: COLORS.cardHover,
-          borderColor: COLORS.borderMed,
-          ...(Platform.OS === 'web' ? { transform: 'translateY(-1px)' } : {}),
-        } : {},
-      })}
+      style={({ pressed, hovered }: any) => [
+        s.row,
+        isTopAction && s.rowTop,
+        (pressed || hovered) && s.rowHover,
+      ]}
     >
-      <View className="w-6 h-6 rounded-sm items-center justify-center" style={{ backgroundColor: isTopAction ? 'rgba(79,70,229,0.20)' : 'rgba(255,255,255,0.06)' }}>
-        <Text className="font-body-bold text-sm" style={{ color: isTopAction ? '#818CF8' : 'rgba(238,240,255,0.5)' }}>{rank}</Text>
+      {/* Rank badge */}
+      <View style={[s.rank, isTopAction && s.rankTop]}>
+        <Text style={[s.rankText, isTopAction && s.rankTextTop]}>{rank}</Text>
       </View>
 
-      <View className="w-9 h-9 rounded-lg items-center justify-center border" style={{ backgroundColor: color + '20', borderColor: color + '40' }}>
+      {/* Icon container */}
+      <View style={[s.icon, { backgroundColor: color + '20', borderColor: color + '40' }]}>
         <Icon size={16} color={color} />
       </View>
 
-      <View className="flex-1 min-w-0">
-        <Text className="text-white font-body-bold text-base leading-5" numberOfLines={1}>{title}</Text>
-        <View className="flex-row flex-wrap items-center gap-1 mt-1">
-          <View className="px-1 py-[3px] rounded-lg bg-white/[0.05] border" style={{ borderColor: difficultyColor + '40' }}>
-            <Text className="font-body-bold text-xs tracking-wider" style={{ color: difficultyColor }}>{difficultyLabel}</Text>
+      {/* Info */}
+      <View style={s.info}>
+        <Text style={s.title} numberOfLines={1}>{title}</Text>
+        <View style={s.chips}>
+          {/* Difficulty chip */}
+          <View style={[s.diffChip, { borderColor: difficultyColor + '40' }]}>
+            <Text style={[s.diffText, { color: difficultyColor }]}>{difficultyLabel}</Text>
           </View>
-          <View className="flex-row items-center gap-[3px]">
-            <Clock size={9} color="rgba(238,240,255,0.5)" />
-            <Text className="text-white/50 font-body-semibold text-xs">{timeEstimate}</Text>
+          {/* Time chip */}
+          <View style={s.timeChip}>
+            <Clock size={9} color={COLORS.textSub} />
+            <Text style={s.time}>{timeEstimate}</Text>
           </View>
         </View>
       </View>
 
-      <View className="flex-row items-center gap-0.5">
-        <Text className="font-display-bold text-base tracking-[-0.3px]" style={{ color }}>+{gain}%</Text>
-        <ChevronRight size={13} color="rgba(238,240,255,0.3)" />
+      {/* Gain + arrow */}
+      <View style={s.right}>
+        <Text style={[s.gain, { color }]}>+{gain}%</Text>
+        <ChevronRight size={13} color={COLORS.dim} />
       </View>
     </Pressable>
   );
+});
+
+const ROW_WEB = Platform.OS === 'web'
+  ? ({ transition: 'all 200ms cubic-bezier(0.16, 1, 0.3, 1)', cursor: 'pointer' } as any)
+  : {};
+
+const s = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 14,
+    borderRadius: RADIUS.card,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderColor: COLORS.border,
+    borderWidth: 1,
+    ...ROW_WEB,
+  },
+  rowTop: {
+    backgroundColor: 'rgba(79,70,229,0.07)',
+    borderColor: 'rgba(79,70,229,0.28)',
+    ...(Platform.OS === 'web'
+      ? ({ boxShadow: '0 0 0 1px rgba(79,70,229,0.18) inset' } as any)
+      : {}),
+  },
+  rowHover: {
+    backgroundColor: COLORS.cardHover,
+    borderColor: COLORS.borderMed,
+    ...(Platform.OS === 'web' ? ({ transform: 'translateY(-1px)' } as any) : {}),
+  },
+
+  rank: {
+    width: 24,
+    height: 24,
+    borderRadius: RADIUS.icon,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rankTop: {
+    backgroundColor: 'rgba(79,70,229,0.20)',
+  },
+  rankText: {
+    color: COLORS.textSub,
+    fontFamily: FONT_FAMILIES.bold,
+    fontSize: FONT_SIZES.sm,
+  },
+  rankTextTop: {
+    color: COLORS.purpleL,
+  },
+
+  icon: {
+    width: 36,
+    height: 36,
+    borderRadius: RADIUS.chip,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+
+  info: { flex: 1, minWidth: 0 },
+  title: {
+    color: COLORS.text,
+    fontFamily: FONT_FAMILIES.bold,
+    fontSize: FONT_SIZES.md,
+    lineHeight: 20,
+  },
+  chips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: SPACING.xs,
+    marginTop: 4,
+  },
+  diffChip: {
+    paddingHorizontal: SPACING.xs,
+    paddingVertical: 3,
+    borderRadius: RADIUS.chip,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+  },
+  diffText: {
+    fontFamily: FONT_FAMILIES.bold,
+    fontSize: FONT_SIZES.xs,
+    letterSpacing: 0.3,
+  },
+  timeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  time: {
+    color: COLORS.textSub,
+    fontFamily: FONT_FAMILIES.med,
+    fontSize: FONT_SIZES.xs,
+  },
+
+  right: { flexDirection: 'row', alignItems: 'center', gap: SPACING.xxs },
+  gain: { fontFamily: FONT_FAMILIES.xbold, fontSize: FONT_SIZES.md, letterSpacing: -0.3 },
 });

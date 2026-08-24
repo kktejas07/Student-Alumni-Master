@@ -1,5 +1,19 @@
+/**
+ * MaterialBadgeChip — Material Design 3 inspired tier badge.
+ *
+ * Renders a Material You-styled chip with:
+ *   • LinearGradient pill background (tier-tinted)
+ *   • Circular icon disc (MaterialCommunityIcons) with subtle inner highlight
+ *   • Tier-ring border + soft elevation shadow
+ *   • Tier rank pips (1/2/3 dots) for low/moderate/high
+ *   • Sparkle accent for "special" tier (founder, top 1%, etc.)
+ *
+ * Usage:
+ *   <MaterialBadgeChip badge={{ id, label, tier, icon }} size="sm" />
+ *   <MaterialBadgeStack badges={user.badges} max={3} />
+ */
 import React from 'react';
-import { View, Text, Platform, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Platform, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -15,6 +29,9 @@ export interface BadgeData {
   kind?: string;
 }
 
+// ─────────────────────────────────────────────────────────────────────
+// Material You tier theme (gradients + glow + ring color)
+// ─────────────────────────────────────────────────────────────────────
 const TIER: Record<BadgeTier, {
   gradient: [string, string];
   ring: string;
@@ -25,7 +42,7 @@ const TIER: Record<BadgeTier, {
   rank: number;
 }> = {
   low: {
-    gradient: ['rgba(180,83,9,0.20)', 'rgba(217,119,6,0.10)'],
+    gradient: ['rgba(180,83,9,0.20)', 'rgba(217,119,6,0.10)'],   // Bronze
     ring:    'rgba(217,119,6,0.55)',
     glow:    'rgba(217,119,6,0.30)',
     iconBg:  'rgba(217,119,6,0.22)',
@@ -34,7 +51,7 @@ const TIER: Record<BadgeTier, {
     rank: 1,
   },
   moderate: {
-    gradient: ['rgba(148,163,184,0.20)', 'rgba(203,213,225,0.08)'],
+    gradient: ['rgba(148,163,184,0.20)', 'rgba(203,213,225,0.08)'], // Silver
     ring:    'rgba(203,213,225,0.55)',
     glow:    'rgba(148,163,184,0.30)',
     iconBg:  'rgba(203,213,225,0.18)',
@@ -43,7 +60,7 @@ const TIER: Record<BadgeTier, {
     rank: 2,
   },
   high: {
-    gradient: ['rgba(245,158,11,0.32)', 'rgba(251,191,36,0.12)'],
+    gradient: ['rgba(245,158,11,0.32)', 'rgba(251,191,36,0.12)'],   // Gold
     ring:    'rgba(251,191,36,0.70)',
     glow:    'rgba(245,158,11,0.50)',
     iconBg:  'rgba(245,158,11,0.28)',
@@ -52,7 +69,7 @@ const TIER: Record<BadgeTier, {
     rank: 3,
   },
   verified: {
-    gradient: ['rgba(16,185,129,0.22)', 'rgba(52,211,153,0.10)'],
+    gradient: ['rgba(16,185,129,0.22)', 'rgba(52,211,153,0.10)'],   // Emerald
     ring:    'rgba(52,211,153,0.55)',
     glow:    'rgba(16,185,129,0.35)',
     iconBg:  'rgba(16,185,129,0.20)',
@@ -61,7 +78,7 @@ const TIER: Record<BadgeTier, {
     rank: 4,
   },
   special: {
-    gradient: ['rgba(167,139,250,0.32)', 'rgba(236,72,153,0.16)'],
+    gradient: ['rgba(167,139,250,0.32)', 'rgba(236,72,153,0.16)'],  // Iridescent
     ring:    'rgba(167,139,250,0.65)',
     glow:    'rgba(167,139,250,0.55)',
     iconBg:  'rgba(167,139,250,0.28)',
@@ -71,40 +88,56 @@ const TIER: Record<BadgeTier, {
   },
 };
 
+// ─────────────────────────────────────────────────────────────────────
+// Lucide-name → MaterialCommunityIcons-name map
+// (badges.py emits Lucide-style names for legacy reasons; we translate
+//  them to the equivalent Material icon glyph here.)
+// ─────────────────────────────────────────────────────────────────────
 const ICON_MAP: Record<string, string> = {
+  // Roadmap progress
   Target: 'bullseye-arrow',
   Rocket: 'rocket-launch',
   Crown:  'crown',
+  // Skill climber
   TrendingUp: 'trending-up',
   Zap:        'flash',
   Sparkles:   'star-four-points',
+  // Activity
   Flame: 'fire',
+  // Mentor sessions
   Users:      'account-group',
   UserCheck:  'account-check',
   Star:       'star-circle',
+  // Skill builder
   BookOpen:      'book-open-page-variant',
   GraduationCap: 'school',
   Award:         'medal',
+  // Networker
   UserPlus: 'account-plus',
   Network:  'web',
   Globe2:   'earth',
+  // Event attendee
   Calendar: 'calendar-star',
   MicVocal: 'microphone-variant',
   Trophy:   'trophy-variant',
+  // Mentor
   Briefcase:    'briefcase-variant',
   HelpingHand:  'hand-heart',
   ShieldCheck:  'shield-check',
   Gem:          'diamond-stone',
   Clock:        'clock-outline',
   Timer:        'timer',
+  // College
   Building2:     'office-building',
   CalendarCheck: 'calendar-check',
   BadgeCheck:    'check-decagram',
+  // Universal
   MailCheck:    'email-check',
   Phone:        'phone-check',
   Linkedin:     'linkedin',
   ScanFace:     'face-recognition',
   FlaskConical: 'flask-outline',
+  // Defaults
   Code:    'code-tags',
   Code2:   'code-tags',
 };
@@ -144,35 +177,42 @@ export function MaterialBadgeChip({ badge, size = 'sm', onPress, style, testID }
         colors={tier.gradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        className="flex-row items-center rounded-full border bg-white/[0.02] overflow-hidden"
-        style={{
-          paddingVertical: dims.padY,
-          paddingHorizontal: dims.padX,
-          gap: dims.gap,
-          borderColor: tier.ring,
-          ...elevation,
-          ...(Platform.OS === 'web' ? { cursor: onPress ? 'pointer' : 'default' } : null),
-        }}
-      >
-        <View
-          className="items-center justify-center border"
-          style={{
-            width: dims.iconBox,
-            height: dims.iconBox,
-            borderRadius: dims.iconBox / 2,
-            backgroundColor: tier.iconBg,
+        style={[
+          s.chip,
+          {
+            paddingVertical: dims.padY,
+            paddingHorizontal: dims.padX,
+            gap: dims.gap,
             borderColor: tier.ring,
-          }}
+          },
+          elevation,
+          Platform.OS === 'web' ? ({ cursor: onPress ? 'pointer' : 'default' } as any) : null,
+        ]}
+      >
+        {/* Icon disc */}
+        <View
+          style={[
+            s.iconDisc,
+            {
+              width: dims.iconBox,
+              height: dims.iconBox,
+              borderRadius: dims.iconBox / 2,
+              backgroundColor: tier.iconBg,
+              borderColor: tier.ring,
+            },
+          ]}
         >
           <MaterialCommunityIcons name={iconName} size={dims.iconSize} color={tier.iconFg} />
         </View>
 
-        <Text className="font-body-bold tracking-wider" style={{ color: tier.textColor, fontSize: dims.font }} numberOfLines={1}>
+        {/* Label */}
+        <Text style={[s.label, { color: tier.textColor, fontSize: dims.font }]} numberOfLines={1}>
           {badge.label || '—'}
         </Text>
 
+        {/* Tier rank pips (only for engagement low/mod/high) */}
         {tier.rank <= 3 && (
-          <View className="flex-row gap-0.5 ml-0.5">
+          <View style={{ flexDirection: 'row', gap: 2, marginLeft: 2 }}>
             {[1, 2, 3].map((i) => (
               <View
                 key={i}
@@ -187,6 +227,7 @@ export function MaterialBadgeChip({ badge, size = 'sm', onPress, style, testID }
           </View>
         )}
 
+        {/* Special-tier sparkle */}
         {tier.rank === 5 && (
           <MaterialCommunityIcons name="star-four-points" size={dims.iconSize - 2} color={tier.iconFg} style={{ marginLeft: 2 }} />
         )}
@@ -217,20 +258,59 @@ export function MaterialBadgeStack({ badges, max, size = 'sm', showOverflow = tr
 
   if (!display.length) {
     return emptyHint ? (
-      <Text className="text-white/45 font-body-semibold text-[11px] italic">{emptyHint}</Text>
+      <Text style={s.emptyHint}>{emptyHint}</Text>
     ) : null;
   }
 
   return (
-    <View className="flex-row flex-wrap gap-1.5 items-center" style={style}>
+    <View style={[{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'center' }, style]}>
       {display.map((b, i) => (
         <MaterialBadgeChip key={`${b.id || b.label || i}-${i}`} badge={b} size={size} />
       ))}
       {showOverflow && overflow > 0 && (
-        <View className="px-2 py-1 rounded-full bg-white/[0.06] border border-white/[0.12]">
-          <Text className="text-white/75 font-body-bold text-[10px]">+{overflow}</Text>
+        <View style={s.overflow}>
+          <Text style={s.overflowText}>+{overflow}</Text>
         </View>
       )}
     </View>
   );
 }
+
+const s = StyleSheet.create({
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 999,
+    borderWidth: 1,
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    overflow: 'hidden',
+  },
+  iconDisc: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  label: {
+    fontFamily: FT.bold,
+    letterSpacing: 0.2,
+  },
+  overflow: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1,
+  },
+  overflowText: {
+    color: 'rgba(255,255,255,0.75)',
+    fontFamily: FT.bold,
+    fontSize: 10,
+  },
+  emptyHint: {
+    color: 'rgba(255,255,255,0.45)',
+    fontFamily: FT.med,
+    fontSize: 11,
+    fontStyle: 'italic',
+  },
+});

@@ -9,7 +9,7 @@
  */
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, Pressable, ActivityIndicator, TextInput, Platform, ScrollView,
+  View, Text, StyleSheet, Pressable, ActivityIndicator, TextInput, Platform, ScrollView,
 } from 'react-native';
 import { Search, Building2, Plus } from 'lucide-react-native';
 import { api } from '@/src/models/services/api';
@@ -142,7 +142,7 @@ export function CollegeAutocomplete({ value, onChangeText, onSelect, placeholder
   );
 }
 
-const s = {
+const s = StyleSheet.create({
   wrap: { position: 'relative', zIndex: 50 },
   wrapOpen: { zIndex: 9999 },
 
@@ -184,4 +184,4 @@ const s = {
   rowName: { color: '#fff', fontFamily: TYPO.display600 ?? FONTS.semi, fontSize: 13 },
   rowNameManual: { color: '#34D399', fontFamily: FONTS.semi, fontSize: 12.5 },
   rowMeta: { color: PALETTE.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },
-} as const;
+});
