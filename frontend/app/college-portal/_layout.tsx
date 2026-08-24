@@ -10,6 +10,8 @@ import { Slot, useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { portalPathForRole, rolesForPortal } from '@/src/lib/portalHome';
 
+import { SAModernLoader } from '@/src/views/components/SAModernLoader';
+
 export default function CollegePortalLayoutRoute() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
@@ -28,11 +30,7 @@ export default function CollegePortalLayoutRoute() {
   }, [user, initialized, router]);
 
   if (!initialized) {
-    return (
-      <View style={s.gate}>
-        <ActivityIndicator size="small" color="#34D399" />
-      </View>
-    );
+    return <SAModernLoader subtitle="LOADING COLLEGE PORTAL" />;
   }
   if (!user) {
     return (

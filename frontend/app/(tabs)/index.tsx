@@ -16,8 +16,8 @@ import { CollegeDashboardView } from '@/src/views/web/CollegeDashboardView';
 
 const PAGE_BG: Record<string, [string, string]> = {
   student: ['#1A0438', '#2D0760'],
-  alumni:  ['#1A0438', '#2D0760'],
-  mentor:  ['#022C22', '#064E3B'],
+  alumni: ['#1A0438', '#2D0760'],
+  mentor: ['#022C22', '#064E3B'],
   college: ['#0F172A', '#1E3A8A'],
 };
 
@@ -40,7 +40,7 @@ export default function HomeTab() {
             onOpenProfile={() => router.push('/profile' as any)}
             onActionPress={(id) => {
               if (id === 'create-event') router.push('/courses');
-              else if (id === 'earnings')  router.push('/deals');
+              else if (id === 'earnings') router.push('/deals');
               else if (id === 'feedback' || id === 'analytics') router.push('/network');
             }}
           />
@@ -51,10 +51,10 @@ export default function HomeTab() {
             onOpenNotifications={() => router.push('/notifications')}
             onOpenProfile={() => router.push('/profile' as any)}
             onActionPress={(id) => {
-              if (id === 'announce')   router.push('/notifications');
+              if (id === 'announce') router.push('/notifications');
               else if (id === 'new-event') router.push('/deals');
               else if (id === 'analytics') router.push('/network');
-              else if (id === 'students')  router.push('/network');
+              else if (id === 'students') router.push('/network');
             }}
           />
         ) : (
@@ -65,14 +65,14 @@ export default function HomeTab() {
             onOpenProfile={() => router.push('/profile' as any)}
             onActionPress={(id) => {
               switch (id) {
-                case 'alumni':     router.push('/network'); break;
-                case 'jobs':       router.push('/courses'); break;
-                case 'events':     router.push('/deals');   break;
+                case 'alumni': router.push('/network'); break;
+                case 'jobs': router.push('/courses'); break;
+                case 'events': router.push('/deals'); break;
                 case 'mentorship': router.push('/network'); break;
-                case 'announce':   router.push('/notifications');  break;
-                case 'leaderboard':router.push('/network'); break;
-                case 'resources':  router.push('/courses'); break;
-                case 'settings':   router.push('/profile' as any);        break;
+                case 'announce': router.push('/notifications'); break;
+                case 'leaderboard': router.push('/network'); break;
+                case 'resources': router.push('/courses'); break;
+                case 'settings': router.push('/profile' as any); break;
               }
             }}
           />
