@@ -3,17 +3,18 @@
   "compilerOptions": {
     "strict": false,
     "skipLibCheck": true,
-    "types": ["node", "jest"],
+    "types": ["node", "jest", "nativewind/types"],
     "paths": {
       "@/*": [
         "./*"
       ]
     }
   },
-  "include": [
+    "include": [
     "**/*.ts",
     "**/*.tsx",
     ".expo/types/**/*.ts",
-    "expo-env.d.ts"
+    "expo-env.d.ts",
+    "nativewind-env.d.ts"
   ]
 }
