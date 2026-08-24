@@ -1,17 +1,3 @@
-/**
- * NexusOS — Shared Design System
- * ===============================
- * Single source of truth for the NexusOS dark-glass palette,
- * spacing scale, radii, motion/timing constants, and shadow recipes.
- *
- * Every portal (Student, Alumni, College, Super Admin) consumes
- * these tokens so the visual language stays unified while each
- * portal layers its own accent identity (orange / cyan / blue / red).
- *
- * Usage:
- *   import { NX } from '@/src/theme/nexus';
- *   <View style={{ backgroundColor: NX.surface2, borderColor: NX.border }} />
- */
 import { Platform } from 'react-native';
 export { PORTAL_ACCENTS, NX_MOTION } from '@/src/theme/tokens';
 export type { PortalKey } from '@/src/theme/tokens';

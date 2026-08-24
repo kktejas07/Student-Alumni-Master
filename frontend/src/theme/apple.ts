@@ -1,17 +1,3 @@
-/**
- * Apple HIG Theme — light + dark, with brand purple preserved as primary.
- *
- * Single source of truth for the new design system. Consumed by every
- * Apple-style primitive in src/motion/apple/. Pair with ThemeContext.tsx
- * for runtime light/dark switching.
- *
- * Key choices (locked with user):
- *   • Brand primary stays Student-Alumni purple #5F259F
- *   • Apple semantic colors for status (blue/green/red/orange/purple/pink)
- *   • Hairline borders (rgba(0,0,0,0.08) light · rgba(255,255,255,0.10) dark)
- *   • SF Pro fallback chain — falls back to system on web/native
- *   • 4px grid spacing, Apple-spec radii
- */
 import { Platform } from 'react-native';
 export { BRAND } from '@/src/theme/tokens';
 
