@@ -47,6 +47,8 @@ function measureTarget(selector: string): Rect | null {
 
 export function TourOverlay() {
   const { active, stepIdx, next, back, skip, complete } = useTour();
+  if (!active) return null;
+
   const [rect, setRect] = useState<Rect | null>(null);
   const [viewport, setViewport] = useState({
     w: typeof window !== 'undefined' ? window.innerWidth : 1280,

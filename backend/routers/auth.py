@@ -454,7 +454,8 @@ async def login(request: Request, req: LoginRequest):
     # ── Stage 3: Password verification (offloaded to thread) ──
     _t_pw0 = _time.perf_counter()
     loop = asyncio.get_running_loop()
-    is_valid = await loop.run_in_executor(None, verify_password, req.password, user["password_hash"])
+    pw_hash = user.get("password_hash") or user.get("hashed_password", "")
+    is_valid = await loop.run_in_executor(None, verify_password, req.password, pw_hash) if pw_hash else False
     _t_pw1 = _time.perf_counter()
     print(f"[LOGIN TRACE] PASSWORD_VERIFIED | 3. Password verification | duration={(_t_pw1-_t_pw0)*1000:.1f}ms | valid={is_valid}", flush=True)
 

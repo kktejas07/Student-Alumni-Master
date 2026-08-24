@@ -465,8 +465,20 @@ export const api = {
     request<any>(`/echo/admin/registrations/${regId}`, { method: 'DELETE' }),
   adminEchoSendPaymentReminder: (regId: string) =>
     request<any>(`/echo/admin/registrations/${regId}/remind`, { method: 'POST' }),
+  adminEchoResendAccountTickets: (regId: string) =>
+    request<any>(`/echo/admin/registrations/${regId}/resend-account-tickets`, { method: 'POST' }),
+  adminEchoSyncTeams: () =>
+    request<any>('/echo/admin/registrations/sync-teams', { method: 'POST' }),
+  adminEchoBroadcastSummary: (slug?: string) =>
+    request<any>(`/echo/admin/broadcast/audience-summary${slug ? '?slug=' + slug : ''}`),
+  adminEchoBroadcastSend: (payload: any) =>
+    request<any>('/echo/admin/broadcast/send', { method: 'POST', body: payload }),
   adminEchoMarkRegistrationFailed: (regId: string) =>
     request<any>(`/echo/admin/registrations/${regId}/mark-failed`, { method: 'POST' }),
+  adminEchoUpdateTeam: (regId: string, teamMembers: any[], teamName?: string) =>
+    request<any>(`/echo/admin/registrations/${regId}/team`, { method: 'PUT', body: { team_members: teamMembers, team_name: teamName } }),
+  adminEchoResendTickets: (regId: string) =>
+    request<any>(`/echo/admin/registrations/${regId}/resend-tickets`, { method: 'POST' }),
   adminEchoRevenue: () =>
     request<any>('/echo/admin/revenue'),
   myEchoInvoices: () =>

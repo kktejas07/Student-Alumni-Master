@@ -2876,6 +2876,13 @@ function RegistrationsPanel() {
   const [detailRow, setDetailRow] = useState<any>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [actioning, setActioning] = useState<string | null>(null);
+
+
+  const [editingTeamReg, setEditingTeamReg] = useState<any>(null);
+  const [editTeamMembers, setEditTeamMembers] = useState<any[]>([]);
+  const [editTeamName, setEditTeamName] = useState('');
+
+
   const [page, setPage] = useState(0);
   const PER_PAGE = 20;
   const { flash } = useToast();
@@ -2920,6 +2927,47 @@ function RegistrationsPanel() {
     }
   };
 
+  
+  const handleEditTeam = (r: any) => {
+    setEditingTeamReg(r);
+    setEditTeamName(r.team_name || '');
+    const members = [...(r.team_members || [])];
+
+    const size = r.team_size || 1;
+    while (members.length < size - 1) {
+      members.push({ name: '', email: '', phone: '' });
+    }
+    setEditTeamMembers(members);
+  };
+
+  const saveTeamMembers = async () => {
+    if (!editingTeamReg) return;
+    setActioning(editingTeamReg.id);
+    try {
+      await api.adminEchoUpdateTeam(editingTeamReg.id, editTeamMembers, editTeamName);
+      flash('Team members updated successfully');
+      setEditingTeamReg(null);
+      await load();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to update team members');
+    } finally {
+      setActioning(null);
+    }
+  };
+
+  const resendTickets = async (r: any) => {
+    setActioning(r.id);
+    try {
+      await api.adminEchoResendTickets(r.id);
+      flash('Tickets and coupons resent successfully');
+      await load();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to resend tickets');
+    } finally {
+      setActioning(null);
+    }
+  };
+
   const sendReminder = async (r: any) => {
     setActioning(r.id);
     try {
@@ -2950,6 +2998,103 @@ function RegistrationsPanel() {
       flash(err?.message || 'Failed to mark as failed');
     } finally {
       setActioning(null);
+    }
+  };
+
+  const [resending, setResending] = useState<string | null>(null);
+  const [syncingTeams, setSyncingTeams] = useState(false);
+
+  const resendAccountTickets = async (r: any) => {
+    const regId = r.id || r._id;
+    if (!regId) return;
+    const isTeam = r.registration_type === 'team';
+    const ok = await confirm({
+      title: 'Resend Account Credentials & Tickets?',
+      message: `This will provision Student Alumni accounts for ${isTeam ? 'all team members (' + (r.team_size || 1) + ' members)' : r.full_name}, generate unique QR entry passes, and email login credentials and passes.`,
+      confirmText: 'Resend & Issue Passes',
+    });
+    if (!ok) return;
+    setResending(regId);
+    try {
+      const res = await api.adminEchoResendAccountTickets(regId);
+      flash(res?.message || 'Accounts and tickets successfully sent!');
+      await load();
+      if (detailRow && (detailRow.id === regId || detailRow._id === regId)) {
+        setDetailRow((prev: any) => ({ ...prev, has_account: true, ticket_issued: true }));
+      }
+    } catch (err: any) {
+      flash(err?.message || 'Failed to resend accounts and tickets');
+    } finally {
+      setResending(null);
+    }
+  };
+
+  const syncAllTeams = async () => {
+    const ok = await confirm({
+      title: 'Sync & Resend All Team Accounts & Passes?',
+      message: 'This will scan all paid/registered team registrations, ensure every team member has an SA Student account, generate individual QR tickets, and email login credentials and entry passes.',
+      confirmText: 'Sync All Teams',
+    });
+    if (!ok) return;
+    setSyncingTeams(true);
+    try {
+      const res = await api.adminEchoSyncTeams();
+      flash(`Successfully fulfilled ${res?.total_members_synced || 0} team members across ${res?.teams_processed || 0} teams!`);
+      await load();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to sync teams');
+    } finally {
+      setSyncingTeams(false);
+    }
+  };
+
+  const [broadcastSummary, setBroadcastSummary] = useState<any>(null);
+  const [broadcastModal, setBroadcastModal] = useState<any>(null);
+  const [broadcasting, setBroadcasting] = useState(false);
+
+  const loadBroadcastSummary = async () => {
+    try {
+      const summary = await api.adminEchoBroadcastSummary(eventSlug === 'all' ? undefined : eventSlug);
+      setBroadcastSummary(summary);
+    } catch (_) {}
+  };
+
+  useEffect(() => {
+    loadBroadcastSummary();
+  }, [eventSlug]);
+
+  const openBroadcast = (targetGroup: 'pending_unpaid' | 'confirmed_paid' | 'unregistered_students') => {
+    const selectedEvent = uniqueEvents.find((e: any) => e.slug === eventSlug);
+    const eventName = selectedEvent?.title || 'SNIST HackWave 3.0';
+    let defaultSubj = '';
+    if (targetGroup === 'pending_unpaid') {
+      defaultSubj = `Action Required: Complete your payment & pass for ${eventName}`;
+    } else if (targetGroup === 'confirmed_paid') {
+      defaultSubj = `Important Event Notice & Schedule Updates — ${eventName}`;
+    } else {
+      defaultSubj = `🚀 Invitation: Register your team for ${eventName}`;
+    }
+    setBroadcastModal({
+      target_group: targetGroup,
+      subject: defaultSubj,
+      custom_message: '',
+      slug: eventSlug === 'all' ? undefined : eventSlug,
+    });
+  };
+
+  const submitBroadcast = async () => {
+    if (!broadcastModal) return;
+    setBroadcasting(true);
+    try {
+      const res = await api.adminEchoBroadcastSend(broadcastModal);
+      flash(res?.message || `Successfully sent broadcast!`);
+      setBroadcastModal(null);
+      await load();
+      await loadBroadcastSummary();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to send broadcast');
+    } finally {
+      setBroadcasting(false);
     }
   };
 
@@ -2996,7 +3141,133 @@ function RegistrationsPanel() {
           <ScanLine size={14} color="#fff" />
           <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Scan Coupons</Text>
         </Pressable>
+        <Pressable
+          onPress={syncAllTeams}
+          disabled={syncingTeams}
+          style={{
+            flexDirection: 'row', alignItems: 'center', gap: 6,
+            backgroundColor: syncingTeams ? 'rgba(16,185,129,0.2)' : 'rgba(16,185,129,0.15)',
+            borderWidth: 1, borderColor: 'rgba(52,211,153,0.35)',
+            borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, cursor: 'pointer',
+          }}
+        >
+          <RefreshCw size={14} color="#34D399" />
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#34D399' }}>
+            {syncingTeams ? 'Syncing...' : 'Sync & Resend Team Passes'}
+          </Text>
+        </Pressable>
       </View>
+
+      {/* Segmented Audience Broadcasts & Notices */}
+      <Card style={{ marginBottom: 18, backgroundColor: 'rgba(15,23,42,0.65)', borderColor: 'rgba(255,255,255,0.08)' }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
+          <View>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: '#fff' }}>Targeted Broadcasts &amp; Notices</Text>
+            <Text style={{ fontFamily: FONTS.reg, fontSize: 12, color: SAC.muted, marginTop: 2 }}>
+              Differentiate communication between unpaid cart registrants, confirmed attendees, and platform students
+            </Text>
+          </View>
+          <StatusPill kind="info" label="Multi-Channel Notifications" />
+        </View>
+
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+          {/* Card 1: Unpaid / Pending Recovery */}
+          <View style={{
+            flex: 1, minWidth: 260,
+            backgroundColor: 'rgba(245,158,11,0.05)',
+            borderWidth: 1, borderColor: 'rgba(245,158,11,0.25)',
+            borderRadius: 12, padding: 14, justifyContent: 'space-between', gap: 12,
+          }}>
+            <View>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 13.5, color: '#FCD34D' }}>Unpaid Registrants</Text>
+                <View style={{ backgroundColor: 'rgba(245,158,11,0.2)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
+                  <Text style={{ fontFamily: FONTS.xbold, fontSize: 11, color: '#FBBF24' }}>
+                    {broadcastSummary?.pending_unpaid ?? pending.length} Pending
+                  </Text>
+                </View>
+              </View>
+              <Text style={{ fontFamily: FONTS.reg, fontSize: 11.5, color: 'rgba(255,255,255,0.65)', lineHeight: 16 }}>
+                Users with Student Alumni accounts whose registration payment is incomplete. Sends direct payment resume link &amp; event handbook.
+              </Text>
+            </View>
+            <Pressable
+              onPress={() => openBroadcast('pending_unpaid')}
+              style={{
+                flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+                backgroundColor: '#D97706', borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12, cursor: 'pointer',
+              }}
+            >
+              <Send size={13} color="#fff" />
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Send Payment Recovery Notice</Text>
+            </Pressable>
+          </View>
+
+          {/* Card 2: Confirmed Attendees */}
+          <View style={{
+            flex: 1, minWidth: 260,
+            backgroundColor: 'rgba(16,185,129,0.05)',
+            borderWidth: 1, borderColor: 'rgba(52,211,153,0.25)',
+            borderRadius: 12, padding: 14, justifyContent: 'space-between', gap: 12,
+          }}>
+            <View>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 13.5, color: '#6EE7B7' }}>Confirmed Attendees</Text>
+                <View style={{ backgroundColor: 'rgba(16,185,129,0.2)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
+                  <Text style={{ fontFamily: FONTS.xbold, fontSize: 11, color: '#34D399' }}>
+                    {broadcastSummary?.confirmed_paid ?? paid.length} Confirmed
+                  </Text>
+                </View>
+              </View>
+              <Text style={{ fontFamily: FONTS.reg, fontSize: 11.5, color: 'rgba(255,255,255,0.65)', lineHeight: 16 }}>
+                Attendees and teammates with active QR entry passes. Sends official timetable, track rules, meal pass guide &amp; handbook.
+              </Text>
+            </View>
+            <Pressable
+              onPress={() => openBroadcast('confirmed_paid')}
+              style={{
+                flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+                backgroundColor: '#059669', borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12, cursor: 'pointer',
+              }}
+            >
+              <Mail size={13} color="#fff" />
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Send Event Notice &amp; Updates</Text>
+            </Pressable>
+          </View>
+
+          {/* Card 3: Platform Students */}
+          <View style={{
+            flex: 1, minWidth: 260,
+            backgroundColor: 'rgba(99,102,241,0.05)',
+            borderWidth: 1, borderColor: 'rgba(129,140,248,0.25)',
+            borderRadius: 12, padding: 14, justifyContent: 'space-between', gap: 12,
+          }}>
+            <View>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 13.5, color: '#A5B4FC' }}>Platform Students</Text>
+                <View style={{ backgroundColor: 'rgba(99,102,241,0.2)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
+                  <Text style={{ fontFamily: FONTS.xbold, fontSize: 11, color: '#818CF8' }}>
+                    {broadcastSummary?.unregistered_students ?? 0} Unregistered
+                  </Text>
+                </View>
+              </View>
+              <Text style={{ fontFamily: FONTS.reg, fontSize: 11.5, color: 'rgba(255,255,255,0.65)', lineHeight: 16 }}>
+                Active Student Alumni members who have not registered for this event yet. Sends invitation newsletter with direct register link.
+              </Text>
+            </View>
+            <Pressable
+              onPress={() => openBroadcast('unregistered_students')}
+              style={{
+                flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+                backgroundColor: '#6366F1', borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12, cursor: 'pointer',
+              }}
+            >
+              <Zap size={13} color="#fff" />
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Send Event Invitation</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Card>
 
       {/* Per-event revenue */}
       {revenue.events?.length > 0 && (
@@ -3077,11 +3348,12 @@ function RegistrationsPanel() {
           </View>
         ) : (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
-            <View style={{ minWidth: 950, flex: 1 }}>
+            <View style={{ minWidth: 1050, flex: 1 }}>
               {/* Header */}
               <View style={{ flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 14, backgroundColor: 'rgba(255,255,255,0.04)', borderBottomWidth: 1, borderBottomColor: SAC.border }}>
                 <Text style={{ flex: 1.5, minWidth: 180, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>ATTENDEE</Text>
                 <Text style={{ width: 70, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>TYPE</Text>
+                <Text style={{ width: 50, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>SIZE</Text>
                 <Text style={{ flex: 1.5, minWidth: 180, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>EVENT</Text>
                 <Text style={{ width: 120, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>AMOUNT</Text>
                 <Text style={{ width: 120, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>PAYMENT</Text>
@@ -3089,12 +3361,14 @@ function RegistrationsPanel() {
                 <Text style={{ width: 120, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>DATE</Text>
                 <Text style={{ width: 80, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5, textAlign: 'center' }}>ACTIONS</Text>
               </View>
-              {paged.map((r: any, i: number) => (
+              {paged.map((r: any, i: number) => {
+                const isTeam = r.registration_type === 'team' || !!r.team_name || (r.team_size && r.team_size > 1);
+                return (
                 <View key={r.id || i} style={{ flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 11, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' }}>
                   <View style={{ flex: 1.5, minWidth: 180 }}>
                     <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 12.5, color: '#fff' }}>{r.full_name || '—'}</Text>
                     <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10.5, color: SAC.dim }}>{r.email || r.phone || ''}</Text>
-                    {r.registration_type === 'team' && (
+                    {isTeam && (
                       <View style={{ marginTop: 6, gap: 4 }}>
                         {r.team_name && (
                           <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 10, color: '#C4B5FD' }}>
@@ -3121,27 +3395,46 @@ function RegistrationsPanel() {
                   </View>
                   <View style={{ width: 70 }}>
                     <View style={{ 
-                      backgroundColor: r.registration_type === 'team' ? 'rgba(124,58,237,0.15)' : 'rgba(52,211,153,0.15)',
-                      paddingHorizontal: 6, paddingVertical: 3, borderRadius: 6,
-                      borderWidth: 1, borderColor: r.registration_type === 'team' ? 'rgba(124,58,237,0.3)' : 'rgba(52,211,153,0.3)',
+                      backgroundColor: isTeam ? 'rgba(124,58,237,0.15)' : 'rgba(52,211,153,0.15)',
+                      paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6,
+                      borderWidth: 1, borderColor: isTeam ? 'rgba(124,58,237,0.3)' : 'rgba(52,211,153,0.3)',
+                      alignSelf: 'flex-start', alignItems: 'center'
                     }}>
-                      <Text style={{ fontFamily: FONTS.xbold, fontSize: 9, color: r.registration_type === 'team' ? '#C4B5FD' : '#6EE7B7' }}>
-                        {r.registration_type === 'team' ? 'TEAM' : 'IND'}
+                      <Text style={{ fontFamily: FONTS.xbold, fontSize: 9, color: isTeam ? '#C4B5FD' : '#6EE7B7' }}>
+                        {isTeam ? 'TEAM' : 'IND'}
                       </Text>
                     </View>
+                  </View>
+                  <View style={{ width: 50, paddingTop: 4 }}>
+                    <Text style={{ fontFamily: FONTS.xbold, fontSize: 11, color: '#e5e7eb' }}>
+                      {isTeam ? (r.team_size > 1 ? r.team_size : 1) : 1}
+                    </Text>
                   </View>
                   <View style={{ flex: 1.5, minWidth: 180 }}>
                     <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 12, color: '#e5e7eb' }}>{r.event_title || r.slug || '—'}</Text>
                     <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>{r.college || ''}</Text>
                   </View>
-                  <View style={{ width: 120, minWidth: 0 }}>
-                    <Text style={{ fontFamily: FONTS.xbold, fontSize: 12, color: '#fff' }}>
-                      {Number(r.fee || 0) > 0 ? `₹${Number(r.fee).toLocaleString('en-IN')}` : 'FREE'}
-                    </Text>
-                    {r.registration_type === 'team' && r.team_size > 1 && (
-                      <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 9, color: SAC.dim }}>
-                        {r.team_size} ppl
-                      </Text>
+                  <View style={{ width: 120, minWidth: 0, paddingTop: 2 }}>
+                    {r.is_team_member ? (
+                      <View>
+                        <Text style={{ fontFamily: FONTS.xbold, fontSize: 11.5, color: '#C4B5FD' }}>
+                          Team Pass
+                        </Text>
+                        <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 9, color: SAC.dim, marginTop: 1 }}>
+                          {r.team_leader_name ? `Paid by ${r.team_leader_name.split(' ')[0]}` : 'Covered in Team'}
+                        </Text>
+                      </View>
+                    ) : (
+                      <View>
+                        <Text style={{ fontFamily: FONTS.xbold, fontSize: 12, color: '#fff' }}>
+                          {Number(r.fee || 0) > 0 ? `₹${Number(r.fee).toLocaleString('en-IN')}` : 'FREE'}
+                        </Text>
+                        {isTeam && (r.team_size > 1 || (r.team_members?.length || 0) > 0) && (
+                          <Text style={{ fontFamily: FONTS.med, fontSize: 9.5, color: '#A78BFA', marginTop: 1 }}>
+                            {(r.team_size || (r.team_members?.length + 1))} Passes
+                          </Text>
+                        )}
+                      </View>
                     )}
                   </View>
                   <View style={{ width: 120, minWidth: 0 }}>
@@ -3175,8 +3468,18 @@ function RegistrationsPanel() {
                       {(r.registered_at || '').slice(0, 10) || '—'}
                     </Text>
                   </View>
-                  <View style={{ width: 80, flexDirection: 'row', gap: 4, justifyContent: 'center' }}>
+                  <View style={{ width: 110, flexDirection: 'row', gap: 4, justifyContent: 'center' }}>
                     <IconAction icon={<Eye size={14} color="#818CF8" />} label="View" color="#818CF8" onPress={() => setDetailRow(r)} />
+                    {(r.payment_status === 'paid' || Number(r.fee || 0) === 0) && (
+                      <IconAction
+                        icon={<Send size={14} color="#A78BFA" />}
+                        label="Resend Account & Pass"
+                        color="#A78BFA"
+                        bg="rgba(124,58,237,0.15)"
+                        onPress={() => resendAccountTickets(r)}
+                        disabled={resending === (r.id || r._id)}
+                      />
+                    )}
                     {r.payment_status === 'pending' && (
                       <>
                         <IconAction
@@ -3209,7 +3512,8 @@ function RegistrationsPanel() {
                     />
                   </View>
                 </View>
-              ))}
+                );
+              })}
             </View>
           </ScrollView>
         )}
@@ -3332,23 +3636,147 @@ function RegistrationsPanel() {
                 ))}
               </View>
 
-              {/* Team Members (if team registration) */}
-              {detailRow.registration_type === 'team' && detailRow.team_members?.length > 0 && (
-                <View style={{ backgroundColor: 'rgba(124,58,237,0.08)', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: 'rgba(167,139,250,0.2)' }}>
-                  <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text, marginBottom: 10 }}>Team Members ({detailRow.team_members.length})</Text>
-                  <View style={{ gap: 8 }}>
-                    {detailRow.team_members.map((member: any, idx: number) => (
-                      <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 10 }}>
-                        <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(124,58,237,0.25)', alignItems: 'center', justifyContent: 'center' }}>
-                          <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: '#C4B5FD' }}>{idx + 2}</Text>
-                        </View>
-                        <View style={{ flex: 1, minWidth: 0 }}>
-                          <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>{member.name || '—'}</Text>
-                          <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>{member.email || ''} {member.phone ? `· ${member.phone}` : ''}</Text>
+                            {/* Team Members (if team registration) */}
+              {detailRow.registration_type === 'team' && (
+                <View style={{ backgroundColor: 'rgba(124,58,237,0.08)', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)', gap: 12 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Text style={{ fontFamily: FONTS.bold, fontSize: 13.5, color: '#fff' }}>
+                          Team: {detailRow.team_name || 'Team Registration'}
+                        </Text>
+                        <View style={{ backgroundColor: 'rgba(124,58,237,0.3)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
+                          <Text style={{ fontFamily: FONTS.xbold, fontSize: 10, color: '#DDD6FE' }}>
+                            {((detailRow.team_members?.length || 0) + 1)} Passes Total
+                          </Text>
                         </View>
                       </View>
-                    ))}
+                      <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: '#C4B5FD', marginTop: 2 }}>
+                        1 Captain Pass ({detailRow.full_name}) + {(detailRow.team_members || []).length} Teammate Passes · {fmtAmt(detailRow.fee)} Paid
+                      </Text>
+                    </View>
+                    {!editingTeamReg ? (
+                      <Pressable onPress={() => handleEditTeam(detailRow)} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(124,58,237,0.2)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.4)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6 }}>
+                        <Pencil size={12} color="#C4B5FD" />
+                        <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: '#C4B5FD' }}>Edit Members</Text>
+                      </Pressable>
+                    ) : null}
                   </View>
+                  
+                  {!editingTeamReg ? (
+                    <View style={{ gap: 8 }}>
+                      {(detailRow.team_members || []).map((member: any, idx: number) => {
+                        const memberRegId = member.reg_id || `${detailRow.id || detailRow._id}_M${idx + 1}`;
+                        const saId = member.sa_unique_id || `SA-STU-${(member.email || '').split('@')[0]}`;
+                        return (
+                          <View key={idx} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
+                            <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(124,58,237,0.3)', alignItems: 'center', justifyContent: 'center', marginTop: 2 }}>
+                              <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: '#C4B5FD' }}>{idx + 2}</Text>
+                            </View>
+                            <View style={{ flex: 1, minWidth: 0 }}>
+                              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+                                <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#fff' }} numberOfLines={1}>
+                                  {member.name || `Team Member ${idx + 2}`}
+                                </Text>
+                                <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+                                  <View style={{ backgroundColor: 'rgba(52,211,153,0.15)', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 5, borderWidth: 1, borderColor: 'rgba(52,211,153,0.3)' }}>
+                                    <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#34D399' }}>Account Active</Text>
+                                  </View>
+                                  <View style={{ backgroundColor: 'rgba(124,58,237,0.2)', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 5, borderWidth: 1, borderColor: 'rgba(167,139,250,0.3)' }}>
+                                    <Text style={{ fontFamily: FONTS.bold, fontSize: 9.5, color: '#C4B5FD' }}>Pass Active</Text>
+                                  </View>
+                                </View>
+                              </View>
+                              <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.dim, marginTop: 2 }}>
+                                {member.email || '—'} {member.phone ? `• ${member.phone}` : ''}
+                              </Text>
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 6, flexWrap: 'wrap' }}>
+                                <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: '#94A3B8' }}>
+                                  SA ID: <Text style={{ color: '#E2E8F0', fontFamily: FONTS.bold }}>{saId}</Text>
+                                </Text>
+                                <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: '#94A3B8' }}>
+                                  Pass ID: <Text style={{ color: '#E2E8F0', fontFamily: FONTS.bold }}>{memberRegId}</Text>
+                                </Text>
+                                <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: '#34D399' }}>
+                                  • Covered under Team Pass
+                                </Text>
+                              </View>
+                            </View>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  ) : (
+                    <View style={{ gap: 12 }}>
+                      <View style={{ backgroundColor: 'rgba(255,255,255,0.02)', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
+                        <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#F59E0B', marginBottom: 8 }}>Team Name</Text>
+                        <TextInput
+                          style={{ backgroundColor: 'rgba(255,255,255,0.04)', color: SAC.text, padding: 10, borderRadius: 6, fontFamily: FONTS.med, fontSize: 12 }}
+                          placeholder="Enter team name"
+                          placeholderTextColor="rgba(255,255,255,0.3)"
+                          value={editTeamName}
+                          onChangeText={setEditTeamName}
+                        />
+                      </View>
+                      
+                      {editTeamMembers.map((m, idx) => (
+                        <View key={idx} style={{ backgroundColor: 'rgba(255,255,255,0.02)', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
+                          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#C4B5FD', marginBottom: 8 }}>Team Member {idx + 2}</Text>
+                          <TextInput
+                            style={{ backgroundColor: 'rgba(255,255,255,0.04)', color: SAC.text, padding: 10, borderRadius: 6, fontFamily: FONTS.med, fontSize: 12, marginBottom: 8 }}
+                            placeholder="Full Name"
+                            placeholderTextColor="rgba(255,255,255,0.3)"
+                            value={m.name}
+                            onChangeText={(val) => {
+                              const updated = [...editTeamMembers];
+                              updated[idx].name = val;
+                              setEditTeamMembers(updated);
+                            }}
+                          />
+                          <TextInput
+                            style={{ backgroundColor: 'rgba(255,255,255,0.04)', color: SAC.text, padding: 10, borderRadius: 6, fontFamily: FONTS.med, fontSize: 12, marginBottom: 8 }}
+                            placeholder="Email Address"
+                            placeholderTextColor="rgba(255,255,255,0.3)"
+                            autoCapitalize="none"
+                            value={m.email}
+                            onChangeText={(val) => {
+                              const updated = [...editTeamMembers];
+                              updated[idx].email = val;
+                              setEditTeamMembers(updated);
+                            }}
+                          />
+                          <TextInput
+                            style={{ backgroundColor: 'rgba(255,255,255,0.04)', color: SAC.text, padding: 10, borderRadius: 6, fontFamily: FONTS.med, fontSize: 12 }}
+                            placeholder="Phone (Optional)"
+                            placeholderTextColor="rgba(255,255,255,0.3)"
+                            keyboardType="numeric"
+                            value={m.phone}
+                            onChangeText={(val) => {
+                              const updated = [...editTeamMembers];
+                              updated[idx].phone = val;
+                              setEditTeamMembers(updated);
+                            }}
+                          />
+                        </View>
+                      ))}
+                      <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+                        <Pressable onPress={() => setEditingTeamReg(null)} style={{ flex: 1, padding: 10, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 6, alignItems: 'center' }}>
+                          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.dim }}>Cancel</Text>
+                        </Pressable>
+                        <Pressable onPress={() => {
+                          saveTeamMembers().then(() => {
+                            setDetailRow(prev => ({ ...prev, team_members: editTeamMembers, team_name: editTeamName }));
+                          });
+                        }} style={{ flex: 1, padding: 10, backgroundColor: '#7C3AED', borderRadius: 6, alignItems: 'center' }}>
+                          {actioning === editingTeamReg?.id ? (
+                            <ActivityIndicator size="small" color="#fff" />
+                          ) : (
+                            <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Save</Text>
+                          )}
+                        </Pressable>
+                      </View>
+                    </View>
+                  )}
                 </View>
               )}
 
@@ -3392,8 +3820,25 @@ function RegistrationsPanel() {
               </ScrollView>
 
               {/* Fixed Footer */}
-              <View style={{ padding: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' }}>
-                <GradientButton onPress={() => setDetailRow(null)} size="sm" style={{ alignSelf: 'flex-end' }}>
+              <View style={{ padding: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                {(detailRow.payment_status === 'paid' || Number(detailRow.fee || 0) === 0) ? (
+                  <Pressable
+                    onPress={() => resendAccountTickets(detailRow)}
+                    disabled={resending === (detailRow.id || detailRow._id)}
+                    style={{
+                      flexDirection: 'row', alignItems: 'center', gap: 6,
+                      backgroundColor: 'rgba(124,58,237,0.2)', borderWidth: 1, borderColor: '#7C3AED',
+                      borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8,
+                      opacity: resending === (detailRow.id || detailRow._id) ? 0.6 : 1,
+                    }}
+                  >
+                    <Send size={13} color="#C4B5FD" />
+                    <Text style={{ fontFamily: FONTS.bold, fontSize: 11.5, color: '#DDD6FE' }}>
+                      {resending === (detailRow.id || detailRow._id) ? 'Sending...' : 'Resend Accounts & Reissue Tickets'}
+                    </Text>
+                  </Pressable>
+                ) : <View />}
+                <GradientButton onPress={() => setDetailRow(null)} size="sm">
                   <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>Close</Text>
                 </GradientButton>
               </View>
@@ -3401,6 +3846,116 @@ function RegistrationsPanel() {
           </View>
         </Modal>
       )}
+
+      {/* Broadcast / Notice Modal */}
+      {broadcastModal && (
+        <Modal visible={true} transparent animationType="fade" onRequestClose={() => setBroadcastModal(null)}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+            <View style={{
+              width: '100%', maxWidth: 620,
+              backgroundColor: '#141A2D',
+              borderWidth: 1, borderColor: 'rgba(124,58,237,0.3)',
+              borderRadius: 16,
+              shadowColor: '#000', shadowOffset: { width: 0, height: 18 }, shadowOpacity: 0.6, shadowRadius: 32,
+              elevation: 12, overflow: 'hidden',
+            }}>
+              {/* Header */}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 18, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: '#fff' }}>
+                    {broadcastModal.target_group === 'pending_unpaid' && 'Send Payment Recovery Notice'}
+                    {broadcastModal.target_group === 'confirmed_paid' && 'Send Attendee Notice & Handbook'}
+                    {broadcastModal.target_group === 'unregistered_students' && 'Send Event Invitation Newsletter'}
+                  </Text>
+                </View>
+                <Pressable onPress={() => setBroadcastModal(null)} style={{ padding: 4 }}><X size={18} color={SAC.muted} /></Pressable>
+              </View>
+
+              {/* Body */}
+              <ScrollView style={{ padding: 20, maxHeight: '65vh' }} contentContainerStyle={{ gap: 14 }}>
+                {/* Target Audience Pill */}
+                <View style={{ padding: 12, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' }}>
+                  <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>Target Segment</Text>
+                  <Text style={{ fontFamily: FONTS.bold, fontSize: 13.5, color: '#E2E8F0', marginTop: 2 }}>
+                    {broadcastModal.target_group === 'pending_unpaid' && `Pending Unpaid Registrants (${broadcastSummary?.pending_unpaid ?? pending.length} users)`}
+                    {broadcastModal.target_group === 'confirmed_paid' && `Confirmed Active Attendees (${broadcastSummary?.confirmed_paid ?? paid.length} users)`}
+                    {broadcastModal.target_group === 'unregistered_students' && `Platform Students (${broadcastSummary?.unregistered_students ?? 0} users)`}
+                  </Text>
+                </View>
+
+                {/* Email Subject */}
+                <View>
+                  <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted, marginBottom: 6 }}>Email Subject Line</Text>
+                  <TextInput
+                    value={broadcastModal.subject}
+                    onChangeText={(t) => setBroadcastModal((prev: any) => ({ ...prev, subject: t }))}
+                    placeholder="Enter email subject..."
+                    placeholderTextColor="rgba(255,255,255,0.3)"
+                    style={{
+                      backgroundColor: 'rgba(255,255,255,0.06)',
+                      borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
+                      borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10,
+                      color: '#fff', fontSize: 13.5, fontFamily: FONTS.reg,
+                    }}
+                  />
+                </View>
+
+                {/* Custom Message Body */}
+                <View>
+                  <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted, marginBottom: 6 }}>
+                    Custom Announcement / Note <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>(Optional)</Text>
+                  </Text>
+                  <TextInput
+                    value={broadcastModal.custom_message}
+                    onChangeText={(t) => setBroadcastModal((prev: any) => ({ ...prev, custom_message: t }))}
+                    placeholder="Add an optional message or highlight for recipients..."
+                    placeholderTextColor="rgba(255,255,255,0.3)"
+                    multiline
+                    numberOfLines={4}
+                    style={{
+                      backgroundColor: 'rgba(255,255,255,0.06)',
+                      borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
+                      borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10,
+                      color: '#fff', fontSize: 13, fontFamily: FONTS.reg, minHeight: 90, textAlignVertical: 'top',
+                    }}
+                  />
+                </View>
+
+                {/* Included Assets info */}
+                <View style={{ padding: 12, backgroundColor: 'rgba(124,58,237,0.08)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(124,58,237,0.2)' }}>
+                  <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#C4B5FD' }}>✓ Automatic Attachments &amp; Links Included:</Text>
+                  <Text style={{ fontFamily: FONTS.reg, fontSize: 11.5, color: '#DDD6FE', marginTop: 4, lineHeight: 16 }}>
+                    • Attached PDF: <strong style={{ color: '#fff' }}>HackWave_3.0_Event_Handbook.pdf</strong><br/>
+                    • Personalized pass registration / checkout / ticket links<br/>
+                    • Real-time payment verification and QR entry credentials
+                  </Text>
+                </View>
+              </ScrollView>
+
+              {/* Footer */}
+              <View style={{ padding: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)', flexDirection: 'row', justifyContent: 'flex-end', gap: 10 }}>
+                <SecondaryButton onPress={() => setBroadcastModal(null)} size="sm">
+                  <Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>Cancel</Text>
+                </SecondaryButton>
+                <GradientButton
+                  onPress={submitBroadcast}
+                  disabled={broadcasting}
+                  size="sm"
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Send size={13} color="#fff" />
+                    <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>
+                      {broadcasting ? 'Sending Broadcast...' : 'Send Broadcast'}
+                    </Text>
+                  </View>
+                </GradientButton>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      
     </View>
   );
 }
