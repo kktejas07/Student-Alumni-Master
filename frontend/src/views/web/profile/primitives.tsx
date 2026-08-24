@@ -3,7 +3,7 @@
  * Toggle, ToggleRow, ChipPicker, SaveBar.
  */
 import { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, Pressable, Animated, Platform, ScrollView } from 'react-native';
+import { View, Text, TextInput, Pressable, Animated, Platform, ScrollView } from 'react-native';
 import { ChevronDown, Check } from 'lucide-react-native';
 import { COUNTRY_CODES } from './countryCodes';
 
@@ -358,76 +358,4 @@ export function PhoneField({ value, onChange, placeholder, testID }: {
     </View>
   );
 }
-
-const s = StyleSheet.create({
-  card: {
-    backgroundColor: C.card,
-    borderColor: C.border, borderWidth: 1, borderRadius: 16,
-    padding: 18, gap: 14,
-  },
-  cardHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  cardTitle: { color: C.text, fontFamily: 'DMSans_700Bold', fontSize: 14.5 },
-  cardSub:   { color: C.text3, fontFamily: 'DMSans_400Regular', fontSize: 11.5, marginTop: 2 },
-  label:     { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 11, letterSpacing: 0.5, textTransform: 'uppercase' },
-  hint:      { color: C.text3, fontFamily: 'DMSans_400Regular', fontSize: 11, marginTop: 2 },
-  tfWrap: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: C.border, borderWidth: 1, borderRadius: 10,
-    paddingHorizontal: 12, paddingVertical: Platform.OS === 'web' ? 10 : 8,
-  },
-  tf: { flex: 1, color: C.text, fontFamily: 'DMSans_500Medium', fontSize: 13, ...({ outlineStyle: 'none' } as any) },
-  ta: { textAlignVertical: 'top', paddingTop: 8 },
-  ddMenu: {
-    position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4,
-    backgroundColor: '#13091F', borderColor: C.border, borderWidth: 1, borderRadius: 10,
-    overflow: 'hidden', zIndex: 9999,
-    ...(Platform.OS === 'web' ? { boxShadow: '0 8px 32px rgba(0,0,0,0.4)' } as any : { elevation: 8 }),
-  },
-  ddItem: { paddingHorizontal: 12, paddingVertical: 10, borderBottomColor: 'rgba(255,255,255,0.05)', borderBottomWidth: 1 },
-  ddText: { color: C.text, fontFamily: 'DMSans_500Medium', fontSize: 13 },
-
-  toggle: {
-    width: 38, height: 22, borderRadius: 99,
-    backgroundColor: 'rgba(255,255,255,0.10)',
-    borderColor: C.border, borderWidth: 1,
-    padding: 2, ...({ cursor: 'pointer' } as any),
-  },
-  toggleThumb: {
-    width: 16, height: 16, borderRadius: 99, backgroundColor: '#fff',
-  },
-  toggleRow: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingVertical: 10, borderBottomColor: 'rgba(255,255,255,0.04)', borderBottomWidth: 1,
-  },
-  trTitle: { color: C.text, fontFamily: 'DMSans_700Bold', fontSize: 13 },
-  trDesc:  { color: C.text3, fontFamily: 'DMSans_400Regular', fontSize: 11.5, marginTop: 2 },
-
-  chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  chip: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderColor: C.border, borderWidth: 1,
-    ...({ cursor: 'pointer' } as any),
-  },
-  chipActive: { backgroundColor: C.purple, borderColor: C.purple },
-  chipText: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11.5 },
-
-  saveBar: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 18, paddingVertical: 14, marginTop: 4,
-    backgroundColor: 'rgba(167,139,250,0.10)',
-    borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1, borderRadius: 14,
-  },
-  saveStatus: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12, flexShrink: 1 },
-  btn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, height: 34, borderRadius: 9,
-    ...({ cursor: 'pointer' } as any),
-  },
-  btnGhost: { backgroundColor: 'rgba(255,255,255,0.05)', borderColor: C.border, borderWidth: 1 },
-  btnGhostText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 12 },
-  btnPrimary: { backgroundColor: C.purple, borderColor: C.purple, borderWidth: 1 },
-  btnPrimaryText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12 },
-});
+;

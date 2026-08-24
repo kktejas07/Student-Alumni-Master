@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, Pressable, Modal, Platform, ActivityIndicator, Image
+  View, Text, Pressable, Modal, Platform, ActivityIndicator, Image
 } from 'react-native';
 import { Camera, X } from 'lucide-react-native';
 
@@ -55,7 +55,6 @@ export function WebcamModal({ visible, onClose, onCapture }: Props) {
         setStream(mediaStream);
         setLoading(false);
 
-        // Bind stream to video element
         if (videoRef.current) {
           videoRef.current.srcObject = mediaStream;
         }
@@ -75,7 +74,6 @@ export function WebcamModal({ visible, onClose, onCapture }: Props) {
     };
   }, [visible, restartCount]);
 
-  // Bind srcObject if stream changes or ref becomes available
   useEffect(() => {
     if (stream && videoRef.current) {
       videoRef.current.srcObject = stream;
@@ -88,29 +86,25 @@ export function WebcamModal({ visible, onClose, onCapture }: Props) {
     try {
       const video = videoRef.current;
       const canvas = document.createElement('canvas');
-      
-      // Capture matching dimensions
+
       const size = Math.min(video.videoWidth || 480, video.videoHeight || 480);
       canvas.width = size;
       canvas.height = size;
-      
+
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        // Mirror horizontally for selfie feel
         ctx.translate(size, 0);
         ctx.scale(-1, 1);
-        
-        // Crop center square
+
         const sx = ((video.videoWidth || size) - size) / 2;
         const sy = ((video.videoHeight || size) - size) / 2;
-        
+
         ctx.drawImage(video, sx, sy, size, size, 0, 0, size, size);
         const base64 = canvas.toDataURL('image/jpeg', 0.85);
-        
-        // Stop stream tracks
+
         stream.getTracks().forEach((track: any) => track.stop());
         setStream(null);
-        
+
         setCapturedImage(base64);
       }
     } catch (err) {
@@ -148,39 +142,42 @@ export function WebcamModal({ visible, onClose, onCapture }: Props) {
       animationType="fade"
       onRequestClose={handleClose}
     >
-      <View style={s.backdrop}>
-        <View style={s.card}>
-          {/* Header */}
-          <View style={s.header}>
-            <Text style={s.title}>{capturedImage ? 'Confirm Selfie' : 'Take a Selfie'}</Text>
-            <Pressable onPress={handleClose} style={s.closeBtn}>
+      <View className="flex-1 bg-black/80 items-center justify-center px-6">
+        <View
+          className="w-full max-w-[380px] rounded-3xl border border-[rgba(176,127,223,0.30)] bg-[#13091F] p-5 items-center"
+          style={{
+            backgroundImage: 'linear-gradient(180deg, #1A0E2E 0%, #0A0512 100%)',
+            boxShadow: '0px 16px 60px rgba(91,33,182,0.45)',
+          }}
+        >
+          <View className="w-full flex-row items-center justify-between mb-4">
+            <Text className="text-white font-body-bold text-base">{capturedImage ? 'Confirm Selfie' : 'Take a Selfie'}</Text>
+            <Pressable onPress={handleClose} className="p-1 rounded-full bg-white/[0.06]">
               <X size={18} color="rgba(255,255,255,0.7)" />
             </Pressable>
           </View>
 
-          {/* Camera Frame */}
-          <View style={s.cameraFrame}>
+          <View className="w-[260px] h-[260px] rounded-[130px] border-[3px] border-[rgba(129,140,248,0.5)] overflow-hidden bg-black relative items-center justify-center mb-5" style={{ boxShadow: '0px 0px 24px rgba(129,140,248,0.25)' }}>
             {capturedImage ? (
-              <Image 
-                source={{ uri: capturedImage }} 
-                style={{ width: '100%', height: '100%' }} 
+              <Image
+                source={{ uri: capturedImage }}
+                style={{ width: '100%', height: '100%' }}
               />
             ) : (
               <>
                 {loading && (
-                  <View style={s.overlay}>
+                  <View className="absolute top-0 bottom-0 left-0 right-0 items-center justify-center p-5">
                     <ActivityIndicator size="large" color="#A78BFA" />
-                    <Text style={s.loadingText}>Accessing Camera…</Text>
-                  </View>
-                )}
-                
-                {error && (
-                  <View style={s.overlay}>
-                    <Text style={s.errorText}>{error}</Text>
+                    <Text className="text-white/60 font-body-semibold text-[13px] mt-2.5">Accessing Camera…</Text>
                   </View>
                 )}
 
-                {/* Native Video Element */}
+                {error && (
+                  <View className="absolute top-0 bottom-0 left-0 right-0 items-center justify-center p-5">
+                    <Text className="text-red-500 font-body-semibold text-[13px] text-center leading-[18px]">{error}</Text>
+                  </View>
+                )}
+
                 {visible && !error && (
                   <video
                     ref={videoRef}
@@ -188,7 +185,7 @@ export function WebcamModal({ visible, onClose, onCapture }: Props) {
                       width: '100%',
                       height: '100%',
                       objectFit: 'cover',
-                      transform: 'scaleX(-1)', // Horizontal mirror
+                      transform: 'scaleX(-1)',
                       display: loading ? 'none' : 'block'
                     }}
                     autoPlay
@@ -200,41 +197,33 @@ export function WebcamModal({ visible, onClose, onCapture }: Props) {
             )}
           </View>
 
-          {/* Action Footer */}
-          <View style={s.footer}>
+          <View className="w-full items-center">
             {capturedImage ? (
-              <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
+              <View className="flex-row gap-3 w-full">
                 <Pressable
                   onPress={handleRetake}
-                  style={({ pressed }) => [
-                    s.retakeBtn,
-                    pressed && { opacity: 0.8 }
-                  ]}
+                  className="flex-1 h-11 rounded-[14px] bg-[rgba(239,68,68,0.15)] border border-[rgba(239,68,68,0.4)] items-center justify-center"
+                  style={Platform.OS === 'web' ? { cursor: 'pointer' } : undefined}
                 >
-                  <Text style={s.retakeBtnText}>Retake</Text>
+                  <Text className="text-red-500 font-body-bold text-sm">Retake</Text>
                 </Pressable>
                 <Pressable
                   onPress={handleConfirm}
-                  style={({ pressed }) => [
-                    s.confirmBtn,
-                    pressed && { opacity: 0.8 }
-                  ]}
+                  className="flex-1 h-11 rounded-[14px] bg-[#818CF8] items-center justify-center"
+                  style={Platform.OS === 'web' ? { cursor: 'pointer' } : undefined}
                 >
-                  <Text style={s.confirmBtnText}>Confirm</Text>
+                  <Text className="text-[#1E1B4B] font-body-bold text-sm">Confirm</Text>
                 </Pressable>
               </View>
             ) : (
               <Pressable
                 onPress={capturePhoto}
                 disabled={loading || !!error}
-                style={({ pressed }) => [
-                  s.captureBtn,
-                  (loading || !!error) && s.disabledBtn,
-                  pressed && { opacity: 0.8 }
-                ]}
+                className="flex-row items-center justify-center gap-2 bg-[#818CF8] rounded-[14px] py-3 px-7 w-full"
+                style={{ ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {}), ...(loading || !!error ? { backgroundColor: 'rgba(255,255,255,0.15)', cursor: 'default' } : {}) }}
               >
                 <Camera size={18} color="#000" />
-                <Text style={s.captureBtnText}>Capture Photo</Text>
+                <Text className="text-[#1E1B4B] font-body-bold text-sm">Capture Photo</Text>
               </Pressable>
             )}
           </View>
@@ -243,135 +232,3 @@ export function WebcamModal({ visible, onClose, onCapture }: Props) {
     </Modal>
   );
 }
-
-const s = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.80)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-  },
-  card: {
-    width: '100%',
-    maxWidth: 380,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(176,127,223,0.30)',
-    backgroundColor: '#13091F',
-    padding: 20,
-    alignItems: 'center',
-    ...({
-      backgroundImage: 'linear-gradient(180deg, #1A0E2E 0%, #0A0512 100%)' as any,
-      boxShadow: '0px 16px 60px rgba(91,33,182,0.45)' as any,
-    } as any),
-  },
-  header: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  title: {
-    color: '#FFF',
-    fontFamily: 'DMSans_700Bold',
-    fontSize: 16,
-  },
-  closeBtn: {
-    padding: 4,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-  },
-  cameraFrame: {
-    width: 260,
-    height: 260,
-    borderRadius: 130, // Perfect circular crop for selfie
-    borderWidth: 3,
-    borderColor: 'rgba(129,140,248,0.5)',
-    overflow: 'hidden',
-    backgroundColor: '#000',
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-    ...({
-      boxShadow: '0px 0px 24px rgba(129,140,248,0.25)' as any
-    } as any),
-  },
-  overlay: {
-    position: 'absolute',
-    top: 0, bottom: 0, left: 0, right: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  loadingText: {
-    color: 'rgba(255,255,255,0.6)',
-    fontFamily: 'DMSans_500Medium',
-    fontSize: 13,
-    marginTop: 10,
-  },
-  errorText: {
-    color: '#EF4444',
-    fontFamily: 'DMSans_500Medium',
-    fontSize: 13,
-    textAlign: 'center',
-    lineHeight: 18,
-  },
-  footer: {
-    width: '100%',
-    alignItems: 'center',
-  },
-  captureBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: '#818CF8',
-    borderRadius: 14,
-    paddingVertical: 12,
-    paddingHorizontal: 28,
-    width: '100%',
-    ...({ cursor: 'pointer' } as any),
-  },
-  disabledBtn: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    ...({ cursor: 'default' } as any),
-  },
-  captureBtnText: {
-    color: '#1E1B4B',
-    fontFamily: 'DMSans_700Bold',
-    fontSize: 14,
-  },
-  retakeBtn: {
-    flex: 1,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    borderColor: 'rgba(239, 68, 68, 0.4)',
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...({ cursor: 'pointer' } as any),
-  },
-  retakeBtnText: {
-    color: '#EF4444',
-    fontFamily: 'DMSans_700Bold',
-    fontSize: 14,
-  },
-  confirmBtn: {
-    flex: 1,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: '#818CF8',
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...({ cursor: 'pointer' } as any),
-  },
-  confirmBtnText: {
-    color: '#1E1B4B',
-    fontFamily: 'DMSans_700Bold',
-    fontSize: 14,
-  },
-});

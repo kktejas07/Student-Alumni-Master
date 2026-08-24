@@ -3,7 +3,7 @@
  * Specs: /tmp/ui_specs/platform-college.jsx
  */
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, useWindowDimensions } from 'react-native';
+import { View, Text, Pressable, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GlassCard, Avatar, SearchBar, PageHeader, SectionLabel, ProgressStrip, KpiTile } from '../components';
 import { SA, SAGradients } from '../tokens';
@@ -315,35 +315,4 @@ export function CollegeSettings() {
     </>
   );
 }
-
-const styles = StyleSheet.create({
-  filterRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 24 },
-  chip: {
-    paddingHorizontal: 16, paddingVertical: 7, borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
-    ...({ cursor: 'pointer' } as any),
-  },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -7 },
-  statusPill: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, borderWidth: 1 },
-  kpiRow: { flexDirection: 'row', gap: 14, marginBottom: 24, flexWrap: 'wrap' as const },
-  split: { flexDirection: 'row', gap: 20 },
-  barChart: {
-    flexDirection: 'row', alignItems: 'flex-end', gap: 12,
-    height: 160, paddingHorizontal: 8, paddingTop: 14,
-  },
-  barCol: { flex: 1, alignItems: 'center', gap: 6, height: '100%' as any, justifyContent: 'flex-end' },
-  statRow: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    paddingVertical: 10,
-    borderBottomColor: 'rgba(255,255,255,0.06)', borderBottomWidth: 1,
-  },
-  intRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingVertical: 9,
-    borderBottomColor: 'rgba(255,255,255,0.06)', borderBottomWidth: 1,
-  },
-  toggle: {
-    width: 36, height: 20, borderRadius: 10, padding: 2,
-  },
-  toggleKnob: { width: 16, height: 16, borderRadius: 8, backgroundColor: SA.white },
-});
+;

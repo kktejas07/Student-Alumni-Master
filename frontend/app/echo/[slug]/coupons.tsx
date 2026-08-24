@@ -3,7 +3,7 @@
  * Shows real scannable QR codes for each enabled session.
  */
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, Platform } from 'react-native';
+import { View, Text, ScrollView, ActivityIndicator, Pressable, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, QrCode, Check, Clock, Ticket, Lock, CupSoda, UtensilsCrossed, Cookie, Sandwich, Coffee, CalendarDays } from 'lucide-react-native';
@@ -88,67 +88,64 @@ export default function EchoCouponsPage() {
   const totalCount = coupons.length;
 
   return (
-    <View style={s.root}>
+    <View className="flex-1 bg-navy">
       <EchoHeader />
       <ScrollView contentContainerStyle={{ paddingTop: ECHO_TOP_PADDING }}>
-        <View style={s.content}>
-          <Pressable onPress={() => router.push(`/echo/${slug}`)} style={s.backBtn}>
+        <View className="px-5 py-4 max-w-[800px] w-full self-center gap-4">
+          <Pressable onPress={() => router.push(`/echo/${slug}`)} className="flex-row items-center gap-1.5 self-start bg-white/5 rounded-full px-3 py-1.5 border border-white/10 mb-1">
             <ArrowLeft size={14} color="#fff" />
-            <Text style={s.backText}>Back to event</Text>
+            <Text className="text-white text-sm font-body-semibold">Back to event</Text>
           </Pressable>
 
-          <LinearGradient colors={['rgba(124,58,237,0.30)', 'rgba(30,10,80,0.5)']} style={s.header}>
-            <View style={s.headerIcon}><Ticket size={20} color="#C4B5FD" /></View>
-            <Text style={s.headerTitle}>My Session Coupons</Text>
-            <Text style={s.headerSub}>{regName ? `Registered as ${regName}` : 'Your event coupons'}</Text>
+          <LinearGradient colors={['rgba(124,58,237,0.30)', 'rgba(30,10,80,0.5)']} className="rounded-2xl p-6 gap-2.5 items-center border border-violet">
+            <View className="w-11 h-11 rounded-full bg-violet/20 items-center justify-center"><Ticket size={20} color="#C4B5FD" /></View>
+            <Text className="font-display-bold text-lg text-white text-center">My Session Coupons</Text>
+            <Text className="text-sm text-muted text-center">{regName ? `Registered as ${regName}` : 'Your event coupons'}</Text>
             {totalCount > 0 && (
-              <View style={s.badgeRow}>
-                <View style={[s.badge, { backgroundColor: 'rgba(16,185,129,0.15)', borderColor: 'rgba(16,185,129,0.3)' }]}>
+              <View className="flex-row gap-2 mt-1.5">
+                <View className="flex-row items-center gap-1 px-2.5 py-1 rounded-xl border border-teal/30 bg-teal/10">
                   <Check size={12} color="#10B981" />
-                  <Text style={[s.badgeText, { color: '#34D399' }]}>{usedCount} used</Text>
+                  <Text className="text-teal text-xs font-body-bold">{usedCount} used</Text>
                 </View>
-                <View style={[s.badge, { backgroundColor: 'rgba(245,158,11,0.15)', borderColor: 'rgba(245,158,11,0.3)' }]}>
+                <View className="flex-row items-center gap-1 px-2.5 py-1 rounded-xl border border-amber/30 bg-amber/10">
                   <Clock size={12} color="#F59E0B" />
-                  <Text style={[s.badgeText, { color: '#FCD34D' }]}>{totalCount - usedCount} remaining</Text>
+                  <Text className="text-amber text-xs font-body-bold">{totalCount - usedCount} remaining</Text>
                 </View>
               </View>
             )}
           </LinearGradient>
 
           {loading ? (
-            <View style={s.center}>
+            <View className="items-center py-16 gap-3">
               <ActivityIndicator size="large" color="#A78BFA" />
-              <Text style={s.centerText}>Loading coupons...</Text>
+              <Text className="text-sm text-muted font-body-semibold">Loading coupons...</Text>
             </View>
           ) : error ? (
-            <View style={s.center}>
-              <Text style={[s.centerText, { color: '#F87171' }]}>{error}</Text>
+            <View className="items-center py-16 gap-3">
+              <Text className="text-sm text-rose font-body-semibold">{error}</Text>
             </View>
           ) : notRegistered ? (
-            <View style={s.center}>
+            <View className="items-center py-16 gap-3">
               <Ticket size={48} color="rgba(255,255,255,0.2)" />
-              <Text style={s.centerText}>You haven't registered for this event yet.</Text>
-              <Text style={[s.centerText, { fontSize: 12, marginTop: 4, opacity: 0.6 }]}>
+              <Text className="text-sm text-muted font-body-semibold">You haven't registered for this event yet.</Text>
+              <Text className="text-xs text-muted opacity-60">
                 Register to unlock your session passes.
               </Text>
               <Pressable
                 onPress={() => router.push(`/echo/${slug}/register`)}
-                style={{
-                  marginTop: 16, backgroundColor: '#7C3AED', borderRadius: 10,
-                  paddingHorizontal: 20, paddingVertical: 10,
-                }}
+                className="mt-4 bg-violet rounded-xl px-5 py-2.5"
               >
-                <Text style={{ color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13 }}>Register Now</Text>
+                <Text className="text-white font-body-bold text-sm">Register Now</Text>
               </Pressable>
             </View>
           ) : coupons.length === 0 ? (
-            <View style={s.center}>
+            <View className="items-center py-16 gap-3">
               <QrCode size={48} color="rgba(255,255,255,0.2)" />
-              <Text style={s.centerText}>No session coupons for this event.</Text>
-              <Text style={[s.centerText, { fontSize: 12, marginTop: 4, opacity: 0.6 }]}>The organizer hasn't enabled session passes yet.</Text>
+              <Text className="text-sm text-muted font-body-semibold">No session coupons for this event.</Text>
+              <Text className="text-xs text-muted opacity-60">The organizer hasn't enabled session passes yet.</Text>
             </View>
           ) : (
-            <View style={{ gap: 20 }}>
+            <View className="gap-5">
               {(() => {
                 const days = Array.from(new Set((coupons as any[]).map((c) => Number(c.session_day) || 1))).sort((a, b) => a - b);
                 return days.map((day) => {
@@ -158,88 +155,85 @@ export default function EchoCouponsPage() {
                   return (
                     <View key={day}>
                       {hasMultiDay && (
-                        <View style={s.dayHeader}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <View className="flex-row items-center justify-between px-1 pt-1">
+                          <View className="flex-row items-center gap-2">
                             <CalendarDays size={13} color="#A78BFA" />
-                            <Text style={s.dayHeaderText}>Day {day}</Text>
+                            <Text className="font-body-bold text-sm text-violet">Day {day}</Text>
                           </View>
-                          <Text style={s.dayHeaderCount}>{dayUsed}/{dayCoupons.length} used</Text>
+                          <Text className="text-xs text-muted font-body-semibold">{dayUsed}/{dayCoupons.length} used</Text>
                         </View>
                       )}
-                      <View style={s.grid}>
+                      <View className="gap-3">
                         {dayCoupons.map((c, i) => {
                 const Icon = SESSION_ICONS[c.session_key] || Ticket;
                 const color = SESSION_COLORS[c.session_key] || '#A78BFA';
                 const isExpanded = expandedCoupon === c.coupon_code;
 
                 return (
-                  <View key={c._id || i} style={[s.couponCard, c.used && s.couponUsed, c.session_locked && !c.used && s.couponLocked]}>
+                  <View key={c._id || i} className={`rounded-2xl border border-violet/20 overflow-hidden ${c.used ? 'opacity-60' : ''} ${c.session_locked && !c.used ? 'border-violet/30' : ''}`} style={{ backgroundColor: 'rgba(255,255,255,0.04)' }}>
                     <Pressable
                       onPress={() => !c.used && !c.session_locked && setExpandedCoupon(isExpanded ? null : c.coupon_code)}
-                      style={s.couponHeader}
+                      className="flex-row items-center gap-3 p-4"
                     >
-                      <View style={[s.iconWrap, { backgroundColor: `${color}20`, borderColor: `${color}40` }]}>
+                      <View className="w-10 h-10 rounded-xl border items-center justify-center" style={{ backgroundColor: `${color}20`, borderColor: `${color}40` }}>
                         <Icon size={20} color={color} />
                       </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={s.couponName}>{c.session_name}</Text>
-                        <Text style={[s.couponCode, c.session_locked && { color: 'rgba(255,255,255,0.25)', letterSpacing: 3 }]}>
+                      <View className="flex-1">
+                        <Text className="font-display-bold text-base text-white">{c.session_name}</Text>
+                        <Text className="text-xs text-violet font-body-semibold mt-0.5" style={c.session_locked ? { color: 'rgba(255,255,255,0.25)', letterSpacing: 3 } : { letterSpacing: 1 }}>
                           {c.session_locked ? '****-****-****' : c.coupon_code}
                         </Text>
                       </View>
                       {c.used ? (
-                        <View style={[s.statusBadge, { backgroundColor: 'rgba(16,185,129,0.15)' }]}>
+                        <View className="flex-row items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-teal/10">
                           <Check size={12} color="#10B981" />
-                          <Text style={[s.statusText, { color: '#34D399' }]}>Used</Text>
+                          <Text className="text-teal font-body-bold text-xs">Used</Text>
                         </View>
                       ) : c.session_locked ? (
-                        <View style={[s.statusBadge, { backgroundColor: 'rgba(139,92,246,0.15)' }]}>
+                        <View className="flex-row items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-violet/10">
                           <Lock size={12} color="#8B5CF6" />
-                          <Text style={[s.statusText, { color: '#A78BFA' }]}>Locked</Text>
+                          <Text className="text-violet font-body-bold text-xs">Locked</Text>
                         </View>
                       ) : (
-                        <View style={[s.statusBadge, { backgroundColor: 'rgba(245,158,11,0.15)' }]}>
+                        <View className="flex-row items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber/10">
                           <QrCode size={12} color="#F59E0B" />
-                          <Text style={[s.statusText, { color: '#FCD34D' }]}>Tap to show QR</Text>
+                          <Text className="text-amber font-body-bold text-xs">Tap to show QR</Text>
                         </View>
                       )}
                     </Pressable>
 
-                    {/* Locked state */}
                     {!c.used && c.session_locked && (
-                      <View style={s.lockedSection}>
-                        <View style={s.lockedPlaceholder}>
+                      <View className="px-4 pt-0 items-center">
+                        <View className="items-center justify-center gap-2" style={{ width: 180, height: 180, borderRadius: 16, backgroundColor: 'rgba(139,92,246,0.08)', borderWidth: 1, borderColor: 'rgba(139,92,246,0.2)' }}>
                           <Lock size={32} color="#8B5CF6" />
-                          <Text style={s.lockedTitle}>Available soon</Text>
-                          <Text style={s.lockedHint}>Session locked - {c.session_name} will open shortly</Text>
+                          <Text className="font-display-bold text-sm text-violet">Available soon</Text>
+                          <Text className="text-xs text-muted text-center px-3">Session locked - {c.session_name} will open shortly</Text>
                         </View>
                       </View>
                     )}
 
-                    {/* Used state */}
                     {c.used && (
-                      <View style={s.usedSection}>
-                        <View style={s.usedPlaceholder}>
+                      <View className="px-4 pt-0 items-center">
+                        <View className="items-center justify-center gap-2" style={{ width: 180, height: 100, borderRadius: 16, backgroundColor: 'rgba(16,185,129,0.08)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.2)' }}>
                           <Check size={32} color="#10B981" />
-                          <Text style={s.usedTitle}>Already used</Text>
-                          <Text style={s.usedHint}>Scanned {c.used_at ? new Date(c.used_at).toLocaleString() : ''}</Text>
+                          <Text className="font-display-bold text-sm text-teal">Already used</Text>
+                          <Text className="text-xs text-muted text-center px-3">Scanned {c.used_at ? new Date(c.used_at).toLocaleString() : ''}</Text>
                         </View>
                       </View>
                     )}
 
-                    {/* Expanded QR code */}
                     {!c.used && !c.session_locked && isExpanded && (
-                      <View style={s.qrSection}>
-                        <View style={s.qrCard}>
+                      <View className="px-4 pt-0 items-center">
+                        <View className="bg-white rounded-2xl p-4 items-center gap-3 w-full max-w-[300px]">
                           <img
                             src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(`${typeof window !== 'undefined' ? window.location.origin : 'https://studentalumni.ai'}/echo/scan/${c.coupon_code}`)}&color=1a1a2e&bgcolor=ffffff`}
                             alt={`QR code for ${c.session_name}`}
                             style={{ width: 240, height: 240, borderRadius: 12 }}
                           />
-                          <View style={s.qrCodeLabel}>
-                            <Text style={s.qrCodeText}>{c.coupon_code}</Text>
+                          <View className="bg-violet/10 rounded-lg px-3 py-1.5">
+                            <Text className="font-body-bold text-base text-navy" style={{ letterSpacing: 2 }}>{c.coupon_code}</Text>
                           </View>
-                          <Text style={s.qrHint}>Show this QR at the {c.session_name.toLowerCase()} counter</Text>
+                          <Text className="text-xs text-muted text-center">Show this QR at the {c.session_name.toLowerCase()} counter</Text>
                         </View>
                       </View>
                     )}
@@ -259,66 +253,3 @@ export default function EchoCouponsPage() {
     </View>
   );
 }
-
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0a0f1e' },
-  content: { padding: 20, maxWidth: 800, width: '100%', alignSelf: 'center', gap: 16 },
-  backBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 20,
-    paddingHorizontal: 12, paddingVertical: 7, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
-    marginBottom: 4,
-  },
-  backText: { color: '#fff', fontFamily: 'DMSans_500Medium', fontSize: 13 },
-  header: { borderRadius: 18, padding: 24, gap: 10, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)' },
-  headerIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(124,58,237,0.2)', alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { fontFamily: 'DMSans_800ExtraBold', fontSize: 20, color: '#fff', textAlign: 'center' },
-  headerSub: { fontFamily: 'DMSans_500Medium', fontSize: 13, color: 'rgba(255,255,255,0.6)', textAlign: 'center' },
-  badgeRow: { flexDirection: 'row', gap: 8, marginTop: 6 },
-  badge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1 },
-  badgeText: { fontFamily: 'DMSans_700Bold', fontSize: 11 },
-  center: { alignItems: 'center', paddingVertical: 60, gap: 12 },
-  centerText: { color: 'rgba(255,255,255,0.6)', fontFamily: 'DMSans_500Medium', fontSize: 13 },
-  grid: { gap: 12 },
-  dayHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 4, paddingTop: 4 },
-  dayHeaderText: { fontFamily: 'DMSans_700Bold', fontSize: 14, color: '#E9E4FF', letterSpacing: 0.3 },
-  dayHeaderCount: { fontFamily: 'DMSans_500Medium', fontSize: 11, color: 'rgba(255,255,255,0.4)' },
-  couponCard: {
-    backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 16, borderWidth: 1,
-    borderColor: 'rgba(167,139,250,0.2)', overflow: 'hidden',
-  },
-  couponUsed: { opacity: 0.6 },
-  couponLocked: { borderColor: 'rgba(139,92,246,0.3)' },
-  couponHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 },
-  iconWrap: { width: 40, height: 40, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  couponName: { fontFamily: 'DMSans_800ExtraBold', fontSize: 15, color: '#fff' },
-  couponCode: { fontFamily: 'DMSans_500Medium', fontSize: 11, color: '#A78BFA', letterSpacing: 1, marginTop: 2 },
-  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
-  statusText: { fontFamily: 'DMSans_700Bold', fontSize: 11 },
-  qrSection: { padding: 16, paddingTop: 0, alignItems: 'center' },
-  qrCard: {
-    backgroundColor: '#fff', borderRadius: 16, padding: 16, alignItems: 'center', gap: 12,
-    width: '100%', maxWidth: 300,
-  },
-  qrCodeLabel: {
-    backgroundColor: 'rgba(124,58,237,0.1)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6,
-  },
-  qrCodeText: { fontFamily: 'DMSans_700Bold', fontSize: 16, color: '#1a1a2e', letterSpacing: 2 },
-  qrHint: { fontFamily: 'DMSans_500Medium', fontSize: 11, color: 'rgba(255,255,255,0.4)', textAlign: 'center' },
-  lockedSection: { padding: 16, paddingTop: 0, alignItems: 'center' },
-  lockedPlaceholder: {
-    width: 180, height: 180, borderRadius: 16,
-    backgroundColor: 'rgba(139,92,246,0.08)', borderWidth: 1, borderColor: 'rgba(139,92,246,0.2)',
-    alignItems: 'center', justifyContent: 'center', gap: 8,
-  },
-  lockedTitle: { fontFamily: 'DMSans_800ExtraBold', fontSize: 14, color: '#C4B5FD' },
-  lockedHint: { fontFamily: 'DMSans_500Medium', fontSize: 10, color: 'rgba(255,255,255,0.4)', textAlign: 'center', paddingHorizontal: 12 },
-  usedSection: { padding: 16, paddingTop: 0, alignItems: 'center' },
-  usedPlaceholder: {
-    width: 180, height: 100, borderRadius: 16,
-    backgroundColor: 'rgba(16,185,129,0.08)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.2)',
-    alignItems: 'center', justifyContent: 'center', gap: 8,
-  },
-  usedTitle: { fontFamily: 'DMSans_800ExtraBold', fontSize: 14, color: '#34D399' },
-  usedHint: { fontFamily: 'DMSans_500Medium', fontSize: 10, color: 'rgba(255,255,255,0.4)', textAlign: 'center', paddingHorizontal: 12 },
-});

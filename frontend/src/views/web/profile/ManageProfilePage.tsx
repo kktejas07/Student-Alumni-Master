@@ -3,7 +3,7 @@
  * Sections: Profile Visibility, Resume & Documents, Profile Sections, Certifications, Earned Badges.
  */
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, Platform, ActivityIndicator } from 'react-native';
 import { Card, ToggleRow, C } from './primitives';
 import { Globe, Users, Lock, FileUp, Download, Trash2, Plus, Award, Star } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
@@ -179,35 +179,4 @@ export function ManageProfilePage({ draft, setDraft, badges, onCertChange, showT
     </View>
   );
 }
-
-const st = StyleSheet.create({
-  visRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    padding: 14, borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderColor: 'rgba(255,255,255,0.09)', borderWidth: 1,
-    ...({ cursor: 'pointer' } as any),
-  },
-  visRowSel: { backgroundColor: 'rgba(167,139,250,0.10)', borderColor: 'rgba(167,139,250,0.45)' },
-  visIcon: { width: 36, height: 36, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.10)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  visTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13 },
-  visDesc: { color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_400Regular', fontSize: 11.5, marginTop: 2 },
-  selDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#A78BFA' },
-
-  uploadBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 32, borderRadius: 8, backgroundColor: '#A78BFA', ...({ cursor: 'pointer' } as any) },
-  uploadBtnText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12 },
-
-  empty: { alignItems: 'center', paddingVertical: 24, gap: 10 },
-  emptyText: { color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_400Regular', fontSize: 12, textAlign: 'center', paddingHorizontal: 30 },
-
-  docRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 11, backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.09)', borderWidth: 1 },
-  docIcon: { width: 34, height: 34, borderRadius: 8, backgroundColor: 'rgba(34,211,238,0.10)', alignItems: 'center', justifyContent: 'center' },
-  docName: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12.5 },
-  docMeta: { color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_500Medium', fontSize: 11, marginTop: 2 },
-  activePill: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: 'rgba(16,185,129,0.18)', borderColor: 'rgba(16,185,129,0.40)', borderWidth: 1 },
-  activePillText: { color: '#34D399', fontFamily: 'DMSans_700Bold', fontSize: 9, letterSpacing: 0.5 },
-  iconBtn: { width: 28, height: 28, borderRadius: 7, backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.09)', borderWidth: 1, alignItems: 'center', justifyContent: 'center', ...({ cursor: 'pointer' } as any) },
-
-  badgeChip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: 'rgba(245,158,11,0.10)', borderColor: 'rgba(245,158,11,0.30)', borderWidth: 1 },
-  badgeChipText: { color: '#FCD34D', fontFamily: 'DMSans_700Bold', fontSize: 11 },
-});
+;

@@ -16,7 +16,7 @@
  *   purple #A78BFA   teal #2DD4BF   amber #F59E0B   green #10B981
  */
 import { useState, useRef, useEffect } from 'react';
-import { Pressable, View, StyleSheet, Animated, Platform, ViewStyle, StyleProp } from 'react-native';
+import { Pressable, View, Animated, Platform, ViewStyle, StyleProp } from 'react-native';
 
 interface Props {
   children: React.ReactNode;
@@ -86,26 +86,16 @@ export function HoverGlowCard({
   return (
     <Wrapper {...wrapperProps} testID={testID} style={[{ borderRadius: radius }, style]}>
       <Animated.View
-        style={[
-          styles.shell,
-          {
-            borderRadius: radius,
-            borderColor: active ? tint + '70' : 'rgba(255,255,255,0.09)',
-            transform: [{ translateY }, { scale }],
-          },
-          webGlowStyle,
-        ]}
+        className="bg-white/5 border overflow-hidden"
+        style={{
+          borderRadius: radius,
+          borderColor: active ? tint + '70' : 'rgba(255,255,255,0.09)',
+          transform: [{ translateY }, { scale }],
+          ...webGlowStyle,
+        }}
       >
         {children}
       </Animated.View>
     </Wrapper>
   );
 }
-
-const styles = StyleSheet.create({
-  shell: {
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderWidth: 1,
-    overflow: 'hidden',
-  },
-});

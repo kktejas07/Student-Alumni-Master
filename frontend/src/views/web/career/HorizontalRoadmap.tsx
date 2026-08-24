@@ -1,17 +1,7 @@
-/**
- * HorizontalRoadmap.tsx
- *
- * Full-width horizontal stepper roadmap with 5 connected nodes matching Image 1 reference:
- *   Step 1: Completed (Green ✓) | Complete Profile | +5%
- *   Step 2: Current Step (Purple '2') | Build Your Resume | 60%
- *   Step 3: Next Step (Grey '3') | Build Portfolio | 0%
- *   Step 4: Upcoming (Grey '4') | Network with Alumni | Locked
- *   Step 5: Upcoming (Grey '5') | Practice Interviews | Locked
- */
 import React, { memo } from 'react';
-import {View, Text, Pressable, Platform, StyleSheet} from "react-native";
+import {View, Text, Pressable, Platform} from "react-native";
 import { CircleCheck as CheckCircle2, ChevronRight, Lock } from 'lucide-react-native';
-import { COLORS, FONT_FAMILIES, FONT_SIZES, RADIUS, SPACING } from '@/src/lib/designTokens';
+import { COLORS } from '@/src/lib/designTokens';
 
 interface MilestoneItem {
   id: string;
@@ -31,7 +21,6 @@ interface Props {
 export const HorizontalRoadmap = memo(function HorizontalRoadmap({
   milestones, targetRole = 'your goal', onSelectMilestone, onViewAll,
 }: Props) {
-  // Standard 5-step milestone defaults
   const DEFAULT_STEPS = [
     { id: 'step-1', title: 'Complete Profile', progress: '+5%', completed: true },
     { id: 'step-2', title: 'Build Your Resume', progress: '60%', completed: false },
@@ -40,7 +29,6 @@ export const HorizontalRoadmap = memo(function HorizontalRoadmap({
     { id: 'step-5', title: 'Practice Interviews', progress: 'Locked', completed: false },
   ];
 
-  // Pre-process and order steps so completed steps appear first in linear progression
   const rawSteps = (milestones && milestones.length > 0) ? milestones : DEFAULT_STEPS;
 
   const sortedSteps = [...rawSteps].sort((a, b) => {
@@ -51,7 +39,6 @@ export const HorizontalRoadmap = memo(function HorizontalRoadmap({
 
   const displaySteps = sortedSteps.slice(0, 5);
 
-  // If fewer than 5 steps provided, fill up to 5 with DEFAULT_STEPS placeholders
   while (displaySteps.length < 5) {
     const nextDefault = DEFAULT_STEPS[displaySteps.length];
     if (nextDefault) displaySteps.push(nextDefault as any);
@@ -61,24 +48,24 @@ export const HorizontalRoadmap = memo(function HorizontalRoadmap({
   const firstPendingIdx = displaySteps.findIndex(m => !m.completed);
 
   return (
-    <View style={s.card}>
-      {/* Section Header */}
-      <View style={s.headerRow}>
-        <Text style={s.headerTitle}>YOUR CAREER JOURNEY</Text>
-        <View style={s.subHeaderLegend}>
-          <Text style={[s.legendItem, { color: COLORS.green }]}>Completed ●</Text>
-          <Text style={[s.legendItem, { color: COLORS.purpleL }]}>Current Step ➔</Text>
-          <Text style={[s.legendItem, { color: COLORS.text2 }]}>Next Step ➔</Text>
-          <Text style={s.legendItem}>Upcoming</Text>
+    <View
+      className="bg-[rgba(18,22,35,0.75)] border border-[rgba(255,255,255,0.08)] rounded-xl p-5 gap-5 w-full"
+      style={Platform.OS === 'web' ? { boxShadow: '0 4px 20px rgba(0,0,0,0.35)' } : undefined}
+    >
+      <View className="flex-row items-center justify-between flex-wrap gap-1">
+        <Text className="text-white/45 font-body-bold text-lg tracking-wider uppercase">YOUR CAREER JOURNEY</Text>
+        <View className="flex-row items-center gap-4">
+          <Text className="font-body-semibold text-[11px] text-green-400">Completed ●</Text>
+          <Text className="font-body-semibold text-[11px] text-indigo-400">Current Step ➔</Text>
+          <Text className="font-body-semibold text-[11px] text-white/50">Next Step ➔</Text>
+          <Text className="font-body-semibold text-[11px] text-white/30">Upcoming</Text>
         </View>
       </View>
 
-      {/* Horizontal Stepper Timeline */}
-      <View style={s.stepperContainer}>
-        {/* Connecting background line */}
-        <View style={s.connectingLine} />
+      <View className="relative py-5">
+        <View className="absolute left-[10%] right-[10%] top-[54px] h-0.5 bg-white/[0.12] z-0" />
 
-        <View style={s.stepsRow}>
+        <View className="flex-row justify-between items-start z-[1]">
           {displaySteps.map((m, idx) => {
             const isCompleted = idx < (firstPendingIdx >= 0 ? firstPendingIdx : displaySteps.length);
             const isCurrent = idx === (firstPendingIdx >= 0 ? firstPendingIdx : displaySteps.length - 1);
@@ -90,27 +77,19 @@ export const HorizontalRoadmap = memo(function HorizontalRoadmap({
 
             let statusLabel = 'Upcoming';
             let statusColor = COLORS.dim;
-            let nodeBg = 'rgba(255,255,255,0.06)';
-            let nodeBorder = 'rgba(255,255,255,0.12)';
             let progressBadge = defaultStep.progress || 'Locked';
 
             if (isCompleted) {
               statusLabel = 'Completed';
               statusColor = COLORS.green;
-              nodeBg = COLORS.green;
-              nodeBorder = COLORS.green;
               progressBadge = '+5%';
             } else if (isCurrent) {
               statusLabel = 'Current Step';
               statusColor = COLORS.purpleL;
-              nodeBg = COLORS.purple;
-              nodeBorder = COLORS.purpleL;
               progressBadge = '60%';
             } else if (isNext) {
               statusLabel = 'Next Step';
               statusColor = COLORS.text2;
-              nodeBg = 'rgba(79, 70, 229, 0.20)';
-              nodeBorder = 'rgba(129, 140, 248, 0.40)';
               progressBadge = '0%';
             }
 
@@ -118,29 +97,30 @@ export const HorizontalRoadmap = memo(function HorizontalRoadmap({
               <Pressable
                 key={`hstep-${m.id || idx}`}
                 onPress={() => onSelectMilestone?.(m)}
-                style={s.stepItem}
+                className="items-center flex-1 gap-2.5"
               >
-                {/* Status Indicator Label Top */}
-                <Text style={[s.stepStatusLabel, { color: statusColor }]}>{statusLabel}</Text>
+                <Text className="font-body-bold text-[11px] mb-0.5" style={{ color: statusColor }}>{statusLabel}</Text>
 
-                {/* Circle Node */}
-                <View style={[s.nodeCircle, { backgroundColor: nodeBg, borderColor: nodeBorder }]}>
+                <View className="w-9 h-9 rounded-[18px] items-center justify-center border-2 elevation-3"
+                  style={{
+                    backgroundColor: isCompleted ? '#34D399' : isCurrent ? '#7C3AED' : isNext ? 'rgba(79, 70, 229, 0.20)' : 'rgba(255,255,255,0.06)',
+                    borderColor: isCompleted ? '#34D399' : isCurrent ? '#818CF8' : isNext ? 'rgba(129, 140, 248, 0.40)' : 'rgba(255,255,255,0.12)',
+                  }}
+                >
                   {isCompleted ? (
                     <CheckCircle2 size={16} color="#FFF" />
                   ) : (
-                    <Text style={[s.nodeNumber, { color: isCurrent ? '#FFF' : COLORS.text2 }]}>
+                    <Text className="font-body-bold text-sm" style={{ color: isCurrent ? '#FFF' : 'rgba(238,240,255,0.5)' }}>
                       {stepNum}
                     </Text>
                   )}
                 </View>
 
-                {/* Title */}
-                <Text style={[s.stepTitle, isCurrent && s.stepTitleCurrent]} numberOfLines={2}>
+                <Text className="text-white/50 font-body-semibold text-[13px] text-center max-w-[110px]" style={isCurrent ? { color: '#FFF', fontFamily: 'DMSans_700Bold' } : undefined} numberOfLines={2}>
                   {m.title || defaultStep.title}
                 </Text>
 
-                {/* Progress / Gain Badge */}
-                <Text style={[s.progressBadge, { color: isCompleted ? COLORS.green : isCurrent ? COLORS.purpleL : COLORS.dim }]}>
+                <Text className="font-body-bold text-xs" style={{ color: isCompleted ? '#34D399' : isCurrent ? '#818CF8' : 'rgba(238,240,255,0.3)' }}>
                   {progressBadge}
                 </Text>
               </Pressable>
@@ -149,116 +129,10 @@ export const HorizontalRoadmap = memo(function HorizontalRoadmap({
         </View>
       </View>
 
-      {/* Bottom Action Link */}
-      <Pressable onPress={onViewAll} style={s.bottomLinkRow}>
-        <Text style={s.bottomLinkText}>View Complete Roadmap</Text>
-        <ChevronRight size={14} color={COLORS.purpleL} />
+      <Pressable onPress={onViewAll} className="flex-row items-center justify-end gap-1">
+        <Text className="text-indigo-400 font-body-bold text-[13px]">View Complete Roadmap</Text>
+        <ChevronRight size={14} color="#818CF8" />
       </Pressable>
     </View>
   );
-});
-
-const s = StyleSheet.create({
-  card: {
-    backgroundColor: 'rgba(18, 22, 35, 0.75)',
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    borderWidth: 1,
-    borderRadius: RADIUS.card,
-    padding: SPACING.lg,
-    gap: SPACING.lg,
-    width: '100%',
-    ...(Platform.OS === 'web' ? { boxShadow: '0 4px 20px rgba(0,0,0,0.35)' } as any : {}),
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
-    gap: SPACING.xs,
-  },
-  headerTitle: {
-    color: 'rgba(238,240,255,0.45)',
-    fontFamily: FONT_FAMILIES.bold,
-    fontSize: 18,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase' as any,
-  },
-  subHeaderLegend: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.md,
-  },
-  legendItem: {
-    fontFamily: FONT_FAMILIES.med,
-    fontSize: 11,
-    color: COLORS.dim,
-  },
-  stepperContainer: {
-    position: 'relative',
-    paddingVertical: SPACING.xl,
-  },
-  connectingLine: {
-    position: 'absolute',
-    left: '10%',
-    right: '10%',
-    top: 54,
-    height: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
-    zIndex: 0,
-  },
-  stepsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    zIndex: 1,
-  },
-  stepItem: {
-    alignItems: 'center',
-    flex: 1,
-    gap: 10,
-  },
-  stepStatusLabel: {
-    fontFamily: FONT_FAMILIES.bold,
-    fontSize: 11,
-    marginBottom: 2,
-  },
-  nodeCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    elevation: 3,
-  },
-  nodeNumber: {
-    fontFamily: FONT_FAMILIES.bold,
-    fontSize: 14,
-  },
-  stepTitle: {
-    color: COLORS.text2,
-    fontFamily: FONT_FAMILIES.med,
-    fontSize: 13,
-    textAlign: 'center',
-    maxWidth: 110,
-  },
-  stepTitleCurrent: {
-    color: '#FFF',
-    fontFamily: FONT_FAMILIES.bold,
-  },
-  progressBadge: {
-    fontFamily: FONT_FAMILIES.bold,
-    fontSize: 12,
-  },
-  bottomLinkRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: 4,
-  },
-  bottomLinkText: {
-    color: COLORS.purpleL,
-    fontFamily: FONT_FAMILIES.bold,
-    fontSize: 13,
-  },
 });
