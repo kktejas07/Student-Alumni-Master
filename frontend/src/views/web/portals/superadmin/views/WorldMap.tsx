@@ -3,7 +3,7 @@
  * Uses react-svg-worldmap on web, falls back to a styled list on native.
  */
 import React, { useMemo } from 'react';
-import { View, Text, Platform, StyleSheet } from 'react-native';
+import { View, Text, Platform } from 'react-native';
 import { SAC, FONTS } from '../tokens';
 
 type CountryDatum = { country: string; code: string; count: number; pct?: number };
