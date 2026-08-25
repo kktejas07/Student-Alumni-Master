@@ -20,7 +20,7 @@ export function Av({ initials, size = 42, color, photo }: { initials: string; si
       {photo ? (
         <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} />
       ) : (
-        <Text style={{ fontFamily: FONTS.xbold, fontSize: size * 0.33, color: '#fff' }}>{initials}</Text>
+        <Text style={{ fontFamily: FONTS.xbold, fontSize: size * 0.33, color: '#1C1C1E' }}>{initials}</Text>
       )}
     </View>
   );
@@ -33,7 +33,7 @@ const BADGE_COLORS = {
   blue:   { bg: 'rgba(59,130,246,0.15)', bc: 'rgba(59,130,246,0.30)', c: '#93C5FD' },
   gray:   { bg: 'rgba(255,255,255,0.07)',bc: 'rgba(255,255,255,0.14)',c: 'rgba(255,255,255,0.5)' },
   orange: { bg: 'rgba(249,115,22,0.15)', bc: 'rgba(249,115,22,0.30)', c: '#FDBA74' },
-  purple: { bg: 'rgba(123,61,191,0.20)', bc: 'rgba(123,61,191,0.35)', c: '#C4B5FD' },
+  purple: { bg: 'rgba(123,61,191,0.20)', bc: 'rgba(123,61,191,0.35)', c: '#93C5FD' },
   red:    { bg: 'rgba(239,68,68,0.15)',  bc: 'rgba(239,68,68,0.30)',  c: '#FCA5A5' },
   pink:   { bg: 'rgba(236,72,153,0.15)', bc: 'rgba(236,72,153,0.30)', c: '#F9A8D4' },
 } as const;
