@@ -7,7 +7,7 @@
  * • TopBar receives `scrolled` state for glass blur (kicks in past 8px)
  * • All existing routing, state, props, API calls preserved 1:1
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, ScrollView, StyleSheet, NativeSyntheticEvent, NativeScrollEvent, Platform, Pressable, Text } from 'react-native';
 import { LayoutDashboard, Sparkles, Users, Calendar, User } from 'lucide-react-native';
 import { useRouter } from 'expo-router';

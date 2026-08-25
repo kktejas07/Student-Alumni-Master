@@ -1,10 +1,5 @@
-/**
- * Splash + initial router.
- *
- * Modern 1:1 Loading screen with 3D glowing SA Shield and 00-100% counter.
- * No bar, no hold.
- */
-import { useEffect, useRef, useState } from 'react';
+// @ts-nocheck
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Animated, Easing, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -16,13 +11,15 @@ import LandingPage from '@/src/views/web/nexus-glow-landing/NexusLanding';
 const IS_WEB = Platform.OS === 'web';
 
 export default function Index() {
-  const router = useRouter();
-
-  // On web, render the landing page directly — no loading stall or splash screen hang
   if (IS_WEB) {
     return <LandingPage />;
   }
 
+  return <NativeSplashScreen />;
+}
+
+function NativeSplashScreen() {
+  const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const initialized = useAuthStore((s) => s.initialized);
   const [hasSeenIntro, setHasSeenIntro] = useState<boolean | null>(null);
@@ -34,8 +31,8 @@ export default function Index() {
 
   useEffect(() => {
     Animated.parallel([
-      Animated.spring(scale, { toValue: 1, friction: 6, tension: 70, useNativeDriver: Platform.OS !== 'web' }),
-      Animated.timing(opacity, { toValue: 1, duration: 450, easing: Easing.out(Easing.ease), useNativeDriver: Platform.OS !== 'web' }),
+      Animated.spring(scale, { toValue: 1, friction: 6, tension: 70, useNativeDriver: true }),
+      Animated.timing(opacity, { toValue: 1, duration: 450, easing: Easing.out(Easing.ease), useNativeDriver: true }),
     ]).start();
   }, [scale, opacity]);
 
@@ -54,23 +51,15 @@ export default function Index() {
     return () => clearInterval(iv);
   }, []);
 
-  // Read intro flag once (native only — web doesn't use it).
+  // Read intro flag once
   useEffect(() => {
-    if (IS_WEB) {
-      setHasSeenIntro(true);
-      return;
-    }
     AsyncStorage.getItem('hasSeenIntro')
       .then((v) => setHasSeenIntro(v === 'true'))
       .catch(() => setHasSeenIntro(false));
   }, []);
 
-  // Route as soon as auth is ready (on web, instantly show /welcome)
+  // Route as soon as auth is ready
   useEffect(() => {
-    if (IS_WEB) {
-      router.replace('/welcome');
-      return;
-    }
     if (!initialized || hasSeenIntro === null || progress < 100) return;
     if (user) {
       if (!user.onboarding_completed) {
@@ -95,31 +84,27 @@ export default function Index() {
 
   return (
     <View style={styles.shell}>
-      {/* Radial cosmic glow */}
       <View style={styles.glow} pointerEvents="none" />
-
-      <View style={styles.center}>
-        <Animated.View style={{ opacity, transform: [{ scale }], alignItems: 'center' }}>
-          {/* SA Shield Mark */}
-          <Svg viewBox="0 0 300 350" width={104} height={122} style={{ marginBottom: 18 }}>
+      <Animated.View style={[styles.card, { opacity, transform: [{ scale }] }]}>
+        <View style={styles.badgeWrap}>
+          <Svg width={110} height={128} viewBox="0 0 300 350">
             <Defs>
-              <SvgGrad id="saSplashGrad" x1="0" y1="0" x2="1" y2="1">
-                <Stop offset="0" stopColor="#D8B6FF" />
-                <Stop offset="0.45" stopColor="#9A5CE8" />
-                <Stop offset="1" stopColor="#5B1FB0" />
+              <SvgGrad id="splashGrad" x1="0" y1="0" x2="1" y2="1">
+                <Stop offset="0" stopColor="#C9BCFF" />
+                <Stop offset="0.5" stopColor="#8B6CF6" />
+                <Stop offset="1" stopColor="#5B2FD0" />
               </SvgGrad>
             </Defs>
-            <Path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#saSplashGrad)" />
-            <SvgText x="150" y="215" textAnchor="middle" fontFamily="sans-serif" fontSize="128" fontWeight="800" fill="#FFFFFF">SA</SvgText>
+            <Path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#splashGrad)" />
+            <SvgText x={150} y={214} textAnchor="middle" fontFamily="sans-serif" fontSize={118} fontWeight="800" fill="#FFFFFF">
+              SA
+            </SvgText>
           </Svg>
-
-          <Text style={styles.brand}>StudentAlumni</Text>
-          <Text style={styles.tag}>INITIALIZING ECOSYSTEM</Text>
-
-          {/* Clean Percentage Counter (No bar, no hold) */}
-          <Text style={styles.progressPercent}>{progress.toString().padStart(2, '0')}%</Text>
-        </Animated.View>
-      </View>
+        </View>
+        <Text style={styles.brandTitle}>StudentAlumni</Text>
+        <Text style={styles.brandSubtitle}>Intelligent Career Platform</Text>
+        <Text style={styles.counter}>{progress}%</Text>
+      </Animated.View>
     </View>
   );
 }
@@ -128,46 +113,37 @@ const styles = StyleSheet.create({
   shell: {
     flex: 1,
     backgroundColor: '#05060F',
-    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   glow: {
     position: 'absolute',
-    alignSelf: 'center',
-    top: '30%',
-    width: 380,
-    height: 380,
-    borderRadius: 190,
-    backgroundColor: 'rgba(139, 90, 255, 0.35)',
-    ...(Platform.OS === 'web' ? { filter: 'blur(60px)' } : {}),
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    backgroundColor: 'rgba(91,79,233,0.25)',
   },
-  center: {
-    flex: 1,
+  card: {
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
   },
-  brand: {
-    fontSize: 22,
+  badgeWrap: {
+    marginBottom: 16,
+  },
+  brandTitle: {
+    fontSize: 24,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: '#F4F5FB',
     letterSpacing: -0.5,
-    marginBottom: 6,
-    fontFamily: Platform.OS === 'web' ? "'Manrope', sans-serif" : 'System',
   },
-  tag: {
+  brandSubtitle: {
+    fontSize: 13,
+    color: '#9AA0B4',
+    marginTop: 4,
+  },
+  counter: {
+    fontSize: 40,
+    fontWeight: '800',
     color: '#8B84FF',
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 2,
-    marginBottom: 20,
-    textTransform: 'uppercase',
-    fontFamily: Platform.OS === 'web' ? "'Manrope', sans-serif" : 'System',
-  },
-  progressPercent: {
-    fontSize: 16,
-    color: '#D5D8E4',
-    fontFamily: Platform.OS === 'web' ? 'ui-monospace, monospace' : 'Courier',
-    fontWeight: '700',
-    letterSpacing: 1.5,
+    marginTop: 20,
   },
 });

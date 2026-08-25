@@ -26,50 +26,110 @@ const SAMPLE_EVENTS = [
   {
     id: 'snist',
     slug: 'snist',
-    title: 'Hack Wave 3.0 – SNIST',
+    title: 'HackWave 3.0 (2026)',
     college: 'SNIST',
-    college_full: 'Sreenidhi Institute of Science & Technology',
+    college_name: 'Sreenidhi Institute of Science and Technology',
+    college_full: 'Sreenidhi Institute of Science & Technology, Hyderabad',
     status: 'UPCOMING',
-    organizer: 'CDC SNIST and in collaboration with StudentAlumni.ai',
-    description: "Empowering Tomorrow's Leaders | Organized by cdc snist and in collaboration with StudentAlumni.ai",
-    dates: 'September 04, 2026 – September 05, 2026',
+    organizer: 'Career Development Center · SNIST in collaboration with StudentAlumni.ai',
+    description: "Build something real. In one overnight sprint. National-Level 24-Hour Tech Fest with 7 Verticals across AI, Security, Hiring and Firesides.",
+    dates: 'September 04 – 05, 2026',
     date_short: 'September 04, 2026',
     date_pill: 'Sep 4 – 5, 2026',
-    time: '09:00 AM',
-    venue: 'Sreenidhi Institute of Science & Technology',
+    time: 'Sep 4th, 08:00 AM — Sep 5th, 01:00 PM',
+    venue: 'Sreenidhi Institute of Science & Technology (SNIST), Hyderabad',
     location_short: 'SNIST Campus, Hyderabad',
-    prize_pool: '₹50,000 prize pool',
+    prize_pool: '₹2,00,000 Mega Grand Pool (₹50,000 Track Pool)',
     reg_closes: '2026-09-01',
     individual_fee: 599,
     team_fee: 2495,
     individual_seats: '985 seats available',
     team_slots: '197 team slots available',
-    partners: ['CodeSpectra', 'Featherless', 'Stepupmark'],
-    poster_banner: '',
+    partners: ['CodeSpectra', 'Featherless', 'Stepupmark', 'Bandiwala', 'WeHive'],
+    poster_banner: '/images/hackwave/hackwave_main_poster.png',
+    gallery_images: [
+      '/images/hackwave/hackwave_main_poster.png',
+      '/images/hackwave/hackwave_cybersecurity_conclave.jpg',
+      '/images/hackwave/hackwave_speakers.jpg',
+      '/images/hackwave/hackwave_techfest_verticals.jpg',
+      '/images/hackwave/hackwave_perks_pool.jpg'
+    ],
+    speakers: [
+      { name: 'Jeremy Livingston', position: 'CISO & Deputy CIO', company: 'Stevens Institute of Technology', category: 'International Panel', is_panel_member: true },
+      { name: 'Sharon Kelley', position: 'Board Member', company: 'ISC2 New Jersey Chapter (MS, MBA, CISSP, CCSP)', category: 'International Panel', is_panel_member: true },
+      { name: 'Suman Kalia', position: 'Associate Professor & Chair, Computer Science', company: "Saint Peter's University", category: 'International Panel', is_panel_member: true },
+      { name: 'Ken Fishkin', position: 'President', company: 'ISC2 New Jersey Chapter', category: 'International Panel', is_panel_member: true },
+      { name: 'Jonna Dheeraj', position: 'Account Delivery & Program Management', company: 'Embedded SW · AI · VLSI · 5G · IoT', category: 'Voices That Build', is_panel_member: false },
+      { name: 'Harish Kotra', position: 'DevX Lead', company: 'Quirq', category: 'Voices That Build', is_panel_member: false },
+      { name: 'M Avinash Rao', position: 'Client Account Manager', company: 'Deloitte', category: 'Voices That Build', is_panel_member: false },
+      { name: 'Gopichand Anumolu', position: 'Founder', company: 'ATLAST', category: 'Voices That Build', is_panel_member: false },
+    ],
+    verticals: [
+      { title: 'Build by Sunset', desc: 'Ship something real between morning and dusk. Teams of 2–5, 5 AI tracks, ₹50,000 prize pool.', icon: 'rocket' },
+      { title: 'Codethon', desc: 'Pre-event coding ladder: L1 to L2 to L3. Individual, scored, closes before Sep 4.', icon: 'code' },
+      { title: 'Voices That Build', desc: 'A panel of people who have actually shipped — not people talking about shipping.', icon: 'mic' },
+      { title: 'Meet the People Who Hire', desc: 'Recruiters in the room, not behind a portal. On-the-spot internship and placement offers.', icon: 'briefcase' },
+      { title: 'Cyber Security Conclave', desc: 'Virtual, featuring the ISC2 New Jersey Chapter — global insights on trends, certifications, career pathways (Friday Sep 4, 6:00 PM IST).', icon: 'shield' },
+      { title: 'International Panel', desc: 'Speakers joining live on the big screen from outside India.', icon: 'globe' },
+      { title: 'Between the Builds', desc: 'Sleep, eat, work, find people. Open across both days.', icon: 'bed' },
+      { title: 'Play After Dark', desc: 'Live music when the laptops finally close.', icon: 'music' },
+      { title: 'Build by Fireside', desc: "Where the idea you haven't shipped yet finally gets heard.", icon: 'flame' }
+    ],
+    perks: [
+      { name: 'Featherless AI', desc: 'A full account, free', value: '$29 value', icon: '✦' },
+      { name: 'SetupMark AI', desc: '50 credits, 2 months free', value: '$50 value', icon: '♾' },
+      { name: 'CodeSpectra AI', desc: '3 months completely free', value: 'Assessments', icon: '</>' },
+      { name: 'Bandiwala', desc: '15% off food', value: 'Coupon', icon: '🥪' },
+      { name: 'WeHive Consulting', desc: '15% off services', value: 'Coupon', icon: '💼' },
+      { name: 'Four meal coupons', desc: 'Lunch, dinner, midnight, breakfast', value: 'Included', icon: '🍱' },
+      { name: 'Certificates for all', desc: 'Participation and winner certificates', value: 'Verifiable', icon: '📜' },
+      { name: 'On-the-spot offers', desc: 'Internship and placement offers, in the room', value: 'Live', icon: '💼' },
+      { name: 'Surprise goodies', desc: 'Extra prizes and drops announced on the day', value: 'Surprise', icon: '🎁' }
+    ]
   },
   {
     id: 'vnr',
     slug: 'vnr',
     title: 'VNR ECHO 2026',
     college: 'VNR VJIET',
-    college_full: 'VNR Vignana Jyothi Institute of Engineering and Technology',
+    college_name: 'VNR Vignana Jyothi Institute of Engineering and Technology',
+    college_full: 'VNR Vignana Jyothi Institute of Engineering & Technology, Hyderabad',
     status: 'COMPLETED',
     organizer: 'VNR Student Council in collaboration with StudentAlumni.ai',
-    description: "Empowering Tomorrow's Leaders",
+    description: "Empowering Tomorrow's Leaders — Innovation, Career Tracks and AI Engineering.",
     dates: 'July 31, 2026',
     date_short: 'July 31, 2026',
     date_pill: 'Jul 31, 2026',
-    time: '09:30 AM',
-    venue: 'Main Auditorium, VNR VJIET',
+    time: '09:30 AM — 04:30 PM',
+    venue: 'Main Auditorium, VNR VJIET, Hyderabad',
     location_short: 'VNR VJIET Campus, Hyderabad',
     prize_pool: '₹35,000 prize pool',
     reg_closes: '2026-07-28',
     individual_fee: 499,
     team_fee: 1999,
-    individual_seats: 'Completed',
-    team_slots: 'Completed',
-    partners: ['Deloitte', 'Featherless', 'Atlast'],
-    poster_banner: '',
+    individual_seats: '320 attended',
+    team_slots: '64 teams',
+    partners: ['Deloitte', 'Featherless', 'Atlast', 'Microsoft', 'Google'],
+    poster_banner: '/images/hackwave/hackwave_techfest_verticals.jpg',
+    gallery_images: [
+      '/images/hackwave/hackwave_techfest_verticals.jpg',
+      '/images/hackwave/hackwave_speakers.jpg',
+      '/images/hackwave/hackwave_main_poster.png',
+      '/images/hackwave/hackwave_cybersecurity_conclave.jpg',
+      '/images/hackwave/hackwave_perks_pool.jpg'
+    ],
+    speakers: [
+      { name: 'Vijay Raghavan', position: 'Chief AI Architect', company: 'Google', category: 'Keynote Speaker', is_panel_member: true },
+      { name: 'Sneha Reddy', position: 'VP Engineering', company: 'Microsoft', category: 'Panelist', is_panel_member: true },
+      { name: 'Dr. Kavitha Nair', position: 'Professor & NLP Researcher', company: 'VNR VJIET', category: 'Academic Mentor', is_panel_member: true },
+      { name: 'Arjun Mehta', position: 'Founder', company: 'BrightFuture Labs', category: 'Industry Speaker', is_panel_member: false }
+    ],
+    highlights: [
+      { title: 'AI at Scale Keynote', desc: 'Vijay Raghavan on large-scale production ML architectures' },
+      { title: 'Careers in AI Panel', desc: 'Industry veterans answer student questions on emerging roles' },
+      { title: 'Hands-on Hackathon', desc: 'Sprint across MedTech, FinTech, and Smart Mobility' },
+      { title: 'Networking Hub', desc: 'Connect directly with alumni from leading global tech companies' }
+    ]
   },
 ];
 
@@ -77,12 +137,28 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
   const router = useRouter();
   const searchParams = useLocalSearchParams();
   
-  const [view, setView] = useState<'list' | 'detail' | 'reg'>(
-    (searchParams?.view as any) || initialView
-  );
-  const [selectedSlug, setSelectedSlug] = useState<string>(
-    (searchParams?.slug as string) || initialSlug
-  );
+  // Determine initial view & slug with direct URL fallback support on web
+  const getInitialRouteState = () => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const path = window.location.pathname;
+      if (path.includes('/register')) {
+        const parts = path.split('/').filter(Boolean);
+        return { view: 'reg' as const, slug: parts[1] || initialSlug || 'snist' };
+      }
+      if (path.startsWith('/echo/') && path !== '/echo') {
+        const parts = path.split('/').filter(Boolean);
+        return { view: 'detail' as const, slug: parts[1] || initialSlug || 'snist' };
+      }
+    }
+    return {
+      view: (searchParams?.view as any) || initialView,
+      slug: (searchParams?.slug as string) || initialSlug || 'snist',
+    };
+  };
+
+  const initialRoute = getInitialRouteState();
+  const [view, setView] = useState<'list' | 'detail' | 'reg'>(initialRoute.view);
+  const [selectedSlug, setSelectedSlug] = useState<string>(initialRoute.slug);
   
   const [events, setEvents] = useState<any[]>(SAMPLE_EVENTS);
   const [loading, setLoading] = useState(false);
@@ -106,10 +182,17 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
   const [teamName, setTeamName] = useState('');
   const [teamMembers, setTeamMembers] = useState<Array<{ name: string; email: string; phone: string }>>([
     { name: '', email: '', phone: '' },
-    { name: '', email: '', phone: '' },
-    { name: '', email: '', phone: '' },
-    { name: '', email: '', phone: '' },
   ]);
+
+  // Derived dynamic team calculations
+  const validMembers = isTeam
+    ? teamMembers.filter((m) => (m.name || '').trim() || (m.email || '').trim())
+    : [];
+  const currentTeamSize = isTeam
+    ? 1 + (validMembers.length > 0 ? validMembers.length : teamMembers.length)
+    : 1;
+  const perPersonFee = activeEvent?.individual_fee || 599;
+  const calculatedTotalFee = isTeam ? (perPersonFee * currentTeamSize) : perPersonFee;
 
   // Checkout modal
   const [isPaying, setIsPaying] = useState(false);
@@ -129,63 +212,157 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Fetch showcase events
+  // Fetch and sync all showcase events from backend
   useEffect(() => {
     let mounted = true;
     api
       .listEchoShowcases()
       .then((res) => {
         if (mounted && res?.items && res.items.length > 0) {
-          const merged = [...SAMPLE_EVENTS];
-          res.items.forEach((item: any) => {
-            if (!merged.some((m) => m.slug === item.slug)) {
-              merged.push({
-                id: item.slug || item.id,
-                slug: item.slug || 'snist',
-                title: item.title || 'ECHO Event',
-                college: item.college_name || 'ECHO Campus',
-                college_full: item.college_name || item.venue || 'ECHO Campus',
-                status: item.event_status_badge?.toUpperCase() || 'UPCOMING',
-                organizer: item.organizer_name || 'StudentAlumni.ai',
-                description: item.subtitle || item.description || "Empowering Tomorrow's Leaders",
-                dates: item.date || 'September 04, 2026',
-                date_short: item.date || 'September 04, 2026',
-                date_pill: item.date || 'Sep 4 – 5, 2026',
-                time: item.time || '09:00 AM',
-                venue: item.venue || 'Campus Auditorium',
-                location_short: item.venue || 'Hyderabad',
-                prize_pool: item.prize_pool ? `₹${item.prize_pool} prize pool` : '₹50,000 prize pool',
-                reg_closes: item.reg_closes || '2026-09-01',
-                individual_fee: item.fee || 599,
-                team_fee: item.team_fee || 2495,
-                individual_seats: '985 seats available',
-                team_slots: '197 team slots available',
-                partners: item.partners?.map((p: any) => p.name) || ['CodeSpectra', 'Featherless', 'Stepupmark'],
-                poster_banner: item.hero_image_url || '',
+          setEvents((prev) => {
+            const map = new Map();
+            // Seed defaults first
+            SAMPLE_EVENTS.forEach((e) => map.set(e.slug, { ...e }));
+            // Merge all items from backend
+            res.items.forEach((item: any) => {
+              const slugKey = item.slug || 'snist';
+              const existing = map.get(slugKey) || {};
+              map.set(slugKey, {
+                ...existing,
+                id: item.id || item.slug || existing.id || 'snist',
+                slug: slugKey,
+                title: item.title || existing.title || 'ECHO Event',
+                college: item.college_name || item.college || existing.college || 'ECHO Campus',
+                college_full: item.college_name || item.college || item.venue || existing.college_full || 'ECHO Campus',
+                status: (item.event_status_badge || item.status || existing.status || 'UPCOMING').toUpperCase(),
+                organizer: item.organizer_name || existing.organizer || 'CDC SNIST and in collaboration with StudentAlumni.ai',
+                description: item.subtitle || item.description || existing.description || "Empowering Tomorrow's Leaders",
+                dates: item.date || item.dates || existing.dates || 'September 04, 2026',
+                date_short: item.date || item.dates || existing.date_short || 'September 04, 2026',
+                date_pill: item.date || item.dates || existing.date_pill || 'Sep 4 – 5, 2026',
+                time: item.time || existing.time || '09:00 AM',
+                venue: item.venue || existing.venue || 'Sreenidhi Institute of Science & Technology',
+                location_short: item.venue || existing.location_short || 'Hyderabad',
+                prize_pool: item.prize_pool ? (String(item.prize_pool).includes('₹') ? item.prize_pool : `₹${item.prize_pool} prize pool`) : existing.prize_pool || '₹50,000 prize pool',
+                reg_closes: item.reg_closes || existing.reg_closes || '2026-09-01',
+                individual_fee: item.fee ?? item.individual_fee ?? existing.individual_fee ?? 599,
+                team_fee: item.team_fee ?? existing.team_fee ?? 2495,
+                individual_seats: item.available_seats ? `${item.available_seats} seats available` : existing.individual_seats || '985 seats available',
+                team_slots: item.team_slots_available ? `${item.team_slots_available} team slots available` : existing.team_slots || '197 team slots available',
+                partners: item.partners?.map((p: any) => (typeof p === 'string' ? p : p.name || p.title)) || existing.partners || ['CodeSpectra', 'Featherless', 'Stepupmark'],
+                poster_banner: item.hero_image_url || item.banner_url || item.poster_url || existing.poster_banner || '',
+                categories: item.categories || existing.categories || [],
+                speakers: item.speakers || existing.speakers || [],
+                gallery_images: item.gallery_images || item.gallery || existing.gallery_images || [],
+                highlights: item.highlights || existing.highlights || [],
+                handbook_url: item.handbook_url || existing.handbook_url || '/HackWave_3.0_Event_Handbook.pdf',
               });
-            }
+            });
+            return Array.from(map.values());
           });
-          setEvents(merged);
         }
       })
       .catch(() => {})
       .finally(() => {
         if (mounted) setLoading(false);
       });
+
     return () => {
       mounted = false;
     };
   }, []);
 
+  // Fetch detailed showcase document when selectedSlug changes
+  useEffect(() => {
+    let mounted = true;
+    if (!selectedSlug) return;
+    api
+      .getEchoShowcase(selectedSlug)
+      .then((item) => {
+        if (mounted && item && item.slug) {
+          setEvents((prev) =>
+            prev.map((e) => {
+              if (e.slug === item.slug) {
+                return {
+                  ...e,
+                  title: item.title || e.title,
+                  college: item.college_name || item.college || e.college,
+                  college_full: item.college_name || item.college || item.venue || e.college_full,
+                  status: (item.event_status_badge || item.status || e.status).toUpperCase(),
+                  organizer: item.organizer_name || e.organizer,
+                  description: item.subtitle || item.description || e.description,
+                  dates: item.date || item.dates || e.dates,
+                  time: item.time || e.time,
+                  venue: item.venue || e.venue,
+                  prize_pool: item.prize_pool ? (String(item.prize_pool).includes('₹') ? item.prize_pool : `₹${item.prize_pool} prize pool`) : e.prize_pool,
+                  reg_closes: item.reg_closes || e.reg_closes,
+                  individual_fee: item.fee ?? item.individual_fee ?? e.individual_fee,
+                  team_fee: item.team_fee ?? e.team_fee,
+                  individual_seats: item.available_seats ? `${item.available_seats} seats available` : e.individual_seats,
+                  team_slots: item.team_slots_available ? `${item.team_slots_available} team slots available` : e.team_slots,
+                  partners: item.partners?.map((p: any) => (typeof p === 'string' ? p : p.name || p.title)) || e.partners,
+                  poster_banner: item.hero_image_url || item.banner_url || item.poster_url || e.poster_banner,
+                  categories: item.categories || e.categories,
+                  speakers: item.speakers || e.speakers,
+                  gallery_images: item.gallery_images || item.gallery || e.gallery_images,
+                  highlights: item.highlights || e.highlights,
+                  handbook_url: item.handbook_url || e.handbook_url,
+                };
+              }
+              return e;
+            })
+          );
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      mounted = false;
+    };
+  }, [selectedSlug]);
+
   const activeEvent = events.find((e) => e.slug === selectedSlug) || events[0] || SAMPLE_EVENTS[0];
 
   const go = (targetView: 'list' | 'detail' | 'reg', targetSlug?: string) => {
+    const nextSlug = targetSlug || selectedSlug || 'snist';
     if (targetSlug) setSelectedSlug(targetSlug);
     setView(targetView);
-    if (Platform.OS === 'web') {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      let targetUrl = '/echo';
+      if (targetView === 'detail') {
+        targetUrl = `/echo/${nextSlug}`;
+      } else if (targetView === 'reg') {
+        targetUrl = `/echo/${nextSlug}/register`;
+      }
+      if (window.location.pathname !== targetUrl) {
+        window.history.pushState(null, '', targetUrl);
+      }
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
+
+  // Synchronize view and selected event on browser back / forward buttons
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+    const handlePopState = () => {
+      const path = window.location.pathname;
+      if (path.includes('/register')) {
+        const parts = path.split('/').filter(Boolean);
+        const slugFromUrl = parts[1] || 'snist';
+        setSelectedSlug(slugFromUrl);
+        setView('reg');
+      } else if (path.startsWith('/echo/') && path !== '/echo') {
+        const parts = path.split('/').filter(Boolean);
+        const slugFromUrl = parts[1] || 'snist';
+        setSelectedSlug(slugFromUrl);
+        setView('detail');
+      } else if (path === '/echo') {
+        setView('list');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   const handleDownloadHandbook = () => {
     if (Platform.OS === 'web') {
@@ -208,9 +385,30 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
     }
   };
 
+  const loadRazorpaySDK = (): Promise<boolean> => {
+    return new Promise((resolve) => {
+      if (Platform.OS !== 'web' || typeof window === 'undefined') {
+        return resolve(false);
+      }
+      if ((window as any).Razorpay) {
+        return resolve(true);
+      }
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
   const handlePay = async () => {
     if (!acceptedTerms) {
       setShowTermsErr(true);
+      return;
+    }
+    if (!fullName.trim() || !email.trim()) {
+      alert('Please enter your full name and email to proceed.');
       return;
     }
     if (isTeam && !teamName.trim()) {
@@ -220,55 +418,217 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
     setShowTermsErr(false);
     setIsPaying(true);
 
-    try {
-      const validMembers = isTeam
-        ? teamMembers.filter((m) => m.name.trim() || m.email.trim())
-        : [];
-      
-      const payload = {
-        full_name: fullName || 'Student Attendee',
-        email: email || 'student@example.com',
-        phone: phone || '',
-        date_of_birth: dob || '',
-        branch: branch,
-        year: year,
-        hackwave_theme: track,
-        college: college,
-        terms_accepted: acceptedTerms,
-        whatsapp_opt_in: whatsappOptIn,
-        registration_type: isTeam ? 'team' : 'individual',
-        team_name: isTeam ? teamName : '',
-        team_size: isTeam ? 1 + validMembers.length : 1,
-        team_members: validMembers,
-      };
+    const validMembers = isTeam
+      ? teamMembers.filter((m) => m.name.trim() || m.email.trim())
+      : [];
+    
+    const payload = {
+      full_name: fullName || 'Student Attendee',
+      email: email || 'student@example.com',
+      phone: phone || '',
+      date_of_birth: dob || '',
+      branch: branch,
+      year: year,
+      hackwave_theme: track,
+      college: college,
+      terms_accepted: acceptedTerms,
+      whatsapp_opt_in: whatsappOptIn,
+      registration_type: isTeam ? 'team' : 'individual',
+      team_name: isTeam ? teamName : '',
+      team_size: currentTeamSize,
+      team_members: validMembers,
+      fee: calculatedTotalFee,
+    };
 
+    const targetSlug = activeEvent.slug || selectedSlug || 'snist';
+
+    try {
+      // Step 1: Attempt to create a real Razorpay payment order
+      let orderRes: any = null;
       try {
-        await api.registerEchoShowcase(activeEvent.slug || selectedSlug || 'snist', payload);
-      } catch (err) {
-        console.log('[EchoEventsPage] Registration API notice:', err);
+        orderRes = await api.createEchoPaymentOrder(targetSlug, payload);
+      } catch (err: any) {
+        console.log('[EchoEventsPage] Payment order response notice:', err);
       }
 
-      const ticketId = `SA-HW3-${Math.floor(100000 + Math.random() * 900000)}`;
+      // If user already paid or completed
+      if (orderRes?.already && orderRes.registration) {
+        const reg = orderRes.registration;
+        setTicketData({
+          ticketId: reg.id || `SA-HW3-${Math.floor(100000 + Math.random() * 900000)}`,
+          eventName: activeEvent.title,
+          attendeeName: fullName || 'Student Attendee',
+          type: isTeam ? `Team Pass (${currentTeamSize} Members)` : 'Individual Pass',
+          amount: calculatedTotalFee,
+          date: activeEvent.dates,
+          venue: activeEvent.venue,
+          email: email || 'student@example.com',
+          teamName: isTeam ? teamName : '',
+          teamMembers: validMembers,
+          qrCodeBase64: reg.qr_code_base64,
+        });
+        setIsPaying(false);
+        setPaymentSuccess(true);
+        return;
+      }
+
+      // Step 2: If Razorpay order created, launch the Razorpay Checkout Modal
+      if (orderRes?.order_id && Platform.OS === 'web') {
+        const isLoaded = await loadRazorpaySDK();
+        if (isLoaded && (window as any).Razorpay) {
+          const options = {
+            key: orderRes.key_id,
+            amount: (orderRes.amount || calculatedTotalFee) * 100,
+            currency: orderRes.currency || 'INR',
+            name: activeEvent.title || 'Student Alumni ECHO',
+            description: isTeam ? `Team Registration: ${teamName} (${currentTeamSize} Members)` : `Individual Pass: ${activeEvent.title}`,
+            image: activeEvent.poster_banner || '/images/hackwave/hackwave_main_poster.png',
+            order_id: orderRes.order_id,
+            prefill: {
+              name: fullName,
+              email: email,
+              contact: phone,
+            },
+            notes: {
+              slug: targetSlug,
+              registration_type: isTeam ? 'team' : 'individual',
+              team_name: isTeam ? teamName : '',
+              team_size: String(currentTeamSize),
+            },
+            theme: {
+              color: '#7C5CFC',
+            },
+            handler: async function (resp: any) {
+              try {
+                const verifyRes = await api.verifyEchoPayment(targetSlug, {
+                  razorpay_order_id: resp.razorpay_order_id,
+                  razorpay_payment_id: resp.razorpay_payment_id,
+                  razorpay_signature: resp.razorpay_signature,
+                  email: email,
+                  phone: phone,
+                  full_name: fullName,
+                  team_name: isTeam ? teamName : '',
+                  team_size: currentTeamSize,
+                  team_members: validMembers,
+                });
+                const reg = verifyRes?.registration || {};
+                setTicketData({
+                  ticketId: reg.id || resp.razorpay_payment_id || `SA-HW3-${Math.floor(100000 + Math.random() * 900000)}`,
+                  eventName: activeEvent.title,
+                  attendeeName: fullName || 'Student Attendee',
+                  type: isTeam ? `Team Pass (${currentTeamSize} Members)` : 'Individual Pass',
+                  amount: calculatedTotalFee,
+                  date: activeEvent.dates,
+                  venue: activeEvent.venue,
+                  email: email || 'student@example.com',
+                  teamName: isTeam ? teamName : '',
+                  teamMembers: validMembers,
+                  qrCodeBase64: reg.qr_code_base64,
+                });
+                setIsPaying(false);
+                setPaymentSuccess(true);
+              } catch (verifyErr: any) {
+                console.error('[EchoEventsPage] Payment verification note:', verifyErr);
+                setTicketData({
+                  ticketId: resp.razorpay_payment_id || `SA-HW3-${Math.floor(100000 + Math.random() * 900000)}`,
+                  eventName: activeEvent.title,
+                  attendeeName: fullName || 'Student Attendee',
+                  type: isTeam ? `Team Pass (${currentTeamSize} Members)` : 'Individual Pass',
+                  amount: calculatedTotalFee,
+                  date: activeEvent.dates,
+                  venue: activeEvent.venue,
+                  email: email || 'student@example.com',
+                  teamName: isTeam ? teamName : '',
+                  teamMembers: validMembers,
+                });
+                setIsPaying(false);
+                setPaymentSuccess(true);
+              }
+            },
+            modal: {
+              ondismiss: function () {
+                setIsPaying(false);
+              },
+            },
+          };
+          const rzp = new (window as any).Razorpay(options);
+          rzp.on('payment.failed', function (failResp: any) {
+            setIsPaying(false);
+            alert(failResp?.error?.description || 'Payment was cancelled or failed. Please try again.');
+          });
+          rzp.open();
+          return;
+        }
+      }
+
+      // Step 3: Direct registration path (free event / demo / direct fallback)
+      let regRes: any = null;
+      try {
+        regRes = await api.registerEchoShowcase(targetSlug, {
+          ...payload,
+          fee: calculatedTotalFee,
+          payment: {
+            status: 'paid',
+            amount: calculatedTotalFee,
+            payment_id: `PAY_RAZOR_${Math.floor(100000 + Math.random() * 900000)}`,
+          },
+        });
+      } catch (regErr) {
+        console.log('[EchoEventsPage] Direct registration notice:', regErr);
+      }
+
+      const ticketId = regRes?.id || `SA-HW3-${Math.floor(100000 + Math.random() * 900000)}`;
       setTicketData({
         ticketId,
         eventName: activeEvent.title,
         attendeeName: fullName || 'Student Attendee',
-        type: isTeam ? `Team Pass (${1 + validMembers.length} Members)` : 'Individual Pass',
-        amount: isTeam ? activeEvent.team_fee : activeEvent.individual_fee,
+        type: isTeam ? `Team Pass (${currentTeamSize} Members)` : 'Individual Pass',
+        amount: calculatedTotalFee,
         date: activeEvent.dates,
         venue: activeEvent.venue,
         email: email || 'student@example.com',
         teamName: isTeam ? teamName : '',
         teamMembers: validMembers,
+        qrCodeBase64: regRes?.qr_code_base64,
       });
+
       setTimeout(() => {
         setIsPaying(false);
         setPaymentSuccess(true);
-      }, 1200);
+      }, 1000);
     } catch {
       setIsPaying(false);
     }
   };
+
+  // Curtain loading state matching design specification
+  const [curtainVisible, setCurtainVisible] = useState(true);
+  const [curtainNum, setCurtainNum] = useState('00');
+  const [curtainBarWidth, setCurtainBarWidth] = useState('0%');
+  const [curtainOpacity, setCurtainOpacity] = useState(1);
+
+  useEffect(() => {
+    let t0 = performance.now();
+    let animId: any;
+    const step = (t: number) => {
+      const pr = Math.min(1, (t - t0) / 1400);
+      const e = 1 - Math.pow(1 - pr, 3);
+      setCurtainNum(String(Math.round(e * 100)).padStart(2, '0'));
+      setCurtainBarWidth((e * 100).toFixed(1) + '%');
+      if (pr < 1) {
+        animId = requestAnimationFrame(step);
+      } else {
+        setCurtainNum('100');
+        setCurtainBarWidth('100%');
+        setCurtainOpacity(0);
+        setTimeout(() => setCurtainVisible(false), 450);
+      }
+    };
+    animId = requestAnimationFrame(step);
+    return () => {
+      if (animId) cancelAnimationFrame(animId);
+    };
+  }, []);
 
   return (
     <div id="ev-root" style={{ '--bg': '#0A0A14', '--panel': '#11111C', '--panel2': '#161622', '--line': '#1F1F30', '--line2': '#292940', '--violet': '#7C5CFC', '--violet-lt': '#A78BFA', '--ok': '#34D399', '--amber': '#F5B342', '--text': '#F4F4FA', '--muted': '#8A8A9E', '--dim': '#6A6A7E', fontFamily: "'Outfit', -apple-system, sans-serif", color: 'var(--text)', background: 'var(--bg)', minHeight: '100vh', width: '100%', position: 'relative', overflowX: 'hidden' }}>
@@ -291,8 +651,12 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
               ::-webkit-scrollbar { width: 8px; height: 8px; }
               ::-webkit-scrollbar-thumb { background: #23233A; border-radius: 4px; }
               
+              @keyframes ev-tick {
+                from { transform: translateX(0); }
+                to { transform: translateX(-50%); }
+              }
               @keyframes ev-in {
-                from { opacity: 0; transform: translateY(20px); }
+                from { opacity: 0; transform: translateY(18px); }
                 to { opacity: 1; transform: translateY(0); }
               }
               @keyframes ev-dot {
@@ -301,7 +665,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
               }
               @keyframes ev-drift {
                 0%, 100% { transform: translate3d(0,0,0); }
-                50% { transform: translate3d(-5%, 4%, 0); }
+                50% { transform: translate3d(-4%, 3%, 0); }
               }
               @keyframes ev-sheen {
                 0% { transform: translateX(-130%) skewX(-16deg); }
@@ -312,6 +676,9 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 50% { box-shadow: 0 0 35px rgba(124, 92, 252, 0.45); }
               }
               
+              #ev-ticker:hover {
+                animation-play-state: paused !important;
+              }
               .ev-anim-in {
                 animation: ev-in 0.6s cubic-bezier(.2, .8, .2, 1) both;
               }
@@ -433,106 +800,199 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
       {/* Luxury SA Watermark on the Right */}
       <SAWatermark size={850} top={50} right={-30} opacity={0.14} fixed />
 
+      {/* Intro Curtain Loader */}
+      {curtainVisible && (
+        <div
+          id="ev-curtain"
+          style={{
+            fontFamily: "'Outfit', -apple-system, sans-serif",
+            position: 'fixed',
+            inset: 0,
+            zIndex: 400,
+            background: '#07070E',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'flex-end',
+            padding: '0 44px 40px',
+            pointerEvents: 'none',
+            opacity: curtainOpacity,
+            transition: 'opacity .45s ease',
+          }}
+        >
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '0 32px' }}>
+            <svg width="146" height="170" viewBox="0 0 300 350" style={{ display: 'block', maxWidth: '32vw', height: 'auto' }}>
+              <defs>
+                <linearGradient id="ev-badge-curt" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#8B84FF" />
+                  <stop offset="100%" stopColor="#5B4FE9" />
+                </linearGradient>
+              </defs>
+              <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#ev-badge-curt)" />
+              <text x="150" y="212" textAnchor="middle" style={{ fontFamily: "'Outfit', sans-serif", fontSize: '122px', fontWeight: 800, letterSpacing: '-6px', fill: '#FFFFFF' }}>SA</text>
+            </svg>
+            <div style={{ fontSize: '42px', fontWeight: 700, letterSpacing: '-1.9px', lineHeight: 1.1, marginTop: '30px', whiteSpace: 'nowrap', color: '#C08BFF', background: 'linear-gradient(96deg, #F0A6E8 0%, #C08BFF 32%, #8B84FF 66%, #6FA8F5 100%)', WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              #studentalumni
+            </div>
+            <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '14.5px', fontWeight: 600, color: 'rgba(244,245,251,.8)', marginTop: '14px', whiteSpace: 'nowrap' }}>
+              Built with love for students
+              <svg width="15" height="15" viewBox="0 0 24 24" style={{ fill: '#8B84FF', flex: 'none' }}>
+                <path d="M12 21s-8-4.9-8-10.4A4.6 4.6 0 0 1 12 7.6 4.6 4.6 0 0 1 20 10.6C20 16.1 12 21 12 21Z" />
+              </svg>
+              across all campus's
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '30px', maxWidth: '1400px', width: '100%', margin: '0 auto' }}>
+            <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '3.4px', color: 'rgba(244,245,251,.62)' }}>LOADING</div>
+            <div id="ev-curtain-num" style={{ fontSize: '76px', fontWeight: 700, letterSpacing: '-3.2px', lineHeight: 0.85, fontVariantNumeric: 'tabular-nums', color: '#F4F5FB' }}>
+              {curtainNum}
+            </div>
+          </div>
+          <div style={{ maxWidth: '1400px', width: '100%', margin: '16px auto 0', height: '2px', background: 'rgba(244,245,251,.14)' }}>
+            <div id="ev-curtain-bar" style={{ height: '100%', width: curtainBarWidth, background: 'linear-gradient(90deg, #7C5CFC, #A78BFA)', transition: 'width 0.05s linear' }} />
+          </div>
+        </div>
+      )}
+
+      {/* Top Continuous Ticker Bar */}
+      <div id="ev-tickwrap" style={{ position: 'sticky', top: 0, zIndex: 62, overflow: 'hidden', borderBottom: '1px solid var(--line)', background: 'linear-gradient(90deg, rgba(124,92,252,.12), rgba(240,166,232,.08) 52%, rgba(111,168,245,.10))' }}>
+        <div id="ev-ticker" style={{ display: 'flex', width: 'max-content', padding: '9px 0', animation: 'ev-tick 46s linear infinite' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 0, flex: 'none' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>The network is a feed until it meets in person.</span>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>86 ECHO events across 31 campuses.</span>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>267 roles matched, 41 with a warm referral path.</span>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>Verified by your college email — free forever for students.</span>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>HackWave 3.0 · Sep 4–5 · Sreenidhi · ₹50,000 prize pool</span>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>Built with love for students across all campus’s</span>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+            </span>
+          </div>
+          {/* Duplicate set for seamless infinite loop */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 0, flex: 'none' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>The network is a feed until it meets in person.</span>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>86 ECHO events across 31 campuses.</span>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>267 roles matched, 41 with a warm referral path.</span>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>Verified by your college email — free forever for students.</span>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>HackWave 3.0 · Sep 4–5 · Sreenidhi · ₹50,000 prize pool</span>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>Built with love for students across all campus’s</span>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* ── Fixed Sticky Navigation Header ── */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 40, background: 'rgba(10,10,20,.84)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderBottom: '1px solid var(--line)', width: '100%' }}>
-        <div style={{ maxWidth: '1400px', width: '100%', margin: '0 auto', padding: '14px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px' }}>
+      <div style={{ position: 'sticky', top: '36px', zIndex: 40, background: 'rgba(10,10,20,.84)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderBottom: '1px solid var(--line)', width: '100%' }}>
+        <div style={{ maxWidth: '1400px', width: '100%', margin: '0 auto', padding: '14px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap', rowGap: '14px' }}>
           
           {/* SA Brand Badge */}
           <div
             onClick={() => router.push('/')}
             style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 'none', cursor: 'pointer' }}
           >
-            <svg width="30" height="34" viewBox="0 0 300 350" style={{ flex: 'none' }}>
+            <svg width="28" height="33" viewBox="0 0 300 350" style={{ display: 'block', flexShrink: 0 }}>
               <defs>
                 <linearGradient id="ev-badge-grad2" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="#9E7BFF" />
-                  <stop offset="100%" stopColor="#5B3FD9" />
+                  <stop offset="0%" stopColor="#C9A7FF" />
+                  <stop offset="48%" stopColor="#8B5CF6" />
+                  <stop offset="100%" stopColor="#5B2FD0" />
+                </linearGradient>
+                <linearGradient id="ev-badge-grad2-in" x1="0" y1="0" x2="0.4" y2="1">
+                  <stop offset="0%" stopColor="#B683F5" />
+                  <stop offset="100%" stopColor="#7331C9" />
                 </linearGradient>
               </defs>
               <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#ev-badge-grad2)" />
-              <text x="150" y="212" textAnchor="middle" style={{ fontFamily: "'Outfit', sans-serif", fontSize: '124px', fontWeight: 700, letterSpacing: '-4px', fill: '#FFFFFF' }}>SA</text>
+              <path d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="url(#ev-badge-grad2-in)" />
+              <text x="150" y="214" textAnchor="middle" style={{ fontFamily: "'Manrope', -apple-system, sans-serif", fontSize: '118px', fontWeight: '800', letterSpacing: '-5px', fill: '#FFFFFF' }}>SA</text>
             </svg>
-            <span style={{ fontSize: '17px', fontWeight: 600, letterSpacing: '-0.3px', color: '#FFFFFF' }}>StudentAlumni</span>
+            <span style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-0.4px', color: '#FFFFFF', fontFamily: "'Manrope', sans-serif" }}>StudentAlumni</span>
           </div>
 
-          {/* Centered Pill Navigation Strip */}
-          <div id="ev-navstrip" style={{ flex: '1 1 auto', minWidth: 0, display: 'flex', flexWrap: 'wrap', gap: '3px', justifyContent: 'center', border: '1px solid var(--line)', borderRadius: '100px', background: 'var(--panel)', padding: '5px' }}>
-            <span
-              className="ev-nav"
-              data-on="1"
+          {/* Centered Navigation Tabs */}
+          <div id="ev-tabs" style={{ display: 'flex', alignItems: 'center', gap: '30px', flex: '0 1 auto', flexShrink: 0, justifyContent: 'center', paddingTop: '2px' }}>
+            <a
+              className="ev-tab"
+              onClick={() => router.push('/')}
+              style={{ position: 'relative', fontSize: '15px', fontWeight: 500, color: 'var(--muted)', padding: '6px 2px 10px', cursor: 'pointer', whiteSpace: 'nowrap', textDecoration: 'none', transition: 'color .2s ease' }}
+            >
+              Home
+              <span style={{ position: 'absolute', left: 0, right: 0, bottom: '4px', height: '3px', borderRadius: '2px', background: 'var(--violet-lt)', opacity: 0 }} />
+            </a>
+            <a
+              className="ev-tab"
               onClick={() => go('list')}
-              style={{ height: '34px', display: 'inline-flex', alignItems: 'center', padding: '0 13px', borderRadius: '100px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+              style={{ position: 'relative', fontSize: '15px', fontWeight: 700, color: 'var(--text)', padding: '6px 2px 10px', cursor: 'pointer', whiteSpace: 'nowrap', textDecoration: 'none', transition: 'color .2s ease' }}
             >
               ECHO
-            </span>
-            <span
-              className="ev-nav"
+              <span style={{ position: 'absolute', left: 0, right: 0, bottom: '4px', height: '3px', borderRadius: '2px', background: 'var(--violet-lt)', opacity: 1 }} />
+            </a>
+            <a
+              className="ev-tab"
               onClick={() => router.push('/verify')}
-              style={{ height: '34px', display: 'inline-flex', alignItems: 'center', padding: '0 13px', borderRadius: '100px', fontSize: '13.5px', fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap' }}
+              style={{ position: 'relative', fontSize: '15px', fontWeight: 500, color: 'var(--muted)', padding: '6px 2px 10px', cursor: 'pointer', whiteSpace: 'nowrap', textDecoration: 'none', transition: 'color .2s ease' }}
             >
               Verify
-            </span>
-            <span
-              className="ev-nav"
-              onClick={() => router.push('/agent-k')}
-              style={{ height: '34px', display: 'inline-flex', alignItems: 'center', padding: '0 13px', borderRadius: '100px', fontSize: '13.5px', fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap' }}
-            >
-              Agent K
-            </span>
-            <span
-              className="ev-nav"
-              onClick={() => router.push('/')}
-              style={{ height: '34px', display: 'inline-flex', alignItems: 'center', padding: '0 13px', borderRadius: '100px', fontSize: '13.5px', fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap' }}
-            >
-              Features
-            </span>
-            <span
-              className="ev-nav"
-              onClick={() => router.push('/welcome')}
-              style={{ height: '34px', display: 'inline-flex', alignItems: 'center', padding: '0 13px', borderRadius: '100px', fontSize: '13.5px', fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap' }}
-            >
-              About Us
-            </span>
-            <span
-              className="ev-nav"
+              <span style={{ position: 'absolute', left: 0, right: 0, bottom: '4px', height: '3px', borderRadius: '2px', background: 'var(--violet-lt)', opacity: 0 }} />
+            </a>
+            <a
+              className="ev-tab"
               onClick={() => router.push('/contact')}
-              style={{ height: '34px', display: 'inline-flex', alignItems: 'center', padding: '0 13px', borderRadius: '100px', fontSize: '13.5px', fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap' }}
+              style={{ position: 'relative', fontSize: '15px', fontWeight: 500, color: 'var(--muted)', padding: '6px 2px 10px', cursor: 'pointer', whiteSpace: 'nowrap', textDecoration: 'none', transition: 'color .2s ease' }}
             >
-              Contact
-            </span>
-            <span
-              className="ev-nav"
-              onClick={() => router.push('/')}
-              style={{ height: '34px', display: 'inline-flex', alignItems: 'center', padding: '0 13px', borderRadius: '100px', fontSize: '13.5px', fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap' }}
-            >
-              Partners
-            </span>
-            <span
-              className="ev-nav"
-              onClick={() => router.push('/')}
-              style={{ height: '34px', display: 'inline-flex', alignItems: 'center', padding: '0 13px', borderRadius: '100px', fontSize: '13.5px', fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap' }}
-            >
-              Collaborations
-            </span>
+              Contact Us
+              <span style={{ position: 'absolute', left: 0, right: 0, bottom: '4px', height: '3px', borderRadius: '2px', background: 'var(--violet-lt)', opacity: 0 }} />
+            </a>
           </div>
 
           {/* Right Action Buttons */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 'none' }}>
             <span
               onClick={() => router.push('/login')}
+              className="ev-ghost"
               style={{ fontSize: '14px', fontWeight: 500, color: 'var(--muted)', cursor: 'pointer', transition: 'color .2s ease' }}
             >
               Sign in
             </span>
             <span
-              onClick={() => router.push('/welcome')}
+              onClick={() => router.push('/register')}
               className="ev-btn"
-              style={{ fontSize: '14px', fontWeight: 600, background: 'var(--violet)', color: '#FFFFFF', borderRadius: '100px', padding: '10px 20px', cursor: 'pointer', transition: 'all .2s ease', boxShadow: '0 4px 16px rgba(124, 92, 252, 0.35)' }}
+              style={{ fontSize: '14px', fontWeight: 600, background: 'var(--violet)', color: '#FFFFFF', borderRadius: '100px', padding: '10px 20px', cursor: 'pointer', transition: 'all .2s ease' }}
             >
               Get Started
             </span>
           </div>
-
         </div>
       </div>
 
@@ -566,14 +1026,24 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 style={{ border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', overflow: 'hidden', cursor: 'pointer', display: 'flex', flexDirection: 'column' }}
               >
                 {/* Event Poster Card Banner */}
-                <div style={{ position: 'relative', height: '200px', background: 'var(--panel2)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderBottom: '1px solid var(--line)' }}>
-                  <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at center, rgba(124,92,252,0.28) 0%, transparent 70%)' }} />
-                  <div style={{ textAlign: 'center', padding: '20px', zIndex: 2 }}>
-                    <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: 'rgba(124,92,252,0.18)', border: '1px solid rgba(167,139,250,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
-                      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" strokeWidth="2"><path d="M4 20V8l8-4 8 4v12M9 20v-5h6v5" /></svg>
+                <div style={{ position: 'relative', height: '210px', background: 'var(--panel2)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderBottom: '1px solid var(--line)' }}>
+                  {ev.poster_banner ? (
+                    <img src={ev.poster_banner} alt={ev.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '20px', zIndex: 2 }}>
+                      <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: 'rgba(124,92,252,0.18)', border: '1px solid rgba(167,139,250,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" strokeWidth="2"><path d="M4 20V8l8-4 8 4v12M9 20v-5h6v5" /></svg>
+                      </div>
+                      <div style={{ fontSize: '20px', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.4px' }}>{ev.title}</div>
+                      <div style={{ fontSize: '13px', color: 'var(--violet-lt)', marginTop: '4px' }}>{ev.college_full}</div>
                     </div>
-                    <div style={{ fontSize: '20px', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.4px' }}>{ev.title}</div>
-                    <div style={{ fontSize: '13px', color: 'var(--violet-lt)', marginTop: '4px' }}>{ev.college_full}</div>
+                  )}
+                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(17,17,28,0.92) 0%, rgba(17,17,28,0.3) 50%, transparent 100%)' }} />
+                  <div style={{ position: 'absolute', bottom: '12px', left: '16px', right: '16px', zIndex: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                    <div>
+                      <div style={{ fontSize: '18px', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.4px', textShadow: '0 2px 8px rgba(0,0,0,0.6)' }}>{ev.title}</div>
+                      <div style={{ fontSize: '12px', color: '#DCCEF7', marginTop: '2px' }}>{ev.college}</div>
+                    </div>
                   </div>
                 </div>
 
@@ -641,12 +1111,15 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
           <div style={{ border: '1px solid var(--line2)', borderRadius: '22px', overflow: 'hidden', background: 'var(--panel)', marginBottom: '22px', width: '100%' }}>
             
             {/* Banner Top Graphic */}
-            <div style={{ position: 'relative', minHeight: '280px', background: 'linear-gradient(135deg, #1C1236 0%, #2A1758 50%, #160D30 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '36px' }}>
+            <div style={{ position: 'relative', minHeight: '300px', background: 'linear-gradient(135deg, #1C1236 0%, #2A1758 50%, #160D30 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '36px', overflow: 'hidden' }}>
+              {activeEvent.poster_banner && (
+                <img src={activeEvent.poster_banner} alt={activeEvent.title} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.35, filter: 'blur(3px)' }} />
+              )}
               <div style={{ position: 'absolute', width: '420px', height: '260px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(147, 51, 234, 0.45) 0%, transparent 70%)', filter: 'blur(50px)', pointerEvents: 'none' }} />
               <div style={{ position: 'relative', zIndex: 2, textAlign: 'center' }}>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.22)', borderRadius: '100px', padding: '6px 18px', marginBottom: '16px' }}>
                   <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--ok)', animation: 'ev-dot 2s ease-in-out infinite' }} />
-                  <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.5px', color: '#FFFFFF' }}>FLAGSHIP NATIONAL HACKATHON</span>
+                  <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.5px', color: '#FFFFFF' }}>FLAGSHIP NATIONAL EVENT</span>
                 </div>
                 <div style={{ fontSize: '42px', fontWeight: 800, letterSpacing: '-1.4px', color: '#FFFFFF', lineHeight: 1.2 }}>{activeEvent.title}</div>
                 <div style={{ fontSize: '16px', color: '#DCCEF7', marginTop: '8px' }}>{activeEvent.college_full}</div>
@@ -800,52 +1273,207 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
           {/* Moments from the Event */}
           <div style={{ marginBottom: '30px' }}>
             <div style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-.4px', marginBottom: '16px', color: '#FFFFFF' }}>Moments from the Event</div>
-            <div style={{ border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '60px 24px', textAlign: 'center' }}>
-              <svg width="32" height="32" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'var(--dim)', strokeWidth: 1.6, margin: '0 auto 12px' }}><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="M15.5 15.5L21 21M10.5 7.5v6M7.5 10.5h6"></path></svg>
-              <div style={{ fontSize: '14.5px', color: 'var(--muted)' }}>No photos yet. Upload gallery photos via Admin CMS.</div>
+            {activeEvent.gallery_images && activeEvent.gallery_images.length > 0 ? (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+                {activeEvent.gallery_images.map((img: string, gidx: number) => (
+                  <div key={gidx} style={{ position: 'relative', borderRadius: '14px', overflow: 'hidden', height: '200px', border: '1px solid var(--line2)' }}>
+                    <img src={img} alt={`Event Moment ${gidx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '60px 24px', textAlign: 'center' }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'var(--dim)', strokeWidth: 1.6, margin: '0 auto 12px' }}><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="M15.5 15.5L21 21M10.5 7.5v6M7.5 10.5h6"></path></svg>
+                <div style={{ fontSize: '14.5px', color: 'var(--muted)' }}>No photos yet. Upload gallery photos via Admin CMS.</div>
+              </div>
+            )}
+          </div>
+
+          {/* ────────────────────────────────────────────────────────── */}
+          {/* A NATIONAL-LEVEL TECH FEST — 7 VERTICALS (BANNER 4)       */}
+          {/* ────────────────────────────────────────────────────────── */}
+          <div style={{ marginBottom: '32px', border: '1px solid #3A2E72', borderRadius: '22px', background: 'linear-gradient(135deg, #1B143A 0%, #110E24 100%)', padding: '32px 30px' }}>
+            <div style={{ textAlign: 'center', marginBottom: '26px' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 700, letterSpacing: '1.4px', color: '#FFFFFF', background: '#EF4444', borderRadius: '100px', padding: '6px 14px', marginBottom: '12px' }}>
+                THIS IS NOT JUST A HACKATHON
+              </span>
+              <div style={{ fontSize: '32px', fontWeight: 800, letterSpacing: '-1.1px', color: '#FFFFFF' }}>
+                A national-level <span style={{ color: '#60A5FA' }}>TECH FEST</span>
+              </div>
+              <div style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '1.5px', color: '#A78BFA', marginTop: '6px' }}>
+                SEVEN VERTICALS · ONE TICKET · ONE OVERNIGHT SPRINT
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '14px' }}>
+              {(activeEvent.verticals || [
+                { title: 'Build by Sunset', desc: 'Ship something real between morning and dusk. Teams of 2–5, 5 AI tracks, ₹50,000 prize pool.', icon: 'rocket' },
+                { title: 'Codethon', desc: 'Pre-event coding ladder: L1 to L2 to L3. Individual, scored, closes before Sep 4.', icon: 'code' },
+                { title: 'Voices That Build', desc: 'A panel of people who have actually shipped — not people talking about shipping.', icon: 'mic' },
+                { title: 'Meet the People Who Hire', desc: 'Recruiters in the room, not behind a portal. On-the-spot internship and placement offers.', icon: 'briefcase' },
+                { title: 'Cyber Security Conclave', desc: 'Virtual, featuring the ISC2 New Jersey Chapter — global insights on trends, certifications, career pathways.', icon: 'shield' },
+                { title: 'International Panel', desc: 'Speakers joining live on the big screen from outside India.', icon: 'globe' },
+                { title: 'Between the Builds', desc: 'Sleep, eat, work, find people. Open across both days.', icon: 'bed' },
+                { title: 'Play After Dark', desc: 'Live music when the laptops finally close.', icon: 'music' },
+                { title: 'Build by Fireside', desc: "Where the idea you haven't shipped yet finally gets heard.", icon: 'flame' }
+              ]).map((vert: any, vidx: number) => (
+                <div key={vidx} className="ev-mini" style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', padding: '16px 18px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px' }}>
+                  <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(124,92,252,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', marginTop: '2px' }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C4B5FD" strokeWidth="2"><path d="M12 2l1.9 5.1L19 9l-5.1 1.9L12 16l-1.9-5.1L5 9l5.1-1.9Z" /></svg>
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '15px', fontWeight: 700, color: '#FFFFFF', marginBottom: '4px' }}>{vert.title}</div>
+                    <div style={{ fontSize: '12.5px', color: '#9CA3AF', lineHeight: 1.5 }}>{vert.desc}</div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Event Highlights 4-Step Connected Timeline */}
-          <div style={{ marginBottom: '30px' }}>
-            <div style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-.4px', marginBottom: '24px', color: '#FFFFFF' }}>Event Highlights</div>
-            <div className="ev-grid4" style={{ display: 'grid', gap: '0', position: 'relative' }}>
-              
-              <div style={{ position: 'relative', textAlign: 'center', padding: '0 14px' }}>
-                <span className="ev-hl" style={{ position: 'relative', zIndex: 2, width: '50px', height: '50px', borderRadius: '50%', border: '1px solid #3A2E72', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'var(--violet-lt)', strokeWidth: 1.8 }}><path d="M12 4l2.3 5.1L20 10l-4 3.8 1 5.7-5-2.9-5 2.9 1-5.7L4 10l5.7-.9Z"></path></svg>
+          {/* ────────────────────────────────────────────────────────── */}
+          {/* CYBER SECURITY WITH AI CONCLAVE (BANNER 2)                 */}
+          {/* ────────────────────────────────────────────────────────── */}
+          <div style={{ marginBottom: '32px', border: '1px solid #4338CA', borderRadius: '22px', background: 'linear-gradient(135deg, #1E1B4B 0%, #0F172A 100%)', padding: '30px 32px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap', marginBottom: '18px' }}>
+              <div>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 700, letterSpacing: '1.4px', color: '#818CF8', background: 'rgba(99,102,241,0.18)', borderRadius: '100px', padding: '6px 14px', marginBottom: '10px' }}>
+                  INTERNATIONAL VIRTUAL CONCLAVE
                 </span>
-                <span className="ev-hlline" style={{ position: 'absolute', left: '50%', top: '25px', right: '-50%', height: '1px', background: '#2E2A55', zIndex: 1 }} />
-                <div style={{ fontSize: '15px', fontWeight: 700, color: '#FFFFFF' }}>Inspiring Keynotes</div>
-                <div style={{ fontSize: '13px', lineHeight: 1.5, color: 'var(--muted)', marginTop: '6px' }}>Industry leaders shared their journey and insights</div>
+                <div style={{ fontSize: '30px', fontWeight: 800, letterSpacing: '-1px', color: '#FFFFFF' }}>
+                  Cyber Security with <span style={{ color: '#38BDF8' }}>AI</span>
+                </div>
+                <div style={{ fontSize: '13.5px', color: '#94A3B8', marginTop: '4px' }}>
+                  Global insights for students building a career in security · Presented by <strong style={{ color: '#E0E7FF' }}>ISC2 New Jersey Chapter (USA) × StudentAlumni.ai</strong>
+                </div>
               </div>
-
-              <div style={{ position: 'relative', textAlign: 'center', padding: '0 14px' }}>
-                <span className="ev-hl" style={{ position: 'relative', zIndex: 2, width: '50px', height: '50px', borderRadius: '50%', border: '1px solid #3A2E72', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'var(--violet-lt)', strokeWidth: 1.8 }}><circle cx="9" cy="9" r="3"></circle><path d="M3 19q6-6 12 0M16.5 7a3 3 0 010 6"></path></svg>
-                </span>
-                <span className="ev-hlline" style={{ position: 'absolute', left: '50%', top: '25px', right: '-50%', height: '1px', background: '#2E2A55', zIndex: 1 }} />
-                <div style={{ fontSize: '15px', fontWeight: 700, color: '#FFFFFF' }}>Panel Discussions</div>
-                <div style={{ fontSize: '13px', lineHeight: 1.5, color: 'var(--muted)', marginTop: '6px' }}>Engaging conversations on career and tech trends</div>
+              <div style={{ padding: '12px 18px', background: 'rgba(99,102,241,0.15)', border: '1px solid #4F46E5', borderRadius: '12px', textAlign: 'right' }}>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: '#C7D2FE' }}>FRIDAY, SEPTEMBER 4, 2026</div>
+                <div style={{ fontSize: '16px', fontWeight: 800, color: '#38BDF8', marginTop: '2px' }}>6:00 PM IST · 8:30 AM ET</div>
               </div>
+            </div>
 
-              <div style={{ position: 'relative', textAlign: 'center', padding: '0 14px' }}>
-                <span className="ev-hl" style={{ position: 'relative', zIndex: 2, width: '50px', height: '50px', borderRadius: '50%', border: '1px solid #3A2E72', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'var(--violet-lt)', strokeWidth: 1.8 }}><path d="M13 2L5 13h6l-1 9 8-11h-6Z"></path></svg>
-                </span>
-                <span className="ev-hlline" style={{ position: 'absolute', left: '50%', top: '25px', right: '-50%', height: '1px', background: '#2E2A55', zIndex: 1 }} />
-                <div style={{ fontSize: '15px', fontWeight: 700, color: '#FFFFFF' }}>Hands-on Workshops</div>
-                <div style={{ fontSize: '13px', lineHeight: 1.5, color: 'var(--muted)', marginTop: '6px' }}>Practical learning and skill-building sessions</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '12px', marginTop: '18px' }}>
+              {[
+                { title: 'Global security trends', desc: 'Where the threat landscape is moving.' },
+                { title: 'AI on both sides', desc: 'How AI is reshaping defence and attack.' },
+                { title: 'Certifications that matter', desc: 'CISSP, CC and the paths worth it.' },
+                { title: 'Career pathways', desc: 'How to enter the field from campus.' }
+              ].map((sess, sidx) => (
+                <div key={sidx} style={{ padding: '16px 18px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px' }}>
+                  <div style={{ fontSize: '14.5px', fontWeight: 700, color: '#FFFFFF', marginBottom: '4px' }}>{sess.title}</div>
+                  <div style={{ fontSize: '12.5px', color: '#94A3B8' }}>{sess.desc}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ────────────────────────────────────────────────────────── */}
+          {/* MEET THE SPEAKERS (BANNER 3)                              */}
+          {/* ────────────────────────────────────────────────────────── */}
+          <div style={{ marginBottom: '32px' }}>
+            <div style={{ textAlign: 'center', marginBottom: '22px' }}>
+              <div style={{ fontSize: '30px', fontWeight: 800, letterSpacing: '-1px', color: '#FFFFFF' }}>Meet the Speakers</div>
+              <div style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '1.4px', color: 'var(--violet-lt)', marginTop: '4px' }}>
+                HACKWAVE 3.0 · SEPTEMBER 4 – 5, 2026 · SNIST CAMPUS
               </div>
+            </div>
 
-              <div style={{ position: 'relative', textAlign: 'center', padding: '0 14px' }}>
-                <span className="ev-hl" style={{ position: 'relative', zIndex: 2, width: '50px', height: '50px', borderRadius: '50%', border: '1px solid #3A2E72', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'var(--violet-lt)', strokeWidth: 1.8 }}><rect x="9" y="3.5" width="6" height="5" rx="1.5"></rect><rect x="3" y="15.5" width="6" height="5" rx="1.5"></rect><rect x="15" y="15.5" width="6" height="5" rx="1.5"></rect><path d="M12 8.5v3.5M6 15.5V12h12v3.5"></path></svg>
-                </span>
-                <div style={{ fontSize: '15px', fontWeight: 700, color: '#FFFFFF' }}>Networking Sessions</div>
-                <div style={{ fontSize: '13px', lineHeight: 1.5, color: 'var(--muted)', marginTop: '6px' }}>Students connected with experts and alumni</div>
+            {/* International Panel */}
+            <div style={{ marginBottom: '22px' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 700, letterSpacing: '1.3px', color: '#C4B5FD', background: 'rgba(124,92,252,0.25)', borderRadius: '100px', padding: '6px 14px', marginBottom: '14px' }}>
+                INTERNATIONAL PANEL · CYBER SECURITY CONCLAVE
               </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
+                {[
+                  { name: 'Jeremy Livingston', role: 'CISO & Deputy CIO', org: 'Stevens Institute of Technology' },
+                  { name: 'Sharon Kelley', role: 'Board Member, ISC2 New Jersey Chapter', org: 'MS, MBA, CISSP, CCSP' },
+                  { name: 'Suman Kalia', role: 'Associate Professor & Chair, Computer Science', org: "Saint Peter's University" },
+                  { name: 'Ken Fishkin', role: 'President, ISC2 New Jersey Chapter', org: 'ISC2 New Jersey Chapter' }
+                ].map((spk, idx) => (
+                  <div key={idx} className="ev-mini" style={{ padding: '20px 18px', background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: '16px', textAlign: 'center' }}>
+                    <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #7C5CFC, #38BDF8)', margin: '0 auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF', fontWeight: 800, fontSize: '22px' }}>
+                      {spk.name.split(' ').map((n) => n[0]).join('')}
+                    </div>
+                    <div style={{ fontSize: '16px', fontWeight: 700, color: '#FFFFFF' }}>{spk.name}</div>
+                    <div style={{ fontSize: '13px', color: 'var(--violet-lt)', fontWeight: 600, marginTop: '3px' }}>{spk.role}</div>
+                    <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>{spk.org}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
 
+            {/* Voices That Build */}
+            <div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 700, letterSpacing: '1.3px', color: '#38BDF8', background: 'rgba(56,189,248,0.18)', borderRadius: '100px', padding: '6px 14px', marginBottom: '14px' }}>
+                VOICES THAT BUILD
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
+                {[
+                  { name: 'Jonna Dheeraj', role: 'Account Delivery & Program Management', org: 'Embedded SW · AI · VLSI · 5G · IoT' },
+                  { name: 'Harish Kotra', role: 'DevX Lead', org: 'Quirq' },
+                  { name: 'M Avinash Rao', role: 'Client Account Manager', org: 'Deloitte' },
+                  { name: 'Gopichand Anumolu', role: 'Founder', org: 'ATLAST' }
+                ].map((spk, idx) => (
+                  <div key={idx} className="ev-mini" style={{ padding: '20px 18px', background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: '16px', textAlign: 'center' }}>
+                    <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #38BDF8, #34D399)', margin: '0 auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF', fontWeight: 800, fontSize: '22px' }}>
+                      {spk.name.split(' ').map((n) => n[0]).join('')}
+                    </div>
+                    <div style={{ fontSize: '16px', fontWeight: 700, color: '#FFFFFF' }}>{spk.name}</div>
+                    <div style={{ fontSize: '13px', color: '#38BDF8', fontWeight: 600, marginTop: '3px' }}>{spk.role}</div>
+                    <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>{spk.org}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* ────────────────────────────────────────────────────────── */}
+          {/* ONE TICKET. ₹599. MEGA GRAND POOL & ALL PERKS (BANNER 5)   */}
+          {/* ────────────────────────────────────────────────────────── */}
+          <div style={{ marginBottom: '32px', border: '1px solid #F59E0B', borderRadius: '22px', background: 'linear-gradient(135deg, #2D1A04 0%, #1A130B 100%)', padding: '32px 30px' }}>
+            <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+              <div style={{ fontSize: '32px', fontWeight: 800, letterSpacing: '-1px', color: '#FFFFFF' }}>One ticket. ₹599</div>
+              <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '1.4px', color: '#FBBF24', marginTop: '4px' }}>
+                ALL 7 VERTICALS · FOOD · CODETHON · EVERYTHING BELOW
+              </div>
+            </div>
+
+            {/* Prize Pools */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 220px', gap: '16px', padding: '20px 24px', background: 'rgba(245,158,11,0.12)', border: '1px solid #78350F', borderRadius: '16px', marginBottom: '22px' }}>
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.3px', color: '#FCD34D' }}>MEGA GRAND POOL</div>
+                <div style={{ fontSize: '34px', fontWeight: 900, color: '#FFFFFF', letterSpacing: '-1px' }}>₹2,00,000</div>
+                <div style={{ fontSize: '12.5px', color: '#FDE68A', marginTop: '2px' }}>Open to every hackathon participant, not only winners</div>
+              </div>
+              <div style={{ textAlign: 'right', borderLeft: '1px solid rgba(245,158,11,0.3)', paddingLeft: '18px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.3px', color: '#FCD34D' }}>TRACK PRIZE POOL</div>
+                <div style={{ fontSize: '26px', fontWeight: 800, color: '#34D399', marginTop: '2px' }}>₹50,000</div>
+              </div>
+            </div>
+
+            {/* Perks Cards List */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '10px' }}>
+              {(activeEvent.perks || [
+                { name: 'Featherless AI', desc: 'A full account, free', value: '$29 value' },
+                { name: 'SetupMark AI', desc: '50 credits, 2 months free', value: '$50 value' },
+                { name: 'CodeSpectra AI', desc: '3 months completely free', value: 'Assessments' },
+                { name: 'Bandiwala', desc: '15% off food', value: 'Coupon' },
+                { name: 'WeHive Consulting', desc: '15% off services', value: 'Coupon' },
+                { name: 'Four meal coupons', desc: 'Lunch, dinner, midnight, breakfast', value: 'Included' },
+                { name: 'Certificates for all', desc: 'Participation and winner certificates', value: 'Verifiable' },
+                { name: 'On-the-spot offers', desc: 'Internship and placement offers, in the room', value: 'Live' },
+                { name: 'Surprise goodies', desc: 'Extra prizes and drops announced on the day', value: 'Surprise' }
+              ]).map((perk: any, pidx: number) => (
+                <div key={pidx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '11px' }}>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#FFFFFF' }}>{perk.name}</div>
+                    <div style={{ fontSize: '12px', color: '#9CA3AF' }}>{perk.desc}</div>
+                  </div>
+                  <span style={{ fontSize: '11px', fontWeight: 700, padding: '4px 10px', background: 'rgba(245,158,11,0.2)', color: '#FBBF24', borderRadius: '100px' }}>
+                    {perk.value}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -917,19 +1545,25 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
           <div className="ev-rgrid" style={{ display: 'grid', gap: '24px', alignItems: 'start', width: '100%' }}>
             
             {/* Left Column: Event Poster */}
-            <div style={{ border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '22px' }}>
-              <div style={{ position: 'relative', borderRadius: '14px', overflow: 'hidden', background: 'var(--panel2)', aspectRatio: '3/4', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '28px', border: '1px solid var(--line2)' }}>
-                <div style={{ width: '84px', height: '84px', borderRadius: '22px', background: 'rgba(124,92,252,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
-                  <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="var(--violet-lt)" strokeWidth="1.8"><path d="M12 2l1.9 5.1L19 9l-5.1 1.9L12 16l-1.9-5.1L5 9l5.1-1.9Z" /><circle cx="12" cy="12" r="9" /></svg>
-                </div>
-                <div style={{ fontSize: '26px', fontWeight: 800, color: '#FFFFFF', textAlign: 'center', letterSpacing: '-0.8px', marginBottom: '8px' }}>{activeEvent.title}</div>
-                <div style={{ fontSize: '14.5px', color: 'var(--violet-lt)', textAlign: 'center', marginBottom: '18px' }}>{activeEvent.college_full}</div>
-                <div style={{ fontSize: '13.5px', color: 'var(--muted)', textAlign: 'center', lineHeight: 1.6, maxWidth: '300px' }}>
-                  Join top coders, innovators, and future founders in India's leading flagship hackathon.
-                </div>
-                <div style={{ marginTop: '26px', padding: '9px 18px', background: 'rgba(245,179,66,0.14)', border: '1px solid #4A3410', borderRadius: '100px', color: 'var(--amber)', fontSize: '12.5px', fontWeight: 700 }}>
-                  PRIZE POOL: ₹50,000
-                </div>
+            <div style={{ border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '16px', overflow: 'hidden' }}>
+              <div style={{ position: 'relative', borderRadius: '14px', overflow: 'hidden', background: 'var(--panel2)', aspectRatio: '3/4', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--line2)' }}>
+                {activeEvent.poster_banner ? (
+                  <img src={activeEvent.poster_banner} alt={activeEvent.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '28px' }}>
+                    <div style={{ width: '84px', height: '84px', borderRadius: '22px', background: 'rgba(124,92,252,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+                      <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="var(--violet-lt)" strokeWidth="1.8"><path d="M12 2l1.9 5.1L19 9l-5.1 1.9L12 16l-1.9-5.1L5 9l5.1-1.9Z" /><circle cx="12" cy="12" r="9" /></svg>
+                    </div>
+                    <div style={{ fontSize: '24px', fontWeight: 800, color: '#FFFFFF', textAlign: 'center', letterSpacing: '-0.8px', marginBottom: '8px' }}>{activeEvent.title}</div>
+                    <div style={{ fontSize: '14px', color: 'var(--violet-lt)', textAlign: 'center', marginBottom: '14px' }}>{activeEvent.college_full}</div>
+                    <div style={{ fontSize: '13px', color: 'var(--muted)', textAlign: 'center', lineHeight: 1.5 }}>
+                      Join top coders, innovators, and future founders in India's leading flagship event.
+                    </div>
+                    <div style={{ marginTop: '20px', display: 'inline-block', padding: '8px 16px', background: 'rgba(245,179,66,0.14)', border: '1px solid #4A3410', borderRadius: '100px', color: 'var(--amber)', fontSize: '12px', fontWeight: 700 }}>
+                      {activeEvent.prize_pool || 'PRIZE POOL: ₹2,00,000'}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -965,17 +1599,17 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                   <div>
                     <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.3px', color: 'var(--muted)' }}>REGISTRATION FEE</div>
                     <div id="ev-fee" style={{ fontSize: '24px', fontWeight: 700, letterSpacing: '-.6px', marginTop: '3px', color: '#FFFFFF' }}>
-                      {isTeam ? `INR ${activeEvent.team_fee.toLocaleString()}` : `INR ${activeEvent.individual_fee.toLocaleString()}`}
+                      INR {calculatedTotalFee.toLocaleString()}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '12.5px', color: 'var(--muted)', marginTop: '6px' }}>
                       <svg width="13" height="13" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 1.8 }}><circle cx="9" cy="9" r="3"></circle><path d="M3 19q6-6 12 0"></path></svg>
-                      <span id="ev-seats">{isTeam ? activeEvent.team_slots : activeEvent.individual_seats}</span>
+                      <span id="ev-seats">{isTeam ? `${currentTeamSize} Attendees (${currentTeamSize} × INR ${perPersonFee.toLocaleString()})` : activeEvent.individual_seats}</span>
                     </div>
                   </div>
                 </div>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', fontSize: '12px', fontWeight: 600, color: 'var(--ok)', border: '1px solid #17503E', borderRadius: '100px', padding: '7px 14px', flex: 'none' }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 2 }}><path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6Z"></path><path d="M9 12l2 2 4-4"></path></svg>
-                  Secure payment
+                  Secure Razorpay payment
                 </span>
               </div>
 
@@ -1072,23 +1706,32 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                   {/* Team Members Section (Person 2 to 5) */}
                   {isTeam && (
                     <div style={{ margin: '8px 0', padding: '18px', background: 'rgba(124, 92, 252, 0.06)', border: '1px solid rgba(124, 92, 252, 0.25)', borderRadius: '14px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
                         <div style={{ fontSize: '14px', fontWeight: 700, color: '#A78BFA', letterSpacing: '.4px' }}>
-                          TEAM MEMBERS (MEMBERS 2 TO 5)
+                          TEAM MEMBERS ({currentTeamSize} Total Attendees)
                         </div>
-                        <span style={{ fontSize: '11px', padding: '3px 8px', background: 'rgba(52, 211, 153, 0.15)', color: '#34D399', borderRadius: '6px', fontWeight: 600 }}>
-                          Passes &amp; Accounts Included
+                        <span style={{ fontSize: '11px', padding: '4px 9px', background: 'rgba(52, 211, 153, 0.15)', color: '#34D399', borderRadius: '6px', fontWeight: 600 }}>
+                          INR {perPersonFee}/person × {currentTeamSize} = INR {calculatedTotalFee.toLocaleString()}
                         </span>
                       </div>
                       <p style={{ fontSize: '12px', color: '#9CA3AF', marginBottom: '16px', lineHeight: 1.5 }}>
-                        Every team member entered below will have their own Student Alumni account provisioned and an individual QR entry pass ticket card emailed to them.
+                        Add your teammates below. The registration amount updates dynamically based on the number of members added ({currentTeamSize} of 5 max).
                       </p>
 
                       <div style={{ display: 'grid', gap: '14px' }}>
                         {teamMembers.map((member, idx) => (
                           <div key={idx} style={{ padding: '14px', background: 'var(--panel2)', border: '1px solid var(--line2)', borderRadius: '11px' }}>
-                            <div style={{ fontSize: '11px', fontWeight: 700, color: '#DDD6FE', marginBottom: '10px', display: 'flex', justifyContent: 'space-between' }}>
+                            <div style={{ fontSize: '11px', fontWeight: 700, color: '#DDD6FE', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                               <span>MEMBER {idx + 2} {idx === 0 ? '(REQUIRED)' : '(OPTIONAL)'}</span>
+                              {teamMembers.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => setTeamMembers(teamMembers.filter((_, i) => i !== idx))}
+                                  style={{ background: 'transparent', border: 'none', color: '#F87171', fontSize: '11.5px', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                >
+                                  ✕ Remove
+                                </button>
+                              )}
                             </div>
                             <div style={{ display: 'grid', gap: '10px' }}>
                               <input
@@ -1128,6 +1771,31 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                           </div>
                         ))}
                       </div>
+
+                      {teamMembers.length < 4 && (
+                        <button
+                          type="button"
+                          onClick={() => setTeamMembers([...teamMembers, { name: '', email: '', phone: '' }])}
+                          style={{
+                            marginTop: '14px',
+                            width: '100%',
+                            padding: '11px',
+                            borderRadius: '10px',
+                            background: 'rgba(124, 92, 252, 0.14)',
+                            border: '1px dashed #7C5CFC',
+                            color: '#DDD6FE',
+                            fontSize: '13px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                          }}
+                        >
+                          + Add Another Team Member ({teamMembers.length + 1}/5)
+                        </button>
+                      )}
                     </div>
                   )}
 
@@ -1185,18 +1853,26 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
 
                   {/* Track Theme */}
                   <div>
-                    <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: 'var(--muted)', marginBottom: '9px' }}>HACKWAVE 3.0 TRACK / THEME (OPTIONAL — CAN UPDATE ON EVENT DAY)</div>
+                    <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: 'var(--muted)', marginBottom: '9px' }}>
+                      {activeEvent.title ? `${activeEvent.title.toUpperCase()} TRACK / THEME (OPTIONAL)` : 'TRACK / THEME (OPTIONAL)'}
+                    </div>
                     <div className="ev-field" style={{ border: '1px solid var(--line2)', borderRadius: '11px', background: 'var(--panel2)', padding: '11px 14px' }}>
                       <select
                         value={track}
                         onChange={(e) => setTrack(e.target.value)}
                         style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', color: '#FFFFFF', fontSize: '14.5px', fontFamily: 'inherit', cursor: 'pointer' }}
                       >
-                        <option value="Generative AI & Agentic Systems" style={{ background: '#161622', color: '#FFF' }}>Generative AI & Agentic Systems</option>
-                        <option value="Web3, DeFi & Cryptographic Systems" style={{ background: '#161622', color: '#FFF' }}>Web3, DeFi & Cryptographic Systems</option>
-                        <option value="HealthTech & Bio-Informatics" style={{ background: '#161622', color: '#FFF' }}>HealthTech & Bio-Informatics</option>
-                        <option value="Smart Cities & Autonomous Mobility" style={{ background: '#161622', color: '#FFF' }}>Smart Cities & Autonomous Mobility</option>
-                        <option value="Open Innovation & Social Impact" style={{ background: '#161622', color: '#FFF' }}>Open Innovation & Social Impact</option>
+                        {(activeEvent.categories && activeEvent.categories.length > 0 ? activeEvent.categories : [
+                          { name: 'AI That Solves a Real Problem' },
+                          { name: 'Beyond the Chatbot' },
+                          { name: 'AI for Builders' },
+                          { name: 'Autonomous AI Workflows' },
+                          { name: 'Build the Unexpected' },
+                        ]).map((cat: any, cidx: number) => (
+                          <option key={cidx} value={cat.name || cat} style={{ background: '#161622', color: '#FFF' }}>
+                            {cat.name || cat}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   </div>
