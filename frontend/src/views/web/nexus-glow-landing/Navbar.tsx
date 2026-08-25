@@ -1,14 +1,8 @@
-import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter, usePathname } from "expo-router";
 import { Menu, X } from "lucide-react-native";
-import { Image } from "react-native";
 import { useBreakpoint } from "@/src/theme/breakpoints";
 import { useAuthStore } from "@/src/viewmodels/stores/authStore";
-
-// Module-scoped so a pending section survives the Navbar remount when we
-// navigate from an echo page (/echo/...) to the landing page (/welcome).
-let pendingLandingSection: string | null = null;
 
 export function Navbar() {
   const router = useRouter();
@@ -16,290 +10,484 @@ export function Navbar() {
   const user = useAuthStore((s) => s.user);
   const isLoggedIn = !!user;
   const [scrolled, setScrolled] = useState(false);
-  const [active, setActive] = useState("Agent K");
   const [mobileOpen, setMobileOpen] = useState(false);
   const { atLeast, width } = useBreakpoint();
   const isLargeScreen = atLeast("lg");
-  // The app scrolls inside a container (body has overflow:hidden), not the
-  // window, so framer-motion's useScroll() never fires. A capture-phase
-  // listener catches scroll events from ANY scroll container on the page.
+
   useEffect(() => {
     const onScroll = (e: Event) => {
       const target = e.target as any;
       const top =
         target && typeof target.scrollTop === "number"
           ? target.scrollTop
-          : window.scrollY || document.documentElement.scrollTop || 0;
+          : (typeof window !== "undefined" ? window.scrollY || document.documentElement.scrollTop || 0 : 0);
       setScrolled(top > 20);
     };
-    window.addEventListener("scroll", onScroll, { passive: true, capture: true });
-    return () => window.removeEventListener("scroll", onScroll, { capture: true } as any);
+    if (typeof window !== "undefined") {
+      window.addEventListener("scroll", onScroll, { passive: true, capture: true });
+      return () => window.removeEventListener("scroll", onScroll, { capture: true } as any);
+    }
   }, []);
+
   const isEcho = typeof pathname === "string" && pathname.startsWith("/echo");
-  const isLanding = typeof pathname === "string" && pathname === "/welcome";
+  const isLanding = typeof pathname === "string" && (pathname === "/welcome" || pathname === "/");
+  const isVerify = typeof pathname === "string" && (pathname.startsWith("/certificates/verify") || pathname.startsWith("/verify"));
+  const isContact = typeof pathname === "string" && pathname.startsWith("/contact");
 
-  const links = ["Agent K", "Features", "About Us", "Contact", "Partners", "Collaborations"];
+  const navItems = [
+    { label: "Home", href: "/welcome" },
+    { label: "ECHO", href: "/echo" },
+    { label: "Verify", href: "/verify" },
+    { label: "Contact Us", href: "/contact" },
+  ];
 
-  // After navigating from an echo page to the landing page, scroll to the
-  // requested section once it has rendered.
-  useEffect(() => {
-    if (!isLanding || !pendingLandingSection) return;
-    const id = pendingLandingSection;
-    pendingLandingSection = null;
-    const raf = requestAnimationFrame(() => {
-      const elem = document.getElementById(id);
-      if (elem) elem.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-    return () => cancelAnimationFrame(raf);
-  }, [isLanding]);
-
-  const goToLandingSection = (e: any, targetId: string) => {
+  const handleNavClick = (e: React.MouseEvent, item: { label: string; href: string }) => {
     e.preventDefault();
-    setActive(e.currentTarget?.textContent || "Features");
     setMobileOpen(false);
-    if (isLanding) {
-      const elem = document.getElementById(targetId);
-      if (elem) elem.scrollIntoView({ behavior: "smooth", block: "start" });
+
+    if (item.label === "Home") {
+      if (isLanding) {
+        if (typeof document !== "undefined") {
+          const shell = document.querySelector(".sa-scroll-shell");
+          const homeSecs = document.querySelectorAll(".sa-sect, #sa-dash, #sa-road-sec");
+          const agentSec = document.getElementById("sa-page-agentk");
+          const partnersSec = document.getElementById("sa-page-partners");
+          homeSecs.forEach((s) => {
+            (s as HTMLElement).style.display = "";
+          });
+          if (agentSec) agentSec.style.display = "none";
+          if (partnersSec) partnersSec.style.display = "none";
+          if (shell) shell.scrollTo({ top: 0, behavior: "smooth" });
+          else window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+      } else {
+        router.push("/welcome");
+      }
+      return;
+    }
+
+    router.push(item.href as any);
+  };
+
+  const handleLogoClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setMobileOpen(false);
+    if (pathname === "/" || pathname === "/welcome") {
+      if (typeof window !== "undefined") {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
     } else {
-      pendingLandingSection = targetId;
-      router.push("/welcome");
+      router.push("/");
     }
   };
 
-  const handleLogoClick = (e: any) => {
-    e.preventDefault();
-    setMobileOpen(false);
-    router.push('/welcome');
-  };
-
-  const goToEcho = (e: any) => {
-    e.preventDefault();
-    setMobileOpen(false);
-    router.push('/echo');
-  };
-
-  const goToVerify = (e: any) => {
-    e.preventDefault();
-    setMobileOpen(false);
-    setActive("Verify");
-    router.push('/certificates/verify');
-  };
-
   return (
-    <motion.header
-      initial={{ y: -30, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled || mobileOpen
-          ? "py-2 bg-[#0C0C0D]/95 backdrop-blur-md border-b border-white/10 shadow-2xl"
-          : "py-4 bg-transparent border-b border-transparent"
-        }`}
-    >
-      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+    <>
+      <header
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 999,
+          backgroundColor: scrolled || mobileOpen ? "rgba(5, 6, 15, 0.92)" : "rgba(5, 6, 15, 0.82)",
+          backdropFilter: "blur(16px)",
+          WebkitBackdropFilter: "blur(16px)",
+          borderBottom: "1px solid rgba(27, 30, 51, 0.8)",
+          transition: "background-color 0.25s ease, border-color 0.25s ease",
+          boxShadow: scrolled ? "0 10px 30px rgba(0, 0, 0, 0.45)" : "none",
+        }}
+      >
         <div
-          className={`flex items-center justify-between transition-all duration-500 ${scrolled ? "px-4 sm:px-5 py-2.5" : "px-4 sm:px-5 py-3"
-            }`}
+          style={{
+            maxWidth: "1360px",
+            margin: "0 auto",
+            padding: "16px 28px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "24px",
+            boxSizing: "border-box",
+          }}
         >
           {/* Logo */}
           <a
-            href="/welcome"
+            href="/"
             onClick={handleLogoClick}
-            className="flex items-center gap-3 cursor-pointer"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              textDecoration: "none",
+              cursor: "pointer",
+              flexShrink: 0,
+            }}
           >
-            <Image
-              source={require('@/assets/images/sa-icon.png')}
-              style={{ width: 32, height: 32, borderRadius: 8 }}
-              resizeMode="contain"
-            />
-            <span className="text-sm font-bold tracking-wide text-white">
+            <svg width="28" height="33" viewBox="0 0 300 350" style={{ display: "block", flexShrink: 0 }}>
+              <defs>
+                <linearGradient id="saNavMainBadgeGrad" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#C9A7FF" />
+                  <stop offset="48%" stopColor="#8B5CF6" />
+                  <stop offset="100%" stopColor="#5B2FD0" />
+                </linearGradient>
+                <linearGradient id="saNavInnerBadgeGrad" x1="0" y1="0" x2="0.4" y2="1">
+                  <stop offset="0%" stopColor="#B683F5" />
+                  <stop offset="100%" stopColor="#7331C9" />
+                </linearGradient>
+              </defs>
+              <path
+                d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z"
+                fill="url(#saNavMainBadgeGrad)"
+              />
+              <path
+                d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z"
+                fill="url(#saNavInnerBadgeGrad)"
+              />
+              <text
+                style={{
+                  fontFamily: "'Manrope', -apple-system, sans-serif",
+                  fontSize: "118px",
+                  fontWeight: "800",
+                  letterSpacing: "-5px",
+                  fill: "#FFFFFF",
+                }}
+                textAnchor="middle"
+                x="150"
+                y="214"
+              >
+                SA
+              </text>
+            </svg>
+            <span
+              style={{
+                fontSize: "20px",
+                fontWeight: 800,
+                letterSpacing: "-0.4px",
+                color: "#FFFFFF",
+                whiteSpace: "nowrap",
+                fontFamily: "'Manrope', sans-serif",
+              }}
+            >
               StudentAlumni
             </span>
           </a>
 
-          {/* Nav links (desktop only) */}
+          {/* Desktop Nav Links */}
           {isLargeScreen && (
-            <nav className="flex items-center gap-1 bg-[#121214] border border-white/5 rounded-full px-2 py-1.5">
-              <a
-                href="/echo"
-                onClick={goToEcho}
-                className={`relative px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-colors duration-200 cursor-pointer ${
-                  isEcho
-                    ? "text-white bg-white/10"
-                    : "text-gray-400 hover:text-white hover:bg-white/5"
-                }`}
-              >
-                ECHO
-              </a>
-              <a
-                href="/certificates/verify"
-                onClick={goToVerify}
-                className={`relative px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-colors duration-200 cursor-pointer ${
-                  active === "Verify"
-                    ? "text-white bg-white/10"
-                    : "text-gray-400 hover:text-white hover:bg-white/5"
-                }`}
-              >
-                Verify
-              </a>
-              {links.map((l) => {
-                const isActive = active === l;
-                const targetId = l.toLowerCase().replace(" ", "-");
+            <nav
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "36px",
+                margin: "0 auto",
+              }}
+            >
+              {navItems.map((item) => {
+                const isActive =
+                  (item.label === "Home" && isLanding) ||
+                  (item.label === "ECHO" && isEcho) ||
+                  (item.label === "Verify" && isVerify) ||
+                  (item.label === "Contact Us" && isContact);
+
                 return (
                   <a
-                    key={l}
-                    href={isLanding ? `#${targetId}` : `/welcome#${targetId}`}
-                    onClick={(e) => goToLandingSection(e, targetId)}
-                    className={`relative px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-colors duration-200 cursor-pointer
-                      ${isActive
-                        ? "text-white bg-white/10"
-                        : "text-gray-400 hover:text-white hover:bg-white/5"
-                      }
-                    `}
+                    key={item.label}
+                    href={item.href}
+                    onClick={(e) => handleNavClick(e, item)}
+                    style={{
+                      fontSize: "14px",
+                      fontWeight: isActive ? 700 : 500,
+                      letterSpacing: "0.2px",
+                      color: isActive ? "#FFFFFF" : "#9AA0B4",
+                      textDecoration: "none",
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                      position: "relative",
+                      padding: "6px 0",
+                      transition: "color 0.2s ease",
+                      fontFamily: "'Manrope', sans-serif",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isActive) (e.currentTarget as HTMLElement).style.color = "#FFFFFF";
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActive) (e.currentTarget as HTMLElement).style.color = "#9AA0B4";
+                    }}
                   >
-                    {l}
+                    {item.label}
+                    {isActive && (
+                      <span
+                        style={{
+                          position: "absolute",
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          height: "2px",
+                          backgroundColor: "#8B84FF",
+                          borderRadius: "100px",
+                          boxShadow: "0 0 10px rgba(139, 132, 255, 0.9)",
+                        }}
+                      />
+                    )}
                   </a>
                 );
               })}
             </nav>
           )}
 
-          {/* CTA buttons */}
-          <div className="flex items-center gap-2 sm:gap-4">
+          {/* Right Action buttons */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "16px",
+              flexShrink: 0,
+            }}
+          >
             {isLoggedIn ? (
               <button
+                type="button"
                 onClick={() => {
-                  const role = user?.role || 'student';
-                  const portalPath = role === 'super_admin' ? '/super-admin' :
-                    role === 'mentor' ? '/mentor-portal' :
-                    role === 'alumni' ? '/alumni-portal' :
-                    role === 'college' ? '/college-portal' :
-                    '/student-portal';
+                  const role = user?.role || "student";
+                  const portalPath =
+                    role === "super_admin"
+                      ? "/super-admin"
+                      : role === "mentor"
+                      ? "/mentor-portal"
+                      : role === "alumni"
+                      ? "/alumni-portal"
+                      : role === "college"
+                      ? "/college-portal"
+                      : "/student-portal";
                   router.push(portalPath);
                 }}
-                className="text-xs font-semibold text-green-400 hover:text-green-300 transition-colors duration-200 cursor-pointer"
+                style={{
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  color: "#4ADE80",
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  fontFamily: "'Manrope', sans-serif",
+                  padding: "6px 10px",
+                  transition: "color 0.2s ease",
+                }}
               >
                 Dashboard
               </button>
             ) : (
               width >= 420 && (
                 <button
-                  onClick={() => router.push('/(auth)/login')}
-                  className="text-xs font-semibold text-gray-400 hover:text-white transition-colors duration-200 cursor-pointer"
+                  type="button"
+                  onClick={() => router.push("/(auth)/login")}
+                  style={{
+                    fontSize: "14px",
+                    fontWeight: 500,
+                    color: "#B6BACB",
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                    fontFamily: "'Manrope', sans-serif",
+                    padding: "6px 12px",
+                    transition: "color 0.2s ease",
+                  }}
+                  onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "#FFFFFF")}
+                  onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = "#B6BACB")}
                 >
                   Sign in
                 </button>
               )
             )}
+
             {isLoggedIn ? (
               <button
+                type="button"
                 onClick={() => {
-                  const role = user?.role || 'student';
-                  const portalPath = role === 'super_admin' ? '/super-admin' :
-                    role === 'mentor' ? '/mentor-portal' :
-                    role === 'alumni' ? '/alumni-portal' :
-                    role === 'college' ? '/college-portal' :
-                    '/student-portal';
+                  const role = user?.role || "student";
+                  const portalPath =
+                    role === "super_admin"
+                      ? "/super-admin"
+                      : role === "mentor"
+                      ? "/mentor-portal"
+                      : role === "alumni"
+                      ? "/alumni-portal"
+                      : role === "college"
+                      ? "/college-portal"
+                      : "/student-portal";
                   router.push(portalPath);
                 }}
-                className="group relative overflow-hidden rounded-full bg-primary px-4 sm:px-5 py-2 text-xs font-bold text-primary-foreground transition-all duration-300 hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.4)] cursor-pointer"
+                style={{
+                  backgroundColor: "#5B4FE9",
+                  color: "#FFFFFF",
+                  fontSize: "13.5px",
+                  fontWeight: 600,
+                  padding: "10px 20px",
+                  borderRadius: "100px",
+                  border: "none",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  fontFamily: "'Manrope', sans-serif",
+                  boxShadow: "0 0 16px rgba(91, 79, 233, 0.4)",
+                  transition: "background-color 0.2s ease, transform 0.15s ease",
+                }}
               >
                 My Account
               </button>
             ) : (
               <button
-                onClick={() => { setMobileOpen(false); router.push('/get-started'); }}
-                className="group relative overflow-hidden rounded-full bg-primary px-4 sm:px-5 py-2 text-xs font-bold text-primary-foreground transition-all duration-300 hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.4)] cursor-pointer"
+                type="button"
+                onClick={() => {
+                  setMobileOpen(false);
+                  router.push("/get-started");
+                }}
+                style={{
+                  backgroundColor: "#5B4FE9",
+                  color: "#FFFFFF",
+                  fontSize: "13.5px",
+                  fontWeight: 600,
+                  padding: "10px 20px",
+                  borderRadius: "100px",
+                  border: "none",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  fontFamily: "'Manrope', sans-serif",
+                  boxShadow: "0 0 16px rgba(91, 79, 233, 0.4)",
+                  transition: "background-color 0.2s ease, transform 0.15s ease",
+                }}
               >
                 Get Started
               </button>
             )}
-            {/* Hamburger (tablet + mobile) */}
+
+            {/* Hamburger button */}
             {!isLargeScreen && (
               <button
+                type="button"
                 onClick={() => setMobileOpen((o) => !o)}
                 aria-label="Toggle menu"
-                className="flex items-center justify-center w-10 h-10 rounded-lg text-white bg-[#121214] border border-white/10 cursor-pointer"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "38px",
+                  height: "38px",
+                  borderRadius: "10px",
+                  color: "#FFFFFF",
+                  backgroundColor: "rgba(255, 255, 255, 0.05)",
+                  border: "1px solid #1B1E33",
+                  cursor: "pointer",
+                }}
               >
-                {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+                {mobileOpen ? <X size={20} color="#FFFFFF" /> : <Menu size={20} color="#FFFFFF" />}
               </button>
             )}
           </div>
         </div>
-      </div>
 
-      {/* Mobile menu */}
-      <AnimatePresence>
-        {mobileOpen && (
-          <motion.nav
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.25 }}
-            className="lg:hidden overflow-hidden bg-[#0C0C0D] border-b border-white/10"
+        {/* Mobile Dropdown */}
+        {mobileOpen && !isLargeScreen && (
+          <nav
+            style={{
+              backgroundColor: "#0C0C0D",
+              borderTop: "1px solid rgba(255, 255, 255, 0.08)",
+              borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+              padding: "20px 24px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "8px",
+            }}
           >
-            <div className="px-6 pt-8 pb-6 flex flex-col gap-1">
-              <a
-                href="/echo"
-                onClick={goToEcho}
-                className={`px-4 py-3 rounded-xl text-sm font-semibold transition-colors cursor-pointer ${
-                  isEcho ? "text-white bg-white/10" : "text-gray-300 hover:text-white hover:bg-white/5"
-                }`}
-              >
-                ECHO
-              </a>
-              <a
-                href="/certificates/verify"
-                onClick={goToVerify}
-                className="px-4 py-3 rounded-xl text-sm font-semibold transition-colors cursor-pointer text-gray-300 hover:text-white hover:bg-white/5"
-              >
-                Verify Certificate
-              </a>
-              {links.map((l) => {
-                const targetId = l.toLowerCase().replace(" ", "-");
-                return (
-                  <a
-                    key={l}
-                    href={isLanding ? `#${targetId}` : `/welcome#${targetId}`}
-                    onClick={(e) => goToLandingSection(e, targetId)}
-                    className={`px-4 py-3 rounded-xl text-sm font-semibold transition-colors cursor-pointer ${
-                      active === l ? "text-white bg-white/10" : "text-gray-300 hover:text-white hover:bg-white/5"
-                    }`}
-                  >
-                    {l}
-                  </a>
-                );
-              })}
-              <div className="h-px bg-white/10 my-2" />
-              {isLoggedIn ? (
-                <>
-                  <button
-                    onClick={() => {
-                      const role = user?.role || 'student';
-                      const portalPath = role === 'super_admin' ? '/super-admin' :
-                        role === 'mentor' ? '/mentor-portal' :
-                        role === 'alumni' ? '/alumni-portal' :
-                        role === 'college' ? '/college-portal' :
-                        '/student-portal';
-                      setMobileOpen(false);
-                      router.push(portalPath);
-                    }}
-                    className="px-4 py-3 rounded-xl text-sm font-semibold text-green-400 hover:text-green-300 hover:bg-white/5 text-left cursor-pointer"
-                  >
-                    Go to Dashboard
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={() => { setMobileOpen(false); router.push('/(auth)/login'); }}
-                  className="px-4 py-3 rounded-xl text-sm font-semibold text-gray-300 hover:text-white hover:bg-white/5 text-left cursor-pointer"
+            {navItems.map((item) => {
+              const isActive =
+                (item.label === "Home" && isLanding) ||
+                (item.label === "ECHO" && isEcho) ||
+                (item.label === "Verify" && isVerify) ||
+                (item.label === "Contact Us" && isContact);
+
+              return (
+                <a
+                  key={item.label}
+                  href={item.href}
+                  onClick={(e) => handleNavClick(e, item)}
+                  style={{
+                    padding: "12px 16px",
+                    borderRadius: "10px",
+                    fontSize: "14px",
+                    fontWeight: 600,
+                    color: isActive ? "#FFFFFF" : "#B6BACB",
+                    backgroundColor: isActive ? "rgba(255, 255, 255, 0.08)" : "transparent",
+                    textDecoration: "none",
+                    cursor: "pointer",
+                    fontFamily: "'Manrope', sans-serif",
+                  }}
                 >
-                  Sign in
-                </button>
-              )}
-            </div>
-          </motion.nav>
+                  {item.label}
+                </a>
+              );
+            })}
+
+            <div style={{ height: "1px", backgroundColor: "rgba(255, 255, 255, 0.08)", margin: "8px 0" }} />
+
+            {isLoggedIn ? (
+              <button
+                type="button"
+                onClick={() => {
+                  const role = user?.role || "student";
+                  const portalPath =
+                    role === "super_admin"
+                      ? "/super-admin"
+                      : role === "mentor"
+                      ? "/mentor-portal"
+                      : role === "alumni"
+                      ? "/alumni-portal"
+                      : role === "college"
+                      ? "/college-portal"
+                      : "/student-portal";
+                  setMobileOpen(false);
+                  router.push(portalPath);
+                }}
+                style={{
+                  padding: "12px 16px",
+                  borderRadius: "10px",
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  color: "#4ADE80",
+                  backgroundColor: "transparent",
+                  border: "none",
+                  textAlign: "left",
+                  cursor: "pointer",
+                  fontFamily: "'Manrope', sans-serif",
+                }}
+              >
+                Go to Dashboard
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileOpen(false);
+                  router.push("/(auth)/login");
+                }}
+                style={{
+                  padding: "12px 16px",
+                  borderRadius: "10px",
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  color: "#B6BACB",
+                  backgroundColor: "transparent",
+                  border: "none",
+                  textAlign: "left",
+                  cursor: "pointer",
+                  fontFamily: "'Manrope', sans-serif",
+                }}
+              >
+                Sign in
+              </button>
+            )}
+          </nav>
         )}
-      </AnimatePresence>
-    </motion.header>
+      </header>
+    </>
   );
 }
