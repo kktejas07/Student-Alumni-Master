@@ -11,7 +11,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Svg, { Path, Text as SvgText, Defs, LinearGradient as SvgGrad, Stop } from 'react-native-svg';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
-import { LandingPageModernRN } from '@/src/views/web/nexus-glow-landing/LandingPageModernRN';
+import LandingPage from '@/src/views/web/nexus-glow-landing/NexusLanding';
 
 const IS_WEB = Platform.OS === 'web';
 
@@ -20,7 +20,7 @@ export default function Index() {
 
   // On web, render the landing page directly — no loading stall or splash screen hang
   if (IS_WEB) {
-    return <LandingPageModernRN />;
+    return <LandingPage />;
   }
 
   const user = useAuthStore((s) => s.user);

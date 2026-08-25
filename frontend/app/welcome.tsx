@@ -12,7 +12,7 @@ import { useRouter } from 'expo-router';
 import { ArrowRight, Sparkles, Users, Globe, Calendar } from 'lucide-react-native';
 import { Button, GlassCard, GradientBackground, SALogo } from '@/src/views/components';
 import { Colors as C, Gradients, Spacing, Typography } from '@/src/theme';
-import { LandingPageModernRN } from '@/src/views/web/nexus-glow-landing/LandingPageModernRN';
+import LandingPage from '@/src/views/web/nexus-glow-landing/NexusLanding';
 
 const { width } = Dimensions.get('window');
 
@@ -31,7 +31,7 @@ export default function Welcome() {
 
   // Web users see the 1:1 exact new marketing landing page from design spec.
   if (Platform.OS === 'web') {
-    return <LandingPageModernRN />;
+    return <LandingPage />;
   }
 
   return (
