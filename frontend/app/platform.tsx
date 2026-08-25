@@ -62,7 +62,7 @@ export default function PlatformRoute() {
   const loaderColor =
     user.role === 'mentor' ? '#14B8A6' :
     (user.role === 'college' || user.role === 'admin') ? '#3B82F6' :
-    '#A78BFA';
+    '#60A5FA';
 
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: loaderBg }}>

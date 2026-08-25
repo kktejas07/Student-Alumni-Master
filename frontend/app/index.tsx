@@ -1,55 +1,63 @@
 /**
  * Splash + initial router.
  *
- * Routing rules:
- *   • Web                                 → /welcome (LandingPage)            ⓘ unchanged
- *   • Native + authed + onboarding done   → /(tabs)
- *   • Native + authed + onboarding pending → /(onboarding)/role-info
- *   • Native + first launch (no intro seen) → /intro
- *   • Native + intro already seen         → /(auth)/login
- *
- * Routes immediately once auth state is known (no artificial splash delay).
+ * Modern 1:1 Loading screen with 3D glowing SA Shield and 00-100% counter.
+ * No bar, no hold.
  */
 import { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Animated, Easing, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Path, Text as SvgText, Defs, LinearGradient as SvgGrad, Stop } from 'react-native-svg';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
-import { Colors as C, Typography } from '@/src/theme';
-import { SALogo } from '@/src/views/components';
+
+import { LandingPageModernRN } from '@/src/views/web/nexus-glow-landing/LandingPageModernRN';
 
 const IS_WEB = Platform.OS === 'web';
 
 export default function Index() {
   const router = useRouter();
+
+  // On web, render the landing page directly — no loading stall or splash screen hang
+  if (IS_WEB) {
+    return <LandingPageModernRN />;
+  }
+
   const user = useAuthStore((s) => s.user);
   const initialized = useAuthStore((s) => s.initialized);
   const [hasSeenIntro, setHasSeenIntro] = useState<boolean | null>(null);
+  const [progress, setProgress] = useState(0);
 
-  // Logo entrance animation
-  const scale = useRef(new Animated.Value(0.55)).current;
+  // Entrance animation
+  const scale = useRef(new Animated.Value(0.75)).current;
   const opacity = useRef(new Animated.Value(0)).current;
-  const tagOpacity = useRef(new Animated.Value(0)).current;
-  const dotsTrans = useRef(new Animated.Value(20)).current;
 
   useEffect(() => {
-    Animated.sequence([
-      Animated.parallel([
-        Animated.spring(scale, { toValue: 1, friction: 5, tension: 65, useNativeDriver: Platform.OS !== 'web' }),
-        Animated.timing(opacity, { toValue: 1, duration: 700, easing: Easing.out(Easing.ease), useNativeDriver: Platform.OS !== 'web' }),
-      ]),
-      Animated.parallel([
-        Animated.timing(tagOpacity, { toValue: 1, duration: 500, useNativeDriver: Platform.OS !== 'web' }),
-        Animated.timing(dotsTrans, { toValue: 0, duration: 500, easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' }),
-      ]),
+    Animated.parallel([
+      Animated.spring(scale, { toValue: 1, friction: 6, tension: 70, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(opacity, { toValue: 1, duration: 450, easing: Easing.out(Easing.ease), useNativeDriver: Platform.OS !== 'web' }),
     ]).start();
-  }, [scale, opacity, tagOpacity, dotsTrans]);
+  }, [scale, opacity]);
+
+  // Loading ticker (0 to 100)
+  useEffect(() => {
+    let current = 0;
+    const iv = setInterval(() => {
+      current += Math.floor(Math.random() * 12) + 7;
+      if (current >= 100) {
+        setProgress(100);
+        clearInterval(iv);
+      } else {
+        setProgress(current);
+      }
+    }, 32);
+    return () => clearInterval(iv);
+  }, []);
 
   // Read intro flag once (native only — web doesn't use it).
   useEffect(() => {
     if (IS_WEB) {
-      setHasSeenIntro(true); // Web never shows intro.
+      setHasSeenIntro(true);
       return;
     }
     AsyncStorage.getItem('hasSeenIntro')
@@ -57,17 +65,13 @@ export default function Index() {
       .catch(() => setHasSeenIntro(false));
   }, []);
 
-  // Route as soon as auth state is known — no artificial splash delay.
-  // The splash/logo entrance still plays for the brief moment the page is
-  // visible while auth init resolves.
+  // Route as soon as auth is ready (on web, instantly show /welcome)
   useEffect(() => {
-    if (!initialized || hasSeenIntro === null) return;
-    // Web default: always show the /welcome landing page on initial app load.
     if (IS_WEB) {
       router.replace('/welcome');
       return;
     }
-    // Authed users on native go straight to their home.
+    if (!initialized || hasSeenIntro === null || progress < 100) return;
     if (user) {
       if (!user.onboarding_completed) {
         const dest =
@@ -82,102 +86,88 @@ export default function Index() {
       }
       return;
     }
-    // Unauthed native: intro (first time) or login.
     if (!hasSeenIntro) {
       router.replace('/intro');
     } else {
       router.replace('/(auth)/login');
     }
-  }, [user, initialized, hasSeenIntro, router]);
+  }, [user, initialized, hasSeenIntro, progress, router]);
 
   return (
     <View style={styles.shell}>
-      {/* Background gradient */}
-      <LinearGradient
-        colors={['#1A0438', '#2D0760', '#5F259F']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
-      {/* Decorative orbs */}
-      <View pointerEvents="none" style={[styles.orb, { top: '-15%', right: '-25%', backgroundColor: 'rgba(124,58,237,0.45)' }]} />
-      <View pointerEvents="none" style={[styles.orb, { bottom: '-15%', left: '-25%', backgroundColor: 'rgba(236,72,153,0.30)' }]} />
+      {/* Radial cosmic glow */}
+      <View style={styles.glow} pointerEvents="none" />
 
       <View style={styles.center}>
         <Animated.View style={{ opacity, transform: [{ scale }], alignItems: 'center' }}>
-          <SALogo size={108} variant="glass" />
-          <Text style={styles.brand}>Student Alumni</Text>
-        </Animated.View>
+          {/* SA Shield Mark */}
+          <Svg viewBox="0 0 300 350" width={104} height={122} style={{ marginBottom: 18 }}>
+            <Defs>
+              <SvgGrad id="saSplashGrad" x1="0" y1="0" x2="1" y2="1">
+                <Stop offset="0" stopColor="#D8B6FF" />
+                <Stop offset="0.45" stopColor="#9A5CE8" />
+                <Stop offset="1" stopColor="#5B1FB0" />
+              </SvgGrad>
+            </Defs>
+            <Path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#saSplashGrad)" />
+            <SvgText x="150" y="215" textAnchor="middle" fontFamily="sans-serif" fontSize="128" fontWeight="800" fill="#FFFFFF">SA</SvgText>
+          </Svg>
 
-        <Animated.Text style={[styles.tag, { opacity: tagOpacity }]}>
-          CAREER · MENTORSHIP · NETWORK
-        </Animated.Text>
+          <Text style={styles.brand}>StudentAlumni</Text>
+          <Text style={styles.tag}>INITIALIZING ECOSYSTEM</Text>
 
-        <Animated.View style={[styles.dotsRow, { opacity: tagOpacity, transform: [{ translateY: dotsTrans }] }]}>
-          <BouncingDot delay={0} />
-          <BouncingDot delay={120} />
-          <BouncingDot delay={240} />
+          {/* Clean Percentage Counter (No bar, no hold) */}
+          <Text style={styles.progressPercent}>{progress.toString().padStart(2, '0')}%</Text>
         </Animated.View>
       </View>
     </View>
   );
 }
 
-// ─── Bouncing loading dots ───────────────────────────────────────────────────
-function BouncingDot({ delay }: { delay: number }) {
-  const y = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(y, { toValue: -8, duration: 360, delay, easing: Easing.out(Easing.ease), useNativeDriver: Platform.OS !== 'web' }),
-        Animated.timing(y, { toValue: 0, duration: 360, easing: Easing.in(Easing.ease), useNativeDriver: Platform.OS !== 'web' }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [y, delay]);
-  return <Animated.View style={[styles.dot, { transform: [{ translateY: y }] }]} />;
-}
-
 const styles = StyleSheet.create({
-  shell: { flex: 1, overflow: 'hidden' },
-  orb: {
+  shell: {
+    flex: 1,
+    backgroundColor: '#05060F',
+    overflow: 'hidden',
+  },
+  glow: {
     position: 'absolute',
-    width: 420,
-    height: 420,
-    borderRadius: 999,
-    ...({ filter: 'blur(120px)' } as any),
+    alignSelf: 'center',
+    top: '30%',
+    width: 380,
+    height: 380,
+    borderRadius: 190,
+    backgroundColor: 'rgba(139, 90, 255, 0.35)',
+    ...(Platform.OS === 'web' ? { filter: 'blur(60px)' } : {}),
   },
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
-    gap: 14,
   },
   brand: {
-    ...Typography.h1,
-    color: C.white,
-    marginTop: 16,
-    fontSize: 32,
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#FFFFFF',
     letterSpacing: -0.5,
+    marginBottom: 6,
+    fontFamily: Platform.OS === 'web' ? "'Manrope', sans-serif" : 'System',
   },
   tag: {
-    color: 'rgba(255,255,255,0.55)',
-    fontFamily: 'DMSans_700Bold',
+    color: '#8B84FF',
     fontSize: 11,
+    fontWeight: '700',
     letterSpacing: 2,
-    marginTop: 4,
+    marginBottom: 20,
+    textTransform: 'uppercase',
+    fontFamily: Platform.OS === 'web' ? "'Manrope', sans-serif" : 'System',
   },
-  dotsRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 28,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: 'rgba(255,255,255,0.85)',
+  progressPercent: {
+    fontSize: 16,
+    color: '#D5D8E4',
+    fontFamily: Platform.OS === 'web' ? 'ui-monospace, monospace' : 'Courier',
+    fontWeight: '700',
+    letterSpacing: 1.5,
   },
 });
