@@ -1,0 +1,196 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --bg: #0A0A14;
+  --panel: #11111C;
+  --panel2: #161622;
+  --line: #1F1F30;
+  --line2: #292940;
+  --violet: #7C5CFC;
+  --violet-lt: #A78BFA;
+  --ok: #34D399;
+  --amber: #F5B342;
+  --text: #F4F4FA;
+  --muted: #8A8A9E;
+  --dim: #6A6A7E;
+  --shadow: rgba(16,18,32,0.3);
+}
+
+html, body, #root, #__next, [data-reactroot] {
+  margin: 0;
+  padding: 0;
+  background: #0A0A14;
+  color: var(--text);
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  height: auto !important;
+  min-height: 100vh !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+#ev-root {
+  min-height: 100vh !important;
+  height: auto !important;
+  overflow-x: clip !important;
+  overflow-y: visible !important;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+a {
+  color: #A78BFA;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #C4B5FD;
+}
+
+@keyframes ev-tick { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes ev-in { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes ev-dot { 0%, 100% { opacity: .4; } 50% { opacity: 1; } }
+@keyframes ev-drift { 0%, 100% { transform: translate3d(0,0,0); } 50% { transform: translate3d(-4%, 3%, 0); } }
+@keyframes ev-sheen { 0% { transform: translateX(-130%) skewX(-16deg); } 60%, 100% { transform: translateX(240%) skewX(-16deg); } }
+
+@keyframes ev-logo-shine {
+  0% {
+    filter: drop-shadow(0 0 15px rgba(139,132,255,0.4)) brightness(1);
+    transform: scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 35px rgba(216,182,255,0.9)) drop-shadow(0 0 65px rgba(91,79,233,0.75)) brightness(1.35);
+    transform: scale(1.05);
+  }
+  100% {
+    filter: drop-shadow(0 0 15px rgba(139,132,255,0.4)) brightness(1);
+    transform: scale(1);
+  }
+}
+
+@keyframes ev-shine-sweep {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.ev-curtain-logo {
+  animation: ev-logo-shine 2.8s ease-in-out infinite;
+  will-change: transform, filter;
+}
+
+.ev-curtain-text {
+  background: linear-gradient(96deg, #F0A6E8 0%, #C08BFF 20%, #FFFFFF 40%, #C08BFF 60%, #8B84FF 80%, #6FA8F5 100%);
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: ev-shine-sweep 3s linear infinite;
+}
+
+.ev-tab[data-on]::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -6px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--violet, #7C5CFC);
+}
+
+.ev-tab[data-on] {
+  color: var(--text) !important;
+  font-weight: 700 !important;
+}
+
+.ev-seg {
+  color: #8A8A9E;
+  transition: background .2s ease, border-color .2s ease;
+}
+
+.ev-seg[data-on="1"] {
+  background: rgba(124,92,252,.20) !important;
+  border-color: #4B3FA8 !important;
+  color: #F4F4FA !important;
+}
+
+.ev-card {
+  transition: transform .25s cubic-bezier(.2,.8,.2,1), border-color .25s ease;
+}
+
+.ev-card:hover {
+  transform: translateY(-4px);
+  border-color: #3A3468 !important;
+}
+
+.ev-btn {
+  transition: filter .2s ease, transform .2s ease, box-shadow .2s ease;
+}
+
+.ev-btn:hover {
+  filter: brightness(1.12);
+  transform: translateY(-1px);
+}
+
+.ev-mini {
+  transition: border-color .25s ease, transform .25s ease;
+}
+
+.ev-mini:hover {
+  transform: translateY(-3px);
+  border-color: #3A2E72 !important;
+}
+
+.ev-hl {
+  transition: all .3s ease;
+}
+
+.ev-hl:hover {
+  background: rgba(124,92,252,.16) !important;
+  transform: scale(1.08);
+}
+
+.ev-social {
+  transition: border-color .25s ease, transform .25s ease, background .25s ease;
+}
+
+.ev-social:hover {
+  border-color: var(--violet) !important;
+  background: rgba(124,92,252,0.12);
+  transform: translateY(-2px);
+}
+
+.ev-field {
+  transition: border-color .2s ease;
+}
+
+.ev-field:hover, .ev-field:focus-within {
+  border-color: var(--violet) !important;
+}
+
+.ev-ghost:hover {
+  color: var(--text) !important;
+}
+
+.ev-ghostb:hover, .ev-back:hover, .ev-back-detail:hover {
+  border-color: var(--violet) !important;
+}
+
+.ev-flink:hover {
+  color: var(--text) !important;
+}
+
+/* Quiet Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0A0A14;
+}
+::-webkit-scrollbar-thumb {
+  background: #23233A;
+  border-radius: 4px;
+}
