@@ -50,3 +50,27 @@ html { scroll-behavior: smooth; }
 .au-f:focus-within { border-color: var(--ind); box-shadow: 0 0 0 3px var(--tint2); }
 .au-btn:hover { background: #6E62F5; transform: translateY(-1px); box-shadow: 0 4px 12px var(--tint); }
 .au-btn:active { transform: translateY(1px); }
+
+@keyframes marqueeLeft {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes marqueeRight {
+  0% { transform: translateX(-50%); }
+  100% { transform: translateX(0); }
+}
+
+.animate-marquee-left {
+  animation: marqueeLeft 35s linear infinite;
+}
+
+.animate-marquee-right {
+  animation: marqueeRight 35s linear infinite;
+}
+
+.animate-marquee-left:hover,
+.animate-marquee-right:hover {
+  animation-play-state: paused;
+}
+
