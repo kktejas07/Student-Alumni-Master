@@ -40,7 +40,8 @@ ENV EXPO_PUBLIC_BACKEND_URL=${EXPO_PUBLIC_BACKEND_URL} \
     EXPO_PUBLIC_POSTHOG_HOST=${EXPO_PUBLIC_POSTHOG_HOST} \
     EXPO_PUBLIC_ANALYTICS_ENABLED=${EXPO_PUBLIC_ANALYTICS_ENABLED} \
     CI=1 \
-    NODE_OPTIONS="--max-old-space-size=8192"
+    EXPO_NO_TELEMETRY=1 \
+    NODE_OPTIONS="--max-old-space-size=4096 --no-warnings"
 
 WORKDIR /app
 
@@ -50,6 +51,8 @@ COPY package.json yarn.lock* package-lock.json* ./
 RUN if [ -f yarn.lock ]; then yarn install --network-timeout 600000 --ignore-engines; \
     else npm install --no-audit --no-fund --legacy-peer-deps; fi
 
+# Invalidate cache for new code builds
+ARG CACHEBUST=20260825-v1
 COPY . .
 
 RUN npx expo export --platform web --output-dir dist

@@ -5,26 +5,30 @@ export type { PortalKey } from '@/src/theme/tokens';
 
 // ── Core palette ─────────────────────────────────────────────
 export const NX = {
-  // Deep backgrounds — FinTax360 Jewel-glass navy palette
-  // (Previously near-black #07070A; now matches the Student portal's
-  //  body gradient #0a0f1e → #131938 with elevated surfaces.)
-  bg:        '#0a0f1e',
-  surface1:  '#0E1428',
-  surface2:  'rgba(20, 26, 45, 0.55)',   // glass card fill — frosted
-  surface3:  'rgba(30, 38, 60, 0.72)',   // hover / elevated glass
-  surface4:  'rgba(40, 50, 78, 0.85)',   // deepest elevation
+  // Ultra-deep background (#08080F) & FinTax360 navy glass palette
+  bg:        '#08080F',
+  bgNavy:    '#0a0f1e',
+  surface1:  '#101019',
+  surface2:  '#14141F',   // secondary panel surface
+  surface3:  'rgba(20, 20, 31, 0.75)',   // glass card fill
+  surface4:  'rgba(30, 30, 48, 0.90)',   // elevated glass surface
 
-  // Dividers / strokes — neutral white (per Jewel spec)
+  // Structural lines & borders
+  line:      '#1F1F30',
+  line2:     '#262638',
+  accentLine:'#2C2A52',
   border:    'rgba(255,255,255,0.08)',
   borderHi:  'rgba(255,255,255,0.14)',
   borderLo:  'rgba(255,255,255,0.04)',
 
   // Text scale (primary → secondary → tertiary)
-  textP:     '#F8FAFC',
-  textS:     'rgba(255,255,255,0.70)',
-  textT:     'rgba(255,255,255,0.50)',
+  textP:     '#F4F4FA',
+  textS:     '#8A8A9E',
+  textT:     '#6A6A7E',
 
-  // Brand accents (used across portals)
+  // Brand accents
+  violet:    '#7C5CFC',
+  violetLt:  '#A78BFA',
   blue:      '#3B82F6',
   blueSoft:  'rgba(59,130,246,0.15)',
   cyan:      '#22D3EE',
@@ -34,11 +38,22 @@ export const NX = {
   amber:     '#F59E0B',
   amberSoft: 'rgba(245,158,11,0.15)',
 
+  // Category palette (for multi-category tiles and tags)
+  categories: {
+    cat1: '#7C5CFC', // Flexi Desk / Technical
+    cat2: '#2FB8C6', // PG & Hostel
+    cat3: '#F59E0B', // Car & Mobility
+    cat4: '#DB2777', // Two-wheeler
+    cat5: '#34D399', // Verified Stays / AI
+    cat6: '#4C8DF6', // Beach House / Villa
+    cat7: '#A78BFA', // Day Pass / Coworking
+  },
+
   // Status colours
-  success:   '#10B981',
+  success:   '#34D399',
   successBg: 'rgba(16,185,129,0.12)',
-  danger:    '#EF4444',
-  dangerBg:  'rgba(239,68,68,0.12)',
+  danger:    '#F0616B',
+  dangerBg:  'rgba(240,97,107,0.13)',
   warning:   '#F59E0B',
   warningBg: 'rgba(245,158,11,0.12)',
   info:      '#3B82F6',

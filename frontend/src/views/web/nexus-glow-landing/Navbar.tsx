@@ -140,6 +140,7 @@ export function Navbar({ activeTab = 'home', onTabChange }: NavbarProps) {
           <div className="flex items-center gap-3">
             {isLoggedIn ? (
               <button
+                type="button"
                 onClick={() => {
                   const role = user?.role || 'student';
                   const portal =
@@ -181,7 +182,6 @@ export function Navbar({ activeTab = 'home', onTabChange }: NavbarProps) {
             </button>
           </div>
         </div>
-      </div>
 
       {/* Mobile Drawer */}
       <AnimatePresence>
