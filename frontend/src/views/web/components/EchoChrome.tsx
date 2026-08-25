@@ -50,15 +50,28 @@ export function EchoImg({ source, fallbackGradient, fallbackLabel, style, resize
   if (failed) {
     return (
       <LinearGradient
-        colors={fallbackGradient || ['rgba(123,61,191,0.35)', 'rgba(95,37,159,0.55)', 'rgba(30,10,80,0.85)']}
+        colors={fallbackGradient || ['#15153A', '#0B0F19']}
         style={[style, { alignItems: 'center', justifyContent: 'center' }]}
       >
-        {fallbackLabel ? (
-          <View style={{ padding: 12, alignItems: 'center' }}>
-            <Image source={require('../../../assets/images/sa-icon.png')} style={{ width: 40, height: 40, opacity: 0.5, marginBottom: 6 }} resizeMode="contain" />
-            <View style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, fontFamily: 'Inter, sans-serif', textAlign: 'center' }}>{fallbackLabel}</View>
-          </View>
-        ) : null}
+        {(() => {
+          if (!fallbackLabel) return null;
+          const lbl = fallbackLabel.trim().toUpperCase();
+          const isVNR = lbl.includes('VNR');
+          const isSNIST = lbl.includes('SNIST');
+          
+          if (isSNIST) {
+            return <Image source={require('../../../../assets/images/snist-logo.png')} style={{ width: 550, height: 200, resizeMode: 'contain' }} />;
+          }
+          if (isVNR) {
+            return <Image source={require('../../../../assets/images/vnrvjit.png')} style={{ width: 550, height: 200, resizeMode: 'contain' }} />;
+          }
+          return (
+            <View style={{ padding: 12, alignItems: 'center' }}>
+              <Image source={require('../../../../assets/images/sa-icon.png')} style={{ width: 40, height: 40, opacity: 0.5, marginBottom: 6 }} resizeMode="contain" />
+              <View style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, fontFamily: 'Inter, sans-serif', textAlign: 'center' }}>{fallbackLabel}</View>
+            </View>
+          );
+        })()}
       </LinearGradient>
     );
   }

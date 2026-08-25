@@ -111,7 +111,7 @@ export function SponsorStrip({
     <View style={{ paddingHorizontal: 20, marginTop: 60, marginBottom: 20 }}>
       <View style={{ maxWidth: 1280, width: '100%', alignSelf: 'center' }}>
         <View style={{ alignItems: 'center', marginBottom: 32 }}>
-          <Kicker color="rgba(167,139,250,0.85)">Sponsored Collaboration Partners</Kicker>
+          <Kicker color="rgba(37,99,235,0.85)">Sponsored Collaboration Partners</Kicker>
           <Text style={s.sectionTitle}>Built with partners who believe in students</Text>
         </View>
 
@@ -229,8 +229,8 @@ const s = StyleSheet.create({
   // dashboard footer
   dashFoot: {
     paddingHorizontal: 22, paddingVertical: 18,
-    backgroundColor: 'rgba(10,15,30,0.55)',
-    borderTopWidth: 1, borderTopColor: PALETTE.glassBorder,
+    backgroundColor: 'rgba(17, 24, 39, 0.95)',
+    borderTopWidth: 1, borderTopColor: 'rgba(255, 255, 255, 0.08)',
     marginTop: 32,
   },
   dashFootDivider: { height: 1, backgroundColor: 'rgba(255,255,255,0.06)' },

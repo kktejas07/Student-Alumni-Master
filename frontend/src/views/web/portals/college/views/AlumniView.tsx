@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, Pressable, TextInput, StyleSheet, useWindowDimensions, Platform, Linking } from 'react-native';
 import { Search, Users, Eye } from 'lucide-react-native';
 import { Linkedin, Github } from '../../student/iconShims';
+import { GlassCard } from '../../student/glass';
 import { CC, FONTS } from '../tokens';
 import { Av } from '../atoms';
 import { usePortalData } from '@/src/lib/portalApi';
@@ -27,7 +28,7 @@ const MOCK_ALUMNI: Alumnus[] = [
   { id: 'm1', name: 'Arjun Mehta', initials: 'AM', batch: 2018, role: 'Software Engineer II', company: 'Google', city: 'Bangalore', color: '#60A5FA', skills: ['React', 'Node.js', 'System Design'], linkedin_url: 'https://linkedin.com', github_url: 'https://github.com' },
   { id: 'm2', name: 'Priya Sharma', initials: 'PS', batch: 2015, role: 'Product Manager', company: 'Microsoft', city: 'Hyderabad', color: '#F472B6', skills: ['Agile', 'Product Strategy', 'UX'], linkedin_url: 'https://linkedin.com', github_url: '' },
   { id: 'm3', name: 'Rahul Desai', initials: 'RD', batch: 2021, role: 'Data Scientist', company: 'Amazon', city: 'Seattle, WA', color: '#34D399', skills: ['Python', 'Machine Learning', 'SQL'], linkedin_url: 'https://linkedin.com', github_url: 'https://github.com' },
-  { id: 'm4', name: 'Neha Gupta', initials: 'NG', batch: 2019, role: 'UX Designer', company: 'Airbnb', city: 'San Francisco, CA', color: '#A78BFA', skills: ['Figma', 'User Research', 'Prototyping'], linkedin_url: 'https://linkedin.com', github_url: '' },
+  { id: 'm4', name: 'Neha Gupta', initials: 'NG', batch: 2019, role: 'UX Designer', company: 'Airbnb', city: 'San Francisco, CA', color: '#60A5FA', skills: ['Figma', 'User Research', 'Prototyping'], linkedin_url: 'https://linkedin.com', github_url: '' },
   { id: 'm5', name: 'Vikram Singh', initials: 'VS', batch: 2012, role: 'Engineering Manager', company: 'Netflix', city: 'Los Gatos, CA', color: '#FBBF24', skills: ['Leadership', 'Distributed Systems', 'Java'], linkedin_url: 'https://linkedin.com', github_url: 'https://github.com' },
   { id: 'm6', name: 'Ananya Patel', initials: 'AP', batch: 2023, role: 'Frontend Developer', company: 'Stripe', city: 'Remote', color: '#38BDF8', skills: ['Vue.js', 'TypeScript', 'CSS'], linkedin_url: 'https://linkedin.com', github_url: 'https://github.com' },
 ];
@@ -63,7 +64,7 @@ export function AlumniView() {
       </View>
       <View style={s.grid}>
         {list.map((a) => (
-          <View key={a.id} style={[s.card, { width: cardW as any }]}>
+          <GlassCard key={a.id} glow style={{ width: cardW as any }}>
             {/* Header: Avatar + Info */}
             <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
               <View style={[s.avWrap, { borderColor: a.color }]}>
@@ -120,7 +121,7 @@ export function AlumniView() {
                 </Pressable>
               )}
             </View>
-          </View>
+          </GlassCard>
         ))}
       </View>
     </View>
@@ -132,17 +133,34 @@ const s = StyleSheet.create({
   chip: { paddingHorizontal: 12, height: 30, borderRadius: 8, backgroundColor: CC.card, borderWidth: 1, borderColor: CC.border, justifyContent: 'center' },
   chipOn: { backgroundColor: CC.primary, borderColor: CC.primary },
   searchBox: { flexDirection: 'row', alignItems: 'center', gap: 8, width: 220, height: 34, paddingHorizontal: 11, borderRadius: 10, backgroundColor: CC.card, borderColor: CC.border, borderWidth: 1 },
-  searchInput: { flex: 1, color: '#fff', fontFamily: FONTS.med, fontSize: 12, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
+  searchInput: { flex: 1, color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 12, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   
   /* New Card Styles matching UserCard */
-  card: { backgroundColor: CC.card, borderColor: CC.border, borderWidth: 1, borderRadius: 16, padding: 16 },
+  card: { 
+    backgroundColor: CC.card, 
+    borderColor: CC.border, 
+    borderWidth: 1, 
+    borderRadius: 16, 
+    padding: 16,
+    ...(Platform.OS === 'web' ? ({
+      boxShadow: '0 4px 16px rgba(0,0,0,0.08), 0 12px 40px rgba(0,0,0,0.06)',
+      transitionProperty: 'box-shadow, transform',
+      transitionDuration: '200ms',
+    } as any) : {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.1,
+      shadowRadius: 20,
+      elevation: 6,
+    }),
+  },
   
   avWrap: { borderRadius: 999, borderWidth: 2, padding: 2 },
-  nameBold: { color: '#fff', fontFamily: FONTS.bold, fontSize: 14 },
+  nameBold: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 14 },
   
   rolePillAlumni: { backgroundColor: 'rgba(167, 139, 250, 0.1)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(167, 139, 250, 0.2)' },
-  rolePillAlumniText: { color: '#A78BFA', fontSize: 10, fontFamily: FONTS.bold },
+  rolePillAlumniText: { color: '#60A5FA', fontSize: 10, fontFamily: FONTS.bold },
   
   subtitleLine: { color: CC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 4 },
   subtitleSubLine: { color: CC.dim, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },

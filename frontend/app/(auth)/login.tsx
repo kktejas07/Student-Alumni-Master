@@ -22,7 +22,7 @@ import {
   View, Text, StyleSheet, Pressable, Platform, useWindowDimensions, ScrollView, TextInput,
 } from 'react-native';
 import Svg, { Path, Rect, Circle, G, Text as SvgText, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { getBaseUrl } from '@/src/lib/env';
 import { trackAuth } from '@/src/lib/authAnalytics';
@@ -31,12 +31,13 @@ const BASE = getBaseUrl();
 
 export default function LoginScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ email?: string }>();
   const { width } = useWindowDimensions();
   const isNarrow = width < 940;
   const isTight = width < 700;
 
   const [slideIndex, setSlideIndex] = useState(0);
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState((params?.email as string) || '');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);

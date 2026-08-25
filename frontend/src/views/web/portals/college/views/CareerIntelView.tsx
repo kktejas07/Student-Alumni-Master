@@ -61,13 +61,13 @@ export function CareerIntelView() {
 }
 const s = StyleSheet.create({
   card: { backgroundColor: CC.card, borderColor: CC.border, borderWidth: 1, borderRadius: 14, padding: 18 },
-  cardTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 },
+  cardTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 14 },
   sub: { color: CC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 3 },
-  skillName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
+  skillName: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12.5 },
   gapText: { fontFamily: FONTS.bold, fontSize: 11 },
   track: { position: 'absolute', height: 6, borderRadius: 3, top: 2 },
   legend: { color: CC.dim, fontFamily: FONTS.med, fontSize: 10.5 },
   hRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: CC.border },
-  hRole: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
+  hRole: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12.5 },
   hMeta: { color: CC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },
 });
