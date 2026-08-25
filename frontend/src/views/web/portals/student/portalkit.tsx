@@ -131,7 +131,7 @@ const PILL = {
   warn:    { bg: 'rgba(245,158,11,0.14)', bc: 'rgba(245,158,11,0.34)', c: '#FBBF24' },
   info:    { bg: 'rgba(59,130,246,0.14)', bc: 'rgba(59,130,246,0.32)', c: '#93C5FD' },
   danger:  { bg: 'rgba(239,68,68,0.14)',  bc: 'rgba(239,68,68,0.32)',  c: '#FCA5A5' },
-  brand:   { bg: 'rgba(123,61,191,0.16)', bc: 'rgba(123,61,191,0.40)', c: '#C4B5FD' },
+  brand:   { bg: 'rgba(123,61,191,0.16)', bc: 'rgba(123,61,191,0.40)', c: '#93C5FD' },
   neutral: { bg: 'rgba(255,255,255,0.06)',bc: 'rgba(255,255,255,0.14)',c: SC.muted },
 } as const;
 export type PillKind = keyof typeof PILL;
@@ -483,14 +483,14 @@ const k = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, alignSelf: 'flex-start',
   },
-  pillGradText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 0.4 },
+  pillGradText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 0.4 },
 
   tabsOuter: { backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 14 },
   tabActive: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 13, paddingVertical: 8, borderRadius: 10,
   },
-  tabActiveText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12.5 },
+  tabActiveText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12.5 },
   tabInactive: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 13, paddingVertical: 8, borderRadius: 10,
@@ -506,7 +506,7 @@ const k = StyleSheet.create({
     paddingHorizontal: 6, paddingVertical: 1, borderRadius: 999,
     backgroundColor: 'rgba(255,255,255,0.22)', minWidth: 20, alignItems: 'center',
   },
-  tabCountActiveText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 10 },
+  tabCountActiveText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 10 },
 
   searchBox: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
