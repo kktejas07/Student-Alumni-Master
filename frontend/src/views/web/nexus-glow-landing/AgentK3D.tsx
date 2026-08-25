@@ -36,10 +36,10 @@ export function AgentK3D() {
       <div
         className="absolute rounded-full pointer-events-none -z-10"
         style={{
-          width: "320px",
-          height: "320px",
-          background: "radial-gradient(circle, rgba(147,51,234,0.28) 0%, rgba(99,102,241,0.08) 50%, transparent 70%)",
-          filter: "blur(60px)",
+          width: "440px",
+          height: "440px",
+          background: "radial-gradient(circle, rgba(168,85,247,0.38) 0%, rgba(99,102,241,0.16) 45%, transparent 70%)",
+          filter: "blur(70px)",
         }}
       />
 
@@ -56,7 +56,7 @@ export function AgentK3D() {
       >
         {/* Floating Animation */}
         <motion.div
-          animate={{ y: [0, -12, 0] }}
+          animate={{ y: [0, -14, 0] }}
           transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
           className="relative flex items-center justify-center"
           style={{ transformStyle: "preserve-3d" }}
@@ -68,12 +68,14 @@ export function AgentK3D() {
             animate={{ rotateY: [-18, 18, -18] }}
             transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
             style={{
-              width: "500px",
-              height: "500px",
+              width: "540px",
+              height: "540px",
+              maxWidth: "92vw",
+              maxHeight: "92vw",
               objectFit: "contain",
               transformStyle: "preserve-3d",
               transform: "rotateX(4deg) translateZ(0)",
-              filter: "drop-shadow(0 20px 35px rgba(130,80,255,0.4))",
+              filter: "drop-shadow(0 25px 45px rgba(130,80,255,0.55)) drop-shadow(0 0 30px rgba(168,85,247,0.35))",
               willChange: "transform",
             }}
             className="pointer-events-none"
@@ -81,10 +83,10 @@ export function AgentK3D() {
 
           {/* Floating Shadow Beneath */}
           <motion.div
-            animate={{ scale: [0.85, 1, 0.85], opacity: [0.3, 0.5, 0.3] }}
+            animate={{ scale: [0.85, 1, 0.85], opacity: [0.35, 0.6, 0.35] }}
             transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute -bottom-6 rounded-[100%] bg-purple-950/70 blur-xl pointer-events-none -z-10"
-            style={{ width: "160px", height: "20px" }}
+            className="absolute -bottom-6 rounded-[100%] bg-purple-950/80 blur-xl pointer-events-none -z-10"
+            style={{ width: "200px", height: "24px" }}
           />
         </motion.div>
       </motion.div>

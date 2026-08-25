@@ -103,7 +103,7 @@ export function AgentKQuickLauncher() {
                       onPress={() => submit(sugg)}
                       style={({ hovered }: any) => ([
                         s.chip,
-                        hovered && Platform.OS === 'web' ? { borderColor: NX.purple, backgroundColor: 'rgba(124,58,237,0.08)' } as any : null,
+                        hovered && Platform.OS === 'web' ? { borderColor: NX.purple, backgroundColor: 'rgba(37,99,235,0.08)' } as any : null,
                       ])}
                     >
                       <MaterialCommunityIcons name="auto-fix" size={12} color={NX.purple} />
@@ -138,7 +138,7 @@ const s = StyleSheet.create({
     borderRadius: 18, borderWidth: 1, borderColor: NX.borderHi,
     padding: 16,
     ...(Platform.OS === 'web' ? ({
-      boxShadow: '0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(124,58,237,0.18), inset 0 1px 0 rgba(255,255,255,0.05)',
+      boxShadow: '0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(37,99,235,0.18), inset 0 1px 0 rgba(255,255,255,0.05)',
     } as any) : {}),
   },
   inputRow: {
