@@ -1,305 +1,244 @@
-import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useState } from "react";
-import { useRouter, usePathname } from "expo-router";
-import { Menu, X } from "lucide-react-native";
-import { Image } from "react-native";
-import { useBreakpoint } from "@/src/theme/breakpoints";
-import { useAuthStore } from "@/src/viewmodels/stores/authStore";
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter, usePathname } from 'expo-router';
+import { Menu, X } from 'lucide-react';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
-// Module-scoped so a pending section survives the Navbar remount when we
-// navigate from an echo page (/echo/...) to the landing page (/welcome).
-let pendingLandingSection: string | null = null;
+interface NavbarProps {
+  activeTab?: 'home' | 'verify' | 'contact';
+  onTabChange?: (tab: 'home' | 'verify' | 'contact') => void;
+}
 
-export function Navbar() {
+export function Navbar({ activeTab = 'home', onTabChange }: NavbarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const user = useAuthStore((s) => s.user);
   const isLoggedIn = !!user;
   const [scrolled, setScrolled] = useState(false);
-  const [active, setActive] = useState("Agent K");
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { atLeast, width } = useBreakpoint();
-  const isLargeScreen = atLeast("lg");
-  // The app scrolls inside a container (body has overflow:hidden), not the
-  // window, so framer-motion's useScroll() never fires. A capture-phase
-  // listener catches scroll events from ANY scroll container on the page.
+
   useEffect(() => {
-    const onScroll = (e: Event) => {
-      const target = e.target as any;
-      const top =
-        target && typeof target.scrollTop === "number"
-          ? target.scrollTop
-          : window.scrollY || document.documentElement.scrollTop || 0;
+    const onScroll = () => {
+      const top = window.scrollY || document.documentElement.scrollTop || 0;
       setScrolled(top > 20);
     };
-    window.addEventListener("scroll", onScroll, { passive: true, capture: true });
-    return () => window.removeEventListener("scroll", onScroll, { capture: true } as any);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
-  const isEcho = typeof pathname === "string" && pathname.startsWith("/echo");
-  const isLanding = typeof pathname === "string" && pathname === "/welcome";
 
-  const links = ["Agent K", "Features", "About Us", "Contact", "Partners", "Collaborations"];
-
-  // After navigating from an echo page to the landing page, scroll to the
-  // requested section once it has rendered.
-  useEffect(() => {
-    if (!isLanding || !pendingLandingSection) return;
-    const id = pendingLandingSection;
-    pendingLandingSection = null;
-    const raf = requestAnimationFrame(() => {
-      const elem = document.getElementById(id);
-      if (elem) elem.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-    return () => cancelAnimationFrame(raf);
-  }, [isLanding]);
-
-  const goToLandingSection = (e: any, targetId: string) => {
-    e.preventDefault();
-    setActive(e.currentTarget?.textContent || "Features");
+  const handleTabClick = (tabKey: 'home' | 'verify' | 'contact') => {
     setMobileOpen(false);
-    if (isLanding) {
-      const elem = document.getElementById(targetId);
-      if (elem) elem.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (typeof onTabChange === 'function') {
+      onTabChange(tabKey);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
-      pendingLandingSection = targetId;
-      router.push("/welcome");
+      if (tabKey === 'home') router.push('/');
+      else if (tabKey === 'verify') router.push('/certificates/verify');
+      else if (tabKey === 'contact') router.push('/contact');
     }
   };
 
-  const handleLogoClick = (e: any) => {
-    e.preventDefault();
-    setMobileOpen(false);
-    router.push('/welcome');
-  };
-
-  const goToEcho = (e: any) => {
-    e.preventDefault();
+  const goToEcho = () => {
     setMobileOpen(false);
     router.push('/echo');
   };
 
-  const goToVerify = (e: any) => {
-    e.preventDefault();
-    setMobileOpen(false);
-    setActive("Verify");
-    router.push('/certificates/verify');
-  };
-
   return (
-    <motion.header
-      initial={{ y: -30, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled || mobileOpen
-          ? "py-2 bg-[#0C0C0D]/95 backdrop-blur-md border-b border-white/10 shadow-2xl"
-          : "py-4 bg-transparent border-b border-transparent"
-        }`}
+    <header
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        scrolled || mobileOpen
+          ? 'py-3 bg-[#05060F]/90 backdrop-blur-lg border-b border-white/10 shadow-2xl'
+          : 'py-5 bg-transparent border-b border-transparent'
+      }`}
     >
-      <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        <div
-          className={`flex items-center justify-between transition-all duration-500 ${scrolled ? "px-4 sm:px-5 py-2.5" : "px-4 sm:px-5 py-3"
-            }`}
-        >
-          {/* Logo */}
-          <a
-            href="/welcome"
-            onClick={handleLogoClick}
-            className="flex items-center gap-3 cursor-pointer"
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="flex items-center justify-between">
+          {/* Brand Logo */}
+          <button
+            onClick={() => handleTabClick('home')}
+            className="flex items-center gap-3 cursor-pointer text-left"
           >
-            <Image
-              source={require('@/assets/images/sa-icon.png')}
-              style={{ width: 32, height: 32, borderRadius: 8 }}
-              resizeMode="contain"
-            />
-            <span className="text-sm font-bold tracking-wide text-white">
+            <svg width="28" height="33" viewBox="0 0 300 350" className="flex-shrink-0">
+              <defs>
+                <linearGradient id="sa-nav-badge" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#C9A7FF" />
+                  <stop offset="48%" stopColor="#8B5CF6" />
+                  <stop offset="100%" stopColor="#5B2FD0" />
+                </linearGradient>
+                <linearGradient id="sa-nav-in" x1="0" y1="0" x2="0.4" y2="1">
+                  <stop offset="0%" stopColor="#B683F5" />
+                  <stop offset="100%" stopColor="#7331C9" />
+                </linearGradient>
+              </defs>
+              <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#sa-nav-badge)" />
+              <path d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="url(#sa-nav-in)" />
+              <text x="150" y="214" textAnchor="middle" className="font-sans text-[118px] font-extrabold fill-white">
+                SA
+              </text>
+            </svg>
+            <span className="text-base font-extrabold tracking-tight text-white">
               StudentAlumni
             </span>
-          </a>
+          </button>
 
-          {/* Nav links (desktop only) */}
-          {isLargeScreen && (
-            <nav className="flex items-center gap-1 bg-[#121214] border border-white/5 rounded-full px-2 py-1.5">
-              <a
-                href="/echo"
-                onClick={goToEcho}
-                className={`relative px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-colors duration-200 cursor-pointer ${
-                  isEcho
-                    ? "text-white bg-white/10"
-                    : "text-gray-400 hover:text-white hover:bg-white/5"
-                }`}
-              >
-                ECHO
-              </a>
-              <a
-                href="/certificates/verify"
-                onClick={goToVerify}
-                className={`relative px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-colors duration-200 cursor-pointer ${
-                  active === "Verify"
-                    ? "text-white bg-white/10"
-                    : "text-gray-400 hover:text-white hover:bg-white/5"
-                }`}
-              >
-                Verify
-              </a>
-              {links.map((l) => {
-                const isActive = active === l;
-                const targetId = l.toLowerCase().replace(" ", "-");
-                return (
-                  <a
-                    key={l}
-                    href={isLanding ? `#${targetId}` : `/welcome#${targetId}`}
-                    onClick={(e) => goToLandingSection(e, targetId)}
-                    className={`relative px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-colors duration-200 cursor-pointer
-                      ${isActive
-                        ? "text-white bg-white/10"
-                        : "text-gray-400 hover:text-white hover:bg-white/5"
-                      }
-                    `}
-                  >
-                    {l}
-                  </a>
-                );
-              })}
-            </nav>
-          )}
+          {/* Desktop Navigation Tabs */}
+          <nav className="hidden md:flex items-center gap-8">
+            <button
+              onClick={() => handleTabClick('home')}
+              className={`relative py-1 text-sm font-semibold transition-colors cursor-pointer ${
+                activeTab === 'home' ? 'text-white' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <span>Home</span>
+              {activeTab === 'home' && (
+                <motion.div
+                  layoutId="navTabUnderline"
+                  className="absolute left-0 right-0 -bottom-1 h-0.5 bg-[#8B84FF] rounded-full"
+                />
+              )}
+            </button>
 
-          {/* CTA buttons */}
-          <div className="flex items-center gap-2 sm:gap-4">
+            <button
+              onClick={goToEcho}
+              className="relative py-1 text-sm font-semibold text-gray-400 hover:text-white transition-colors cursor-pointer"
+            >
+              <span>ECHO</span>
+            </button>
+
+            <button
+              onClick={() => handleTabClick('verify')}
+              className={`relative py-1 text-sm font-semibold transition-colors cursor-pointer ${
+                activeTab === 'verify' ? 'text-white' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <span>Verify</span>
+              {activeTab === 'verify' && (
+                <motion.div
+                  layoutId="navTabUnderline"
+                  className="absolute left-0 right-0 -bottom-1 h-0.5 bg-[#8B84FF] rounded-full"
+                />
+              )}
+            </button>
+
+            <button
+              onClick={() => handleTabClick('contact')}
+              className={`relative py-1 text-sm font-semibold transition-colors cursor-pointer ${
+                activeTab === 'contact' ? 'text-white' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <span>Contact Us</span>
+              {activeTab === 'contact' && (
+                <motion.div
+                  layoutId="navTabUnderline"
+                  className="absolute left-0 right-0 -bottom-1 h-0.5 bg-[#8B84FF] rounded-full"
+                />
+              )}
+            </button>
+          </nav>
+
+          {/* Right Action Buttons */}
+          <div className="flex items-center gap-3">
             {isLoggedIn ? (
               <button
                 onClick={() => {
                   const role = user?.role || 'student';
-                  const portalPath = role === 'super_admin' ? '/super-admin' :
+                  const portal =
+                    role === 'super_admin' ? '/super-admin' :
                     role === 'mentor' ? '/mentor-portal' :
                     role === 'alumni' ? '/alumni-portal' :
                     role === 'college' ? '/college-portal' :
                     '/student-portal';
-                  router.push(portalPath);
+                  router.push(portal);
                 }}
-                className="text-xs font-semibold text-green-400 hover:text-green-300 transition-colors duration-200 cursor-pointer"
+                className="px-5 py-2 rounded-full text-xs font-bold bg-[#5B4FE9] hover:bg-[#4F43D6] text-white transition-all cursor-pointer"
               >
                 Dashboard
               </button>
             ) : (
-              width >= 420 && (
+              <>
                 <button
                   onClick={() => router.push('/(auth)/login')}
-                  className="text-xs font-semibold text-gray-400 hover:text-white transition-colors duration-200 cursor-pointer"
+                  className="hidden sm:inline-block text-xs font-bold text-gray-300 hover:text-white px-3 py-2 cursor-pointer"
                 >
                   Sign in
                 </button>
-              )
+                <button
+                  onClick={() => router.push('/get-started')}
+                  className="px-5 py-2.5 rounded-full text-xs font-bold text-white bg-[#5B4FE9] hover:bg-[#4F43D6] shadow-lg shadow-indigo-500/25 transition-all hover:scale-105 cursor-pointer whitespace-nowrap"
+                >
+                  Get Started
+                </button>
+              </>
             )}
-            {isLoggedIn ? (
-              <button
-                onClick={() => {
-                  const role = user?.role || 'student';
-                  const portalPath = role === 'super_admin' ? '/super-admin' :
-                    role === 'mentor' ? '/mentor-portal' :
-                    role === 'alumni' ? '/alumni-portal' :
-                    role === 'college' ? '/college-portal' :
-                    '/student-portal';
-                  router.push(portalPath);
-                }}
-                className="group relative overflow-hidden rounded-full bg-primary px-4 sm:px-5 py-2 text-xs font-bold text-primary-foreground transition-all duration-300 hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.4)] cursor-pointer"
-              >
-                My Account
-              </button>
-            ) : (
-              <button
-                onClick={() => { setMobileOpen(false); router.push('/get-started'); }}
-                className="group relative overflow-hidden rounded-full bg-primary px-4 sm:px-5 py-2 text-xs font-bold text-primary-foreground transition-all duration-300 hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.4)] cursor-pointer"
-              >
-                Get Started
-              </button>
-            )}
-            {/* Hamburger (tablet + mobile) */}
-            {!isLargeScreen && (
-              <button
-                onClick={() => setMobileOpen((o) => !o)}
-                aria-label="Toggle menu"
-                className="flex items-center justify-center w-10 h-10 rounded-lg text-white bg-[#121214] border border-white/10 cursor-pointer"
-              >
-                {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-              </button>
-            )}
+
+            {/* Mobile Hamburger */}
+            <button
+              onClick={() => setMobileOpen(!mobileOpen)}
+              className="md:hidden p-2 rounded-lg bg-white/5 border border-white/10 text-white cursor-pointer"
+              aria-label="Toggle menu"
+            >
+              {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Mobile menu */}
+      {/* Mobile Drawer */}
       <AnimatePresence>
         {mobileOpen && (
-          <motion.nav
+          <motion.div
             initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
+            animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.25 }}
-            className="lg:hidden overflow-hidden bg-[#0C0C0D] border-b border-white/10"
+            className="md:hidden bg-[#0C0C0D] border-b border-white/10 overflow-hidden px-6 py-5 space-y-3"
           >
-            <div className="px-6 pt-8 pb-6 flex flex-col gap-1">
-              <a
-                href="/echo"
-                onClick={goToEcho}
-                className={`px-4 py-3 rounded-xl text-sm font-semibold transition-colors cursor-pointer ${
-                  isEcho ? "text-white bg-white/10" : "text-gray-300 hover:text-white hover:bg-white/5"
-                }`}
-              >
-                ECHO
-              </a>
-              <a
-                href="/certificates/verify"
-                onClick={goToVerify}
-                className="px-4 py-3 rounded-xl text-sm font-semibold transition-colors cursor-pointer text-gray-300 hover:text-white hover:bg-white/5"
-              >
-                Verify Certificate
-              </a>
-              {links.map((l) => {
-                const targetId = l.toLowerCase().replace(" ", "-");
-                return (
-                  <a
-                    key={l}
-                    href={isLanding ? `#${targetId}` : `/welcome#${targetId}`}
-                    onClick={(e) => goToLandingSection(e, targetId)}
-                    className={`px-4 py-3 rounded-xl text-sm font-semibold transition-colors cursor-pointer ${
-                      active === l ? "text-white bg-white/10" : "text-gray-300 hover:text-white hover:bg-white/5"
-                    }`}
-                  >
-                    {l}
-                  </a>
-                );
-              })}
-              <div className="h-px bg-white/10 my-2" />
-              {isLoggedIn ? (
-                <>
-                  <button
-                    onClick={() => {
-                      const role = user?.role || 'student';
-                      const portalPath = role === 'super_admin' ? '/super-admin' :
-                        role === 'mentor' ? '/mentor-portal' :
-                        role === 'alumni' ? '/alumni-portal' :
-                        role === 'college' ? '/college-portal' :
-                        '/student-portal';
-                      setMobileOpen(false);
-                      router.push(portalPath);
-                    }}
-                    className="px-4 py-3 rounded-xl text-sm font-semibold text-green-400 hover:text-green-300 hover:bg-white/5 text-left cursor-pointer"
-                  >
-                    Go to Dashboard
-                  </button>
-                </>
-              ) : (
+            <button
+              onClick={() => handleTabClick('home')}
+              className={`block w-full text-left py-2 text-sm font-semibold ${
+                activeTab === 'home' ? 'text-[#8B84FF]' : 'text-gray-300'
+              }`}
+            >
+              Home
+            </button>
+            <button
+              onClick={goToEcho}
+              className="block w-full text-left py-2 text-sm font-semibold text-gray-300"
+            >
+              ECHO
+            </button>
+            <button
+              onClick={() => handleTabClick('verify')}
+              className={`block w-full text-left py-2 text-sm font-semibold ${
+                activeTab === 'verify' ? 'text-[#8B84FF]' : 'text-gray-300'
+              }`}
+            >
+              Verify Certificate
+            </button>
+            <button
+              onClick={() => handleTabClick('contact')}
+              className={`block w-full text-left py-2 text-sm font-semibold ${
+                activeTab === 'contact' ? 'text-[#8B84FF]' : 'text-gray-300'
+              }`}
+            >
+              Contact Us
+            </button>
+
+            <div className="pt-3 border-t border-white/10 flex flex-col gap-2">
+              {!isLoggedIn && (
                 <button
-                  onClick={() => { setMobileOpen(false); router.push('/(auth)/login'); }}
-                  className="px-4 py-3 rounded-xl text-sm font-semibold text-gray-300 hover:text-white hover:bg-white/5 text-left cursor-pointer"
+                  onClick={() => {
+                    setMobileOpen(false);
+                    router.push('/(auth)/login');
+                  }}
+                  className="w-full py-2.5 rounded-xl text-center text-xs font-bold text-gray-300 border border-white/10"
                 >
                   Sign in
                 </button>
               )}
             </div>
-          </motion.nav>
+          </motion.div>
         )}
       </AnimatePresence>
-    </motion.header>
+    </header>
   );
 }
