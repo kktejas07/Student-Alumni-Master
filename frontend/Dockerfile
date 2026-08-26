@@ -52,7 +52,7 @@ RUN if [ -f yarn.lock ]; then yarn install --network-timeout 600000 --ignore-eng
     else npm install --no-audit --no-fund --legacy-peer-deps; fi
 
 # Invalidate cache for new code builds
-ARG CACHEBUST=20260825-v1
+ARG CACHEBUST=20260826-v2
 COPY . .
 
 RUN npx expo export --platform web --output-dir dist
