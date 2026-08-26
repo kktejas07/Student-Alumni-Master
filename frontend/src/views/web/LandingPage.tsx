@@ -1,6 +1,6 @@
 /**
  * LandingPage — StudentAlumni AI Career Platform
- * Scroll-Linked Roadmap S-Curve, Viewport-Triggered Counter Physics, 3D Physical Polaroid Card Stack & Interactive Audience Motion
+ * High-Performance Vector SVGs, Real-Time Radar Hover Scan, Scroll-Linked S-Curve & 3D Interactive Motion
  */
 import React, { useState, useEffect, useRef } from 'react';
 import {
@@ -122,7 +122,6 @@ function ScrollCounter({
     const animateCount = (timestamp: number) => {
       if (!startTime) startTime = timestamp;
       const progress = Math.min((timestamp - startTime) / duration, 1);
-      // Ease out cubic: 1 - (1 - progress)^3
       const easeOut = 1 - Math.pow(1 - progress, 3);
       setDisplayValue(Math.floor(easeOut * target));
 
@@ -214,13 +213,11 @@ function HoverLiftCard({
   style,
   hoverBorderColor = '#5B4FE9',
   scaleOnHover = 1.018,
-  glowColor = 'rgba(91,79,233,0.35)',
 }: {
   children: React.ReactNode;
   style?: any;
   hoverBorderColor?: string;
   scaleOnHover?: number;
-  glowColor?: string;
 }) {
   const [hovered, setHovered] = useState(false);
 
@@ -388,7 +385,6 @@ export default function LandingPage() {
   }, []);
 
   // Scroll-linked Roadmap S-Curve filling calculation
-  // The roadmap section appears around Y: 1800 to 2600.
   const roadmapScrollProgress = Math.min(1, Math.max(0, (scrollY - 1500) / 750));
   const PATH_TOTAL_LENGTH = 1350;
   const roadmapStrokeDashoffset = PATH_TOTAL_LENGTH * (1 - roadmapScrollProgress);
@@ -1437,11 +1433,11 @@ export default function LandingPage() {
               </View>
             </View>
 
-            {/* ── 10. MATCH GRAPH ORBITAL RADAR (SWEEPING RADAR BEAM) ── */}
+            {/* ── 10. MATCH GRAPH ORBITAL RADAR (SWEEPING RADAR BEAM & HOVER NODES) ── */}
             <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.sectionPill}><Text style={styles.sectionPillText}>• HOW MATCHING WORKS</Text></View>
               <Text style={styles.sectionHeadingH2}>1,200+ verified mentors,<br /><Text style={{ color: T.indLt }}>ranked by fit.</Text></Text>
-              <Text style={styles.sectionDesc}>Agent K scores every alumnus against your course, goals and city. Click any node to inspect their live fit score and matching rationale.</Text>
+              <Text style={styles.sectionDesc}>Agent K scores every alumnus against your course, goals and city. Hover a node to see the connection and why it was chosen.</Text>
 
               <View style={[styles.matchGraphRow, isNarrow && { flexDirection: 'column' }]}>
                 {/* Detail Box */}
@@ -1472,7 +1468,7 @@ export default function LandingPage() {
                     </G>
 
                     {/* Selected Node Target Line */}
-                    <Line x1="310" y1="270" x2={selectedNode.x} y2={selectedNode.y} stroke="#8B84FF" strokeWidth="2" strokeDasharray="5,6" />
+                    <Line x1="310" y1="270" x2={selectedNode.x} y2={selectedNode.y} stroke="#8B84FF" strokeWidth="2.4" strokeDasharray="5,6" />
                     
                     {/* Center User Hub */}
                     <Circle cx="310" cy="270" r="52" fill="#0C0E1B" stroke="#8B84FF" strokeWidth="2.5" />
@@ -1492,10 +1488,11 @@ export default function LandingPage() {
                         <G
                           key={i}
                           onPress={() => setSelectedNode({ name: node.name, why: node.why, x: String(node.x), y: String(node.y) })}
+                          onMouseEnter={() => setSelectedNode({ name: node.name, why: node.why, x: String(node.x), y: String(node.y) })}
                           style={{ cursor: 'pointer' }}
                         >
                           {isSelected && (
-                            <Circle cx={node.x} cy={node.y} r="38" fill="#5B4FE9" opacity="0.35" />
+                            <Circle cx={node.x} cy={node.y} r="38" fill="#5B4FE9" opacity="0.4" />
                           )}
                           <Circle
                             cx={node.x}
