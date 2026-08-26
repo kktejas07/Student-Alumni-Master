@@ -85,7 +85,4 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   }
 };
 
-// Reduce the number of workers to decrease resource usage (1 in CI/Docker to avoid IPC deadlocks)
-config.maxWorkers = process.env.CI ? 1 : 2;
-
 module.exports = withNativeWind(config, { input: './global.css' });

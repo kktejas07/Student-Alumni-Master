@@ -14,8 +14,8 @@ ARG EXPO_PUBLIC_POSTHOG_KEY=""
 ARG EXPO_PUBLIC_POSTHOG_HOST=""
 ARG EXPO_PUBLIC_ANALYTICS_ENABLED="false"
 
-# Use Node 20 LTS (Debian-based slim) for Expo SDK 54 Metro Bundler stability in Docker
-FROM node:20-slim AS builder
+# Use Debian-based slim for 2-3x faster V8 & Metro Bundler compilation
+FROM node:22-slim AS builder
 
 ARG EXPO_PUBLIC_BACKEND_URL
 ARG EXPO_PUBLIC_FIREBASE_API_KEY
@@ -40,7 +40,6 @@ ENV EXPO_PUBLIC_BACKEND_URL=${EXPO_PUBLIC_BACKEND_URL} \
     EXPO_PUBLIC_POSTHOG_KEY=${EXPO_PUBLIC_POSTHOG_KEY} \
     EXPO_PUBLIC_POSTHOG_HOST=${EXPO_PUBLIC_POSTHOG_HOST} \
     EXPO_PUBLIC_ANALYTICS_ENABLED=${EXPO_PUBLIC_ANALYTICS_ENABLED} \
-    CI=1 \
     EXPO_NO_TELEMETRY=1 \
     NODE_OPTIONS="--max-old-space-size=4096 --no-warnings"
 
@@ -61,7 +60,7 @@ RUN if [ -f yarn.lock ]; then yarn install --network-timeout 600000 --ignore-eng
 COPY . .
 
 # Invalidate builder cache and run fresh export
-ARG CACHEBUST=20260826-v10-babel7-fix
+ARG CACHEBUST=20260826-v11-node22-fix
 RUN rm -rf dist .metro-cache \
     && NODE_ENV=production npx expo export --platform web --output-dir dist --clear \
     && ls -la dist \
