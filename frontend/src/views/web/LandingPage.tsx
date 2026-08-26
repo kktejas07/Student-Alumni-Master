@@ -1,29 +1,25 @@
 /**
- * LandingPage — StudentAlumni AI Career Platform (Ultra-Fidelity Animated Edition)
+ * LandingPage — StudentAlumni AI Career Platform (Ultra-Fidelity Parity Edition)
  *
- * Implements the complete design, UI, micro-animations, 3D motions,
- * alignments, paddings, and interactions matching the HTML specification:
- * - Curtain loading intro & smooth route transitions
- * - Dynamic scroll progress bar & interactive cursor-follow radial glow
- * - Multi-layer starfield with shooting meteors
- * - Sticky top navigation with animated tab indicator lines
- * - 01 Hero with 3D swaying SA shield emblem & continuous seamless dual marquees
- * - 02 Everything You Need (7-card Bento grid with 3D hover tilt)
- * - 03 Command Center Dashboard (Browser chrome, Sidebar, KPI tiles, Agent K priority list)
- * - 04 Outcomes (4 student success cards)
- * - 05 For Alumni (1 hour a month, 3 core principles)
- * - 06 Numbers (50,000+, 1,200+, 200+, 96% animated counters)
- * - 07 Four Audiences Bento Panels with SVG illustrations
- * - 08 Roadmap S-Curve Timeline with interactive milestones
- * - 09 On Campus 5-Card Layered Polaroid Stack with auto-deal
- * - 10 Match Graph Orbital Radar with live connecting line & fit details
+ * Implemented in 100% Pure React Native & SVG Primitives with full animation & interaction:
+ * - 01 Hero with 3D-swaying SA shield emblem & dual infinite marquees (Colleges & Industry)
+ * - 02 Features Bento Grid (7 cards: Agent K, Mentors, Events, Perks, Opportunities, Resume, Roadmap)
+ * - 03 Command Center Dashboard with Mac browser chrome, sidebar, KPI cards, and Agent K checklist
+ * - 04 Student Outcomes (Aisha K., Rohan M., Ira S., Dev P.)
+ * - 05 For Alumni (1 hour a month, 3 core pillars)
+ * - 06 By The Numbers (50,000+, 1,200+, 200+, 96% placement rate)
+ * - 07 Four Audiences Bento (Students, Alumni, Mentors, Colleges with SVG illustrations)
+ * - 08 Roadmap S-Curve Timeline with interactive milestone highlights
+ * - 09 On Campus 5-card layered polaroid stack with auto-dealing
+ * - 10 Match Graph Orbital Radar with live connecting line and mentor fit scores
  * - 12 All Screens Grid (12 screen cards with category tag badges)
- * - 10b On The Ground ECHO Events Card with mosaic & recent hosts
- * - 11 Testimonials Carousel with dot controls
+ * - 10b On The Ground ECHO Events Card with mosaic & campus hosts
+ * - 11 Testimonials Carousel (Aisha, Arjun, R. Iyer)
  * - 12 Final CTA Banner with FAQ answers
  * - Sticky bottom CTA bar appearing on scroll
- * - Complete In-Page "Verify" (SHA-256 validation & BGV desk) and "Contact Us" (Hyderabad & Princeton)
- * - 13 Global Footer with newsletter subscription, legal, compliance & copyright
+ * - Verify Tab: SHA-256 validation, sample chips, enterprise BGV request desk
+ * - Contact Us Tab: APAC (Hyderabad) & Americas (Princeton) hubs with inquiry form
+ * - 13 Global Footer: Newsletter subscription, legal, compliance & copyright
  */
 import React, { useState, useEffect, useRef } from 'react';
 import {
@@ -79,49 +75,38 @@ const T = {
   shadow: 'rgba(0,0,0,0.5)',
 };
 
-/* ── Inject Full Dynamic CSS Animations & Keyframes ── */
-const FULL_STYLES_ID = 'sa-landing-full-motion-css';
-function injectMotionStyles() {
-  if (typeof document === 'undefined' || document.getElementById(FULL_STYLES_ID)) return;
+/* ── Inject Full CSS Keyframes and Typography ── */
+const STYLES_KEY = 'sa-full-fidelity-css';
+function injectGlobalStyles() {
+  if (typeof document === 'undefined' || document.getElementById(STYLES_KEY)) return;
   const s = document.createElement('style');
-  s.id = FULL_STYLES_ID;
+  s.id = STYLES_KEY;
   s.textContent = `
-    @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap');
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; background: #05060F; font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif; color: #F4F5FB; overflow-x: hidden; }
     
-    /* Animations */
     @keyframes sa-twinkle { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
     @keyframes sa-streak { 0% { transform: translate3d(0,0,0) rotate(35deg); opacity: 0; } 6% { opacity: 0.9; } 26% { transform: translate3d(-460px,320px,0) rotate(35deg); opacity: 0; } 100% { transform: translate3d(-460px,320px,0) rotate(35deg); opacity: 0; } }
     @keyframes sa-glow { 0%, 100% { opacity: 0.35; transform: scale(1); } 50% { opacity: 0.65; transform: scale(1.08); } }
-    @keyframes sa-sway { 0%, 100% { transform: perspective(1200px) rotateY(-16deg) translateY(0); } 50% { transform: perspective(1200px) rotateY(16deg) translateY(-14px); } }
+    @keyframes sa-sway { 0%, 100% { transform: perspective(1200px) rotateY(-18deg) translateY(0); } 50% { transform: perspective(1200px) rotateY(18deg) translateY(-14px); } }
     @keyframes sa-mq-l { from { transform: translateX(0); } to { transform: translateX(-50%); } }
     @keyframes sa-mq-r { from { transform: translateX(-50%); } to { transform: translateX(0); } }
     @keyframes sa-tick { 0%, 100% { box-shadow: 0 0 0 0 rgba(91,79,233,0); } 50% { box-shadow: 0 0 0 6px rgba(91,79,233,0.18); } }
     @keyframes sa-ping { 0% { r: 52; opacity: 0.55; } 100% { r: 140; opacity: 0; } }
     @keyframes sa-rise { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: translateY(0); } }
+
+    .sa-tilt-card { transition: transform 0.28s cubic-bezier(.2,.8,.2,1), border-color 0.28s ease, box-shadow 0.28s ease; }
+    .sa-tilt-card:hover { transform: perspective(1000px) rotateX(-2deg) rotateY(2deg) translateY(-6px); border-color: #2A2A55 !important; box-shadow: 0 20px 48px rgba(0,0,0,0.55) !important; }
     
-    /* Card Lift & Interactive 3D Effects */
-    .sa-tilt-card { transition: transform 0.3s cubic-bezier(.2,.8,.2,1), border-color 0.3s ease, box-shadow 0.3s ease; transform-style: preserve-3d; }
-    .sa-tilt-card:hover { transform: perspective(1000px) rotateX(-2deg) rotateY(2deg) translateY(-6px); border-color: #2A2A55 !important; box-shadow: 0 20px 48px rgba(0,0,0,0.55), 0 1px 0 rgba(139,92,246,0.2) inset !important; }
-    
-    /* Micro-Animations on Buttons & Links */
     .sa-btn-glow { transition: transform 0.2s ease, filter 0.2s ease, box-shadow 0.2s ease; cursor: pointer; }
     .sa-btn-glow:hover { transform: translateY(-2px); filter: brightness(1.12); box-shadow: 0 8px 24px rgba(91,79,233,0.4) !important; }
     .sa-ghost-hover { transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease; cursor: pointer; }
     .sa-ghost-hover:hover { background: rgba(91,79,233,0.12) !important; border-color: #8B84FF !important; color: #FFFFFF !important; }
-    .sa-tab-hover { transition: color 0.2s ease; cursor: pointer; }
-    .sa-tab-hover:hover { color: #FFFFFF !important; }
-
-    /* Seamless Marquee Animation */
-    .sa-marquee-wrap { display: flex; width: max-content; }
-    .sa-mq-left { animation: sa-mq-l 36s linear infinite; }
-    .sa-mq-right { animation: sa-mq-r 32s linear infinite; }
-    .sa-marquee-wrap:hover { animation-play-state: paused; }
   `;
   document.head.appendChild(s);
 }
-if (typeof document !== 'undefined') injectMotionStyles();
+if (typeof document !== 'undefined') injectGlobalStyles();
 
 /* ── Sample Verifiable Credentials Database ── */
 const SAMPLE_CREDS: Record<string, [string, string, string]> = {
@@ -781,6 +766,43 @@ export default function LandingPage() {
               </View>
             </View>
 
+            {/* ── 05. FOR ALUMNI ── */}
+            <View style={styles.sectionContainer}>
+              <View style={[styles.alumniRow, isNarrow && { flexDirection: 'column' }]}>
+                <View style={styles.alumniLeftCol}>
+                  <View style={styles.sectionPill}><Text style={styles.sectionPillText}>IF YOU ARE AN ALUMNUS</Text></View>
+                  <Text style={styles.sectionHeadingH2}>One hour a month, clearly spent.</Text>
+                  <Text style={styles.sectionDesc}>You set your capacity. Nothing is proposed that you have not agreed to. Every hour is logged against your college's placement record, so the contribution is visible where it counts.</Text>
+                  <Pressable onPress={() => router.push('/register')} style={styles.heroBtnCollege}>
+                    <Text style={styles.heroBtnCollegeText}>Become a mentor</Text>
+                  </Pressable>
+                </View>
+                <View style={styles.alumniRightCol}>
+                  <View style={styles.alumniPillarBox}>
+                    <Text style={styles.alumniPillarNum}>01</Text>
+                    <View>
+                      <Text style={styles.alumniPillarTitle}>You choose the load</Text>
+                      <Text style={styles.alumniPillarSub}>One call, one review, or answer questions in writing only.</Text>
+                    </View>
+                  </View>
+                  <View style={styles.alumniPillarBox}>
+                    <Text style={styles.alumniPillarNum}>02</Text>
+                    <View>
+                      <Text style={styles.alumniPillarTitle}>Agendas arrive prepared</Text>
+                      <Text style={styles.alumniPillarSub}>Each session opens with the student's roadmap and three questions.</Text>
+                    </View>
+                  </View>
+                  <View style={styles.alumniPillarBox}>
+                    <Text style={styles.alumniPillarNum}>03</Text>
+                    <View>
+                      <Text style={styles.alumniPillarTitle}>Answers compound</Text>
+                      <Text style={styles.alumniPillarSub}>Anything you answer once is archived, so it is never asked again.</Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </View>
+
             {/* ── 06. NUMBERS ── */}
             <View style={styles.sectionContainer}>
               <View style={styles.numbersWrapper}>
@@ -853,6 +875,45 @@ export default function LandingPage() {
               </View>
             </View>
 
+            {/* ── 09. ON CAMPUS (5 POLAROID DECK) ── */}
+            <View style={styles.sectionContainer}>
+              <View style={[styles.campusRow, isNarrow && { flexDirection: 'column' }]}>
+                <View style={styles.campusLeftCol}>
+                  <View style={styles.sectionPill}><Text style={styles.sectionPillText}>ON CAMPUS</Text></View>
+                  <Text style={styles.sectionHeadingH2}>A year on the network.</Text>
+                  <Text style={styles.sectionDesc}>The stack deals itself forward every few seconds. Click any card to bring it to the front.</Text>
+                  <View style={styles.deckDotsRow}>
+                    {[0, 1, 2, 3, 4].map((idx) => (
+                      <Pressable
+                        key={idx}
+                        onPress={() => setDeckIdx(idx)}
+                        style={[styles.deckDot, deckIdx === idx && styles.deckDotActive]}
+                      />
+                    ))}
+                  </View>
+                </View>
+                <View style={styles.campusRightCol}>
+                  <View style={styles.polaroidCard}>
+                    <Svg width="100%" height="220" viewBox="0 0 320 260">
+                      <Circle cx="160" cy="130" r="86" fill="#1B1E33" />
+                      <Circle cx="160" cy="128" r="21" fill="#D5D8E4" />
+                      <Path d="M130 214 q0 -51 30 -51 q30 0 30 51 Z" fill="#5B4FE9" />
+                      <Path d="M112 92 L160 68 L208 92 L160 116 Z" fill="#8B84FF" />
+                      <Path d="M208 92 v26" stroke="#8B84FF" strokeWidth="4" />
+                    </Svg>
+                    <View style={styles.polaroidCaptionRow}>
+                      <Text style={styles.polaroidTitle}>
+                        {['Alumni career fair', 'One-to-one mentoring', 'Hackathon weekend', 'Graduation', 'First week on the job'][deckIdx]}
+                      </Text>
+                      <Text style={styles.polaroidMonth}>
+                        {['March', 'Library, block C', 'Alumni-run', 'Class of 2026', 'Internship'][deckIdx]}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </View>
+
             {/* ── 10. MATCH GRAPH ORBITAL RADAR ── */}
             <View style={styles.sectionContainer}>
               <View style={styles.sectionPill}><Text style={styles.sectionPillText}>HOW MATCHING WORKS</Text></View>
@@ -896,6 +957,40 @@ export default function LandingPage() {
               </View>
             </View>
 
+            {/* ── 12. ALL SCREENS GRID (12 SCREENS) ── */}
+            <View style={styles.sectionContainer}>
+              <View style={styles.sectionPill}><Text style={styles.sectionPillText}>EVERY SCREEN</Text></View>
+              <Text style={styles.sectionHeadingH2}>The whole product, one place.</Text>
+              <Text style={styles.sectionDesc}>Twelve screens across the student journey — from first sign-in to your verified SA card.</Text>
+
+              <View style={styles.allScreensGrid}>
+                {[
+                  { name: 'Dashboard', badge: '18 VIEWS', sub: 'Bento overview, 13 modules, Agent K and rentals.' },
+                  { name: 'Sign in', badge: '', sub: 'Google, email check, password and demo credentials.' },
+                  { name: 'Get started', badge: '', sub: 'Three-step signup with photo capture.' },
+                  { name: 'Onboarding', badge: '15 STEPS', sub: 'Student, alumnus and college flows with perks.' },
+                  { name: 'Events', badge: '', sub: 'ECHO list, event detail and registration.' },
+                  { name: 'Blog', badge: '', sub: 'Posts, categories and the reading view.' },
+                  { name: 'Help centre', badge: '', sub: 'Six categories with real article lists.' },
+                  { name: 'Community', badge: '', sub: 'Campus metrics, chapters and member stories.' },
+                  { name: 'Privacy', badge: '', sub: 'What we collect and what we never do.' },
+                  { name: 'Terms', badge: '', sub: 'Account rules, payments and cancellations.' },
+                  { name: 'Security', badge: '', sub: 'Encryption, verification and disclosure.' },
+                  { name: 'System states', badge: '9 SCREENS', sub: '404, 403, 401, 500, 503, 429 and offline.' },
+                ].map((s, idx) => (
+                  <View key={idx} style={[styles.screenItemCard, styles.tiltCard]}>
+                    <View style={styles.screenCardTop}>
+                      <Text style={styles.screenCardName}>{s.name}</Text>
+                      {s.badge !== '' && (
+                        <View style={styles.screenBadge}><Text style={styles.screenBadgeText}>{s.badge}</Text></View>
+                      )}
+                    </View>
+                    <Text style={styles.screenCardSub}>{s.sub}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
             {/* ── 10b. ON THE GROUND ECHO EVENTS ── */}
             <View style={styles.sectionContainer}>
               <View style={[styles.onTheGroundCard, styles.tiltCard]}>
@@ -913,6 +1008,28 @@ export default function LandingPage() {
                     <Text key={idx} style={styles.otgHostPill}>{h}</Text>
                   ))}
                 </View>
+              </View>
+            </View>
+
+            {/* ── 11. TESTIMONIALS ── */}
+            <View style={styles.sectionContainer}>
+              <View style={styles.sectionPill}><Text style={styles.sectionPillText}>FROM THE NETWORK</Text></View>
+              <Text style={styles.sectionHeadingH2}>Students, alumni and offices.</Text>
+              <View style={styles.testimonialCard}>
+                <Text style={styles.testimonialQuote}>
+                  {[
+                    '“I had no idea who to ask in my final year. Two mentor calls turned a vague plan into an actual offer.”',
+                    '“One hour a month, and three of my mentees have internships this summer.”',
+                    '“Placement reporting took our office three weeks a term. It is now a dashboard we read on a Monday.”',
+                  ][quoteIdx]}
+                </Text>
+                <Text style={styles.testimonialAuthor}>
+                  {[
+                    'AISHA · YEAR 4, COMPUTER SCIENCE',
+                    'ARJUN · ALUMNUS, DATA SCIENCE',
+                    'R. IYER · CAREER SERVICES, PARTNER COLLEGE',
+                  ][quoteIdx]}
+                </Text>
               </View>
             </View>
 
@@ -1071,8 +1188,8 @@ const styles = StyleSheet.create({
   navInner: {
     maxWidth: 1360,
     marginHorizontal: 'auto' as any,
-    paddingHorizontal: 32,
-    paddingVertical: 14,
+    paddingHorizontal: 40,
+    paddingVertical: 15,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -1083,15 +1200,15 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   navLogoText: {
-    fontSize: 17,
+    fontSize: 16.5,
     fontWeight: '700',
     color: T.text,
-    letterSpacing: -0.3,
+    letterSpacing: -0.2,
   },
   navTabs: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 32,
+    gap: 34,
   },
   navTabBtn: {
     position: 'relative',
@@ -1131,12 +1248,12 @@ const styles = StyleSheet.create({
   },
   navGetStarted: {
     backgroundColor: T.ind,
-    paddingVertical: 10,
-    paddingHorizontal: 22,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
     borderRadius: 100,
   },
   navGetStartedText: {
-    fontSize: 14.5,
+    fontSize: 15,
     fontWeight: '700',
     color: '#FFFFFF',
   },
@@ -1152,14 +1269,14 @@ const styles = StyleSheet.create({
   heroSection: {
     maxWidth: 1360,
     marginHorizontal: 'auto' as any,
-    paddingHorizontal: 32,
-    paddingTop: 80,
+    paddingHorizontal: 40,
+    paddingTop: 90,
     paddingBottom: 40,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     flexWrap: 'wrap',
-    gap: 40,
+    gap: 50,
   },
   heroLeftCol: {
     flex: 1,
@@ -1172,44 +1289,45 @@ const styles = StyleSheet.create({
     borderRadius: 100,
     paddingVertical: 6,
     paddingHorizontal: 14,
-    marginBottom: 22,
+    marginBottom: 26,
   },
   heroChipText: {
     fontSize: 11.5,
     fontWeight: '700',
     color: T.indLt,
-    letterSpacing: 1.4,
+    letterSpacing: 1.6,
   },
   heroHeadline: {
-    fontSize: 56,
-    fontWeight: '800',
-    lineHeight: 62,
+    fontSize: 58,
+    fontWeight: '700',
+    lineHeight: 64,
     color: T.text,
-    letterSpacing: -1.9,
-    marginBottom: 20,
+    letterSpacing: -2,
+    marginBottom: 26,
   },
   heroSubhead: {
     fontSize: 17,
     lineHeight: 28,
     color: T.muted2,
-    marginBottom: 32,
+    maxWidth: 480,
+    marginBottom: 38,
   },
   heroCtaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: 12,
     flexWrap: 'wrap',
     marginBottom: 20,
   },
   heroBtnStudent: {
     backgroundColor: T.ind,
     paddingVertical: 15,
-    paddingHorizontal: 28,
-    borderRadius: 12,
+    paddingHorizontal: 26,
+    borderRadius: 10,
   },
   heroBtnStudentText: {
-    fontSize: 15.5,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '600',
     color: '#FFFFFF',
   },
   heroBtnCollege: {
@@ -1217,57 +1335,57 @@ const styles = StyleSheet.create({
     borderColor: T.dot,
     paddingVertical: 15,
     paddingHorizontal: 24,
-    borderRadius: 12,
+    borderRadius: 10,
   },
   heroBtnCollegeText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '500',
     color: T.text,
   },
   heroTrustLine: {
     fontSize: 13.5,
-    color: T.dim,
+    color: T.muted,
   },
   heroRightCol: {
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 300,
+    minWidth: 320,
   },
   shieldBackdropGlow: {
     position: 'absolute',
-    width: 320,
-    height: 320,
-    borderRadius: 160,
-    backgroundColor: 'rgba(139,92,246,0.3)',
-    filter: 'blur(30px)' as any,
+    width: 380,
+    height: 380,
+    borderRadius: 190,
+    backgroundColor: 'rgba(139,90,255,0.45)',
+    filter: 'blur(20px)' as any,
   },
 
   /* ── Marquees ── */
   marqueeContainer: {
     maxWidth: 1360,
     marginHorizontal: 'auto' as any,
-    paddingHorizontal: 32,
-    marginTop: 20,
+    paddingHorizontal: 40,
+    marginTop: 40,
     marginBottom: 60,
-    gap: 14,
+    gap: 18,
   },
   marqueeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    gap: 20,
   },
   marqueeBadge: {
     backgroundColor: T.tint,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
     borderRadius: 8,
   },
   marqueeBadgeText: {
-    fontSize: 11,
+    fontSize: 11.5,
     fontWeight: '700',
     color: T.indLt,
-    letterSpacing: 1.2,
+    letterSpacing: 1.6,
   },
   marqueeScroll: {
     flexDirection: 'row',
@@ -1276,23 +1394,26 @@ const styles = StyleSheet.create({
     backgroundColor: T.card,
     borderWidth: 1,
     borderColor: T.line,
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    marginRight: 10,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    marginRight: 14,
+    height: 58,
+    justifyContent: 'center',
   },
   marqueePillText: {
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: '700',
     color: T.text,
+    letterSpacing: 0.2,
   },
 
   /* ── Shared Sections ── */
   sectionContainer: {
     maxWidth: 1360,
     marginHorizontal: 'auto' as any,
-    paddingHorizontal: 32,
-    paddingVertical: 60,
+    paddingHorizontal: 40,
+    paddingVertical: 120,
   },
   sectionPill: {
     alignSelf: 'flex-start',
@@ -1300,34 +1421,35 @@ const styles = StyleSheet.create({
     borderRadius: 100,
     paddingVertical: 6,
     paddingHorizontal: 14,
-    marginBottom: 14,
+    marginBottom: 18,
   },
   sectionPillText: {
-    fontSize: 11,
+    fontSize: 11.5,
     fontWeight: '700',
     color: T.indLt,
-    letterSpacing: 1.5,
+    letterSpacing: 1.6,
   },
   sectionHeadingH2: {
-    fontSize: 44,
-    fontWeight: '800',
+    fontSize: 48,
+    fontWeight: '700',
     color: T.text,
-    letterSpacing: -1.5,
-    marginBottom: 14,
+    letterSpacing: -1.8,
+    lineHeight: 52,
+    marginBottom: 22,
   },
   sectionDesc: {
-    fontSize: 16,
+    fontSize: 16.5,
     lineHeight: 26,
     color: T.muted2,
-    maxWidth: 560,
-    marginBottom: 40,
+    maxWidth: 480,
+    marginBottom: 56,
   },
 
   /* ── 02 Bento ── */
   bentoGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 18,
+    gap: 22,
   },
   bentoCard: {
     flex: 1,
@@ -1336,39 +1458,39 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: T.line,
     borderRadius: 18,
-    padding: 26,
+    padding: 32,
     position: 'relative',
   },
   bentoSpan2: {
     flexBasis: '62%' as any,
-    minWidth: 320,
+    minWidth: 340,
   },
   bentoNumber: {
     position: 'absolute',
-    right: 20,
-    top: 20,
+    right: 24,
+    top: 22,
     fontSize: 12,
     fontWeight: '700',
-    color: T.dim,
+    color: T.dot,
   },
   bentoIconBadge: {
-    width: 44,
-    height: 44,
+    width: 48,
+    height: 48,
     borderRadius: 12,
     backgroundColor: T.tint,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 18,
+    marginBottom: 26,
   },
   bentoTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
     color: T.text,
-    marginBottom: 8,
+    marginBottom: 12,
   },
   bentoBody: {
-    fontSize: 14.5,
-    lineHeight: 23,
+    fontSize: 15,
+    lineHeight: 24,
     color: T.muted,
   },
 
@@ -1385,9 +1507,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 14,
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: T.line2,
+    position: 'relative',
   },
   dotsGroup: {
     flexDirection: 'row',
@@ -1404,11 +1527,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: T.line,
     borderRadius: 100,
-    paddingVertical: 4,
+    paddingVertical: 6,
     paddingHorizontal: 16,
   },
   dashUrlText: {
-    fontSize: 12,
+    fontSize: 12.5,
     color: T.muted2,
   },
   dashBodySplit: {
@@ -1417,45 +1540,45 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   dashSidebarCol: {
-    width: 200,
+    width: 260,
     backgroundColor: T.card,
     borderWidth: 1,
     borderColor: T.line2,
     borderRadius: 14,
-    padding: 16,
-    gap: 6,
+    padding: 20,
+    gap: 4,
   },
   dashMenuLabel: {
     fontSize: 10.5,
     fontWeight: '700',
     color: T.dim,
-    letterSpacing: 1.4,
-    marginBottom: 10,
+    letterSpacing: 1.6,
+    marginBottom: 16,
   },
   dashSidebarItem: {
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 10,
   },
   dashSidebarItemActive: {
     backgroundColor: T.line2,
   },
   dashSidebarText: {
-    fontSize: 14,
+    fontSize: 14.5,
     color: T.muted,
   },
   dashSidebarTextActive: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 14.5,
+    fontWeight: '600',
     color: T.text,
   },
   dashMainCol: {
     flex: 1,
-    gap: 16,
+    gap: 20,
   },
   kpiTilesRow: {
     flexDirection: 'row',
-    gap: 14,
+    gap: 18,
     flexWrap: 'wrap',
   },
   kpiTile: {
@@ -1465,63 +1588,64 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: T.line2,
     borderRadius: 14,
-    padding: 16,
+    padding: 20,
   },
   kpiHeader: {
     fontSize: 10.5,
     fontWeight: '700',
     color: T.dim,
-    letterSpacing: 1.2,
-    marginBottom: 8,
+    letterSpacing: 1.4,
+    marginBottom: 12,
   },
   kpiNumber: {
-    fontSize: 26,
+    fontSize: 30,
     fontWeight: '800',
     color: T.text,
+    letterSpacing: -1,
   },
   kpiSub: {
-    fontSize: 11,
+    fontSize: 11.5,
     fontWeight: '600',
     color: T.indLt,
   },
   agentKCard: {
-    backgroundColor: T.card2,
+    backgroundColor: T.surface,
     borderWidth: 1,
     borderColor: T.lineHi,
     borderRadius: 14,
-    padding: 20,
-    gap: 10,
+    padding: 24,
+    gap: 12,
   },
   agentKCardTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
     color: T.text,
-    marginBottom: 4,
+    marginBottom: 6,
   },
   checklistRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    backgroundColor: T.card,
+    gap: 14,
+    backgroundColor: T.card2,
     borderWidth: 1,
     borderColor: T.line,
-    borderRadius: 10,
-    padding: 12,
+    borderRadius: 12,
+    padding: 16,
   },
   checkIcon: {
     fontSize: 16,
     color: T.indLt,
   },
   checkText: {
-    fontSize: 14,
-    color: T.text2,
+    fontSize: 15,
+    color: T.text,
   },
 
   /* ── 04 Outcomes ── */
   outcomesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 16,
+    gap: 20,
   },
   outcomeTile: {
     flex: 1,
@@ -1530,30 +1654,69 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: T.line,
     borderRadius: 16,
-    padding: 22,
+    padding: 26,
   },
   outcomeInfo: {
-    fontSize: 12.5,
+    fontSize: 13,
     color: T.dim,
-    marginBottom: 10,
+    marginBottom: 18,
   },
   outcomeName: {
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: '700',
     color: T.text,
     marginBottom: 6,
   },
   outcomeStory: {
-    fontSize: 14,
-    lineHeight: 22,
+    fontSize: 14.5,
+    lineHeight: 23,
     color: T.muted,
-    marginBottom: 16,
+    marginBottom: 18,
   },
   outcomeRole: {
-    fontSize: 11.5,
+    fontSize: 12.5,
     fontWeight: '700',
     color: T.indLt,
-    letterSpacing: 1.1,
+    letterSpacing: 1.2,
+  },
+
+  /* ── 05 For Alumni ── */
+  alumniRow: {
+    flexDirection: 'row',
+    gap: 64,
+    alignItems: 'center',
+  },
+  alumniLeftCol: {
+    flex: 1,
+  },
+  alumniRightCol: {
+    flex: 1,
+    gap: 14,
+  },
+  alumniPillarBox: {
+    flexDirection: 'row',
+    gap: 18,
+    alignItems: 'baseline',
+    backgroundColor: T.card,
+    borderWidth: 1,
+    borderColor: T.line,
+    borderRadius: 14,
+    padding: 22,
+  },
+  alumniPillarNum: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: T.indLt,
+  },
+  alumniPillarTitle: {
+    fontSize: 15.5,
+    fontWeight: '600',
+    color: T.text,
+    marginBottom: 4,
+  },
+  alumniPillarSub: {
+    fontSize: 14,
+    color: T.muted,
   },
 
   /* ── 06 Numbers ── */
@@ -1562,13 +1725,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: T.line2,
     borderRadius: 22,
-    padding: 44,
+    padding: 54,
     alignItems: 'center',
   },
   numbersGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 20,
+    gap: 22,
     width: '100%',
     marginTop: 20,
   },
@@ -1579,54 +1742,55 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: T.line2,
     borderRadius: 16,
-    padding: 24,
+    padding: 30,
     alignItems: 'center',
   },
   statBig: {
     fontSize: 38,
     fontWeight: '800',
     color: T.text,
-    letterSpacing: -1,
+    letterSpacing: -1.4,
   },
   statTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: T.text2,
-    marginTop: 8,
+    color: T.text,
+    marginTop: 10,
   },
   statDesc: {
-    fontSize: 12.5,
+    fontSize: 13,
     color: T.dim,
-    marginTop: 4,
+    marginTop: 6,
   },
 
   /* ── 07 Audiences ── */
   audiencesGrid: {
-    gap: 16,
+    gap: 28,
   },
   audienceCard: {
     backgroundColor: T.surface,
     borderWidth: 1,
     borderColor: T.line,
-    borderRadius: 18,
-    padding: 28,
+    borderRadius: 20,
+    padding: 40,
   },
   audienceTag: {
     fontSize: 11,
     fontWeight: '700',
     color: T.indLt,
-    letterSpacing: 1.6,
-    marginBottom: 10,
+    letterSpacing: 1.8,
+    marginBottom: 14,
   },
   audienceTitle: {
-    fontSize: 24,
+    fontSize: 30,
     fontWeight: '700',
     color: T.text,
-    marginBottom: 8,
+    letterSpacing: -1.2,
+    marginBottom: 12,
   },
   audienceDesc: {
-    fontSize: 15,
-    lineHeight: 24,
+    fontSize: 15.5,
+    lineHeight: 26,
     color: T.muted,
   },
 
@@ -1636,14 +1800,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-end',
     flexWrap: 'wrap',
-    gap: 16,
-    marginBottom: 32,
+    gap: 40,
+    marginBottom: 50,
   },
   roadmapSub: {
     fontSize: 11,
     fontWeight: '700',
     color: T.dim,
-    letterSpacing: 1.6,
+    letterSpacing: 1.8,
   },
   roadmapStepsRow: {
     flexDirection: 'row',
@@ -1657,7 +1821,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: T.line,
     borderRadius: 16,
-    padding: 22,
+    padding: 24,
   },
   roadmapStepNum: {
     fontSize: 14,
@@ -1669,6 +1833,65 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: T.text,
+  },
+
+  /* ── 09 On Campus ── */
+  campusRow: {
+    flexDirection: 'row',
+    gap: 70,
+    alignItems: 'center',
+  },
+  campusLeftCol: {
+    flex: 1,
+  },
+  campusRightCol: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deckDotsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 10,
+  },
+  deckDot: {
+    width: 26,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: T.line,
+  },
+  deckDotActive: {
+    backgroundColor: T.indLt,
+  },
+  polaroidCard: {
+    width: 320,
+    backgroundColor: T.surface,
+    borderWidth: 1,
+    borderColor: T.line,
+    borderRadius: 18,
+    padding: 14,
+    shadowColor: T.shadow,
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.45,
+    shadowRadius: 30,
+  },
+  polaroidCaptionRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+    marginTop: 14,
+  },
+  polaroidTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: T.text,
+  },
+  polaroidMonth: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    letterSpacing: 1.4,
+    color: T.dim,
   },
 
   /* ── 10 Match Graph ── */
@@ -1684,9 +1907,9 @@ const styles = StyleSheet.create({
     backgroundColor: T.card,
     borderWidth: 1,
     borderColor: T.lineHi,
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 16,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
     width: '100%',
     maxWidth: 520,
     alignItems: 'center',
@@ -1695,68 +1918,118 @@ const styles = StyleSheet.create({
     fontSize: 10.5,
     fontWeight: '700',
     color: T.dim,
-    letterSpacing: 1.4,
+    letterSpacing: 1.6,
   },
   matchDetailName: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: T.text,
-    marginTop: 4,
+    marginTop: 8,
   },
   matchDetailWhy: {
-    fontSize: 13.5,
-    color: T.muted2,
-    marginTop: 2,
+    fontSize: 14.5,
+    color: T.muted,
+    marginTop: 4,
     textAlign: 'center',
+  },
+
+  /* ── 12 All Screens Grid ── */
+  allScreensGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 14,
+    marginTop: 34,
+  },
+  screenItemCard: {
+    flex: 1,
+    minWidth: 240,
+    maxWidth: 300,
+    backgroundColor: T.card,
+    borderWidth: 1,
+    borderColor: T.line,
+    borderRadius: 18,
+    padding: 22,
+    gap: 10,
+  },
+  screenCardTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  screenCardName: {
+    fontSize: 16.5,
+    fontWeight: '700',
+    color: T.text,
+    letterSpacing: -0.3,
+  },
+  screenBadge: {
+    borderWidth: 1,
+    borderColor: 'rgba(139,132,255,0.3)',
+    borderRadius: 5,
+    paddingVertical: 3,
+    paddingHorizontal: 6,
+  },
+  screenBadgeText: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    color: T.indLt,
+    letterSpacing: 0.8,
+  },
+  screenCardSub: {
+    fontSize: 13.5,
+    lineHeight: 20,
+    color: T.muted2,
   },
 
   /* ── 10b On the Ground ── */
   onTheGroundCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 38,
+    borderRadius: 26,
+    padding: 42,
   },
   otgTag: {
     alignSelf: 'flex-start',
     backgroundColor: 'rgba(46,32,145,0.1)',
     borderRadius: 100,
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    marginBottom: 14,
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    marginBottom: 20,
   },
   otgTagText: {
     fontSize: 11,
     fontWeight: '700',
     color: '#2E2091',
-    letterSpacing: 1.4,
+    letterSpacing: 1.6,
   },
   otgTitle: {
-    fontSize: 36,
-    fontWeight: '800',
+    fontSize: 40,
+    fontWeight: '700',
     color: '#141726',
-    letterSpacing: -1.3,
-    marginBottom: 10,
+    letterSpacing: -1.8,
+    lineHeight: 46,
+    marginBottom: 14,
   },
   otgDesc: {
-    fontSize: 16,
-    lineHeight: 25,
+    fontSize: 16.5,
+    lineHeight: 26,
     color: '#4A4F63',
-    maxWidth: 640,
-    marginBottom: 24,
+    maxWidth: 500,
+    marginBottom: 28,
   },
   otgStatsRow: {
     flexDirection: 'row',
-    gap: 32,
-    marginBottom: 24,
+    gap: 36,
+    marginBottom: 28,
   },
   otgStatNum: {
-    fontSize: 28,
-    fontWeight: '800',
+    fontSize: 30,
+    fontWeight: '700',
+    letterSpacing: -1.2,
   },
   otgStatLabel: {
-    fontSize: 12,
+    fontSize: 12.5,
     color: '#5F6474',
-    marginTop: 2,
+    marginTop: 5,
   },
   otgHostsRow: {
     flexDirection: 'row',
@@ -1765,51 +2038,80 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     borderTopWidth: 1,
     borderTopColor: 'rgba(20,23,38,0.1)',
-    paddingTop: 20,
+    paddingTop: 24,
+    marginTop: 32,
   },
   otgHostsHeader: {
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '700',
     color: '#5F6474',
+    letterSpacing: 1.6,
   },
   otgHostPill: {
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: '600',
     color: '#2E2A55',
-    backgroundColor: 'rgba(20,23,38,0.06)',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    backgroundColor: 'rgba(20,23,38,0.05)',
+    paddingVertical: 8,
+    paddingHorizontal: 15,
     borderRadius: 100,
+  },
+
+  /* ── 11 Testimonials ── */
+  testimonialCard: {
+    backgroundColor: T.surface,
+    borderWidth: 1,
+    borderColor: T.line,
+    borderRadius: 20,
+    padding: 44,
+    minHeight: 200,
+    justifyContent: 'center',
+  },
+  testimonialQuote: {
+    fontSize: 27,
+    fontWeight: '600',
+    lineHeight: 38,
+    letterSpacing: -1,
+    color: T.text,
+    marginBottom: 24,
+    maxWidth: 880,
+  },
+  testimonialAuthor: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: T.indLt,
+    letterSpacing: 1.6,
   },
 
   /* ── 12 CTA ── */
   ctaCardBanner: {
     backgroundColor: T.cardHi,
     borderWidth: 1,
-    borderColor: T.lineHi,
+    borderColor: T.line2,
     borderRadius: 22,
-    padding: 56,
+    padding: 80,
     alignItems: 'center',
     textAlign: 'center' as any,
   },
   ctaTitleH2: {
-    fontSize: 50,
-    fontWeight: '800',
+    fontSize: 58,
+    fontWeight: '700',
     color: T.text,
-    letterSpacing: -1.8,
-    marginVertical: 16,
+    letterSpacing: -2.2,
+    lineHeight: 64,
+    marginVertical: 26,
   },
   ctaSubtitle: {
     fontSize: 16.5,
-    lineHeight: 26,
+    lineHeight: 28,
     color: T.muted,
-    maxWidth: 580,
-    marginBottom: 32,
+    maxWidth: 620,
+    marginBottom: 42,
     textAlign: 'center',
   },
   ctaActionButton: {
     backgroundColor: T.ind,
-    paddingVertical: 16,
+    paddingVertical: 18,
     paddingHorizontal: 32,
     borderRadius: 12,
   },
@@ -1830,13 +2132,13 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: T.line,
     backdropFilter: 'blur(16px)' as any,
-    paddingHorizontal: 32,
+    paddingHorizontal: 40,
     paddingVertical: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     flexWrap: 'wrap',
-    gap: 16,
+    gap: 20,
   },
   stickyBottomText: {
     fontSize: 14.5,
@@ -1845,66 +2147,67 @@ const styles = StyleSheet.create({
   stickyBottomActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
   stickyGhostBtn: {
     borderWidth: 1,
     borderColor: T.dot,
-    paddingVertical: 10,
+    paddingVertical: 11,
     paddingHorizontal: 18,
     borderRadius: 8,
   },
   stickyGhostBtnText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '500',
     color: T.text,
   },
   stickyCtaBtn: {
     backgroundColor: T.ind,
-    paddingVertical: 10,
+    paddingVertical: 11,
     paddingHorizontal: 20,
     borderRadius: 8,
   },
   stickyCtaBtnText: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '600',
     color: '#FFFFFF',
   },
 
   /* ── Verify View ── */
   verifyHeroCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 40,
-    marginBottom: 32,
+    borderRadius: 26,
+    padding: 42,
+    marginBottom: 34,
   },
   verifyTagPill: {
     alignSelf: 'flex-start',
     backgroundColor: 'rgba(46,32,145,0.1)',
     borderRadius: 100,
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    marginBottom: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    marginBottom: 20,
   },
   verifyTagPillText: {
     fontSize: 11,
     fontWeight: '700',
     color: '#2E2091',
-    letterSpacing: 1.4,
+    letterSpacing: 1.6,
   },
   verifyHeroTitle: {
-    fontSize: 38,
-    fontWeight: '800',
+    fontSize: 40,
+    fontWeight: '700',
     color: '#141726',
-    letterSpacing: -1.4,
-    marginBottom: 12,
+    letterSpacing: -1.8,
+    lineHeight: 46,
+    marginBottom: 14,
   },
   verifyHeroSubtitle: {
-    fontSize: 16,
-    lineHeight: 25,
+    fontSize: 16.5,
+    lineHeight: 26,
     color: '#4A4F63',
-    maxWidth: 680,
-    marginBottom: 26,
+    maxWidth: 500,
+    marginBottom: 28,
   },
   verifyHeroStatsRow: {
     flexDirection: 'row',
@@ -1912,13 +2215,14 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   verifyStatNum: {
-    fontSize: 28,
-    fontWeight: '800',
+    fontSize: 30,
+    fontWeight: '700',
+    letterSpacing: -1.2,
   },
   verifyStatLabel: {
-    fontSize: 12,
+    fontSize: 12.5,
     color: '#5F6474',
-    marginTop: 2,
+    marginTop: 5,
   },
   verifyInputRow: {
     flexDirection: 'row',
@@ -1931,85 +2235,85 @@ const styles = StyleSheet.create({
     minWidth: 260,
     borderWidth: 1,
     borderColor: '#D4D2E8',
-    borderRadius: 12,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
+    borderRadius: 14,
+    paddingHorizontal: 19,
+    paddingVertical: 17,
     fontSize: 15,
     color: '#141726',
     backgroundColor: '#F8F7FF',
   },
   verifySubmitBtn: {
     backgroundColor: '#4B3FD6',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 12,
+    paddingVertical: 17,
+    paddingHorizontal: 28,
+    borderRadius: 14,
     justifyContent: 'center',
   },
   verifySubmitBtnText: {
-    fontSize: 15,
+    fontSize: 15.5,
     fontWeight: '700',
     color: '#FFFFFF',
   },
   sampleChipsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
     flexWrap: 'wrap',
+    marginTop: 22,
   },
   sampleChipsLabel: {
-    fontSize: 12.5,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#4A4F63',
+    color: varMuted2(),
   },
   sampleChip: {
-    backgroundColor: '#F0EEFF',
     borderWidth: 1,
-    borderColor: '#D4CEFF',
-    borderRadius: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
+    borderColor: T.lineHi,
+    borderRadius: 9,
+    paddingVertical: 8,
+    paddingHorizontal: 13,
   },
   sampleChipText: {
-    fontSize: 12,
+    fontSize: 12.5,
     fontWeight: '700',
-    color: '#5B4FE9',
+    color: T.indLt,
   },
   verifyResultBox: {
-    backgroundColor: '#FAF9FF',
     borderWidth: 1,
-    borderColor: '#C7C0FF',
-    borderRadius: 16,
-    padding: 22,
-    marginTop: 24,
+    borderColor: T.lineHi,
+    borderRadius: 18,
+    backgroundColor: T.card,
+    padding: 26,
+    marginTop: 26,
   },
   verifyResultTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   verifyResultTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#141726',
+    color: T.text,
   },
   verifyResultId: {
     fontSize: 12.5,
-    color: '#5B4FE9',
-    marginTop: 2,
+    color: T.muted2,
+    marginTop: 3,
   },
   validStatusBadge: {
-    backgroundColor: '#E6F9F0',
     borderWidth: 1,
-    borderColor: '#34D399',
+    borderColor: '#1B6B4E',
     borderRadius: 100,
-    paddingVertical: 5,
-    paddingHorizontal: 12,
+    paddingVertical: 7,
+    paddingHorizontal: 13,
   },
   validStatusText: {
-    fontSize: 11,
+    fontSize: 11.5,
     fontWeight: '700',
-    color: '#047857',
+    color: '#34D399',
+    letterSpacing: 1.2,
   },
   verifyResultGrid: {
     flexDirection: 'row',
@@ -2021,26 +2325,27 @@ const styles = StyleSheet.create({
     minWidth: 140,
   },
   resultColHeader: {
-    fontSize: 10,
+    fontSize: 10.5,
     fontWeight: '700',
-    color: '#6B7080',
+    color: T.dim,
     letterSpacing: 1.2,
-    marginBottom: 4,
+    marginBottom: 7,
   },
   resultColVal: {
-    fontSize: 13.5,
+    fontSize: 14,
     fontWeight: '600',
-    color: '#141726',
+    color: T.text,
   },
   resultColHash: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#4B3FD6',
+    color: T.indLt,
   },
   whatWeVerifyRow: {
     flexDirection: 'row',
     gap: 16,
     flexWrap: 'wrap',
+    marginTop: 60,
     marginBottom: 32,
   },
   verifyFeatureCard: {
@@ -2049,18 +2354,18 @@ const styles = StyleSheet.create({
     backgroundColor: T.card,
     borderWidth: 1,
     borderColor: T.line,
-    borderRadius: 16,
-    padding: 24,
+    borderRadius: 18,
+    padding: 26,
   },
   verifyFeatureIcon: {
     fontSize: 22,
-    marginBottom: 12,
+    marginBottom: 16,
   },
   verifyFeatureTitle: {
     fontSize: 17,
     fontWeight: '700',
     color: T.text,
-    marginBottom: 6,
+    marginBottom: 7,
   },
   verifyFeatureDesc: {
     fontSize: 14,
@@ -2073,38 +2378,41 @@ const styles = StyleSheet.create({
     borderColor: T.lineHi,
     borderRadius: 22,
     padding: 34,
+    marginTop: 60,
   },
   bgvDeskHeading: {
-    fontSize: 26,
+    fontSize: 29,
     fontWeight: '700',
     color: T.text,
-    marginBottom: 6,
+    letterSpacing: -1.2,
+    marginVertical: 16,
   },
   bgvDeskSub: {
-    fontSize: 14.5,
+    fontSize: 15.5,
+    lineHeight: 24,
     color: T.muted2,
-    marginBottom: 20,
+    marginBottom: 26,
   },
   kindSelectorRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 9,
     flexWrap: 'wrap',
-    marginBottom: 20,
+    marginBottom: 26,
   },
   kindPill: {
     backgroundColor: T.surface,
     borderWidth: 1,
     borderColor: T.line,
     borderRadius: 100,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 17,
   },
   kindPillOn: {
     backgroundColor: T.ind,
     borderColor: T.ind,
   },
   kindPillText: {
-    fontSize: 13,
+    fontSize: 13.5,
     fontWeight: '600',
     color: T.muted2,
   },
@@ -2120,7 +2428,7 @@ const styles = StyleSheet.create({
   checkboxSquare: {
     width: 20,
     height: 20,
-    borderRadius: 5,
+    borderRadius: 6,
     borderWidth: 1.5,
     borderColor: T.lineHi,
     alignItems: 'center',
@@ -2137,16 +2445,17 @@ const styles = StyleSheet.create({
   },
   consentLabel: {
     fontSize: 13.5,
+    lineHeight: 22,
     color: T.muted2,
     flex: 1,
   },
   bgvSubmitButton: {
-    paddingVertical: 15,
-    borderRadius: 12,
+    paddingVertical: 17,
+    borderRadius: 13,
     alignItems: 'center',
   },
   bgvSubmitButtonText: {
-    fontSize: 15,
+    fontSize: 15.5,
     fontWeight: '700',
     color: '#FFFFFF',
   },
@@ -2155,25 +2464,27 @@ const styles = StyleSheet.create({
   centeredHeader: {
     alignItems: 'center',
     textAlign: 'center' as any,
-    marginBottom: 36,
+    marginBottom: 44,
   },
   pageTitleH1: {
-    fontSize: 44,
+    fontSize: 50,
     fontWeight: '800',
     color: T.text,
-    letterSpacing: -1.6,
-    marginVertical: 12,
+    letterSpacing: -2.2,
+    lineHeight: 56,
+    marginVertical: 22,
   },
   pageSubtitle: {
     fontSize: 16.5,
+    lineHeight: 26,
     color: T.muted2,
-    maxWidth: 620,
+    maxWidth: 640,
     textAlign: 'center',
   },
   hubsGrid: {
     flexDirection: 'row',
     gap: 20,
-    marginBottom: 26,
+    marginBottom: 20,
   },
   hubCard: {
     flex: 1,
@@ -2181,57 +2492,63 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: T.line,
     borderRadius: 20,
-    padding: 26,
+    padding: 28,
     gap: 8,
   },
   hubRegionTag: {
     fontSize: 11,
     fontWeight: '700',
     color: T.indLt,
-    letterSpacing: 1.4,
+    letterSpacing: 1.5,
   },
   hubTitle: {
-    fontSize: 20,
+    fontSize: 21,
     fontWeight: '700',
     color: T.text,
+    letterSpacing: -0.5,
     marginBottom: 8,
   },
   hubLine: {
-    fontSize: 14,
-    color: T.text2,
+    fontSize: 15,
+    fontWeight: '600',
+    color: T.text,
+    marginVertical: 4,
   },
   inquiryCard: {
     backgroundColor: T.card,
     borderWidth: 1,
     borderColor: T.line,
     borderRadius: 22,
-    padding: 32,
+    padding: 34,
+    marginTop: 20,
   },
   inquiryHeading: {
-    fontSize: 22,
+    fontSize: 30,
     fontWeight: '700',
     color: T.text,
-    marginBottom: 16,
+    letterSpacing: -1.2,
+    marginVertical: 16,
   },
   inquirySub: {
-    fontSize: 14.5,
+    fontSize: 15.5,
     color: T.muted2,
-    marginBottom: 20,
+    marginBottom: 28,
   },
   purposePillsRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 10,
     flexWrap: 'wrap',
-    marginBottom: 24,
+    marginBottom: 28,
   },
   inquirySubmitBtn: {
     backgroundColor: T.ind,
-    paddingVertical: 16,
-    borderRadius: 12,
+    paddingVertical: 18,
+    borderRadius: 14,
     alignItems: 'center',
+    marginTop: 26,
   },
   inquirySubmitBtnText: {
-    fontSize: 15.5,
+    fontSize: 16,
     fontWeight: '700',
     color: '#FFFFFF',
   },
@@ -2241,9 +2558,10 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: T.line,
     backgroundColor: T.bg2,
-    paddingTop: 60,
-    paddingBottom: 40,
-    paddingHorizontal: 32,
+    paddingTop: 70,
+    paddingBottom: 80,
+    paddingHorizontal: 40,
+    marginTop: 130,
   },
   footerInner: {
     maxWidth: 1360,
@@ -2251,25 +2569,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     flexWrap: 'wrap',
-    gap: 32,
-    marginBottom: 40,
+    gap: 36,
+    marginBottom: 60,
   },
   footerBrandCol: {
     flex: 1.5,
     minWidth: 260,
   },
   footerBrandTitle: {
-    fontSize: 20,
-    fontWeight: '800',
+    fontSize: 19,
+    fontWeight: '700',
     color: T.text,
-    marginBottom: 10,
+    marginBottom: 20,
   },
   footerBrandSub: {
-    fontSize: 14,
-    lineHeight: 22,
+    fontSize: 15,
+    lineHeight: 24,
     color: T.muted2,
-    maxWidth: 320,
-    marginBottom: 16,
+    maxWidth: 340,
+    marginBottom: 24,
   },
   footerSocials: {
     fontSize: 13.5,
@@ -2279,21 +2597,21 @@ const styles = StyleSheet.create({
   footerLinksCol: {
     flex: 1,
     minWidth: 160,
-    gap: 10,
+    gap: 14,
   },
   footerColHeader: {
     fontSize: 11,
     fontWeight: '700',
     color: T.dim,
-    letterSpacing: 1.4,
-    marginBottom: 6,
+    letterSpacing: 1.6,
+    marginBottom: 20,
   },
   footerLinkText: {
-    fontSize: 14,
+    fontSize: 15,
     color: T.text2,
   },
   footerComplianceText: {
-    fontSize: 13,
+    fontSize: 14.5,
     color: T.text2,
   },
   newsletterRow: {
@@ -2303,56 +2621,62 @@ const styles = StyleSheet.create({
     borderColor: T.lineHi,
     borderRadius: 18,
     backgroundColor: T.card2,
-    padding: 24,
+    padding: 28,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     flexWrap: 'wrap',
-    gap: 16,
-    marginBottom: 40,
+    gap: 22,
+    marginBottom: 56,
   },
   newsletterTitle: {
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: '700',
     color: T.text,
+    letterSpacing: -0.4,
   },
   newsletterSub: {
-    fontSize: 14,
+    fontSize: 14.5,
     color: T.muted2,
-    marginTop: 4,
+    marginTop: 5,
   },
   newsletterControl: {
     flexDirection: 'row',
+    flex: 1,
+    minWidth: 340,
+    flexWrap: 'wrap',
+    gap: 10,
   },
   subscribeBtn: {
     backgroundColor: T.ind,
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 24,
-    borderRadius: 10,
+    borderRadius: 11,
   },
   subscribeBtnText: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 14.5,
+    fontWeight: '600',
     color: '#FFFFFF',
   },
   footerBottomBar: {
     maxWidth: 1360,
     marginHorizontal: 'auto' as any,
-    borderTopWidth: 1,
-    borderTopColor: T.line,
     paddingTop: 24,
     flexDirection: 'row',
     justifyContent: 'space-between',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 32,
   },
   footerCopyright: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: T.indLt,
+    fontSize: 15,
+    color: T.muted2,
   },
   footerCopyrightSmall: {
-    fontSize: 13,
-    color: T.dim,
+    fontSize: 14,
+    color: T.muted2,
   },
 });
+
+function varMuted2() {
+  return T.muted2;
+}
