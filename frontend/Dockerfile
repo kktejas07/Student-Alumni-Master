@@ -41,7 +41,6 @@ ENV EXPO_PUBLIC_BACKEND_URL=${EXPO_PUBLIC_BACKEND_URL} \
     EXPO_PUBLIC_POSTHOG_HOST=${EXPO_PUBLIC_POSTHOG_HOST} \
     EXPO_PUBLIC_ANALYTICS_ENABLED=${EXPO_PUBLIC_ANALYTICS_ENABLED} \
     CI=1 \
-    NODE_ENV=production \
     EXPO_NO_TELEMETRY=1 \
     NODE_OPTIONS="--max-old-space-size=4096 --no-warnings"
 
@@ -56,15 +55,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY package.json yarn.lock* package-lock.json* ./
-RUN if [ -f yarn.lock ]; then yarn install --network-timeout 600000 --ignore-engines; \
-    else npm install --no-audit --no-fund --legacy-peer-deps; fi
+RUN if [ -f yarn.lock ]; then yarn install --network-timeout 600000 --ignore-engines --production=false; \
+    else npm install --no-audit --no-fund --legacy-peer-deps --include=dev; fi
 
 COPY . .
 
 # Invalidate builder cache and run fresh export
-ARG CACHEBUST=20260826-v7-prod
+ARG CACHEBUST=20260826-v8-babel-fix
 RUN rm -rf dist .metro-cache \
-    && npx expo export --platform web --output-dir dist \
+    && NODE_ENV=production npx expo export --platform web --output-dir dist \
     && ls -la dist \
     && test -f dist/index.html || (echo "ERROR: Expo failed to produce dist/index.html" && exit 1)
 
