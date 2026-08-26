@@ -1,10 +1,10 @@
 /**
- * LandingPage — StudentAlumni AI Career Platform (Pixel-Perfect SVG & Motion Edition)
+ * LandingPage — StudentAlumni AI Career Platform (Theme Parity Edition)
  *
- * Implements 100% exact vector SVGs, 3D card tilt, infinite speed-boost marquees,
- * scroll-drawn roadmap, radar pulse & live connection line, and authentic typography.
+ * Implements the exact 2-3-2 Bento Grid layout, crisp linear outline SVGs,
+ * 3D card tilt micro-interactions, and pure theme styling from the design specification.
  */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -76,7 +76,6 @@ function injectGlobalStyles() {
     @keyframes sa-mq-l { from { transform: translateX(0); } to { transform: translateX(-50%); } }
     @keyframes sa-mq-r { from { transform: translateX(-50%); } to { transform: translateX(0); } }
     @keyframes sa-tick { 0%, 100% { box-shadow: 0 0 0 0 rgba(91,79,233,0); } 50% { box-shadow: 0 0 0 6px rgba(91,79,233,0.18); } }
-    @keyframes sa-ping { 0% { r: 52; opacity: 0.55; } 100% { r: 140; opacity: 0; } }
 
     .sa-tilt-card { transition: transform 0.28s cubic-bezier(.2,.8,.2,1), border-color 0.28s ease, box-shadow 0.28s ease; }
     .sa-tilt-card:hover { transform: perspective(1000px) rotateX(-2.5deg) rotateY(2.5deg) translateY(-6px); border-color: #2A2A55 !important; box-shadow: 0 20px 48px rgba(0,0,0,0.55) !important; }
@@ -599,7 +598,7 @@ export default function LandingPage() {
               </View>
             </View>
 
-            {/* ── 02. EVERYTHING YOU NEED (7-CARD BENTO WITH EXACT SVGS) ── */}
+            {/* ── 02. EVERYTHING YOU NEED (7-CARD BENTO: 2-3-2 THEME PARITY GRID) ── */}
             <View style={styles.sectionContainer}>
               <View style={styles.sectionPill}>
                 <Text style={styles.sectionPillText}>• EVERYTHING YOU NEED</Text>
@@ -607,96 +606,105 @@ export default function LandingPage() {
               <Text style={styles.sectionHeadingH2}>A complete career OS,<br /><Text style={{ color: T.indLt }}>built for students.</Text></Text>
               <Text style={styles.sectionDesc}>Everything from your first job match to your full-time offer in one intelligent platform.</Text>
 
-              <View style={styles.bentoGrid}>
-                {/* 01 Agent K (Span 2) */}
-                <View style={[styles.bentoCard, styles.bentoSpan2, styles.tiltCard]}>
-                  <Text style={styles.bentoNumber}>01</Text>
-                  <View style={styles.bentoIconBadge}>
-                    <Svg width="24" height="24" viewBox="0 0 24 24">
-                      <Rect x="4" y="8" width="16" height="11" rx="3" stroke="#8B84FF" strokeWidth="1.7" fill="none" />
-                      <Path d="M12 8 V4 M9 13 h.01 M15 13 h.01 M9.5 16 h5" stroke="#8B84FF" strokeWidth="1.7" fill="none" />
-                    </Svg>
+              <View style={styles.bentoGridContainer}>
+                {/* ROW 1 (2 Cards: Agent K + Mentors) */}
+                <View style={[styles.bentoRow, isNarrow && { flexDirection: 'column' }]}>
+                  {/* 01 Agent K */}
+                  <View style={[styles.bentoCard, { flex: 1.68, minWidth: 320 }, styles.tiltCard]}>
+                    <Text style={styles.bentoNumber}>01</Text>
+                    <View style={styles.bentoIconBadge}>
+                      <Svg width="22" height="22" viewBox="0 0 24 24">
+                        <Rect x="4" y="8" width="16" height="11" rx="3" stroke="#8B84FF" strokeWidth="1.8" fill="none" />
+                        <Path d="M12 8 V4 M9 13 h.01 M15 13 h.01 M9.5 16 h5" stroke="#8B84FF" strokeWidth="1.8" fill="none" />
+                      </Svg>
+                    </View>
+                    <Text style={styles.bentoTitle}>Agent K</Text>
+                    <Text style={styles.bentoBody}>
+                      Your always-on AI career copilot. Ask anything: resume tips, interview prep, salary negotiation. Agent K remembers your goals and grows with you.
+                    </Text>
                   </View>
-                  <Text style={styles.bentoTitle}>Agent K</Text>
-                  <Text style={styles.bentoBody}>
-                    Your always-on AI career copilot. Ask anything: resume tips, interview prep, salary negotiation. Agent K remembers your goals and grows with you.
-                  </Text>
+
+                  {/* 02 Mentors */}
+                  <View style={[styles.bentoCard, { flex: 1, minWidth: 260 }, styles.tiltCard]}>
+                    <Text style={styles.bentoNumber}>02</Text>
+                    <View style={styles.bentoIconBadge}>
+                      <Svg width="22" height="22" viewBox="0 0 24 24">
+                        <Circle cx="9" cy="9" r="3.2" stroke="#8B84FF" strokeWidth="1.8" fill="none" />
+                        <Path d="M3 19 q6 -6 12 0 M16 7 a3 3 0 0 1 0 6 M18 19 q1.5 -3 3 -4" stroke="#8B84FF" strokeWidth="1.8" fill="none" />
+                      </Svg>
+                    </View>
+                    <Text style={styles.bentoTitle}>Mentors</Text>
+                    <Text style={styles.bentoBody}>One-on-one sessions with alumni from Google, McKinsey, Goldman &amp; more. Book, chat, level up.</Text>
+                  </View>
                 </View>
 
-                {/* 02 Mentors */}
-                <View style={[styles.bentoCard, styles.tiltCard]}>
-                  <Text style={styles.bentoNumber}>02</Text>
-                  <View style={styles.bentoIconBadge}>
-                    <Svg width="24" height="24" viewBox="0 0 24 24">
-                      <Circle cx="9" cy="9" r="3.2" stroke="#8B84FF" strokeWidth="1.7" fill="none" />
-                      <Path d="M3 19 q6 -6 12 0 M16 7 a3 3 0 0 1 0 6 M18 19 q1.5 -3 3 -4" stroke="#8B84FF" strokeWidth="1.7" fill="none" />
-                    </Svg>
+                {/* ROW 2 (3 Cards: Events + Student Perks + Career Opportunities) */}
+                <View style={[styles.bentoRow, isNarrow && { flexDirection: 'column' }]}>
+                  {/* 03 Events */}
+                  <View style={[styles.bentoCard, { flex: 1, minWidth: 220 }, styles.tiltCard]}>
+                    <Text style={styles.bentoNumber}>03</Text>
+                    <View style={styles.bentoIconBadge}>
+                      <Svg width="22" height="22" viewBox="0 0 24 24">
+                        <Rect x="4" y="6" width="16" height="14" rx="3" stroke="#8B84FF" strokeWidth="1.8" fill="none" />
+                        <Path d="M4 10.5 h16 M9 6 V3.5 M15 6 V3.5 M8 14.5 h2.5 M13.5 14.5 h2.5" stroke="#8B84FF" strokeWidth="1.8" fill="none" />
+                      </Svg>
+                    </View>
+                    <Text style={styles.bentoTitle}>Events</Text>
+                    <Text style={styles.bentoBody}>Workshops, hackathons, and industry panels curated to your track and semester.</Text>
                   </View>
-                  <Text style={styles.bentoTitle}>Mentors</Text>
-                  <Text style={styles.bentoBody}>One-on-one sessions with alumni from Google, McKinsey, Goldman &amp; more. Book, chat, level up.</Text>
+
+                  {/* 04 Student Perks */}
+                  <View style={[styles.bentoCard, { flex: 1, minWidth: 220 }, styles.tiltCard]}>
+                    <Text style={styles.bentoNumber}>04</Text>
+                    <View style={styles.bentoIconBadge}>
+                      <Svg width="22" height="22" viewBox="0 0 24 24">
+                        <Rect x="3.5" y="9" width="17" height="11" rx="2" stroke="#8B84FF" strokeWidth="1.8" fill="none" />
+                        <Path d="M3.5 13 h17 M12 9 v11 M12 9 c-4 0 -5 -5 0 -5 c5 0 4 5 0 5" stroke="#8B84FF" strokeWidth="1.8" fill="none" />
+                      </Svg>
+                    </View>
+                    <Text style={styles.bentoTitle}>Student Perks</Text>
+                    <Text style={styles.bentoBody}>Unlock exclusive student deals and discounts on mentorship, courses, and partner services.</Text>
+                  </View>
+
+                  {/* 05 Career Opportunities */}
+                  <View style={[styles.bentoCard, { flex: 1.45, minWidth: 280, borderColor: '#5B4FE9', backgroundColor: 'rgba(91,79,233,0.08)' }, styles.tiltCard]}>
+                    <Text style={[styles.bentoNumber, { color: '#8B84FF' }]}>05</Text>
+                    <View style={[styles.bentoIconBadge, { backgroundColor: '#5B4FE9', borderColor: '#8B84FF' }]}>
+                      <Svg width="22" height="22" viewBox="0 0 24 24">
+                        <Rect x="3.5" y="7.5" width="17" height="12" rx="2.5" stroke="#FFFFFF" strokeWidth="1.8" fill="none" />
+                        <Path d="M9 7.5 V5.5 h6 v2 M3.5 13 h17 M12 12 v2" stroke="#FFFFFF" strokeWidth="1.8" fill="none" />
+                      </Svg>
+                    </View>
+                    <Text style={[styles.bentoTitle, { color: '#8B84FF' }]}>Career Opportunities</Text>
+                    <Text style={styles.bentoBody}>Personalized opportunity feed sourced from partner companies and warm alumni referrals.</Text>
+                  </View>
                 </View>
 
-                {/* 03 Events */}
-                <View style={[styles.bentoCard, styles.tiltCard]}>
-                  <Text style={styles.bentoNumber}>03</Text>
-                  <View style={styles.bentoIconBadge}>
-                    <Svg width="24" height="24" viewBox="0 0 24 24">
-                      <Rect x="4" y="6" width="16" height="14" rx="3" stroke="#8B84FF" strokeWidth="1.7" fill="none" />
-                      <Path d="M4 10.5 h16 M9 6 V3.5 M15 6 V3.5 M8 14.5 h2.5 M13.5 14.5 h2.5" stroke="#8B84FF" strokeWidth="1.7" fill="none" />
-                    </Svg>
+                {/* ROW 3 (2 Cards: Resume Polish + Career Roadmap) */}
+                <View style={[styles.bentoRow, isNarrow && { flexDirection: 'column' }]}>
+                  {/* 06 Resume Polish */}
+                  <View style={[styles.bentoCard, { flex: 1, minWidth: 260 }, styles.tiltCard]}>
+                    <Text style={styles.bentoNumber}>06</Text>
+                    <View style={styles.bentoIconBadge}>
+                      <Svg width="22" height="22" viewBox="0 0 24 24">
+                        <Path d="M6 3.5 h8 l4 4 v13 h-12 Z M14 3.5 v4 h4 M9 12 h6 M9 16 h4" stroke="#8B84FF" strokeWidth="1.8" fill="none" />
+                      </Svg>
+                    </View>
+                    <Text style={styles.bentoTitle}>Resume Polish</Text>
+                    <Text style={styles.bentoBody}>Instant AI rewrites with ATS scoring, role-specific keywords, and beautiful design templates.</Text>
                   </View>
-                  <Text style={styles.bentoTitle}>Events</Text>
-                  <Text style={styles.bentoBody}>Workshops, hackathons, and industry panels curated to your track and semester.</Text>
-                </View>
 
-                {/* 04 Student Perks */}
-                <View style={[styles.bentoCard, styles.tiltCard]}>
-                  <Text style={styles.bentoNumber}>04</Text>
-                  <View style={styles.bentoIconBadge}>
-                    <Svg width="24" height="24" viewBox="0 0 24 24">
-                      <Rect x="3.5" y="9" width="17" height="11" rx="2" stroke="#8B84FF" strokeWidth="1.7" fill="none" />
-                      <Path d="M3.5 13 h17 M12 9 v11 M12 9 c-4 0 -5 -5 0 -5 c5 0 4 5 0 5" stroke="#8B84FF" strokeWidth="1.7" fill="none" />
-                    </Svg>
+                  {/* 07 Career Roadmap */}
+                  <View style={[styles.bentoCard, { flex: 1.68, minWidth: 320 }, styles.tiltCard]}>
+                    <Text style={styles.bentoNumber}>07</Text>
+                    <View style={styles.bentoIconBadge}>
+                      <Svg width="22" height="22" viewBox="0 0 24 24">
+                        <Path d="M4 6 l5 -2 6 2 5 -2 v14 l-5 2 -6 -2 -5 2 Z M9 4 v14 M15 6 v14" stroke="#8B84FF" strokeWidth="1.8" fill="none" />
+                      </Svg>
+                    </View>
+                    <Text style={styles.bentoTitle}>Career Roadmap</Text>
+                    <Text style={styles.bentoBody}>Visual step-by-step plan from Day 1 to your first offer auto-updated as your goals evolve.</Text>
                   </View>
-                  <Text style={styles.bentoTitle}>Student Perks</Text>
-                  <Text style={styles.bentoBody}>Unlock exclusive student deals and discounts on mentorship, courses, and partner services.</Text>
-                </View>
-
-                {/* 05 Career Opportunities */}
-                <View style={[styles.bentoCard, styles.tiltCard, { borderColor: '#8B84FF', backgroundColor: 'rgba(91,79,233,0.1)' }]}>
-                  <Text style={[styles.bentoNumber, { color: '#8B84FF' }]}>05</Text>
-                  <View style={[styles.bentoIconBadge, { backgroundColor: '#5B4FE9' }]}>
-                    <Svg width="24" height="24" viewBox="0 0 24 24">
-                      <Rect x="3.5" y="7.5" width="17" height="12" rx="2.5" stroke="#FFFFFF" strokeWidth="1.7" fill="none" />
-                      <Path d="M9 7.5 V5.5 h6 v2 M3.5 13 h17 M12 12 v2" stroke="#FFFFFF" strokeWidth="1.7" fill="none" />
-                    </Svg>
-                  </View>
-                  <Text style={[styles.bentoTitle, { color: '#8B84FF' }]}>Career Opportunities</Text>
-                  <Text style={styles.bentoBody}>Personalized opportunity feed sourced from partner companies and warm alumni referrals.</Text>
-                </View>
-
-                {/* 06 Resume Polish */}
-                <View style={[styles.bentoCard, styles.tiltCard]}>
-                  <Text style={styles.bentoNumber}>06</Text>
-                  <View style={styles.bentoIconBadge}>
-                    <Svg width="24" height="24" viewBox="0 0 24 24">
-                      <Path d="M6 3.5 h8 l4 4 v13 h-12 Z M14 3.5 v4 h4 M9 12 h6 M9 16 h4" stroke="#8B84FF" strokeWidth="1.7" fill="none" />
-                    </Svg>
-                  </View>
-                  <Text style={styles.bentoTitle}>Resume Polish</Text>
-                  <Text style={styles.bentoBody}>Instant AI rewrites with ATS scoring, role-specific keywords, and beautiful design templates.</Text>
-                </View>
-
-                {/* 07 Career Roadmap (Span 2) */}
-                <View style={[styles.bentoCard, styles.bentoSpan2, styles.tiltCard]}>
-                  <Text style={styles.bentoNumber}>07</Text>
-                  <View style={styles.bentoIconBadge}>
-                    <Svg width="24" height="24" viewBox="0 0 24 24">
-                      <Path d="M4 6 l5 -2 6 2 5 -2 v14 l-5 2 -6 -2 -5 2 Z M9 4 v14 M15 6 v14" stroke="#8B84FF" strokeWidth="1.7" fill="none" />
-                    </Svg>
-                  </View>
-                  <Text style={styles.bentoTitle}>Career Roadmap</Text>
-                  <Text style={styles.bentoBody}>Visual step-by-step plan from Day 1 to your first offer auto-updated as your goals evolve.</Text>
                 </View>
               </View>
             </View>
@@ -930,8 +938,8 @@ export default function LandingPage() {
                   <View style={[styles.numberItem, styles.tiltCard]}>
                     <View style={styles.numberIconBox}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
-                        <Circle cx="9" cy="9" r="3.2" stroke="#8B84FF" strokeWidth="1.7" fill="none" />
-                        <Path d="M3 19 q6 -6 12 0 M16 7 a3 3 0 0 1 0 6 M18 19 q1.5 -3 3 -4" stroke="#8B84FF" strokeWidth="1.7" fill="none" />
+                        <Circle cx="9" cy="9" r="3.2" stroke="#8B84FF" strokeWidth="1.8" fill="none" />
+                        <Path d="M3 19 q6 -6 12 0 M16 7 a3 3 0 0 1 0 6 M18 19 q1.5 -3 3 -4" stroke="#8B84FF" strokeWidth="1.8" fill="none" />
                       </Svg>
                     </View>
                     <Text style={styles.statBig}>50,000+</Text>
@@ -941,8 +949,8 @@ export default function LandingPage() {
                   <View style={[styles.numberItem, styles.tiltCard]}>
                     <View style={styles.numberIconBox}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
-                        <Circle cx="12" cy="9" r="5" stroke="#8B84FF" strokeWidth="1.7" fill="none" />
-                        <Path d="M9 14 l-2 8 5 -3 5 3 -2 -8" stroke="#8B84FF" strokeWidth="1.7" fill="none" />
+                        <Circle cx="12" cy="9" r="5" stroke="#8B84FF" strokeWidth="1.8" fill="none" />
+                        <Path d="M9 14 l-2 8 5 -3 5 3 -2 -8" stroke="#8B84FF" strokeWidth="1.8" fill="none" />
                       </Svg>
                     </View>
                     <Text style={styles.statBig}>1,200+</Text>
@@ -952,7 +960,7 @@ export default function LandingPage() {
                   <View style={[styles.numberItem, styles.tiltCard]}>
                     <View style={styles.numberIconBox}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
-                        <Path d="M5 20 V7 l7 -3 v16 M12 20 V10 l7 3 v7 M8 11 h1 M8 15 h1 M15 15 h1" stroke="#8B84FF" strokeWidth="1.7" fill="none" />
+                        <Path d="M5 20 V7 l7 -3 v16 M12 20 V10 l7 3 v7 M8 11 h1 M8 15 h1 M15 15 h1" stroke="#8B84FF" strokeWidth="1.8" fill="none" />
                       </Svg>
                     </View>
                     <Text style={styles.statBig}>200+</Text>
@@ -962,7 +970,7 @@ export default function LandingPage() {
                   <View style={[styles.numberItem, styles.tiltCard]}>
                     <View style={styles.numberIconBox}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
-                        <Path d="M4 17 l5 -5 3 3 6 -7 M14 8 h5 v5" stroke="#8B84FF" strokeWidth="1.7" fill="none" />
+                        <Path d="M4 17 l5 -5 3 3 6 -7 M14 8 h5 v5" stroke="#8B84FF" strokeWidth="1.8" fill="none" />
                       </Svg>
                     </View>
                     <Text style={styles.statBig}>96%</Text>
@@ -1668,24 +1676,20 @@ const styles = StyleSheet.create({
   },
 
   /* ── 02 Bento ── */
-  bentoGrid: {
+  bentoGridContainer: {
+    gap: 20,
+  },
+  bentoRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 22,
+    gap: 20,
   },
   bentoCard: {
-    flex: 1,
-    minWidth: 280,
     backgroundColor: T.card,
     borderWidth: 1,
     borderColor: T.line,
     borderRadius: 18,
-    padding: 32,
+    padding: 30,
     position: 'relative',
-  },
-  bentoSpan2: {
-    flexBasis: '62%' as any,
-    minWidth: 340,
   },
   bentoNumber: {
     position: 'absolute',
@@ -1696,23 +1700,25 @@ const styles = StyleSheet.create({
     color: T.dot,
   },
   bentoIconBadge: {
-    width: 48,
-    height: 48,
+    width: 44,
+    height: 44,
     borderRadius: 12,
-    backgroundColor: T.tint,
+    backgroundColor: 'rgba(91,79,233,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(91,79,233,0.25)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 26,
+    marginBottom: 24,
   },
   bentoTitle: {
-    fontSize: 22,
+    fontSize: 21,
     fontWeight: '700',
     color: T.text,
-    marginBottom: 12,
+    marginBottom: 10,
   },
   bentoBody: {
-    fontSize: 15,
-    lineHeight: 24,
+    fontSize: 14.5,
+    lineHeight: 23,
     color: T.muted,
   },
 
@@ -2014,10 +2020,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   numberIconBox: {
-    width: 46,
-    height: 46,
+    width: 44,
+    height: 44,
     borderRadius: 12,
-    backgroundColor: T.tint,
+    backgroundColor: 'rgba(91,79,233,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(91,79,233,0.25)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 22,
