@@ -41,8 +41,8 @@ ENV EXPO_PUBLIC_BACKEND_URL=${EXPO_PUBLIC_BACKEND_URL} \
     EXPO_PUBLIC_POSTHOG_HOST=${EXPO_PUBLIC_POSTHOG_HOST} \
     EXPO_PUBLIC_ANALYTICS_ENABLED=${EXPO_PUBLIC_ANALYTICS_ENABLED} \
     CI=1 \
+    NODE_ENV=production \
     EXPO_NO_TELEMETRY=1 \
-    EXPO_NO_METRO_WATCHER=1 \
     NODE_OPTIONS="--max-old-space-size=4096 --no-warnings"
 
 WORKDIR /app
@@ -62,9 +62,9 @@ RUN if [ -f yarn.lock ]; then yarn install --network-timeout 600000 --ignore-eng
 COPY . .
 
 # Invalidate builder cache and run fresh export
-ARG CACHEBUST=20260826-v6-fresh-build
+ARG CACHEBUST=20260826-v7-prod
 RUN rm -rf dist .metro-cache \
-    && npx expo export --platform web --output-dir dist --max-workers 1 \
+    && npx expo export --platform web --output-dir dist \
     && ls -la dist \
     && test -f dist/index.html || (echo "ERROR: Expo failed to produce dist/index.html" && exit 1)
 

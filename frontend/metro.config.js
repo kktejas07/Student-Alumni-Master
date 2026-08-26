@@ -20,11 +20,13 @@ const { FileStore } = require('metro-cache');
 const config = getDefaultConfig(__dirname);
 config.resolver.useWatchman = false;
 
-// Use a stable on-disk store (shared across web/android)
-const root = process.env.METRO_CACHE_ROOT || path.join(__dirname, '.metro-cache');
-config.cacheStores = [
-  new FileStore({ root: path.join(root, 'cache') }),
-];
+// Use a stable on-disk store (shared across web/android in local dev)
+if (!process.env.CI) {
+  const root = process.env.METRO_CACHE_ROOT || path.join(__dirname, '.metro-cache');
+  config.cacheStores = [
+    new FileStore({ root: path.join(root, 'cache') }),
+  ];
+}
 
 // Redirect .node.mjs → .js for @lexical/* packages so Metro does not
 // try to minify ESM-only entry-points that its transformer cannot handle.
