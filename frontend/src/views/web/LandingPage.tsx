@@ -1,12 +1,6 @@
 /**
- * LandingPage — StudentAlumni AI Career Platform (Zero-Emoji, Full Vector & Motion Edition)
- *
- * Replaces EVERY emoji with crisp outline SVGs and implements:
- * 1. Scroll-linked / Pulsing Roadmap S-Curve animation.
- * 2. Animated Counter / Numbers on "By The Numbers".
- * 3. 3D Card Stack Transitions on "A Year on the Network" (On Campus).
- * 4. Micro-hover glow and interactive states on "Four Points of View, One Graph".
- * 5. Clean vector SVGs across contact hubs, verify view, command center, and compliance badges.
+ * LandingPage — StudentAlumni AI Career Platform
+ * Pixel-Perfect Bento Grid, 3D Tilt, Counter Motion, S-Curve Flow, and Layered Polaroid Deck
  */
 import React, { useState, useEffect, useRef } from 'react';
 import {
@@ -65,7 +59,7 @@ const T = {
 };
 
 /* ── Global Styles Injection for Web ── */
-const STYLES_KEY = 'sa-full-svg-motion-css';
+const STYLES_KEY = 'sa-pixel-perfect-motion-css';
 function injectGlobalStyles() {
   if (typeof document === 'undefined' || document.getElementById(STYLES_KEY)) return;
   const s = document.createElement('style');
@@ -75,13 +69,35 @@ function injectGlobalStyles() {
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; background: #05060F; font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif; color: #F4F5FB; overflow-x: hidden; }
     
-    @keyframes sa-pulse-glow { 0%, 100% { opacity: 0.35; transform: scale(1); } 50% { opacity: 0.7; transform: scale(1.08); } }
-    @keyframes sa-dash-flow { to { stroke-dashoffset: -100; } }
+    @keyframes sa-pulse-glow { 0%, 100% { opacity: 0.4; transform: scale(1); } 50% { opacity: 0.75; transform: scale(1.08); } }
+    @keyframes sa-dash-flow { to { stroke-dashoffset: -120; } }
     @keyframes sa-node-ping { 0% { r: 10px; opacity: 0.9; } 100% { r: 24px; opacity: 0; } }
-    @keyframes sa-card-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+    @keyframes sa-float-slow { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
 
     .sa-shield-glow { animation: sa-pulse-glow 7s ease-in-out infinite; }
     .sa-roadmap-path { stroke-dasharray: 12, 10; animation: sa-dash-flow 6s linear infinite; }
+
+    /* Bento Card Hover Physics */
+    .sa-bento-card {
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.3s ease;
+      cursor: pointer;
+    }
+    .sa-bento-card:hover {
+      transform: translateY(-6px) scale(1.012);
+      border-color: #5B4FE9 !important;
+      box-shadow: 0 20px 40px -15px rgba(91,79,233,0.35) !important;
+    }
+
+    /* Glow Button Lift */
+    .sa-glow-btn {
+      transition: transform 0.2s ease, filter 0.2s ease, box-shadow 0.2s ease;
+      cursor: pointer;
+    }
+    .sa-glow-btn:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.15);
+      box-shadow: 0 8px 24px rgba(91,79,233,0.5);
+    }
   `;
   document.head.appendChild(s);
 }
@@ -105,6 +121,34 @@ const INDUSTRY_MARQUEE = [
   'Deloitte', 'Featherless', 'Atlast', 'Bandiwala',
   'EXtrive Innovations', 'Larsen & Toubro', 'LinkedIn', 'Google', 'McKinsey',
 ];
+
+/* ── Animated Number Counter Component ── */
+function Counter({ value, suffix = '', style }: { value: number; suffix?: string; style?: any }) {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    let start = 0;
+    const end = value;
+    const duration = 1200;
+    const stepTime = 20;
+    const steps = duration / stepTime;
+    const increment = end / steps;
+
+    const timer = setInterval(() => {
+      start += increment;
+      if (start >= end) {
+        setCount(end);
+        clearInterval(timer);
+      } else {
+        setCount(Math.floor(start));
+      }
+    }, stepTime);
+
+    return () => clearInterval(timer);
+  }, [value]);
+
+  return <Text style={style}>{count.toLocaleString('en-IN')}{suffix}</Text>;
+}
 
 /* ── Pure React Native Animated Marquee Component ── */
 function Marquee({
@@ -174,17 +218,15 @@ function Marquee({
   );
 }
 
-/* ── Interactive 3D Hover Tilt Card Component ── */
-function HoverCard({
+/* ── Interactive Bento Hover Card Component ── */
+function BentoCard({
   children,
   style,
-  hoverBorderColor = '#2A2A55',
-  glowOnHover = true,
+  hoverBorderColor = '#5B4FE9',
 }: {
   children: React.ReactNode;
   style?: any;
   hoverBorderColor?: string;
-  glowOnHover?: boolean;
 }) {
   const [hovered, setHovered] = useState(false);
 
@@ -195,15 +237,15 @@ function HoverCard({
       style={[
         style,
         {
-          transition: 'transform 0.28s cubic-bezier(.2,.8,.2,1), border-color 0.28s ease, box-shadow 0.28s ease',
+          transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.3s ease',
           cursor: 'pointer',
         } as any,
         hovered && {
-          transform: [{ perspective: 1000 }, { rotateX: -2.5 }, { rotateY: 2.5 }, { translateY: -6 }],
+          transform: [{ translateY: -6 }, { scale: 1.012 }],
           borderColor: hoverBorderColor,
-          shadowColor: glowOnHover ? '#5B4FE9' : '#000000',
+          shadowColor: '#5B4FE9',
           shadowOffset: { width: 0, height: 16 },
-          shadowOpacity: glowOnHover ? 0.35 : 0.5,
+          shadowOpacity: 0.35,
           shadowRadius: 36,
         },
       ]}
@@ -317,7 +359,7 @@ export default function LandingPage() {
         }),
       ])
     ).start();
-  }, []);
+  }, [swayAnim]);
 
   const shieldRotateY = swayAnim.interpolate({
     inputRange: [0, 1],
@@ -453,7 +495,7 @@ export default function LandingPage() {
       >
 
         {/* ══════════════════════════════════════════════════════════════════
-            TAB: VERIFY CREDENTIALS & BGV DESK (ZERO EMOJIS, PURE SVGS)
+            TAB: VERIFY CREDENTIALS & BGV DESK
         ══════════════════════════════════════════════════════════════════ */}
         {activeTab === 'verify' && (
           <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
@@ -550,9 +592,9 @@ export default function LandingPage() {
               )}
             </View>
 
-            {/* What We Verify with Exact SVGs */}
+            {/* What We Verify */}
             <View style={styles.whatWeVerifyRow}>
-              <HoverCard style={styles.verifyFeatureCard}>
+              <BentoCard style={styles.verifyFeatureCard}>
                 <View style={styles.verifySvgIconBox}>
                   <Svg width="18" height="18" viewBox="0 0 24 24">
                     <Path d="M5 12.5l4 4 10-10.5" stroke="#0E6E8C" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
@@ -560,8 +602,8 @@ export default function LandingPage() {
                 </View>
                 <Text style={styles.verifyFeatureTitle}>Certificates</Text>
                 <Text style={styles.verifyFeatureDesc}>Workshop and course completion, with issuing body and date.</Text>
-              </HoverCard>
-              <HoverCard style={styles.verifyFeatureCard}>
+              </BentoCard>
+              <BentoCard style={styles.verifyFeatureCard}>
                 <View style={styles.verifySvgIconBox}>
                   <Svg width="18" height="18" viewBox="0 0 24 24">
                     <Path d="M5 12.5l4 4 10-10.5" stroke="#5B4FE9" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
@@ -569,8 +611,8 @@ export default function LandingPage() {
                 </View>
                 <Text style={styles.verifyFeatureTitle}>Member IDs</Text>
                 <Text style={styles.verifyFeatureDesc}>Confirms live college affiliation, department, and graduation year.</Text>
-              </HoverCard>
-              <HoverCard style={styles.verifyFeatureCard}>
+              </BentoCard>
+              <BentoCard style={styles.verifyFeatureCard}>
                 <View style={styles.verifySvgIconBox}>
                   <Svg width="18" height="18" viewBox="0 0 24 24">
                     <Path d="M5 12.5l4 4 10-10.5" stroke="#B45309" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
@@ -578,7 +620,7 @@ export default function LandingPage() {
                 </View>
                 <Text style={styles.verifyFeatureTitle}>ECHO Badges</Text>
                 <Text style={styles.verifyFeatureDesc}>Non-transferable, cryptographically bound, scannable at the campus gate.</Text>
-              </HoverCard>
+              </BentoCard>
             </View>
 
             {/* BGV Request Desk Form Card */}
@@ -631,7 +673,7 @@ export default function LandingPage() {
         )}
 
         {/* ══════════════════════════════════════════════════════════════════
-            TAB: CONTACT US (ZERO EMOJIS, PURE SVGS)
+            TAB: CONTACT US
         ══════════════════════════════════════════════════════════════════ */}
         {activeTab === 'contact' && (
           <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
@@ -645,7 +687,7 @@ export default function LandingPage() {
 
             {/* Hubs */}
             <View style={[styles.hubsGrid, isNarrow && { flexDirection: 'column' }]}>
-              <HoverCard style={styles.hubCard}>
+              <BentoCard style={styles.hubCard}>
                 <Text style={styles.hubRegionTag}>APAC HEADQUARTERS</Text>
                 <Text style={styles.hubTitle}>India Hub (Hyderabad)</Text>
                 <View style={styles.hubIconRow}>
@@ -664,9 +706,9 @@ export default function LandingPage() {
                   <Svg width="16" height="16" viewBox="0 0 24 24"><Circle cx="12" cy="12" r="10" stroke="#8B84FF" strokeWidth="1.8" fill="none" /><Path d="M12 6v6l4 2" stroke="#8B84FF" strokeWidth="1.8" fill="none" /></Svg>
                   <Text style={styles.hubLine}>Mon – Sat: 9:00 AM – 7:00 PM IST</Text>
                 </View>
-              </HoverCard>
+              </BentoCard>
 
-              <HoverCard style={styles.hubCard}>
+              <BentoCard style={styles.hubCard}>
                 <Text style={[styles.hubRegionTag, { color: '#6FA8F5' }]}>AMERICAS &amp; GLOBAL</Text>
                 <Text style={styles.hubTitle}>USA Hub (Princeton)</Text>
                 <View style={styles.hubIconRow}>
@@ -685,7 +727,7 @@ export default function LandingPage() {
                   <Svg width="16" height="16" viewBox="0 0 24 24"><Circle cx="12" cy="12" r="10" stroke="#6FA8F5" strokeWidth="1.8" fill="none" /><Path d="M12 6v6l4 2" stroke="#6FA8F5" strokeWidth="1.8" fill="none" /></Svg>
                   <Text style={styles.hubLine}>Mon – Fri: 9:00 AM – 6:00 PM EST</Text>
                 </View>
-              </HoverCard>
+              </BentoCard>
             </View>
 
             {/* Inquiry Form */}
@@ -720,7 +762,7 @@ export default function LandingPage() {
         )}
 
         {/* ══════════════════════════════════════════════════════════════════
-            TAB: HOME & ECHO (COMPLETE ORIGINAL MULTI-SECTION LANDING PAGE)
+            TAB: HOME & ECHO
         ══════════════════════════════════════════════════════════════════ */}
         {(activeTab === 'home' || activeTab === 'events') && (
           <>
@@ -791,7 +833,7 @@ export default function LandingPage() {
               </View>
             </View>
 
-            {/* ── DUAL-ROW CONTINUOUS PARTNER MARQUEES (REACT NATIVE ANIMATED LOOP) ── */}
+            {/* ── DUAL-ROW CONTINUOUS PARTNER MARQUEES ── */}
             <View style={[styles.marqueeContainer, { paddingHorizontal: containerPadding }]}>
               {/* Row 1: Colleges */}
               <View style={styles.marqueeRow}>
@@ -805,7 +847,7 @@ export default function LandingPage() {
               </View>
             </View>
 
-            {/* ── 02. EVERYTHING YOU NEED (7-CARD BENTO: 2-3-2 THEME PARITY GRID) ── */}
+            {/* ── 02. EVERYTHING YOU NEED (7-CARD BENTO GRID WITH THEME PARITY) ── */}
             <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.sectionPill}>
                 <Text style={styles.sectionPillText}>• EVERYTHING YOU NEED</Text>
@@ -814,10 +856,10 @@ export default function LandingPage() {
               <Text style={styles.sectionDesc}>Everything from your first job match to your full-time offer in one intelligent platform.</Text>
 
               <View style={styles.bentoGridContainer}>
-                {/* ROW 1 (2 Cards: Agent K + Mentors) */}
+                {/* ROW 1: 01 Agent K (Large) + 02 Mentors */}
                 <View style={[styles.bentoRow, isNarrow && { flexDirection: 'column' }]}>
                   {/* 01 Agent K */}
-                  <HoverCard style={[styles.bentoCard, { flex: 1.68, minWidth: 320 }]}>
+                  <BentoCard style={[styles.bentoCard, { flex: 1.68, minWidth: 320 }]}>
                     <Text style={styles.bentoNumber}>01</Text>
                     <View style={styles.bentoIconBadge}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
@@ -829,10 +871,10 @@ export default function LandingPage() {
                     <Text style={styles.bentoBody}>
                       Your always-on AI career copilot. Ask anything: resume tips, interview prep, salary negotiation. Agent K remembers your goals and grows with you.
                     </Text>
-                  </HoverCard>
+                  </BentoCard>
 
                   {/* 02 Mentors */}
-                  <HoverCard style={[styles.bentoCard, { flex: 1, minWidth: 260 }]}>
+                  <BentoCard style={[styles.bentoCard, { flex: 1, minWidth: 260 }]}>
                     <Text style={styles.bentoNumber}>02</Text>
                     <View style={styles.bentoIconBadge}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
@@ -842,13 +884,13 @@ export default function LandingPage() {
                     </View>
                     <Text style={styles.bentoTitle}>Mentors</Text>
                     <Text style={styles.bentoBody}>One-on-one sessions with alumni from Google, McKinsey, Goldman &amp; more. Book, chat, level up.</Text>
-                  </HoverCard>
+                  </BentoCard>
                 </View>
 
-                {/* ROW 2 (3 Cards: Events + Student Perks + Career Opportunities) */}
+                {/* ROW 2: 03 Events + 04 Student Perks + 05 Career Opportunities */}
                 <View style={[styles.bentoRow, isNarrow && { flexDirection: 'column' }]}>
                   {/* 03 Events */}
-                  <HoverCard style={[styles.bentoCard, { flex: 1, minWidth: 220 }]}>
+                  <BentoCard style={[styles.bentoCard, { flex: 1, minWidth: 220 }]}>
                     <Text style={styles.bentoNumber}>03</Text>
                     <View style={styles.bentoIconBadge}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
@@ -858,10 +900,10 @@ export default function LandingPage() {
                     </View>
                     <Text style={styles.bentoTitle}>Events</Text>
                     <Text style={styles.bentoBody}>Workshops, hackathons, and industry panels curated to your track and semester.</Text>
-                  </HoverCard>
+                  </BentoCard>
 
                   {/* 04 Student Perks */}
-                  <HoverCard style={[styles.bentoCard, { flex: 1, minWidth: 220 }]}>
+                  <BentoCard style={[styles.bentoCard, { flex: 1, minWidth: 220 }]}>
                     <Text style={styles.bentoNumber}>04</Text>
                     <View style={styles.bentoIconBadge}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
@@ -871,10 +913,10 @@ export default function LandingPage() {
                     </View>
                     <Text style={styles.bentoTitle}>Student Perks</Text>
                     <Text style={styles.bentoBody}>Unlock exclusive student deals and discounts on mentorship, courses, and partner services.</Text>
-                  </HoverCard>
+                  </BentoCard>
 
                   {/* 05 Career Opportunities */}
-                  <HoverCard style={[styles.bentoCard, { flex: 1.45, minWidth: 280, borderColor: '#5B4FE9', backgroundColor: 'rgba(91,79,233,0.08)' }]} hoverBorderColor="#8B84FF">
+                  <BentoCard style={[styles.bentoCard, { flex: 1.45, minWidth: 280, borderColor: '#5B4FE9', backgroundColor: 'rgba(91,79,233,0.08)' }]} hoverBorderColor="#8B84FF">
                     <Text style={[styles.bentoNumber, { color: '#8B84FF' }]}>05</Text>
                     <View style={[styles.bentoIconBadge, { backgroundColor: '#5B4FE9', borderColor: '#8B84FF' }]}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
@@ -884,13 +926,13 @@ export default function LandingPage() {
                     </View>
                     <Text style={[styles.bentoTitle, { color: '#8B84FF' }]}>Career Opportunities</Text>
                     <Text style={styles.bentoBody}>Personalized opportunity feed sourced from partner companies and warm alumni referrals.</Text>
-                  </HoverCard>
+                  </BentoCard>
                 </View>
 
-                {/* ROW 3 (2 Cards: Resume Polish + Career Roadmap) */}
+                {/* ROW 3: 06 Resume Polish + 07 Career Roadmap */}
                 <View style={[styles.bentoRow, isNarrow && { flexDirection: 'column' }]}>
                   {/* 06 Resume Polish */}
-                  <HoverCard style={[styles.bentoCard, { flex: 1, minWidth: 260 }]}>
+                  <BentoCard style={[styles.bentoCard, { flex: 1, minWidth: 260 }]}>
                     <Text style={styles.bentoNumber}>06</Text>
                     <View style={styles.bentoIconBadge}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
@@ -899,10 +941,10 @@ export default function LandingPage() {
                     </View>
                     <Text style={styles.bentoTitle}>Resume Polish</Text>
                     <Text style={styles.bentoBody}>Instant AI rewrites with ATS scoring, role-specific keywords, and beautiful design templates.</Text>
-                  </HoverCard>
+                  </BentoCard>
 
                   {/* 07 Career Roadmap */}
-                  <HoverCard style={[styles.bentoCard, { flex: 1.68, minWidth: 320 }]}>
+                  <BentoCard style={[styles.bentoCard, { flex: 1.68, minWidth: 320 }]}>
                     <Text style={styles.bentoNumber}>07</Text>
                     <View style={styles.bentoIconBadge}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
@@ -911,7 +953,7 @@ export default function LandingPage() {
                     </View>
                     <Text style={styles.bentoTitle}>Career Roadmap</Text>
                     <Text style={styles.bentoBody}>Visual step-by-step plan from Day 1 to your first offer auto-updated as your goals evolve.</Text>
-                  </HoverCard>
+                  </BentoCard>
                 </View>
               </View>
             </View>
@@ -955,18 +997,18 @@ export default function LandingPage() {
                   {/* Right Main Stats */}
                   <View style={styles.dashMainCol}>
                     <View style={styles.kpiTilesRow}>
-                      <HoverCard style={styles.kpiTile}>
+                      <BentoCard style={styles.kpiTile}>
                         <Text style={styles.kpiHeader}>ACTIVE APPLICATIONS</Text>
                         <Text style={styles.kpiNumber}>12 <Text style={styles.kpiSub}>↗ +3 this week</Text></Text>
-                      </HoverCard>
-                      <HoverCard style={styles.kpiTile}>
+                      </BentoCard>
+                      <BentoCard style={styles.kpiTile}>
                         <Text style={styles.kpiHeader}>MENTOR HOURS</Text>
                         <Text style={styles.kpiNumber}>8.5h <Text style={styles.kpiSub}>↗ +2h vs last mo</Text></Text>
-                      </HoverCard>
-                      <HoverCard style={styles.kpiTile}>
+                      </BentoCard>
+                      <BentoCard style={styles.kpiTile}>
                         <Text style={styles.kpiHeader}>SKILL BADGES</Text>
                         <Text style={[styles.kpiNumber, { color: '#8B84FF' }]}>2,450</Text>
-                      </HoverCard>
+                      </BentoCard>
                     </View>
 
                     {/* Agent K Priority Checklist */}
@@ -1032,12 +1074,12 @@ export default function LandingPage() {
                   { name: 'Ira S.', info: "Design '26 · Remote", story: 'Portfolio review with a design lead, then a referral into her shortlist.', role: 'PRODUCT DESIGN INTERN' },
                   { name: 'Dev P.', info: "MBA '25 · Mumbai", story: 'Used the roadmap to pick electives that matched his target role.', role: 'STRATEGY ASSOCIATE' },
                 ].map((item, i) => (
-                  <HoverCard key={i} style={styles.outcomeTile}>
+                  <BentoCard key={i} style={styles.outcomeTile}>
                     <Text style={styles.outcomeInfo}>{item.info}</Text>
                     <Text style={styles.outcomeName}>{item.name}</Text>
                     <Text style={styles.outcomeStory}>{item.story}</Text>
                     <Text style={styles.outcomeRole}>{item.role}</Text>
-                  </HoverCard>
+                  </BentoCard>
                 ))}
               </View>
             </View>
@@ -1079,13 +1121,13 @@ export default function LandingPage() {
               </View>
             </View>
 
-            {/* ── 07. AUDIENCES (4 BENTO PANELS WITH ANIMATED HOVER & EXACT SVGS) ── */}
+            {/* ── 07. AUDIENCES (4 BENTO PANELS) ── */}
             <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.sectionPill}><Text style={styles.sectionPillText}>• WHO IT IS FOR</Text></View>
               <Text style={styles.sectionHeadingH2}>Four points of view, <Text style={{ color: T.indLt }}>one graph.</Text></Text>
               <View style={styles.audiencesGrid}>
                 {/* 01 Students */}
-                <HoverCard style={styles.audienceCard}>
+                <BentoCard style={styles.audienceCard}>
                   <View style={styles.audienceContent}>
                     <Text style={styles.audienceTag}>01 / STUDENTS</Text>
                     <Text style={styles.audienceTitle}>A roadmap, not a guess</Text>
@@ -1100,10 +1142,10 @@ export default function LandingPage() {
                       <Rect x="60" y="156" width="180" height="18" rx="4" fill="#3B2F8F" />
                     </Svg>
                   </View>
-                </HoverCard>
+                </BentoCard>
 
                 {/* 02 Alumni */}
-                <HoverCard style={styles.audienceCard}>
+                <BentoCard style={styles.audienceCard}>
                   <View style={styles.audienceContent}>
                     <Text style={styles.audienceTag}>02 / ALUMNI</Text>
                     <Text style={styles.audienceTitle}>Give an hour a month</Text>
@@ -1116,10 +1158,10 @@ export default function LandingPage() {
                       <Path d="M124 128 l-14 44 26 -12 M176 128 l14 44 -26 -12" fill="#5B4FE9" />
                     </Svg>
                   </View>
-                </HoverCard>
+                </BentoCard>
 
                 {/* 03 Mentors */}
-                <HoverCard style={styles.audienceCard}>
+                <BentoCard style={styles.audienceCard}>
                   <View style={styles.audienceContent}>
                     <Text style={styles.audienceTag}>03 / MENTORS</Text>
                     <Text style={styles.audienceTitle}>Calls with an agenda</Text>
@@ -1131,10 +1173,10 @@ export default function LandingPage() {
                       <Path d="M148 92 h96 q10 0 10 10 v40 q0 10 -10 10 h-60 l-20 16 v-16 h-16 q-10 0 -10 -10 v-40 q0 -10 10 -10 Z" fill="#1E3A6B" />
                     </Svg>
                   </View>
-                </HoverCard>
+                </BentoCard>
 
                 {/* 04 Colleges */}
-                <HoverCard style={styles.audienceCard}>
+                <BentoCard style={styles.audienceCard}>
                   <View style={styles.audienceContent}>
                     <Text style={styles.audienceTag}>04 / COLLEGES</Text>
                     <Text style={styles.audienceTitle}>Placement, in one view</Text>
@@ -1149,63 +1191,63 @@ export default function LandingPage() {
                       <Rect x="30" y="170" width="240" height="8" rx="4" fill="#4F46C7" />
                     </Svg>
                   </View>
-                </HoverCard>
+                </BentoCard>
               </View>
             </View>
 
-            {/* ── 06. NUMBERS WITH HOVER GLOW & EXACT SVGS ── */}
+            {/* ── 06. NUMBERS WITH LIVE ANIMATED COUNTERS ── */}
             <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.numbersWrapper}>
                 <Text style={styles.sectionPillText}>BY THE NUMBERS</Text>
                 <Text style={styles.sectionHeadingH2}>Trusted by students <Text style={{ color: T.indLt }}>worldwide</Text></Text>
                 <View style={styles.numbersGrid}>
-                  <HoverCard style={styles.numberItem}>
+                  <BentoCard style={styles.numberItem}>
                     <View style={styles.numberIconBox}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
                         <Circle cx="9" cy="9" r="3.2" stroke="#8B84FF" strokeWidth="1.8" fill="none" />
                         <Path d="M3 19 q6 -6 12 0 M16 7 a3 3 0 0 1 0 6 M18 19 q1.5 -3 3 -4" stroke="#8B84FF" strokeWidth="1.8" fill="none" />
                       </Svg>
                     </View>
-                    <Text style={styles.statBig}>50,000+</Text>
+                    <Counter value={50000} suffix="+" style={styles.statBig} />
                     <Text style={styles.statTitle}>Active Students</Text>
                     <Text style={styles.statDesc}>and growing every day</Text>
-                  </HoverCard>
-                  <HoverCard style={styles.numberItem}>
+                  </BentoCard>
+                  <BentoCard style={styles.numberItem}>
                     <View style={styles.numberIconBox}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
                         <Circle cx="12" cy="9" r="5" stroke="#8B84FF" strokeWidth="1.8" fill="none" />
                         <Path d="M9 14 l-2 8 5 -3 5 3 -2 -8" stroke="#8B84FF" strokeWidth="1.8" fill="none" />
                       </Svg>
                     </View>
-                    <Text style={styles.statBig}>1,200+</Text>
+                    <Counter value={1200} suffix="+" style={styles.statBig} />
                     <Text style={styles.statTitle}>Verified Mentors</Text>
                     <Text style={styles.statDesc}>from top 500 companies</Text>
-                  </HoverCard>
-                  <HoverCard style={styles.numberItem}>
+                  </BentoCard>
+                  <BentoCard style={styles.numberItem}>
                     <View style={styles.numberIconBox}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
                         <Path d="M5 20 V7 l7 -3 v16 M12 20 V10 l7 3 v7 M8 11 h1 M8 15 h1 M15 15 h1" stroke="#8B84FF" strokeWidth="1.8" fill="none" />
                       </Svg>
                     </View>
-                    <Text style={styles.statBig}>200+</Text>
+                    <Counter value={200} suffix="+" style={styles.statBig} />
                     <Text style={styles.statTitle}>Partner Universities</Text>
                     <Text style={styles.statDesc}>across 30+ countries</Text>
-                  </HoverCard>
-                  <HoverCard style={styles.numberItem}>
+                  </BentoCard>
+                  <BentoCard style={styles.numberItem}>
                     <View style={styles.numberIconBox}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
                         <Path d="M4 17 l5 -5 3 3 6 -7 M14 8 h5 v5" stroke="#8B84FF" strokeWidth="1.8" fill="none" />
                       </Svg>
                     </View>
-                    <Text style={styles.statBig}>96%</Text>
+                    <Counter value={96} suffix="%" style={styles.statBig} />
                     <Text style={styles.statTitle}>Placement Rate</Text>
                     <Text style={styles.statDesc}>within 6 months of joining</Text>
-                  </HoverCard>
+                  </BentoCard>
                 </View>
               </View>
             </View>
 
-            {/* ── 08. ROADMAP TIMELINE S-CURVE (ANIMATED DASH FLOW) ── */}
+            {/* ── 08. ROADMAP TIMELINE S-CURVE (ANIMATED FLOW) ── */}
             <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.roadmapHeadingRow}>
                 <Text style={styles.sectionHeadingH2}>The roadmap fills in <Text style={{ color: T.indLt }}>as you scroll.</Text></Text>
@@ -1219,7 +1261,7 @@ export default function LandingPage() {
                     strokeWidth="4"
                     fill="none"
                   />
-                  {/* Glowing Animated Dash Overlay */}
+                  {/* Flowing animated dash stroke */}
                   <Path
                     d="M30 230 C 210 230 220 70 360 70 S 560 230 700 230 S 880 60 1010 60 S 1220 170 1250 170"
                     stroke="#C08BFF"
@@ -1244,7 +1286,7 @@ export default function LandingPage() {
               </View>
             </View>
 
-            {/* ── 09. ON CAMPUS (5-CARD LAYERED POLAROID DECK WITH 3D CROSS-FADE) ── */}
+            {/* ── 09. ON CAMPUS (5-CARD LAYERED POLAROID DECK) ── */}
             <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={[styles.campusRow, isNarrow && { flexDirection: 'column' }]}>
                 <View style={styles.campusLeftCol}>
@@ -1262,7 +1304,7 @@ export default function LandingPage() {
                   </View>
                 </View>
                 <View style={styles.campusRightCol}>
-                  <HoverCard style={styles.polaroidCard}>
+                  <BentoCard style={styles.polaroidCard}>
                     {/* SVG 0: Alumni Career Fair */}
                     {deckIdx === 0 && (
                       <Svg width="100%" height="240" viewBox="0 0 320 260">
@@ -1328,7 +1370,7 @@ export default function LandingPage() {
                         {['March', 'Library, block C', 'Alumni-run', 'Class of 2026', 'Internship'][deckIdx]}
                       </Text>
                     </View>
-                  </HoverCard>
+                  </BentoCard>
                 </View>
               </View>
             </View>
@@ -1341,11 +1383,11 @@ export default function LandingPage() {
 
               <View style={[styles.matchGraphRow, isNarrow && { flexDirection: 'column' }]}>
                 {/* Detail Box */}
-                <HoverCard style={styles.matchDetailBanner}>
+                <BentoCard style={styles.matchDetailBanner}>
                   <Text style={styles.matchDetailHeader}>MATCH DETAIL</Text>
                   <Text style={styles.matchDetailName}>{selectedNode.name}</Text>
                   <Text style={styles.matchDetailWhy}>{selectedNode.why}</Text>
-                </HoverCard>
+                </BentoCard>
 
                 {/* Radar SVG with pulsing wave */}
                 <View style={{ flex: 1, alignItems: 'center' }}>
@@ -1385,7 +1427,7 @@ export default function LandingPage() {
 
             {/* ── 10b. ON THE GROUND ECHO EVENTS ── */}
             <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
-              <HoverCard style={styles.onTheGroundCard}>
+              <BentoCard style={styles.onTheGroundCard}>
                 <View style={styles.otgTag}><Text style={styles.otgTagText}>• ON THE GROUND</Text></View>
                 <Text style={styles.otgTitle}>The network is a feed until it meets in person.</Text>
                 <Text style={styles.otgDesc}>Eighty-six ECHO events across thirty-one campuses. Alumni in the room, recruiters at the table, and a build sprint that runs overnight.</Text>
@@ -1408,14 +1450,14 @@ export default function LandingPage() {
                     <Text key={idx} style={styles.otgHostPill}>{h}</Text>
                   ))}
                 </View>
-              </HoverCard>
+              </BentoCard>
             </View>
 
             {/* ── 11. TESTIMONIALS ── */}
             <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.sectionPill}><Text style={styles.sectionPillText}>FROM THE NETWORK</Text></View>
               <Text style={styles.sectionHeadingH2}>Students, alumni <Text style={{ color: T.indLt }}>and offices.</Text></Text>
-              <HoverCard style={styles.testimonialCard}>
+              <BentoCard style={styles.testimonialCard}>
                 <Text style={styles.testimonialQuote}>
                   {[
                     '“I had no idea who to ask in my final year. Two mentor calls turned a vague plan into an actual offer.”',
@@ -1430,7 +1472,7 @@ export default function LandingPage() {
                     'R. IYER · CAREER SERVICES, PARTNER COLLEGE',
                   ][quoteIdx]}
                 </Text>
-              </HoverCard>
+              </BentoCard>
               <View style={{ flexDirection: 'row', gap: 10, marginTop: 20 }}>
                 {[0, 1, 2].map((idx) => (
                   <Pressable
@@ -1442,7 +1484,7 @@ export default function LandingPage() {
               </View>
             </View>
 
-            {/* ── 12. FINAL CALL TO ACTION (ZERO EMOJIS, PURE SVGS) ── */}
+            {/* ── 12. FINAL CALL TO ACTION ── */}
             <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.ctaCardBanner}>
                 <View style={styles.sectionPill}>
@@ -1479,7 +1521,7 @@ export default function LandingPage() {
           </>
         )}
 
-        {/* ── 13. GLOBAL FOOTER (ZERO EMOJIS, PURE SVGS) ── */}
+        {/* ── 13. GLOBAL FOOTER ── */}
         <View style={styles.footerSection}>
           <View style={[styles.footerInner, { paddingHorizontal: containerPadding }]}>
             <View style={styles.footerBrandCol}>
