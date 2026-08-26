@@ -4,7 +4,7 @@
  * Implements full interactive hover states, 3D perspective card tilts, continuous auto-sliding
  * dual marquees, 3D swaying hero shield, pulsating orbital radar, and shooting star meteors.
  */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
