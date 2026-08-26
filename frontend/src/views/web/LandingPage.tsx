@@ -1,8 +1,8 @@
 /**
- * LandingPage — StudentAlumni AI Career Platform (Theme Parity Edition)
+ * LandingPage — StudentAlumni AI Career Platform (Unified Max-Width Alignment Edition)
  *
- * Implements the exact 2-3-2 Bento Grid layout, crisp linear outline SVGs,
- * 3D card tilt micro-interactions, and pure theme styling from the design specification.
+ * All sections are strictly unified with 100% width, consistent 1360px maxWidth container,
+ * symmetrical horizontal padding, and aligned vertical grid lines from navbar to footer.
  */
 import React, { useState, useEffect } from 'react';
 import {
@@ -84,10 +84,6 @@ function injectGlobalStyles() {
     .sa-btn-glow:hover { transform: translateY(-2px); filter: brightness(1.12); box-shadow: 0 8px 24px rgba(91,79,233,0.4) !important; }
     .sa-ghost-hover { transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease; cursor: pointer; }
     .sa-ghost-hover:hover { background: rgba(91,79,233,0.12) !important; border-color: #8B84FF !important; color: #FFFFFF !important; }
-
-    .sa-mq-wrap-l { display: flex; width: max-content; animation: sa-mq-l 38s linear infinite; }
-    .sa-mq-wrap-r { display: flex; width: max-content; animation: sa-mq-r 34s linear infinite; }
-    .sa-mq-wrap-l:hover, .sa-mq-wrap-r:hover { animation-play-state: paused; }
   `;
   document.head.appendChild(s);
 }
@@ -117,6 +113,7 @@ export default function LandingPage() {
   const { width } = useWindowDimensions();
   const isNarrow = width < 960;
   const isMobile = width < 640;
+  const containerPadding = isMobile ? 20 : isNarrow ? 32 : 44;
 
   // Active navigation tab
   const [activeTab, setActiveTab] = useState<'home' | 'events' | 'verify' | 'contact'>('home');
@@ -220,7 +217,7 @@ export default function LandingPage() {
 
       {/* Top Navbar */}
       <View style={styles.navBar}>
-        <View style={[styles.navInner, isNarrow && { flexWrap: 'wrap', gap: 14 }]}>
+        <View style={[styles.navInner, { paddingHorizontal: containerPadding }, isNarrow && { flexWrap: 'wrap', gap: 14 }]}>
           {/* Brand Logo */}
           <Pressable onPress={() => setActiveTab('home')} style={styles.navLogoGroup}>
             <Svg width="28" height="33" viewBox="0 0 300 350">
@@ -286,7 +283,7 @@ export default function LandingPage() {
             TAB: VERIFY CREDENTIALS & BGV DESK
         ══════════════════════════════════════════════════════════════════ */}
         {activeTab === 'verify' && (
-          <View style={styles.sectionContainer}>
+          <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
             {/* Verify Hero Card */}
             <View style={styles.verifyHeroCard}>
               <View style={styles.verifyTagPill}>
@@ -454,7 +451,7 @@ export default function LandingPage() {
             TAB: CONTACT US
         ══════════════════════════════════════════════════════════════════ */}
         {activeTab === 'contact' && (
-          <View style={styles.sectionContainer}>
+          <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
             <View style={styles.centeredHeader}>
               <View style={styles.sectionPill}>
                 <Text style={styles.sectionPillText}>CONTACT &amp; CAMPUS RELATIONS</Text>
@@ -522,7 +519,7 @@ export default function LandingPage() {
         {(activeTab === 'home' || activeTab === 'events') && (
           <>
             {/* ── 01. HERO SECTION ── */}
-            <View style={styles.heroSection}>
+            <View style={[styles.heroSection, { paddingHorizontal: containerPadding }]}>
               <View style={styles.heroLeftCol}>
                 <View style={styles.heroChip}>
                   <Svg width="14" height="14" viewBox="0 0 16 16" style={{ marginRight: 6 }}>
@@ -579,7 +576,7 @@ export default function LandingPage() {
             </View>
 
             {/* ── DUAL-ROW PARTNER MARQUEES ── */}
-            <View style={styles.marqueeContainer}>
+            <View style={[styles.marqueeContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.marqueeRow}>
                 <View style={styles.marqueeBadge}><Text style={styles.marqueeBadgeText}>COLLEGES</Text></View>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.marqueeScroll}>
@@ -599,7 +596,7 @@ export default function LandingPage() {
             </View>
 
             {/* ── 02. EVERYTHING YOU NEED (7-CARD BENTO: 2-3-2 THEME PARITY GRID) ── */}
-            <View style={styles.sectionContainer}>
+            <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.sectionPill}>
                 <Text style={styles.sectionPillText}>• EVERYTHING YOU NEED</Text>
               </View>
@@ -710,7 +707,7 @@ export default function LandingPage() {
             </View>
 
             {/* ── 03. COMMAND CENTER DASHBOARD ── */}
-            <View style={styles.sectionContainer}>
+            <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.sectionPill}>
                 <Text style={styles.sectionPillText}>▲ YOUR COMMAND CENTER</Text>
               </View>
@@ -798,7 +795,7 @@ export default function LandingPage() {
             </View>
 
             {/* ── 04. OUTCOMES ── */}
-            <View style={styles.sectionContainer}>
+            <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <Text style={styles.sectionPillText}>WHERE STUDENTS LANDED</Text>
               <Text style={styles.sectionHeadingH2}>Four students, four <Text style={{ color: T.indLt }}>first offers.</Text></Text>
               <View style={styles.outcomesGrid}>
@@ -819,7 +816,7 @@ export default function LandingPage() {
             </View>
 
             {/* ── 05. FOR ALUMNI ── */}
-            <View style={styles.sectionContainer}>
+            <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={[styles.alumniRow, isNarrow && { flexDirection: 'column' }]}>
                 <View style={styles.alumniLeftCol}>
                   <View style={styles.sectionPill}><Text style={styles.sectionPillText}>IF YOU ARE AN ALUMNUS</Text></View>
@@ -856,7 +853,7 @@ export default function LandingPage() {
             </View>
 
             {/* ── 07. AUDIENCES (4 BENTO PANELS WITH EXACT SVGS) ── */}
-            <View style={styles.sectionContainer}>
+            <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.sectionPill}><Text style={styles.sectionPillText}>• WHO IT IS FOR</Text></View>
               <Text style={styles.sectionHeadingH2}>Four points of view, <Text style={{ color: T.indLt }}>one graph.</Text></Text>
               <View style={styles.audiencesGrid}>
@@ -930,7 +927,7 @@ export default function LandingPage() {
             </View>
 
             {/* ── 06. NUMBERS WITH EXACT SVGS ── */}
-            <View style={styles.sectionContainer}>
+            <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.numbersWrapper}>
                 <Text style={styles.sectionPillText}>BY THE NUMBERS</Text>
                 <Text style={styles.sectionHeadingH2}>Trusted by students <Text style={{ color: T.indLt }}>worldwide</Text></Text>
@@ -982,7 +979,7 @@ export default function LandingPage() {
             </View>
 
             {/* ── 08. ROADMAP TIMELINE S-CURVE ── */}
-            <View style={styles.sectionContainer}>
+            <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.roadmapHeadingRow}>
                 <Text style={styles.sectionHeadingH2}>The roadmap fills in <Text style={{ color: T.indLt }}>as you scroll.</Text></Text>
                 <Text style={styles.roadmapSub}>DAY 1 → FIRST OFFER</Text>
@@ -1008,7 +1005,7 @@ export default function LandingPage() {
             </View>
 
             {/* ── 09. ON CAMPUS (5-CARD LAYERED POLAROID DECK) ── */}
-            <View style={styles.sectionContainer}>
+            <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={[styles.campusRow, isNarrow && { flexDirection: 'column' }]}>
                 <View style={styles.campusLeftCol}>
                   <View style={styles.sectionPill}><Text style={styles.sectionPillText}>ON CAMPUS</Text></View>
@@ -1097,7 +1094,7 @@ export default function LandingPage() {
             </View>
 
             {/* ── 10. MATCH GRAPH ORBITAL RADAR ── */}
-            <View style={styles.sectionContainer}>
+            <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.sectionPill}><Text style={styles.sectionPillText}>• HOW MATCHING WORKS</Text></View>
               <Text style={styles.sectionHeadingH2}>1,200+ verified mentors,<br /><Text style={{ color: T.indLt }}>ranked by fit.</Text></Text>
               <Text style={styles.sectionDesc}>Agent K scores every alumnus against your course, goals and city. Hover a node to see the connection and why it was chosen.</Text>
@@ -1143,7 +1140,7 @@ export default function LandingPage() {
             </View>
 
             {/* ── 10b. ON THE GROUND ECHO EVENTS ── */}
-            <View style={styles.sectionContainer}>
+            <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={[styles.onTheGroundCard, styles.tiltCard]}>
                 <View style={styles.otgTag}><Text style={styles.otgTagText}>• ON THE GROUND</Text></View>
                 <Text style={styles.otgTitle}>The network is a feed until it meets in person.</Text>
@@ -1153,7 +1150,7 @@ export default function LandingPage() {
                   <View><Text style={[styles.otgStatNum, { color: '#0E6E8C' }]}>31</Text><Text style={styles.otgStatLabel}>cities</Text></View>
                   <View><Text style={[styles.otgStatNum, { color: '#A21C63' }]}>4.8</Text><Text style={styles.otgStatLabel}>average rating</Text></View>
                 </View>
-                <View style={{ flexDirection: 'row', gap: 12, marginBottom: 28 }}>
+                <View style={{ flexDirection: 'row', gap: 12, marginBottom: 28, flexWrap: 'wrap' }}>
                   <Pressable onPress={() => setActiveTab('events')} style={[styles.verifySubmitBtn, { backgroundColor: '#4B3FD6' }]}>
                     <Text style={styles.verifySubmitBtnText}>See the events</Text>
                   </Pressable>
@@ -1171,7 +1168,7 @@ export default function LandingPage() {
             </View>
 
             {/* ── 11. TESTIMONIALS ── */}
-            <View style={styles.sectionContainer}>
+            <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.sectionPill}><Text style={styles.sectionPillText}>FROM THE NETWORK</Text></View>
               <Text style={styles.sectionHeadingH2}>Students, alumni <Text style={{ color: T.indLt }}>and offices.</Text></Text>
               <View style={styles.testimonialCard}>
@@ -1202,7 +1199,7 @@ export default function LandingPage() {
             </View>
 
             {/* ── 12. FINAL CALL TO ACTION ── */}
-            <View style={styles.sectionContainer}>
+            <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.ctaCardBanner}>
                 <View style={styles.sectionPill}><Text style={styles.sectionPillText}>⚡ START YOUR JOURNEY</Text></View>
                 <Text style={styles.ctaTitleH2}>Your career, quietly<br /><Text style={{ color: T.indLt }}>upgraded.</Text></Text>
@@ -1235,7 +1232,7 @@ export default function LandingPage() {
 
         {/* ── 13. GLOBAL FOOTER ── */}
         <View style={styles.footerSection}>
-          <View style={styles.footerInner}>
+          <View style={[styles.footerInner, { paddingHorizontal: containerPadding }]}>
             <View style={styles.footerBrandCol}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 }}>
                 <Svg width="24" height="28" viewBox="0 0 300 350">
@@ -1296,7 +1293,7 @@ export default function LandingPage() {
           </View>
 
           {/* Newsletter Box */}
-          <View style={styles.newsletterRow}>
+          <View style={[styles.newsletterRow, { marginHorizontal: 'auto' as any, maxWidth: 1360, width: '100%' }]}>
             <View style={{ flex: 1, minWidth: 260 }}>
               <Text style={styles.newsletterTitle}>One email a month. Nothing else.</Text>
               <Text style={styles.newsletterSub}>New openings, mentor drops and campus events — no noise.</Text>
@@ -1319,7 +1316,7 @@ export default function LandingPage() {
             </View>
           </View>
 
-          <View style={styles.footerBottomBar}>
+          <View style={[styles.footerBottomBar, { marginHorizontal: 'auto' as any, maxWidth: 1360, width: '100%', paddingHorizontal: containerPadding }]}>
             <View>
               <Text style={styles.footerBrandGrad}>#studentalumni</Text>
               <Text style={styles.footerCopyright}>Built with love for students <Text style={{ color: T.indLt }}>♥</Text> across all campus's</Text>
@@ -1332,7 +1329,7 @@ export default function LandingPage() {
 
       {/* Sticky Bottom Bar on Scroll */}
       {showStickyBar && (
-        <View style={styles.stickyBottomBar}>
+        <View style={[styles.stickyBottomBar, { paddingHorizontal: containerPadding }]}>
           <Text style={styles.stickyBottomText}>Free for students · about a minute to set up</Text>
           <View style={styles.stickyBottomActions}>
             <Pressable onPress={() => setActiveTab('contact')} style={styles.stickyGhostBtn}>
@@ -1353,12 +1350,17 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: T.bg,
+    alignItems: 'center',
+    width: '100%',
   },
   scroll: {
     flex: 1,
+    width: '100%',
   },
   scrollContent: {
+    width: '100%',
     paddingBottom: 20,
+    alignItems: 'center',
   },
   cursorGlow: {
     position: 'fixed' as any,
@@ -1408,15 +1410,17 @@ const styles = StyleSheet.create({
     position: 'sticky' as any,
     top: 0,
     zIndex: 100,
+    width: '100%',
     backgroundColor: 'rgba(5,6,15,0.85)',
     borderBottomWidth: 1,
     borderBottomColor: T.line,
     backdropFilter: 'blur(16px)' as any,
+    alignItems: 'center',
   },
   navInner: {
+    width: '100%',
     maxWidth: 1360,
     marginHorizontal: 'auto' as any,
-    paddingHorizontal: 40,
     paddingVertical: 15,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1495,9 +1499,9 @@ const styles = StyleSheet.create({
 
   /* ── 01 Hero ── */
   heroSection: {
+    width: '100%',
     maxWidth: 1360,
     marginHorizontal: 'auto' as any,
-    paddingHorizontal: 40,
     paddingTop: 90,
     paddingBottom: 40,
     flexDirection: 'row',
@@ -1593,9 +1597,9 @@ const styles = StyleSheet.create({
 
   /* ── Marquees ── */
   marqueeContainer: {
+    width: '100%',
     maxWidth: 1360,
     marginHorizontal: 'auto' as any,
-    paddingHorizontal: 40,
     marginTop: 40,
     marginBottom: 60,
     gap: 18,
@@ -1640,10 +1644,10 @@ const styles = StyleSheet.create({
 
   /* ── Shared Sections ── */
   sectionContainer: {
+    width: '100%',
     maxWidth: 1360,
     marginHorizontal: 'auto' as any,
-    paddingHorizontal: 40,
-    paddingVertical: 120,
+    paddingVertical: 100,
   },
   sectionPill: {
     alignSelf: 'flex-start',
@@ -1677,9 +1681,11 @@ const styles = StyleSheet.create({
 
   /* ── 02 Bento ── */
   bentoGridContainer: {
+    width: '100%',
     gap: 20,
   },
   bentoRow: {
+    width: '100%',
     flexDirection: 'row',
     gap: 20,
   },
@@ -1724,6 +1730,7 @@ const styles = StyleSheet.create({
 
   /* ── 03 Dashboard Frame ── */
   dashBrowserFrame: {
+    width: '100%',
     backgroundColor: T.surface,
     borderWidth: 1,
     borderColor: T.line,
@@ -1871,6 +1878,7 @@ const styles = StyleSheet.create({
 
   /* ── 04 Outcomes ── */
   outcomesGrid: {
+    width: '100%',
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 20,
@@ -1910,6 +1918,7 @@ const styles = StyleSheet.create({
 
   /* ── 05 For Alumni ── */
   alumniRow: {
+    width: '100%',
     flexDirection: 'row',
     gap: 64,
     alignItems: 'center',
@@ -1949,9 +1958,11 @@ const styles = StyleSheet.create({
 
   /* ── 07 Audiences ── */
   audiencesGrid: {
+    width: '100%',
     gap: 28,
   },
   audienceCard: {
+    width: '100%',
     backgroundColor: T.surface,
     borderWidth: 1,
     borderColor: T.line,
@@ -1995,6 +2006,7 @@ const styles = StyleSheet.create({
 
   /* ── 06 Numbers ── */
   numbersWrapper: {
+    width: '100%',
     backgroundColor: T.surface,
     borderWidth: 1,
     borderColor: T.line2,
@@ -2050,6 +2062,7 @@ const styles = StyleSheet.create({
 
   /* ── 08 Roadmap ── */
   roadmapHeadingRow: {
+    width: '100%',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
@@ -2066,6 +2079,7 @@ const styles = StyleSheet.create({
 
   /* ── 09 On Campus ── */
   campusRow: {
+    width: '100%',
     flexDirection: 'row',
     gap: 70,
     alignItems: 'center',
@@ -2125,6 +2139,7 @@ const styles = StyleSheet.create({
 
   /* ── 10 Match Graph ── */
   matchGraphRow: {
+    width: '100%',
     flexDirection: 'row',
     gap: 60,
     alignItems: 'center',
@@ -2159,6 +2174,7 @@ const styles = StyleSheet.create({
 
   /* ── 10b On the Ground ── */
   onTheGroundCard: {
+    width: '100%',
     backgroundColor: '#FFFFFF',
     borderRadius: 26,
     padding: 42,
@@ -2235,6 +2251,7 @@ const styles = StyleSheet.create({
 
   /* ── 11 Testimonials ── */
   testimonialCard: {
+    width: '100%',
     backgroundColor: T.surface,
     borderWidth: 1,
     borderColor: T.line,
@@ -2261,6 +2278,7 @@ const styles = StyleSheet.create({
 
   /* ── 12 CTA ── */
   ctaCardBanner: {
+    width: '100%',
     backgroundColor: T.cardHi,
     borderWidth: 1,
     borderColor: T.line2,
@@ -2335,7 +2353,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: T.line,
     backdropFilter: 'blur(16px)' as any,
-    paddingHorizontal: 40,
     paddingVertical: 14,
     flexDirection: 'row',
     alignItems: 'center',
@@ -2378,6 +2395,7 @@ const styles = StyleSheet.create({
 
   /* ── Verify View ── */
   verifyHeroCard: {
+    width: '100%',
     backgroundColor: '#FFFFFF',
     borderRadius: 26,
     padding: 42,
@@ -2545,6 +2563,7 @@ const styles = StyleSheet.create({
     color: T.indLt,
   },
   whatWeVerifyRow: {
+    width: '100%',
     flexDirection: 'row',
     gap: 16,
     flexWrap: 'wrap',
@@ -2583,6 +2602,7 @@ const styles = StyleSheet.create({
     color: T.muted2,
   },
   bgvDeskCard: {
+    width: '100%',
     backgroundColor: T.card,
     borderWidth: 1,
     borderColor: T.lineHi,
@@ -2672,6 +2692,7 @@ const styles = StyleSheet.create({
 
   /* ── Contact View ── */
   centeredHeader: {
+    width: '100%',
     alignItems: 'center',
     textAlign: 'center' as any,
     marginBottom: 44,
@@ -2692,6 +2713,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   hubsGrid: {
+    width: '100%',
     flexDirection: 'row',
     gap: 20,
     marginBottom: 20,
@@ -2725,6 +2747,7 @@ const styles = StyleSheet.create({
     marginVertical: 4,
   },
   inquiryCard: {
+    width: '100%',
     backgroundColor: T.card,
     borderWidth: 1,
     borderColor: T.line,
@@ -2765,15 +2788,17 @@ const styles = StyleSheet.create({
 
   /* ── 13 Footer ── */
   footerSection: {
+    width: '100%',
     borderTopWidth: 1,
     borderTopColor: T.line,
     backgroundColor: T.bg2,
     paddingTop: 70,
     paddingBottom: 80,
-    paddingHorizontal: 40,
     marginTop: 130,
+    alignItems: 'center',
   },
   footerInner: {
+    width: '100%',
     maxWidth: 1360,
     marginHorizontal: 'auto' as any,
     flexDirection: 'row',
@@ -2829,8 +2854,8 @@ const styles = StyleSheet.create({
     color: T.text2,
   },
   newsletterRow: {
+    width: '100%',
     maxWidth: 1360,
-    marginHorizontal: 'auto' as any,
     borderWidth: 1,
     borderColor: T.lineHi,
     borderRadius: 18,
@@ -2885,8 +2910,8 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   footerBottomBar: {
+    width: '100%',
     maxWidth: 1360,
-    marginHorizontal: 'auto' as any,
     paddingTop: 24,
     flexDirection: 'row',
     justifyContent: 'space-between',
