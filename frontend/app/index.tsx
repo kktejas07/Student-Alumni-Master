@@ -11,7 +11,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Svg, { Path, Text as SvgText, Defs, LinearGradient as SvgGrad, Stop } from 'react-native-svg';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
-import LandingPage from '@/src/views/web/nexus-glow-landing/NexusLanding';
+import LandingPage from '@/src/views/web/LandingPage';
 
 const IS_WEB = Platform.OS === 'web';
 

@@ -12,7 +12,7 @@ import { useRouter } from 'expo-router';
 import { ArrowRight, Sparkles, Users, Globe, Calendar } from 'lucide-react-native';
 import { Button, GlassCard, GradientBackground, SALogo } from '@/src/views/components';
 import { Colors as C, Gradients, Spacing, Typography } from '@/src/theme';
-import LandingPage from '@/src/views/web/nexus-glow-landing/NexusLanding';
+import LandingPage from '@/src/views/web/LandingPage';
 
 const { width } = Dimensions.get('window');
 
