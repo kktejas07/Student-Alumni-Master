@@ -14,7 +14,8 @@ ARG EXPO_PUBLIC_POSTHOG_KEY=""
 ARG EXPO_PUBLIC_POSTHOG_HOST=""
 ARG EXPO_PUBLIC_ANALYTICS_ENABLED="false"
 
-FROM node:22-alpine AS builder
+# Use Debian-based slim for 2-3x faster V8 & Metro Bundler compilation (glibc vs musl)
+FROM node:22-slim AS builder
 
 ARG EXPO_PUBLIC_BACKEND_URL
 ARG EXPO_PUBLIC_FIREBASE_API_KEY
@@ -45,18 +46,25 @@ ENV EXPO_PUBLIC_BACKEND_URL=${EXPO_PUBLIC_BACKEND_URL} \
 
 WORKDIR /app
 
-RUN apk add --no-cache git python3 make g++ libc6-compat bash
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    python3 \
+    make \
+    g++ \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY package.json yarn.lock* package-lock.json* ./
 RUN if [ -f yarn.lock ]; then yarn install --network-timeout 600000 --ignore-engines; \
     else npm install --no-audit --no-fund --legacy-peer-deps; fi
 
 # Invalidate cache for new code builds
-ARG CACHEBUST=20260826-v2
+ARG CACHEBUST=20260826-v3
 COPY . .
 
 RUN npx expo export --platform web --output-dir dist
 
+# Final production stage: Ultra-lightweight Nginx
 FROM nginx:1.27-alpine
 
 RUN apk add --no-cache curl gettext
