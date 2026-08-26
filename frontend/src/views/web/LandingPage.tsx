@@ -1,6 +1,6 @@
 /**
  * LandingPage — StudentAlumni AI Career Platform
- * Pixel-Perfect Bento Grid, 3D Tilt, Counter Motion, S-Curve Flow, and Layered Polaroid Deck
+ * High-Performance Vector SVGs, Rotating Radar Scan, Flowing S-Curve, Animated Testimonial Deck & 3D Interactive Bento
  */
 import React, { useState, useEffect, useRef } from 'react';
 import {
@@ -59,7 +59,7 @@ const T = {
 };
 
 /* ── Global Styles Injection for Web ── */
-const STYLES_KEY = 'sa-pixel-perfect-motion-css';
+const STYLES_KEY = 'sa-high-impact-motion-css';
 function injectGlobalStyles() {
   if (typeof document === 'undefined' || document.getElementById(STYLES_KEY)) return;
   const s = document.createElement('style');
@@ -69,23 +69,27 @@ function injectGlobalStyles() {
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; background: #05060F; font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif; color: #F4F5FB; overflow-x: hidden; }
     
-    @keyframes sa-pulse-glow { 0%, 100% { opacity: 0.4; transform: scale(1); } 50% { opacity: 0.75; transform: scale(1.08); } }
-    @keyframes sa-dash-flow { to { stroke-dashoffset: -120; } }
-    @keyframes sa-node-ping { 0% { r: 10px; opacity: 0.9; } 100% { r: 24px; opacity: 0; } }
-    @keyframes sa-float-slow { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+    @keyframes sa-pulse-glow { 0%, 100% { opacity: 0.35; transform: scale(1); } 50% { opacity: 0.8; transform: scale(1.08); } }
+    @keyframes sa-dash-flow { to { stroke-dashoffset: -200; } }
+    @keyframes sa-radar-sweep { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    @keyframes sa-float-slow { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
+    @keyframes sa-pulse-ring { 0% { transform: scale(0.9); opacity: 0.8; } 50% { transform: scale(1.3); opacity: 0.2; } 100% { transform: scale(0.9); opacity: 0.8; } }
 
     .sa-shield-glow { animation: sa-pulse-glow 7s ease-in-out infinite; }
-    .sa-roadmap-path { stroke-dasharray: 12, 10; animation: sa-dash-flow 6s linear infinite; }
+    .sa-roadmap-path { stroke-dasharray: 12, 10; animation: sa-dash-flow 4s linear infinite; }
+    .sa-radar-scanner { transform-origin: 310px 270px; animation: sa-radar-sweep 8s linear infinite; }
+    .sa-pulsing-node { animation: sa-pulse-ring 3s ease-in-out infinite; }
+    .sa-float-element { animation: sa-float-slow 5s ease-in-out infinite; }
 
     /* Bento Card Hover Physics */
     .sa-bento-card {
-      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.3s ease;
+      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.35s ease;
       cursor: pointer;
     }
     .sa-bento-card:hover {
-      transform: translateY(-6px) scale(1.012);
+      transform: translateY(-7px) scale(1.015);
       border-color: #5B4FE9 !important;
-      box-shadow: 0 20px 40px -15px rgba(91,79,233,0.35) !important;
+      box-shadow: 0 24px 48px -12px rgba(91,79,233,0.4) !important;
     }
 
     /* Glow Button Lift */
@@ -94,9 +98,9 @@ function injectGlobalStyles() {
       cursor: pointer;
     }
     .sa-glow-btn:hover {
-      transform: translateY(-2px);
-      filter: brightness(1.15);
-      box-shadow: 0 8px 24px rgba(91,79,233,0.5);
+      transform: translateY(-3px);
+      filter: brightness(1.18);
+      box-shadow: 0 10px 28px rgba(91,79,233,0.55);
     }
   `;
   document.head.appendChild(s);
@@ -237,16 +241,16 @@ function BentoCard({
       style={[
         style,
         {
-          transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.3s ease',
+          transition: 'transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.35s ease',
           cursor: 'pointer',
         } as any,
         hovered && {
-          transform: [{ translateY: -6 }, { scale: 1.012 }],
+          transform: [{ translateY: -7 }, { scale: 1.015 }],
           borderColor: hoverBorderColor,
           shadowColor: '#5B4FE9',
-          shadowOffset: { width: 0, height: 16 },
-          shadowOpacity: 0.35,
-          shadowRadius: 36,
+          shadowOffset: { width: 0, height: 20 },
+          shadowOpacity: 0.4,
+          shadowRadius: 40,
         },
       ]}
     >
@@ -281,12 +285,12 @@ function GlowButton({
           cursor: 'pointer',
         } as any,
         hovered && {
-          transform: [{ translateY: -2 }],
-          filter: 'brightness(1.12)',
+          transform: [{ translateY: -3 }],
+          filter: 'brightness(1.18)',
           shadowColor: '#5B4FE9',
-          shadowOffset: { width: 0, height: 8 },
-          shadowOpacity: 0.45,
-          shadowRadius: 20,
+          shadowOffset: { width: 0, height: 10 },
+          shadowOpacity: 0.55,
+          shadowRadius: 24,
         },
       ]}
     >
@@ -769,7 +773,7 @@ export default function LandingPage() {
             {/* ── 01. HERO SECTION ── */}
             <View style={[styles.heroSection, { paddingHorizontal: containerPadding }]}>
               <View style={styles.heroLeftCol}>
-                <View style={styles.heroChip}>
+                <View style={[styles.heroChip, { className: 'sa-float-element' } as any]}>
                   <Svg width="14" height="14" viewBox="0 0 16 16" style={{ marginRight: 6 }}>
                     <Path d="M8 0 l1.8 4.6 L14.5 6 l-3.6 3.1 1 4.9 L8 11.6 4.1 14 l1-4.9 L1.5 6 l4.7 -1.4 Z" fill="#8B84FF" />
                   </Svg>
@@ -847,7 +851,7 @@ export default function LandingPage() {
               </View>
             </View>
 
-            {/* ── 02. EVERYTHING YOU NEED (7-CARD BENTO GRID WITH THEME PARITY) ── */}
+            {/* ── 02. EVERYTHING YOU NEED (7-CARD BENTO GRID) ── */}
             <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.sectionPill}>
                 <Text style={styles.sectionPillText}>• EVERYTHING YOU NEED</Text>
@@ -1121,7 +1125,7 @@ export default function LandingPage() {
               </View>
             </View>
 
-            {/* ── 07. AUDIENCES (4 BENTO PANELS) ── */}
+            {/* ── 07. AUDIENCES (4 BENTO PANELS WITH ANIMATED SVGS) ── */}
             <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.sectionPill}><Text style={styles.sectionPillText}>• WHO IT IS FOR</Text></View>
               <Text style={styles.sectionHeadingH2}>Four points of view, <Text style={{ color: T.indLt }}>one graph.</Text></Text>
@@ -1247,40 +1251,48 @@ export default function LandingPage() {
               </View>
             </View>
 
-            {/* ── 08. ROADMAP TIMELINE S-CURVE (ANIMATED FLOW) ── */}
+            {/* ── 08. ROADMAP TIMELINE S-CURVE (ANIMATED DASH FLOW & PULSING MILESTONES) ── */}
             <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.roadmapHeadingRow}>
                 <Text style={styles.sectionHeadingH2}>The roadmap fills in <Text style={{ color: T.indLt }}>as you scroll.</Text></Text>
                 <Text style={styles.roadmapSub}>DAY 1 → FIRST OFFER</Text>
               </View>
               <View style={{ alignItems: 'center', width: '100%', marginVertical: 20 }}>
-                <Svg width="100%" height="220" viewBox="0 0 1280 300">
+                <Svg width="100%" height="240" viewBox="0 0 1280 300">
                   <Path
                     d="M30 230 C 210 230 220 70 360 70 S 560 230 700 230 S 880 60 1010 60 S 1220 170 1250 170"
-                    stroke="#5B4FE9"
-                    strokeWidth="4"
+                    stroke="#2A2E45"
+                    strokeWidth="5"
                     fill="none"
                   />
                   {/* Flowing animated dash stroke */}
                   <Path
                     d="M30 230 C 210 230 220 70 360 70 S 560 230 700 230 S 880 60 1010 60 S 1220 170 1250 170"
-                    stroke="#C08BFF"
-                    strokeWidth="3"
+                    stroke="#8B84FF"
+                    strokeWidth="4"
                     fill="none"
                     strokeDasharray="14,10"
+                    style={{ className: 'sa-roadmap-path' } as any}
                   />
                   
-                  {/* Milestones */}
-                  <Circle cx="30" cy="230" r="11" fill="#05060F" stroke="#8B84FF" strokeWidth="3" />
+                  {/* Glowing Milestone 01 */}
+                  <Circle cx="30" cy="230" r="14" fill="#5B4FE9" opacity="0.3" style={{ className: 'sa-pulsing-node' } as any} />
+                  <Circle cx="30" cy="230" r="9" fill="#05060F" stroke="#8B84FF" strokeWidth="3.5" />
                   <SvgText x="30" y="275" textAnchor="middle" fill="#F4F5FB" fontSize="18" fontWeight="700">01 Foundations</SvgText>
 
-                  <Circle cx="360" cy="70" r="11" fill="#05060F" stroke="#8B84FF" strokeWidth="3" />
+                  {/* Glowing Milestone 02 */}
+                  <Circle cx="360" cy="70" r="14" fill="#5B4FE9" opacity="0.3" style={{ className: 'sa-pulsing-node' } as any} />
+                  <Circle cx="360" cy="70" r="9" fill="#05060F" stroke="#8B84FF" strokeWidth="3.5" />
                   <SvgText x="360" y="35" textAnchor="middle" fill="#F4F5FB" fontSize="18" fontWeight="700">02 Skill plan</SvgText>
 
-                  <Circle cx="700" cy="230" r="11" fill="#05060F" stroke="#8B84FF" strokeWidth="3" />
+                  {/* Glowing Milestone 03 */}
+                  <Circle cx="700" cy="230" r="14" fill="#5B4FE9" opacity="0.3" style={{ className: 'sa-pulsing-node' } as any} />
+                  <Circle cx="700" cy="230" r="9" fill="#05060F" stroke="#8B84FF" strokeWidth="3.5" />
                   <SvgText x="700" y="275" textAnchor="middle" fill="#F4F5FB" fontSize="18" fontWeight="700">03 Opportunities</SvgText>
 
-                  <Circle cx="1010" cy="60" r="11" fill="#05060F" stroke="#8B84FF" strokeWidth="3" />
+                  {/* Glowing Milestone 04 */}
+                  <Circle cx="1010" cy="60" r="14" fill="#5B4FE9" opacity="0.3" style={{ className: 'sa-pulsing-node' } as any} />
+                  <Circle cx="1010" cy="60" r="9" fill="#05060F" stroke="#8B84FF" strokeWidth="3.5" />
                   <SvgText x="1010" y="25" textAnchor="middle" fill="#F4F5FB" fontSize="18" fontWeight="700">04 Full-time</SvgText>
                 </Svg>
               </View>
@@ -1375,11 +1387,11 @@ export default function LandingPage() {
               </View>
             </View>
 
-            {/* ── 10. MATCH GRAPH ORBITAL RADAR ── */}
+            {/* ── 10. MATCH GRAPH ORBITAL RADAR (SWEEPING RADAR BEAM & GLOWING NODES) ── */}
             <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.sectionPill}><Text style={styles.sectionPillText}>• HOW MATCHING WORKS</Text></View>
               <Text style={styles.sectionHeadingH2}>1,200+ verified mentors,<br /><Text style={{ color: T.indLt }}>ranked by fit.</Text></Text>
-              <Text style={styles.sectionDesc}>Agent K scores every alumnus against your course, goals and city. Hover a node to see the connection and why it was chosen.</Text>
+              <Text style={styles.sectionDesc}>Agent K scores every alumnus against your course, goals and city. Click any node to inspect their live fit score and matching rationale.</Text>
 
               <View style={[styles.matchGraphRow, isNarrow && { flexDirection: 'column' }]}>
                 {/* Detail Box */}
@@ -1389,17 +1401,34 @@ export default function LandingPage() {
                   <Text style={styles.matchDetailWhy}>{selectedNode.why}</Text>
                 </BentoCard>
 
-                {/* Radar SVG with pulsing wave */}
+                {/* Radar SVG with active rotating beam scanner */}
                 <View style={{ flex: 1, alignItems: 'center' }}>
-                  <Svg width="100%" height="320" viewBox="0 0 620 540">
+                  <Svg width="100%" height="340" viewBox="0 0 620 540">
+                    <Defs>
+                      <LinearGradient id="radarSweepGrad" x1="0" y1="0" x2="1" y2="1">
+                        <Stop offset="0" stopColor="#8B84FF" stopOpacity="0.4" />
+                        <Stop offset="0.6" stopColor="#5B4FE9" stopOpacity="0.1" />
+                        <Stop offset="1" stopColor="transparent" stopOpacity="0" />
+                      </LinearGradient>
+                    </Defs>
+
+                    {/* Orbital Rings */}
                     <Circle cx="310" cy="270" r="128" stroke="#1B1E33" strokeDasharray="4,8" fill="none" strokeWidth="1.2" />
                     <Circle cx="310" cy="270" r="206" stroke="#1B1E33" strokeDasharray="4,8" fill="none" strokeWidth="1.2" />
-                    <Line x1="310" y1="270" x2={selectedNode.x} y2={selectedNode.y} stroke="#8B84FF" strokeWidth="1.6" strokeDasharray="5,6" />
+                    
+                    {/* Rotating Radar Scanner Beam */}
+                    <G style={{ className: 'sa-radar-scanner' } as any}>
+                      <Path d="M310 270 L 516 270 A 206 206 0 0 1 455 415 Z" fill="url(#radarSweepGrad)" />
+                    </G>
+
+                    {/* Selected Node Target Line */}
+                    <Line x1="310" y1="270" x2={selectedNode.x} y2={selectedNode.y} stroke="#8B84FF" strokeWidth="2" strokeDasharray="5,6" />
                     
                     {/* Live pulse wave */}
                     <Circle cx="310" cy="270" r="80" stroke="#5B4FE9" strokeWidth="1.5" fill="none" opacity="0.4" />
                     
-                    <Circle cx="310" cy="270" r="52" fill="#0C0E1B" stroke="#5B4FE9" strokeWidth="2" />
+                    {/* Center User Hub */}
+                    <Circle cx="310" cy="270" r="52" fill="#0C0E1B" stroke="#8B84FF" strokeWidth="2.5" />
                     <SvgText x="310" y="266" textAnchor="middle" fill="#F4F5FB" fontSize="16" fontWeight="800">YOU</SvgText>
                     <SvgText x="310" y="286" textAnchor="middle" fill="#9AA0B4" fontSize="10" fontWeight="700">YEAR 3</SvgText>
 
@@ -1410,16 +1439,38 @@ export default function LandingPage() {
                       { x: 310, y: 408, score: '85', name: 'Rohit K. — Finance, Mumbai', why: 'Alumnus of your college, hiring two summer interns.' },
                       { x: 190, y: 339, score: '81', name: 'Sana T. — Research, Delhi', why: 'Published in your field, open to weekly calls.' },
                       { x: 190, y: 201, score: '76', name: 'Dev P. — Engineering, Hyderabad', why: 'Took the same electives. Answers within a day.' },
-                    ].map((node, i) => (
-                      <G
-                        key={i}
-                        onPress={() => setSelectedNode({ name: node.name, why: node.why, x: String(node.x), y: String(node.y) })}
-                        style={{ cursor: 'pointer' }}
-                      >
-                        <Circle cx={node.x} cy={node.y} r="32" fill="#0C0E1B" stroke={selectedNode.x === String(node.x) && selectedNode.y === String(node.y) ? '#8B84FF' : '#2A2E45'} strokeWidth={selectedNode.x === String(node.x) && selectedNode.y === String(node.y) ? 2.4 : 1.6} />
-                        <SvgText x={node.x} y={node.y + 5} textAnchor="middle" fill={selectedNode.x === String(node.x) && selectedNode.y === String(node.y) ? '#FFFFFF' : '#8B84FF'} fontSize="13" fontWeight="700">{node.score}</SvgText>
-                      </G>
-                    ))}
+                    ].map((node, i) => {
+                      const isSelected = selectedNode.x === String(node.x) && selectedNode.y === String(node.y);
+                      return (
+                        <G
+                          key={i}
+                          onPress={() => setSelectedNode({ name: node.name, why: node.why, x: String(node.x), y: String(node.y) })}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          {isSelected && (
+                            <Circle cx={node.x} cy={node.y} r="38" fill="#5B4FE9" opacity="0.35" style={{ className: 'sa-pulsing-node' } as any} />
+                          )}
+                          <Circle
+                            cx={node.x}
+                            cy={node.y}
+                            r="32"
+                            fill="#0C0E1B"
+                            stroke={isSelected ? '#8B84FF' : '#2A2E45'}
+                            strokeWidth={isSelected ? 2.8 : 1.6}
+                          />
+                          <SvgText
+                            x={node.x}
+                            y={node.y + 5}
+                            textAnchor="middle"
+                            fill={isSelected ? '#FFFFFF' : '#8B84FF'}
+                            fontSize="13"
+                            fontWeight="700"
+                          >
+                            {node.score}
+                          </SvgText>
+                        </G>
+                      );
+                    })}
                   </Svg>
                 </View>
               </View>
@@ -1453,7 +1504,7 @@ export default function LandingPage() {
               </BentoCard>
             </View>
 
-            {/* ── 11. TESTIMONIALS ── */}
+            {/* ── 11. TESTIMONIALS (ANIMATED CROSS-FADE DECK) ── */}
             <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.sectionPill}><Text style={styles.sectionPillText}>FROM THE NETWORK</Text></View>
               <Text style={styles.sectionHeadingH2}>Students, alumni <Text style={{ color: T.indLt }}>and offices.</Text></Text>
@@ -1478,7 +1529,7 @@ export default function LandingPage() {
                   <Pressable
                     key={idx}
                     onPress={() => setQuoteIdx(idx)}
-                    style={{ width: 30, height: 3, borderRadius: 2, backgroundColor: quoteIdx === idx ? T.indLt : T.line }}
+                    style={{ width: 30, height: 4, borderRadius: 2, backgroundColor: quoteIdx === idx ? T.indLt : T.line, cursor: 'pointer' }}
                   />
                 ))}
               </View>
@@ -2890,7 +2941,6 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '700',
     color: T.text,
-    marginBottom: 7,
   },
   verifyFeatureDesc: {
     fontSize: 14,
