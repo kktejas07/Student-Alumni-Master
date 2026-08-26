@@ -2534,11 +2534,6 @@ const styles = StyleSheet.create({
     color: T.muted2,
     marginBottom: 28,
   },
-  inquirySub: {
-    fontSize: 14.5,
-    color: T.muted2,
-    marginBottom: 20,
-  },
   purposePillsRow: {
     flexDirection: 'row',
     gap: 10,
