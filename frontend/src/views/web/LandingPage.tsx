@@ -1,6 +1,6 @@
 /**
  * LandingPage — StudentAlumni AI Career Platform
- * High-Performance Vector SVGs, Rotating Radar Scan, Flowing S-Curve, Animated Testimonial Deck & 3D Interactive Bento
+ * Scroll-Linked Roadmap S-Curve, Viewport-Triggered Counter Physics, 3D Physical Polaroid Card Stack & Interactive Audience Motion
  */
 import React, { useState, useEffect, useRef } from 'react';
 import {
@@ -59,7 +59,7 @@ const T = {
 };
 
 /* ── Global Styles Injection for Web ── */
-const STYLES_KEY = 'sa-high-impact-motion-css';
+const STYLES_KEY = 'sa-interactive-motion-css';
 function injectGlobalStyles() {
   if (typeof document === 'undefined' || document.getElementById(STYLES_KEY)) return;
   const s = document.createElement('style');
@@ -70,38 +70,12 @@ function injectGlobalStyles() {
     html, body { margin: 0; padding: 0; background: #05060F; font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif; color: #F4F5FB; overflow-x: hidden; }
     
     @keyframes sa-pulse-glow { 0%, 100% { opacity: 0.35; transform: scale(1); } 50% { opacity: 0.8; transform: scale(1.08); } }
-    @keyframes sa-dash-flow { to { stroke-dashoffset: -200; } }
-    @keyframes sa-radar-sweep { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    @keyframes sa-radar-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     @keyframes sa-float-slow { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
-    @keyframes sa-pulse-ring { 0% { transform: scale(0.9); opacity: 0.8; } 50% { transform: scale(1.3); opacity: 0.2; } 100% { transform: scale(0.9); opacity: 0.8; } }
 
     .sa-shield-glow { animation: sa-pulse-glow 7s ease-in-out infinite; }
-    .sa-roadmap-path { stroke-dasharray: 12, 10; animation: sa-dash-flow 4s linear infinite; }
-    .sa-radar-scanner { transform-origin: 310px 270px; animation: sa-radar-sweep 8s linear infinite; }
-    .sa-pulsing-node { animation: sa-pulse-ring 3s ease-in-out infinite; }
-    .sa-float-element { animation: sa-float-slow 5s ease-in-out infinite; }
-
-    /* Bento Card Hover Physics */
-    .sa-bento-card {
-      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.35s ease;
-      cursor: pointer;
-    }
-    .sa-bento-card:hover {
-      transform: translateY(-7px) scale(1.015);
-      border-color: #5B4FE9 !important;
-      box-shadow: 0 24px 48px -12px rgba(91,79,233,0.4) !important;
-    }
-
-    /* Glow Button Lift */
-    .sa-glow-btn {
-      transition: transform 0.2s ease, filter 0.2s ease, box-shadow 0.2s ease;
-      cursor: pointer;
-    }
-    .sa-glow-btn:hover {
-      transform: translateY(-3px);
-      filter: brightness(1.18);
-      box-shadow: 0 10px 28px rgba(91,79,233,0.55);
-    }
+    .sa-radar-spin { transform-origin: 310px 270px; animation: sa-radar-spin 7s linear infinite; }
+    .sa-float-slow { animation: sa-float-slow 5s ease-in-out infinite; }
   `;
   document.head.appendChild(s);
 }
@@ -126,32 +100,44 @@ const INDUSTRY_MARQUEE = [
   'EXtrive Innovations', 'Larsen & Toubro', 'LinkedIn', 'Google', 'McKinsey',
 ];
 
-/* ── Animated Number Counter Component ── */
-function Counter({ value, suffix = '', style }: { value: number; suffix?: string; style?: any }) {
-  const [count, setCount] = useState(0);
+/* ── Scroll-Triggered Animated Number Counter Component ── */
+function ScrollCounter({
+  target,
+  suffix = '',
+  trigger = true,
+  style,
+}: {
+  target: number;
+  suffix?: string;
+  trigger?: boolean;
+  style?: any;
+}) {
+  const [displayValue, setDisplayValue] = useState(0);
 
   useEffect(() => {
-    let start = 0;
-    const end = value;
-    const duration = 1200;
-    const stepTime = 20;
-    const steps = duration / stepTime;
-    const increment = end / steps;
+    if (!trigger) return;
+    let startTime: number | null = null;
+    const duration = 1600;
 
-    const timer = setInterval(() => {
-      start += increment;
-      if (start >= end) {
-        setCount(end);
-        clearInterval(timer);
+    const animateCount = (timestamp: number) => {
+      if (!startTime) startTime = timestamp;
+      const progress = Math.min((timestamp - startTime) / duration, 1);
+      // Ease out cubic: 1 - (1 - progress)^3
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+      setDisplayValue(Math.floor(easeOut * target));
+
+      if (progress < 1) {
+        requestAnimationFrame(animateCount);
       } else {
-        setCount(Math.floor(start));
+        setDisplayValue(target);
       }
-    }, stepTime);
+    };
 
-    return () => clearInterval(timer);
-  }, [value]);
+    const handle = requestAnimationFrame(animateCount);
+    return () => cancelAnimationFrame(handle);
+  }, [target, trigger]);
 
-  return <Text style={style}>{count.toLocaleString('en-IN')}{suffix}</Text>;
+  return <Text style={style}>{displayValue.toLocaleString('en-IN')}{suffix}</Text>;
 }
 
 /* ── Pure React Native Animated Marquee Component ── */
@@ -222,15 +208,19 @@ function Marquee({
   );
 }
 
-/* ── Interactive Bento Hover Card Component ── */
-function BentoCard({
+/* ── Interactive 3D Card Component with Web Physics ── */
+function HoverLiftCard({
   children,
   style,
   hoverBorderColor = '#5B4FE9',
+  scaleOnHover = 1.018,
+  glowColor = 'rgba(91,79,233,0.35)',
 }: {
   children: React.ReactNode;
   style?: any;
   hoverBorderColor?: string;
+  scaleOnHover?: number;
+  glowColor?: string;
 }) {
   const [hovered, setHovered] = useState(false);
 
@@ -241,16 +231,16 @@ function BentoCard({
       style={[
         style,
         {
-          transition: 'transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.35s ease',
+          transition: 'transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.32s ease',
           cursor: 'pointer',
         } as any,
         hovered && {
-          transform: [{ translateY: -7 }, { scale: 1.015 }],
+          transform: [{ translateY: -7 }, { scale: scaleOnHover }],
           borderColor: hoverBorderColor,
           shadowColor: '#5B4FE9',
-          shadowOffset: { width: 0, height: 20 },
-          shadowOpacity: 0.4,
-          shadowRadius: 40,
+          shadowOffset: { width: 0, height: 18 },
+          shadowOpacity: 0.45,
+          shadowRadius: 36,
         },
       ]}
     >
@@ -309,6 +299,10 @@ export default function LandingPage() {
   // Active navigation tab
   const [activeTab, setActiveTab] = useState<'home' | 'events' | 'verify' | 'contact'>('home');
 
+  // Scroll position & sticky bar
+  const [scrollY, setScrollY] = useState(0);
+  const showStickyBar = scrollY > 600;
+
   // Verify view state
   const [verifyInput, setVerifyInput] = useState('');
   const [verifyResult, setVerifyResult] = useState<{
@@ -336,12 +330,10 @@ export default function LandingPage() {
     y: '132',
   });
 
-  // On Campus & Testimonials auto-cycling
+  // On Campus Polaroid Deck & Testimonials auto-cycling
   const [deckIdx, setDeckIdx] = useState(0);
   const [quoteIdx, setQuoteIdx] = useState(0);
   const [subscribed, setSubscribed] = useState(false);
-  const [scrollY, setScrollY] = useState(0);
-  const showStickyBar = scrollY > 600;
 
   // Swaying shield animated value
   const swayAnim = useRef(new Animated.Value(0)).current;
@@ -374,7 +366,7 @@ export default function LandingPage() {
     outputRange: [0, -14],
   });
 
-  // Cursor following glow (web only)
+  // Dynamic Cursor Glow
   const [mousePos, setMousePos] = useState({ x: -500, y: -500 });
 
   useEffect(() => {
@@ -386,6 +378,7 @@ export default function LandingPage() {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
+  // Deck auto-cycling
   useEffect(() => {
     const timer = setInterval(() => {
       setDeckIdx((p) => (p + 1) % 5);
@@ -393,6 +386,15 @@ export default function LandingPage() {
     }, 4500);
     return () => clearInterval(timer);
   }, []);
+
+  // Scroll-linked Roadmap S-Curve filling calculation
+  // The roadmap section appears around Y: 1800 to 2600.
+  const roadmapScrollProgress = Math.min(1, Math.max(0, (scrollY - 1500) / 750));
+  const PATH_TOTAL_LENGTH = 1350;
+  const roadmapStrokeDashoffset = PATH_TOTAL_LENGTH * (1 - roadmapScrollProgress);
+
+  // Numbers Section Trigger
+  const numbersTrigger = scrollY > 1200 || activeTab !== 'home';
 
   const triggerVerification = (targetId?: string) => {
     const q = (targetId !== undefined ? targetId : verifyInput).trim().toUpperCase();
@@ -598,7 +600,7 @@ export default function LandingPage() {
 
             {/* What We Verify */}
             <View style={styles.whatWeVerifyRow}>
-              <BentoCard style={styles.verifyFeatureCard}>
+              <HoverLiftCard style={styles.verifyFeatureCard}>
                 <View style={styles.verifySvgIconBox}>
                   <Svg width="18" height="18" viewBox="0 0 24 24">
                     <Path d="M5 12.5l4 4 10-10.5" stroke="#0E6E8C" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
@@ -606,8 +608,8 @@ export default function LandingPage() {
                 </View>
                 <Text style={styles.verifyFeatureTitle}>Certificates</Text>
                 <Text style={styles.verifyFeatureDesc}>Workshop and course completion, with issuing body and date.</Text>
-              </BentoCard>
-              <BentoCard style={styles.verifyFeatureCard}>
+              </HoverLiftCard>
+              <HoverLiftCard style={styles.verifyFeatureCard}>
                 <View style={styles.verifySvgIconBox}>
                   <Svg width="18" height="18" viewBox="0 0 24 24">
                     <Path d="M5 12.5l4 4 10-10.5" stroke="#5B4FE9" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
@@ -615,8 +617,8 @@ export default function LandingPage() {
                 </View>
                 <Text style={styles.verifyFeatureTitle}>Member IDs</Text>
                 <Text style={styles.verifyFeatureDesc}>Confirms live college affiliation, department, and graduation year.</Text>
-              </BentoCard>
-              <BentoCard style={styles.verifyFeatureCard}>
+              </HoverLiftCard>
+              <HoverLiftCard style={styles.verifyFeatureCard}>
                 <View style={styles.verifySvgIconBox}>
                   <Svg width="18" height="18" viewBox="0 0 24 24">
                     <Path d="M5 12.5l4 4 10-10.5" stroke="#B45309" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
@@ -624,7 +626,7 @@ export default function LandingPage() {
                 </View>
                 <Text style={styles.verifyFeatureTitle}>ECHO Badges</Text>
                 <Text style={styles.verifyFeatureDesc}>Non-transferable, cryptographically bound, scannable at the campus gate.</Text>
-              </BentoCard>
+              </HoverLiftCard>
             </View>
 
             {/* BGV Request Desk Form Card */}
@@ -691,7 +693,7 @@ export default function LandingPage() {
 
             {/* Hubs */}
             <View style={[styles.hubsGrid, isNarrow && { flexDirection: 'column' }]}>
-              <BentoCard style={styles.hubCard}>
+              <HoverLiftCard style={styles.hubCard}>
                 <Text style={styles.hubRegionTag}>APAC HEADQUARTERS</Text>
                 <Text style={styles.hubTitle}>India Hub (Hyderabad)</Text>
                 <View style={styles.hubIconRow}>
@@ -710,9 +712,9 @@ export default function LandingPage() {
                   <Svg width="16" height="16" viewBox="0 0 24 24"><Circle cx="12" cy="12" r="10" stroke="#8B84FF" strokeWidth="1.8" fill="none" /><Path d="M12 6v6l4 2" stroke="#8B84FF" strokeWidth="1.8" fill="none" /></Svg>
                   <Text style={styles.hubLine}>Mon – Sat: 9:00 AM – 7:00 PM IST</Text>
                 </View>
-              </BentoCard>
+              </HoverLiftCard>
 
-              <BentoCard style={styles.hubCard}>
+              <HoverLiftCard style={styles.hubCard}>
                 <Text style={[styles.hubRegionTag, { color: '#6FA8F5' }]}>AMERICAS &amp; GLOBAL</Text>
                 <Text style={styles.hubTitle}>USA Hub (Princeton)</Text>
                 <View style={styles.hubIconRow}>
@@ -731,7 +733,7 @@ export default function LandingPage() {
                   <Svg width="16" height="16" viewBox="0 0 24 24"><Circle cx="12" cy="12" r="10" stroke="#6FA8F5" strokeWidth="1.8" fill="none" /><Path d="M12 6v6l4 2" stroke="#6FA8F5" strokeWidth="1.8" fill="none" /></Svg>
                   <Text style={styles.hubLine}>Mon – Fri: 9:00 AM – 6:00 PM EST</Text>
                 </View>
-              </BentoCard>
+              </HoverLiftCard>
             </View>
 
             {/* Inquiry Form */}
@@ -773,7 +775,7 @@ export default function LandingPage() {
             {/* ── 01. HERO SECTION ── */}
             <View style={[styles.heroSection, { paddingHorizontal: containerPadding }]}>
               <View style={styles.heroLeftCol}>
-                <View style={[styles.heroChip, { className: 'sa-float-element' } as any]}>
+                <View style={[styles.heroChip, { className: 'sa-float-slow' } as any]}>
                   <Svg width="14" height="14" viewBox="0 0 16 16" style={{ marginRight: 6 }}>
                     <Path d="M8 0 l1.8 4.6 L14.5 6 l-3.6 3.1 1 4.9 L8 11.6 4.1 14 l1-4.9 L1.5 6 l4.7 -1.4 Z" fill="#8B84FF" />
                   </Svg>
@@ -863,7 +865,7 @@ export default function LandingPage() {
                 {/* ROW 1: 01 Agent K (Large) + 02 Mentors */}
                 <View style={[styles.bentoRow, isNarrow && { flexDirection: 'column' }]}>
                   {/* 01 Agent K */}
-                  <BentoCard style={[styles.bentoCard, { flex: 1.68, minWidth: 320 }]}>
+                  <HoverLiftCard style={[styles.bentoCard, { flex: 1.68, minWidth: 320 }]}>
                     <Text style={styles.bentoNumber}>01</Text>
                     <View style={styles.bentoIconBadge}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
@@ -875,10 +877,10 @@ export default function LandingPage() {
                     <Text style={styles.bentoBody}>
                       Your always-on AI career copilot. Ask anything: resume tips, interview prep, salary negotiation. Agent K remembers your goals and grows with you.
                     </Text>
-                  </BentoCard>
+                  </HoverLiftCard>
 
                   {/* 02 Mentors */}
-                  <BentoCard style={[styles.bentoCard, { flex: 1, minWidth: 260 }]}>
+                  <HoverLiftCard style={[styles.bentoCard, { flex: 1, minWidth: 260 }]}>
                     <Text style={styles.bentoNumber}>02</Text>
                     <View style={styles.bentoIconBadge}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
@@ -888,13 +890,13 @@ export default function LandingPage() {
                     </View>
                     <Text style={styles.bentoTitle}>Mentors</Text>
                     <Text style={styles.bentoBody}>One-on-one sessions with alumni from Google, McKinsey, Goldman &amp; more. Book, chat, level up.</Text>
-                  </BentoCard>
+                  </HoverLiftCard>
                 </View>
 
                 {/* ROW 2: 03 Events + 04 Student Perks + 05 Career Opportunities */}
                 <View style={[styles.bentoRow, isNarrow && { flexDirection: 'column' }]}>
                   {/* 03 Events */}
-                  <BentoCard style={[styles.bentoCard, { flex: 1, minWidth: 220 }]}>
+                  <HoverLiftCard style={[styles.bentoCard, { flex: 1, minWidth: 220 }]}>
                     <Text style={styles.bentoNumber}>03</Text>
                     <View style={styles.bentoIconBadge}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
@@ -904,10 +906,10 @@ export default function LandingPage() {
                     </View>
                     <Text style={styles.bentoTitle}>Events</Text>
                     <Text style={styles.bentoBody}>Workshops, hackathons, and industry panels curated to your track and semester.</Text>
-                  </BentoCard>
+                  </HoverLiftCard>
 
                   {/* 04 Student Perks */}
-                  <BentoCard style={[styles.bentoCard, { flex: 1, minWidth: 220 }]}>
+                  <HoverLiftCard style={[styles.bentoCard, { flex: 1, minWidth: 220 }]}>
                     <Text style={styles.bentoNumber}>04</Text>
                     <View style={styles.bentoIconBadge}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
@@ -917,10 +919,10 @@ export default function LandingPage() {
                     </View>
                     <Text style={styles.bentoTitle}>Student Perks</Text>
                     <Text style={styles.bentoBody}>Unlock exclusive student deals and discounts on mentorship, courses, and partner services.</Text>
-                  </BentoCard>
+                  </HoverLiftCard>
 
                   {/* 05 Career Opportunities */}
-                  <BentoCard style={[styles.bentoCard, { flex: 1.45, minWidth: 280, borderColor: '#5B4FE9', backgroundColor: 'rgba(91,79,233,0.08)' }]} hoverBorderColor="#8B84FF">
+                  <HoverLiftCard style={[styles.bentoCard, { flex: 1.45, minWidth: 280, borderColor: '#5B4FE9', backgroundColor: 'rgba(91,79,233,0.08)' }]} hoverBorderColor="#8B84FF">
                     <Text style={[styles.bentoNumber, { color: '#8B84FF' }]}>05</Text>
                     <View style={[styles.bentoIconBadge, { backgroundColor: '#5B4FE9', borderColor: '#8B84FF' }]}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
@@ -930,13 +932,13 @@ export default function LandingPage() {
                     </View>
                     <Text style={[styles.bentoTitle, { color: '#8B84FF' }]}>Career Opportunities</Text>
                     <Text style={styles.bentoBody}>Personalized opportunity feed sourced from partner companies and warm alumni referrals.</Text>
-                  </BentoCard>
+                  </HoverLiftCard>
                 </View>
 
                 {/* ROW 3: 06 Resume Polish + 07 Career Roadmap */}
                 <View style={[styles.bentoRow, isNarrow && { flexDirection: 'column' }]}>
                   {/* 06 Resume Polish */}
-                  <BentoCard style={[styles.bentoCard, { flex: 1, minWidth: 260 }]}>
+                  <HoverLiftCard style={[styles.bentoCard, { flex: 1, minWidth: 260 }]}>
                     <Text style={styles.bentoNumber}>06</Text>
                     <View style={styles.bentoIconBadge}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
@@ -945,10 +947,10 @@ export default function LandingPage() {
                     </View>
                     <Text style={styles.bentoTitle}>Resume Polish</Text>
                     <Text style={styles.bentoBody}>Instant AI rewrites with ATS scoring, role-specific keywords, and beautiful design templates.</Text>
-                  </BentoCard>
+                  </HoverLiftCard>
 
                   {/* 07 Career Roadmap */}
-                  <BentoCard style={[styles.bentoCard, { flex: 1.68, minWidth: 320 }]}>
+                  <HoverLiftCard style={[styles.bentoCard, { flex: 1.68, minWidth: 320 }]}>
                     <Text style={styles.bentoNumber}>07</Text>
                     <View style={styles.bentoIconBadge}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
@@ -957,7 +959,7 @@ export default function LandingPage() {
                     </View>
                     <Text style={styles.bentoTitle}>Career Roadmap</Text>
                     <Text style={styles.bentoBody}>Visual step-by-step plan from Day 1 to your first offer auto-updated as your goals evolve.</Text>
-                  </BentoCard>
+                  </HoverLiftCard>
                 </View>
               </View>
             </View>
@@ -1001,18 +1003,18 @@ export default function LandingPage() {
                   {/* Right Main Stats */}
                   <View style={styles.dashMainCol}>
                     <View style={styles.kpiTilesRow}>
-                      <BentoCard style={styles.kpiTile}>
+                      <HoverLiftCard style={styles.kpiTile}>
                         <Text style={styles.kpiHeader}>ACTIVE APPLICATIONS</Text>
                         <Text style={styles.kpiNumber}>12 <Text style={styles.kpiSub}>↗ +3 this week</Text></Text>
-                      </BentoCard>
-                      <BentoCard style={styles.kpiTile}>
+                      </HoverLiftCard>
+                      <HoverLiftCard style={styles.kpiTile}>
                         <Text style={styles.kpiHeader}>MENTOR HOURS</Text>
                         <Text style={styles.kpiNumber}>8.5h <Text style={styles.kpiSub}>↗ +2h vs last mo</Text></Text>
-                      </BentoCard>
-                      <BentoCard style={styles.kpiTile}>
+                      </HoverLiftCard>
+                      <HoverLiftCard style={styles.kpiTile}>
                         <Text style={styles.kpiHeader}>SKILL BADGES</Text>
                         <Text style={[styles.kpiNumber, { color: '#8B84FF' }]}>2,450</Text>
-                      </BentoCard>
+                      </HoverLiftCard>
                     </View>
 
                     {/* Agent K Priority Checklist */}
@@ -1078,12 +1080,12 @@ export default function LandingPage() {
                   { name: 'Ira S.', info: "Design '26 · Remote", story: 'Portfolio review with a design lead, then a referral into her shortlist.', role: 'PRODUCT DESIGN INTERN' },
                   { name: 'Dev P.', info: "MBA '25 · Mumbai", story: 'Used the roadmap to pick electives that matched his target role.', role: 'STRATEGY ASSOCIATE' },
                 ].map((item, i) => (
-                  <BentoCard key={i} style={styles.outcomeTile}>
+                  <HoverLiftCard key={i} style={styles.outcomeTile}>
                     <Text style={styles.outcomeInfo}>{item.info}</Text>
                     <Text style={styles.outcomeName}>{item.name}</Text>
                     <Text style={styles.outcomeStory}>{item.story}</Text>
                     <Text style={styles.outcomeRole}>{item.role}</Text>
-                  </BentoCard>
+                  </HoverLiftCard>
                 ))}
               </View>
             </View>
@@ -1125,13 +1127,13 @@ export default function LandingPage() {
               </View>
             </View>
 
-            {/* ── 07. AUDIENCES (4 BENTO PANELS WITH ANIMATED SVGS) ── */}
+            {/* ── 07. AUDIENCES (4 BENTO PANELS WITH ANIMATED MOTION) ── */}
             <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.sectionPill}><Text style={styles.sectionPillText}>• WHO IT IS FOR</Text></View>
               <Text style={styles.sectionHeadingH2}>Four points of view, <Text style={{ color: T.indLt }}>one graph.</Text></Text>
               <View style={styles.audiencesGrid}>
                 {/* 01 Students */}
-                <BentoCard style={styles.audienceCard}>
+                <HoverLiftCard style={styles.audienceCard} hoverBorderColor="#8B84FF">
                   <View style={styles.audienceContent}>
                     <Text style={styles.audienceTag}>01 / STUDENTS</Text>
                     <Text style={styles.audienceTitle}>A roadmap, not a guess</Text>
@@ -1146,10 +1148,10 @@ export default function LandingPage() {
                       <Rect x="60" y="156" width="180" height="18" rx="4" fill="#3B2F8F" />
                     </Svg>
                   </View>
-                </BentoCard>
+                </HoverLiftCard>
 
                 {/* 02 Alumni */}
-                <BentoCard style={styles.audienceCard}>
+                <HoverLiftCard style={styles.audienceCard} hoverBorderColor="#8B84FF">
                   <View style={styles.audienceContent}>
                     <Text style={styles.audienceTag}>02 / ALUMNI</Text>
                     <Text style={styles.audienceTitle}>Give an hour a month</Text>
@@ -1162,10 +1164,10 @@ export default function LandingPage() {
                       <Path d="M124 128 l-14 44 26 -12 M176 128 l14 44 -26 -12" fill="#5B4FE9" />
                     </Svg>
                   </View>
-                </BentoCard>
+                </HoverLiftCard>
 
                 {/* 03 Mentors */}
-                <BentoCard style={styles.audienceCard}>
+                <HoverLiftCard style={styles.audienceCard} hoverBorderColor="#8B84FF">
                   <View style={styles.audienceContent}>
                     <Text style={styles.audienceTag}>03 / MENTORS</Text>
                     <Text style={styles.audienceTitle}>Calls with an agenda</Text>
@@ -1177,10 +1179,10 @@ export default function LandingPage() {
                       <Path d="M148 92 h96 q10 0 10 10 v40 q0 10 -10 10 h-60 l-20 16 v-16 h-16 q-10 0 -10 -10 v-40 q0 -10 10 -10 Z" fill="#1E3A6B" />
                     </Svg>
                   </View>
-                </BentoCard>
+                </HoverLiftCard>
 
                 {/* 04 Colleges */}
-                <BentoCard style={styles.audienceCard}>
+                <HoverLiftCard style={styles.audienceCard} hoverBorderColor="#8B84FF">
                   <View style={styles.audienceContent}>
                     <Text style={styles.audienceTag}>04 / COLLEGES</Text>
                     <Text style={styles.audienceTitle}>Placement, in one view</Text>
@@ -1195,63 +1197,66 @@ export default function LandingPage() {
                       <Rect x="30" y="170" width="240" height="8" rx="4" fill="#4F46C7" />
                     </Svg>
                   </View>
-                </BentoCard>
+                </HoverLiftCard>
               </View>
             </View>
 
-            {/* ── 06. NUMBERS WITH LIVE ANIMATED COUNTERS ── */}
+            {/* ── 06. NUMBERS WITH VIEWPORT-TRIGGERED LIVE COUNTERS ── */}
             <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.numbersWrapper}>
                 <Text style={styles.sectionPillText}>BY THE NUMBERS</Text>
                 <Text style={styles.sectionHeadingH2}>Trusted by students <Text style={{ color: T.indLt }}>worldwide</Text></Text>
                 <View style={styles.numbersGrid}>
-                  <BentoCard style={styles.numberItem}>
+                  <HoverLiftCard style={styles.numberItem}>
                     <View style={styles.numberIconBox}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
                         <Circle cx="9" cy="9" r="3.2" stroke="#8B84FF" strokeWidth="1.8" fill="none" />
                         <Path d="M3 19 q6 -6 12 0 M16 7 a3 3 0 0 1 0 6 M18 19 q1.5 -3 3 -4" stroke="#8B84FF" strokeWidth="1.8" fill="none" />
                       </Svg>
                     </View>
-                    <Counter value={50000} suffix="+" style={styles.statBig} />
+                    <ScrollCounter target={50000} suffix="+" trigger={numbersTrigger} style={styles.statBig} />
                     <Text style={styles.statTitle}>Active Students</Text>
                     <Text style={styles.statDesc}>and growing every day</Text>
-                  </BentoCard>
-                  <BentoCard style={styles.numberItem}>
+                  </HoverLiftCard>
+
+                  <HoverLiftCard style={styles.numberItem}>
                     <View style={styles.numberIconBox}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
                         <Circle cx="12" cy="9" r="5" stroke="#8B84FF" strokeWidth="1.8" fill="none" />
                         <Path d="M9 14 l-2 8 5 -3 5 3 -2 -8" stroke="#8B84FF" strokeWidth="1.8" fill="none" />
                       </Svg>
                     </View>
-                    <Counter value={1200} suffix="+" style={styles.statBig} />
+                    <ScrollCounter target={1200} suffix="+" trigger={numbersTrigger} style={styles.statBig} />
                     <Text style={styles.statTitle}>Verified Mentors</Text>
                     <Text style={styles.statDesc}>from top 500 companies</Text>
-                  </BentoCard>
-                  <BentoCard style={styles.numberItem}>
+                  </HoverLiftCard>
+
+                  <HoverLiftCard style={styles.numberItem}>
                     <View style={styles.numberIconBox}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
                         <Path d="M5 20 V7 l7 -3 v16 M12 20 V10 l7 3 v7 M8 11 h1 M8 15 h1 M15 15 h1" stroke="#8B84FF" strokeWidth="1.8" fill="none" />
                       </Svg>
                     </View>
-                    <Counter value={200} suffix="+" style={styles.statBig} />
+                    <ScrollCounter target={200} suffix="+" trigger={numbersTrigger} style={styles.statBig} />
                     <Text style={styles.statTitle}>Partner Universities</Text>
                     <Text style={styles.statDesc}>across 30+ countries</Text>
-                  </BentoCard>
-                  <BentoCard style={styles.numberItem}>
+                  </HoverLiftCard>
+
+                  <HoverLiftCard style={styles.numberItem}>
                     <View style={styles.numberIconBox}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
                         <Path d="M4 17 l5 -5 3 3 6 -7 M14 8 h5 v5" stroke="#8B84FF" strokeWidth="1.8" fill="none" />
                       </Svg>
                     </View>
-                    <Counter value={96} suffix="%" style={styles.statBig} />
+                    <ScrollCounter target={96} suffix="%" trigger={numbersTrigger} style={styles.statBig} />
                     <Text style={styles.statTitle}>Placement Rate</Text>
                     <Text style={styles.statDesc}>within 6 months of joining</Text>
-                  </BentoCard>
+                  </HoverLiftCard>
                 </View>
               </View>
             </View>
 
-            {/* ── 08. ROADMAP TIMELINE S-CURVE (ANIMATED DASH FLOW & PULSING MILESTONES) ── */}
+            {/* ── 08. ROADMAP TIMELINE S-CURVE (SCROLL-LINKED FILLING PATH) ── */}
             <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.roadmapHeadingRow}>
                 <Text style={styles.sectionHeadingH2}>The roadmap fills in <Text style={{ color: T.indLt }}>as you scroll.</Text></Text>
@@ -1259,52 +1264,62 @@ export default function LandingPage() {
               </View>
               <View style={{ alignItems: 'center', width: '100%', marginVertical: 20 }}>
                 <Svg width="100%" height="240" viewBox="0 0 1280 300">
+                  {/* Background Base Curve */}
                   <Path
                     d="M30 230 C 210 230 220 70 360 70 S 560 230 700 230 S 880 60 1010 60 S 1220 170 1250 170"
-                    stroke="#2A2E45"
+                    stroke="#1E2238"
                     strokeWidth="5"
                     fill="none"
                   />
-                  {/* Flowing animated dash stroke */}
+                  
+                  {/* Scroll-Driven Active Filling Stroke */}
                   <Path
                     d="M30 230 C 210 230 220 70 360 70 S 560 230 700 230 S 880 60 1010 60 S 1220 170 1250 170"
                     stroke="#8B84FF"
-                    strokeWidth="4"
+                    strokeWidth="5"
                     fill="none"
-                    strokeDasharray="14,10"
-                    style={{ className: 'sa-roadmap-path' } as any}
+                    strokeDasharray={String(PATH_TOTAL_LENGTH)}
+                    strokeDashoffset={String(roadmapStrokeDashoffset)}
                   />
                   
-                  {/* Glowing Milestone 01 */}
-                  <Circle cx="30" cy="230" r="14" fill="#5B4FE9" opacity="0.3" style={{ className: 'sa-pulsing-node' } as any} />
-                  <Circle cx="30" cy="230" r="9" fill="#05060F" stroke="#8B84FF" strokeWidth="3.5" />
-                  <SvgText x="30" y="275" textAnchor="middle" fill="#F4F5FB" fontSize="18" fontWeight="700">01 Foundations</SvgText>
+                  {/* Milestone 01: Foundations */}
+                  {roadmapScrollProgress >= 0.05 && (
+                    <Circle cx="30" cy="230" r="16" fill="#5B4FE9" opacity="0.4" />
+                  )}
+                  <Circle cx="30" cy="230" r="9" fill={roadmapScrollProgress >= 0.05 ? '#8B84FF' : '#05060F'} stroke="#8B84FF" strokeWidth="3.5" />
+                  <SvgText x="30" y="275" textAnchor="middle" fill={roadmapScrollProgress >= 0.05 ? '#F4F5FB' : '#5C6273'} fontSize="18" fontWeight="700">01 Foundations</SvgText>
 
-                  {/* Glowing Milestone 02 */}
-                  <Circle cx="360" cy="70" r="14" fill="#5B4FE9" opacity="0.3" style={{ className: 'sa-pulsing-node' } as any} />
-                  <Circle cx="360" cy="70" r="9" fill="#05060F" stroke="#8B84FF" strokeWidth="3.5" />
-                  <SvgText x="360" y="35" textAnchor="middle" fill="#F4F5FB" fontSize="18" fontWeight="700">02 Skill plan</SvgText>
+                  {/* Milestone 02: Skill plan */}
+                  {roadmapScrollProgress >= 0.35 && (
+                    <Circle cx="360" cy="70" r="16" fill="#5B4FE9" opacity="0.4" />
+                  )}
+                  <Circle cx="360" cy="70" r="9" fill={roadmapScrollProgress >= 0.35 ? '#8B84FF' : '#05060F'} stroke="#8B84FF" strokeWidth="3.5" />
+                  <SvgText x="360" y="35" textAnchor="middle" fill={roadmapScrollProgress >= 0.35 ? '#F4F5FB' : '#5C6273'} fontSize="18" fontWeight="700">02 Skill plan</SvgText>
 
-                  {/* Glowing Milestone 03 */}
-                  <Circle cx="700" cy="230" r="14" fill="#5B4FE9" opacity="0.3" style={{ className: 'sa-pulsing-node' } as any} />
-                  <Circle cx="700" cy="230" r="9" fill="#05060F" stroke="#8B84FF" strokeWidth="3.5" />
-                  <SvgText x="700" y="275" textAnchor="middle" fill="#F4F5FB" fontSize="18" fontWeight="700">03 Opportunities</SvgText>
+                  {/* Milestone 03: Opportunities */}
+                  {roadmapScrollProgress >= 0.70 && (
+                    <Circle cx="700" cy="230" r="16" fill="#5B4FE9" opacity="0.4" />
+                  )}
+                  <Circle cx="700" cy="230" r="9" fill={roadmapScrollProgress >= 0.70 ? '#8B84FF' : '#05060F'} stroke="#8B84FF" strokeWidth="3.5" />
+                  <SvgText x="700" y="275" textAnchor="middle" fill={roadmapScrollProgress >= 0.70 ? '#F4F5FB' : '#5C6273'} fontSize="18" fontWeight="700">03 Opportunities</SvgText>
 
-                  {/* Glowing Milestone 04 */}
-                  <Circle cx="1010" cy="60" r="14" fill="#5B4FE9" opacity="0.3" style={{ className: 'sa-pulsing-node' } as any} />
-                  <Circle cx="1010" cy="60" r="9" fill="#05060F" stroke="#8B84FF" strokeWidth="3.5" />
-                  <SvgText x="1010" y="25" textAnchor="middle" fill="#F4F5FB" fontSize="18" fontWeight="700">04 Full-time</SvgText>
+                  {/* Milestone 04: Full-time */}
+                  {roadmapScrollProgress >= 0.95 && (
+                    <Circle cx="1010" cy="60" r="16" fill="#5B4FE9" opacity="0.4" />
+                  )}
+                  <Circle cx="1010" cy="60" r="9" fill={roadmapScrollProgress >= 0.95 ? '#8B84FF' : '#05060F'} stroke="#8B84FF" strokeWidth="3.5" />
+                  <SvgText x="1010" y="25" textAnchor="middle" fill={roadmapScrollProgress >= 0.95 ? '#F4F5FB' : '#5C6273'} fontSize="18" fontWeight="700">04 Full-time</SvgText>
                 </Svg>
               </View>
             </View>
 
-            {/* ── 09. ON CAMPUS (5-CARD LAYERED POLAROID DECK) ── */}
+            {/* ── 09. ON CAMPUS (PHYSICAL 3D LAYERED POLAROID CARD STACK) ── */}
             <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={[styles.campusRow, isNarrow && { flexDirection: 'column' }]}>
                 <View style={styles.campusLeftCol}>
                   <View style={styles.sectionPill}><Text style={styles.sectionPillText}>ON CAMPUS</Text></View>
                   <Text style={styles.sectionHeadingH2}>A year on <Text style={{ color: T.indLt }}>the network.</Text></Text>
-                  <Text style={styles.sectionDesc}>The stack deals itself forward every few seconds. Click any card, or a marker, to bring it to the front.</Text>
+                  <Text style={styles.sectionDesc}>The stack deals itself forward every few seconds. Click any marker or the card below to bring the next moment to the front.</Text>
                   <View style={styles.deckDotsRow}>
                     {[0, 1, 2, 3, 4].map((idx) => (
                       <Pressable
@@ -1315,79 +1330,114 @@ export default function LandingPage() {
                     ))}
                   </View>
                 </View>
+
+                {/* 3D Stack Container */}
                 <View style={styles.campusRightCol}>
-                  <BentoCard style={styles.polaroidCard}>
-                    {/* SVG 0: Alumni Career Fair */}
-                    {deckIdx === 0 && (
-                      <Svg width="100%" height="240" viewBox="0 0 320 260">
-                        <Circle cx="252" cy="60" r="46" fill="#2A2E45" />
-                        <Path d="M40 96 h240" stroke="#8B84FF" strokeWidth="3" />
-                        <Path d="M56 96 v-22 h208 v22" fill="none" stroke="#5B4FE9" strokeWidth="3" />
-                        <Rect x="92" y="46" width="136" height="30" rx="6" fill="#5B4FE9" />
-                        <Circle cx="96" cy="150" r="14" fill="#D5D8E4" />
-                        <Path d="M76 208 q0 -34 20 -34 q20 0 20 34 Z" fill="#5B4FE9" />
-                        <Circle cx="160" cy="142" r="16" fill="#8B84FF" />
-                        <Path d="M137 209 q0 -39 23 -39 q23 0 23 39 Z" fill="#2A2E45" />
-                        <Circle cx="226" cy="152" r="13" fill="#A78BFA" />
-                        <Path d="M207 207 q0 -32 19 -32 q19 0 19 32 Z" fill="#5B4FE9" />
-                      </Svg>
-                    )}
-                    {/* SVG 1: One to One Mentoring */}
-                    {deckIdx === 1 && (
-                      <Svg width="100%" height="240" viewBox="0 0 320 260">
-                        <Circle cx="70" cy="66" r="40" fill="#2A2E45" />
-                        <Circle cx="96" cy="120" r="15" fill="#D5D8E4" />
-                        <Path d="M74 184 q0 -37 22 -37 q22 0 22 37 Z" fill="#5B4FE9" />
-                        <Circle cx="224" cy="120" r="15" fill="#8B84FF" />
-                        <Path d="M202 184 q0 -37 22 -37 q22 0 22 37 Z" fill="#2A2E45" />
-                        <Rect x="52" y="186" width="216" height="12" rx="6" fill="#8B84FF" />
-                        <Path d="M146 54 h74 q10 0 10 10 v30 q0 10 -10 10 h-46 l-18 16 v-16 q-10 0 -10 -10 v-30 q0 -10 10 -10 Z" fill="#5B4FE9" />
-                      </Svg>
-                    )}
-                    {/* SVG 2: Hackathon Weekend */}
-                    {deckIdx === 2 && (
-                      <Svg width="100%" height="240" viewBox="0 0 320 260">
-                        <Circle cx="88" cy="74" r="12" fill="#8B84FF" />
-                        <Circle cx="232" cy="74" r="12" fill="#A78BFA" />
-                        <Rect x="66" y="128" width="188" height="112" rx="8" fill="#2A2E45" />
-                        <Rect x="80" y="142" width="160" height="82" rx="4" fill="#090B16" />
-                        <Path d="M94 162 h48 M94 178 h72 M94 194 h36 M94 210 h60" stroke="#5B4FE9" strokeWidth="4" />
-                      </Svg>
-                    )}
-                    {/* SVG 3: Graduation */}
-                    {deckIdx === 3 && (
-                      <Svg width="100%" height="240" viewBox="0 0 320 260">
-                        <Circle cx="160" cy="130" r="86" fill="#2A2E45" />
-                        <Circle cx="160" cy="128" r="21" fill="#D5D8E4" />
-                        <Path d="M130 214 q0 -51 30 -51 q30 0 30 51 Z" fill="#5B4FE9" />
-                        <Path d="M112 92 L160 68 L208 92 L160 116 Z" fill="#8B84FF" />
-                        <Path d="M208 92 v26" stroke="#8B84FF" strokeWidth="4" />
-                      </Svg>
-                    )}
-                    {/* SVG 4: First week on the job */}
-                    {deckIdx === 4 && (
-                      <Svg width="100%" height="240" viewBox="0 0 320 260">
-                        <Rect x="44" y="176" width="232" height="12" rx="6" fill="#8B84FF" />
-                        <Rect x="118" y="96" width="120" height="72" rx="6" fill="#2A2E45" />
-                        <Rect x="130" y="108" width="96" height="48" rx="3" fill="#3B82F6" opacity="0.45" />
-                        <Circle cx="88" cy="118" r="14" fill="#D5D8E4" />
-                        <Path d="M68 176 q0 -34 20 -34 q20 0 20 34 Z" fill="#5B4FE9" />
-                      </Svg>
-                    )}
-                    <View style={styles.polaroidCaptionRow}>
-                      <Text style={styles.polaroidTitle}>
-                        {['Alumni career fair', 'One-to-one mentoring', 'Hackathon weekend', 'Graduation', 'First week on the job'][deckIdx]}
-                      </Text>
-                      <Text style={styles.polaroidMonth}>
-                        {['March', 'Library, block C', 'Alumni-run', 'Class of 2026', 'Internship'][deckIdx]}
-                      </Text>
+                  <Pressable
+                    onPress={() => setDeckIdx((p) => (p + 1) % 5)}
+                    style={styles.cardStackWrapper}
+                  >
+                    {/* Stack Card 2 (Deep Background) */}
+                    <View
+                      style={[
+                        styles.polaroidCard,
+                        styles.stackedCardDeep,
+                        { transform: [{ translateY: 24 }, { rotate: '-4deg' }, { scale: 0.92 }] },
+                      ]}
+                    />
+
+                    {/* Stack Card 1 (Mid Background) */}
+                    <View
+                      style={[
+                        styles.polaroidCard,
+                        styles.stackedCardMid,
+                        { transform: [{ translateY: 12 }, { rotate: '3deg' }, { scale: 0.96 }] },
+                      ]}
+                    />
+
+                    {/* Active Top Card */}
+                    <View
+                      style={[
+                        styles.polaroidCard,
+                        styles.stackedCardTop,
+                        {
+                          transform: [{ translateY: 0 }, { rotate: '-1.5deg' }, { scale: 1 }],
+                          transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease',
+                        } as any,
+                      ]}
+                    >
+                      {/* SVG 0: Alumni Career Fair */}
+                      {deckIdx === 0 && (
+                        <Svg width="100%" height="240" viewBox="0 0 320 260">
+                          <Circle cx="252" cy="60" r="46" fill="#2A2E45" />
+                          <Path d="M40 96 h240" stroke="#8B84FF" strokeWidth="3" />
+                          <Path d="M56 96 v-22 h208 v22" fill="none" stroke="#5B4FE9" strokeWidth="3" />
+                          <Rect x="92" y="46" width="136" height="30" rx="6" fill="#5B4FE9" />
+                          <Circle cx="96" cy="150" r="14" fill="#D5D8E4" />
+                          <Path d="M76 208 q0 -34 20 -34 q20 0 20 34 Z" fill="#5B4FE9" />
+                          <Circle cx="160" cy="142" r="16" fill="#8B84FF" />
+                          <Path d="M137 209 q0 -39 23 -39 q23 0 23 39 Z" fill="#2A2E45" />
+                          <Circle cx="226" cy="152" r="13" fill="#A78BFA" />
+                          <Path d="M207 207 q0 -32 19 -32 q19 0 19 32 Z" fill="#5B4FE9" />
+                        </Svg>
+                      )}
+                      {/* SVG 1: One to One Mentoring */}
+                      {deckIdx === 1 && (
+                        <Svg width="100%" height="240" viewBox="0 0 320 260">
+                          <Circle cx="70" cy="66" r="40" fill="#2A2E45" />
+                          <Circle cx="96" cy="120" r="15" fill="#D5D8E4" />
+                          <Path d="M74 184 q0 -37 22 -37 q22 0 22 37 Z" fill="#5B4FE9" />
+                          <Circle cx="224" cy="120" r="15" fill="#8B84FF" />
+                          <Path d="M202 184 q0 -37 22 -37 q22 0 22 37 Z" fill="#2A2E45" />
+                          <Rect x="52" y="186" width="216" height="12" rx="6" fill="#8B84FF" />
+                          <Path d="M146 54 h74 q10 0 10 10 v30 q0 10 -10 10 h-46 l-18 16 v-16 q-10 0 -10 -10 v-30 q0 -10 10 -10 Z" fill="#5B4FE9" />
+                        </Svg>
+                      )}
+                      {/* SVG 2: Hackathon Weekend */}
+                      {deckIdx === 2 && (
+                        <Svg width="100%" height="240" viewBox="0 0 320 260">
+                          <Circle cx="88" cy="74" r="12" fill="#8B84FF" />
+                          <Circle cx="232" cy="74" r="12" fill="#A78BFA" />
+                          <Rect x="66" y="128" width="188" height="112" rx="8" fill="#2A2E45" />
+                          <Rect x="80" y="142" width="160" height="82" rx="4" fill="#090B16" />
+                          <Path d="M94 162 h48 M94 178 h72 M94 194 h36 M94 210 h60" stroke="#5B4FE9" strokeWidth="4" />
+                        </Svg>
+                      )}
+                      {/* SVG 3: Graduation */}
+                      {deckIdx === 3 && (
+                        <Svg width="100%" height="240" viewBox="0 0 320 260">
+                          <Circle cx="160" cy="130" r="86" fill="#2A2E45" />
+                          <Circle cx="160" cy="128" r="21" fill="#D5D8E4" />
+                          <Path d="M130 214 q0 -51 30 -51 q30 0 30 51 Z" fill="#5B4FE9" />
+                          <Path d="M112 92 L160 68 L208 92 L160 116 Z" fill="#8B84FF" />
+                          <Path d="M208 92 v26" stroke="#8B84FF" strokeWidth="4" />
+                        </Svg>
+                      )}
+                      {/* SVG 4: First week on the job */}
+                      {deckIdx === 4 && (
+                        <Svg width="100%" height="240" viewBox="0 0 320 260">
+                          <Rect x="44" y="176" width="232" height="12" rx="6" fill="#8B84FF" />
+                          <Rect x="118" y="96" width="120" height="72" rx="6" fill="#2A2E45" />
+                          <Rect x="130" y="108" width="96" height="48" rx="3" fill="#3B82F6" opacity="0.45" />
+                          <Circle cx="88" cy="118" r="14" fill="#D5D8E4" />
+                          <Path d="M68 176 q0 -34 20 -34 q20 0 20 34 Z" fill="#5B4FE9" />
+                        </Svg>
+                      )}
+                      <View style={styles.polaroidCaptionRow}>
+                        <Text style={styles.polaroidTitle}>
+                          {['Alumni career fair', 'One-to-one mentoring', 'Hackathon weekend', 'Graduation', 'First week on the job'][deckIdx]}
+                        </Text>
+                        <Text style={styles.polaroidMonth}>
+                          {['March', 'Library, block C', 'Alumni-run', 'Class of 2026', 'Internship'][deckIdx]}
+                        </Text>
+                      </View>
                     </View>
-                  </BentoCard>
+                  </Pressable>
                 </View>
               </View>
             </View>
 
-            {/* ── 10. MATCH GRAPH ORBITAL RADAR (SWEEPING RADAR BEAM & GLOWING NODES) ── */}
+            {/* ── 10. MATCH GRAPH ORBITAL RADAR (SWEEPING RADAR BEAM) ── */}
             <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.sectionPill}><Text style={styles.sectionPillText}>• HOW MATCHING WORKS</Text></View>
               <Text style={styles.sectionHeadingH2}>1,200+ verified mentors,<br /><Text style={{ color: T.indLt }}>ranked by fit.</Text></Text>
@@ -1395,19 +1445,19 @@ export default function LandingPage() {
 
               <View style={[styles.matchGraphRow, isNarrow && { flexDirection: 'column' }]}>
                 {/* Detail Box */}
-                <BentoCard style={styles.matchDetailBanner}>
+                <HoverLiftCard style={styles.matchDetailBanner}>
                   <Text style={styles.matchDetailHeader}>MATCH DETAIL</Text>
                   <Text style={styles.matchDetailName}>{selectedNode.name}</Text>
                   <Text style={styles.matchDetailWhy}>{selectedNode.why}</Text>
-                </BentoCard>
+                </HoverLiftCard>
 
                 {/* Radar SVG with active rotating beam scanner */}
                 <View style={{ flex: 1, alignItems: 'center' }}>
                   <Svg width="100%" height="340" viewBox="0 0 620 540">
                     <Defs>
                       <LinearGradient id="radarSweepGrad" x1="0" y1="0" x2="1" y2="1">
-                        <Stop offset="0" stopColor="#8B84FF" stopOpacity="0.4" />
-                        <Stop offset="0.6" stopColor="#5B4FE9" stopOpacity="0.1" />
+                        <Stop offset="0" stopColor="#8B84FF" stopOpacity="0.45" />
+                        <Stop offset="0.6" stopColor="#5B4FE9" stopOpacity="0.12" />
                         <Stop offset="1" stopColor="transparent" stopOpacity="0" />
                       </LinearGradient>
                     </Defs>
@@ -1417,15 +1467,12 @@ export default function LandingPage() {
                     <Circle cx="310" cy="270" r="206" stroke="#1B1E33" strokeDasharray="4,8" fill="none" strokeWidth="1.2" />
                     
                     {/* Rotating Radar Scanner Beam */}
-                    <G style={{ className: 'sa-radar-scanner' } as any}>
+                    <G style={{ className: 'sa-radar-spin' } as any}>
                       <Path d="M310 270 L 516 270 A 206 206 0 0 1 455 415 Z" fill="url(#radarSweepGrad)" />
                     </G>
 
                     {/* Selected Node Target Line */}
                     <Line x1="310" y1="270" x2={selectedNode.x} y2={selectedNode.y} stroke="#8B84FF" strokeWidth="2" strokeDasharray="5,6" />
-                    
-                    {/* Live pulse wave */}
-                    <Circle cx="310" cy="270" r="80" stroke="#5B4FE9" strokeWidth="1.5" fill="none" opacity="0.4" />
                     
                     {/* Center User Hub */}
                     <Circle cx="310" cy="270" r="52" fill="#0C0E1B" stroke="#8B84FF" strokeWidth="2.5" />
@@ -1448,7 +1495,7 @@ export default function LandingPage() {
                           style={{ cursor: 'pointer' }}
                         >
                           {isSelected && (
-                            <Circle cx={node.x} cy={node.y} r="38" fill="#5B4FE9" opacity="0.35" style={{ className: 'sa-pulsing-node' } as any} />
+                            <Circle cx={node.x} cy={node.y} r="38" fill="#5B4FE9" opacity="0.35" />
                           )}
                           <Circle
                             cx={node.x}
@@ -1478,7 +1525,7 @@ export default function LandingPage() {
 
             {/* ── 10b. ON THE GROUND ECHO EVENTS ── */}
             <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
-              <BentoCard style={styles.onTheGroundCard}>
+              <HoverLiftCard style={styles.onTheGroundCard}>
                 <View style={styles.otgTag}><Text style={styles.otgTagText}>• ON THE GROUND</Text></View>
                 <Text style={styles.otgTitle}>The network is a feed until it meets in person.</Text>
                 <Text style={styles.otgDesc}>Eighty-six ECHO events across thirty-one campuses. Alumni in the room, recruiters at the table, and a build sprint that runs overnight.</Text>
@@ -1501,14 +1548,14 @@ export default function LandingPage() {
                     <Text key={idx} style={styles.otgHostPill}>{h}</Text>
                   ))}
                 </View>
-              </BentoCard>
+              </HoverLiftCard>
             </View>
 
-            {/* ── 11. TESTIMONIALS (ANIMATED CROSS-FADE DECK) ── */}
+            {/* ── 11. TESTIMONIALS (INTERACTIVE PROGRESS DECK) ── */}
             <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.sectionPill}><Text style={styles.sectionPillText}>FROM THE NETWORK</Text></View>
               <Text style={styles.sectionHeadingH2}>Students, alumni <Text style={{ color: T.indLt }}>and offices.</Text></Text>
-              <BentoCard style={styles.testimonialCard}>
+              <HoverLiftCard style={styles.testimonialCard}>
                 <Text style={styles.testimonialQuote}>
                   {[
                     '“I had no idea who to ask in my final year. Two mentor calls turned a vague plan into an actual offer.”',
@@ -1523,13 +1570,13 @@ export default function LandingPage() {
                     'R. IYER · CAREER SERVICES, PARTNER COLLEGE',
                   ][quoteIdx]}
                 </Text>
-              </BentoCard>
+              </HoverLiftCard>
               <View style={{ flexDirection: 'row', gap: 10, marginTop: 20 }}>
                 {[0, 1, 2].map((idx) => (
                   <Pressable
                     key={idx}
                     onPress={() => setQuoteIdx(idx)}
-                    style={{ width: 30, height: 4, borderRadius: 2, backgroundColor: quoteIdx === idx ? T.indLt : T.line, cursor: 'pointer' }}
+                    style={{ width: 34, height: 5, borderRadius: 3, backgroundColor: quoteIdx === idx ? T.indLt : T.line, cursor: 'pointer' }}
                   />
                 ))}
               </View>
@@ -2448,6 +2495,35 @@ const styles = StyleSheet.create({
   },
   deckDotActive: {
     backgroundColor: T.indLt,
+  },
+  cardStackWrapper: {
+    position: 'relative',
+    width: 320,
+    height: 340,
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+  },
+  stackedCardDeep: {
+    position: 'absolute',
+    top: 0,
+    opacity: 0.35,
+    backgroundColor: '#090B16',
+    borderColor: '#171A2C',
+    zIndex: 1,
+  },
+  stackedCardMid: {
+    position: 'absolute',
+    top: 0,
+    opacity: 0.65,
+    backgroundColor: '#0A0C18',
+    borderColor: '#1E2238',
+    zIndex: 2,
+  },
+  stackedCardTop: {
+    position: 'absolute',
+    top: 0,
+    zIndex: 3,
   },
   polaroidCard: {
     width: 320,
