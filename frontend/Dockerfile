@@ -61,7 +61,7 @@ RUN if [ -f yarn.lock ]; then yarn install --network-timeout 600000 --ignore-eng
 COPY . .
 
 # Invalidate builder cache and run fresh export
-ARG CACHEBUST=20260826-v9-node20-lts
+ARG CACHEBUST=20260826-v10-babel7-fix
 RUN rm -rf dist .metro-cache \
     && NODE_ENV=production npx expo export --platform web --output-dir dist --clear \
     && ls -la dist \
