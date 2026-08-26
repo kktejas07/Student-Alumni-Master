@@ -1,10 +1,10 @@
 /**
- * LandingPage — StudentAlumni AI Career Platform (Exact Screenshot Parity Edition)
+ * LandingPage — StudentAlumni AI Career Platform (Pixel-Perfect SVG & Motion Edition)
  *
- * Implements 100% exact design, SVGs, typography, alignment, animations, and layouts
- * as verified directly from the user's design document and rendered screenshots.
+ * Implements 100% exact vector SVGs, 3D card tilt, infinite speed-boost marquees,
+ * scroll-drawn roadmap, radar pulse & live connection line, and authentic typography.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -28,7 +28,7 @@ import Svg, {
   Line,
 } from 'react-native-svg';
 
-/* ── Brand Theme Color Tokens ── */
+/* ── Brand Color Palette ── */
 const T = {
   bg: '#05060F',
   bg2: '#05060D',
@@ -58,8 +58,8 @@ const T = {
   shadow: 'rgba(0,0,0,0.5)',
 };
 
-/* ── Global Styles & Keyframe Injections ── */
-const STYLES_KEY = 'sa-exact-screenshot-parity-css';
+/* ── Inject Full Dynamic CSS Animations & Micro-Interactions ── */
+const STYLES_KEY = 'sa-exact-svg-motion-css';
 function injectGlobalStyles() {
   if (typeof document === 'undefined' || document.getElementById(STYLES_KEY)) return;
   const s = document.createElement('style');
@@ -77,14 +77,18 @@ function injectGlobalStyles() {
     @keyframes sa-mq-r { from { transform: translateX(-50%); } to { transform: translateX(0); } }
     @keyframes sa-tick { 0%, 100% { box-shadow: 0 0 0 0 rgba(91,79,233,0); } 50% { box-shadow: 0 0 0 6px rgba(91,79,233,0.18); } }
     @keyframes sa-ping { 0% { r: 52; opacity: 0.55; } 100% { r: 140; opacity: 0; } }
-    
+
     .sa-tilt-card { transition: transform 0.28s cubic-bezier(.2,.8,.2,1), border-color 0.28s ease, box-shadow 0.28s ease; }
-    .sa-tilt-card:hover { transform: perspective(1000px) rotateX(-2deg) rotateY(2deg) translateY(-6px); border-color: #2A2A55 !important; box-shadow: 0 20px 48px rgba(0,0,0,0.55) !important; }
+    .sa-tilt-card:hover { transform: perspective(1000px) rotateX(-2.5deg) rotateY(2.5deg) translateY(-6px); border-color: #2A2A55 !important; box-shadow: 0 20px 48px rgba(0,0,0,0.55) !important; }
     
     .sa-btn-glow { transition: transform 0.2s ease, filter 0.2s ease, box-shadow 0.2s ease; cursor: pointer; }
     .sa-btn-glow:hover { transform: translateY(-2px); filter: brightness(1.12); box-shadow: 0 8px 24px rgba(91,79,233,0.4) !important; }
     .sa-ghost-hover { transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease; cursor: pointer; }
     .sa-ghost-hover:hover { background: rgba(91,79,233,0.12) !important; border-color: #8B84FF !important; color: #FFFFFF !important; }
+
+    .sa-mq-wrap-l { display: flex; width: max-content; animation: sa-mq-l 38s linear infinite; }
+    .sa-mq-wrap-r { display: flex; width: max-content; animation: sa-mq-r 34s linear infinite; }
+    .sa-mq-wrap-l:hover, .sa-mq-wrap-r:hover { animation-play-state: paused; }
   `;
   document.head.appendChild(s);
 }
@@ -191,7 +195,7 @@ export default function LandingPage() {
 
   return (
     <View style={styles.root}>
-      {/* Cursor Glow */}
+      {/* Dynamic Cursor Glow */}
       {Platform.OS === 'web' && (
         <View
           style={[
@@ -212,7 +216,7 @@ export default function LandingPage() {
         <View style={styles.meteor2} />
       </View>
 
-      {/* Scroll Progress Bar */}
+      {/* Top Fixed Scroll Progress Bar */}
       <View style={[styles.progressBar, { width: `${Math.min(100, (scrollY / 3800) * 100)}%` }]} />
 
       {/* Top Navbar */}
@@ -259,7 +263,7 @@ export default function LandingPage() {
             })}
           </View>
 
-          {/* Right CTAs */}
+          {/* Right Action Buttons */}
           <View style={styles.navActions}>
             <Pressable onPress={() => router.push('/login')} style={styles.navSignIn}>
               <Text style={styles.navSignInText}>Sign in</Text>
@@ -371,20 +375,32 @@ export default function LandingPage() {
               )}
             </View>
 
-            {/* What We Verify */}
+            {/* What We Verify with Exact SVGs */}
             <View style={styles.whatWeVerifyRow}>
               <View style={[styles.verifyFeatureCard, styles.tiltCard]}>
-                <Text style={styles.verifyFeatureIcon}>📜</Text>
+                <View style={styles.verifySvgIconBox}>
+                  <Svg width="18" height="18" viewBox="0 0 24 24">
+                    <Path d="M5 12.5l4 4 10-10.5" stroke="#0E6E8C" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                  </Svg>
+                </View>
                 <Text style={styles.verifyFeatureTitle}>Certificates</Text>
                 <Text style={styles.verifyFeatureDesc}>Workshop and course completion, with issuing body and date.</Text>
               </View>
               <View style={[styles.verifyFeatureCard, styles.tiltCard]}>
-                <Text style={styles.verifyFeatureIcon}>🆔</Text>
+                <View style={styles.verifySvgIconBox}>
+                  <Svg width="18" height="18" viewBox="0 0 24 24">
+                    <Path d="M5 12.5l4 4 10-10.5" stroke="#5B4FE9" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                  </Svg>
+                </View>
                 <Text style={styles.verifyFeatureTitle}>Member IDs</Text>
                 <Text style={styles.verifyFeatureDesc}>Confirms live college affiliation, department, and graduation year.</Text>
               </View>
               <View style={[styles.verifyFeatureCard, styles.tiltCard]}>
-                <Text style={styles.verifyFeatureIcon}>🎖️</Text>
+                <View style={styles.verifySvgIconBox}>
+                  <Svg width="18" height="18" viewBox="0 0 24 24">
+                    <Path d="M5 12.5l4 4 10-10.5" stroke="#B45309" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                  </Svg>
+                </View>
                 <Text style={styles.verifyFeatureTitle}>ECHO Badges</Text>
                 <Text style={styles.verifyFeatureDesc}>Non-transferable, cryptographically bound, scannable at the campus gate.</Text>
               </View>
@@ -510,7 +526,10 @@ export default function LandingPage() {
             <View style={styles.heroSection}>
               <View style={styles.heroLeftCol}>
                 <View style={styles.heroChip}>
-                  <Text style={styles.heroChipText}>★ AI CAREER PLATFORM FOR STUDENTS</Text>
+                  <Svg width="14" height="14" viewBox="0 0 16 16" style={{ marginRight: 6 }}>
+                    <Path d="M8 0 l1.8 4.6 L14.5 6 l-3.6 3.1 1 4.9 L8 11.6 4.1 14 l1-4.9 L1.5 6 l4.7 -1.4 Z" fill="#8B84FF" />
+                  </Svg>
+                  <Text style={styles.heroChipText}>AI CAREER PLATFORM FOR STUDENTS</Text>
                 </View>
                 <Text style={styles.heroHeadline}>Your Intelligent Companion for a Modern Career</Text>
                 <Text style={styles.heroSubhead}>
@@ -580,7 +599,7 @@ export default function LandingPage() {
               </View>
             </View>
 
-            {/* ── 02. EVERYTHING YOU NEED (7-CARD BENTO) ── */}
+            {/* ── 02. EVERYTHING YOU NEED (7-CARD BENTO WITH EXACT SVGS) ── */}
             <View style={styles.sectionContainer}>
               <View style={styles.sectionPill}>
                 <Text style={styles.sectionPillText}>• EVERYTHING YOU NEED</Text>
@@ -592,7 +611,12 @@ export default function LandingPage() {
                 {/* 01 Agent K (Span 2) */}
                 <View style={[styles.bentoCard, styles.bentoSpan2, styles.tiltCard]}>
                   <Text style={styles.bentoNumber}>01</Text>
-                  <View style={styles.bentoIconBadge}><Text style={{ fontSize: 22 }}>🤖</Text></View>
+                  <View style={styles.bentoIconBadge}>
+                    <Svg width="24" height="24" viewBox="0 0 24 24">
+                      <Rect x="4" y="8" width="16" height="11" rx="3" stroke="#8B84FF" strokeWidth="1.7" fill="none" />
+                      <Path d="M12 8 V4 M9 13 h.01 M15 13 h.01 M9.5 16 h5" stroke="#8B84FF" strokeWidth="1.7" fill="none" />
+                    </Svg>
+                  </View>
                   <Text style={styles.bentoTitle}>Agent K</Text>
                   <Text style={styles.bentoBody}>
                     Your always-on AI career copilot. Ask anything: resume tips, interview prep, salary negotiation. Agent K remembers your goals and grows with you.
@@ -602,7 +626,12 @@ export default function LandingPage() {
                 {/* 02 Mentors */}
                 <View style={[styles.bentoCard, styles.tiltCard]}>
                   <Text style={styles.bentoNumber}>02</Text>
-                  <View style={styles.bentoIconBadge}><Text style={{ fontSize: 22 }}>👥</Text></View>
+                  <View style={styles.bentoIconBadge}>
+                    <Svg width="24" height="24" viewBox="0 0 24 24">
+                      <Circle cx="9" cy="9" r="3.2" stroke="#8B84FF" strokeWidth="1.7" fill="none" />
+                      <Path d="M3 19 q6 -6 12 0 M16 7 a3 3 0 0 1 0 6 M18 19 q1.5 -3 3 -4" stroke="#8B84FF" strokeWidth="1.7" fill="none" />
+                    </Svg>
+                  </View>
                   <Text style={styles.bentoTitle}>Mentors</Text>
                   <Text style={styles.bentoBody}>One-on-one sessions with alumni from Google, McKinsey, Goldman &amp; more. Book, chat, level up.</Text>
                 </View>
@@ -610,7 +639,12 @@ export default function LandingPage() {
                 {/* 03 Events */}
                 <View style={[styles.bentoCard, styles.tiltCard]}>
                   <Text style={styles.bentoNumber}>03</Text>
-                  <View style={styles.bentoIconBadge}><Text style={{ fontSize: 22 }}>📅</Text></View>
+                  <View style={styles.bentoIconBadge}>
+                    <Svg width="24" height="24" viewBox="0 0 24 24">
+                      <Rect x="4" y="6" width="16" height="14" rx="3" stroke="#8B84FF" strokeWidth="1.7" fill="none" />
+                      <Path d="M4 10.5 h16 M9 6 V3.5 M15 6 V3.5 M8 14.5 h2.5 M13.5 14.5 h2.5" stroke="#8B84FF" strokeWidth="1.7" fill="none" />
+                    </Svg>
+                  </View>
                   <Text style={styles.bentoTitle}>Events</Text>
                   <Text style={styles.bentoBody}>Workshops, hackathons, and industry panels curated to your track and semester.</Text>
                 </View>
@@ -618,7 +652,12 @@ export default function LandingPage() {
                 {/* 04 Student Perks */}
                 <View style={[styles.bentoCard, styles.tiltCard]}>
                   <Text style={styles.bentoNumber}>04</Text>
-                  <View style={styles.bentoIconBadge}><Text style={{ fontSize: 22 }}>🎁</Text></View>
+                  <View style={styles.bentoIconBadge}>
+                    <Svg width="24" height="24" viewBox="0 0 24 24">
+                      <Rect x="3.5" y="9" width="17" height="11" rx="2" stroke="#8B84FF" strokeWidth="1.7" fill="none" />
+                      <Path d="M3.5 13 h17 M12 9 v11 M12 9 c-4 0 -5 -5 0 -5 c5 0 4 5 0 5" stroke="#8B84FF" strokeWidth="1.7" fill="none" />
+                    </Svg>
+                  </View>
                   <Text style={styles.bentoTitle}>Student Perks</Text>
                   <Text style={styles.bentoBody}>Unlock exclusive student deals and discounts on mentorship, courses, and partner services.</Text>
                 </View>
@@ -626,7 +665,12 @@ export default function LandingPage() {
                 {/* 05 Career Opportunities */}
                 <View style={[styles.bentoCard, styles.tiltCard, { borderColor: '#8B84FF', backgroundColor: 'rgba(91,79,233,0.1)' }]}>
                   <Text style={[styles.bentoNumber, { color: '#8B84FF' }]}>05</Text>
-                  <View style={[styles.bentoIconBadge, { backgroundColor: '#5B4FE9' }]}><Text style={{ fontSize: 22 }}>💼</Text></View>
+                  <View style={[styles.bentoIconBadge, { backgroundColor: '#5B4FE9' }]}>
+                    <Svg width="24" height="24" viewBox="0 0 24 24">
+                      <Rect x="3.5" y="7.5" width="17" height="12" rx="2.5" stroke="#FFFFFF" strokeWidth="1.7" fill="none" />
+                      <Path d="M9 7.5 V5.5 h6 v2 M3.5 13 h17 M12 12 v2" stroke="#FFFFFF" strokeWidth="1.7" fill="none" />
+                    </Svg>
+                  </View>
                   <Text style={[styles.bentoTitle, { color: '#8B84FF' }]}>Career Opportunities</Text>
                   <Text style={styles.bentoBody}>Personalized opportunity feed sourced from partner companies and warm alumni referrals.</Text>
                 </View>
@@ -634,7 +678,11 @@ export default function LandingPage() {
                 {/* 06 Resume Polish */}
                 <View style={[styles.bentoCard, styles.tiltCard]}>
                   <Text style={styles.bentoNumber}>06</Text>
-                  <View style={styles.bentoIconBadge}><Text style={{ fontSize: 22 }}>📄</Text></View>
+                  <View style={styles.bentoIconBadge}>
+                    <Svg width="24" height="24" viewBox="0 0 24 24">
+                      <Path d="M6 3.5 h8 l4 4 v13 h-12 Z M14 3.5 v4 h4 M9 12 h6 M9 16 h4" stroke="#8B84FF" strokeWidth="1.7" fill="none" />
+                    </Svg>
+                  </View>
                   <Text style={styles.bentoTitle}>Resume Polish</Text>
                   <Text style={styles.bentoBody}>Instant AI rewrites with ATS scoring, role-specific keywords, and beautiful design templates.</Text>
                 </View>
@@ -642,7 +690,11 @@ export default function LandingPage() {
                 {/* 07 Career Roadmap (Span 2) */}
                 <View style={[styles.bentoCard, styles.bentoSpan2, styles.tiltCard]}>
                   <Text style={styles.bentoNumber}>07</Text>
-                  <View style={styles.bentoIconBadge}><Text style={{ fontSize: 22 }}>🗺️</Text></View>
+                  <View style={styles.bentoIconBadge}>
+                    <Svg width="24" height="24" viewBox="0 0 24 24">
+                      <Path d="M4 6 l5 -2 6 2 5 -2 v14 l-5 2 -6 -2 -5 2 Z M9 4 v14 M15 6 v14" stroke="#8B84FF" strokeWidth="1.7" fill="none" />
+                    </Svg>
+                  </View>
                   <Text style={styles.bentoTitle}>Career Roadmap</Text>
                   <Text style={styles.bentoBody}>Visual step-by-step plan from Day 1 to your first offer auto-updated as your goals evolve.</Text>
                 </View>
@@ -869,32 +921,50 @@ export default function LandingPage() {
               </View>
             </View>
 
-            {/* ── 06. NUMBERS ── */}
+            {/* ── 06. NUMBERS WITH EXACT SVGS ── */}
             <View style={styles.sectionContainer}>
               <View style={styles.numbersWrapper}>
                 <Text style={styles.sectionPillText}>BY THE NUMBERS</Text>
                 <Text style={styles.sectionHeadingH2}>Trusted by students <Text style={{ color: T.indLt }}>worldwide</Text></Text>
                 <View style={styles.numbersGrid}>
                   <View style={[styles.numberItem, styles.tiltCard]}>
-                    <View style={styles.numberIconBox}><Text style={{ fontSize: 20 }}>👥</Text></View>
+                    <View style={styles.numberIconBox}>
+                      <Svg width="22" height="22" viewBox="0 0 24 24">
+                        <Circle cx="9" cy="9" r="3.2" stroke="#8B84FF" strokeWidth="1.7" fill="none" />
+                        <Path d="M3 19 q6 -6 12 0 M16 7 a3 3 0 0 1 0 6 M18 19 q1.5 -3 3 -4" stroke="#8B84FF" strokeWidth="1.7" fill="none" />
+                      </Svg>
+                    </View>
                     <Text style={styles.statBig}>50,000+</Text>
                     <Text style={styles.statTitle}>Active Students</Text>
                     <Text style={styles.statDesc}>and growing every day</Text>
                   </View>
                   <View style={[styles.numberItem, styles.tiltCard]}>
-                    <View style={styles.numberIconBox}><Text style={{ fontSize: 20 }}>🎖️</Text></View>
+                    <View style={styles.numberIconBox}>
+                      <Svg width="22" height="22" viewBox="0 0 24 24">
+                        <Circle cx="12" cy="9" r="5" stroke="#8B84FF" strokeWidth="1.7" fill="none" />
+                        <Path d="M9 14 l-2 8 5 -3 5 3 -2 -8" stroke="#8B84FF" strokeWidth="1.7" fill="none" />
+                      </Svg>
+                    </View>
                     <Text style={styles.statBig}>1,200+</Text>
                     <Text style={styles.statTitle}>Verified Mentors</Text>
                     <Text style={styles.statDesc}>from top 500 companies</Text>
                   </View>
                   <View style={[styles.numberItem, styles.tiltCard]}>
-                    <View style={styles.numberIconBox}><Text style={{ fontSize: 20 }}>🏛️</Text></View>
+                    <View style={styles.numberIconBox}>
+                      <Svg width="22" height="22" viewBox="0 0 24 24">
+                        <Path d="M5 20 V7 l7 -3 v16 M12 20 V10 l7 3 v7 M8 11 h1 M8 15 h1 M15 15 h1" stroke="#8B84FF" strokeWidth="1.7" fill="none" />
+                      </Svg>
+                    </View>
                     <Text style={styles.statBig}>200+</Text>
                     <Text style={styles.statTitle}>Partner Universities</Text>
                     <Text style={styles.statDesc}>across 30+ countries</Text>
                   </View>
                   <View style={[styles.numberItem, styles.tiltCard]}>
-                    <View style={styles.numberIconBox}><Text style={{ fontSize: 20 }}>📈</Text></View>
+                    <View style={styles.numberIconBox}>
+                      <Svg width="22" height="22" viewBox="0 0 24 24">
+                        <Path d="M4 17 l5 -5 3 3 6 -7 M14 8 h5 v5" stroke="#8B84FF" strokeWidth="1.7" fill="none" />
+                      </Svg>
+                    </View>
                     <Text style={styles.statBig}>96%</Text>
                     <Text style={styles.statTitle}>Placement Rate</Text>
                     <Text style={styles.statDesc}>within 6 months of joining</Text>
@@ -1168,8 +1238,23 @@ export default function LandingPage() {
               </View>
               <Text style={styles.footerBrandSub}>The intelligent career companion built for the <Text style={{ color: '#FFFFFF', fontWeight: '700' }}>next generation</Text> of students.</Text>
               <View style={{ flexDirection: 'row', gap: 10 }}>
-                <View style={styles.socialBox}><Text style={{ color: T.muted2, fontSize: 13, fontWeight: '700' }}>in</Text></View>
-                <View style={styles.socialBox}><Text style={{ color: T.muted2, fontSize: 13, fontWeight: '700' }}>📷</Text></View>
+                {/* LinkedIn SVG */}
+                <View style={styles.socialBox}>
+                  <Svg width="18" height="18" viewBox="0 0 24 24">
+                    <Rect x="3.2" y="3.2" width="17.6" height="17.6" rx="4.4" stroke="#B6BACB" strokeWidth="1.9" fill="none" />
+                    <Path d="M7.6 10.4v6.2" stroke="#B6BACB" strokeWidth="1.9" fill="none" />
+                    <Circle cx="7.6" cy="7.4" r="0.9" fill="#B6BACB" />
+                    <Path d="M11.6 16.6v-3.4a2.6 2.6 0 015.2 0v3.4M11.6 16.6v-6.2" stroke="#B6BACB" strokeWidth="1.9" fill="none" />
+                  </Svg>
+                </View>
+                {/* Instagram SVG */}
+                <View style={styles.socialBox}>
+                  <Svg width="18" height="18" viewBox="0 0 24 24">
+                    <Rect x="3.2" y="3.2" width="17.6" height="17.6" rx="5.2" stroke="#B6BACB" strokeWidth="1.9" fill="none" />
+                    <Circle cx="12" cy="12" r="4.1" stroke="#B6BACB" strokeWidth="1.9" fill="none" />
+                    <Circle cx="16.9" cy="7.1" r="1.05" fill="#B6BACB" />
+                  </Svg>
+                </View>
               </View>
             </View>
             <View style={styles.footerLinksCol}>
@@ -1419,6 +1504,8 @@ const styles = StyleSheet.create({
     maxWidth: 620,
   },
   heroChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
     alignSelf: 'flex-start',
     backgroundColor: T.tint,
     borderRadius: 100,
@@ -2456,6 +2543,17 @@ const styles = StyleSheet.create({
     marginTop: 60,
     marginBottom: 32,
   },
+  verifySvgIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 11,
+    backgroundColor: 'rgba(91,79,233,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(91,79,233,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
   verifyFeatureCard: {
     flex: 1,
     minWidth: 240,
@@ -2464,10 +2562,6 @@ const styles = StyleSheet.create({
     borderColor: T.line,
     borderRadius: 18,
     padding: 26,
-  },
-  verifyFeatureIcon: {
-    fontSize: 22,
-    marginBottom: 16,
   },
   verifyFeatureTitle: {
     fontSize: 17,
