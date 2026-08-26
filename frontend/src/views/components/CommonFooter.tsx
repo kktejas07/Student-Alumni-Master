@@ -127,42 +127,42 @@ export default function CommonFooter({ onTabChange, maxWidth = 1360 }: CommonFoo
         {/* Compliance Column */}
         <View style={styles.footerLinksCol}>
           <Text style={styles.footerColHeader}>COMPLIANCE</Text>
-          <View style={{ marginBottom: 12 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Svg width="14" height="14" viewBox="0 0 24 24">
-                <Path d="M12 2l7 4v6c0 5.25-3.5 10-7 11-3.5-1-7-5.75-7-11V6l7-4z" stroke="#34D399" strokeWidth="2" fill="none" />
-                <Path d="M9 12l2 2 4-4" stroke="#34D399" strokeWidth="2" fill="none" />
+          <View style={{ marginBottom: 14 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Svg width="14" height="14" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+                <Path d="M5 12.5l4 4 10-10.5" stroke="#34D399" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
               </Svg>
               <Text style={styles.footerComplianceText}>DPDP Act 2023</Text>
             </View>
-            <Text style={{ fontSize: 12, color: T.dim }}>India · data principal rights</Text>
+            <Text style={{ fontSize: 12, color: T.dim, marginTop: 3, paddingLeft: 22 }}>India · data principal rights</Text>
           </View>
-          <View style={{ marginBottom: 12 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Svg width="14" height="14" viewBox="0 0 24 24">
-                <Path d="M12 2l7 4v6c0 5.25-3.5 10-7 11-3.5-1-7-5.75-7-11V6l7-4z" stroke="#34D399" strokeWidth="2" fill="none" />
-                <Path d="M9 12l2 2 4-4" stroke="#34D399" strokeWidth="2" fill="none" />
+          <View style={{ marginBottom: 14 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Svg width="14" height="14" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+                <Path d="M5 12.5l4 4 10-10.5" stroke="#34D399" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
               </Svg>
               <Text style={styles.footerComplianceText}>GDPR</Text>
             </View>
-            <Text style={{ fontSize: 12, color: T.dim }}>EU · lawful basis and DPAs</Text>
+            <Text style={{ fontSize: 12, color: T.dim, marginTop: 3, paddingLeft: 22 }}>EU · lawful basis and DPAs</Text>
           </View>
-          <View style={{ marginBottom: 12 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Svg width="14" height="14" viewBox="0 0 24 24">
-                <Path d="M12 2l7 4v6c0 5.25-3.5 10-7 11-3.5-1-7-5.75-7-11V6l7-4z" stroke="#34D399" strokeWidth="2" fill="none" />
-                <Path d="M9 12l2 2 4-4" stroke="#34D399" strokeWidth="2" fill="none" />
+          <View style={{ marginBottom: 14 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Svg width="14" height="14" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+                <Path d="M5 12.5l4 4 10-10.5" stroke="#34D399" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
               </Svg>
               <Text style={styles.footerComplianceText}>SOC 2 Type II</Text>
             </View>
-            <Text style={{ fontSize: 12, color: T.dim }}>Audited controls, annual</Text>
+            <Text style={{ fontSize: 12, color: T.dim, marginTop: 3, paddingLeft: 22 }}>Audited controls, annual</Text>
           </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Svg width="14" height="14" viewBox="0 0 24 24">
-              <Path d="M12 2l7 4v6c0 5.25-3.5 10-7 11-3.5-1-7-5.75-7-11V6l7-4z" stroke="#8B84FF" strokeWidth="2" fill="none" />
+          <Pressable
+            onPress={() => router.push('/policy/security' as any)}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
+          >
+            <Svg width="14" height="14" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+              <Path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6Z" stroke="#8B84FF" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
             </Svg>
-            <Text style={{ fontSize: 13.5, color: T.indLt, fontWeight: '600' }}>Responsible disclosure</Text>
-          </View>
+            <Text style={{ fontSize: 14, color: T.indLt, fontWeight: '600' }}>Responsible disclosure</Text>
+          </Pressable>
         </View>
       </View>
 
