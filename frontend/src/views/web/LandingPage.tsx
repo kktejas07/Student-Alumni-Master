@@ -29,7 +29,6 @@ import Svg, {
   ClipPath,
 } from 'react-native-svg';
 import CommonFooter from '@/src/views/components/CommonFooter';
-import EchoEventsLanding from '@/src/views/web/echo-events/EchoEventsLanding';
 
 /* ── Brand Color Palette ── */
 const T = {
@@ -337,7 +336,7 @@ export default function LandingPage() {
   const containerPadding = isMobile ? 20 : isNarrow ? 32 : 44;
 
   // Active navigation tab
-  const [activeTab, setActiveTab] = useState<'home' | 'events' | 'verify' | 'contact'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'verify' | 'contact'>('home');
 
   // Scroll position & sticky bar
   const [scrollY, setScrollY] = useState(0);
@@ -473,8 +472,8 @@ export default function LandingPage() {
 
           {/* Navigation Tabs */}
           <View style={[styles.navTabs, isMobile && { gap: 16 }]}>
-            {(['home', 'events', 'verify', 'contact'] as const).map((tab) => {
-              const label = tab === 'home' ? 'Home' : tab === 'events' ? 'ECHO' : tab === 'verify' ? 'Verify' : 'Contact Us';
+            {(['home', 'verify', 'contact'] as const).map((tab) => {
+              const label = tab === 'home' ? 'Home' : tab === 'verify' ? 'Verify' : 'Contact Us';
               const isSelected = activeTab === tab;
               return (
                 <Pressable
@@ -508,15 +507,6 @@ export default function LandingPage() {
         onScroll={(e) => setScrollY(e.nativeEvent.contentOffset.y)}
         scrollEventThrottle={16}
       >
-
-        {/* ══════════════════════════════════════════════════════════════════
-            TAB: ECHO EVENTS SHOWCASE
-        ══════════════════════════════════════════════════════════════════ */}
-        {activeTab === 'events' && (
-          <View style={{ width: '100%' }}>
-            <EchoEventsLanding />
-          </View>
-        )}
 
         {/* ══════════════════════════════════════════════════════════════════
             TAB: VERIFY CREDENTIALS & BGV DESK
@@ -1584,11 +1574,11 @@ export default function LandingPage() {
                   <View><Text style={[styles.otgStatNum, { color: '#A21C63' }]}>4.8</Text><Text style={styles.otgStatLabel}>average rating</Text></View>
                 </View>
                 <View style={{ flexDirection: 'row', gap: 12, marginBottom: 28, flexWrap: 'wrap' }}>
-                  <GlowButton onPress={() => setActiveTab('events')} style={[styles.verifySubmitBtn, { backgroundColor: '#4B3FD6' }]} textStyle={styles.verifySubmitBtnText}>
-                    See the events
-                  </GlowButton>
-                  <GlowButton onPress={() => setActiveTab('contact')} style={[styles.heroBtnCollege, { borderColor: '#CFC9F3' }]} textStyle={[styles.heroBtnCollegeText, { color: '#2E2A55' }]}>
+                  <GlowButton onPress={() => setActiveTab('contact')} style={[styles.verifySubmitBtn, { backgroundColor: '#4B3FD6' }]} textStyle={styles.verifySubmitBtnText}>
                     Host on your campus
+                  </GlowButton>
+                  <GlowButton onPress={() => router.push('/register')} style={[styles.heroBtnCollege, { borderColor: '#CFC9F3' }]} textStyle={[styles.heroBtnCollegeText, { color: '#2E2A55' }]}>
+                    Join the network
                   </GlowButton>
                 </View>
                 <View style={styles.otgHostsRow}>

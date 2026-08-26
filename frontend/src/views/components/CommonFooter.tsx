@@ -33,7 +33,7 @@ const T = {
 };
 
 interface CommonFooterProps {
-  onTabChange?: (tab: 'home' | 'events' | 'verify' | 'contact') => void;
+  onTabChange?: (tab: 'home' | 'verify' | 'contact') => void;
   maxWidth?: number;
 }
 
@@ -46,7 +46,7 @@ export default function CommonFooter({ onTabChange, maxWidth = 1360 }: CommonFoo
   const [subscribed, setSubscribed] = useState(false);
   const [emailInput, setEmailInput] = useState('');
 
-  const navigateTabOrRoute = (tab: 'home' | 'events' | 'verify' | 'contact', route?: string) => {
+  const navigateTabOrRoute = (tab: 'home' | 'verify' | 'contact', route?: string) => {
     if (onTabChange) {
       onTabChange(tab);
     } else if (route) {
