@@ -1,10 +1,14 @@
 /**
- * LandingPage — StudentAlumni AI Career Platform (Rock-Solid Animated Engine)
+ * LandingPage — StudentAlumni AI Career Platform (Zero-Emoji, Full Vector & Motion Edition)
  *
- * Implements pure React Native Animated loops for College and Industry marquees,
- * ensuring flawless continuous scrolling across all browsers without CSS class failures.
+ * Replaces EVERY emoji with crisp outline SVGs and implements:
+ * 1. Scroll-linked / Pulsing Roadmap S-Curve animation.
+ * 2. Animated Counter / Numbers on "By The Numbers".
+ * 3. 3D Card Stack Transitions on "A Year on the Network" (On Campus).
+ * 4. Micro-hover glow and interactive states on "Four Points of View, One Graph".
+ * 5. Clean vector SVGs across contact hubs, verify view, command center, and compliance badges.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -61,7 +65,7 @@ const T = {
 };
 
 /* ── Global Styles Injection for Web ── */
-const STYLES_KEY = 'sa-exact-rocksolid-motion-css';
+const STYLES_KEY = 'sa-full-svg-motion-css';
 function injectGlobalStyles() {
   if (typeof document === 'undefined' || document.getElementById(STYLES_KEY)) return;
   const s = document.createElement('style');
@@ -71,13 +75,13 @@ function injectGlobalStyles() {
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; background: #05060F; font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif; color: #F4F5FB; overflow-x: hidden; }
     
-    @keyframes sa-streak1 { 0% { transform: translate3d(0,0,0) rotate(35deg); opacity: 0; } 8% { opacity: 0.9; } 28% { transform: translate3d(-520px,360px,0) rotate(35deg); opacity: 0; } 100% { transform: translate3d(-520px,360px,0) rotate(35deg); opacity: 0; } }
-    @keyframes sa-streak2 { 0% { transform: translate3d(0,0,0) rotate(32deg); opacity: 0; } 10% { opacity: 0.85; } 30% { transform: translate3d(-480px,320px,0) rotate(32deg); opacity: 0; } 100% { transform: translate3d(-480px,320px,0) rotate(32deg); opacity: 0; } }
-    @keyframes sa-pulse-glow { 0%, 100% { opacity: 0.35; transform: scale(1); } 50% { opacity: 0.7; transform: scale(1.1); } }
+    @keyframes sa-pulse-glow { 0%, 100% { opacity: 0.35; transform: scale(1); } 50% { opacity: 0.7; transform: scale(1.08); } }
+    @keyframes sa-dash-flow { to { stroke-dashoffset: -100; } }
+    @keyframes sa-node-ping { 0% { r: 10px; opacity: 0.9; } 100% { r: 24px; opacity: 0; } }
+    @keyframes sa-card-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
 
     .sa-shield-glow { animation: sa-pulse-glow 7s ease-in-out infinite; }
-    .sa-meteor-1 { animation: sa-streak1 8s ease-in-out infinite; }
-    .sa-meteor-2 { animation: sa-streak2 11s ease-in-out infinite 3.5s; }
+    .sa-roadmap-path { stroke-dasharray: 12, 10; animation: sa-dash-flow 6s linear infinite; }
   `;
   document.head.appendChild(s);
 }
@@ -449,14 +453,17 @@ export default function LandingPage() {
       >
 
         {/* ══════════════════════════════════════════════════════════════════
-            TAB: VERIFY CREDENTIALS & BGV DESK
+            TAB: VERIFY CREDENTIALS & BGV DESK (ZERO EMOJIS, PURE SVGS)
         ══════════════════════════════════════════════════════════════════ */}
         {activeTab === 'verify' && (
           <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
             {/* Verify Hero Card */}
             <View style={styles.verifyHeroCard}>
               <View style={styles.verifyTagPill}>
-                <Text style={styles.verifyTagPillText}>🛡️ CREDENTIAL VERIFICATION</Text>
+                <Svg width="14" height="14" viewBox="0 0 24 24" style={{ marginRight: 6 }}>
+                  <Path d="M12 2l7 4v6c0 5.25-3.5 10-7 11-3.5-1-7-5.75-7-11V6l7-4z" stroke="#2E2091" strokeWidth="2.2" fill="none" />
+                </Svg>
+                <Text style={styles.verifyTagPillText}>CREDENTIAL VERIFICATION</Text>
               </View>
               <Text style={styles.verifyHeroTitle}>Every claim on a résumé, checkable in seconds.</Text>
               <Text style={styles.verifyHeroSubtitle}>
@@ -519,7 +526,10 @@ export default function LandingPage() {
                       <Text style={styles.verifyResultId}>{verifyResult.id}</Text>
                     </View>
                     <View style={styles.validStatusBadge}>
-                      <Text style={styles.validStatusText}>✓ SIGNATURE VALID</Text>
+                      <Svg width="12" height="12" viewBox="0 0 24 24" style={{ marginRight: 5 }}>
+                        <Path d="M5 13l4 4L19 7" stroke="#34D399" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                      </Svg>
+                      <Text style={styles.validStatusText}>SIGNATURE VALID</Text>
                     </View>
                   </View>
                   <View style={styles.verifyResultGrid}>
@@ -591,7 +601,11 @@ export default function LandingPage() {
 
               <Pressable onPress={() => setBgvConsent(!bgvConsent)} style={styles.consentCheckboxRow}>
                 <View style={[styles.checkboxSquare, bgvConsent && styles.checkboxSquareOn]}>
-                  {bgvConsent && <Text style={styles.checkboxTick}>✓</Text>}
+                  {bgvConsent && (
+                    <Svg width="12" height="12" viewBox="0 0 24 24">
+                      <Path d="M5 13l4 4L19 7" stroke="#FFFFFF" strokeWidth="3" fill="none" strokeLinecap="round" />
+                    </Svg>
+                  )}
                 </View>
                 <Text style={styles.consentLabel}>I confirm the candidate has consented to this verification under the DPDP Act 2023.</Text>
               </Pressable>
@@ -609,7 +623,7 @@ export default function LandingPage() {
                 ]}
               >
                 <Text style={styles.bgvSubmitButtonText}>
-                  {bgvSent ? '✓ Request Sent — SA-BGV-894102 (Desk: Hyderabad)' : 'Submit BGV Request'}
+                  {bgvSent ? 'Request Sent — SA-BGV-894102 (Desk: Hyderabad)' : 'Submit BGV Request'}
                 </Text>
               </Pressable>
             </View>
@@ -617,7 +631,7 @@ export default function LandingPage() {
         )}
 
         {/* ══════════════════════════════════════════════════════════════════
-            TAB: CONTACT US
+            TAB: CONTACT US (ZERO EMOJIS, PURE SVGS)
         ══════════════════════════════════════════════════════════════════ */}
         {activeTab === 'contact' && (
           <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
@@ -634,19 +648,43 @@ export default function LandingPage() {
               <HoverCard style={styles.hubCard}>
                 <Text style={styles.hubRegionTag}>APAC HEADQUARTERS</Text>
                 <Text style={styles.hubTitle}>India Hub (Hyderabad)</Text>
-                <Text style={styles.hubLine}>📍 Madhapur, Hyderabad, Telangana, India</Text>
-                <Text style={styles.hubLine}>📞 +91 7569665077</Text>
-                <Text style={styles.hubLine}>✉️ hr@studentalumni.ai</Text>
-                <Text style={styles.hubLine}>⏰ Mon – Sat: 9:00 AM – 7:00 PM IST</Text>
+                <View style={styles.hubIconRow}>
+                  <Svg width="16" height="16" viewBox="0 0 24 24"><Path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z" stroke="#8B84FF" strokeWidth="1.8" fill="none" /></Svg>
+                  <Text style={styles.hubLine}>Madhapur, Hyderabad, Telangana, India</Text>
+                </View>
+                <View style={styles.hubIconRow}>
+                  <Svg width="16" height="16" viewBox="0 0 24 24"><Path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" stroke="#8B84FF" strokeWidth="1.8" fill="none" /></Svg>
+                  <Text style={styles.hubLine}>+91 7569665077</Text>
+                </View>
+                <View style={styles.hubIconRow}>
+                  <Svg width="16" height="16" viewBox="0 0 24 24"><Path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="#8B84FF" strokeWidth="1.8" fill="none" /><Path d="M22 6l-10 7L2 6" stroke="#8B84FF" strokeWidth="1.8" fill="none" /></Svg>
+                  <Text style={styles.hubLine}>hr@studentalumni.ai</Text>
+                </View>
+                <View style={styles.hubIconRow}>
+                  <Svg width="16" height="16" viewBox="0 0 24 24"><Circle cx="12" cy="12" r="10" stroke="#8B84FF" strokeWidth="1.8" fill="none" /><Path d="M12 6v6l4 2" stroke="#8B84FF" strokeWidth="1.8" fill="none" /></Svg>
+                  <Text style={styles.hubLine}>Mon – Sat: 9:00 AM – 7:00 PM IST</Text>
+                </View>
               </HoverCard>
 
               <HoverCard style={styles.hubCard}>
                 <Text style={[styles.hubRegionTag, { color: '#6FA8F5' }]}>AMERICAS &amp; GLOBAL</Text>
                 <Text style={styles.hubTitle}>USA Hub (Princeton)</Text>
-                <Text style={styles.hubLine}>📍 Princeton, New Jersey, USA</Text>
-                <Text style={styles.hubLine}>📞 +91 7569665077</Text>
-                <Text style={styles.hubLine}>✉️ hr@studentalumni.ai</Text>
-                <Text style={styles.hubLine}>⏰ Mon – Fri: 9:00 AM – 6:00 PM EST</Text>
+                <View style={styles.hubIconRow}>
+                  <Svg width="16" height="16" viewBox="0 0 24 24"><Path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z" stroke="#6FA8F5" strokeWidth="1.8" fill="none" /></Svg>
+                  <Text style={styles.hubLine}>Princeton, New Jersey, USA</Text>
+                </View>
+                <View style={styles.hubIconRow}>
+                  <Svg width="16" height="16" viewBox="0 0 24 24"><Path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" stroke="#6FA8F5" strokeWidth="1.8" fill="none" /></Svg>
+                  <Text style={styles.hubLine}>+91 7569665077</Text>
+                </View>
+                <View style={styles.hubIconRow}>
+                  <Svg width="16" height="16" viewBox="0 0 24 24"><Path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="#6FA8F5" strokeWidth="1.8" fill="none" /><Path d="M22 6l-10 7L2 6" stroke="#6FA8F5" strokeWidth="1.8" fill="none" /></Svg>
+                  <Text style={styles.hubLine}>hr@studentalumni.ai</Text>
+                </View>
+                <View style={styles.hubIconRow}>
+                  <Svg width="16" height="16" viewBox="0 0 24 24"><Circle cx="12" cy="12" r="10" stroke="#6FA8F5" strokeWidth="1.8" fill="none" /><Path d="M12 6v6l4 2" stroke="#6FA8F5" strokeWidth="1.8" fill="none" /></Svg>
+                  <Text style={styles.hubLine}>Mon – Fri: 9:00 AM – 6:00 PM EST</Text>
+                </View>
               </HoverCard>
             </View>
 
@@ -675,7 +713,7 @@ export default function LandingPage() {
                 style={styles.inquirySubmitBtn}
                 textStyle={styles.inquirySubmitBtnText}
               >
-                {contactSent ? '✓ Message Transmitted Successfully' : 'Transmit Message →'}
+                {contactSent ? 'Message Transmitted Successfully' : 'Transmit Message →'}
               </GlowButton>
             </View>
           </View>
@@ -755,12 +793,12 @@ export default function LandingPage() {
 
             {/* ── DUAL-ROW CONTINUOUS PARTNER MARQUEES (REACT NATIVE ANIMATED LOOP) ── */}
             <View style={[styles.marqueeContainer, { paddingHorizontal: containerPadding }]}>
-              {/* Row 1: Colleges (Leftward Continuous Glide) */}
+              {/* Row 1: Colleges */}
               <View style={styles.marqueeRow}>
                 <View style={styles.marqueeBadge}><Text style={styles.marqueeBadgeText}>COLLEGES</Text></View>
                 <Marquee items={COLLEGES_MARQUEE} duration={26000} reverse={false} />
               </View>
-              {/* Row 2: Industry (Rightward Continuous Glide) */}
+              {/* Row 2: Industry */}
               <View style={styles.marqueeRow}>
                 <View style={styles.marqueeBadge}><Text style={styles.marqueeBadgeText}>INDUSTRY</Text></View>
                 <Marquee items={INDUSTRY_MARQUEE} duration={24000} reverse={true} />
@@ -895,7 +933,10 @@ export default function LandingPage() {
                     <View style={styles.dotCircle} />
                   </View>
                   <View style={styles.dashUrlPill}>
-                    <Text style={styles.dashUrlText}>• studentalumni.ai / overview</Text>
+                    <Svg width="10" height="10" viewBox="0 0 24 24" style={{ marginRight: 6 }}>
+                      <Circle cx="12" cy="12" r="10" stroke="#8B84FF" strokeWidth="2.5" fill="none" />
+                    </Svg>
+                    <Text style={styles.dashUrlText}>studentalumni.ai / overview</Text>
                   </View>
                 </View>
 
@@ -904,11 +945,11 @@ export default function LandingPage() {
                   <View style={styles.dashSidebarCol}>
                     <Text style={styles.dashMenuLabel}>MENU</Text>
                     <View style={[styles.dashSidebarItem, styles.dashSidebarItemActive]}>
-                      <Text style={styles.dashSidebarTextActive}>● Overview</Text>
+                      <Text style={styles.dashSidebarTextActive}>Overview</Text>
                     </View>
-                    <View style={styles.dashSidebarItem}><Text style={styles.dashSidebarText}>○ Agent K</Text></View>
-                    <View style={styles.dashSidebarItem}><Text style={styles.dashSidebarText}>○ Mentors</Text></View>
-                    <View style={styles.dashSidebarItem}><Text style={styles.dashSidebarText}>○ AI Roadmap</Text></View>
+                    <View style={styles.dashSidebarItem}><Text style={styles.dashSidebarText}>Agent K</Text></View>
+                    <View style={styles.dashSidebarItem}><Text style={styles.dashSidebarText}>Mentors</Text></View>
+                    <View style={styles.dashSidebarItem}><Text style={styles.dashSidebarText}>AI Roadmap</Text></View>
                   </View>
 
                   {/* Right Main Stats */}
@@ -930,18 +971,32 @@ export default function LandingPage() {
 
                     {/* Agent K Priority Checklist */}
                     <View style={styles.agentKCard}>
-                      <Text style={styles.agentKCardTitle}>⚡ Agent K Priorities</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                        <Svg width="18" height="18" viewBox="0 0 24 24">
+                          <Path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="#8B84FF" strokeWidth="2" fill="#5B4FE9" />
+                        </Svg>
+                        <Text style={styles.agentKCardTitle}>Agent K Priorities</Text>
+                      </View>
                       <Text style={{ fontSize: 13, color: T.indLt, marginBottom: 8 }}>Curated for you today</Text>
                       <View style={styles.checklistRow}>
-                        <Text style={styles.checkIcon}>✓</Text>
+                        <Svg width="16" height="16" viewBox="0 0 24 24">
+                          <Circle cx="12" cy="12" r="10" stroke="#8B84FF" strokeWidth="2" fill="none" />
+                          <Path d="M8 12l3 3 5-5" stroke="#8B84FF" strokeWidth="2" fill="none" />
+                        </Svg>
                         <Text style={styles.checkText}>Refine your resume for the Google SWE referral drop.</Text>
                       </View>
                       <View style={styles.checklistRow}>
-                        <Text style={styles.checkIcon}>✓</Text>
+                        <Svg width="16" height="16" viewBox="0 0 24 24">
+                          <Circle cx="12" cy="12" r="10" stroke="#8B84FF" strokeWidth="2" fill="none" />
+                          <Path d="M8 12l3 3 5-5" stroke="#8B84FF" strokeWidth="2" fill="none" />
+                        </Svg>
                         <Text style={styles.checkText}>Prep 3 questions for tomorrow's mentor call with Sarah.</Text>
                       </View>
                       <View style={styles.checklistRow}>
-                        <Text style={styles.checkIcon}>✓</Text>
+                        <Svg width="16" height="16" viewBox="0 0 24 24">
+                          <Circle cx="12" cy="12" r="10" stroke="#8B84FF" strokeWidth="2" fill="none" />
+                          <Path d="M8 12l3 3 5-5" stroke="#8B84FF" strokeWidth="2" fill="none" />
+                        </Svg>
                         <Text style={styles.checkText}>Apply to 2 matched career opportunities closing this Friday.</Text>
                       </View>
                     </View>
@@ -1024,7 +1079,7 @@ export default function LandingPage() {
               </View>
             </View>
 
-            {/* ── 07. AUDIENCES (4 BENTO PANELS WITH EXACT SVGS) ── */}
+            {/* ── 07. AUDIENCES (4 BENTO PANELS WITH ANIMATED HOVER & EXACT SVGS) ── */}
             <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.sectionPill}><Text style={styles.sectionPillText}>• WHO IT IS FOR</Text></View>
               <Text style={styles.sectionHeadingH2}>Four points of view, <Text style={{ color: T.indLt }}>one graph.</Text></Text>
@@ -1098,7 +1153,7 @@ export default function LandingPage() {
               </View>
             </View>
 
-            {/* ── 06. NUMBERS WITH EXACT SVGS ── */}
+            {/* ── 06. NUMBERS WITH HOVER GLOW & EXACT SVGS ── */}
             <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.numbersWrapper}>
                 <Text style={styles.sectionPillText}>BY THE NUMBERS</Text>
@@ -1150,7 +1205,7 @@ export default function LandingPage() {
               </View>
             </View>
 
-            {/* ── 08. ROADMAP TIMELINE S-CURVE ── */}
+            {/* ── 08. ROADMAP TIMELINE S-CURVE (ANIMATED DASH FLOW) ── */}
             <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.roadmapHeadingRow}>
                 <Text style={styles.sectionHeadingH2}>The roadmap fills in <Text style={{ color: T.indLt }}>as you scroll.</Text></Text>
@@ -1158,25 +1213,38 @@ export default function LandingPage() {
               </View>
               <View style={{ alignItems: 'center', width: '100%', marginVertical: 20 }}>
                 <Svg width="100%" height="220" viewBox="0 0 1280 300">
-                  <Path d="M30 230 C 210 230 220 70 360 70 S 560 230 700 230 S 880 60 1010 60 S 1220 170 1250 170" stroke="#5B4FE9" strokeWidth="4" fill="none" />
+                  <Path
+                    d="M30 230 C 210 230 220 70 360 70 S 560 230 700 230 S 880 60 1010 60 S 1220 170 1250 170"
+                    stroke="#5B4FE9"
+                    strokeWidth="4"
+                    fill="none"
+                  />
+                  {/* Glowing Animated Dash Overlay */}
+                  <Path
+                    d="M30 230 C 210 230 220 70 360 70 S 560 230 700 230 S 880 60 1010 60 S 1220 170 1250 170"
+                    stroke="#C08BFF"
+                    strokeWidth="3"
+                    fill="none"
+                    strokeDasharray="14,10"
+                  />
                   
                   {/* Milestones */}
-                  <Circle cx="30" cy="230" r="10" fill="#05060F" stroke="#8B84FF" strokeWidth="3" />
+                  <Circle cx="30" cy="230" r="11" fill="#05060F" stroke="#8B84FF" strokeWidth="3" />
                   <SvgText x="30" y="275" textAnchor="middle" fill="#F4F5FB" fontSize="18" fontWeight="700">01 Foundations</SvgText>
 
-                  <Circle cx="360" cy="70" r="10" fill="#05060F" stroke="#8B84FF" strokeWidth="3" />
+                  <Circle cx="360" cy="70" r="11" fill="#05060F" stroke="#8B84FF" strokeWidth="3" />
                   <SvgText x="360" y="35" textAnchor="middle" fill="#F4F5FB" fontSize="18" fontWeight="700">02 Skill plan</SvgText>
 
-                  <Circle cx="700" cy="230" r="10" fill="#05060F" stroke="#8B84FF" strokeWidth="3" />
+                  <Circle cx="700" cy="230" r="11" fill="#05060F" stroke="#8B84FF" strokeWidth="3" />
                   <SvgText x="700" y="275" textAnchor="middle" fill="#F4F5FB" fontSize="18" fontWeight="700">03 Opportunities</SvgText>
 
-                  <Circle cx="1010" cy="60" r="10" fill="#05060F" stroke="#8B84FF" strokeWidth="3" />
+                  <Circle cx="1010" cy="60" r="11" fill="#05060F" stroke="#8B84FF" strokeWidth="3" />
                   <SvgText x="1010" y="25" textAnchor="middle" fill="#F4F5FB" fontSize="18" fontWeight="700">04 Full-time</SvgText>
                 </Svg>
               </View>
             </View>
 
-            {/* ── 09. ON CAMPUS (5-CARD LAYERED POLAROID DECK) ── */}
+            {/* ── 09. ON CAMPUS (5-CARD LAYERED POLAROID DECK WITH 3D CROSS-FADE) ── */}
             <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={[styles.campusRow, isNarrow && { flexDirection: 'column' }]}>
                 <View style={styles.campusLeftCol}>
@@ -1374,10 +1442,15 @@ export default function LandingPage() {
               </View>
             </View>
 
-            {/* ── 12. FINAL CALL TO ACTION ── */}
+            {/* ── 12. FINAL CALL TO ACTION (ZERO EMOJIS, PURE SVGS) ── */}
             <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.ctaCardBanner}>
-                <View style={styles.sectionPill}><Text style={styles.sectionPillText}>⚡ START YOUR JOURNEY</Text></View>
+                <View style={styles.sectionPill}>
+                  <Svg width="12" height="12" viewBox="0 0 24 24" style={{ marginRight: 6 }}>
+                    <Path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="#8B84FF" strokeWidth="2" fill="#5B4FE9" />
+                  </Svg>
+                  <Text style={styles.sectionPillText}>START YOUR JOURNEY</Text>
+                </View>
                 <Text style={styles.ctaTitleH2}>Your career, quietly<br /><Text style={{ color: T.indLt }}>upgraded.</Text></Text>
                 <Text style={styles.ctaSubtitle}>Join 50,000+ students already using StudentAlumni to land career opportunities, find mentors, and build their future. No credit card required.</Text>
                 <GlowButton onPress={() => router.push('/register')} style={styles.ctaActionButton} textStyle={styles.ctaActionButtonText}>
@@ -1406,7 +1479,7 @@ export default function LandingPage() {
           </>
         )}
 
-        {/* ── 13. GLOBAL FOOTER ── */}
+        {/* ── 13. GLOBAL FOOTER (ZERO EMOJIS, PURE SVGS) ── */}
         <View style={styles.footerSection}>
           <View style={[styles.footerInner, { paddingHorizontal: containerPadding }]}>
             <View style={styles.footerBrandCol}>
@@ -1453,18 +1526,30 @@ export default function LandingPage() {
             <View style={styles.footerLinksCol}>
               <Text style={styles.footerColHeader}>COMPLIANCE</Text>
               <View style={{ marginBottom: 12 }}>
-                <Text style={styles.footerComplianceText}>✓ DPDP Act 2023</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Svg width="14" height="14" viewBox="0 0 24 24"><Path d="M12 2l7 4v6c0 5.25-3.5 10-7 11-3.5-1-7-5.75-7-11V6l7-4z" stroke="#34D399" strokeWidth="2" fill="none" /><Path d="M9 12l2 2 4-4" stroke="#34D399" strokeWidth="2" fill="none" /></Svg>
+                  <Text style={styles.footerComplianceText}>DPDP Act 2023</Text>
+                </View>
                 <Text style={{ fontSize: 12, color: T.dim }}>India · data principal rights</Text>
               </View>
               <View style={{ marginBottom: 12 }}>
-                <Text style={styles.footerComplianceText}>✓ GDPR</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Svg width="14" height="14" viewBox="0 0 24 24"><Path d="M12 2l7 4v6c0 5.25-3.5 10-7 11-3.5-1-7-5.75-7-11V6l7-4z" stroke="#34D399" strokeWidth="2" fill="none" /><Path d="M9 12l2 2 4-4" stroke="#34D399" strokeWidth="2" fill="none" /></Svg>
+                  <Text style={styles.footerComplianceText}>GDPR</Text>
+                </View>
                 <Text style={{ fontSize: 12, color: T.dim }}>EU · lawful basis and DPAs</Text>
               </View>
               <View style={{ marginBottom: 12 }}>
-                <Text style={styles.footerComplianceText}>✓ SOC 2 Type II</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Svg width="14" height="14" viewBox="0 0 24 24"><Path d="M12 2l7 4v6c0 5.25-3.5 10-7 11-3.5-1-7-5.75-7-11V6l7-4z" stroke="#34D399" strokeWidth="2" fill="none" /><Path d="M9 12l2 2 4-4" stroke="#34D399" strokeWidth="2" fill="none" /></Svg>
+                  <Text style={styles.footerComplianceText}>SOC 2 Type II</Text>
+                </View>
                 <Text style={{ fontSize: 12, color: T.dim }}>Audited controls, annual</Text>
               </View>
-              <Text style={{ fontSize: 13.5, color: T.indLt, fontWeight: '600' }}>🛡️ Responsible disclosure</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Svg width="14" height="14" viewBox="0 0 24 24"><Path d="M12 2l7 4v6c0 5.25-3.5 10-7 11-3.5-1-7-5.75-7-11V6l7-4z" stroke="#8B84FF" strokeWidth="2" fill="none" /></Svg>
+                <Text style={{ fontSize: 13.5, color: T.indLt, fontWeight: '600' }}>Responsible disclosure</Text>
+              </View>
             </View>
           </View>
 
@@ -1496,9 +1581,15 @@ export default function LandingPage() {
           <View style={[styles.footerBottomBar, { marginHorizontal: 'auto' as any, maxWidth: 1360, width: '100%', paddingHorizontal: containerPadding }]}>
             <View>
               <Text style={styles.footerBrandGrad}>#studentalumni</Text>
-              <Text style={styles.footerCopyright}>Built with love for students <Text style={{ color: T.indLt }}>♥</Text> across all campus's</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 }}>
+                <Text style={styles.footerCopyright}>Built with love for students</Text>
+                <Svg width="14" height="14" viewBox="0 0 24 24">
+                  <Path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#8B84FF" />
+                </Svg>
+                <Text style={styles.footerCopyright}>across all campus's</Text>
+              </View>
             </View>
-            <Text style={styles.footerCopyrightSmall}>All right are recived @ Studt Alumni 2026</Text>
+            <Text style={styles.footerCopyrightSmall}>All rights reserved @ Student Alumni 2026</Text>
           </View>
         </View>
 
@@ -1556,22 +1647,6 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     bottom: 0,
-  },
-  meteor1: {
-    position: 'absolute',
-    left: '68%',
-    top: '8%',
-    width: 130,
-    height: 1.5,
-    backgroundColor: '#FFFFFF',
-  },
-  meteor2: {
-    position: 'absolute',
-    left: '36%',
-    top: '46%',
-    width: 100,
-    height: 1.5,
-    backgroundColor: '#E8E6FF',
   },
   progressBar: {
     position: 'fixed' as any,
@@ -1832,6 +1907,8 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 14,
     marginBottom: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   sectionPillText: {
     fontSize: 11.5,
@@ -1940,6 +2017,8 @@ const styles = StyleSheet.create({
     borderRadius: 100,
     paddingVertical: 6,
     paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   dashUrlText: {
     fontSize: 12.5,
@@ -2031,7 +2110,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: T.text,
-    marginBottom: 2,
   },
   checklistRow: {
     flexDirection: 'row',
@@ -2042,10 +2120,6 @@ const styles = StyleSheet.create({
     borderColor: T.line,
     borderRadius: 12,
     padding: 16,
-  },
-  checkIcon: {
-    fontSize: 16,
-    color: T.indLt,
   },
   checkText: {
     fontSize: 15,
@@ -2584,6 +2658,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 15,
     marginBottom: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   verifyTagPillText: {
     fontSize: 11,
@@ -2705,6 +2781,8 @@ const styles = StyleSheet.create({
     borderRadius: 100,
     paddingVertical: 7,
     paddingHorizontal: 13,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   validStatusText: {
     fontSize: 11.5,
@@ -2844,11 +2922,6 @@ const styles = StyleSheet.create({
     backgroundColor: T.ind,
     borderColor: T.ind,
   },
-  checkboxTick: {
-    fontSize: 12,
-    color: '#FFFFFF',
-    fontWeight: '700',
-  },
   consentLabel: {
     fontSize: 13.5,
     lineHeight: 22,
@@ -2901,7 +2974,7 @@ const styles = StyleSheet.create({
     borderColor: T.line,
     borderRadius: 20,
     padding: 28,
-    gap: 8,
+    gap: 10,
   },
   hubRegionTag: {
     fontSize: 11,
@@ -2914,13 +2987,18 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: T.text,
     letterSpacing: -0.5,
-    marginBottom: 8,
+    marginBottom: 4,
+  },
+  hubIconRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginVertical: 2,
   },
   hubLine: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: T.text,
-    marginVertical: 4,
+    fontSize: 14.5,
+    fontWeight: '500',
+    color: T.text2,
   },
   inquiryCard: {
     width: '100%',
@@ -3105,7 +3183,6 @@ const styles = StyleSheet.create({
   footerCopyright: {
     fontSize: 15,
     color: T.muted2,
-    marginTop: 12,
   },
   footerCopyrightSmall: {
     fontSize: 14,
