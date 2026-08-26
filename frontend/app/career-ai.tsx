@@ -704,7 +704,6 @@ const s = StyleSheet.create({
     backgroundColor: 'transparent',
     gap: SPACING.xxl,
     paddingBottom: 60,
-    gap: SPACING.xxl,
   },
   contentContainer: {
     paddingVertical: SPACING.xxl,

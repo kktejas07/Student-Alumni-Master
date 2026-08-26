@@ -131,7 +131,7 @@ export default function NexusLanding() {
     const progressLine = document.getElementById("sa-progress");
     const stickyBar = document.getElementById("sa-sticky");
     const roadSec = document.getElementById("sa-road-sec");
-    const roadLine = document.getElementById("sa-roadline") as SVGPathElement | null;
+    const roadLine = document.getElementById("sa-roadline") as unknown as SVGPathElement | null;
     let pathLen = 1450;
     if (roadLine) {
       try {
@@ -293,7 +293,7 @@ export default function NexusLanding() {
     const radarNodes = Array.from(root.querySelectorAll<HTMLElement>(".sa-node"));
     const matchName = document.getElementById("sa-mname");
     const matchWhy = document.getElementById("sa-mwhy");
-    const saLink = document.getElementById("sa-link") as SVGLineElement | null;
+    const saLink = document.getElementById("sa-link") as unknown as SVGLineElement | null;
     radarNodes.forEach((node) => {
       node.addEventListener("mouseenter", () => {
         if (matchName) matchName.textContent = node.dataset.name || "";
