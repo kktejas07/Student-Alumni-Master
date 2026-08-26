@@ -59,11 +59,14 @@ COPY package.json yarn.lock* package-lock.json* ./
 RUN if [ -f yarn.lock ]; then yarn install --network-timeout 600000 --ignore-engines; \
     else npm install --no-audit --no-fund --legacy-peer-deps; fi
 
-# Invalidate cache for new code builds
-ARG CACHEBUST=20260826-v4
 COPY . .
 
-RUN npx expo export --platform web --output-dir dist --max-workers 1
+# Invalidate builder cache and run fresh export
+ARG CACHEBUST=20260826-v6-fresh-build
+RUN rm -rf dist .metro-cache \
+    && npx expo export --platform web --output-dir dist --max-workers 1 \
+    && ls -la dist \
+    && test -f dist/index.html || (echo "ERROR: Expo failed to produce dist/index.html" && exit 1)
 
 # Final production stage: Ultra-lightweight Nginx
 FROM nginx:1.27-alpine
