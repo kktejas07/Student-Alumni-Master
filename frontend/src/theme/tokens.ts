@@ -13,23 +13,43 @@ export const COLORS = {
   border: 'rgba(255,255,255,0.08)',
   borderHi: 'rgba(255,255,255,0.14)',
   borderLo: 'rgba(255,255,255,0.04)',
+  borderMed: 'rgba(255,255,255,0.11)',
+  text: '#F4F4FA',
   textP: '#F4F4FA',
+  text2: 'rgba(255, 255, 255, 0.95)',
+  textSub: 'rgba(255, 255, 255, 0.85)',
   textS: '#8A8A9E',
   textT: '#6A6A7E',
+  dim: 'rgba(255, 255, 255, 0.70)',
   primary: '#7C5CFC',
   primaryDark: '#6246E8',
   primaryLight: '#A78BFA',
   primarySoft: 'rgba(124,92,252,0.10)',
   violet: '#7C5CFC',
   violetLt: '#A78BFA',
+  purple: '#8B5CF6',
+  purpleL: '#A78BFA',
+  purpleSoft: 'rgba(139,92,246,0.15)',
   blue: '#3B82F6',
   blueSoft: 'rgba(59,130,246,0.15)',
   cyan: '#22D3EE',
   cyanSoft: 'rgba(34,211,238,0.15)',
-  purple: '#8B5CF6',
-  purpleSoft: 'rgba(139,92,246,0.15)',
+  green: '#34D399',
+  red: '#F0616B',
   amber: '#F59E0B',
   amberSoft: 'rgba(245,158,11,0.15)',
+  chipBg: 'rgba(139,92,246,0.12)',
+  success: '#34D399',
+  successBg: 'rgba(16,185,129,0.12)',
+  danger: '#F0616B',
+  dangerBg: 'rgba(240,97,107,0.13)',
+  warning: '#F59E0B',
+  warningBg: 'rgba(245,158,11,0.12)',
+  info: '#3B82F6',
+  infoBg: 'rgba(59,130,246,0.12)',
+  card: '#14141F',
+  cardSolid: '#14141F',
+  cardHover: 'rgba(255,255,255,0.06)',
   chrome: 'rgba(10,10,20,0.86)',
   chromeBlur: 'blur(16px)',
   tint: 'rgba(124,92,252,0.10)',
@@ -54,7 +74,7 @@ export const COLORS = {
     shieldInner: 'linear-gradient(180deg, #B683F5, #7331C9)',
     hashtag: 'linear-gradient(135deg, #F0A6E8, #C08BFF, #8B84FF, #6FA8F5)',
   },
-} as const;
+};
 
 export const PORTAL_ACCENTS = {
   student: { primary: '#7C5CFC', primaryD: '#6246E8', primaryL: '#A78BFA', accent: '#7C5CFC', accentSoft: 'rgba(124,92,252,0.18)' },
@@ -66,9 +86,9 @@ export const PORTAL_ACCENTS = {
 
 export type PortalKey = keyof typeof PORTAL_ACCENTS;
 
-export const SPACING = { xs: 4, sm: 6, md: 8, base: 10, lg: 12, xl: 14, xxl: 16, xxxl: 18, mega: 22, giga: 26, xxl2: 32, xxxl2: 40, giga2: 56, huge: 64 } as const;
+export const SPACING = { xxs: 2, xs: 4, sm: 6, md: 8, base: 10, lg: 12, xl: 14, xxl: 16, xxxl: 18, mega: 22, giga: 26, xxl2: 32, xxxl2: 40, giga2: 56, huge: 64 } as const;
 
-export const RADIUS = { sm: 8, md: 10, lg: 12, card: 18, modal: 22, hero: 24, max: 28 } as const;
+export const RADIUS = { sm: 8, md: 10, lg: 12, card: 18, modal: 22, hero: 24, max: 28, pill: 999, btn: 12, chip: 20, full: 9999, icon: 10 } as const;
 
 export const GLASS = {
   card: {
@@ -128,6 +148,15 @@ export const TYPE = {
   body: { letterSpacing: -0.010, weight: '400' as const },
   uiMedium: { letterSpacing: -0.005, weight: '500' as const },
   caption: { letterSpacing: 0, weight: '500' as const },
+  h1: { letterSpacing: -0.025, weight: '600' as const },
+  h2: { letterSpacing: -0.020, weight: '600' as const },
+  h3: { letterSpacing: -0.015, weight: '600' as const },
+  h4: { letterSpacing: -0.010, weight: '600' as const },
+  bodyBold: { letterSpacing: -0.010, weight: '600' as const },
+  bodySm: { letterSpacing: 0, weight: '400' as const },
+  bodyLg: { letterSpacing: -0.010, weight: '400' as const },
+  label: { letterSpacing: -0.005, weight: '500' as const },
+  subheading: { letterSpacing: -0.015, weight: '500' as const },
 } as const;
 
 export const BRAND = {
