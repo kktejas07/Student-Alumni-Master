@@ -29,6 +29,7 @@ import Svg, {
   ClipPath,
 } from 'react-native-svg';
 import CommonFooter from '@/src/views/components/CommonFooter';
+import EchoEventsLanding from '@/src/views/web/echo-events/EchoEventsLanding';
 
 /* ── Brand Color Palette ── */
 const T = {
@@ -80,6 +81,30 @@ function injectGlobalStyles() {
       18% { opacity: 0.95; }
       46% { transform: translateX(420px) translateY(420px) rotate(25deg); opacity: 0; }
       100% { transform: translateX(420px) translateY(420px) rotate(25deg); opacity: 0; }
+    }
+
+    @keyframes sa-marquee-l {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+    @keyframes sa-marquee-r {
+      0% { transform: translateX(-50%); }
+      100% { transform: translateX(0); }
+    }
+    .sa-mq-wrap-l {
+      display: flex !important;
+      flex-direction: row !important;
+      width: max-content !important;
+      animation: sa-marquee-l 26s linear infinite !important;
+    }
+    .sa-mq-wrap-r {
+      display: flex !important;
+      flex-direction: row !important;
+      width: max-content !important;
+      animation: sa-marquee-r 24s linear infinite !important;
+    }
+    .sa-mq-wrap-l:hover, .sa-mq-wrap-r:hover {
+      animation-play-state: paused !important;
     }
 
     .sa-shield-glow { animation: sa-pulse-glow 6s ease-in-out infinite; }
@@ -149,70 +174,78 @@ function ScrollCounter({
   return <Text style={style}>{displayValue.toLocaleString('en-IN')}{suffix}</Text>;
 }
 
-/* ── Pure React Native Animated Marquee Component ── */
+/* ── Pure Continuous Smooth Marquee Component ── */
 function Marquee({
   items,
-  duration = 26000,
+  duration = 26,
   reverse = false,
 }: {
   items: string[];
   duration?: number;
   reverse?: boolean;
 }) {
-  const [singleWidth, setSingleWidth] = useState(1400);
-  const x = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    x.setValue(reverse ? -singleWidth : 0);
-    const anim = Animated.loop(
-      Animated.timing(x, {
-        toValue: reverse ? 0 : -singleWidth,
-        duration,
-        easing: Easing.linear,
-        useNativeDriver: Platform.OS !== 'web',
-      })
-    );
-    anim.start();
-    return () => anim.stop();
-  }, [singleWidth, duration, reverse]);
-
   return (
     <View style={{ overflow: 'hidden', flex: 1 }}>
-      <Animated.View
+      <div
+        className={reverse ? 'sa-mq-wrap-r' : 'sa-mq-wrap-l'}
         style={{
+          display: 'flex',
           flexDirection: 'row',
-          transform: [{ translateX: x }],
-          width: 'max-content' as any,
+          width: 'max-content',
+          animationDuration: `${duration}s`,
         }}
       >
-        <View
-          style={{ flexDirection: 'row' }}
-          onLayout={(e) => {
-            const w = e.nativeEvent.layout.width;
-            if (w > 0 && Math.abs(w - singleWidth) > 10) setSingleWidth(w);
-          }}
-        >
+        <div style={{ display: 'flex', flexDirection: 'row' }}>
           {items.map((item, idx) => (
-            <View key={`set1-${idx}`} style={styles.marqueePill}>
-              <Text style={styles.marqueePillText}>{item}</Text>
-            </View>
+            <div
+              key={`set1-${idx}`}
+              style={{
+                backgroundColor: '#0C0E1B',
+                border: '1px solid #1B1E33',
+                borderRadius: '12px',
+                padding: '12px 18px',
+                marginRight: '14px',
+                height: '58px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                fontSize: '11.5px',
+                fontWeight: 700,
+                color: '#F4F5FB',
+                letterSpacing: '0.2px',
+              }}
+            >
+              <span>{item}</span>
+            </div>
           ))}
-        </View>
-        <View style={{ flexDirection: 'row' }}>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'row' }}>
           {items.map((item, idx) => (
-            <View key={`set2-${idx}`} style={styles.marqueePill}>
-              <Text style={styles.marqueePillText}>{item}</Text>
-            </View>
+            <div
+              key={`set2-${idx}`}
+              style={{
+                backgroundColor: '#0C0E1B',
+                border: '1px solid #1B1E33',
+                borderRadius: '12px',
+                padding: '12px 18px',
+                marginRight: '14px',
+                height: '58px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                fontSize: '11.5px',
+                fontWeight: 700,
+                color: '#F4F5FB',
+                letterSpacing: '0.2px',
+              }}
+            >
+              <span>{item}</span>
+            </div>
           ))}
-        </View>
-        <View style={{ flexDirection: 'row' }}>
-          {items.map((item, idx) => (
-            <View key={`set3-${idx}`} style={styles.marqueePill}>
-              <Text style={styles.marqueePillText}>{item}</Text>
-            </View>
-          ))}
-        </View>
-      </Animated.View>
+        </div>
+      </div>
     </View>
   );
 }
@@ -420,24 +453,6 @@ export default function LandingPage() {
 
   return (
     <View style={styles.root}>
-      {/* Dynamic Cursor Glow */}
-      {Platform.OS === 'web' && (
-        <View
-          style={[
-            styles.cursorGlow,
-            {
-              left: mousePos.x,
-              top: mousePos.y,
-              opacity: mousePos.x > 0 ? 1 : 0,
-            },
-          ]}
-          pointerEvents="none"
-        />
-      )}
-
-      {/* Starfield */}
-      <View style={styles.starfield} pointerEvents="none" />
-
       {/* Top Fixed Scroll Progress Bar */}
       <View style={[styles.progressBar, { width: `${Math.min(100, (scrollY / 3800) * 100)}%` }]} />
 
@@ -493,6 +508,15 @@ export default function LandingPage() {
         onScroll={(e) => setScrollY(e.nativeEvent.contentOffset.y)}
         scrollEventThrottle={16}
       >
+
+        {/* ══════════════════════════════════════════════════════════════════
+            TAB: ECHO EVENTS SHOWCASE
+        ══════════════════════════════════════════════════════════════════ */}
+        {activeTab === 'events' && (
+          <View style={{ width: '100%' }}>
+            <EchoEventsLanding />
+          </View>
+        )}
 
         {/* ══════════════════════════════════════════════════════════════════
             TAB: VERIFY CREDENTIALS & BGV DESK
@@ -762,9 +786,9 @@ export default function LandingPage() {
         )}
 
         {/* ══════════════════════════════════════════════════════════════════
-            TAB: HOME & ECHO
+            TAB: HOME
         ══════════════════════════════════════════════════════════════════ */}
-        {(activeTab === 'home' || activeTab === 'events') && (
+        {activeTab === 'home' && (
           <>
             {/* ── 01. HERO SECTION ── */}
             <View style={[styles.heroSection, { paddingHorizontal: containerPadding }]}>
@@ -796,7 +820,6 @@ export default function LandingPage() {
 
               {/* 3D Swaying SA Shield Emblem with Pure Shine Effect (NO GRADIENT FILL) */}
               <View style={styles.heroRightCol}>
-                <View style={[styles.shieldBackdropGlow, { className: 'sa-shield-glow' } as any]} />
                 <Animated.View
                   style={{
                     transform: [
@@ -866,15 +889,15 @@ export default function LandingPage() {
 
             {/* ── DUAL-ROW CONTINUOUS PARTNER MARQUEES ── */}
             <View style={[styles.marqueeContainer, { paddingHorizontal: containerPadding }]}>
-              {/* Row 1: Colleges */}
+              {/* Row 1: Colleges (Left-to-Right / Rightward Continuous Loop) */}
               <View style={styles.marqueeRow}>
                 <View style={styles.marqueeBadge}><Text style={styles.marqueeBadgeText}>COLLEGES</Text></View>
-                <Marquee items={COLLEGES_MARQUEE} duration={26000} reverse={false} />
+                <Marquee items={COLLEGES_MARQUEE} duration={26} reverse={false} />
               </View>
-              {/* Row 2: Industry */}
+              {/* Row 2: Industry (Continuous Smooth Scrolling Loop) */}
               <View style={styles.marqueeRow}>
                 <View style={styles.marqueeBadge}><Text style={styles.marqueeBadgeText}>INDUSTRY</Text></View>
-                <Marquee items={INDUSTRY_MARQUEE} duration={24000} reverse={true} />
+                <Marquee items={INDUSTRY_MARQUEE} duration={24} reverse={true} />
               </View>
             </View>
 
