@@ -59,10 +59,10 @@ RUN if [ -f yarn.lock ]; then yarn install --network-timeout 600000 --ignore-eng
 
 COPY . .
 
-# Invalidate builder cache and run fresh export
-ARG CACHEBUST=20260826-v11-node22-fix
-RUN rm -rf dist .metro-cache \
-    && NODE_ENV=production npx expo export --platform web --output-dir dist --clear \
+# Export web bundle (no --clear: CACHEBUST ARG already invalidates Docker layer)
+ARG CACHEBUST=20260826-v12-no-clear
+RUN rm -rf dist \
+    && NODE_ENV=production npx expo export --platform web --output-dir dist \
     && ls -la dist \
     && test -f dist/index.html || (echo "ERROR: Expo failed to produce dist/index.html" && exit 1)
 
