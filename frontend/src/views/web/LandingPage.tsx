@@ -378,11 +378,8 @@ export default function LandingPage() {
         />
       )}
 
-      {/* Starfield with Active Animated Meteors */}
-      <View style={styles.starfield} pointerEvents="none">
-        <View style={[styles.meteor1, { className: 'sa-meteor-1' } as any]} />
-        <View style={[styles.meteor2, { className: 'sa-meteor-2' } as any]} />
-      </View>
+      {/* Starfield */}
+      <View style={styles.starfield} pointerEvents="none" />
 
       {/* Top Fixed Scroll Progress Bar */}
       <View style={[styles.progressBar, { width: `${Math.min(100, (scrollY / 3800) * 100)}%` }]} />
