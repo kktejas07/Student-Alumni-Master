@@ -1,6 +1,6 @@
 /**
  * LandingPage — StudentAlumni AI Career Platform
- * Scroll-Linked Roadmap S-Curve, Viewport-Triggered Counter Physics, 3D Physical Polaroid Card Stack & Interactive Audience Motion
+ * High-Performance Vector SVGs, Real-Time Radar Hover Scan, Scroll-Linked S-Curve & 3D Interactive Motion
  */
 import React, { useState, useEffect, useRef } from 'react';
 import {
@@ -26,7 +26,9 @@ import Svg, {
   Text as SvgText,
   G,
   Line,
+  ClipPath,
 } from 'react-native-svg';
+import CommonFooter from '@/src/views/components/CommonFooter';
 
 /* ── Brand Color Palette ── */
 const T = {
@@ -69,13 +71,21 @@ function injectGlobalStyles() {
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; background: #05060F; font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif; color: #F4F5FB; overflow-x: hidden; }
     
-    @keyframes sa-pulse-glow { 0%, 100% { opacity: 0.35; transform: scale(1); } 50% { opacity: 0.8; transform: scale(1.08); } }
+    @keyframes sa-pulse-glow { 0%, 100% { opacity: 0.35; transform: scale(1); } 50% { opacity: 0.85; transform: scale(1.08); } }
     @keyframes sa-radar-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     @keyframes sa-float-slow { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
 
-    .sa-shield-glow { animation: sa-pulse-glow 7s ease-in-out infinite; }
+    @keyframes sa-shine-sweep {
+      0% { transform: translateX(-180px) translateY(-180px) rotate(25deg); opacity: 0; }
+      18% { opacity: 0.95; }
+      46% { transform: translateX(420px) translateY(420px) rotate(25deg); opacity: 0; }
+      100% { transform: translateX(420px) translateY(420px) rotate(25deg); opacity: 0; }
+    }
+
+    .sa-shield-glow { animation: sa-pulse-glow 6s ease-in-out infinite; }
     .sa-radar-spin { transform-origin: 310px 270px; animation: sa-radar-spin 7s linear infinite; }
     .sa-float-slow { animation: sa-float-slow 5s ease-in-out infinite; }
+    .sa-shine-anim { animation: sa-shine-sweep 3.6s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
   `;
   document.head.appendChild(s);
 }
@@ -122,7 +132,6 @@ function ScrollCounter({
     const animateCount = (timestamp: number) => {
       if (!startTime) startTime = timestamp;
       const progress = Math.min((timestamp - startTime) / duration, 1);
-      // Ease out cubic: 1 - (1 - progress)^3
       const easeOut = 1 - Math.pow(1 - progress, 3);
       setDisplayValue(Math.floor(easeOut * target));
 
@@ -214,13 +223,11 @@ function HoverLiftCard({
   style,
   hoverBorderColor = '#5B4FE9',
   scaleOnHover = 1.018,
-  glowColor = 'rgba(91,79,233,0.35)',
 }: {
   children: React.ReactNode;
   style?: any;
   hoverBorderColor?: string;
   scaleOnHover?: number;
-  glowColor?: string;
 }) {
   const [hovered, setHovered] = useState(false);
 
@@ -333,7 +340,6 @@ export default function LandingPage() {
   // On Campus Polaroid Deck & Testimonials auto-cycling
   const [deckIdx, setDeckIdx] = useState(0);
   const [quoteIdx, setQuoteIdx] = useState(0);
-  const [subscribed, setSubscribed] = useState(false);
 
   // Swaying shield animated value
   const swayAnim = useRef(new Animated.Value(0)).current;
@@ -388,7 +394,6 @@ export default function LandingPage() {
   }, []);
 
   // Scroll-linked Roadmap S-Curve filling calculation
-  // The roadmap section appears around Y: 1800 to 2600.
   const roadmapScrollProgress = Math.min(1, Math.max(0, (scrollY - 1500) / 750));
   const PATH_TOTAL_LENGTH = 1350;
   const roadmapStrokeDashoffset = PATH_TOTAL_LENGTH * (1 - roadmapScrollProgress);
@@ -442,19 +447,8 @@ export default function LandingPage() {
           {/* Brand Logo */}
           <Pressable onPress={() => setActiveTab('home')} style={styles.navLogoGroup}>
             <Svg width="28" height="33" viewBox="0 0 300 350">
-              <Defs>
-                <LinearGradient id="sa-badge" x1="0" y1="0" x2="1" y2="1">
-                  <Stop offset="0" stopColor="#C9A7FF" />
-                  <Stop offset="0.48" stopColor="#8B5CF6" />
-                  <Stop offset="1" stopColor="#5B2FD0" />
-                </LinearGradient>
-                <LinearGradient id="sa-badge-in" x1="0" y1="0" x2="0.4" y2="1">
-                  <Stop offset="0" stopColor="#B683F5" />
-                  <Stop offset="1" stopColor="#7331C9" />
-                </LinearGradient>
-              </Defs>
-              <Path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#sa-badge)" />
-              <Path d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="url(#sa-badge-in)" />
+              <Path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="#8B84FF" />
+              <Path d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="#6A49DF" />
               <SvgText x="150" y="214" textAnchor="middle" fill="#FFFFFF" fontSize="118" fontWeight="800">
                 SA
               </SvgText>
@@ -800,7 +794,7 @@ export default function LandingPage() {
                 </Text>
               </View>
 
-              {/* 3D Swaying SA Shield Emblem */}
+              {/* 3D Swaying SA Shield Emblem with Pure Shine Effect (NO GRADIENT FILL) */}
               <View style={styles.heroRightCol}>
                 <View style={[styles.shieldBackdropGlow, { className: 'sa-shield-glow' } as any]} />
                 <Animated.View
@@ -814,26 +808,57 @@ export default function LandingPage() {
                 >
                   <Svg width="320" height="360" viewBox="0 0 300 350">
                     <Defs>
-                      <LinearGradient id="sa-sh-out" x1="0" y1="0" x2="1" y2="1">
-                        <Stop offset="0" stopColor="#D8B6FF" />
-                        <Stop offset="0.45" stopColor="#9A5CE8" />
-                        <Stop offset="1" stopColor="#5B1FB0" />
-                      </LinearGradient>
-                      <LinearGradient id="sa-sh-in" x1="0" y1="0" x2="0.4" y2="1">
-                        <Stop offset="0" stopColor="#B683F5" />
-                        <Stop offset="1" stopColor="#7331C9" />
-                      </LinearGradient>
-                      <LinearGradient id="sa-sh-txt" x1="0" y1="0" x2="0" y2="1">
-                        <Stop offset="0" stopColor="#FFFFFF" />
-                        <Stop offset="0.55" stopColor="#EDEAF6" />
-                        <Stop offset="1" stopColor="#B9B4C6" />
+                      {/* Shield Clip Path */}
+                      <ClipPath id="saShieldClip">
+                        <Path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" />
+                      </ClipPath>
+
+                      {/* Moving Shine Beam Gradient */}
+                      <LinearGradient id="saShineBeam" x1="0" y1="0" x2="1" y2="0">
+                        <Stop offset="0" stopColor="#FFFFFF" stopOpacity="0" />
+                        <Stop offset="0.45" stopColor="#FFFFFF" stopOpacity="0.8" />
+                        <Stop offset="0.55" stopColor="#FFFFFF" stopOpacity="0.95" />
+                        <Stop offset="0.65" stopColor="#FFFFFF" stopOpacity="0.8" />
+                        <Stop offset="1" stopColor="#FFFFFF" stopOpacity="0" />
                       </LinearGradient>
                     </Defs>
-                    <Path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#sa-sh-out)" />
-                    <Path d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="url(#sa-sh-in)" />
-                    <SvgText x="150" y="215" textAnchor="middle" fill="url(#sa-sh-txt)" fontSize="128" fontWeight="800">
+
+                    {/* Outer Shield: Solid Vibrant Purple */}
+                    <Path
+                      d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z"
+                      fill="#7053EC"
+                    />
+
+                    {/* Inner Shield: Solid Deep Purple */}
+                    <Path
+                      d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z"
+                      fill="#5C3BD4"
+                    />
+
+                    {/* Solid Crisp White SA Emblem Text */}
+                    <SvgText
+                      x="150"
+                      y="215"
+                      textAnchor="middle"
+                      fill="#FFFFFF"
+                      fontSize="128"
+                      fontWeight="800"
+                    >
                       SA
                     </SvgText>
+
+                    {/* Dynamic Sweeping Shine Effect (Clipped to Shield) */}
+                    <G clipPath="url(#saShieldClip)">
+                      <G style={{ className: 'sa-shine-anim' } as any}>
+                        <Rect
+                          x="-60"
+                          y="-100"
+                          width="90"
+                          height="600"
+                          fill="url(#saShineBeam)"
+                        />
+                      </G>
+                    </G>
                   </Svg>
                 </Animated.View>
               </View>
@@ -1437,11 +1462,11 @@ export default function LandingPage() {
               </View>
             </View>
 
-            {/* ── 10. MATCH GRAPH ORBITAL RADAR (SWEEPING RADAR BEAM) ── */}
+            {/* ── 10. MATCH GRAPH ORBITAL RADAR (SWEEPING RADAR BEAM & HOVER NODES) ── */}
             <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.sectionPill}><Text style={styles.sectionPillText}>• HOW MATCHING WORKS</Text></View>
               <Text style={styles.sectionHeadingH2}>1,200+ verified mentors,<br /><Text style={{ color: T.indLt }}>ranked by fit.</Text></Text>
-              <Text style={styles.sectionDesc}>Agent K scores every alumnus against your course, goals and city. Click any node to inspect their live fit score and matching rationale.</Text>
+              <Text style={styles.sectionDesc}>Agent K scores every alumnus against your course, goals and city. Hover a node to see the connection and why it was chosen.</Text>
 
               <View style={[styles.matchGraphRow, isNarrow && { flexDirection: 'column' }]}>
                 {/* Detail Box */}
@@ -1472,7 +1497,7 @@ export default function LandingPage() {
                     </G>
 
                     {/* Selected Node Target Line */}
-                    <Line x1="310" y1="270" x2={selectedNode.x} y2={selectedNode.y} stroke="#8B84FF" strokeWidth="2" strokeDasharray="5,6" />
+                    <Line x1="310" y1="270" x2={selectedNode.x} y2={selectedNode.y} stroke="#8B84FF" strokeWidth="2.4" strokeDasharray="5,6" />
                     
                     {/* Center User Hub */}
                     <Circle cx="310" cy="270" r="52" fill="#0C0E1B" stroke="#8B84FF" strokeWidth="2.5" />
@@ -1492,10 +1517,11 @@ export default function LandingPage() {
                         <G
                           key={i}
                           onPress={() => setSelectedNode({ name: node.name, why: node.why, x: String(node.x), y: String(node.y) })}
+                          onMouseEnter={() => setSelectedNode({ name: node.name, why: node.why, x: String(node.x), y: String(node.y) })}
                           style={{ cursor: 'pointer' }}
                         >
                           {isSelected && (
-                            <Circle cx={node.x} cy={node.y} r="38" fill="#5B4FE9" opacity="0.35" />
+                            <Circle cx={node.x} cy={node.y} r="38" fill="#5B4FE9" opacity="0.4" />
                           )}
                           <Circle
                             cx={node.x}
@@ -1619,119 +1645,8 @@ export default function LandingPage() {
           </>
         )}
 
-        {/* ── 13. GLOBAL FOOTER ── */}
-        <View style={styles.footerSection}>
-          <View style={[styles.footerInner, { paddingHorizontal: containerPadding }]}>
-            <View style={styles.footerBrandCol}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                <Svg width="24" height="28" viewBox="0 0 300 350">
-                  <Path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="#8B84FF" />
-                  <SvgText x="150" y="214" textAnchor="middle" fill="#FFFFFF" fontSize="118" fontWeight="800">SA</SvgText>
-                </Svg>
-                <Text style={styles.footerBrandTitle}>StudentAlumni</Text>
-              </View>
-              <Text style={styles.footerBrandSub}>The intelligent career companion built for the <Text style={{ color: '#FFFFFF', fontWeight: '700' }}>next generation</Text> of students.</Text>
-              <View style={{ flexDirection: 'row', gap: 10 }}>
-                {/* LinkedIn SVG */}
-                <View style={styles.socialBox}>
-                  <Svg width="18" height="18" viewBox="0 0 24 24">
-                    <Rect x="3.2" y="3.2" width="17.6" height="17.6" rx="4.4" stroke="#B6BACB" strokeWidth="1.9" fill="none" />
-                    <Path d="M7.6 10.4v6.2" stroke="#B6BACB" strokeWidth="1.9" fill="none" />
-                    <Circle cx="7.6" cy="7.4" r="0.9" fill="#B6BACB" />
-                    <Path d="M11.6 16.6v-3.4a2.6 2.6 0 015.2 0v3.4M11.6 16.6v-6.2" stroke="#B6BACB" strokeWidth="1.9" fill="none" />
-                  </Svg>
-                </View>
-                {/* Instagram SVG */}
-                <View style={styles.socialBox}>
-                  <Svg width="18" height="18" viewBox="0 0 24 24">
-                    <Rect x="3.2" y="3.2" width="17.6" height="17.6" rx="5.2" stroke="#B6BACB" strokeWidth="1.9" fill="none" />
-                    <Circle cx="12" cy="12" r="4.1" stroke="#B6BACB" strokeWidth="1.9" fill="none" />
-                    <Circle cx="16.9" cy="7.1" r="1.05" fill="#B6BACB" />
-                  </Svg>
-                </View>
-              </View>
-            </View>
-            <View style={styles.footerLinksCol}>
-              <Text style={styles.footerColHeader}>RESOURCES</Text>
-              <Pressable onPress={() => setActiveTab('verify')}><Text style={styles.footerLinkText}>Verify Certificate</Text></Pressable>
-              <Pressable onPress={() => setActiveTab('events')}><Text style={styles.footerLinkText}>Blog</Text></Pressable>
-              <Pressable onPress={() => setActiveTab('contact')}><Text style={styles.footerLinkText}>Help center</Text></Pressable>
-              <Pressable onPress={() => setActiveTab('home')}><Text style={styles.footerLinkText}>Community</Text></Pressable>
-            </View>
-            <View style={styles.footerLinksCol}>
-              <Text style={styles.footerColHeader}>LEGAL</Text>
-              <Text style={styles.footerLinkText}>Privacy &amp; Terms</Text>
-              <Text style={styles.footerLinkText}>Security &amp; Cookies</Text>
-            </View>
-            <View style={styles.footerLinksCol}>
-              <Text style={styles.footerColHeader}>COMPLIANCE</Text>
-              <View style={{ marginBottom: 12 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Svg width="14" height="14" viewBox="0 0 24 24"><Path d="M12 2l7 4v6c0 5.25-3.5 10-7 11-3.5-1-7-5.75-7-11V6l7-4z" stroke="#34D399" strokeWidth="2" fill="none" /><Path d="M9 12l2 2 4-4" stroke="#34D399" strokeWidth="2" fill="none" /></Svg>
-                  <Text style={styles.footerComplianceText}>DPDP Act 2023</Text>
-                </View>
-                <Text style={{ fontSize: 12, color: T.dim }}>India · data principal rights</Text>
-              </View>
-              <View style={{ marginBottom: 12 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Svg width="14" height="14" viewBox="0 0 24 24"><Path d="M12 2l7 4v6c0 5.25-3.5 10-7 11-3.5-1-7-5.75-7-11V6l7-4z" stroke="#34D399" strokeWidth="2" fill="none" /><Path d="M9 12l2 2 4-4" stroke="#34D399" strokeWidth="2" fill="none" /></Svg>
-                  <Text style={styles.footerComplianceText}>GDPR</Text>
-                </View>
-                <Text style={{ fontSize: 12, color: T.dim }}>EU · lawful basis and DPAs</Text>
-              </View>
-              <View style={{ marginBottom: 12 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Svg width="14" height="14" viewBox="0 0 24 24"><Path d="M12 2l7 4v6c0 5.25-3.5 10-7 11-3.5-1-7-5.75-7-11V6l7-4z" stroke="#34D399" strokeWidth="2" fill="none" /><Path d="M9 12l2 2 4-4" stroke="#34D399" strokeWidth="2" fill="none" /></Svg>
-                  <Text style={styles.footerComplianceText}>SOC 2 Type II</Text>
-                </View>
-                <Text style={{ fontSize: 12, color: T.dim }}>Audited controls, annual</Text>
-              </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Svg width="14" height="14" viewBox="0 0 24 24"><Path d="M12 2l7 4v6c0 5.25-3.5 10-7 11-3.5-1-7-5.75-7-11V6l7-4z" stroke="#8B84FF" strokeWidth="2" fill="none" /></Svg>
-                <Text style={{ fontSize: 13.5, color: T.indLt, fontWeight: '600' }}>Responsible disclosure</Text>
-              </View>
-            </View>
-          </View>
-
-          {/* Newsletter Box */}
-          <View style={[styles.newsletterRow, { marginHorizontal: 'auto' as any, maxWidth: 1360, width: '100%' }]}>
-            <View style={{ flex: 1, minWidth: 260 }}>
-              <Text style={styles.newsletterTitle}>One email a month. Nothing else.</Text>
-              <Text style={styles.newsletterSub}>New openings, mentor drops and campus events — no noise.</Text>
-            </View>
-            <View style={styles.newsletterControl}>
-              <TextInput
-                placeholder="you@college.edu"
-                placeholderTextColor={T.dim}
-                style={styles.newsletterInput}
-              />
-              <GlowButton
-                onPress={() => {
-                  setSubscribed(true);
-                  setTimeout(() => setSubscribed(false), 2200);
-                }}
-                style={styles.subscribeBtn}
-                textStyle={styles.subscribeBtnText}
-              >
-                {subscribed ? 'Subscribed ✓' : 'Subscribe'}
-              </GlowButton>
-            </View>
-          </View>
-
-          <View style={[styles.footerBottomBar, { marginHorizontal: 'auto' as any, maxWidth: 1360, width: '100%', paddingHorizontal: containerPadding }]}>
-            <View>
-              <Text style={styles.footerBrandGrad}>#studentalumni</Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 }}>
-                <Text style={styles.footerCopyright}>Built with love for students</Text>
-                <Svg width="14" height="14" viewBox="0 0 24 24">
-                  <Path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#8B84FF" />
-                </Svg>
-                <Text style={styles.footerCopyright}>across all campus's</Text>
-              </View>
-            </View>
-            <Text style={styles.footerCopyrightSmall}>All rights reserved @ Student Alumni 2026</Text>
-          </View>
-        </View>
+        {/* ── 13. GLOBAL UNIFIED FOOTER ── */}
+        <CommonFooter onTabChange={(tab) => setActiveTab(tab)} />
 
       </ScrollView>
 
@@ -2343,7 +2258,6 @@ const styles = StyleSheet.create({
   },
   alumniPillarSub: {
     fontSize: 14,
-    color: T.muted,
   },
 
   /* ── 07 Audiences ── */
@@ -3206,154 +3120,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#FFFFFF',
-  },
-
-  /* ── 13 Footer ── */
-  footerSection: {
-    width: '100%',
-    borderTopWidth: 1,
-    borderTopColor: T.line,
-    backgroundColor: T.bg2,
-    paddingTop: 70,
-    paddingBottom: 80,
-    marginTop: 130,
-    alignItems: 'center',
-  },
-  footerInner: {
-    width: '100%',
-    maxWidth: 1360,
-    marginHorizontal: 'auto' as any,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
-    gap: 36,
-    marginBottom: 60,
-  },
-  footerBrandCol: {
-    flex: 1.5,
-    minWidth: 260,
-  },
-  footerBrandTitle: {
-    fontSize: 19,
-    fontWeight: '700',
-    color: T.text,
-  },
-  footerBrandSub: {
-    fontSize: 15,
-    lineHeight: 24,
-    color: T.muted2,
-    maxWidth: 340,
-    marginBottom: 24,
-  },
-  socialBox: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    backgroundColor: T.card2,
-    borderWidth: 1,
-    borderColor: T.line,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  footerLinksCol: {
-    flex: 1,
-    minWidth: 160,
-    gap: 14,
-  },
-  footerColHeader: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: T.dim,
-    letterSpacing: 1.6,
-    marginBottom: 20,
-  },
-  footerLinkText: {
-    fontSize: 15,
-    color: T.text2,
-  },
-  footerComplianceText: {
-    fontSize: 14.5,
-    color: T.text2,
-  },
-  newsletterRow: {
-    width: '100%',
-    maxWidth: 1360,
-    borderWidth: 1,
-    borderColor: T.lineHi,
-    borderRadius: 18,
-    backgroundColor: T.card2,
-    padding: 28,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 22,
-    marginBottom: 56,
-  },
-  newsletterTitle: {
-    fontSize: 19,
-    fontWeight: '700',
-    color: T.text,
-    letterSpacing: -0.4,
-  },
-  newsletterSub: {
-    fontSize: 14.5,
-    color: T.muted2,
-    marginTop: 5,
-  },
-  newsletterControl: {
-    flexDirection: 'row',
-    flex: 1,
-    minWidth: 340,
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  newsletterInput: {
-    flex: 1,
-    minWidth: 220,
-    borderWidth: 1,
-    borderColor: T.line,
-    borderRadius: 11,
-    backgroundColor: T.surface,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 14.5,
-    color: T.text,
-  },
-  subscribeBtn: {
-    backgroundColor: T.ind,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 11,
-  },
-  subscribeBtnText: {
-    fontSize: 14.5,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  footerBottomBar: {
-    width: '100%',
-    maxWidth: 1360,
-    paddingTop: 24,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    flexWrap: 'wrap',
-    gap: 32,
-  },
-  footerBrandGrad: {
-    fontSize: 34,
-    fontWeight: '700',
-    letterSpacing: -1.4,
-    lineHeight: 38,
-    color: '#C08BFF',
-  },
-  footerCopyright: {
-    fontSize: 15,
-    color: T.muted2,
-  },
-  footerCopyrightSmall: {
-    fontSize: 14,
-    color: T.muted2,
   },
 });
