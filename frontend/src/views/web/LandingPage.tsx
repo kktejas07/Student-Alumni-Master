@@ -1,8 +1,8 @@
 /**
- * LandingPage — StudentAlumni AI Career Platform (Theme Parity Edition)
+ * LandingPage — StudentAlumni AI Career Platform (Full Motion & Interactive Engine)
  *
- * Implements the exact 2-3-2 Bento Grid layout, crisp linear outline SVGs,
- * 3D card tilt micro-interactions, and pure theme styling from the design specification.
+ * Implements full interactive hover states, 3D perspective card tilts, continuous auto-sliding
+ * dual marquees, 3D swaying hero shield, pulsating orbital radar, and shooting star meteors.
  */
 import React, { useState, useEffect } from 'react';
 import {
@@ -59,7 +59,7 @@ const T = {
 };
 
 /* ── Inject Full Dynamic CSS Animations & Micro-Interactions ── */
-const STYLES_KEY = 'sa-exact-svg-motion-css';
+const STYLES_KEY = 'sa-full-motion-engine-css';
 function injectGlobalStyles() {
   if (typeof document === 'undefined' || document.getElementById(STYLES_KEY)) return;
   const s = document.createElement('style');
@@ -70,24 +70,22 @@ function injectGlobalStyles() {
     html, body { margin: 0; padding: 0; background: #05060F; font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif; color: #F4F5FB; overflow-x: hidden; }
     
     @keyframes sa-twinkle { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
-    @keyframes sa-streak { 0% { transform: translate3d(0,0,0) rotate(35deg); opacity: 0; } 6% { opacity: 0.9; } 26% { transform: translate3d(-460px,320px,0) rotate(35deg); opacity: 0; } 100% { transform: translate3d(-460px,320px,0) rotate(35deg); opacity: 0; } }
-    @keyframes sa-glow { 0%, 100% { opacity: 0.35; transform: scale(1); } 50% { opacity: 0.65; transform: scale(1.08); } }
-    @keyframes sa-sway { 0%, 100% { transform: perspective(1200px) rotateY(-18deg) translateY(0); } 50% { transform: perspective(1200px) rotateY(18deg) translateY(-14px); } }
-    @keyframes sa-mq-l { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-    @keyframes sa-mq-r { from { transform: translateX(-50%); } to { transform: translateX(0); } }
-    @keyframes sa-tick { 0%, 100% { box-shadow: 0 0 0 0 rgba(91,79,233,0); } 50% { box-shadow: 0 0 0 6px rgba(91,79,233,0.18); } }
+    @keyframes sa-streak1 { 0% { transform: translate3d(0,0,0) rotate(35deg); opacity: 0; } 8% { opacity: 0.9; } 28% { transform: translate3d(-520px,360px,0) rotate(35deg); opacity: 0; } 100% { transform: translate3d(-520px,360px,0) rotate(35deg); opacity: 0; } }
+    @keyframes sa-streak2 { 0% { transform: translate3d(0,0,0) rotate(32deg); opacity: 0; } 10% { opacity: 0.85; } 30% { transform: translate3d(-480px,320px,0) rotate(32deg); opacity: 0; } 100% { transform: translate3d(-480px,320px,0) rotate(32deg); opacity: 0; } }
+    @keyframes sa-sway { 0%, 100% { transform: perspective(1200px) rotateY(-16deg) rotateX(4deg) translateY(0); } 50% { transform: perspective(1200px) rotateY(16deg) rotateX(-4deg) translateY(-16px); } }
+    @keyframes sa-pulse-glow { 0%, 100% { opacity: 0.35; transform: scale(1); } 50% { opacity: 0.7; transform: scale(1.1); } }
+    @keyframes sa-mq-left { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+    @keyframes sa-mq-right { from { transform: translateX(-50%); } to { transform: translateX(0); } }
+    @keyframes sa-radar-ping { 0% { r: 52px; opacity: 0.8; } 100% { r: 180px; opacity: 0; } }
 
-    .sa-tilt-card { transition: transform 0.28s cubic-bezier(.2,.8,.2,1), border-color 0.28s ease, box-shadow 0.28s ease; }
-    .sa-tilt-card:hover { transform: perspective(1000px) rotateX(-2.5deg) rotateY(2.5deg) translateY(-6px); border-color: #2A2A55 !important; box-shadow: 0 20px 48px rgba(0,0,0,0.55) !important; }
-    
-    .sa-btn-glow { transition: transform 0.2s ease, filter 0.2s ease, box-shadow 0.2s ease; cursor: pointer; }
-    .sa-btn-glow:hover { transform: translateY(-2px); filter: brightness(1.12); box-shadow: 0 8px 24px rgba(91,79,233,0.4) !important; }
-    .sa-ghost-hover { transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease; cursor: pointer; }
-    .sa-ghost-hover:hover { background: rgba(91,79,233,0.12) !important; border-color: #8B84FF !important; color: #FFFFFF !important; }
+    .sa-swaying-shield { animation: sa-sway 14s ease-in-out infinite; transform-style: preserve-3d; }
+    .sa-shield-glow { animation: sa-pulse-glow 7s ease-in-out infinite; }
+    .sa-meteor-1 { animation: sa-streak1 8s ease-in-out infinite; }
+    .sa-meteor-2 { animation: sa-streak2 11s ease-in-out infinite 3.5s; }
 
-    .sa-mq-wrap-l { display: flex; width: max-content; animation: sa-mq-l 38s linear infinite; }
-    .sa-mq-wrap-r { display: flex; width: max-content; animation: sa-mq-r 34s linear infinite; }
-    .sa-mq-wrap-l:hover, .sa-mq-wrap-r:hover { animation-play-state: paused; }
+    .sa-mq-track-left { display: flex; width: max-content; animation: sa-mq-left 32s linear infinite; }
+    .sa-mq-track-right { display: flex; width: max-content; animation: sa-mq-right 28s linear infinite; }
+    .sa-mq-track-left:hover, .sa-mq-track-right:hover { animation-play-state: paused; }
   `;
   document.head.appendChild(s);
 }
@@ -112,11 +110,91 @@ const INDUSTRY_MARQUEE = [
   'EXtrive Innovations', 'Larsen & Toubro', 'LinkedIn', 'Google', 'McKinsey',
 ];
 
+/* ── Interactive 3D Hover Tilt Card Component ── */
+function HoverCard({
+  children,
+  style,
+  hoverBorderColor = '#2A2A55',
+  glowOnHover = true,
+}: {
+  children: React.ReactNode;
+  style?: any;
+  hoverBorderColor?: string;
+  glowOnHover?: boolean;
+}) {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <View
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={[
+        style,
+        {
+          transition: 'transform 0.28s cubic-bezier(.2,.8,.2,1), border-color 0.28s ease, box-shadow 0.28s ease',
+          cursor: 'pointer',
+        } as any,
+        hovered && {
+          transform: [{ perspective: 1000 }, { rotateX: -2.5 }, { rotateY: 2.5 }, { translateY: -6 }],
+          borderColor: hoverBorderColor,
+          shadowColor: glowOnHover ? '#5B4FE9' : '#000000',
+          shadowOffset: { width: 0, height: 16 },
+          shadowOpacity: glowOnHover ? 0.35 : 0.5,
+          shadowRadius: 36,
+        },
+      ]}
+    >
+      {children}
+    </View>
+  );
+}
+
+/* ── Interactive Button with Hover Lift & Glow ── */
+function GlowButton({
+  onPress,
+  children,
+  style,
+  textStyle,
+}: {
+  onPress?: () => void;
+  children: React.ReactNode;
+  style?: any;
+  textStyle?: any;
+}) {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <Pressable
+      onPress={onPress}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={[
+        style,
+        {
+          transition: 'transform 0.2s ease, filter 0.2s ease, box-shadow 0.2s ease',
+          cursor: 'pointer',
+        } as any,
+        hovered && {
+          transform: [{ translateY: -2 }],
+          filter: 'brightness(1.12)',
+          shadowColor: '#5B4FE9',
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: 0.45,
+          shadowRadius: 20,
+        },
+      ]}
+    >
+      {typeof children === 'string' ? <Text style={textStyle}>{children}</Text> : children}
+    </Pressable>
+  );
+}
+
 export default function LandingPage() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const isNarrow = width < 960;
   const isMobile = width < 640;
+  const containerPadding = isMobile ? 20 : isNarrow ? 32 : 44;
 
   // Active navigation tab
   const [activeTab, setActiveTab] = useState<'home' | 'events' | 'verify' | 'contact'>('home');
@@ -209,10 +287,10 @@ export default function LandingPage() {
         />
       )}
 
-      {/* Starfield */}
+      {/* Starfield with Active Animated Meteors */}
       <View style={styles.starfield} pointerEvents="none">
-        <View style={styles.meteor1} />
-        <View style={styles.meteor2} />
+        <View style={[styles.meteor1, { className: 'sa-meteor-1' } as any]} />
+        <View style={[styles.meteor2, { className: 'sa-meteor-2' } as any]} />
       </View>
 
       {/* Top Fixed Scroll Progress Bar */}
@@ -220,7 +298,7 @@ export default function LandingPage() {
 
       {/* Top Navbar */}
       <View style={styles.navBar}>
-        <View style={[styles.navInner, isNarrow && { flexWrap: 'wrap', gap: 14 }]}>
+        <View style={[styles.navInner, { paddingHorizontal: containerPadding }, isNarrow && { flexWrap: 'wrap', gap: 14 }]}>
           {/* Brand Logo */}
           <Pressable onPress={() => setActiveTab('home')} style={styles.navLogoGroup}>
             <Svg width="28" height="33" viewBox="0 0 300 350">
@@ -267,9 +345,9 @@ export default function LandingPage() {
             <Pressable onPress={() => router.push('/login')} style={styles.navSignIn}>
               <Text style={styles.navSignInText}>Sign in</Text>
             </Pressable>
-            <Pressable onPress={() => router.push('/register')} style={[styles.navGetStarted, styles.btnGlow]}>
-              <Text style={styles.navGetStartedText}>Get Started</Text>
-            </Pressable>
+            <GlowButton onPress={() => router.push('/register')} style={styles.navGetStarted} textStyle={styles.navGetStartedText}>
+              Get Started
+            </GlowButton>
           </View>
         </View>
       </View>
@@ -286,7 +364,7 @@ export default function LandingPage() {
             TAB: VERIFY CREDENTIALS & BGV DESK
         ══════════════════════════════════════════════════════════════════ */}
         {activeTab === 'verify' && (
-          <View style={styles.sectionContainer}>
+          <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
             {/* Verify Hero Card */}
             <View style={styles.verifyHeroCard}>
               <View style={styles.verifyTagPill}>
@@ -322,9 +400,9 @@ export default function LandingPage() {
                   value={verifyInput}
                   onChangeText={setVerifyInput}
                 />
-                <Pressable onPress={() => triggerVerification()} style={[styles.verifySubmitBtn, styles.btnGlow]}>
-                  <Text style={styles.verifySubmitBtnText}>Verify Credential →</Text>
-                </Pressable>
+                <GlowButton onPress={() => triggerVerification()} style={styles.verifySubmitBtn} textStyle={styles.verifySubmitBtnText}>
+                  Verify Credential →
+                </GlowButton>
               </View>
 
               {/* Sample Chips */}
@@ -376,7 +454,7 @@ export default function LandingPage() {
 
             {/* What We Verify with Exact SVGs */}
             <View style={styles.whatWeVerifyRow}>
-              <View style={[styles.verifyFeatureCard, styles.tiltCard]}>
+              <HoverCard style={styles.verifyFeatureCard}>
                 <View style={styles.verifySvgIconBox}>
                   <Svg width="18" height="18" viewBox="0 0 24 24">
                     <Path d="M5 12.5l4 4 10-10.5" stroke="#0E6E8C" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
@@ -384,8 +462,8 @@ export default function LandingPage() {
                 </View>
                 <Text style={styles.verifyFeatureTitle}>Certificates</Text>
                 <Text style={styles.verifyFeatureDesc}>Workshop and course completion, with issuing body and date.</Text>
-              </View>
-              <View style={[styles.verifyFeatureCard, styles.tiltCard]}>
+              </HoverCard>
+              <HoverCard style={styles.verifyFeatureCard}>
                 <View style={styles.verifySvgIconBox}>
                   <Svg width="18" height="18" viewBox="0 0 24 24">
                     <Path d="M5 12.5l4 4 10-10.5" stroke="#5B4FE9" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
@@ -393,8 +471,8 @@ export default function LandingPage() {
                 </View>
                 <Text style={styles.verifyFeatureTitle}>Member IDs</Text>
                 <Text style={styles.verifyFeatureDesc}>Confirms live college affiliation, department, and graduation year.</Text>
-              </View>
-              <View style={[styles.verifyFeatureCard, styles.tiltCard]}>
+              </HoverCard>
+              <HoverCard style={styles.verifyFeatureCard}>
                 <View style={styles.verifySvgIconBox}>
                   <Svg width="18" height="18" viewBox="0 0 24 24">
                     <Path d="M5 12.5l4 4 10-10.5" stroke="#B45309" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
@@ -402,7 +480,7 @@ export default function LandingPage() {
                 </View>
                 <Text style={styles.verifyFeatureTitle}>ECHO Badges</Text>
                 <Text style={styles.verifyFeatureDesc}>Non-transferable, cryptographically bound, scannable at the campus gate.</Text>
-              </View>
+              </HoverCard>
             </View>
 
             {/* BGV Request Desk Form Card */}
@@ -454,7 +532,7 @@ export default function LandingPage() {
             TAB: CONTACT US
         ══════════════════════════════════════════════════════════════════ */}
         {activeTab === 'contact' && (
-          <View style={styles.sectionContainer}>
+          <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
             <View style={styles.centeredHeader}>
               <View style={styles.sectionPill}>
                 <Text style={styles.sectionPillText}>CONTACT &amp; CAMPUS RELATIONS</Text>
@@ -465,23 +543,23 @@ export default function LandingPage() {
 
             {/* Hubs */}
             <View style={[styles.hubsGrid, isNarrow && { flexDirection: 'column' }]}>
-              <View style={[styles.hubCard, styles.tiltCard]}>
+              <HoverCard style={styles.hubCard}>
                 <Text style={styles.hubRegionTag}>APAC HEADQUARTERS</Text>
                 <Text style={styles.hubTitle}>India Hub (Hyderabad)</Text>
                 <Text style={styles.hubLine}>📍 Madhapur, Hyderabad, Telangana, India</Text>
                 <Text style={styles.hubLine}>📞 +91 7569665077</Text>
                 <Text style={styles.hubLine}>✉️ hr@studentalumni.ai</Text>
                 <Text style={styles.hubLine}>⏰ Mon – Sat: 9:00 AM – 7:00 PM IST</Text>
-              </View>
+              </HoverCard>
 
-              <View style={[styles.hubCard, styles.tiltCard]}>
+              <HoverCard style={styles.hubCard}>
                 <Text style={[styles.hubRegionTag, { color: '#6FA8F5' }]}>AMERICAS &amp; GLOBAL</Text>
                 <Text style={styles.hubTitle}>USA Hub (Princeton)</Text>
                 <Text style={styles.hubLine}>📍 Princeton, New Jersey, USA</Text>
                 <Text style={styles.hubLine}>📞 +91 7569665077</Text>
                 <Text style={styles.hubLine}>✉️ hr@studentalumni.ai</Text>
                 <Text style={styles.hubLine}>⏰ Mon – Fri: 9:00 AM – 6:00 PM EST</Text>
-              </View>
+              </HoverCard>
             </View>
 
             {/* Inquiry Form */}
@@ -501,17 +579,16 @@ export default function LandingPage() {
                 ))}
               </View>
 
-              <Pressable
+              <GlowButton
                 onPress={() => {
                   setContactSent(true);
                   setTimeout(() => setContactSent(false), 2500);
                 }}
-                style={[styles.inquirySubmitBtn, styles.btnGlow]}
+                style={styles.inquirySubmitBtn}
+                textStyle={styles.inquirySubmitBtnText}
               >
-                <Text style={styles.inquirySubmitBtnText}>
-                  {contactSent ? '✓ Message Transmitted Successfully' : 'Transmit Message →'}
-                </Text>
-              </Pressable>
+                {contactSent ? '✓ Message Transmitted Successfully' : 'Transmit Message →'}
+              </GlowButton>
             </View>
           </View>
         )}
@@ -522,7 +599,7 @@ export default function LandingPage() {
         {(activeTab === 'home' || activeTab === 'events') && (
           <>
             {/* ── 01. HERO SECTION ── */}
-            <View style={styles.heroSection}>
+            <View style={[styles.heroSection, { paddingHorizontal: containerPadding }]}>
               <View style={styles.heroLeftCol}>
                 <View style={styles.heroChip}>
                   <Svg width="14" height="14" viewBox="0 0 16 16" style={{ marginRight: 6 }}>
@@ -536,12 +613,12 @@ export default function LandingPage() {
                 </Text>
 
                 <View style={styles.heroCtaRow}>
-                  <Pressable onPress={() => router.push('/register')} style={[styles.heroBtnStudent, styles.btnGlow]}>
-                    <Text style={styles.heroBtnStudentText}>I'm a student  ↗</Text>
-                  </Pressable>
-                  <Pressable onPress={() => setActiveTab('contact')} style={styles.heroBtnCollege}>
-                    <Text style={styles.heroBtnCollegeText}>I'm a college</Text>
-                  </Pressable>
+                  <GlowButton onPress={() => router.push('/register')} style={styles.heroBtnStudent} textStyle={styles.heroBtnStudentText}>
+                    I'm a student  ↗
+                  </GlowButton>
+                  <GlowButton onPress={() => setActiveTab('contact')} style={styles.heroBtnCollege} textStyle={styles.heroBtnCollegeText}>
+                    I'm a college
+                  </GlowButton>
                 </View>
 
                 <Text style={styles.heroTrustLine}>
@@ -551,55 +628,63 @@ export default function LandingPage() {
 
               {/* 3D Swaying SA Shield Emblem */}
               <View style={styles.heroRightCol}>
-                <View style={styles.shieldBackdropGlow} />
-                <Svg width="320" height="360" viewBox="0 0 300 350" style={{ transform: [{ rotateY: '-16deg' }] }}>
-                  <Defs>
-                    <LinearGradient id="sa-sh-out" x1="0" y1="0" x2="1" y2="1">
-                      <Stop offset="0" stopColor="#D8B6FF" />
-                      <Stop offset="0.45" stopColor="#9A5CE8" />
-                      <Stop offset="1" stopColor="#5B1FB0" />
-                    </LinearGradient>
-                    <LinearGradient id="sa-sh-in" x1="0" y1="0" x2="0.4" y2="1">
-                      <Stop offset="0" stopColor="#B683F5" />
-                      <Stop offset="1" stopColor="#7331C9" />
-                    </LinearGradient>
-                    <LinearGradient id="sa-sh-txt" x1="0" y1="0" x2="0" y2="1">
-                      <Stop offset="0" stopColor="#FFFFFF" />
-                      <Stop offset="0.55" stopColor="#EDEAF6" />
-                      <Stop offset="1" stopColor="#B9B4C6" />
-                    </LinearGradient>
-                  </Defs>
-                  <Path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#sa-sh-out)" />
-                  <Path d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="url(#sa-sh-in)" />
-                  <SvgText x="150" y="215" textAnchor="middle" fill="url(#sa-sh-txt)" fontSize="128" fontWeight="800">
-                    SA
-                  </SvgText>
-                </Svg>
+                <View style={[styles.shieldBackdropGlow, { className: 'sa-shield-glow' } as any]} />
+                <View style={[{ className: 'sa-swaying-shield' } as any]}>
+                  <Svg width="320" height="360" viewBox="0 0 300 350">
+                    <Defs>
+                      <LinearGradient id="sa-sh-out" x1="0" y1="0" x2="1" y2="1">
+                        <Stop offset="0" stopColor="#D8B6FF" />
+                        <Stop offset="0.45" stopColor="#9A5CE8" />
+                        <Stop offset="1" stopColor="#5B1FB0" />
+                      </LinearGradient>
+                      <LinearGradient id="sa-sh-in" x1="0" y1="0" x2="0.4" y2="1">
+                        <Stop offset="0" stopColor="#B683F5" />
+                        <Stop offset="1" stopColor="#7331C9" />
+                      </LinearGradient>
+                      <LinearGradient id="sa-sh-txt" x1="0" y1="0" x2="0" y2="1">
+                        <Stop offset="0" stopColor="#FFFFFF" />
+                        <Stop offset="0.55" stopColor="#EDEAF6" />
+                        <Stop offset="1" stopColor="#B9B4C6" />
+                      </LinearGradient>
+                    </Defs>
+                    <Path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#sa-sh-out)" />
+                    <Path d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="url(#sa-sh-in)" />
+                    <SvgText x="150" y="215" textAnchor="middle" fill="url(#sa-sh-txt)" fontSize="128" fontWeight="800">
+                      SA
+                    </SvgText>
+                  </Svg>
+                </View>
               </View>
             </View>
 
-            {/* ── DUAL-ROW PARTNER MARQUEES ── */}
-            <View style={styles.marqueeContainer}>
+            {/* ── DUAL-ROW CONTINUOUS PARTNER MARQUEES ── */}
+            <View style={[styles.marqueeContainer, { paddingHorizontal: containerPadding }]}>
+              {/* Row 1: Colleges */}
               <View style={styles.marqueeRow}>
                 <View style={styles.marqueeBadge}><Text style={styles.marqueeBadgeText}>COLLEGES</Text></View>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.marqueeScroll}>
-                  {COLLEGES_MARQUEE.map((item, idx) => (
-                    <View key={idx} style={styles.marqueePill}><Text style={styles.marqueePillText}>{item}</Text></View>
-                  ))}
-                </ScrollView>
+                <View style={styles.marqueeTrackWrapper}>
+                  <View style={[{ className: 'sa-mq-track-left' } as any]}>
+                    {[...COLLEGES_MARQUEE, ...COLLEGES_MARQUEE].map((item, idx) => (
+                      <View key={idx} style={styles.marqueePill}><Text style={styles.marqueePillText}>{item}</Text></View>
+                    ))}
+                  </View>
+                </View>
               </View>
+              {/* Row 2: Industry */}
               <View style={styles.marqueeRow}>
                 <View style={styles.marqueeBadge}><Text style={styles.marqueeBadgeText}>INDUSTRY</Text></View>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.marqueeScroll}>
-                  {INDUSTRY_MARQUEE.map((item, idx) => (
-                    <View key={idx} style={styles.marqueePill}><Text style={styles.marqueePillText}>{item}</Text></View>
-                  ))}
-                </ScrollView>
+                <View style={styles.marqueeTrackWrapper}>
+                  <View style={[{ className: 'sa-mq-track-right' } as any]}>
+                    {[...INDUSTRY_MARQUEE, ...INDUSTRY_MARQUEE].map((item, idx) => (
+                      <View key={idx} style={styles.marqueePill}><Text style={styles.marqueePillText}>{item}</Text></View>
+                    ))}
+                  </View>
+                </View>
               </View>
             </View>
 
             {/* ── 02. EVERYTHING YOU NEED (7-CARD BENTO: 2-3-2 THEME PARITY GRID) ── */}
-            <View style={styles.sectionContainer}>
+            <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.sectionPill}>
                 <Text style={styles.sectionPillText}>• EVERYTHING YOU NEED</Text>
               </View>
@@ -610,7 +695,7 @@ export default function LandingPage() {
                 {/* ROW 1 (2 Cards: Agent K + Mentors) */}
                 <View style={[styles.bentoRow, isNarrow && { flexDirection: 'column' }]}>
                   {/* 01 Agent K */}
-                  <View style={[styles.bentoCard, { flex: 1.68, minWidth: 320 }, styles.tiltCard]}>
+                  <HoverCard style={[styles.bentoCard, { flex: 1.68, minWidth: 320 }]}>
                     <Text style={styles.bentoNumber}>01</Text>
                     <View style={styles.bentoIconBadge}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
@@ -622,10 +707,10 @@ export default function LandingPage() {
                     <Text style={styles.bentoBody}>
                       Your always-on AI career copilot. Ask anything: resume tips, interview prep, salary negotiation. Agent K remembers your goals and grows with you.
                     </Text>
-                  </View>
+                  </HoverCard>
 
                   {/* 02 Mentors */}
-                  <View style={[styles.bentoCard, { flex: 1, minWidth: 260 }, styles.tiltCard]}>
+                  <HoverCard style={[styles.bentoCard, { flex: 1, minWidth: 260 }]}>
                     <Text style={styles.bentoNumber}>02</Text>
                     <View style={styles.bentoIconBadge}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
@@ -635,13 +720,13 @@ export default function LandingPage() {
                     </View>
                     <Text style={styles.bentoTitle}>Mentors</Text>
                     <Text style={styles.bentoBody}>One-on-one sessions with alumni from Google, McKinsey, Goldman &amp; more. Book, chat, level up.</Text>
-                  </View>
+                  </HoverCard>
                 </View>
 
                 {/* ROW 2 (3 Cards: Events + Student Perks + Career Opportunities) */}
                 <View style={[styles.bentoRow, isNarrow && { flexDirection: 'column' }]}>
                   {/* 03 Events */}
-                  <View style={[styles.bentoCard, { flex: 1, minWidth: 220 }, styles.tiltCard]}>
+                  <HoverCard style={[styles.bentoCard, { flex: 1, minWidth: 220 }]}>
                     <Text style={styles.bentoNumber}>03</Text>
                     <View style={styles.bentoIconBadge}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
@@ -651,10 +736,10 @@ export default function LandingPage() {
                     </View>
                     <Text style={styles.bentoTitle}>Events</Text>
                     <Text style={styles.bentoBody}>Workshops, hackathons, and industry panels curated to your track and semester.</Text>
-                  </View>
+                  </HoverCard>
 
                   {/* 04 Student Perks */}
-                  <View style={[styles.bentoCard, { flex: 1, minWidth: 220 }, styles.tiltCard]}>
+                  <HoverCard style={[styles.bentoCard, { flex: 1, minWidth: 220 }]}>
                     <Text style={styles.bentoNumber}>04</Text>
                     <View style={styles.bentoIconBadge}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
@@ -664,10 +749,10 @@ export default function LandingPage() {
                     </View>
                     <Text style={styles.bentoTitle}>Student Perks</Text>
                     <Text style={styles.bentoBody}>Unlock exclusive student deals and discounts on mentorship, courses, and partner services.</Text>
-                  </View>
+                  </HoverCard>
 
                   {/* 05 Career Opportunities */}
-                  <View style={[styles.bentoCard, { flex: 1.45, minWidth: 280, borderColor: '#5B4FE9', backgroundColor: 'rgba(91,79,233,0.08)' }, styles.tiltCard]}>
+                  <HoverCard style={[styles.bentoCard, { flex: 1.45, minWidth: 280, borderColor: '#5B4FE9', backgroundColor: 'rgba(91,79,233,0.08)' }]} hoverBorderColor="#8B84FF">
                     <Text style={[styles.bentoNumber, { color: '#8B84FF' }]}>05</Text>
                     <View style={[styles.bentoIconBadge, { backgroundColor: '#5B4FE9', borderColor: '#8B84FF' }]}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
@@ -677,13 +762,13 @@ export default function LandingPage() {
                     </View>
                     <Text style={[styles.bentoTitle, { color: '#8B84FF' }]}>Career Opportunities</Text>
                     <Text style={styles.bentoBody}>Personalized opportunity feed sourced from partner companies and warm alumni referrals.</Text>
-                  </View>
+                  </HoverCard>
                 </View>
 
                 {/* ROW 3 (2 Cards: Resume Polish + Career Roadmap) */}
                 <View style={[styles.bentoRow, isNarrow && { flexDirection: 'column' }]}>
                   {/* 06 Resume Polish */}
-                  <View style={[styles.bentoCard, { flex: 1, minWidth: 260 }, styles.tiltCard]}>
+                  <HoverCard style={[styles.bentoCard, { flex: 1, minWidth: 260 }]}>
                     <Text style={styles.bentoNumber}>06</Text>
                     <View style={styles.bentoIconBadge}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
@@ -692,10 +777,10 @@ export default function LandingPage() {
                     </View>
                     <Text style={styles.bentoTitle}>Resume Polish</Text>
                     <Text style={styles.bentoBody}>Instant AI rewrites with ATS scoring, role-specific keywords, and beautiful design templates.</Text>
-                  </View>
+                  </HoverCard>
 
                   {/* 07 Career Roadmap */}
-                  <View style={[styles.bentoCard, { flex: 1.68, minWidth: 320 }, styles.tiltCard]}>
+                  <HoverCard style={[styles.bentoCard, { flex: 1.68, minWidth: 320 }]}>
                     <Text style={styles.bentoNumber}>07</Text>
                     <View style={styles.bentoIconBadge}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
@@ -704,13 +789,13 @@ export default function LandingPage() {
                     </View>
                     <Text style={styles.bentoTitle}>Career Roadmap</Text>
                     <Text style={styles.bentoBody}>Visual step-by-step plan from Day 1 to your first offer auto-updated as your goals evolve.</Text>
-                  </View>
+                  </HoverCard>
                 </View>
               </View>
             </View>
 
             {/* ── 03. COMMAND CENTER DASHBOARD ── */}
-            <View style={styles.sectionContainer}>
+            <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.sectionPill}>
                 <Text style={styles.sectionPillText}>▲ YOUR COMMAND CENTER</Text>
               </View>
@@ -745,18 +830,18 @@ export default function LandingPage() {
                   {/* Right Main Stats */}
                   <View style={styles.dashMainCol}>
                     <View style={styles.kpiTilesRow}>
-                      <View style={[styles.kpiTile, styles.tiltCard]}>
+                      <HoverCard style={styles.kpiTile}>
                         <Text style={styles.kpiHeader}>ACTIVE APPLICATIONS</Text>
                         <Text style={styles.kpiNumber}>12 <Text style={styles.kpiSub}>↗ +3 this week</Text></Text>
-                      </View>
-                      <View style={[styles.kpiTile, styles.tiltCard]}>
+                      </HoverCard>
+                      <HoverCard style={styles.kpiTile}>
                         <Text style={styles.kpiHeader}>MENTOR HOURS</Text>
                         <Text style={styles.kpiNumber}>8.5h <Text style={styles.kpiSub}>↗ +2h vs last mo</Text></Text>
-                      </View>
-                      <View style={[styles.kpiTile, styles.tiltCard]}>
+                      </HoverCard>
+                      <HoverCard style={styles.kpiTile}>
                         <Text style={styles.kpiHeader}>SKILL BADGES</Text>
                         <Text style={[styles.kpiNumber, { color: '#8B84FF' }]}>2,450</Text>
-                      </View>
+                      </HoverCard>
                     </View>
 
                     {/* Agent K Priority Checklist */}
@@ -798,7 +883,7 @@ export default function LandingPage() {
             </View>
 
             {/* ── 04. OUTCOMES ── */}
-            <View style={styles.sectionContainer}>
+            <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <Text style={styles.sectionPillText}>WHERE STUDENTS LANDED</Text>
               <Text style={styles.sectionHeadingH2}>Four students, four <Text style={{ color: T.indLt }}>first offers.</Text></Text>
               <View style={styles.outcomesGrid}>
@@ -808,26 +893,26 @@ export default function LandingPage() {
                   { name: 'Ira S.', info: "Design '26 · Remote", story: 'Portfolio review with a design lead, then a referral into her shortlist.', role: 'PRODUCT DESIGN INTERN' },
                   { name: 'Dev P.', info: "MBA '25 · Mumbai", story: 'Used the roadmap to pick electives that matched his target role.', role: 'STRATEGY ASSOCIATE' },
                 ].map((item, i) => (
-                  <View key={i} style={[styles.outcomeTile, styles.tiltCard]}>
+                  <HoverCard key={i} style={styles.outcomeTile}>
                     <Text style={styles.outcomeInfo}>{item.info}</Text>
                     <Text style={styles.outcomeName}>{item.name}</Text>
                     <Text style={styles.outcomeStory}>{item.story}</Text>
                     <Text style={styles.outcomeRole}>{item.role}</Text>
-                  </View>
+                  </HoverCard>
                 ))}
               </View>
             </View>
 
             {/* ── 05. FOR ALUMNI ── */}
-            <View style={styles.sectionContainer}>
+            <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={[styles.alumniRow, isNarrow && { flexDirection: 'column' }]}>
                 <View style={styles.alumniLeftCol}>
                   <View style={styles.sectionPill}><Text style={styles.sectionPillText}>IF YOU ARE AN ALUMNUS</Text></View>
                   <Text style={styles.sectionHeadingH2}>One hour a month, <Text style={{ color: T.indLt }}>clearly spent.</Text></Text>
                   <Text style={styles.sectionDesc}>You set your capacity. Nothing is proposed that you have not agreed to. Every hour is logged against your college's placement record, so the contribution is visible where it counts.</Text>
-                  <Pressable onPress={() => router.push('/register')} style={styles.heroBtnCollege}>
-                    <Text style={styles.heroBtnCollegeText}>Become a mentor</Text>
-                  </Pressable>
+                  <GlowButton onPress={() => router.push('/register')} style={styles.heroBtnCollege} textStyle={styles.heroBtnCollegeText}>
+                    Become a mentor
+                  </GlowButton>
                 </View>
                 <View style={styles.alumniRightCol}>
                   <View style={styles.alumniPillarBox}>
@@ -856,12 +941,12 @@ export default function LandingPage() {
             </View>
 
             {/* ── 07. AUDIENCES (4 BENTO PANELS WITH EXACT SVGS) ── */}
-            <View style={styles.sectionContainer}>
+            <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.sectionPill}><Text style={styles.sectionPillText}>• WHO IT IS FOR</Text></View>
               <Text style={styles.sectionHeadingH2}>Four points of view, <Text style={{ color: T.indLt }}>one graph.</Text></Text>
               <View style={styles.audiencesGrid}>
                 {/* 01 Students */}
-                <View style={[styles.audienceCard, styles.tiltCard]}>
+                <HoverCard style={styles.audienceCard}>
                   <View style={styles.audienceContent}>
                     <Text style={styles.audienceTag}>01 / STUDENTS</Text>
                     <Text style={styles.audienceTitle}>A roadmap, not a guess</Text>
@@ -876,10 +961,10 @@ export default function LandingPage() {
                       <Rect x="60" y="156" width="180" height="18" rx="4" fill="#3B2F8F" />
                     </Svg>
                   </View>
-                </View>
+                </HoverCard>
 
                 {/* 02 Alumni */}
-                <View style={[styles.audienceCard, styles.tiltCard]}>
+                <HoverCard style={styles.audienceCard}>
                   <View style={styles.audienceContent}>
                     <Text style={styles.audienceTag}>02 / ALUMNI</Text>
                     <Text style={styles.audienceTitle}>Give an hour a month</Text>
@@ -892,10 +977,10 @@ export default function LandingPage() {
                       <Path d="M124 128 l-14 44 26 -12 M176 128 l14 44 -26 -12" fill="#5B4FE9" />
                     </Svg>
                   </View>
-                </View>
+                </HoverCard>
 
                 {/* 03 Mentors */}
-                <View style={[styles.audienceCard, styles.tiltCard]}>
+                <HoverCard style={styles.audienceCard}>
                   <View style={styles.audienceContent}>
                     <Text style={styles.audienceTag}>03 / MENTORS</Text>
                     <Text style={styles.audienceTitle}>Calls with an agenda</Text>
@@ -907,10 +992,10 @@ export default function LandingPage() {
                       <Path d="M148 92 h96 q10 0 10 10 v40 q0 10 -10 10 h-60 l-20 16 v-16 h-16 q-10 0 -10 -10 v-40 q0 -10 10 -10 Z" fill="#1E3A6B" />
                     </Svg>
                   </View>
-                </View>
+                </HoverCard>
 
                 {/* 04 Colleges */}
-                <View style={[styles.audienceCard, styles.tiltCard]}>
+                <HoverCard style={styles.audienceCard}>
                   <View style={styles.audienceContent}>
                     <Text style={styles.audienceTag}>04 / COLLEGES</Text>
                     <Text style={styles.audienceTitle}>Placement, in one view</Text>
@@ -925,17 +1010,17 @@ export default function LandingPage() {
                       <Rect x="30" y="170" width="240" height="8" rx="4" fill="#4F46C7" />
                     </Svg>
                   </View>
-                </View>
+                </HoverCard>
               </View>
             </View>
 
             {/* ── 06. NUMBERS WITH EXACT SVGS ── */}
-            <View style={styles.sectionContainer}>
+            <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.numbersWrapper}>
                 <Text style={styles.sectionPillText}>BY THE NUMBERS</Text>
                 <Text style={styles.sectionHeadingH2}>Trusted by students <Text style={{ color: T.indLt }}>worldwide</Text></Text>
                 <View style={styles.numbersGrid}>
-                  <View style={[styles.numberItem, styles.tiltCard]}>
+                  <HoverCard style={styles.numberItem}>
                     <View style={styles.numberIconBox}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
                         <Circle cx="9" cy="9" r="3.2" stroke="#8B84FF" strokeWidth="1.8" fill="none" />
@@ -945,8 +1030,8 @@ export default function LandingPage() {
                     <Text style={styles.statBig}>50,000+</Text>
                     <Text style={styles.statTitle}>Active Students</Text>
                     <Text style={styles.statDesc}>and growing every day</Text>
-                  </View>
-                  <View style={[styles.numberItem, styles.tiltCard]}>
+                  </HoverCard>
+                  <HoverCard style={styles.numberItem}>
                     <View style={styles.numberIconBox}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
                         <Circle cx="12" cy="9" r="5" stroke="#8B84FF" strokeWidth="1.8" fill="none" />
@@ -956,8 +1041,8 @@ export default function LandingPage() {
                     <Text style={styles.statBig}>1,200+</Text>
                     <Text style={styles.statTitle}>Verified Mentors</Text>
                     <Text style={styles.statDesc}>from top 500 companies</Text>
-                  </View>
-                  <View style={[styles.numberItem, styles.tiltCard]}>
+                  </HoverCard>
+                  <HoverCard style={styles.numberItem}>
                     <View style={styles.numberIconBox}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
                         <Path d="M5 20 V7 l7 -3 v16 M12 20 V10 l7 3 v7 M8 11 h1 M8 15 h1 M15 15 h1" stroke="#8B84FF" strokeWidth="1.8" fill="none" />
@@ -966,8 +1051,8 @@ export default function LandingPage() {
                     <Text style={styles.statBig}>200+</Text>
                     <Text style={styles.statTitle}>Partner Universities</Text>
                     <Text style={styles.statDesc}>across 30+ countries</Text>
-                  </View>
-                  <View style={[styles.numberItem, styles.tiltCard]}>
+                  </HoverCard>
+                  <HoverCard style={styles.numberItem}>
                     <View style={styles.numberIconBox}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
                         <Path d="M4 17 l5 -5 3 3 6 -7 M14 8 h5 v5" stroke="#8B84FF" strokeWidth="1.8" fill="none" />
@@ -976,13 +1061,13 @@ export default function LandingPage() {
                     <Text style={styles.statBig}>96%</Text>
                     <Text style={styles.statTitle}>Placement Rate</Text>
                     <Text style={styles.statDesc}>within 6 months of joining</Text>
-                  </View>
+                  </HoverCard>
                 </View>
               </View>
             </View>
 
             {/* ── 08. ROADMAP TIMELINE S-CURVE ── */}
-            <View style={styles.sectionContainer}>
+            <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.roadmapHeadingRow}>
                 <Text style={styles.sectionHeadingH2}>The roadmap fills in <Text style={{ color: T.indLt }}>as you scroll.</Text></Text>
                 <Text style={styles.roadmapSub}>DAY 1 → FIRST OFFER</Text>
@@ -1008,7 +1093,7 @@ export default function LandingPage() {
             </View>
 
             {/* ── 09. ON CAMPUS (5-CARD LAYERED POLAROID DECK) ── */}
-            <View style={styles.sectionContainer}>
+            <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={[styles.campusRow, isNarrow && { flexDirection: 'column' }]}>
                 <View style={styles.campusLeftCol}>
                   <View style={styles.sectionPill}><Text style={styles.sectionPillText}>ON CAMPUS</Text></View>
@@ -1025,7 +1110,7 @@ export default function LandingPage() {
                   </View>
                 </View>
                 <View style={styles.campusRightCol}>
-                  <View style={styles.polaroidCard}>
+                  <HoverCard style={styles.polaroidCard}>
                     {/* SVG 0: Alumni Career Fair */}
                     {deckIdx === 0 && (
                       <Svg width="100%" height="240" viewBox="0 0 320 260">
@@ -1091,31 +1176,35 @@ export default function LandingPage() {
                         {['March', 'Library, block C', 'Alumni-run', 'Class of 2026', 'Internship'][deckIdx]}
                       </Text>
                     </View>
-                  </View>
+                  </HoverCard>
                 </View>
               </View>
             </View>
 
             {/* ── 10. MATCH GRAPH ORBITAL RADAR ── */}
-            <View style={styles.sectionContainer}>
+            <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.sectionPill}><Text style={styles.sectionPillText}>• HOW MATCHING WORKS</Text></View>
               <Text style={styles.sectionHeadingH2}>1,200+ verified mentors,<br /><Text style={{ color: T.indLt }}>ranked by fit.</Text></Text>
               <Text style={styles.sectionDesc}>Agent K scores every alumnus against your course, goals and city. Hover a node to see the connection and why it was chosen.</Text>
 
               <View style={[styles.matchGraphRow, isNarrow && { flexDirection: 'column' }]}>
                 {/* Detail Box */}
-                <View style={styles.matchDetailBanner}>
+                <HoverCard style={styles.matchDetailBanner}>
                   <Text style={styles.matchDetailHeader}>MATCH DETAIL</Text>
                   <Text style={styles.matchDetailName}>{selectedNode.name}</Text>
                   <Text style={styles.matchDetailWhy}>{selectedNode.why}</Text>
-                </View>
+                </HoverCard>
 
-                {/* Radar SVG */}
+                {/* Radar SVG with pulsing wave */}
                 <View style={{ flex: 1, alignItems: 'center' }}>
                   <Svg width="100%" height="320" viewBox="0 0 620 540">
                     <Circle cx="310" cy="270" r="128" stroke="#1B1E33" strokeDasharray="4,8" fill="none" strokeWidth="1.2" />
                     <Circle cx="310" cy="270" r="206" stroke="#1B1E33" strokeDasharray="4,8" fill="none" strokeWidth="1.2" />
                     <Line x1="310" y1="270" x2={selectedNode.x} y2={selectedNode.y} stroke="#8B84FF" strokeWidth="1.6" strokeDasharray="5,6" />
+                    
+                    {/* Live pulse wave */}
+                    <Circle cx="310" cy="270" r="80" stroke="#5B4FE9" strokeWidth="1.5" fill="none" opacity="0.4" />
+                    
                     <Circle cx="310" cy="270" r="52" fill="#0C0E1B" stroke="#5B4FE9" strokeWidth="2" />
                     <SvgText x="310" y="266" textAnchor="middle" fill="#F4F5FB" fontSize="16" fontWeight="800">YOU</SvgText>
                     <SvgText x="310" y="286" textAnchor="middle" fill="#9AA0B4" fontSize="10" fontWeight="700">YEAR 3</SvgText>
@@ -1133,8 +1222,8 @@ export default function LandingPage() {
                         onPress={() => setSelectedNode({ name: node.name, why: node.why, x: String(node.x), y: String(node.y) })}
                         style={{ cursor: 'pointer' }}
                       >
-                        <Circle cx={node.x} cy={node.y} r="32" fill="#0C0E1B" stroke="#2A2E45" strokeWidth="1.6" />
-                        <SvgText x={node.x} y={node.y + 5} textAnchor="middle" fill="#8B84FF" fontSize="13" fontWeight="700">{node.score}</SvgText>
+                        <Circle cx={node.x} cy={node.y} r="32" fill="#0C0E1B" stroke={selectedNode.x === String(node.x) && selectedNode.y === String(node.y) ? '#8B84FF' : '#2A2E45'} strokeWidth={selectedNode.x === String(node.x) && selectedNode.y === String(node.y) ? 2.4 : 1.6} />
+                        <SvgText x={node.x} y={node.y + 5} textAnchor="middle" fill={selectedNode.x === String(node.x) && selectedNode.y === String(node.y) ? '#FFFFFF' : '#8B84FF'} fontSize="13" fontWeight="700">{node.score}</SvgText>
                       </G>
                     ))}
                   </Svg>
@@ -1143,8 +1232,8 @@ export default function LandingPage() {
             </View>
 
             {/* ── 10b. ON THE GROUND ECHO EVENTS ── */}
-            <View style={styles.sectionContainer}>
-              <View style={[styles.onTheGroundCard, styles.tiltCard]}>
+            <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
+              <HoverCard style={styles.onTheGroundCard}>
                 <View style={styles.otgTag}><Text style={styles.otgTagText}>• ON THE GROUND</Text></View>
                 <Text style={styles.otgTitle}>The network is a feed until it meets in person.</Text>
                 <Text style={styles.otgDesc}>Eighty-six ECHO events across thirty-one campuses. Alumni in the room, recruiters at the table, and a build sprint that runs overnight.</Text>
@@ -1153,13 +1242,13 @@ export default function LandingPage() {
                   <View><Text style={[styles.otgStatNum, { color: '#0E6E8C' }]}>31</Text><Text style={styles.otgStatLabel}>cities</Text></View>
                   <View><Text style={[styles.otgStatNum, { color: '#A21C63' }]}>4.8</Text><Text style={styles.otgStatLabel}>average rating</Text></View>
                 </View>
-                <View style={{ flexDirection: 'row', gap: 12, marginBottom: 28 }}>
-                  <Pressable onPress={() => setActiveTab('events')} style={[styles.verifySubmitBtn, { backgroundColor: '#4B3FD6' }]}>
-                    <Text style={styles.verifySubmitBtnText}>See the events</Text>
-                  </Pressable>
-                  <Pressable onPress={() => setActiveTab('contact')} style={[styles.heroBtnCollege, { borderColor: '#CFC9F3' }]}>
-                    <Text style={[styles.heroBtnCollegeText, { color: '#2E2A55' }]}>Host on your campus</Text>
-                  </Pressable>
+                <View style={{ flexDirection: 'row', gap: 12, marginBottom: 28, flexWrap: 'wrap' }}>
+                  <GlowButton onPress={() => setActiveTab('events')} style={[styles.verifySubmitBtn, { backgroundColor: '#4B3FD6' }]} textStyle={styles.verifySubmitBtnText}>
+                    See the events
+                  </GlowButton>
+                  <GlowButton onPress={() => setActiveTab('contact')} style={[styles.heroBtnCollege, { borderColor: '#CFC9F3' }]} textStyle={[styles.heroBtnCollegeText, { color: '#2E2A55' }]}>
+                    Host on your campus
+                  </GlowButton>
                 </View>
                 <View style={styles.otgHostsRow}>
                   <Text style={styles.otgHostsHeader}>RECENT HOSTS: </Text>
@@ -1167,14 +1256,14 @@ export default function LandingPage() {
                     <Text key={idx} style={styles.otgHostPill}>{h}</Text>
                   ))}
                 </View>
-              </View>
+              </HoverCard>
             </View>
 
             {/* ── 11. TESTIMONIALS ── */}
-            <View style={styles.sectionContainer}>
+            <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.sectionPill}><Text style={styles.sectionPillText}>FROM THE NETWORK</Text></View>
               <Text style={styles.sectionHeadingH2}>Students, alumni <Text style={{ color: T.indLt }}>and offices.</Text></Text>
-              <View style={styles.testimonialCard}>
+              <HoverCard style={styles.testimonialCard}>
                 <Text style={styles.testimonialQuote}>
                   {[
                     '“I had no idea who to ask in my final year. Two mentor calls turned a vague plan into an actual offer.”',
@@ -1189,7 +1278,7 @@ export default function LandingPage() {
                     'R. IYER · CAREER SERVICES, PARTNER COLLEGE',
                   ][quoteIdx]}
                 </Text>
-              </View>
+              </HoverCard>
               <View style={{ flexDirection: 'row', gap: 10, marginTop: 20 }}>
                 {[0, 1, 2].map((idx) => (
                   <Pressable
@@ -1202,14 +1291,14 @@ export default function LandingPage() {
             </View>
 
             {/* ── 12. FINAL CALL TO ACTION ── */}
-            <View style={styles.sectionContainer}>
+            <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.ctaCardBanner}>
                 <View style={styles.sectionPill}><Text style={styles.sectionPillText}>⚡ START YOUR JOURNEY</Text></View>
                 <Text style={styles.ctaTitleH2}>Your career, quietly<br /><Text style={{ color: T.indLt }}>upgraded.</Text></Text>
                 <Text style={styles.ctaSubtitle}>Join 50,000+ students already using StudentAlumni to land career opportunities, find mentors, and build their future. No credit card required.</Text>
-                <Pressable onPress={() => router.push('/register')} style={[styles.ctaActionButton, styles.btnGlow]}>
-                  <Text style={styles.ctaActionButtonText}>Create your free account ↗</Text>
-                </Pressable>
+                <GlowButton onPress={() => router.push('/register')} style={styles.ctaActionButton} textStyle={styles.ctaActionButtonText}>
+                  Create your free account ↗
+                </GlowButton>
 
                 {/* 3 FAQ Columns */}
                 <View style={styles.ctaFaqRow}>
@@ -1235,7 +1324,7 @@ export default function LandingPage() {
 
         {/* ── 13. GLOBAL FOOTER ── */}
         <View style={styles.footerSection}>
-          <View style={styles.footerInner}>
+          <View style={[styles.footerInner, { paddingHorizontal: containerPadding }]}>
             <View style={styles.footerBrandCol}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 }}>
                 <Svg width="24" height="28" viewBox="0 0 300 350">
@@ -1296,7 +1385,7 @@ export default function LandingPage() {
           </View>
 
           {/* Newsletter Box */}
-          <View style={styles.newsletterRow}>
+          <View style={[styles.newsletterRow, { marginHorizontal: 'auto' as any, maxWidth: 1360, width: '100%' }]}>
             <View style={{ flex: 1, minWidth: 260 }}>
               <Text style={styles.newsletterTitle}>One email a month. Nothing else.</Text>
               <Text style={styles.newsletterSub}>New openings, mentor drops and campus events — no noise.</Text>
@@ -1307,19 +1396,20 @@ export default function LandingPage() {
                 placeholderTextColor={T.dim}
                 style={styles.newsletterInput}
               />
-              <Pressable
+              <GlowButton
                 onPress={() => {
                   setSubscribed(true);
                   setTimeout(() => setSubscribed(false), 2200);
                 }}
-                style={[styles.subscribeBtn, styles.btnGlow]}
+                style={styles.subscribeBtn}
+                textStyle={styles.subscribeBtnText}
               >
-                <Text style={styles.subscribeBtnText}>{subscribed ? 'Subscribed ✓' : 'Subscribe'}</Text>
-              </Pressable>
+                {subscribed ? 'Subscribed ✓' : 'Subscribe'}
+              </GlowButton>
             </View>
           </View>
 
-          <View style={styles.footerBottomBar}>
+          <View style={[styles.footerBottomBar, { marginHorizontal: 'auto' as any, maxWidth: 1360, width: '100%', paddingHorizontal: containerPadding }]}>
             <View>
               <Text style={styles.footerBrandGrad}>#studentalumni</Text>
               <Text style={styles.footerCopyright}>Built with love for students <Text style={{ color: T.indLt }}>♥</Text> across all campus's</Text>
@@ -1332,15 +1422,15 @@ export default function LandingPage() {
 
       {/* Sticky Bottom Bar on Scroll */}
       {showStickyBar && (
-        <View style={styles.stickyBottomBar}>
+        <View style={[styles.stickyBottomBar, { paddingHorizontal: containerPadding }]}>
           <Text style={styles.stickyBottomText}>Free for students · about a minute to set up</Text>
           <View style={styles.stickyBottomActions}>
             <Pressable onPress={() => setActiveTab('contact')} style={styles.stickyGhostBtn}>
               <Text style={styles.stickyGhostBtnText}>For colleges</Text>
             </Pressable>
-            <Pressable onPress={() => router.push('/register')} style={[styles.stickyCtaBtn, styles.btnGlow]}>
-              <Text style={styles.stickyCtaBtnText}>Get started</Text>
-            </Pressable>
+            <GlowButton onPress={() => router.push('/register')} style={styles.stickyCtaBtn} textStyle={styles.stickyCtaBtnText}>
+              Get started
+            </GlowButton>
           </View>
         </View>
       )}
@@ -1353,12 +1443,17 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: T.bg,
+    alignItems: 'center',
+    width: '100%',
   },
   scroll: {
     flex: 1,
+    width: '100%',
   },
   scrollContent: {
+    width: '100%',
     paddingBottom: 20,
+    alignItems: 'center',
   },
   cursorGlow: {
     position: 'fixed' as any,
@@ -1380,17 +1475,17 @@ const styles = StyleSheet.create({
   },
   meteor1: {
     position: 'absolute',
-    left: '62%',
+    left: '68%',
     top: '8%',
-    width: 120,
+    width: 130,
     height: 1.5,
     backgroundColor: '#FFFFFF',
   },
   meteor2: {
     position: 'absolute',
-    left: '32%',
+    left: '36%',
     top: '46%',
-    width: 90,
+    width: 100,
     height: 1.5,
     backgroundColor: '#E8E6FF',
   },
@@ -1408,15 +1503,17 @@ const styles = StyleSheet.create({
     position: 'sticky' as any,
     top: 0,
     zIndex: 100,
+    width: '100%',
     backgroundColor: 'rgba(5,6,15,0.85)',
     borderBottomWidth: 1,
     borderBottomColor: T.line,
     backdropFilter: 'blur(16px)' as any,
+    alignItems: 'center',
   },
   navInner: {
+    width: '100%',
     maxWidth: 1360,
     marginHorizontal: 'auto' as any,
-    paddingHorizontal: 40,
     paddingVertical: 15,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1491,13 +1588,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.35,
     shadowRadius: 14,
   },
-  tiltCard: {},
 
   /* ── 01 Hero ── */
   heroSection: {
+    width: '100%',
     maxWidth: 1360,
     marginHorizontal: 'auto' as any,
-    paddingHorizontal: 40,
     paddingTop: 90,
     paddingBottom: 40,
     flexDirection: 'row',
@@ -1593,9 +1689,9 @@ const styles = StyleSheet.create({
 
   /* ── Marquees ── */
   marqueeContainer: {
+    width: '100%',
     maxWidth: 1360,
     marginHorizontal: 'auto' as any,
-    paddingHorizontal: 40,
     marginTop: 40,
     marginBottom: 60,
     gap: 18,
@@ -1604,12 +1700,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 20,
+    overflow: 'hidden',
   },
   marqueeBadge: {
     backgroundColor: T.tint,
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderRadius: 8,
+    flexShrink: 0,
   },
   marqueeBadgeText: {
     fontSize: 11.5,
@@ -1617,8 +1715,9 @@ const styles = StyleSheet.create({
     color: T.indLt,
     letterSpacing: 1.6,
   },
-  marqueeScroll: {
-    flexDirection: 'row',
+  marqueeTrackWrapper: {
+    flex: 1,
+    overflow: 'hidden',
   },
   marqueePill: {
     backgroundColor: T.card,
@@ -1630,6 +1729,7 @@ const styles = StyleSheet.create({
     marginRight: 14,
     height: 58,
     justifyContent: 'center',
+    flexShrink: 0,
   },
   marqueePillText: {
     fontSize: 11.5,
@@ -1640,10 +1740,10 @@ const styles = StyleSheet.create({
 
   /* ── Shared Sections ── */
   sectionContainer: {
+    width: '100%',
     maxWidth: 1360,
     marginHorizontal: 'auto' as any,
-    paddingHorizontal: 40,
-    paddingVertical: 120,
+    paddingVertical: 100,
   },
   sectionPill: {
     alignSelf: 'flex-start',
@@ -1677,9 +1777,11 @@ const styles = StyleSheet.create({
 
   /* ── 02 Bento ── */
   bentoGridContainer: {
+    width: '100%',
     gap: 20,
   },
   bentoRow: {
+    width: '100%',
     flexDirection: 'row',
     gap: 20,
   },
@@ -1724,6 +1826,7 @@ const styles = StyleSheet.create({
 
   /* ── 03 Dashboard Frame ── */
   dashBrowserFrame: {
+    width: '100%',
     backgroundColor: T.surface,
     borderWidth: 1,
     borderColor: T.line,
@@ -1871,6 +1974,7 @@ const styles = StyleSheet.create({
 
   /* ── 04 Outcomes ── */
   outcomesGrid: {
+    width: '100%',
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 20,
@@ -1910,6 +2014,7 @@ const styles = StyleSheet.create({
 
   /* ── 05 For Alumni ── */
   alumniRow: {
+    width: '100%',
     flexDirection: 'row',
     gap: 64,
     alignItems: 'center',
@@ -1949,9 +2054,11 @@ const styles = StyleSheet.create({
 
   /* ── 07 Audiences ── */
   audiencesGrid: {
+    width: '100%',
     gap: 28,
   },
   audienceCard: {
+    width: '100%',
     backgroundColor: T.surface,
     borderWidth: 1,
     borderColor: T.line,
@@ -1995,6 +2102,7 @@ const styles = StyleSheet.create({
 
   /* ── 06 Numbers ── */
   numbersWrapper: {
+    width: '100%',
     backgroundColor: T.surface,
     borderWidth: 1,
     borderColor: T.line2,
@@ -2050,6 +2158,7 @@ const styles = StyleSheet.create({
 
   /* ── 08 Roadmap ── */
   roadmapHeadingRow: {
+    width: '100%',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
@@ -2066,6 +2175,7 @@ const styles = StyleSheet.create({
 
   /* ── 09 On Campus ── */
   campusRow: {
+    width: '100%',
     flexDirection: 'row',
     gap: 70,
     alignItems: 'center',
@@ -2125,6 +2235,7 @@ const styles = StyleSheet.create({
 
   /* ── 10 Match Graph ── */
   matchGraphRow: {
+    width: '100%',
     flexDirection: 'row',
     gap: 60,
     alignItems: 'center',
@@ -2159,6 +2270,7 @@ const styles = StyleSheet.create({
 
   /* ── 10b On the Ground ── */
   onTheGroundCard: {
+    width: '100%',
     backgroundColor: '#FFFFFF',
     borderRadius: 26,
     padding: 42,
@@ -2235,6 +2347,7 @@ const styles = StyleSheet.create({
 
   /* ── 11 Testimonials ── */
   testimonialCard: {
+    width: '100%',
     backgroundColor: T.surface,
     borderWidth: 1,
     borderColor: T.line,
@@ -2261,6 +2374,7 @@ const styles = StyleSheet.create({
 
   /* ── 12 CTA ── */
   ctaCardBanner: {
+    width: '100%',
     backgroundColor: T.cardHi,
     borderWidth: 1,
     borderColor: T.line2,
@@ -2335,7 +2449,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: T.line,
     backdropFilter: 'blur(16px)' as any,
-    paddingHorizontal: 40,
     paddingVertical: 14,
     flexDirection: 'row',
     alignItems: 'center',
@@ -2378,6 +2491,7 @@ const styles = StyleSheet.create({
 
   /* ── Verify View ── */
   verifyHeroCard: {
+    width: '100%',
     backgroundColor: '#FFFFFF',
     borderRadius: 26,
     padding: 42,
@@ -2545,6 +2659,7 @@ const styles = StyleSheet.create({
     color: T.indLt,
   },
   whatWeVerifyRow: {
+    width: '100%',
     flexDirection: 'row',
     gap: 16,
     flexWrap: 'wrap',
@@ -2583,6 +2698,7 @@ const styles = StyleSheet.create({
     color: T.muted2,
   },
   bgvDeskCard: {
+    width: '100%',
     backgroundColor: T.card,
     borderWidth: 1,
     borderColor: T.lineHi,
@@ -2672,6 +2788,7 @@ const styles = StyleSheet.create({
 
   /* ── Contact View ── */
   centeredHeader: {
+    width: '100%',
     alignItems: 'center',
     textAlign: 'center' as any,
     marginBottom: 44,
@@ -2692,6 +2809,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   hubsGrid: {
+    width: '100%',
     flexDirection: 'row',
     gap: 20,
     marginBottom: 20,
@@ -2725,6 +2843,7 @@ const styles = StyleSheet.create({
     marginVertical: 4,
   },
   inquiryCard: {
+    width: '100%',
     backgroundColor: T.card,
     borderWidth: 1,
     borderColor: T.line,
@@ -2765,15 +2884,17 @@ const styles = StyleSheet.create({
 
   /* ── 13 Footer ── */
   footerSection: {
+    width: '100%',
     borderTopWidth: 1,
     borderTopColor: T.line,
     backgroundColor: T.bg2,
     paddingTop: 70,
     paddingBottom: 80,
-    paddingHorizontal: 40,
     marginTop: 130,
+    alignItems: 'center',
   },
   footerInner: {
+    width: '100%',
     maxWidth: 1360,
     marginHorizontal: 'auto' as any,
     flexDirection: 'row',
@@ -2829,8 +2950,8 @@ const styles = StyleSheet.create({
     color: T.text2,
   },
   newsletterRow: {
+    width: '100%',
     maxWidth: 1360,
-    marginHorizontal: 'auto' as any,
     borderWidth: 1,
     borderColor: T.lineHi,
     borderRadius: 18,
@@ -2885,8 +3006,8 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   footerBottomBar: {
+    width: '100%',
     maxWidth: 1360,
-    marginHorizontal: 'auto' as any,
     paddingTop: 24,
     flexDirection: 'row',
     justifyContent: 'space-between',
