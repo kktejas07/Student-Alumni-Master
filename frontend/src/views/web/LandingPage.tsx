@@ -1,8 +1,8 @@
 /**
- * LandingPage — StudentAlumni AI Career Platform (Full Motion & Interactive Engine)
+ * LandingPage — StudentAlumni AI Career Platform (Rock-Solid Animated Engine)
  *
- * Implements full interactive hover states, 3D perspective card tilts, continuous auto-sliding
- * dual marquees, 3D swaying hero shield, pulsating orbital radar, and shooting star meteors.
+ * Implements pure React Native Animated loops for College and Industry marquees,
+ * ensuring flawless continuous scrolling across all browsers without CSS class failures.
  */
 import React, { useState, useEffect } from 'react';
 import {
@@ -14,6 +14,8 @@ import {
   TextInput,
   useWindowDimensions,
   Platform,
+  Animated,
+  Easing,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Svg, {
@@ -58,8 +60,8 @@ const T = {
   shadow: 'rgba(0,0,0,0.5)',
 };
 
-/* ── Inject Full Dynamic CSS Animations & Micro-Interactions ── */
-const STYLES_KEY = 'sa-full-motion-engine-css';
+/* ── Global Styles Injection for Web ── */
+const STYLES_KEY = 'sa-exact-rocksolid-motion-css';
 function injectGlobalStyles() {
   if (typeof document === 'undefined' || document.getElementById(STYLES_KEY)) return;
   const s = document.createElement('style');
@@ -69,23 +71,13 @@ function injectGlobalStyles() {
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; background: #05060F; font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif; color: #F4F5FB; overflow-x: hidden; }
     
-    @keyframes sa-twinkle { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
     @keyframes sa-streak1 { 0% { transform: translate3d(0,0,0) rotate(35deg); opacity: 0; } 8% { opacity: 0.9; } 28% { transform: translate3d(-520px,360px,0) rotate(35deg); opacity: 0; } 100% { transform: translate3d(-520px,360px,0) rotate(35deg); opacity: 0; } }
     @keyframes sa-streak2 { 0% { transform: translate3d(0,0,0) rotate(32deg); opacity: 0; } 10% { opacity: 0.85; } 30% { transform: translate3d(-480px,320px,0) rotate(32deg); opacity: 0; } 100% { transform: translate3d(-480px,320px,0) rotate(32deg); opacity: 0; } }
-    @keyframes sa-sway { 0%, 100% { transform: perspective(1200px) rotateY(-16deg) rotateX(4deg) translateY(0); } 50% { transform: perspective(1200px) rotateY(16deg) rotateX(-4deg) translateY(-16px); } }
     @keyframes sa-pulse-glow { 0%, 100% { opacity: 0.35; transform: scale(1); } 50% { opacity: 0.7; transform: scale(1.1); } }
-    @keyframes sa-mq-left { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-    @keyframes sa-mq-right { from { transform: translateX(-50%); } to { transform: translateX(0); } }
-    @keyframes sa-radar-ping { 0% { r: 52px; opacity: 0.8; } 100% { r: 180px; opacity: 0; } }
 
-    .sa-swaying-shield { animation: sa-sway 14s ease-in-out infinite; transform-style: preserve-3d; }
     .sa-shield-glow { animation: sa-pulse-glow 7s ease-in-out infinite; }
     .sa-meteor-1 { animation: sa-streak1 8s ease-in-out infinite; }
     .sa-meteor-2 { animation: sa-streak2 11s ease-in-out infinite 3.5s; }
-
-    .sa-mq-track-left { display: flex; width: max-content; animation: sa-mq-left 32s linear infinite; }
-    .sa-mq-track-right { display: flex; width: max-content; animation: sa-mq-right 28s linear infinite; }
-    .sa-mq-track-left:hover, .sa-mq-track-right:hover { animation-play-state: paused; }
   `;
   document.head.appendChild(s);
 }
@@ -109,6 +101,74 @@ const INDUSTRY_MARQUEE = [
   'Deloitte', 'Featherless', 'Atlast', 'Bandiwala',
   'EXtrive Innovations', 'Larsen & Toubro', 'LinkedIn', 'Google', 'McKinsey',
 ];
+
+/* ── Pure React Native Animated Marquee Component ── */
+function Marquee({
+  items,
+  duration = 26000,
+  reverse = false,
+}: {
+  items: string[];
+  duration?: number;
+  reverse?: boolean;
+}) {
+  const [singleWidth, setSingleWidth] = useState(1400);
+  const x = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    x.setValue(reverse ? -singleWidth : 0);
+    const anim = Animated.loop(
+      Animated.timing(x, {
+        toValue: reverse ? 0 : -singleWidth,
+        duration,
+        easing: Easing.linear,
+        useNativeDriver: Platform.OS !== 'web',
+      })
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [singleWidth, duration, reverse]);
+
+  return (
+    <View style={{ overflow: 'hidden', flex: 1 }}>
+      <Animated.View
+        style={{
+          flexDirection: 'row',
+          transform: [{ translateX: x }],
+          width: 'max-content' as any,
+        }}
+      >
+        <View
+          style={{ flexDirection: 'row' }}
+          onLayout={(e) => {
+            const w = e.nativeEvent.layout.width;
+            if (w > 0 && Math.abs(w - singleWidth) > 10) setSingleWidth(w);
+          }}
+        >
+          {items.map((item, idx) => (
+            <View key={`set1-${idx}`} style={styles.marqueePill}>
+              <Text style={styles.marqueePillText}>{item}</Text>
+            </View>
+          ))}
+        </View>
+        <View style={{ flexDirection: 'row' }}>
+          {items.map((item, idx) => (
+            <View key={`set2-${idx}`} style={styles.marqueePill}>
+              <Text style={styles.marqueePillText}>{item}</Text>
+            </View>
+          ))}
+        </View>
+        <View style={{ flexDirection: 'row' }}>
+          {items.map((item, idx) => (
+            <View key={`set3-${idx}`} style={styles.marqueePill}>
+              <Text style={styles.marqueePillText}>{item}</Text>
+            </View>
+          ))}
+        </View>
+      </Animated.View>
+    </View>
+  );
+}
 
 /* ── Interactive 3D Hover Tilt Card Component ── */
 function HoverCard({
@@ -233,6 +293,37 @@ export default function LandingPage() {
   const [scrollY, setScrollY] = useState(0);
   const showStickyBar = scrollY > 600;
 
+  // Swaying shield animated value
+  const swayAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(swayAnim, {
+          toValue: 1,
+          duration: 7000,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: Platform.OS !== 'web',
+        }),
+        Animated.timing(swayAnim, {
+          toValue: 0,
+          duration: 7000,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: Platform.OS !== 'web',
+        }),
+      ])
+    ).start();
+  }, []);
+
+  const shieldRotateY = swayAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['-16deg', '16deg'],
+  });
+  const shieldTranslateY = swayAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -14],
+  });
+
   // Cursor following glow (web only)
   const [mousePos, setMousePos] = useState({ x: -500, y: -500 });
 
@@ -287,11 +378,8 @@ export default function LandingPage() {
         />
       )}
 
-      {/* Starfield with Active Animated Meteors */}
-      <View style={styles.starfield} pointerEvents="none">
-        <View style={[styles.meteor1, { className: 'sa-meteor-1' } as any]} />
-        <View style={[styles.meteor2, { className: 'sa-meteor-2' } as any]} />
-      </View>
+      {/* Starfield */}
+      <View style={styles.starfield} pointerEvents="none" />
 
       {/* Top Fixed Scroll Progress Bar */}
       <View style={[styles.progressBar, { width: `${Math.min(100, (scrollY / 3800) * 100)}%` }]} />
@@ -629,7 +717,15 @@ export default function LandingPage() {
               {/* 3D Swaying SA Shield Emblem */}
               <View style={styles.heroRightCol}>
                 <View style={[styles.shieldBackdropGlow, { className: 'sa-shield-glow' } as any]} />
-                <View style={[{ className: 'sa-swaying-shield' } as any]}>
+                <Animated.View
+                  style={{
+                    transform: [
+                      { perspective: 1200 },
+                      { rotateY: shieldRotateY },
+                      { translateY: shieldTranslateY },
+                    ],
+                  }}
+                >
                   <Svg width="320" height="360" viewBox="0 0 300 350">
                     <Defs>
                       <LinearGradient id="sa-sh-out" x1="0" y1="0" x2="1" y2="1">
@@ -653,33 +749,21 @@ export default function LandingPage() {
                       SA
                     </SvgText>
                   </Svg>
-                </View>
+                </Animated.View>
               </View>
             </View>
 
-            {/* ── DUAL-ROW CONTINUOUS PARTNER MARQUEES ── */}
+            {/* ── DUAL-ROW CONTINUOUS PARTNER MARQUEES (REACT NATIVE ANIMATED LOOP) ── */}
             <View style={[styles.marqueeContainer, { paddingHorizontal: containerPadding }]}>
-              {/* Row 1: Colleges */}
+              {/* Row 1: Colleges (Leftward Continuous Glide) */}
               <View style={styles.marqueeRow}>
                 <View style={styles.marqueeBadge}><Text style={styles.marqueeBadgeText}>COLLEGES</Text></View>
-                <View style={styles.marqueeTrackWrapper}>
-                  <View style={[{ className: 'sa-mq-track-left' } as any]}>
-                    {[...COLLEGES_MARQUEE, ...COLLEGES_MARQUEE].map((item, idx) => (
-                      <View key={idx} style={styles.marqueePill}><Text style={styles.marqueePillText}>{item}</Text></View>
-                    ))}
-                  </View>
-                </View>
+                <Marquee items={COLLEGES_MARQUEE} duration={26000} reverse={false} />
               </View>
-              {/* Row 2: Industry */}
+              {/* Row 2: Industry (Rightward Continuous Glide) */}
               <View style={styles.marqueeRow}>
                 <View style={styles.marqueeBadge}><Text style={styles.marqueeBadgeText}>INDUSTRY</Text></View>
-                <View style={styles.marqueeTrackWrapper}>
-                  <View style={[{ className: 'sa-mq-track-right' } as any]}>
-                    {[...INDUSTRY_MARQUEE, ...INDUSTRY_MARQUEE].map((item, idx) => (
-                      <View key={idx} style={styles.marqueePill}><Text style={styles.marqueePillText}>{item}</Text></View>
-                    ))}
-                  </View>
-                </View>
+                <Marquee items={INDUSTRY_MARQUEE} duration={24000} reverse={true} />
               </View>
             </View>
 
@@ -1714,10 +1798,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: T.indLt,
     letterSpacing: 1.6,
-  },
-  marqueeTrackWrapper: {
-    flex: 1,
-    overflow: 'hidden',
   },
   marqueePill: {
     backgroundColor: T.card,
