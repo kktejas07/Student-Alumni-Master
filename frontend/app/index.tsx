@@ -1,28 +1,29 @@
 /**
  * Splash + initial router.
  *
- * Modern 1:1 Loading screen with 3D glowing SA Shield and 00-100% counter.
- * No bar, no hold.
+ * Web renders LandingPage directly without splash delay.
+ * Native runs modern 1:1 Loading screen with 3D glowing SA Shield.
  */
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Animated, Easing, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Svg, { Path, Text as SvgText, Defs, LinearGradient as SvgGrad, Stop } from 'react-native-svg';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
-
 import LandingPage from '@/src/views/web/LandingPage';
 
 const IS_WEB = Platform.OS === 'web';
 
 export default function Index() {
-  const router = useRouter();
-
-  // On web, render the landing page directly — no loading stall or splash screen hang
   if (IS_WEB) {
     return <LandingPage />;
   }
 
+  return <NativeSplash />;
+}
+
+function NativeSplash() {
+  const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const initialized = useAuthStore((s) => s.initialized);
   const [hasSeenIntro, setHasSeenIntro] = useState<boolean | null>(null);
@@ -54,23 +55,15 @@ export default function Index() {
     return () => clearInterval(iv);
   }, []);
 
-  // Read intro flag once (native only — web doesn't use it).
+  // Read intro flag once
   useEffect(() => {
-    if (IS_WEB) {
-      setHasSeenIntro(true);
-      return;
-    }
     AsyncStorage.getItem('hasSeenIntro')
       .then((v) => setHasSeenIntro(v === 'true'))
       .catch(() => setHasSeenIntro(false));
   }, []);
 
-  // Route as soon as auth is ready (on web, instantly show /welcome)
+  // Route as soon as auth is ready
   useEffect(() => {
-    if (IS_WEB) {
-      router.replace('/welcome');
-      return;
-    }
     if (!initialized || hasSeenIntro === null || progress < 100) return;
     if (user) {
       if (!user.onboarding_completed) {

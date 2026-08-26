@@ -12,7 +12,7 @@
  * Position: bottom-right on desktop/tablet; full-width bottom on compact phones.
  * Auto-dismiss: 5s with a shrinking progress bar.
  */
-import {
+import React, {
   createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState,
 } from 'react';
 import {
