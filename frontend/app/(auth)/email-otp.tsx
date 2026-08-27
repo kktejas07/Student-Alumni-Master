@@ -20,6 +20,8 @@ import { AuthInput, PrimaryButton } from '@/src/views/auth/AuthControls';
 import { AC, FONTS } from '@/src/views/auth/tokens';
 import { trackAuth } from '@/src/lib/authAnalytics';
 
+import { api } from '@/src/models/services/api';
+
 const BASE = getBaseUrl();
 
 export default function EmailOTP() {
@@ -39,14 +41,9 @@ export default function EmailOTP() {
     setLoading(true);
     trackAuth({ event: 'otp_sent', email: trimmed });
     try {
-      // Best-effort call — if backend endpoint exists we use it; otherwise we
-      // still forward to the verify screen which has its own mock OTP flow.
-      await fetch(`${BASE}/api/auth/email-otp/send`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: trimmed }),
-      }).catch(() => {});
-      router.push({ pathname: '/(auth)/email-verify', params: { email: trimmed, mode: 'otp' } });
+      const res = await api.sendEmailOtp(trimmed).catch(() => null);
+      const otpCode = res?.otp_code || '';
+      router.push({ pathname: '/(auth)/email-verify', params: { email: trimmed, mode: 'otp', code: otpCode } });
     } catch {
       setError('Could not send OTP. Try again.');
     } finally {

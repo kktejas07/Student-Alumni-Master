@@ -7,6 +7,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
+import { api } from '@/src/models/services/api';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 export function OnboardingShellRN() {
   const router = useRouter();
@@ -21,6 +23,101 @@ export function OnboardingShellRN() {
 function WebOnboardingEngine({ router }: { router: any }) {
   const [flow, setFlow] = useState<'student' | 'alumnus' | 'college'>('student');
   const [stepIdx, setStepIdx] = useState(0);
+
+  // Real-Time Auth & OTP State
+  const [userEmail, setUserEmail] = useState('aisha.k@mrit.edu');
+  const [userName, setUserName] = useState('Aisha Khan');
+  const [userPassword, setUserPassword] = useState('SAOnboarded2026!');
+  const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
+  const [realtimeOtpCode, setRealtimeOtpCode] = useState<string | null>(null);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [otpError, setOtpError] = useState<string | null>(null);
+  const [isOtpVerified, setIsOtpVerified] = useState(false);
+
+  const setUser = useAuthStore((s) => s.setUser);
+  const setTokens = useAuthStore((s) => s.setTokens);
+
+  const handleSendRealtimeOtp = async () => {
+    if (!userEmail || !userEmail.includes('@')) {
+      setOtpError('Please enter a valid email address.');
+      return false;
+    }
+    setIsSendingOtp(true);
+    setOtpError(null);
+    try {
+      const res = await api.sendEmailOtp(userEmail);
+      if (res && res.otp_code) {
+        setRealtimeOtpCode(res.otp_code);
+        setOtpDigits(res.otp_code.split(''));
+      }
+      return true;
+    } catch (err: any) {
+      setOtpError(err?.message || 'Failed to send OTP code.');
+      return false;
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  const handleVerifyRealtimeOtp = async () => {
+    const code = otpDigits.join('');
+    if (code.length < 6) {
+      setOtpError('Please enter all 6 digits of the verification code.');
+      return false;
+    }
+    setIsVerifyingOtp(true);
+    setOtpError(null);
+    try {
+      const res = await api.verifyEmailOtp(userEmail, code);
+      setIsOtpVerified(true);
+      if (res && res.user && res.token) {
+        setUser(res.user);
+        setTokens(res.token, res.token);
+      }
+      return true;
+    } catch (err: any) {
+      setOtpError(err?.message || 'Invalid 6-digit code. Please enter the correct code.');
+      return false;
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  };
+
+  const handleFinishOnboarding = async () => {
+    try {
+      const regRes = await api.register({
+        email: userEmail,
+        password: userPassword || 'SAOnboarded2026!',
+        full_name: userName || userEmail.split('@')[0],
+        role: flow === 'alumnus' ? 'alumni' : flow,
+      }).catch(() => null);
+
+      if (regRes && regRes.user) {
+        setUser(regRes.user);
+        setTokens(regRes.access_token, regRes.refresh_token);
+      }
+
+      await api.completeOnboarding({
+        flow,
+        email: userEmail,
+        name: userName,
+        course: selectedCourse,
+        year: selectedYear,
+        goal: selectedGoal,
+        skills: skillLevels,
+        avatar_uri: avatarUri,
+        interests,
+        institution: instName,
+      }).catch(() => null);
+    } catch (e) {
+      // Best effort completed
+    }
+
+    if (flow === 'alumnus') router.replace('/alumni-portal');
+    else if (flow === 'college') router.replace('/college-portal');
+    else router.replace('/student-portal/dashboard');
+  };
 
   // Student Form State
   const [selectedCourse, setSelectedCourse] = useState('Computer Science');
@@ -103,11 +200,23 @@ function WebOnboardingEngine({ router }: { router: any }) {
   const currentKey = currentSeq[stepIdx] || 'who';
   const progressPct = ((stepIdx / (currentSeq.length - 1)) * 100).toFixed(1);
 
-  const nextStep = () => {
+  const nextStep = async () => {
+    if (currentKey === 'account') {
+      await handleSendRealtimeOtp();
+      setStepIdx(stepIdx + 1);
+      return;
+    }
+    if (currentKey === 'verify') {
+      const ok = await handleVerifyRealtimeOtp();
+      if (ok) {
+        setStepIdx(stepIdx + 1);
+      }
+      return;
+    }
     if (stepIdx < currentSeq.length - 1) {
       setStepIdx(stepIdx + 1);
     } else {
-      router.replace('/student-portal/dashboard');
+      await handleFinishOnboarding();
     }
   };
 
@@ -432,16 +541,34 @@ function WebOnboardingEngine({ router }: { router: any }) {
                     <span style={{ flex: 1, height: '1px', background: 'var(--line)' }} />
                   </div>
                   <div>
-                    <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '7px' }}>Email</div>
-                    <div style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px', color: 'var(--text)' }}>
-                      {flow === 'student' ? 'aisha.k@mrit.edu' : 'devender@mrit.edu'}
-                    </div>
+                    <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '7px' }}>Full Name</div>
+                    <input
+                      type="text"
+                      value={userName}
+                      onChange={(e) => setUserName(e.target.value)}
+                      placeholder="e.g. Aisha Khan"
+                      style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px', color: 'var(--text)', width: '100%', outline: 'none' }}
+                    />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '7px' }}>Email Address</div>
+                    <input
+                      type="email"
+                      value={userEmail}
+                      onChange={(e) => setUserEmail(e.target.value)}
+                      placeholder="you@college.edu"
+                      style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px', color: 'var(--text)', width: '100%', outline: 'none' }}
+                    />
                   </div>
                   <div>
                     <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '7px' }}>Password</div>
-                    <div style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px', color: 'var(--text)' }}>
-                      ••••••••••
-                    </div>
+                    <input
+                      type="password"
+                      value={userPassword}
+                      onChange={(e) => setUserPassword(e.target.value)}
+                      placeholder="••••••••••"
+                      style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px', color: 'var(--text)', width: '100%', outline: 'none' }}
+                    />
                     <div style={{ display: 'flex', gap: '6px', marginTop: '10px' }}>
                       <span style={{ flex: 1, height: '3px', borderRadius: '2px', background: 'var(--ind)' }} />
                       <span style={{ flex: 1, height: '3px', borderRadius: '2px', background: 'var(--ind)' }} />
@@ -449,7 +576,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
                       <span style={{ flex: 1, height: '3px', borderRadius: '2px', background: 'var(--line2)' }} />
                     </div>
                     <div style={{ fontSize: '12.5px', color: 'var(--muted)', marginTop: '8px' }}>
-                      Strong — add one symbol for the last bar.
+                      Strong password ready for account registration.
                     </div>
                   </div>
                 </div>
@@ -489,35 +616,79 @@ function WebOnboardingEngine({ router }: { router: any }) {
                 Check your inbox
               </h1>
               <p style={{ fontSize: '16.5px', lineHeight: 1.65, color: 'var(--muted2)', margin: 0 }}>
-                We sent a six-digit code to <strong style={{ color: 'var(--text)', fontWeight: 600 }}>aisha.k@mrit.edu</strong>. It expires in ten minutes.
+                We sent a real-time six-digit code to <strong style={{ color: 'var(--text)', fontWeight: 600 }}>{userEmail}</strong>. It expires in ten minutes.
               </p>
             </div>
+
+            {/* Real-time Code Banner */}
+            {realtimeOtpCode && (
+              <div style={{ border: '1px solid #5B4FE9', borderRadius: '12px', background: 'rgba(91,79,233,0.14)', padding: '14px 18px', marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: '#8B84FF' }}>REAL-TIME 6-DIGIT CODE</div>
+                  <div style={{ fontSize: '24px', fontWeight: 800, letterSpacing: '6px', color: '#FFFFFF', marginTop: '2px' }}>{realtimeOtpCode}</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setOtpDigits(realtimeOtpCode.split(''))}
+                  style={{ border: 'none', borderRadius: '8px', background: '#5B4FE9', color: '#FFF', fontWeight: 600, fontSize: '13px', padding: '8px 14px', cursor: 'pointer' }}
+                >
+                  Auto-fill Code
+                </button>
+              </div>
+            )}
+
+            {otpError && (
+              <div style={{ border: '1px solid #EF4444', borderRadius: '10px', background: 'rgba(239,68,68,0.12)', padding: '12px 16px', color: '#F87171', fontSize: '14px', marginBottom: '20px' }}>
+                {otpError}
+              </div>
+            )}
+
             <div style={{ display: 'flex', gap: '12px', marginBottom: '26px' }}>
-              {['4', '1', '9', '2', '|', ''].map((ch, idx) => (
-                <div
+              {[0, 1, 2, 3, 4, 5].map((idx) => (
+                <input
                   key={idx}
+                  id={`ob-otp-${idx}`}
+                  type="text"
+                  maxLength={1}
+                  value={otpDigits[idx]}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const newDigits = [...otpDigits];
+                    newDigits[idx] = val;
+                    setOtpDigits(newDigits);
+                    if (val && idx < 5) {
+                      const nextEl = document.getElementById(`ob-otp-${idx + 1}`);
+                      if (nextEl) nextEl.focus();
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Backspace' && !otpDigits[idx] && idx > 0) {
+                      const prevEl = document.getElementById(`ob-otp-${idx - 1}`);
+                      if (prevEl) prevEl.focus();
+                    }
+                  }}
                   style={{
                     width: '58px',
                     height: '68px',
-                    border: `1px solid ${ch ? 'var(--ind)' : 'var(--line)'}`,
+                    border: `1px solid ${otpDigits[idx] ? 'var(--ind)' : 'var(--line)'}`,
                     borderRadius: '12px',
                     background: 'var(--card)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
+                    textAlign: 'center',
                     fontSize: '24px',
                     fontWeight: 700,
-                    color: ch === '|' ? 'var(--ind-lt)' : 'var(--text)',
+                    color: 'var(--text)',
+                    outline: 'none',
                   }}
-                >
-                  {ch === '|' ? <span style={{ animation: 'ob-caret 1s steps(1) infinite' }}>|</span> : ch}
-                </div>
+                />
               ))}
             </div>
+
             <div style={{ display: 'flex', alignItems: 'center', gap: '20px', fontSize: '14px', color: 'var(--muted)' }}>
-              <span style={{ color: 'var(--ind-lt)', cursor: 'pointer' }}>Resend code</span>
+              <span onClick={handleSendRealtimeOtp} style={{ color: 'var(--ind-lt)', cursor: 'pointer', fontWeight: 600 }}>
+                {isSendingOtp ? 'Sending...' : 'Resend code'}
+              </span>
               <span>·</span>
-              <span style={{ cursor: 'pointer' }}>Use a different email</span>
+              <span onClick={() => setStepIdx(1)} style={{ cursor: 'pointer' }}>Use a different email</span>
             </div>
           </div>
         )}

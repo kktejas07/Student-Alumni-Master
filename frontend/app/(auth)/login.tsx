@@ -20,6 +20,7 @@ import { SAWatermark } from '@/src/views/web/components/SAWatermark';
 import { Mail, Lock, Eye, EyeOff, CheckCircle2, AlertCircle, ArrowRight, Sparkles, Heart } from 'lucide-react-native';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { getBaseUrl } from '@/src/lib/env';
+import { api } from '@/src/models/services/api';
 
 const BASE = getBaseUrl();
 
@@ -95,7 +96,7 @@ export default function LoginScreen() {
   }, []);
 
   // Real-time Email Validation & Account Check
-  const handleEmailChange = (val: string) => {
+  const handleEmailChange = async (val: string) => {
     setEmail(val);
     setErrorMsg('');
     const clean = val.trim().toLowerCase();
@@ -111,10 +112,21 @@ export default function LoginScreen() {
       return;
     }
 
-    if (REGISTERED_EMAILS.includes(clean)) {
-      setEmailStatus('registered');
-    } else {
-      setEmailStatus('new');
+    try {
+      const data = await api.checkEmail(clean);
+      if (data && data.exists) {
+        setEmailStatus('registered');
+      } else if (REGISTERED_EMAILS.includes(clean)) {
+        setEmailStatus('registered');
+      } else {
+        setEmailStatus('new');
+      }
+    } catch {
+      if (REGISTERED_EMAILS.includes(clean)) {
+        setEmailStatus('registered');
+      } else {
+        setEmailStatus('new');
+      }
     }
   };
 
