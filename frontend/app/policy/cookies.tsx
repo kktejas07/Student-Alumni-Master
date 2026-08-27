@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, useWindowDimensions, Platform } from 'react-native';
 import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
 import { Footer } from '@/src/views/web/nexus-glow-landing/Footer';
+import { SAWatermark } from '@/src/views/web/components/SAWatermark';
 import { Cookie, ShieldCheck, Check, Info, Download } from 'lucide-react-native';
 
 const IS_WEB = Platform.OS === 'web';
@@ -81,6 +82,7 @@ export default function CookiePolicyPage() {
         <View className="policy-glow-right" />
       </View>
 
+      <SAWatermark fixed={true} right={-60} top={80} opacity={0.12} size={780} glow={true} />
       <Navbar />
 
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
