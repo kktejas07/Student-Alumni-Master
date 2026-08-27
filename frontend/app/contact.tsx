@@ -84,7 +84,7 @@ export default function ContactPage() {
 
   return (
     <View style={styles.outerWrap}>
-      {Platform.OS === 'web' && (
+      {(Platform.OS as string) === 'web' && (
         <style
           dangerouslySetInnerHTML={{
             __html: `

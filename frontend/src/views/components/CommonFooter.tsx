@@ -122,13 +122,13 @@ export default function CommonFooter({ onTabChange, maxWidth = 1360 }: CommonFoo
           <Pressable onPress={() => navigateTabOrRoute('verify', '/verify')} style={styles.linkItem}>
             <Text style={styles.footerLinkText}>Verify Certificate</Text>
           </Pressable>
-          <Pressable onPress={() => router.push('/events')} style={styles.linkItem}>
+          <Pressable onPress={() => router.push('/blog')} style={styles.linkItem}>
             <Text style={styles.footerLinkText}>Blog</Text>
           </Pressable>
-          <Pressable onPress={() => navigateTabOrRoute('contact', '/contact')} style={styles.linkItem}>
+          <Pressable onPress={() => router.push('/help-center')} style={styles.linkItem}>
             <Text style={styles.footerLinkText}>Help center</Text>
           </Pressable>
-          <Pressable onPress={() => navigateTabOrRoute('home', '/')} style={styles.linkItem}>
+          <Pressable onPress={() => router.push('/community')} style={styles.linkItem}>
             <Text style={styles.footerLinkText}>Community</Text>
           </Pressable>
         </View>
@@ -136,10 +136,10 @@ export default function CommonFooter({ onTabChange, maxWidth = 1360 }: CommonFoo
         {/* Legal Column */}
         <View style={styles.footerLinksCol}>
           <Text style={styles.footerColHeader}>LEGAL</Text>
-          <Pressable style={styles.linkItem}>
+          <Pressable onPress={() => router.push('/policy/privacy')} style={styles.linkItem}>
             <Text style={styles.footerLinkText}>Privacy &amp; Terms</Text>
           </Pressable>
-          <Pressable style={styles.linkItem}>
+          <Pressable onPress={() => router.push('/policy/security')} style={styles.linkItem}>
             <Text style={styles.footerLinkText}>Security &amp; Cookies</Text>
           </Pressable>
         </View>
