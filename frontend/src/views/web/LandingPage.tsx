@@ -105,6 +105,14 @@ function injectGlobalStyles() {
       46% { transform: translateX(420px) translateY(420px) rotate(25deg); opacity: 0; }
       100% { transform: translateX(420px) translateY(420px) rotate(25deg); opacity: 0; }
     }
+    @keyframes sa-text-shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    @keyframes sa-badge-pulse {
+      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 15px rgba(139,132,255,0.45)); }
+      50% { transform: scale(1.04); filter: drop-shadow(0 0 35px rgba(139,132,255,0.85)); }
+    }
     @keyframes sa-marquee-l {
       0% { transform: translateX(0); }
       100% { transform: translateX(-50%); }
@@ -171,48 +179,30 @@ const INDUSTRY_MARQUEE = [
   'EXtrive Innovations', 'Larsen & Toubro', 'LinkedIn', 'Google', 'McKinsey',
 ];
 
-/* ── Starfield Component with Twinkling & Shooting Stars ── */
-function StarfieldBackground() {
-  const [stars, setStars] = useState<Array<{ id: number; left: string; top: string; size: number; duration: number; delay: number; color: string }>>([]);
-
-  useEffect(() => {
-    const generated = Array.from({ length: 75 }).map((_, i) => ({
-      id: i,
-      left: `${(Math.random() * 100).toFixed(2)}%`,
-      top: `${(Math.random() * 100).toFixed(2)}%`,
-      size: Math.random() > 0.8 ? 2.6 : Math.random() > 0.4 ? 1.8 : 1.2,
-      duration: 3 + Math.random() * 4,
-      delay: Math.random() * 5,
-      color: Math.random() > 0.82 ? '#C9C4FF' : '#FFFFFF',
-    }));
-    setStars(generated);
-  }, []);
-
+/* ── Subtle Left-Center SA Logo Background Watermark ── */
+function BackgroundWatermark() {
   return (
     <div
       style={{
         position: 'fixed',
-        inset: 0,
-        overflow: 'hidden',
+        left: '-5%',
+        top: '25%',
+        width: '520px',
+        height: '620px',
         pointerEvents: 'none',
         zIndex: 0,
+        opacity: 0.045,
+        overflow: 'hidden',
+        userSelect: 'none',
       }}
     >
-      {stars.map((s) => (
-        <span
-          key={s.id}
-          style={{
-            position: 'absolute',
-            left: s.left,
-            top: s.top,
-            width: `${s.size}px`,
-            height: `${s.size}px`,
-            borderRadius: '50%',
-            backgroundColor: s.color,
-            animation: `sa-twinkle ${s.duration.toFixed(1)}s ease-in-out infinite ${s.delay.toFixed(1)}s`,
-          }}
-        />
-      ))}
+      <svg width="100%" height="100%" viewBox="0 0 300 350">
+        <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="#8B84FF" />
+        <path d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="#5B4FE9" />
+        <text x="150" y="214" textAnchor="middle" style={{ fontFamily: "'Manrope', sans-serif", fontSize: '118px', fontWeight: 800, fill: '#FFFFFF' }}>
+          SA
+        </text>
+      </svg>
     </div>
   );
 }
@@ -447,10 +437,35 @@ export default function LandingPage() {
   const { width } = useWindowDimensions();
   const isNarrow = width < 960;
   const isMobile = width < 640;
-  const containerPadding = isMobile ? 20 : isNarrow ? 32 : 44;
+  // Active navigation tab with query / history URL sync
+  const [activeTab, setActiveTab] = useState<'home' | 'verify' | 'contact'>(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tabParam = urlParams.get('tab');
+      if (tabParam === 'verify' || tabParam === 'contact') return tabParam;
+      if (window.location.hash.includes('verify')) return 'verify';
+      if (window.location.hash.includes('contact')) return 'contact';
+      if (window.location.pathname.includes('/verify') || window.location.pathname.includes('/certificates/verify')) return 'verify';
+      if (window.location.pathname.includes('/contact')) return 'contact';
+    }
+    return 'home';
+  });
 
-  // Active navigation tab
-  const [activeTab, setActiveTab] = useState<'home' | 'verify' | 'contact'>('home');
+  // Browser URL popstate sync (back/forward buttons)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onPopState = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tabParam = urlParams.get('tab');
+      if (tabParam === 'verify' || tabParam === 'contact') {
+        setActiveTab(tabParam);
+      } else {
+        setActiveTab('home');
+      }
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
 
   // Scroll position & sticky bar
   const [scrollY, setScrollY] = useState(0);
@@ -538,11 +553,17 @@ export default function LandingPage() {
     return () => cancelAnimationFrame(reqId);
   }, []);
 
-  // Smooth Tab Switch with Curtain Motion Effect
+  // Smooth Tab Switch with Curtain Motion Effect & URL Sync
   const handleTabSwitch = (newTab: 'home' | 'verify' | 'contact') => {
     if (newTab === activeTab) {
       if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
+    }
+    
+    // Sync browser URL in address bar without full page reload
+    if (typeof window !== 'undefined' && window.history) {
+      const newUrl = newTab === 'home' ? '/' : `/?tab=${newTab}`;
+      window.history.pushState({ tab: newTab }, '', newUrl);
     }
     
     const labelMap: Record<string, string> = {
@@ -689,16 +710,14 @@ export default function LandingPage() {
     return () => clearInterval(timer);
   }, []);
 
-  // Numbers Section Trigger
-  const numbersTrigger = scrollY > 900 || activeTab !== 'home';
-
-  const triggerVerification = (targetId?: string) => {
-    const q = (targetId !== undefined ? targetId : verifyInput).trim().toUpperCase();
+  // Verification Search Logic
+  const triggerVerification = (forceId?: string) => {
+    const q = (forceId || verifyInput).trim().toUpperCase();
     if (!q) return;
     const hit = SAMPLE_CREDS[q];
-    let h = 0;
-    for (let i = 0; i < q.length; i++) h = (h * 31 + q.charCodeAt(i)) & 0xffffffff;
-    const hash = (Math.abs(h).toString(16) + 'a7f31c9e4b2044').slice(0, 18);
+    let hashNum = 0;
+    for (let i = 0; i < q.length; i++) hashNum = (hashNum * 31 + q.charCodeAt(i)) & 0xffffffff;
+    const hash = (Math.abs(hashNum).toString(16) + 'a7f31c9e4b2058').slice(0, 18);
 
     setVerifyResult({
       id: q,
@@ -711,8 +730,8 @@ export default function LandingPage() {
 
   return (
     <View style={styles.root}>
-      {/* Dynamic Starfield with Twinkling & Shooting Stars */}
-      <StarfieldBackground />
+      {/* Subtle Left-Center SA Logo Background Watermark */}
+      <BackgroundWatermark />
 
       {/* Interactive Cursor Glow Follower */}
       {cursorVisible && (
@@ -754,7 +773,7 @@ export default function LandingPage() {
             fontFamily: "'Manrope', sans-serif",
           }}
         >
-          {/* Centered Brand Content */}
+          {/* Centered Brand Content with Logo Shine and Text Shimmer */}
           <div
             style={{
               position: 'absolute',
@@ -767,29 +786,56 @@ export default function LandingPage() {
               padding: '0 32px',
             }}
           >
-            <svg width="146" height="170" viewBox="0 0 300 350" style={{ display: 'block', maxWidth: '32vw', height: 'auto' }}>
-              <defs>
-                <linearGradient id="sa-curtain-badge" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="#8B84FF" />
-                  <stop offset="100%" stopColor="#5B4FE9" />
-                </linearGradient>
-              </defs>
-              <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#sa-curtain-badge)" />
-              <text x="150" y="212" textAnchor="middle" style={{ fontFamily: "'Manrope', sans-serif", fontSize: '122px', fontWeight: 800, letterSpacing: '-6px', fill: '#FFFFFF' }}>
-                SA
-              </text>
-            </svg>
             <div
               style={{
-                fontSize: '42px',
-                fontWeight: 700,
+                position: 'relative',
+                display: 'inline-block',
+                animation: 'sa-badge-pulse 2.4s ease-in-out infinite',
+                overflow: 'hidden',
+                borderRadius: '24px',
+                padding: '4px',
+              }}
+            >
+              <svg width="146" height="170" viewBox="0 0 300 350" style={{ display: 'block', maxWidth: '32vw', height: 'auto' }}>
+                <defs>
+                  <linearGradient id="sa-curtain-badge" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="#C9A7FF" />
+                    <stop offset="50%" stopColor="#8B84FF" />
+                    <stop offset="100%" stopColor="#5B4FE9" />
+                  </linearGradient>
+                </defs>
+                <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#sa-curtain-badge)" />
+                <text x="150" y="212" textAnchor="middle" style={{ fontFamily: "'Manrope', sans-serif", fontSize: '122px', fontWeight: 800, letterSpacing: '-6px', fill: '#FFFFFF' }}>
+                  SA
+                </text>
+              </svg>
+              {/* Sweeping diagonal laser shine light beam */}
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: 'linear-gradient(135deg, rgba(255,255,255,0) 20%, rgba(255,255,255,0.7) 50%, rgba(255,255,255,0) 80%)',
+                  width: '100%',
+                  height: '100%',
+                  pointerEvents: 'none',
+                  animation: 'sa-shine-sweep 2.2s ease-in-out infinite',
+                }}
+              />
+            </div>
+            
+            <div
+              style={{
+                fontSize: '44px',
+                fontWeight: 800,
                 letterSpacing: '-1.9px',
                 lineHeight: 1.1,
                 marginTop: '28px',
                 whiteSpace: 'nowrap',
-                background: 'linear-gradient(96deg, #F0A6E8 0%, #C08BFF 32%, #8B84FF 66%, #6FA8F5 100%)',
+                background: 'linear-gradient(96deg, #F0A6E8 0%, #C08BFF 25%, #FFFFFF 50%, #8B84FF 75%, #6FA8F5 100%)',
+                backgroundSize: '200% auto',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
+                animation: 'sa-text-shimmer 2.8s linear infinite',
               }}
             >
               #studentalumni
@@ -800,11 +846,16 @@ export default function LandingPage() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '10px',
-                fontSize: '14.5px',
+                fontSize: '15px',
                 fontWeight: 600,
-                color: 'rgba(244,245,251,0.85)',
+                color: 'rgba(244,245,251,0.9)',
                 marginTop: '14px',
                 whiteSpace: 'nowrap',
+                background: 'linear-gradient(90deg, rgba(244,245,251,0.7) 0%, #FFFFFF 50%, rgba(244,245,251,0.7) 100%)',
+                backgroundSize: '200% auto',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                animation: 'sa-text-shimmer 3.2s linear infinite 0.5s',
               }}
             >
               Built with love for students
