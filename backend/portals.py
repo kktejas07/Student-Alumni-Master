@@ -1592,15 +1592,23 @@ async def revenue_audit(user: dict = Depends(require_role('admin'))):
     breakdown = []
     db_total_paid = 0.0
     db_total_admin = 0.0
-    db_total_free = 0.0
+    db_total_free = 0
     db_total_pending = 0.0
     db_total_failed = 0.0
+    team_count = 0
+    team_revenue = 0.0
+    team_members_total = 0
+    individual_count = 0
+    individual_revenue = 0.0
     for r in all_regs:
         p = r.get("payment") or {}
         fee = float(r.get("fee") or 0)
         status = p.get("status") or "none"
         pid = p.get("payment_id") or ""
         is_admin = pid.startswith("ADMIN_PAY_")
+        reg_type = r.get("registration_type") or "individual"
+        team_size = int(r.get("team_size") or 1)
+        is_team = reg_type == "team" or team_size > 1
         breakdown.append({
             "name": r.get("full_name") or "?",
             "email": r.get("email") or "",
@@ -1609,12 +1617,20 @@ async def revenue_audit(user: dict = Depends(require_role('admin'))):
             "status": status,
             "payment_id": pid[:30],
             "is_admin_pay": is_admin,
-            "reg_type": r.get("registration_type") or "individual",
-            "team_size": r.get("team_size") or 1,
+            "reg_type": reg_type,
+            "team_size": team_size,
+            "team_name": r.get("team_name") or "",
             "created_at": str(r.get("created_at") or ""),
         })
         if status == "paid" and fee > 0 and not is_admin:
             db_total_paid += fee
+            if is_team:
+                team_count += 1
+                team_revenue += fee
+                team_members_total += team_size
+            else:
+                individual_count += 1
+                individual_revenue += fee
         elif status == "paid" and fee > 0 and is_admin:
             db_total_admin += fee
         elif status == "paid" and fee <= 0:
@@ -1633,11 +1649,21 @@ async def revenue_audit(user: dict = Depends(require_role('admin'))):
 
     return {
         "summary": {
+            "total_registrations": len(all_regs),
             "db_total_razorpay": db_total_paid,
             "db_total_admin_override": db_total_admin,
             "db_total_free": db_total_free,
             "db_total_pending": db_total_pending,
             "db_total_failed": db_total_failed,
+            "teams": {
+                "count": team_count,
+                "members_total": team_members_total,
+                "revenue": team_revenue,
+            },
+            "individuals": {
+                "count": individual_count,
+                "revenue": individual_revenue,
+            },
             "razorpay_gross": razorpay_gross,
             "razorpay_fees": razorpay_fees,
             "razorpay_tax": razorpay_tax,
