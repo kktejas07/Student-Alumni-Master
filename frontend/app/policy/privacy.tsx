@@ -70,10 +70,6 @@ export default function PrivacyPolicyPage() {
             background: radial-gradient(circle, rgba(91,79,233,.13), transparent 70%);
             filter: blur(80px);
           }
-          .jump-item[data-on="true"] {
-            color: #F4F4FA !important;
-            border-left-color: #7C5CFC !important;
-          }
         `
       }} />
 
@@ -126,29 +122,31 @@ export default function PrivacyPolicyPage() {
             {/* Sticky Sidebar Navigation (Web) */}
             <div className={`md:col-span-4 ${isMobile ? 'hidden' : 'block'}`} style={{ position: 'sticky', top: 92 }}>
               <div style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '1.3px', color: '#8A8A9E', marginBottom: '14px' }}>ON THIS PAGE</div>
-              {JUMP_SECTIONS.map((sec) => (
-                <button
-                  key={sec.id}
-                  onClick={() => handleJump(sec.id)}
-                  data-on={activeSection === sec.id ? 'true' : 'false'}
-                  className="jump-item"
-                  style={{
-                    display: 'block',
-                    fontSize: '13.5px',
-                    lineHeight: '1.45',
-                    color: '#8A8A9E',
-                    borderLeft: '2px solid #292940',
-                    padding: '9px 0 9px 14px',
-                    cursor: 'pointer',
-                    transition: 'color .2s ease, border-color .2s ease',
-                    textAlign: 'left',
-                    width: '100%',
-                    background: 'transparent',
-                  }}
-                >
-                  {sec.label}
-                </button>
-              ))}
+              {JUMP_SECTIONS.map((sec) => {
+                const isActive = activeSection === sec.id;
+                return (
+                  <button
+                    key={sec.id}
+                    onClick={() => handleJump(sec.id)}
+                    style={{
+                      display: 'block',
+                      fontSize: '13.5px',
+                      lineHeight: '1.45',
+                      color: isActive ? '#F4F4FA' : '#8A8A9E',
+                      fontWeight: isActive ? '600' : '400',
+                      borderLeft: isActive ? '2px solid #7C5CFC' : '2px solid #292940',
+                      padding: '9px 0 9px 14px',
+                      cursor: 'pointer',
+                      transition: 'color .2s ease, border-color .2s ease',
+                      textAlign: 'left',
+                      width: '100%',
+                      background: 'transparent',
+                    }}
+                  >
+                    {sec.label}
+                  </button>
+                );
+              })}
             </div>
 
             {/* Document Content */}
