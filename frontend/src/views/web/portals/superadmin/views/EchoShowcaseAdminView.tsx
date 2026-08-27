@@ -2879,7 +2879,7 @@ function RegistrationsPanel() {
   const [auditData, setAuditData] = useState<any>(null);
   const [auditLoading, setAuditLoading] = useState(false);
   const [showAudit, setShowAudit] = useState(false);
-  const [auditFilter, setAuditFilter] = useState<'all' | 'free' | 'admin' | 'paid' | 'failed'>('all');
+  const [auditFilter, setAuditFilter] = useState<'all' | 'free' | 'admin' | 'paid' | 'pending' | 'failed'>('all');
   const [auditEventFilter, setAuditEventFilter] = useState<string>('all');
   const [razorpayFees, setRazorpayFees] = useState<Record<string, { fee: number; tax: number; net: number; amount?: number; error?: string }>>({});
   const [fetchingFees, setFetchingFees] = useState(false);
@@ -4161,6 +4161,7 @@ function RegistrationsPanel() {
                     { key: 'free', label: 'Free (₹0)', count: (auditData.registrations || []).filter((r: any) => r.fee <= 0 && r.status === 'paid' && !r.is_team_member && !r.is_admin_pay).length },
                     { key: 'admin', label: 'Admin Override', count: (auditData.registrations || []).filter((r: any) => r.is_admin_pay).length },
                     { key: 'paid', label: 'Paid', count: (auditData.registrations || []).filter((r: any) => r.status === 'paid' && r.fee > 0 && !r.is_admin_pay).length },
+                    { key: 'pending', label: 'Pending', count: (auditData.registrations || []).filter((r: any) => r.status === 'pending').length },
                     { key: 'failed', label: 'Failed', count: (auditData.registrations || []).filter((r: any) => r.status === 'failed').length },
                   ].map((f) => (
                     <Pressable key={f.key} onPress={() => setAuditFilter(f.key as any)} style={{
@@ -4231,6 +4232,7 @@ function RegistrationsPanel() {
                     if (auditFilter === 'free') return r.fee <= 0 && r.status === 'paid' && !r.is_team_member && !r.is_admin_pay;
                     if (auditFilter === 'admin') return r.is_admin_pay;
                     if (auditFilter === 'paid') return r.status === 'paid' && r.fee > 0 && !r.is_admin_pay;
+                    if (auditFilter === 'pending') return r.status === 'pending';
                     if (auditFilter === 'failed') return r.status === 'failed';
                     return true;
                   }).map((r: any, i: number) => {
