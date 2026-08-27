@@ -409,8 +409,8 @@ function GlowButton({
   return (
     <Pressable
       onPress={onPress}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onHoverIn={() => setHovered(true)}
+      onHoverOut={() => setHovered(false)}
       style={[
         style,
         {
@@ -711,6 +711,9 @@ export default function LandingPage() {
     }, 4500);
     return () => clearInterval(timer);
   }, []);
+
+  // Numbers Section Scroll Trigger
+  const numbersTrigger = scrollY > 900 || activeTab !== 'home';
 
   // Verification Search Logic
   const triggerVerification = (forceId?: string) => {
@@ -1308,7 +1311,7 @@ export default function LandingPage() {
                     }}
                     style={[
                       styles.bgvSubmitButton,
-                      bgvConsent ? styles.btnGlow : { backgroundColor: T.line, cursor: 'not-allowed' },
+                      (bgvConsent ? styles.btnGlow : { backgroundColor: T.line, cursor: 'not-allowed' }) as any,
                     ]}
                   >
                     <Text style={styles.bgvSubmitButtonText}>
