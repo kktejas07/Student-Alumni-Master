@@ -29,6 +29,8 @@ import Svg, {
   ClipPath,
 } from 'react-native-svg';
 import CommonFooter from '@/src/views/components/CommonFooter';
+import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
+import { SAWatermark } from '@/src/views/web/components/SAWatermark';
 
 /* ── Brand Color Palette ── */
 const T = {
@@ -1050,50 +1052,8 @@ export default function LandingPage({ initialTab }: { initialTab?: 'home' | 'ech
       {/* Top Fixed Scroll Progress Bar */}
       <View style={[styles.progressBar, { width: `${Math.min(100, (scrollY / 3800) * 100)}%` }]} />
 
-      {/* Top Navbar */}
-      <View style={styles.navBar}>
-        <View style={[styles.navInner, { paddingHorizontal: containerPadding }, isNarrow && { flexWrap: 'wrap', gap: 14 }]}>
-          {/* Brand Logo */}
-          <Pressable onPress={() => handleTabSwitch('home')} style={styles.navLogoGroup}>
-            <Svg width="28" height="33" viewBox="0 0 300 350">
-              <Path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="#8B84FF" />
-              <Path d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="#6A49DF" />
-              <SvgText x="150" y="214" textAnchor="middle" fill="#FFFFFF" fontSize="118" fontWeight="800">
-                SA
-              </SvgText>
-            </Svg>
-            <Text style={styles.navLogoText}>StudentAlumni</Text>
-          </Pressable>
-
-          {/* Navigation Tabs */}
-          <View style={[styles.navTabs, isMobile && { gap: 12 }]}>
-            {(['home', 'echo', 'verify', 'contact'] as const).map((tab) => {
-              const label = tab === 'home' ? 'Home' : tab === 'echo' ? 'ECHO' : tab === 'verify' ? 'Verify' : 'Contact Us';
-              const isSelected = activeTab === tab;
-              return (
-                <Pressable
-                  key={tab}
-                  onPress={() => handleTabSwitch(tab)}
-                  style={styles.navTabBtn}
-                >
-                  <Text style={[styles.navTabText, isSelected && styles.navTabTextActive]}>{label}</Text>
-                  {isSelected && <View style={styles.navActiveLine} />}
-                </Pressable>
-              );
-            })}
-          </View>
-
-          {/* Right Action Buttons */}
-          <View style={styles.navActions}>
-            <Pressable onPress={() => handleNavWithCurtain('/login', 'Sign In')} style={styles.navSignIn}>
-              <Text style={styles.navSignInText}>Sign in</Text>
-            </Pressable>
-            <GlowButton onPress={() => handleNavWithCurtain('/register', 'Get Started')} style={styles.navGetStarted} textStyle={styles.navGetStartedText}>
-              Get Started
-            </GlowButton>
-          </View>
-        </View>
-      </View>
+      {/* Global Common Header */}
+      <Navbar activeTab={activeTab} onTabChange={handleTabSwitch} />
 
       <ScrollView
         style={styles.scroll}
