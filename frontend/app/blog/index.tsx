@@ -3,6 +3,7 @@ import { View, StyleSheet, ScrollView, TextInput, useWindowDimensions } from 're
 import { useRouter } from 'expo-router';
 import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
 import { Footer } from '@/src/views/web/nexus-glow-landing/Footer';
+import { SAWatermark } from '@/src/views/web/components/SAWatermark';
 import { Sparkles } from 'lucide-react-native';
 
 // Mock Blog Posts Database
@@ -144,6 +145,7 @@ export default function BlogListingPage() {
         <View className="blog-glow-right" />
       </View>
 
+      <SAWatermark fixed={true} right={-60} top={80} opacity={0.12} size={780} glow={true} />
       <Navbar />
 
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>

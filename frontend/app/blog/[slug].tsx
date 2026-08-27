@@ -3,6 +3,7 @@ import { View, StyleSheet, ScrollView, useWindowDimensions, Platform } from 'rea
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
 import { Footer } from '@/src/views/web/nexus-glow-landing/Footer';
+import { SAWatermark } from '@/src/views/web/components/SAWatermark';
 import Svg, { Path, Circle, Text as SvgText } from 'react-native-svg';
 import { ArrowLeft, Share2, Bookmark } from 'lucide-react-native';
 
@@ -211,6 +212,7 @@ export default function BlogDetailPage() {
         <View className="post-glow-right" />
       </View>
 
+      <SAWatermark fixed={true} right={-60} top={80} opacity={0.12} size={780} glow={true} />
       <Navbar />
 
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>

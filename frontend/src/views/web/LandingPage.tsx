@@ -288,30 +288,7 @@ const ECHO_EVENTS: EchoEventItem[] = [
 /* ── Subtle Right-Side SA Logo Background Watermark (Non-Landing Pages) ── */
 function BackgroundWatermark({ visible }: { visible: boolean }) {
   if (!visible) return null;
-  return (
-    <div
-      style={{
-        position: 'fixed',
-        right: '-4%',
-        top: '22%',
-        width: '520px',
-        height: '620px',
-        pointerEvents: 'none',
-        zIndex: 0,
-        opacity: 0.04,
-        overflow: 'hidden',
-        userSelect: 'none',
-      }}
-    >
-      <svg width="100%" height="100%" viewBox="0 0 300 350">
-        <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="#8B84FF" />
-        <path d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="#5B4FE9" />
-        <text x="150" y="214" textAnchor="middle" style={{ fontFamily: "'Manrope', sans-serif", fontSize: '118px', fontWeight: 800, fill: '#FFFFFF' }}>
-          SA
-        </text>
-      </svg>
-    </div>
-  );
+  return <SAWatermark fixed={true} right={-60} top={80} opacity={0.12} size={780} glow={true} />;
 }
 
 /* ── Scroll-Triggered Animated Number Counter Component ── */
