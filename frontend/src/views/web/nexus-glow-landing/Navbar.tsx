@@ -5,58 +5,49 @@ import { Menu, X } from 'lucide-react';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 interface NavbarProps {
-  activeTab?: 'home' | 'verify' | 'contact';
-  onTabChange?: (tab: 'home' | 'verify' | 'contact') => void;
+  activeTab?: 'home' | 'echo' | 'verify' | 'contact';
+  onTabChange?: (tab: 'home' | 'echo' | 'verify' | 'contact') => void;
 }
 
-export function Navbar({ activeTab = 'home', onTabChange }: NavbarProps) {
+export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const user = useAuthStore((s) => s.user);
   const isLoggedIn = !!user;
-  const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  useEffect(() => {
-    const onScroll = () => {
-      const top = window.scrollY || document.documentElement.scrollTop || 0;
-      setScrolled(top > 20);
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
+  // Auto-detect active tab from pathname if prop is not explicitly passed
+  let activeTab: 'home' | 'echo' | 'verify' | 'contact' = propActiveTab || 'home';
+  if (!propActiveTab) {
+    if (pathname === '/' || pathname === '') activeTab = 'home';
+    else if (pathname?.includes('/echo')) activeTab = 'echo';
+    else if (pathname?.includes('/verify')) activeTab = 'verify';
+    else if (pathname?.includes('/contact')) activeTab = 'contact';
+    else activeTab = 'home';
+  }
 
-  const handleTabClick = (tabKey: 'home' | 'verify' | 'contact') => {
+  const handleTabClick = (tabKey: 'home' | 'echo' | 'verify' | 'contact') => {
     setMobileOpen(false);
     if (typeof onTabChange === 'function') {
       onTabChange(tabKey);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       if (tabKey === 'home') router.push('/');
+      else if (tabKey === 'echo') router.push('/echo');
       else if (tabKey === 'verify') router.push('/certificates/verify');
       else if (tabKey === 'contact') router.push('/contact');
     }
   };
 
-  const goToEcho = () => {
-    setMobileOpen(false);
-    router.push('/echo');
-  };
-
   return (
-    <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled || mobileOpen
-          ? 'py-3 bg-[#05060F]/90 backdrop-blur-lg border-b border-white/10 shadow-2xl'
-          : 'py-5 bg-transparent border-b border-transparent'
-      }`}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-[#0A0A14]/90 backdrop-blur-md border-b border-[#1F1F30] py-3.5 transition-all">
+      <div className="max-w-[1400px] mx-auto px-6">
         <div className="flex items-center justify-between">
+          
           {/* Brand Logo */}
           <button
             onClick={() => handleTabClick('home')}
-            className="flex items-center gap-3 cursor-pointer text-left"
+            className="flex items-center gap-2.5 cursor-pointer text-left group bg-transparent border-0 p-0"
           >
             <svg width="28" height="33" viewBox="0 0 300 350" className="flex-shrink-0">
               <defs>
@@ -76,7 +67,7 @@ export function Navbar({ activeTab = 'home', onTabChange }: NavbarProps) {
                 SA
               </text>
             </svg>
-            <span className="text-base font-extrabold tracking-tight text-white">
+            <span className="text-[17px] font-bold tracking-tight text-white group-hover:text-purple-200 transition-colors">
               StudentAlumni
             </span>
           </button>
@@ -85,59 +76,67 @@ export function Navbar({ activeTab = 'home', onTabChange }: NavbarProps) {
           <nav className="hidden md:flex items-center gap-8">
             <button
               onClick={() => handleTabClick('home')}
-              className={`relative py-1 text-sm font-semibold transition-colors cursor-pointer ${
-                activeTab === 'home' ? 'text-white' : 'text-gray-400 hover:text-white'
+              className={`relative py-1 text-[14.5px] font-medium transition-colors cursor-pointer bg-transparent border-0 ${
+                activeTab === 'home' ? 'text-white font-bold' : 'text-[#8A8A9E] hover:text-white'
               }`}
             >
               <span>Home</span>
               {activeTab === 'home' && (
                 <motion.div
                   layoutId="navTabUnderline"
-                  className="absolute left-0 right-0 -bottom-1 h-0.5 bg-[#8B84FF] rounded-full"
+                  className="absolute left-0 right-0 -bottom-[15px] h-[2.5px] bg-[#7C5CFC] rounded-full"
                 />
               )}
             </button>
 
             <button
-              onClick={goToEcho}
-              className="relative py-1 text-sm font-semibold text-gray-400 hover:text-white transition-colors cursor-pointer"
+              onClick={() => handleTabClick('echo')}
+              className={`relative py-1 text-[14.5px] font-medium transition-colors cursor-pointer bg-transparent border-0 ${
+                activeTab === 'echo' ? 'text-white font-bold' : 'text-[#8A8A9E] hover:text-white'
+              }`}
             >
               <span>ECHO</span>
+              {activeTab === 'echo' && (
+                <motion.div
+                  layoutId="navTabUnderline"
+                  className="absolute left-0 right-0 -bottom-[15px] h-[2.5px] bg-[#7C5CFC] rounded-full"
+                />
+              )}
             </button>
 
             <button
               onClick={() => handleTabClick('verify')}
-              className={`relative py-1 text-sm font-semibold transition-colors cursor-pointer ${
-                activeTab === 'verify' ? 'text-white' : 'text-gray-400 hover:text-white'
+              className={`relative py-1 text-[14.5px] font-medium transition-colors cursor-pointer bg-transparent border-0 ${
+                activeTab === 'verify' ? 'text-white font-bold' : 'text-[#8A8A9E] hover:text-white'
               }`}
             >
               <span>Verify</span>
               {activeTab === 'verify' && (
                 <motion.div
                   layoutId="navTabUnderline"
-                  className="absolute left-0 right-0 -bottom-1 h-0.5 bg-[#8B84FF] rounded-full"
+                  className="absolute left-0 right-0 -bottom-[15px] h-[2.5px] bg-[#7C5CFC] rounded-full"
                 />
               )}
             </button>
 
             <button
               onClick={() => handleTabClick('contact')}
-              className={`relative py-1 text-sm font-semibold transition-colors cursor-pointer ${
-                activeTab === 'contact' ? 'text-white' : 'text-gray-400 hover:text-white'
+              className={`relative py-1 text-[14.5px] font-medium transition-colors cursor-pointer bg-transparent border-0 ${
+                activeTab === 'contact' ? 'text-white font-bold' : 'text-[#8A8A9E] hover:text-white'
               }`}
             >
               <span>Contact Us</span>
               {activeTab === 'contact' && (
                 <motion.div
                   layoutId="navTabUnderline"
-                  className="absolute left-0 right-0 -bottom-1 h-0.5 bg-[#8B84FF] rounded-full"
+                  className="absolute left-0 right-0 -bottom-[15px] h-[2.5px] bg-[#7C5CFC] rounded-full"
                 />
               )}
             </button>
           </nav>
 
           {/* Right Action Buttons */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             {isLoggedIn ? (
               <button
                 onClick={() => {
@@ -150,7 +149,7 @@ export function Navbar({ activeTab = 'home', onTabChange }: NavbarProps) {
                     '/student-portal';
                   router.push(portal);
                 }}
-                className="px-5 py-2 rounded-full text-xs font-bold bg-[#5B4FE9] hover:bg-[#4F43D6] text-white transition-all cursor-pointer"
+                className="px-6 py-2.5 rounded-full text-[14px] font-bold bg-[#5B4FE9] hover:bg-[#4F43D6] text-white transition-all cursor-pointer shadow-lg shadow-indigo-500/20"
               >
                 Dashboard
               </button>
@@ -158,13 +157,13 @@ export function Navbar({ activeTab = 'home', onTabChange }: NavbarProps) {
               <>
                 <button
                   onClick={() => router.push('/(auth)/login')}
-                  className="hidden sm:inline-block text-xs font-bold text-gray-300 hover:text-white px-3 py-2 cursor-pointer"
+                  className="hidden sm:inline-block text-[14px] font-medium text-[#8A8A9E] hover:text-white px-2 py-1 cursor-pointer transition-colors bg-transparent border-0"
                 >
                   Sign in
                 </button>
                 <button
                   onClick={() => router.push('/get-started')}
-                  className="px-5 py-2.5 rounded-full text-xs font-bold text-white bg-[#5B4FE9] hover:bg-[#4F43D6] shadow-lg shadow-indigo-500/25 transition-all hover:scale-105 cursor-pointer whitespace-nowrap"
+                  className="px-6 py-2.5 rounded-full text-[14px] font-bold text-white bg-[#5B4FE9] hover:bg-[#4F43D6] shadow-lg shadow-indigo-500/25 transition-all hover:scale-105 cursor-pointer whitespace-nowrap border-0"
                 >
                   Get Started
                 </button>
@@ -190,7 +189,7 @@ export function Navbar({ activeTab = 'home', onTabChange }: NavbarProps) {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden bg-[#0C0C0D] border-b border-white/10 overflow-hidden px-6 py-5 space-y-3"
+            className="md:hidden bg-[#0A0A14] border-b border-[#1F1F30] overflow-hidden px-6 py-5 space-y-3"
           >
             <button
               onClick={() => handleTabClick('home')}
@@ -201,8 +200,10 @@ export function Navbar({ activeTab = 'home', onTabChange }: NavbarProps) {
               Home
             </button>
             <button
-              onClick={goToEcho}
-              className="block w-full text-left py-2 text-sm font-semibold text-gray-300"
+              onClick={() => handleTabClick('echo')}
+              className={`block w-full text-left py-2 text-sm font-semibold ${
+                activeTab === 'echo' ? 'text-[#8B84FF]' : 'text-gray-300'
+              }`}
             >
               ECHO
             </button>
