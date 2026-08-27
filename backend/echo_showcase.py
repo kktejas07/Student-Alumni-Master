@@ -4750,18 +4750,30 @@ async def delete_registration(reg_id: str, request: Request, _=Depends(_require_
 
 @router.get("/admin/revenue")
 async def admin_echo_revenue(request: Request, _=Depends(_require_admin)):
-    """Per-event revenue aggregates from real ECHO registrations."""
+    """Per-event revenue aggregates from real ECHO registrations.
+
+    Only counts registrations that actually went through Razorpay
+    (fee > 0, payment.status == paid, and a real payment_id exists —
+    not admin overrides like ADMIN_PAY_xxx).
+    """
     db = _get_db(request)
     pipeline = [
-        {"$match": {}},
+        {"$match": {
+            "payment.status": "paid",
+            "fee": {"$gt": 0},
+            "$or": [
+                {"payment.payment_id": {"$regex": "^pay_", "$options": ""}},
+                {"payment.payment_id": {"$exists": True, "$not": {"$regex": "^ADMIN_PAY_"}}},
+            ],
+        }},
         {"$group": {
             "_id": "$slug",
             "title": {"$first": "$showcase_title"},
             "total": {"$sum": 1},
-            "paid": {"$sum": {"$cond": [{"$eq": ["$payment.status", "paid"]}, 1, 0]}},
-            "pending": {"$sum": {"$cond": [{"$eq": ["$payment.status", "pending"]}, 1, 0]}},
-            "free": {"$sum": {"$cond": [{"$and": [{"$eq": ["$payment.status", "paid"]}, {"$eq": ["$fee", 0]}]}, 1, 0]}},
-            "revenue": {"$sum": {"$cond": [{"$eq": ["$payment.status", "paid"]}, "$fee", 0]}},
+            "paid": {"$sum": 1},
+            "pending": {"$sum": 0},
+            "free": {"$sum": 0},
+            "revenue": {"$sum": "$fee"},
             "currency": {"$first": "$currency"},
         }},
         {"$sort": {"revenue": -1}},

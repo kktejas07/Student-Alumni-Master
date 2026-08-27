@@ -387,13 +387,13 @@ async def super_admin_full_analytics(db) -> Dict[str, Any]:
         total_events_v2 = 0
     total_echo_regs = await db.echo_registrations.count_documents({})
     revenue_mtd_pipeline = [
-        {"$match": {"payment.status": "paid", "fee": {"$gt": 0}, "created_at": {"$gte": current_month_start}}},
+        {"$match": {"payment.status": "paid", "fee": {"$gt": 0}, "created_at": {"$gte": current_month_start}, "payment.payment_id": {"$not": {"$regex": "^ADMIN_PAY_"}}}},
         {"$group": {"_id": None, "total": {"$sum": "$fee"}}},
     ]
     revenue_result = await db.echo_registrations.aggregate(revenue_mtd_pipeline).to_list(1)
     revenue_mtd = int(revenue_result[0]["total"]) if revenue_result else 0
     revenue_ytd_pipeline = [
-        {"$match": {"payment.status": "paid", "fee": {"$gt": 0}, "created_at": {"$gte": now.replace(month=1, day=1)}}},
+        {"$match": {"payment.status": "paid", "fee": {"$gt": 0}, "created_at": {"$gte": now.replace(month=1, day=1)}, "payment.payment_id": {"$not": {"$regex": "^ADMIN_PAY_"}}}},
         {"$group": {"_id": None, "total": {"$sum": "$fee"}}},
     ]
     revenue_ytd_result = await db.echo_registrations.aggregate(revenue_ytd_pipeline).to_list(1)

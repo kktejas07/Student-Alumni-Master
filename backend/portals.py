@@ -1606,10 +1606,11 @@ async def super_payments(user: dict = Depends(require_role('admin'))):
         p = r.get("payment") or {}
         fee = float(r.get("fee") or 0)
         is_free = fee <= 0
+        is_admin_pay = (p.get("payment_id") or "").startswith("ADMIN_PAY_")
         if p.get("status") == "paid":
-            if is_free:
+            if is_free or is_admin_pay:
                 echo_free_cnt += 1
-                # Free registrations don't contribute to revenue
+                # Free registrations and admin overrides don't contribute to revenue
                 continue
             echo_revenue += fee
             echo_paid_cnt += 1

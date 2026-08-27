@@ -3140,10 +3140,10 @@ function RegistrationsPanel() {
 
   const fmtAmt = (n: number) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
   const paid = filtered.filter((r) => r.payment_status === 'paid');
-  const paidWithFee = paid.filter((r) => Number(r.fee || 0) > 0);
+  const realPayments = paid.filter((r) => Number(r.fee || 0) > 0 && !(r.payment_id || '').startsWith('ADMIN_PAY_'));
   const pending = filtered.filter((r) => r.payment_status === 'pending');
   const failed = filtered.filter((r) => r.payment_status === 'failed');
-  const revenueTotal = paidWithFee.reduce((a, r) => a + Number(r.fee || 0), 0);
+  const revenueTotal = realPayments.reduce((a, r) => a + Number(r.fee || 0), 0);
 
   return (
     <View>
