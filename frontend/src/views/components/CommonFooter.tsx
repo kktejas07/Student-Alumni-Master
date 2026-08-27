@@ -139,9 +139,9 @@ export default function CommonFooter({ onTabChange, maxWidth = 1360 }: CommonFoo
           <Pressable onPress={() => router.push('/policy/privacy')} style={styles.linkItem}>
             <Text style={styles.footerLinkText}>Privacy &amp; Terms</Text>
           </Pressable>
-          <Pressable onPress={() => router.push('/policy/security')} style={styles.linkItem}>
-            <Text style={styles.footerLinkText}>Security &amp; Cookies</Text>
-          </Pressable>
+          <View style={[styles.linkItem, { opacity: 0.5, cursor: 'default' } as any]}>
+            <Text style={[styles.footerLinkText, { color: T.dim }]}>Security &amp; Cookies</Text>
+          </View>
         </View>
 
         {/* Compliance Column */}
@@ -174,15 +174,12 @@ export default function CommonFooter({ onTabChange, maxWidth = 1360 }: CommonFoo
             </View>
             <Text style={{ fontSize: 12, color: T.dim, marginTop: 3, paddingLeft: 22 }}>Audited controls, annual</Text>
           </View>
-          <Pressable
-            onPress={() => router.push('/policy/security' as any)}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
-          >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, opacity: 0.5, cursor: 'default' } as any}>
             <Svg width="14" height="14" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
               <Path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6Z" stroke="#8B84FF" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
             </Svg>
             <Text style={{ fontSize: 14, color: T.indLt, fontWeight: '600' }}>Responsible disclosure</Text>
-          </Pressable>
+          </View>
         </View>
       </View>
 
