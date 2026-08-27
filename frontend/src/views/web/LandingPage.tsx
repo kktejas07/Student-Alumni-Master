@@ -179,19 +179,20 @@ const INDUSTRY_MARQUEE = [
   'EXtrive Innovations', 'Larsen & Toubro', 'LinkedIn', 'Google', 'McKinsey',
 ];
 
-/* ── Subtle Left-Center SA Logo Background Watermark ── */
-function BackgroundWatermark() {
+/* ── Subtle Right-Side SA Logo Background Watermark (Non-Landing Pages) ── */
+function BackgroundWatermark({ visible }: { visible: boolean }) {
+  if (!visible) return null;
   return (
     <div
       style={{
         position: 'fixed',
-        left: '-5%',
-        top: '25%',
+        right: '-4%',
+        top: '22%',
         width: '520px',
         height: '620px',
         pointerEvents: 'none',
         zIndex: 0,
-        opacity: 0.045,
+        opacity: 0.04,
         overflow: 'hidden',
         userSelect: 'none',
       }}
@@ -735,8 +736,8 @@ export default function LandingPage() {
 
   return (
     <View style={styles.root}>
-      {/* Subtle Left-Center SA Logo Background Watermark */}
-      <BackgroundWatermark />
+      {/* Subtle Right-Side SA Logo Background Watermark (Non-Landing Pages) */}
+      <BackgroundWatermark visible={activeTab !== 'home'} />
 
       {/* Interactive Cursor Glow Follower */}
       {cursorVisible && (
