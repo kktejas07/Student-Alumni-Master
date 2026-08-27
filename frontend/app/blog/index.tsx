@@ -440,7 +440,7 @@ export default function BlogListingPage() {
                 style={{ border: '1px solid #1F1F30', borderRadius: 18, background: '#11111C', boxShadow: '0 18px 40px rgba(0,0,0,.35)', padding: '22px 24px 24px', cursor: 'pointer', transition: 'all 0.25s ease', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
               >
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyBetween: 'space-between', gap: 10, marginBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 16 }}>
                     <span style={{ fontSize: 10.5, fontWeight: '700', letterSpacing: '1px', color: post.tagColor, background: post.tagBg, border: `1px solid ${post.tagLine}`, borderRadius: 7, padding: '5px 10px' }}>
                       {post.category}
                     </span>
