@@ -89,28 +89,17 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
             textAlign: 'left',
           }}
         >
-          {/* 1:1 SA Shield Logo */}
+          {/* 1:1 SA Shield Badge Logo matching bottom screenshot */}
           <svg width="28" height="33" viewBox="0 0 300 350" style={{ flexShrink: 0, display: 'block' }}>
-            <defs>
-              <linearGradient id="sa-shield-outer" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stopColor="#C9A7FF" />
-                <stop offset="50%" stopColor="#8B5CF6" />
-                <stop offset="100%" stopColor="#5B2FD0" />
-              </linearGradient>
-              <linearGradient id="sa-shield-inner" x1="0" y1="0" x2="0.4" y2="1">
-                <stop offset="0%" stopColor="#B683F5" />
-                <stop offset="100%" stopColor="#6D2BC4" />
-              </linearGradient>
-            </defs>
-            <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#sa-shield-outer)" />
-            <path d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="url(#sa-shield-inner)" />
+            <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="#8B84FF" />
+            <path d="M150 28 L268 64 v112 c0 72 -58 110 -118 132 C90 288 32 250 32 178 V64 Z" fill="#5B4FE9" />
             <text
               x="150"
-              y="215"
+              y="214"
               textAnchor="middle"
               style={{
-                fontFamily: "'Outfit', 'Manrope', sans-serif",
-                fontSize: '120px',
+                fontFamily: "'Outfit', 'Manrope', -apple-system, sans-serif",
+                fontSize: '124px',
                 fontWeight: 800,
                 fill: '#FFFFFF',
               }}
@@ -118,7 +107,7 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
               SA
             </text>
           </svg>
-          <span style={{ fontSize: '17px', fontWeight: 700, letterSpacing: '-0.3px', color: '#FFFFFF', fontFamily: "'Outfit', sans-serif" }}>
+          <span style={{ fontSize: '17px', fontWeight: 700, letterSpacing: '-0.3px', color: '#FFFFFF', fontFamily: "'Outfit', 'Manrope', sans-serif" }}>
             StudentAlumni
           </span>
         </button>
@@ -154,7 +143,7 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
                   padding: '6px 2px',
                   cursor: 'pointer',
                   transition: 'color 0.2s ease',
-                  fontFamily: "'Outfit', sans-serif",
+                  fontFamily: "'Outfit', 'Manrope', sans-serif",
                 }}
               >
                 <span>{tab.label}</span>
@@ -177,7 +166,7 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
         </nav>
 
         {/* Right Action Buttons */}
-        <div style={{ display: 'flex', items: 'center', gap: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
           {isLoggedIn ? (
             <button
               onClick={() => {
@@ -199,7 +188,7 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
                 padding: '9px 24px',
                 border: 'none',
                 cursor: 'pointer',
-                fontFamily: "'Outfit', sans-serif",
+                fontFamily: "'Outfit', 'Manrope', sans-serif",
                 boxShadow: '0 4px 14px rgba(91,79,233,0.35)',
                 transition: 'transform 0.2s ease, filter 0.2s ease',
               }}
@@ -219,7 +208,7 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
                   cursor: 'pointer',
                   padding: '6px 4px',
                   transition: 'color 0.2s ease',
-                  fontFamily: "'Outfit', sans-serif",
+                  fontFamily: "'Outfit', 'Manrope', sans-serif",
                 }}
               >
                 Sign in
@@ -236,7 +225,7 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
                   border: 'none',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
-                  fontFamily: "'Outfit', sans-serif",
+                  fontFamily: "'Outfit', 'Manrope', sans-serif",
                   boxShadow: '0 4px 14px rgba(91,79,233,0.35)',
                   transition: 'transform 0.2s ease, filter 0.2s ease',
                 }}
