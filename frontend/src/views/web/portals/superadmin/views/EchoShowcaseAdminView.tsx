@@ -2879,6 +2879,7 @@ function RegistrationsPanel() {
   const [auditData, setAuditData] = useState<any>(null);
   const [auditLoading, setAuditLoading] = useState(false);
   const [showAudit, setShowAudit] = useState(false);
+  const [auditFilter, setAuditFilter] = useState<'all' | 'free' | 'admin' | 'paid' | 'failed'>('all');
 
 
   const [editingTeamReg, setEditingTeamReg] = useState<any>(null);
@@ -4031,17 +4032,21 @@ function RegistrationsPanel() {
                 {/* Summary */}
                 <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
                   {[
-                    { label: 'Total Registrations', value: String(auditData.summary?.total_registrations || 0), color: '#fff' },
-                    { label: 'DB Razorpay Total', value: fmtAmt(auditData.summary?.db_total_razorpay || 0), color: '#86EFAC' },
-                    { label: 'Admin Overrides', value: fmtAmt(auditData.summary?.db_total_admin_override || 0), color: '#FBBF24' },
-                    { label: 'Free Accounts', value: String(auditData.summary?.db_total_free || 0), color: '#C4B5FD' },
-                    { label: 'Pending', value: fmtAmt(auditData.summary?.db_total_pending || 0), color: '#F59E0B' },
-                    { label: 'Failed', value: fmtAmt(auditData.summary?.db_total_failed || 0), color: '#EF4444' },
+                    { label: 'Total Registrations', value: String(auditData.summary?.total_registrations || 0), color: '#fff', filter: 'all' as const },
+                    { label: 'DB Razorpay Total', value: fmtAmt(auditData.summary?.db_total_razorpay || 0), color: '#86EFAC', filter: 'paid' as const },
+                    { label: 'Admin Overrides', value: fmtAmt(auditData.summary?.db_total_admin_override || 0), color: '#FBBF24', filter: 'admin' as const },
+                    { label: 'Free Accounts', value: String(auditData.summary?.db_total_free || 0), color: '#C4B5FD', filter: 'free' as const },
+                    { label: 'Pending', value: fmtAmt(auditData.summary?.db_total_pending || 0), color: '#F59E0B', filter: 'all' as const },
+                    { label: 'Failed', value: fmtAmt(auditData.summary?.db_total_failed || 0), color: '#EF4444', filter: 'failed' as const },
                   ].map((t) => (
-                    <View key={t.label} style={{ flex: 1, minWidth: 100, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' }}>
+                    <Pressable key={t.label} onPress={() => setAuditFilter(t.filter)} style={{
+                      flex: 1, minWidth: 100, backgroundColor: auditFilter === t.filter ? 'rgba(124,58,237,0.15)' : 'rgba(255,255,255,0.04)',
+                      borderRadius: 10, padding: 10, borderWidth: 1, borderColor: auditFilter === t.filter ? '#7C3AED' : 'rgba(255,255,255,0.08)',
+                      cursor: 'pointer',
+                    }}>
                       <Text style={{ color: SAC.muted, fontFamily: FONTS.semi, fontSize: 9, letterSpacing: 0.3 }}>{t.label}</Text>
                       <Text style={{ color: t.color, fontFamily: FONTS.xbold, fontSize: 14, marginTop: 3 }}>{t.value}</Text>
-                    </View>
+                    </Pressable>
                   ))}
                 </View>
 
@@ -4095,18 +4100,48 @@ function RegistrationsPanel() {
                   ))}
                 </View>
 
-                {/* Registration list */}
-                <Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11, marginBottom: 8 }}>ALL REGISTRATIONS ({auditData.registrations?.length || 0})</Text>
+                {/* Registration list with filters */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11 }}>REGISTRATIONS ({auditData.registrations?.length || 0})</Text>
+                  <View style={{ flex: 1 }} />
+                  {[
+                    { key: 'all', label: 'All', count: auditData.registrations?.length || 0 },
+                    { key: 'free', label: 'Free (₹0)', count: (auditData.registrations || []).filter((r: any) => r.fee <= 0 && r.status === 'paid').length },
+                    { key: 'admin', label: 'Admin Override', count: (auditData.registrations || []).filter((r: any) => r.is_admin_pay).length },
+                    { key: 'paid', label: 'Paid', count: (auditData.registrations || []).filter((r: any) => r.status === 'paid' && r.fee > 0 && !r.is_admin_pay).length },
+                    { key: 'failed', label: 'Failed', count: (auditData.registrations || []).filter((r: any) => r.status === 'failed').length },
+                  ].map((f) => (
+                    <Pressable key={f.key} onPress={() => setAuditFilter(f.key as any)} style={{
+                      paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6,
+                      backgroundColor: auditFilter === f.key ? '#7C3AED' : 'rgba(255,255,255,0.06)',
+                      borderWidth: 1, borderColor: auditFilter === f.key ? '#7C3AED' : 'rgba(255,255,255,0.1)',
+                    }}>
+                      <Text style={{ color: auditFilter === f.key ? '#fff' : SAC.muted, fontFamily: FONTS.semi, fontSize: 9.5 }}>
+                        {f.label} ({f.count})
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
                 <ScrollView style={{ maxHeight: 360 }}>
-                  {(auditData.registrations || []).map((r: any, i: number) => (
+                  {(auditData.registrations || []).filter((r: any) => {
+                    if (auditFilter === 'all') return true;
+                    if (auditFilter === 'free') return r.fee <= 0 && r.status === 'paid';
+                    if (auditFilter === 'admin') return r.is_admin_pay;
+                    if (auditFilter === 'paid') return r.status === 'paid' && r.fee > 0 && !r.is_admin_pay;
+                    if (auditFilter === 'failed') return r.status === 'failed';
+                    return true;
+                  }).map((r: any, i: number) => (
                     <View key={i} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)', gap: 8 }}>
-                      <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: r.status === 'paid' && !r.is_admin_pay ? '#34D399' : r.is_admin_pay ? '#FBBF24' : r.status === 'pending' ? '#F59E0B' : r.status === 'failed' ? '#EF4444' : '#64748B' }} />
-                      <Text style={{ flex: 2, color: '#fff', fontFamily: FONTS.bold, fontSize: 11.5 }} numberOfLines={1}>{r.name}</Text>
-                      <Text style={{ width: 80, color: SAC.muted, fontFamily: FONTS.med, fontSize: 10.5 }} numberOfLines={1}>{r.reg_type} {r.team_size > 1 ? `(${r.team_size})` : ''}</Text>
-                      <Text style={{ width: 80, color: SAC.muted, fontFamily: FONTS.med, fontSize: 10.5 }} numberOfLines={1}>{r.slug}</Text>
-                      <Text style={{ width: 80, color: r.fee > 0 ? '#86EFAC' : '#64748B', fontFamily: FONTS.xbold, fontSize: 11.5 }}>₹{r.fee}</Text>
-                      <Text style={{ flex: 1.5, color: r.is_admin_pay ? '#FBBF24' : '#93C5FD', fontFamily: FONTS.med, fontSize: 9.5 }} numberOfLines={1}>{r.payment_id || '—'}</Text>
-                      <Text style={{ width: 60, color: r.status === 'paid' ? '#34D399' : r.status === 'pending' ? '#FBBF24' : '#EF4444', fontFamily: FONTS.xbold, fontSize: 9.5, letterSpacing: 0.3 }}>{(r.status || '').toUpperCase()}</Text>
+                      <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: r.is_free ? '#C4B5FD' : r.is_admin_pay ? '#FBBF24' : r.status === 'paid' ? '#34D399' : r.status === 'pending' ? '#F59E0B' : '#EF4444' }} />
+                      <View style={{ flex: 2, minWidth: 0 }}>
+                        <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 11.5 }} numberOfLines={1}>{r.name}</Text>
+                        <Text style={{ color: SAC.dim, fontFamily: FONTS.med, fontSize: 9 }} numberOfLines={1}>{r.email}</Text>
+                      </View>
+                      <Text style={{ width: 70, color: SAC.muted, fontFamily: FONTS.med, fontSize: 10 }} numberOfLines={1}>{r.reg_type} {r.team_size > 1 ? `(${r.team_size})` : ''}</Text>
+                      <Text style={{ width: 70, color: SAC.muted, fontFamily: FONTS.med, fontSize: 10 }} numberOfLines={1}>{r.slug}</Text>
+                      <Text style={{ width: 70, color: r.fee > 0 ? '#86EFAC' : r.fee === 0 ? '#C4B5FD' : '#EF4444', fontFamily: FONTS.xbold, fontSize: 11.5 }}>₹{r.fee}</Text>
+                      <Text style={{ flex: 1, color: r.is_admin_pay ? '#FBBF24' : '#93C5FD', fontFamily: FONTS.med, fontSize: 9 }} numberOfLines={1}>{r.payment_id || '—'}</Text>
+                      <Text style={{ width: 55, color: r.status === 'paid' ? '#34D399' : r.status === 'pending' ? '#FBBF24' : '#EF4444', fontFamily: FONTS.xbold, fontSize: 9, letterSpacing: 0.3 }}>{(r.status || '').toUpperCase()}</Text>
                     </View>
                   ))}
                 </ScrollView>

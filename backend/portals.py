@@ -1626,6 +1626,7 @@ async def revenue_audit(user: dict = Depends(require_role('admin'))):
             "status": status,
             "payment_id": pid[:30],
             "is_admin_pay": is_admin,
+            "is_free": status == "paid" and fee <= 0,
             "reg_type": reg_type,
             "team_size": team_size,
             "team_name": r.get("team_name") or "",
