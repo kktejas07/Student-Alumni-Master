@@ -4755,47 +4755,56 @@ async def admin_echo_revenue(request: Request, _=Depends(_require_admin)):
     Only counts registrations that actually went through Razorpay
     (fee > 0, payment.status == paid, and a real payment_id exists —
     not admin overrides like ADMIN_PAY_xxx).
+
+    Deduplicates team payments: a team of 5 creates 5 registration docs
+    each with the full team fee, but Razorpay only captures once.
+    We group by payment_id to count each payment exactly once.
     """
     db = _get_db(request)
-    pipeline = [
-        {"$match": {
-            "payment.status": "paid",
-            "fee": {"$gt": 0},
-            "$or": [
-                {"payment.payment_id": {"$regex": "^pay_", "$options": ""}},
-                {"payment.payment_id": {"$exists": True, "$not": {"$regex": "^ADMIN_PAY_"}}},
-            ],
-        }},
-        {"$group": {
-            "_id": "$slug",
-            "title": {"$first": "$showcase_title"},
-            "total": {"$sum": 1},
-            "paid": {"$sum": 1},
-            "pending": {"$sum": 0},
-            "free": {"$sum": 0},
-            "revenue": {"$sum": "$fee"},
-            "currency": {"$first": "$currency"},
-        }},
-        {"$sort": {"revenue": -1}},
-    ]
-    events = []
-    totals = {"total": 0, "paid": 0, "pending": 0, "revenue": 0.0, "free": 0}
-    for row in await db.echo_registrations.aggregate(pipeline).to_list(200):
-        events.append({
-            "slug": row["_id"],
-            "title": row.get("title") or row["_id"],
-            "total": row["total"],
-            "paid": row["paid"],
-            "pending": row["pending"],
-            "free": row.get("free", 0),
-            "revenue": round(float(row.get("revenue") or 0), 2),
-            "currency": row.get("currency") or "INR",
-        })
-        totals["total"] += row["total"]
-        totals["paid"] += row["paid"]
-        totals["pending"] += row["pending"]
-        totals["revenue"] += float(row.get("revenue") or 0)
-        totals["free"] += row.get("free", 0)
+    all_paid = await db.echo_registrations.find({
+        "payment.status": "paid",
+        "fee": {"$gt": 0},
+    }).to_list(5000)
+
+    # Group by (slug, payment_id) to deduplicate team payments
+    seen: Dict[str, dict] = {}
+    for r in all_paid:
+        pid = (r.get("payment") or {}).get("payment_id") or ""
+        if pid.startswith("ADMIN_PAY_"):
+            continue
+        slug = r.get("slug") or "unknown"
+        key = f"{slug}||{pid}"
+        if key not in seen:
+            seen[key] = {
+                "slug": slug,
+                "title": r.get("showcase_title") or slug,
+                "fee": float(r.get("fee") or 0),
+                "currency": r.get("currency") or "INR",
+            }
+
+    # Aggregate per-event
+    events_map: Dict[str, dict] = {}
+    for entry in seen.values():
+        slug = entry["slug"]
+        if slug not in events_map:
+            events_map[slug] = {
+                "slug": slug,
+                "title": entry["title"],
+                "paid": 0,
+                "revenue": 0.0,
+                "currency": entry["currency"],
+            }
+        events_map[slug]["paid"] += 1
+        events_map[slug]["revenue"] += entry["fee"]
+
+    events = sorted(events_map.values(), key=lambda e: e["revenue"], reverse=True)
+    totals = {
+        "total": len(all_paid),
+        "paid": len(seen),
+        "pending": 0,
+        "revenue": sum(e["revenue"] for e in events),
+        "free": 0,
+    }
     return {"events": events, "totals": totals}
 
 

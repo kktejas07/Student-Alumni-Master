@@ -1605,6 +1605,10 @@ async def revenue_audit(user: dict = Depends(require_role('admin'))):
     team_members_total = 0
     individual_count = 0
     individual_revenue = 0.0
+    # Track unique payment_ids already counted to avoid double-counting teams.
+    # A team of 5 creates 5 registration docs each with the FULL team fee,
+    # but Razorpay only captures the amount once.
+    seen_payment_ids: set = set()
     for r in all_regs:
         p = r.get("payment") or {}
         fee = float(r.get("fee") or 0)
@@ -1628,16 +1632,25 @@ async def revenue_audit(user: dict = Depends(require_role('admin'))):
             "created_at": str(r.get("created_at") or ""),
         })
         if status == "paid" and fee > 0 and not is_admin:
-            db_total_paid += fee
-            if is_team:
-                team_count += 1
-                team_revenue += fee
-                team_members_total += team_size
+            # Deduplicate: only count each Razorpay payment once
+            if pid in seen_payment_ids:
+                # This is another team member — don't add to revenue
+                pass
             else:
-                individual_count += 1
-                individual_revenue += fee
+                seen_payment_ids.add(pid)
+                db_total_paid += fee
+                if is_team:
+                    team_count += 1
+                    team_revenue += fee
+                    team_members_total += team_size
+                else:
+                    individual_count += 1
+                    individual_revenue += fee
         elif status == "paid" and fee > 0 and is_admin:
-            db_total_admin += fee
+            # Admin overrides: also deduplicate by payment_id
+            if pid not in seen_payment_ids:
+                seen_payment_ids.add(pid)
+                db_total_admin += fee
         elif status == "paid" and fee <= 0:
             db_total_free += 1
         elif status == "pending":
@@ -1699,27 +1712,37 @@ async def super_payments(user: dict = Depends(require_role('admin'))):
     """
     # 1) ECHO event registrations (the main paid surface)
     # Only count registrations that actually went through Razorpay (fee > 0 and paid)
-    echo_cur = _db.echo_registrations.find({}).sort("created_at", -1).limit(500)
+    # Deduplicate team payments: each team member gets a doc with the full team fee,
+    # but Razorpay only captures once per payment_id.
+    echo_cur = _db.echo_registrations.find({}).sort("created_at", -1).limit(5000)
     echo_revenue = 0.0
     echo_pending_amt = 0.0
     echo_ledger = []
     echo_paid_cnt = 0
     echo_pending_cnt = 0
     echo_free_cnt = 0
+    _seen_pids: set = set()
     async for r in echo_cur:
         p = r.get("payment") or {}
         fee = float(r.get("fee") or 0)
         is_free = fee <= 0
         is_admin_pay = (p.get("payment_id") or "").startswith("ADMIN_PAY_")
+        pid = p.get("payment_id") or ""
         if p.get("status") == "paid":
-            if is_free or is_admin_pay:
+            if is_free:
                 echo_free_cnt += 1
-                # Free registrations and admin overrides don't contribute to revenue
+                continue
+            # Deduplicate: only count each Razorpay payment once
+            if pid in _seen_pids:
+                continue
+            _seen_pids.add(pid)
+            if is_admin_pay:
+                echo_free_cnt += 1
                 continue
             echo_revenue += fee
             echo_paid_cnt += 1
             echo_ledger.append({
-                "id": p.get("payment_id") or f"pay_{str(r.get('_id', ''))[-8:]}",
+                "id": pid or f"pay_{str(r.get('_id', ''))[-8:]}",
                 "date": _fmt_date(r.get("registered_at") or r.get("created_at")),
                 "desc": f"ECHO registration — {r.get('showcase_title', 'Event')}",
                 "type": "income",
@@ -1790,26 +1813,21 @@ async def super_payments(user: dict = Depends(require_role('admin'))):
     gross = echo_revenue
     net = gross - (gross * 0.1)
 
-    # 4) Per-event revenue (ECHO) — exclude free registrations from paid count
+    # 4) Per-event revenue (ECHO) — deduplicate team payments by payment_id
     events_out = []
-    pipeline = [
-        {"$match": {"payment.status": "paid"}},
-        {"$group": {
-            "_id": "$slug",
-            "title": {"$first": "$showcase_title"},
-            "count": {"$sum": 1},
-            "paid": {"$sum": {"$cond": [{"$gt": ["$fee", 0]}, 1, 0]}},
-            "revenue": {"$sum": "$fee"},
-        }},
-        {"$sort": {"revenue": -1}},
-    ]
-    for row in await _db.echo_registrations.aggregate(pipeline).to_list(100):
-        events_out.append({
-            "slug": row["_id"],
-            "title": row.get("title") or row["_id"],
-            "count": row["paid"],
-            "revenue": round(float(row.get("revenue") or 0), 2),
-        })
+    evt_map: dict = {}
+    for r in await _db.echo_registrations.find({"payment.status": "paid", "fee": {"$gt": 0}}).to_list(5000):
+        pid = (r.get("payment") or {}).get("payment_id") or ""
+        if pid.startswith("ADMIN_PAY_") or pid in _seen_pids:
+            continue
+        slug = r.get("slug") or "unknown"
+        if slug not in evt_map:
+            evt_map[slug] = {"slug": slug, "title": r.get("showcase_title") or slug, "count": 0, "revenue": 0.0}
+        evt_map[slug]["count"] += 1
+        evt_map[slug]["revenue"] += float(r.get("fee") or 0)
+    events_out = sorted(evt_map.values(), key=lambda e: e["revenue"], reverse=True)
+    for e in events_out:
+        e["revenue"] = round(e["revenue"], 2)
 
     # Try live Stripe balance if credentials are installed
     stripe_balance = None

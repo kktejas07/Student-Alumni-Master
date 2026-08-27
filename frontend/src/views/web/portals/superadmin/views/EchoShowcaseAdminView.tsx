@@ -3155,9 +3155,18 @@ function RegistrationsPanel() {
   const fmtAmt = (n: number) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
   const paid = filtered.filter((r) => r.payment_status === 'paid');
   const realPayments = paid.filter((r) => Number(r.fee || 0) > 0 && !(r.payment_id || '').startsWith('ADMIN_PAY_'));
+  // Deduplicate team payments: each team member has the full team fee,
+  // but Razorpay only captures once per payment_id
+  const seenPids = new Set<string>();
+  const dedupedPayments = realPayments.filter((r) => {
+    const pid = r.payment_id || '';
+    if (seenPids.has(pid)) return false;
+    seenPids.add(pid);
+    return true;
+  });
   const pending = filtered.filter((r) => r.payment_status === 'pending');
   const failed = filtered.filter((r) => r.payment_status === 'failed');
-  const revenueTotal = realPayments.reduce((a, r) => a + Number(r.fee || 0), 0);
+  const revenueTotal = dedupedPayments.reduce((a, r) => a + Number(r.fee || 0), 0);
 
   return (
     <View>
