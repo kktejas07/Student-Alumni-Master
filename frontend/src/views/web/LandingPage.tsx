@@ -433,23 +433,25 @@ function GlowButton({
   );
 }
 
-export default function LandingPage() {
+export default function LandingPage({ initialTab }: { initialTab?: 'home' | 'verify' | 'contact' } = {}) {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const isNarrow = width < 960;
   const isMobile = width < 640;
   const containerPadding = isMobile ? 20 : isNarrow ? 32 : 44;
 
-  // Active navigation tab with query / history URL sync
+  // Active navigation tab with path / history URL sync
   const [activeTab, setActiveTab] = useState<'home' | 'verify' | 'contact'>(() => {
+    if (initialTab) return initialTab;
     if (typeof window !== 'undefined') {
+      const pathname = window.location.pathname;
+      if (pathname.includes('/contact')) return 'contact';
+      if (pathname.includes('/verify') || pathname.includes('/certificates/verify')) return 'verify';
       const urlParams = new URLSearchParams(window.location.search);
       const tabParam = urlParams.get('tab');
       if (tabParam === 'verify' || tabParam === 'contact') return tabParam;
       if (window.location.hash.includes('verify')) return 'verify';
       if (window.location.hash.includes('contact')) return 'contact';
-      if (window.location.pathname.includes('/verify') || window.location.pathname.includes('/certificates/verify')) return 'verify';
-      if (window.location.pathname.includes('/contact')) return 'contact';
     }
     return 'home';
   });
@@ -458,6 +460,15 @@ export default function LandingPage() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const onPopState = () => {
+      const pathname = window.location.pathname;
+      if (pathname.includes('/contact')) {
+        setActiveTab('contact');
+        return;
+      }
+      if (pathname.includes('/verify') || pathname.includes('/certificates/verify')) {
+        setActiveTab('verify');
+        return;
+      }
       const urlParams = new URLSearchParams(window.location.search);
       const tabParam = urlParams.get('tab');
       if (tabParam === 'verify' || tabParam === 'contact') {
@@ -563,9 +574,9 @@ export default function LandingPage() {
       return;
     }
     
-    // Sync browser URL in address bar without full page reload
+    // Sync browser URL in address bar as /contact, /verify, / without full page reload
     if (typeof window !== 'undefined' && window.history) {
-      const newUrl = newTab === 'home' ? '/' : `/?tab=${newTab}`;
+      const newUrl = newTab === 'home' ? '/' : `/${newTab}`;
       window.history.pushState({ tab: newTab }, '', newUrl);
     }
     
