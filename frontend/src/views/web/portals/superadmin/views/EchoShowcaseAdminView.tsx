@@ -4158,7 +4158,7 @@ function RegistrationsPanel() {
                   </Pressable>
                   {[
                     { key: 'all', label: 'All', count: auditData.registrations?.length || 0 },
-                    { key: 'free', label: 'Free (₹0)', count: (auditData.registrations || []).filter((r: any) => r.fee <= 0 && r.status === 'paid' && !r.is_team_member).length },
+                    { key: 'free', label: 'Free (₹0)', count: (auditData.registrations || []).filter((r: any) => r.fee <= 0 && r.status === 'paid' && !r.is_team_member && !r.is_admin_pay).length },
                     { key: 'admin', label: 'Admin Override', count: (auditData.registrations || []).filter((r: any) => r.is_admin_pay).length },
                     { key: 'paid', label: 'Paid', count: (auditData.registrations || []).filter((r: any) => r.status === 'paid' && r.fee > 0 && !r.is_admin_pay).length },
                     { key: 'failed', label: 'Failed', count: (auditData.registrations || []).filter((r: any) => r.status === 'failed').length },
@@ -4228,7 +4228,7 @@ function RegistrationsPanel() {
                   {(auditData.registrations || []).filter((r: any) => {
                     if (auditEventFilter !== 'all' && r.slug !== auditEventFilter) return false;
                     if (auditFilter === 'all') return true;
-                    if (auditFilter === 'free') return r.fee <= 0 && r.status === 'paid' && !r.is_team_member;
+                    if (auditFilter === 'free') return r.fee <= 0 && r.status === 'paid' && !r.is_team_member && !r.is_admin_pay;
                     if (auditFilter === 'admin') return r.is_admin_pay;
                     if (auditFilter === 'paid') return r.status === 'paid' && r.fee > 0 && !r.is_admin_pay;
                     if (auditFilter === 'failed') return r.status === 'failed';

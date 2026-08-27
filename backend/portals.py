@@ -1629,7 +1629,7 @@ async def revenue_audit(user: dict = Depends(require_role('admin'))):
             "status": status,
             "payment_id": pid[:30],
             "is_admin_pay": is_admin,
-            "is_free": status == "paid" and fee <= 0 and not is_team_member,
+            "is_free": status == "paid" and fee <= 0 and not is_team_member and not is_admin,
             "is_team_member": is_team_member,
             "reg_type": reg_type,
             "team_size": team_size,
@@ -1656,7 +1656,7 @@ async def revenue_audit(user: dict = Depends(require_role('admin'))):
             if pid not in seen_payment_ids:
                 seen_payment_ids.add(pid)
                 db_total_admin += fee
-        elif status == "paid" and fee <= 0 and not is_team_member:
+        elif status == "paid" and fee <= 0 and not is_team_member and not is_admin:
             db_total_free += 1
         elif status == "pending":
             db_total_pending += fee
