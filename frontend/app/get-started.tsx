@@ -37,11 +37,9 @@ export default function GetStarted() {
   const onContinue = async () => {
     if (!role) return;
     try { await AsyncStorage.setItem('sa_chosen_role', role); } catch {}
-    // Route to register with chosen role + forwarded email (if any) so the
-    // form is partially pre-filled — consistent with the spec's Smart flow.
     const nextParams: Record<string, string> = { role };
     if (forwardedEmail) nextParams.email = forwardedEmail;
-    router.push({ pathname: '/(auth)/register', params: nextParams });
+    router.push({ pathname: '/onboarding', params: nextParams });
   };
 
   return (
