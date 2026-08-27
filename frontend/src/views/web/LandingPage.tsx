@@ -105,6 +105,14 @@ function injectGlobalStyles() {
       46% { transform: translateX(420px) translateY(420px) rotate(25deg); opacity: 0; }
       100% { transform: translateX(420px) translateY(420px) rotate(25deg); opacity: 0; }
     }
+    @keyframes sa-text-shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    @keyframes sa-badge-pulse {
+      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 15px rgba(139,132,255,0.45)); }
+      50% { transform: scale(1.04); filter: drop-shadow(0 0 35px rgba(139,132,255,0.85)); }
+    }
     @keyframes sa-marquee-l {
       0% { transform: translateX(0); }
       100% { transform: translateX(-50%); }
@@ -171,48 +179,30 @@ const INDUSTRY_MARQUEE = [
   'EXtrive Innovations', 'Larsen & Toubro', 'LinkedIn', 'Google', 'McKinsey',
 ];
 
-/* ── Starfield Component with Twinkling & Shooting Stars ── */
-function StarfieldBackground() {
-  const [stars, setStars] = useState<Array<{ id: number; left: string; top: string; size: number; duration: number; delay: number; color: string }>>([]);
-
-  useEffect(() => {
-    const generated = Array.from({ length: 75 }).map((_, i) => ({
-      id: i,
-      left: `${(Math.random() * 100).toFixed(2)}%`,
-      top: `${(Math.random() * 100).toFixed(2)}%`,
-      size: Math.random() > 0.8 ? 2.6 : Math.random() > 0.4 ? 1.8 : 1.2,
-      duration: 3 + Math.random() * 4,
-      delay: Math.random() * 5,
-      color: Math.random() > 0.82 ? '#C9C4FF' : '#FFFFFF',
-    }));
-    setStars(generated);
-  }, []);
-
+/* ── Subtle Left-Center SA Logo Background Watermark ── */
+function BackgroundWatermark() {
   return (
     <div
       style={{
         position: 'fixed',
-        inset: 0,
-        overflow: 'hidden',
+        left: '-5%',
+        top: '25%',
+        width: '520px',
+        height: '620px',
         pointerEvents: 'none',
         zIndex: 0,
+        opacity: 0.045,
+        overflow: 'hidden',
+        userSelect: 'none',
       }}
     >
-      {stars.map((s) => (
-        <span
-          key={s.id}
-          style={{
-            position: 'absolute',
-            left: s.left,
-            top: s.top,
-            width: `${s.size}px`,
-            height: `${s.size}px`,
-            borderRadius: '50%',
-            backgroundColor: s.color,
-            animation: `sa-twinkle ${s.duration.toFixed(1)}s ease-in-out infinite ${s.delay.toFixed(1)}s`,
-          }}
-        />
-      ))}
+      <svg width="100%" height="100%" viewBox="0 0 300 350">
+        <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="#8B84FF" />
+        <path d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="#5B4FE9" />
+        <text x="150" y="214" textAnchor="middle" style={{ fontFamily: "'Manrope', sans-serif", fontSize: '118px', fontWeight: 800, fill: '#FFFFFF' }}>
+          SA
+        </text>
+      </svg>
     </div>
   );
 }
@@ -447,10 +437,35 @@ export default function LandingPage() {
   const { width } = useWindowDimensions();
   const isNarrow = width < 960;
   const isMobile = width < 640;
-  const containerPadding = isMobile ? 20 : isNarrow ? 32 : 44;
+  // Active navigation tab with query / history URL sync
+  const [activeTab, setActiveTab] = useState<'home' | 'verify' | 'contact'>(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tabParam = urlParams.get('tab');
+      if (tabParam === 'verify' || tabParam === 'contact') return tabParam;
+      if (window.location.hash.includes('verify')) return 'verify';
+      if (window.location.hash.includes('contact')) return 'contact';
+      if (window.location.pathname.includes('/verify') || window.location.pathname.includes('/certificates/verify')) return 'verify';
+      if (window.location.pathname.includes('/contact')) return 'contact';
+    }
+    return 'home';
+  });
 
-  // Active navigation tab
-  const [activeTab, setActiveTab] = useState<'home' | 'verify' | 'contact'>('home');
+  // Browser URL popstate sync (back/forward buttons)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onPopState = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tabParam = urlParams.get('tab');
+      if (tabParam === 'verify' || tabParam === 'contact') {
+        setActiveTab(tabParam);
+      } else {
+        setActiveTab('home');
+      }
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
 
   // Scroll position & sticky bar
   const [scrollY, setScrollY] = useState(0);
@@ -504,6 +519,121 @@ export default function LandingPage() {
     x: 430,
     y: 201,
   });
+
+  // Cinematic Page Transition Curtain State
+  const [curtainVisible, setCurtainVisible] = useState(true);
+  const [curtainLabel, setCurtainLabel] = useState('LOADING');
+  const [curtainCount, setCurtainCount] = useState(0);
+  const [curtainTransform, setCurtainTransform] = useState('translateY(0)');
+  const [curtainOpacity, setCurtainOpacity] = useState(1);
+  const [curtainPointerEvents, setCurtainPointerEvents] = useState<'auto' | 'none'>('auto');
+
+  // Initial load animation
+  useEffect(() => {
+    let start: number | null = null;
+    const duration = 950;
+    const animateInitial = (time: number) => {
+      if (!start) start = time;
+      const progress = Math.min(1, (time - start) / duration);
+      const easeVal = 1 - Math.pow(1 - progress, 3);
+      setCurtainCount(Math.round(easeVal * 100));
+
+      if (progress < 1) {
+        requestAnimationFrame(animateInitial);
+      } else {
+        setCurtainTransform('translateY(-100%)');
+        setCurtainOpacity(0);
+        setCurtainPointerEvents('none');
+        setTimeout(() => {
+          setCurtainVisible(false);
+        }, 700);
+      }
+    };
+    const reqId = requestAnimationFrame(animateInitial);
+    return () => cancelAnimationFrame(reqId);
+  }, []);
+
+  // Smooth Tab Switch with Curtain Motion Effect & URL Sync
+  const handleTabSwitch = (newTab: 'home' | 'verify' | 'contact') => {
+    if (newTab === activeTab) {
+      if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    
+    // Sync browser URL in address bar without full page reload
+    if (typeof window !== 'undefined' && window.history) {
+      const newUrl = newTab === 'home' ? '/' : `/?tab=${newTab}`;
+      window.history.pushState({ tab: newTab }, '', newUrl);
+    }
+    
+    const labelMap: Record<string, string> = {
+      home: 'STUDENTALUMNI',
+      verify: 'CREDENTIAL VERIFICATION',
+      contact: 'CONTACT & CAMPUS RELATIONS',
+    };
+    
+    setCurtainLabel(labelMap[newTab] || 'LOADING');
+    setCurtainCount(0);
+    setCurtainVisible(true);
+    setCurtainTransform('translateY(0)');
+    setCurtainOpacity(1);
+    setCurtainPointerEvents('auto');
+
+    let start: number | null = null;
+    const duration = 460;
+
+    const animateTransition = (time: number) => {
+      if (!start) start = time;
+      const progress = Math.min(1, (time - start) / duration);
+      const easeVal = 1 - Math.pow(1 - progress, 3);
+      setCurtainCount(Math.round(easeVal * 100));
+
+      if (progress < 0.5) {
+        requestAnimationFrame(animateTransition);
+      } else {
+        setActiveTab(newTab);
+        if (typeof window !== 'undefined') window.scrollTo(0, 0);
+        if (progress < 1) {
+          requestAnimationFrame(animateTransition);
+        } else {
+          setCurtainTransform('translateY(-100%)');
+          setCurtainOpacity(0);
+          setCurtainPointerEvents('none');
+          setTimeout(() => {
+            setCurtainVisible(false);
+          }, 650);
+        }
+      }
+    };
+    requestAnimationFrame(animateTransition);
+  };
+
+  // Nav with transition
+  const handleNavWithCurtain = (route: string, label: string) => {
+    setCurtainLabel(label.toUpperCase());
+    setCurtainCount(0);
+    setCurtainVisible(true);
+    setCurtainTransform('translateY(0)');
+    setCurtainOpacity(1);
+    setCurtainPointerEvents('auto');
+
+    let start: number | null = null;
+    const duration = 480;
+
+    const animateOut = (time: number) => {
+      if (!start) start = time;
+      const progress = Math.min(1, (time - start) / duration);
+      const easeVal = 1 - Math.pow(1 - progress, 3);
+      setCurtainCount(Math.round(easeVal * 100));
+
+      if (progress < 1) {
+        requestAnimationFrame(animateOut);
+      } else {
+        router.push(route as any);
+      }
+    };
+    requestAnimationFrame(animateOut);
+  };
 
   // On Campus Polaroid Deck & Testimonials auto-cycling
   const [deckIdx, setDeckIdx] = useState(0);
@@ -580,16 +710,14 @@ export default function LandingPage() {
     return () => clearInterval(timer);
   }, []);
 
-  // Numbers Section Trigger
-  const numbersTrigger = scrollY > 900 || activeTab !== 'home';
-
-  const triggerVerification = (targetId?: string) => {
-    const q = (targetId !== undefined ? targetId : verifyInput).trim().toUpperCase();
+  // Verification Search Logic
+  const triggerVerification = (forceId?: string) => {
+    const q = (forceId || verifyInput).trim().toUpperCase();
     if (!q) return;
     const hit = SAMPLE_CREDS[q];
-    let h = 0;
-    for (let i = 0; i < q.length; i++) h = (h * 31 + q.charCodeAt(i)) & 0xffffffff;
-    const hash = (Math.abs(h).toString(16) + 'a7f31c9e4b2044').slice(0, 18);
+    let hashNum = 0;
+    for (let i = 0; i < q.length; i++) hashNum = (hashNum * 31 + q.charCodeAt(i)) & 0xffffffff;
+    const hash = (Math.abs(hashNum).toString(16) + 'a7f31c9e4b2058').slice(0, 18);
 
     setVerifyResult({
       id: q,
@@ -602,8 +730,8 @@ export default function LandingPage() {
 
   return (
     <View style={styles.root}>
-      {/* Dynamic Starfield with Twinkling & Shooting Stars */}
-      <StarfieldBackground />
+      {/* Subtle Left-Center SA Logo Background Watermark */}
+      <BackgroundWatermark />
 
       {/* Interactive Cursor Glow Follower */}
       {cursorVisible && (
@@ -625,6 +753,160 @@ export default function LandingPage() {
         />
       )}
 
+      {/* ── CINEMATIC PAGE TRANSITION & LOADER CURTAIN ── */}
+      {curtainVisible && (
+        <div
+          id="sa-curtain"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 99999,
+            backgroundColor: '#07070E',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'flex-end',
+            padding: '0 44px 40px',
+            pointerEvents: curtainPointerEvents,
+            transform: curtainTransform,
+            opacity: curtainOpacity,
+            transition: 'transform 0.65s cubic-bezier(0.76, 0, 0.24, 1), opacity 0.45s ease',
+            fontFamily: "'Manrope', sans-serif",
+          }}
+        >
+          {/* Centered Brand Content with Logo Shine and Text Shimmer */}
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center',
+              padding: '0 32px',
+            }}
+          >
+            <div
+              style={{
+                position: 'relative',
+                display: 'inline-block',
+                animation: 'sa-badge-pulse 2.4s ease-in-out infinite',
+                overflow: 'hidden',
+                borderRadius: '24px',
+                padding: '4px',
+              }}
+            >
+              <svg width="146" height="170" viewBox="0 0 300 350" style={{ display: 'block', maxWidth: '32vw', height: 'auto' }}>
+                <defs>
+                  <linearGradient id="sa-curtain-badge" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="#C9A7FF" />
+                    <stop offset="50%" stopColor="#8B84FF" />
+                    <stop offset="100%" stopColor="#5B4FE9" />
+                  </linearGradient>
+                </defs>
+                <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#sa-curtain-badge)" />
+                <text x="150" y="212" textAnchor="middle" style={{ fontFamily: "'Manrope', sans-serif", fontSize: '122px', fontWeight: 800, letterSpacing: '-6px', fill: '#FFFFFF' }}>
+                  SA
+                </text>
+              </svg>
+              {/* Sweeping diagonal laser shine light beam */}
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: 'linear-gradient(135deg, rgba(255,255,255,0) 20%, rgba(255,255,255,0.7) 50%, rgba(255,255,255,0) 80%)',
+                  width: '100%',
+                  height: '100%',
+                  pointerEvents: 'none',
+                  animation: 'sa-shine-sweep 2.2s ease-in-out infinite',
+                }}
+              />
+            </div>
+            
+            <div
+              style={{
+                fontSize: '44px',
+                fontWeight: 800,
+                letterSpacing: '-1.9px',
+                lineHeight: 1.1,
+                marginTop: '28px',
+                whiteSpace: 'nowrap',
+                background: 'linear-gradient(96deg, #F0A6E8 0%, #C08BFF 25%, #FFFFFF 50%, #8B84FF 75%, #6FA8F5 100%)',
+                backgroundSize: '200% auto',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                animation: 'sa-text-shimmer 2.8s linear infinite',
+              }}
+            >
+              #studentalumni
+            </div>
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '10px',
+                fontSize: '15px',
+                fontWeight: 600,
+                color: 'rgba(244,245,251,0.9)',
+                marginTop: '14px',
+                whiteSpace: 'nowrap',
+                background: 'linear-gradient(90deg, rgba(244,245,251,0.7) 0%, #FFFFFF 50%, rgba(244,245,251,0.7) 100%)',
+                backgroundSize: '200% auto',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                animation: 'sa-text-shimmer 3.2s linear infinite 0.5s',
+              }}
+            >
+              Built with love for students
+              <svg width="15" height="15" viewBox="0 0 24 24" style={{ fill: '#8B84FF', flex: 'none' }}>
+                <path d="M12 21s-8-4.9-8-10.4A4.6 4.6 0 0 1 12 7.6 4.6 4.6 0 0 1 20 10.6C20 16.1 12 21 12 21Z" />
+              </svg>
+              across all campus's
+            </div>
+          </div>
+
+          {/* Bottom Loading Metrics Bar */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'flex-end',
+              justifyContent: 'space-between',
+              gap: '30px',
+              maxWidth: '1360px',
+              width: '100%',
+              margin: '0 auto',
+            }}
+          >
+            <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '3.4px', color: 'rgba(244,245,251,0.62)' }}>
+              {curtainLabel}
+            </div>
+            <div
+              style={{
+                fontSize: '76px',
+                fontWeight: 700,
+                letterSpacing: '-3.2px',
+                lineHeight: 0.85,
+                fontVariantNumeric: 'tabular-nums',
+                color: '#F4F5FB',
+              }}
+            >
+              {String(curtainCount).padStart(2, '0')}
+            </div>
+          </div>
+          <div style={{ maxWidth: '1360px', width: '100%', margin: '16px auto 0', height: '2px', background: 'rgba(244,245,251,0.14)' }}>
+            <div
+              style={{
+                height: '100%',
+                width: `${curtainCount}%`,
+                background: 'linear-gradient(90deg, #5B4FE9, #8B84FF)',
+                transition: 'width 0.1s linear',
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Top Fixed Scroll Progress Bar */}
       <View style={[styles.progressBar, { width: `${Math.min(100, (scrollY / 3800) * 100)}%` }]} />
 
@@ -632,7 +914,7 @@ export default function LandingPage() {
       <View style={styles.navBar}>
         <View style={[styles.navInner, { paddingHorizontal: containerPadding }, isNarrow && { flexWrap: 'wrap', gap: 14 }]}>
           {/* Brand Logo */}
-          <Pressable onPress={() => setActiveTab('home')} style={styles.navLogoGroup}>
+          <Pressable onPress={() => handleTabSwitch('home')} style={styles.navLogoGroup}>
             <Svg width="28" height="33" viewBox="0 0 300 350">
               <Path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="#8B84FF" />
               <Path d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="#6A49DF" />
@@ -651,7 +933,7 @@ export default function LandingPage() {
               return (
                 <Pressable
                   key={tab}
-                  onPress={() => setActiveTab(tab)}
+                  onPress={() => handleTabSwitch(tab)}
                   style={styles.navTabBtn}
                 >
                   <Text style={[styles.navTabText, isSelected && styles.navTabTextActive]}>{label}</Text>
@@ -663,10 +945,10 @@ export default function LandingPage() {
 
           {/* Right Action Buttons */}
           <View style={styles.navActions}>
-            <Pressable onPress={() => router.push('/login')} style={styles.navSignIn}>
+            <Pressable onPress={() => handleNavWithCurtain('/login', 'Sign In')} style={styles.navSignIn}>
               <Text style={styles.navSignInText}>Sign in</Text>
             </Pressable>
-            <GlowButton onPress={() => router.push('/register')} style={styles.navGetStarted} textStyle={styles.navGetStartedText}>
+            <GlowButton onPress={() => handleNavWithCurtain('/register', 'Get Started')} style={styles.navGetStarted} textStyle={styles.navGetStartedText}>
               Get Started
             </GlowButton>
           </View>
@@ -2369,7 +2651,7 @@ export default function LandingPage() {
         )}
 
         {/* ── 13. GLOBAL UNIFIED FOOTER ── */}
-        <CommonFooter onTabChange={(tab) => setActiveTab(tab)} />
+        <CommonFooter onTabChange={(tab) => handleTabSwitch(tab)} />
 
       </ScrollView>
 
