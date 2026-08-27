@@ -71,17 +71,46 @@ function injectGlobalStyles() {
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; background: #05060F; font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif; color: #F4F5FB; overflow-x: hidden; }
     
-    @keyframes sa-pulse-glow { 0%, 100% { opacity: 0.35; transform: scale(1); } 50% { opacity: 0.85; transform: scale(1.08); } }
-    @keyframes sa-radar-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-    @keyframes sa-float-slow { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
-
+    @keyframes sa-twinkle {
+      0%, 100% { opacity: 0.25; transform: scale(0.85); }
+      50% { opacity: 1; transform: scale(1.15); }
+    }
+    @keyframes sa-streak {
+      0% { transform: translate3d(0,0,0) rotate(35deg); opacity: 0; }
+      6% { opacity: 0.95; }
+      26% { transform: translate3d(-460px,320px,0) rotate(35deg); opacity: 0; }
+      100% { transform: translate3d(-460px,320px,0) rotate(35deg); opacity: 0; }
+    }
+    @keyframes sa-pulse-glow {
+      0%, 100% { opacity: 0.35; transform: scale(1); }
+      50% { opacity: 0.75; transform: scale(1.08); }
+    }
+    @keyframes sa-radar-spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    @keyframes sa-float-slow {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-8px); }
+    }
+    @keyframes sa-sway {
+      0%, 100% { transform: perspective(1200px) rotateY(-14deg) translateY(0); }
+      50% { transform: perspective(1200px) rotateY(14deg) translateY(-14px); }
+    }
+    @keyframes sa-ping {
+      0% { r: 52px; opacity: 0.6; }
+      100% { r: 140px; opacity: 0; }
+    }
+    @keyframes sa-tick {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(91,79,233,0); }
+      50% { box-shadow: 0 0 0 6px rgba(91,79,233,0.22); }
+    }
     @keyframes sa-shine-sweep {
       0% { transform: translateX(-180px) translateY(-180px) rotate(25deg); opacity: 0; }
       18% { opacity: 0.95; }
       46% { transform: translateX(420px) translateY(420px) rotate(25deg); opacity: 0; }
       100% { transform: translateX(420px) translateY(420px) rotate(25deg); opacity: 0; }
     }
-
     @keyframes sa-marquee-l {
       0% { transform: translateX(0); }
       100% { transform: translateX(-50%); }
@@ -106,10 +135,24 @@ function injectGlobalStyles() {
       animation-play-state: paused !important;
     }
 
+    @keyframes sa-dash-flow {
+      from { stroke-dashoffset: 34; }
+      to { stroke-dashoffset: 0; }
+    }
+    .sa-dash-flowing {
+      animation: sa-dash-flow 1.2s linear infinite !important;
+    }
+    .sa-dash-fast {
+      animation: sa-dash-flow 0.8s linear infinite !important;
+    }
+
     .sa-shield-glow { animation: sa-pulse-glow 6s ease-in-out infinite; }
+    .sa-shield-sway { animation: sa-sway 8s ease-in-out infinite; transform-style: preserve-3d; }
     .sa-radar-spin { transform-origin: 310px 270px; animation: sa-radar-spin 7s linear infinite; }
     .sa-float-slow { animation: sa-float-slow 5s ease-in-out infinite; }
     .sa-shine-anim { animation: sa-shine-sweep 3.6s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
+    .sa-ping-ring { animation: sa-ping 3.6s ease-out infinite; transform-origin: 310px 270px; }
+    .sa-ping-ring-delayed { animation: sa-ping 3.6s ease-out infinite 1.8s; transform-origin: 310px 270px; }
   `;
   document.head.appendChild(s);
 }
@@ -133,6 +176,74 @@ const INDUSTRY_MARQUEE = [
   'Deloitte', 'Featherless', 'Atlast', 'Bandiwala',
   'EXtrive Innovations', 'Larsen & Toubro', 'LinkedIn', 'Google', 'McKinsey',
 ];
+
+/* ── Starfield Component with Twinkling & Shooting Stars ── */
+function StarfieldBackground() {
+  const [stars, setStars] = useState<Array<{ id: number; left: string; top: string; size: number; duration: number; delay: number; color: string }>>([]);
+
+  useEffect(() => {
+    const generated = Array.from({ length: 75 }).map((_, i) => ({
+      id: i,
+      left: `${(Math.random() * 100).toFixed(2)}%`,
+      top: `${(Math.random() * 100).toFixed(2)}%`,
+      size: Math.random() > 0.8 ? 2.6 : Math.random() > 0.4 ? 1.8 : 1.2,
+      duration: 3 + Math.random() * 4,
+      delay: Math.random() * 5,
+      color: Math.random() > 0.82 ? '#C9C4FF' : '#FFFFFF',
+    }));
+    setStars(generated);
+  }, []);
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        overflow: 'hidden',
+        pointerEvents: 'none',
+        zIndex: 0,
+      }}
+    >
+      {stars.map((s) => (
+        <span
+          key={s.id}
+          style={{
+            position: 'absolute',
+            left: s.left,
+            top: s.top,
+            width: `${s.size}px`,
+            height: `${s.size}px`,
+            borderRadius: '50%',
+            backgroundColor: s.color,
+            animation: `sa-twinkle ${s.duration.toFixed(1)}s ease-in-out infinite ${s.delay.toFixed(1)}s`,
+          }}
+        />
+      ))}
+      <div
+        style={{
+          position: 'absolute',
+          left: '62%',
+          top: '8%',
+          width: '120px',
+          height: '1.5px',
+          background: 'linear-gradient(90deg, rgba(255,255,255,0), #FFFFFF)',
+          animation: 'sa-streak 14s ease-in-out infinite 3s',
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          left: '32%',
+          top: '46%',
+          width: '90px',
+          height: '1.5px',
+          background: 'linear-gradient(90deg, rgba(255,255,255,0), #E8E6FF)',
+          animation: 'sa-streak 19s ease-in-out infinite 9s',
+        }}
+      />
+    </div>
+  );
+}
 
 /* ── Scroll-Triggered Animated Number Counter Component ── */
 function ScrollCounter({
@@ -249,42 +360,73 @@ function Marquee({
   );
 }
 
-/* ── Interactive 3D Card Component with Web Physics ── */
+/* ── Interactive 3D Card Component with 3D Tilt & Physics ── */
 function HoverLiftCard({
   children,
   style,
   hoverBorderColor = '#5B4FE9',
-  scaleOnHover = 1.018,
+  enableTilt = true,
 }: {
   children: React.ReactNode;
   style?: any;
   hoverBorderColor?: string;
-  scaleOnHover?: number;
+  enableTilt?: boolean;
 }) {
+  const cardRef = useRef<HTMLDivElement>(null);
   const [hovered, setHovered] = useState(false);
+  const [tiltStyle, setTiltStyle] = useState('');
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!enableTilt || !cardRef.current) return;
+    const r = cardRef.current.getBoundingClientRect();
+    const dx = (e.clientX - (r.left + r.width / 2)) / (r.width / 2);
+    const dy = (e.clientY - (r.top + r.height / 2)) / (r.height / 2);
+    setTiltStyle(`perspective(1000px) rotateY(${(dx * 4.5).toFixed(2)}deg) rotateX(${(-dy * 4.5).toFixed(2)}deg) translateY(-6px)`);
+  };
+
+  const handleMouseLeave = () => {
+    setHovered(false);
+    setTiltStyle('perspective(1000px) rotateY(0deg) rotateX(0deg) translateY(0px)');
+  };
 
   return (
-    <View
+    <div
+      ref={cardRef}
       onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={[
-        style,
-        {
-          transition: 'transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.32s ease',
-          cursor: 'pointer',
-        } as any,
-        hovered && {
-          transform: [{ translateY: -7 }, { scale: scaleOnHover }],
-          borderColor: hoverBorderColor,
-          shadowColor: '#5B4FE9',
-          shadowOffset: { width: 0, height: 18 },
-          shadowOpacity: 0.45,
-          shadowRadius: 36,
-        },
-      ]}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        flex: 1,
+        transition: hovered
+          ? 'transform 0.1s ease-out, border-color 0.3s ease, box-shadow 0.3s ease'
+          : 'transform 0.5s cubic-bezier(0.2, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.3s ease',
+        transform: hovered && tiltStyle ? tiltStyle : 'translateY(0px)',
+        cursor: 'pointer',
+        willChange: 'transform',
+      }}
     >
-      {children}
-    </View>
+      <View
+        style={[
+          style,
+          {
+            flex: 1,
+            width: '100%',
+            transition: 'border-color 0.3s ease, box-shadow 0.3s ease',
+          } as any,
+          hovered && {
+            borderColor: hoverBorderColor,
+            shadowColor: '#5B4FE9',
+            shadowOffset: { width: 0, height: 16 },
+            shadowOpacity: 0.35,
+            shadowRadius: 32,
+          },
+        ]}
+      >
+        {children}
+      </View>
+    </div>
   );
 }
 
@@ -363,57 +505,77 @@ export default function LandingPage() {
 
   // Match graph radar state
   const [selectedNode, setSelectedNode] = useState({
-    name: 'Priya R. — Product, Bengaluru',
-    why: 'Same course, four years ahead. Mentors three students each term.',
-    x: '310',
-    y: '132',
+    name: 'Arjun M. — Data, Pune',
+    why: 'Ex-intern at target firm. Reviews analytics portfolios monthly.',
+    score: '92',
+    x: 430,
+    y: 201,
   });
 
   // On Campus Polaroid Deck & Testimonials auto-cycling
   const [deckIdx, setDeckIdx] = useState(0);
   const [quoteIdx, setQuoteIdx] = useState(0);
 
-  // Swaying shield animated value
-  const swayAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(swayAnim, {
-          toValue: 1,
-          duration: 7000,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: Platform.OS !== 'web',
-        }),
-        Animated.timing(swayAnim, {
-          toValue: 0,
-          duration: 7000,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: Platform.OS !== 'web',
-        }),
-      ])
-    ).start();
-  }, [swayAnim]);
-
-  const shieldRotateY = swayAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['-16deg', '16deg'],
-  });
-  const shieldTranslateY = swayAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, -14],
-  });
-
-  // Dynamic Cursor Glow
+  // Dynamic Cursor Glow Follower
   const [mousePos, setMousePos] = useState({ x: -500, y: -500 });
+  const [cursorVisible, setCursorVisible] = useState(false);
+
+  // Exact Viewport Scroll-Linked Roadmap S-Curve Progress
+  const [roadmapProgress, setRoadmapProgress] = useState(0);
+  const [bubblePos, setBubblePos] = useState({ x: 30, y: 230 });
+
+  const updateScrollProgress = (y: number) => {
+    setScrollY(y);
+
+    if (Platform.OS === 'web') {
+      const roadSec = document.getElementById('sa-road-sec');
+      if (roadSec) {
+        const r = roadSec.getBoundingClientRect();
+        const windowH = window.innerHeight || 800;
+        const startY = windowH * 0.88;
+        const endY = windowH * 0.15;
+        const totalDist = (startY - endY) + r.height * 0.5;
+        const currentDist = startY - r.top;
+        const p = Math.max(0, Math.min(1, currentDist / totalDist));
+        setRoadmapProgress(p);
+
+        // Instant DOM update for silky smooth 60fps animation
+        const roadLine = document.getElementById('sa-roadline') as any;
+        if (roadLine) {
+          roadLine.style.strokeDashoffset = String(Math.round(1000 * (1 - p)));
+          try {
+            const totalLen = typeof roadLine.getTotalLength === 'function' ? roadLine.getTotalLength() : 1350;
+            const pt = roadLine.getPointAtLength(Math.max(0.1, Math.min(totalLen, p * totalLen)));
+            setBubblePos({ x: pt.x, y: pt.y });
+
+            const bubbleEl = document.getElementById('sa-travel-bubble');
+            if (bubbleEl) {
+              bubbleEl.setAttribute('transform', `translate(${pt.x}, ${pt.y})`);
+              bubbleEl.style.opacity = p > 0.01 && p < 0.99 ? '1' : '0';
+            }
+          } catch (_) {}
+        }
+      }
+    }
+  };
 
   useEffect(() => {
     if (Platform.OS !== 'web') return;
     const handleMouseMove = (e: MouseEvent) => {
       setMousePos({ x: e.clientX, y: e.clientY });
+      setCursorVisible(true);
+    };
+    const handleWindowScroll = () => {
+      const y = window.scrollY || window.pageYOffset || 0;
+      updateScrollProgress(y);
     };
     window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
+    window.addEventListener('scroll', handleWindowScroll, { passive: true });
+    updateScrollProgress(0);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('scroll', handleWindowScroll);
+    };
   }, []);
 
   // Deck auto-cycling
@@ -425,13 +587,8 @@ export default function LandingPage() {
     return () => clearInterval(timer);
   }, []);
 
-  // Scroll-linked Roadmap S-Curve filling calculation
-  const roadmapScrollProgress = Math.min(1, Math.max(0, (scrollY - 1500) / 750));
-  const PATH_TOTAL_LENGTH = 1350;
-  const roadmapStrokeDashoffset = PATH_TOTAL_LENGTH * (1 - roadmapScrollProgress);
-
   // Numbers Section Trigger
-  const numbersTrigger = scrollY > 1200 || activeTab !== 'home';
+  const numbersTrigger = scrollY > 900 || activeTab !== 'home';
 
   const triggerVerification = (targetId?: string) => {
     const q = (targetId !== undefined ? targetId : verifyInput).trim().toUpperCase();
@@ -452,6 +609,29 @@ export default function LandingPage() {
 
   return (
     <View style={styles.root}>
+      {/* Dynamic Starfield with Twinkling & Shooting Stars */}
+      <StarfieldBackground />
+
+      {/* Interactive Cursor Glow Follower */}
+      {cursorVisible && (
+        <div
+          id="sa-cursor"
+          style={{
+            position: 'fixed',
+            left: 0,
+            top: 0,
+            width: '480px',
+            height: '480px',
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(139,132,255,0.15), rgba(91,79,233,0.08) 42%, rgba(0,0,0,0) 70%)',
+            pointerEvents: 'none',
+            zIndex: 55,
+            transform: `translate3d(${mousePos.x - 240}px, ${mousePos.y - 240}px, 0)`,
+            transition: 'opacity 0.3s ease',
+          }}
+        />
+      )}
+
       {/* Top Fixed Scroll Progress Bar */}
       <View style={[styles.progressBar, { width: `${Math.min(100, (scrollY / 3800) * 100)}%` }]} />
 
@@ -504,7 +684,7 @@ export default function LandingPage() {
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        onScroll={(e) => setScrollY(e.nativeEvent.contentOffset.y)}
+        onScroll={(e) => updateScrollProgress(e.nativeEvent.contentOffset.y)}
         scrollEventThrottle={16}
       >
 
@@ -808,72 +988,85 @@ export default function LandingPage() {
                 </Text>
               </View>
 
-              {/* 3D Swaying SA Shield Emblem with Pure Shine Effect (NO GRADIENT FILL) */}
+              {/* 3D Swaying SA Shield Emblem with Pure Shine Effect */}
               <View style={styles.heroRightCol}>
-                <Animated.View
+                <div
+                  className="sa-shield-glow"
                   style={{
-                    transform: [
-                      { perspective: 1200 },
-                      { rotateY: shieldRotateY },
-                      { translateY: shieldTranslateY },
-                    ],
+                    position: 'absolute',
+                    width: '380px',
+                    height: '380px',
+                    borderRadius: '50%',
+                    background: 'radial-gradient(circle, rgba(139,90,255,0.45), rgba(139,90,255,0) 68%)',
+                    filter: 'blur(20px)',
+                    pointerEvents: 'none',
+                  }}
+                />
+                <div
+                  className="sa-shield-sway"
+                  style={{
+                    position: 'relative',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transformStyle: 'preserve-3d',
                   }}
                 >
-                  <Svg width="320" height="360" viewBox="0 0 300 350">
-                    <Defs>
-                      {/* Shield Clip Path */}
-                      <ClipPath id="saShieldClip">
-                        <Path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" />
-                      </ClipPath>
+                  <svg width="320" height="360" viewBox="0 0 300 350" style={{ overflow: 'visible' }}>
+                    <defs>
+                      <clipPath id="saShieldClip">
+                        <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" />
+                      </clipPath>
 
-                      {/* Moving Shine Beam Gradient */}
-                      <LinearGradient id="saShineBeam" x1="0" y1="0" x2="1" y2="0">
-                        <Stop offset="0" stopColor="#FFFFFF" stopOpacity="0" />
-                        <Stop offset="0.45" stopColor="#FFFFFF" stopOpacity="0.8" />
-                        <Stop offset="0.55" stopColor="#FFFFFF" stopOpacity="0.95" />
-                        <Stop offset="0.65" stopColor="#FFFFFF" stopOpacity="0.8" />
-                        <Stop offset="1" stopColor="#FFFFFF" stopOpacity="0" />
-                      </LinearGradient>
-                    </Defs>
+                      <linearGradient id="saShineBeam" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0" />
+                        <stop offset="45%" stopColor="#FFFFFF" stopOpacity="0.8" />
+                        <stop offset="55%" stopColor="#FFFFFF" stopOpacity="0.95" />
+                        <stop offset="65%" stopColor="#FFFFFF" stopOpacity="0.8" />
+                        <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
+                      </linearGradient>
+                    </defs>
 
                     {/* Outer Shield: Solid Vibrant Purple */}
-                    <Path
+                    <path
                       d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z"
                       fill="#7053EC"
                     />
 
                     {/* Inner Shield: Solid Deep Purple */}
-                    <Path
+                    <path
                       d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z"
                       fill="#5C3BD4"
                     />
 
                     {/* Solid Crisp White SA Emblem Text */}
-                    <SvgText
+                    <text
                       x="150"
                       y="215"
                       textAnchor="middle"
                       fill="#FFFFFF"
                       fontSize="128"
                       fontWeight="800"
+                      fontFamily="'Manrope', sans-serif"
+                      letterSpacing="-4px"
                     >
                       SA
-                    </SvgText>
+                    </text>
 
                     {/* Dynamic Sweeping Shine Effect (Clipped to Shield) */}
-                    <G clipPath="url(#saShieldClip)">
-                      <G style={{ className: 'sa-shine-anim' } as any}>
-                        <Rect
+                    <g clipPath="url(#saShieldClip)">
+                      <g className="sa-shine-anim">
+                        <rect
                           x="-60"
                           y="-100"
                           width="90"
                           height="600"
                           fill="url(#saShineBeam)"
                         />
-                      </G>
-                    </G>
-                  </Svg>
-                </Animated.View>
+                      </g>
+                    </g>
+                  </svg>
+                </div>
               </View>
             </View>
 
@@ -1165,78 +1358,151 @@ export default function LandingPage() {
               </View>
             </View>
 
-            {/* ── 07. AUDIENCES (4 BENTO PANELS WITH ANIMATED MOTION) ── */}
+            {/* ── 07. AUDIENCES: STICKY STACKING OVERLAPPING CARDS (FOUR POINTS OF VIEW, ONE GRAPH) ── */}
             <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.sectionPill}><Text style={styles.sectionPillText}>• WHO IT IS FOR</Text></View>
               <Text style={styles.sectionHeadingH2}>Four points of view, <Text style={{ color: T.indLt }}>one graph.</Text></Text>
-              <View style={styles.audiencesGrid}>
-                {/* 01 Students */}
-                <HoverLiftCard style={styles.audienceCard} hoverBorderColor="#8B84FF">
-                  <View style={styles.audienceContent}>
-                    <Text style={styles.audienceTag}>01 / STUDENTS</Text>
-                    <Text style={styles.audienceTitle}>A roadmap, not a guess</Text>
-                    <Text style={styles.audienceDesc}>Term-by-term steps built from your course, goals and gaps — with the alumnus who has already walked it attached to each step.</Text>
-                  </View>
-                  <View style={styles.audienceSvgBox}>
-                    <Svg width="160" height="130" viewBox="0 0 300 190">
-                      <Path d="M104 78 L150 54 L196 78 L150 102 Z" fill="#8B84FF" />
-                      <Path d="M196 78 v24" stroke="#8B84FF" strokeWidth="4" />
-                      <Rect x="60" y="120" width="180" height="18" rx="4" fill="#3B2F8F" />
-                      <Rect x="74" y="138" width="152" height="18" rx="4" fill="#8B84FF" opacity="0.55" />
-                      <Rect x="60" y="156" width="180" height="18" rx="4" fill="#3B2F8F" />
-                    </Svg>
-                  </View>
-                </HoverLiftCard>
+              
+              <div style={{ display: 'grid', gap: '28px', width: '100%', position: 'relative' }}>
+                {/* 01 Students - Sticky Card 1 */}
+                <div
+                  style={{
+                    position: isNarrow ? 'static' : 'sticky',
+                    top: '96px',
+                    zIndex: 1,
+                  }}
+                >
+                  <HoverLiftCard
+                    style={[
+                      styles.audienceCard,
+                      {
+                        backgroundColor: '#0A0C18',
+                        borderColor: '#1B1E33',
+                        boxShadow: '0 24px 60px rgba(0,0,0,0.65)',
+                      },
+                    ]}
+                    hoverBorderColor="#8B84FF"
+                  >
+                    <View style={styles.audienceContent}>
+                      <Text style={styles.audienceTag}>01 / STUDENTS</Text>
+                      <Text style={styles.audienceTitle}>A roadmap, not a guess</Text>
+                      <Text style={styles.audienceDesc}>Term-by-term steps built from your course, goals and gaps — with the alumnus who has already walked it attached to each step.</Text>
+                    </View>
+                    <View style={styles.audienceSvgBox}>
+                      <svg width="220" height="144" viewBox="0 0 300 190" style={{ width: '100%', height: 'auto', display: 'block' }}>
+                        <path d="M104 78 L150 54 L196 78 L150 102 Z" fill="#8B84FF" />
+                        <path d="M196 78 v24" stroke="#8B84FF" strokeWidth="4" />
+                        <rect x="60" y="120" width="180" height="18" rx="4" fill="#3B2F8F" />
+                        <rect x="74" y="138" width="152" height="18" rx="4" fill="#8B84FF" opacity="0.55" />
+                        <rect x="60" y="156" width="180" height="18" rx="4" fill="#3B2F8F" />
+                      </svg>
+                    </View>
+                  </HoverLiftCard>
+                </div>
 
-                {/* 02 Alumni */}
-                <HoverLiftCard style={styles.audienceCard} hoverBorderColor="#8B84FF">
-                  <View style={styles.audienceContent}>
-                    <Text style={styles.audienceTag}>02 / ALUMNI</Text>
-                    <Text style={styles.audienceTitle}>Give an hour a month</Text>
-                    <Text style={styles.audienceDesc}>Answer questions, post a role, run a portfolio review. Contribution is tracked and visible to your college.</Text>
-                  </View>
-                  <View style={styles.audienceSvgBox}>
-                    <Svg width="160" height="130" viewBox="0 0 300 190">
-                      <Circle cx="150" cy="80" r="38" fill="#2A2E45" />
-                      <Circle cx="150" cy="80" r="24" fill="#5B4FE9" opacity="0.5" />
-                      <Path d="M124 128 l-14 44 26 -12 M176 128 l14 44 -26 -12" fill="#5B4FE9" />
-                    </Svg>
-                  </View>
-                </HoverLiftCard>
+                {/* 02 Alumni - Sticky Card 2 */}
+                <div
+                  style={{
+                    position: isNarrow ? 'static' : 'sticky',
+                    top: '114px',
+                    zIndex: 2,
+                  }}
+                >
+                  <HoverLiftCard
+                    style={[
+                      styles.audienceCard,
+                      {
+                        backgroundColor: '#0A0C18',
+                        borderColor: '#1B1E33',
+                        boxShadow: '0 26px 65px rgba(0,0,0,0.7)',
+                      },
+                    ]}
+                    hoverBorderColor="#8B84FF"
+                  >
+                    <View style={styles.audienceContent}>
+                      <Text style={styles.audienceTag}>02 / ALUMNI</Text>
+                      <Text style={styles.audienceTitle}>Give an hour a month</Text>
+                      <Text style={styles.audienceDesc}>Answer questions, post a role, run a portfolio review. Contribution is tracked and visible to your college.</Text>
+                    </View>
+                    <View style={styles.audienceSvgBox}>
+                      <svg width="220" height="144" viewBox="0 0 300 190" style={{ width: '100%', height: 'auto', display: 'block' }}>
+                        <circle cx="150" cy="80" r="38" fill="#2A2E45" />
+                        <circle cx="150" cy="80" r="24" fill="#5B4FE9" opacity="0.5" />
+                        <path d="M124 128 l-14 44 26 -12 M176 128 l14 44 -26 -12" fill="#5B4FE9" />
+                      </svg>
+                    </View>
+                  </HoverLiftCard>
+                </div>
 
-                {/* 03 Mentors */}
-                <HoverLiftCard style={styles.audienceCard} hoverBorderColor="#8B84FF">
-                  <View style={styles.audienceContent}>
-                    <Text style={styles.audienceTag}>03 / MENTORS</Text>
-                    <Text style={styles.audienceTitle}>Calls with an agenda</Text>
-                    <Text style={styles.audienceDesc}>Every session opens with prompts drawn from the student roadmap, so the first fifteen minutes are never wasted.</Text>
-                  </View>
-                  <View style={styles.audienceSvgBox}>
-                    <Svg width="160" height="130" viewBox="0 0 300 190">
-                      <Path d="M52 44 h120 q10 0 10 10 v46 q0 10 -10 10 h-72 l-22 18 v-18 h-26 q-10 0 -10 -10 v-46 q0 -10 10 -10 Z" fill="#3B82F6" opacity="0.85" />
-                      <Path d="M148 92 h96 q10 0 10 10 v40 q0 10 -10 10 h-60 l-20 16 v-16 h-16 q-10 0 -10 -10 v-40 q0 -10 10 -10 Z" fill="#1E3A6B" />
-                    </Svg>
-                  </View>
-                </HoverLiftCard>
+                {/* 03 Mentors - Sticky Card 3 */}
+                <div
+                  style={{
+                    position: isNarrow ? 'static' : 'sticky',
+                    top: '132px',
+                    zIndex: 3,
+                  }}
+                >
+                  <HoverLiftCard
+                    style={[
+                      styles.audienceCard,
+                      {
+                        backgroundColor: '#0A0C18',
+                        borderColor: '#1B1E33',
+                        boxShadow: '0 28px 70px rgba(0,0,0,0.75)',
+                      },
+                    ]}
+                    hoverBorderColor="#8B84FF"
+                  >
+                    <View style={styles.audienceContent}>
+                      <Text style={styles.audienceTag}>03 / MENTORS</Text>
+                      <Text style={styles.audienceTitle}>Calls with an agenda</Text>
+                      <Text style={styles.audienceDesc}>Every session opens with prompts drawn from the student roadmap, so the first fifteen minutes are never wasted.</Text>
+                    </View>
+                    <View style={styles.audienceSvgBox}>
+                      <svg width="220" height="144" viewBox="0 0 300 190" style={{ width: '100%', height: 'auto', display: 'block' }}>
+                        <path d="M52 44 h120 q10 0 10 10 v46 q0 10 -10 10 h-72 l-22 18 v-18 h-26 q-10 0 -10 -10 v-46 q0 -10 10 -10 Z" fill="#3B82F6" opacity="0.85" />
+                        <path d="M148 92 h96 q10 0 10 10 v40 q0 10 -10 10 h-60 l-20 16 v-16 h-16 q-10 0 -10 -10 v-40 q0 -10 10 -10 Z" fill="#1E3A6B" />
+                      </svg>
+                    </View>
+                  </HoverLiftCard>
+                </div>
 
-                {/* 04 Colleges */}
-                <HoverLiftCard style={styles.audienceCard} hoverBorderColor="#8B84FF">
-                  <View style={styles.audienceContent}>
-                    <Text style={styles.audienceTag}>04 / COLLEGES</Text>
-                    <Text style={styles.audienceTitle}>Placement, in one view</Text>
-                    <Text style={styles.audienceDesc}>Engagement, mentorship hours and placement outcomes reported per cohort, per department, per term.</Text>
-                  </View>
-                  <View style={styles.audienceSvgBox}>
-                    <Svg width="160" height="130" viewBox="0 0 300 190">
-                      <Rect x="40" y="112" width="60" height="58" fill="#4F46C7" />
-                      <Rect x="108" y="72" width="84" height="98" fill="#A78BFA" opacity="0.8" />
-                      <Rect x="200" y="98" width="60" height="72" fill="#4F46C7" />
-                      <Path d="M108 72 L150 44 L192 72 Z" fill="#A78BFA" />
-                      <Rect x="30" y="170" width="240" height="8" rx="4" fill="#4F46C7" />
-                    </Svg>
-                  </View>
-                </HoverLiftCard>
-              </View>
+                {/* 04 Colleges - Sticky Card 4 */}
+                <div
+                  style={{
+                    position: isNarrow ? 'static' : 'sticky',
+                    top: '150px',
+                    zIndex: 4,
+                  }}
+                >
+                  <HoverLiftCard
+                    style={[
+                      styles.audienceCard,
+                      {
+                        backgroundColor: '#0A0C18',
+                        borderColor: '#1B1E33',
+                        boxShadow: '0 30px 75px rgba(0,0,0,0.8)',
+                      },
+                    ]}
+                    hoverBorderColor="#8B84FF"
+                  >
+                    <View style={styles.audienceContent}>
+                      <Text style={styles.audienceTag}>04 / COLLEGES</Text>
+                      <Text style={styles.audienceTitle}>Placement, in one view</Text>
+                      <Text style={styles.audienceDesc}>Engagement, mentorship hours and placement outcomes reported per cohort, per department, per term.</Text>
+                    </View>
+                    <View style={styles.audienceSvgBox}>
+                      <svg width="220" height="144" viewBox="0 0 300 190" style={{ width: '100%', height: 'auto', display: 'block' }}>
+                        <rect x="40" y="112" width="60" height="58" fill="#4F46C7" />
+                        <rect x="108" y="72" width="84" height="98" fill="#A78BFA" opacity="0.8" />
+                        <rect x="200" y="98" width="60" height="72" fill="#4F46C7" />
+                        <path d="M108 72 L150 44 L192 72 Z" fill="#A78BFA" />
+                        <rect x="30" y="170" width="240" height="8" rx="4" fill="#4F46C7" />
+                      </svg>
+                    </View>
+                  </HoverLiftCard>
+                </div>
+              </div>
             </View>
 
             {/* ── 06. NUMBERS WITH VIEWPORT-TRIGGERED LIVE COUNTERS ── */}
@@ -1294,61 +1560,141 @@ export default function LandingPage() {
               </View>
             </View>
 
-            {/* ── 08. ROADMAP TIMELINE S-CURVE (SCROLL-LINKED FILLING PATH) ── */}
-            <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
-              <View style={styles.roadmapHeadingRow}>
-                <Text style={styles.sectionHeadingH2}>The roadmap fills in <Text style={{ color: T.indLt }}>as you scroll.</Text></Text>
-                <Text style={styles.roadmapSub}>DAY 1 → FIRST OFFER</Text>
-              </View>
-              <View style={{ alignItems: 'center', width: '100%', marginVertical: 20 }}>
-                <Svg width="100%" height="240" viewBox="0 0 1280 300">
-                  {/* Background Base Curve */}
-                  <Path
-                    d="M30 230 C 210 230 220 70 360 70 S 560 230 700 230 S 880 60 1010 60 S 1220 170 1250 170"
-                    stroke="#1E2238"
-                    strokeWidth="5"
-                    fill="none"
-                  />
-                  
-                  {/* Scroll-Driven Active Filling Stroke */}
-                  <Path
-                    d="M30 230 C 210 230 220 70 360 70 S 560 230 700 230 S 880 60 1010 60 S 1220 170 1250 170"
-                    stroke="#8B84FF"
-                    strokeWidth="5"
-                    fill="none"
-                    strokeDasharray={String(PATH_TOTAL_LENGTH)}
-                    strokeDashoffset={String(roadmapStrokeDashoffset)}
-                  />
-                  
-                  {/* Milestone 01: Foundations */}
-                  {roadmapScrollProgress >= 0.05 && (
-                    <Circle cx="30" cy="230" r="16" fill="#5B4FE9" opacity="0.4" />
-                  )}
-                  <Circle cx="30" cy="230" r="9" fill={roadmapScrollProgress >= 0.05 ? '#8B84FF' : '#05060F'} stroke="#8B84FF" strokeWidth="3.5" />
-                  <SvgText x="30" y="275" textAnchor="middle" fill={roadmapScrollProgress >= 0.05 ? '#F4F5FB' : '#5C6273'} fontSize="18" fontWeight="700">01 Foundations</SvgText>
+            {/* ── 08. ROADMAP TIMELINE S-CURVE (SCROLL-LINKED FILLING PATH & GLOWING FLOW MOTION) ── */}
+            <View nativeID="sa-road-sec" style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
+              <div id="sa-road-sec" style={{ width: '100%' }}>
+                <View style={styles.roadmapHeadingRow}>
+                  <Text style={styles.sectionHeadingH2}>The roadmap fills in <Text style={{ color: T.indLt }}>as you scroll.</Text></Text>
+                  <Text style={styles.roadmapSub}>DAY 1 → FIRST OFFER</Text>
+                </View>
+                <View style={{ alignItems: 'center', width: '100%', marginVertical: 20 }}>
+                  <svg width="100%" height="240" viewBox="0 0 1280 300" style={{ overflow: 'visible' }}>
+                    <defs>
+                      <linearGradient id="saRoadmapGlowGrad" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor="#5B4FE9" />
+                        <stop offset="50%" stopColor="#8B84FF" />
+                        <stop offset="100%" stopColor="#C08BFF" />
+                      </linearGradient>
+                    </defs>
 
-                  {/* Milestone 02: Skill plan */}
-                  {roadmapScrollProgress >= 0.35 && (
-                    <Circle cx="360" cy="70" r="16" fill="#5B4FE9" opacity="0.4" />
-                  )}
-                  <Circle cx="360" cy="70" r="9" fill={roadmapScrollProgress >= 0.35 ? '#8B84FF' : '#05060F'} stroke="#8B84FF" strokeWidth="3.5" />
-                  <SvgText x="360" y="35" textAnchor="middle" fill={roadmapScrollProgress >= 0.35 ? '#F4F5FB' : '#5C6273'} fontSize="18" fontWeight="700">02 Skill plan</SvgText>
+                    {/* Background Base Curve */}
+                    <path
+                      d="M30 230 C 210 230 220 70 360 70 S 560 230 700 230 S 880 60 1010 60 S 1220 170 1250 170"
+                      stroke="#1E2238"
+                      strokeWidth="4"
+                      fill="none"
+                    />
+                    
+                    {/* Scroll-Driven Active Filling Stroke with Integer pathLength 1000 */}
+                    <path
+                      id="sa-roadline"
+                      d="M30 230 C 210 230 220 70 360 70 S 560 230 700 230 S 880 60 1010 60 S 1220 170 1250 170"
+                      pathLength="1000"
+                      stroke="url(#saRoadmapGlowGrad)"
+                      strokeWidth="5"
+                      fill="none"
+                      strokeDasharray="1000"
+                      strokeDashoffset={Math.round(1000 * (1 - roadmapProgress))}
+                      style={{ transition: 'stroke-dashoffset 0.12s ease-out' }}
+                    />
 
-                  {/* Milestone 03: Opportunities */}
-                  {roadmapScrollProgress >= 0.70 && (
-                    <Circle cx="700" cy="230" r="16" fill="#5B4FE9" opacity="0.4" />
-                  )}
-                  <Circle cx="700" cy="230" r="9" fill={roadmapScrollProgress >= 0.70 ? '#8B84FF' : '#05060F'} stroke="#8B84FF" strokeWidth="3.5" />
-                  <SvgText x="700" y="275" textAnchor="middle" fill={roadmapScrollProgress >= 0.70 ? '#F4F5FB' : '#5C6273'} fontSize="18" fontWeight="700">03 Opportunities</SvgText>
+                    {/* Flowing Dash Motion Beam along the Roadmap Line */}
+                    <path
+                      d="M30 230 C 210 230 220 70 360 70 S 560 230 700 230 S 880 60 1010 60 S 1220 170 1250 170"
+                      pathLength="1000"
+                      stroke="#FFFFFF"
+                      strokeWidth="2.5"
+                      fill="none"
+                      strokeDasharray="12 28"
+                      strokeDashoffset={Math.round(1000 * (1 - roadmapProgress))}
+                      className="sa-dash-flowing"
+                      opacity={roadmapProgress > 0.05 ? 0.85 : 0}
+                    />
+                    
+                    {/* Active Traveling Head Bubble */}
+                    <g
+                      id="sa-travel-bubble"
+                      transform={`translate(${bubblePos.x}, ${bubblePos.y})`}
+                      style={{
+                        opacity: roadmapProgress > 0.01 && roadmapProgress < 0.99 ? 1 : 0.4,
+                        transition: 'opacity 0.2s ease',
+                      }}
+                    >
+                      <circle r="24" fill="#5B4FE9" opacity="0.35" />
+                      <circle r="14" fill="#8B84FF" opacity="0.8" stroke="#FFFFFF" strokeWidth="2" />
+                      <circle r="6" fill="#FFFFFF" />
+                    </g>
 
-                  {/* Milestone 04: Full-time */}
-                  {roadmapScrollProgress >= 0.95 && (
-                    <Circle cx="1010" cy="60" r="16" fill="#5B4FE9" opacity="0.4" />
-                  )}
-                  <Circle cx="1010" cy="60" r="9" fill={roadmapScrollProgress >= 0.95 ? '#8B84FF' : '#05060F'} stroke="#8B84FF" strokeWidth="3.5" />
-                  <SvgText x="1010" y="25" textAnchor="middle" fill={roadmapScrollProgress >= 0.95 ? '#F4F5FB' : '#5C6273'} fontSize="18" fontWeight="700">04 Full-time</SvgText>
-                </Svg>
-              </View>
+                    {/* Milestone 01: Foundations */}
+                    <g style={{ opacity: roadmapProgress >= 0.05 ? 1 : 0.35, transition: 'opacity 0.4s ease' }}>
+                      {roadmapProgress >= 0.05 ? (
+                        <>
+                          <circle cx="30" cy="230" r="22" fill="#5B4FE9" opacity="0.35" />
+                          <circle cx="30" cy="230" r="12" fill="#8B84FF" stroke="#FFFFFF" strokeWidth="2.2" />
+                          <circle cx="30" cy="230" r="4.5" fill="#FFFFFF" />
+                        </>
+                      ) : (
+                        <>
+                          <circle cx="30" cy="230" r="10" fill="#0C0E1B" stroke="#2A2E45" strokeWidth="2" />
+                          <circle cx="30" cy="230" r="3" fill="#4B4E65" />
+                        </>
+                      )}
+                      <text x="30" y="278" textAnchor="middle" fill={roadmapProgress >= 0.05 ? '#F4F5FB' : '#5C6273'} fontSize="17" fontWeight="700" fontFamily="'Manrope', sans-serif">01 Foundations</text>
+                    </g>
+
+                    {/* Milestone 02: Skill plan */}
+                    <g style={{ opacity: roadmapProgress >= 0.30 ? 1 : 0.35, transition: 'opacity 0.4s ease' }}>
+                      {roadmapProgress >= 0.30 ? (
+                        <>
+                          <circle cx="360" cy="70" r="22" fill="#5B4FE9" opacity="0.35" />
+                          <circle cx="360" cy="70" r="12" fill="#8B84FF" stroke="#FFFFFF" strokeWidth="2.2" />
+                          <circle cx="360" cy="70" r="4.5" fill="#FFFFFF" />
+                        </>
+                      ) : (
+                        <>
+                          <circle cx="360" cy="70" r="10" fill="#0C0E1B" stroke="#2A2E45" strokeWidth="2" />
+                          <circle cx="360" cy="70" r="3" fill="#4B4E65" />
+                        </>
+                      )}
+                      <text x="360" y="32" textAnchor="middle" fill={roadmapProgress >= 0.30 ? '#F4F5FB' : '#5C6273'} fontSize="18" fontWeight="700" fontFamily="'Manrope', sans-serif">02 Skill plan</text>
+                    </g>
+
+                    {/* Milestone 03: Opportunities */}
+                    <g style={{ opacity: roadmapProgress >= 0.56 ? 1 : 0.35, transition: 'opacity 0.4s ease' }}>
+                      {roadmapProgress >= 0.56 ? (
+                        <>
+                          <circle cx="700" cy="230" r="22" fill="#5B4FE9" opacity="0.35" />
+                          <circle cx="700" cy="230" r="12" fill="#8B84FF" stroke="#FFFFFF" strokeWidth="2.2" />
+                          <circle cx="700" cy="230" r="4.5" fill="#FFFFFF" />
+                        </>
+                      ) : (
+                        <>
+                          <circle cx="700" cy="230" r="10" fill="#0C0E1B" stroke="#2A2E45" strokeWidth="2" />
+                          <circle cx="700" cy="230" r="3" fill="#4B4E65" />
+                        </>
+                      )}
+                      <text x="700" y="278" textAnchor="middle" fill={roadmapProgress >= 0.56 ? '#F4F5FB' : '#5C6273'} fontSize="18" fontWeight="700" fontFamily="'Manrope', sans-serif">03 Opportunities</text>
+                    </g>
+
+                    {/* Milestone 04: Full-time */}
+                    <g style={{ opacity: roadmapProgress >= 0.82 ? 1 : 0.35, transition: 'opacity 0.4s ease' }}>
+                      {roadmapProgress >= 0.82 ? (
+                        <>
+                          <circle cx="1010" cy="60" r="22" fill="#5B4FE9" opacity="0.35" />
+                          <circle cx="1010" cy="60" r="12" fill="#8B84FF" stroke="#FFFFFF" strokeWidth="2.2" />
+                          <circle cx="1010" cy="60" r="4.5" fill="#FFFFFF" />
+                        </>
+                      ) : (
+                        <>
+                          <circle cx="1010" cy="60" r="10" fill="#0C0E1B" stroke="#2A2E45" strokeWidth="2" />
+                          <circle cx="1010" cy="60" r="3" fill="#4B4E65" />
+                        </>
+                      )}
+                      <text x="1010" y="22" textAnchor="middle" fill={roadmapProgress >= 0.82 ? '#F4F5FB' : '#5C6273'} fontSize="18" fontWeight="700" fontFamily="'Manrope', sans-serif">04 Full-time</text>
+                    </g>
+                  </svg>
+                </View>
+              </div>
             </View>
 
             {/* ── 09. ON CAMPUS (PHYSICAL 3D LAYERED POLAROID CARD STACK) ── */}
@@ -1477,87 +1823,104 @@ export default function LandingPage() {
 
             {/* ── 10. MATCH GRAPH ORBITAL RADAR (SWEEPING RADAR BEAM & HOVER NODES) ── */}
             <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
-              <View style={styles.sectionPill}><Text style={styles.sectionPillText}>• HOW MATCHING WORKS</Text></View>
-              <Text style={styles.sectionHeadingH2}>1,200+ verified mentors,<br /><Text style={{ color: T.indLt }}>ranked by fit.</Text></Text>
-              <Text style={styles.sectionDesc}>Agent K scores every alumnus against your course, goals and city. Hover a node to see the connection and why it was chosen.</Text>
-
               <View style={[styles.matchGraphRow, isNarrow && { flexDirection: 'column' }]}>
-                {/* Detail Box */}
-                <HoverLiftCard style={styles.matchDetailBanner}>
-                  <Text style={styles.matchDetailHeader}>MATCH DETAIL</Text>
-                  <Text style={styles.matchDetailName}>{selectedNode.name}</Text>
-                  <Text style={styles.matchDetailWhy}>{selectedNode.why}</Text>
-                </HoverLiftCard>
+                {/* Left Column: Heading, description, and Match Detail card */}
+                <View style={{ flex: 1, maxWidth: isNarrow ? '100%' : 480, justifyContent: 'center' }}>
+                  <View style={styles.sectionPill}><Text style={styles.sectionPillText}>• HOW MATCHING WORKS</Text></View>
+                  <Text style={styles.sectionHeadingH2}>1,200+ verified mentors,<br /><Text style={{ color: T.indLt }}>ranked by fit.</Text></Text>
+                  <Text style={[styles.sectionDesc, { marginBottom: 28 }]}>Agent K scores every alumnus against your course, goals and city. Hover a node to see the connection and why it was chosen.</Text>
 
-                {/* Radar SVG with active rotating beam scanner */}
-                <View style={{ flex: 1, alignItems: 'center' }}>
-                  <Svg width="100%" height="340" viewBox="0 0 620 540">
-                    <Defs>
-                      <LinearGradient id="radarSweepGrad" x1="0" y1="0" x2="1" y2="1">
-                        <Stop offset="0" stopColor="#8B84FF" stopOpacity="0.45" />
-                        <Stop offset="0.6" stopColor="#5B4FE9" stopOpacity="0.12" />
-                        <Stop offset="1" stopColor="transparent" stopOpacity="0" />
-                      </LinearGradient>
-                    </Defs>
+                  {/* Detail Box */}
+                  <HoverLiftCard style={styles.matchDetailBanner}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <Text style={styles.matchDetailHeader}>MATCH DETAIL</Text>
+                      <View style={{ backgroundColor: 'rgba(91,79,233,0.18)', borderWidth: 1, borderColor: '#8B84FF', borderRadius: 100, paddingVertical: 4, paddingHorizontal: 10 }}>
+                        <Text style={{ fontSize: 11, fontWeight: '700', color: '#8B84FF' }}>{selectedNode.score}% FIT</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.matchDetailName}>{selectedNode.name}</Text>
+                    <Text style={styles.matchDetailWhy}>{selectedNode.why}</Text>
+                  </HoverLiftCard>
+                </View>
 
-                    {/* Orbital Rings */}
-                    <Circle cx="310" cy="270" r="128" stroke="#1B1E33" strokeDasharray="4,8" fill="none" strokeWidth="1.2" />
-                    <Circle cx="310" cy="270" r="206" stroke="#1B1E33" strokeDasharray="4,8" fill="none" strokeWidth="1.2" />
+                {/* Right Column: Full-Scale Orbital Radar Graph SVG */}
+                <View style={{ flex: 1.15, alignItems: 'center', width: '100%', maxWidth: 620 }}>
+                  <svg width="100%" height="auto" viewBox="0 0 620 540" style={{ width: '100%', height: 'auto', overflow: 'visible', display: 'block' }}>
+                    <defs>
+                      <linearGradient id="radarSweepGrad" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stopColor="#8B84FF" stopOpacity="0.45" />
+                        <stop offset="60%" stopColor="#5B4FE9" stopOpacity="0.12" />
+                        <stop offset="100%" stopColor="transparent" stopOpacity="0" />
+                      </linearGradient>
+                    </defs>
+
+                    {/* Orbital Concentric Rings */}
+                    <g fill="none" stroke="#1B1E33" strokeWidth="1.2">
+                      <circle cx="310" cy="270" r="128" strokeDasharray="4 8" />
+                      <circle cx="310" cy="270" r="206" strokeDasharray="4 8" />
+                    </g>
                     
-                    {/* Rotating Radar Scanner Beam */}
-                    <G style={{ className: 'sa-radar-spin' } as any}>
-                      <Path d="M310 270 L 516 270 A 206 206 0 0 1 455 415 Z" fill="url(#radarSweepGrad)" />
-                    </G>
+                    {/* Center Radar Pulsating Ping Waves */}
+                    <circle cx="310" cy="270" r="52" fill="none" stroke="#8B84FF" strokeWidth="1.4" className="sa-ping-ring" style={{ transformOrigin: '310px 270px' }} />
+                    <circle cx="310" cy="270" r="52" fill="none" stroke="#8B84FF" strokeWidth="1.4" className="sa-ping-ring-delayed" style={{ transformOrigin: '310px 270px' }} />
 
-                    {/* Selected Node Target Line */}
-                    <Line x1="310" y1="270" x2={selectedNode.x} y2={selectedNode.y} stroke="#8B84FF" strokeWidth="2.4" strokeDasharray="5,6" />
+                    {/* Rotating Radar Scanner Beam */}
+                    <g className="sa-radar-spin" style={{ transformOrigin: '310px 270px' }}>
+                      <path d="M310 270 L 516 270 A 206 206 0 0 1 455 415 Z" fill="url(#radarSweepGrad)" />
+                    </g>
+
+                    {/* Selected Node Target Line with Laser Glow & Flowing Dash */}
+                    <line x1="310" y1="270" x2={selectedNode.x} y2={selectedNode.y} stroke="#5B4FE9" strokeWidth="6" opacity="0.35" />
+                    <line x1="310" y1="270" x2={selectedNode.x} y2={selectedNode.y} stroke="#8B84FF" strokeWidth="2.5" strokeDasharray="6 6" className="sa-dash-fast" />
                     
                     {/* Center User Hub */}
-                    <Circle cx="310" cy="270" r="52" fill="#0C0E1B" stroke="#8B84FF" strokeWidth="2.5" />
-                    <SvgText x="310" y="266" textAnchor="middle" fill="#F4F5FB" fontSize="16" fontWeight="800">YOU</SvgText>
-                    <SvgText x="310" y="286" textAnchor="middle" fill="#9AA0B4" fontSize="10" fontWeight="700">YEAR 3</SvgText>
+                    <circle cx="310" cy="270" r="52" fill="#0C0E1B" stroke="#5B4FE9" strokeWidth="2.4" />
+                    <text x="310" y="266" textAnchor="middle" fill="#F4F5FB" fontSize="16" fontWeight="800" fontFamily="'Manrope', sans-serif">YOU</text>
+                    <text x="310" y="286" textAnchor="middle" fill="#9AA0B4" fontSize="9.5" fontWeight="700" letterSpacing="1.4" fontFamily="'Manrope', sans-serif">YEAR 3</text>
 
                     {[
-                      { x: 310, y: 132, score: '98', name: 'Priya R. — Product, Bengaluru', why: 'Same course, 4 years ahead. Mentors 3 students each term.' },
+                      { x: 310, y: 132, score: '98', name: 'Priya R. — Product, Bengaluru', why: 'Same course, four years ahead. Mentors three students each term.' },
                       { x: 430, y: 201, score: '92', name: 'Arjun M. — Data, Pune', why: 'Ex-intern at target firm. Reviews analytics portfolios monthly.' },
                       { x: 430, y: 339, score: '88', name: 'Neha S. — Design, Remote', why: 'Runs the portfolio review your roadmap suggests next.' },
                       { x: 310, y: 408, score: '85', name: 'Rohit K. — Finance, Mumbai', why: 'Alumnus of your college, hiring two summer interns.' },
                       { x: 190, y: 339, score: '81', name: 'Sana T. — Research, Delhi', why: 'Published in your field, open to weekly calls.' },
                       { x: 190, y: 201, score: '76', name: 'Dev P. — Engineering, Hyderabad', why: 'Took the same electives. Answers within a day.' },
                     ].map((node, i) => {
-                      const isSelected = selectedNode.x === String(node.x) && selectedNode.y === String(node.y);
+                      const isSelected = selectedNode.x === node.x && selectedNode.y === node.y;
                       return (
-                        <G
+                        <g
                           key={i}
-                          onPress={() => setSelectedNode({ name: node.name, why: node.why, x: String(node.x), y: String(node.y) })}
-                          onMouseEnter={() => setSelectedNode({ name: node.name, why: node.why, x: String(node.x), y: String(node.y) })}
+                          onClick={() => setSelectedNode({ name: node.name, why: node.why, score: node.score, x: node.x, y: node.y })}
+                          onMouseEnter={() => setSelectedNode({ name: node.name, why: node.why, score: node.score, x: node.x, y: node.y })}
                           style={{ cursor: 'pointer' }}
                         >
                           {isSelected && (
-                            <Circle cx={node.x} cy={node.y} r="38" fill="#5B4FE9" opacity="0.4" />
+                            <circle cx={node.x} cy={node.y} r="40" fill="#5B4FE9" opacity="0.35" />
                           )}
-                          <Circle
+                          <circle
                             cx={node.x}
                             cy={node.y}
-                            r="32"
+                            r={isSelected ? 34 : 30}
                             fill="#0C0E1B"
                             stroke={isSelected ? '#8B84FF' : '#2A2E45'}
                             strokeWidth={isSelected ? 2.8 : 1.6}
+                            style={{ transition: 'all 0.25s ease' }}
                           />
-                          <SvgText
+                          <text
                             x={node.x}
                             y={node.y + 5}
                             textAnchor="middle"
                             fill={isSelected ? '#FFFFFF' : '#8B84FF'}
-                            fontSize="13"
+                            fontSize={isSelected ? '14' : '13'}
                             fontWeight="700"
+                            fontFamily="'Manrope', sans-serif"
                           >
                             {node.score}
-                          </SvgText>
-                        </G>
+                          </text>
+                        </g>
                       );
                     })}
-                  </Svg>
+                  </svg>
                 </View>
               </View>
             </View>
@@ -2284,22 +2647,26 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: T.line,
     borderRadius: 20,
-    padding: 40,
+    paddingVertical: 38,
+    paddingHorizontal: 44,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 34,
+    minHeight: 230,
   },
   audienceContent: {
     flex: 1,
   },
   audienceSvgBox: {
-    flex: 0.85,
+    width: 220,
+    height: 144,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: T.well,
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 14,
+    padding: 12,
+    flexShrink: 0,
   },
   audienceTag: {
     fontSize: 11,
@@ -2309,7 +2676,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   audienceTitle: {
-    fontSize: 30,
+    fontSize: 28,
     fontWeight: '700',
     color: T.text,
     letterSpacing: -1.2,
@@ -2319,6 +2686,7 @@ const styles = StyleSheet.create({
     fontSize: 15.5,
     lineHeight: 26,
     color: T.muted,
+    maxWidth: 540,
   },
 
   /* ── 06 Numbers ── */
