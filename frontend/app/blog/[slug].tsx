@@ -401,7 +401,7 @@ export default function BlogPostDetailPage() {
       <Navbar />
 
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        <div style={{ position: 'relative', zIndex: 1, maxWidth: 1400, margin: '0 auto', padding: '26px 28px 90px', width: '100%' }}>
+        <div style={{ position: 'relative', zIndex: 1, maxWidth: 1400, margin: '0 auto', padding: '110px 28px 90px', width: '100%' }}>
           
           {/* Back button */}
           <button 

@@ -205,7 +205,7 @@ export default function BlogListingPage() {
       <Navbar />
 
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        <div style={{ position: 'relative', zIndex: 1, maxWidth: 1400, margin: '0 auto', padding: '34px 28px 90px', width: '100%' }}>
+        <div style={{ position: 'relative', zIndex: 1, maxWidth: 1400, margin: '0 auto', padding: '110px 28px 90px', width: '100%' }}>
           
           {/* Header & Search Bar */}
           <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'flex-end', justifyContent: 'space-between', gap: 24, marginBottom: 30 }}>
