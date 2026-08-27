@@ -4241,26 +4241,22 @@ function RegistrationsPanel() {
                     const rpFee = razorpayFees[r.payment_id];
                     const hasDiscrepancy = rpFee && !rpFee.error && r.fee > 0 && Math.abs(r.fee - rpFee.net) > 1;
                     return (
-                    <View key={i} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)', gap: 8, backgroundColor: hasDiscrepancy ? 'rgba(239,68,68,0.08)' : undefined }}>
-                      <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: r.is_free ? '#C4B5FD' : r.is_admin_pay ? '#FBBF24' : r.status === 'paid' ? '#34D399' : r.status === 'pending' ? '#F59E0B' : '#EF4444' }} />
+                    <View key={i} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)', gap: 6, backgroundColor: hasDiscrepancy ? 'rgba(239,68,68,0.08)' : undefined }}>
+                      <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: r.is_free ? '#C4B5FD' : r.is_admin_pay ? '#FBBF24' : r.status === 'paid' ? '#34D399' : r.status === 'pending' ? '#F59E0B' : '#EF4444' }} />
                       <View style={{ flex: 2, minWidth: 0 }}>
-                        <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 11.5 }} numberOfLines={1}>{r.name}</Text>
-                        <Text style={{ color: SAC.dim, fontFamily: FONTS.med, fontSize: 9 }} numberOfLines={1}>{r.email}</Text>
+                        <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 10.5 }} numberOfLines={1}>{r.name}</Text>
+                        <Text style={{ color: SAC.dim, fontFamily: FONTS.med, fontSize: 8 }} numberOfLines={1}>{r.email}</Text>
                       </View>
-                      <Text style={{ width: 70, color: SAC.muted, fontFamily: FONTS.med, fontSize: 10 }} numberOfLines={1}>{r.reg_type} {r.team_size > 1 ? `(${r.team_size})` : ''}</Text>
-                      <Text style={{ width: 70, color: SAC.muted, fontFamily: FONTS.med, fontSize: 10 }} numberOfLines={1}>{r.slug}</Text>
-                      <Text style={{ width: 70, color: r.fee > 0 ? '#86EFAC' : r.fee === 0 ? '#C4B5FD' : '#EF4444', fontFamily: FONTS.xbold, fontSize: 11.5 }}>₹{r.fee}</Text>
+                      <Text style={{ width: 45, color: SAC.muted, fontFamily: FONTS.med, fontSize: 9 }} numberOfLines={1}>{r.reg_type}{r.team_size > 1 ? `(${r.team_size})` : ''}</Text>
+                      <Text style={{ width: 50, color: r.fee > 0 ? '#86EFAC' : r.fee === 0 ? '#C4B5FD' : '#EF4444', fontFamily: FONTS.xbold, fontSize: 10 }}>₹{r.fee}</Text>
                       {razorpayFees[r.payment_id] && !razorpayFees[r.payment_id].error ? (
-                        <>
-                          <Text style={{ width: 55, color: '#FCA5A5', fontFamily: FONTS.med, fontSize: 9.5 }}>₹{(razorpayFees[r.payment_id].fee || 0).toFixed(2)}</Text>
-                          <Text style={{ width: 45, color: '#FCA5A5', fontFamily: FONTS.med, fontSize: 9.5 }}>₹{(razorpayFees[r.payment_id].tax || 0).toFixed(2)}</Text>
-                          <Text style={{ width: 65, color: '#86EFAC', fontFamily: FONTS.xbold, fontSize: 10 }}>₹{(razorpayFees[r.payment_id].net || 0).toFixed(2)}</Text>
-                        </>
-                      ) : razorpayFees[r.payment_id]?.error ? (
-                        <Text style={{ width: 55, color: '#EF4444', fontFamily: FONTS.med, fontSize: 8 }} numberOfLines={1}>err</Text>
+                        <Text style={{ width: 80, color: '#FCA5A5', fontFamily: FONTS.med, fontSize: 8.5 }} numberOfLines={1}>-₹{(razorpayFees[r.payment_id].fee || 0).toFixed(0)}f -₹{(razorpayFees[r.payment_id].tax || 0).toFixed(0)}t</Text>
                       ) : null}
-                      <Text style={{ flex: 1, color: r.is_admin_pay ? '#FBBF24' : '#93C5FD', fontFamily: FONTS.med, fontSize: 9 }} numberOfLines={1}>{r.payment_id || '—'}</Text>
-                      <Text style={{ width: 55, color: r.status === 'paid' ? '#34D399' : r.status === 'pending' ? '#FBBF24' : '#EF4444', fontFamily: FONTS.xbold, fontSize: 9, letterSpacing: 0.3 }}>{(r.status || '').toUpperCase()}</Text>
+                      {razorpayFees[r.payment_id] && !razorpayFees[r.payment_id].error ? (
+                        <Text style={{ width: 55, color: '#86EFAC', fontFamily: FONTS.xbold, fontSize: 9.5 }}>₹{(razorpayFees[r.payment_id].net || 0).toFixed(0)}</Text>
+                      ) : null}
+                      <Text style={{ flex: 1, minWidth: 60, color: r.is_admin_pay ? '#FBBF24' : '#93C5FD', fontFamily: FONTS.med, fontSize: 8 }} numberOfLines={1}>{r.payment_id || '—'}</Text>
+                      <Text style={{ width: 42, color: r.status === 'paid' ? '#34D399' : r.status === 'pending' ? '#FBBF24' : '#EF4444', fontFamily: FONTS.xbold, fontSize: 8, letterSpacing: 0.3 }}>{(r.status || '').slice(0, 4).toUpperCase()}</Text>
                     </View>
                     );
                   })}
