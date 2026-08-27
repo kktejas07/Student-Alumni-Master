@@ -77,7 +77,6 @@ const DEFAULT_SECTIONS: Section[] = [
   },
 ];
 
-// Database of posts details
 const POSTS_MAP: Record<string, PostDetail> = {
   'what-12400-student-profiles-tell-us-about-the-first-job': {
     title: 'What 12,400 student profiles tell us about the first job',
@@ -149,17 +148,17 @@ const POSTS_MAP: Record<string, PostDetail> = {
     sections: [
       {
         id: 'po-0',
-        label: 'Autonomous placement workflows',
+        label: 'Automating multi-step workflows',
         content: [
-          'Agent K was built to eliminate administrative overhead for both placement officers and candidates.',
-          'With our latest update, Agent K can evaluate a student candidate profile against 50+ company job specifications simultaneously without manual prompt chaining.',
+          'Agent K is moving from a single-response AI assistant to an autonomous task runner.',
+          'When you ask Agent K to prepare a referral request, it cross-references open roles, finds matching alumni, crafts personalized context, and queues the message for approval in one workflow.',
         ],
       },
       {
         id: 'po-1',
-        label: 'End-to-end referral routing',
+        label: 'Zero-latency resume parsing',
         content: [
-          'When an alumnus posts an opening, Agent K automatically matches qualified candidates, generates encrypted skill profiles, and drafts personal referral requests.',
+          'The updated ATS scoring engine now parses resumes in real-time, highlighting exact missing keywords for your target role.',
         ],
       },
     ],
@@ -173,14 +172,21 @@ const POSTS_MAP: Record<string, PostDetail> = {
     readTime: '8 min read',
     author: 'Sreenidhi CDC',
     authorInitials: 'SN',
-    authorTitle: 'Career Development Center.',
+    authorTitle: 'Career Development Centre, SNIST.',
     sections: [
       {
         id: 'po-0',
-        label: 'Setting up the campus sprint',
+        label: 'Building the event pipeline',
         content: [
-          'Sreenidhi Institute of Science and Technology hosted HackWave 3.0 using StudentAlumni Event OS to streamline registrations, team formation, and mentor scheduling.',
-          '985 students across 14 departments joined within 48 hours of announcement.',
+          'Sreenidhi Institute of Science & Technology (SNIST) hosted HackWave with 985 student registrations across 42 partner colleges.',
+          'Using the ECHO event management suite, team formation and badge issuance were automated at the entrance, reducing check-in time to 12 seconds per attendee.',
+        ],
+      },
+      {
+        id: 'po-1',
+        label: 'On-the-floor team formation',
+        content: [
+          'Solo participants used the StudentAlumni QR match system to discover teammates with complementary skills (e.g. Frontend developer + ML specialist) within minutes of entering the hall.',
         ],
       },
     ],
@@ -194,14 +200,14 @@ const POSTS_MAP: Record<string, PostDetail> = {
     readTime: '11 min read',
     author: 'SA Security',
     authorInitials: 'SE',
-    authorTitle: 'Security Engineering Team.',
+    authorTitle: 'Security & Privacy Engineering.',
     sections: [
       {
         id: 'po-0',
-        label: 'Privacy-first matching architecture',
+        label: 'Privacy-first recruitment matching',
         content: [
-          'Privacy is not a toggle — it is an architectural commitment. We built our matching engine using zero-knowledge vector similarity.',
-          'Recruiters query anonymous capability hashes until a student accepts a direct interview invitation.',
+          'Recruiters look for specific skill sets, but students should control when their personal identity and contact info are revealed.',
+          'StudentAlumni computes candidate match scores using homomorphically encrypted skill vectors. Recruiters see compatibility percentages without access to student names until the student accepts an approach.',
         ],
       },
     ],
@@ -209,7 +215,7 @@ const POSTS_MAP: Record<string, PostDetail> = {
   'tier-2-colleges-are-closing-the-referral-gap': {
     title: 'Tier-2 colleges are closing the referral gap',
     category: 'PLACEMENTS',
-    subcategory: 'DATA STUDY',
+    subcategory: 'REPORT',
     description: 'Alumni networks, not campus rank, now predict who gets a first-round interview. The numbers from 42 institutions.',
     date: 'Jul 14, 2026',
     readTime: '7 min read',
@@ -219,9 +225,9 @@ const POSTS_MAP: Record<string, PostDetail> = {
     sections: [
       {
         id: 'po-0',
-        label: 'Leveling the playing field',
+        label: 'The rise of network-driven hiring',
         content: [
-          'Historically, tier-1 institutions enjoyed exclusive campus placement drives. Our data shows that verified alumni referral channels bridge over 70% of this gap.',
+          'Data from 42 partner institutions shows that warm alumni referrals account for 61% of all tech interview invites for tier-2 college students.',
         ],
       },
     ],
@@ -229,27 +235,24 @@ const POSTS_MAP: Record<string, PostDetail> = {
   'your-sa-id-card-and-why-verification-matters': {
     title: 'Your SA ID card, and why verification matters',
     category: 'PRODUCT',
-    subcategory: 'SECURITY',
+    subcategory: 'IDENTITY',
     description: 'One verified identity across events, referrals, rentals and student pricing — without re-proving who you are.',
     date: 'Jul 08, 2026',
     readTime: '4 min read',
     author: 'SA Product Team',
     authorInitials: 'PT',
-    authorTitle: 'Core Platform Developers.',
+    authorTitle: 'Core Identity Team.',
     sections: [
       {
         id: 'po-0',
-        label: 'Unified Student Identity',
+        label: 'Unified student credential',
         content: [
-          'The SA Digital ID Card connects institution verification with DigiLocker and campus email verification in one tamper-proof credential.',
+          'The digital SA ID card combines DigiLocker degree verification with campus email credentials into a single tamper-proof QR pass.',
         ],
       },
     ],
   },
 };
-
-// Also map space-separated slug for backwards compatibility
-POSTS_MAP['how-snist-ran-hackwave-with-985 registrations'] = POSTS_MAP['how-snist-ran-hackwave-with-985-registrations'];
 
 const RELATED_POSTS = [
   {
@@ -284,29 +287,24 @@ const RELATED_POSTS = [
   },
 ];
 
-export default function BlogDetailPage() {
+export default function BlogPostDetailPage() {
   const router = useRouter();
-  const { slug } = useLocalSearchParams<{ slug: string }>();
+  const params = useLocalSearchParams<{ slug?: string }>();
   const { width } = useWindowDimensions();
-  const [activeSection, setActiveSection] = useState('');
-  const [shared, setShared] = useState(false);
-  const [saved, setSaved] = useState(false);
 
+  const isTablet = width < 1150;
   const isMobile = width < 860;
 
-  // Resolve current post details
-  const rawKey = slug || 'what-12400-student-profiles-tell-us-about-the-first-job';
-  const postKey = rawKey.replace(/\s+/g, '-');
-  const post = POSTS_MAP[postKey] || POSTS_MAP[rawKey] || POSTS_MAP['what-12400-student-profiles-tell-us-about-the-first-job'];
-  const sections = post.sections && post.sections.length > 0 ? post.sections : DEFAULT_SECTIONS;
+  // Resolve slug ID
+  const postKey = (params.slug || 'what-12400-student-profiles-tell-us-about-the-first-job').toLowerCase();
+  const post = POSTS_MAP[postKey] || POSTS_MAP['what-12400-student-profiles-tell-us-about-the-first-job'];
 
-  useEffect(() => {
-    if (sections.length > 0) {
-      setActiveSection(sections[0].id);
-    }
-  }, [postKey]);
+  const sections = post.sections || DEFAULT_SECTIONS;
+  const [activeSection, setActiveSection] = useState(sections[0]?.id || 'po-0');
+  const [saved, setSaved] = useState(false);
+  const [shared, setShared] = useState(false);
 
-  // Load saved state from localStorage
+  // Check saved state from localStorage
   useEffect(() => {
     if (IS_WEB && typeof localStorage !== 'undefined') {
       try {
@@ -318,34 +316,15 @@ export default function BlogDetailPage() {
           }
         }
       } catch (err) {
-        // ignore
+        // Fallback
       }
     }
   }, [postKey]);
 
-  // Scroll spy to highlight active section on Web
-  useEffect(() => {
-    if (!IS_WEB) return;
-    const handleScroll = () => {
-      let currentSection = sections[0]?.id || 'po-0';
-      for (const section of sections) {
-        const el = document.getElementById(section.id);
-        if (el) {
-          const rect = el.getBoundingClientRect();
-          if (rect.top <= 140) {
-            currentSection = section.id;
-          }
-        }
-      }
-      setActiveSection(currentSection);
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [sections]);
-
+  // Handle section jump
   const handleSectionJump = (id: string) => {
-    if (IS_WEB) {
+    setActiveSection(id);
+    if (IS_WEB && typeof document !== 'undefined') {
       const el = document.getElementById(id);
       if (el) {
         window.scrollTo({
@@ -405,6 +384,10 @@ export default function BlogDetailPage() {
             color: #F4F4FA !important;
             border-left-color: #7C5CFC !important;
           }
+          .rs-card-hover:hover {
+            transform: translateY(-3px);
+            border-color: #3A3468 !important;
+          }
         `
       }} />
 
@@ -418,56 +401,56 @@ export default function BlogDetailPage() {
       <Navbar />
 
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        <div className="pt-32 pb-16 px-6 max-w-[1400px] mx-auto w-full relative z-10">
+        <div style={{ position: 'relative', zIndex: 1, maxWidth: 1400, margin: '0 auto', padding: '26px 28px 90px', width: '100%' }}>
           
           {/* Back button */}
           <button 
             onClick={() => router.push('/blog')}
-            className="inline-flex items-center gap-2 text-sm font-semibold border border-[#292940] hover:border-[#7C5CFC] rounded-full px-5 py-2.5 bg-[#11111C] text-white cursor-pointer transition-all duration-200 mb-8"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 9, fontSize: 14, fontWeight: '600', border: '1px solid #292940', borderRadius: 100, padding: '10px 18px', background: '#11111C', color: '#FFFFFF', cursor: 'pointer', transition: 'all 0.2s ease', marginBottom: 26 }}
           >
             <ArrowLeft size={15} color="#FFFFFF" />
             All posts
           </button>
 
           {/* Article Header info */}
-          <div className="max-w-[780px] mb-8">
-            <div className="flex gap-2.5 mb-5">
-              <span className="text-[10.5px] font-bold tracking-wider text-[#A78BFA] bg-[#7C5CFC]/18 border border-[#2C2A52] rounded-lg px-2.5 py-1 uppercase">
+          <div style={{ maxWidth: 780, marginBottom: 30 }}>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+              <span style={{ fontSize: 10.5, fontWeight: '700', letterSpacing: '1px', color: '#A78BFA', background: 'rgba(124,92,252,.18)', border: '1px solid #2C2A52', borderRadius: 7, padding: '5px 10px' }}>
                 {post.category}
               </span>
               {post.subcategory && (
-                <span className="text-[10.5px] font-bold tracking-wider text-[#8A8A9E] border border-[#1f1f30] rounded-lg px-2.5 py-1 uppercase">
+                <span style={{ fontSize: 10.5, fontWeight: '700', letterSpacing: '1px', color: '#8A8A9E', border: '1px solid #1F1F30', borderRadius: 7, padding: '5px 10px' }}>
                   {post.subcategory}
                 </span>
               )}
             </div>
-            <h1 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-[1.12] mb-6">
+            <div style={{ fontSize: 42, fontWeight: '700', letterSpacing: '-1.8px', lineHeight: 1.12, color: '#FFFFFF', marginBottom: 18 }}>
               {post.title}
-            </h1>
-            <p className="text-lg sm:text-xl text-[#8A8A9E] leading-relaxed">
+            </div>
+            <div style={{ fontSize: 18, lineHeight: 1.65, color: '#8A8A9E' }}>
               {post.description}
-            </p>
+            </div>
 
             {/* Author and meta info */}
-            <div className="flex items-center gap-3.5 mt-8 pt-6 border-t border-[#1F1F30] flex-wrap">
-              <span className="w-11 h-11 rounded-full bg-[#7C5CFC] text-white flex items-center justify-center text-base font-bold flex-shrink-0">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 28, paddingTop: 24, borderTop: '1px solid #1F1F30', flexWrap: 'wrap' }}>
+              <span style={{ width: 44, height: 44, borderRadius: '50%', background: '#7C5CFC', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyCenter: 'center', fontSize: 15, fontWeight: '700', flex: 'none' }}>
                 {post.authorInitials}
               </span>
-              <div className="flex-1 min-w-[200px]">
-                <div className="text-sm font-semibold text-white">{post.author}</div>
-                <div className="text-xs text-[#8A8A9E] mt-0.5">{post.authorTitle} · {post.date} · {post.readTime}</div>
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <div style={{ fontSize: 14.5, fontWeight: '600', color: '#FFFFFF' }}>{post.author}</div>
+                <div style={{ fontSize: 13, color: '#8A8A9E', marginTop: 2 }}>{post.authorTitle} · {post.date} · {post.readTime}</div>
               </div>
-              <div className="flex gap-2">
+              <div style={{ display: 'flex', gap: 9, flex: 'none' }}>
                 <button 
                   onClick={handleShare}
-                  className="inline-flex items-center gap-2 text-xs font-semibold border border-[#292940] hover:border-[#7C5CFC] rounded-lg px-4 py-2.5 bg-transparent text-[#8A8A9E] hover:text-white cursor-pointer transition-all duration-200"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: '600', border: '1px solid #292940', borderRadius: 10, padding: '10px 15px', background: 'transparent', color: shared ? '#10B981' : '#8A8A9E', cursor: 'pointer', transition: 'all 0.2s ease' }}
                 >
                   <Share2 size={14} color={shared ? '#10B981' : 'currentColor'} />
                   {shared ? 'Copied Link ✓' : 'Share'}
                 </button>
                 <button 
                   onClick={handleSave}
-                  className="inline-flex items-center gap-2 text-xs font-semibold border border-[#292940] hover:border-[#7C5CFC] rounded-lg px-4 py-2.5 bg-transparent text-[#8A8A9E] hover:text-white cursor-pointer transition-all duration-200"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: '600', border: '1px solid #292940', borderRadius: 10, padding: '10px 15px', background: 'transparent', color: saved ? '#A78BFA' : '#8A8A9E', cursor: 'pointer', transition: 'all 0.2s ease' }}
                 >
                   <Bookmark size={14} color={saved ? '#A78BFA' : 'currentColor'} fill={saved ? '#A78BFA' : 'none'} />
                   {saved ? 'Saved ✓' : 'Save'}
@@ -478,13 +461,13 @@ export default function BlogDetailPage() {
 
           {/* Optional Chart Section */}
           {post.chartTitle && (
-            <div className="relative overflow-hidden border border-[#2C2A52] rounded-2xl bg-gradient-to-br from-[#7C5CFC]/18 to-[#11111C]/30 p-8 mt-8 mb-10 max-w-[780px]">
-              <div className="text-xs font-bold tracking-wider text-[#A78BFA] mb-5">
+            <div style={{ position: 'relative', overflow: 'hidden', border: '1px solid #2C2A52', borderRadius: 20, background: 'linear-gradient(140deg, rgba(124,92,252,.18), #11111C 68%)', padding: '30px 32px', marginTop: 30, marginBottom: 34, maxWidth: 780 }}>
+              <div style={{ fontSize: 11, fontWeight: '700', letterSpacing: '1.5px', color: '#A78BFA', marginBottom: 22 }}>
                 {post.chartTitle}
               </div>
               <Svg viewBox="0 0 900 260" style={{ width: '100%', height: 'auto' }}>
                 <g style={{ stroke: 'rgba(255,255,255,.07)', strokeWidth: 1 }}>
-                  <path d="M40 220H880M40 165H880M40 110H880M40 55H880" />
+                  <Path d="M40 220H880M40 165H880M40 110H880M40 55H880" />
                 </g>
                 <Path d="M40 214 L208 200 L376 186 L544 176 L712 168 L880 160" fill="none" stroke="#6A6A8E" strokeWidth="2.4" />
                 <Path d="M40 214 L208 158 L376 108 L544 82 L712 66 L880 48" fill="none" stroke="#A78BFA" strokeWidth="3" />
@@ -503,46 +486,60 @@ export default function BlogDetailPage() {
             </div>
           )}
 
-          {/* Main Content & Sidebar Layout */}
-          <div className={`grid gap-10 ${isMobile ? 'grid-cols-1' : 'grid-cols-12'}`} style={{ alignItems: 'start' }}>
+          {/* 2-Column Main Content & Sidebar Layout */}
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '250px minmax(0, 1fr)', gap: 40, marginTop: 34, alignItems: 'start' }}>
             
             {/* Sidebar Sticky Navigation (Web only) */}
-            <div className={`md:col-span-4 ${isMobile ? 'hidden' : 'block'}`} style={{ position: 'sticky', top: 92 }}>
-              <div className="text-xs font-bold tracking-wider text-[#6A6A7E] mb-3.5">IN THIS ARTICLE</div>
-              {sections.map((sec) => (
-                <button
-                  key={sec.id}
-                  onClick={() => handleSectionJump(sec.id)}
-                  data-on={activeSection === sec.id ? 'true' : 'false'}
-                  className="jump-link block text-left text-[13.5px] leading-snug text-[#8A8A9E] hover:text-white border-l-2 border-[#292940] pl-3.5 py-2 cursor-pointer transition-all w-full"
-                >
-                  {sec.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Post Content */}
-            <div className={`md:col-span-8 space-y-10 text-[16.5px] leading-relaxed text-[#8A8A9E]`}>
-              
-              {sections.map((sec) => (
-                <div key={sec.id} id={sec.id} className="space-y-4">
-                  <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight mt-4 mb-2">
+            {!isMobile && (
+              <div style={{ position: 'sticky', top: 92 }}>
+                <div style={{ fontSize: 11, fontWeight: '700', letterSpacing: '1.3px', color: '#6A6A7E', marginBottom: 14 }}>IN THIS ARTICLE</div>
+                {sections.map((sec) => (
+                  <span
+                    key={sec.id}
+                    onClick={() => handleSectionJump(sec.id)}
+                    data-on={activeSection === sec.id ? 'true' : 'false'}
+                    className="jump-link"
+                    style={{
+                      display: 'block',
+                      fontSize: 13.5,
+                      lineHeight: 1.45,
+                      color: activeSection === sec.id ? '#F4F4FA' : '#8A8A9E',
+                      borderLeft: '2px solid',
+                      borderLeftColor: activeSection === sec.id ? '#7C5CFC' : '#292940',
+                      padding: '9px 0 9px 14px',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
                     {sec.label}
-                  </h3>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Post Content Body */}
+            <div style={{ minWidth: 0, maxWidth: 760 }}>
+              {sections.map((sec) => (
+                <div key={sec.id} id={sec.id} style={{ borderTop: '1px solid #1F1F30', paddingTop: 30, paddingBottom: 4 }}>
+                  <div style={{ fontSize: 24, fontWeight: '700', letterSpacing: '-.7px', color: '#FFFFFF', margin: '16px 0 16px' }}>
+                    {sec.label}
+                  </div>
                   {sec.content.map((paragraph, idx) => (
-                    <p key={idx}>{paragraph}</p>
+                    <div key={idx} style={{ fontSize: 16.5, lineHeight: 1.8, color: '#8A8A9E', marginBottom: 22 }}>
+                      {paragraph}
+                    </div>
                   ))}
                 </div>
               ))}
 
               {/* Author Info footer */}
-              <div className="flex items-center gap-4 border border-[#1F1F30] rounded-2xl bg-[#11111C] p-6 mt-10 flex-wrap">
-                <span className="w-13 h-13 rounded-full bg-[#7C5CFC] text-white flex items-center justify-center text-lg font-bold flex-shrink-0">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, border: '1px solid #1F1F30', borderRadius: 18, background: '#11111C', padding: '22px 24px', marginTop: 40, flexWrap: 'wrap' }}>
+                <span style={{ width: 52, height: 52, borderRadius: '50%', background: '#7C5CFC', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyCenter: 'center', fontSize: 17, fontWeight: '700', flex: 'none' }}>
                   {post.authorInitials}
                 </span>
-                <div className="flex-1 min-w-[200px]">
-                  <div className="text-[15.5px] font-semibold text-white">{post.author}</div>
-                  <div className="text-[13.5px] text-[#8A8A9E] mt-1 leading-normal">{post.authorTitle}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 15.5, fontWeight: '600', color: '#FFFFFF' }}>{post.author}</div>
+                  <div style={{ fontSize: 13.5, lineHeight: 1.6, color: '#8A8A9E', marginTop: 4 }}>{post.authorTitle}</div>
                 </div>
               </div>
 
@@ -550,27 +547,27 @@ export default function BlogDetailPage() {
           </div>
 
           {/* Keep Reading Section */}
-          <div className="mt-16 pt-10 border-t border-[#1F1F30]">
-            <h3 className="text-xl font-bold text-white tracking-tight mb-6">Keep reading</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div style={{ marginTop: 46, paddingTop: 40, borderTop: '1px solid #1F1F30' }}>
+            <div style={{ fontSize: 21, fontWeight: '700', letterSpacing: '-.5px', color: '#FFFFFF', marginBottom: 18 }}>Keep reading</div>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))', gap: 18 }}>
               {RELATED_POSTS.map((rel) => (
                 <div
                   key={rel.id}
                   onClick={() => router.push(`/blog/${rel.id}`)}
-                  className="group border border-[#1F1F30] hover:border-[#2C2A52] rounded-2xl bg-[#11111C] p-6 flex flex-col justify-between cursor-pointer transition-all duration-300"
+                  className="rs-card-hover"
+                  style={{ border: '1px solid #1F1F30', borderRadius: 18, background: '#11111C', boxShadow: '0 18px 40px rgba(0,0,0,.35)', padding: '22px 24px 24px', cursor: 'pointer', transition: 'all 0.25s ease', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
                 >
                   <div>
                     <span 
-                      className="inline-block text-[10px] font-bold tracking-wider rounded-lg px-2.5 py-1 uppercase"
-                      style={{ color: rel.tagColor, backgroundColor: rel.tagBg, border: `1px solid ${rel.tagLine}` }}
+                      style={{ fontSize: 10.5, fontWeight: '700', letterSpacing: '1px', color: rel.tagColor, backgroundColor: rel.tagBg, border: `1px solid ${rel.tagLine}`, borderRadius: 7, padding: '5px 10px', textTransform: 'uppercase' }}
                     >
                       {rel.category}
                     </span>
-                    <h4 className="text-base font-bold text-white tracking-tight leading-snug mt-4 mb-2 group-hover:text-[#A78BFA] transition-colors">
+                    <div style={{ fontSize: 17, fontWeight: '700', letterSpacing: '-.3px', lineHeight: 1.3, margin: '16px 0 9px', color: '#FFFFFF' }}>
                       {rel.title}
-                    </h4>
+                    </div>
                   </div>
-                  <div className="text-xs text-[#6A6A7E] font-medium mt-4">
+                  <div style={{ fontSize: 12.5, color: '#6A6A7E', marginTop: 16 }}>
                     {rel.date} · {rel.readTime}
                   </div>
                 </div>
@@ -596,4 +593,3 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
 });
-

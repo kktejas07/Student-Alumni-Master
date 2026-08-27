@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TextInput, useWindowDimensions, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, useWindowDimensions, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
 import { Footer } from '@/src/views/web/nexus-glow-landing/Footer';
@@ -9,7 +9,7 @@ import { Sparkles, Search, Bookmark, X } from 'lucide-react-native';
 const IS_WEB = Platform.OS === 'web';
 const LOCAL_STORAGE_SAVED_KEY = 'sa_blog_saved_posts';
 
-// Mock Blog Posts Database
+// Mock Blog Posts Database matching SA New Theme
 const POSTS = [
   {
     id: 'what-12400-student-profiles-tell-us-about-the-first-job',
@@ -17,7 +17,6 @@ const POSTS = [
     category: 'PLACEMENTS',
     subcategory: 'DATA STUDY',
     description: "Readiness scores rise fastest in the eight weeks after a student's first mentor session — not after their first application. We looked at why, and what it means for how colleges sequence placement prep.",
-    excerpt: 'Readiness scores rise fastest in the eight weeks after a student\'s first mentor session — not after their first application. We looked at why, and what it means for how colleges sequence placement prep.',
     date: 'Aug 18, 2026',
     readTime: '9 min read',
     author: 'Aisha Kapoor',
@@ -118,7 +117,6 @@ export default function BlogListingPage() {
   const [savedPostIds, setSavedPostIds] = useState<string[]>([]);
   const [emailInput, setEmailInput] = useState('');
   const [subscribed, setSubscribed] = useState(false);
-  const [emailError, setEmailError] = useState('');
 
   const isTablet = width < 1150;
   const isMobile = width < 860;
@@ -133,7 +131,7 @@ export default function BlogListingPage() {
           if (Array.isArray(parsed)) setSavedPostIds(parsed);
         }
       } catch (err) {
-        // Fallback gracefully
+        // Fallback
       }
     }
   }, []);
@@ -156,19 +154,15 @@ export default function BlogListingPage() {
     }
   };
 
-  // Filter posts based on active category & search query
   const filteredPosts = POSTS.filter((post) => {
-    // Category match
     let matchesCategory = true;
     if (activeCategory === 'Saved') {
       matchesCategory = savedPostIds.includes(post.id);
     } else if (activeCategory !== 'All') {
       matchesCategory = post.category.toLowerCase() === activeCategory.toLowerCase();
     }
-
     if (!matchesCategory) return false;
 
-    // Search query match
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase().trim();
     return (
@@ -178,20 +172,6 @@ export default function BlogListingPage() {
       (post.author && post.author.toLowerCase().includes(q))
     );
   });
-
-  const handleSubscribe = () => {
-    setEmailError('');
-    const trimmed = emailInput.trim();
-    if (!trimmed || !/\S+@\S+\.\S+/.test(trimmed)) {
-      setEmailError('Please enter a valid email address');
-      return;
-    }
-    setSubscribed(true);
-    setTimeout(() => {
-      setSubscribed(false);
-      setEmailInput('');
-    }, 2800);
-  };
 
   return (
     <View style={styles.outerWrap}>
@@ -208,6 +188,10 @@ export default function BlogListingPage() {
             background: radial-gradient(circle, rgba(91,79,233,.13), transparent 70%);
             filter: blur(80px);
           }
+          .rs-card-hover:hover {
+            transform: translateY(-3px);
+            border-color: #3A3468 !important;
+          }
         `
       }} />
 
@@ -221,38 +205,38 @@ export default function BlogListingPage() {
       <Navbar />
 
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        <section className="pt-32 pb-16 px-6 max-w-[1400px] mx-auto w-full relative z-10">
+        <div style={{ position: 'relative', zIndex: 1, maxWidth: 1400, margin: '0 auto', padding: '34px 28px 90px', width: '100%' }}>
           
           {/* Header & Search Bar */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
-            <div className="max-w-[720px]">
-              <span className="inline-flex items-center gap-2 font-semibold text-xs tracking-widest text-[#A78BFA] bg-[#7C5CFC]/10 border border-[#2C2A52] rounded-full px-4 py-1.5 uppercase">
+          <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'flex-end', justifyContent: 'space-between', gap: 24, marginBottom: 30 }}>
+            <div style={{ maxWidth: 720 }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 11.5, fontWeight: '700', letterSpacing: '1.4px', color: '#A78BFA', background: 'rgba(124,92,252,.18)', borderRadius: 100, padding: '7px 14px' }}>
                 <Sparkles size={13} color="#A78BFA" />
-                BLOG & RESEARCH
+                BLOG
               </span>
-              <h1 className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight leading-[1.1] mt-5 mb-4">
+              <div style={{ fontSize: 40, fontWeight: '700', letterSpacing: '-1.6px', margin: '20px 0 12px', color: '#FFFFFF' }}>
                 What we're learning about early careers
-              </h1>
-              <p className="text-base sm:text-lg text-[#8A8A9E] leading-relaxed">
+              </div>
+              <div style={{ fontSize: 16, lineHeight: 1.65, color: '#8A8A9E' }}>
                 Placement data, mentor practice and product notes from the campuses we work with.
-              </p>
+              </div>
             </div>
 
             {/* Interactive Search Bar */}
-            <div className="relative w-full md:w-[320px]">
-              <div className="relative flex items-center">
-                <Search size={16} color="#8A8A9E" className="absolute left-3.5 pointer-events-none" />
+            <div style={{ width: isMobile ? '100%' : 320, position: 'relative' }}>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <Search size={16} color="#8A8A9E" style={{ position: 'absolute', left: 14, pointerEvents: 'none' }} />
                 <input
                   type="text"
                   placeholder="Search articles or topics..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-[#11111C] border border-[#1F1F30] focus:border-[#7C5CFC] rounded-xl pl-10 pr-9 py-2.5 text-sm text-white placeholder-[#6A6A7E] outline-none transition-all"
+                  style={{ width: '100%', background: '#11111C', border: '1px solid #1F1F30', borderRadius: 12, paddingLeft: 40, paddingRight: 36, paddingTop: 10, paddingBottom: 10, fontSize: 14, color: '#FFFFFF', outline: 'none' }}
                 />
                 {searchQuery !== '' && (
                   <button
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-3 text-[#8A8A9E] hover:text-white transition-colors cursor-pointer"
+                    style={{ position: 'absolute', right: 12, background: 'transparent', border: 'none', color: '#8A8A9E', cursor: 'pointer' }}
                   >
                     <X size={14} />
                   </button>
@@ -263,271 +247,225 @@ export default function BlogListingPage() {
 
           {/* THIS MONTH Light Hero Banner (Shown when no search query and 'All' category) */}
           {activeCategory === 'All' && !searchQuery.trim() && (
-            <div className="relative rounded-3xl overflow-hidden bg-[#F6F7FB] mb-12 border border-[#E7E9F2] shadow-2xl">
+            <div style={{ position: 'relative', borderRadius: 24, overflow: 'hidden', background: '#F6F7FB', marginTop: 26, marginBottom: 30, border: '1px solid #E7E9F2', boxShadow: '0 20px 50px rgba(0,0,0,0.3)' }}>
               <div style={{ position: 'absolute', left: '-8%', top: '-30%', width: '44%', paddingBottom: '44%', borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,92,252,.16), transparent 68%)', pointerEvents: 'none' }} />
               <div style={{ position: 'absolute', right: '-6%', bottom: '-34%', width: '40%', paddingBottom: '40%', borderRadius: '50%', background: 'radial-gradient(circle, rgba(240,166,232,.14), transparent 70%)', pointerEvents: 'none' }} />
-              <div className="relative grid grid-cols-1 lg:grid-cols-12 gap-8 items-center p-8 sm:p-12">
-                <div className="lg:col-span-7">
-                  <span className="inline-flex items-center gap-2 text-xs font-bold tracking-widest text-[#2E2091] bg-[#7C5CFC]/12 border border-[#7C5CFC]/24 rounded-full px-3.5 py-1.5 uppercase">
+              
+              <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: isTablet ? '1fr' : 'minmax(0, 1fr) minmax(0, 1.05fr)', gap: isTablet ? 32 : 44, alignItems: 'center', padding: isMobile ? '30px 24px' : '48px 46px' }}>
+                <div style={{ minWidth: 0 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: '700', letterSpacing: '1.5px', color: '#2E2091', background: 'rgba(124,92,252,.12)', border: '1px solid rgba(124,92,252,.24)', borderRadius: 100, padding: '7px 14px' }}>
                     THIS MONTH
                   </span>
-                  <h2 className="text-3xl sm:text-4xl font-extrabold text-[#14161D] tracking-tight leading-tight mt-5 mb-4">
-                    Readiness rises after<br className="hidden sm:inline"/> a conversation.
-                  </h2>
-                  <p className="text-[#4A5163] text-base leading-relaxed mb-8 max-w-lg">
+                  <div style={{ fontSize: 38, fontWeight: '700', letterSpacing: '-1.5px', lineHeight: 1.14, color: '#14161D', margin: '22px 0 16px' }}>
+                    Readiness rises after<br />a conversation.
+                  </div>
+                  <div style={{ fontSize: 16, lineHeight: 1.7, color: '#4A5163', marginBottom: 30, maxWidth: 460 }}>
                     Two placement cycles of data from 42 institutions, and the one sequencing change that moved the numbers most.
-                  </p>
-                  <div className="grid grid-cols-3 gap-6 mb-8 max-w-md">
+                  </div>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 22, marginBottom: 32, maxWidth: 420 }}>
                     <div>
-                      <div className="text-2xl sm:text-3xl font-bold tracking-tight text-[#4B3FA8]">74%</div>
-                      <div className="text-xs text-[#5B6273] mt-1">mentor-first readiness</div>
+                      <div style={{ fontSize: 26, fontWeight: '700', letterSpacing: '-.9px', color: '#4B3FA8' }}>74%</div>
+                      <div style={{ fontSize: 12.5, lineHeight: 1.45, color: '#5B6273', marginTop: 5 }}>mentor-first readiness</div>
                     </div>
                     <div>
-                      <div className="text-2xl sm:text-3xl font-bold tracking-tight text-[#0E6E8C]">43%</div>
-                      <div className="text-xs text-[#5B6273] mt-1">application-first</div>
+                      <div style={{ fontSize: 26, fontWeight: '700', letterSpacing: '-.9px', color: '#0E6E8C' }}>43%</div>
+                      <div style={{ fontSize: 12.5, lineHeight: 1.45, color: '#5B6273', marginTop: 5 }}>application-first</div>
                     </div>
                     <div>
-                      <div className="text-2xl sm:text-3xl font-bold tracking-tight text-[#047857]">61%</div>
-                      <div className="text-xs text-[#5B6273] mt-1">interviews via referral</div>
+                      <div style={{ fontSize: 26, fontWeight: '700', letterSpacing: '-.9px', color: '#047857' }}>61%</div>
+                      <div style={{ fontSize: 12.5, lineHeight: 1.45, color: '#5B6273', marginTop: 5 }}>interviews via referral</div>
                     </div>
                   </div>
-                  <div className="flex flex-wrap gap-3">
+
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                     <button 
                       onClick={() => router.push('/blog/what-12400-student-profiles-tell-us-about-the-first-job')}
-                      className="bg-[#5B4FE9] hover:bg-[#4F43D6] text-white text-sm font-bold px-6 py-3 rounded-xl transition-all cursor-pointer"
+                      style={{ fontSize: 14, fontWeight: '600', background: '#5B4FE9', color: '#FFFFFF', borderRadius: 11, padding: '13px 22px', border: 'none', cursor: 'pointer', transition: 'all 0.2s ease' }}
                     >
                       Read the study
                     </button>
                     <button 
                       onClick={() => setActiveCategory('Placements')}
-                      className="border border-[#D3D7E4] hover:border-[#5B4FE9] text-[#14161D] text-sm font-bold px-6 py-3 rounded-xl transition-all cursor-pointer"
+                      style={{ fontSize: 14, fontWeight: '600', color: '#14161D', border: '1px solid #D3D7E4', borderRadius: 11, padding: '13px 22px', background: 'rgba(255,255,255,0.6)', cursor: 'pointer', transition: 'all 0.2s ease' }}
                     >
                       Browse all posts
                     </button>
                   </div>
                 </div>
 
-                <div className="lg:col-span-5 grid grid-cols-2 grid-rows-2 gap-3 h-[280px]">
-                  <div className="row-span-2 rounded-2xl overflow-hidden bg-[#E7E9F2] border border-[#D3D7E4] p-5 flex flex-col justify-end bg-gradient-to-br from-[#7C5CFC]/20 to-[#E7E9F2]">
-                    <div className="text-xs font-bold text-[#2E2091]">STUDY INSIGHTS</div>
-                    <div className="text-base font-bold text-[#14161D] mt-1">42 Campuses Analyzed</div>
+                {/* Right Photo Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gridTemplateRows: 'repeat(2, 128px)', gap: 12, minWidth: 0 }}>
+                  <div style={{ position: 'relative', gridRow: 'span 2', borderRadius: 18, overflow: 'hidden', background: '#E7E9F2', border: '1px solid #D3D7E4' }}>
+                    <div style={{ width: '100%', height: '100%', padding: 18, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', background: 'linear-gradient(135deg, rgba(124,92,252,.35), rgba(20,16,45,.88))' }}>
+                      <div style={{ fontSize: 11, fontWeight: '700', letterSpacing: '1.2px', color: '#A78BFA' }}>STUDY INSIGHTS</div>
+                      <div style={{ fontSize: 15, fontWeight: '700', color: '#FFFFFF', marginTop: 2 }}>42 Campuses Analyzed</div>
+                    </div>
                   </div>
-                  <div className="rounded-2xl overflow-hidden bg-[#E7E9F2] border border-[#D3D7E4] p-4 flex flex-col justify-end bg-gradient-to-br from-[#6FD6FF]/20 to-[#E7E9F2]">
-                    <div className="text-xs font-bold text-[#0E6E8C]">MENTOR IMPACT</div>
-                    <div className="text-sm font-bold text-[#14161D] mt-1">12,400 Students</div>
+
+                  <div style={{ position: 'relative', borderRadius: 18, overflow: 'hidden', background: '#E7E9F2', border: '1px solid #D3D7E4' }}>
+                    <div style={{ width: '100%', height: '100%', padding: 14, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', background: 'linear-gradient(135deg, rgba(111,214,255,.35), rgba(15,30,60,.88))' }}>
+                      <div style={{ fontSize: 10.5, fontWeight: '700', letterSpacing: '1px', color: '#6FD6FF' }}>MENTOR IMPACT</div>
+                      <div style={{ fontSize: 13, fontWeight: '700', color: '#FFFFFF', marginTop: 2 }}>12,400 Students</div>
+                    </div>
                   </div>
-                  <div className="rounded-2xl overflow-hidden bg-[#E7E9F2] border border-[#D3D7E4] p-4 flex flex-col justify-end bg-gradient-to-br from-[#34D399]/20 to-[#E7E9F2]">
-                    <div className="text-xs font-bold text-[#047857]">REFERRALS</div>
-                    <div className="text-sm font-bold text-[#14161D] mt-1">61% Placement Rate</div>
+
+                  <div style={{ position: 'relative', borderRadius: 18, overflow: 'hidden', background: '#E7E9F2', border: '1px solid #D3D7E4' }}>
+                    <div style={{ width: '100%', height: '100%', padding: 14, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', background: 'linear-gradient(135deg, rgba(52,211,153,.35), rgba(10,40,30,.88))' }}>
+                      <div style={{ fontSize: 10.5, fontWeight: '700', letterSpacing: '1px', color: '#34D399' }}>REFERRALS</div>
+                      <div style={{ fontSize: 13, fontWeight: '700', color: '#FFFFFF', marginTop: 2 }}>61% Placement Rate</div>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="border-t border-[#E2E5EF] bg-white/70 px-8 py-4 flex items-center gap-6 flex-wrap">
-                <span className="text-xs font-bold tracking-widest text-[#6B7280]">TOPICS</span>
-                <div className="flex gap-6 flex-wrap">
-                  <span onClick={() => setActiveCategory('Placements')} className="text-xs font-bold tracking-wider text-[#3F4658] hover:text-[#5B4FE9] cursor-pointer">PLACEMENTS</span>
-                  <span onClick={() => setActiveCategory('Mentorship')} className="text-xs font-bold tracking-wider text-[#3F4658] hover:text-[#5B4FE9] cursor-pointer">MENTORSHIP</span>
-                  <span onClick={() => setActiveCategory('Product')} className="text-xs font-bold tracking-wider text-[#3F4658] hover:text-[#5B4FE9] cursor-pointer">PRODUCT</span>
-                  <span onClick={() => setActiveCategory('Campus')} className="text-xs font-bold tracking-wider text-[#3F4658] hover:text-[#5B4FE9] cursor-pointer">CAMPUS</span>
-                  <span onClick={() => setActiveCategory('Engineering')} className="text-xs font-bold tracking-wider text-[#3F4658] hover:text-[#5B4FE9] cursor-pointer">ENGINEERING</span>
+              {/* Topics Bar */}
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 26, borderTop: '1px solid #E2E5EF', background: 'rgba(255,255,255,.7)', padding: '20px 46px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 11, fontWeight: '700', letterSpacing: '1.5px', color: '#6B7280', flex: 'none' }}>TOPICS</span>
+                <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap' }}>
+                  <span onClick={() => setActiveCategory('Placements')} style={{ fontSize: 13.5, fontWeight: '700', letterSpacing: '.6px', color: '#3F4658', cursor: 'pointer' }}>PLACEMENTS</span>
+                  <span onClick={() => setActiveCategory('Mentorship')} style={{ fontSize: 13.5, fontWeight: '700', letterSpacing: '.6px', color: '#3F4658', cursor: 'pointer' }}>MENTORSHIP</span>
+                  <span onClick={() => setActiveCategory('Product')} style={{ fontSize: 13.5, fontWeight: '700', letterSpacing: '.6px', color: '#3F4658', cursor: 'pointer' }}>PRODUCT</span>
+                  <span onClick={() => setActiveCategory('Campus')} style={{ fontSize: 13.5, fontWeight: '700', letterSpacing: '.6px', color: '#3F4658', cursor: 'pointer' }}>CAMPUS</span>
+                  <span onClick={() => setActiveCategory('Engineering')} style={{ fontSize: 13.5, fontWeight: '700', letterSpacing: '.6px', color: '#3F4658', cursor: 'pointer' }}>ENGINEERING</span>
                 </div>
               </div>
             </div>
           )}
+
+          {/* Category Filter Chips */}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 30, marginBottom: 22 }}>
+            {CATEGORIES.map((cat) => {
+              const isSelected = activeCategory === cat;
+              return (
+                <span
+                  key={cat}
+                  onClick={() => setActiveCategory(cat)}
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 500,
+                    border: '1px solid',
+                    borderColor: isSelected ? '#7C5CFC' : '#292940',
+                    borderRadius: 100,
+                    padding: '9px 16px',
+                    cursor: 'pointer',
+                    background: isSelected ? 'rgba(124,92,252,.18)' : 'transparent',
+                    color: isSelected ? '#F4F4FA' : '#8A8A9E',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  {cat} {cat === 'Saved' && savedPostIds.length > 0 ? `(${savedPostIds.length})` : ''}
+                </span>
+              );
+            })}
+          </div>
 
           {/* Featured Hero Article (Dark Card) */}
           {activeCategory === 'All' && !searchQuery.trim() && (
             <div 
               onClick={() => router.push('/blog/what-12400-student-profiles-tell-us-about-the-first-job')}
-              className="bg-[#11111C] border border-[#1F1F30] hover:border-[#2C2A52] rounded-3xl p-6 sm:p-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center cursor-pointer transition-all duration-300 shadow-xl mb-12"
+              style={{
+                cursor: 'pointer',
+                display: 'grid',
+                gridTemplateColumns: isTablet ? '1fr' : 'minmax(0, 1.2fr) minmax(0, 1fr)',
+                gap: 26,
+                border: '1px solid #1F1F30',
+                borderRadius: 20,
+                background: '#11111C',
+                padding: 26,
+                marginTop: 22,
+                marginBottom: 28,
+                alignItems: 'center'
+              }}
             >
-              <div className="lg:col-span-7 flex flex-col justify-between h-full">
-                <div>
-                  <div className="flex items-center justify-between gap-2.5 mb-5">
-                    <div className="flex gap-2.5">
-                      <span className="text-[10px] font-bold tracking-wider text-[#F5B342] bg-[#F5B342]/10 border border-[#4A3410] rounded-lg px-2.5 py-1 uppercase">
-                        FEATURED
-                      </span>
-                      <span className="text-[10px] font-bold tracking-wider text-[#A78BFA] bg-[#7C5CFC]/18 border border-[#2C2A52] rounded-lg px-2.5 py-1 uppercase">
-                        PLACEMENTS
-                      </span>
-                    </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 16 }}>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <span style={{ fontSize: 10.5, fontWeight: '700', letterSpacing: '1px', color: '#F5B342', background: 'rgba(245,179,66,.13)', border: '1px solid #4A3410', borderRadius: 7, padding: '5px 10px' }}>
+                      FEATURED
+                    </span>
+                    <span style={{ fontSize: 10.5, fontWeight: '700', letterSpacing: '1px', color: '#A78BFA', background: 'rgba(124,92,252,.18)', border: '1px solid #2C2A52', borderRadius: 7, padding: '5px 10px' }}>
+                      PLACEMENTS
+                    </span>
+                  </div>
 
-                    <button
-                      onClick={(e) => toggleSavePost('what-12400-student-profiles-tell-us-about-the-first-job', e)}
-                      className="p-2 rounded-lg border border-[#1F1F30] hover:border-[#7C5CFC] text-[#8A8A9E] hover:text-white transition-all cursor-pointer"
-                      title={savedPostIds.includes('what-12400-student-profiles-tell-us-about-the-first-job') ? 'Unsave Post' : 'Save Post'}
-                    >
-                      <Bookmark size={15} color={savedPostIds.includes('what-12400-student-profiles-tell-us-about-the-first-job') ? '#A78BFA' : 'currentColor'} fill={savedPostIds.includes('what-12400-student-profiles-tell-us-about-the-first-job') ? '#A78BFA' : 'none'} />
-                    </button>
-                  </div>
-                  <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight leading-tight mb-4">
-                    What 12,400 student profiles tell us about the first job
-                  </h2>
-                  <p className="text-[#8A8A9E] text-sm sm:text-base leading-relaxed mb-6">
-                    Readiness scores rise fastest in the eight weeks after a student's first mentor session — not after their first application. We looked at why, and what it means for how colleges sequence placement prep.
-                  </p>
+                  <button
+                    onClick={(e) => toggleSavePost('what-12400-student-profiles-tell-us-about-the-first-job', e)}
+                    style={{ padding: 6, borderRadius: 8, border: '1px solid #1F1F30', background: 'transparent', color: '#8A8A9E', cursor: 'pointer' }}
+                    title={savedPostIds.includes('what-12400-student-profiles-tell-us-about-the-first-job') ? 'Unsave Post' : 'Save Post'}
+                  >
+                    <Bookmark size={15} color={savedPostIds.includes('what-12400-student-profiles-tell-us-about-the-first-job') ? '#A78BFA' : 'currentColor'} fill={savedPostIds.includes('what-12400-student-profiles-tell-us-about-the-first-job') ? '#A78BFA' : 'none'} />
+                  </button>
                 </div>
-                
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-[#7C5CFC] text-white flex items-center justify-center text-sm font-bold">
+
+                <div style={{ fontSize: 27, fontWeight: '700', letterSpacing: '-.9px', lineHeight: 1.2, color: '#FFFFFF' }}>
+                  What 12,400 student profiles tell us about the first job
+                </div>
+                <div style={{ fontSize: 14.5, lineHeight: 1.65, color: '#8A8A9E', margin: '12px 0 20px' }}>
+                  Readiness scores rise fastest in the eight weeks after a student's first mentor session — not after their first application. We looked at why, and what it means for how colleges sequence placement prep.
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span style={{ width: 36, height: 36, borderRadius: '50%', background: '#7C5CFC', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: '700' }}>
                     AK
-                  </div>
+                  </span>
                   <div>
-                    <div className="text-sm font-semibold text-white">Aisha Kapoor</div>
-                    <div className="text-xs text-[#8A8A9E] mt-0.5">Aug 18, 2026 · 9 min read</div>
+                    <div style={{ fontSize: 13.5, fontWeight: '600', color: '#FFFFFF' }}>Aisha Kapoor</div>
+                    <div style={{ fontSize: 12.5, color: '#8A8A9E' }}>Aug 18, 2026 · 9 min read</div>
                   </div>
                 </div>
               </div>
 
-              {/* Featured Visual */}
-              <div className="lg:col-span-5 relative rounded-2xl overflow-hidden border border-[#292940] bg-gradient-to-br from-[#7C5CFC]/18 to-[#11111C] aspect-[4/3] flex items-end p-6">
-                <svg viewBox="0 0 300 180" className="absolute inset-0 w-full h-full opacity-50">
+              {/* Visual Graph Card */}
+              <div style={{ position: 'relative', borderRadius: 16, overflow: 'hidden', border: '1px solid #292940', background: 'linear-gradient(150deg, rgba(124,92,252,.18), #11111C 68%)', aspectRatio: '4 / 3', display: 'flex', alignItems: 'flex-end', padding: 22 }}>
+                <svg viewBox="0 0 300 180" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.5 }}>
                   <path d="M10 160 C 70 150 100 108 150 92 C 200 76 240 40 292 16" style={{ fill: 'none', stroke: '#8B84FF', strokeWidth: 2.4 }} />
                   <circle cx="150" cy="92" r="4" fill="#C4B5FD" />
                   <circle cx="292" cy="16" r="5" fill="#FFFFFF" />
                 </svg>
-                <div className="relative">
-                  <div className="text-3xl font-bold text-white tracking-tight">+31%</div>
-                  <div className="text-xs text-[#8A8A9E] mt-1">readiness lift after first session</div>
+                <div style={{ position: 'relative' }}>
+                  <div style={{ fontSize: 34, fontWeight: '700', letterSpacing: '-1.2px', color: '#FFFFFF' }}>+31%</div>
+                  <div style={{ fontSize: 12.5, color: '#8A8A9E', marginTop: 4 }}>readiness lift after first session</div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Categories Filter Pills & Count */}
-          <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
-            <div className="flex flex-wrap gap-2">
-              {CATEGORIES.map((cat) => {
-                const count = cat === 'Saved' 
-                  ? savedPostIds.length 
-                  : cat === 'All' 
-                  ? POSTS.length 
-                  : POSTS.filter(p => p.category.toLowerCase() === cat.toLowerCase()).length;
-
-                return (
-                  <button
-                    key={cat}
-                    onClick={() => setActiveCategory(cat)}
-                    className={`text-sm font-medium border rounded-full px-4 py-2 transition-all duration-200 cursor-pointer flex items-center gap-2 ${
-                      activeCategory === cat
-                        ? 'bg-[#7C5CFC]/18 border-[#7C5CFC] text-white'
-                        : 'border-[#292940] text-[#8A8A9E] hover:border-[#7C5CFC]'
-                    }`}
-                  >
-                    {cat === 'Saved' && <Bookmark size={13} color={activeCategory === 'Saved' ? '#A78BFA' : '#8A8A9E'} />}
-                    {cat}
-                    <span className="text-[11px] opacity-75 font-semibold">({count})</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="text-xs font-semibold text-[#8A8A9E]">
-              Showing <span className="text-white font-bold">{filteredPosts.filter((p) => activeCategory !== 'All' || searchQuery.trim() !== '' || !p.isFeatured).length}</span> article{filteredPosts.length === 1 ? '' : 's'}
-            </div>
-          </div>
-
-          {/* Grid Layout of Articles */}
-          {filteredPosts.length > 0 ? (
-            <div className={`grid gap-5 ${isMobile ? 'grid-cols-1' : isTablet ? 'grid-cols-2' : 'grid-cols-3'}`}>
-              {filteredPosts
-                .filter((p) => activeCategory !== 'All' || searchQuery.trim() !== '' || !p.isFeatured)
-                .map((post) => {
-                  const isSaved = savedPostIds.includes(post.id);
-                  return (
-                    <div
-                      key={post.id}
-                      onClick={() => router.push(`/blog/${post.id}`)}
-                      className="group border border-[#1F1F30] hover:border-[#2C2A52] rounded-2xl bg-[#11111C] shadow-lg p-6 flex flex-col justify-between cursor-pointer transition-all duration-300 relative"
+          {/* 3-Column Articles Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : isTablet ? 'repeat(2, minmax(0, 1fr))' : 'repeat(3, minmax(0, 1fr))', gap: 18, marginTop: 20 }}>
+            {filteredPosts.filter(p => !p.isFeatured || activeCategory !== 'All' || searchQuery.trim()).map((post) => (
+              <div
+                key={post.id}
+                onClick={() => router.push(`/blog/${post.id}`)}
+                className="rs-card-hover"
+                style={{ border: '1px solid #1F1F30', borderRadius: 18, background: '#11111C', boxShadow: '0 18px 40px rgba(0,0,0,.35)', padding: '22px 24px 24px', cursor: 'pointer', transition: 'all 0.25s ease', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyBetween: 'space-between', gap: 10, marginBottom: 16 }}>
+                    <span style={{ fontSize: 10.5, fontWeight: '700', letterSpacing: '1px', color: post.tagColor, background: post.tagBg, border: `1px solid ${post.tagLine}`, borderRadius: 7, padding: '5px 10px' }}>
+                      {post.category}
+                    </span>
+                    <button
+                      onClick={(e) => toggleSavePost(post.id, e)}
+                      style={{ padding: 4, borderRadius: 6, border: 'none', background: 'transparent', color: '#8A8A9E', cursor: 'pointer', marginLeft: 'auto' }}
                     >
-                      <div>
-                        <div className="flex items-center justify-between gap-2 mb-3">
-                          <span 
-                            className="inline-block text-[10px] font-bold tracking-wider rounded-lg px-2.5 py-1 uppercase"
-                            style={{ color: post.tagColor, backgroundColor: post.tagBg, border: `1px solid ${post.tagLine}` }}
-                          >
-                            {post.category}
-                          </span>
-
-                          <button
-                            onClick={(e) => toggleSavePost(post.id, e)}
-                            className="p-1.5 rounded-lg border border-transparent hover:border-[#1F1F30] text-[#6A6A7E] hover:text-white transition-all cursor-pointer"
-                            title={isSaved ? 'Unsave Post' : 'Save Post'}
-                          >
-                            <Bookmark size={14} color={isSaved ? '#A78BFA' : 'currentColor'} fill={isSaved ? '#A78BFA' : 'none'} />
-                          </button>
-                        </div>
-
-                        <h3 className="text-lg font-bold text-white tracking-tight leading-snug mb-2.5 group-hover:text-[#A78BFA] transition-colors">
-                          {post.title}
-                        </h3>
-                        <p className="text-sm leading-relaxed text-[#8A8A9E] mb-5">
-                          {post.description}
-                        </p>
-                      </div>
-                      <div className="text-xs text-[#6A6A7E] font-medium flex items-center justify-between">
-                        <span>{post.date} · {post.readTime}</span>
-                        {post.author && <span className="text-[#8A8A9E]">{post.author}</span>}
-                      </div>
-                    </div>
-                  );
-                })}
-            </div>
-          ) : (
-            <div className="border border-[#1F1F30] rounded-2xl bg-[#11111C] p-12 text-center max-w-xl mx-auto my-8">
-              <div className="w-12 h-12 rounded-full bg-[#7C5CFC]/12 text-[#A78BFA] flex items-center justify-center mx-auto mb-4 font-bold text-lg">
-                ?
+                      <Bookmark size={14} color={savedPostIds.includes(post.id) ? '#A78BFA' : 'currentColor'} fill={savedPostIds.includes(post.id) ? '#A78BFA' : 'none'} />
+                    </button>
+                  </div>
+                  <div style={{ fontSize: 18, fontWeight: '700', letterSpacing: '-.4px', lineHeight: 1.3, margin: '16px 0 9px', color: '#FFFFFF' }}>
+                    {post.title}
+                  </div>
+                  <div style={{ fontSize: 13.5, lineHeight: 1.6, color: '#8A8A9E', marginBottom: 18 }}>
+                    {post.description}
+                  </div>
+                </div>
+                <div style={{ fontSize: 12.5, color: '#6A6A7E' }}>
+                  {post.date} · {post.readTime}
+                </div>
               </div>
-              <h3 className="text-xl font-bold text-white mb-2">No articles found</h3>
-              <p className="text-sm text-[#8A8A9E] mb-6">
-                {activeCategory === 'Saved'
-                  ? 'You have not saved any articles yet. Click the bookmark icon on any post to save it for later.'
-                  : `We couldn't find any articles matching "${searchQuery || activeCategory}". Try clearing your filters.`}
-              </p>
-              <button
-                onClick={() => {
-                  setActiveCategory('All');
-                  setSearchQuery('');
-                }}
-                className="bg-[#7C5CFC]/18 border border-[#7C5CFC] text-white text-xs font-bold px-5 py-2.5 rounded-xl hover:bg-[#7C5CFC]/30 transition-all cursor-pointer"
-              >
-                Clear all filters
-              </button>
-            </div>
-          )}
-
-          {/* Newsletter Section */}
-          <div className="border border-[#292940] rounded-2xl bg-gradient-to-br from-[#7C5CFC]/10 to-[#11111C]/30 p-8 flex flex-col md:flex-row justify-between items-center gap-6 mt-16">
-            <div className="flex-1 min-w-[260px]">
-              <h3 className="text-lg font-bold text-white tracking-tight">One email a month. Nothing else.</h3>
-              <p className="text-sm text-[#8A8A9E] mt-1">New openings, mentor drops and campus events — no noise.</p>
-              {emailError !== '' && (
-                <p className="text-xs text-[#F0616B] mt-1.5 font-medium">{emailError}</p>
-              )}
-            </div>
-            <div className="flex flex-row flex-wrap gap-2 w-full md:w-auto md:flex-nowrap">
-              <TextInput
-                placeholder="you@college.edu"
-                placeholderTextColor="#6A6A7E"
-                value={emailInput}
-                onChangeText={(text) => {
-                  setEmailInput(text);
-                  if (emailError) setEmailError('');
-                }}
-                className="flex-1 md:w-[240px] border border-[#1F1F30] rounded-xl bg-black/30 px-4 py-3 text-sm text-white focus:outline-none focus:border-[#7C5CFC]"
-              />
-              <button
-                onClick={handleSubscribe}
-                className="bg-[#5B4FE9] hover:bg-[#4F43D6] text-white text-sm font-bold px-6 py-3 rounded-xl transition-all cursor-pointer whitespace-nowrap"
-              >
-                {subscribed ? 'Subscribed ✓' : 'Subscribe'}
-              </button>
-            </div>
+            ))}
           </div>
 
-        </section>
+        </div>
 
         <Footer />
       </ScrollView>
@@ -545,4 +483,3 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
 });
-
