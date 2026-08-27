@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, useWindowDimensions, Platform } from 'react-native';
 import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
 import { Footer } from '@/src/views/web/nexus-glow-landing/Footer';
-import { ShieldCheck, FileText, Check, AlertTriangle, Info, Download } from 'lucide-react-native';
+import { FileText, Check, AlertTriangle, Info, Download } from 'lucide-react-native';
 
 const IS_WEB = Platform.OS === 'web';
 
@@ -15,14 +15,6 @@ const JUMP_SECTIONS = [
   { id: 'pr-5', label: 'Global transfers and other regions' },
   { id: 'pr-6', label: 'How long we keep it' },
   { id: 'pr-7', label: 'Changes and how to complain' },
-  { id: 'tm-0', label: 'Terms: Agreement and eligibility' },
-  { id: 'tm-1', label: 'Terms: What the service is — and is not' },
-  { id: 'tm-2', label: 'Terms: Your responsibilities' },
-  { id: 'tm-3', label: 'Terms: Payments, refunds and cancellations' },
-  { id: 'tm-4', label: 'Terms: Your content and our platform' },
-  { id: 'tm-5', label: 'Terms: Liability' },
-  { id: 'tm-6', label: 'Terms: Suspension, termination and survival' },
-  { id: 'tm-7', label: 'Terms: Governing law and disputes' },
 ];
 
 export default function PrivacyPolicyPage() {
@@ -79,7 +71,8 @@ export default function PrivacyPolicyPage() {
             filter: blur(80px);
           }
           .jump-item[data-on="true"] {
-            color: #F4F4FA !important;
+            color: #FFFFFF !important;
+            font-weight: 600 !important;
             border-left-color: #7C5CFC !important;
           }
         `
@@ -98,11 +91,10 @@ export default function PrivacyPolicyPage() {
           
           {/* Header */}
           <div className="max-w-[780px] mb-8">
-            <span className="inline-flex items-center gap-2 text-xs font-bold tracking-widest text-[#A78BFA] bg-[#7C5CFC]/18 rounded-full px-4 py-1.5 uppercase">
-              <FileText size={13} color="#A78BFA" />
+            <span className="inline-flex items-center gap-2 text-xs font-bold tracking-widest text-white bg-[#5B4FE9] rounded-full px-4 py-1.5 uppercase mb-6 shadow-md">
               LEGAL · PRIVACY & TERMS
             </span>
-            <h1 className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight leading-[1.1] mt-5 mb-4">
+            <h1 className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight leading-[1.1] mt-4 mb-4">
               Privacy & Terms
             </h1>
             <p className="text-base sm:text-lg text-[#8A8A9E] leading-relaxed mb-6">
@@ -110,8 +102,8 @@ export default function PrivacyPolicyPage() {
             </p>
 
             <div className="flex flex-wrap gap-2.5 items-center">
-              <span className="text-xs text-[#8A8A9E] border border-[#292940] rounded-full px-3.5 py-1.5">Version 3.0</span>
-              <span className="text-xs text-[#8A8A9E] border border-[#292940] rounded-full px-3.5 py-1.5">Effective August 22, 2026</span>
+              <span className="text-xs text-[#8A8A9E] border border-[#292940] rounded-full px-3.5 py-1.5 bg-[#11111C]">Version 3.0</span>
+              <span className="text-xs text-[#8A8A9E] border border-[#292940] rounded-full px-3.5 py-1.5 bg-[#11111C]">Effective August 22, 2026</span>
               <button className="inline-flex items-center gap-1.5 text-xs font-semibold text-white border border-[#292940] hover:border-[#7C5CFC] rounded-full px-4 py-1.5 bg-[#11111C] cursor-pointer transition-all">
                 <Download size={13} color="currentColor" />
                 Download PDF
@@ -167,7 +159,7 @@ export default function PrivacyPolicyPage() {
                   </div>
                   <div className="flex items-start gap-3">
                     <Check size={15} color="#A78BFA" className="mt-1 flex-shrink-0" />
-                    <span>Data Protection Officer (EU/UK): <span className="text-white font-medium">dpo@studentalumni.ai</span></span>
+                    <span>Data Protection Officer (EU/UK): <span className="text-white font-medium">dpog@studentalumni.ai</span></span>
                   </div>
                   <div className="flex items-start gap-3">
                     <Check size={15} color="#A78BFA" className="mt-1 flex-shrink-0" />
@@ -208,11 +200,14 @@ export default function PrivacyPolicyPage() {
                   ))}
                 </div>
 
-                <div className="flex items-start gap-3 border border-[#2C2A52] rounded-xl bg-[#7C5CFC]/7 p-4">
-                  <Info size={16} color="#A78BFA" className="mt-0.5 flex-shrink-0" />
+                {/* Sensitive Categories Callout Box */}
+                <div className="flex items-start gap-3.5 border border-[#2C2A52] rounded-2xl bg-[#7C5CFC]/7 p-5 mt-4">
+                  <div className="w-5 h-5 rounded-full border border-[#A78BFA] flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Info size={11} color="#A78BFA" />
+                  </div>
                   <div>
-                    <div className="text-sm font-semibold text-white mb-1">Sensitive categories</div>
-                    <div className="text-xs sm:text-sm text-[#8A8A9E]">
+                    <div className="text-base font-bold text-white mb-1">Sensitive categories</div>
+                    <div className="text-xs sm:text-sm text-[#8A8A9E] leading-relaxed">
                       We do not ask for caste, religion, health, biometric templates or political views. Aadhaar numbers are stored encrypted, masked in every interface, and used only to verify identity against UIDAI — never for profiling or advertising.
                     </div>
                   </div>
@@ -234,13 +229,13 @@ export default function PrivacyPolicyPage() {
                   </div>
                   {[
                     { p: 'Create and run your account', dpdp: 'Consent', gdpr: 'Contract, Art. 6(1)(b)' },
-                    { p: 'Verify student/alumnus status', dpdp: 'Consent', gdpr: 'Contract / legal obligation' },
-                    { p: 'Match mentors, roles & events', dpdp: 'Consent', gdpr: 'Contract' },
-                    { p: 'Payments, invoices & refunds', dpdp: 'Legitimate use — contract', gdpr: 'Contract / legal obligation' },
-                    { p: 'Security & fraud prevention', dpdp: 'Legitimate use', gdpr: 'Legitimate interests, Art. 6(1)(f)' },
-                    { p: 'Product analytics & improvement', dpdp: 'Consent', gdpr: 'Legitimate interests' },
+                    { p: 'Verify you are a student or alumnus', dpdp: 'Consent', gdpr: 'Contract / legal obligation' },
+                    { p: 'Match you to mentors, roles and events', dpdp: 'Consent', gdpr: 'Contract' },
+                    { p: 'Payments, invoices and refunds', dpdp: 'Legitimate use — contract', gdpr: 'Contract / legal obligation' },
+                    { p: 'Security, fraud and abuse prevention', dpdp: 'Legitimate use', gdpr: 'Legitimate interests, Art. 6(1)(f)' },
+                    { p: 'Product analytics and improvement', dpdp: 'Consent', gdpr: 'Legitimate interests' },
                     { p: 'Marketing email', dpdp: 'Consent', gdpr: 'Consent, Art. 6(1)(a)' },
-                    { p: 'Tax & regulatory duties', dpdp: 'Legitimate use — law', gdpr: 'Legal obligation, Art. 6(1)(c)' },
+                    { p: 'Meeting tax and regulatory duties', dpdp: 'Legitimate use — law', gdpr: 'Legal obligation, Art. 6(1)(c)' },
                   ].map((row, idx) => (
                     <div key={idx} className="grid grid-cols-3 gap-3 border-t border-[#1F1F30] p-3.5 text-xs sm:text-sm">
                       <span className="font-semibold text-white">{row.p}</span>
@@ -285,6 +280,23 @@ export default function PrivacyPolicyPage() {
                     <span><strong className="text-white font-semibold">Withdraw consent (s.6(4))</strong> — as easily as it was given; we stop processing within a reasonable period.</span>
                   </div>
                 </div>
+
+                {/* Students under 18 Callout Box */}
+                <div className="flex items-start gap-3.5 border border-[#2C2A52] rounded-2xl bg-[#7C5CFC]/7 p-5 my-4">
+                  <div className="w-5 h-5 rounded-full border border-[#A78BFA] flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Info size={11} color="#A78BFA" />
+                  </div>
+                  <div>
+                    <div className="text-base font-bold text-white mb-1">Students under 18</div>
+                    <div className="text-xs sm:text-sm text-[#8A8A9E] leading-relaxed">
+                      Under DPDP s.9 we require verifiable parental or guardian consent before processing the data of a child, and we do not undertake tracking, behavioural monitoring or targeted advertising directed at children. Age is checked at sign-up; where a college onboards a cohort, the institution warrants that it holds the necessary consents.
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-xs sm:text-sm text-[#8A8A9E]">
+                  You also have a duty under s.15 not to impersonate another person, suppress material information, or file a frivolous complaint.
+                </p>
               </div>
 
               {/* Section 05: Your rights in the US */}
@@ -299,11 +311,11 @@ export default function PrivacyPolicyPage() {
                 <div className="space-y-3 pt-2">
                   <div className="flex items-start gap-3">
                     <Check size={15} color="#A78BFA" className="mt-1 flex-shrink-0" />
-                    <span><strong className="text-white font-semibold">CCPA / CPRA (California)</strong> — know, access, delete, correct, portability, limit use of sensitive personal information, and opt out of sale or sharing. We do not sell or share.</span>
+                    <span><strong className="text-white font-semibold">CCPA / CPRA (California)</strong> — know, access, delete, correct, portability, limit use of sensitive personal information, and opt out of sale or sharing. We do not sell or share as those terms are defined. No discrimination for exercising a right.</span>
                   </div>
                   <div className="flex items-start gap-3">
                     <Check size={15} color="#A78BFA" className="mt-1 flex-shrink-0" />
-                    <span><strong className="text-white font-semibold">FERPA</strong> — where a US institution engages us as a school official, education records are processed only under its direction.</span>
+                    <span><strong className="text-white font-semibold">Virginia, Colorado, Connecticut, Utah, Texas, Oregon, Montana and other state acts</strong> — access, correction, deletion, portability, opt-out of targeted advertising and profiling, and appeal of a refused request.</span>
                   </div>
                 </div>
               </div>
@@ -334,9 +346,11 @@ export default function PrivacyPolicyPage() {
                   {[
                     { d: 'Active account', r: 'While account is open', w: 'To provide the service' },
                     { d: 'Closed account', r: 'Deleted within 30 days', w: 'DPDP purpose limitation' },
-                    { d: 'Payment records', r: '8 financial years', w: 'Indian tax & audit law' },
-                    { d: 'Verification logs', r: '3 years', w: 'Fraud prevention' },
+                    { d: 'Payment records', r: '8 financial years', w: 'Indian tax and audit law' },
+                    { d: 'Verification logs', r: '3 years', w: 'Fraud prevention, dispute resolution' },
+                    { d: 'Support tickets', r: '2 years', w: 'Service quality and appeals' },
                     { d: 'Security event logs', r: '12 months', w: 'Incident investigation' },
+                    { d: 'Aggregate analytics', r: 'Indefinite, de-identified', w: 'No longer personal data' },
                   ].map((row, idx) => (
                     <div key={idx} className="grid grid-cols-3 gap-3 border-t border-[#1F1F30] p-3.5 text-xs sm:text-sm">
                       <span className="font-semibold text-white">{row.d}</span>
@@ -354,77 +368,11 @@ export default function PrivacyPolicyPage() {
                   <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">Changes and how to complain</h2>
                 </div>
                 <p>
-                  We notify you in the product and by email at least 14 days before a material change takes effect. If we have not resolved your concern, you may escalate to the Data Protection Board of India or your local supervisory authority.
+                  We notify you in the product and by email at least 14 days before a material change takes effect, and keep every prior version available for download. Continuing to use the service after the effective date means you accept the revised policy.
                 </p>
-              </div>
-
-              {/* TERMS OF USE SECTION */}
-              <div className="pt-10 mt-10 border-t border-[#292940]">
-                <span className="inline-flex items-center gap-2 text-xs font-bold tracking-widest text-[#A78BFA] bg-[#7C5CFC]/18 rounded-full px-4 py-1.5 uppercase mb-8">
-                  TERMS OF USE
-                </span>
-
-                <div id="tm-0" className="space-y-4 mb-8">
-                  <h3 className="text-xl font-bold text-white tracking-tight">01. Agreement and eligibility</h3>
-                  <p>
-                    By creating an account you accept these terms. Student accounts require a verified college affiliation. You must be at least 16 to hold an account in your own name; between 13 and 18 you need verifiable parental consent.
-                  </p>
-                </div>
-
-                <div id="tm-1" className="space-y-4 mb-8">
-                  <h3 className="text-xl font-bold text-white tracking-tight">02. What the service is — and is not</h3>
-                  <div className="flex items-start gap-3 border border-[#2C2A52] rounded-xl bg-[#7C5CFC]/7 p-4">
-                    <Info size={16} color="#A78BFA" className="mt-0.5 flex-shrink-0" />
-                    <div>
-                      <div className="text-sm font-semibold text-white mb-1">No guarantee of outcome</div>
-                      <div className="text-xs sm:text-sm text-[#8A8A9E]">
-                        We provide tools: career roadmaps, mentor introductions, event tickets and verified identity. We do not promise a job, internship, interview, referral or specific salary.
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div id="tm-2" className="space-y-4 mb-8">
-                  <h3 className="text-xl font-bold text-white tracking-tight">03. Your responsibilities</h3>
-                  <p>
-                    Keep your academic credentials accurate. Do not impersonate anyone, misstate qualifications, scrape platform data, or upload malware. Respect community etiquette.
-                  </p>
-                </div>
-
-                <div id="tm-3" className="space-y-4 mb-8">
-                  <h3 className="text-xl font-bold text-white tracking-tight">04. Payments, refunds and cancellations</h3>
-                  <p>
-                    Event tickets: full refund up to 24 hours before event starts. Mentor sessions: full refund if cancelled 12 hours ahead. Subscriptions can be cancelled at any time before renewal.
-                  </p>
-                </div>
-
-                <div id="tm-4" className="space-y-4 mb-8">
-                  <h3 className="text-xl font-bold text-white tracking-tight">05. Your content and our platform</h3>
-                  <p>
-                    You retain full ownership of resumes, projects, and photos you upload. You grant us a non-exclusive licence to display that content to deliver the service.
-                  </p>
-                </div>
-
-                <div id="tm-5" className="space-y-4 mb-8">
-                  <h3 className="text-xl font-bold text-white tracking-tight">06. Liability</h3>
-                  <p>
-                    Our total aggregate liability is limited to the amount paid in the preceding 12 months, or INR 5,000. Statutory consumer rights remain unaffected.
-                  </p>
-                </div>
-
-                <div id="tm-6" className="space-y-4 mb-8">
-                  <h3 className="text-xl font-bold text-white tracking-tight">07. Suspension and termination</h3>
-                  <p>
-                    You may close your account at any time. We may terminate on 30 days notice, or immediately for serious fraud, harassment or security breaches.
-                  </p>
-                </div>
-
-                <div id="tm-7" className="space-y-4">
-                  <h3 className="text-xl font-bold text-white tracking-tight">08. Governing law and disputes</h3>
-                  <p>
-                    Governed by the laws of India with exclusive jurisdiction in courts at Hyderabad, Telangana.
-                  </p>
-                </div>
+                <p>
+                  If we have not resolved your concern, you may escalate to the Data Protection Board of India, to your EU or UK supervisory authority, to your state Attorney General in the US, or to the regulator in your own country. We will cooperate with any of them.
+                </p>
               </div>
 
             </div>
