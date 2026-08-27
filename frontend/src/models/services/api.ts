@@ -483,6 +483,8 @@ export const api = {
     request<any>(`/echo/admin/registrations/${regId}/resend-tickets`, { method: 'POST' }),
   adminEchoRevenue: () =>
     request<any>('/echo/admin/revenue'),
+  adminRevenueAudit: () =>
+    request<any>('/admin/super/revenue-audit'),
   myEchoInvoices: () =>
     request<any>('/echo/my-invoices'),
   myEchoRegistrations: () =>

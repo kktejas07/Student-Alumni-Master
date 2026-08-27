@@ -1587,8 +1587,13 @@ async def revenue_audit(user: dict = Depends(require_role('admin'))):
     Shows every registration's fee, payment_id, and status so you can
     pinpoint exactly where the discrepancy is.
     """
-    # 1) All registrations from DB
-    all_regs = await _db.echo_registrations.find({}).sort("created_at", -1).to_list(5000)
+    try:
+        # 1) All registrations from DB
+        all_regs = await _db.echo_registrations.find({}).sort("created_at", -1).to_list(5000)
+    except Exception as e:
+        print(f"[AUDIT] DB query failed: {e}")
+        all_regs = []
+
     breakdown = []
     db_total_paid = 0.0
     db_total_admin = 0.0
@@ -1640,8 +1645,13 @@ async def revenue_audit(user: dict = Depends(require_role('admin'))):
         elif status == "failed":
             db_total_failed += fee
 
-    # 2) Razorpay settlements
-    settlements = await _fetch_razorpay_settlements(_db)
+    # 2) Razorpay settlements — wrapped in try/except so a Razorpay failure
+    #    never blocks the DB audit data from being returned.
+    settlements = {}
+    try:
+        settlements = await _fetch_razorpay_settlements(_db)
+    except Exception as e:
+        print(f"[AUDIT] Razorpay settlements fetch failed: {e}")
     razorpay_settled = (settlements.get("totals") or {}).get("settled", 0)
     razorpay_fees = (settlements.get("totals") or {}).get("fees", 0)
     razorpay_tax = (settlements.get("totals") or {}).get("tax", 0)

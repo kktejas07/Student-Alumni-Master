@@ -2913,7 +2913,7 @@ function RegistrationsPanel() {
   const loadAudit = async () => {
     setAuditLoading(true);
     try {
-      const r = await request<any>('/admin/super/revenue-audit');
+      const r = await api.adminRevenueAudit();
       setAuditData(r);
       setShowAudit(true);
     } catch {
