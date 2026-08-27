@@ -28,7 +28,7 @@ import {
   Copy, Check, Search, RefreshCw, PlusCircle, FileText, Link2,
   Image as ImageIcon, HardDrive, Calendar, Layout, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Users,
   Ticket, Mail, ScanLine, Phone,
-  CupSoda, UtensilsCrossed, Cookie, Sandwich, Coffee, Lock, XCircle, Clock,
+  CupSoda, UtensilsCrossed, Cookie, Sandwich, Coffee, Lock, XCircle, Clock, CheckCircle,
 } from 'lucide-react-native';
 import {
   GRAD, GradientButton, SecondaryButton, Card,
