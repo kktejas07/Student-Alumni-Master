@@ -83,6 +83,39 @@ const POSTS_MAP: Record<string, any> = {
   },
 };
 
+const RELATED_POSTS = [
+  {
+    id: 'the-three-questions-that-make-a-mentor-call-useful',
+    title: 'The three questions that make a mentor call useful',
+    category: 'MENTORSHIP',
+    date: 'Aug 12, 2026',
+    readTime: '6 min read',
+    tagColor: '#6FD6FF',
+    tagBg: 'rgba(47, 184, 198, 0.12)',
+    tagLine: '#1F4E5C',
+  },
+  {
+    id: 'tier-2-colleges-are-closing-the-referral-gap',
+    title: 'Tier-2 colleges are closing the referral gap',
+    category: 'PLACEMENTS',
+    date: 'Jul 14, 2026',
+    readTime: '7 min read',
+    tagColor: '#6FD6FF',
+    tagBg: 'rgba(47, 184, 198, 0.12)',
+    tagLine: '#1F4E5C',
+  },
+  {
+    id: 'agent-k-now-runs-multi-step-tasks-end-to-end',
+    title: 'Agent K now runs multi-step tasks end to end',
+    category: 'PRODUCT',
+    date: 'Aug 06, 2026',
+    readTime: '5 min read',
+    tagColor: '#A78BFA',
+    tagBg: 'rgba(124, 92, 252, 0.18)',
+    tagLine: '#2C2A52',
+  },
+];
+
 const SECTIONS = [
   { id: 'po-0', label: 'The pattern we did not expect' },
   { id: 'po-1', label: 'What the data actually shows' },
@@ -96,6 +129,8 @@ export default function BlogDetailPage() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const { width } = useWindowDimensions();
   const [activeSection, setActiveSection] = useState('po-0');
+  const [shared, setShared] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   const isMobile = width < 860;
 
@@ -134,6 +169,18 @@ export default function BlogDetailPage() {
         });
       }
     }
+  };
+
+  const handleShare = () => {
+    if (IS_WEB && typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(window.location.href);
+      setShared(true);
+      setTimeout(() => setShared(false), 2000);
+    }
+  };
+
+  const handleSave = () => {
+    setSaved(!saved);
   };
 
   return (
@@ -199,7 +246,7 @@ export default function BlogDetailPage() {
 
             {/* Author and meta info */}
             <div className="flex items-center gap-3.5 mt-8 pt-6 border-t border-[#1F1F30] flex-wrap">
-              <span className="w-11 h-11 rounded-full bg-[#7C5CFC] text-white flex items-center justify-center text-base font-bold">
+              <span className="w-11 h-11 rounded-full bg-[#7C5CFC] text-white flex items-center justify-center text-base font-bold flex-shrink-0">
                 {post.authorInitials}
               </span>
               <div className="flex-1 min-w-[200px]">
@@ -207,13 +254,19 @@ export default function BlogDetailPage() {
                 <div className="text-xs text-[#8A8A9E] mt-0.5">{post.authorTitle} · {post.date} · {post.readTime}</div>
               </div>
               <div className="flex gap-2">
-                <button className="inline-flex items-center gap-2 text-xs font-semibold border border-[#292940] hover:border-[#7C5CFC] rounded-lg px-4 py-2.5 bg-transparent text-[#8A8A9E] hover:text-white cursor-pointer transition-all duration-200">
-                  <Share2 size={14} color="currentColor" />
-                  Share
+                <button 
+                  onClick={handleShare}
+                  className="inline-flex items-center gap-2 text-xs font-semibold border border-[#292940] hover:border-[#7C5CFC] rounded-lg px-4 py-2.5 bg-transparent text-[#8A8A9E] hover:text-white cursor-pointer transition-all duration-200"
+                >
+                  <Share2 size={14} color={shared ? '#10B981' : 'currentColor'} />
+                  {shared ? 'Copied Link ✓' : 'Share'}
                 </button>
-                <button className="inline-flex items-center gap-2 text-xs font-semibold border border-[#292940] hover:border-[#7C5CFC] rounded-lg px-4 py-2.5 bg-transparent text-[#8A8A9E] hover:text-white cursor-pointer transition-all duration-200">
-                  <Bookmark size={14} color="currentColor" />
-                  Save
+                <button 
+                  onClick={handleSave}
+                  className="inline-flex items-center gap-2 text-xs font-semibold border border-[#292940] hover:border-[#7C5CFC] rounded-lg px-4 py-2.5 bg-transparent text-[#8A8A9E] hover:text-white cursor-pointer transition-all duration-200"
+                >
+                  <Bookmark size={14} color={saved ? '#A78BFA' : 'currentColor'} />
+                  {saved ? 'Saved ✓' : 'Save'}
                 </button>
               </div>
             </div>
@@ -349,6 +402,36 @@ export default function BlogDetailPage() {
 
             </div>
           </div>
+
+          {/* Keep Reading Section */}
+          <div className="mt-16 pt-10 border-t border-[#1F1F30]">
+            <h3 className="text-xl font-bold text-white tracking-tight mb-6">Keep reading</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              {RELATED_POSTS.map((rel) => (
+                <div
+                  key={rel.id}
+                  onClick={() => router.push(`/blog/${rel.id}`)}
+                  className="group border border-[#1F1F30] hover:border-[#2C2A52] rounded-2xl bg-[#11111C] p-6 flex flex-col justify-between cursor-pointer transition-all duration-300"
+                >
+                  <div>
+                    <span 
+                      className="inline-block text-[10px] font-bold tracking-wider rounded-lg px-2.5 py-1 uppercase"
+                      style={{ color: rel.tagColor, backgroundColor: rel.tagBg, border: `1px solid ${rel.tagLine}` }}
+                    >
+                      {rel.category}
+                    </span>
+                    <h4 className="text-base font-bold text-white tracking-tight leading-snug mt-4 mb-2 group-hover:text-[#A78BFA] transition-colors">
+                      {rel.title}
+                    </h4>
+                  </div>
+                  <div className="text-xs text-[#6A6A7E] font-medium mt-4">
+                    {rel.date} · {rel.readTime}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
         </div>
 
         <Footer />

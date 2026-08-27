@@ -163,7 +163,82 @@ export default function BlogListingPage() {
             </p>
           </div>
 
-          {/* Featured Hero Article */}
+          {/* THIS MONTH Light Hero Banner */}
+          {activeCategory === 'All' && (
+            <div className="relative rounded-3xl overflow-hidden bg-[#F6F7FB] mb-12 border border-[#E7E9F2] shadow-2xl">
+              <div style={{ position: 'absolute', left: '-8%', top: '-30%', width: '44%', paddingBottom: '44%', borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,92,252,.16), transparent 68%)', pointerEvents: 'none' }} />
+              <div style={{ position: 'absolute', right: '-6%', bottom: '-34%', width: '40%', paddingBottom: '40%', borderRadius: '50%', background: 'radial-gradient(circle, rgba(240,166,232,.14), transparent 70%)', pointerEvents: 'none' }} />
+              <div className="relative grid grid-cols-1 lg:grid-cols-12 gap-8 items-center p-8 sm:p-12">
+                <div className="lg:col-span-7">
+                  <span className="inline-flex items-center gap-2 text-xs font-bold tracking-widest text-[#2E2091] bg-[#7C5CFC]/12 border border-[#7C5CFC]/24 rounded-full px-3.5 py-1.5 uppercase">
+                    THIS MONTH
+                  </span>
+                  <h2 className="text-3xl sm:text-4xl font-extrabold text-[#14161D] tracking-tight leading-tight mt-5 mb-4">
+                    Readiness rises after<br className="hidden sm:inline"/> a conversation.
+                  </h2>
+                  <p className="text-[#4A5163] text-base leading-relaxed mb-8 max-w-lg">
+                    Two placement cycles of data from 42 institutions, and the one sequencing change that moved the numbers most.
+                  </p>
+                  <div className="grid grid-cols-3 gap-6 mb-8 max-w-md">
+                    <div>
+                      <div className="text-2xl sm:text-3xl font-bold tracking-tight text-[#4B3FA8]">74%</div>
+                      <div className="text-xs text-[#5B6273] mt-1">mentor-first readiness</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl sm:text-3xl font-bold tracking-tight text-[#0E6E8C]">43%</div>
+                      <div className="text-xs text-[#5B6273] mt-1">application-first</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl sm:text-3xl font-bold tracking-tight text-[#047857]">61%</div>
+                      <div className="text-xs text-[#5B6273] mt-1">interviews via referral</div>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    <button 
+                      onClick={() => router.push('/blog/what-12400-student-profiles-tell-us-about-the-first-job')}
+                      className="bg-[#5B4FE9] hover:bg-[#4F43D6] text-white text-sm font-bold px-6 py-3 rounded-xl transition-all cursor-pointer"
+                    >
+                      Read the study
+                    </button>
+                    <button 
+                      onClick={() => setActiveCategory('Placements')}
+                      className="border border-[#D3D7E4] hover:border-[#5B4FE9] text-[#14161D] text-sm font-bold px-6 py-3 rounded-xl transition-all cursor-pointer"
+                    >
+                      Browse all posts
+                    </button>
+                  </div>
+                </div>
+
+                <div className="lg:col-span-5 grid grid-cols-2 grid-rows-2 gap-3 h-[280px]">
+                  <div className="row-span-2 rounded-2xl overflow-hidden bg-[#E7E9F2] border border-[#D3D7E4] p-5 flex flex-col justify-end bg-gradient-to-br from-[#7C5CFC]/20 to-[#E7E9F2]">
+                    <div className="text-xs font-bold text-[#2E2091]">STUDY INSIGHTS</div>
+                    <div className="text-base font-bold text-[#14161D] mt-1">42 Campuses Analyzed</div>
+                  </div>
+                  <div className="rounded-2xl overflow-hidden bg-[#E7E9F2] border border-[#D3D7E4] p-4 flex flex-col justify-end bg-gradient-to-br from-[#6FD6FF]/20 to-[#E7E9F2]">
+                    <div className="text-xs font-bold text-[#0E6E8C]">MENTOR IMPACT</div>
+                    <div className="text-sm font-bold text-[#14161D] mt-1">12,400 Students</div>
+                  </div>
+                  <div className="rounded-2xl overflow-hidden bg-[#E7E9F2] border border-[#D3D7E4] p-4 flex flex-col justify-end bg-gradient-to-br from-[#34D399]/20 to-[#E7E9F2]">
+                    <div className="text-xs font-bold text-[#047857]">REFERRALS</div>
+                    <div className="text-sm font-bold text-[#14161D] mt-1">61% Placement Rate</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t border-[#E2E5EF] bg-white/70 px-8 py-4 flex items-center gap-6 flex-wrap">
+                <span className="text-xs font-bold tracking-widest text-[#6B7280]">TOPICS</span>
+                <div className="flex gap-6 flex-wrap">
+                  <span onClick={() => setActiveCategory('Placements')} className="text-xs font-bold tracking-wider text-[#3F4658] hover:text-[#5B4FE9] cursor-pointer">PLACEMENTS</span>
+                  <span onClick={() => setActiveCategory('Mentorship')} className="text-xs font-bold tracking-wider text-[#3F4658] hover:text-[#5B4FE9] cursor-pointer">MENTORSHIP</span>
+                  <span onClick={() => setActiveCategory('Product')} className="text-xs font-bold tracking-wider text-[#3F4658] hover:text-[#5B4FE9] cursor-pointer">PRODUCT</span>
+                  <span onClick={() => setActiveCategory('Campus')} className="text-xs font-bold tracking-wider text-[#3F4658] hover:text-[#5B4FE9] cursor-pointer">CAMPUS</span>
+                  <span onClick={() => setActiveCategory('Engineering')} className="text-xs font-bold tracking-wider text-[#3F4658] hover:text-[#5B4FE9] cursor-pointer">ENGINEERING</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Featured Hero Article (Dark Card) */}
           {activeCategory === 'All' && (
             <div 
               onClick={() => router.push('/blog/what-12400-student-profiles-tell-us-about-the-first-job')}
