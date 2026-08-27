@@ -1991,7 +1991,7 @@ async def verify_email_otp(payload: dict):
         await db.users.update_one({"email": email}, {"$set": {"email_verified": True}})
     await db.email_verifications.delete_one({"email": email})
 
-    result = {"status": "ok", "message": "Email verified successfully"}
+    result: dict[str, Any] = {"status": "ok", "message": "Email verified successfully"}
     if user:
         # Use the platform's standard access-token factory so the token carries
         # the required `type: "access"` + `exp` claims (get_current_user rejects
@@ -2502,6 +2502,12 @@ async def seed_data():
         )
         await db.resources.insert_many(legacy)
 
+    from routers.blog import seed_blog_posts_if_empty
+    from routers.community import seed_community_data_if_empty
+    await seed_blog_posts_if_empty()
+    await seed_community_data_if_empty()
+
+
 
 async def seed_admin():
     """Seed a default admin user from .env credentials (idempotent).
@@ -2715,7 +2721,15 @@ api_router.include_router(bgv_router)
 from routers.bgv_integrations import router as bgv_integrations_router
 api_router.include_router(bgv_integrations_router)
 
+# Blog & Community Routers
+from routers.blog import router as blog_router
+api_router.include_router(blog_router)
+
+from routers.community import router as community_router
+api_router.include_router(community_router)
+
 app.include_router(api_router)
+
 
 
 # ── CORS — origins configurable via env for production deployments ──

@@ -6,6 +6,8 @@ import { Footer } from '@/src/views/web/nexus-glow-landing/Footer';
 import { SAWatermark } from '@/src/views/web/components/SAWatermark';
 import Svg, { Path, Circle, Text as SvgText } from 'react-native-svg';
 import { ArrowLeft, Share2, Bookmark } from 'lucide-react-native';
+import { api } from '@/src/models/services/api';
+
 
 const IS_WEB = Platform.OS === 'web';
 const LOCAL_STORAGE_SAVED_KEY = 'sa_blog_saved_posts';
@@ -297,7 +299,27 @@ export default function BlogPostDetailPage() {
 
   // Resolve slug ID
   const postKey = (params.slug || 'what-12400-student-profiles-tell-us-about-the-first-job').toLowerCase();
-  const post = POSTS_MAP[postKey] || POSTS_MAP['what-12400-student-profiles-tell-us-about-the-first-job'];
+  
+  const [remotePost, setRemotePost] = useState<PostDetail | null>(null);
+
+  // Fetch post details from backend API
+  useEffect(() => {
+    let isMounted = true;
+    const fetchDetail = async () => {
+      try {
+        const data = await api.getBlogPost(postKey);
+        if (isMounted && data && data.title) {
+          setRemotePost(data);
+        }
+      } catch (err) {
+        // Fallback to POSTS_MAP
+      }
+    };
+    fetchDetail();
+    return () => { isMounted = false; };
+  }, [postKey]);
+
+  const post = remotePost || POSTS_MAP[postKey] || POSTS_MAP['what-12400-student-profiles-tell-us-about-the-first-job'];
 
   const sections = post.sections || DEFAULT_SECTIONS;
   const [activeSection, setActiveSection] = useState(sections[0]?.id || 'po-0');
@@ -320,6 +342,7 @@ export default function BlogPostDetailPage() {
       }
     }
   }, [postKey]);
+
 
   // Handle section jump
   const handleSectionJump = (id: string) => {

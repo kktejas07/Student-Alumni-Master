@@ -567,7 +567,23 @@ export const api = {
     request<any>(`/bgv/verify-public/${encodeURIComponent(identifier)}`),
   downloadBGVReportPdf: (identifier: string) =>
     request<any>(`/bgv/report/pdf/${encodeURIComponent(identifier)}`),
+
+  // ── Blog & Community ──────────────────────────────────────────────────────
+  listBlogPosts: (category?: string, search?: string) => {
+    const params = new URLSearchParams();
+    if (category && category !== 'All') params.append('category', category);
+    if (search) params.append('q', search);
+    const queryString = params.toString();
+    return request<any>(`/blog/posts${queryString ? `?${queryString}` : ''}`, { auth: false });
+  },
+  getBlogPost: (slug: string) =>
+    request<any>(`/blog/posts/${encodeURIComponent(slug)}`, { auth: false }),
+  getCommunityData: () =>
+    request<any>('/community/data', { auth: false }),
+  listCampuses: (search?: string) =>
+    request<any>(`/community/campuses${search ? `?q=${encodeURIComponent(search)}` : ''}`, { auth: false }),
 };
+
 
 export function resolveImageUrl(url?: string | null): string {
   if (!url) return '';
