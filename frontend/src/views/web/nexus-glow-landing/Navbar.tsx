@@ -12,20 +12,29 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
   const pathname = usePathname();
   const user = useAuthStore((s) => s.user);
   const isLoggedIn = !!user;
-  const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Auto-detect active tab from pathname if prop is not explicitly passed
-  let activeTab: 'home' | 'echo' | 'verify' | 'contact' = propActiveTab || 'home';
-  if (!propActiveTab) {
-    if (pathname === '/' || pathname === '') activeTab = 'home';
-    else if (pathname?.includes('/echo')) activeTab = 'echo';
-    else if (pathname?.includes('/verify')) activeTab = 'verify';
-    else if (pathname?.includes('/contact')) activeTab = 'contact';
-    else activeTab = 'home';
-  }
+  // Track active tab state so it stays highlighted until user clicks another menu item
+  const [selectedTab, setSelectedTab] = useState<'home' | 'echo' | 'verify' | 'contact'>(() => {
+    if (propActiveTab) return propActiveTab;
+    if (pathname?.includes('/echo')) return 'echo';
+    if (pathname?.includes('/verify')) return 'verify';
+    if (pathname?.includes('/contact')) return 'contact';
+    return 'home';
+  });
+
+  useEffect(() => {
+    if (propActiveTab) {
+      setSelectedTab(propActiveTab);
+    } else {
+      if (pathname?.includes('/echo')) setSelectedTab('echo');
+      else if (pathname?.includes('/verify')) setSelectedTab('verify');
+      else if (pathname?.includes('/contact')) setSelectedTab('contact');
+      else setSelectedTab('home');
+    }
+  }, [propActiveTab, pathname]);
 
   const handleTabClick = (tabKey: 'home' | 'echo' | 'verify' | 'contact') => {
-    setMobileOpen(false);
+    setSelectedTab(tabKey);
     if (typeof onTabChange === 'function') {
       onTabChange(tabKey);
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -45,7 +54,7 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
         left: 0,
         right: 0,
         zIndex: 1000,
-        backgroundColor: 'rgba(10, 10, 20, 0.92)',
+        backgroundColor: 'rgba(10, 10, 20, 0.94)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
         borderBottom: '1px solid #1F1F30',
@@ -80,21 +89,32 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
             textAlign: 'left',
           }}
         >
-          <svg width="28" height="33" viewBox="0 0 300 350" style={{ flexShrink: 0 }}>
+          {/* 1:1 SA Shield Logo */}
+          <svg width="28" height="33" viewBox="0 0 300 350" style={{ flexShrink: 0, display: 'block' }}>
             <defs>
-              <linearGradient id="sa-nav-badge" x1="0" y1="0" x2="1" y2="1">
+              <linearGradient id="sa-shield-outer" x1="0" y1="0" x2="1" y2="1">
                 <stop offset="0%" stopColor="#C9A7FF" />
-                <stop offset="48%" stopColor="#8B5CF6" />
+                <stop offset="50%" stopColor="#8B5CF6" />
                 <stop offset="100%" stopColor="#5B2FD0" />
               </linearGradient>
-              <linearGradient id="sa-nav-in" x1="0" y1="0" x2="0.4" y2="1">
+              <linearGradient id="sa-shield-inner" x1="0" y1="0" x2="0.4" y2="1">
                 <stop offset="0%" stopColor="#B683F5" />
-                <stop offset="100%" stopColor="#7331C9" />
+                <stop offset="100%" stopColor="#6D2BC4" />
               </linearGradient>
             </defs>
-            <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#sa-nav-badge)" />
-            <path d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="url(#sa-nav-in)" />
-            <text x="150" y="214" textAnchor="middle" style={{ fontFamily: "'Outfit', sans-serif", fontSize: '118px', fontWeight: 800, fill: '#FFFFFF' }}>
+            <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#sa-shield-outer)" />
+            <path d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="url(#sa-shield-inner)" />
+            <text
+              x="150"
+              y="215"
+              textAnchor="middle"
+              style={{
+                fontFamily: "'Outfit', 'Manrope', sans-serif",
+                fontSize: '120px',
+                fontWeight: 800,
+                fill: '#FFFFFF',
+              }}
+            >
               SA
             </text>
           </svg>
@@ -119,7 +139,7 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
               { key: 'contact', label: 'Contact Us' },
             ] as const
           ).map((tab) => {
-            const isSelected = activeTab === tab.key;
+            const isSelected = selectedTab === tab.key;
             return (
               <button
                 key={tab.key}
@@ -157,7 +177,7 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
         </nav>
 
         {/* Right Action Buttons */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+        <div style={{ display: 'flex', items: 'center', gap: '20px' }}>
           {isLoggedIn ? (
             <button
               onClick={() => {
