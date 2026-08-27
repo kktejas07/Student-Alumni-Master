@@ -4058,7 +4058,7 @@ function RegistrationsPanel() {
       {/* Revenue Audit Modal */}
       <Modal visible={showAudit} transparent animationType="fade" onRequestClose={() => setShowAudit(false)}>
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', padding: 20 }}>
-          <View style={{ backgroundColor: '#1a1a2e', borderRadius: 16, padding: 18, maxWidth: 700, width: '100%', alignSelf: 'center', maxHeight: '90vh' }}>
+          <View style={{ backgroundColor: '#1a1a2e', borderRadius: 16, padding: 18, maxWidth: 960, width: '100%', alignSelf: 'center', maxHeight: '90vh' }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <Text style={{ fontFamily: FONTS.xbold, fontSize: 16, color: '#fff' }}>Revenue Audit — DB vs Razorpay</Text>
               <Pressable onPress={() => setShowAudit(false)} style={{ width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.08)' }}>
