@@ -3001,6 +3001,25 @@ function RegistrationsPanel() {
     }
   };
 
+  const markPaid = async (r: any) => {
+    const ok = await confirm({
+      title: 'Mark as paid',
+      message: 'Mark this registration as paid? This will issue a ticket, invoice, and provision an SA account. Only use if Razorpay confirms the payment was captured.',
+      confirmText: 'Confirm payment',
+    });
+    if (!ok) return;
+    setActioning(r.id);
+    try {
+      await api.adminEchoMarkRegistrationPaid(r.id);
+      flash('Registration marked as paid — ticket and invoice issued');
+      await load();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to mark as paid');
+    } finally {
+      setActioning(null);
+    }
+  };
+
   const [resending, setResending] = useState<string | null>(null);
   const [syncingTeams, setSyncingTeams] = useState(false);
 
@@ -3121,9 +3140,10 @@ function RegistrationsPanel() {
 
   const fmtAmt = (n: number) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
   const paid = filtered.filter((r) => r.payment_status === 'paid');
+  const paidWithFee = paid.filter((r) => Number(r.fee || 0) > 0);
   const pending = filtered.filter((r) => r.payment_status === 'pending');
   const failed = filtered.filter((r) => r.payment_status === 'failed');
-  const revenueTotal = paid.reduce((a, r) => a + Number(r.fee || 0), 0);
+  const revenueTotal = paidWithFee.reduce((a, r) => a + Number(r.fee || 0), 0);
 
   return (
     <View>
@@ -3500,6 +3520,16 @@ function RegistrationsPanel() {
                           disabled={actioning === r.id}
                         />
                       </>
+                    )}
+                    {r.payment_status === 'failed' && (
+                      <IconAction
+                        icon={<CheckCircle size={14} color="#86EFAC" />}
+                        label="Mark paid"
+                        color="#86EFAC"
+                        bg="rgba(34,197,94,0.15)"
+                        onPress={() => markPaid(r)}
+                        disabled={actioning === r.id}
+                      />
                     )}
                     <IconAction
                       icon={<Trash2 size={14} color="#F87171" />}

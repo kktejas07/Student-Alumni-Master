@@ -475,6 +475,8 @@ export const api = {
     request<any>('/echo/admin/broadcast/send', { method: 'POST', body: payload }),
   adminEchoMarkRegistrationFailed: (regId: string) =>
     request<any>(`/echo/admin/registrations/${regId}/mark-failed`, { method: 'POST' }),
+  adminEchoMarkRegistrationPaid: (regId: string, paymentId?: string, reason?: string) =>
+    request<any>(`/echo/admin/registrations/${regId}/mark-paid`, { method: 'POST', body: { payment_id: paymentId || undefined, reason: reason || undefined } }),
   adminEchoUpdateTeam: (regId: string, teamMembers: any[], teamName?: string) =>
     request<any>(`/echo/admin/registrations/${regId}/team`, { method: 'PUT', body: { team_members: teamMembers, team_name: teamName } }),
   adminEchoResendTickets: (regId: string) =>

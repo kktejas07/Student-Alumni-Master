@@ -1079,8 +1079,15 @@ async def super_admin_overview(user: dict = Depends(require_role('admin'))):
     colleges = await _db.users.distinct("school_info.institution_name", {"role": {"$in": ["student", "alumni"]}})
     colleges = [c for c in colleges if c]
 
-    # Revenue: sum of bookings * default rate
-    revenue_amt = bookings_cnt * 999
+    # Revenue: sum of actual ECHO registration payments (Razorpay) for current month
+    now_overview = datetime.now(timezone.utc)
+    month_start = now_overview.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    revenue_pipeline = [
+        {"$match": {"payment.status": "paid", "fee": {"$gt": 0}, "created_at": {"$gte": month_start}}},
+        {"$group": {"_id": None, "total": {"$sum": "$fee"}}},
+    ]
+    rev_result = await _db.echo_registrations.aggregate(revenue_pipeline).to_list(1)
+    revenue_amt = float(rev_result[0]["total"]) if rev_result else 0
 
     # KPIs
     kpis = [
@@ -1139,13 +1146,29 @@ async def super_admin_overview(user: dict = Depends(require_role('admin'))):
         # Multiply for visual scale (DB has limited records)
         months.append({"month": m_start.strftime("%b"), "value": cnt * 200 + 1200})
 
-    # Revenue breakdown
-    revenue_breakdown = [
-        {"source": "Mentor sessions",       "amount": _money(revenue_amt * 0.44), "pct": 44, "color": "#FBBF24"},
-        {"source": "Premium subscriptions", "amount": _money(revenue_amt * 0.30), "pct": 30, "color": "#F97316"},
-        {"source": "Event tickets",         "amount": _money(revenue_amt * 0.17), "pct": 17, "color": "#A78BFA"},
-        {"source": "College SaaS plans",    "amount": _money(revenue_amt * 0.09), "pct":  9, "color": "#22C55E"},
+    # Revenue breakdown by event (real data)
+    rev_breakdown_pipeline = [
+        {"$match": {"payment.status": "paid", "fee": {"$gt": 0}}},
+        {"$group": {"_id": "$showcase_title", "total": {"$sum": "$fee"}, "count": {"$sum": 1}}},
+        {"$sort": {"total": -1}},
+        {"$limit": 5},
     ]
+    rev_rows = await _db.echo_registrations.aggregate(rev_breakdown_pipeline).to_list(10)
+    colors = ["#FBBF24", "#F97316", "#A78BFA", "#22C55E", "#60A5FA"]
+    revenue_breakdown = []
+    for i, row in enumerate(rev_rows):
+        amt = float(row.get("total") or 0)
+        pct = round(amt / revenue_amt * 100) if revenue_amt > 0 else 0
+        revenue_breakdown.append({
+            "source": row.get("_id") or f"Event {i+1}",
+            "amount": _money(amt),
+            "pct": pct,
+            "color": colors[i % len(colors)],
+        })
+    if not revenue_breakdown:
+        revenue_breakdown = [
+            {"source": "No paid registrations yet", "amount": _money(0), "pct": 0, "color": "#64748B"},
+        ]
 
     return {
         "admin": {
@@ -1476,6 +1499,88 @@ async def delete_super_event(event_id: str, user: dict = Depends(require_role('a
     return {"ok": True, "deleted": int(deleted)}
 
 
+async def _fetch_razorpay_settlements(db) -> dict:
+    """Fetch live settlement data from Razorpay API. Returns empty on failure."""
+    try:
+        installed = await db.installed_tools.find_one({"tool_id": "razorpay", "status": "connected"})
+        if not installed:
+            return {"available": False, "settlements": [], "totals": {}}
+        creds = (installed.get("credentials") or {})
+        key_id = creds.get("key_id", "")
+        key_secret = creds.get("key_secret", "")
+        if not key_id or not key_secret:
+            return {"available": False, "settlements": [], "totals": {}}
+
+        import httpx
+        async with httpx.AsyncClient(timeout=20) as client:
+            # Fetch settlements (most recent first, up to 20)
+            r = await client.get(
+                "https://api.razorpay.com/v1/settlements",
+                auth=(key_id, key_secret),
+                params={"count": 20, "skip": 0},
+            )
+            if r.status_code != 200:
+                print(f"[PORTALS] Razorpay settlements API error: HTTP {r.status_code} {r.text[:200]}")
+                return {"available": True, "settlements": [], "totals": {}, "error": f"API returned {r.status_code}"}
+
+            items = r.json().get("items") or []
+            settlements = []
+            total_fees = 0.0
+            total_tax = 0.0
+            total_settled = 0.0
+            total_gross = 0.0
+
+            for s in items:
+                settled_amt = float(s.get("amount") or 0) / 100  # paise → rupees
+                fees = float(s.get("fees") or 0) / 100
+                tax = float(s.get("tax") or 0) / 100
+                gross = settled_amt + fees + tax  # what was collected before deductions
+                status = s.get("status") or "pending"
+                utr = s.get("utr") or ""
+                created_at = s.get("created_at")
+                date_str = ""
+                if created_at:
+                    from datetime import datetime, timezone
+                    try:
+                        dt = datetime.fromtimestamp(created_at, tz=timezone.utc)
+                        date_str = dt.strftime("%d %b %Y, %I:%M %p")
+                    except Exception:
+                        pass
+
+                settlements.append({
+                    "id": s.get("id") or "",
+                    "amount": settled_amt,
+                    "fees": fees,
+                    "tax": tax,
+                    "gross": gross,
+                    "status": status,
+                    "utr": utr,
+                    "date": date_str,
+                    "created_at": created_at,
+                })
+                total_fees += fees
+                total_tax += tax
+                total_settled += settled_amt
+                total_gross += gross
+
+            settlements.sort(key=lambda x: x.get("created_at") or 0, reverse=True)
+
+            return {
+                "available": True,
+                "settlements": settlements,
+                "totals": {
+                    "gross": round(total_gross, 2),
+                    "fees": round(total_fees, 2),
+                    "tax": round(total_tax, 2),
+                    "settled": round(total_settled, 2),
+                    "count": len(settlements),
+                },
+            }
+    except Exception as e:
+        print(f"[PORTALS] Razorpay settlements fetch error: {e}")
+        return {"available": False, "settlements": [], "totals": {}, "error": str(e)}
+
+
 @router.get("/admin/super/payments")
 async def super_payments(user: dict = Depends(require_role('admin'))):
     """Real payments ledger + revenue from ECHO registrations, bookings and wallet.
@@ -1484,37 +1589,43 @@ async def super_payments(user: dict = Depends(require_role('admin'))):
     hardcoded placeholders.
     """
     # 1) ECHO event registrations (the main paid surface)
+    # Only count registrations that actually went through Razorpay (fee > 0 and paid)
     echo_cur = _db.echo_registrations.find({}).sort("created_at", -1).limit(500)
     echo_revenue = 0.0
     echo_pending_amt = 0.0
     echo_ledger = []
     echo_paid_cnt = 0
     echo_pending_cnt = 0
+    echo_free_cnt = 0
     async for r in echo_cur:
         p = r.get("payment") or {}
+        fee = float(r.get("fee") or 0)
+        is_free = fee <= 0
         if p.get("status") == "paid":
-            amt = float(r.get("fee") or 0)
-            echo_revenue += amt
+            if is_free:
+                echo_free_cnt += 1
+                # Free registrations don't contribute to revenue
+                continue
+            echo_revenue += fee
             echo_paid_cnt += 1
             echo_ledger.append({
                 "id": p.get("payment_id") or f"pay_{str(r.get('_id', ''))[-8:]}",
                 "date": _fmt_date(r.get("registered_at") or r.get("created_at")),
                 "desc": f"ECHO registration — {r.get('showcase_title', 'Event')}",
                 "type": "income",
-                "amount": amt,
+                "amount": fee,
                 "by": r.get("full_name") or "Attendee",
                 "status": "success",
             })
-        elif p.get("status") == "pending":
-            amt = float(r.get("fee") or 0)
+        elif p.get("status") == "pending" and not is_free:
             echo_pending_cnt += 1
-            echo_pending_amt += amt
+            echo_pending_amt += fee
             echo_ledger.append({
                 "id": f"pend_{str(r.get('_id', ''))[-8:]}",
                 "date": _fmt_date(r.get("registered_at") or r.get("created_at")),
                 "desc": f"ECHO registration (pending) — {r.get('showcase_title', 'Event')}",
                 "type": "income",
-                "amount": amt,
+                "amount": fee,
                 "by": r.get("full_name") or "Attendee",
                 "status": "pending",
             })
@@ -1566,10 +1677,10 @@ async def super_payments(user: dict = Depends(require_role('admin'))):
             "status": "settled",
         })
 
-    gross = echo_revenue + bookings_revenue
+    gross = echo_revenue
     net = gross - (gross * 0.1)
 
-    # 4) Per-event revenue (ECHO)
+    # 4) Per-event revenue (ECHO) — exclude free registrations from paid count
     events_out = []
     pipeline = [
         {"$match": {"payment.status": "paid"}},
@@ -1577,6 +1688,7 @@ async def super_payments(user: dict = Depends(require_role('admin'))):
             "_id": "$slug",
             "title": {"$first": "$showcase_title"},
             "count": {"$sum": 1},
+            "paid": {"$sum": {"$cond": [{"$gt": ["$fee", 0]}, 1, 0]}},
             "revenue": {"$sum": "$fee"},
         }},
         {"$sort": {"revenue": -1}},
@@ -1585,7 +1697,7 @@ async def super_payments(user: dict = Depends(require_role('admin'))):
         events_out.append({
             "slug": row["_id"],
             "title": row.get("title") or row["_id"],
-            "count": row["count"],
+            "count": row["paid"],
             "revenue": round(float(row.get("revenue") or 0), 2),
         })
 
@@ -1656,6 +1768,7 @@ async def super_payments(user: dict = Depends(require_role('admin'))):
         },
         "bookings_count": bookings_cnt,
         "wallet_revenue": wallet_revenue,
+        "razorpay_settlements": await _fetch_razorpay_settlements(_db),
     }
 
 

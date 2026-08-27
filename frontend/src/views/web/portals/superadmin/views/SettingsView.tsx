@@ -1022,6 +1022,7 @@ function ToolCard({ tool, busy, onConnect, onDisconnect }: {
   tool: Tool; busy: boolean; onConnect: () => void; onDisconnect: () => void;
 }) {
   const [copied, setCopied] = useState(false);
+  const [showCreds, setShowCreds] = useState(false);
   const copyWebhook = async () => {
     if (!tool.webhook_url) return;
     try {
@@ -1032,6 +1033,9 @@ function ToolCard({ tool, busy, onConnect, onDisconnect }: {
       }
     } catch {}
   };
+  const credEntries = tool.installed && tool.credentials_masked
+    ? Object.entries(tool.credentials_masked).filter(([_, v]) => v)
+    : [];
   return (
     <View style={s.toolCard}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -1053,16 +1057,36 @@ function ToolCard({ tool, busy, onConnect, onDisconnect }: {
         </View>
       </View>
       <Text style={s.toolDesc} numberOfLines={2}>{tool.description}</Text>
-      {tool.id === 'postal' && tool.installed && tool.webhook_url ? (
-        <Pressable onPress={copyWebhook} style={{ marginTop: 8, padding: 8, borderRadius: 8, backgroundColor: 'rgba(124,58,237,0.12)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.3)' }}>
-          <Text style={{ color: '#C4B5FD', fontFamily: FONTS.semi, fontSize: 10.5, marginBottom: 4 }}>
-            {copied ? 'Copied webhook URL' : 'Tap to copy Postal webhook URL'}
+      {tool.installed && tool.webhook_url ? (
+        <Pressable onPress={copyWebhook} style={{ marginTop: 8, padding: 8, borderRadius: 8, backgroundColor: 'rgba(59,130,246,0.10)', borderWidth: 1, borderColor: 'rgba(96,165,250,0.25)' }}>
+          <Text style={{ color: '#93C5FD', fontFamily: FONTS.semi, fontSize: 10.5, marginBottom: 4 }}>
+            {copied ? 'Copied!' : 'Webhook URL (copy this to the provider dashboard)'}
           </Text>
-          <Text style={{ color: '#94A3B8', fontFamily: FONTS.med, fontSize: 10.5 }}>
-            https://studentalumni.ai/api/webhooks/postal?token=••••
+          <Text style={{ color: '#94A3B8', fontFamily: FONTS.med, fontSize: 10 }} numberOfLines={1}>
+            {tool.webhook_url}
           </Text>
         </Pressable>
       ) : null}
+      {credEntries.length > 0 && (
+        <Pressable
+          onPress={() => setShowCreds(!showCreds)}
+          style={{ marginTop: 8, padding: 8, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: SAC.border }}
+        >
+          <Text style={{ color: SAC.muted, fontFamily: FONTS.semi, fontSize: 10.5 }}>
+            {showCreds ? 'Hide saved credentials' : 'View saved credentials'}
+          </Text>
+          {showCreds && (
+            <View style={{ marginTop: 8, gap: 4 }}>
+              {credEntries.map(([key, val]) => (
+                <View key={key} style={{ flexDirection: 'row', gap: 8 }}>
+                  <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 10, minWidth: 110 }}>{key.replace(/_/g, ' ')}</Text>
+                  <Text style={{ color: '#E2E8F0', fontFamily: FONTS.med, fontSize: 10, flex: 1 }} numberOfLines={1}>{val}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </Pressable>
+      )}
       <View style={{ flex: 1 }} />
       {tool.installed ? (
         <Pressable onPress={onDisconnect} disabled={busy} style={[s.toolBtnSec, busy && { opacity: 0.5 }]}>
