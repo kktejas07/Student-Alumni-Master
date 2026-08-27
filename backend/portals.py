@@ -1580,6 +1580,74 @@ async def _fetch_razorpay_settlements(db) -> dict:
         return {"available": False, "settlements": [], "totals": {}, "error": str(e)}
 
 
+@router.get("/admin/super/revenue-audit")
+async def revenue_audit(user: dict = Depends(require_role('admin'))):
+    """Detailed revenue audit: compare DB totals vs Razorpay settlements.
+
+    Shows every registration's fee, payment_id, and status so you can
+    pinpoint exactly where the discrepancy is.
+    """
+    # 1) All registrations from DB
+    all_regs = await _db.echo_registrations.find({}).sort("created_at", -1).to_list(5000)
+    breakdown = []
+    db_total_paid = 0.0
+    db_total_admin = 0.0
+    db_total_free = 0.0
+    db_total_pending = 0.0
+    db_total_failed = 0.0
+    for r in all_regs:
+        p = r.get("payment") or {}
+        fee = float(r.get("fee") or 0)
+        status = p.get("status") or "none"
+        pid = p.get("payment_id") or ""
+        is_admin = pid.startswith("ADMIN_PAY_")
+        breakdown.append({
+            "name": r.get("full_name") or "?",
+            "email": r.get("email") or "",
+            "slug": r.get("slug") or "",
+            "fee": fee,
+            "status": status,
+            "payment_id": pid[:30],
+            "is_admin_pay": is_admin,
+            "reg_type": r.get("registration_type") or "individual",
+            "team_size": r.get("team_size") or 1,
+            "created_at": str(r.get("created_at") or ""),
+        })
+        if status == "paid" and fee > 0 and not is_admin:
+            db_total_paid += fee
+        elif status == "paid" and fee > 0 and is_admin:
+            db_total_admin += fee
+        elif status == "paid" and fee <= 0:
+            db_total_free += 1
+        elif status == "pending":
+            db_total_pending += fee
+        elif status == "failed":
+            db_total_failed += fee
+
+    # 2) Razorpay settlements
+    settlements = await _fetch_razorpay_settlements(_db)
+    razorpay_settled = (settlements.get("totals") or {}).get("settled", 0)
+    razorpay_fees = (settlements.get("totals") or {}).get("fees", 0)
+    razorpay_tax = (settlements.get("totals") or {}).get("tax", 0)
+    razorpay_gross = (settlements.get("totals") or {}).get("gross", 0)
+
+    return {
+        "summary": {
+            "db_total_razorpay": db_total_paid,
+            "db_total_admin_override": db_total_admin,
+            "db_total_free": db_total_free,
+            "db_total_pending": db_total_pending,
+            "db_total_failed": db_total_failed,
+            "razorpay_gross": razorpay_gross,
+            "razorpay_fees": razorpay_fees,
+            "razorpay_tax": razorpay_tax,
+            "razorpay_settled": razorpay_settled,
+            "discrepancy": round(db_total_paid - razorpay_settled, 2),
+        },
+        "registrations": breakdown,
+    }
+
+
 @router.get("/admin/super/razorpay-settlements")
 async def razorpay_settlements(user: dict = Depends(require_role('admin'))):
     """Fetch live Razorpay settlement data — separate endpoint so it doesn't block the payments page."""
