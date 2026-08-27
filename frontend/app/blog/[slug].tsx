@@ -6,6 +6,8 @@ import { Footer } from '@/src/views/web/nexus-glow-landing/Footer';
 import { SAWatermark } from '@/src/views/web/components/SAWatermark';
 import Svg, { Path, Circle, Text as SvgText } from 'react-native-svg';
 import { ArrowLeft, Share2, Bookmark } from 'lucide-react-native';
+import { api } from '@/src/models/services/api';
+
 
 const IS_WEB = Platform.OS === 'web';
 const LOCAL_STORAGE_SAVED_KEY = 'sa_blog_saved_posts';
@@ -297,7 +299,27 @@ export default function BlogPostDetailPage() {
 
   // Resolve slug ID
   const postKey = (params.slug || 'what-12400-student-profiles-tell-us-about-the-first-job').toLowerCase();
-  const post = POSTS_MAP[postKey] || POSTS_MAP['what-12400-student-profiles-tell-us-about-the-first-job'];
+  
+  const [remotePost, setRemotePost] = useState<PostDetail | null>(null);
+
+  // Fetch post details from backend API
+  useEffect(() => {
+    let isMounted = true;
+    const fetchDetail = async () => {
+      try {
+        const data = await api.getBlogPost(postKey);
+        if (isMounted && data && data.title) {
+          setRemotePost(data);
+        }
+      } catch (err) {
+        // Fallback to POSTS_MAP
+      }
+    };
+    fetchDetail();
+    return () => { isMounted = false; };
+  }, [postKey]);
+
+  const post = remotePost || POSTS_MAP[postKey] || POSTS_MAP['what-12400-student-profiles-tell-us-about-the-first-job'];
 
   const sections = post.sections || DEFAULT_SECTIONS;
   const [activeSection, setActiveSection] = useState(sections[0]?.id || 'po-0');
@@ -320,6 +342,7 @@ export default function BlogPostDetailPage() {
       }
     }
   }, [postKey]);
+
 
   // Handle section jump
   const handleSectionJump = (id: string) => {
@@ -401,7 +424,7 @@ export default function BlogPostDetailPage() {
       <Navbar />
 
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        <div style={{ position: 'relative', zIndex: 1, maxWidth: 1400, margin: '0 auto', padding: '26px 28px 90px', width: '100%' }}>
+        <div style={{ position: 'relative', zIndex: 1, maxWidth: 1400, margin: '0 auto', padding: '110px 28px 90px', width: '100%' }}>
           
           {/* Back button */}
           <button 
@@ -412,84 +435,10 @@ export default function BlogPostDetailPage() {
             All posts
           </button>
 
-          {/* Article Header info */}
-          <div style={{ maxWidth: 780, marginBottom: 30 }}>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-              <span style={{ fontSize: 10.5, fontWeight: '700', letterSpacing: '1px', color: '#A78BFA', background: 'rgba(124,92,252,.18)', border: '1px solid #2C2A52', borderRadius: 7, padding: '5px 10px' }}>
-                {post.category}
-              </span>
-              {post.subcategory && (
-                <span style={{ fontSize: 10.5, fontWeight: '700', letterSpacing: '1px', color: '#8A8A9E', border: '1px solid #1F1F30', borderRadius: 7, padding: '5px 10px' }}>
-                  {post.subcategory}
-                </span>
-              )}
-            </div>
-            <div style={{ fontSize: 42, fontWeight: '700', letterSpacing: '-1.8px', lineHeight: 1.12, color: '#FFFFFF', marginBottom: 18 }}>
-              {post.title}
-            </div>
-            <div style={{ fontSize: 18, lineHeight: 1.65, color: '#8A8A9E' }}>
-              {post.description}
-            </div>
-
-            {/* Author and meta info */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 28, paddingTop: 24, borderTop: '1px solid #1F1F30', flexWrap: 'wrap' }}>
-              <span style={{ width: 44, height: 44, borderRadius: '50%', background: '#7C5CFC', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: '700', flex: 'none' }}>
-                {post.authorInitials}
-              </span>
-              <div style={{ flex: 1, minWidth: 200 }}>
-                <div style={{ fontSize: 14.5, fontWeight: '600', color: '#FFFFFF' }}>{post.author}</div>
-                <div style={{ fontSize: 13, color: '#8A8A9E', marginTop: 2 }}>{post.authorTitle} · {post.date} · {post.readTime}</div>
-              </div>
-              <div style={{ display: 'flex', gap: 9, flex: 'none' }}>
-                <button 
-                  onClick={handleShare}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: '600', border: '1px solid #292940', borderRadius: 10, padding: '10px 15px', background: 'transparent', color: shared ? '#10B981' : '#8A8A9E', cursor: 'pointer', transition: 'all 0.2s ease' }}
-                >
-                  <Share2 size={14} color={shared ? '#10B981' : 'currentColor'} />
-                  {shared ? 'Copied Link ✓' : 'Share'}
-                </button>
-                <button 
-                  onClick={handleSave}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: '600', border: '1px solid #292940', borderRadius: 10, padding: '10px 15px', background: 'transparent', color: saved ? '#A78BFA' : '#8A8A9E', cursor: 'pointer', transition: 'all 0.2s ease' }}
-                >
-                  <Bookmark size={14} color={saved ? '#A78BFA' : 'currentColor'} fill={saved ? '#A78BFA' : 'none'} />
-                  {saved ? 'Saved ✓' : 'Save'}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Optional Chart Section */}
-          {post.chartTitle && (
-            <div style={{ position: 'relative', overflow: 'hidden', border: '1px solid #2C2A52', borderRadius: 20, background: 'linear-gradient(140deg, rgba(124,92,252,.18), #11111C 68%)', padding: '30px 32px', marginTop: 30, marginBottom: 34, maxWidth: 780 }}>
-              <div style={{ fontSize: 11, fontWeight: '700', letterSpacing: '1.5px', color: '#A78BFA', marginBottom: 22 }}>
-                {post.chartTitle}
-              </div>
-              <Svg viewBox="0 0 900 260" style={{ width: '100%', height: 'auto' }}>
-                <g style={{ stroke: 'rgba(255,255,255,.07)', strokeWidth: 1 }}>
-                  <Path d="M40 220H880M40 165H880M40 110H880M40 55H880" />
-                </g>
-                <Path d="M40 214 L208 200 L376 186 L544 176 L712 168 L880 160" fill="none" stroke="#6A6A8E" strokeWidth="2.4" />
-                <Path d="M40 214 L208 158 L376 108 L544 82 L712 66 L880 48" fill="none" stroke="#A78BFA" strokeWidth="3" />
-                <Circle cx="880" cy="48" r="6" fill="#FFFFFF" />
-                <g style={{ fontSize: 13, fill: '#8A8A9E' }}>
-                  <SvgText x="40" y="248">Week 0</SvgText>
-                  <SvgText x="376" y="248" textAnchor="middle">Week 8</SvgText>
-                  <SvgText x="712" y="248" textAnchor="middle">Week 16</SvgText>
-                  <SvgText x="880" y="248" textAnchor="end">Week 24</SvgText>
-                </g>
-                <g style={{ fontSize: 14, fontWeight: '600' }}>
-                  <SvgText x="866" y="36" textAnchor="end" fill="#C4B5FD">Mentor session first · 74%</SvgText>
-                  <SvgText x="866" y="152" textAnchor="end" fill="#9A9AB4">Application first · 43%</SvgText>
-                </g>
-              </Svg>
-            </div>
-          )}
-
-          {/* 2-Column Main Content & Sidebar Layout */}
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '250px minmax(0, 1fr)', gap: 40, marginTop: 34, alignItems: 'start' }}>
+          {/* 2-Column Layout spanning full 1400px container */}
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '250px minmax(0, 1fr)', gap: 40, alignItems: 'start' }}>
             
-            {/* Sidebar Sticky Navigation (Web only) */}
+            {/* Left Sticky Jump Rail Column */}
             {!isMobile && (
               <div style={{ position: 'sticky', top: 92 }}>
                 <div style={{ fontSize: 11, fontWeight: '700', letterSpacing: '1.3px', color: '#6A6A7E', marginBottom: 14 }}>IN THIS ARTICLE</div>
@@ -517,30 +466,109 @@ export default function BlogPostDetailPage() {
               </div>
             )}
 
-            {/* Post Content Body */}
-            <div style={{ minWidth: 0, maxWidth: 760 }}>
-              {sections.map((sec) => (
-                <div key={sec.id} id={sec.id} style={{ borderTop: '1px solid #1F1F30', paddingTop: 30, paddingBottom: 4 }}>
-                  <div style={{ fontSize: 24, fontWeight: '700', letterSpacing: '-.7px', color: '#FFFFFF', margin: '16px 0 16px' }}>
-                    {sec.label}
-                  </div>
-                  {sec.content.map((paragraph, idx) => (
-                    <div key={idx} style={{ fontSize: 16.5, lineHeight: 1.8, color: '#8A8A9E', marginBottom: 22 }}>
-                      {paragraph}
-                    </div>
-                  ))}
+            {/* Right Column: Article Title, Meta, SVG Chart, and Content */}
+            <div style={{ minWidth: 0, width: '100%' }}>
+              
+              {/* Article Header info */}
+              <div style={{ marginBottom: 30 }}>
+                <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+                  <span style={{ fontSize: 10.5, fontWeight: '700', letterSpacing: '1px', color: '#A78BFA', background: 'rgba(124,92,252,.18)', border: '1px solid #2C2A52', borderRadius: 7, padding: '5px 10px' }}>
+                    {post.category}
+                  </span>
+                  {post.subcategory && (
+                    <span style={{ fontSize: 10.5, fontWeight: '700', letterSpacing: '1px', color: '#8A8A9E', border: '1px solid #1F1F30', borderRadius: 7, padding: '5px 10px' }}>
+                      {post.subcategory}
+                    </span>
+                  )}
                 </div>
-              ))}
+                <div style={{ fontSize: 42, fontWeight: '700', letterSpacing: '-1.8px', lineHeight: 1.12, color: '#FFFFFF', marginBottom: 18 }}>
+                  {post.title}
+                </div>
+                <div style={{ fontSize: 18, lineHeight: 1.65, color: '#8A8A9E' }}>
+                  {post.description}
+                </div>
 
-              {/* Author Info footer */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16, border: '1px solid #1F1F30', borderRadius: 18, background: '#11111C', padding: '22px 24px', marginTop: 40, flexWrap: 'wrap' }}>
-                <span style={{ width: 52, height: 52, borderRadius: '50%', background: '#7C5CFC', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: '700', flex: 'none' }}>
-                  {post.authorInitials}
-                </span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 15.5, fontWeight: '600', color: '#FFFFFF' }}>{post.author}</div>
-                  <div style={{ fontSize: 13.5, lineHeight: 1.6, color: '#8A8A9E', marginTop: 4 }}>{post.authorTitle}</div>
+                {/* Author and meta info */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 28, paddingTop: 24, borderTop: '1px solid #1F1F30', flexWrap: 'wrap' }}>
+                  <span style={{ width: 44, height: 44, borderRadius: '50%', background: '#7C5CFC', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: '700', flex: 'none' }}>
+                    {post.authorInitials}
+                  </span>
+                  <div style={{ flex: 1, minWidth: 200 }}>
+                    <div style={{ fontSize: 14.5, fontWeight: '600', color: '#FFFFFF' }}>{post.author}</div>
+                    <div style={{ fontSize: 13, color: '#9AA0B4', marginTop: 2 }}>{post.authorTitle} · {post.date} · {post.readTime}</div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 9, flex: 'none' }}>
+                    <button 
+                      onClick={handleShare}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: '600', border: '1px solid #292940', borderRadius: 10, padding: '10px 15px', background: 'transparent', color: shared ? '#10B981' : '#8A8A9E', cursor: 'pointer', transition: 'all 0.2s ease' }}
+                    >
+                      <Share2 size={14} color={shared ? '#10B981' : 'currentColor'} />
+                      {shared ? 'Copied Link ✓' : 'Share'}
+                    </button>
+                    <button 
+                      onClick={handleSave}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: '600', border: '1px solid #292940', borderRadius: 10, padding: '10px 15px', background: 'transparent', color: saved ? '#A78BFA' : '#8A8A9E', cursor: 'pointer', transition: 'all 0.2s ease' }}
+                    >
+                      <Bookmark size={14} color={saved ? '#A78BFA' : 'currentColor'} fill={saved ? '#A78BFA' : 'none'} />
+                      {saved ? 'Saved ✓' : 'Save'}
+                    </button>
+                  </div>
                 </div>
+              </div>
+
+              {/* Optional Chart Section spanning full right column width */}
+              {post.chartTitle && (
+                <div style={{ position: 'relative', overflow: 'hidden', border: '1px solid #2C2A52', borderRadius: 20, background: 'linear-gradient(140deg, rgba(124,92,252,.18), #11111C 68%)', padding: '30px 32px', marginTop: 30, marginBottom: 34, width: '100%' }}>
+                  <div style={{ fontSize: 11, fontWeight: '700', letterSpacing: '1.5px', color: '#A78BFA', marginBottom: 22 }}>
+                    {post.chartTitle}
+                  </div>
+                  <Svg viewBox="0 0 900 260" style={{ width: '100%', height: 'auto' }}>
+                    <g style={{ stroke: 'rgba(255,255,255,.07)', strokeWidth: 1 }}>
+                      <Path d="M40 220H880M40 165H880M40 110H880M40 55H880" />
+                    </g>
+                    <Path d="M40 214 L208 200 L376 186 L544 176 L712 168 L880 160" fill="none" stroke="#6A6A8E" strokeWidth="2.4" />
+                    <Path d="M40 214 L208 158 L376 108 L544 82 L712 66 L880 48" fill="none" stroke="#A78BFA" strokeWidth="3" />
+                    <Circle cx="880" cy="48" r="6" fill="#FFFFFF" />
+                    <g style={{ fontSize: 13, fill: '#8A8A9E' }}>
+                      <SvgText x="40" y="248">Week 0</SvgText>
+                      <SvgText x="376" y="248" textAnchor="middle">Week 8</SvgText>
+                      <SvgText x="712" y="248" textAnchor="middle">Week 16</SvgText>
+                      <SvgText x="880" y="248" textAnchor="end">Week 24</SvgText>
+                    </g>
+                    <g style={{ fontSize: 14, fontWeight: '600' }}>
+                      <SvgText x="866" y="36" textAnchor="end" fill="#C4B5FD">Mentor session first · 74%</SvgText>
+                      <SvgText x="866" y="152" textAnchor="end" fill="#9A9AB4">Application first · 43%</SvgText>
+                    </g>
+                  </Svg>
+                </div>
+              )}
+
+              {/* Article Content Sections */}
+              <div>
+                {sections.map((sec) => (
+                  <div key={sec.id} id={sec.id} style={{ borderTop: '1px solid #1F1F30', paddingTop: 30, paddingBottom: 4 }}>
+                    <div style={{ fontSize: 24, fontWeight: '700', letterSpacing: '-.7px', color: '#FFFFFF', margin: '16px 0 16px' }}>
+                      {sec.label}
+                    </div>
+                    {sec.content.map((paragraph, idx) => (
+                      <div key={idx} style={{ fontSize: 16.5, lineHeight: 1.8, color: '#8A8A9E', marginBottom: 22 }}>
+                        {paragraph}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+
+                {/* Author Info footer */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, border: '1px solid #1F1F30', borderRadius: 18, background: '#11111C', padding: '22px 24px', marginTop: 40, flexWrap: 'wrap' }}>
+                  <span style={{ width: 52, height: 52, borderRadius: '50%', background: '#7C5CFC', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: '700', flex: 'none' }}>
+                    {post.authorInitials}
+                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 15.5, fontWeight: '600', color: '#FFFFFF' }}>{post.author}</div>
+                    <div style={{ fontSize: 13.5, lineHeight: 1.6, color: '#9AA0B4', marginTop: 4 }}>{post.authorTitle}</div>
+                  </div>
+                </div>
+
               </div>
 
             </div>

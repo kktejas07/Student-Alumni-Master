@@ -5,6 +5,8 @@ import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
 import { Footer } from '@/src/views/web/nexus-glow-landing/Footer';
 import { SAWatermark } from '@/src/views/web/components/SAWatermark';
 import { Sparkles, Search, Bookmark, X } from 'lucide-react-native';
+import { api } from '@/src/models/services/api';
+
 
 const IS_WEB = Platform.OS === 'web';
 const LOCAL_STORAGE_SAVED_KEY = 'sa_blog_saved_posts';
@@ -115,8 +117,8 @@ export default function BlogListingPage() {
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [savedPostIds, setSavedPostIds] = useState<string[]>([]);
-  const [emailInput, setEmailInput] = useState('');
-  const [subscribed, setSubscribed] = useState(false);
+  const [remotePosts, setRemotePosts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const isTablet = width < 1150;
   const isMobile = width < 860;
@@ -136,6 +138,27 @@ export default function BlogListingPage() {
     }
   }, []);
 
+  // Fetch blog posts from backend API
+  useEffect(() => {
+    let isMounted = true;
+    const fetchPosts = async () => {
+      setLoading(true);
+      try {
+        const catArg = activeCategory === 'Saved' ? undefined : activeCategory;
+        const res = await api.listBlogPosts(catArg, searchQuery);
+        if (isMounted && res && Array.isArray(res.posts) && res.posts.length > 0) {
+          setRemotePosts(res.posts);
+        }
+      } catch (err) {
+        // Fallback to static POSTS
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+    fetchPosts();
+    return () => { isMounted = false; };
+  }, [activeCategory, searchQuery]);
+
   const toggleSavePost = (id: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     let nextSaved: string[];
@@ -154,10 +177,12 @@ export default function BlogListingPage() {
     }
   };
 
-  const filteredPosts = POSTS.filter((post) => {
+  const displayPostsList = remotePosts.length > 0 ? remotePosts : POSTS;
+
+  const filteredPosts = displayPostsList.filter((post) => {
     let matchesCategory = true;
     if (activeCategory === 'Saved') {
-      matchesCategory = savedPostIds.includes(post.id);
+      matchesCategory = savedPostIds.includes(post.id) || savedPostIds.includes(post.slug);
     } else if (activeCategory !== 'All') {
       matchesCategory = post.category.toLowerCase() === activeCategory.toLowerCase();
     }
@@ -172,6 +197,7 @@ export default function BlogListingPage() {
       (post.author && post.author.toLowerCase().includes(q))
     );
   });
+
 
   return (
     <View style={styles.outerWrap}>
@@ -205,7 +231,7 @@ export default function BlogListingPage() {
       <Navbar />
 
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        <div style={{ position: 'relative', zIndex: 1, maxWidth: 1400, margin: '0 auto', padding: '34px 28px 90px', width: '100%' }}>
+        <div style={{ position: 'relative', zIndex: 1, maxWidth: 1400, margin: '0 auto', padding: '110px 28px 90px', width: '100%' }}>
           
           {/* Header & Search Bar */}
           <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'flex-end', justifyContent: 'space-between', gap: 24, marginBottom: 30 }}>

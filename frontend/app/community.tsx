@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, useWindowDimensions, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
 import { Footer } from '@/src/views/web/nexus-glow-landing/Footer';
 import { SAWatermark } from '@/src/views/web/components/SAWatermark';
 import { MessageSquare, Users, Share2, Calendar, MapPin, X, Search, CheckCircle2, ArrowRight, Image as ImageIcon } from 'lucide-react-native';
+import { api } from '@/src/models/services/api';
 
 const CAMPUSES = [
   { id: 'snist', name: 'Sreenidhi Institute of Science & Technology (SNIST)', location: 'Hyderabad', members: '1,420 students' },
@@ -38,16 +39,59 @@ export default function CommunityPage() {
   const [campusSearch, setCampusSearch] = useState('');
   const [copiedCampus, setCopiedCampus] = useState<string | null>(null);
 
+  const [stats, setStats] = useState({
+    verified_students: '12,400',
+    active_mentors: '860',
+    partner_colleges: '42',
+    sessions_this_term: '1,900'
+  });
+  const [campuses, setCampuses] = useState<any[]>(CAMPUSES);
+  const [discordChannels, setDiscordChannels] = useState<any[]>(DISCORD_CHANNELS);
+  const [upcomingEvents, setUpcomingEvents] = useState<any[]>(UPCOMING_EVENTS);
+
   const isTablet = width < 1150;
   const isMobile = width < 860;
+
+  // Fetch community data from backend API
+  useEffect(() => {
+    let isMounted = true;
+    const fetchCommunity = async () => {
+      try {
+        const data = await api.getCommunityData();
+        if (isMounted && data) {
+          if (data.stats) {
+            setStats({
+              verified_students: data.stats.verified_students || '12,400',
+              active_mentors: data.stats.active_mentors || '860',
+              partner_colleges: String(data.stats.partner_colleges || 42),
+              sessions_this_term: data.stats.sessions_this_term || '1,900'
+            });
+          }
+          if (Array.isArray(data.campuses) && data.campuses.length > 0) {
+            setCampuses(data.campuses);
+          }
+          if (Array.isArray(data.discord_channels) && data.discord_channels.length > 0) {
+            setDiscordChannels(data.discord_channels);
+          }
+          if (Array.isArray(data.upcoming_events) && data.upcoming_events.length > 0) {
+            setUpcomingEvents(data.upcoming_events);
+          }
+        }
+      } catch (err) {
+        // Fallback to static initial values
+      }
+    };
+    fetchCommunity();
+    return () => { isMounted = false; };
+  }, []);
 
   const handleLinkPress = (url: string) => {
     Linking.openURL(url).catch((err) => console.error("Couldn't load page", err));
   };
 
-  const filteredCampuses = CAMPUSES.filter((c) =>
-    c.name.toLowerCase().includes(campusSearch.toLowerCase()) ||
-    c.location.toLowerCase().includes(campusSearch.toLowerCase())
+  const filteredCampuses = campuses.filter((c) =>
+    (c.name || '').toLowerCase().includes(campusSearch.toLowerCase()) ||
+    (c.location || '').toLowerCase().includes(campusSearch.toLowerCase())
   );
 
   const handleJoinCampusGroup = (campusName: string) => {
@@ -57,6 +101,7 @@ export default function CommunityPage() {
       handleLinkPress('https://chat.whatsapp.com');
     }, 1200);
   };
+
 
   return (
     <View style={styles.outerWrap}>
@@ -217,22 +262,23 @@ export default function CommunityPage() {
           {/* Stats Counter Grid */}
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', gap: 14, marginTop: 28, marginBottom: 24 }}>
             <div style={{ border: '1px solid #1F1F30', borderRadius: 16, background: '#11111C', padding: '18px 20px 20px' }}>
-              <div style={{ fontSize: 30, fontWeight: '700', letterSpacing: '-1.1px', color: '#A78BFA' }}>12,400</div>
+              <div style={{ fontSize: 30, fontWeight: '700', letterSpacing: '-1.1px', color: '#A78BFA' }}>{stats.verified_students}</div>
               <div style={{ fontSize: 12.5, color: '#8A8A9E', marginTop: 6 }}>Verified students</div>
             </div>
             <div style={{ border: '1px solid #1F1F30', borderRadius: 16, background: '#11111C', padding: '18px 20px 20px' }}>
-              <div style={{ fontSize: 30, fontWeight: '700', letterSpacing: '-1.1px', color: '#34D399' }}>860</div>
+              <div style={{ fontSize: 30, fontWeight: '700', letterSpacing: '-1.1px', color: '#34D399' }}>{stats.active_mentors}</div>
               <div style={{ fontSize: 12.5, color: '#8A8A9E', marginTop: 6 }}>Active mentors</div>
             </div>
             <div style={{ border: '1px solid #1F1F30', borderRadius: 16, background: '#11111C', padding: '18px 20px 20px' }}>
-              <div style={{ fontSize: 30, fontWeight: '700', letterSpacing: '-1.1px', color: '#6FD6FF' }}>42</div>
+              <div style={{ fontSize: 30, fontWeight: '700', letterSpacing: '-1.1px', color: '#6FD6FF' }}>{stats.partner_colleges}</div>
               <div style={{ fontSize: 12.5, color: '#8A8A9E', marginTop: 6 }}>Partner colleges</div>
             </div>
             <div style={{ border: '1px solid #1F1F30', borderRadius: 16, background: '#11111C', padding: '18px 20px 20px' }}>
-              <div style={{ fontSize: 30, fontWeight: '700', letterSpacing: '-1.1px', color: '#F5B342' }}>1,900</div>
+              <div style={{ fontSize: 30, fontWeight: '700', letterSpacing: '-1.1px', color: '#F5B342' }}>{stats.sessions_this_term}</div>
               <div style={{ fontSize: 12.5, color: '#8A8A9E', marginTop: 6 }}>Sessions this term</div>
             </div>
           </div>
+
 
           {/* Social Platforms Row */}
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))', gap: 18, marginTop: 20, marginBottom: 28 }}>
@@ -347,13 +393,13 @@ export default function CommunityPage() {
               </div>
 
               <div style={{ display: 'grid', gap: 12 }}>
-                {UPCOMING_EVENTS.map((ev) => (
+                {upcomingEvents.map((ev) => (
                   <div 
                     key={ev.id}
                     onClick={() => router.push('/events')}
                     style={{ border: '1px solid #292940', borderRadius: 14, background: '#161622', padding: '14px 16px', cursor: 'pointer', transition: 'all 0.2s ease' }}
                   >
-                    <div style={{ fontSize: 10.5, fontWeight: '700', letterSpacing: '1.2px', color: ev.tagColor, marginBottom: 7 }}>
+                    <div style={{ fontSize: 10.5, fontWeight: '700', letterSpacing: '1.2px', color: ev.tagColor || '#A78BFA', marginBottom: 7 }}>
                       {ev.date}
                     </div>
                     <div style={{ fontSize: 14.5, fontWeight: '600', color: '#FFFFFF' }}>
@@ -366,6 +412,7 @@ export default function CommunityPage() {
                   </div>
                 ))}
               </div>
+
             </div>
           </div>
 
@@ -452,13 +499,14 @@ export default function CommunityPage() {
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
-                {DISCORD_CHANNELS.map((ch, idx) => (
+                {discordChannels.map((ch, idx) => (
                   <div key={idx} style={{ padding: '14px 16px', borderRadius: 12, border: '1px solid #1F1F30', background: '#161622' }}>
                     <div style={{ fontSize: 14, fontWeight: '700', color: '#A78BFA' }}>{ch.name}</div>
                     <div style={{ fontSize: 12, color: '#8A8A9E', marginTop: 4 }}>{ch.desc}</div>
                   </div>
                 ))}
               </div>
+
 
               <button
                 onClick={() => {
