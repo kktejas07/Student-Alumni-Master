@@ -1618,6 +1618,9 @@ async def revenue_audit(user: dict = Depends(require_role('admin'))):
         reg_type = r.get("registration_type") or "individual"
         team_size = int(r.get("team_size") or 1)
         is_team = reg_type == "team" or team_size > 1
+        # Team members with parent_reg_id are duplicates of the parent registration.
+        # They should not be counted as "free" — their parent paid the team fee.
+        is_team_member = bool(r.get("parent_reg_id"))
         breakdown.append({
             "name": r.get("full_name") or "?",
             "email": r.get("email") or "",
@@ -1626,7 +1629,8 @@ async def revenue_audit(user: dict = Depends(require_role('admin'))):
             "status": status,
             "payment_id": pid[:30],
             "is_admin_pay": is_admin,
-            "is_free": status == "paid" and fee <= 0,
+            "is_free": status == "paid" and fee <= 0 and not is_team_member,
+            "is_team_member": is_team_member,
             "reg_type": reg_type,
             "team_size": team_size,
             "team_name": r.get("team_name") or "",
@@ -1652,7 +1656,7 @@ async def revenue_audit(user: dict = Depends(require_role('admin'))):
             if pid not in seen_payment_ids:
                 seen_payment_ids.add(pid)
                 db_total_admin += fee
-        elif status == "paid" and fee <= 0:
+        elif status == "paid" and fee <= 0 and not is_team_member:
             db_total_free += 1
         elif status == "pending":
             db_total_pending += fee
@@ -1702,6 +1706,63 @@ async def revenue_audit(user: dict = Depends(require_role('admin'))):
 async def razorpay_settlements(user: dict = Depends(require_role('admin'))):
     """Fetch live Razorpay settlement data — separate endpoint so it doesn't block the payments page."""
     return await _fetch_razorpay_settlements(_db)
+
+
+class RazorpayPaymentFeesRequest(BaseModel):
+    payment_ids: List[str]
+
+
+@router.post("/admin/super/razorpay-payment-fees")
+async def razorpay_payment_fees(
+    payload: RazorpayPaymentFeesRequest,
+    user: dict = Depends(require_role('admin')),
+):
+    """Fetch per-transaction Razorpay fee and tax for a list of payment IDs.
+
+    Returns a map of payment_id → {fee, tax, net} so the audit modal can
+    show exactly how much Razorpay deducted per transaction.
+    """
+    installed = await _db.installed_tools.find_one({"tool_id": "razorpay", "status": "connected"})
+    if not installed:
+        return {"fees": {}, "error": "Razorpay not configured"}
+    creds = (installed.get("credentials") or {})
+    key_id = creds.get("key_id", "")
+    key_secret = creds.get("key_secret", "")
+    if not key_id or not key_secret:
+        return {"fees": {}, "error": "Razorpay credentials missing"}
+
+    # Cap at 50 payment IDs per request to avoid rate limits
+    ids = (payload.payment_ids or [])[:50]
+    # Filter out admin overrides and empty IDs
+    ids = [pid for pid in ids if pid and not pid.startswith("ADMIN_PAY_")]
+
+    fees_map: Dict[str, dict] = {}
+    import httpx
+    async with httpx.AsyncClient(timeout=15) as client:
+        for pid in ids:
+            try:
+                r = await client.get(
+                    f"https://api.razorpay.com/v1/payments/{pid}",
+                    auth=(key_id, key_secret),
+                )
+                if r.status_code == 200:
+                    data = r.json()
+                    fee = float(data.get("fee") or 0) / 100  # paise → rupees
+                    tax = float(data.get("tax") or 0) / 100
+                    amount = float(data.get("amount") or 0) / 100
+                    net = amount - fee - tax
+                    fees_map[pid] = {
+                        "fee": round(fee, 2),
+                        "tax": round(tax, 2),
+                        "net": round(net, 2),
+                        "amount": round(amount, 2),
+                    }
+                else:
+                    fees_map[pid] = {"error": f"HTTP {r.status_code}"}
+            except Exception as e:
+                fees_map[pid] = {"error": str(e)[:100]}
+
+    return {"fees": fees_map}
 
 
 @router.get("/admin/super/payments")

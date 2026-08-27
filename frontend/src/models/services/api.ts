@@ -485,6 +485,8 @@ export const api = {
     request<any>('/echo/admin/revenue'),
   adminRevenueAudit: () =>
     request<any>('/admin/super/revenue-audit'),
+  adminRazorpayPaymentFees: (payment_ids: string[]) =>
+    request<any>('/admin/super/razorpay-payment-fees', { method: 'POST', body: { payment_ids } }),
   myEchoInvoices: () =>
     request<any>('/echo/my-invoices'),
   myEchoRegistrations: () =>

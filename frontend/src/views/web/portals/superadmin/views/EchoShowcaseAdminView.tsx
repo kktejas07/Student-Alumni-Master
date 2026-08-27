@@ -2880,6 +2880,8 @@ function RegistrationsPanel() {
   const [auditLoading, setAuditLoading] = useState(false);
   const [showAudit, setShowAudit] = useState(false);
   const [auditFilter, setAuditFilter] = useState<'all' | 'free' | 'admin' | 'paid' | 'failed'>('all');
+  const [razorpayFees, setRazorpayFees] = useState<Record<string, { fee: number; tax: number; net: number; amount?: number; error?: string }>>({});
+  const [fetchingFees, setFetchingFees] = useState(false);
 
 
   const [editingTeamReg, setEditingTeamReg] = useState<any>(null);
@@ -4106,7 +4108,7 @@ function RegistrationsPanel() {
                   <View style={{ flex: 1 }} />
                   {[
                     { key: 'all', label: 'All', count: auditData.registrations?.length || 0 },
-                    { key: 'free', label: 'Free (₹0)', count: (auditData.registrations || []).filter((r: any) => r.fee <= 0 && r.status === 'paid').length },
+                    { key: 'free', label: 'Free (₹0)', count: (auditData.registrations || []).filter((r: any) => r.fee <= 0 && r.status === 'paid' && !r.is_team_member).length },
                     { key: 'admin', label: 'Admin Override', count: (auditData.registrations || []).filter((r: any) => r.is_admin_pay).length },
                     { key: 'paid', label: 'Paid', count: (auditData.registrations || []).filter((r: any) => r.status === 'paid' && r.fee > 0 && !r.is_admin_pay).length },
                     { key: 'failed', label: 'Failed', count: (auditData.registrations || []).filter((r: any) => r.status === 'failed').length },
@@ -4122,10 +4124,42 @@ function RegistrationsPanel() {
                     </Pressable>
                   ))}
                 </View>
+                {/* Fetch Razorpay Fees button */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <Pressable
+                    onPress={async () => {
+                      setFetchingFees(true);
+                      try {
+                        const pids = (auditData.registrations || [])
+                          .map((r: any) => r.payment_id)
+                          .filter((pid: string) => pid && !pid.startsWith('ADMIN_PAY_'));
+                        const unique = [...new Set(pids)] as string[];
+                        // Only fetch payment_ids not already in cache
+                        const toFetch = unique.filter((pid: string) => !(pid in razorpayFees));
+                        if (toFetch.length > 0) {
+                          const res = await api.adminRazorpayPaymentFees(toFetch);
+                          setRazorpayFees(prev => ({ ...prev, ...(res?.fees || {}) }));
+                        }
+                      } catch { /* ignore */ }
+                      setFetchingFees(false);
+                    }}
+                    disabled={fetchingFees}
+                    style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6, backgroundColor: fetchingFees ? 'rgba(255,255,255,0.06)' : 'rgba(245,158,11,0.15)', borderWidth: 1, borderColor: fetchingFees ? 'rgba(255,255,255,0.1)' : '#F59E0B' }}
+                  >
+                    <Text style={{ color: fetchingFees ? SAC.muted : '#F59E0B', fontFamily: FONTS.semi, fontSize: 9.5 }}>
+                      {fetchingFees ? 'Fetching…' : Object.keys(razorpayFees).length > 0 ? `RP Fees Loaded (${Object.keys(razorpayFees).length})` : 'Fetch Razorpay Fees'}
+                    </Text>
+                  </Pressable>
+                  {Object.keys(razorpayFees).length > 0 && (
+                    <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 9 }}>
+                      Total RP Fees: ₹{Object.values(razorpayFees).reduce((s, f) => s + (f.fee || 0), 0).toFixed(2)} · Tax: ₹{Object.values(razorpayFees).reduce((s, f) => s + (f.tax || 0), 0).toFixed(2)}
+                    </Text>
+                  )}
+                </View>
                 <ScrollView style={{ maxHeight: 360 }}>
                   {(auditData.registrations || []).filter((r: any) => {
                     if (auditFilter === 'all') return true;
-                    if (auditFilter === 'free') return r.fee <= 0 && r.status === 'paid';
+                    if (auditFilter === 'free') return r.fee <= 0 && r.status === 'paid' && !r.is_team_member;
                     if (auditFilter === 'admin') return r.is_admin_pay;
                     if (auditFilter === 'paid') return r.status === 'paid' && r.fee > 0 && !r.is_admin_pay;
                     if (auditFilter === 'failed') return r.status === 'failed';
@@ -4140,6 +4174,15 @@ function RegistrationsPanel() {
                       <Text style={{ width: 70, color: SAC.muted, fontFamily: FONTS.med, fontSize: 10 }} numberOfLines={1}>{r.reg_type} {r.team_size > 1 ? `(${r.team_size})` : ''}</Text>
                       <Text style={{ width: 70, color: SAC.muted, fontFamily: FONTS.med, fontSize: 10 }} numberOfLines={1}>{r.slug}</Text>
                       <Text style={{ width: 70, color: r.fee > 0 ? '#86EFAC' : r.fee === 0 ? '#C4B5FD' : '#EF4444', fontFamily: FONTS.xbold, fontSize: 11.5 }}>₹{r.fee}</Text>
+                      {razorpayFees[r.payment_id] && !razorpayFees[r.payment_id].error ? (
+                        <>
+                          <Text style={{ width: 55, color: '#FCA5A5', fontFamily: FONTS.med, fontSize: 9.5 }}>₹{(razorpayFees[r.payment_id].fee || 0).toFixed(2)}</Text>
+                          <Text style={{ width: 45, color: '#FCA5A5', fontFamily: FONTS.med, fontSize: 9.5 }}>₹{(razorpayFees[r.payment_id].tax || 0).toFixed(2)}</Text>
+                          <Text style={{ width: 65, color: '#86EFAC', fontFamily: FONTS.xbold, fontSize: 10 }}>₹{(razorpayFees[r.payment_id].net || 0).toFixed(2)}</Text>
+                        </>
+                      ) : razorpayFees[r.payment_id]?.error ? (
+                        <Text style={{ width: 55, color: '#EF4444', fontFamily: FONTS.med, fontSize: 8 }} numberOfLines={1}>err</Text>
+                      ) : null}
                       <Text style={{ flex: 1, color: r.is_admin_pay ? '#FBBF24' : '#93C5FD', fontFamily: FONTS.med, fontSize: 9 }} numberOfLines={1}>{r.payment_id || '—'}</Text>
                       <Text style={{ width: 55, color: r.status === 'paid' ? '#34D399' : r.status === 'pending' ? '#FBBF24' : '#EF4444', fontFamily: FONTS.xbold, fontSize: 9, letterSpacing: 0.3 }}>{(r.status || '').toUpperCase()}</Text>
                     </View>
