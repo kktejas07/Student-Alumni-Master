@@ -11,11 +11,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Sparkles, ArrowRight, Calendar, Building2, MapPin } from 'lucide-react-native';
 import { api, resolveImageUrl } from '@/src/models/services/api';
 import { EchoHeader, EchoFooter, ECHO_TOP_PADDING } from '@/src/views/web/components/EchoChrome';
-import EchoEventsLanding from '@/src/views/web/echo-events/EchoEventsLanding';
+import LandingPage from '@/src/views/web/LandingPage';
 
 export default function EchoIndexPage() {
   if (Platform.OS === 'web') {
-    return <EchoEventsLanding />;
+    return <LandingPage initialTab="echo" />;
   }
 
   const router = useRouter();

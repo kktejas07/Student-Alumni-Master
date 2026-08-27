@@ -33,7 +33,7 @@ const T = {
 };
 
 interface CommonFooterProps {
-  onTabChange?: (tab: 'home' | 'verify' | 'contact') => void;
+  onTabChange?: (tab: 'home' | 'echo' | 'verify' | 'contact') => void;
   maxWidth?: number;
 }
 
@@ -46,7 +46,7 @@ export default function CommonFooter({ onTabChange, maxWidth = 1360 }: CommonFoo
   const [subscribed, setSubscribed] = useState(false);
   const [emailInput, setEmailInput] = useState('');
 
-  const navigateTabOrRoute = (tab: 'home' | 'verify' | 'contact', route?: string) => {
+  const navigateTabOrRoute = (tab: 'home' | 'echo' | 'verify' | 'contact', route?: string) => {
     if (onTabChange) {
       onTabChange(tab);
     } else if (route) {
@@ -59,34 +59,48 @@ export default function CommonFooter({ onTabChange, maxWidth = 1360 }: CommonFoo
       <View style={[styles.footerInner, { maxWidth, paddingHorizontal: containerPadding }]}>
         {/* Brand Column */}
         <View style={styles.footerBrandCol}>
-          <Pressable
-            onPress={() => navigateTabOrRoute('home', '/')}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 }}
-          >
-            <Svg width="24" height="28" viewBox="0 0 300 350">
+          <Pressable onPress={() => navigateTabOrRoute('home', '/')} style={styles.brandLogoRow}>
+            <Svg width="26" height="30" viewBox="0 0 300 350">
               <Path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="#8B84FF" />
+              <Path d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="#5B4FE9" />
               <SvgText x="150" y="214" textAnchor="middle" fill="#FFFFFF" fontSize="118" fontWeight="800">
                 SA
               </SvgText>
             </Svg>
-            <Text style={styles.footerBrandTitle}>StudentAlumni</Text>
+            <Text style={styles.brandTitle}>StudentAlumni</Text>
           </Pressable>
-          <Text style={styles.footerBrandSub}>
-            The intelligent career companion built for the{' '}
-            <Text style={{ color: '#FFFFFF', fontWeight: '700' }}>next generation</Text> of students.
-          </Text>
-          <View style={{ flexDirection: 'row', gap: 10 }}>
-            {/* LinkedIn */}
-            <Pressable style={styles.socialBox}>
+          <Text style={styles.brandTagline}>Verified student &amp; alumni network across Indian campuses.</Text>
+
+          {/* Social Icons */}
+          <View style={styles.socialRow}>
+            <Pressable
+              onPress={() => {
+                if (typeof window !== 'undefined') window.open('https://linkedin.com', '_blank');
+              }}
+              style={styles.socialBtn}
+            >
               <Svg width="18" height="18" viewBox="0 0 24 24">
-                <Rect x="3.2" y="3.2" width="17.6" height="17.6" rx="4.4" stroke="#B6BACB" strokeWidth="1.9" fill="none" />
-                <Path d="M7.6 10.4v6.2" stroke="#B6BACB" strokeWidth="1.9" fill="none" />
-                <Circle cx="7.6" cy="7.4" r="0.9" fill="#B6BACB" />
-                <Path d="M11.6 16.6v-3.4a2.6 2.6 0 015.2 0v3.4M11.6 16.6v-6.2" stroke="#B6BACB" strokeWidth="1.9" fill="none" />
+                <Path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" fill="#B6BACB" />
+                <Rect x="2" y="9" width="4" height="12" fill="#B6BACB" />
+                <Circle cx="4" cy="4" r="2" fill="#B6BACB" />
               </Svg>
             </Pressable>
-            {/* Instagram */}
-            <Pressable style={styles.socialBox}>
+            <Pressable
+              onPress={() => {
+                if (typeof window !== 'undefined') window.open('https://twitter.com', '_blank');
+              }}
+              style={styles.socialBtn}
+            >
+              <Svg width="18" height="18" viewBox="0 0 24 24">
+                <Path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z" fill="#B6BACB" />
+              </Svg>
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                if (typeof window !== 'undefined') window.open('https://instagram.com', '_blank');
+              }}
+              style={styles.socialBtn}
+            >
               <Svg width="18" height="18" viewBox="0 0 24 24">
                 <Rect x="3.2" y="3.2" width="17.6" height="17.6" rx="5.2" stroke="#B6BACB" strokeWidth="1.9" fill="none" />
                 <Circle cx="12" cy="12" r="4.1" stroke="#B6BACB" strokeWidth="1.9" fill="none" />
@@ -99,13 +113,16 @@ export default function CommonFooter({ onTabChange, maxWidth = 1360 }: CommonFoo
         {/* Resources Column */}
         <View style={styles.footerLinksCol}>
           <Text style={styles.footerColHeader}>RESOURCES</Text>
+          <Pressable onPress={() => navigateTabOrRoute('echo', '/echo')} style={styles.linkItem}>
+            <Text style={styles.footerLinkText}>ECHO Events</Text>
+          </Pressable>
           <Pressable onPress={() => navigateTabOrRoute('verify', '/verify')} style={styles.linkItem}>
             <Text style={styles.footerLinkText}>Verify Certificate</Text>
           </Pressable>
           <Pressable onPress={() => router.push('/events')} style={styles.linkItem}>
             <Text style={styles.footerLinkText}>Blog</Text>
           </Pressable>
-          <Pressable onPress={() => navigateTabOrRoute('contact', '/help-center')} style={styles.linkItem}>
+          <Pressable onPress={() => navigateTabOrRoute('contact', '/contact')} style={styles.linkItem}>
             <Text style={styles.footerLinkText}>Help center</Text>
           </Pressable>
           <Pressable onPress={() => navigateTabOrRoute('home', '/')} style={styles.linkItem}>

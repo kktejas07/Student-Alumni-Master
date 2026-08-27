@@ -179,6 +179,110 @@ const INDUSTRY_MARQUEE = [
   'EXtrive Innovations', 'Larsen & Toubro', 'LinkedIn', 'Google', 'McKinsey',
 ];
 
+export interface EchoEventItem {
+  slug: string;
+  title: string;
+  college: string;
+  collegeFullName: string;
+  status: 'UPCOMING' | 'COMPLETED' | 'LIVE';
+  statusColor: string;
+  date: string;
+  time: string;
+  prize: string;
+  regDeadline: string;
+  venue: string;
+  subtitle: string;
+  partners: string[];
+  highlights: Array<{ title: string; desc: string }>;
+}
+
+const ECHO_EVENTS: EchoEventItem[] = [
+  {
+    slug: 'snist',
+    title: 'Hack Wave 3.0 – SNIST',
+    college: 'SNIST',
+    collegeFullName: 'Sreenidhi Institute of Science & Technology',
+    status: 'UPCOMING',
+    statusColor: '#F5B342',
+    date: 'September 04 – 05, 2026',
+    time: '09:00 AM',
+    prize: '₹50,000 prize pool',
+    regDeadline: '2026-09-01',
+    venue: 'SNIST Campus, Ghatkesar, Hyderabad',
+    subtitle: "Empowering Tomorrow's Leaders | Organized by CDC SNIST in collaboration with StudentAlumni.ai",
+    partners: ['CodeSpectra', 'Featherless', 'Stepupmark'],
+    highlights: [
+      { title: 'Inspiring Keynotes', desc: 'Industry leaders shared their journey and insights' },
+      { title: 'Panel Discussions', desc: 'Engaging conversations on career and tech trends' },
+      { title: 'Hands-on Workshops', desc: 'Practical learning and skill-building sessions' },
+      { title: 'Networking Sessions', desc: 'Students connected with experts and alumni' },
+    ],
+  },
+  {
+    slug: 'vnr',
+    title: 'VNR ECHO 2026',
+    college: 'VNR VJIET',
+    collegeFullName: 'VNR Vignana Jyothi Institute of Engineering and Technology',
+    status: 'COMPLETED',
+    statusColor: '#34D399',
+    date: 'July 31, 2026',
+    time: '10:00 AM',
+    prize: '₹40,000 prize pool',
+    regDeadline: '2026-07-28',
+    venue: 'Main Auditorium, VNR VJIET, Hyderabad',
+    subtitle: "Empowering Tomorrow's Leaders | Innovation, AI & Future Tech Systems",
+    partners: ['VNR Innovation Cell', 'StudentAlumni.ai'],
+    highlights: [
+      { title: 'AI Keynote', desc: 'Generative AI and Agentic systems in 2026' },
+      { title: 'Startup Pitch', desc: '14 campus startups pitched to angel alumni' },
+      { title: 'Design Sprint', desc: 'UI/UX rapid wireframing and prototyping sprint' },
+      { title: 'Alumni Mixer', desc: '1-on-1 career guidance with senior engineering leads' },
+    ],
+  },
+  {
+    slug: 'cbit',
+    title: 'CBIT Innovate 2026',
+    college: 'CBIT',
+    collegeFullName: 'Chaitanya Bharathi Institute of Technology',
+    status: 'COMPLETED',
+    statusColor: '#34D399',
+    date: 'May 18, 2026',
+    time: '09:30 AM',
+    prize: '₹75,000 prize pool',
+    regDeadline: '2026-05-15',
+    venue: 'CBIT Campus, Gandipet, Hyderabad',
+    subtitle: 'AI & Cloud Horizons Hackathon | Building Scalable Software Systems',
+    partners: ['AWS Student Community', 'CBIT EDC', 'StudentAlumni.ai'],
+    highlights: [
+      { title: 'Cloud Architecture', desc: 'Distributed microservices & high throughput APIs' },
+      { title: 'Overnight Hackathon', desc: '24-hour sprint with 60 engineering teams' },
+      { title: 'Tech Career Expo', desc: 'Direct interview rounds with hiring tech leaders' },
+      { title: 'Mentorship Circles', desc: 'Resume teardowns and mock whiteboard interviews' },
+    ],
+  },
+  {
+    slug: 'khammam',
+    title: 'Khammam BuildSprint 2026',
+    college: 'KITS',
+    collegeFullName: 'Khammam Institute of Technology & Science',
+    status: 'COMPLETED',
+    statusColor: '#34D399',
+    date: 'March 12, 2026',
+    time: '10:00 AM',
+    prize: '₹30,000 prize pool',
+    regDeadline: '2026-03-09',
+    venue: 'KITS Auditorium, Khammam, Telangana',
+    subtitle: 'Web3 & Distributed Systems Workshop | Hands-on Engineering Workshop',
+    partners: ['KITS Coding Club', 'StudentAlumni.ai'],
+    highlights: [
+      { title: 'Smart Contracts', desc: 'Building and auditing verifiable smart contracts' },
+      { title: 'Career Masterclass', desc: 'Off-campus placement preparation & portfolio building' },
+      { title: 'Live Coding Battle', desc: 'Competitive programming sprint on data structures' },
+      { title: 'Alumni Awards', desc: 'Honoring top alumni contributors and student innovators' },
+    ],
+  },
+];
+
 /* ── Subtle Right-Side SA Logo Background Watermark (Non-Landing Pages) ── */
 function BackgroundWatermark({ visible }: { visible: boolean }) {
   if (!visible) return null;
@@ -433,7 +537,7 @@ function GlowButton({
   );
 }
 
-export default function LandingPage({ initialTab }: { initialTab?: 'home' | 'verify' | 'contact' } = {}) {
+export default function LandingPage({ initialTab }: { initialTab?: 'home' | 'echo' | 'verify' | 'contact' } = {}) {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const isNarrow = width < 960;
@@ -441,15 +545,17 @@ export default function LandingPage({ initialTab }: { initialTab?: 'home' | 'ver
   const containerPadding = isMobile ? 20 : isNarrow ? 32 : 44;
 
   // Active navigation tab with path / history URL sync
-  const [activeTab, setActiveTab] = useState<'home' | 'verify' | 'contact'>(() => {
+  const [activeTab, setActiveTab] = useState<'home' | 'echo' | 'verify' | 'contact'>(() => {
     if (initialTab) return initialTab;
     if (typeof window !== 'undefined') {
       const pathname = window.location.pathname;
+      if (pathname.includes('/echo')) return 'echo';
       if (pathname.includes('/contact')) return 'contact';
       if (pathname.includes('/verify') || pathname.includes('/certificates/verify')) return 'verify';
       const urlParams = new URLSearchParams(window.location.search);
       const tabParam = urlParams.get('tab');
-      if (tabParam === 'verify' || tabParam === 'contact') return tabParam;
+      if (tabParam === 'echo' || tabParam === 'verify' || tabParam === 'contact') return tabParam;
+      if (window.location.hash.includes('echo')) return 'echo';
       if (window.location.hash.includes('verify')) return 'verify';
       if (window.location.hash.includes('contact')) return 'contact';
     }
@@ -461,6 +567,10 @@ export default function LandingPage({ initialTab }: { initialTab?: 'home' | 'ver
     if (typeof window === 'undefined') return;
     const onPopState = () => {
       const pathname = window.location.pathname;
+      if (pathname.includes('/echo')) {
+        setActiveTab('echo');
+        return;
+      }
       if (pathname.includes('/contact')) {
         setActiveTab('contact');
         return;
@@ -471,7 +581,7 @@ export default function LandingPage({ initialTab }: { initialTab?: 'home' | 'ver
       }
       const urlParams = new URLSearchParams(window.location.search);
       const tabParam = urlParams.get('tab');
-      if (tabParam === 'verify' || tabParam === 'contact') {
+      if (tabParam === 'echo' || tabParam === 'verify' || tabParam === 'contact') {
         setActiveTab(tabParam);
       } else {
         setActiveTab('home');
@@ -484,6 +594,18 @@ export default function LandingPage({ initialTab }: { initialTab?: 'home' | 'ver
   // Scroll position & sticky bar
   const [scrollY, setScrollY] = useState(0);
   const showStickyBar = scrollY > 600;
+
+  // ECHO Events view state
+  const [echoDetailSlug, setEchoDetailSlug] = useState<string | null>(null);
+  const [echoRegModal, setEchoRegModal] = useState(false);
+  const [echoPassType, setEchoPassType] = useState<'standard' | 'vip'>('standard');
+  const [echoName, setEchoName] = useState('');
+  const [echoEmail, setEchoEmail] = useState('');
+  const [echoPhone, setEchoPhone] = useState('');
+  const [echoWhatsapp, setEchoWhatsapp] = useState(true);
+  const [echoCoupon, setEchoCoupon] = useState('');
+  const [echoCouponApplied, setEchoCouponApplied] = useState(false);
+  const [echoRegistered, setEchoRegistered] = useState(false);
 
   // Verify view state
   const [verifyInput, setVerifyInput] = useState('');
@@ -568,13 +690,13 @@ export default function LandingPage({ initialTab }: { initialTab?: 'home' | 'ver
   }, []);
 
   // Smooth Tab Switch with Curtain Motion Effect & URL Sync
-  const handleTabSwitch = (newTab: 'home' | 'verify' | 'contact') => {
+  const handleTabSwitch = (newTab: 'home' | 'echo' | 'verify' | 'contact') => {
     if (newTab === activeTab) {
       if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
     
-    // Sync browser URL in address bar as /contact, /verify, / without full page reload
+    // Sync browser URL in address bar as /echo, /verify, /contact, / without full page reload
     if (typeof window !== 'undefined' && window.history) {
       const newUrl = newTab === 'home' ? '/' : `/${newTab}`;
       window.history.pushState({ tab: newTab }, '', newUrl);
@@ -582,6 +704,7 @@ export default function LandingPage({ initialTab }: { initialTab?: 'home' | 'ver
     
     const labelMap: Record<string, string> = {
       home: 'STUDENTALUMNI',
+      echo: 'ECHO EVENTS',
       verify: 'CREDENTIAL VERIFICATION',
       contact: 'CONTACT & CAMPUS RELATIONS',
     };
@@ -943,9 +1066,9 @@ export default function LandingPage({ initialTab }: { initialTab?: 'home' | 'ver
           </Pressable>
 
           {/* Navigation Tabs */}
-          <View style={[styles.navTabs, isMobile && { gap: 16 }]}>
-            {(['home', 'verify', 'contact'] as const).map((tab) => {
-              const label = tab === 'home' ? 'Home' : tab === 'verify' ? 'Verify' : 'Contact Us';
+          <View style={[styles.navTabs, isMobile && { gap: 12 }]}>
+            {(['home', 'echo', 'verify', 'contact'] as const).map((tab) => {
+              const label = tab === 'home' ? 'Home' : tab === 'echo' ? 'ECHO' : tab === 'verify' ? 'Verify' : 'Contact Us';
               const isSelected = activeTab === tab;
               return (
                 <Pressable
@@ -979,6 +1102,485 @@ export default function LandingPage({ initialTab }: { initialTab?: 'home' | 'ver
         onScroll={(e) => updateScrollProgress(e.nativeEvent.contentOffset.y)}
         scrollEventThrottle={16}
       >
+
+        {/* ══════════════════════════════════════════════════════════════════
+            TAB: ECHO EVENTS SHOWCASE
+        ══════════════════════════════════════════════════════════════════ */}
+        {activeTab === 'echo' && (
+          <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
+            {/* Top Live Ticker */}
+            <View style={styles.echoTickerWrap}>
+              <View style={styles.echoTickerTrack}>
+                <Text style={styles.echoTickerText}>
+                  The network is a feed until it meets in person.  ·  86 ECHO events across 31 campuses.  ·  267 roles matched, 41 with a warm referral path.  ·  Verified by your college email — free forever for students.  ·  HackWave 3.0 · Sep 4–5 · Sreenidhi · ₹50,000 prize pool  ·  Built with love for students across all campus’s
+                </Text>
+              </View>
+            </View>
+
+            {echoDetailSlug === null ? (
+              /* ── 1. ECHO LIST VIEW ── */
+              <View style={{ width: '100%' }}>
+                {/* Hero Glass Banner: On the Ground */}
+                <View style={styles.echoHeroCard}>
+                  <View style={[styles.echoHeroGrid, isNarrow && { flexDirection: 'column' }]}>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <View style={styles.echoTagPill}>
+                        <View style={styles.echoTagDot} />
+                        <Text style={styles.echoTagText}>ON THE GROUND</Text>
+                      </View>
+                      <Text style={styles.echoHeroTitle}>The network is a feed until it meets in person.</Text>
+                      <Text style={styles.echoHeroSub}>
+                        Eighty-six ECHO events across thirty-one campuses. Alumni in the room, recruiters at the table, and a build sprint that runs overnight.
+                      </Text>
+
+                      {/* 3 Metric Stats */}
+                      <View style={styles.echoStatsRow}>
+                        <View>
+                          <Text style={[styles.echoStatNum, { color: '#4B3FD6' }]}>86</Text>
+                          <Text style={styles.echoStatLabel}>events run</Text>
+                        </View>
+                        <View>
+                          <Text style={[styles.echoStatNum, { color: '#0E6E8C' }]}>31</Text>
+                          <Text style={styles.echoStatLabel}>cities</Text>
+                        </View>
+                        <View>
+                          <Text style={[styles.echoStatNum, { color: '#A21C63' }]}>4.8</Text>
+                          <Text style={styles.echoStatLabel}>average rating</Text>
+                        </View>
+                      </View>
+
+                      {/* Actions */}
+                      <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
+                        <Pressable
+                          onPress={() => {
+                            if (typeof window !== 'undefined') window.scrollTo({ top: 580, behavior: 'smooth' });
+                          }}
+                          style={[styles.btnGlow, { paddingVertical: 14, paddingHorizontal: 26, borderRadius: 12 }]}
+                        >
+                          <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 14.5 }}>Browse all events</Text>
+                        </Pressable>
+                        <Pressable
+                          onPress={() => handleTabSwitch('contact')}
+                          style={[styles.btnOutline, { paddingVertical: 14, paddingHorizontal: 26, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.06)' }]}
+                        >
+                          <Text style={{ color: '#2E2A55', fontWeight: '600', fontSize: 14.5 }}>Host on your campus</Text>
+                        </Pressable>
+                      </View>
+                    </View>
+
+                    {/* Stage Mosaic Graphic */}
+                    <View style={[styles.echoMosaicWrap, isNarrow && { width: '100%', height: 180 }]}>
+                      <View style={styles.echoMosaicMain}>
+                        <Text style={styles.echoMosaicMainText}>Keynote — Main Stage</Text>
+                      </View>
+                      <View style={styles.echoMosaicSide}>
+                        <View style={styles.echoMosaicSub1}>
+                          <Text style={styles.echoMosaicSubText}>Crowd</Text>
+                        </View>
+                        <View style={styles.echoMosaicSub2}>
+                          <Text style={styles.echoMosaicSubText}>Workshop</Text>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Recent Hosts Strip */}
+                  <View style={styles.echoRecentHosts}>
+                    <Text style={styles.echoRecentLabel}>RECENT HOSTS</Text>
+                    <View style={styles.echoHostChipsWrap}>
+                      {['Sreenidhi Institute', 'VNR VJIET', 'Khammam Institute', 'CBIT Hyderabad'].map((h, i) => (
+                        <View key={i} style={styles.echoHostChip}>
+                          <Text style={styles.echoHostChipText}>{h}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                </View>
+
+                {/* Section Header */}
+                <View style={styles.echoSectionBanner}>
+                  <View style={styles.echoSectionPill}>
+                    <Svg width="13" height="13" viewBox="0 0 24 24" style={{ marginRight: 6 }}>
+                      <Path d="M12 2l1.9 5.1L19 9l-5.1 1.9L12 16l-1.9-5.1L5 9l5.1-1.9Z" fill="#A78BFA" />
+                    </Svg>
+                    <Text style={styles.echoSectionPillText}>ECHO EVENTS</Text>
+                  </View>
+                  <Text style={styles.echoSectionTitle}>Explore ECHO Events by College</Text>
+                  <Text style={styles.echoSectionSubtitle}>
+                    Image galleries, partners, sponsors, speakers, testimonials and registration for every ECHO event we've conducted.
+                  </Text>
+                </View>
+
+                {/* Events 2-Column Grid */}
+                <View style={[styles.echoCardsGrid, isNarrow && { flexDirection: 'column' }]}>
+                  {ECHO_EVENTS.map((ev) => (
+                    <Pressable
+                      key={ev.slug}
+                      onPress={() => {
+                        setEchoDetailSlug(ev.slug);
+                        if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      style={styles.echoEventCard}
+                    >
+                      <View style={styles.echoCardImageHeader}>
+                        <Text style={styles.echoCardImageTitle}>{ev.title}</Text>
+                      </View>
+                      <View style={styles.echoCardBody}>
+                        <View style={styles.echoCardBadgeRow}>
+                          <View style={[styles.echoStatusBadge, { borderColor: ev.status === 'UPCOMING' ? '#4A3410' : '#1F4E5C', backgroundColor: ev.status === 'UPCOMING' ? 'rgba(245,179,66,0.14)' : 'rgba(52,211,153,0.14)' }]}>
+                            <Text style={[styles.echoStatusText, { color: ev.statusColor }]}>{ev.status}</Text>
+                          </View>
+                          <View style={styles.echoCollegeBadge}>
+                            <Text style={styles.echoCollegeBadgeText}>{ev.college}</Text>
+                          </View>
+                        </View>
+                        <Text style={styles.echoCardTitle}>{ev.title}</Text>
+                        <Text style={styles.echoCardSubtitle} numberOfLines={2}>{ev.subtitle}</Text>
+                        
+                        <View style={styles.echoCardMetaList}>
+                          <View style={styles.echoMetaItem}>
+                            <Svg width="14" height="14" viewBox="0 0 24 24" style={{ marginRight: 8 }}>
+                              <Rect x="3.5" y="5" width="17" height="15" rx="2.5" stroke="#8A8A9E" strokeWidth="1.8" fill="none" />
+                              <Path d="M3.5 10h17M8 5V2.5M16 5V2.5" stroke="#8A8A9E" strokeWidth="1.8" />
+                            </Svg>
+                            <Text style={styles.echoMetaText}>{ev.date}</Text>
+                          </View>
+                          <View style={styles.echoMetaItem}>
+                            <Svg width="14" height="14" viewBox="0 0 24 24" style={{ marginRight: 8 }}>
+                              <Path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11Z" stroke="#8A8A9E" strokeWidth="1.8" fill="none" />
+                              <Circle cx="12" cy="10" r="2.4" stroke="#8A8A9E" strokeWidth="1.8" fill="none" />
+                            </Svg>
+                            <Text style={styles.echoMetaText} numberOfLines={1}>{ev.venue}</Text>
+                          </View>
+                        </View>
+
+                        <View style={styles.echoCardFooter}>
+                          <Text style={styles.echoViewEventText}>View event →</Text>
+                        </View>
+                      </View>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            ) : (
+              /* ── 2. ECHO DETAIL & REGISTRATION VIEW ── */
+              (() => {
+                const cur = ECHO_EVENTS.find((e) => e.slug === echoDetailSlug) || ECHO_EVENTS[0];
+                return (
+                  <View style={{ width: '100%' }}>
+                    {/* Back Button */}
+                    <Pressable
+                      onPress={() => setEchoDetailSlug(null)}
+                      style={styles.echoBackBtn}
+                    >
+                      <Svg width="15" height="15" viewBox="0 0 24 24" style={{ marginRight: 8 }}>
+                        <Path d="M20 12H5M11 6l-6 6 6 6" stroke="#FFFFFF" strokeWidth="2" fill="none" />
+                      </Svg>
+                      <Text style={styles.echoBackBtnText}>Back to all events</Text>
+                    </Pressable>
+
+                    {/* Main Event Showcase Banner */}
+                    <View style={styles.echoDetailHeroCard}>
+                      <View style={styles.echoDetailHeroBanner}>
+                        <Text style={styles.echoDetailHeroBannerText}>{cur.title} · Event Stage</Text>
+                      </View>
+                      <View style={styles.echoDetailHeroBody}>
+                        <View style={styles.echoCardBadgeRow}>
+                          <View style={[styles.echoStatusBadge, { borderColor: cur.status === 'UPCOMING' ? '#4A3410' : '#1F4E5C', backgroundColor: cur.status === 'UPCOMING' ? 'rgba(245,179,66,0.14)' : 'rgba(52,211,153,0.14)' }]}>
+                            <Text style={[styles.echoStatusText, { color: cur.statusColor }]}>{cur.status}</Text>
+                          </View>
+                          <Text style={styles.echoOrgByText}>CDC {cur.college} IN COLLABORATION WITH STUDENTALUMNI.AI</Text>
+                        </View>
+
+                        <Text style={styles.echoDetailTitle}>{cur.title}</Text>
+                        <Text style={styles.echoDetailSubtitle}>{cur.subtitle}</Text>
+
+                        {/* Pills info */}
+                        <View style={styles.echoPillsRow}>
+                          <View style={[styles.echoInfoPill, { borderColor: '#4A3410', backgroundColor: 'rgba(245,179,66,0.12)' }]}>
+                            <Text style={[styles.echoInfoPillText, { color: '#F5B342' }]}>{cur.date}</Text>
+                          </View>
+                          <View style={[styles.echoInfoPill, { borderColor: '#23407A', backgroundColor: 'rgba(76,141,246,0.12)' }]}>
+                            <Text style={[styles.echoInfoPillText, { color: '#7FB2F7' }]}>{cur.prize}</Text>
+                          </View>
+                          <View style={[styles.echoInfoPill, { borderColor: '#1F4E5C', backgroundColor: 'rgba(47,184,198,0.12)' }]}>
+                            <Text style={[styles.echoInfoPillText, { color: '#6FD6FF' }]}>{cur.venue}</Text>
+                          </View>
+                          <View style={[styles.echoInfoPill, { borderColor: '#4A3410', backgroundColor: 'rgba(245,179,66,0.08)' }]}>
+                            <Text style={[styles.echoInfoPillText, { color: '#F5B342' }]}>Registration closes: {cur.regDeadline}</Text>
+                          </View>
+                        </View>
+
+                        {/* Action Buttons */}
+                        <View style={styles.echoActionRow}>
+                          <View style={{ flexDirection: 'row', gap: 18, flexWrap: 'wrap' }}>
+                            <Text style={styles.echoMetaDetailItem}>📅 {cur.date}</Text>
+                            <Text style={styles.echoMetaDetailItem}>⏰ {cur.time}</Text>
+                            <Text style={styles.echoMetaDetailItem}>📍 {cur.venue}</Text>
+                          </View>
+                          <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
+                            <Pressable
+                              onPress={() => setEchoRegModal(true)}
+                              style={styles.echoRegBtn}
+                            >
+                              <Text style={styles.echoRegBtnText}>Register Now</Text>
+                            </Pressable>
+                            <Pressable
+                              onPress={() => alert('Downloading official event handbook...')}
+                              style={styles.echoHandbookBtn}
+                            >
+                              <Text style={styles.echoHandbookBtnText}>Event Handbook (PDF)</Text>
+                            </Pressable>
+                          </View>
+                        </View>
+                      </View>
+                    </View>
+
+                    {/* 2-Column Info Grid */}
+                    <View style={[styles.echoInfoGrid, isNarrow && { flexDirection: 'column' }]}>
+                      {/* Left: About the Event */}
+                      <View style={styles.echoAboutCard}>
+                        <Text style={styles.echoAboutTitle}>About the Event</Text>
+                        <Text style={styles.echoAboutSub}>A day of inspiration, learning, and networking</Text>
+                        <View style={styles.echoMiniGrid}>
+                          <View style={styles.echoMiniCard}>
+                            <Text style={styles.echoMiniIcon}>📖</Text>
+                            <Text style={styles.echoMiniTitle}>Learn</Text>
+                            <Text style={styles.echoMiniDesc}>Industry insights</Text>
+                          </View>
+                          <View style={styles.echoMiniCard}>
+                            <Text style={styles.echoMiniIcon}>🤝</Text>
+                            <Text style={styles.echoMiniTitle}>Connect</Text>
+                            <Text style={styles.echoMiniDesc}>Build your network</Text>
+                          </View>
+                          <View style={styles.echoMiniCard}>
+                            <Text style={styles.echoMiniIcon}>🚀</Text>
+                            <Text style={styles.echoMiniTitle}>Grow</Text>
+                            <Text style={styles.echoMiniDesc}>Shape your future</Text>
+                          </View>
+                        </View>
+                      </View>
+
+                      {/* Right: Organized By */}
+                      <View style={styles.echoAboutCard}>
+                        <Text style={styles.echoAboutTitle}>Event Organized By</Text>
+                        <View style={styles.echoOrgRow}>
+                          <Svg width="34" height="38" viewBox="0 0 300 350">
+                            <Path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="#8B84FF" />
+                            <Path d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="#5B4FE9" />
+                            <SvgText x="150" y="214" textAnchor="middle" fill="#FFFFFF" fontSize="118" fontWeight="800">SA</SvgText>
+                          </Svg>
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.echoOrgName}>{cur.collegeFullName}</Text>
+                            <Text style={styles.echoOrgTag}>in collaboration with StudentAlumni.ai</Text>
+                          </View>
+                        </View>
+                        <Text style={styles.echoInAssocHeader}>In Association With</Text>
+                        <View style={styles.echoPartnersWrap}>
+                          {cur.partners.map((p, i) => (
+                            <View key={i} style={styles.echoPartnerBadge}>
+                              <Text style={styles.echoPartnerBadgeText}>{p}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      </View>
+                    </View>
+
+                    {/* Moments from the Event */}
+                    <View style={styles.echoMomentsCard}>
+                      <Text style={styles.echoAboutTitle}>Moments from the Event</Text>
+                      <View style={styles.echoMomentsPlaceholder}>
+                        <Svg width="28" height="28" viewBox="0 0 24 24" style={{ marginBottom: 12 }}>
+                          <Circle cx="10.5" cy="10.5" r="6.5" stroke="#5C6273" strokeWidth="1.8" fill="none" />
+                          <Path d="M15.5 15.5L21 21M10.5 7.5v6M7.5 10.5h6" stroke="#5C6273" strokeWidth="1.8" />
+                        </Svg>
+                        <Text style={{ color: '#8A8A9E', fontSize: 14 }}>Official photo gallery &amp; keynote recordings streaming live.</Text>
+                      </View>
+                    </View>
+
+                    {/* Event Highlights (4-step milestones) */}
+                    <View style={styles.echoHighlightsCard}>
+                      <Text style={styles.echoAboutTitle}>Event Highlights</Text>
+                      <View style={[styles.echoHighlightsGrid, isNarrow && { flexDirection: 'column', gap: 20 }]}>
+                        {cur.highlights.map((hl, i) => (
+                          <View key={i} style={styles.echoHighlightItem}>
+                            <View style={styles.echoHlCircle}>
+                              <Text style={{ color: '#A78BFA', fontWeight: '800', fontSize: 15 }}>{i + 1}</Text>
+                            </View>
+                            <Text style={styles.echoHlTitle}>{hl.title}</Text>
+                            <Text style={styles.echoHlDesc}>{hl.desc}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+
+                    {/* Bottom CTA Banner */}
+                    <View style={styles.echoBottomCta}>
+                      <View style={{ flex: 1, minWidth: 260 }}>
+                        <Text style={styles.echoBottomCtaTitle}>Stay tuned for more events!</Text>
+                        <Text style={styles.echoBottomCtaSub}>Join our community and never miss an opportunity to learn, connect, and grow.</Text>
+                      </View>
+                      <Pressable
+                        onPress={() => setEchoDetailSlug(null)}
+                        style={styles.echoBottomCtaBtn}
+                      >
+                        <Text style={styles.echoBottomCtaBtnText}>View All Campus Events</Text>
+                      </Pressable>
+                    </View>
+
+                    {/* ── REGISTRATION MODAL / DRAWER ── */}
+                    {echoRegModal && (
+                      <View style={styles.echoModalOverlay}>
+                        <View style={styles.echoModalCard}>
+                          <View style={styles.echoModalHeader}>
+                            <View>
+                              <Text style={styles.echoModalTitle}>Register for {cur.title}</Text>
+                              <Text style={styles.echoModalSub}>{cur.collegeFullName} · {cur.date}</Text>
+                            </View>
+                            <Pressable onPress={() => { setEchoRegModal(false); setEchoRegistered(false); }} style={styles.echoModalClose}>
+                              <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: '700' }}>✕</Text>
+                            </Pressable>
+                          </View>
+
+                          {echoRegistered ? (
+                            <View style={styles.echoSuccessCard}>
+                              <Svg width="44" height="44" viewBox="0 0 24 24" style={{ marginBottom: 16 }}>
+                                <Circle cx="12" cy="12" r="10" stroke="#34D399" strokeWidth="2" fill="none" />
+                                <Path d="M7 12l3.5 3.5L17 8.5" stroke="#34D399" strokeWidth="2.5" fill="none" />
+                              </Svg>
+                              <Text style={styles.echoSuccessTitle}>Registration Confirmed!</Text>
+                              <Text style={styles.echoSuccessSub}>
+                                Your ticket has been issued and sent to <Text style={{ color: '#A78BFA', fontWeight: '700' }}>{echoEmail || 'your email'}</Text>.
+                              </Text>
+                              <View style={styles.echoTicketBox}>
+                                <Text style={styles.echoTicketCode}>PASS ID: ECHO-{cur.slug.toUpperCase()}-2026-90412</Text>
+                                <Text style={styles.echoTicketType}>{echoPassType === 'vip' ? 'VIP Builder Access' : 'Standard Student Pass'}</Text>
+                              </View>
+                              <Pressable
+                                onPress={() => { setEchoRegModal(false); setEchoRegistered(false); }}
+                                style={[styles.btnGlow, { width: '100%', paddingVertical: 14, borderRadius: 10, marginTop: 20 }]}
+                              >
+                                <Text style={{ color: '#FFFFFF', fontWeight: '700', textAlign: 'center' }}>Done</Text>
+                              </Pressable>
+                            </View>
+                          ) : (
+                            <View style={styles.echoModalForm}>
+                              {/* Pass Selector */}
+                              <Text style={styles.fieldLabel}>SELECT PASS TYPE</Text>
+                              <View style={styles.echoPassRow}>
+                                <Pressable
+                                  onPress={() => setEchoPassType('standard')}
+                                  style={[styles.echoPassOption, echoPassType === 'standard' && styles.echoPassOptionActive]}
+                                >
+                                  <Text style={[styles.echoPassName, echoPassType === 'standard' && { color: '#8B84FF' }]}>Standard Student</Text>
+                                  <Text style={styles.echoPassPrice}>Free</Text>
+                                </Pressable>
+                                <Pressable
+                                  onPress={() => setEchoPassType('vip')}
+                                  style={[styles.echoPassOption, echoPassType === 'vip' && styles.echoPassOptionActive]}
+                                >
+                                  <Text style={[styles.echoPassName, echoPassType === 'vip' && { color: '#8B84FF' }]}>VIP Builder Pass</Text>
+                                  <Text style={styles.echoPassPrice}>₹499</Text>
+                                </Pressable>
+                              </View>
+
+                              {/* Name */}
+                              <Text style={styles.fieldLabel}>FULL NAME *</Text>
+                              <TextInput
+                                value={echoName}
+                                onChangeText={setEchoName}
+                                placeholder="Your full name"
+                                placeholderTextColor="#6A6A7E"
+                                style={styles.inputField}
+                              />
+
+                              {/* Email */}
+                              <Text style={styles.fieldLabel}>COLLEGE EMAIL *</Text>
+                              <TextInput
+                                value={echoEmail}
+                                onChangeText={setEchoEmail}
+                                placeholder="yourname@college.edu.in"
+                                placeholderTextColor="#6A6A7E"
+                                keyboardType="email-address"
+                                style={styles.inputField}
+                              />
+
+                              {/* Phone */}
+                              <Text style={styles.fieldLabel}>WHATSAPP MOBILE NUMBER</Text>
+                              <TextInput
+                                value={echoPhone}
+                                onChangeText={setEchoPhone}
+                                placeholder="+91 98765 43210"
+                                placeholderTextColor="#6A6A7E"
+                                keyboardType="phone-pad"
+                                style={styles.inputField}
+                              />
+
+                              {/* WhatsApp toggle */}
+                              <Pressable
+                                onPress={() => setEchoWhatsapp(!echoWhatsapp)}
+                                style={styles.echoCheckRow}
+                              >
+                                <View style={[styles.consentBox, echoWhatsapp && styles.consentBoxChecked]}>
+                                  {echoWhatsapp && <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '800' }}>✓</Text>}
+                                </View>
+                                <Text style={styles.consentLabel}>Receive event schedule, QR pass &amp; team updates on WhatsApp</Text>
+                              </Pressable>
+
+                              {/* Coupon code */}
+                              <View style={styles.echoCouponRow}>
+                                <TextInput
+                                  value={echoCoupon}
+                                  onChangeText={setEchoCoupon}
+                                  placeholder="Discount Coupon (e.g. SA2026)"
+                                  placeholderTextColor="#6A6A7E"
+                                  style={[styles.inputField, { flex: 1, marginBottom: 0 }]}
+                                />
+                                <Pressable
+                                  onPress={() => {
+                                    if (echoCoupon.trim().toUpperCase() === 'SA2026' || echoCoupon.trim().toUpperCase() === 'STUDENT100') {
+                                      setEchoCouponApplied(true);
+                                    } else {
+                                      alert('Invalid code. Try "SA2026" for 100% off VIP pass.');
+                                    }
+                                  }}
+                                  style={styles.echoCouponBtn}
+                                >
+                                  <Text style={styles.echoCouponBtnText}>{echoCouponApplied ? 'Applied ✓' : 'Apply'}</Text>
+                                </Pressable>
+                              </View>
+                              {echoCouponApplied && (
+                                <Text style={{ color: '#34D399', fontSize: 12, fontWeight: '600', marginTop: 4 }}>
+                                  Coupon applied: 100% waiver on registration fee!
+                                </Text>
+                              )}
+
+                              {/* Submit Button */}
+                              <Pressable
+                                onPress={() => {
+                                  if (!echoName || !echoEmail) {
+                                    alert('Please enter your full name and college email.');
+                                    return;
+                                  }
+                                  setEchoRegistered(true);
+                                }}
+                                style={[styles.btnGlow, { width: '100%', paddingVertical: 14, borderRadius: 10, marginTop: 18 }]}
+                              >
+                                <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 15, textAlign: 'center' }}>
+                                  Complete Event Registration
+                                </Text>
+                              </Pressable>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                    )}
+                  </View>
+                );
+              })()
+            )}
+          </View>
+        )}
 
         {/* ══════════════════════════════════════════════════════════════════
             TAB: VERIFY CREDENTIALS & BGV DESK
@@ -4460,5 +5062,754 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: T.text2,
     fontWeight: '500',
+  },
+
+  /* ── ECHO EVENTS STYLES ── */
+  echoTickerWrap: {
+    width: '100%',
+    backgroundColor: 'rgba(124,92,252,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(124,92,252,0.25)',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    marginBottom: 26,
+    overflow: 'hidden',
+  },
+  echoTickerTrack: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  echoTickerText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#D5D8E4',
+    letterSpacing: 0.2,
+  },
+  echoHeroCard: {
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 36,
+    marginBottom: 24,
+    shadowColor: '#101220',
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.18,
+    shadowRadius: 40,
+  },
+  echoHeroGrid: {
+    flexDirection: 'row',
+    gap: 36,
+    alignItems: 'center',
+  },
+  echoTagPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(46,32,145,0.1)',
+    borderRadius: 100,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    alignSelf: 'flex-start',
+    marginBottom: 16,
+  },
+  echoTagDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#2E2091',
+  },
+  echoTagText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#2E2091',
+    letterSpacing: 1.5,
+  },
+  echoHeroTitle: {
+    fontSize: 34,
+    fontWeight: '700',
+    color: '#141726',
+    letterSpacing: -1.4,
+    lineHeight: 40,
+    marginBottom: 12,
+  },
+  echoHeroSub: {
+    fontSize: 16,
+    lineHeight: 25,
+    color: '#4A4F63',
+    maxWidth: 540,
+    marginBottom: 24,
+  },
+  echoStatsRow: {
+    flexDirection: 'row',
+    gap: 32,
+    marginBottom: 24,
+  },
+  echoStatNum: {
+    fontSize: 28,
+    fontWeight: '700',
+    letterSpacing: -1,
+  },
+  echoStatLabel: {
+    fontSize: 12,
+    color: '#5F6474',
+    marginTop: 4,
+  },
+  echoMosaicWrap: {
+    width: 380,
+    height: 200,
+    flexDirection: 'row',
+    gap: 10,
+  },
+  echoMosaicMain: {
+    flex: 2,
+    backgroundColor: '#1E1848',
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+  },
+  echoMosaicMainText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  echoMosaicSide: {
+    flex: 1,
+    gap: 10,
+  },
+  echoMosaicSub1: {
+    flex: 1,
+    backgroundColor: '#2A1F63',
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  echoMosaicSub2: {
+    flex: 1,
+    backgroundColor: '#162248',
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  echoMosaicSubText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontWeight: '600',
+    fontSize: 11.5,
+  },
+  echoRecentHosts: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    flexWrap: 'wrap',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(20,23,38,0.1)',
+    marginTop: 26,
+    paddingTop: 20,
+  },
+  echoRecentLabel: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+    color: '#5F6474',
+  },
+  echoHostChipsWrap: {
+    flexDirection: 'row',
+    gap: 10,
+    flexWrap: 'wrap',
+  },
+  echoHostChip: {
+    backgroundColor: 'rgba(20,23,38,0.06)',
+    borderRadius: 100,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+  },
+  echoHostChipText: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: '#2E2A55',
+  },
+  echoSectionBanner: {
+    width: '100%',
+    backgroundColor: '#14122E',
+    borderWidth: 1,
+    borderColor: '#3A2E72',
+    borderRadius: 20,
+    padding: 30,
+    marginBottom: 22,
+  },
+  echoSectionPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(124,92,252,0.18)',
+    borderRadius: 100,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    alignSelf: 'flex-start',
+    marginBottom: 14,
+  },
+  echoSectionPillText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    letterSpacing: 1.4,
+    color: '#C4B5FD',
+  },
+  echoSectionTitle: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: -1.2,
+    marginBottom: 10,
+  },
+  echoSectionSubtitle: {
+    fontSize: 15,
+    color: '#BEB6E8',
+    lineHeight: 24,
+    maxWidth: 620,
+  },
+  echoCardsGrid: {
+    width: '100%',
+    flexDirection: 'row',
+    gap: 20,
+    flexWrap: 'wrap',
+  },
+  echoEventCard: {
+    flex: 1,
+    minWidth: 320,
+    backgroundColor: '#11111C',
+    borderWidth: 1,
+    borderColor: '#1F1F30',
+    borderRadius: 18,
+    overflow: 'hidden',
+  },
+  echoCardImageHeader: {
+    height: 170,
+    backgroundColor: '#1E1848',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  echoCardImageTitle: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '800',
+    textAlign: 'center',
+    letterSpacing: -0.5,
+  },
+  echoCardBody: {
+    padding: 20,
+  },
+  echoCardBadgeRow: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  echoStatusBadge: {
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  echoStatusText: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+  },
+  echoCollegeBadge: {
+    backgroundColor: 'rgba(124,92,252,0.14)',
+    borderWidth: 1,
+    borderColor: '#2E2A55',
+    borderRadius: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  echoCollegeBadgeText: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#C4B5FD',
+  },
+  echoCardTitle: {
+    fontSize: 19,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: -0.4,
+    marginBottom: 6,
+  },
+  echoCardSubtitle: {
+    fontSize: 13.5,
+    lineHeight: 20,
+    color: '#8A8A9E',
+    marginBottom: 16,
+  },
+  echoCardMetaList: {
+    gap: 8,
+    marginBottom: 16,
+  },
+  echoMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  echoMetaText: {
+    fontSize: 13,
+    color: '#8A8A9E',
+  },
+  echoCardFooter: {
+    borderTopWidth: 1,
+    borderTopColor: '#1F1F30',
+    paddingTop: 14,
+  },
+  echoViewEventText: {
+    fontSize: 13.5,
+    fontWeight: '600',
+    color: '#A78BFA',
+  },
+  echoBackBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: '#11111C',
+    borderWidth: 1,
+    borderColor: '#292940',
+    borderRadius: 100,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    marginBottom: 20,
+  },
+  echoBackBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  echoDetailHeroCard: {
+    width: '100%',
+    backgroundColor: '#11111C',
+    borderWidth: 1,
+    borderColor: '#292940',
+    borderRadius: 22,
+    overflow: 'hidden',
+    marginBottom: 22,
+  },
+  echoDetailHeroBanner: {
+    height: 260,
+    backgroundColor: '#1A1448',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  echoDetailHeroBannerText: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    letterSpacing: -0.8,
+  },
+  echoDetailHeroBody: {
+    padding: 26,
+  },
+  echoOrgByText: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.1,
+    color: '#8A8A9E',
+  },
+  echoDetailTitle: {
+    fontSize: 30,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: -1,
+    marginTop: 6,
+    marginBottom: 8,
+  },
+  echoDetailSubtitle: {
+    fontSize: 15,
+    lineHeight: 23,
+    color: '#8A8A9E',
+    maxWidth: 680,
+    marginBottom: 18,
+  },
+  echoPillsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    flexWrap: 'wrap',
+    marginBottom: 22,
+  },
+  echoInfoPill: {
+    borderWidth: 1,
+    borderRadius: 100,
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+  },
+  echoInfoPillText: {
+    fontSize: 12.5,
+    fontWeight: '600',
+  },
+  echoActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#1F1F30',
+    paddingTop: 18,
+    flexWrap: 'wrap',
+  },
+  echoMetaDetailItem: {
+    fontSize: 13.5,
+    color: '#8A8A9E',
+  },
+  echoRegBtn: {
+    backgroundColor: '#0E9F6E',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 22,
+  },
+  echoRegBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  echoHandbookBtn: {
+    backgroundColor: '#5B4FE9',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+  },
+  echoHandbookBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  echoInfoGrid: {
+    width: '100%',
+    flexDirection: 'row',
+    gap: 20,
+    marginBottom: 22,
+  },
+  echoAboutCard: {
+    flex: 1,
+    backgroundColor: '#11111C',
+    borderWidth: 1,
+    borderColor: '#1F1F30',
+    borderRadius: 18,
+    padding: 24,
+  },
+  echoAboutTitle: {
+    fontSize: 19,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: -0.4,
+    marginBottom: 6,
+  },
+  echoAboutSub: {
+    fontSize: 14,
+    color: '#8A8A9E',
+    marginBottom: 18,
+  },
+  echoMiniGrid: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  echoMiniCard: {
+    flex: 1,
+    backgroundColor: '#161622',
+    borderWidth: 1,
+    borderColor: '#292940',
+    borderRadius: 14,
+    padding: 16,
+    alignItems: 'center',
+  },
+  echoMiniIcon: {
+    fontSize: 24,
+    marginBottom: 8,
+  },
+  echoMiniTitle: {
+    fontSize: 14.5,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  echoMiniDesc: {
+    fontSize: 11.5,
+    color: '#8A8A9E',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  echoOrgRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    marginTop: 14,
+    marginBottom: 20,
+  },
+  echoOrgName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  echoOrgTag: {
+    fontSize: 12.5,
+    color: '#8A8A9E',
+    marginTop: 2,
+  },
+  echoInAssocHeader: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#D5D8E4',
+    marginBottom: 10,
+  },
+  echoPartnersWrap: {
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  echoPartnerBadge: {
+    backgroundColor: '#161622',
+    borderWidth: 1,
+    borderColor: '#292940',
+    borderRadius: 100,
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+  },
+  echoPartnerBadgeText: {
+    fontSize: 12.5,
+    color: '#FFFFFF',
+    fontWeight: '500',
+  },
+  echoMomentsCard: {
+    width: '100%',
+    backgroundColor: '#11111C',
+    borderWidth: 1,
+    borderColor: '#1F1F30',
+    borderRadius: 18,
+    padding: 24,
+    marginBottom: 22,
+  },
+  echoMomentsPlaceholder: {
+    backgroundColor: '#161622',
+    borderWidth: 1,
+    borderColor: '#292940',
+    borderRadius: 14,
+    padding: 40,
+    alignItems: 'center',
+    marginTop: 14,
+  },
+  echoHighlightsCard: {
+    width: '100%',
+    backgroundColor: '#11111C',
+    borderWidth: 1,
+    borderColor: '#1F1F30',
+    borderRadius: 18,
+    padding: 24,
+    marginBottom: 22,
+  },
+  echoHighlightsGrid: {
+    flexDirection: 'row',
+    gap: 14,
+    marginTop: 18,
+  },
+  echoHighlightItem: {
+    flex: 1,
+    alignItems: 'center',
+    textAlign: 'center',
+  },
+  echoHlCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(124,92,252,0.16)',
+    borderWidth: 1,
+    borderColor: '#3A2E72',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  echoHlTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  echoHlDesc: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: '#8A8A9E',
+    textAlign: 'center',
+  },
+  echoBottomCta: {
+    width: '100%',
+    backgroundColor: '#2A1F63',
+    borderWidth: 1,
+    borderColor: '#4B3FA8',
+    borderRadius: 18,
+    padding: 26,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 20,
+    flexWrap: 'wrap',
+    marginBottom: 20,
+  },
+  echoBottomCtaTitle: {
+    fontSize: 19,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  echoBottomCtaSub: {
+    fontSize: 13.5,
+    color: '#C9BFF2',
+  },
+  echoBottomCtaBtn: {
+    backgroundColor: '#8B5CF6',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 22,
+  },
+  echoBottomCtaBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+
+  /* Modal */
+  echoModalOverlay: {
+    position: 'fixed' as any,
+    inset: 0,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    zIndex: 9999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  echoModalCard: {
+    width: '100%',
+    maxWidth: 520,
+    backgroundColor: '#11111C',
+    borderWidth: 1,
+    borderColor: '#292940',
+    borderRadius: 20,
+    padding: 28,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 24 },
+    shadowOpacity: 0.6,
+    shadowRadius: 40,
+  },
+  echoModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  echoModalTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: -0.6,
+  },
+  echoModalSub: {
+    fontSize: 13,
+    color: '#8A8A9E',
+    marginTop: 3,
+  },
+  echoModalClose: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#1E1E2E',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  echoModalForm: {
+    width: '100%',
+  },
+  echoPassRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  echoPassOption: {
+    flex: 1,
+    backgroundColor: '#161622',
+    borderWidth: 1.5,
+    borderColor: '#292940',
+    borderRadius: 12,
+    padding: 14,
+    alignItems: 'center',
+  },
+  echoPassOptionActive: {
+    borderColor: '#8B84FF',
+    backgroundColor: 'rgba(139,132,255,0.1)',
+  },
+  echoPassName: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#D5D8E4',
+  },
+  echoPassPrice: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginTop: 4,
+  },
+  echoCheckRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  echoCouponRow: {
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'center',
+  },
+  echoCouponBtn: {
+    backgroundColor: '#5B4FE9',
+    borderRadius: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+  },
+  echoCouponBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 13.5,
+  },
+  echoSuccessCard: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  echoSuccessTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#34D399',
+    marginBottom: 8,
+  },
+  echoSuccessSub: {
+    fontSize: 14,
+    color: '#D5D8E4',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  echoTicketBox: {
+    width: '100%',
+    backgroundColor: '#161622',
+    borderWidth: 1,
+    borderColor: '#3A2E72',
+    borderRadius: 12,
+    padding: 18,
+    alignItems: 'center',
+  },
+  echoTicketCode: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#A78BFA',
+    letterSpacing: 1,
+  },
+  echoTicketType: {
+    fontSize: 12.5,
+    color: '#8A8A9E',
+    marginTop: 4,
   },
 });
