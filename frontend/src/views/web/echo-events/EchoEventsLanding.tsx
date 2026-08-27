@@ -222,9 +222,9 @@ export default function EchoEventsLanding() {
         else if (n === "contact") triggerCurtainTransition("CONTACT US", () => router.push("/"));
         else if (n === "signin") triggerCurtainTransition("SIGN IN", () => router.push("/(auth)/login"));
         else if (n === "signup") triggerCurtainTransition("GET STARTED", () => router.push("/get-started"));
-        else if (n === "blog") triggerCurtainTransition("BLOG", () => router.push("/blogs"));
+        else if (n === "blog") triggerCurtainTransition("BLOG", () => router.push("/blogs" as any));
         else if (n === "help") triggerCurtainTransition("HELP CENTER", () => router.push("/help-center"));
-        else if (n === "community") triggerCurtainTransition("COMMUNITY", () => router.push("/community"));
+        else if (n === "community") triggerCurtainTransition("COMMUNITY", () => router.push("/community" as any));
         else if (n === "privacy") triggerCurtainTransition("PRIVACY", () => router.push("/policy/privacy"));
         else if (n === "security") triggerCurtainTransition("SECURITY", () => router.push("/policy/security"));
       });
@@ -240,11 +240,11 @@ export default function EchoEventsLanding() {
         if (page === "verify" || page === "contact") {
           triggerCurtainTransition(label, () => router.push("/"));
         } else if (page === "blog") {
-          triggerCurtainTransition("BLOG", () => router.push("/blogs"));
+          triggerCurtainTransition("BLOG", () => router.push("/blogs" as any));
         } else if (page === "help") {
           triggerCurtainTransition("HELP CENTER", () => router.push("/help-center"));
         } else if (page === "community") {
-          triggerCurtainTransition("COMMUNITY", () => router.push("/community"));
+          triggerCurtainTransition("COMMUNITY", () => router.push("/community" as any));
         } else if (page === "privacy") {
           triggerCurtainTransition("PRIVACY", () => router.push("/policy/privacy"));
         } else if (page === "security") {

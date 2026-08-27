@@ -358,7 +358,7 @@ export default function NexusLanding() {
         } else if (f === "dashboard") {
           triggerCurtainTransition("STUDENT PORTAL", () => router.push("/student-portal"));
         } else if (f === "blog") {
-          triggerCurtainTransition("BLOG", () => router.push("/blogs"));
+          triggerCurtainTransition("BLOG", () => router.push("/blogs" as any));
         } else if (f === "help") {
           triggerCurtainTransition("HELP CENTER", () => router.push("/help-center"));
         } else if (f === "status") {
@@ -377,11 +377,11 @@ export default function NexusLanding() {
         if (page === "verify" || page === "contact" || page === "home") {
           triggerCurtainTransition(label, () => showPage(page));
         } else if (page === "blog") {
-          triggerCurtainTransition("BLOG", () => router.push("/blogs"));
+          triggerCurtainTransition("BLOG", () => router.push("/blogs" as any));
         } else if (page === "help") {
           triggerCurtainTransition("HELP CENTER", () => router.push("/help-center"));
         } else if (page === "community") {
-          triggerCurtainTransition("COMMUNITY", () => router.push("/community"));
+          triggerCurtainTransition("COMMUNITY", () => router.push("/community" as any));
         } else if (page === "privacy" || page === "terms") {
           triggerCurtainTransition("PRIVACY", () => router.push("/policy/privacy"));
         } else if (page === "security" || page === "cookies") {

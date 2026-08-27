@@ -2,7 +2,7 @@ import React from 'react';
 import CommonFooter from '@/src/views/components/CommonFooter';
 
 interface FooterProps {
-  onTabChange?: (tab: 'home' | 'events' | 'verify' | 'contact') => void;
+  onTabChange?: (tab: 'home' | 'echo' | 'verify' | 'contact') => void;
   maxWidth?: number;
 }
 
