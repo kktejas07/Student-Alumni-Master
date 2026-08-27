@@ -437,6 +437,8 @@ export default function LandingPage() {
   const { width } = useWindowDimensions();
   const isNarrow = width < 960;
   const isMobile = width < 640;
+  const containerPadding = isMobile ? 20 : isNarrow ? 32 : 44;
+
   // Active navigation tab with query / history URL sync
   const [activeTab, setActiveTab] = useState<'home' | 'verify' | 'contact'>(() => {
     if (typeof window !== 'undefined') {
