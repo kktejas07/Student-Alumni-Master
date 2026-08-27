@@ -242,7 +242,7 @@ export default function CommunityPage() {
               className="rs-card-hover"
               style={{ border: '1px solid #1F1F30', borderRadius: 18, background: '#11111C', padding: '24px 26px 26px', cursor: 'pointer', transition: 'all 0.25s ease' }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyBetween: 'space-between', gap: 12, marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
                 <span style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(88,101,242,.16)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <MessageSquare size={19} color="#7C8BF5" />
                 </span>
@@ -264,7 +264,7 @@ export default function CommunityPage() {
               className="rs-card-hover"
               style={{ border: '1px solid #1F1F30', borderRadius: 18, background: '#11111C', padding: '24px 26px 26px', cursor: 'pointer', transition: 'all 0.25s ease' }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyBetween: 'space-between', gap: 12, marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
                 <span style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(37,211,102,.14)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Users size={19} color="#34D399" />
                 </span>
@@ -283,7 +283,7 @@ export default function CommunityPage() {
               className="rs-card-hover"
               style={{ border: '1px solid #1F1F30', borderRadius: 18, background: '#11111C', padding: '24px 26px 26px', cursor: 'pointer', transition: 'all 0.25s ease' }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyBetween: 'space-between', gap: 12, marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
                 <span style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(10,102,194,.16)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Share2 size={19} color="#6FA8F5" />
                 </span>

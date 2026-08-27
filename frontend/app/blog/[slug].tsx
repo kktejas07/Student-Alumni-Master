@@ -534,7 +534,7 @@ export default function BlogPostDetailPage() {
 
               {/* Author Info footer */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, border: '1px solid #1F1F30', borderRadius: 18, background: '#11111C', padding: '22px 24px', marginTop: 40, flexWrap: 'wrap' }}>
-                <span style={{ width: 52, height: 52, borderRadius: '50%', background: '#7C5CFC', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyCenter: 'center', fontSize: 17, fontWeight: '700', flex: 'none' }}>
+                <span style={{ width: 52, height: 52, borderRadius: '50%', background: '#7C5CFC', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: '700', flex: 'none' }}>
                   {post.authorInitials}
                 </span>
                 <div style={{ flex: 1, minWidth: 0 }}>
