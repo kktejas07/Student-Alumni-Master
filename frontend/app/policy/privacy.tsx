@@ -31,15 +31,11 @@ export default function PrivacyPolicyPage() {
     if (!IS_WEB) return;
     const handleScroll = () => {
       let currentSection = 'pr-0';
-      const allSecs = [...JUMP_SECTIONS, 
-        { id: 'tm-0' }, { id: 'tm-1' }, { id: 'tm-2' }, { id: 'tm-3' },
-        { id: 'tm-4' }, { id: 'tm-5' }, { id: 'tm-6' }, { id: 'tm-7' }
-      ];
-      for (const sec of allSecs) {
+      for (const sec of JUMP_SECTIONS) {
         const el = document.getElementById(sec.id);
         if (el) {
           const rect = el.getBoundingClientRect();
-          if (rect.top <= 140) {
+          if (rect.top <= 160) {
             currentSection = sec.id;
           }
         }
@@ -50,25 +46,33 @@ export default function PrivacyPolicyPage() {
       jumps.forEach((j) => {
         if (j.getAttribute('data-target') === currentSection) {
           j.setAttribute('data-on', '1');
+          j.style.color = '#F4F4FA';
+          j.style.borderLeftColor = '#7C5CFC';
+          j.style.fontWeight = '600';
         } else {
           j.removeAttribute('data-on');
+          j.style.color = '#8A8A9E';
+          j.style.borderLeftColor = '#292940';
+          j.style.fontWeight = '400';
         }
       });
     };
 
+    // Capture phase listener so it catches scrolls on ScrollView container and window
+    document.addEventListener('scroll', handleScroll, true);
     window.addEventListener('scroll', handleScroll, { passive: true });
     handleScroll();
-    return () => window.removeEventListener('scroll', handleScroll);
+    return () => {
+      document.removeEventListener('scroll', handleScroll, true);
+      window.removeEventListener('scroll', handleScroll);
+    };
   }, []);
 
   const handleJump = (id) => {
     if (IS_WEB && id) {
       const el = document.getElementById(id);
       if (el) {
-        window.scrollTo({
-          top: el.getBoundingClientRect().top + window.scrollY - 108,
-          behavior: 'smooth',
-        });
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }
   };
@@ -87,6 +91,9 @@ export default function PrivacyPolicyPage() {
             position: absolute; right: -18%; top: 34%; width: 680px; height: 560px;
             background: radial-gradient(circle, rgba(91,79,233,.13), transparent 70%);
             filter: blur(80px);
+          }
+          .rs-sec {
+            scroll-margin-top: 108px;
           }
           .rs-jump[data-on="1"] {
             color: #F4F4FA !important;
