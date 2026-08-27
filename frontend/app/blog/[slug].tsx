@@ -433,7 +433,7 @@ export default function BlogPostDetailPage() {
 
             {/* Author and meta info */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 28, paddingTop: 24, borderTop: '1px solid #1F1F30', flexWrap: 'wrap' }}>
-              <span style={{ width: 44, height: 44, borderRadius: '50%', background: '#7C5CFC', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyCenter: 'center', fontSize: 15, fontWeight: '700', flex: 'none' }}>
+              <span style={{ width: 44, height: 44, borderRadius: '50%', background: '#7C5CFC', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: '700', flex: 'none' }}>
                 {post.authorInitials}
               </span>
               <div style={{ flex: 1, minWidth: 200 }}>
