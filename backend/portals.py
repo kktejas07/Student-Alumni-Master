@@ -1540,7 +1540,6 @@ async def _fetch_razorpay_settlements(db) -> dict:
                 created_at = s.get("created_at")
                 date_str = ""
                 if created_at:
-                    from datetime import datetime, timezone
                     try:
                         dt = datetime.fromtimestamp(created_at, tz=timezone.utc)
                         date_str = dt.strftime("%d %b %Y, %I:%M %p")
@@ -1579,6 +1578,12 @@ async def _fetch_razorpay_settlements(db) -> dict:
     except Exception as e:
         print(f"[PORTALS] Razorpay settlements fetch error: {e}")
         return {"available": False, "settlements": [], "totals": {}, "error": str(e)}
+
+
+@router.get("/admin/super/razorpay-settlements")
+async def razorpay_settlements(user: dict = Depends(require_role('admin'))):
+    """Fetch live Razorpay settlement data — separate endpoint so it doesn't block the payments page."""
+    return await _fetch_razorpay_settlements(_db)
 
 
 @router.get("/admin/super/payments")
@@ -1768,7 +1773,6 @@ async def super_payments(user: dict = Depends(require_role('admin'))):
         },
         "bookings_count": bookings_cnt,
         "wallet_revenue": wallet_revenue,
-        "razorpay_settlements": await _fetch_razorpay_settlements(_db),
     }
 
 

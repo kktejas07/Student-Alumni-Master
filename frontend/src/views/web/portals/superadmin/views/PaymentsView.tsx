@@ -24,7 +24,6 @@ const FALLBACK = {
   echo: { paid_count: 0, pending_count: 0, revenue: 0, events: [] as any[] },
   bookings_count: 0,
   wallet_revenue: 0,
-  razorpay_settlements: { available: false, settlements: [] as any[], totals: {} as any },
 };
 
 function PayoutTiersEditor({ visible, onClose }: { visible: boolean; onClose: () => void }) {
@@ -160,9 +159,19 @@ export function PaymentsView() {
   const [payoutDone, setPayoutDone] = useState(false);
   const [tiersEditorOpen, setTiersEditorOpen] = useState(false);
   const [showSettlements, setShowSettlements] = useState(false);
+  const [settlements, setSettlements] = useState<any>({ available: false, settlements: [], totals: {} });
+  const [settlementsLoading, setSettlementsLoading] = useState(false);
   const { data, refresh } = usePortalData<typeof FALLBACK>('/admin/super/payments', FALLBACK);
   const { width } = useWindowDimensions();
   const stack = width < 1100;
+
+  const loadSettlements = async () => {
+    setSettlementsLoading(true);
+    try {
+      const r = await request<any>('/admin/super/razorpay-settlements');
+      if (r) setSettlements(r);
+    } catch {} finally { setSettlementsLoading(false); }
+  };
 
   const doExport = async () => {
     setExporting(true);
@@ -218,7 +227,7 @@ export function PaymentsView() {
 
       {/* KPIs */}
       <View style={st.kpiRow}>
-        <Pressable onPress={() => setShowSettlements(true)} style={[st.kpiPressable]}>
+        <Pressable onPress={() => { setShowSettlements(true); loadSettlements(); }} style={[st.kpiPressable]}>
           <KpiTile Icon={TrendingUp}     label="GROSS REVENUE"   value={data.kpi.gross}   delta={`${data.echo?.paid_count || 0} paid registrations · tap for settlements`} deltaKind="success" />
         </Pressable>
         <KpiTile Icon={ArrowUp}        label="PAYOUTS (EST)"    value={data.kpi.payouts} delta="10% platform fee" deltaKind="info" />
@@ -346,11 +355,15 @@ export function PaymentsView() {
               <Text style={setSt.title}>Razorpay Settlements</Text>
               <Pressable onPress={() => setShowSettlements(false)} style={setSt.xBtn}><X size={16} color="#fff" /></Pressable>
             </View>
-            {data.razorpay_settlements?.available === false ? (
+            {settlements.available === false ? (
               <View style={{ paddingVertical: 30, alignItems: 'center' }}>
-                <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 13 }}>
-                  {data.razorpay_settlements?.error || 'Razorpay not connected. Connect via Integrations to view settlements.'}
-                </Text>
+                {settlementsLoading ? (
+                  <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 13 }}>Loading settlements...</Text>
+                ) : (
+                  <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 13 }}>
+                    {settlements.error || 'Razorpay not connected. Connect via Integrations to view settlements.'}
+                  </Text>
+                )}
               </View>
             ) : (
               <>
@@ -358,30 +371,30 @@ export function PaymentsView() {
                 <View style={setSt.sumRow}>
                   <View style={setSt.sumTile}>
                     <Text style={setSt.sumLabel}>Total Collected</Text>
-                    <Text style={[setSt.sumVal, { color: '#86EFAC' }]}>₹{(data.razorpay_settlements?.totals?.gross || 0).toLocaleString('en-IN')}</Text>
+                    <Text style={[setSt.sumVal, { color: '#86EFAC' }]}>₹{(settlements?.totals?.gross || 0).toLocaleString('en-IN')}</Text>
                   </View>
                   <View style={setSt.sumTile}>
                     <Text style={setSt.sumLabel}>Razorpay Fees</Text>
-                    <Text style={[setSt.sumVal, { color: '#FCA5A5' }]}>-₹{(data.razorpay_settlements?.totals?.fees || 0).toLocaleString('en-IN')}</Text>
+                    <Text style={[setSt.sumVal, { color: '#FCA5A5' }]}>-₹{(settlements?.totals?.fees || 0).toLocaleString('en-IN')}</Text>
                   </View>
                   <View style={setSt.sumTile}>
                     <Text style={setSt.sumLabel}>GST (18%)</Text>
-                    <Text style={[setSt.sumVal, { color: '#FCA5A5' }]}>-₹{(data.razorpay_settlements?.totals?.tax || 0).toLocaleString('en-IN')}</Text>
+                    <Text style={[setSt.sumVal, { color: '#FCA5A5' }]}>-₹{(settlements?.totals?.tax || 0).toLocaleString('en-IN')}</Text>
                   </View>
                   <View style={setSt.sumTile}>
                     <Text style={setSt.sumLabel}>Net Settled</Text>
-                    <Text style={[setSt.sumVal, { color: '#93C5FD' }]}>₹{(data.razorpay_settlements?.totals?.settled || 0).toLocaleString('en-IN')}</Text>
+                    <Text style={[setSt.sumVal, { color: '#93C5FD' }]}>₹{(settlements?.totals?.settled || 0).toLocaleString('en-IN')}</Text>
                   </View>
                 </View>
 
                 {/* Settlement list */}
                 <ScrollView style={{ maxHeight: 340 }}>
-                  {(data.razorpay_settlements?.settlements || []).length === 0 ? (
+                  {(settlements?.settlements || []).length === 0 ? (
                     <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, textAlign: 'center', paddingVertical: 24 }}>
                       No settlements found.
                     </Text>
                   ) : (
-                    (data.razorpay_settlements?.settlements || []).map((s: any, i: number) => (
+                    (settlements?.settlements || []).map((s: any, i: number) => (
                       <View key={s.id + i} style={setSt.row}>
                         <View style={{ flex: 1, minWidth: 0 }}>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
