@@ -102,7 +102,7 @@ export default function CommonFooter({ onTabChange, maxWidth = 1360 }: CommonFoo
           <Pressable onPress={() => navigateTabOrRoute('verify', '/verify')} style={styles.linkItem}>
             <Text style={styles.footerLinkText}>Verify Certificate</Text>
           </Pressable>
-          <Pressable onPress={() => navigateTabOrRoute('events', '/events')} style={styles.linkItem}>
+          <Pressable onPress={() => router.push('/events')} style={styles.linkItem}>
             <Text style={styles.footerLinkText}>Blog</Text>
           </Pressable>
           <Pressable onPress={() => navigateTabOrRoute('contact', '/help-center')} style={styles.linkItem}>
