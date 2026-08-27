@@ -8,9 +8,77 @@ import Svg, { Path, Circle, Text as SvgText } from 'react-native-svg';
 import { ArrowLeft, Share2, Bookmark } from 'lucide-react-native';
 
 const IS_WEB = Platform.OS === 'web';
+const LOCAL_STORAGE_SAVED_KEY = 'sa_blog_saved_posts';
 
-// Mock Blog Posts Database
-const POSTS_MAP: Record<string, any> = {
+interface Section {
+  id: string;
+  label: string;
+  content: string[];
+}
+
+interface PostDetail {
+  title: string;
+  category: string;
+  subcategory?: string;
+  description: string;
+  date: string;
+  readTime: string;
+  author: string;
+  authorInitials: string;
+  authorTitle: string;
+  chartTitle?: string;
+  sections: Section[];
+}
+
+const DEFAULT_SECTIONS: Section[] = [
+  {
+    id: 'po-0',
+    label: 'The pattern we did not expect',
+    content: [
+      'Every placement cell we work with sequences the same way. Resume workshop in week one, aptitude drills in week two, then applications open and students start firing. Mentorship, if it appears at all, arrives late — a panel in the final month, or a WhatsApp group nobody uses.',
+      'We had 12,400 verified student profiles across 42 institutions and two full placement cycles. We wanted to know whether that order was right. It is not.',
+    ],
+  },
+  {
+    id: 'po-1',
+    label: 'What the data actually shows',
+    content: [
+      'We split students by their first substantive action on the platform — booking a mentor session, or submitting a job application — and tracked readiness for 24 weeks after.',
+      'Students whose first action was a mentor session reached 74% average readiness by week 24. Students who applied first reached 43%. The gap opens in weeks 4 to 8 and never closes.',
+      'It is not selection bias in the obvious direction. The application-first group started with marginally higher average CGPA and marginally more prior internships. They were, on paper, the stronger cohort.',
+    ],
+  },
+  {
+    id: 'po-2',
+    label: 'Why sequence matters',
+    content: [
+      'Three mechanisms show up clearly in the session notes and the application logs.',
+      'Rejection without feedback teaches nothing. A student who sends 40 applications and hears back from none has 40 data points and zero information. The same student after one mentor call knows their resume buries the only project a recruiter cares about.',
+      'Mentors correct the target, not just the artefact. A third of first sessions end with the student changing the role they are aiming for. Applying first locks in a target chosen with no market information.',
+      'Referrals compound and cold applications do not. A mentor who has met you once forwards your profile without being asked. Across the dataset, 61% of interviews traced back to a referral from someone the student had spoken to.',
+    ],
+  },
+  {
+    id: 'po-3',
+    label: 'What we changed in the product',
+    content: [
+      'We stopped showing the job board as the first thing on a new dashboard. Onboarding now ends on a suggested-mentors screen, and the roadmap\'s first milestone is a session rather than an application.',
+      'Agent K also holds back batch applications until a student has completed one session or explicitly overrides it. That override exists — we are not going to block someone who knows what they are doing — but it is a deliberate choice now, not the default path.',
+      'For placement cells we published a revised eight-week sequence: mentor matching in week one, target-setting in week two, resume work in week three against a target that now exists, and applications from week four.',
+    ],
+  },
+  {
+    id: 'po-4',
+    label: 'Method and limits',
+    content: [
+      'Observational data, not a randomised trial — students chose their own first action, and we cannot fully rule out that the kind of student who books a mentor call differs in ways we did not measure. Readiness is our own composite score, so it is not independent of the product.',
+      'Two cycles is also not many. We will publish again after the 2027 cycle, and we will say so plainly if the effect shrinks. The anonymised, aggregated dataset is available to placement officers at partner institutions on request.',
+    ],
+  },
+];
+
+// Database of posts details
+const POSTS_MAP: Record<string, PostDetail> = {
   'what-12400-student-profiles-tell-us-about-the-first-job': {
     title: 'What 12,400 student profiles tell us about the first job',
     category: 'PLACEMENTS',
@@ -21,68 +89,167 @@ const POSTS_MAP: Record<string, any> = {
     author: 'Aisha Kapoor',
     authorInitials: 'AK',
     authorTitle: 'Head of Data at StudentAlumni. Previously placement analytics at a national education group.',
+    chartTitle: 'READINESS OVER 24 WEEKS · BY FIRST ACTION TAKEN',
+    sections: DEFAULT_SECTIONS,
   },
   'the-three-questions-that-make-a-mentor-call-useful': {
     title: 'The three questions that make a mentor call useful',
     category: 'MENTORSHIP',
+    subcategory: 'GUIDE',
     description: 'Students who arrive with a specific artefact — a resume, a repo, a rejection — get twice the follow-up.',
     date: 'Aug 12, 2026',
     readTime: '6 min read',
     author: 'Aisha Kapoor',
     authorInitials: 'AK',
     authorTitle: 'Head of Data at StudentAlumni.',
+    sections: [
+      {
+        id: 'po-0',
+        label: 'The prep that changes everything',
+        content: [
+          'A 30-minute mentor call can easily devolve into generic career advice if you do not bring an artefact. When students bring concrete code or a tailored resume, conversations shift from abstract tips to tactical feedback.',
+          'Over 4,200 logged mentor calls, students who uploaded a specific project repo or rejection letter before the call received 2.4x more referrals and follow-ups.',
+        ],
+      },
+      {
+        id: 'po-1',
+        label: 'Question 1: What am I missing in this specific diff?',
+        content: [
+          'Instead of asking "How do I become a backend engineer?", ask "Why did this API implementation fail performant load tests under 100 req/sec?"',
+          'Mentors love specific technical problems because it showcases your current execution depth.',
+        ],
+      },
+      {
+        id: 'po-2',
+        label: 'Question 2: Where would you cut this resume?',
+        content: [
+          'Every senior engineer skims resumes in under 15 seconds. Ask your mentor to point out the single line that adds the least value.',
+          'Pruning noise is usually more effective than adding buzzwords.',
+        ],
+      },
+      {
+        id: 'po-3',
+        label: 'Question 3: Who should I talk to next?',
+        content: [
+          'Closing a mentor session with a request for a warm introduction opens doors that cold LinkedIn messages never will.',
+        ],
+      },
+    ],
   },
   'agent-k-now-runs-multi-step-tasks-end-to-end': {
     title: 'Agent K now runs multi-step tasks end to end',
     category: 'PRODUCT',
+    subcategory: 'RELEASE',
     description: 'Referral requests, resume passes and batch applications now complete without a hand-off back to you.',
     date: 'Aug 06, 2026',
     readTime: '5 min read',
     author: 'SA Product Team',
     authorInitials: 'PT',
     authorTitle: 'Core Platform Developers.',
+    sections: [
+      {
+        id: 'po-0',
+        label: 'Autonomous placement workflows',
+        content: [
+          'Agent K was built to eliminate administrative overhead for both placement officers and candidates.',
+          'With our latest update, Agent K can evaluate a student candidate profile against 50+ company job specifications simultaneously without manual prompt chaining.',
+        ],
+      },
+      {
+        id: 'po-1',
+        label: 'End-to-end referral routing',
+        content: [
+          'When an alumnus posts an opening, Agent K automatically matches qualified candidates, generates encrypted skill profiles, and drafts personal referral requests.',
+        ],
+      },
+    ],
   },
-  'how-snist-ran-hackwave-with-985 registrations': {
+  'how-snist-ran-hackwave-with-985-registrations': {
     title: 'How SNIST ran HackWave with 985 registrations',
     category: 'CAMPUS',
+    subcategory: 'CASE STUDY',
     description: "The CDC team's playbook for an overnight build sprint, from recruiter outreach to team formation on the floor.",
     date: 'Jul 29, 2026',
     readTime: '8 min read',
     author: 'Sreenidhi CDC',
     authorInitials: 'SN',
     authorTitle: 'Career Development Center.',
+    sections: [
+      {
+        id: 'po-0',
+        label: 'Setting up the campus sprint',
+        content: [
+          'Sreenidhi Institute of Science and Technology hosted HackWave 3.0 using StudentAlumni Event OS to streamline registrations, team formation, and mentor scheduling.',
+          '985 students across 14 departments joined within 48 hours of announcement.',
+        ],
+      },
+    ],
   },
   'matching-students-to-roles-without-leaking-their-data': {
     title: 'Matching students to roles without leaking their data',
     category: 'ENGINEERING',
+    subcategory: 'PRIVACY',
     description: 'How the match score is computed on hashed skill vectors, so a recruiter never sees a profile you haven\'t shared.',
     date: 'Jul 21, 2026',
     readTime: '11 min read',
     author: 'SA Security',
     authorInitials: 'SE',
     authorTitle: 'Security Engineering Team.',
+    sections: [
+      {
+        id: 'po-0',
+        label: 'Privacy-first matching architecture',
+        content: [
+          'Privacy is not a toggle — it is an architectural commitment. We built our matching engine using zero-knowledge vector similarity.',
+          'Recruiters query anonymous capability hashes until a student accepts a direct interview invitation.',
+        ],
+      },
+    ],
   },
   'tier-2-colleges-are-closing-the-referral-gap': {
     title: 'Tier-2 colleges are closing the referral gap',
     category: 'PLACEMENTS',
+    subcategory: 'DATA STUDY',
     description: 'Alumni networks, not campus rank, now predict who gets a first-round interview. The numbers from 42 institutions.',
     date: 'Jul 14, 2026',
     readTime: '7 min read',
     author: 'Aisha Kapoor',
     authorInitials: 'AK',
     authorTitle: 'Head of Data at StudentAlumni.',
+    sections: [
+      {
+        id: 'po-0',
+        label: 'Leveling the playing field',
+        content: [
+          'Historically, tier-1 institutions enjoyed exclusive campus placement drives. Our data shows that verified alumni referral channels bridge over 70% of this gap.',
+        ],
+      },
+    ],
   },
   'your-sa-id-card-and-why-verification-matters': {
     title: 'Your SA ID card, and why verification matters',
     category: 'PRODUCT',
+    subcategory: 'SECURITY',
     description: 'One verified identity across events, referrals, rentals and student pricing — without re-proving who you are.',
     date: 'Jul 08, 2026',
     readTime: '4 min read',
     author: 'SA Product Team',
     authorInitials: 'PT',
     authorTitle: 'Core Platform Developers.',
+    sections: [
+      {
+        id: 'po-0',
+        label: 'Unified Student Identity',
+        content: [
+          'The SA Digital ID Card connects institution verification with DigiLocker and campus email verification in one tamper-proof credential.',
+        ],
+      },
+    ],
   },
 };
+
+// Also map space-separated slug for backwards compatibility
+POSTS_MAP['how-snist-ran-hackwave-with-985 registrations'] = POSTS_MAP['how-snist-ran-hackwave-with-985-registrations'];
 
 const RELATED_POSTS = [
   {
@@ -117,34 +284,51 @@ const RELATED_POSTS = [
   },
 ];
 
-const SECTIONS = [
-  { id: 'po-0', label: 'The pattern we did not expect' },
-  { id: 'po-1', label: 'What the data actually shows' },
-  { id: 'po-2', label: 'Why sequence matters' },
-  { id: 'po-3', label: 'What we changed in the product' },
-  { id: 'po-4', label: 'Method and limits' },
-];
-
 export default function BlogDetailPage() {
   const router = useRouter();
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const { width } = useWindowDimensions();
-  const [activeSection, setActiveSection] = useState('po-0');
+  const [activeSection, setActiveSection] = useState('');
   const [shared, setShared] = useState(false);
   const [saved, setSaved] = useState(false);
 
   const isMobile = width < 860;
 
   // Resolve current post details
-  const postKey = slug || 'what-12400-student-profiles-tell-us-about-the-first-job';
-  const post = POSTS_MAP[postKey] || POSTS_MAP['what-12400-student-profiles-tell-us-about-the-first-job'];
+  const rawKey = slug || 'what-12400-student-profiles-tell-us-about-the-first-job';
+  const postKey = rawKey.replace(/\s+/g, '-');
+  const post = POSTS_MAP[postKey] || POSTS_MAP[rawKey] || POSTS_MAP['what-12400-student-profiles-tell-us-about-the-first-job'];
+  const sections = post.sections && post.sections.length > 0 ? post.sections : DEFAULT_SECTIONS;
+
+  useEffect(() => {
+    if (sections.length > 0) {
+      setActiveSection(sections[0].id);
+    }
+  }, [postKey]);
+
+  // Load saved state from localStorage
+  useEffect(() => {
+    if (IS_WEB && typeof localStorage !== 'undefined') {
+      try {
+        const raw = localStorage.getItem(LOCAL_STORAGE_SAVED_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.includes(postKey)) {
+            setSaved(true);
+          }
+        }
+      } catch (err) {
+        // ignore
+      }
+    }
+  }, [postKey]);
 
   // Scroll spy to highlight active section on Web
   useEffect(() => {
     if (!IS_WEB) return;
     const handleScroll = () => {
-      let currentSection = 'po-0';
-      for (const section of SECTIONS) {
+      let currentSection = sections[0]?.id || 'po-0';
+      for (const section of sections) {
         const el = document.getElementById(section.id);
         if (el) {
           const rect = el.getBoundingClientRect();
@@ -158,7 +342,7 @@ export default function BlogDetailPage() {
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [sections]);
 
   const handleSectionJump = (id: string) => {
     if (IS_WEB) {
@@ -181,7 +365,25 @@ export default function BlogDetailPage() {
   };
 
   const handleSave = () => {
-    setSaved(!saved);
+    const nextSaved = !saved;
+    setSaved(nextSaved);
+
+    if (IS_WEB && typeof localStorage !== 'undefined') {
+      try {
+        const raw = localStorage.getItem(LOCAL_STORAGE_SAVED_KEY);
+        let list: string[] = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(list)) list = [];
+
+        if (nextSaved && !list.includes(postKey)) {
+          list.push(postKey);
+        } else if (!nextSaved) {
+          list = list.filter((id) => id !== postKey);
+        }
+        localStorage.setItem(LOCAL_STORAGE_SAVED_KEY, JSON.stringify(list));
+      } catch (err) {
+        // ignore
+      }
+    }
   };
 
   return (
@@ -267,39 +469,39 @@ export default function BlogDetailPage() {
                   onClick={handleSave}
                   className="inline-flex items-center gap-2 text-xs font-semibold border border-[#292940] hover:border-[#7C5CFC] rounded-lg px-4 py-2.5 bg-transparent text-[#8A8A9E] hover:text-white cursor-pointer transition-all duration-200"
                 >
-                  <Bookmark size={14} color={saved ? '#A78BFA' : 'currentColor'} />
+                  <Bookmark size={14} color={saved ? '#A78BFA' : 'currentColor'} fill={saved ? '#A78BFA' : 'none'} />
                   {saved ? 'Saved ✓' : 'Save'}
                 </button>
               </div>
             </div>
           </div>
 
-          {/* Chart Section */}
-          <div className="relative overflow-hidden border border-[#2C2A52] rounded-2xl bg-gradient-to-br from-[#7C5CFC]/18 to-[#11111C]/30 p-8 mt-8 mb-10 max-w-[780px]">
-            <div className="text-xs font-bold tracking-wider text-[#A78BFA] mb-5">
-              READINESS OVER 24 WEEKS · BY FIRST ACTION TAKEN
+          {/* Optional Chart Section */}
+          {post.chartTitle && (
+            <div className="relative overflow-hidden border border-[#2C2A52] rounded-2xl bg-gradient-to-br from-[#7C5CFC]/18 to-[#11111C]/30 p-8 mt-8 mb-10 max-w-[780px]">
+              <div className="text-xs font-bold tracking-wider text-[#A78BFA] mb-5">
+                {post.chartTitle}
+              </div>
+              <Svg viewBox="0 0 900 260" style={{ width: '100%', height: 'auto' }}>
+                <g style={{ stroke: 'rgba(255,255,255,.07)', strokeWidth: 1 }}>
+                  <path d="M40 220H880M40 165H880M40 110H880M40 55H880" />
+                </g>
+                <Path d="M40 214 L208 200 L376 186 L544 176 L712 168 L880 160" fill="none" stroke="#6A6A8E" strokeWidth="2.4" />
+                <Path d="M40 214 L208 158 L376 108 L544 82 L712 66 L880 48" fill="none" stroke="#A78BFA" strokeWidth="3" />
+                <Circle cx="880" cy="48" r="6" fill="#FFFFFF" />
+                <g style={{ fontSize: 13, fill: '#8A8A9E' }}>
+                  <SvgText x="40" y="248">Week 0</SvgText>
+                  <SvgText x="376" y="248" textAnchor="middle">Week 8</SvgText>
+                  <SvgText x="712" y="248" textAnchor="middle">Week 16</SvgText>
+                  <SvgText x="880" y="248" textAnchor="end">Week 24</SvgText>
+                </g>
+                <g style={{ fontSize: 14, fontWeight: '600' }}>
+                  <SvgText x="866" y="36" textAnchor="end" fill="#C4B5FD">Mentor session first · 74%</SvgText>
+                  <SvgText x="866" y="152" textAnchor="end" fill="#9A9AB4">Application first · 43%</SvgText>
+                </g>
+              </Svg>
             </div>
-            <Svg viewBox="0 0 900 260" style={{ width: '100%', height: 'auto' }}>
-              <g style={{ stroke: 'rgba(255,255,255,.07)', strokeWidth: 1 }}>
-                <path d="M40 220H880M40 165H880M40 110H880M40 55H880" />
-              </g>
-              {/* Application line (grey) */}
-              <Path d="M40 214 L208 200 L376 186 L544 176 L712 168 L880 160" fill="none" stroke="#6A6A8E" strokeWidth="2.4" />
-              {/* Mentor line (purple) */}
-              <Path d="M40 214 L208 158 L376 108 L544 82 L712 66 L880 48" fill="none" stroke="#A78BFA" strokeWidth="3" />
-              <Circle cx="880" cy="48" r="6" fill="#FFFFFF" />
-              <g style={{ fontSize: 13, fill: '#8A8A9E' }}>
-                <SvgText x="40" y="248">Week 0</SvgText>
-                <SvgText x="376" y="248" textAnchor="middle">Week 8</SvgText>
-                <SvgText x="712" y="248" textAnchor="middle">Week 16</SvgText>
-                <SvgText x="880" y="248" textAnchor="end">Week 24</SvgText>
-              </g>
-              <g style={{ fontSize: 14, fontWeight: '600' }}>
-                <SvgText x="866" y="36" textAnchor="end" fill="#C4B5FD">Mentor session first · 74%</SvgText>
-                <SvgText x="866" y="152" textAnchor="end" fill="#9A9AB4">Application first · 43%</SvgText>
-              </g>
-            </Svg>
-          </div>
+          )}
 
           {/* Main Content & Sidebar Layout */}
           <div className={`grid gap-10 ${isMobile ? 'grid-cols-1' : 'grid-cols-12'}`} style={{ alignItems: 'start' }}>
@@ -307,7 +509,7 @@ export default function BlogDetailPage() {
             {/* Sidebar Sticky Navigation (Web only) */}
             <div className={`md:col-span-4 ${isMobile ? 'hidden' : 'block'}`} style={{ position: 'sticky', top: 92 }}>
               <div className="text-xs font-bold tracking-wider text-[#6A6A7E] mb-3.5">IN THIS ARTICLE</div>
-              {SECTIONS.map((sec) => (
+              {sections.map((sec) => (
                 <button
                   key={sec.id}
                   onClick={() => handleSectionJump(sec.id)}
@@ -322,74 +524,16 @@ export default function BlogDetailPage() {
             {/* Post Content */}
             <div className={`md:col-span-8 space-y-10 text-[16.5px] leading-relaxed text-[#8A8A9E]`}>
               
-              <div id="po-0" className="space-y-4">
-                <p>
-                  Every placement cell we work with sequences the same way. Resume workshop in week one, aptitude drills in week two, then applications open and students start firing. Mentorship, if it appears at all, arrives late — a panel in the final month, or a WhatsApp group nobody uses.
-                </p>
-                <p>
-                  We had 12,400 verified student profiles across 42 institutions and two full placement cycles. We wanted to know whether that order was right. It is not.
-                </p>
-              </div>
-
-              <div id="po-1" className="space-y-4">
-                <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight mt-6 mb-2">
-                  What the data actually shows
-                </h3>
-                <p>
-                  We split students by their first substantive action on the platform — booking a mentor session, or submitting a job application — and tracked readiness for 24 weeks after.
-                </p>
-                <p>
-                  Students whose first action was a <strong className="text-white font-semibold">mentor session</strong> reached 74% average readiness by week 24. Students who applied first reached 43%. The gap opens in weeks 4 to 8 and never closes.
-                </p>
-                <p>
-                  It is not selection bias in the obvious direction. The application-first group started with <strong className="text-white font-semibold">marginally higher</strong> average CGPA and marginally more prior internships. They were, on paper, the stronger cohort.
-                </p>
-              </div>
-
-              <div id="po-2" className="space-y-4">
-                <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight mt-6 mb-2">
-                  Why sequence matters
-                </h3>
-                <p>
-                  Three mechanisms show up clearly in the session notes and the application logs.
-                </p>
-                <p>
-                  <strong className="text-white font-semibold">Rejection without feedback teaches nothing.</strong> A student who sends 40 applications and hears back from none has 40 data points and zero information. The same student after one mentor call knows their resume buries the only project a recruiter cares about.
-                </p>
-                <p>
-                  <strong className="text-white font-semibold">Mentors correct the target, not just the artefact.</strong> A third of first sessions end with the student changing the role they are aiming for. Applying first locks in a target chosen with no market information.
-                </p>
-                <p>
-                  <strong className="text-white font-semibold">Referrals compound and cold applications do not.</strong> A mentor who has met you once forwards your profile without being asked. Across the dataset, 61% of interviews traced back to a referral from someone the student had spoken to.
-                </p>
-              </div>
-
-              <div id="po-3" className="space-y-4">
-                <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight mt-6 mb-2">
-                  What we changed in the product
-                </h3>
-                <p>
-                  We stopped showing the job board as the first thing on a new dashboard. Onboarding now ends on a suggested-mentors screen, and the roadmap's first milestone is a session rather than an application.
-                </p>
-                <p>
-                  Agent K also holds back batch applications until a student has completed one session or explicitly overrides it. That override exists — we are not going to block someone who knows what they are doing — but it is a deliberate choice now, not the default path.
-                </p>
-                <p>
-                  For placement cells we published a revised eight-week sequence: mentor matching in week one, target-setting in week two, resume work in week three against a target that now exists, and applications from week four.
-                </p>
-              </div>
-
-              <div id="po-4" className="space-y-4">
-                <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight mt-6 mb-2">
-                  Method and limits
-                </h3>
-                <p>
-                  Observational data, not a randomised trial — students chose their own first action, and we cannot fully rule out that the kind of student who books a mentor call differs in ways we did not measure. Readiness is our own composite score, so it is not independent of the product.
-                </p>
-                <p>
-                  Two cycles is also not many. We will publish again after the 2027 cycle, and we will say so plainly if the effect shrinks. The anonymised, aggregated dataset is available to placement officers at partner institutions on request.
-                </p>
-              </div>
+              {sections.map((sec) => (
+                <div key={sec.id} id={sec.id} className="space-y-4">
+                  <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight mt-4 mb-2">
+                    {sec.label}
+                  </h3>
+                  {sec.content.map((paragraph, idx) => (
+                    <p key={idx}>{paragraph}</p>
+                  ))}
+                </div>
+              ))}
 
               {/* Author Info footer */}
               <div className="flex items-center gap-4 border border-[#1F1F30] rounded-2xl bg-[#11111C] p-6 mt-10 flex-wrap">
@@ -452,3 +596,4 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
 });
+

@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TextInput, useWindowDimensions } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, ScrollView, TextInput, useWindowDimensions, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
 import { Footer } from '@/src/views/web/nexus-glow-landing/Footer';
 import { SAWatermark } from '@/src/views/web/components/SAWatermark';
-import { Sparkles } from 'lucide-react-native';
+import { Sparkles, Search, Bookmark, X } from 'lucide-react-native';
+
+const IS_WEB = Platform.OS === 'web';
+const LOCAL_STORAGE_SAVED_KEY = 'sa_blog_saved_posts';
 
 // Mock Blog Posts Database
 const POSTS = [
@@ -32,6 +35,8 @@ const POSTS = [
     description: 'Students who arrive with a specific artefact — a resume, a repo, a rejection — get twice the follow-up.',
     date: 'Aug 12, 2026',
     readTime: '6 min read',
+    author: 'Aisha Kapoor',
+    authorInitials: 'AK',
     tagColor: '#6FD6FF',
     tagBg: 'rgba(47, 184, 198, 0.12)',
     tagLine: '#1F4E5C',
@@ -43,17 +48,21 @@ const POSTS = [
     description: 'Referral requests, resume passes and batch applications now complete without a hand-off back to you.',
     date: 'Aug 06, 2026',
     readTime: '5 min read',
+    author: 'SA Product Team',
+    authorInitials: 'PT',
     tagColor: '#A78BFA',
     tagBg: 'rgba(124, 92, 252, 0.18)',
     tagLine: '#2C2A52',
   },
   {
-    id: 'how-snist-ran-hackwave-with-985 registrations',
+    id: 'how-snist-ran-hackwave-with-985-registrations',
     title: 'How SNIST ran HackWave with 985 registrations',
     category: 'CAMPUS',
     description: "The CDC team's playbook for an overnight build sprint, from recruiter outreach to team formation on the floor.",
     date: 'Jul 29, 2026',
     readTime: '8 min read',
+    author: 'Sreenidhi CDC',
+    authorInitials: 'SN',
     tagColor: '#34D399',
     tagBg: 'rgba(16, 185, 129, 0.13)',
     tagLine: '#17503E',
@@ -65,6 +74,8 @@ const POSTS = [
     description: 'How the match score is computed on hashed skill vectors, so a recruiter never sees a profile you haven\'t shared.',
     date: 'Jul 21, 2026',
     readTime: '11 min read',
+    author: 'SA Security',
+    authorInitials: 'SE',
     tagColor: '#F5B342',
     tagBg: 'rgba(245, 179, 66, 0.13)',
     tagLine: '#4A3410',
@@ -76,6 +87,8 @@ const POSTS = [
     description: 'Alumni networks, not campus rank, now predict who gets a first-round interview. The numbers from 42 institutions.',
     date: 'Jul 14, 2026',
     readTime: '7 min read',
+    author: 'Aisha Kapoor',
+    authorInitials: 'AK',
     tagColor: '#6FD6FF',
     tagBg: 'rgba(47, 184, 198, 0.12)',
     tagLine: '#1F4E5C',
@@ -87,38 +100,97 @@ const POSTS = [
     description: 'One verified identity across events, referrals, rentals and student pricing — without re-proving who you are.',
     date: 'Jul 08, 2026',
     readTime: '4 min read',
+    author: 'SA Product Team',
+    authorInitials: 'PT',
     tagColor: '#A78BFA',
     tagBg: 'rgba(124, 92, 252, 0.18)',
     tagLine: '#2C2A52',
   },
 ];
 
-const CATEGORIES = ['All', 'Placements', 'Mentorship', 'Product', 'Campus', 'Engineering'];
+const CATEGORIES = ['All', 'Placements', 'Mentorship', 'Product', 'Campus', 'Engineering', 'Saved'];
 
 export default function BlogListingPage() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const [activeCategory, setActiveCategory] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [savedPostIds, setSavedPostIds] = useState<string[]>([]);
   const [emailInput, setEmailInput] = useState('');
   const [subscribed, setSubscribed] = useState(false);
+  const [emailError, setEmailError] = useState('');
 
   const isTablet = width < 1150;
   const isMobile = width < 860;
 
-  // Filter posts based on active category
+  // Load saved posts from localStorage on Web
+  useEffect(() => {
+    if (IS_WEB && typeof localStorage !== 'undefined') {
+      try {
+        const raw = localStorage.getItem(LOCAL_STORAGE_SAVED_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) setSavedPostIds(parsed);
+        }
+      } catch (err) {
+        // Fallback gracefully
+      }
+    }
+  }, []);
+
+  const toggleSavePost = (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    let nextSaved: string[];
+    if (savedPostIds.includes(id)) {
+      nextSaved = savedPostIds.filter((item) => item !== id);
+    } else {
+      nextSaved = [...savedPostIds, id];
+    }
+    setSavedPostIds(nextSaved);
+    if (IS_WEB && typeof localStorage !== 'undefined') {
+      try {
+        localStorage.setItem(LOCAL_STORAGE_SAVED_KEY, JSON.stringify(nextSaved));
+      } catch (err) {
+        // ignore
+      }
+    }
+  };
+
+  // Filter posts based on active category & search query
   const filteredPosts = POSTS.filter((post) => {
-    if (activeCategory === 'All') return true;
-    return post.category.toLowerCase() === activeCategory.toLowerCase();
+    // Category match
+    let matchesCategory = true;
+    if (activeCategory === 'Saved') {
+      matchesCategory = savedPostIds.includes(post.id);
+    } else if (activeCategory !== 'All') {
+      matchesCategory = post.category.toLowerCase() === activeCategory.toLowerCase();
+    }
+
+    if (!matchesCategory) return false;
+
+    // Search query match
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase().trim();
+    return (
+      post.title.toLowerCase().includes(q) ||
+      post.description.toLowerCase().includes(q) ||
+      post.category.toLowerCase().includes(q) ||
+      (post.author && post.author.toLowerCase().includes(q))
+    );
   });
 
   const handleSubscribe = () => {
-    if (emailInput.trim()) {
-      setSubscribed(true);
-      setTimeout(() => {
-        setSubscribed(false);
-        setEmailInput('');
-      }, 2400);
+    setEmailError('');
+    const trimmed = emailInput.trim();
+    if (!trimmed || !/\S+@\S+\.\S+/.test(trimmed)) {
+      setEmailError('Please enter a valid email address');
+      return;
     }
+    setSubscribed(true);
+    setTimeout(() => {
+      setSubscribed(false);
+      setEmailInput('');
+    }, 2800);
   };
 
   return (
@@ -151,22 +223,46 @@ export default function BlogListingPage() {
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         <section className="pt-32 pb-16 px-6 max-w-[1400px] mx-auto w-full relative z-10">
           
-          {/* Header */}
-          <div className="max-w-[720px] mb-10">
-            <span className="inline-flex items-center gap-2 font-semibold text-xs tracking-widest text-[#A78BFA] bg-[#7C5CFC]/10 border border-[#2C2A52] rounded-full px-4 py-1.5 uppercase">
-              <Sparkles size={13} color="#A78BFA" />
-              BLOG
-            </span>
-            <h1 className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight leading-[1.1] mt-5 mb-4">
-              What we're learning about early careers
-            </h1>
-            <p className="text-base sm:text-lg text-[#8A8A9E] leading-relaxed">
-              Placement data, mentor practice and product notes from the campuses we work with.
-            </p>
+          {/* Header & Search Bar */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+            <div className="max-w-[720px]">
+              <span className="inline-flex items-center gap-2 font-semibold text-xs tracking-widest text-[#A78BFA] bg-[#7C5CFC]/10 border border-[#2C2A52] rounded-full px-4 py-1.5 uppercase">
+                <Sparkles size={13} color="#A78BFA" />
+                BLOG & RESEARCH
+              </span>
+              <h1 className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight leading-[1.1] mt-5 mb-4">
+                What we're learning about early careers
+              </h1>
+              <p className="text-base sm:text-lg text-[#8A8A9E] leading-relaxed">
+                Placement data, mentor practice and product notes from the campuses we work with.
+              </p>
+            </div>
+
+            {/* Interactive Search Bar */}
+            <div className="relative w-full md:w-[320px]">
+              <div className="relative flex items-center">
+                <Search size={16} color="#8A8A9E" className="absolute left-3.5 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Search articles or topics..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-[#11111C] border border-[#1F1F30] focus:border-[#7C5CFC] rounded-xl pl-10 pr-9 py-2.5 text-sm text-white placeholder-[#6A6A7E] outline-none transition-all"
+                />
+                {searchQuery !== '' && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 text-[#8A8A9E] hover:text-white transition-colors cursor-pointer"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
 
-          {/* THIS MONTH Light Hero Banner */}
-          {activeCategory === 'All' && (
+          {/* THIS MONTH Light Hero Banner (Shown when no search query and 'All' category) */}
+          {activeCategory === 'All' && !searchQuery.trim() && (
             <div className="relative rounded-3xl overflow-hidden bg-[#F6F7FB] mb-12 border border-[#E7E9F2] shadow-2xl">
               <div style={{ position: 'absolute', left: '-8%', top: '-30%', width: '44%', paddingBottom: '44%', borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,92,252,.16), transparent 68%)', pointerEvents: 'none' }} />
               <div style={{ position: 'absolute', right: '-6%', bottom: '-34%', width: '40%', paddingBottom: '40%', borderRadius: '50%', background: 'radial-gradient(circle, rgba(240,166,232,.14), transparent 70%)', pointerEvents: 'none' }} />
@@ -241,20 +337,30 @@ export default function BlogListingPage() {
           )}
 
           {/* Featured Hero Article (Dark Card) */}
-          {activeCategory === 'All' && (
+          {activeCategory === 'All' && !searchQuery.trim() && (
             <div 
               onClick={() => router.push('/blog/what-12400-student-profiles-tell-us-about-the-first-job')}
               className="bg-[#11111C] border border-[#1F1F30] hover:border-[#2C2A52] rounded-3xl p-6 sm:p-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center cursor-pointer transition-all duration-300 shadow-xl mb-12"
             >
               <div className="lg:col-span-7 flex flex-col justify-between h-full">
                 <div>
-                  <div className="flex gap-2.5 mb-5">
-                    <span className="text-[10px] font-bold tracking-wider text-[#F5B342] bg-[#F5B342]/10 border border-[#4A3410] rounded-lg px-2.5 py-1 uppercase">
-                      FEATURED
-                    </span>
-                    <span className="text-[10px] font-bold tracking-wider text-[#A78BFA] bg-[#7C5CFC]/18 border border-[#2C2A52] rounded-lg px-2.5 py-1 uppercase">
-                      PLACEMENTS
-                    </span>
+                  <div className="flex items-center justify-between gap-2.5 mb-5">
+                    <div className="flex gap-2.5">
+                      <span className="text-[10px] font-bold tracking-wider text-[#F5B342] bg-[#F5B342]/10 border border-[#4A3410] rounded-lg px-2.5 py-1 uppercase">
+                        FEATURED
+                      </span>
+                      <span className="text-[10px] font-bold tracking-wider text-[#A78BFA] bg-[#7C5CFC]/18 border border-[#2C2A52] rounded-lg px-2.5 py-1 uppercase">
+                        PLACEMENTS
+                      </span>
+                    </div>
+
+                    <button
+                      onClick={(e) => toggleSavePost('what-12400-student-profiles-tell-us-about-the-first-job', e)}
+                      className="p-2 rounded-lg border border-[#1F1F30] hover:border-[#7C5CFC] text-[#8A8A9E] hover:text-white transition-all cursor-pointer"
+                      title={savedPostIds.includes('what-12400-student-profiles-tell-us-about-the-first-job') ? 'Unsave Post' : 'Save Post'}
+                    >
+                      <Bookmark size={15} color={savedPostIds.includes('what-12400-student-profiles-tell-us-about-the-first-job') ? '#A78BFA' : 'currentColor'} fill={savedPostIds.includes('what-12400-student-profiles-tell-us-about-the-first-job') ? '#A78BFA' : 'none'} />
+                    </button>
                   </div>
                   <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight leading-tight mb-4">
                     What 12,400 student profiles tell us about the first job
@@ -290,67 +396,126 @@ export default function BlogListingPage() {
             </div>
           )}
 
-          {/* Categories Filter Pills */}
-          <div className="flex flex-wrap gap-2 mb-8">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setActiveCategory(cat)}
-                className={`text-sm font-medium border rounded-full px-4 py-2 transition-all duration-200 cursor-pointer ${
-                  activeCategory === cat
-                    ? 'bg-[#7C5CFC]/18 border-[#7C5CFC] text-white'
-                    : 'border-[#292940] text-[#8A8A9E] hover:border-[#7C5CFC]'
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
+          {/* Categories Filter Pills & Count */}
+          <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+            <div className="flex flex-wrap gap-2">
+              {CATEGORIES.map((cat) => {
+                const count = cat === 'Saved' 
+                  ? savedPostIds.length 
+                  : cat === 'All' 
+                  ? POSTS.length 
+                  : POSTS.filter(p => p.category.toLowerCase() === cat.toLowerCase()).length;
+
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => setActiveCategory(cat)}
+                    className={`text-sm font-medium border rounded-full px-4 py-2 transition-all duration-200 cursor-pointer flex items-center gap-2 ${
+                      activeCategory === cat
+                        ? 'bg-[#7C5CFC]/18 border-[#7C5CFC] text-white'
+                        : 'border-[#292940] text-[#8A8A9E] hover:border-[#7C5CFC]'
+                    }`}
+                  >
+                    {cat === 'Saved' && <Bookmark size={13} color={activeCategory === 'Saved' ? '#A78BFA' : '#8A8A9E'} />}
+                    {cat}
+                    <span className="text-[11px] opacity-75 font-semibold">({count})</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="text-xs font-semibold text-[#8A8A9E]">
+              Showing <span className="text-white font-bold">{filteredPosts.filter((p) => activeCategory !== 'All' || searchQuery.trim() !== '' || !p.isFeatured).length}</span> article{filteredPosts.length === 1 ? '' : 's'}
+            </div>
           </div>
 
           {/* Grid Layout of Articles */}
-          <div className={`grid gap-5 ${isMobile ? 'grid-cols-1' : isTablet ? 'grid-cols-2' : 'grid-cols-3'}`}>
-            {filteredPosts
-              .filter((p) => activeCategory !== 'All' || !p.isFeatured)
-              .map((post) => (
-                <div
-                  key={post.id}
-                  onClick={() => router.push(`/blog/${post.id}`)}
-                  className="group border border-[#1F1F30] hover:border-[#2C2A52] rounded-2xl bg-[#11111C] shadow-lg p-6 flex flex-col justify-between cursor-pointer transition-all duration-300"
-                  style={{ transform: 'translateY(0)' }}
-                >
-                  <div>
-                    <span 
-                      className="inline-block text-[10px] font-bold tracking-wider rounded-lg px-2.5 py-1 uppercase"
-                      style={{ color: post.tagColor, backgroundColor: post.tagBg, border: `1px solid ${post.tagLine}` }}
+          {filteredPosts.length > 0 ? (
+            <div className={`grid gap-5 ${isMobile ? 'grid-cols-1' : isTablet ? 'grid-cols-2' : 'grid-cols-3'}`}>
+              {filteredPosts
+                .filter((p) => activeCategory !== 'All' || searchQuery.trim() !== '' || !p.isFeatured)
+                .map((post) => {
+                  const isSaved = savedPostIds.includes(post.id);
+                  return (
+                    <div
+                      key={post.id}
+                      onClick={() => router.push(`/blog/${post.id}`)}
+                      className="group border border-[#1F1F30] hover:border-[#2C2A52] rounded-2xl bg-[#11111C] shadow-lg p-6 flex flex-col justify-between cursor-pointer transition-all duration-300 relative"
                     >
-                      {post.category}
-                    </span>
-                    <h3 className="text-lg font-bold text-white tracking-tight leading-snug mt-4 mb-2.5 group-hover:text-[#A78BFA] transition-colors">
-                      {post.title}
-                    </h3>
-                    <p className="text-sm leading-relaxed text-[#8A8A9E] mb-5">
-                      {post.description}
-                    </p>
-                  </div>
-                  <div className="text-xs text-[#6A6A7E] font-medium">
-                    {post.date} · {post.readTime}
-                  </div>
-                </div>
-              ))}
-          </div>
+                      <div>
+                        <div className="flex items-center justify-between gap-2 mb-3">
+                          <span 
+                            className="inline-block text-[10px] font-bold tracking-wider rounded-lg px-2.5 py-1 uppercase"
+                            style={{ color: post.tagColor, backgroundColor: post.tagBg, border: `1px solid ${post.tagLine}` }}
+                          >
+                            {post.category}
+                          </span>
+
+                          <button
+                            onClick={(e) => toggleSavePost(post.id, e)}
+                            className="p-1.5 rounded-lg border border-transparent hover:border-[#1F1F30] text-[#6A6A7E] hover:text-white transition-all cursor-pointer"
+                            title={isSaved ? 'Unsave Post' : 'Save Post'}
+                          >
+                            <Bookmark size={14} color={isSaved ? '#A78BFA' : 'currentColor'} fill={isSaved ? '#A78BFA' : 'none'} />
+                          </button>
+                        </div>
+
+                        <h3 className="text-lg font-bold text-white tracking-tight leading-snug mb-2.5 group-hover:text-[#A78BFA] transition-colors">
+                          {post.title}
+                        </h3>
+                        <p className="text-sm leading-relaxed text-[#8A8A9E] mb-5">
+                          {post.description}
+                        </p>
+                      </div>
+                      <div className="text-xs text-[#6A6A7E] font-medium flex items-center justify-between">
+                        <span>{post.date} · {post.readTime}</span>
+                        {post.author && <span className="text-[#8A8A9E]">{post.author}</span>}
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          ) : (
+            <div className="border border-[#1F1F30] rounded-2xl bg-[#11111C] p-12 text-center max-w-xl mx-auto my-8">
+              <div className="w-12 h-12 rounded-full bg-[#7C5CFC]/12 text-[#A78BFA] flex items-center justify-center mx-auto mb-4 font-bold text-lg">
+                ?
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">No articles found</h3>
+              <p className="text-sm text-[#8A8A9E] mb-6">
+                {activeCategory === 'Saved'
+                  ? 'You have not saved any articles yet. Click the bookmark icon on any post to save it for later.'
+                  : `We couldn't find any articles matching "${searchQuery || activeCategory}". Try clearing your filters.`}
+              </p>
+              <button
+                onClick={() => {
+                  setActiveCategory('All');
+                  setSearchQuery('');
+                }}
+                className="bg-[#7C5CFC]/18 border border-[#7C5CFC] text-white text-xs font-bold px-5 py-2.5 rounded-xl hover:bg-[#7C5CFC]/30 transition-all cursor-pointer"
+              >
+                Clear all filters
+              </button>
+            </div>
+          )}
 
           {/* Newsletter Section */}
           <div className="border border-[#292940] rounded-2xl bg-gradient-to-br from-[#7C5CFC]/10 to-[#11111C]/30 p-8 flex flex-col md:flex-row justify-between items-center gap-6 mt-16">
             <div className="flex-1 min-w-[260px]">
               <h3 className="text-lg font-bold text-white tracking-tight">One email a month. Nothing else.</h3>
               <p className="text-sm text-[#8A8A9E] mt-1">New openings, mentor drops and campus events — no noise.</p>
+              {emailError !== '' && (
+                <p className="text-xs text-[#F0616B] mt-1.5 font-medium">{emailError}</p>
+              )}
             </div>
             <div className="flex flex-row flex-wrap gap-2 w-full md:w-auto md:flex-nowrap">
               <TextInput
                 placeholder="you@college.edu"
                 placeholderTextColor="#6A6A7E"
                 value={emailInput}
-                onChangeText={setEmailInput}
+                onChangeText={(text) => {
+                  setEmailInput(text);
+                  if (emailError) setEmailError('');
+                }}
                 className="flex-1 md:w-[240px] border border-[#1F1F30] rounded-xl bg-black/30 px-4 py-3 text-sm text-white focus:outline-none focus:border-[#7C5CFC]"
               />
               <button
@@ -380,3 +545,4 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
 });
+
