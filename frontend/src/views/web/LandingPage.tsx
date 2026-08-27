@@ -505,6 +505,115 @@ export default function LandingPage() {
     y: 201,
   });
 
+  // Cinematic Page Transition Curtain State
+  const [curtainVisible, setCurtainVisible] = useState(true);
+  const [curtainLabel, setCurtainLabel] = useState('LOADING');
+  const [curtainCount, setCurtainCount] = useState(0);
+  const [curtainTransform, setCurtainTransform] = useState('translateY(0)');
+  const [curtainOpacity, setCurtainOpacity] = useState(1);
+  const [curtainPointerEvents, setCurtainPointerEvents] = useState<'auto' | 'none'>('auto');
+
+  // Initial load animation
+  useEffect(() => {
+    let start: number | null = null;
+    const duration = 950;
+    const animateInitial = (time: number) => {
+      if (!start) start = time;
+      const progress = Math.min(1, (time - start) / duration);
+      const easeVal = 1 - Math.pow(1 - progress, 3);
+      setCurtainCount(Math.round(easeVal * 100));
+
+      if (progress < 1) {
+        requestAnimationFrame(animateInitial);
+      } else {
+        setCurtainTransform('translateY(-100%)');
+        setCurtainOpacity(0);
+        setCurtainPointerEvents('none');
+        setTimeout(() => {
+          setCurtainVisible(false);
+        }, 700);
+      }
+    };
+    const reqId = requestAnimationFrame(animateInitial);
+    return () => cancelAnimationFrame(reqId);
+  }, []);
+
+  // Smooth Tab Switch with Curtain Motion Effect
+  const handleTabSwitch = (newTab: 'home' | 'verify' | 'contact') => {
+    if (newTab === activeTab) {
+      if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    
+    const labelMap: Record<string, string> = {
+      home: 'STUDENTALUMNI',
+      verify: 'CREDENTIAL VERIFICATION',
+      contact: 'CONTACT & CAMPUS RELATIONS',
+    };
+    
+    setCurtainLabel(labelMap[newTab] || 'LOADING');
+    setCurtainCount(0);
+    setCurtainVisible(true);
+    setCurtainTransform('translateY(0)');
+    setCurtainOpacity(1);
+    setCurtainPointerEvents('auto');
+
+    let start: number | null = null;
+    const duration = 460;
+
+    const animateTransition = (time: number) => {
+      if (!start) start = time;
+      const progress = Math.min(1, (time - start) / duration);
+      const easeVal = 1 - Math.pow(1 - progress, 3);
+      setCurtainCount(Math.round(easeVal * 100));
+
+      if (progress < 0.5) {
+        requestAnimationFrame(animateTransition);
+      } else {
+        setActiveTab(newTab);
+        if (typeof window !== 'undefined') window.scrollTo(0, 0);
+        if (progress < 1) {
+          requestAnimationFrame(animateTransition);
+        } else {
+          setCurtainTransform('translateY(-100%)');
+          setCurtainOpacity(0);
+          setCurtainPointerEvents('none');
+          setTimeout(() => {
+            setCurtainVisible(false);
+          }, 650);
+        }
+      }
+    };
+    requestAnimationFrame(animateTransition);
+  };
+
+  // Nav with transition
+  const handleNavWithCurtain = (route: string, label: string) => {
+    setCurtainLabel(label.toUpperCase());
+    setCurtainCount(0);
+    setCurtainVisible(true);
+    setCurtainTransform('translateY(0)');
+    setCurtainOpacity(1);
+    setCurtainPointerEvents('auto');
+
+    let start: number | null = null;
+    const duration = 480;
+
+    const animateOut = (time: number) => {
+      if (!start) start = time;
+      const progress = Math.min(1, (time - start) / duration);
+      const easeVal = 1 - Math.pow(1 - progress, 3);
+      setCurtainCount(Math.round(easeVal * 100));
+
+      if (progress < 1) {
+        requestAnimationFrame(animateOut);
+      } else {
+        router.push(route as any);
+      }
+    };
+    requestAnimationFrame(animateOut);
+  };
+
   // On Campus Polaroid Deck & Testimonials auto-cycling
   const [deckIdx, setDeckIdx] = useState(0);
   const [quoteIdx, setQuoteIdx] = useState(0);
@@ -625,6 +734,128 @@ export default function LandingPage() {
         />
       )}
 
+      {/* ── CINEMATIC PAGE TRANSITION & LOADER CURTAIN ── */}
+      {curtainVisible && (
+        <div
+          id="sa-curtain"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 99999,
+            backgroundColor: '#07070E',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'flex-end',
+            padding: '0 44px 40px',
+            pointerEvents: curtainPointerEvents,
+            transform: curtainTransform,
+            opacity: curtainOpacity,
+            transition: 'transform 0.65s cubic-bezier(0.76, 0, 0.24, 1), opacity 0.45s ease',
+            fontFamily: "'Manrope', sans-serif",
+          }}
+        >
+          {/* Centered Brand Content */}
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center',
+              padding: '0 32px',
+            }}
+          >
+            <svg width="146" height="170" viewBox="0 0 300 350" style={{ display: 'block', maxWidth: '32vw', height: 'auto' }}>
+              <defs>
+                <linearGradient id="sa-curtain-badge" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#8B84FF" />
+                  <stop offset="100%" stopColor="#5B4FE9" />
+                </linearGradient>
+              </defs>
+              <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#sa-curtain-badge)" />
+              <text x="150" y="212" textAnchor="middle" style={{ fontFamily: "'Manrope', sans-serif", fontSize: '122px', fontWeight: 800, letterSpacing: '-6px', fill: '#FFFFFF' }}>
+                SA
+              </text>
+            </svg>
+            <div
+              style={{
+                fontSize: '42px',
+                fontWeight: 700,
+                letterSpacing: '-1.9px',
+                lineHeight: 1.1,
+                marginTop: '28px',
+                whiteSpace: 'nowrap',
+                background: 'linear-gradient(96deg, #F0A6E8 0%, #C08BFF 32%, #8B84FF 66%, #6FA8F5 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}
+            >
+              #studentalumni
+            </div>
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '10px',
+                fontSize: '14.5px',
+                fontWeight: 600,
+                color: 'rgba(244,245,251,0.85)',
+                marginTop: '14px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Built with love for students
+              <svg width="15" height="15" viewBox="0 0 24 24" style={{ fill: '#8B84FF', flex: 'none' }}>
+                <path d="M12 21s-8-4.9-8-10.4A4.6 4.6 0 0 1 12 7.6 4.6 4.6 0 0 1 20 10.6C20 16.1 12 21 12 21Z" />
+              </svg>
+              across all campus's
+            </div>
+          </div>
+
+          {/* Bottom Loading Metrics Bar */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'flex-end',
+              justifyContent: 'space-between',
+              gap: '30px',
+              maxWidth: '1360px',
+              width: '100%',
+              margin: '0 auto',
+            }}
+          >
+            <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '3.4px', color: 'rgba(244,245,251,0.62)' }}>
+              {curtainLabel}
+            </div>
+            <div
+              style={{
+                fontSize: '76px',
+                fontWeight: 700,
+                letterSpacing: '-3.2px',
+                lineHeight: 0.85,
+                fontVariantNumeric: 'tabular-nums',
+                color: '#F4F5FB',
+              }}
+            >
+              {String(curtainCount).padStart(2, '0')}
+            </div>
+          </div>
+          <div style={{ maxWidth: '1360px', width: '100%', margin: '16px auto 0', height: '2px', background: 'rgba(244,245,251,0.14)' }}>
+            <div
+              style={{
+                height: '100%',
+                width: `${curtainCount}%`,
+                background: 'linear-gradient(90deg, #5B4FE9, #8B84FF)',
+                transition: 'width 0.1s linear',
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Top Fixed Scroll Progress Bar */}
       <View style={[styles.progressBar, { width: `${Math.min(100, (scrollY / 3800) * 100)}%` }]} />
 
@@ -632,7 +863,7 @@ export default function LandingPage() {
       <View style={styles.navBar}>
         <View style={[styles.navInner, { paddingHorizontal: containerPadding }, isNarrow && { flexWrap: 'wrap', gap: 14 }]}>
           {/* Brand Logo */}
-          <Pressable onPress={() => setActiveTab('home')} style={styles.navLogoGroup}>
+          <Pressable onPress={() => handleTabSwitch('home')} style={styles.navLogoGroup}>
             <Svg width="28" height="33" viewBox="0 0 300 350">
               <Path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="#8B84FF" />
               <Path d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="#6A49DF" />
@@ -651,7 +882,7 @@ export default function LandingPage() {
               return (
                 <Pressable
                   key={tab}
-                  onPress={() => setActiveTab(tab)}
+                  onPress={() => handleTabSwitch(tab)}
                   style={styles.navTabBtn}
                 >
                   <Text style={[styles.navTabText, isSelected && styles.navTabTextActive]}>{label}</Text>
@@ -663,10 +894,10 @@ export default function LandingPage() {
 
           {/* Right Action Buttons */}
           <View style={styles.navActions}>
-            <Pressable onPress={() => router.push('/login')} style={styles.navSignIn}>
+            <Pressable onPress={() => handleNavWithCurtain('/login', 'Sign In')} style={styles.navSignIn}>
               <Text style={styles.navSignInText}>Sign in</Text>
             </Pressable>
-            <GlowButton onPress={() => router.push('/register')} style={styles.navGetStarted} textStyle={styles.navGetStartedText}>
+            <GlowButton onPress={() => handleNavWithCurtain('/register', 'Get Started')} style={styles.navGetStarted} textStyle={styles.navGetStartedText}>
               Get Started
             </GlowButton>
           </View>
@@ -2369,7 +2600,7 @@ export default function LandingPage() {
         )}
 
         {/* ── 13. GLOBAL UNIFIED FOOTER ── */}
-        <CommonFooter onTabChange={(tab) => setActiveTab(tab)} />
+        <CommonFooter onTabChange={(tab) => handleTabSwitch(tab)} />
 
       </ScrollView>
 
