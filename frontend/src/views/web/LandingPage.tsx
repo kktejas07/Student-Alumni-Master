@@ -75,12 +75,6 @@ function injectGlobalStyles() {
       0%, 100% { opacity: 0.25; transform: scale(0.85); }
       50% { opacity: 1; transform: scale(1.15); }
     }
-    @keyframes sa-streak {
-      0% { transform: translate3d(0,0,0) rotate(35deg); opacity: 0; }
-      6% { opacity: 0.95; }
-      26% { transform: translate3d(-460px,320px,0) rotate(35deg); opacity: 0; }
-      100% { transform: translate3d(-460px,320px,0) rotate(35deg); opacity: 0; }
-    }
     @keyframes sa-pulse-glow {
       0%, 100% { opacity: 0.35; transform: scale(1); }
       50% { opacity: 0.75; transform: scale(1.08); }
@@ -219,28 +213,6 @@ function StarfieldBackground() {
           }}
         />
       ))}
-      <div
-        style={{
-          position: 'absolute',
-          left: '62%',
-          top: '8%',
-          width: '120px',
-          height: '1.5px',
-          background: 'linear-gradient(90deg, rgba(255,255,255,0), #FFFFFF)',
-          animation: 'sa-streak 14s ease-in-out infinite 3s',
-        }}
-      />
-      <div
-        style={{
-          position: 'absolute',
-          left: '32%',
-          top: '46%',
-          width: '90px',
-          height: '1.5px',
-          background: 'linear-gradient(90deg, rgba(255,255,255,0), #E8E6FF)',
-          animation: 'sa-streak 19s ease-in-out infinite 9s',
-        }}
-      />
     </div>
   );
 }
@@ -496,12 +468,33 @@ export default function LandingPage() {
 
   // BGV desk state
   const [bgvKind, setBgvKind] = useState('Single candidate');
+  const [bgvName, setBgvName] = useState('');
+  const [bgvEmail, setBgvEmail] = useState('');
+  const [bgvOrg, setBgvOrg] = useState('');
+  const [bgvPhone, setBgvPhone] = useState('');
+  const [bgvCandName, setBgvCandName] = useState('');
+  const [bgvCredNo, setBgvCredNo] = useState('');
+  const [bgvNotes, setBgvNotes] = useState('');
   const [bgvConsent, setBgvConsent] = useState(false);
   const [bgvSent, setBgvSent] = useState(false);
 
   // Contact view state
   const [contactPurpose, setContactPurpose] = useState('General Inquiry');
+  const [contactName, setContactName] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  const [contactOrg, setContactOrg] = useState('');
+  const [contactMessage, setContactMessage] = useState('');
   const [contactSent, setContactSent] = useState(false);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  const handleCopy = (text: string, key: string) => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+    }
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 1800);
+  };
 
   // Match graph radar state
   const [selectedNode, setSelectedNode] = useState({
@@ -693,44 +686,95 @@ export default function LandingPage() {
         ══════════════════════════════════════════════════════════════════ */}
         {activeTab === 'verify' && (
           <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
-            {/* Verify Hero Card */}
+            {/* 1. Verify Hero Card with 3 Metric Stats & Who Uses This Box */}
             <View style={styles.verifyHeroCard}>
-              <View style={styles.verifyTagPill}>
-                <Svg width="14" height="14" viewBox="0 0 24 24" style={{ marginRight: 6 }}>
-                  <Path d="M12 2l7 4v6c0 5.25-3.5 10-7 11-3.5-1-7-5.75-7-11V6l7-4z" stroke="#2E2091" strokeWidth="2.2" fill="none" />
-                </Svg>
-                <Text style={styles.verifyTagPillText}>CREDENTIAL VERIFICATION</Text>
+              <View style={[styles.verifyHeroRow, isNarrow && { flexDirection: 'column', gap: 28 }]}>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <View style={styles.verifyTagPill}>
+                    <Svg width="13" height="13" viewBox="0 0 24 24" style={{ marginRight: 6 }}>
+                      <Path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6Z" stroke="#2E2091" strokeWidth="2.2" fill="none" />
+                      <Path d="M9 12l2 2 4-4" stroke="#2E2091" strokeWidth="2.2" fill="none" />
+                    </Svg>
+                    <Text style={styles.verifyTagPillText}>CREDENTIAL VERIFICATION</Text>
+                  </View>
+                  <Text style={styles.verifyHeroTitle}>Every claim on a résumé, checkable in seconds.</Text>
+                  <Text style={styles.verifyHeroSubtitle}>
+                    Certificates, faculty awards, ECHO badges, and SA Member IDs are signed on issue. Recruiters and background-verification agencies can confirm any of them without emailing a college office.
+                  </Text>
+
+                  {/* 3 Metric Stats */}
+                  <View style={styles.verifyHeroStatsRow}>
+                    <View>
+                      <Text style={[styles.verifyStatNum, { color: '#4B3FA8' }]}>184k</Text>
+                      <Text style={styles.verifyStatLabel}>credentials signed</Text>
+                    </View>
+                    <View>
+                      <Text style={[styles.verifyStatNum, { color: '#0E6E8C' }]}>1.2s</Text>
+                      <Text style={styles.verifyStatLabel}>median check</Text>
+                    </View>
+                    <View>
+                      <Text style={[styles.verifyStatNum, { color: '#047857' }]}>0</Text>
+                      <Text style={styles.verifyStatLabel}>forgeries passed</Text>
+                    </View>
+                  </View>
+
+                  {/* Action Buttons */}
+                  <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap', marginTop: 8 }}>
+                    <GlowButton onPress={() => {}} style={styles.verifyHeroBtnPrimary} textStyle={styles.verifyHeroBtnPrimaryText}>
+                      Verify a credential
+                    </GlowButton>
+                    <Pressable onPress={() => {}} style={styles.verifyHeroBtnSecondary}>
+                      <Text style={styles.verifyHeroBtnSecondaryText}>Request a BGV check</Text>
+                    </Pressable>
+                  </View>
+                </View>
+
+                {/* Who Uses This Box */}
+                <View style={styles.whoUsesBox}>
+                  <Text style={styles.whoUsesHeader}>WHO USES THIS</Text>
+                  {[
+                    'Recruiters and HR teams',
+                    'Background-verification agencies',
+                    'Accreditation bodies',
+                    'Placement cells and admin',
+                  ].map((user, idx) => (
+                    <View key={idx} style={styles.whoUsesItem}>
+                      <Svg width="15" height="15" viewBox="0 0 24 24" style={{ marginRight: 10 }}>
+                        <Path d="M5 12.5l4 4 10-10.5" stroke="#047857" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                      </Svg>
+                      <Text style={styles.whoUsesText}>{user}</Text>
+                    </View>
+                  ))}
+                </View>
               </View>
-              <Text style={styles.verifyHeroTitle}>Every claim on a résumé, checkable in seconds.</Text>
-              <Text style={styles.verifyHeroSubtitle}>
-                Certificates, faculty awards, ECHO badges, and SA Member IDs are signed on issue. Recruiters and background-verification agencies can confirm any of them without emailing a college office.
+            </View>
+
+            {/* 2. Main Verification Search Area */}
+            <View style={styles.verifySearchSection}>
+              <Text style={styles.verifySearchH2}>
+                Verify Certificate &amp;{' '}
+                <Text style={{ color: T.indLt }}>SA Member ID</Text>
+              </Text>
+              <Text style={styles.verifySearchDesc}>
+                Instant cryptographic BGV validation for verified Certificate IDs, Faculty Awards, ECHO Badges, and SA Member IDs across campuses.
               </Text>
 
-              {/* 3 Metric Stats */}
-              <View style={styles.verifyHeroStatsRow}>
-                <View>
-                  <Text style={[styles.verifyStatNum, { color: '#4B3FA8' }]}>184k</Text>
-                  <Text style={styles.verifyStatLabel}>credentials signed</Text>
-                </View>
-                <View>
-                  <Text style={[styles.verifyStatNum, { color: '#0E6E8C' }]}>1.2s</Text>
-                  <Text style={styles.verifyStatLabel}>median check</Text>
-                </View>
-                <View>
-                  <Text style={[styles.verifyStatNum, { color: '#047857' }]}>0</Text>
-                  <Text style={styles.verifyStatLabel}>forgeries passed</Text>
-                </View>
-              </View>
-
-              {/* Verify Search Box */}
+              {/* Input Bar */}
               <View style={styles.verifyInputRow}>
-                <TextInput
-                  style={styles.verifySearchInput}
-                  placeholder="Enter Certificate ID, Member ID, or Roll Number…"
-                  placeholderTextColor="#5C6273"
-                  value={verifyInput}
-                  onChangeText={setVerifyInput}
-                />
+                <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
+                  <Svg width="18" height="18" viewBox="0 0 16 16" style={{ marginRight: 12 }}>
+                    <Circle cx="7" cy="7" r="4.6" stroke="#5C6273" strokeWidth="1.8" fill="none" />
+                    <Path d="M10.5 10.5L14 14" stroke="#5C6273" strokeWidth="1.8" />
+                  </Svg>
+                  <TextInput
+                    style={styles.verifySearchInput}
+                    placeholder="Enter Certificate ID, Member ID, or Roll Number…"
+                    placeholderTextColor="#5C6273"
+                    value={verifyInput}
+                    onChangeText={setVerifyInput}
+                    onSubmitEditing={() => triggerVerification()}
+                  />
+                </View>
                 <GlowButton onPress={() => triggerVerification()} style={styles.verifySubmitBtn} textStyle={styles.verifySubmitBtnText}>
                   Verify Credential →
                 </GlowButton>
@@ -739,16 +783,23 @@ export default function LandingPage() {
               {/* Sample Chips */}
               <View style={styles.sampleChipsRow}>
                 <Text style={styles.sampleChipsLabel}>Try sample IDs:</Text>
-                {Object.keys(SAMPLE_CREDS).map((id) => (
+                {[
+                  { id: 'SA-EXC-2026-0002', tag: 'Excellence' },
+                  { id: 'SA-FAC-2026-0001', tag: 'Faculty' },
+                  { id: 'SA-AMB-2026-0012', tag: 'Ambassador' },
+                  { id: 'ECHO26-P-0001', tag: 'Specialization' },
+                ].map((item) => (
                   <Pressable
-                    key={id}
+                    key={item.id}
                     onPress={() => {
-                      setVerifyInput(id);
-                      triggerVerification(id);
+                      setVerifyInput(item.id);
+                      triggerVerification(item.id);
                     }}
                     style={styles.sampleChip}
                   >
-                    <Text style={styles.sampleChipText}>{id}</Text>
+                    <Text style={styles.sampleChipText}>
+                      {item.id} <Text style={{ color: T.muted2, fontWeight: '500' }}>({item.tag})</Text>
+                    </Text>
                   </Pressable>
                 ))}
               </View>
@@ -757,14 +808,18 @@ export default function LandingPage() {
               {verifyResult && (
                 <View style={styles.verifyResultBox}>
                   <View style={styles.verifyResultTop}>
-                    <View>
-                      <Text style={styles.verifyResultTitle}>{verifyResult.title}</Text>
-                      <Text style={styles.verifyResultId}>{verifyResult.id}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <View style={styles.validStatusIcon}>
+                        <Svg width="18" height="18" viewBox="0 0 24 24">
+                          <Path d="M5 12.5l4 4 10-10.5" stroke="#34D399" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                        </Svg>
+                      </View>
+                      <View>
+                        <Text style={styles.verifyResultTitle}>{verifyResult.title}</Text>
+                        <Text style={styles.verifyResultId}>{verifyResult.id}</Text>
+                      </View>
                     </View>
                     <View style={styles.validStatusBadge}>
-                      <Svg width="12" height="12" viewBox="0 0 24 24" style={{ marginRight: 5 }}>
-                        <Path d="M5 13l4 4L19 7" stroke="#34D399" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                      </Svg>
                       <Text style={styles.validStatusText}>SIGNATURE VALID</Text>
                     </View>
                   </View>
@@ -786,82 +841,231 @@ export default function LandingPage() {
               )}
             </View>
 
-            {/* What We Verify */}
-            <View style={styles.whatWeVerifyRow}>
-              <HoverLiftCard style={styles.verifyFeatureCard}>
-                <View style={styles.verifySvgIconBox}>
-                  <Svg width="18" height="18" viewBox="0 0 24 24">
-                    <Path d="M5 12.5l4 4 10-10.5" stroke="#0E6E8C" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                  </Svg>
-                </View>
-                <Text style={styles.verifyFeatureTitle}>Certificates</Text>
-                <Text style={styles.verifyFeatureDesc}>Workshop and course completion, with issuing body and date.</Text>
-              </HoverLiftCard>
-              <HoverLiftCard style={styles.verifyFeatureCard}>
-                <View style={styles.verifySvgIconBox}>
-                  <Svg width="18" height="18" viewBox="0 0 24 24">
-                    <Path d="M5 12.5l4 4 10-10.5" stroke="#5B4FE9" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                  </Svg>
-                </View>
-                <Text style={styles.verifyFeatureTitle}>Member IDs</Text>
-                <Text style={styles.verifyFeatureDesc}>Confirms live college affiliation, department, and graduation year.</Text>
-              </HoverLiftCard>
-              <HoverLiftCard style={styles.verifyFeatureCard}>
-                <View style={styles.verifySvgIconBox}>
-                  <Svg width="18" height="18" viewBox="0 0 24 24">
-                    <Path d="M5 12.5l4 4 10-10.5" stroke="#B45309" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                  </Svg>
-                </View>
-                <Text style={styles.verifyFeatureTitle}>ECHO Badges</Text>
-                <Text style={styles.verifyFeatureDesc}>Non-transferable, cryptographically bound, scannable at the campus gate.</Text>
-              </HoverLiftCard>
-            </View>
-
-            {/* BGV Request Desk Form Card */}
-            <View style={styles.bgvDeskCard}>
-              <View style={styles.sectionPill}><Text style={styles.sectionPillText}>BULK &amp; ENTERPRISE BGV</Text></View>
-              <Text style={styles.bgvDeskHeading}>Request a BGV Check</Text>
-              <Text style={styles.bgvDeskSub}>Checking a candidate batch? Our verification desk responds within 1 working day.</Text>
-
-              <View style={styles.kindSelectorRow}>
-                {['Single candidate', 'Bulk batch (10+)', 'API access', 'Dispute a result'].map((k) => (
-                  <Pressable
-                    key={k}
-                    onPress={() => setBgvKind(k)}
-                    style={[styles.kindPill, bgvKind === k && styles.kindPillOn]}
-                  >
-                    <Text style={[styles.kindPillText, bgvKind === k && styles.kindPillTextOn]}>{k}</Text>
-                  </Pressable>
+            {/* 3. Built on Cryptographic Trust (4 Cards) */}
+            <View style={{ width: '100%', marginVertical: 40, alignItems: 'center' }}>
+              <View style={styles.sectionPill}>
+                <Text style={styles.sectionPillText}>• ENTERPRISE INTEGRITY</Text>
+              </View>
+              <Text style={styles.sectionHeadingH2}>Built on Cryptographic Trust</Text>
+              <Text style={styles.sectionDesc}>
+                Designed for high-speed background verification across campuses, employers, and accreditation bodies.
+              </Text>
+              <View style={[styles.cryptoTrustGrid, isNarrow && { flexDirection: 'column' }]}>
+                {[
+                  { num: '01', title: 'Cryptographic SHA-256 Ledger', desc: 'Every certificate and credential is signed with an immutable hash, preventing forgery and unauthorized duplication.' },
+                  { num: '02', title: 'Instant Multi-Campus BGV', desc: 'Instant verification for recruiters, HR teams, and academic institutions across thousands of partner colleges.' },
+                  { num: '03', title: 'Tamper-Proof Digital ID Cards', desc: 'Unified member IDs linked to verified student portfolios, campus achievements, and alumni career roadmaps.' },
+                  { num: '04', title: 'Autonomous Verification API', desc: 'Real-time programmatic query support for background verification agencies, automated scanners, and ATS systems.' },
+                ].map((item, idx) => (
+                  <HoverLiftCard key={idx} style={styles.cryptoCard}>
+                    <Text style={styles.cryptoNum}>{item.num}</Text>
+                    <Text style={styles.cryptoTitle}>{item.title}</Text>
+                    <Text style={styles.cryptoDesc}>{item.desc}</Text>
+                  </HoverLiftCard>
                 ))}
               </View>
+            </View>
 
-              <Pressable onPress={() => setBgvConsent(!bgvConsent)} style={styles.consentCheckboxRow}>
-                <View style={[styles.checkboxSquare, bgvConsent && styles.checkboxSquareOn]}>
-                  {bgvConsent && (
-                    <Svg width="12" height="12" viewBox="0 0 24 24">
-                      <Path d="M5 13l4 4L19 7" stroke="#FFFFFF" strokeWidth="3" fill="none" strokeLinecap="round" />
+            {/* 4. What We Verify (3 Cards) */}
+            <View style={{ width: '100%', marginVertical: 20 }}>
+              <Text style={styles.whatWeVerifyHeader}>WHAT WE VERIFY</Text>
+              <View style={[styles.whatWeVerifyRow, isNarrow && { flexDirection: 'column' }]}>
+                <HoverLiftCard style={styles.verifyFeatureCard}>
+                  <View style={styles.verifySvgIconBox}>
+                    <Svg width="18" height="18" viewBox="0 0 24 24">
+                      <Path d="M5 12.5l4 4 10-10.5" stroke="#0E6E8C" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                     </Svg>
-                  )}
-                </View>
-                <Text style={styles.consentLabel}>I confirm the candidate has consented to this verification under the DPDP Act 2023.</Text>
-              </Pressable>
+                  </View>
+                  <Text style={styles.verifyFeatureTitle}>Certificates</Text>
+                  <Text style={styles.verifyFeatureDesc}>Workshop and course completion, with issuing body and date.</Text>
+                </HoverLiftCard>
+                <HoverLiftCard style={styles.verifyFeatureCard}>
+                  <View style={styles.verifySvgIconBox}>
+                    <Svg width="18" height="18" viewBox="0 0 24 24">
+                      <Path d="M5 12.5l4 4 10-10.5" stroke="#5B4FE9" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                    </Svg>
+                  </View>
+                  <Text style={styles.verifyFeatureTitle}>Member IDs</Text>
+                  <Text style={styles.verifyFeatureDesc}>Confirms live college affiliation, department, and graduation year.</Text>
+                </HoverLiftCard>
+                <HoverLiftCard style={styles.verifyFeatureCard}>
+                  <View style={styles.verifySvgIconBox}>
+                    <Svg width="18" height="18" viewBox="0 0 24 24">
+                      <Path d="M5 12.5l4 4 10-10.5" stroke="#B45309" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                    </Svg>
+                  </View>
+                  <Text style={styles.verifyFeatureTitle}>ECHO Badges</Text>
+                  <Text style={styles.verifyFeatureDesc}>Non-transferable, cryptographically bound, scannable at the campus gate.</Text>
+                </HoverLiftCard>
+              </View>
+            </View>
 
-              <Pressable
-                onPress={() => {
-                  if (bgvConsent) {
-                    setBgvSent(true);
-                    setTimeout(() => setBgvSent(false), 3000);
-                  }
-                }}
-                style={[
-                  styles.bgvSubmitButton,
-                  bgvConsent ? styles.btnGlow : { backgroundColor: T.line, cursor: 'not-allowed' },
-                ]}
-              >
-                <Text style={styles.bgvSubmitButtonText}>
-                  {bgvSent ? 'Request Sent — SA-BGV-894102 (Desk: Hyderabad)' : 'Submit BGV Request'}
-                </Text>
-              </Pressable>
+            {/* 5. BGV Request Desk Form Card with Sidebars */}
+            <View style={styles.bgvDeskCard}>
+              <View style={[styles.bgvDeskRow, isNarrow && { flexDirection: 'column' }]}>
+                {/* Form Column */}
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <View style={styles.sectionPill}><Text style={styles.sectionPillText}>• BULK &amp; ENTERPRISE BGV</Text></View>
+                  <Text style={styles.bgvDeskHeading}>Request a BGV Check</Text>
+                  <Text style={styles.bgvDeskSub}>Checking a candidate batch, or verifying something without an ID? Our verification desk responds within 1 working day.</Text>
+
+                  <Text style={styles.bgvSectionLabel}>WHAT DO YOU NEED VERIFIED?</Text>
+                  <View style={styles.kindSelectorRow}>
+                    {['Single candidate', 'Bulk batch (10+)', 'API access', 'Dispute a result'].map((k) => (
+                      <Pressable
+                        key={k}
+                        onPress={() => setBgvKind(k)}
+                        style={[styles.kindPill, bgvKind === k && styles.kindPillOn]}
+                      >
+                        <Text style={[styles.kindPillText, bgvKind === k && styles.kindPillTextOn]}>{k}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+
+                  {/* Form Grid */}
+                  <View style={[styles.formGrid2, isNarrow && { flexDirection: 'column' }]}>
+                    <View style={styles.formCol}>
+                      <Text style={styles.formFieldLabel}>Your name <Text style={{ color: T.indLt }}>*</Text></Text>
+                      <TextInput
+                        style={styles.formInput}
+                        placeholder="e.g. Priya Menon"
+                        placeholderTextColor="#5C6273"
+                        value={bgvName}
+                        onChangeText={setBgvName}
+                      />
+                    </View>
+                    <View style={styles.formCol}>
+                      <Text style={styles.formFieldLabel}>Work email <Text style={{ color: T.indLt }}>*</Text></Text>
+                      <TextInput
+                        style={styles.formInput}
+                        placeholder="you@company.com"
+                        placeholderTextColor="#5C6273"
+                        value={bgvEmail}
+                        onChangeText={setBgvEmail}
+                      />
+                    </View>
+                  </View>
+
+                  <View style={[styles.formGrid2, isNarrow && { flexDirection: 'column' }, { marginTop: 14 }]}>
+                    <View style={styles.formCol}>
+                      <Text style={styles.formFieldLabel}>Organisation <Text style={{ color: T.indLt }}>*</Text></Text>
+                      <TextInput
+                        style={styles.formInput}
+                        placeholder="e.g. Deloitte India"
+                        placeholderTextColor="#5C6273"
+                        value={bgvOrg}
+                        onChangeText={setBgvOrg}
+                      />
+                    </View>
+                    <View style={styles.formCol}>
+                      <Text style={styles.formFieldLabel}>Phone</Text>
+                      <TextInput
+                        style={styles.formInput}
+                        placeholder="+91 …"
+                        placeholderTextColor="#5C6273"
+                        value={bgvPhone}
+                        onChangeText={setBgvPhone}
+                      />
+                    </View>
+                  </View>
+
+                  <View style={[styles.formGrid2, isNarrow && { flexDirection: 'column' }, { marginTop: 14 }]}>
+                    <View style={styles.formCol}>
+                      <Text style={styles.formFieldLabel}>Candidate name</Text>
+                      <TextInput
+                        style={styles.formInput}
+                        placeholder="Name as on credential"
+                        placeholderTextColor="#5C6273"
+                        value={bgvCandName}
+                        onChangeText={setBgvCandName}
+                      />
+                    </View>
+                    <View style={styles.formCol}>
+                      <Text style={styles.formFieldLabel}>Credential or roll number</Text>
+                      <TextInput
+                        style={styles.formInput}
+                        placeholder="If you have one"
+                        placeholderTextColor="#5C6273"
+                        value={bgvCredNo}
+                        onChangeText={setBgvCredNo}
+                      />
+                    </View>
+                  </View>
+
+                  <View style={{ marginTop: 14 }}>
+                    <Text style={styles.formFieldLabel}>Anything else we should know</Text>
+                    <TextInput
+                      style={[styles.formInput, { height: 80, textAlignVertical: 'top' }]}
+                      placeholder="Volume, turnaround needed, or issuing institution…"
+                      placeholderTextColor="#5C6273"
+                      multiline
+                      value={bgvNotes}
+                      onChangeText={setBgvNotes}
+                    />
+                  </View>
+
+                  <Pressable onPress={() => setBgvConsent(!bgvConsent)} style={styles.consentCheckboxRow}>
+                    <View style={[styles.checkboxSquare, bgvConsent && styles.checkboxSquareOn]}>
+                      {bgvConsent && (
+                        <Svg width="12" height="12" viewBox="0 0 24 24">
+                          <Path d="M5 13l4 4L19 7" stroke="#FFFFFF" strokeWidth="3" fill="none" strokeLinecap="round" />
+                        </Svg>
+                      )}
+                    </View>
+                    <Text style={styles.consentLabel}>I confirm the candidate has consented to this verification under the DPDP Act 2023.</Text>
+                  </Pressable>
+
+                  <Pressable
+                    onPress={() => {
+                      if (bgvConsent) {
+                        setBgvSent(true);
+                        setTimeout(() => setBgvSent(false), 3000);
+                      }
+                    }}
+                    style={[
+                      styles.bgvSubmitButton,
+                      bgvConsent ? styles.btnGlow : { backgroundColor: T.line, cursor: 'not-allowed' },
+                    ]}
+                  >
+                    <Text style={styles.bgvSubmitButtonText}>
+                      {bgvSent ? 'Request Sent — SA-BGV-894102 (Desk: Hyderabad)' : 'Submit BGV Request'}
+                    </Text>
+                  </Pressable>
+                  <Text style={styles.bgvFooterNote}>Response within one working day · verification desk, Hyderabad</Text>
+                </View>
+
+                {/* Sidebar Column */}
+                <View style={styles.bgvSidebarCol}>
+                  <View style={styles.bgvSideCard}>
+                    <Text style={styles.bgvSideHeader}>TURNAROUND</Text>
+                    <View style={styles.turnaroundRow}><Text style={styles.turnaroundLabel}>Instant ID lookup</Text><Text style={styles.turnaroundVal}>Seconds</Text></View>
+                    <View style={styles.turnaroundRow}><Text style={styles.turnaroundLabel}>Single candidate</Text><Text style={styles.turnaroundVal}>1 working day</Text></View>
+                    <View style={styles.turnaroundRow}><Text style={styles.turnaroundLabel}>Bulk batch</Text><Text style={styles.turnaroundVal}>2–3 days</Text></View>
+                    <View style={styles.turnaroundRow}><Text style={styles.turnaroundLabel}>API onboarding</Text><Text style={styles.turnaroundVal}>Same week</Text></View>
+                  </View>
+
+                  <View style={styles.bgvSideCard}>
+                    <Text style={styles.bgvSideHeader}>HANDLED UNDER</Text>
+                    <View style={styles.handledItem}>
+                      <Svg width="14" height="14" viewBox="0 0 24 24" style={{ marginRight: 8 }}><Path d="M5 12.5l4 4 10-10.5" stroke="#34D399" strokeWidth="2.3" fill="none" /></Svg>
+                      <Text style={styles.handledText}>DPDP Act 2023</Text>
+                    </View>
+                    <View style={styles.handledItem}>
+                      <Svg width="14" height="14" viewBox="0 0 24 24" style={{ marginRight: 8 }}><Path d="M5 12.5l4 4 10-10.5" stroke="#34D399" strokeWidth="2.3" fill="none" /></Svg>
+                      <Text style={styles.handledText}>GDPR</Text>
+                    </View>
+                    <View style={styles.handledItem}>
+                      <Svg width="14" height="14" viewBox="0 0 24 24" style={{ marginRight: 8 }}><Path d="M5 12.5l4 4 10-10.5" stroke="#34D399" strokeWidth="2.3" fill="none" /></Svg>
+                      <Text style={styles.handledText}>SOC 2 Type II</Text>
+                    </View>
+                  </View>
+
+                  <View style={[styles.bgvSideCard, { backgroundColor: 'rgba(91,79,233,0.08)', borderColor: 'rgba(139,132,255,0.3)' }]}>
+                    <Text style={styles.preferEmailTitle}>Prefer email?</Text>
+                    <Text style={styles.preferEmailDesc}>Write to <Text style={{ color: T.indLt, fontWeight: '700' }}>verify@studentalumni.ai</Text> with the credential ID in the subject line.</Text>
+                  </View>
+                </View>
+              </View>
             </View>
           </View>
         )}
@@ -873,62 +1077,119 @@ export default function LandingPage() {
           <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
             <View style={styles.centeredHeader}>
               <View style={styles.sectionPill}>
-                <Text style={styles.sectionPillText}>CONTACT &amp; CAMPUS RELATIONS</Text>
+                <Text style={styles.sectionPillText}>• CONTACT &amp; CAMPUS RELATIONS</Text>
               </View>
-              <Text style={styles.pageTitleH1}>Get in Touch with StudentAlumni Global</Text>
-              <Text style={styles.pageSubtitle}>Connect directly with our leadership, campus partnership coordinators, and human resources team.</Text>
+              <Text style={styles.pageTitleH1}>
+                Get in Touch with{' '}
+                <Text style={{ color: T.indLt }}>StudentAlumni Global</Text>
+              </Text>
+              <Text style={styles.pageSubtitle}>
+                Connect directly with our leadership, campus partnership coordinators, and human resources team. We are dedicated to supporting students, alumni, and educational institutions worldwide.
+              </Text>
             </View>
 
-            {/* Hubs */}
+            {/* 1. Global Hubs (India Hub & USA Hub) */}
             <View style={[styles.hubsGrid, isNarrow && { flexDirection: 'column' }]}>
+              {/* India Hub */}
               <HoverLiftCard style={styles.hubCard}>
-                <Text style={styles.hubRegionTag}>APAC HEADQUARTERS</Text>
-                <Text style={styles.hubTitle}>India Hub (Hyderabad)</Text>
-                <View style={styles.hubIconRow}>
-                  <Svg width="16" height="16" viewBox="0 0 24 24"><Path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z" stroke="#8B84FF" strokeWidth="1.8" fill="none" /></Svg>
-                  <Text style={styles.hubLine}>Madhapur, Hyderabad, Telangana, India</Text>
+                <View style={styles.hubHeaderRow}>
+                  <View style={styles.hubIconContainer}>
+                    <Svg width="20" height="20" viewBox="0 0 24 24">
+                      <Path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11Z" stroke="#8B84FF" strokeWidth="1.9" fill="none" />
+                      <Circle cx="12" cy="10" r="2.4" fill="#8B84FF" />
+                    </Svg>
+                  </View>
+                  <View>
+                    <Text style={styles.hubRegionTag}>APAC HEADQUARTERS</Text>
+                    <Text style={styles.hubTitle}>India Hub</Text>
+                  </View>
                 </View>
-                <View style={styles.hubIconRow}>
-                  <Svg width="16" height="16" viewBox="0 0 24 24"><Path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" stroke="#8B84FF" strokeWidth="1.8" fill="none" /></Svg>
-                  <Text style={styles.hubLine}>+91 7569665077</Text>
+
+                <View style={styles.hubDetailRow}>
+                  <Text style={styles.hubDetailLabel}>OFFICE ADDRESS</Text>
+                  <Text style={styles.hubDetailVal}>Madhapur, Hyderabad, Telangana, India</Text>
                 </View>
-                <View style={styles.hubIconRow}>
-                  <Svg width="16" height="16" viewBox="0 0 24 24"><Path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="#8B84FF" strokeWidth="1.8" fill="none" /><Path d="M22 6l-10 7L2 6" stroke="#8B84FF" strokeWidth="1.8" fill="none" /></Svg>
-                  <Text style={styles.hubLine}>hr@studentalumni.ai</Text>
+
+                <View style={styles.hubDetailRow}>
+                  <Text style={styles.hubDetailLabel}>PHONE NUMBER</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <Text style={styles.hubDetailVal}>+91 7569665077</Text>
+                    <Pressable onPress={() => handleCopy('+91 7569665077', 'india-phone')} style={styles.copyChip}>
+                      <Text style={styles.copyChipText}>{copiedKey === 'india-phone' ? 'Copied ✓' : 'Copy'}</Text>
+                    </Pressable>
+                  </View>
                 </View>
-                <View style={styles.hubIconRow}>
-                  <Svg width="16" height="16" viewBox="0 0 24 24"><Circle cx="12" cy="12" r="10" stroke="#8B84FF" strokeWidth="1.8" fill="none" /><Path d="M12 6v6l4 2" stroke="#8B84FF" strokeWidth="1.8" fill="none" /></Svg>
-                  <Text style={styles.hubLine}>Mon – Sat: 9:00 AM – 7:00 PM IST</Text>
+
+                <View style={styles.hubDetailRow}>
+                  <Text style={styles.hubDetailLabel}>OFFICIAL EMAIL</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <Text style={styles.hubDetailVal}>hr@studentalumni.ai</Text>
+                    <Pressable onPress={() => handleCopy('hr@studentalumni.ai', 'india-email')} style={styles.copyChip}>
+                      <Text style={styles.copyChipText}>{copiedKey === 'india-email' ? 'Copied ✓' : 'Copy'}</Text>
+                    </Pressable>
+                  </View>
+                </View>
+
+                <View style={styles.hubDetailRow}>
+                  <Text style={styles.hubDetailLabel}>WORKING HOURS</Text>
+                  <Text style={styles.hubDetailVal}>Mon – Sat: 9:00 AM – 7:00 PM IST</Text>
                 </View>
               </HoverLiftCard>
 
+              {/* USA Hub */}
               <HoverLiftCard style={styles.hubCard}>
-                <Text style={[styles.hubRegionTag, { color: '#6FA8F5' }]}>AMERICAS &amp; GLOBAL</Text>
-                <Text style={styles.hubTitle}>USA Hub (Princeton)</Text>
-                <View style={styles.hubIconRow}>
-                  <Svg width="16" height="16" viewBox="0 0 24 24"><Path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z" stroke="#6FA8F5" strokeWidth="1.8" fill="none" /></Svg>
-                  <Text style={styles.hubLine}>Princeton, New Jersey, USA</Text>
+                <View style={styles.hubHeaderRow}>
+                  <View style={[styles.hubIconContainer, { backgroundColor: 'rgba(111,168,245,0.14)', borderColor: 'rgba(111,168,245,0.34)' }]}>
+                    <Svg width="20" height="20" viewBox="0 0 24 24">
+                      <Circle cx="12" cy="12" r="9" stroke="#6FA8F5" strokeWidth="1.9" fill="none" />
+                      <Path d="M3 12h18M12 3c4 4.5 4 13.5 0 18M12 3c-4 4.5-4 13.5 0 18" stroke="#6FA8F5" strokeWidth="1.9" fill="none" />
+                    </Svg>
+                  </View>
+                  <View>
+                    <Text style={[styles.hubRegionTag, { color: '#6FA8F5' }]}>AMERICAS &amp; GLOBAL</Text>
+                    <Text style={styles.hubTitle}>USA Hub</Text>
+                  </View>
                 </View>
-                <View style={styles.hubIconRow}>
-                  <Svg width="16" height="16" viewBox="0 0 24 24"><Path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" stroke="#6FA8F5" strokeWidth="1.8" fill="none" /></Svg>
-                  <Text style={styles.hubLine}>+91 7569665077</Text>
+
+                <View style={styles.hubDetailRow}>
+                  <Text style={styles.hubDetailLabel}>OFFICE ADDRESS</Text>
+                  <Text style={styles.hubDetailVal}>Princeton, New Jersey, USA</Text>
                 </View>
-                <View style={styles.hubIconRow}>
-                  <Svg width="16" height="16" viewBox="0 0 24 24"><Path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="#6FA8F5" strokeWidth="1.8" fill="none" /><Path d="M22 6l-10 7L2 6" stroke="#6FA8F5" strokeWidth="1.8" fill="none" /></Svg>
-                  <Text style={styles.hubLine}>hr@studentalumni.ai</Text>
+
+                <View style={styles.hubDetailRow}>
+                  <Text style={styles.hubDetailLabel}>PHONE NUMBER</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <Text style={styles.hubDetailVal}>+91 7569665077</Text>
+                    <Pressable onPress={() => handleCopy('+91 7569665077', 'usa-phone')} style={styles.copyChip}>
+                      <Text style={styles.copyChipText}>{copiedKey === 'usa-phone' ? 'Copied ✓' : 'Copy'}</Text>
+                    </Pressable>
+                  </View>
                 </View>
-                <View style={styles.hubIconRow}>
-                  <Svg width="16" height="16" viewBox="0 0 24 24"><Circle cx="12" cy="12" r="10" stroke="#6FA8F5" strokeWidth="1.8" fill="none" /><Path d="M12 6v6l4 2" stroke="#6FA8F5" strokeWidth="1.8" fill="none" /></Svg>
-                  <Text style={styles.hubLine}>Mon – Fri: 9:00 AM – 6:00 PM EST</Text>
+
+                <View style={styles.hubDetailRow}>
+                  <Text style={styles.hubDetailLabel}>OFFICIAL EMAIL</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <Text style={styles.hubDetailVal}>hr@studentalumni.ai</Text>
+                    <Pressable onPress={() => handleCopy('hr@studentalumni.ai', 'usa-email')} style={styles.copyChip}>
+                      <Text style={styles.copyChipText}>{copiedKey === 'usa-email' ? 'Copied ✓' : 'Copy'}</Text>
+                    </Pressable>
+                  </View>
+                </View>
+
+                <View style={styles.hubDetailRow}>
+                  <Text style={styles.hubDetailLabel}>WORKING HOURS</Text>
+                  <Text style={styles.hubDetailVal}>Mon – Fri: 9:00 AM – 6:00 PM EST</Text>
                 </View>
               </HoverLiftCard>
             </View>
 
-            {/* Inquiry Form */}
+            {/* 2. Direct Inquiry & Support Form (Send Us a Message) */}
             <View style={styles.inquiryCard}>
-              <Text style={styles.inquiryHeading}>Direct Inquiry &amp; Support</Text>
+              <View style={styles.sectionPill}><Text style={styles.sectionPillText}>• DIRECT INQUIRY &amp; SUPPORT</Text></View>
+              <Text style={styles.inquiryHeading}>Send Us a Message</Text>
               <Text style={styles.inquirySub}>Fill out the details below and our campus relations team will respond promptly.</Text>
 
+              <Text style={styles.bgvSectionLabel}>SELECT PURPOSE</Text>
               <View style={styles.purposePillsRow}>
                 {['General Inquiry', 'HR & Careers', 'College Partnerships', 'Mentor Network'].map((p) => (
                   <Pressable
@@ -941,6 +1202,65 @@ export default function LandingPage() {
                 ))}
               </View>
 
+              {/* Form Grid */}
+              <View style={[styles.formGrid2, isNarrow && { flexDirection: 'column' }]}>
+                <View style={styles.formCol}>
+                  <Text style={styles.formFieldLabel}>Full Name <Text style={{ color: T.indLt }}>*</Text></Text>
+                  <TextInput
+                    style={styles.formInput}
+                    placeholder="e.g. Rahul Sharma"
+                    placeholderTextColor="#5C6273"
+                    value={contactName}
+                    onChangeText={setContactName}
+                  />
+                </View>
+                <View style={styles.formCol}>
+                  <Text style={styles.formFieldLabel}>Official Email <Text style={{ color: T.indLt }}>*</Text></Text>
+                  <TextInput
+                    style={styles.formInput}
+                    placeholder="e.g. rahul@example.com"
+                    placeholderTextColor="#5C6273"
+                    value={contactEmail}
+                    onChangeText={setContactEmail}
+                  />
+                </View>
+              </View>
+
+              <View style={[styles.formGrid2, isNarrow && { flexDirection: 'column' }, { marginTop: 16 }]}>
+                <View style={styles.formCol}>
+                  <Text style={styles.formFieldLabel}>Phone Number</Text>
+                  <TextInput
+                    style={styles.formInput}
+                    placeholder="+91 7569665077"
+                    placeholderTextColor="#5C6273"
+                    value={contactPhone}
+                    onChangeText={setContactPhone}
+                  />
+                </View>
+                <View style={styles.formCol}>
+                  <Text style={styles.formFieldLabel}>College / University / Company</Text>
+                  <TextInput
+                    style={styles.formInput}
+                    placeholder="e.g. Princeton / VNR VJIET"
+                    placeholderTextColor="#5C6273"
+                    value={contactOrg}
+                    onChangeText={setContactOrg}
+                  />
+                </View>
+              </View>
+
+              <View style={{ marginTop: 16 }}>
+                <Text style={styles.formFieldLabel}>Your Message <Text style={{ color: T.indLt }}>*</Text></Text>
+                <TextInput
+                  style={[styles.formInput, { height: 110, textAlignVertical: 'top' }]}
+                  placeholder="How can we assist you with our platform, mentorship, or institutional onboarding?"
+                  placeholderTextColor="#5C6273"
+                  multiline
+                  value={contactMessage}
+                  onChangeText={setContactMessage}
+                />
+              </View>
+
               <GlowButton
                 onPress={() => {
                   setContactSent(true);
@@ -949,8 +1269,35 @@ export default function LandingPage() {
                 style={styles.inquirySubmitBtn}
                 textStyle={styles.inquirySubmitBtnText}
               >
-                {contactSent ? 'Message Transmitted Successfully' : 'Transmit Message →'}
+                {contactSent ? 'Message Transmitted Successfully ✓' : 'Transmit Message →'}
               </GlowButton>
+            </View>
+
+            {/* 3. Three Trust Badges at Bottom */}
+            <View style={[styles.contactBadgesRow, isNarrow && { flexDirection: 'column' }]}>
+              <View style={styles.contactBadgeItem}>
+                <Svg width="17" height="17" viewBox="0 0 24 24" style={{ marginRight: 8 }}>
+                  <Path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6Z" stroke="#34D399" strokeWidth="1.9" fill="none" />
+                  <Path d="M9 12l2 2 4-4" stroke="#34D399" strokeWidth="1.9" fill="none" />
+                </Svg>
+                <Text style={styles.contactBadgeText}>Verified Institutional Support</Text>
+              </View>
+
+              <View style={styles.contactBadgeItem}>
+                <Svg width="17" height="17" viewBox="0 0 24 24" style={{ marginRight: 8 }}>
+                  <Circle cx="12" cy="12" r="8.5" stroke="#6FA8F5" strokeWidth="1.9" fill="none" />
+                  <Path d="M12 8v4.5l3 1.8" stroke="#6FA8F5" strokeWidth="1.9" fill="none" />
+                </Svg>
+                <Text style={styles.contactBadgeText}>Direct Response Guarantee</Text>
+              </View>
+
+              <View style={styles.contactBadgeItem}>
+                <Svg width="17" height="17" viewBox="0 0 24 24" style={{ marginRight: 8 }}>
+                  <Circle cx="12" cy="12" r="9" stroke="#C08BFF" strokeWidth="1.9" fill="none" />
+                  <Path d="M3 12h18M12 3c4 4.5 4 13.5 0 18M12 3c-4 4.5-4 13.5 0 18" stroke="#C08BFF" strokeWidth="1.9" fill="none" />
+                </Svg>
+                <Text style={styles.contactBadgeText}>Accredited Global Campus Network</Text>
+              </View>
             </View>
           </View>
         )}
@@ -3112,8 +3459,20 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: '#FFFFFF',
     borderRadius: 26,
-    padding: 42,
-    marginBottom: 34,
+    padding: 38,
+    marginBottom: 40,
+    borderWidth: 1,
+    borderColor: 'rgba(20,23,38,0.1)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.15,
+    shadowRadius: 40,
+  },
+  verifyHeroRow: {
+    width: '100%',
+    flexDirection: 'row',
+    gap: 40,
+    alignItems: 'center',
   },
   verifyTagPill: {
     alignSelf: 'flex-start',
@@ -3121,7 +3480,7 @@ const styles = StyleSheet.create({
     borderRadius: 100,
     paddingVertical: 8,
     paddingHorizontal: 15,
-    marginBottom: 20,
+    marginBottom: 18,
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -3132,71 +3491,148 @@ const styles = StyleSheet.create({
     letterSpacing: 1.6,
   },
   verifyHeroTitle: {
-    fontSize: 40,
+    fontSize: 38,
     fontWeight: '700',
     color: '#141726',
-    letterSpacing: -1.8,
-    lineHeight: 46,
+    letterSpacing: -1.6,
+    lineHeight: 44,
     marginBottom: 14,
   },
   verifyHeroSubtitle: {
-    fontSize: 16.5,
-    lineHeight: 26,
+    fontSize: 15.5,
+    lineHeight: 24,
     color: '#4A4F63',
-    maxWidth: 500,
-    marginBottom: 28,
+    maxWidth: 520,
+    marginBottom: 24,
   },
   verifyHeroStatsRow: {
     flexDirection: 'row',
     gap: 36,
-    marginBottom: 28,
+    marginBottom: 24,
   },
   verifyStatNum: {
-    fontSize: 30,
+    fontSize: 28,
     fontWeight: '700',
     letterSpacing: -1.2,
   },
   verifyStatLabel: {
     fontSize: 12.5,
     color: '#5F6474',
-    marginTop: 5,
+    marginTop: 4,
+  },
+  verifyHeroBtnPrimary: {
+    backgroundColor: '#4B3FD6',
+    borderRadius: 11,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+  },
+  verifyHeroBtnPrimaryText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  verifyHeroBtnSecondary: {
+    borderWidth: 1,
+    borderColor: '#CFC9F3',
+    borderRadius: 11,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    justifyContent: 'center',
+  },
+  verifyHeroBtnSecondaryText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#2E2A55',
+  },
+  whoUsesBox: {
+    width: 320,
+    backgroundColor: 'rgba(255,255,255,0.75)',
+    borderWidth: 1,
+    borderColor: 'rgba(20,23,38,0.12)',
+    borderRadius: 18,
+    padding: 24,
+  },
+  whoUsesHeader: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+    color: '#6B7080',
+    marginBottom: 16,
+  },
+  whoUsesItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  whoUsesText: {
+    fontSize: 14,
+    color: '#2E2A55',
+    fontWeight: '500',
+  },
+
+  /* Verify Search Area */
+  verifySearchSection: {
+    width: '100%',
+    alignItems: 'center',
+    marginVertical: 30,
+  },
+  verifySearchH2: {
+    fontSize: 48,
+    fontWeight: '800',
+    letterSpacing: -2,
+    color: T.text,
+    textAlign: 'center',
+    marginBottom: 14,
+  },
+  verifySearchDesc: {
+    fontSize: 16.5,
+    lineHeight: 26,
+    color: T.muted2,
+    maxWidth: 620,
+    textAlign: 'center',
+    marginBottom: 32,
   },
   verifyInputRow: {
+    width: '100%',
+    maxWidth: 820,
     flexDirection: 'row',
-    gap: 10,
-    flexWrap: 'wrap',
-    marginBottom: 18,
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: T.card,
+    borderWidth: 1,
+    borderColor: T.line,
+    borderRadius: 20,
+    padding: 12,
+    marginBottom: 16,
   },
   verifySearchInput: {
     flex: 1,
-    minWidth: 260,
-    borderWidth: 1,
-    borderColor: '#D4D2E8',
-    borderRadius: 14,
-    paddingHorizontal: 19,
-    paddingVertical: 17,
+    minWidth: 200,
     fontSize: 15,
-    color: '#141726',
-    backgroundColor: '#F8F7FF',
+    color: T.text,
+    backgroundColor: 'transparent',
+    paddingVertical: 12,
   },
   verifySubmitBtn: {
-    backgroundColor: '#4B3FD6',
-    paddingVertical: 17,
-    paddingHorizontal: 28,
+    backgroundColor: T.ind,
+    paddingVertical: 16,
+    paddingHorizontal: 26,
     borderRadius: 14,
     justifyContent: 'center',
   },
   verifySubmitBtnText: {
-    fontSize: 15.5,
+    fontSize: 15,
     fontWeight: '700',
     color: '#FFFFFF',
   },
   sampleChipsRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 10,
     flexWrap: 'wrap',
-    marginTop: 22,
+    marginTop: 10,
+    marginBottom: 20,
   },
   sampleChipsLabel: {
     fontSize: 13,
@@ -3207,8 +3643,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: T.lineHi,
     borderRadius: 9,
-    paddingVertical: 8,
-    paddingHorizontal: 13,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    backgroundColor: T.surface,
   },
   sampleChipText: {
     fontSize: 12.5,
@@ -3216,18 +3653,32 @@ const styles = StyleSheet.create({
     color: T.indLt,
   },
   verifyResultBox: {
+    width: '100%',
+    maxWidth: 820,
     borderWidth: 1,
     borderColor: T.lineHi,
     borderRadius: 18,
     backgroundColor: T.card,
-    padding: 26,
-    marginTop: 26,
+    padding: 24,
+    marginTop: 24,
   },
   verifyResultTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  validStatusIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(52,211,153,0.13)',
+    borderWidth: 1,
+    borderColor: '#1B6B4E',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   verifyResultTitle: {
     fontSize: 17,
@@ -3237,7 +3688,7 @@ const styles = StyleSheet.create({
   verifyResultId: {
     fontSize: 12.5,
     color: T.muted2,
-    marginTop: 3,
+    marginTop: 2,
   },
   validStatusBadge: {
     borderWidth: 1,
@@ -3245,8 +3696,7 @@ const styles = StyleSheet.create({
     borderRadius: 100,
     paddingVertical: 7,
     paddingHorizontal: 13,
-    flexDirection: 'row',
-    alignItems: 'center',
+    backgroundColor: 'rgba(52,211,153,0.08)',
   },
   validStatusText: {
     fontSize: 11.5,
@@ -3280,13 +3730,57 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: T.indLt,
   },
+
+  /* Cryptographic Trust Cards */
+  cryptoTrustGrid: {
+    width: '100%',
+    flexDirection: 'row',
+    gap: 18,
+    flexWrap: 'wrap',
+    marginTop: 32,
+  },
+  cryptoCard: {
+    flex: 1,
+    minWidth: 260,
+    backgroundColor: T.card,
+    borderWidth: 1,
+    borderColor: T.line,
+    borderRadius: 18,
+    padding: 26,
+  },
+  cryptoNum: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: T.dim,
+    letterSpacing: 1,
+    marginBottom: 14,
+  },
+  cryptoTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: T.text,
+    letterSpacing: -0.4,
+    marginBottom: 8,
+  },
+  cryptoDesc: {
+    fontSize: 14,
+    lineHeight: 22,
+    color: T.muted2,
+  },
+
+  /* What We Verify */
+  whatWeVerifyHeader: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    letterSpacing: 1.6,
+    color: T.dim,
+    marginBottom: 16,
+  },
   whatWeVerifyRow: {
     width: '100%',
     flexDirection: 'row',
     gap: 16,
     flexWrap: 'wrap',
-    marginTop: 60,
-    marginBottom: 32,
   },
   verifySvgIconBox: {
     width: 36,
@@ -3312,12 +3806,15 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '700',
     color: T.text,
+    marginBottom: 6,
   },
   verifyFeatureDesc: {
     fontSize: 14,
     lineHeight: 22,
     color: T.muted2,
   },
+
+  /* BGV Desk Form Card & Sidebar */
   bgvDeskCard: {
     width: '100%',
     backgroundColor: T.card,
@@ -3325,26 +3822,41 @@ const styles = StyleSheet.create({
     borderColor: T.lineHi,
     borderRadius: 22,
     padding: 34,
-    marginTop: 60,
+    marginTop: 40,
+  },
+  bgvDeskRow: {
+    width: '100%',
+    flexDirection: 'row',
+    gap: 40,
+    alignItems: 'flex-start',
   },
   bgvDeskHeading: {
     fontSize: 29,
     fontWeight: '700',
     color: T.text,
     letterSpacing: -1.2,
-    marginVertical: 16,
+    marginTop: 14,
+    marginBottom: 8,
   },
   bgvDeskSub: {
-    fontSize: 15.5,
+    fontSize: 15,
     lineHeight: 24,
     color: T.muted2,
-    marginBottom: 26,
+    marginBottom: 24,
+    maxWidth: 580,
+  },
+  bgvSectionLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+    color: T.dim,
+    marginBottom: 12,
   },
   kindSelectorRow: {
     flexDirection: 'row',
     gap: 9,
     flexWrap: 'wrap',
-    marginBottom: 26,
+    marginBottom: 24,
   },
   kindPill: {
     backgroundColor: T.surface,
@@ -3366,10 +3878,37 @@ const styles = StyleSheet.create({
   kindPillTextOn: {
     color: '#FFFFFF',
   },
+  formGrid2: {
+    width: '100%',
+    flexDirection: 'row',
+    gap: 16,
+  },
+  formCol: {
+    flex: 1,
+    minWidth: 0,
+  },
+  formFieldLabel: {
+    fontSize: 13.5,
+    fontWeight: '600',
+    color: T.text,
+    marginBottom: 8,
+  },
+  formInput: {
+    width: '100%',
+    borderWidth: 1,
+    borderColor: T.line,
+    borderRadius: 12,
+    backgroundColor: T.surface,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 14.5,
+    color: T.text,
+  },
   consentCheckboxRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    marginTop: 20,
     marginBottom: 20,
   },
   checkboxSquare: {
@@ -3401,24 +3940,85 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
+  bgvFooterNote: {
+    fontSize: 12.5,
+    color: T.dim,
+    textAlign: 'center',
+    marginTop: 12,
+  },
+  bgvSidebarCol: {
+    width: 320,
+    gap: 14,
+  },
+  bgvSideCard: {
+    backgroundColor: T.surface,
+    borderWidth: 1,
+    borderColor: T.line,
+    borderRadius: 16,
+    padding: 20,
+  },
+  bgvSideHeader: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    letterSpacing: 1.4,
+    color: T.dim,
+    marginBottom: 14,
+  },
+  turnaroundRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: 10,
+  },
+  turnaroundLabel: {
+    fontSize: 13.5,
+    color: T.muted2,
+  },
+  turnaroundVal: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: T.text,
+  },
+  handledItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  handledText: {
+    fontSize: 13.5,
+    color: T.text2,
+    fontWeight: '500',
+  },
+  preferEmailTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: T.text,
+    marginBottom: 6,
+  },
+  preferEmailDesc: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: T.muted2,
+  },
 
   /* ── Contact View ── */
   centeredHeader: {
     width: '100%',
     alignItems: 'center',
     textAlign: 'center' as any,
-    marginBottom: 44,
+    marginBottom: 40,
   },
   pageTitleH1: {
-    fontSize: 50,
+    fontSize: 48,
     fontWeight: '800',
     color: T.text,
-    letterSpacing: -2.2,
-    lineHeight: 56,
-    marginVertical: 22,
+    letterSpacing: -2,
+    lineHeight: 54,
+    marginVertical: 18,
+    textAlign: 'center',
   },
   pageSubtitle: {
-    fontSize: 16.5,
+    fontSize: 16,
     lineHeight: 26,
     color: T.muted2,
     maxWidth: 640,
@@ -3428,16 +4028,35 @@ const styles = StyleSheet.create({
     width: '100%',
     flexDirection: 'row',
     gap: 20,
-    marginBottom: 20,
+    marginBottom: 24,
   },
   hubCard: {
     flex: 1,
+    minWidth: 300,
     backgroundColor: T.card,
     borderWidth: 1,
     borderColor: T.line,
     borderRadius: 20,
-    padding: 28,
-    gap: 10,
+    padding: 26,
+  },
+  hubHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: T.line,
+    marginBottom: 14,
+  },
+  hubIconContainer: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: 'rgba(139,132,255,0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(139,132,255,0.34)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   hubRegionTag: {
     fontSize: 11,
@@ -3450,18 +4069,35 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: T.text,
     letterSpacing: -0.5,
+    marginTop: 2,
+  },
+  hubDetailRow: {
+    marginVertical: 8,
+  },
+  hubDetailLabel: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    letterSpacing: 1.4,
+    color: T.dim,
     marginBottom: 4,
   },
-  hubIconRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginVertical: 2,
+  hubDetailVal: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: T.text,
   },
-  hubLine: {
-    fontSize: 14.5,
-    fontWeight: '500',
-    color: T.text2,
+  copyChip: {
+    backgroundColor: T.surface,
+    borderWidth: 1,
+    borderColor: T.lineHi,
+    borderRadius: 6,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+  },
+  copyChipText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: T.indLt,
   },
   inquiryCard: {
     width: '100%',
@@ -3470,36 +4106,60 @@ const styles = StyleSheet.create({
     borderColor: T.line,
     borderRadius: 22,
     padding: 34,
-    marginTop: 20,
+    marginTop: 10,
+    marginBottom: 20,
   },
   inquiryHeading: {
     fontSize: 30,
     fontWeight: '700',
     color: T.text,
     letterSpacing: -1.2,
-    marginVertical: 16,
+    marginTop: 14,
+    marginBottom: 6,
   },
   inquirySub: {
-    fontSize: 15.5,
+    fontSize: 15,
     color: T.muted2,
-    marginBottom: 28,
+    marginBottom: 24,
   },
   purposePillsRow: {
     flexDirection: 'row',
     gap: 10,
     flexWrap: 'wrap',
-    marginBottom: 28,
+    marginBottom: 26,
   },
   inquirySubmitBtn: {
     backgroundColor: T.ind,
     paddingVertical: 18,
     borderRadius: 14,
     alignItems: 'center',
-    marginTop: 26,
+    marginTop: 24,
   },
   inquirySubmitBtnText: {
     fontSize: 16,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+  contactBadgesRow: {
+    width: '100%',
+    flexDirection: 'row',
+    gap: 16,
+    backgroundColor: T.card,
+    borderWidth: 1,
+    borderColor: T.line,
+    borderRadius: 18,
+    padding: 22,
+    marginTop: 10,
+    justifyContent: 'space-around',
+    flexWrap: 'wrap',
+  },
+  contactBadgeItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  contactBadgeText: {
+    fontSize: 14,
+    color: T.text2,
+    fontWeight: '500',
   },
 });
