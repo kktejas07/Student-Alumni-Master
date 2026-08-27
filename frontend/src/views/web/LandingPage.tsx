@@ -287,6 +287,7 @@ const ECHO_EVENTS: EchoEventItem[] = [
 
 /* ── Subtle Right-Side SA Logo Background Watermark (Non-Landing Pages) ── */
 function BackgroundWatermark({ visible }: { visible: boolean }) {
+  return null;
   if (!visible) return null;
   return <SAWatermark fixed={true} right={-60} top={80} opacity={0.12} size={780} glow={true} />;
 }
