@@ -2880,6 +2880,7 @@ function RegistrationsPanel() {
   const [auditLoading, setAuditLoading] = useState(false);
   const [showAudit, setShowAudit] = useState(false);
   const [auditFilter, setAuditFilter] = useState<'all' | 'free' | 'admin' | 'paid' | 'failed'>('all');
+  const [auditEventFilter, setAuditEventFilter] = useState<string>('all');
   const [razorpayFees, setRazorpayFees] = useState<Record<string, { fee: number; tax: number; net: number; amount?: number; error?: string }>>({});
   const [fetchingFees, setFetchingFees] = useState(false);
 
@@ -2894,6 +2895,41 @@ function RegistrationsPanel() {
   const { flash } = useToast();
 
   useEffect(() => { setPage(0); }, [q, status, eventSlug, rows]);
+
+  const exportAuditCSV = useCallback(() => {
+    if (!auditData?.registrations) return;
+    const rows = auditData.registrations;
+    const headers = ['Name', 'Email', 'Event', 'Type', 'Team Size', 'Fee (DB)', 'RP Fee', 'RP Tax', 'RP Net', 'Payment ID', 'Status', 'Is Free', 'Is Admin', 'Is Team Member'];
+    const csvRows = [headers.join(',')];
+    for (const r of rows) {
+      const pid = r.payment_id || '';
+      const rpFee = razorpayFees[pid];
+      const vals = [
+        `"${(r.name || '').replace(/"/g, '""')}"`,
+        `"${(r.email || '').replace(/"/g, '""')}"`,
+        `"${(r.slug || '').replace(/"/g, '""')}"`,
+        r.reg_type || 'individual',
+        r.team_size || 1,
+        r.fee || 0,
+        rpFee?.fee ?? '',
+        rpFee?.tax ?? '',
+        rpFee?.net ?? '',
+        pid,
+        r.status || '',
+        r.is_free ? 'Yes' : 'No',
+        r.is_admin_pay ? 'Yes' : 'No',
+        r.is_team_member ? 'Yes' : 'No',
+      ];
+      csvRows.push(vals.join(','));
+    }
+    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `revenue-audit-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [auditData, razorpayFees]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -4102,10 +4138,24 @@ function RegistrationsPanel() {
                   ))}
                 </View>
 
+                {/* Total deduction from fetched RP fees */}
+                {Object.keys(razorpayFees).length > 0 && (
+                  <View style={{ flexDirection: 'row', gap: 16, marginBottom: 10, paddingHorizontal: 10, paddingVertical: 8, backgroundColor: 'rgba(239,68,68,0.08)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(239,68,68,0.2)' }}>
+                    <Text style={{ color: '#FCA5A5', fontFamily: FONTS.xbold, fontSize: 10 }}>TOTAL DEDUCTIONS (per-transaction)</Text>
+                    <Text style={{ color: '#FCA5A5', fontFamily: FONTS.med, fontSize: 10 }}>Fees: ₹{Object.values(razorpayFees).reduce((s, f) => s + (f.fee || 0), 0).toFixed(2)}</Text>
+                    <Text style={{ color: '#FCA5A5', fontFamily: FONTS.med, fontSize: 10 }}>Tax: ₹{Object.values(razorpayFees).reduce((s, f) => s + (f.tax || 0), 0).toFixed(2)}</Text>
+                    <Text style={{ color: '#EF4444', fontFamily: FONTS.xbold, fontSize: 10 }}>Total: ₹{(Object.values(razorpayFees).reduce((s, f) => s + (f.fee || 0) + (f.tax || 0), 0)).toFixed(2)}</Text>
+                    <Text style={{ color: '#86EFAC', fontFamily: FONTS.med, fontSize: 10 }}>Net received: ₹{Object.values(razorpayFees).reduce((s, f) => s + (f.net || 0), 0).toFixed(2)}</Text>
+                  </View>
+                )}
+
                 {/* Registration list with filters */}
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                   <Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11 }}>REGISTRATIONS ({auditData.registrations?.length || 0})</Text>
                   <View style={{ flex: 1 }} />
+                  <Pressable onPress={exportAuditCSV} style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(34,197,94,0.15)', borderWidth: 1, borderColor: '#22C55E' }}>
+                    <Text style={{ color: '#22C55E', fontFamily: FONTS.semi, fontSize: 9.5 }}>Export CSV</Text>
+                  </Pressable>
                   {[
                     { key: 'all', label: 'All', count: auditData.registrations?.length || 0 },
                     { key: 'free', label: 'Free (₹0)', count: (auditData.registrations || []).filter((r: any) => r.fee <= 0 && r.status === 'paid' && !r.is_team_member).length },
@@ -4124,6 +4174,24 @@ function RegistrationsPanel() {
                     </Pressable>
                   ))}
                 </View>
+                {/* Per-event filter */}
+                {auditData.registrations && (() => {
+                  const slugs = [...new Set((auditData.registrations || []).map((r: any) => r.slug).filter(Boolean))] as string[];
+                  if (slugs.length <= 1) return null;
+                  return (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
+                      <Text style={{ color: SAC.muted, fontFamily: FONTS.semi, fontSize: 9 }}>Event:</Text>
+                      <Pressable onPress={() => setAuditEventFilter('all')} style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 5, backgroundColor: auditEventFilter === 'all' ? '#3B82F6' : 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: auditEventFilter === 'all' ? '#3B82F6' : 'rgba(255,255,255,0.1)' }}>
+                        <Text style={{ color: auditEventFilter === 'all' ? '#fff' : SAC.muted, fontFamily: FONTS.semi, fontSize: 8.5 }}>All</Text>
+                      </Pressable>
+                      {slugs.map((s) => (
+                        <Pressable key={s} onPress={() => setAuditEventFilter(s)} style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 5, backgroundColor: auditEventFilter === s ? '#3B82F6' : 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: auditEventFilter === s ? '#3B82F6' : 'rgba(255,255,255,0.1)' }}>
+                          <Text style={{ color: auditEventFilter === s ? '#fff' : SAC.muted, fontFamily: FONTS.semi, fontSize: 8.5 }}>{s}</Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  );
+                })()}
                 {/* Fetch Razorpay Fees button */}
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                   <Pressable
@@ -4158,14 +4226,18 @@ function RegistrationsPanel() {
                 </View>
                 <ScrollView style={{ maxHeight: 360 }}>
                   {(auditData.registrations || []).filter((r: any) => {
+                    if (auditEventFilter !== 'all' && r.slug !== auditEventFilter) return false;
                     if (auditFilter === 'all') return true;
                     if (auditFilter === 'free') return r.fee <= 0 && r.status === 'paid' && !r.is_team_member;
                     if (auditFilter === 'admin') return r.is_admin_pay;
                     if (auditFilter === 'paid') return r.status === 'paid' && r.fee > 0 && !r.is_admin_pay;
                     if (auditFilter === 'failed') return r.status === 'failed';
                     return true;
-                  }).map((r: any, i: number) => (
-                    <View key={i} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)', gap: 8 }}>
+                  }).map((r: any, i: number) => {
+                    const rpFee = razorpayFees[r.payment_id];
+                    const hasDiscrepancy = rpFee && !rpFee.error && r.fee > 0 && Math.abs(r.fee - rpFee.net) > 1;
+                    return (
+                    <View key={i} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)', gap: 8, backgroundColor: hasDiscrepancy ? 'rgba(239,68,68,0.08)' : undefined }}>
                       <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: r.is_free ? '#C4B5FD' : r.is_admin_pay ? '#FBBF24' : r.status === 'paid' ? '#34D399' : r.status === 'pending' ? '#F59E0B' : '#EF4444' }} />
                       <View style={{ flex: 2, minWidth: 0 }}>
                         <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 11.5 }} numberOfLines={1}>{r.name}</Text>
@@ -4186,7 +4258,8 @@ function RegistrationsPanel() {
                       <Text style={{ flex: 1, color: r.is_admin_pay ? '#FBBF24' : '#93C5FD', fontFamily: FONTS.med, fontSize: 9 }} numberOfLines={1}>{r.payment_id || '—'}</Text>
                       <Text style={{ width: 55, color: r.status === 'paid' ? '#34D399' : r.status === 'pending' ? '#FBBF24' : '#EF4444', fontFamily: FONTS.xbold, fontSize: 9, letterSpacing: 0.3 }}>{(r.status || '').toUpperCase()}</Text>
                     </View>
-                  ))}
+                    );
+                  })}
                 </ScrollView>
               </>
             )}
