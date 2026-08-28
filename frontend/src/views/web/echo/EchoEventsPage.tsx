@@ -49,8 +49,12 @@ const SAMPLE_EVENTS = [
     poster_banner: '/images/hackwave/hackwave_main_poster.png',
     gallery_images: [
       '/images/hackwave/hackwave_main_poster.png',
+      '/images/hackwave/stan_mierzwa_poster.png',
+      '/images/hackwave/ken_fishkin_poster.png',
+      '/images/hackwave/sharon_kelley_poster.png',
+      '/images/hackwave/jeremy_livingston_poster.png',
+      '/images/hackwave/suman_kalia_poster.png',
       '/images/hackwave/hackwave_cybersecurity_conclave.jpg',
-      '/images/hackwave/hackwave_speakers.jpg',
       '/images/hackwave/hackwave_techfest_verticals.jpg',
       '/images/hackwave/hackwave_perks_pool.jpg'
     ],
@@ -1361,15 +1365,15 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
                 {[
-                  { name: 'Stan Mierzwa, Ph.D.', role: 'Director, Center for Cybersecurity', org: 'Kean University', loc: 'Union, New Jersey, USA', li: 'in/stanmierzwa' },
-                  { name: 'Ken Fishkin', role: 'President, ISC2 New Jersey Chapter', org: 'ISC2 New Jersey Chapter', loc: 'New Jersey, USA', li: 'in/kfishkin' },
-                  { name: 'Sharon Kelley', role: 'Board Member, ISC2 New Jersey Chapter', org: 'MS, MBA, CISSP, CCSP', loc: 'Hoboken, New Jersey, USA', li: 'in/sharon-kelley-0292181' },
-                  { name: 'Jeremy Livingston', role: 'CISO & Deputy CIO', org: 'Stevens Institute of Technology', loc: 'Effort, Pennsylvania, USA', li: 'in/jeremylivin' },
-                  { name: 'Suman Kalia', role: 'Associate Professor & Chair, Computer Science', org: "Saint Peter's University", loc: 'Jersey City, New Jersey, USA', li: 'in/suman-kalia-300b521' }
+                  { name: 'Stan Mierzwa, Ph.D.', role: 'Director, Center for Cybersecurity', org: 'Kean University', loc: 'Union, New Jersey, USA', li: 'in/stanmierzwa', poster: '/images/hackwave/stan_mierzwa_poster.png' },
+                  { name: 'Ken Fishkin', role: 'President, ISC2 New Jersey Chapter', org: 'ISC2 New Jersey Chapter', loc: 'New Jersey, USA', li: 'in/kfishkin', poster: '/images/hackwave/ken_fishkin_poster.png' },
+                  { name: 'Sharon Kelley', role: 'Board Member, ISC2 New Jersey Chapter', org: 'MS, MBA, CISSP, CCSP', loc: 'Hoboken, New Jersey, USA', li: 'in/sharon-kelley-0292181', poster: '/images/hackwave/sharon_kelley_poster.png' },
+                  { name: 'Jeremy Livingston', role: 'CISO & Deputy CIO', org: 'Stevens Institute of Technology', loc: 'Effort, Pennsylvania, USA', li: 'in/jeremylivin', poster: '/images/hackwave/jeremy_livingston_poster.png' },
+                  { name: 'Suman Kalia', role: 'Associate Professor & Chair, Computer Science', org: "Saint Peter's University", loc: 'Jersey City, New Jersey, USA', li: 'in/suman-kalia-300b521', poster: '/images/hackwave/suman_kalia_poster.png' }
                 ].map((spk, idx) => (
-                  <div key={idx} className="ev-mini" style={{ padding: '20px 18px', background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: '16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #7C5CFC, #38BDF8)', margin: '0 auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF', fontWeight: 800, fontSize: '20px' }}>
-                      {spk.name.replace(', Ph.D.', '').split(' ').map((n) => n[0]).join('')}
+                  <div key={idx} className="ev-mini" style={{ padding: '16px', background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: '18px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div style={{ width: '100%', aspectRatio: '4/5', borderRadius: '14px', overflow: 'hidden', marginBottom: '14px', border: '1px solid var(--line2)', background: '#090B18' }}>
+                      <img src={spk.poster} alt={spk.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     </div>
                     <div style={{ fontSize: '16px', fontWeight: 700, color: '#FFFFFF' }}>{spk.name}</div>
                     <div style={{ fontSize: '12.5px', color: 'var(--violet-lt)', fontWeight: 600, marginTop: '3px' }}>{spk.role}</div>
