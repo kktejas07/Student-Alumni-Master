@@ -128,9 +128,12 @@ export default function LoginScreen() {
     }
   };
 
+  const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
+
   const handleGoogleSignIn = async () => {
     setLoading(true);
     setErrorMsg('');
+    const startTime = Date.now();
     try {
       const userEmail = email && email.includes('@') ? email : 'google.user@studentalumni.ai';
       const rawName = userEmail.split('@')[0].replace(/[\._-]/g, ' ');
@@ -142,6 +145,11 @@ export default function LoginScreen() {
         picture: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
         role: 'student'
       });
+
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 6000) {
+        await delay(6000 - elapsed);
+      }
 
       if (res && res.user && res.access_token) {
         setUser(res.user);
@@ -158,6 +166,10 @@ export default function LoginScreen() {
         setLoading(false);
       }
     } catch (err: any) {
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 6000) {
+        await delay(6000 - elapsed);
+      }
       setErrorMsg(err?.message || 'Google Sign-In failed. Please check connection.');
       setLoading(false);
     }
@@ -185,6 +197,7 @@ export default function LoginScreen() {
     }
 
     setLoading(true);
+    const startTime = Date.now();
 
     try {
       const res = await fetch(`${BASE}/api/auth/login`, {
@@ -192,6 +205,11 @@ export default function LoginScreen() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: cleanEmail, password: cleanPwd }),
       });
+
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 6000) {
+        await delay(6000 - elapsed);
+      }
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -214,6 +232,10 @@ export default function LoginScreen() {
       else if (r === 'alumni') router.replace('/alumni-portal');
       else router.replace('/student-portal/dashboard');
     } catch (err: any) {
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 6000) {
+        await delay(6000 - elapsed);
+      }
       setErrorMsg(err?.message || 'Network error — please check connection or credentials.');
       setLoading(false);
     }
