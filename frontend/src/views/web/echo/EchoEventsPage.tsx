@@ -1116,7 +1116,6 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
               )}
               <div style={{ position: 'absolute', width: '420px', height: '260px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(147, 51, 234, 0.35) 0%, transparent 70%)', filter: 'blur(50px)', pointerEvents: 'none' }} />
             </div>
-            </div>
 
             {/* Banner Bottom Info */}
             <div style={{ position: 'relative', background: 'var(--panel)', padding: '28px 34px 30px' }}>
