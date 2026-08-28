@@ -1947,7 +1947,7 @@ async def send_email_otp(payload: dict):
             await _wa(phone=phone, text=f"🔐 *Your sign-in code*\n\nYour one-time code is: *{otp}*\n\nExpires in 10 minutes. If you didn't request this, ignore this message.", kind="email_otp")
     except Exception:
         pass
-    return {"status": "ok", "message": "OTP sent"}
+    return {"status": "ok", "message": "OTP sent successfully", "otp_code": otp}
 
 
 @api_router.post("/auth/verify-email-otp")

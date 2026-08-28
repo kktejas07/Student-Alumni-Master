@@ -229,6 +229,21 @@ export const api = {
     request<{ enabled: boolean; backup_codes: string[] }>(
       '/auth/2fa/regenerate-backup-codes', { method: 'POST', body: { code } }),
 
+  checkEmail: (email: string) =>
+    request<{ exists: boolean; role?: string; full_name?: string; onboarding_completed?: boolean }>(
+      '/auth/check-email', { method: 'POST', body: { email }, auth: false }
+    ),
+
+  sendEmailOtp: (email: string, phone?: string) =>
+    request<{ status: string; message: string; otp_code?: string }>(
+      '/auth/email-otp/send', { method: 'POST', body: { email, phone }, auth: false }
+    ),
+
+  verifyEmailOtp: (email: string, otp: string) =>
+    request<{ status: string; message: string; token?: string; user?: any }>(
+      '/auth/verify-email-otp', { method: 'POST', body: { email, otp }, auth: false }
+    ),
+
   // Onboarding
   completeOnboarding: (payload: any) =>
     request<any>('/users/onboarding', { method: 'POST', body: payload }),
