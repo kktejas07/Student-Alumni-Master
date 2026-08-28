@@ -147,42 +147,29 @@ export default function LoginScreen() {
   }, []);
 
   const handleGoogleSignIn = async (overrideEmail?: string) => {
-    // If real Google Client ID exists and GIS SDK loaded, trigger GIS prompt
-    if (googleClientId && typeof window !== 'undefined' && (window as any).google?.accounts?.id) {
-      try {
-        (window as any).google.accounts.id.initialize({
-          client_id: googleClientId,
-          callback: async (response: any) => {
-            if (response?.credential) {
-              await processGoogleAuth({ id_token: response.credential });
-            }
-          }
-        });
-        (window as any).google.accounts.id.prompt();
-        return;
-      } catch (e) {
-        console.warn('GIS prompt failed, falling back to Google account selector', e);
-      }
-    }
-
-    const emailToUse = (overrideEmail || email || googleEmailInput).trim().toLowerCase();
-
-    if (!emailToUse || !emailToUse.includes('@')) {
-      setShowGoogleModal(true);
-      setErrorMsg('');
+    if (overrideEmail && overrideEmail.includes('@')) {
+      setShowGoogleModal(false);
+      await processGoogleAuth({ email: overrideEmail });
       return;
     }
 
-    setShowGoogleModal(false);
-    await processGoogleAuth({ email: emailToUse });
+    setShowGoogleModal(true);
+    setErrorMsg('');
   };
 
   const processGoogleAuth = async (payload: { id_token?: string; email?: string }) => {
+    const emailToUse = (payload.email || googleEmailInput).trim().toLowerCase();
+
+    if (!emailToUse || !emailToUse.includes('@')) {
+      setErrorMsg('Please enter a valid Google account email.');
+      setShowGoogleModal(true);
+      return;
+    }
+
     setLoading(true);
     setErrorMsg('');
     const startTime = Date.now();
     try {
-      const emailToUse = payload.email || email || googleEmailInput || 'user@gmail.com';
       const rawName = emailToUse.split('@')[0].replace(/[\._-]/g, ' ');
       const formattedName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
 
