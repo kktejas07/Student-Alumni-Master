@@ -181,14 +181,14 @@ function WebOnboardingEngine({ router }: { router: any }) {
   const [followedMentors, setFollowedMentors] = useState<Record<string, boolean>>({});
 
   // Alumnus Form State
-  const [alumCompany, setAlumCompany] = useState('Deloitte');
-  const [alumRole, setAlumRole] = useState('Senior Consultant');
+  const [alumCompany, setAlumCompany] = useState('');
+  const [alumRole, setAlumRole] = useState('');
   const [alumCap, setAlumCap] = useState('2');
   const [alumExpertise, setAlumExpertise] = useState<string[]>(['Resume review', 'Interview prep', 'Career switching']);
 
   // College Form State
-  const [instName, setInstName] = useState('Malla Reddy Institute of Technology');
-  const [instRole, setInstRole] = useState('Head of Career Services');
+  const [instName, setInstName] = useState('');
+  const [instRole, setInstRole] = useState('');
   const [instSize, setInstSize] = useState('500–2,000');
   const [collegeDepts, setCollegeDepts] = useState<string[]>(['Computer Science', 'Business']);
 
@@ -822,9 +822,17 @@ function WebOnboardingEngine({ router }: { router: any }) {
             <div style={{ display: 'grid', gap: '26px', maxWidth: '720px' }}>
               <div>
                 <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '10px' }}>College</div>
-                <div style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span>Malla Reddy Institute of Technology</span>
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--ind-lt)' }}>VERIFIED</span>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="text"
+                    value={instName}
+                    onChange={(e) => setInstName(e.target.value)}
+                    placeholder="Enter your college name"
+                    style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', paddingRight: '80px', fontSize: '15px', color: 'var(--text)', width: '100%', outline: 'none' }}
+                  />
+                  {(instName.toLowerCase().includes('malla reddy') || instName.toLowerCase().includes('mrit')) && (
+                    <span style={{ position: 'absolute', right: '15px', top: '16px', fontSize: '12px', fontWeight: 600, color: 'var(--ind-lt)' }}>VERIFIED</span>
+                  )}
                 </div>
               </div>
               <div>
@@ -1535,21 +1543,37 @@ function WebOnboardingEngine({ router }: { router: any }) {
             <div style={{ display: 'grid', gap: '22px' }}>
               <div>
                 <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '8px' }}>Company</div>
-                <div style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px' }}>
-                  {alumCompany}
-                </div>
+                <input
+                  type="text"
+                  value={alumCompany}
+                  onChange={(e) => setAlumCompany(e.target.value)}
+                  placeholder="e.g. Deloitte"
+                  style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px', color: 'var(--text)', width: '100%', outline: 'none' }}
+                />
               </div>
               <div>
                 <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '8px' }}>Role</div>
-                <div style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px' }}>
-                  {alumRole}
-                </div>
+                <input
+                  type="text"
+                  value={alumRole}
+                  onChange={(e) => setAlumRole(e.target.value)}
+                  placeholder="e.g. Senior Consultant"
+                  style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px', color: 'var(--text)', width: '100%', outline: 'none' }}
+                />
               </div>
               <div>
                 <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '8px' }}>Graduated from</div>
-                <div style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span>MRIT · Class of 2019</span>
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--ind-lt)' }}>VERIFIED</span>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="text"
+                    value={instName}
+                    onChange={(e) => setInstName(e.target.value)}
+                    placeholder="Enter your college name"
+                    style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', paddingRight: '80px', fontSize: '15px', color: 'var(--text)', width: '100%', outline: 'none' }}
+                  />
+                  {(instName.toLowerCase().includes('malla reddy') || instName.toLowerCase().includes('mrit')) && (
+                    <span style={{ position: 'absolute', right: '15px', top: '16px', fontSize: '12px', fontWeight: 600, color: 'var(--ind-lt)' }}>VERIFIED</span>
+                  )}
                 </div>
               </div>
             </div>
@@ -1656,15 +1680,23 @@ function WebOnboardingEngine({ router }: { router: any }) {
             <div style={{ display: 'grid', gap: '22px' }}>
               <div>
                 <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '8px' }}>Institution name</div>
-                <div style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px' }}>
-                  {instName}
-                </div>
+                <input
+                  type="text"
+                  value={instName}
+                  onChange={(e) => setInstName(e.target.value)}
+                  placeholder="Enter institution name"
+                  style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px', color: 'var(--text)', width: '100%', outline: 'none' }}
+                />
               </div>
               <div>
                 <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '8px' }}>Your role</div>
-                <div style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px' }}>
-                  {instRole}
-                </div>
+                <input
+                  type="text"
+                  value={instRole}
+                  onChange={(e) => setInstRole(e.target.value)}
+                  placeholder="e.g. Head of Career Services"
+                  style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px', color: 'var(--text)', width: '100%', outline: 'none' }}
+                />
               </div>
               <div>
                 <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '10px' }}>Students per graduating cohort</div>
