@@ -130,10 +130,41 @@ export default function LoginScreen() {
 
   const [showGoogleModal, setShowGoogleModal] = useState(false);
   const [googleEmailInput, setGoogleEmailInput] = useState('');
+  const [googleClientId, setGoogleClientId] = useState('');
 
   const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
+  // Fetch OAuth Config on mount
+  useEffect(() => {
+    fetch(`${BASE}/api/auth/oauth-config`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.google_client_id) {
+          setGoogleClientId(data.google_client_id);
+        }
+      })
+      .catch(() => null);
+  }, []);
+
   const handleGoogleSignIn = async (overrideEmail?: string) => {
+    // If real Google Client ID exists and GIS SDK loaded, trigger GIS prompt
+    if (googleClientId && typeof window !== 'undefined' && (window as any).google?.accounts?.id) {
+      try {
+        (window as any).google.accounts.id.initialize({
+          client_id: googleClientId,
+          callback: async (response: any) => {
+            if (response?.credential) {
+              await processGoogleAuth({ id_token: response.credential });
+            }
+          }
+        });
+        (window as any).google.accounts.id.prompt();
+        return;
+      } catch (e) {
+        console.warn('GIS prompt failed, falling back to Google account selector', e);
+      }
+    }
+
     const emailToUse = (overrideEmail || email || googleEmailInput).trim().toLowerCase();
 
     if (!emailToUse || !emailToUse.includes('@')) {
@@ -143,16 +174,22 @@ export default function LoginScreen() {
     }
 
     setShowGoogleModal(false);
+    await processGoogleAuth({ email: emailToUse });
+  };
+
+  const processGoogleAuth = async (payload: { id_token?: string; email?: string }) => {
     setLoading(true);
     setErrorMsg('');
     const startTime = Date.now();
     try {
+      const emailToUse = payload.email || email || googleEmailInput || 'user@gmail.com';
       const rawName = emailToUse.split('@')[0].replace(/[\._-]/g, ' ');
       const formattedName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
 
       const checkRes = await api.checkEmail(emailToUse).catch(() => null);
 
       const res = await api.oauthGoogle({
+        id_token: payload.id_token,
         email: emailToUse,
         full_name: formattedName,
         picture: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
@@ -512,7 +549,7 @@ export default function LoginScreen() {
         <Footer />
       </ScrollView>
 
-      {/* Google Sign-In Email Modal */}
+      {/* Google Sign-In Account Selector Modal */}
       {showGoogleModal && (
         <div style={{
           position: 'fixed',
@@ -521,7 +558,7 @@ export default function LoginScreen() {
           right: 0,
           bottom: 0,
           backgroundColor: 'rgba(5, 6, 15, 0.88)',
-          backdropFilter: 'blur(8px)',
+          backdropFilter: 'blur(10px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -532,24 +569,54 @@ export default function LoginScreen() {
             background: '#0D0E1A',
             border: '1px solid #2A2D45',
             borderRadius: 20,
-            padding: '30px 28px',
-            maxWidth: 420,
+            padding: '32px 28px',
+            maxWidth: 440,
             width: '100%',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.6)'
+            boxShadow: '0 25px 50px rgba(0,0,0,0.7)',
+            animation: 'ob-in 0.3s ease'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-              <svg width="22" height="22" viewBox="0 0 48 48">
+            <div style={{ textAlign: 'center', marginBottom: 24 }}>
+              <svg width="32" height="32" viewBox="0 0 48 48" style={{ marginBottom: 12 }}>
                 <path fill="#4285F4" d="M45 24c0-1.6-.14-3.13-.4-4.6H24v8.7h11.7c-.5 2.7-2.05 5-4.35 6.55v5.4h7c4.1-3.78 6.65-9.35 6.65-16.05Z"></path>
                 <path fill="#34A853" d="M24 46c5.85 0 10.75-1.94 14.35-5.25l-7-5.4c-1.94 1.3-4.42 2.07-7.35 2.07-5.65 0-10.44-3.81-12.14-8.94h-7.2v5.6C7.3 41.2 14.98 46 24 46Z"></path>
                 <path fill="#FBBC05" d="M11.86 28.48A13.4 13.4 0 0 1 11.15 24c0-1.56.27-3.07.71-4.48v-5.6h-7.2A21.9 21.9 0 0 0 2 24c0 3.55.85 6.9 2.66 10.08l7.2-5.6Z"></path>
                 <path fill="#EA4335" d="M24 10.6c3.18 0 6.04 1.1 8.29 3.23l6.2-6.2C34.73 4.1 29.84 2 24 2 14.98 2 7.3 6.8 4.66 13.92l7.2 5.6C13.56 14.4 18.35 10.6 24 10.6Z"></path>
               </svg>
-              <h3 style={{ margin: 0, fontSize: 18, color: '#FFFFFF', fontWeight: '700' }}>Sign in with Google</h3>
+              <h3 style={{ margin: '0 0 6px 0', fontSize: 20, color: '#FFFFFF', fontWeight: '700' }}>Choose an account</h3>
+              <p style={{ margin: 0, fontSize: 13.5, color: '#9AA0B4' }}>to continue to <strong style={{ color: '#FFF' }}>Student Alumni</strong></p>
             </div>
-            <p style={{ fontSize: 13.5, color: '#9AA0B4', marginBottom: 20, lineHeight: 1.5 }}>
-              Enter your Google account email to authenticate and proceed.
-            </p>
+
+            {email && email.includes('@') ? (
+              <div
+                onClick={() => handleGoogleSignIn(email)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 14,
+                  padding: '14px 16px',
+                  background: 'rgba(139, 132, 255, 0.08)',
+                  border: '1px solid rgba(139, 132, 255, 0.25)',
+                  borderRadius: 12,
+                  marginBottom: 16,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <div style={{ width: 38, height: 38, borderRadius: '50%', background: '#8B84FF', color: '#FFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700', fontSize: 16 }}>
+                  {email.charAt(0).toUpperCase()}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: '600', color: '#FFF' }}>{email.split('@')[0]}</div>
+                  <div style={{ fontSize: 12.5, color: '#9AA0B4' }}>{email}</div>
+                </div>
+                <span style={{ fontSize: 12, color: '#8B84FF', fontWeight: 600 }}>Sign in →</span>
+              </div>
+            ) : null}
+
             <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 12, fontWeight: '600', color: '#7B8199', marginBottom: 8, letterSpacing: '0.8px' }}>
+                {email && email.includes('@') ? 'OR USE ANOTHER GOOGLE ACCOUNT' : 'ENTER GOOGLE ACCOUNT EMAIL'}
+              </div>
               <input
                 type="email"
                 placeholder="you@gmail.com or college@edu"
@@ -560,13 +627,18 @@ export default function LoginScreen() {
                   padding: '13px 15px',
                   background: '#05060F',
                   border: '1px solid #2A2D45',
-                  borderRadius: 10,
+                  borderRadius: 12,
                   color: '#FFF',
                   fontSize: 14,
                   outline: 'none'
                 }}
               />
             </div>
+
+            <p style={{ fontSize: 11.5, color: '#6C728F', lineHeight: 1.5, marginBottom: 22, textAlign: 'center' }}>
+              To continue, Google will share your name, email address, language preference, and profile picture with Student Alumni.
+            </p>
+
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button
                 type="button"
@@ -575,7 +647,7 @@ export default function LoginScreen() {
                   background: 'transparent',
                   border: '1px solid #2A2D45',
                   color: '#9AA0B4',
-                  padding: '10px 16px',
+                  padding: '10px 18px',
                   borderRadius: 10,
                   cursor: 'pointer',
                   fontSize: 13.5
@@ -590,14 +662,14 @@ export default function LoginScreen() {
                   background: '#8B84FF',
                   border: 'none',
                   color: '#FFF',
-                  padding: '10px 20px',
+                  padding: '10px 22px',
                   borderRadius: 10,
                   cursor: 'pointer',
                   fontSize: 13.5,
                   fontWeight: 600
                 }}
               >
-                Continue Google Auth →
+                Sign in with Google
               </button>
             </div>
           </div>
