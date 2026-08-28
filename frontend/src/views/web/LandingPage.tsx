@@ -2528,34 +2528,6 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
               </View>
             </View>
 
-            {/* ── 10b. ON THE GROUND ECHO EVENTS ── */}
-            <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
-              <HoverLiftCard style={styles.onTheGroundCard}>
-                <View style={styles.otgTag}><Text style={styles.otgTagText}>• ON THE GROUND</Text></View>
-                <Text style={styles.otgTitle}>The network is a feed until it meets in person.</Text>
-                <Text style={styles.otgDesc}>Eighty-six ECHO events across thirty-one campuses. Alumni in the room, recruiters at the table, and a build sprint that runs overnight.</Text>
-                <View style={styles.otgStatsRow}>
-                  <View><Text style={[styles.otgStatNum, { color: '#4B3FA8' }]}>86</Text><Text style={styles.otgStatLabel}>events run</Text></View>
-                  <View><Text style={[styles.otgStatNum, { color: '#0E6E8C' }]}>31</Text><Text style={styles.otgStatLabel}>cities</Text></View>
-                  <View><Text style={[styles.otgStatNum, { color: '#A21C63' }]}>4.8</Text><Text style={styles.otgStatLabel}>average rating</Text></View>
-                </View>
-                <View style={{ flexDirection: 'row', gap: 12, marginBottom: 28, flexWrap: 'wrap' }}>
-                  <GlowButton onPress={() => setActiveTab('contact')} style={[styles.verifySubmitBtn, { backgroundColor: '#4B3FD6' }]} textStyle={styles.verifySubmitBtnText}>
-                    Host on your campus
-                  </GlowButton>
-                  <GlowButton onPress={() => router.push('/register')} style={[styles.heroBtnCollege, { borderColor: '#CFC9F3' }]} textStyle={[styles.heroBtnCollegeText, { color: '#2E2A55' }]}>
-                    Join the network
-                  </GlowButton>
-                </View>
-                <View style={styles.otgHostsRow}>
-                  <Text style={styles.otgHostsHeader}>RECENT HOSTS: </Text>
-                  {['Sreenidhi Institute', 'VNR VJIET', 'Khammam Institute', 'CBIT Hyderabad'].map((h, idx) => (
-                    <Text key={idx} style={styles.otgHostPill}>{h}</Text>
-                  ))}
-                </View>
-              </HoverLiftCard>
-            </View>
-
             {/* ── 11. TESTIMONIALS (INTERACTIVE PROGRESS DECK) ── */}
             <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
               <View style={styles.sectionPill}><Text style={styles.sectionPillText}>FROM THE NETWORK</Text></View>
@@ -3487,83 +3459,6 @@ const styles = StyleSheet.create({
     fontSize: 14.5,
     color: T.muted,
     marginTop: 5,
-  },
-
-  /* ── 10b On the Ground ── */
-  onTheGroundCard: {
-    width: '100%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 26,
-    padding: 42,
-  },
-  otgTag: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(46,32,145,0.1)',
-    borderRadius: 100,
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    marginBottom: 20,
-  },
-  otgTagText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#2E2091',
-    letterSpacing: 1.6,
-  },
-  otgTitle: {
-    fontSize: 40,
-    fontWeight: '700',
-    color: '#141726',
-    letterSpacing: -1.8,
-    lineHeight: 46,
-    marginBottom: 14,
-  },
-  otgDesc: {
-    fontSize: 16.5,
-    lineHeight: 26,
-    color: '#4A4F63',
-    maxWidth: 500,
-    marginBottom: 28,
-  },
-  otgStatsRow: {
-    flexDirection: 'row',
-    gap: 36,
-    marginBottom: 28,
-  },
-  otgStatNum: {
-    fontSize: 30,
-    fontWeight: '700',
-    letterSpacing: -1.2,
-  },
-  otgStatLabel: {
-    fontSize: 12.5,
-    color: '#5F6474',
-    marginTop: 5,
-  },
-  otgHostsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    flexWrap: 'wrap',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(20,23,38,0.1)',
-    paddingTop: 24,
-    marginTop: 32,
-  },
-  otgHostsHeader: {
-    fontSize: 10.5,
-    fontWeight: '700',
-    color: '#5F6474',
-    letterSpacing: 1.6,
-  },
-  otgHostPill: {
-    fontSize: 12.5,
-    fontWeight: '600',
-    color: '#2E2A55',
-    backgroundColor: 'rgba(20,23,38,0.05)',
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    borderRadius: 100,
   },
 
   /* ── 11 Testimonials ── */
