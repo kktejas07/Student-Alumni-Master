@@ -888,6 +888,32 @@ function WebOnboardingEngine({ router }: { router: any }) {
                   })}
                 </div>
               </div>
+              <div>
+                <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '10px' }}>Current Semester</div>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  {['1', '2', '3', '4', '5', '6', '7', '8'].map((s) => {
+                    const on = selectedSem === s;
+                    return (
+                      <span
+                        key={s}
+                        onClick={() => setSelectedSem(s)}
+                        className="ob-chip"
+                        style={{
+                          fontSize: '14.5px',
+                          padding: '11px 18px',
+                          borderRadius: '100px',
+                          border: `1px solid ${on ? 'var(--ind)' : 'var(--line)'}`,
+                          background: on ? 'var(--tint)' : 'transparent',
+                          color: on ? 'var(--text)' : 'var(--muted2)',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Sem {s}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </div>
         )}
