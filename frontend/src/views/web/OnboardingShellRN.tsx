@@ -316,6 +316,14 @@ function WebOnboardingEngine({ router }: { router: any }) {
     }
   };
 
+  const skipStep = () => {
+    if (stepIdx < currentSeq.length - 1) {
+      setStepIdx(stepIdx + 1);
+    } else {
+      handleFinishOnboarding();
+    }
+  };
+
   const prevStep = () => {
     if (stepIdx > 0) setStepIdx(stepIdx - 1);
     else router.replace('/');
@@ -2093,7 +2101,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
             </span>
             <div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
               {stepIdx > 0 && currentKey !== 'notify' && currentKey !== 'roadmap' && (
-                <span id="ob-skip" onClick={nextStep} style={{ fontSize: '14px', color: 'var(--muted)', cursor: 'pointer' }}>
+                <span id="ob-skip" onClick={skipStep} style={{ fontSize: '14px', color: 'var(--muted)', cursor: 'pointer' }}>
                   Skip
                 </span>
               )}
