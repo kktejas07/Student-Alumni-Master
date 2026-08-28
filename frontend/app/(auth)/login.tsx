@@ -21,6 +21,7 @@ import { Mail, Lock, Eye, EyeOff, CheckCircle2, AlertCircle, ArrowRight, Sparkle
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { getBaseUrl } from '@/src/lib/env';
 import { api } from '@/src/models/services/api';
+import { initFirebaseAuth, signInWithGoogle } from '@/src/lib/firebaseAuth';
 
 const BASE = getBaseUrl();
 
@@ -134,13 +135,21 @@ export default function LoginScreen() {
 
   const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
-  // Fetch OAuth Config on mount
+  // Fetch OAuth Config on mount and initialize Firebase Auth
   useEffect(() => {
     fetch(`${BASE}/api/auth/oauth-config`)
       .then((r) => r.json())
-      .then((data) => {
+      .then(async (data) => {
         if (data?.google_client_id) {
           setGoogleClientId(data.google_client_id);
+        }
+        if (data?.firebase?.apiKey) {
+          await initFirebaseAuth({
+            apiKey: data.firebase.apiKey,
+            authDomain: data.firebase.authDomain,
+            projectId: data.firebase.projectId,
+            appId: data.firebase.appId,
+          });
         }
       })
       .catch(() => null);
@@ -153,8 +162,22 @@ export default function LoginScreen() {
       return;
     }
 
-    setShowGoogleModal(true);
+    setLoading(true);
     setErrorMsg('');
+    try {
+      const result = await signInWithGoogle();
+      if (result) {
+        await processGoogleAuth({
+          id_token: result.idToken,
+          email: result.email,
+        });
+      } else {
+        setLoading(false);
+      }
+    } catch (err: any) {
+      setLoading(false);
+      setErrorMsg(err?.message || 'Google Sign-In failed. Please try again.');
+    }
   };
 
   const processGoogleAuth = async (payload: { id_token?: string; email?: string }) => {
