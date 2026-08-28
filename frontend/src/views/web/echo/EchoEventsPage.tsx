@@ -2099,14 +2099,14 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                   {/* Date of Birth */}
                   <div>
                     <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: 'var(--muted)', marginBottom: '9px' }}>DATE OF BIRTH</div>
-                    <div className="ev-field" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', border: '1px solid var(--line2)', borderRadius: '11px', background: 'var(--panel2)', padding: '14px 15px' }}>
+                    <div className="ev-field" style={{ display: 'flex', alignItems: 'center', gap: '12px', border: '1px solid var(--line2)', borderRadius: '11px', background: 'var(--panel2)', padding: '14px 15px' }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'var(--muted)', strokeWidth: 1.8, flex: 'none' }}><rect x="3.5" y="5" width="17" height="15" rx="2.5"></rect><path d="M3.5 10h17M8 5V2.5M16 5V2.5"></path></svg>
                       <input
                         type="date"
                         value={dob}
                         onChange={(e) => setDob(e.target.value)}
                         style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', color: '#FFFFFF', fontSize: '14.5px', fontFamily: 'inherit' }}
                       />
-                      <svg width="16" height="16" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'var(--muted)', strokeWidth: 1.8, flex: 'none' }}><rect x="3.5" y="5" width="17" height="15" rx="2.5"></rect><path d="M3.5 10h17M8 5V2.5M16 5V2.5"></path></svg>
                     </div>
                   </div>
 
