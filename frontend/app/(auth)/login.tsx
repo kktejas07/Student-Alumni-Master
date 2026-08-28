@@ -565,7 +565,7 @@ export default function LoginScreen() {
                 <span>
                   {loading
                     ? 'Signing in…'
-                    : emailStatus === 'new'
+                    : emailStatus === 'new' && password.length === 0
                     ? 'Create an account'
                     : 'Sign in'}
                 </span>
