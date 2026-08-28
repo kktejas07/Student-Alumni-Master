@@ -2108,3 +2108,6 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
     </div>
   );
 }
+
+export default EchoEventsPage;
+

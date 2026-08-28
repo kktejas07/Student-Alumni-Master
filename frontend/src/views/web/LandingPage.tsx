@@ -3031,7 +3031,7 @@ export default function LandingPage({ initialTab }: { initialTab?: 'home' | 'ech
 
                 {/* Right Column: Full-Scale Orbital Radar Graph SVG */}
                 <View style={{ flex: 1.15, alignItems: 'center', width: '100%', maxWidth: 620 }}>
-                  <svg width="100%" height="auto" viewBox="0 0 620 540" style={{ width: '100%', height: 'auto', overflow: 'visible', display: 'block' }}>
+                  <svg width="100%" height="100%" viewBox="0 0 620 540" style={{ width: '100%', height: 'auto', overflow: 'visible', display: 'block' }}>
                     <defs>
                       <linearGradient id="radarSweepGrad" x1="0" y1="0" x2="1" y2="1">
                         <stop offset="0%" stopColor="#8B84FF" stopOpacity="0.45" />
