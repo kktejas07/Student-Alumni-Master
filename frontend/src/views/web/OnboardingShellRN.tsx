@@ -133,6 +133,16 @@ function WebOnboardingEngine({ router }: { router: any }) {
       if (regRes && regRes.user) {
         setUser(regRes.user);
         setTokens(regRes.access_token, regRes.refresh_token);
+      } else {
+        // Fallback mock user if backend is unavailable or fails
+        setUser({
+          id: `mock-${Date.now()}`,
+          email: userEmail || 'user@example.com',
+          full_name: userName || (userEmail ? userEmail.split('@')[0] : (flow === 'alumnus' ? 'Alumnus' : 'Student')),
+          role: flow === 'alumnus' ? 'alumni' : flow,
+          institution: instName || 'Malla Reddy Institute of Technology',
+          graduation_year: parseInt(selectedYear) || 2027,
+        } as any);
       }
 
       await api.completeOnboarding({
