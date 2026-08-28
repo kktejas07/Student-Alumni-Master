@@ -289,19 +289,21 @@ export default function LoginScreen() {
     <View style={styles.outerWrap}>
       <style dangerouslySetInnerHTML={{
         __html: `
-          html, body, #root { background: #05060F !important; font-family: 'Manrope', -apple-system, sans-serif !important; }
+          @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap');
+          html, body, #root { background: #08080F !important; font-family: 'Outfit', -apple-system, sans-serif !important; color: #F4F4FA !important; }
           .au-glow-left {
             position: absolute; left: -14%; top: -22%; width: 780px; height: 620px;
-            background: radial-gradient(circle, rgba(91,79,233,.22), transparent 68%);
+            background: radial-gradient(circle, rgba(124,92,252,.22), transparent 68%);
             filter: blur(70px);
           }
           .au-glow-right {
             position: absolute; right: -18%; top: 34%; width: 680px; height: 560px;
-            background: radial-gradient(circle, rgba(240,166,232,.10), transparent 70%);
+            background: radial-gradient(circle, rgba(47,184,198,.12), transparent 70%);
             filter: blur(80px);
           }
           .social-btn { transition: all 0.2s ease; }
-          .social-btn:hover { border-color: rgba(139, 132, 255, 0.5) !important; background: rgba(24, 28, 58, 0.9) !important; }
+          .social-btn:hover { border-color: #7C5CFC !important; background: rgba(124,92,252,.12) !important; }
+          .db-field-focus:focus-within { border-color: #7C5CFC !important; box-shadow: 0 0 0 3px rgba(124,92,252,.18) !important; }
         `
       }} />
 
@@ -317,26 +319,45 @@ export default function LoginScreen() {
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         <div style={{ position: 'relative', zIndex: 1, minHeight: 'calc(100vh - 80px)', display: 'grid', gridTemplateColumns: isTablet ? '1fr' : 'minmax(0, 1.05fr) minmax(0, .95fr)', maxWidth: 1400, margin: '0 auto', width: '100%' }}>
           
-          {/* Left Column: Brand Showcase Carousel */}
+          {/* Left Column: Brand Showcase Carousel with Theme Crest */}
           {!isTablet && (
-            <div style={{ position: 'relative', borderRight: '1px solid #1B1E33', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '52px 48px' }}>
+            <div style={{ position: 'relative', borderRight: '1px solid #1F1F30', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '52px 48px' }}>
+              
+              {/* Brand Crest Header */}
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <svg width="34" height="38" viewBox="0 0 300 350" style={{ flex: 'none' }}>
+                  <defs>
+                    <linearGradient id="db-login-badge" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0" stopColor="#9E7BFF" />
+                      <stop offset="1" stopColor="#5B3FD9" />
+                    </linearGradient>
+                  </defs>
+                  <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#db-login-badge)" />
+                  <text x="150" y="212" textAnchor="middle" style={{ fontFamily: "'Outfit', sans-serif", fontSize: 124, fontWeight: '700', letterSpacing: '-4px', fill: '#FFFFFF' }}>SA</text>
+                </svg>
+                <div>
+                  <span style={{ fontSize: 17, fontWeight: '700', color: '#F4F4FA', letterSpacing: '-0.3px' }}>Student Alumni</span>
+                  <div style={{ fontSize: 12, color: '#8A8A9E' }}>Higher Education & Career Network</div>
+                </div>
+              </div>
+
               {/* Carousel Content */}
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', margin: '40px 0' }}>
                 <div style={{ position: 'relative', minHeight: 340 }}>
                   <div style={{ fontSize: 11.5, fontWeight: '700', letterSpacing: '1.8px', color: slide.tagColor, marginBottom: 14 }}>
                     {slide.tag}
                   </div>
-                  <div style={{ fontSize: 36, fontWeight: '700', letterSpacing: '-1.5px', lineHeight: 1.14, color: '#FFFFFF', maxWidth: 440 }}>
+                  <div style={{ fontSize: 38, fontWeight: '700', letterSpacing: '-1.5px', lineHeight: 1.12, color: '#F4F4FA', maxWidth: 460 }}>
                     {slide.title}
                   </div>
-                  <div style={{ fontSize: 15.5, lineHeight: 1.65, color: '#9AA0B4', maxWidth: 400, marginTop: 14 }}>
+                  <div style={{ fontSize: 16, lineHeight: 1.65, color: '#8A8A9E', maxWidth: 420, marginTop: 14 }}>
                     {slide.desc}
                   </div>
 
                   {/* Graphic Card Preview */}
-                  <div style={{ marginTop: 32, padding: '20px 24px', borderRadius: 16, border: '1px solid #2A2A55', background: 'rgba(14, 16, 32, 0.8)', maxWidth: 360, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ marginTop: 32, padding: '20px 24px', borderRadius: 16, border: '1px solid #262638', background: '#14141F', maxWidth: 380, display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 18px 40px rgba(0,0,0,.35)' }}>
                     <div>
-                      <div style={{ fontSize: 11, fontWeight: '700', letterSpacing: '1.2px', color: '#9AA0B4' }}>{slide.badgeLabel}</div>
+                      <div style={{ fontSize: 11, fontWeight: '700', letterSpacing: '1.2px', color: '#8A8A9E' }}>{slide.badgeLabel}</div>
                       <div style={{ fontSize: 28, fontWeight: '800', color: slide.tagColor, marginTop: 4 }}>{slide.badge}</div>
                     </div>
                     <Sparkles size={28} color={slide.tagColor} />
@@ -353,7 +374,7 @@ export default function LoginScreen() {
                         width: idx === activeSlide ? 30 : 10,
                         height: 4,
                         borderRadius: 2,
-                        background: idx === activeSlide ? '#8B84FF' : '#2A2A55',
+                        background: idx === activeSlide ? '#7C5CFC' : '#262638',
                         cursor: 'pointer',
                         transition: 'all 0.35s ease'
                       }}
@@ -362,11 +383,20 @@ export default function LoginScreen() {
                 </div>
               </div>
 
-              {/* Brand Footer */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13.5, color: '#9AA0B4' }}>
-                Built with love for students
-                <Heart size={14} color="#8B84FF" fill="#8B84FF" />
-                across all campus's
+              {/* Brand Footer Stats */}
+              <div style={{ position: 'relative', display: 'flex', gap: 36, borderTop: '1px solid #1F1F30', paddingTop: 24 }}>
+                <div>
+                  <div style={{ fontSize: 22, fontWeight: '700', letterSpacing: '-.8px', color: '#F4F4FA' }}>50,000+</div>
+                  <div style={{ fontSize: 12.5, color: '#8A8A9E', marginTop: 2 }}>Active students</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 22, fontWeight: '700', letterSpacing: '-.8px', color: '#F4F4FA' }}>1,200+</div>
+                  <div style={{ fontSize: 12.5, color: '#8A8A9E', marginTop: 2 }}>Verified mentors</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 22, fontWeight: '700', letterSpacing: '-.8px', color: '#F4F4FA' }}>200+</div>
+                  <div style={{ fontSize: 12.5, color: '#8A8A9E', marginTop: 2 }}>Partner colleges</div>
+                </div>
               </div>
             </div>
           )}
@@ -374,23 +404,23 @@ export default function LoginScreen() {
           {/* Right Column: Sign In Form */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: isMobile ? '32px 20px' : '52px 48px' }}>
             <div style={{ width: '100%', maxWidth: 420 }}>
-              <div style={{ fontSize: 30, fontWeight: '700', letterSpacing: '-1px', color: '#FFFFFF' }}>Sign in</div>
-              <div style={{ fontSize: 14.5, color: '#9AA0B4', marginTop: 7 }}>Continue with Google, or use your email.</div>
+              <div style={{ fontSize: 32, fontWeight: '700', letterSpacing: '-1px', color: '#F4F4FA' }}>Sign in</div>
+              <div style={{ fontSize: 14.5, color: '#8A8A9E', marginTop: 7 }}>Use your college address to unlock your cohort.</div>
 
               {/* Google Button */}
               <button
                 type="button"
-                onClick={handleGoogleSignIn}
+                onClick={() => handleGoogleSignIn()}
                 className="social-btn"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: 11,
-                  border: '1px solid #2A2A55',
+                  border: '1px solid #262638',
                   borderRadius: 12,
-                  background: '#FFFFFF',
-                  color: '#1F2430',
+                  background: '#14141F',
+                  color: '#F4F4FA',
                   fontSize: 15,
                   fontWeight: '600',
                   padding: '14px',
@@ -409,32 +439,32 @@ export default function LoginScreen() {
               </button>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, margin: '22px 0' }}>
-                <span style={{ flex: 1, height: 1, background: '#1B1E33' }} />
-                <span style={{ fontSize: 12, fontWeight: '600', letterSpacing: '1.4px', color: '#7B8199' }}>OR</span>
-                <span style={{ flex: 1, height: 1, background: '#1B1E33' }} />
+                <span style={{ flex: 1, height: 1, background: '#1F1F30' }} />
+                <span style={{ fontSize: 12, fontWeight: '600', letterSpacing: '1.4px', color: '#6A6A7E' }}>OR</span>
+                <span style={{ flex: 1, height: 1, background: '#1F1F30' }} />
               </div>
 
               {/* Error Message Alert */}
               {errorMsg ? (
-                <div style={{ background: 'rgba(248,113,134,.12)', border: '1px solid rgba(248,113,134,.35)', borderRadius: 12, padding: '12px 14px', color: '#F87186', fontSize: 13.5, marginBottom: 16 }}>
+                <div style={{ background: 'rgba(240,97,107,.12)', border: '1px solid rgba(240,97,107,.35)', borderRadius: 12, padding: '12px 14px', color: '#F0616B', fontSize: 13.5, marginBottom: 16 }}>
                   {errorMsg}
                 </div>
               ) : null}
 
               {/* Email Step Input */}
-              <div style={{ fontSize: 11.5, fontWeight: '700', letterSpacing: '1.3px', color: '#9AA0B4', marginBottom: 9 }}>EMAIL</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 11, border: '1px solid #1B1E33', borderRadius: 12, background: '#0C0E1B', padding: '14px 15px' }}>
-                <Mail size={16} color="#7B8199" />
+              <div style={{ fontSize: 12, fontWeight: '700', letterSpacing: '1.3px', color: '#8A8A9E', marginBottom: 9 }}>COLLEGE EMAIL</div>
+              <div className="db-field-focus" style={{ display: 'flex', alignItems: 'center', gap: 11, border: '1px solid #262638', borderRadius: 12, background: '#14141F', padding: '14px 15px', transition: 'all 0.2s ease' }}>
+                <Mail size={16} color="#8A8A9E" />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => handleEmailChange(e.target.value)}
-                  placeholder="you@college.edu"
-                  style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', color: '#F4F5FB', fontSize: 15, outline: 'none' }}
+                  placeholder="devender@mrit.edu"
+                  style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', color: '#F4F4FA', fontSize: 15, outline: 'none' }}
                 />
                 {emailStatus === 'registered' && <CheckCircle2 size={16} color="#34D399" />}
-                {emailStatus === 'invalid' && <AlertCircle size={16} color="#F5B342" />}
-                {emailStatus === 'new' && <Sparkles size={16} color="#8B84FF" />}
+                {emailStatus === 'invalid' && <AlertCircle size={16} color="#F59E0B" />}
+                {emailStatus === 'new' && <Sparkles size={16} color="#A78BFA" />}
               </div>
 
               {/* Real-time Status Helper Text */}
@@ -444,40 +474,40 @@ export default function LoginScreen() {
                 </div>
               )}
               {emailStatus === 'new' && (
-                <div style={{ fontSize: 13, color: '#8B84FF', marginTop: 8 }}>
+                <div style={{ fontSize: 13, color: '#A78BFA', marginTop: 8 }}>
                   No account on this email yet — we'll help you create one.
                 </div>
               )}
               {emailStatus === 'invalid' && (
-                <div style={{ fontSize: 13, color: '#F5B342', marginTop: 8 }}>
-                  That doesn't look like a valid email yet.
+                <div style={{ fontSize: 13, color: '#F59E0B', marginTop: 8 }}>
+                  That doesn't look like a valid email address yet.
                 </div>
               )}
 
-              {/* Password Input Block (Appears when email is recognized or typed) */}
+              {/* Password Input Block */}
               {(emailStatus === 'registered' || password.length > 0) && (
                 <div style={{ marginTop: 18 }}>
                   <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 9 }}>
-                    <span style={{ fontSize: 11.5, fontWeight: '700', letterSpacing: '1.3px', color: '#9AA0B4' }}>PASSWORD</span>
+                    <span style={{ fontSize: 12, fontWeight: '700', letterSpacing: '1.3px', color: '#8A8A9E' }}>PASSWORD</span>
                     <span
                       onClick={() => router.push('/(auth)/forgot-password')}
-                      style={{ fontSize: 12.5, fontWeight: '600', color: '#8B84FF', cursor: 'pointer' }}
+                      style={{ fontSize: 12.5, fontWeight: '600', color: '#A78BFA', cursor: 'pointer' }}
                     >
                       Forgot?
                     </span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 11, border: '1px solid #1B1E33', borderRadius: 12, background: '#0C0E1B', padding: '14px 15px' }}>
-                    <Lock size={16} color="#7B8199" />
+                  <div className="db-field-focus" style={{ display: 'flex', alignItems: 'center', gap: 11, border: '1px solid #262638', borderRadius: 12, background: '#14141F', padding: '14px 15px', transition: 'all 0.2s ease' }}>
+                    <Lock size={16} color="#8A8A9E" />
                     <input
                       type={showPwd ? 'text' : 'password'}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Your password"
-                      style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', color: '#F4F5FB', fontSize: 15, outline: 'none' }}
+                      placeholder="••••••••••"
+                      style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', color: '#F4F4FA', fontSize: 15, outline: 'none' }}
                     />
                     <span
                       onClick={() => setShowPwd(!showPwd)}
-                      style={{ fontSize: 12, fontWeight: '600', color: '#7B8199', cursor: 'pointer' }}
+                      style={{ fontSize: 12, fontWeight: '600', color: '#8A8A9E', cursor: 'pointer' }}
                     >
                       {showPwd ? 'Hide' : 'Show'}
                     </span>
@@ -496,7 +526,7 @@ export default function LoginScreen() {
                   justifyContent: 'center',
                   gap: 10,
                   borderRadius: 12,
-                  background: '#5B4FE9',
+                  background: '#7C5CFC',
                   color: '#FFFFFF',
                   fontSize: 15.5,
                   fontWeight: '700',
@@ -505,7 +535,8 @@ export default function LoginScreen() {
                   width: '100%',
                   border: 'none',
                   cursor: loading ? 'not-allowed' : 'pointer',
-                  boxShadow: '0 10px 24px rgba(91, 79, 233, 0.35)'
+                  boxShadow: '0 8px 22px rgba(124, 92, 252, 0.28)',
+                  transition: 'all 0.2s ease'
                 }}
               >
                 <span>
@@ -519,11 +550,11 @@ export default function LoginScreen() {
               </button>
 
               {/* Footer Switch */}
-              <div style={{ fontSize: 13.5, color: '#9AA0B4', textAlign: 'center', marginTop: 22 }}>
+              <div style={{ fontSize: 13.5, color: '#8A8A9E', textAlign: 'center', marginTop: 22 }}>
                 New here?{' '}
                 <span
                   onClick={() => router.push('/get-started')}
-                  style={{ fontWeight: '600', color: '#8B84FF', cursor: 'pointer' }}
+                  style={{ fontWeight: '600', color: '#A78BFA', cursor: 'pointer' }}
                 >
                   Create an account
                 </span>
