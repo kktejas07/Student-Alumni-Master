@@ -1,3 +1,131 @@
+
+// ── VIDEOS & REELS UPLOAD MANAGER ─────────────────────────────────────────────
+function CustomVideosEditor({ videos, onChange }: { videos: any[]; onChange: (v: any[]) => void }) {
+  const { flash } = useToast();
+  const [uploadingIdx, setUploadingIdx] = useState<number | null>(null);
+
+  const updateItem = (index: number, key: string, val: any) => {
+    const list = [...(videos || [])];
+    list[index] = { ...list[index], [key]: val };
+    onChange(list);
+  };
+
+  const addItem = () => {
+    onChange([
+      ...(videos || []),
+      {
+        title: 'New Video Clip / Reel',
+        video_url: '',
+        thumbnail_url: '',
+        description: '',
+        platform: 'youtube',
+      },
+    ]);
+  };
+
+  const removeItem = (index: number) => {
+    const list = (videos || []).filter((_, i) => i !== index);
+    onChange(list);
+  };
+
+  const handleFileUpload = async (index: number, e: any) => {
+    const file = e?.target?.files?.[0];
+    if (!file) return;
+    setUploadingIdx(index);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await api.uploadEchoMedia(fd);
+      const fileUrl = res?.url || res?.file_url;
+      if (fileUrl) {
+        updateItem(index, 'video_url', fileUrl);
+        updateItem(index, 'platform', 'mp4');
+        flash?.('Video file uploaded successfully!');
+      }
+    } catch (err: any) {
+      flash?.('Failed to upload video file', 'error');
+    } finally {
+      setUploadingIdx(null);
+    }
+  };
+
+  return (
+    <View style={{ gap: 16 }}>
+      {(videos || []).map((vid: any, idx: number) => {
+        const isYt = vid.video_url?.includes('youtube.com') || vid.video_url?.includes('youtu.be');
+        const ytId = isYt ? (vid.video_url.includes('v=') ? vid.video_url.split('v=')[1]?.split('&')[0] : vid.video_url.split('/').pop()) : null;
+
+        return (
+          <View key={idx} style={{ border: '1px solid ' + SAC.border, borderRadius: 14, padding: 18, backgroundColor: SAC.panelBg, gap: 14 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: SAC.text }}>Video / Clip #{idx + 1}</Text>
+              <Pressable onPress={() => removeItem(idx)} style={{ padding: 4 }}>
+                <Trash2 size={16} color="#EF4444" />
+              </Pressable>
+            </View>
+
+            <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
+              <TextInput
+                style={[s.input, { flex: 1, minWidth: 200 }]}
+                placeholder="Video Title (e.g. SNIST HackWave Teaser)"
+                value={vid.title || ''}
+                onChangeText={(t) => updateItem(idx, 'title', t)}
+              />
+              <TextInput
+                style={[s.input, { flex: 1.5, minWidth: 260 }]}
+                placeholder="Video URL (YouTube / Vimeo / MP4 File)"
+                value={vid.video_url || ''}
+                onChangeText={(t) => updateItem(idx, 'video_url', t)}
+              />
+              {Platform.OS === 'web' && (
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 8, background: '#7C3AED', color: '#FFF', fontSize: 13, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>
+                  {uploadingIdx === idx ? 'Uploading...' : '🎥 Upload Video File'}
+                  <input type="file" accept="video/mp4,video/webm,video/quicktime" onChange={(e) => handleFileUpload(idx, e)} style={{ display: 'none' }} />
+                </label>
+              )}
+            </View>
+
+            <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
+              <TextInput
+                style={[s.input, { flex: 1, minWidth: 200 }]}
+                placeholder="Thumbnail Image URL (optional)"
+                value={vid.thumbnail_url || ''}
+                onChangeText={(t) => updateItem(idx, 'thumbnail_url', t)}
+              />
+              <TextInput
+                style={[s.input, { flex: 1.5, minWidth: 260 }]}
+                placeholder="Short Description / Caption (optional)"
+                value={vid.description || ''}
+                onChangeText={(t) => updateItem(idx, 'description', t)}
+              />
+            </View>
+
+            {/* Live Video Preview Box */}
+            {vid.video_url ? (
+              <View style={{ marginTop: 6, borderRadius: 10, overflow: 'hidden', backgroundColor: '#000', maxHeight: 200, alignItems: 'center', justifyContent: 'center' }}>
+                {isYt && ytId ? (
+                  <iframe
+                    src={`https://www.youtube.com/embed/${ytId}`}
+                    title="Preview"
+                    style={{ width: '100%', height: '200px', border: 'none' }}
+                  />
+                ) : (
+                  <video controls src={vid.video_url} style={{ width: '100%', maxHeight: '200px' }} />
+                )}
+              </View>
+            ) : null}
+          </View>
+        );
+      })}
+
+      <Pressable onPress={addItem} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, backgroundColor: 'rgba(124,92,252,0.15)', borderWidth: 1, borderColor: '#7C3AED' }}>
+        <Plus size={16} color="#A78BFA" />
+        <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#A78BFA' }}>Add Video Option</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 // @ts-nocheck
 /**
  * Super Admin — ECHO Showcase CMS View.
@@ -2403,16 +2531,10 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
 
             {/* ── VIDEOS TAB ── */}
             {tab === 'videos' && (
-              <FieldRow label="Event Videos" hint="Paste YouTube/Vimeo URLs or upload MP4 files.">
-                <ListEditor
-                  items={form.videos || []}
-                  fields={[
-                    { key: 'title', placeholder: 'Video Title', flex: 0.7 },
-                    { key: 'video_url', placeholder: 'YouTube / Vimeo / MP4 URL', flex: 1 },
-                    { key: 'thumbnail_url', placeholder: 'Thumbnail URL (optional)', flex: 0.8 },
-                  ]}
+              <FieldRow label="Event Videos & Promo Reels" hint="Paste YouTube/Vimeo URLs or upload MP4 video files directly to feature on the event page.">
+                <CustomVideosEditor
+                  videos={form.videos || []}
                   onChange={(v: any) => set('videos', v)}
-                  addLabel="Add Video"
                 />
               </FieldRow>
             )}
