@@ -347,6 +347,10 @@ app.include_router(newsletter_router)
 from routers.contacts import router as contacts_router
 app.include_router(contacts_router)
 
+# Student Perks sub-router
+from routers.student_perks import router as student_perks_router
+app.include_router(student_perks_router)
+
 from core.email_quality import router as email_quality_router
 api_router.include_router(email_quality_router)
 

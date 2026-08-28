@@ -137,28 +137,26 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
   const router = useRouter();
   const searchParams = useLocalSearchParams();
   
-  // Determine initial view & slug with direct URL fallback support on web
-  const getInitialRouteState = () => {
+  const [view, setView] = useState<'list' | 'detail' | 'reg'>(initialView);
+  const [selectedSlug, setSelectedSlug] = useState<string>(initialSlug || 'snist');
+
+  useEffect(() => {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       const path = window.location.pathname;
       if (path.includes('/register')) {
         const parts = path.split('/').filter(Boolean);
-        return { view: 'reg' as const, slug: parts[1] || initialSlug || 'snist' };
-      }
-      if (path.startsWith('/echo/') && path !== '/echo') {
+        if (parts[1] && parts[1] !== 'register') setSelectedSlug(parts[1]);
+        setView('reg');
+      } else if (path.startsWith('/echo/') && path !== '/echo') {
         const parts = path.split('/').filter(Boolean);
-        return { view: 'detail' as const, slug: parts[1] || initialSlug || 'snist' };
+        if (parts[1]) setSelectedSlug(parts[1]);
+        setView('detail');
       }
+    } else if (searchParams?.view) {
+      setView(searchParams.view as any);
+      if (searchParams?.slug) setSelectedSlug(searchParams.slug as string);
     }
-    return {
-      view: (searchParams?.view as any) || initialView,
-      slug: (searchParams?.slug as string) || initialSlug || 'snist',
-    };
-  };
-
-  const initialRoute = getInitialRouteState();
-  const [view, setView] = useState<'list' | 'detail' | 'reg'>(initialRoute.view);
-  const [selectedSlug, setSelectedSlug] = useState<string>(initialRoute.slug);
+  }, []);
   
   const [events, setEvents] = useState<any[]>(SAMPLE_EVENTS);
   const [loading, setLoading] = useState(false);
