@@ -2061,18 +2061,18 @@ function WebOnboardingEngine({ router }: { router: any }) {
                           </div>
                         </div>
                         <div>
-                          <div id="ob-card-name" style={{ fontSize: '27px', fontWeight: 700, letterSpacing: '-1px', marginBottom: '4px' }}>
-                            {flow === 'alumnus' ? 'Arjun Mehta' : 'Aisha Kapoor'}
+                          <div id="ob-card-name" style={{ fontSize: '27px', fontWeight: 700, letterSpacing: '-1px', marginBottom: '4px', textTransform: 'capitalize' }}>
+                            {userName || (userEmail ? userEmail.split('@')[0] : (flow === 'alumnus' ? 'Alumnus' : 'Student'))}
                           </div>
                           <div id="ob-card-sub" style={{ fontSize: '13.5px', opacity: 0.82 }}>
-                            {flow === 'alumnus' ? 'Senior Consultant, Deloitte · Class of 2019' : `${selectedCourse} · Class of ${selectedYear}`}
+                            {flow === 'alumnus' ? `${alumRole || 'Role'}, ${alumCompany || 'Company'} · ${instName || 'Alumni'}` : `${selectedCourse} · Class of ${selectedYear}`}
                           </div>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
                           <div>
                             <div style={{ fontSize: '9.5px', fontWeight: 700, letterSpacing: '1.6px', opacity: 0.7, marginBottom: '5px' }}>SA ID</div>
                             <div id="ob-card-id" style={{ fontFamily: 'ui-monospace, monospace', fontSize: '15px', fontWeight: 600, letterSpacing: '.5px' }}>
-                              {flow === 'alumnus' ? 'SA-19-MRIT-00874' : 'SA-26-MRIT-04193'}
+                              SA-{flow === 'alumnus' ? 'AL' : selectedYear.slice(-2)}-{(instName || 'UNI').substring(0,4).toUpperCase().replace(/\s/g, '')}-{(userEmail?.length || 5) * 1024}
                             </div>
                           </div>
                           <div style={{ width: '46px', height: '46px', borderRadius: '6px', background: 'rgba(255,255,255,.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFFFFF', fontWeight: 800, fontSize: '18px' }}>
