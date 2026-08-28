@@ -214,57 +214,10 @@ function WebOnboardingEngine({ router }: { router: any }) {
   const [isCardFlipped, setIsCardFlipped] = useState(false);
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const saved = await AsyncStorage.getItem('sa_onboarding_state');
-        if (saved) {
-          const state = JSON.parse(saved);
-          if (state.flow) setFlow(state.flow);
-          if (state.stepIdx !== undefined) setStepIdx(state.stepIdx);
-          if (state.userEmail !== undefined) setUserEmail(state.userEmail);
-          if (state.userName !== undefined) setUserName(state.userName);
-          if (state.userPassword !== undefined) setUserPassword(state.userPassword);
-          if (state.selectedCourse) setSelectedCourse(state.selectedCourse);
-          if (state.selectedYear) setSelectedYear(state.selectedYear);
-          if (state.selectedGoal) setSelectedGoal(state.selectedGoal);
-          if (state.skillLevels) setSkillLevels(state.skillLevels);
-          if (state.interests) setInterests(state.interests);
-          if (state.mentorFmt) setMentorFmt(state.mentorFmt);
-          if (state.mentorFreq) setMentorFreq(state.mentorFreq);
-          if (state.mentorWho) setMentorWho(state.mentorWho);
-          if (state.alumCompany) setAlumCompany(state.alumCompany);
-          if (state.alumRole) setAlumRole(state.alumRole);
-          if (state.alumCap) setAlumCap(state.alumCap);
-          if (state.alumExpertise) setAlumExpertise(state.alumExpertise);
-          if (state.instName) setInstName(state.instName);
-          if (state.instRole) setInstRole(state.instRole);
-          if (state.instSize) setInstSize(state.instSize);
-          if (state.collegeDepts) setCollegeDepts(state.collegeDepts);
-          if (state.notifs) setNotifs(state.notifs);
-        }
-      } catch (e) {}
-      setIsLoaded(true);
-    };
-    loadData();
+    setIsLoaded(true);
   }, []);
 
-  useEffect(() => {
-    if (!isLoaded) return;
-    const saveData = async () => {
-      try {
-        const state = {
-          flow, stepIdx, userEmail, userName, userPassword,
-          selectedCourse, selectedYear, selectedGoal, skillLevels,
-          interests, mentorFmt, mentorFreq, mentorWho,
-          alumCompany, alumRole, alumCap, alumExpertise,
-          instName, instRole, instSize, collegeDepts,
-          notifs
-        };
-        await AsyncStorage.setItem('sa_onboarding_state', JSON.stringify(state));
-      } catch (e) {}
-    };
-    saveData();
-  }, [isLoaded, flow, stepIdx, userEmail, userName, userPassword, selectedCourse, selectedYear, selectedGoal, skillLevels, interests, mentorFmt, mentorFreq, mentorWho, alumCompany, alumRole, alumCap, alumExpertise, instName, instRole, instSize, collegeDepts, notifs]);
+
 
   const FLOW_SEQS = {
     student: ['who', 'account', 'verify', 'course', 'goal', 'skills', 'resume', 'photo', 'interests', 'mentorpref', 'notify', 'roadmap', 'mentors', 'perks', 'card', 'done'],
@@ -553,10 +506,13 @@ function WebOnboardingEngine({ router }: { router: any }) {
             </span>
             <span
               id="ob-exit"
-              onClick={() => router.replace('/')}
+              onClick={async () => {
+                await AsyncStorage.removeItem('sa_onboarding_state');
+                router.replace('/');
+              }}
               style={{ fontSize: '13px', color: 'var(--muted)', cursor: 'pointer' }}
             >
-              Save &amp; exit
+              Cancel
             </span>
           </div>
         </div>
