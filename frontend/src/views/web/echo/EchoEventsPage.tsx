@@ -174,6 +174,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
   const [events, setEvents] = useState<any[]>(SAMPLE_EVENTS);
   const [loading, setLoading] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [heroConfig, setHeroConfig] = useState<any>(null);
 
   // Registration states
   const [isTeam, setIsTeam] = useState(false);
@@ -385,16 +386,17 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
   }, []);
 
   const handleDownloadHandbook = () => {
+    const handbookUrl = activeEvent.handbook_url || '/HackWave_3.0_Event_Handbook.pdf';
     if (Platform.OS === 'web') {
       const link = document.createElement('a');
-      link.href = '/HackWave_3.0_Event_Handbook.pdf';
-      link.download = 'HackWave_3.0_Event_Handbook.pdf';
+      link.href = handbookUrl;
+      link.download = handbookUrl.split('/').pop() || 'Event_Handbook.pdf';
       link.target = '_blank';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
     } else {
-      Linking.openURL('/HackWave_3.0_Event_Handbook.pdf').catch(() => {});
+      Linking.openURL(handbookUrl).catch(() => {});
     }
   };
 
@@ -849,6 +851,213 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                   padding: 20px 16px 60px !important;
                 }
               }
+              /* ── Registration Form Responsive ── */
+              @media (max-width: 959px) {
+                .ev-reg-grid {
+                  grid-template-columns: 1fr !important;
+                }
+                .ev-reg-poster {
+                  display: none !important;
+                }
+                .ev-reg-header-title {
+                  font-size: 22px !important;
+                }
+                .ev-reg-header-meta {
+                  flex-direction: column !important;
+                  gap: 8px !important;
+                }
+                .ev-reg-fee-card {
+                  flex-direction: column !important;
+                  align-items: flex-start !important;
+                  gap: 14px !important;
+                }
+                .ev-reg-form-card {
+                  padding: 20px 18px !important;
+                }
+              }
+              @media (max-width: 640px) {
+                .ev-reg-container {
+                  padding: 16px 14px 60px !important;
+                }
+                .ev-reg-header {
+                  padding: 18px 18px 20px !important;
+                  border-radius: 14px !important;
+                }
+                .ev-reg-header-title {
+                  font-size: 19px !important;
+                }
+                .ev-reg-seg {
+                  height: 44px !important;
+                  font-size: 13px !important;
+                }
+                .ev-reg-fee-amount {
+                  font-size: 20px !important;
+                }
+                .ev-reg-actions {
+                  grid-template-columns: 1fr !important;
+                }
+                .ev-reg-pay-btn {
+                  font-size: 13px !important;
+                  padding: 14px 18px !important;
+                }
+                .ev-reg-form-card {
+                  padding: 16px 14px !important;
+                }
+                .ev-reg-field {
+                  padding: 12px 12px !important;
+                }
+                .ev-reg-select-grid {
+                  grid-template-columns: 1fr !important;
+                }
+                .ev-reg-team-header {
+                  flex-direction: column !important;
+                  align-items: flex-start !important;
+                  gap: 8px !important;
+                }
+              }
+              /* ── Event Detail Responsive ── */
+              @media (max-width: 959px) {
+                .ev-detail-banner-info {
+                  padding: 20px 22px 24px !important;
+                }
+                .ev-detail-title {
+                  font-size: 26px !important;
+                }
+                .ev-detail-actions {
+                  flex-direction: column !important;
+                  align-items: stretch !important;
+                }
+                .ev-detail-actions .ev-btn {
+                  justify-content: center !important;
+                }
+                .ev-detail-meta {
+                  flex-direction: column !important;
+                  gap: 10px !important;
+                }
+                .ev-detail-poster {
+                  min-height: 240px !important;
+                }
+                .ev-detail-section-title {
+                  font-size: 24px !important;
+                }
+                .ev-detail-speakers-grid {
+                  grid-template-columns: 1fr !important;
+                }
+                .ev-detail-speaker-card {
+                  padding: 16px 14px !important;
+                }
+                .ev-detail-speaker-name {
+                  font-size: 15px !important;
+                }
+                .ev-detail-speaker-role {
+                  font-size: 12px !important;
+                }
+              }
+              @media (max-width: 640px) {
+                .ev-detail-container {
+                  padding: 16px 14px 60px !important;
+                }
+                .ev-detail-banner {
+                  border-radius: 16px !important;
+                }
+                .ev-detail-poster {
+                  min-height: 200px !important;
+                }
+                .ev-detail-banner-info {
+                  padding: 16px 16px 18px !important;
+                }
+                .ev-detail-title {
+                  font-size: 22px !important;
+                  letter-spacing: -0.8px !important;
+                }
+                .ev-detail-desc {
+                  font-size: 13.5px !important;
+                }
+                .ev-detail-pill {
+                  font-size: 11px !important;
+                  padding: 6px 10px !important;
+                }
+                .ev-detail-meta {
+                  flex-direction: column !important;
+                  gap: 8px !important;
+                }
+                .ev-detail-meta span {
+                  font-size: 12.5px !important;
+                }
+                .ev-detail-actions .ev-btn {
+                  width: 100% !important;
+                  justify-content: center !important;
+                  padding: 12px 16px !important;
+                }
+                .ev-detail-about {
+                  padding: 18px 16px !important;
+                }
+                .ev-detail-section-title {
+                  font-size: 20px !important;
+                }
+                .ev-detail-section-subtitle {
+                  font-size: 12px !important;
+                }
+                .ev-detail-vert-card {
+                  padding: 14px 14px !important;
+                }
+                .ev-detail-vert-title {
+                  font-size: 13px !important;
+                }
+                .ev-detail-vert-desc {
+                  font-size: 11.5px !important;
+                }
+                .ev-detail-speakers-header {
+                  font-size: 18px !important;
+                }
+                .ev-detail-speaker-card {
+                  padding: 14px 12px !important;
+                }
+                .ev-detail-speaker-name {
+                  font-size: 14px !important;
+                }
+                .ev-detail-prize-amount {
+                  font-size: 28px !important;
+                }
+                .ev-detail-prize-track {
+                  font-size: 22px !important;
+                }
+                .ev-detail-cta-card {
+                  padding: 20px 16px !important;
+                }
+                .ev-detail-cta-title {
+                  font-size: 18px !important;
+                }
+              }
+              /* ── Footer Responsive ── */
+              @media (max-width: 640px) {
+                .ev-footer-inner {
+                  padding: 32px 16px 24px !important;
+                }
+                .ev-footer-grid {
+                  grid-template-columns: 1fr 1fr !important;
+                  gap: 24px !important;
+                }
+                .ev-footer-brand {
+                  grid-column: span 2 !important;
+                }
+                .ev-footer-bottom {
+                  flex-direction: column !important;
+                  align-items: flex-start !important;
+                  gap: 14px !important;
+                }
+                .ev-footer-social {
+                  gap: 16px !important;
+                }
+              }
+              @media (max-width: 380px) {
+                .ev-footer-grid {
+                  grid-template-columns: 1fr !important;
+                }
+                .ev-footer-brand {
+                  grid-column: span 1 !important;
+                }
+              }
             `,
           }}
         />
@@ -935,57 +1144,35 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
       <div id="ev-tickwrap" style={{ position: 'sticky', top: 0, zIndex: 62, overflow: 'hidden', borderBottom: '1px solid var(--line)', background: 'linear-gradient(90deg, rgba(124,92,252,.12), rgba(240,166,232,.08) 52%, rgba(111,168,245,.10))' }}>
         <div id="ev-ticker" style={{ display: 'flex', width: 'max-content', padding: '9px 0', animation: 'ev-tick 46s linear infinite' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 0, flex: 'none' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
-              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>The network is a feed until it meets in person.</span>
-              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
-              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>86 ECHO events across 31 campuses.</span>
-              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
-              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>267 roles matched, 41 with a warm referral path.</span>
-              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
-              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>Verified by your college email — free forever for students.</span>
-              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
-              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>HackWave 3.0 · Sep 4–5 · Sreenidhi (SNIST) · ₹2,00,000 Mega Grand Pool (₹50,000 Track Pool)</span>
-              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
-              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>Built with love for students across all campuses</span>
-              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
-            </span>
+            {(activeEvent.ticker_messages?.length ? activeEvent.ticker_messages : [
+              { text: 'The network is a feed until it meets in person.' },
+              { text: '86 ECHO events across 31 campuses.' },
+              { text: '267 roles matched, 41 with a warm referral path.' },
+              { text: 'Verified by your college email — free forever for students.' },
+              { text: `HackWave 3.0 · Sep 4–5 · Sreenidhi (SNIST) · ${(activeEvent.prize_pool || '₹2,00,000 Mega Grand Pool')}` },
+              { text: 'Built with love for students across all campuses' },
+            ]).map((msg: any, i: number) => (
+              <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: '13px', color: 'var(--muted)' }}>{msg.text}</span>
+                <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+              </span>
+            ))}
           </div>
           {/* Duplicate set for seamless infinite loop */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 0, flex: 'none' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
-              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>The network is a feed until it meets in person.</span>
-              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
-              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>86 ECHO events across 31 campuses.</span>
-              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
-              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>267 roles matched, 41 with a warm referral path.</span>
-              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
-              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>Verified by your college email — free forever for students.</span>
-              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
-              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>HackWave 3.0 · Sep 4–5 · Sreenidhi (SNIST) · ₹2,00,000 Mega Grand Pool (₹50,000 Track Pool)</span>
-              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
-              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>Built with love for students across all campuses</span>
-              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
-            </span>
+            {(activeEvent.ticker_messages?.length ? activeEvent.ticker_messages : [
+              { text: 'The network is a feed until it meets in person.' },
+              { text: '86 ECHO events across 31 campuses.' },
+              { text: '267 roles matched, 41 with a warm referral path.' },
+              { text: 'Verified by your college email — free forever for students.' },
+              { text: `HackWave 3.0 · Sep 4–5 · Sreenidhi (SNIST) · ${(activeEvent.prize_pool || '₹2,00,000 Mega Grand Pool')}` },
+              { text: 'Built with love for students across all campuses' },
+            ]).map((msg: any, i: number) => (
+              <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: '13px', color: 'var(--muted)' }}>{msg.text}</span>
+                <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+              </span>
+            ))}
           </div>
         </div>
       </div>
@@ -1251,7 +1438,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
       {/* VIEW 2: EVENT DETAIL VIEW                                 */}
       {/* ────────────────────────────────────────────────────────── */}
       {view === 'detail' && (
-        <div className="ev-anim-in" style={{ position: 'relative', zIndex: 1, maxWidth: '1400px', width: '100%', margin: '0 auto', padding: '26px 28px 90px' }}>
+        <div className="ev-anim-in ev-detail-container" style={{ position: 'relative', zIndex: 1, maxWidth: '1400px', width: '100%', margin: '0 auto', padding: '26px 28px 90px' }}>
           
           {/* Back to Events List Button */}
           <span
@@ -1264,10 +1451,10 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
           </span>
 
           {/* Wide Event Hero Banner */}
-          <div style={{ border: '1px solid var(--line2)', borderRadius: '22px', overflow: 'hidden', background: 'var(--panel)', marginBottom: '22px', width: '100%' }}>
+          <div className="ev-detail-banner" style={{ border: '1px solid var(--line2)', borderRadius: '22px', overflow: 'hidden', background: 'var(--panel)', marginBottom: '22px', width: '100%' }}>
             
             {/* Banner Top Graphic */}
-            <div style={{ position: 'relative', minHeight: '360px', background: 'linear-gradient(135deg, #1C1236 0%, #2A1758 50%, #160D30 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', overflow: 'hidden' }}>
+            <div className="ev-detail-poster" style={{ position: 'relative', minHeight: '360px', background: 'linear-gradient(135deg, #1C1236 0%, #2A1758 50%, #160D30 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', overflow: 'hidden' }}>
               {activeEvent.poster_banner && (
                 <img src={activeEvent.poster_banner} alt={activeEvent.title} style={{ width: '100%', maxHeight: '480px', objectFit: 'contain', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.12)', boxShadow: '0 20px 50px rgba(0,0,0,0.5)', margin: '0 auto' }} />
               )}
@@ -1275,7 +1462,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
             </div>
 
             {/* Banner Bottom Info */}
-            <div style={{ position: 'relative', background: 'var(--panel)', padding: '28px 34px 30px' }}>
+            <div className="ev-detail-banner-info" style={{ position: 'relative', background: 'var(--panel)', padding: '28px 34px 30px' }}>
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '14px' }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', fontSize: '11px', fontWeight: 700, letterSpacing: '.9px', color: 'var(--amber)', background: 'rgba(245,179,66,.15)', border: '1px solid #4A3410', borderRadius: '100px', padding: '6px 13px' }}>
                   <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--amber)', animation: 'ev-dot 2s ease-in-out infinite' }} />
@@ -1286,15 +1473,15 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 </span>
               </div>
 
-              <div style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.1px', color: '#FFFFFF' }}>
+              <div className="ev-detail-title" style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.1px', color: '#FFFFFF' }}>
                 {activeEvent.title.split('–')[0]} – <span style={{ color: 'var(--violet-lt)' }}>{activeEvent.college}</span>
               </div>
-              <div style={{ fontSize: '15px', lineHeight: 1.6, color: 'var(--muted)', margin: '8px 0 18px', maxWidth: '680px' }}>
+              <div className="ev-detail-desc" style={{ fontSize: '15px', lineHeight: 1.6, color: 'var(--muted)', margin: '8px 0 18px', maxWidth: '680px' }}>
                 {activeEvent.description}
               </div>
 
               {/* Pill Tags */}
-              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '22px' }}>
+              <div className="ev-detail-pills" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '22px' }}>
                 <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--amber)', background: 'rgba(245,179,66,.12)', border: '1px solid #4A3410', borderRadius: '100px', padding: '8px 14px' }}>
                   {activeEvent.date_pill}
                 </span>
@@ -1311,7 +1498,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
               </div>
 
               {/* Meta strip & Action Buttons */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px', borderTop: '1px solid var(--line)', paddingTop: '22px', flexWrap: 'wrap' }}>
+              <div className="ev-detail-meta" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px', borderTop: '1px solid var(--line)', paddingTop: '22px', flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', gap: '22px', flexWrap: 'wrap' }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '13.5px', color: 'var(--muted)' }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 1.8 }}><rect x="3.5" y="5" width="17" height="15" rx="2.5"></rect><path d="M3.5 10h17M8 5V2.5M16 5V2.5"></path></svg>
@@ -1327,7 +1514,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                   </span>
                 </div>
 
-                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                <div className="ev-detail-actions" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                   <span
                     onClick={() => go('reg', activeEvent.slug)}
                     className="ev-btn"
@@ -1362,7 +1549,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
           <div className="ev-dgrid" style={{ display: 'grid', gap: '22px', marginBottom: '28px', width: '100%' }}>
             
             {/* About Card */}
-            <div style={{ border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '26px 28px 28px' }}>
+            <div className="ev-detail-about" style={{ border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '26px 28px 28px' }}>
               <div style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-.4px', color: '#FFFFFF' }}>About the Event</div>
               <div style={{ fontSize: '14px', color: 'var(--muted)', margin: '7px 0 22px' }}>A day of inspiration, learning, and networking</div>
               
@@ -1408,9 +1595,9 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
               </div>
               <div style={{ fontSize: '14px', fontWeight: 700, marginBottom: '14px', color: '#FFFFFF' }}>In Association With</div>
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                {activeEvent.partners.map((partner: string, idx: number) => (
+                {activeEvent.partners.map((partner: any, idx: number) => (
                   <span key={idx} style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text)', border: '1px solid var(--line2)', background: 'var(--panel2)', borderRadius: '100px', padding: '9px 16px' }}>
-                    {partner}
+                    {typeof partner === 'string' ? partner : partner.name}
                   </span>
                 ))}
               </div>
@@ -1420,7 +1607,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
 
           {/* Official Event Posters & Gallery */}
           <div style={{ marginBottom: '30px' }}>
-            <div style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-.4px', marginBottom: '16px', color: '#FFFFFF' }}>Official Event Posters & Gallery</div>
+            <div className="ev-detail-section-title" style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-.4px', marginBottom: '16px', color: '#FFFFFF' }}>Official Event Posters & Gallery</div>
             {activeEvent.gallery_images && activeEvent.gallery_images.length > 0 ? (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '18px' }}>
                 {activeEvent.gallery_images.map((img: string, gidx: number) => (
@@ -1440,9 +1627,8 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
           {/* ────────────────────────────────────────────────────────── */}
           {/* A NATIONAL-LEVEL TECH FEST — 7 VERTICALS (BANNER 4)       */}
           {/* ────────────────────────────────────────────────────────── */}
-          <div style={{ marginBottom: '32px', border: '1px solid #3A2E72', borderRadius: '22px', background: 'linear-gradient(135deg, #1B143A 0%, #110E24 100%)', padding: '32px 30px' }}>
-            <div style={{ textAlign: 'center', marginBottom: '26px' }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 700, letterSpacing: '1.4px', color: '#FFFFFF', background: '#EF4444', borderRadius: '100px', padding: '6px 14px', marginBottom: '12px' }}>
+          <div style={{ marginBottom: '32px', border: '1px solid #3A2E72', borderRadius: '22px', background: 'linear-gradient(135deg, #1B143A 0%, #110E24 100%)', padding: '32px 30px' }}>              <div style={{ textAlign: 'center', marginBottom: '26px' }}>
+              <span className="ev-detail-section-subtitle" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 700, letterSpacing: '1.4px', color: '#FFFFFF', background: '#EF4444', borderRadius: '100px', padding: '6px 14px', marginBottom: '12px' }}>
                 THIS IS NOT JUST A HACKATHON
               </span>
               <div style={{ fontSize: '32px', fontWeight: 800, letterSpacing: '-1.1px', color: '#FFFFFF' }}>
@@ -1454,24 +1640,24 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '14px' }}>
-              {(activeEvent.verticals || [
-                { title: 'Build by Sunset', desc: 'Ship something real between morning and dusk. Teams of 2–5, 5 AI tracks, ₹50,000 prize pool.', icon: 'rocket' },
-                { title: 'Codethon', desc: 'Pre-event coding ladder: L1 to L2 to L3. Individual, scored, closes before Sep 4.', icon: 'code' },
-                { title: 'Voices That Build', desc: 'A panel of people who have actually shipped — not people talking about shipping.', icon: 'mic' },
-                { title: 'Meet the People Who Hire', desc: 'Recruiters in the room, not behind a portal. On-the-spot internship and placement offers.', icon: 'briefcase' },
-                { title: 'Cyber Security Conclave', desc: 'Virtual, featuring the ISC2 New Jersey Chapter — global insights on trends, certifications, career pathways.', icon: 'shield' },
-                { title: 'International Panel', desc: 'Speakers joining live on the big screen from outside India.', icon: 'globe' },
-                { title: 'Between the Builds', desc: 'Sleep, eat, work, find people. Open across both days.', icon: 'bed' },
-                { title: 'Play After Dark', desc: 'Live music when the laptops finally close.', icon: 'music' },
-                { title: 'Build by Fireside', desc: "Where the idea you haven't shipped yet finally gets heard.", icon: 'flame' }
+              {(activeEvent.categories || activeEvent.verticals || [
+                { name: 'Build by Sunset', description: 'Ship something real between morning and dusk. Teams of 2–5, 5 AI tracks, ₹50,000 prize pool.', icon: 'rocket' },
+                { name: 'Codethon', description: 'Pre-event coding ladder: L1 to L2 to L3. Individual, scored, closes before Sep 4.', icon: 'code' },
+                { name: 'Voices That Build', description: 'A panel of people who have actually shipped — not people talking about shipping.', icon: 'mic' },
+                { name: 'Meet the People Who Hire', description: 'Recruiters in the room, not behind a portal. On-the-spot internship and placement offers.', icon: 'briefcase' },
+                { name: 'Cyber Security Conclave', description: 'Virtual, featuring the ISC2 New Jersey Chapter — global insights on trends, certifications, career pathways.', icon: 'shield' },
+                { name: 'International Panel', description: 'Speakers joining live on the big screen from outside India.', icon: 'globe' },
+                { name: 'Between the Builds', description: 'Sleep, eat, work, find people. Open across both days.', icon: 'bed' },
+                { name: 'Play After Dark', description: 'Live music when the laptops finally close.', icon: 'music' },
+                { name: 'Build by Fireside', description: "Where the idea you haven't shipped yet finally gets heard.", icon: 'flame' }
               ]).map((vert: any, vidx: number) => (
-                <div key={vidx} className="ev-mini" style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', padding: '16px 18px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px' }}>
+                <div key={vidx} className="ev-mini ev-detail-vert-card" style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', padding: '16px 18px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px' }}>
                   <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(124,92,252,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', marginTop: '2px' }}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C4B5FD" strokeWidth="2"><path d="M12 2l1.9 5.1L19 9l-5.1 1.9L12 16l-1.9-5.1L5 9l5.1-1.9Z" /></svg>
                   </div>
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: '15px', fontWeight: 700, color: '#FFFFFF', marginBottom: '4px' }}>{vert.title}</div>
-                    <div style={{ fontSize: '12.5px', color: '#9CA3AF', lineHeight: 1.5 }}>{vert.desc}</div>
+                    <div className="ev-detail-vert-title" style={{ fontSize: '15px', fontWeight: 700, color: '#FFFFFF', marginBottom: '4px' }}>{vert.name || vert.title}</div>
+                    <div className="ev-detail-vert-desc" style={{ fontSize: '12.5px', color: '#9CA3AF', lineHeight: 1.5 }}>{vert.description || vert.desc}</div>
                   </div>
                 </div>
               ))}
@@ -1479,112 +1665,153 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
           </div>
 
           {/* ────────────────────────────────────────────────────────── */}
-          {/* CYBER SECURITY WITH AI CONCLAVE (BANNER 2)                 */}
+          {/* CYBER SECURITY WITH AI CONCLAVE (BANNER 2) — from CMS      */}
           {/* ────────────────────────────────────────────────────────── */}
-          <div style={{ marginBottom: '32px', border: '1px solid #4338CA', borderRadius: '22px', background: 'linear-gradient(135deg, #1E1B4B 0%, #0F172A 100%)', padding: '30px 32px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap', marginBottom: '18px' }}>
-              <div>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 700, letterSpacing: '1.4px', color: '#818CF8', background: 'rgba(99,102,241,0.18)', borderRadius: '100px', padding: '6px 14px', marginBottom: '10px' }}>
-                  INTERNATIONAL VIRTUAL CONCLAVE
-                </span>
-                <div style={{ fontSize: '30px', fontWeight: 800, letterSpacing: '-1px', color: '#FFFFFF' }}>
-                  Cyber Security with <span style={{ color: '#38BDF8' }}>AI</span>
-                </div>
-                <div style={{ fontSize: '13.5px', color: '#94A3B8', marginTop: '4px' }}>
-                  Global insights for students building a career in security · Presented by <strong style={{ color: '#E0E7FF' }}>ISC2 New Jersey Chapter (USA) × StudentAlumni.ai</strong>
-                </div>
-              </div>
-              <div style={{ padding: '12px 18px', background: 'rgba(99,102,241,0.15)', border: '1px solid #4F46E5', borderRadius: '12px', textAlign: 'right' }}>
-                <div style={{ fontSize: '12px', fontWeight: 700, color: '#C7D2FE' }}>FRIDAY, SEPTEMBER 4, 2026</div>
-                <div style={{ fontSize: '16px', fontWeight: 800, color: '#38BDF8', marginTop: '2px' }}>6:00 PM IST · 8:30 AM ET</div>
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '12px', marginTop: '18px' }}>
-              {[
-                { title: 'Global security trends', desc: 'Where the threat landscape is moving.' },
-                { title: 'AI on both sides', desc: 'How AI is reshaping defence and attack.' },
-                { title: 'Certifications that matter', desc: 'CISSP, CC and the paths worth it.' },
-                { title: 'Career pathways', desc: 'How to enter the field from campus.' }
-              ].map((sess, sidx) => (
-                <div key={sidx} style={{ padding: '16px 18px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px' }}>
-                  <div style={{ fontSize: '14.5px', fontWeight: 700, color: '#FFFFFF', marginBottom: '4px' }}>{sess.title}</div>
-                  <div style={{ fontSize: '12.5px', color: '#94A3B8' }}>{sess.desc}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* ────────────────────────────────────────────────────────── */}
-          {/* MEET THE SPEAKERS (BANNER 3)                              */}
-          {/* ────────────────────────────────────────────────────────── */}
-          <div style={{ marginBottom: '32px' }}>
-            <div style={{ textAlign: 'center', marginBottom: '22px' }}>
-              <div style={{ fontSize: '30px', fontWeight: 800, letterSpacing: '-1px', color: '#FFFFFF' }}>Meet the Speakers</div>
-              <div style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '1.4px', color: 'var(--violet-lt)', marginTop: '4px' }}>
-                HACKWAVE 3.0 · SEPTEMBER 4 – 5, 2026 · SNIST CAMPUS
-              </div>
-            </div>
-
-            {/* International Panel */}
-            <div style={{ marginBottom: '22px' }}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 700, letterSpacing: '1.3px', color: '#C4B5FD', background: 'rgba(124,92,252,0.25)', borderRadius: '100px', padding: '6px 14px', marginBottom: '14px' }}>
-                INTERNATIONAL PANEL · CYBER SECURITY CONCLAVE
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
-                {[
-                  { name: 'Stan Mierzwa, Ph.D.', role: 'Director, Center for Cybersecurity', org: 'Kean University', loc: 'Union, New Jersey, USA', li: 'in/stanmierzwa' },
-                  { name: 'Ken Fishkin', role: 'President, ISC2 New Jersey Chapter', org: 'ISC2 New Jersey Chapter', loc: 'New Jersey, USA', li: 'in/kfishkin' },
-                  { name: 'Sharon Kelley', role: 'Board Member, ISC2 New Jersey Chapter', org: 'MS, MBA, CISSP, CCSP', loc: 'Hoboken, New Jersey, USA', li: 'in/sharon-kelley-0292181' },
-                  { name: 'Jeremy Livingston', role: 'CISO & Deputy CIO', org: 'Stevens Institute of Technology', loc: 'Effort, Pennsylvania, USA', li: 'in/jeremylivin' },
-                  { name: 'Suman Kalia', role: 'Associate Professor & Chair, Computer Science', org: "Saint Peter's University", loc: 'Jersey City, New Jersey, USA', li: 'in/suman-kalia-300b521' }
-                ].map((spk, idx) => (
-                  <div key={idx} className="ev-mini" style={{ padding: '20px 18px', background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: '16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #7C5CFC, #38BDF8)', margin: '0 auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF', fontWeight: 800, fontSize: '20px' }}>
-                      {spk.name.replace(', Ph.D.', '').split(' ').map((n) => n[0]).join('')}
+          {(() => {
+            const conclave = activeEvent.cyber_conclave;
+            if (!conclave || conclave.enabled === false) return null;
+            const sessions = conclave.sessions?.length ? conclave.sessions : [
+              { title: 'Global security trends', description: 'Where the threat landscape is moving.' },
+              { title: 'AI on both sides', description: 'How AI is reshaping defence and attack.' },
+              { title: 'Certifications that matter', description: 'CISSP, CC and the paths worth it.' },
+              { title: 'Career pathways', description: 'How to enter the field from campus.' },
+            ];
+            return (
+              <div style={{ marginBottom: '32px', border: '1px solid #4338CA', borderRadius: '22px', background: 'linear-gradient(135deg, #1E1B4B 0%, #0F172A 100%)', padding: '30px 32px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap', marginBottom: '18px' }}>
+                  <div>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 700, letterSpacing: '1.4px', color: '#818CF8', background: 'rgba(99,102,241,0.18)', borderRadius: '100px', padding: '6px 14px', marginBottom: '10px' }}>
+                      {conclave.badge || 'INTERNATIONAL VIRTUAL CONCLAVE'}
+                    </span>
+                    <div style={{ fontSize: '30px', fontWeight: 800, letterSpacing: '-1px', color: '#FFFFFF' }}>
+                      {(conclave.title || 'Cyber Security with AI').split('AI').length > 1 ? (
+                        <>{(conclave.title || 'Cyber Security with AI').split('AI')[0]}<span style={{ color: '#38BDF8' }}>AI</span>{(conclave.title || '').split('AI')[1] || ''}</>
+                      ) : (conclave.title || 'Cyber Security with AI')}
                     </div>
-                    <div style={{ fontSize: '16px', fontWeight: 700, color: '#FFFFFF' }}>{spk.name}</div>
-                    <div style={{ fontSize: '12.5px', color: 'var(--violet-lt)', fontWeight: 600, marginTop: '3px' }}>{spk.role}</div>
-                    <div style={{ fontSize: '12px', color: '#9CA3AF', marginTop: '2px' }}>{spk.org}</div>
-                    <div style={{ fontSize: '11px', color: '#6B7280', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
-                      {spk.loc}
-                    </div>
-                    {spk.li && (
-                      <a href={`https://linkedin.com/${spk.li}`} target="_blank" rel="noreferrer" style={{ fontSize: '11px', color: '#38BDF8', fontWeight: 600, marginTop: '8px', display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
-                        {spk.li}
-                      </a>
+                    {conclave.subtitle && (
+                      <div style={{ fontSize: '13.5px', color: '#94A3B8', marginTop: '4px' }}>{conclave.subtitle}</div>
                     )}
                   </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Voices That Build */}
-            <div>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 700, letterSpacing: '1.3px', color: '#38BDF8', background: 'rgba(56,189,248,0.18)', borderRadius: '100px', padding: '6px 14px', marginBottom: '14px' }}>
-                VOICES THAT BUILD
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
-                {[
-                  { name: 'Jonna Dheeraj', role: 'Account Delivery & Program Management', org: 'Embedded SW · AI · VLSI · 5G · IoT' },
-                  { name: 'Harish Kotra', role: 'DevX Lead', org: 'Quirq' },
-                  { name: 'M Avinash Rao', role: 'Client Account Manager', org: 'Deloitte' },
-                  { name: 'Gopichand Anumolu', role: 'Founder', org: 'ATLAST' }
-                ].map((spk, idx) => (
-                  <div key={idx} className="ev-mini" style={{ padding: '20px 18px', background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: '16px', textAlign: 'center' }}>
-                    <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #38BDF8, #34D399)', margin: '0 auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF', fontWeight: 800, fontSize: '22px' }}>
-                      {spk.name.split(' ').map((n) => n[0]).join('')}
+                  {(conclave.date_label || conclave.time_label) && (
+                    <div style={{ padding: '12px 18px', background: 'rgba(99,102,241,0.15)', border: '1px solid #4F46E5', borderRadius: '12px', textAlign: 'right' }}>
+                      {conclave.date_label && <div style={{ fontSize: '12px', fontWeight: 700, color: '#C7D2FE' }}>{conclave.date_label}</div>}
+                      {conclave.time_label && <div style={{ fontSize: '16px', fontWeight: 800, color: '#38BDF8', marginTop: '2px' }}>{conclave.time_label}</div>}
                     </div>
-                    <div style={{ fontSize: '16px', fontWeight: 700, color: '#FFFFFF' }}>{spk.name}</div>
-                    <div style={{ fontSize: '13px', color: '#38BDF8', fontWeight: 600, marginTop: '3px' }}>{spk.role}</div>
-                    <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>{spk.org}</div>
+                  )}
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '12px', marginTop: '18px' }}>
+                  {sessions.map((sess: any, sidx: number) => (
+                    <div key={sidx} style={{ padding: '16px 18px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px' }}>
+                      <div style={{ fontSize: '14.5px', fontWeight: 700, color: '#FFFFFF', marginBottom: '4px' }}>{sess.title}</div>
+                      <div style={{ fontSize: '12.5px', color: '#94A3B8' }}>{sess.description}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* ────────────────────────────────────────────────────────── */}
+          {/* MEET THE SPEAKERS (BANNER 3) — from CMS speakers          */}
+          {/* ────────────────────────────────────────────────────────── */}
+          {(() => {
+            const allSpeakers = activeEvent.speakers || [];
+            if (allSpeakers.length === 0) return null;
+            // Group speakers by category
+            const catGroups: Record<string, any[]> = {};
+            const ungrouped: any[] = [];
+            allSpeakers.filter((s: any) => s.visible !== false).forEach((spk: any) => {
+              const cat = spk.category || spk.session_title || '';
+              if (cat) {
+                if (!catGroups[cat]) catGroups[cat] = [];
+                catGroups[cat].push(spk);
+              } else {
+                ungrouped.push(spk);
+              }
+            });
+            const catColors: Record<string, string> = {};
+            const palette = ['#C4B5FD', '#38BDF8', '#34D399', '#FBBF24', '#F87171'];
+            let ci = 0;
+            Object.keys(catGroups).forEach((k) => { catColors[k] = palette[ci % palette.length]; ci++; });
+
+            return (
+              <div style={{ marginBottom: '32px' }}>
+                <div style={{ textAlign: 'center', marginBottom: '22px' }}>
+                  <div className="ev-detail-speakers-header" style={{ fontSize: '30px', fontWeight: 800, letterSpacing: '-1px', color: '#FFFFFF' }}>Meet the Speakers</div>
+                  <div style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '1.4px', color: 'var(--violet-lt)', marginTop: '4px' }}>
+                    {(activeEvent.title || '').toUpperCase()} · {(activeEvent.dates || '').toUpperCase()} · {(activeEvent.college || '').toUpperCase()} CAMPUS
+                  </div>
+                </div>
+
+                {/* Render each category group */}
+                {Object.entries(catGroups).map(([catName, speakers]) => (
+                  <div key={catName} style={{ marginBottom: '22px' }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 700, letterSpacing: '1.3px', color: catColors[catName] || '#C4B5FD', background: `${catColors[catName] || '#C4B5FD'}22`, borderRadius: '100px', padding: '6px 14px', marginBottom: '14px' }}>
+                      {catName.toUpperCase()}
+                    </div>
+                    <div className="ev-detail-speakers-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
+                      {speakers.map((spk: any, idx: number) => (
+                        <div key={idx} className="ev-mini ev-detail-speaker-card" style={{ padding: '20px 18px', background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: '16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                          {spk.photo_url ? (
+                            <img src={spk.photo_url} alt={spk.name} style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', margin: '0 auto 12px' }} />
+                          ) : (
+                            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: `linear-gradient(135deg, ${catColors[catName] || '#7C5CFC'}, #38BDF8)`, margin: '0 auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF', fontWeight: 800, fontSize: '20px' }}>
+                              {spk.name.split(' ').map((n: string) => n[0]).join('')}
+                            </div>
+                          )}
+                          <div className="ev-detail-speaker-name" style={{ fontSize: '16px', fontWeight: 700, color: '#FFFFFF' }}>{spk.name}</div>
+                          <div className="ev-detail-speaker-role" style={{ fontSize: '12.5px', color: catColors[catName] || 'var(--violet-lt)', fontWeight: 600, marginTop: '3px' }}>{[spk.position, spk.company].filter(Boolean).join(', ')}</div>
+                          {spk.location && (
+                            <div style={{ fontSize: '11px', color: '#6B7280', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                              {spk.location}
+                            </div>
+                          )}
+                          {spk.linkedin_url && (
+                            <a href={spk.linkedin_url.startsWith('http') ? spk.linkedin_url : `https://linkedin.com/${spk.linkedin_url}`} target="_blank" rel="noreferrer" style={{ fontSize: '11px', color: '#38BDF8', fontWeight: 600, marginTop: '8px', display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
+                              LinkedIn
+                            </a>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ))}
+
+                {/* Ungrouped speakers */}
+                {ungrouped.length > 0 && (
+                  <div style={{ marginBottom: '22px' }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 700, letterSpacing: '1.3px', color: '#C4B5FD', background: 'rgba(124,92,252,0.25)', borderRadius: '100px', padding: '6px 14px', marginBottom: '14px' }}>
+                      SPEAKERS
+                    </div>
+                    <div className="ev-detail-speakers-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
+                      {ungrouped.map((spk: any, idx: number) => (
+                        <div key={idx} className="ev-mini ev-detail-speaker-card" style={{ padding: '20px 18px', background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: '16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                          {spk.photo_url ? (
+                            <img src={spk.photo_url} alt={spk.name} style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', margin: '0 auto 12px' }} />
+                          ) : (
+                            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #7C5CFC, #38BDF8)', margin: '0 auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF', fontWeight: 800, fontSize: '20px' }}>
+                              {spk.name.split(' ').map((n: string) => n[0]).join('')}
+                            </div>
+                          )}
+                          <div className="ev-detail-speaker-name" style={{ fontSize: '16px', fontWeight: 700, color: '#FFFFFF' }}>{spk.name}</div>
+                          <div className="ev-detail-speaker-role" style={{ fontSize: '12.5px', color: 'var(--violet-lt)', fontWeight: 600, marginTop: '3px' }}>{[spk.position, spk.company].filter(Boolean).join(', ')}</div>
+                          {spk.location && (
+                            <div style={{ fontSize: '11px', color: '#6B7280', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                              {spk.location}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          </div>
+            );
+          })()}
 
           {/* ────────────────────────────────────────────────────────── */}
           {/* ONE TICKET. ₹599. MEGA GRAND POOL & ALL PERKS (BANNER 5)   */}
@@ -1613,20 +1840,20 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
             {/* Perks Cards List */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '10px' }}>
               {(activeEvent.perks || [
-                { name: 'Featherless AI', desc: 'A full account, free', value: '$29 value' },
-                { name: 'SetupMark AI', desc: '50 credits, 2 months free', value: '$50 value' },
-                { name: 'CodeSpectra AI', desc: '3 months completely free', value: 'Assessments' },
-                { name: 'Bandiwala', desc: '15% off food', value: 'Coupon' },
-                { name: 'WeHive Consulting', desc: '15% off services', value: 'Coupon' },
-                { name: 'Four meal coupons', desc: 'Lunch, dinner, midnight, breakfast', value: 'Included' },
-                { name: 'Certificates for all', desc: 'Participation and winner certificates', value: 'Verifiable' },
-                { name: 'On-the-spot offers', desc: 'Internship and placement offers, in the room', value: 'Live' },
-                { name: 'Surprise goodies', desc: 'Extra prizes and drops announced on the day', value: 'Surprise' }
+                { name: 'Featherless AI', description: 'A full account, free', value: '$29 value' },
+                { name: 'SetupMark AI', description: '50 credits, 2 months free', value: '$50 value' },
+                { name: 'CodeSpectra AI', description: '3 months completely free', value: 'Assessments' },
+                { name: 'Bandiwala', description: '15% off food', value: 'Coupon' },
+                { name: 'WeHive Consulting', description: '15% off services', value: 'Coupon' },
+                { name: 'Four meal coupons', description: 'Lunch, dinner, midnight, breakfast', value: 'Included' },
+                { name: 'Certificates for all', description: 'Participation and winner certificates', value: 'Verifiable' },
+                { name: 'On-the-spot offers', description: 'Internship and placement offers, in the room', value: 'Live' },
+                { name: 'Surprise goodies', description: 'Extra prizes and drops announced on the day', value: 'Surprise' }
               ]).map((perk: any, pidx: number) => (
                 <div key={pidx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '11px' }}>
                   <div>
                     <div style={{ fontSize: '14px', fontWeight: 700, color: '#FFFFFF' }}>{perk.name}</div>
-                    <div style={{ fontSize: '12px', color: '#9CA3AF' }}>{perk.desc}</div>
+                    <div style={{ fontSize: '12px', color: '#9CA3AF' }}>{perk.description || perk.desc}</div>
                   </div>
                   <span style={{ fontSize: '11px', fontWeight: 700, padding: '4px 10px', background: 'rgba(245,158,11,0.2)', color: '#FBBF24', borderRadius: '100px' }}>
                     {perk.value}
@@ -1637,13 +1864,13 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
           </div>
 
           {/* Stay Tuned CTA Strip */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '24px', border: '1px solid #4B3FA8', borderRadius: '18px', background: 'linear-gradient(100deg, #3B2A86, #2A1F63 70%)', padding: '26px 32px', flexWrap: 'wrap', width: '100%' }}>
+          <div className="ev-detail-cta-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '24px', border: '1px solid #4B3FA8', borderRadius: '18px', background: 'linear-gradient(100deg, #3B2A86, #2A1F63 70%)', padding: '26px 32px', flexWrap: 'wrap', width: '100%' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', minWidth: 0 }}>
               <span style={{ width: '50px', height: '50px', borderRadius: '50%', background: 'rgba(255,255,255,.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" style={{ fill: 'none', stroke: '#E7DEFF', strokeWidth: 1.8 }}><rect x="3.5" y="5" width="17" height="15" rx="2.5"></rect><path d="M3.5 10h17M8 5V2.5M16 5V2.5"></path></svg>
               </span>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-.4px', color: '#FFFFFF' }}>Stay tuned for more events!</div>
+                <div className="ev-detail-cta-title" style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-.4px', color: '#FFFFFF' }}>Stay tuned for more events!</div>
                 <div style={{ fontSize: '14.5px', color: '#C9BFF2', marginTop: '4px' }}>Join our community and never miss an opportunity to learn, connect, and grow.</div>
               </div>
             </div>
@@ -1663,7 +1890,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
       {/* VIEW 3: EVENT REGISTRATION FORM VIEW                      */}
       {/* ────────────────────────────────────────────────────────── */}
       {view === 'reg' && (
-        <div className="ev-anim-in" style={{ position: 'relative', zIndex: 1, maxWidth: '1400px', width: '100%', margin: '0 auto', padding: '26px 28px 90px' }}>
+        <div className="ev-anim-in ev-reg-container" style={{ position: 'relative', zIndex: 1, maxWidth: '1400px', width: '100%', margin: '0 auto', padding: '26px 28px 90px' }}>
           
           {/* Back to Event Button */}
           <span
@@ -1676,15 +1903,15 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
           </span>
 
           {/* Registration Header Banner */}
-          <div style={{ position: 'relative', overflow: 'hidden', border: '1px solid var(--line2)', borderRadius: '18px', background: 'linear-gradient(115deg, #1B1836, #12121F 68%)', padding: '24px 28px 26px', marginBottom: '22px', width: '100%' }}>
+          <div className="ev-reg-header" style={{ position: 'relative', overflow: 'hidden', border: '1px solid var(--line2)', borderRadius: '18px', background: 'linear-gradient(115deg, #1B1836, #12121F 68%)', padding: '24px 28px 26px', marginBottom: '22px', width: '100%' }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: 'var(--violet-lt)', background: 'rgba(124,92,252,.18)', borderRadius: '8px', padding: '6px 12px' }}>
               <svg width="12" height="12" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 2 }}><path d="M3 8.5A2.5 2.5 0 015.5 6h13A2.5 2.5 0 0121 8.5v.5a2 2 0 000 6v.5A2.5 2.5 0 0118.5 18h-13A2.5 2.5 0 013 15.5V15a2 2 0 000-6Z"></path></svg>
               REGISTER
             </span>
-            <div style={{ fontSize: '28px', fontWeight: 700, letterSpacing: '-.9px', margin: '14px 0 6px', color: '#FFFFFF' }}>{activeEvent.title}</div>
+            <div className="ev-reg-header-title" style={{ fontSize: '28px', fontWeight: 700, letterSpacing: '-.9px', margin: '14px 0 6px', color: '#FFFFFF' }}>{activeEvent.title}</div>
             <div style={{ fontSize: '14px', color: 'var(--muted)', marginBottom: '18px' }}>{activeEvent.organizer}</div>
             
-            <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
+            <div className="ev-reg-header-meta" style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '9px', fontSize: '13.5px', color: 'var(--muted)' }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, flex: 'none' }}><rect x="3.5" y="5" width="17" height="15" rx="2.5"></rect><path d="M3.5 10h17M8 5V2.5M16 5V2.5"></path></svg>
                 {activeEvent.dates}
@@ -1701,10 +1928,10 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
           </div>
 
           {/* 2-Column Grid: Poster & Registration Form */}
-          <div className="ev-rgrid" style={{ display: 'grid', gap: '24px', alignItems: 'start', width: '100%' }}>
+          <div className="ev-rgrid ev-reg-grid" style={{ display: 'grid', gap: '24px', alignItems: 'start', width: '100%' }}>
             
             {/* Left Column: Event Poster */}
-            <div style={{ border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '16px', overflow: 'hidden' }}>
+            <div className="ev-reg-poster" style={{ border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '16px', overflow: 'hidden' }}>
               <div style={{ position: 'relative', borderRadius: '14px', overflow: 'hidden', background: 'var(--panel2)', aspectRatio: '3/4', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--line2)' }}>
                 {activeEvent.poster_banner ? (
                   <img src={activeEvent.poster_banner} alt={activeEvent.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -1730,7 +1957,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
             <div style={{ display: 'grid', gap: '18px' }}>
               
               {/* Individual vs Team Segmented Selector */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px' }}>
+              <div className="ev-reg-seg" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px' }}>
                 <span
                   onClick={() => setIsTeam(false)}
                   className="ev-seg"
@@ -1750,14 +1977,14 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
               </div>
 
               {/* Registration Fee Card */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', border: '1px solid var(--line)', borderRadius: '16px', background: 'var(--panel)', padding: '18px 22px', flexWrap: 'wrap' }}>
+              <div className="ev-reg-fee-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', border: '1px solid var(--line)', borderRadius: '16px', background: 'var(--panel)', padding: '18px 22px', flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0 }}>
                   <span style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'rgba(124,92,252,.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>
                     <svg width="18" height="18" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'var(--violet-lt)', strokeWidth: 1.8 }}><rect x="3" y="5.5" width="18" height="13" rx="2.5"></rect><path d="M3 10h18"></path></svg>
                   </span>
                   <div>
                     <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.3px', color: 'var(--muted)' }}>REGISTRATION FEE</div>
-                    <div id="ev-fee" style={{ fontSize: '24px', fontWeight: 700, letterSpacing: '-.6px', marginTop: '3px', color: '#FFFFFF' }}>
+                    <div id="ev-fee" className="ev-reg-fee-amount" style={{ fontSize: '24px', fontWeight: 700, letterSpacing: '-.6px', marginTop: '3px', color: '#FFFFFF' }}>
                       INR {calculatedTotalFee.toLocaleString()}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '12.5px', color: 'var(--muted)', marginTop: '6px' }}>
@@ -1773,7 +2000,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
               </div>
 
               {/* Handbook and Share Actions */}
-              <div className="ev-actions" style={{ display: 'grid', gap: '12px' }}>
+              <div className="ev-actions ev-reg-actions" style={{ display: 'grid', gap: '12px' }}>
                 <span
                   onClick={handleDownloadHandbook}
                   className="ev-btn"
@@ -1793,7 +2020,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
               </div>
 
               {/* Registration Form Card */}
-              <div style={{ border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '26px 28px 28px' }}>
+              <div className="ev-reg-form-card" style={{ border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '26px 28px 28px' }}>
                 <div style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-.4px', marginBottom: '22px', color: '#FFFFFF' }}>Registration Details</div>
                 
                 <div style={{ display: 'grid', gap: '18px' }}>
@@ -1862,102 +2089,6 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                     </div>
                   </div>
 
-                  {/* Team Members Section (Person 2 to 5) */}
-                  {isTeam && (
-                    <div style={{ margin: '8px 0', padding: '18px', background: 'rgba(124, 92, 252, 0.06)', border: '1px solid rgba(124, 92, 252, 0.25)', borderRadius: '14px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
-                        <div style={{ fontSize: '14px', fontWeight: 700, color: '#A78BFA', letterSpacing: '.4px' }}>
-                          TEAM MEMBERS ({currentTeamSize} Total Attendees)
-                        </div>
-                        <span style={{ fontSize: '11px', padding: '4px 9px', background: 'rgba(52, 211, 153, 0.15)', color: '#34D399', borderRadius: '6px', fontWeight: 600 }}>
-                          INR {perPersonFee}/person × {currentTeamSize} = INR {calculatedTotalFee.toLocaleString()}
-                        </span>
-                      </div>
-                      <p style={{ fontSize: '12px', color: '#9CA3AF', marginBottom: '16px', lineHeight: 1.5 }}>
-                        Add your teammates below. The registration amount updates dynamically based on the number of members added ({currentTeamSize} of 5 max).
-                      </p>
-
-                      <div style={{ display: 'grid', gap: '14px' }}>
-                        {teamMembers.map((member, idx) => (
-                          <div key={idx} style={{ padding: '14px', background: 'var(--panel2)', border: '1px solid var(--line2)', borderRadius: '11px' }}>
-                            <div style={{ fontSize: '11px', fontWeight: 700, color: '#DDD6FE', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span>MEMBER {idx + 2} {idx === 0 ? '(REQUIRED)' : '(OPTIONAL)'}</span>
-                              {teamMembers.length > 1 && (
-                                <button
-                                  type="button"
-                                  onClick={() => setTeamMembers(teamMembers.filter((_, i) => i !== idx))}
-                                  style={{ background: 'transparent', border: 'none', color: '#F87171', fontSize: '11.5px', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                                >
-                                  ✕ Remove
-                                </button>
-                              )}
-                            </div>
-                            <div style={{ display: 'grid', gap: '10px' }}>
-                              <input
-                                type="text"
-                                placeholder={`Member ${idx + 2} Full Name`}
-                                value={member.name}
-                                onChange={(e) => {
-                                  const updated = [...teamMembers];
-                                  updated[idx] = { ...updated[idx], name: e.target.value };
-                                  setTeamMembers(updated);
-                                }}
-                                style={{ width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.25)', border: '1px solid var(--line)', borderRadius: '8px', color: '#FFF', fontSize: '13.5px', fontFamily: 'inherit', outline: 'none' }}
-                              />
-                              <input
-                                type="email"
-                                placeholder={`Member ${idx + 2} Email (for login & ticket)`}
-                                value={member.email}
-                                onChange={(e) => {
-                                  const updated = [...teamMembers];
-                                  updated[idx] = { ...updated[idx], email: e.target.value };
-                                  setTeamMembers(updated);
-                                }}
-                                style={{ width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.25)', border: '1px solid var(--line)', borderRadius: '8px', color: '#FFF', fontSize: '13.5px', fontFamily: 'inherit', outline: 'none' }}
-                              />
-                              <input
-                                type="tel"
-                                placeholder={`Member ${idx + 2} Phone (optional)`}
-                                value={member.phone}
-                                onChange={(e) => {
-                                  const updated = [...teamMembers];
-                                  updated[idx] = { ...updated[idx], phone: e.target.value };
-                                  setTeamMembers(updated);
-                                }}
-                                style={{ width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.25)', border: '1px solid var(--line)', borderRadius: '8px', color: '#FFF', fontSize: '13.5px', fontFamily: 'inherit', outline: 'none' }}
-                              />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      {teamMembers.length < 4 && (
-                        <button
-                          type="button"
-                          onClick={() => setTeamMembers([...teamMembers, { name: '', email: '', phone: '' }])}
-                          style={{
-                            marginTop: '14px',
-                            width: '100%',
-                            padding: '11px',
-                            borderRadius: '10px',
-                            background: 'rgba(124, 92, 252, 0.14)',
-                            border: '1px dashed #7C5CFC',
-                            color: '#DDD6FE',
-                            fontSize: '13px',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '6px',
-                          }}
-                        >
-                          + Add Another Team Member ({teamMembers.length + 1}/5)
-                        </button>
-                      )}
-                    </div>
-                  )}
-
                   {/* Date of Birth */}
                   <div>
                     <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: 'var(--muted)', marginBottom: '9px' }}>DATE OF BIRTH</div>
@@ -1973,7 +2104,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                   </div>
 
                   {/* Branch & Year */}
-                  <div className="ev-fgrid" style={{ display: 'grid', gap: '16px' }}>
+                  <div className="ev-fgrid ev-reg-select-grid" style={{ display: 'grid', gap: '16px' }}>
                     <div>
                       <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: 'var(--muted)', marginBottom: '9px' }}>BRANCH</div>
                       <div className="ev-field" style={{ border: '1px solid var(--line2)', borderRadius: '11px', background: 'var(--panel2)', padding: '11px 14px' }}>
@@ -2097,6 +2228,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 {/* Razorpay Pay Button */}
                 <div
                   id="ev-pay"
+                  className="ev-reg-pay-btn"
                   onClick={handlePay}
                   style={{
                     position: 'relative',
@@ -2134,9 +2266,105 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
 
                 <div style={{ fontSize: '12.5px', lineHeight: 1.6, color: 'var(--muted)', textAlign: 'center', marginTop: '14px' }}>
                   By registering you agree to receive event updates. Payment is processed securely via Razorpay.
-                </div>
+                  </div>
 
-              </div>
+                  {/* Team Members Section (Person 2 to 5) — after COLLEGE */}
+                  {isTeam && (
+                    <div style={{ margin: '8px 0', padding: '18px', background: 'rgba(124, 92, 252, 0.06)', border: '1px solid rgba(124, 92, 252, 0.25)', borderRadius: '14px' }}>
+                      <div className="ev-reg-team-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+                        <div style={{ fontSize: '14px', fontWeight: 700, color: '#A78BFA', letterSpacing: '.4px' }}>
+                          TEAM MEMBERS ({currentTeamSize} Total Attendees)
+                        </div>
+                        <span style={{ fontSize: '11px', padding: '4px 9px', background: 'rgba(52, 211, 153, 0.15)', color: '#34D399', borderRadius: '6px', fontWeight: 600 }}>
+                          INR {perPersonFee}/person × {currentTeamSize} = INR {calculatedTotalFee.toLocaleString()}
+                        </span>
+                      </div>
+                      <p style={{ fontSize: '12px', color: '#9CA3AF', marginBottom: '16px', lineHeight: 1.5 }}>
+                        Add your teammates below. The registration amount updates dynamically based on the number of members added ({currentTeamSize} of 5 max).
+                      </p>
+
+                      <div style={{ display: 'grid', gap: '14px' }}>
+                        {teamMembers.map((member, idx) => (
+                          <div key={idx} style={{ padding: '14px', background: 'var(--panel2)', border: '1px solid var(--line2)', borderRadius: '11px' }}>
+                            <div style={{ fontSize: '11px', fontWeight: 700, color: '#DDD6FE', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span>MEMBER {idx + 2} {idx === 0 ? '(REQUIRED)' : '(OPTIONAL)'}</span>
+                              {teamMembers.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => setTeamMembers(teamMembers.filter((_, i) => i !== idx))}
+                                  style={{ background: 'transparent', border: 'none', color: '#F87171', fontSize: '11.5px', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                >
+                                  ✕ Remove
+                                </button>
+                              )}
+                            </div>
+                            <div style={{ display: 'grid', gap: '10px' }}>
+                              <input
+                                type="text"
+                                placeholder={`Member ${idx + 2} Full Name`}
+                                value={member.name}
+                                onChange={(e) => {
+                                  const updated = [...teamMembers];
+                                  updated[idx] = { ...updated[idx], name: e.target.value };
+                                  setTeamMembers(updated);
+                                }}
+                                style={{ width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.25)', border: '1px solid var(--line)', borderRadius: '8px', color: '#FFF', fontSize: '13.5px', fontFamily: 'inherit', outline: 'none' }}
+                              />
+                              <input
+                                type="email"
+                                placeholder={`Member ${idx + 2} Email (for login & ticket)`}
+                                value={member.email}
+                                onChange={(e) => {
+                                  const updated = [...teamMembers];
+                                  updated[idx] = { ...updated[idx], email: e.target.value };
+                                  setTeamMembers(updated);
+                                }}
+                                style={{ width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.25)', border: '1px solid var(--line)', borderRadius: '8px', color: '#FFF', fontSize: '13.5px', fontFamily: 'inherit', outline: 'none' }}
+                              />
+                              <input
+                                type="tel"
+                                placeholder={`Member ${idx + 2} Phone (optional)`}
+                                value={member.phone}
+                                onChange={(e) => {
+                                  const updated = [...teamMembers];
+                                  updated[idx] = { ...updated[idx], phone: e.target.value };
+                                  setTeamMembers(updated);
+                                }}
+                                style={{ width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.25)', border: '1px solid var(--line)', borderRadius: '8px', color: '#FFF', fontSize: '13.5px', fontFamily: 'inherit', outline: 'none' }}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {teamMembers.length < 4 && (
+                        <button
+                          type="button"
+                          onClick={() => setTeamMembers([...teamMembers, { name: '', email: '', phone: '' }])}
+                          style={{
+                            marginTop: '14px',
+                            width: '100%',
+                            padding: '11px',
+                            borderRadius: '10px',
+                            background: 'rgba(124, 92, 252, 0.14)',
+                            border: '1px dashed #7C5CFC',
+                            color: '#DDD6FE',
+                            fontSize: '13px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                          }}
+                        >
+                          + Add Another Team Member ({teamMembers.length + 1}/5)
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                </div>
 
               {/* Important Information Box */}
               <div style={{ border: '1px solid #3A2E72', borderRadius: '18px', background: 'linear-gradient(155deg, #1B1838, var(--panel) 62%)', padding: '24px 26px 26px' }}>
@@ -2258,6 +2486,87 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
           <span style={{ fontSize: '14px', fontWeight: 600, color: '#FFFFFF', whiteSpace: 'nowrap' }}>{toast}</span>
         </div>
       )}
+
+      {/* ── Footer ── */}
+      <footer className="ev-footer" style={{ position: 'relative', zIndex: 1, borderTop: '1px solid var(--line)', background: 'linear-gradient(180deg, rgba(10,10,20,0) 0%, rgba(5,6,15,.95) 100%)', marginTop: '0' }}>
+        <div className="ev-footer-inner" style={{ maxWidth: '1400px', width: '100%', margin: '0 auto', padding: '48px 28px 32px' }}>
+          <div className="ev-footer-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '36px', marginBottom: '36px' }}>
+            {/* Brand */}
+            <div className="ev-footer-brand">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+                <svg width="24" height="28" viewBox="0 0 300 350">
+                  <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="#8B84FF" />
+                  <path d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="#5B4FE9" />
+                  <text x="150" y="214" textAnchor="middle" style={{ fontFamily: "'Outfit', sans-serif", fontSize: '118px', fontWeight: 800, fill: '#FFFFFF' }}>SA</text>
+                </svg>
+                <span style={{ fontSize: '17px', fontWeight: 700, color: '#FFFFFF' }}>StudentAlumni</span>
+              </div>
+              <p style={{ fontSize: '13px', lineHeight: 1.6, color: 'var(--muted)', maxWidth: '280px' }}>
+                Verified student & alumni network across Indian campuses. Connecting students, alumni, and recruiters.
+              </p>
+            </div>
+
+            {/* Product */}
+            <div>
+              <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.4px', color: 'var(--muted)', marginBottom: '14px' }}>PRODUCT</div>
+              <div style={{ display: 'grid', gap: '10px' }}>
+                <a onClick={() => router.push('/')} style={{ fontSize: '13.5px', color: 'var(--text)', cursor: 'pointer', textDecoration: 'none' }}>Home</a>
+                <a onClick={() => go('list')} style={{ fontSize: '13.5px', color: 'var(--text)', cursor: 'pointer', textDecoration: 'none' }}>ECHO Events</a>
+                <a onClick={() => router.push('/verify')} style={{ fontSize: '13.5px', color: 'var(--text)', cursor: 'pointer', textDecoration: 'none' }}>Verify Credentials</a>
+                <a onClick={() => router.push('/contact')} style={{ fontSize: '13.5px', color: 'var(--text)', cursor: 'pointer', textDecoration: 'none' }}>Contact Us</a>
+              </div>
+            </div>
+
+            {/* Resources */}
+            <div>
+              <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.4px', color: 'var(--muted)', marginBottom: '14px' }}>RESOURCES</div>
+              <div style={{ display: 'grid', gap: '10px' }}>
+                <a onClick={() => router.push('/blog')} style={{ fontSize: '13.5px', color: 'var(--text)', cursor: 'pointer', textDecoration: 'none' }}>Blog</a>
+                <a onClick={() => router.push('/help-center')} style={{ fontSize: '13.5px', color: 'var(--text)', cursor: 'pointer', textDecoration: 'none' }}>Help Center</a>
+                <a onClick={() => router.push('/community')} style={{ fontSize: '13.5px', color: 'var(--text)', cursor: 'pointer', textDecoration: 'none' }}>Community</a>
+                <a onClick={handleDownloadHandbook} style={{ fontSize: '13.5px', color: 'var(--text)', cursor: 'pointer', textDecoration: 'none' }}>Event Handbook</a>
+              </div>
+            </div>
+
+            {/* Legal */}
+            <div>
+              <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.4px', color: 'var(--muted)', marginBottom: '14px' }}>LEGAL</div>
+              <div style={{ display: 'grid', gap: '10px' }}>
+                <a onClick={() => window.open('/policy/privacy', '_blank')} style={{ fontSize: '13.5px', color: 'var(--text)', cursor: 'pointer', textDecoration: 'none' }}>Privacy Policy</a>
+                <a onClick={() => window.open('/policy/terms', '_blank')} style={{ fontSize: '13.5px', color: 'var(--text)', cursor: 'pointer', textDecoration: 'none' }}>Terms of Service</a>
+              </div>
+            </div>
+
+            {/* Our Entities */}
+            <div>
+              <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.4px', color: 'var(--muted)', marginBottom: '14px' }}>OUR ENTITIES</div>
+              <div style={{ display: 'grid', gap: '10px' }}>
+                <a onClick={() => window.open('https://codespectra.ai', '_blank')} style={{ fontSize: '13.5px', color: 'var(--text)', cursor: 'pointer', textDecoration: 'none' }}>CodeSpectra</a>
+                <a onClick={() => window.open('https://visionaryx.ai', '_blank')} style={{ fontSize: '13.5px', color: 'var(--text)', cursor: 'pointer', textDecoration: 'none' }}>VisionaryX</a>
+                <a onClick={() => window.open('https://wehive.co.in', '_blank')} style={{ fontSize: '13.5px', color: 'var(--text)', cursor: 'pointer', textDecoration: 'none' }}>WeHive</a>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Bar */}
+          <div className="ev-footer-bottom" style={{ borderTop: '1px solid var(--line)', paddingTop: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ fontSize: '12.5px', color: 'var(--dim)' }}>
+              © {new Date().getFullYear()} StudentAlumni. All rights reserved.
+            </div>
+            <div className="ev-footer-social" style={{ display: 'flex', gap: '14px' }}>
+              <a onClick={() => window.open('https://linkedin.com/company/studentalumni', '_blank')} style={{ cursor: 'pointer' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" fill="#6A6A7E" /><rect x="2" y="9" width="4" height="12" fill="#6A6A7E" /><circle cx="4" cy="4" r="2" fill="#6A6A7E" /></svg>
+              </a>
+              <a onClick={() => window.open('https://x.com/studentalumni', '_blank')} style={{ cursor: 'pointer' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" fill="#6A6A7E" /></svg>
+              </a>
+              <a onClick={() => window.open('https://instagram.com/studentalumni', '_blank')} style={{ cursor: 'pointer' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="2" y="2" width="20" height="20" rx="5" stroke="#6A6A7E" strokeWidth="2" /><circle cx="12" cy="12" r="5" stroke="#6A6A7E" strokeWidth="2" /><circle cx="17.5" cy="6.5" r="1.5" fill="#6A6A7E" /></svg>
+              </a>
+            </div>
+          </div>
+        </div>
+      </footer>
 
     </div>
   );
