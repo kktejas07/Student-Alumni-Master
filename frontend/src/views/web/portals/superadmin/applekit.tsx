@@ -605,7 +605,7 @@ const k = StyleSheet.create({
     backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 14, gap: 10,
   },
   kpiLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5, letterSpacing: 0.3 },
-  kpiValue: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 26, letterSpacing: -0.5 },
+  kpiValue: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 26, letterSpacing: -0.5 },
   kpiDelta: { fontFamily: FONTS.bold, fontSize: 11, marginTop: -4 },
 
   empty: {
@@ -617,6 +617,6 @@ const k = StyleSheet.create({
     backgroundColor: GRAD.ringSoft, borderWidth: 1, borderColor: GRAD.ring,
     alignItems: 'center', justifyContent: 'center',
   },
-  emptyTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 13 },
+  emptyTitle: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 13 },
   emptySub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, textAlign: 'center' },
 });
