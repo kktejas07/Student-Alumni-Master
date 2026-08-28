@@ -2854,14 +2854,15 @@ async def get_showcase(slug: str, request: Request):
                         ]
                     },
                     "speakers": [
-                        {"name": "Jeremy Livingston", "position": "CISO & Deputy CIO", "company": "Stevens Institute of Technology", "bio": "Leading cybersecurity and higher ed IT infrastructure.", "is_panel_member": True, "category": "International Panel", "sort_order": 0, "visible": True},
-                        {"name": "Sharon Kelley", "position": "Board Member", "company": "ISC2 New Jersey Chapter (MS, MBA, CISSP, CCSP)", "bio": "Security leader, educator, and governance mentor.", "is_panel_member": True, "category": "International Panel", "sort_order": 1, "visible": True},
-                        {"name": "Suman Kalia", "position": "Associate Professor & Chair, Computer Science", "company": "Saint Peter's University", "bio": "Academic leader in algorithms and security engineering.", "is_panel_member": True, "category": "International Panel", "sort_order": 2, "visible": True},
-                        {"name": "Ken Fishkin", "position": "President", "company": "ISC2 New Jersey Chapter", "bio": "Champion for cybersecurity career entry from university campus.", "is_panel_member": True, "category": "International Panel", "sort_order": 3, "visible": True},
-                        {"name": "Jonna Dheeraj", "position": "Account Delivery & Program Management", "company": "Embedded SW · AI · VLSI · 5G · IoT", "bio": "Building high-performance embedded systems and VLSI architectures.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 4, "visible": True},
-                        {"name": "Harish Kotra", "position": "DevX Lead", "company": "Quirq", "bio": "Developer relations leader and community builder.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 5, "visible": True},
-                        {"name": "M Avinash Rao", "position": "Client Account Manager", "company": "Deloitte", "bio": "Enterprise tech consulting and digital delivery expert.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 6, "visible": True},
-                        {"name": "Gopichand Anumolu", "position": "Founder", "company": "ATLAST", "bio": "Startup founder engineering developer tools and student platforms.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 7, "visible": True}
+                        {"name": "Stan Mierzwa, Ph.D.", "position": "Director, Center for Cybersecurity", "company": "Kean University", "bio": "Director @ Center for Cybersecurity, Kean University, Union, NJ.", "location": "Union, New Jersey, USA", "linkedin": "in/stanmierzwa", "is_panel_member": True, "category": "International Panel", "sort_order": 0, "visible": True},
+                        {"name": "Ken Fishkin", "position": "President", "company": "ISC2 New Jersey Chapter", "bio": "Champion for cybersecurity career entry from university campus.", "location": "New Jersey, USA", "linkedin": "in/kfishkin", "is_panel_member": True, "category": "International Panel", "sort_order": 1, "visible": True},
+                        {"name": "Sharon Kelley", "position": "Board Member", "company": "ISC2 New Jersey Chapter (MS, MBA, CISSP, CCSP)", "bio": "Security leader, educator, and governance mentor.", "location": "Hoboken, New Jersey, USA", "linkedin": "in/sharon-kelley-0292181", "is_panel_member": True, "category": "International Panel", "sort_order": 2, "visible": True},
+                        {"name": "Jeremy Livingston", "position": "CISO & Deputy CIO", "company": "Stevens Institute of Technology", "bio": "Leading cybersecurity and higher ed IT infrastructure.", "location": "Effort, Pennsylvania, USA", "linkedin": "in/jeremylivin", "is_panel_member": True, "category": "International Panel", "sort_order": 3, "visible": True},
+                        {"name": "Suman Kalia", "position": "Associate Professor & Chair, Computer Science", "company": "Saint Peter's University", "bio": "Academic leader in algorithms and security engineering.", "location": "Jersey City, New Jersey, USA", "linkedin": "in/suman-kalia-300b521", "is_panel_member": True, "category": "International Panel", "sort_order": 4, "visible": True},
+                        {"name": "Jonna Dheeraj", "position": "Account Delivery & Program Management", "company": "Embedded SW · AI · VLSI · 5G · IoT", "bio": "Building high-performance embedded systems and VLSI architectures.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 5, "visible": True},
+                        {"name": "Harish Kotra", "position": "DevX Lead", "company": "Quirq", "bio": "Developer relations leader and community builder.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 6, "visible": True},
+                        {"name": "M Avinash Rao", "position": "Client Account Manager", "company": "Deloitte", "bio": "Enterprise tech consulting and digital delivery expert.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 7, "visible": True},
+                        {"name": "Gopichand Anumolu", "position": "Founder", "company": "ATLAST", "bio": "Startup founder engineering developer tools and student platforms.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 8, "visible": True}
                     ],
                     "verticals": [
                         {"title": "Build by Sunset", "description": "Ship something real between morning and dusk. Teams of 2–5, 5 AI tracks, ₹50,000 prize pool.", "icon": "rocket"},
@@ -2916,7 +2917,27 @@ async def get_showcase(slug: str, request: Request):
                     "updated_at": _now()
                 }
                 await db.echo_showcases.insert_one(hw_doc)
-                doc = await db.echo_showcases.find_one(_slug_query(slug))
+            else:
+                # Synchronize existing database document with latest banner, poster URLs & speakers
+                await db.echo_showcases.update_one(
+                    {"slug": "snist"},
+                    {
+                        "$set": {
+                            "hero_image_url": "/images/hackwave/hackwave_main_poster.png",
+                            "banner_url": "/images/hackwave/hackwave_main_poster.png",
+                            "poster_url": "/images/hackwave/hackwave_main_poster.png",
+                            "gallery_images": [
+                                "/images/hackwave/hackwave_main_poster.png",
+                                "/images/hackwave/hackwave_cybersecurity_conclave.jpg",
+                                "/images/hackwave/hackwave_speakers.jpg",
+                                "/images/hackwave/hackwave_techfest_verticals.jpg",
+                                "/images/hackwave/hackwave_perks_pool.jpg"
+                            ],
+                            "updated_at": _now()
+                        }
+                    }
+                )
+            doc = await db.echo_showcases.find_one(_slug_query(slug))
 
     if not doc:
         raise HTTPException(status_code=404, detail="Showcase not found")
