@@ -31,20 +31,23 @@ from services.profile_service import compute_profile_completion
 
 try:
     from badges import compute_badges, refresh_user_badges, get_tier_theme
-except Exception:
+except Exception as _e:
+    logger.info("badges module unavailable, using stubs: %s", _e)
     async def compute_badges(db, user): return []
     async def refresh_user_badges(db, user_id): return []
     def get_tier_theme(tier=None): return {}
 
 try:
     from notifications import notify_booking_created, notify_booking_confirmed
-except Exception:
+except Exception as _e:
+    logger.info("notifications module unavailable, using stubs: %s", _e)
     async def notify_booking_created(*args, **kwargs): pass
     async def notify_booking_confirmed(*args, **kwargs): pass
 
 try:
     from alumni_transition_engine import transition_to_alumni
-except Exception:
+except Exception as _e:
+    logger.info("alumni_transition_engine unavailable, using stub: %s", _e)
     async def transition_to_alumni(*args, **kwargs): pass
 
 
@@ -295,8 +298,8 @@ async def my_badges(user: dict = Depends(get_current_user)):
             {"_id": user["_id"]},
             {"$set": {"badges": badges, "badges_updated_at": datetime.utcnow()}},
         )
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("badges cache write failed for user %s: %s", user.get("_id"), e)
     return {"badges": badges, "theme": get_tier_theme()}
 
 
@@ -305,7 +308,8 @@ async def user_badges(user_id: str):
     """Public — fetch any user's badges (used on mentor cards / profile pages)."""
     try:
         target = await db.users.find_one({"_id": ObjectId(user_id)})
-    except Exception:
+    except Exception as e:
+        logger.warning("user_badges: DB lookup failed for user_id=%s: %s", user_id, e)
         target = None
     if not target:
         raise HTTPException(404, "User not found")
@@ -318,8 +322,8 @@ async def user_badges(user_id: str):
             {"_id": target["_id"]},
             {"$set": {"badges": badges, "badges_updated_at": datetime.utcnow()}},
         )
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("badges cache write failed for user_id=%s: %s", user_id, e)
     return {"badges": badges, "theme": get_tier_theme()}
 
 
@@ -331,7 +335,8 @@ async def get_public_profile(user_id: str):
     # Simple no-auth fetch — visibility is enforced inside via privacy settings.
     try:
         target = await db.users.find_one({"_id": ObjectId(user_id)})
-    except Exception:
+    except Exception as e:
+        logger.warning("get_public_profile: DB lookup failed for user_id=%s: %s", user_id, e)
         target = None
     if not target:
         raise HTTPException(404, "User not found")
@@ -349,7 +354,8 @@ async def get_public_profile(user_id: str):
     if not badges:
         try:
             badges = await compute_badges(db, target)
-        except Exception:
+        except Exception as e:
+            logger.warning("get_public_profile: compute_badges failed for user_id=%s: %s", user_id, e)
             badges = []
 
     si = target.get("school_info") or {}
@@ -487,7 +493,8 @@ async def add_my_certificate(payload: dict, user: dict = Depends(get_current_use
         raise HTTPException(400, "name and issuer are required")
     try:
         year = int(year_raw) if year_raw else None
-    except Exception:
+    except Exception as e:
+        logger.warning("add_my_certificate: invalid year value %r: %s", year_raw, e)
         raise HTTPException(400, "year must be a number")
     cert = {
         "id": uuid.uuid4().hex[:12],
@@ -510,8 +517,8 @@ async def add_my_certificate(payload: dict, user: dict = Depends(get_current_use
                 {"_id": user["_id"]},
                 {"$set": {"badges": badges, "badges_updated_at": datetime.utcnow()}},
             )
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("add_my_certificate: badge refresh failed for user %s: %s", user.get("_id"), e)
     return {"ok": True, "certificate": cert}
 
 
@@ -533,8 +540,8 @@ async def delete_my_certificate(cert_id: str, user: dict = Depends(get_current_u
                 {"_id": user["_id"]},
                 {"$set": {"badges": badges, "badges_updated_at": datetime.utcnow()}},
             )
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("delete_my_certificate: badge refresh failed for user %s: %s", user.get("_id"), e)
     return {"ok": True, "deleted": cert_id}
 
 
@@ -564,7 +571,8 @@ def _student_status_label(user: dict) -> dict:
     now = datetime.utcnow().year
     try:
         gy = int(gy) if gy else None
-    except Exception:
+    except Exception as e:
+        logger.warning("_student_status_label: could not parse graduation_year %r: %s", gy, e)
         gy = None
     if gy:
         years_left = gy - now
@@ -627,7 +635,8 @@ async def my_id_card(user: dict = Depends(get_current_user)):
     if batch:
         try:
             batch = f"Class of {int(batch)}"
-        except Exception:
+        except Exception as e:
+            logger.warning("my_id_card: could not format batch %r: %s", batch, e)
             batch = str(batch)
 
     company = mi.get("company") or mi.get("organization") or user.get("company") or ""
@@ -636,7 +645,8 @@ async def my_id_card(user: dict = Depends(get_current_user)):
     if years_exp:
         try:
             years_exp = f"{int(years_exp)} Years"
-        except Exception:
+        except Exception as e:
+            logger.warning("my_id_card: could not format years_experience %r: %s", years_exp, e)
             years_exp = str(years_exp)
 
     raw_url = (os.environ.get("FRONTEND_URL") or "").strip().rstrip("/")
@@ -1006,7 +1016,8 @@ async def get_my_stats(user: dict = Depends(get_current_user)):
                 "$or": [{"mentor_id": uid}, {"mentee_id": uid}],
                 "status": {"$in": ["completed", "done", "finished"]},
             })
-        except Exception:
+        except Exception as e:
+            logger.warning("get_my_stats: sessions_completed query failed for uid=%s: %s", uid, e)
             return int(user.get("sessions_completed") or user.get("sessions") or 0)
 
     async def _get_mentor_sessions():
@@ -1015,7 +1026,8 @@ async def get_my_stats(user: dict = Depends(get_current_user)):
                 "mentee_id": uid,
                 "status": {"$in": ["scheduled", "confirmed", "upcoming", "completed"]},
             })
-        except Exception:
+        except Exception as e:
+            logger.warning("get_my_stats: mentor_sessions query failed for uid=%s: %s", uid, e)
             return int(user.get("mentor_sessions") or 0)
 
     async def _get_connections_made():
@@ -1024,13 +1036,15 @@ async def get_my_stats(user: dict = Depends(get_current_user)):
                 "$or": [{"from_id": uid}, {"to_id": uid}],
                 "status": "accepted",
             })
-        except Exception:
+        except Exception as e:
+            logger.warning("get_my_stats: connections query failed for uid=%s: %s", uid, e)
             return int(user.get("connections_made") or 0)
 
     async def _get_applications_sent():
         try:
             return await db.applications.count_documents({"user_id": uid})
-        except Exception:
+        except Exception as e:
+            logger.warning("get_my_stats: applications query failed for uid=%s: %s", uid, e)
             return int(user.get("applications_sent") or 0)
 
     async def _get_rating_info():
@@ -1044,7 +1058,8 @@ async def get_my_stats(user: dict = Depends(get_current_user)):
             async for doc in db.feedback.aggregate(rating_pipeline):
                 avg_rating = round(float(doc.get("avg") or 0), 2)
                 rating_count = int(doc.get("n") or 0)
-        except Exception:
+        except Exception as e:
+            logger.warning("get_my_stats: rating_pipeline failed for uid=%s: %s", uid, e)
             avg_rating = float(user.get("rating_avg") or 0)
             rating_count = int(user.get("rating_count") or 0)
         return avg_rating, rating_count
@@ -1062,7 +1077,8 @@ async def get_my_stats(user: dict = Depends(get_current_user)):
             ]
             async for doc in db.payments.aggregate(earnings_pipeline):
                 earnings = int(doc.get("total") or 0)
-        except Exception:
+        except Exception as e:
+            logger.warning("get_my_stats: earnings_pipeline failed for uid=%s: %s", uid, e)
             earnings = int(user.get("earnings_this_month") or 0)
         return earnings
 
@@ -1109,8 +1125,8 @@ async def get_my_stats(user: dict = Depends(get_current_user)):
         while d_day.isoformat() in streak_days:
             skill_streak += 1
             d_day = d_day - timedelta(days=1)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("get_my_stats: skill_streak computation failed for uid=%s: %s", uid, e)
 
     return {
         "sessions_completed": sessions_completed,
@@ -1276,8 +1292,8 @@ async def connect_integration(
             old_value=None, new_value=rec,
             source="integration_connect",
         )
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("connect_integration: audit_log failed for user %s: %s", user.get("_id"), e)
     return {"ok": True, "integration": rec}
 
 
@@ -1301,8 +1317,8 @@ async def disconnect_integration(
             new_value=None,
             source="integration_disconnect",
         )
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("disconnect_integration: audit_log failed for user %s: %s", user.get("_id"), e)
     return {"ok": True}
 
 
@@ -1479,8 +1495,8 @@ async def approve_mentor(mentor_id: str, user: dict = Depends(get_current_user))
             "read": False,
             "created_at": datetime.now(timezone.utc),
         })
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("approve_mentor: notification insert failed for mentor_id=%s: %s", mentor_id, e)
     return {"status": "approved", "id": mentor_id}
 
 
@@ -1514,8 +1530,8 @@ async def reject_mentor(
             "read": False,
             "created_at": datetime.now(timezone.utc),
         })
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("reject_mentor: notification insert failed for mentor_id=%s: %s", mentor_id, e)
     return {"status": "rejected", "id": mentor_id, "reason": reason}
 
 
@@ -1528,7 +1544,8 @@ async def admin_mentor_detail(mentor_id: str, user: dict = Depends(get_current_u
             {"_id": ObjectId(mentor_id)},
             {"password_hash": 0},
         )
-    except Exception:
+    except Exception as e:
+        logger.warning("admin_mentor_detail: DB lookup failed for mentor_id=%s: %s", mentor_id, e)
         m = None
     if not m:
         raise HTTPException(404, "Mentor not found")
@@ -1589,8 +1606,8 @@ async def admin_overview(user: dict = Depends(get_current_user)):
             {"$group": {"_id": None, "sum": {"$sum": "$amount"}}},
         ]).to_list(1)
         revenue_inr = (agg[0].get("sum") or 0) if agg else 0
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("admin_overview: revenue aggregation failed: %s", e)
 
     # Top colleges (by student count)
     top_pipeline = [
@@ -2112,8 +2129,8 @@ async def admin_user_update(user_id: str, payload: dict, user: dict = Depends(ge
     # Recompute badges (since profile fields changed)
     try:
         await refresh_user_badges(db, fresh.get("id") if fresh else user_id)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("update_user: badge refresh failed for user_id=%s: %s", user_id, e)
     return {"ok": True, "user": fresh}
 
 
@@ -2226,7 +2243,8 @@ CAREER_PATH_SYSTEM_PROMPTS = {
 
 try:
     from emergentintegrations.llm.chat import LlmChat, UserMessage
-except Exception:
+except Exception as _e:
+    logger.info("emergentintegrations unavailable, using AI stubs: %s", _e)
     class UserMessage:
         def __init__(self, text: str = "", **kwargs):
             self.text = text
@@ -2968,8 +2986,8 @@ def _user_card(u: dict) -> dict:
         try:
             delta = (datetime.utcnow() - last).total_seconds() if isinstance(last, datetime) else 9999
             is_online = delta < 5 * 60
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("_user_card: is_online computation failed: %s", e)
     # For seed users, fake-online based on user-id hash for visual variety
     if not is_online:
         uid = str(u.get("_id") or u.get("id") or "")
@@ -3166,8 +3184,8 @@ async def my_connections(user: dict = Depends(get_current_user)):
     for oid in other_ids:
         try:
             objs.append(ObjectId(oid))
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("my_connections: invalid ObjectId %r: %s", oid, e)
     users = await db.users.find(
         {"_id": {"$in": objs}}, {"password_hash": 0},
     ).to_list(len(objs))
@@ -3194,8 +3212,8 @@ async def my_connection_requests(user: dict = Depends(get_current_user)):
         for rid in requester_ids:
             try:
                 objs.append(ObjectId(rid))
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("my_connection_requests: invalid requester ObjectId %r: %s", rid, e)
         users = await db.users.find({"_id": {"$in": objs}}, {"password_hash": 0}).to_list(len(objs))
         by_id = {str(u["_id"]): u for u in users}
         for r in rels:
@@ -3219,8 +3237,8 @@ async def my_connection_requests(user: dict = Depends(get_current_user)):
         for rid in sent_ids:
             try:
                 objs_sent.append(ObjectId(rid))
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("my_connection_requests: invalid sent ObjectId %r: %s", rid, e)
         users_sent = await db.users.find({"_id": {"$in": objs_sent}}, {"password_hash": 0}).to_list(len(objs_sent))
         by_id_sent = {str(u["_id"]): u for u in users_sent}
         for r in sent_rels:
@@ -3285,8 +3303,8 @@ async def send_connection_request(other_id: str, req: Optional[ConnectRequestIn]
             "read": False,
             "created_at": datetime.utcnow(),
         })
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("send_connection_request: notification failed for other_id=%s: %s", other_id, e)
     return {"action": "pending"}
 
 
@@ -3324,8 +3342,8 @@ async def accept_connection(other_id: str, user: dict = Depends(get_current_user
             "read": False,
             "created_at": datetime.utcnow(),
         })
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("accept_connection: notification failed for other_id=%s: %s", other_id, e)
     return {"action": "accepted"}
 
 
@@ -3431,7 +3449,8 @@ async def create_booking(req: BookingRequest, user: dict = Depends(get_demo_user
         # Fall back to real mentor lookup
         try:
             mentor = await db.users.find_one({"_id": ObjectId(req.mentor_id)})
-        except Exception:
+        except Exception as e:
+            logger.warning("create_booking: mentor DB lookup failed for mentor_id=%s: %s", req.mentor_id, e)
             mentor = None
     if not mentor:
         raise HTTPException(404, "Mentor not found or not approved yet")
@@ -3458,8 +3477,8 @@ async def create_booking(req: BookingRequest, user: dict = Depends(get_demo_user
             student_name=user["full_name"], topic=req.topic,
             when=req.slot_start_iso,
         )
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("create_booking: notify_booking_created failed: %s", e)
     return booking
 
 
@@ -3488,8 +3507,8 @@ async def my_bookings(user: dict = Depends(get_current_user)):
                 other_users = await db.users.find({"_id": {"$in": oids}}, {"full_name": 1, "photo_data": 1, "face_image_base64": 1, "photo": 1}).to_list(len(oids))
                 for ou in other_users:
                     users_map[str(ou["_id"])] = ou
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("my_bookings: other-user lookup failed: %s", e)
 
     out = []
     now = datetime.now(timezone.utc)
@@ -3515,8 +3534,8 @@ async def my_bookings(user: dict = Depends(get_current_user)):
         elif start_iso:
             try:
                 dt_compare = datetime.fromisoformat(start_iso.replace("Z", "+00:00")).astimezone(timezone.utc)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("my_bookings: could not parse slot_start_iso %r: %s", start_iso, e)
 
         if status in ["confirmed", "booked", "scheduled", "pending"] and dt_compare and dt_compare < now:
             new_status = "expired" if status == "pending" else "completed"
@@ -3595,8 +3614,8 @@ async def create_mentor_booking(req: MentorBookingCreateRequest, user: dict = De
             mentor_name=user.get("full_name", "Mentor"),
             when=req.slot_start_iso
         )
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("create_mentor_booking: notify_booking_confirmed failed: %s", e)
 
     return {"ok": True, "booking": booking}
 
@@ -3646,8 +3665,8 @@ async def reschedule_booking(booking_id: str, req: RescheduleRequest, user: dict
             "read": False,
             "created_at": datetime.now(timezone.utc).isoformat(),
         })
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("reschedule_booking: notification failed for other_party_id=%s: %s", other_party_id, e)
 
     return {"ok": True}
 
@@ -3660,7 +3679,8 @@ async def _update_booking_status(booking_id: str, mentor_id: str, new_status: st
     """Helper: update a booking's status if the caller owns it as mentor."""
     try:
         oid = ObjectId(booking_id)
-    except Exception:
+    except Exception as e:
+        logger.warning("_update_booking_status: invalid booking_id %r: %s", booking_id, e)
         oid = None
     query = {"$or": [{"id": booking_id}]}
     if oid:
@@ -3697,8 +3717,8 @@ async def confirm_booking(booking_id: str, user: dict = Depends(get_current_user
             "read": False,
             "created_at": datetime.now(timezone.utc).isoformat(),
         })
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("confirm_booking: notification failed for booking_id=%s: %s", booking_id, e)
     return {"ok": True, "booking": b}
 
 
@@ -3718,8 +3738,8 @@ async def decline_booking(booking_id: str, user: dict = Depends(get_current_user
             "read": False,
             "created_at": datetime.now(timezone.utc).isoformat(),
         })
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("decline_booking: notification failed for booking_id=%s: %s", booking_id, e)
     return {"ok": True, "booking": b}
 
 
