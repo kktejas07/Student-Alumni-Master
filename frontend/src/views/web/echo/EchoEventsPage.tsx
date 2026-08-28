@@ -55,10 +55,11 @@ const SAMPLE_EVENTS = [
       '/images/hackwave/hackwave_perks_pool.jpg'
     ],
     speakers: [
-      { name: 'Jeremy Livingston', position: 'CISO & Deputy CIO', company: 'Stevens Institute of Technology', category: 'International Panel', is_panel_member: true },
-      { name: 'Sharon Kelley', position: 'Board Member', company: 'ISC2 New Jersey Chapter (MS, MBA, CISSP, CCSP)', category: 'International Panel', is_panel_member: true },
-      { name: 'Suman Kalia', position: 'Associate Professor & Chair, Computer Science', company: "Saint Peter's University", category: 'International Panel', is_panel_member: true },
-      { name: 'Ken Fishkin', position: 'President', company: 'ISC2 New Jersey Chapter', category: 'International Panel', is_panel_member: true },
+      { name: 'Stan Mierzwa, Ph.D.', position: 'Director, Center for Cybersecurity', company: 'Kean University', location: 'Union, New Jersey, USA', linkedin: 'in/stanmierzwa', category: 'International Panel', is_panel_member: true },
+      { name: 'Ken Fishkin', position: 'President', company: 'ISC2 New Jersey Chapter', location: 'New Jersey, USA', linkedin: 'in/kfishkin', category: 'International Panel', is_panel_member: true },
+      { name: 'Sharon Kelley', position: 'Board Member', company: 'ISC2 New Jersey Chapter (MS, MBA, CISSP, CCSP)', location: 'Hoboken, New Jersey, USA', linkedin: 'in/sharon-kelley-0292181', category: 'International Panel', is_panel_member: true },
+      { name: 'Jeremy Livingston', position: 'CISO & Deputy CIO', company: 'Stevens Institute of Technology', location: 'Effort, Pennsylvania, USA', linkedin: 'in/jeremylivin', category: 'International Panel', is_panel_member: true },
+      { name: 'Suman Kalia', position: 'Associate Professor & Chair, Computer Science', company: "Saint Peter's University", location: 'Jersey City, New Jersey, USA', linkedin: 'in/suman-kalia-300b521', category: 'International Panel', is_panel_member: true },
       { name: 'Jonna Dheeraj', position: 'Account Delivery & Program Management', company: 'Embedded SW · AI · VLSI · 5G · IoT', category: 'Voices That Build', is_panel_member: false },
       { name: 'Harish Kotra', position: 'DevX Lead', company: 'Quirq', category: 'Voices That Build', is_panel_member: false },
       { name: 'M Avinash Rao', position: 'Client Account Manager', company: 'Deloitte', category: 'Voices That Build', is_panel_member: false },
@@ -76,15 +77,15 @@ const SAMPLE_EVENTS = [
       { title: 'Build by Fireside', desc: "Where the idea you haven't shipped yet finally gets heard.", icon: 'flame' }
     ],
     perks: [
-      { name: 'Featherless AI', desc: 'A full account, free', value: '$29 value', icon: '✦' },
-      { name: 'SetupMark AI', desc: '50 credits, 2 months free', value: '$50 value', icon: '♾' },
-      { name: 'CodeSpectra AI', desc: '3 months completely free', value: 'Assessments', icon: '</>' },
-      { name: 'Bandiwala', desc: '15% off food', value: 'Coupon', icon: '🥪' },
-      { name: 'WeHive Consulting', desc: '15% off services', value: 'Coupon', icon: '💼' },
-      { name: 'Four meal coupons', desc: 'Lunch, dinner, midnight, breakfast', value: 'Included', icon: '🍱' },
-      { name: 'Certificates for all', desc: 'Participation and winner certificates', value: 'Verifiable', icon: '📜' },
-      { name: 'On-the-spot offers', desc: 'Internship and placement offers, in the room', value: 'Live', icon: '💼' },
-      { name: 'Surprise goodies', desc: 'Extra prizes and drops announced on the day', value: 'Surprise', icon: '🎁' }
+      { name: 'Featherless AI', desc: 'A full account, free', value: '$29 value', icon: 'sparkles' },
+      { name: 'SetupMark AI', desc: '50 credits, 2 months free', value: '$50 value', icon: 'infinity' },
+      { name: 'CodeSpectra AI', desc: '3 months completely free', value: 'Assessments', icon: 'code' },
+      { name: 'Bandiwala', desc: '15% off food', value: 'Coupon', icon: 'utensils' },
+      { name: 'WeHive Consulting', desc: '15% off services', value: 'Coupon', icon: 'briefcase' },
+      { name: 'Four meal coupons', desc: 'Lunch, dinner, midnight, breakfast', value: 'Included', icon: 'utensils' },
+      { name: 'Certificates for all', desc: 'Participation and winner certificates', value: 'Verifiable', icon: 'award' },
+      { name: 'On-the-spot offers', desc: 'Internship and placement offers, in the room', value: 'Live', icon: 'check' },
+      { name: 'Surprise goodies', desc: 'Extra prizes and drops announced on the day', value: 'Surprise', icon: 'gift' }
     ]
   },
   {
@@ -1383,18 +1384,29 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
                 {[
-                  { name: 'Jeremy Livingston', role: 'CISO & Deputy CIO', org: 'Stevens Institute of Technology' },
-                  { name: 'Sharon Kelley', role: 'Board Member, ISC2 New Jersey Chapter', org: 'MS, MBA, CISSP, CCSP' },
-                  { name: 'Suman Kalia', role: 'Associate Professor & Chair, Computer Science', org: "Saint Peter's University" },
-                  { name: 'Ken Fishkin', role: 'President, ISC2 New Jersey Chapter', org: 'ISC2 New Jersey Chapter' }
+                  { name: 'Stan Mierzwa, Ph.D.', role: 'Director, Center for Cybersecurity', org: 'Kean University', loc: 'Union, New Jersey, USA', li: 'in/stanmierzwa' },
+                  { name: 'Ken Fishkin', role: 'President, ISC2 New Jersey Chapter', org: 'ISC2 New Jersey Chapter', loc: 'New Jersey, USA', li: 'in/kfishkin' },
+                  { name: 'Sharon Kelley', role: 'Board Member, ISC2 New Jersey Chapter', org: 'MS, MBA, CISSP, CCSP', loc: 'Hoboken, New Jersey, USA', li: 'in/sharon-kelley-0292181' },
+                  { name: 'Jeremy Livingston', role: 'CISO & Deputy CIO', org: 'Stevens Institute of Technology', loc: 'Effort, Pennsylvania, USA', li: 'in/jeremylivin' },
+                  { name: 'Suman Kalia', role: 'Associate Professor & Chair, Computer Science', org: "Saint Peter's University", loc: 'Jersey City, New Jersey, USA', li: 'in/suman-kalia-300b521' }
                 ].map((spk, idx) => (
-                  <div key={idx} className="ev-mini" style={{ padding: '20px 18px', background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: '16px', textAlign: 'center' }}>
-                    <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #7C5CFC, #38BDF8)', margin: '0 auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF', fontWeight: 800, fontSize: '22px' }}>
-                      {spk.name.split(' ').map((n) => n[0]).join('')}
+                  <div key={idx} className="ev-mini" style={{ padding: '20px 18px', background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: '16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #7C5CFC, #38BDF8)', margin: '0 auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF', fontWeight: 800, fontSize: '20px' }}>
+                      {spk.name.replace(', Ph.D.', '').split(' ').map((n) => n[0]).join('')}
                     </div>
                     <div style={{ fontSize: '16px', fontWeight: 700, color: '#FFFFFF' }}>{spk.name}</div>
-                    <div style={{ fontSize: '13px', color: 'var(--violet-lt)', fontWeight: 600, marginTop: '3px' }}>{spk.role}</div>
-                    <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>{spk.org}</div>
+                    <div style={{ fontSize: '12.5px', color: 'var(--violet-lt)', fontWeight: 600, marginTop: '3px' }}>{spk.role}</div>
+                    <div style={{ fontSize: '12px', color: '#9CA3AF', marginTop: '2px' }}>{spk.org}</div>
+                    <div style={{ fontSize: '11px', color: '#6B7280', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                      {spk.loc}
+                    </div>
+                    {spk.li && (
+                      <a href={`https://linkedin.com/${spk.li}`} target="_blank" rel="noreferrer" style={{ fontSize: '11px', color: '#38BDF8', fontWeight: 600, marginTop: '8px', display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
+                        {spk.li}
+                      </a>
+                    )}
                   </div>
                 ))}
               </div>
