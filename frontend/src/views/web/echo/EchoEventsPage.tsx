@@ -978,7 +978,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
             onClick={() => router.push('/')}
             style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 'none', cursor: 'pointer' }}
           >
-            <svg width="28" height="33" viewBox="0 0 300 350" style={{ display: 'block', flexShrink: 0 }}>
+            <svg width="32" height="38" viewBox="0 0 300 350" style={{ display: 'block', flexShrink: 0, filter: 'drop-shadow(0 2px 8px rgba(139,92,246,0.35))' }}>
               <defs>
                 <linearGradient id="ev-badge-grad2" x1="0" y1="0" x2="1" y2="1">
                   <stop offset="0%" stopColor="#C9A7FF" />
@@ -991,10 +991,12 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 </linearGradient>
               </defs>
               <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#ev-badge-grad2)" />
-              <path d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="url(#ev-badge-grad2-in)" />
-              <text x="150" y="214" textAnchor="middle" style={{ fontFamily: "'Manrope', -apple-system, sans-serif", fontSize: '118px', fontWeight: '800', letterSpacing: '-5px', fill: '#FFFFFF' }}>SA</text>
+              <path d="M150 28 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="url(#ev-badge-grad2-in)" />
+              <text x="150" y="218" textAnchor="middle" fill="#FFFFFF" fontWeight="900" fontSize="128" fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">SA</text>
             </svg>
-            <span style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-0.4px', color: '#FFFFFF', fontFamily: "'Manrope', sans-serif" }}>StudentAlumni</span>
+            <span style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-0.5px', color: '#FFFFFF', fontFamily: "'Outfit', 'Manrope', -apple-system, sans-serif" }}>
+              StudentAlumni<span style={{ color: '#8B5CF6' }}>.ai</span>
+            </span>
           </div>
 
           {/* Centered Navigation Tabs */}

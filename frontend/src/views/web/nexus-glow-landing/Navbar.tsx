@@ -129,26 +129,25 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
             textAlign: 'left',
           }}
         >
-          {/* 1:1 SA Shield Badge Logo matching bottom screenshot */}
-          <svg width="28" height="33" viewBox="0 0 300 350" style={{ flexShrink: 0, display: 'block' }}>
-            <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="#8B84FF" />
-            <path d="M150 28 L268 64 v112 c0 72 -58 110 -118 132 C90 288 32 250 32 178 V64 Z" fill="#5B4FE9" />
-            <text
-              x="150"
-              y="214"
-              textAnchor="middle"
-              style={{
-                fontFamily: "'Outfit', 'Manrope', -apple-system, sans-serif",
-                fontSize: '124px',
-                fontWeight: 800,
-                fill: '#FFFFFF',
-              }}
-            >
-              SA
-            </text>
+          {/* Unified High-Res SA Shield Badge Logo */}
+          <svg width="32" height="38" viewBox="0 0 300 350" style={{ flexShrink: 0, display: 'block', filter: 'drop-shadow(0 2px 8px rgba(139,92,246,0.35))' }}>
+            <defs>
+              <linearGradient id="saNavGrad1" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#C9A7FF" />
+                <stop offset="48%" stopColor="#8B5CF6" />
+                <stop offset="100%" stopColor="#5B2FD0" />
+              </linearGradient>
+              <linearGradient id="saNavGrad2" x1="0" y1="0" x2="0.3" y2="1">
+                <stop offset="0%" stopColor="#B683F5" />
+                <stop offset="100%" stopColor="#7331C9" />
+              </linearGradient>
+            </defs>
+            <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#saNavGrad1)" />
+            <path d="M150 28 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="url(#saNavGrad2)" />
+            <text x="150" y="218" textAnchor="middle" fill="#FFFFFF" fontWeight="900" fontSize="128" fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">SA</text>
           </svg>
-          <span style={{ fontSize: '17px', fontWeight: 700, letterSpacing: '-0.3px', color: '#FFFFFF', fontFamily: "'Outfit', 'Manrope', sans-serif" }}>
-            StudentAlumni
+          <span style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-0.5px', color: '#FFFFFF', fontFamily: "'Outfit', 'Manrope', -apple-system, sans-serif" }}>
+            StudentAlumni<span style={{ color: '#8B5CF6' }}>.ai</span>
           </span>
         </button>
 
