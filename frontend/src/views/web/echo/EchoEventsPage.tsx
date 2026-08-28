@@ -2065,7 +2065,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                     <>
                       <svg width="17" height="17" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 1.8 }}><rect x="3" y="5.5" width="18" height="13" rx="2.5"></rect><path d="M3 10h18"></path></svg>
                       <span id="ev-pay-label">
-                        {isTeam ? `Pay INR ${activeEvent.team_fee.toLocaleString()} via Razorpay` : `Pay INR ${activeEvent.individual_fee.toLocaleString()} via Razorpay`}
+                        {isTeam ? `Pay INR ${calculatedTotalFee.toLocaleString()} via Razorpay` : `Pay INR ${activeEvent.individual_fee.toLocaleString()} via Razorpay`}
                       </span>
                       {acceptedTerms && (
                         <span id="ev-pay-sheen" style={{ position: 'absolute', top: 0, bottom: 0, width: '40%', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,.22), transparent)', animation: 'ev-sheen 3.4s ease-in-out infinite' }} />
