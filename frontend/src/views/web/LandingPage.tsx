@@ -3820,6 +3820,8 @@ const styles = StyleSheet.create({
   },
   alumniPillarSub: {
     fontSize: 14,
+    color: '#94A3B8',
+    lineHeight: 20,
   },
 
   /* ── 07 Audiences ── */

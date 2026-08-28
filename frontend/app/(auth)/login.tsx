@@ -323,24 +323,6 @@ export default function LoginScreen() {
           {!isTablet && (
             <div style={{ position: 'relative', borderRight: '1px solid #1F1F30', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '52px 48px' }}>
               
-              {/* Brand Crest Header */}
-              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 12 }}>
-                <svg width="34" height="38" viewBox="0 0 300 350" style={{ flex: 'none' }}>
-                  <defs>
-                    <linearGradient id="db-login-badge" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0" stopColor="#9E7BFF" />
-                      <stop offset="1" stopColor="#5B3FD9" />
-                    </linearGradient>
-                  </defs>
-                  <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#db-login-badge)" />
-                  <text x="150" y="212" textAnchor="middle" style={{ fontFamily: "'Outfit', sans-serif", fontSize: 124, fontWeight: '700', letterSpacing: '-4px', fill: '#FFFFFF' }}>SA</text>
-                </svg>
-                <div>
-                  <span style={{ fontSize: 17, fontWeight: '700', color: '#F4F4FA', letterSpacing: '-0.3px' }}>Student Alumni</span>
-                  <div style={{ fontSize: 12, color: '#8A8A9E' }}>Higher Education & Career Network</div>
-                </div>
-              </div>
-
               {/* Carousel Content */}
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', margin: '40px 0' }}>
                 <div style={{ position: 'relative', minHeight: 340 }}>
