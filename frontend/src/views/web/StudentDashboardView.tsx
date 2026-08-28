@@ -41,7 +41,7 @@ const C = {
   card:   'rgba(255,255,255,0.05)',
   cardH:  'rgba(255,255,255,0.09)',
   border: 'rgba(255,255,255,0.08)',
-  purple: '#7C3AED', purpleL: '#A78BFA', purpleXL: '#C4B5FD',
+  purple: '#2563EB', purpleL: '#60A5FA', purpleXL: '#93C5FD',
   teal: '#2DD4BF', green: '#34D399', amber: '#F59E0B',
   blue: '#60A5FA', pink: '#F472B6',
   text: 'rgba(255,255,255,0.55)', dim: 'rgba(255,255,255,0.28)',
@@ -50,23 +50,23 @@ const FT = { bold: 'DMSans_700Bold', semi: 'DMSans_600SemiBold', med: 'DMSans_50
 
 const SKILL_AXES = [
   { key: 'Technical Excellence',       color: '#2DD4BF' },
-  { key: 'Professional Communication', color: '#A78BFA' },
+  { key: 'Professional Communication', color: '#60A5FA' },
   { key: 'Personal Brand',             color: '#F472B6' },
   { key: 'Leadership & Collaboration', color: '#F59E0B' },
   { key: 'Career Preparation',         color: '#60A5FA' },
-  { key: 'Industry Presence',          color: '#C4B5FD' },
+  { key: 'Industry Presence',          color: '#93C5FD' },
 ];
 
 const MILESTONE_META: Record<string, { color: string }> = {
-  RESUME: { color: '#A78BFA' }, PORTFOLIO: { color: '#2DD4BF' }, PROFILE: { color: '#60A5FA' },
+  RESUME: { color: '#60A5FA' }, PORTFOLIO: { color: '#2DD4BF' }, PROFILE: { color: '#60A5FA' },
   NETWORKING: { color: '#2DD4BF' }, SKILLS: { color: '#F59E0B' }, MOCK_INTERVIEW: { color: '#F472B6' },
-  PROJECT: { color: '#A78BFA' }, CERTIFICATION: { color: '#34D399' }, LINKEDIN: { color: '#60A5FA' },
+  PROJECT: { color: '#60A5FA' }, CERTIFICATION: { color: '#34D399' }, LINKEDIN: { color: '#60A5FA' },
   JOB_APPLICATION: { color: '#F59E0B' },
 };
 
 const ACTION_META: Record<string, { color: string; Icon: any }> = {
   PORTFOLIO: { color: '#2DD4BF', Icon: Code }, MOCK_INTERVIEW: { color: '#F472B6', Icon: MessageSquare },
-  PROJECT: { color: '#A78BFA', Icon: Rocket }, RESUME: { color: '#7C3AED', Icon: FileText },
+  PROJECT: { color: '#60A5FA', Icon: Rocket }, RESUME: { color: '#2563EB', Icon: FileText },
   LINKEDIN: { color: '#60A5FA', Icon: Users }, SKILLS: { color: '#F59E0B', Icon: Zap },
   CERTIFICATION: { color: '#34D399', Icon: Award }, NETWORKING: { color: '#2DD4BF', Icon: Users },
   JOB_APPLICATION: { color: '#F59E0B', Icon: Briefcase },
@@ -74,7 +74,7 @@ const ACTION_META: Record<string, { color: string; Icon: any }> = {
 
 // Static nav shortcuts (no mock data — these are routing links only)
 const QUICK_ACTIONS_NAV = [
-  { id: 'career-ai',   label: 'Career AI',   Icon: Sparkles,      color: '#A78BFA' },
+  { id: 'career-ai',   label: 'Career AI',   Icon: Sparkles,      color: '#60A5FA' },
   { id: 'internships', label: 'Internships', Icon: Briefcase,     color: '#60A5FA' },
   { id: 'mentors',     label: 'Book Mentor', Icon: Users,         color: '#34D399' },
   { id: 'events',      label: 'Events',      Icon: Calendar,      color: '#F472B6' },
@@ -461,7 +461,7 @@ export function StudentDashboardView({ showTopBar = true, onOpenNotifications, o
                       <Text style={{ color: C.text, fontFamily: FT.med, fontSize: 11 }}>{coach.current_readiness}% → {coach.top_action.estimated_readiness}%</Text>
                     )}
                   </View>
-                  <Pressable onPress={() => handleNav('career-ai')} style={({ hovered, pressed }: any) => [{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.purple, paddingHorizontal: 16, paddingVertical: 9, borderRadius: 10, marginTop: 12, alignSelf: 'flex-start', ...({ cursor: 'pointer', transitionDuration: '160ms' } as any) }, hovered && { backgroundColor: '#6D28D9' }, pressed && { transform: [{ scale: 0.97 }] }]}>
+                  <Pressable onPress={() => handleNav('career-ai')} style={({ hovered, pressed }: any) => [{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.purple, paddingHorizontal: 16, paddingVertical: 9, borderRadius: 10, marginTop: 12, alignSelf: 'flex-start', ...({ cursor: 'pointer', transitionDuration: '160ms' } as any) }, hovered && { backgroundColor: '#1D4ED8' }, pressed && { transform: [{ scale: 0.97 }] }]}>
                     <Sparkles size={12} color="#fff" />
                     <Text style={{ color: '#fff', fontFamily: FT.bold, fontSize: 12 }}>Start in Career AI</Text>
                   </Pressable>
@@ -473,7 +473,7 @@ export function StudentDashboardView({ showTopBar = true, onOpenNotifications, o
 
         {/* ── CAREER READINESS HERO ── */}
         <View style={s.heroShell}>
-          <LinearGradient colors={['#4C1D95', '#5B21B6', '#1E1147']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+          <LinearGradient colors={['#4C1D95', '#1E40AF', '#1E1147']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
 
           <View style={[s.heroBody, !isWide && { flexDirection: 'column', gap: 20 }]}>
             <View style={{ flex: 1, minWidth: 0 }}>
@@ -508,7 +508,7 @@ export function StudentDashboardView({ showTopBar = true, onOpenNotifications, o
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
                 <Pressable onPress={() => handleNav('career-ai')} style={({ hovered, pressed }: any) => [s.heroPrimaryBtn, hovered && { transform: [{ translateY: -1 }] }, pressed && { transform: [{ scale: 0.98 }] }]}>
                   <Text style={s.heroPrimaryText}>View Full Roadmap</Text>
-                  <ArrowRight size={13} color="#5B21B6" />
+                  <ArrowRight size={13} color="#1E40AF" />
                 </Pressable>
                 <Pressable onPress={() => handleNav('internships')} style={({ hovered }: any) => [s.heroGhostBtn, hovered && { backgroundColor: 'rgba(255,255,255,0.18)' }]}>
                   <Text style={s.heroGhostText}>Browse Internships</Text>
@@ -636,7 +636,7 @@ export function StudentDashboardView({ showTopBar = true, onOpenNotifications, o
                           {job.stipend && <View style={s.metaPill}><Coins size={9} color={C.dim} /><Text style={s.metaText}>{job.stipend}</Text></View>}
                         </View>
                       </View>
-                      <Pressable style={({ hovered, pressed }: any) => [s.applyBtn, hovered && { backgroundColor: '#6D28D9' }, pressed && { transform: [{ scale: 0.97 }] }]}>
+                      <Pressable style={({ hovered, pressed }: any) => [s.applyBtn, hovered && { backgroundColor: '#1D4ED8' }, pressed && { transform: [{ scale: 0.97 }] }]}>
                         <Text style={s.applyBtnText}>Apply</Text>
                       </Pressable>
                     </Pressable>
@@ -830,7 +830,7 @@ const s = StyleSheet.create({
   heroPTrack: { height: 4, backgroundColor: 'rgba(255,255,255,0.10)', borderRadius: 2, overflow: 'hidden', marginTop: 5 },
   heroPFill: { height: '100%', borderRadius: 2 },
   heroPrimaryBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#fff', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12, ...({ cursor: 'pointer', transitionDuration: '160ms' } as any) },
-  heroPrimaryText: { color: '#5B21B6', fontFamily: FT.bold, fontSize: 13 },
+  heroPrimaryText: { color: '#1E40AF', fontFamily: FT.bold, fontSize: 13 },
   heroGhostBtn: { paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.20)', ...({ cursor: 'pointer', transitionDuration: '160ms' } as any) },
   heroGhostText: { color: '#fff', fontFamily: FT.semi, fontSize: 13 },
   heroStats: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
@@ -869,7 +869,7 @@ const s = StyleSheet.create({
   internMeta: { color: C.text, fontFamily: FT.med, fontSize: 11 },
   metaPill: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: C.card, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999 },
   metaText: { color: C.text, fontFamily: FT.med, fontSize: 10.5 },
-  applyBtn: { backgroundColor: '#7C3AED', paddingHorizontal: 14, paddingVertical: 7, borderRadius: 9, ...({ cursor: 'pointer', transitionDuration: '160ms' } as any) },
+  applyBtn: { backgroundColor: '#2563EB', paddingHorizontal: 14, paddingVertical: 7, borderRadius: 9, ...({ cursor: 'pointer', transitionDuration: '160ms' } as any) },
   applyBtnText: { color: '#fff', fontFamily: FT.bold, fontSize: 11 },
   qaGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
   qaTile: { flexBasis: '30%', flexGrow: 1, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 10, paddingVertical: 11, backgroundColor: C.card, borderColor: C.border, borderWidth: 1, borderRadius: 10, ...({ cursor: 'pointer', transitionDuration: '180ms' } as any) },
@@ -883,33 +883,33 @@ const s = StyleSheet.create({
   mentorInitials: { color: '#fff', fontFamily: FT.bold, fontSize: 12 },
   mentorName: { color: '#fff', fontFamily: FT.bold, fontSize: 13 },
   mentorRole: { color: C.text, fontFamily: FT.reg, fontSize: 10.5, marginTop: 1 },
-  connectBtn: { backgroundColor: '#A78BFA1A', borderColor: '#A78BFA44', borderWidth: 1, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, ...({ cursor: 'pointer', transitionDuration: '160ms' } as any) },
-  connectBtnText: { color: '#A78BFA', fontFamily: FT.bold, fontSize: 11 },
+  connectBtn: { backgroundColor: '#60A5FA1A', borderColor: '#60A5FA44', borderWidth: 1, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, ...({ cursor: 'pointer', transitionDuration: '160ms' } as any) },
+  connectBtnText: { color: '#60A5FA', fontFamily: FT.bold, fontSize: 11 },
   rowSplit: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   dimText: { color: C.text, fontFamily: FT.med, fontSize: 12, textAlign: 'center' },
   emptyState: { alignItems: 'center', paddingVertical: 20 },
-  primaryBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#7C3AED', paddingHorizontal: 16, paddingVertical: 9, borderRadius: 10, ...({ cursor: 'pointer' } as any) },
+  primaryBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#2563EB', paddingHorizontal: 16, paddingVertical: 9, borderRadius: 10, ...({ cursor: 'pointer' } as any) },
   primaryBtnText: { color: '#fff', fontFamily: FT.bold, fontSize: 12 },
   // ─── Phase 2: AI Coach styles ───────────────────────────────────────────
   briefCard: {
     borderRadius: 18, padding: 20, overflow: 'hidden', position: 'relative',
-    backgroundColor: 'rgba(88,28,135,0.20)', borderColor: 'rgba(167,139,250,0.25)', borderWidth: 1,
+    backgroundColor: 'rgba(88,28,135,0.20)', borderColor: 'rgba(37,99,235,0.25)', borderWidth: 1,
   },
   briefBotIcon: {
-    width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(124,58,237,0.30)',
+    width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(37,99,235,0.30)',
     borderColor: 'rgba(196,181,253,0.30)', borderWidth: 1, alignItems: 'center', justifyContent: 'center',
     flexShrink: 0,
   },
   briefEyebrow: { color: C.purpleXL, fontFamily: FT.bold, fontSize: 10, letterSpacing: 1.2 },
   briefBadge: {
-    backgroundColor: 'rgba(167,139,250,0.18)', borderColor: 'rgba(167,139,250,0.35)', borderWidth: 1,
+    backgroundColor: 'rgba(37,99,235,0.18)', borderColor: 'rgba(37,99,235,0.35)', borderWidth: 1,
     borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3,
   },
   briefBadgeText: { color: C.purpleXL, fontFamily: FT.bold, fontSize: 10 },
   briefText: { color: '#FFFFFF', fontFamily: FT.med, fontSize: 14, lineHeight: 22 },
   coachCard: {
     borderRadius: 18, padding: 22, overflow: 'hidden', position: 'relative',
-    backgroundColor: 'rgba(109,40,217,0.12)', borderColor: 'rgba(167,139,250,0.25)', borderWidth: 1,
+    backgroundColor: 'rgba(109,40,217,0.12)', borderColor: 'rgba(37,99,235,0.25)', borderWidth: 1,
   },
   coachActionBox: {
     minWidth: 280,

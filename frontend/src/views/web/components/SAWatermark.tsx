@@ -15,7 +15,11 @@ export interface SAWatermarkProps {
   glow?: boolean;
 }
 
-export function SAWatermark({
+export function SAWatermark(props: SAWatermarkProps) {
+  return null;
+}
+
+export function SAWatermarkDisabled({
   opacity = 0.15,
   rotation = '0deg',
   top = 40,

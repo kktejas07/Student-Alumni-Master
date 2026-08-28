@@ -202,7 +202,7 @@ export const api = {
 
   // OAuth — Option C: backend uses MOCK verification (passes email/full_name in body)
   // Switch to real provider tokens by populating id_token/access_token instead.
-  oauthGoogle: (payload: { email: string; full_name: string; picture?: string; role?: string }) =>
+  oauthGoogle: (payload: { id_token?: string; email?: string; full_name?: string; picture?: string; role?: string }) =>
     request<any>('/auth/google', { method: 'POST', body: payload, auth: false }),
 
   oauthLinkedIn: (payload: { email: string; full_name: string; picture?: string; role?: string }) =>
@@ -228,6 +228,21 @@ export const api = {
   twoFARegenerateBackupCodes: (code: string) =>
     request<{ enabled: boolean; backup_codes: string[] }>(
       '/auth/2fa/regenerate-backup-codes', { method: 'POST', body: { code } }),
+
+  checkEmail: (email: string) =>
+    request<{ exists: boolean; role?: string; full_name?: string; onboarding_completed?: boolean }>(
+      '/auth/check-email', { method: 'POST', body: { email }, auth: false }
+    ),
+
+  sendEmailOtp: (email: string, phone?: string) =>
+    request<{ status: string; message: string; otp_code?: string }>(
+      '/auth/email-otp/send', { method: 'POST', body: { email, phone }, auth: false }
+    ),
+
+  verifyEmailOtp: (email: string, otp: string) =>
+    request<{ status: string; message: string; token?: string; user?: any }>(
+      '/auth/verify-email-otp', { method: 'POST', body: { email, otp }, auth: false }
+    ),
 
   // Onboarding
   completeOnboarding: (payload: any) =>
@@ -573,7 +588,23 @@ export const api = {
     request<any>(`/bgv/verify-public/${encodeURIComponent(identifier)}`),
   downloadBGVReportPdf: (identifier: string) =>
     request<any>(`/bgv/report/pdf/${encodeURIComponent(identifier)}`),
+
+  // ── Blog & Community ──────────────────────────────────────────────────────
+  listBlogPosts: (category?: string, search?: string) => {
+    const params = new URLSearchParams();
+    if (category && category !== 'All') params.append('category', category);
+    if (search) params.append('q', search);
+    const queryString = params.toString();
+    return request<any>(`/blog/posts${queryString ? `?${queryString}` : ''}`, { auth: false });
+  },
+  getBlogPost: (slug: string) =>
+    request<any>(`/blog/posts/${encodeURIComponent(slug)}`, { auth: false }),
+  getCommunityData: () =>
+    request<any>('/community/data', { auth: false }),
+  listCampuses: (search?: string) =>
+    request<any>(`/community/campuses${search ? `?q=${encodeURIComponent(search)}` : ''}`, { auth: false }),
 };
+
 
 export function resolveImageUrl(url?: string | null): string {
   if (!url) return '';

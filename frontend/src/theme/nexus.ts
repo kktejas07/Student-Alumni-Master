@@ -1,45 +1,30 @@
-/**
- * NexusOS — Shared Design System
- * ===============================
- * Single source of truth for the NexusOS dark-glass palette,
- * spacing scale, radii, motion/timing constants, and shadow recipes.
- *
- * Every portal (Student, Alumni, College, Super Admin) consumes
- * these tokens so the visual language stays unified while each
- * portal layers its own accent identity (orange / cyan / blue / red).
- *
- * Usage:
- *   import { NX } from '@/src/theme/nexus';
- *   <View style={{ backgroundColor: NX.surface2, borderColor: NX.border }} />
- */
 import { Platform } from 'react-native';
+import { PORTAL_ACCENTS, NX_MOTION } from '@/src/theme/tokens';
+export { PORTAL_ACCENTS, NX_MOTION };
+export type { PortalKey } from '@/src/theme/tokens';
 
 // ── Core palette ─────────────────────────────────────────────
 export const NX = {
-  // Ultra-deep background (#08080F) & FinTax360 navy glass palette
-  bg:        '#08080F',
-  bgNavy:    '#0a0f1e',
-  surface1:  '#101019',
-  surface2:  '#14141F',   // secondary panel surface
-  surface3:  'rgba(20, 20, 31, 0.75)',   // glass card fill
-  surface4:  'rgba(30, 30, 48, 0.90)',   // elevated glass surface
+  // Deep backgrounds — FinTax360 Jewel-glass navy palette
+  // (Previously near-black #07070A; now matches the Student portal's
+  //  body gradient #0a0f1e → #131938 with elevated surfaces.)
+  bg:        '#0a0f1e',
+  surface1:  '#0E1428',
+  surface2:  'rgba(20, 26, 45, 0.55)',   // glass card fill — frosted
+  surface3:  'rgba(30, 38, 60, 0.72)',   // hover / elevated glass
+  surface4:  'rgba(40, 50, 78, 0.85)',   // deepest elevation
 
-  // Structural lines & borders
-  line:      '#1F1F30',
-  line2:     '#262638',
-  accentLine:'#2C2A52',
+  // Dividers / strokes — neutral white (per Jewel spec)
   border:    'rgba(255,255,255,0.08)',
   borderHi:  'rgba(255,255,255,0.14)',
   borderLo:  'rgba(255,255,255,0.04)',
 
   // Text scale (primary → secondary → tertiary)
-  textP:     '#F4F4FA',
-  textS:     '#8A8A9E',
-  textT:     '#6A6A7E',
+  textP:     '#F8FAFC',
+  textS:     'rgba(255,255,255,0.70)',
+  textT:     'rgba(255,255,255,0.50)',
 
-  // Brand accents
-  violet:    '#7C5CFC',
-  violetLt:  '#A78BFA',
+  // Brand accents (used across portals)
   blue:      '#3B82F6',
   blueSoft:  'rgba(59,130,246,0.15)',
   cyan:      '#22D3EE',
@@ -49,46 +34,16 @@ export const NX = {
   amber:     '#F59E0B',
   amberSoft: 'rgba(245,158,11,0.15)',
 
-  // Category palette (for multi-category tiles and tags)
-  categories: {
-    cat1: '#7C5CFC', // Flexi Desk / Technical
-    cat2: '#2FB8C6', // PG & Hostel
-    cat3: '#F59E0B', // Car & Mobility
-    cat4: '#DB2777', // Two-wheeler
-    cat5: '#34D399', // Verified Stays / AI
-    cat6: '#4C8DF6', // Beach House / Villa
-    cat7: '#A78BFA', // Day Pass / Coworking
-  },
-
   // Status colours
-  success:   '#34D399',
+  success:   '#10B981',
   successBg: 'rgba(16,185,129,0.12)',
-  danger:    '#F0616B',
-  dangerBg:  'rgba(240,97,107,0.13)',
+  danger:    '#EF4444',
+  dangerBg:  'rgba(239,68,68,0.12)',
   warning:   '#F59E0B',
   warningBg: 'rgba(245,158,11,0.12)',
   info:      '#3B82F6',
   infoBg:    'rgba(59,130,246,0.12)',
 } as const;
-
-// Per-portal accent identity overlays — FinTax360 Jewel palette
-// Each portal shares the same dark-navy glass canvas; only the
-// primary CTA / chip / active-rail / hover-border colour shifts per
-// portal so users can tell which portal they're in at a glance.
-export const PORTAL_ACCENTS = {
-  // Student — Indigo
-  student: { primary: '#6366F1', primaryD: '#4F46E5', primaryL: '#818CF8', accent: '#6366F1', accentSoft: 'rgba(99,102,241,0.18)' },
-  // Alumni — Indigo
-  alumni:  { primary: '#6366F1', primaryD: '#4F46E5', primaryL: '#818CF8', accent: '#6366F1', accentSoft: 'rgba(99,102,241,0.18)' },
-  // College — Indigo
-  college: { primary: '#6366F1', primaryD: '#4F46E5', primaryL: '#818CF8', accent: '#6366F1', accentSoft: 'rgba(99,102,241,0.18)' },
-  // Mentor — Indigo
-  mentor:  { primary: '#6366F1', primaryD: '#4F46E5', primaryL: '#818CF8', accent: '#6366F1', accentSoft: 'rgba(99,102,241,0.18)' },
-  // Super Admin — Amber (NexusOS / Apple HIG warmth)
-  admin:   { primary: '#F59E0B', primaryD: '#D97706', primaryL: '#FBBF24', accent: '#F59E0B', accentSoft: 'rgba(245,158,11,0.18)' },
-} as const;
-
-export type PortalKey = keyof typeof PORTAL_ACCENTS;
 
 // ── Type scale (Apple HIG-aligned, fluid) ────────────────────
 export const NX_TYPE = {
@@ -127,24 +82,7 @@ export const NX_SHADOW = {
   }),
 } as const;
 
-// ── Motion & timing constants ─────────────────────────────────
-export const NX_MOTION = {
-  fast: 160,
-  base: 220,
-  slow: 320,
-  cinematic: 480,
-  ease: 'cubic-bezier(0.4, 0, 0.2, 1)',
-  easeIn: 'cubic-bezier(.2,.8,.2,1)',
-  easeInOut: 'cubic-bezier(.4,0,.2,1)',
-  spring: 'cubic-bezier(.2,.9,.3,1)',
-  durations: {
-    fast: 160,
-    normal: 220,
-    slow: 320,
-    cinematic: 480,
-    aurora: 34000,
-  }
-} as const;
+
 
 // ── Web helpers (no-op on native) ───────────────────────────
 export const nxWebTransition = (props = 'background-color, border-color, transform, box-shadow', dur = NX_MOTION.base) =>

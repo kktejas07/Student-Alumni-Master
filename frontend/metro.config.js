@@ -7,60 +7,44 @@ if (!Array.prototype.toReversed) {
 }
 
 const { getDefaultConfig } = require("expo/metro-config");
+const { withNativeWind } = require("nativewind/metro");
 const path = require('path');
 const { FileStore } = require('metro-cache');
 
-const config = getDefaultConfig(__dirname);
+const projectRoot = __dirname;
+const config = getDefaultConfig(projectRoot);
+
+config.projectRoot = projectRoot;
+config.watchFolders = [projectRoot];
 config.resolver.useWatchman = false;
 
-// Use a stable on-disk store (shared across web/android)
-const root = process.env.METRO_CACHE_ROOT || path.join(__dirname, '.metro-cache');
+// Stable on-disk cache store inside the project directory
+const root = process.env.METRO_CACHE_ROOT || path.join(projectRoot, '.metro-cache');
 config.cacheStores = [
   new FileStore({ root: path.join(root, 'cache') }),
 ];
 
-// Redirect .node.mjs → .js for @lexical/* packages so Metro does not
-// try to minify ESM-only entry-points that its transformer cannot handle.
-// Also redirect 'qrcode' to browser version to bypass Node-only pngjs during SSR.
+// Direct module aliases via extraNodeModules
+config.resolver.extraNodeModules = {
+  ...config.resolver.extraNodeModules,
+  'qrcode': require.resolve('qrcode/lib/browser.js'),
+  'three': path.join(projectRoot, 'node_modules', 'three', 'build', 'three.cjs'),
+  'framer-motion': path.join(projectRoot, 'node_modules', 'framer-motion', 'dist', 'cjs', 'index.js'),
+  'lucide-react': path.join(projectRoot, 'node_modules', 'lucide-react', 'dist', 'cjs', 'lucide-react.js'),
+  'jspdf/dist/jspdf.es.min.js': require.resolve('jspdf/dist/jspdf.es.min.js'),
+  'lucide-react-native': path.join(projectRoot, 'src', 'shims', 'lucide-react-native.js'),
+};
+
+const emptyAssetPath = path.join(projectRoot, 'assets', 'empty-asset.png');
+
+// Custom resolver with non-recursive fallback
 config.resolver.resolveRequest = (context, moduleName, platform) => {
-  if (moduleName === 'qrcode') {
+  if (config.resolver.extraNodeModules[moduleName]) {
     return {
-      filePath: require.resolve('qrcode/lib/browser.js'),
+      filePath: config.resolver.extraNodeModules[moduleName],
       type: 'sourceFile',
     };
   }
-  if (moduleName === 'three') {
-    return {
-      filePath: path.join(__dirname, 'node_modules', 'three', 'build', 'three.cjs'),
-      type: 'sourceFile',
-    };
-  }
-  if (moduleName === 'framer-motion') {
-    return {
-      filePath: path.join(__dirname, 'node_modules', 'framer-motion', 'dist', 'cjs', 'index.js'),
-      type: 'sourceFile',
-    };
-  }
-  if (moduleName === 'lucide-react') {
-    return {
-      filePath: path.join(__dirname, 'node_modules', 'lucide-react', 'dist', 'cjs', 'lucide-react.js'),
-      type: 'sourceFile',
-    };
-  }
-  if (moduleName === 'jspdf/dist/jspdf.es.min.js') {
-    return {
-      filePath: require.resolve('jspdf/dist/jspdf.es.min.js'),
-      type: 'sourceFile',
-    };
-  }
-  if (moduleName === 'lucide-react-native') {
-    return {
-      filePath: path.join(__dirname, 'src', 'shims', 'lucide-react-native.js'),
-      type: 'sourceFile',
-    };
-  }
-  const fs = require('fs');
-  const emptyAssetPath = path.join(__dirname, 'assets', 'empty-asset.png');
 
   try {
     const resolved = context.resolveRequest(context, moduleName, platform);
@@ -76,7 +60,5 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   }
 };
 
-// Reduce the number of workers to decrease resource usage
-config.maxWorkers = 2;
-
 module.exports = config;
+

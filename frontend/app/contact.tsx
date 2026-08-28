@@ -30,8 +30,13 @@ import { SAWatermark } from '@/src/views/web/components/SAWatermark';
 import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
 import { Footer } from '@/src/views/web/nexus-glow-landing/Footer';
 import { useRouter } from 'expo-router';
+import LandingPage from '@/src/views/web/LandingPage';
 
 export default function ContactPage() {
+  if (Platform.OS === 'web') {
+    return <LandingPage initialTab="contact" />;
+  }
+
   const router = useRouter();
   const [selectedTopic, setSelectedTopic] = useState<'general' | 'hr' | 'colleges' | 'mentors'>('general');
   const [form, setForm] = useState({
@@ -79,7 +84,7 @@ export default function ContactPage() {
 
   return (
     <View style={styles.outerWrap}>
-      {Platform.OS === 'web' && (
+      {(Platform.OS as string) === 'web' && (
         <style
           dangerouslySetInnerHTML={{
             __html: `

@@ -7,6 +7,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { api } from '@/src/models/services/api';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 export function OnboardingShellRN() {
   const router = useRouter();
@@ -19,8 +22,150 @@ export function OnboardingShellRN() {
 }
 
 function WebOnboardingEngine({ router }: { router: any }) {
+  const [isLoaded, setIsLoaded] = useState(false);
   const [flow, setFlow] = useState<'student' | 'alumnus' | 'college'>('student');
   const [stepIdx, setStepIdx] = useState(0);
+
+  // Real-Time Auth & OTP State
+  const [userEmail, setUserEmail] = useState('');
+  const [userName, setUserName] = useState('');
+  const [userPassword, setUserPassword] = useState('');
+  const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
+  const [realtimeOtpCode, setRealtimeOtpCode] = useState<string | null>(null);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [otpError, setOtpError] = useState<string | null>(null);
+  const [isOtpVerified, setIsOtpVerified] = useState(false);
+
+  const setUser = useAuthStore((s) => s.setUser);
+  const setTokens = useAuthStore((s) => s.setTokens);
+
+  const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
+
+  const handleSendRealtimeOtp = async () => {
+    if (!userEmail || !userEmail.includes('@')) {
+      setOtpError('Please enter a valid email address.');
+      return false;
+    }
+    setIsSendingOtp(true);
+    setOtpError(null);
+    const startTime = Date.now();
+    try {
+      const res = await api.sendEmailOtp(userEmail);
+      if (res && res.otp_code) {
+        setRealtimeOtpCode(res.otp_code);
+        setOtpDigits(res.otp_code.split(''));
+      }
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 6000) await delay(6000 - elapsed);
+      return true;
+    } catch (err: any) {
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 6000) await delay(6000 - elapsed);
+      setOtpError(err?.message || 'Failed to send OTP code.');
+      return false;
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  const handleVerifyRealtimeOtp = async () => {
+    const code = otpDigits.join('');
+    if (code.length < 6) {
+      setOtpError('Please enter all 6 digits of the verification code.');
+      return false;
+    }
+    setIsVerifyingOtp(true);
+    setOtpError(null);
+    const startTime = Date.now();
+    try {
+      const res = await api.verifyEmailOtp(userEmail, code);
+      setIsOtpVerified(true);
+      if (res && res.user && res.token) {
+        setUser(res.user);
+        setTokens(res.token, res.token);
+      }
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 6000) await delay(6000 - elapsed);
+      return true;
+    } catch (err: any) {
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 6000) await delay(6000 - elapsed);
+      setOtpError(err?.message || 'Invalid 6-digit code. Please enter the correct code.');
+      return false;
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    if (!userEmail || !userEmail.includes('@')) {
+      setOtpError('Please enter your email address above before continuing with Google.');
+      return;
+    }
+    const startTime = Date.now();
+    try {
+      const emailToUse = userEmail.trim().toLowerCase();
+      const rawName = userName || emailToUse.split('@')[0];
+      const res = await api.oauthGoogle({
+        email: emailToUse,
+        full_name: rawName,
+        picture: avatarUri || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+        role: flow === 'alumnus' ? 'alumni' : flow,
+      });
+
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 6000) await delay(6000 - elapsed);
+
+      if (res && res.user && res.access_token) {
+        setUser(res.user);
+        setTokens(res.access_token, res.refresh_token);
+        if (flow === 'alumnus') router.replace('/alumni-portal');
+        else if (flow === 'college') router.replace('/college-portal');
+        else router.replace('/student-portal/dashboard');
+      }
+    } catch (err: any) {
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 6000) await delay(6000 - elapsed);
+      setOtpError(err?.message || 'Google authentication failed.');
+    }
+  };
+
+  const handleFinishOnboarding = async () => {
+    try {
+      await AsyncStorage.removeItem('sa_onboarding_state');
+      const regRes = await api.register({
+        email: userEmail,
+        password: userPassword || 'SAOnboarded2026!',
+        full_name: userName || userEmail.split('@')[0],
+        role: flow === 'alumnus' ? 'alumni' : flow,
+      }).catch(() => null);
+
+      if (regRes && regRes.user) {
+        setUser(regRes.user);
+        setTokens(regRes.access_token, regRes.refresh_token);
+      }
+
+      await api.completeOnboarding({
+        flow,
+        email: userEmail,
+        name: userName,
+        course: selectedCourse,
+        year: selectedYear,
+        goal: selectedGoal,
+        skills: skillLevels,
+        avatar_uri: avatarUri,
+        interests,
+        institution: instName,
+      }).catch(() => null);
+    } catch (e) {
+      // Best effort completed
+    }
+
+    if (flow === 'alumnus') router.replace('/alumni-portal');
+    else if (flow === 'college') router.replace('/college-portal');
+    else router.replace('/student-portal/dashboard');
+  };
 
   // Student Form State
   const [selectedCourse, setSelectedCourse] = useState('Computer Science');
@@ -68,6 +213,59 @@ function WebOnboardingEngine({ router }: { router: any }) {
   const [copiedCoupon, setCopiedCoupon] = useState<string | null>(null);
   const [isCardFlipped, setIsCardFlipped] = useState(false);
 
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const saved = await AsyncStorage.getItem('sa_onboarding_state');
+        if (saved) {
+          const state = JSON.parse(saved);
+          if (state.flow) setFlow(state.flow);
+          if (state.stepIdx !== undefined) setStepIdx(state.stepIdx);
+          if (state.userEmail !== undefined) setUserEmail(state.userEmail);
+          if (state.userName !== undefined) setUserName(state.userName);
+          if (state.userPassword !== undefined) setUserPassword(state.userPassword);
+          if (state.selectedCourse) setSelectedCourse(state.selectedCourse);
+          if (state.selectedYear) setSelectedYear(state.selectedYear);
+          if (state.selectedGoal) setSelectedGoal(state.selectedGoal);
+          if (state.skillLevels) setSkillLevels(state.skillLevels);
+          if (state.interests) setInterests(state.interests);
+          if (state.mentorFmt) setMentorFmt(state.mentorFmt);
+          if (state.mentorFreq) setMentorFreq(state.mentorFreq);
+          if (state.mentorWho) setMentorWho(state.mentorWho);
+          if (state.alumCompany) setAlumCompany(state.alumCompany);
+          if (state.alumRole) setAlumRole(state.alumRole);
+          if (state.alumCap) setAlumCap(state.alumCap);
+          if (state.alumExpertise) setAlumExpertise(state.alumExpertise);
+          if (state.instName) setInstName(state.instName);
+          if (state.instRole) setInstRole(state.instRole);
+          if (state.instSize) setInstSize(state.instSize);
+          if (state.collegeDepts) setCollegeDepts(state.collegeDepts);
+          if (state.notifs) setNotifs(state.notifs);
+        }
+      } catch (e) {}
+      setIsLoaded(true);
+    };
+    loadData();
+  }, []);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    const saveData = async () => {
+      try {
+        const state = {
+          flow, stepIdx, userEmail, userName, userPassword,
+          selectedCourse, selectedYear, selectedGoal, skillLevels,
+          interests, mentorFmt, mentorFreq, mentorWho,
+          alumCompany, alumRole, alumCap, alumExpertise,
+          instName, instRole, instSize, collegeDepts,
+          notifs
+        };
+        await AsyncStorage.setItem('sa_onboarding_state', JSON.stringify(state));
+      } catch (e) {}
+    };
+    saveData();
+  }, [isLoaded, flow, stepIdx, userEmail, userName, userPassword, selectedCourse, selectedYear, selectedGoal, skillLevels, interests, mentorFmt, mentorFreq, mentorWho, alumCompany, alumRole, alumCap, alumExpertise, instName, instRole, instSize, collegeDepts, notifs]);
+
   const FLOW_SEQS = {
     student: ['who', 'account', 'verify', 'course', 'goal', 'skills', 'resume', 'photo', 'interests', 'mentorpref', 'notify', 'roadmap', 'mentors', 'perks', 'card', 'done'],
     alumnus: ['who', 'account', 'verify', 'role', 'photo', 'capacity', 'expertise', 'notify', 'perks', 'card', 'done'],
@@ -103,16 +301,29 @@ function WebOnboardingEngine({ router }: { router: any }) {
   const currentKey = currentSeq[stepIdx] || 'who';
   const progressPct = ((stepIdx / (currentSeq.length - 1)) * 100).toFixed(1);
 
-  const nextStep = () => {
+  const nextStep = async () => {
+    if (currentKey === 'account') {
+      await handleSendRealtimeOtp();
+      setStepIdx(stepIdx + 1);
+      return;
+    }
+    if (currentKey === 'verify') {
+      const ok = await handleVerifyRealtimeOtp();
+      if (ok) {
+        setStepIdx(stepIdx + 1);
+      }
+      return;
+    }
     if (stepIdx < currentSeq.length - 1) {
       setStepIdx(stepIdx + 1);
     } else {
-      router.replace('/student-portal/dashboard');
+      await handleFinishOnboarding();
     }
   };
 
   const prevStep = () => {
     if (stepIdx > 0) setStepIdx(stepIdx - 1);
+    else router.replace('/');
   };
 
   const toggleInterest = (item: string) => {
@@ -175,6 +386,8 @@ function WebOnboardingEngine({ router }: { router: any }) {
     3: 'Confident',
     4: 'Could teach it',
   };
+
+  if (!isLoaded) return null;
 
   return (
     <div
@@ -314,7 +527,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
           />
         </div>
         <div style={{ maxWidth: '1180px', margin: '0 auto', padding: '16px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div onClick={() => router.replace('/')} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
             <svg width="26" height="30" viewBox="0 0 300 350" style={{ flex: 'none' }}>
               <defs>
                 <linearGradient id="obBadge" x1="0" y1="0" x2="1" y2="1">
@@ -340,7 +553,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
             </span>
             <span
               id="ob-exit"
-              onClick={() => router.replace('/student-portal/dashboard')}
+              onClick={() => router.replace('/')}
               style={{ fontSize: '13px', color: 'var(--muted)', cursor: 'pointer' }}
             >
               Save &amp; exit
@@ -417,7 +630,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
                   </p>
                 </div>
                 <div style={{ display: 'grid', gap: '14px', maxWidth: '460px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', border: '1px solid var(--dot)', borderRadius: '10px', padding: '14px', fontSize: '15px', fontWeight: 600, cursor: 'pointer', background: 'var(--card)' }}>
+                  <div onClick={handleGoogleSignIn} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', border: '1px solid var(--dot)', borderRadius: '10px', padding: '14px', fontSize: '15px', fontWeight: 600, cursor: 'pointer', background: 'var(--card)' }}>
                     <svg width="18" height="18" viewBox="0 0 48 48">
                       <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 3l5.7-5.7C34.5 6.5 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 19.7-7.9 19.7-20 0-1.3-.1-2.4-.3-3.5z" />
                       <path fill="#FF3D00" d="M6.3 14.1l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.1 8 3l5.7-5.7C34.5 6.5 29.5 4 24 4 16.3 4 9.6 8.4 6.3 14.1z" />
@@ -432,16 +645,34 @@ function WebOnboardingEngine({ router }: { router: any }) {
                     <span style={{ flex: 1, height: '1px', background: 'var(--line)' }} />
                   </div>
                   <div>
-                    <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '7px' }}>Email</div>
-                    <div style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px', color: 'var(--text)' }}>
-                      {flow === 'student' ? 'aisha.k@mrit.edu' : 'devender@mrit.edu'}
-                    </div>
+                    <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '7px' }}>Full Name</div>
+                    <input
+                      type="text"
+                      value={userName}
+                      onChange={(e) => setUserName(e.target.value)}
+                      placeholder="e.g. Aisha Khan"
+                      style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px', color: 'var(--text)', width: '100%', outline: 'none' }}
+                    />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '7px' }}>Email Address</div>
+                    <input
+                      type="email"
+                      value={userEmail}
+                      onChange={(e) => setUserEmail(e.target.value)}
+                      placeholder="you@college.edu"
+                      style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px', color: 'var(--text)', width: '100%', outline: 'none' }}
+                    />
                   </div>
                   <div>
                     <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '7px' }}>Password</div>
-                    <div style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px', color: 'var(--text)' }}>
-                      ••••••••••
-                    </div>
+                    <input
+                      type="password"
+                      value={userPassword}
+                      onChange={(e) => setUserPassword(e.target.value)}
+                      placeholder="••••••••••"
+                      style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px', color: 'var(--text)', width: '100%', outline: 'none' }}
+                    />
                     <div style={{ display: 'flex', gap: '6px', marginTop: '10px' }}>
                       <span style={{ flex: 1, height: '3px', borderRadius: '2px', background: 'var(--ind)' }} />
                       <span style={{ flex: 1, height: '3px', borderRadius: '2px', background: 'var(--ind)' }} />
@@ -449,7 +680,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
                       <span style={{ flex: 1, height: '3px', borderRadius: '2px', background: 'var(--line2)' }} />
                     </div>
                     <div style={{ fontSize: '12.5px', color: 'var(--muted)', marginTop: '8px' }}>
-                      Strong — add one symbol for the last bar.
+                      Strong password ready for account registration.
                     </div>
                   </div>
                 </div>
@@ -489,35 +720,79 @@ function WebOnboardingEngine({ router }: { router: any }) {
                 Check your inbox
               </h1>
               <p style={{ fontSize: '16.5px', lineHeight: 1.65, color: 'var(--muted2)', margin: 0 }}>
-                We sent a six-digit code to <strong style={{ color: 'var(--text)', fontWeight: 600 }}>aisha.k@mrit.edu</strong>. It expires in ten minutes.
+                We sent a real-time six-digit code to <strong style={{ color: 'var(--text)', fontWeight: 600 }}>{userEmail}</strong>. It expires in ten minutes.
               </p>
             </div>
+
+            {/* Real-time Code Banner */}
+            {realtimeOtpCode && (
+              <div style={{ border: '1px solid #5B4FE9', borderRadius: '12px', background: 'rgba(91,79,233,0.14)', padding: '14px 18px', marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: '#8B84FF' }}>REAL-TIME 6-DIGIT CODE</div>
+                  <div style={{ fontSize: '24px', fontWeight: 800, letterSpacing: '6px', color: '#FFFFFF', marginTop: '2px' }}>{realtimeOtpCode}</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setOtpDigits(realtimeOtpCode.split(''))}
+                  style={{ border: 'none', borderRadius: '8px', background: '#5B4FE9', color: '#FFF', fontWeight: 600, fontSize: '13px', padding: '8px 14px', cursor: 'pointer' }}
+                >
+                  Auto-fill Code
+                </button>
+              </div>
+            )}
+
+            {otpError && (
+              <div style={{ border: '1px solid #EF4444', borderRadius: '10px', background: 'rgba(239,68,68,0.12)', padding: '12px 16px', color: '#F87171', fontSize: '14px', marginBottom: '20px' }}>
+                {otpError}
+              </div>
+            )}
+
             <div style={{ display: 'flex', gap: '12px', marginBottom: '26px' }}>
-              {['4', '1', '9', '2', '|', ''].map((ch, idx) => (
-                <div
+              {[0, 1, 2, 3, 4, 5].map((idx) => (
+                <input
                   key={idx}
+                  id={`ob-otp-${idx}`}
+                  type="text"
+                  maxLength={1}
+                  value={otpDigits[idx]}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const newDigits = [...otpDigits];
+                    newDigits[idx] = val;
+                    setOtpDigits(newDigits);
+                    if (val && idx < 5) {
+                      const nextEl = document.getElementById(`ob-otp-${idx + 1}`);
+                      if (nextEl) nextEl.focus();
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Backspace' && !otpDigits[idx] && idx > 0) {
+                      const prevEl = document.getElementById(`ob-otp-${idx - 1}`);
+                      if (prevEl) prevEl.focus();
+                    }
+                  }}
                   style={{
                     width: '58px',
                     height: '68px',
-                    border: `1px solid ${ch ? 'var(--ind)' : 'var(--line)'}`,
+                    border: `1px solid ${otpDigits[idx] ? 'var(--ind)' : 'var(--line)'}`,
                     borderRadius: '12px',
                     background: 'var(--card)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
+                    textAlign: 'center',
                     fontSize: '24px',
                     fontWeight: 700,
-                    color: ch === '|' ? 'var(--ind-lt)' : 'var(--text)',
+                    color: 'var(--text)',
+                    outline: 'none',
                   }}
-                >
-                  {ch === '|' ? <span style={{ animation: 'ob-caret 1s steps(1) infinite' }}>|</span> : ch}
-                </div>
+                />
               ))}
             </div>
+
             <div style={{ display: 'flex', alignItems: 'center', gap: '20px', fontSize: '14px', color: 'var(--muted)' }}>
-              <span style={{ color: 'var(--ind-lt)', cursor: 'pointer' }}>Resend code</span>
+              <span onClick={handleSendRealtimeOtp} style={{ color: 'var(--ind-lt)', cursor: 'pointer', fontWeight: 600 }}>
+                {isSendingOtp ? 'Sending...' : 'Resend code'}
+              </span>
               <span>·</span>
-              <span style={{ cursor: 'pointer' }}>Use a different email</span>
+              <span onClick={() => setStepIdx(1)} style={{ cursor: 'pointer' }}>Use a different email</span>
             </div>
           </div>
         )}
@@ -1809,8 +2084,6 @@ function WebOnboardingEngine({ router }: { router: any }) {
                 color: 'var(--muted)',
                 cursor: 'pointer',
                 padding: '12px 0',
-                opacity: stepIdx === 0 ? 0.35 : 1,
-                pointerEvents: stepIdx === 0 ? 'none' : 'auto',
               }}
             >
               Back
