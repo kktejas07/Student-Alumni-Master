@@ -2459,6 +2459,9 @@ class PrizePoolItem(BaseModel):
 class RegistrationConfig(BaseModel):
     enabled: Optional[bool] = True
     fee: Optional[float] = 0
+    individual_fee: Optional[float] = None
+    team_fee: Optional[float] = None
+    discount_coupons: Optional[Dict[str, float]] = Field(default_factory=dict)
     currency: Optional[str] = "INR"
     max_seats: Optional[int] = 0
     seat_leverage: Optional[float] = 0.8  # 0.0-1.0 — fraction of registrations that consume seats (0.8 = 20% buffer)
@@ -2602,29 +2605,20 @@ class ShowcaseUpdateSchema(BaseModel):
 DEFAULT_SHOWCASE_SEED = {
     "title": "VNR ECHO 2026",
     "slug": "vnrvjit",
-    "aliases": ["vnr-echo-2026", "vnr"],
+    "aliases": ["vnr-echo-2026"],
     "subtitle": "Empowering Tomorrow's Leaders",
     "description": "A day of inspiration, learning, and networking as industry leaders, alumni, and students came together to explore opportunities and shape the future of technology.",
-    "date": "July 31, 2026",
-    "time": "09:30 AM – 04:30 PM",
-    "venue": "Main Auditorium, VNR VJIET, Hyderabad",
+    "date": "August 15, 2026",
+    "time": "10:00 AM – 4:30 PM",
+    "venue": "Main Auditorium, VNR VJIET",
     "college": "VNR VJIET",
     "category": "college-event",
     "status": "published",
-    "event_status_badge": "Completed",
-    "hero_image_url": "/images/hackwave/hackwave_techfest_verticals.jpg",
-    "hero_cover_url": "/images/hackwave/hackwave_techfest_verticals.jpg",
-    "hero_thumbnail_url": "/images/hackwave/hackwave_techfest_verticals.jpg",
-    "hero_bg_url": "/images/hackwave/hackwave_techfest_verticals.jpg",
-    "banner_url": "/images/hackwave/hackwave_techfest_verticals.jpg",
-    "poster_url": "/images/hackwave/hackwave_techfest_verticals.jpg",
-    "gallery_images": [
-        "/images/hackwave/hackwave_techfest_verticals.jpg",
-        "/images/hackwave/hackwave_speakers.jpg",
-        "/images/hackwave/hackwave_main_poster.png",
-        "/images/hackwave/hackwave_cybersecurity_conclave.jpg",
-        "/images/hackwave/hackwave_perks_pool.jpg"
-    ],
+    "event_status_badge": "Upcoming",
+    "hero_image_url": "https://picsum.photos/seed/echo2026-hero/1200/700",
+    "hero_cover_url": "https://picsum.photos/seed/echo2026-hero/1200/700",
+    "hero_thumbnail_url": "https://picsum.photos/seed/echo2026-hero/800/500",
+    "hero_bg_url": "https://picsum.photos/seed/echo2026-bg/1600/900",
     "organizer_name": "Student Alumni Cell",
     "organizer_logo_url": None,
     "stats": [
@@ -2763,18 +2757,7 @@ async def seed_echo_showcase(db: AsyncIOMotorDatabase):
             await db.echo_showcases.insert_one(doc)
             print("[ECHO CMS] Seeded default vnr-echo-2026 showcase")
         else:
-            await db.echo_showcases.update_many(
-                {"slug": {"$in": ["vnrvjit", "vnr-echo-2026", "vnr"]}},
-                {
-                    "$set": {
-                        "event_status_badge": "Completed",
-                        "hero_image_url": "/images/hackwave/hackwave_techfest_verticals.jpg",
-                        "banner_url": "/images/hackwave/hackwave_techfest_verticals.jpg",
-                        "poster_url": "/images/hackwave/hackwave_techfest_verticals.jpg",
-                        "gallery_layout": "grid"
-                    }
-                }
-            )
+            await db.echo_showcases.update_many({"gallery_layout": {"$exists": False}}, {"$set": {"gallery_layout": "grid"}})
     except Exception as e:
         print(f"[ECHO CMS] Seed warning: {e}")
 
@@ -2797,25 +2780,21 @@ async def download_handbook():
 # ── Public endpoints ─────────────────────────────────────────────────────────
 @router.get("/showcases")
 async def list_showcases(request: Request):
-    try:
-        db = _get_db(request)
+    db = _get_db(request)
+    docs = await db.echo_showcases.find(
+        {"status": "published"},
+        {"gallery": 0, "testimonials": 0, "timeline": 0}
+    ).sort("date", -1).to_list(100)
+
+    # Auto-seed if empty
+    if len(docs) == 0:
+        await seed_echo_showcase(db)
         docs = await db.echo_showcases.find(
             {"status": "published"},
             {"gallery": 0, "testimonials": 0, "timeline": 0}
         ).sort("date", -1).to_list(100)
 
-        # Auto-seed if empty
-        if len(docs) == 0:
-            await seed_echo_showcase(db)
-            docs = await db.echo_showcases.find(
-                {"status": "published"},
-                {"gallery": 0, "testimonials": 0, "timeline": 0}
-            ).sort("date", -1).to_list(100)
-
-        return {"items": [_ser(d) for d in docs]}
-    except Exception as err:
-        logger.error(f"[ECHO SHOWCASES LIST ERROR] {err}")
-        return {"items": [_ser(DEFAULT_SHOWCASE_SEED)]}
+    return {"items": [_ser(d) for d in docs]}
 
 
 @router.get("/showcases/{slug}")
@@ -2878,15 +2857,14 @@ async def get_showcase(slug: str, request: Request):
                         ]
                     },
                     "speakers": [
-                        {"name": "Stan Mierzwa, Ph.D.", "position": "Director, Center for Cybersecurity", "company": "Kean University", "bio": "Director @ Center for Cybersecurity, Kean University, Union, NJ.", "location": "Union, New Jersey, USA", "linkedin": "in/stanmierzwa", "is_panel_member": True, "category": "International Panel", "sort_order": 0, "visible": True},
-                        {"name": "Ken Fishkin", "position": "President", "company": "ISC2 New Jersey Chapter", "bio": "Champion for cybersecurity career entry from university campus.", "location": "New Jersey, USA", "linkedin": "in/kfishkin", "is_panel_member": True, "category": "International Panel", "sort_order": 1, "visible": True},
-                        {"name": "Sharon Kelley", "position": "Board Member", "company": "ISC2 New Jersey Chapter (MS, MBA, CISSP, CCSP)", "bio": "Security leader, educator, and governance mentor.", "location": "Hoboken, New Jersey, USA", "linkedin": "in/sharon-kelley-0292181", "is_panel_member": True, "category": "International Panel", "sort_order": 2, "visible": True},
-                        {"name": "Jeremy Livingston", "position": "CISO & Deputy CIO", "company": "Stevens Institute of Technology", "bio": "Leading cybersecurity and higher ed IT infrastructure.", "location": "Effort, Pennsylvania, USA", "linkedin": "in/jeremylivin", "is_panel_member": True, "category": "International Panel", "sort_order": 3, "visible": True},
-                        {"name": "Suman Kalia", "position": "Associate Professor & Chair, Computer Science", "company": "Saint Peter's University", "bio": "Academic leader in algorithms and security engineering.", "location": "Jersey City, New Jersey, USA", "linkedin": "in/suman-kalia-300b521", "is_panel_member": True, "category": "International Panel", "sort_order": 4, "visible": True},
-                        {"name": "Jonna Dheeraj", "position": "Account Delivery & Program Management", "company": "Embedded SW · AI · VLSI · 5G · IoT", "bio": "Building high-performance embedded systems and VLSI architectures.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 5, "visible": True},
-                        {"name": "Harish Kotra", "position": "DevX Lead", "company": "Quirq", "bio": "Developer relations leader and community builder.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 6, "visible": True},
-                        {"name": "M Avinash Rao", "position": "Client Account Manager", "company": "Deloitte", "bio": "Enterprise tech consulting and digital delivery expert.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 7, "visible": True},
-                        {"name": "Gopichand Anumolu", "position": "Founder", "company": "ATLAST", "bio": "Startup founder engineering developer tools and student platforms.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 8, "visible": True}
+                        {"name": "Jeremy Livingston", "position": "CISO & Deputy CIO", "company": "Stevens Institute of Technology", "bio": "Leading cybersecurity and higher ed IT infrastructure.", "is_panel_member": True, "category": "International Panel", "sort_order": 0, "visible": True},
+                        {"name": "Sharon Kelley", "position": "Board Member", "company": "ISC2 New Jersey Chapter (MS, MBA, CISSP, CCSP)", "bio": "Security leader, educator, and governance mentor.", "is_panel_member": True, "category": "International Panel", "sort_order": 1, "visible": True},
+                        {"name": "Suman Kalia", "position": "Associate Professor & Chair, Computer Science", "company": "Saint Peter's University", "bio": "Academic leader in algorithms and security engineering.", "is_panel_member": True, "category": "International Panel", "sort_order": 2, "visible": True},
+                        {"name": "Ken Fishkin", "position": "President", "company": "ISC2 New Jersey Chapter", "bio": "Champion for cybersecurity career entry from university campus.", "is_panel_member": True, "category": "International Panel", "sort_order": 3, "visible": True},
+                        {"name": "Jonna Dheeraj", "position": "Account Delivery & Program Management", "company": "Embedded SW · AI · VLSI · 5G · IoT", "bio": "Building high-performance embedded systems and VLSI architectures.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 4, "visible": True},
+                        {"name": "Harish Kotra", "position": "DevX Lead", "company": "Quirq", "bio": "Developer relations leader and community builder.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 5, "visible": True},
+                        {"name": "M Avinash Rao", "position": "Client Account Manager", "company": "Deloitte", "bio": "Enterprise tech consulting and digital delivery expert.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 6, "visible": True},
+                        {"name": "Gopichand Anumolu", "position": "Founder", "company": "ATLAST", "bio": "Startup founder engineering developer tools and student platforms.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 7, "visible": True}
                     ],
                     "verticals": [
                         {"title": "Build by Sunset", "description": "Ship something real between morning and dusk. Teams of 2–5, 5 AI tracks, ₹50,000 prize pool.", "icon": "rocket"},
@@ -2941,27 +2919,7 @@ async def get_showcase(slug: str, request: Request):
                     "updated_at": _now()
                 }
                 await db.echo_showcases.insert_one(hw_doc)
-            else:
-                # Synchronize existing database document with latest banner, poster URLs & speakers
-                await db.echo_showcases.update_one(
-                    {"slug": "snist"},
-                    {
-                        "$set": {
-                            "hero_image_url": "/images/hackwave/hackwave_main_poster.png",
-                            "banner_url": "/images/hackwave/hackwave_main_poster.png",
-                            "poster_url": "/images/hackwave/hackwave_main_poster.png",
-                            "gallery_images": [
-                                "/images/hackwave/hackwave_main_poster.png",
-                                "/images/hackwave/hackwave_cybersecurity_conclave.jpg",
-                                "/images/hackwave/hackwave_speakers.jpg",
-                                "/images/hackwave/hackwave_techfest_verticals.jpg",
-                                "/images/hackwave/hackwave_perks_pool.jpg"
-                            ],
-                            "updated_at": _now()
-                        }
-                    }
-                )
-            doc = await db.echo_showcases.find_one(_slug_query(slug))
+                doc = await db.echo_showcases.find_one(_slug_query(slug))
 
     if not doc:
         raise HTTPException(status_code=404, detail="Showcase not found")
@@ -3089,6 +3047,7 @@ class RegisterSchema(BaseModel):
     team_name: Optional[str] = ""
     team_size: Optional[int] = 1
     team_members: Optional[List[TeamMemberSchema]] = []
+    coupon_code: Optional[str] = ""
 
     @field_validator("email")
     @classmethod
@@ -3184,6 +3143,37 @@ class RegisterSchema(BaseModel):
             if len(v) != team_size:
                 raise ValueError(f"Expected {team_size} team members, got {len(v)}")
         return v or []
+class CouponVerifyRequest(BaseModel):
+    coupon_code: str
+
+@router.post("/showcases/{slug}/verify-coupon")
+async def verify_discount_coupon(
+    slug: str,
+    payload: CouponVerifyRequest,
+    request: Request,
+):
+    """Verify a discount coupon for an Echo event registration."""
+    db = _get_db(request)
+    showcase = await db.echo_showcases.find_one(_slug_query(slug))
+    if not showcase:
+        raise HTTPException(status_code=404, detail="Showcase not found")
+    if showcase.get("status") != "published":
+        raise HTTPException(status_code=404, detail="Showcase not found")
+
+    reg_cfg = showcase.get("registration") or {}
+    coupons_dict = reg_cfg.get("discount_coupons") or {}
+    
+    if not payload.coupon_code:
+        raise HTTPException(status_code=400, detail="Coupon code is required")
+        
+    coupon_upper = payload.coupon_code.strip().upper()
+    
+    for k, v in coupons_dict.items():
+        if k.upper() == coupon_upper:
+            return {"valid": True, "discount_percent": float(v), "coupon_code": coupon_upper}
+            
+    return {"valid": False, "discount_percent": 0.0, "message": "Invalid or expired coupon"}
+
 
 
 @router.post("/showcases/{slug}/register")
@@ -3287,7 +3277,28 @@ async def register_for_showcase(
     # Calculate total fee for team registrations
     team_size = payload.team_size or 1
     registration_type = payload.registration_type or "individual"
-    total_fee = fee * team_size if registration_type == "team" else fee
+    
+    if registration_type == "team":
+        team_fee_conf = reg_cfg.get("team_fee")
+        total_fee = float(team_fee_conf) if team_fee_conf is not None else (fee * team_size)
+    else:
+        indiv_fee_conf = reg_cfg.get("individual_fee")
+        total_fee = float(indiv_fee_conf) if indiv_fee_conf is not None else fee
+
+    applied_discount_percent = 0.0
+    applied_coupon = None
+    if payload.coupon_code:
+        coupon_upper = payload.coupon_code.strip().upper()
+        coupons_dict = reg_cfg.get("discount_coupons") or {}
+        for k, v in coupons_dict.items():
+            if k.upper() == coupon_upper:
+                applied_discount_percent = float(v)
+                applied_coupon = coupon_upper
+                break
+        
+        if applied_discount_percent > 0:
+            discount_amount = total_fee * (applied_discount_percent / 100.0)
+            total_fee = max(0.0, total_fee - discount_amount)
     
     auto_paid = total_fee <= 0
 
@@ -3363,6 +3374,8 @@ async def register_for_showcase(
         "team_name": team_name,
         "team_size": team_size,
         "team_members": team_members_data,
+        "coupon_code": applied_coupon,
+        "discount_percent": applied_discount_percent,
     }
     await db.echo_registrations.insert_one(dict(reg))
     await _sync_user_profile_data(db, user, payload)

@@ -7,7 +7,7 @@ Exposes endpoints for:
   - Security, Data Hygiene, and Moderation Specialized Agents
 """
 from __future__ import annotations
-from fastapi import APIRouter, Depends, HTTPException, Body
+from fastapi import APIRouter, Depends, HTTPException, Body, Query
 from typing import Dict, Any, Optional
 
 from core.deps import get_current_user, require_role
