@@ -23,7 +23,7 @@ export default function Welcome() {
 
   useEffect(() => {
     if (Platform.OS === 'web') {
-      router.replace('/');
+      window.location.replace('/');
       return;
     }
     Animated.parallel([
