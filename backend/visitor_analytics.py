@@ -1,3 +1,6 @@
+from __future__ import annotations
+from core.deps import require_role
+from core.deps import require_role
 """
 Visitor Analytics & Telemetry Engine
 ===================================
@@ -14,7 +17,6 @@ Collections used:
   - visitor_sessions : Unique sessions with full hardware, geo, and visitor metadata
   - visitor_events   : Fine-grained chronological event trail per session
 """
-from __future__ import annotations
 import os
 import io
 import csv
@@ -354,7 +356,7 @@ async def identify_visitor(payload: IdentifyPayload):
 # ─── Super Admin Analytics Queries ──────────────────────────────────
 
 @router.get("/admin/analytics/visitors/live")
-async def get_live_visitors(user: dict = Depends(_require_admin())):
+async def get_live_visitors(user: dict = Depends(require_role("admin", "superadmin", "college"))):
     """
     Real-time active visitors on the site within the last 5 minutes.
     """
@@ -420,7 +422,7 @@ async def list_visitors(
     module: Optional[str] = Query(None),
     country: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
-    user: dict = Depends(_require_admin())
+    user: dict = Depends(require_role("admin", "superadmin", "college"))
 ):
     """
     Paginated, filterable visitor list with search by IP, Inferred Name, Fingerprint, or Path.
@@ -472,12 +474,17 @@ async def list_visitors(
         # Determine status
         lb = s.get("last_heartbeat")
         if lb:
-            dt = datetime.fromisoformat(lb.replace("Z", "+00:00")) if isinstance(lb, str) else lb
-            if (now - dt).total_seconds() < 300:
-                s["status"] = "online"
-            elif (now - dt).total_seconds() < 3600:
-                s["status"] = "idle"
-            else:
+            try:
+                dt = datetime.fromisoformat(lb.replace("Z", "+00:00")) if isinstance(lb, str) else lb
+                if hasattr(dt, 'tzinfo') and dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                if (now - dt).total_seconds() < 300:
+                    s["status"] = "online"
+                elif (now - dt).total_seconds() < 3600:
+                    s["status"] = "idle"
+                else:
+                    s["status"] = "offline"
+            except Exception:
                 s["status"] = "offline"
         else:
             s["status"] = "offline"
@@ -494,7 +501,7 @@ async def list_visitors(
 
 
 @router.get("/admin/analytics/visitors/{session_or_visitor_id}")
-async def get_visitor_dossier(session_or_visitor_id: str, user: dict = Depends(_require_admin())):
+async def get_visitor_dossier(session_or_visitor_id: str, user: dict = Depends(require_role("admin", "superadmin", "college"))):
     """
     Detailed dossier for a single visitor session including full journey event trail.
     """
@@ -543,7 +550,7 @@ async def get_visitor_dossier(session_or_visitor_id: str, user: dict = Depends(_
 
 
 @router.get("/admin/analytics/modules")
-async def get_modular_analytics(days: int = Query(30, ge=1, le=180), user: dict = Depends(_require_admin())):
+async def get_modular_analytics(days: int = Query(30, ge=1, le=180), user: dict = Depends(require_role("admin", "superadmin", "college"))):
     """
     Module-based analytics matrix across platform components.
     """
@@ -634,7 +641,7 @@ async def get_modular_analytics(days: int = Query(30, ge=1, le=180), user: dict 
 
 
 @router.get("/admin/analytics/hardware")
-async def get_hardware_analytics(days: int = Query(60, ge=1, le=180), user: dict = Depends(_require_admin())):
+async def get_hardware_analytics(days: int = Query(60, ge=1, le=180), user: dict = Depends(require_role("admin", "superadmin", "college"))):
     """
     Hardware, device & environment distribution of visitors.
     """
@@ -717,7 +724,7 @@ async def get_hardware_analytics(days: int = Query(60, ge=1, le=180), user: dict
 async def export_visitors_csv(
     days: int = Query(30, ge=1, le=365),
     visitor_type: Optional[str] = Query("all"),
-    user: dict = Depends(_require_admin())
+    user: dict = Depends(require_role("admin", "superadmin", "college"))
 ):
     """
     Download visitor telemetry data as CSV.
