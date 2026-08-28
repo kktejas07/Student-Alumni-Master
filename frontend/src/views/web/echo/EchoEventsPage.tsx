@@ -144,17 +144,24 @@ export function EchoEventsPage({ initialView = 'detail', initialSlug = 'snist' }
   useEffect(() => {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       const path = window.location.pathname;
-      if (path.includes('/register')) {
-        const parts = path.split('/').filter(Boolean);
-        if (parts[1] && parts[1] !== 'register') setSelectedSlug(parts[1]);
+      const search = new URLSearchParams(window.location.search);
+      const eventParam = search.get('event') || search.get('slug');
+      const viewParam = search.get('view');
+
+      if (viewParam === 'register' || viewParam === 'reg' || path.includes('/register')) {
+        const slugFromUrl = eventParam || (path.split('/').filter(Boolean)[1] !== 'register' ? path.split('/').filter(Boolean)[1] : null) || initialSlug || 'snist';
+        setSelectedSlug(slugFromUrl);
         setView('reg');
-      } else if (path.startsWith('/echo/') && path !== '/echo') {
-        const parts = path.split('/').filter(Boolean);
-        if (parts[1]) setSelectedSlug(parts[1]);
+      } else if (viewParam === 'catalog' || viewParam === 'list') {
+        if (eventParam) setSelectedSlug(eventParam);
+        setView('list');
+      } else if (eventParam || (path.startsWith('/echo/') && path !== '/echo')) {
+        const slugFromUrl = eventParam || path.split('/').filter(Boolean)[1] || initialSlug || 'snist';
+        setSelectedSlug(slugFromUrl);
         setView('detail');
-      } else if (path === '/echo') {
-        setSelectedSlug('snist');
-        setView('detail');
+      } else {
+        setSelectedSlug(initialSlug || 'snist');
+        setView(initialView || 'detail');
       }
     } else if (searchParams?.view) {
       setView(searchParams.view as any);
@@ -333,11 +340,13 @@ export function EchoEventsPage({ initialView = 'detail', initialSlug = 'snist' }
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       let targetUrl = '/echo';
       if (targetView === 'detail') {
-        targetUrl = `/echo/${nextSlug}`;
+        targetUrl = nextSlug === 'snist' ? '/echo' : `/echo?event=${nextSlug}`;
       } else if (targetView === 'reg') {
-        targetUrl = `/echo/${nextSlug}/register`;
+        targetUrl = `/echo?event=${nextSlug}&view=register`;
+      } else if (targetView === 'list') {
+        targetUrl = '/echo?view=catalog';
       }
-      if (window.location.pathname !== targetUrl) {
+      if (window.location.pathname + window.location.search !== targetUrl) {
         window.history.pushState(null, '', targetUrl);
       }
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -349,18 +358,24 @@ export function EchoEventsPage({ initialView = 'detail', initialSlug = 'snist' }
     if (Platform.OS !== 'web' || typeof window === 'undefined') return;
     const handlePopState = () => {
       const path = window.location.pathname;
-      if (path.includes('/register')) {
-        const parts = path.split('/').filter(Boolean);
-        const slugFromUrl = parts[1] || 'snist';
+      const search = new URLSearchParams(window.location.search);
+      const eventParam = search.get('event') || search.get('slug');
+      const viewParam = search.get('view');
+
+      if (viewParam === 'register' || viewParam === 'reg' || path.includes('/register')) {
+        const slugFromUrl = eventParam || (path.split('/').filter(Boolean)[1] !== 'register' ? path.split('/').filter(Boolean)[1] : null) || 'snist';
         setSelectedSlug(slugFromUrl);
         setView('reg');
-      } else if (path.startsWith('/echo/') && path !== '/echo') {
-        const parts = path.split('/').filter(Boolean);
-        const slugFromUrl = parts[1] || 'snist';
+      } else if (viewParam === 'catalog' || viewParam === 'list') {
+        if (eventParam) setSelectedSlug(eventParam);
+        setView('list');
+      } else if (eventParam || (path.startsWith('/echo/') && path !== '/echo')) {
+        const slugFromUrl = eventParam || path.split('/').filter(Boolean)[1] || 'snist';
         setSelectedSlug(slugFromUrl);
         setView('detail');
-      } else if (path === '/echo') {
-        setView('list');
+      } else {
+        setSelectedSlug('snist');
+        setView('detail');
       }
     };
     window.addEventListener('popstate', handlePopState);
