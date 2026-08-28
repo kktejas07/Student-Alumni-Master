@@ -37,6 +37,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [otpError, setOtpError] = useState<string | null>(null);
   const [isOtpVerified, setIsOtpVerified] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   const setUser = useAuthStore((s) => s.setUser);
   const setTokens = useAuthStore((s) => s.setTokens);
@@ -57,12 +58,8 @@ function WebOnboardingEngine({ router }: { router: any }) {
         setRealtimeOtpCode(res.otp_code);
         setOtpDigits(res.otp_code.split(''));
       }
-      const elapsed = Date.now() - startTime;
-      if (elapsed < 6000) await delay(6000 - elapsed);
       return true;
     } catch (err: any) {
-      const elapsed = Date.now() - startTime;
-      if (elapsed < 6000) await delay(6000 - elapsed);
       setOtpError(err?.message || 'Failed to send OTP code.');
       return false;
     } finally {
@@ -86,12 +83,8 @@ function WebOnboardingEngine({ router }: { router: any }) {
         setUser(res.user);
         setTokens(res.token, res.token);
       }
-      const elapsed = Date.now() - startTime;
-      if (elapsed < 6000) await delay(6000 - elapsed);
       return true;
     } catch (err: any) {
-      const elapsed = Date.now() - startTime;
-      if (elapsed < 6000) await delay(6000 - elapsed);
       setOtpError(err?.message || 'Invalid 6-digit code. Please enter the correct code.');
       return false;
     } finally {
@@ -115,9 +108,6 @@ function WebOnboardingEngine({ router }: { router: any }) {
         role: flow === 'alumnus' ? 'alumni' : flow,
       });
 
-      const elapsed = Date.now() - startTime;
-      if (elapsed < 6000) await delay(6000 - elapsed);
-
       if (res && res.user && res.access_token) {
         setUser(res.user);
         setTokens(res.access_token, res.refresh_token);
@@ -126,8 +116,6 @@ function WebOnboardingEngine({ router }: { router: any }) {
         else router.replace('/student-portal/dashboard');
       }
     } catch (err: any) {
-      const elapsed = Date.now() - startTime;
-      if (elapsed < 6000) await delay(6000 - elapsed);
       setOtpError(err?.message || 'Google authentication failed.');
     }
   };
@@ -303,22 +291,28 @@ function WebOnboardingEngine({ router }: { router: any }) {
   const progressPct = ((stepIdx / (currentSeq.length - 1)) * 100).toFixed(1);
 
   const nextStep = async () => {
-    if (currentKey === 'account') {
-      await handleSendRealtimeOtp();
-      setStepIdx(stepIdx + 1);
-      return;
-    }
-    if (currentKey === 'verify') {
-      const ok = await handleVerifyRealtimeOtp();
-      if (ok) {
+    if (isNavigating) return;
+    setIsNavigating(true);
+    try {
+      if (currentKey === 'account') {
+        await handleSendRealtimeOtp();
         setStepIdx(stepIdx + 1);
+        return;
       }
-      return;
-    }
-    if (stepIdx < currentSeq.length - 1) {
-      setStepIdx(stepIdx + 1);
-    } else {
-      await handleFinishOnboarding();
+      if (currentKey === 'verify') {
+        const ok = await handleVerifyRealtimeOtp();
+        if (ok) {
+          setStepIdx(stepIdx + 1);
+        }
+        return;
+      }
+      if (stepIdx < currentSeq.length - 1) {
+        setStepIdx(stepIdx + 1);
+      } else {
+        await handleFinishOnboarding();
+      }
+    } finally {
+      setIsNavigating(false);
     }
   };
 
@@ -2117,14 +2111,18 @@ function WebOnboardingEngine({ router }: { router: any }) {
                   borderRadius: '10px',
                   background: 'var(--ind)',
                   color: '#FFFFFF',
-                  cursor: 'pointer',
+                  cursor: isNavigating ? 'wait' : 'pointer',
+                  opacity: isNavigating ? 0.7 : 1,
                   transition: 'background .2s ease',
+                  pointerEvents: isNavigating ? 'none' : 'auto',
                 }}
               >
-                {stepIdx === currentSeq.length - 2 ? 'Finish' : 'Continue'}
-                <svg width="14" height="14" viewBox="0 0 16 16" style={{ fill: 'none', stroke: '#FFFFFF', strokeWidth: 1.9 }}>
-                  <path d="M3 8 h10 M9 4 l4 4 -4 4" />
-                </svg>
+                {isNavigating ? 'Loading...' : (stepIdx === currentSeq.length - 2 ? 'Finish' : 'Continue')}
+                {!isNavigating && (
+                  <svg width="14" height="14" viewBox="0 0 16 16" style={{ fill: 'none', stroke: '#FFFFFF', strokeWidth: 1.9 }}>
+                    <path d="M3 8 h10 M9 4 l4 4 -4 4" />
+                  </svg>
+                )}
               </span>
             </div>
           </div>
