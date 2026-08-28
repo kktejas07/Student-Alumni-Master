@@ -6,7 +6,7 @@
  */
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { EchoEventsPage } from '@/src/views/web/echo/EchoEventsPage';
+import EchoEventsPage from '@/src/views/web/echo/EchoEventsPage';
 
 export default function EchoIndexPage() {
   return (
