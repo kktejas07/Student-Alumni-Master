@@ -38,6 +38,8 @@ function WebOnboardingEngine({ router }: { router: any }) {
   const setUser = useAuthStore((s) => s.setUser);
   const setTokens = useAuthStore((s) => s.setTokens);
 
+  const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
+
   const handleSendRealtimeOtp = async () => {
     if (!userEmail || !userEmail.includes('@')) {
       setOtpError('Please enter a valid email address.');
@@ -45,14 +47,19 @@ function WebOnboardingEngine({ router }: { router: any }) {
     }
     setIsSendingOtp(true);
     setOtpError(null);
+    const startTime = Date.now();
     try {
       const res = await api.sendEmailOtp(userEmail);
       if (res && res.otp_code) {
         setRealtimeOtpCode(res.otp_code);
         setOtpDigits(res.otp_code.split(''));
       }
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 6000) await delay(6000 - elapsed);
       return true;
     } catch (err: any) {
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 6000) await delay(6000 - elapsed);
       setOtpError(err?.message || 'Failed to send OTP code.');
       return false;
     } finally {
@@ -68,6 +75,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
     }
     setIsVerifyingOtp(true);
     setOtpError(null);
+    const startTime = Date.now();
     try {
       const res = await api.verifyEmailOtp(userEmail, code);
       setIsOtpVerified(true);
@@ -75,8 +83,12 @@ function WebOnboardingEngine({ router }: { router: any }) {
         setUser(res.user);
         setTokens(res.token, res.token);
       }
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 6000) await delay(6000 - elapsed);
       return true;
     } catch (err: any) {
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 6000) await delay(6000 - elapsed);
       setOtpError(err?.message || 'Invalid 6-digit code. Please enter the correct code.');
       return false;
     } finally {
@@ -85,8 +97,13 @@ function WebOnboardingEngine({ router }: { router: any }) {
   };
 
   const handleGoogleSignIn = async () => {
+    if (!userEmail || !userEmail.includes('@')) {
+      setOtpError('Please enter your email address above before continuing with Google.');
+      return;
+    }
+    const startTime = Date.now();
     try {
-      const emailToUse = userEmail && userEmail.includes('@') ? userEmail : 'google.user@studentalumni.ai';
+      const emailToUse = userEmail.trim().toLowerCase();
       const rawName = userName || emailToUse.split('@')[0];
       const res = await api.oauthGoogle({
         email: emailToUse,
@@ -94,6 +111,9 @@ function WebOnboardingEngine({ router }: { router: any }) {
         picture: avatarUri || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
         role: flow === 'alumnus' ? 'alumni' : flow,
       });
+
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 6000) await delay(6000 - elapsed);
 
       if (res && res.user && res.access_token) {
         setUser(res.user);
@@ -103,6 +123,8 @@ function WebOnboardingEngine({ router }: { router: any }) {
         else router.replace('/student-portal/dashboard');
       }
     } catch (err: any) {
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 6000) await delay(6000 - elapsed);
       setOtpError(err?.message || 'Google authentication failed.');
     }
   };
