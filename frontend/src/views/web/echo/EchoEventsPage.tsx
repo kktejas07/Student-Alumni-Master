@@ -183,6 +183,9 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
     { name: '', email: '', phone: '' },
   ]);
 
+  // Active event resolution
+  const activeEvent = events.find((e) => e.slug === selectedSlug) || events[0] || SAMPLE_EVENTS[0];
+
   // Derived dynamic team calculations
   const validMembers = isTeam
     ? teamMembers.filter((m) => (m.name || '').trim() || (m.email || '').trim())
@@ -319,8 +322,6 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
       mounted = false;
     };
   }, [selectedSlug]);
-
-  const activeEvent = events.find((e) => e.slug === selectedSlug) || events[0] || SAMPLE_EVENTS[0];
 
   const go = (targetView: 'list' | 'detail' | 'reg', targetSlug?: string) => {
     const nextSlug = targetSlug || selectedSlug || 'snist';
