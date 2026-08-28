@@ -97,9 +97,13 @@ function WebOnboardingEngine({ router }: { router: any }) {
   };
 
   const handleGoogleSignIn = async () => {
+    if (!userEmail || !userEmail.includes('@')) {
+      setOtpError('Please enter your email address above before continuing with Google.');
+      return;
+    }
     const startTime = Date.now();
     try {
-      const emailToUse = userEmail && userEmail.includes('@') ? userEmail : 'google.user@studentalumni.ai';
+      const emailToUse = userEmail.trim().toLowerCase();
       const rawName = userName || emailToUse.split('@')[0];
       const res = await api.oauthGoogle({
         email: emailToUse,

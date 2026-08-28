@@ -128,19 +128,32 @@ export default function LoginScreen() {
     }
   };
 
+  const [showGoogleModal, setShowGoogleModal] = useState(false);
+  const [googleEmailInput, setGoogleEmailInput] = useState('');
+
   const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
-  const handleGoogleSignIn = async () => {
+  const handleGoogleSignIn = async (overrideEmail?: string) => {
+    const emailToUse = (overrideEmail || email || googleEmailInput).trim().toLowerCase();
+
+    if (!emailToUse || !emailToUse.includes('@')) {
+      setShowGoogleModal(true);
+      setErrorMsg('');
+      return;
+    }
+
+    setShowGoogleModal(false);
     setLoading(true);
     setErrorMsg('');
     const startTime = Date.now();
     try {
-      const userEmail = email && email.includes('@') ? email : 'google.user@studentalumni.ai';
-      const rawName = userEmail.split('@')[0].replace(/[\._-]/g, ' ');
+      const rawName = emailToUse.split('@')[0].replace(/[\._-]/g, ' ');
       const formattedName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
 
+      const checkRes = await api.checkEmail(emailToUse).catch(() => null);
+
       const res = await api.oauthGoogle({
-        email: userEmail,
+        email: emailToUse,
         full_name: formattedName,
         picture: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
         role: 'student'
@@ -155,12 +168,17 @@ export default function LoginScreen() {
         setUser(res.user);
         setTokens(res.access_token, res.refresh_token);
         setLoading(false);
-        const r = (res.user.role || '').toLowerCase();
-        if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
-        else if (r === 'mentor') router.replace('/mentor-portal');
-        else if (r === 'college') router.replace('/college-portal');
-        else if (r === 'alumni') router.replace('/alumni-portal');
-        else router.replace('/student-portal/dashboard');
+
+        if (checkRes && !checkRes.exists) {
+          router.replace(`/get-started?email=${encodeURIComponent(emailToUse)}`);
+        } else {
+          const r = (res.user.role || '').toLowerCase();
+          if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
+          else if (r === 'mentor') router.replace('/mentor-portal');
+          else if (r === 'college') router.replace('/college-portal');
+          else if (r === 'alumni') router.replace('/alumni-portal');
+          else router.replace('/student-portal/dashboard');
+        }
       } else {
         setErrorMsg('Google Sign-In failed. Please try again.');
         setLoading(false);
@@ -493,6 +511,98 @@ export default function LoginScreen() {
 
         <Footer />
       </ScrollView>
+
+      {/* Google Sign-In Email Modal */}
+      {showGoogleModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(5, 6, 15, 0.88)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: 20
+        }}>
+          <div style={{
+            background: '#0D0E1A',
+            border: '1px solid #2A2D45',
+            borderRadius: 20,
+            padding: '30px 28px',
+            maxWidth: 420,
+            width: '100%',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.6)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+              <svg width="22" height="22" viewBox="0 0 48 48">
+                <path fill="#4285F4" d="M45 24c0-1.6-.14-3.13-.4-4.6H24v8.7h11.7c-.5 2.7-2.05 5-4.35 6.55v5.4h7c4.1-3.78 6.65-9.35 6.65-16.05Z"></path>
+                <path fill="#34A853" d="M24 46c5.85 0 10.75-1.94 14.35-5.25l-7-5.4c-1.94 1.3-4.42 2.07-7.35 2.07-5.65 0-10.44-3.81-12.14-8.94h-7.2v5.6C7.3 41.2 14.98 46 24 46Z"></path>
+                <path fill="#FBBC05" d="M11.86 28.48A13.4 13.4 0 0 1 11.15 24c0-1.56.27-3.07.71-4.48v-5.6h-7.2A21.9 21.9 0 0 0 2 24c0 3.55.85 6.9 2.66 10.08l7.2-5.6Z"></path>
+                <path fill="#EA4335" d="M24 10.6c3.18 0 6.04 1.1 8.29 3.23l6.2-6.2C34.73 4.1 29.84 2 24 2 14.98 2 7.3 6.8 4.66 13.92l7.2 5.6C13.56 14.4 18.35 10.6 24 10.6Z"></path>
+              </svg>
+              <h3 style={{ margin: 0, fontSize: 18, color: '#FFFFFF', fontWeight: '700' }}>Sign in with Google</h3>
+            </div>
+            <p style={{ fontSize: 13.5, color: '#9AA0B4', marginBottom: 20, lineHeight: 1.5 }}>
+              Enter your Google account email to authenticate and proceed.
+            </p>
+            <div style={{ marginBottom: 20 }}>
+              <input
+                type="email"
+                placeholder="you@gmail.com or college@edu"
+                value={googleEmailInput}
+                onChange={(e) => setGoogleEmailInput(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '13px 15px',
+                  background: '#05060F',
+                  border: '1px solid #2A2D45',
+                  borderRadius: 10,
+                  color: '#FFF',
+                  fontSize: 14,
+                  outline: 'none'
+                }}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => setShowGoogleModal(false)}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid #2A2D45',
+                  color: '#9AA0B4',
+                  padding: '10px 16px',
+                  borderRadius: 10,
+                  cursor: 'pointer',
+                  fontSize: 13.5
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleGoogleSignIn(googleEmailInput)}
+                style={{
+                  background: '#8B84FF',
+                  border: 'none',
+                  color: '#FFF',
+                  padding: '10px 20px',
+                  borderRadius: 10,
+                  cursor: 'pointer',
+                  fontSize: 13.5,
+                  fontWeight: 600
+                }}
+              >
+                Continue Google Auth →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </View>
   );
 }
