@@ -495,7 +495,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
             </span>
             <span
               id="ob-exit"
-              onClick={() => router.replace('/student-portal/dashboard')}
+              onClick={() => router.replace('/')}
               style={{ fontSize: '13px', color: 'var(--muted)', cursor: 'pointer' }}
             >
               Save &amp; exit
