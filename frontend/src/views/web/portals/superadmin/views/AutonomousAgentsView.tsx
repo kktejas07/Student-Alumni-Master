@@ -518,7 +518,7 @@ export function AutonomousAgentsView() {
   const fetchObservability = async () => {
     setObsLoading(true);
     try {
-      const res = await getPortal('/api/ai/observability');
+      const res = await getPortal('/ai/observability');
       setObsData(res);
     } catch (e: any) {
       flash('Failed to load AI telemetry', 'error');
