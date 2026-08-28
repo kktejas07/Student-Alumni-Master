@@ -1,7 +1,22 @@
 // @ts-nocheck
 import React from 'react';
-import { Redirect } from 'expo-router';
+import { View, StyleSheet } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
+import EchoEventsPage from '@/src/views/web/echo/EchoEventsPage';
 
-export default function EchoSlugRedirectPage() {
-  return <Redirect href="/echo" />;
+export default function EchoShowcasePage() {
+  const { slug } = useLocalSearchParams<{ slug: string }>();
+
+  return (
+    <View style={s.container}>
+      <EchoEventsPage initialView="detail" initialSlug={slug || 'snist'} />
+    </View>
+  );
 }
+
+const s = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#0A0A14',
+  },
+});

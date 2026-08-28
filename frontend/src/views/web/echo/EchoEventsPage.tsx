@@ -324,10 +324,16 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
   }, [selectedSlug]);
 
   const go = (targetView: 'list' | 'detail' | 'reg', targetSlug?: string) => {
+    const nextSlug = targetSlug || selectedSlug || 'snist';
     if (targetSlug) setSelectedSlug(targetSlug);
     setView(targetView);
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      const targetUrl = '/echo';
+      let targetUrl = '/echo';
+      if (targetView === 'detail') {
+        targetUrl = `/echo/${nextSlug}`;
+      } else if (targetView === 'reg') {
+        targetUrl = `/echo/${nextSlug}/register`;
+      }
       if (window.location.pathname !== targetUrl) {
         window.history.pushState(null, '', targetUrl);
       }
