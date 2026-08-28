@@ -78,6 +78,12 @@ class MatchSpeakerRequest(BaseModel):
 class MediaKitRequest(BaseModel):
     community_id: str
 
+class HarvesterLoopRequest(BaseModel):
+    domain: Optional[str] = "all"
+
+class DispatchSpecLoopRequest(BaseModel):
+    spec_type: Optional[str] = "goodies_partnership"  # goodies_partnership | event_sponsorship | alumni_mentorship
+
 class SocialSpotlightRequest(BaseModel):
     community_id: str
 
@@ -473,3 +479,22 @@ async def get_agent_observability_alias(user=Depends(require_role("admin", "supe
     from services.agents.ai_observability import ai_observability
     from db import db
     return ai_observability.get_system_telemetry(db=db)
+
+
+@router.post("/outreach/goodies-harvester/run")
+async def trigger_goodies_harvester_loop(
+    req: HarvesterLoopRequest = Body(default_factory=HarvesterLoopRequest),
+    user=Depends(require_role("admin", "superadmin", "college"))
+):
+    """Triggers the Multi-Agent Goodies & Offer Harvester Loop to scout platforms for free coupons, dev credits, and swag."""
+    from db import db
+    return await outreach_scout_service.run_goodies_harvester_loop(db)
+
+@router.post("/outreach/specs-dispatcher/run")
+async def trigger_multi_spec_outreach_loop(
+    req: DispatchSpecLoopRequest = Body(default_factory=DispatchSpecLoopRequest),
+    user=Depends(require_role("admin", "superadmin", "college"))
+):
+    """Dispatches customized Partnership Specs (Goodies, Event Sponsorship, Mentorship) to platforms & partner communities in an automated loop."""
+    from db import db
+    return await outreach_scout_service.run_multi_spec_outreach_loop(db, req.spec_type or "goodies_partnership")
