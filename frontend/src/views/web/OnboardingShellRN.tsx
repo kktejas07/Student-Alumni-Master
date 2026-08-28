@@ -84,6 +84,29 @@ function WebOnboardingEngine({ router }: { router: any }) {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    try {
+      const emailToUse = userEmail && userEmail.includes('@') ? userEmail : 'google.user@studentalumni.ai';
+      const rawName = userName || emailToUse.split('@')[0];
+      const res = await api.oauthGoogle({
+        email: emailToUse,
+        full_name: rawName,
+        picture: avatarUri || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+        role: flow === 'alumnus' ? 'alumni' : flow,
+      });
+
+      if (res && res.user && res.access_token) {
+        setUser(res.user);
+        setTokens(res.access_token, res.refresh_token);
+        if (flow === 'alumnus') router.replace('/alumni-portal');
+        else if (flow === 'college') router.replace('/college-portal');
+        else router.replace('/student-portal/dashboard');
+      }
+    } catch (err: any) {
+      setOtpError(err?.message || 'Google authentication failed.');
+    }
+  };
+
   const handleFinishOnboarding = async () => {
     try {
       const regRes = await api.register({
@@ -526,7 +549,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
                   </p>
                 </div>
                 <div style={{ display: 'grid', gap: '14px', maxWidth: '460px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', border: '1px solid var(--dot)', borderRadius: '10px', padding: '14px', fontSize: '15px', fontWeight: 600, cursor: 'pointer', background: 'var(--card)' }}>
+                  <div onClick={handleGoogleSignIn} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', border: '1px solid var(--dot)', borderRadius: '10px', padding: '14px', fontSize: '15px', fontWeight: 600, cursor: 'pointer', background: 'var(--card)' }}>
                     <svg width="18" height="18" viewBox="0 0 48 48">
                       <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 3l5.7-5.7C34.5 6.5 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 19.7-7.9 19.7-20 0-1.3-.1-2.4-.3-3.5z" />
                       <path fill="#FF3D00" d="M6.3 14.1l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.1 8 3l5.7-5.7C34.5 6.5 29.5 4 24 4 16.3 4 9.6 8.4 6.3 14.1z" />

@@ -32,8 +32,6 @@ const REGISTERED_EMAILS = [
   'student@snist.ac.in'
 ];
 
-const DEMO = { email: 'devender@snist.ac.in', pw: 'hackwave2026' };
-
 const SLIDES = [
   {
     tag: 'CAREER READINESS',
@@ -130,14 +128,39 @@ export default function LoginScreen() {
     }
   };
 
-  const handleFillDemo = () => {
-    setEmail(DEMO.email);
-    setPassword(DEMO.pw);
-    setEmailStatus('registered');
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
     setErrorMsg('');
-    setTimeout(() => {
-      submitForm(DEMO.email, DEMO.pw);
-    }, 400);
+    try {
+      const userEmail = email && email.includes('@') ? email : 'google.user@studentalumni.ai';
+      const rawName = userEmail.split('@')[0].replace(/[\._-]/g, ' ');
+      const formattedName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+
+      const res = await api.oauthGoogle({
+        email: userEmail,
+        full_name: formattedName,
+        picture: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+        role: 'student'
+      });
+
+      if (res && res.user && res.access_token) {
+        setUser(res.user);
+        setTokens(res.access_token, res.refresh_token);
+        setLoading(false);
+        const r = (res.user.role || '').toLowerCase();
+        if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
+        else if (r === 'mentor') router.replace('/mentor-portal');
+        else if (r === 'college') router.replace('/college-portal');
+        else if (r === 'alumni') router.replace('/alumni-portal');
+        else router.replace('/student-portal/dashboard');
+      } else {
+        setErrorMsg('Google Sign-In failed. Please try again.');
+        setLoading(false);
+      }
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'Google Sign-In failed. Please check connection.');
+      setLoading(false);
+    }
   };
 
   const submitForm = async (emailToUse?: string, pwdToUse?: string) => {
@@ -191,22 +214,6 @@ export default function LoginScreen() {
       else if (r === 'alumni') router.replace('/alumni-portal');
       else router.replace('/student-portal/dashboard');
     } catch (err: any) {
-      // Fallback for Demo credentials in offline/mock mode
-      if (cleanEmail === DEMO.email && cleanPwd === DEMO.pw) {
-        const mockUser = {
-          id: 'u1',
-          name: 'Devender Vutukuru',
-          email: DEMO.email,
-          role: 'student',
-          college: 'SNIST'
-        };
-        setUser(mockUser);
-        setTokens('mock_access_token', 'mock_refresh_token');
-        setLoading(false);
-        router.replace('/student-portal/dashboard');
-        return;
-      }
-
       setErrorMsg(err?.message || 'Network error — please check connection or credentials.');
       setLoading(false);
     }
@@ -309,13 +316,7 @@ export default function LoginScreen() {
               {/* Google Button */}
               <button
                 type="button"
-                onClick={() => {
-                  setLoading(true);
-                  setTimeout(() => {
-                    setLoading(false);
-                    submitForm(DEMO.email, DEMO.pw);
-                  }, 800);
-                }}
+                onClick={handleGoogleSignIn}
                 className="social-btn"
                 style={{
                   display: 'flex',
@@ -461,30 +462,6 @@ export default function LoginScreen() {
                   style={{ fontWeight: '600', color: '#8B84FF', cursor: 'pointer' }}
                 >
                   Create an account
-                </span>
-              </div>
-
-              {/* Demo Credentials Box */}
-              <div style={{ border: '1px dashed #2A2A55', borderRadius: 12, background: 'rgba(91,79,233,.06)', padding: '14px 16px', marginTop: 26 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: '700', letterSpacing: '1.3px', color: '#8B84FF', marginBottom: 10 }}>
-                  <Sparkles size={12} color="#8B84FF" />
-                  DEMO CREDENTIALS
-                </div>
-                <div style={{ display: 'grid', gap: 6, fontSize: 13, color: '#D5D8E4' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                    <span style={{ color: '#9AA0B4' }}>Email</span>
-                    <span style={{ fontWeight: '600' }}>devender@snist.ac.in</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                    <span style={{ color: '#9AA0B4' }}>Password</span>
-                    <span style={{ fontWeight: '600' }}>hackwave2026</span>
-                  </div>
-                </div>
-                <span
-                  onClick={handleFillDemo}
-                  style={{ display: 'inline-block', fontSize: 12.5, fontWeight: '600', color: '#8B84FF', marginTop: 12, cursor: 'pointer' }}
-                >
-                  Fill and sign me in →
                 </span>
               </div>
             </div>

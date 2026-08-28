@@ -202,7 +202,7 @@ export const api = {
 
   // OAuth — Option C: backend uses MOCK verification (passes email/full_name in body)
   // Switch to real provider tokens by populating id_token/access_token instead.
-  oauthGoogle: (payload: { email: string; full_name: string; picture?: string; role?: string }) =>
+  oauthGoogle: (payload: { id_token?: string; email?: string; full_name?: string; picture?: string; role?: string }) =>
     request<any>('/auth/google', { method: 'POST', body: payload, auth: false }),
 
   oauthLinkedIn: (payload: { email: string; full_name: string; picture?: string; role?: string }) =>
