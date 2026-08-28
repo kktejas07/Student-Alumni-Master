@@ -159,6 +159,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
   // Student Form State
   const [selectedCourse, setSelectedCourse] = useState('Computer Science');
   const [selectedYear, setSelectedYear] = useState('2027');
+  const [selectedSem, setSelectedSem] = useState('5');
   const [selectedGoal, setSelectedGoal] = useState('Software engineering');
   const [skillLevels, setSkillLevels] = useState<Record<string, number>>({
     dsa: 2,
@@ -1444,13 +1445,48 @@ function WebOnboardingEngine({ router }: { router: any }) {
                 {selectedGoal}, graduating {selectedYear}, starting from system design.
               </p>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '20px', position: 'relative', borderTop: '2px solid var(--ind)', paddingTop: '32px' }}>
-              {[
-                { sem: 'NOW · SEM 5', title: 'System design basics', sub: 'Two mentor sessions and one guided project.' },
-                { sem: 'SEM 6', title: 'Portfolio project', sub: 'The one that matches 4 of your open roles.' },
-                { sem: 'SUMMER', title: 'Internship', sub: 'Referral route through two MRIT alumni.' },
-                { sem: 'SEM 8', title: 'First offer', sub: 'Interview prep, then negotiation prompts.' },
-              ].map((m, idx) => (
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(200px, 1fr))`, gap: '20px', position: 'relative', borderTop: '2px solid var(--ind)', paddingTop: '32px' }}>
+              {(() => {
+                const currentNum = parseInt(selectedSem) || 5;
+                const roadmap = [];
+                
+                roadmap.push({
+                  sem: `NOW · SEM ${currentNum}`,
+                  title: `${selectedCourse} basics`,
+                  sub: 'Two mentor sessions and one guided project.'
+                });
+
+                if (currentNum < 6) {
+                  roadmap.push({
+                    sem: `SEM ${currentNum + 1}`,
+                    title: 'Portfolio project',
+                    sub: 'The one that matches your open roles.'
+                  });
+                } else if (currentNum === 6) {
+                  roadmap.push({
+                    sem: 'SUMMER',
+                    title: 'Hackathon prep',
+                    sub: 'Build a project to showcase.'
+                  });
+                }
+
+                if (currentNum <= 7) {
+                  roadmap.push({
+                    sem: 'SEM 7',
+                    title: 'Internship',
+                    sub: `Referral route through two ${instName || 'alumni'}.`
+                  });
+                }
+
+                if (currentNum <= 8) {
+                  roadmap.push({
+                    sem: 'SEM 8',
+                    title: 'First offer',
+                    sub: 'Interview prep, then negotiation prompts.'
+                  });
+                }
+                return roadmap;
+              })().map((m, idx) => (
                 <div key={idx} className="ob-rstep" style={{ position: 'relative' }}>
                   <span
                     style={{
