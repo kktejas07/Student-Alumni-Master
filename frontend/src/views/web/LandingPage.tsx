@@ -16,6 +16,7 @@ import {
   Easing,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Calendar, Clock, MapPin, BookOpen, Users, Rocket } from 'lucide-react-native';
 import Svg, {
   Path,
   Circle,
@@ -413,7 +414,7 @@ function GlowButton({
   );
 }
 
-export default function LandingPage({ initialTab }: { initialTab?: 'home' | 'echo' | 'verify' | 'contact' } = {}) {
+export default function LandingPage({ initialTab, initialEchoSlug }: { initialTab?: 'home' | 'echo' | 'verify' | 'contact', initialEchoSlug?: string } = {}) {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const isNarrow = width < 960;
@@ -439,6 +440,9 @@ export default function LandingPage({ initialTab }: { initialTab?: 'home' | 'ech
   });
 
   // Browser URL popstate sync (back/forward buttons)
+  useEffect(() => {
+    setActiveTab(initialTab || 'home');
+  }, [initialTab]);
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const onPopState = () => {
@@ -555,8 +559,8 @@ export default function LandingPage({ initialTab }: { initialTab?: 'home' | 'ech
 
   // Smooth Tab Switch with Curtain Motion Effect & URL Sync
   const handleTabSwitch = (newTab: 'home' | 'echo' | 'verify' | 'contact') => {
-    if (newTab === activeTab) {
-      if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (newTab === 'home') {
+      router.push('/');
       return;
     }
     if (newTab === 'echo') {
@@ -612,6 +616,8 @@ export default function LandingPage({ initialTab }: { initialTab?: 'home' | 'ech
     };
     requestAnimationFrame(animateTransition);
   };
+    
+
 
   // Nav with transition
   const handleNavWithCurtain = (route: string, label: string) => {
@@ -930,6 +936,8 @@ export default function LandingPage({ initialTab }: { initialTab?: 'home' | 'ech
       >
 
         {/* ══════════════════════════════════════════════════════════════════
+<<<<<<< Updated upstream
+
             TAB: VERIFY CREDENTIALS & BGV DESK
         ══════════════════════════════════════════════════════════════════ */}
         {activeTab === 'verify' && (

@@ -349,7 +349,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
         targetUrl = '/echo';
       }
       if (window.location.pathname !== targetUrl) {
-        window.history.pushState(null, '', targetUrl);
+        router.push(targetUrl as any);
       }
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
