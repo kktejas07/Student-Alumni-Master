@@ -80,6 +80,146 @@ const DEFAULT_SECTIONS: Section[] = [
 ];
 
 const POSTS_MAP: Record<string, PostDetail> = {
+  "vnr-vjiet-build-by-sunset-retrospective": {
+    "id": "vnr-vjiet-build-by-sunset-retrospective",
+    "slug": "vnr-vjiet-build-by-sunset-retrospective",
+    "title": "How VNR VJIET Students Built & Shipped 64 Products in 12 Hours: Build by Sunset Retrospective",
+    "category": "CAMPUS",
+    "subcategory": "EVENT RETROSPECTIVE",
+    "description": "320+ students, 64 teams, \u20b935,000 prize pool, and keynotes from Google & Microsoft. A look back at the Build by Sunset sprint held at VNR VJIET Auditorium.",
+    "date": "Aug 02, 2026",
+    "readTime": "7 min read",
+    "author": "VNR Student Council & SA Team",
+    "authorInitials": "VN",
+    "authorTitle": "ECHO Series Organizers at VNR VJIET",
+    "isFeatured": true,
+    "tagColor": "#38BDF8",
+    "tagBg": "rgba(56, 189, 248, 0.15)",
+    "tagLine": "#1E3A8A",
+    "sections": [
+        {
+            "id": "vnr-0",
+            "label": "Walk In with an Idea, Walk Out with a Product",
+            "content": [
+                "On July 31, 2026, the Main Auditorium at VNR Vignana Jyothi Institute of Engineering & Technology (VNR VJIET) was transformed into a high-octane 12-hour build arena.",
+                "Over 320 students forming 64 teams arrived at 9:00 AM with empty repos and left by 9:00 PM with working web, mobile, and AI applications deployed to production servers."
+            ]
+        },
+        {
+            "id": "vnr-1",
+            "label": "Keynotes from Google & Microsoft AI Engineers",
+            "content": [
+                "The morning kicked off with a keynote by Vijay Raghavan (Chief AI Architect at Google), demonstrating LLM orchestration and real-time agentic workflows.",
+                "Sneha Reddy (VP Engineering at Microsoft) shared insights on system reliability, encouraging student teams to test their APIs under simulated load before final demo."
+            ]
+        },
+        {
+            "id": "vnr-2",
+            "label": "Corporate Partner Collaborations",
+            "content": [
+                "Industry partners Deloitte, Microsoft, Google, Atlast, and Featherless AI backed the event with developer tool access, API grants, and direct recruiter presence.",
+                "Mentors conducted floor walks throughout the sprint, giving real-time architecture feedback to team leads."
+            ]
+        },
+        {
+            "id": "vnr-3",
+            "label": "Winning Projects & \u20b935,000 Cash Awards",
+            "content": [
+                "The \u20b935,000 prize pool was awarded across top categories: Smart Mobility, FinTech, and AI Health Diagnostics.",
+                "Winning teams received fast-tracked interview vouchers for upcoming 2026 fall placement drives."
+            ]
+        }
+    ]
+},
+  "snist-hackwave-3-national-tech-fest-guide": {
+    "id": "snist-hackwave-3-national-tech-fest-guide",
+    "slug": "snist-hackwave-3-national-tech-fest-guide",
+    "title": "HackWave 3.0 at SNIST: 7 Verticals, \u20b92,00,000 Mega Prize Pool, and the International Cyber Security Conclave",
+    "category": "EVENTS",
+    "subcategory": "PREVIEW & GUIDE",
+    "description": "Full guide to SNIST's upcoming National 24-Hour Tech Fest on September 4\u20135, 2026. Featuring 7 verticals, global keynotes from ISC2 New Jersey, and $100+ in sponsor perks per attendee.",
+    "date": "Aug 28, 2026",
+    "readTime": "10 min read",
+    "author": "SNIST CDC & StudentAlumni Editorial",
+    "authorInitials": "SN",
+    "authorTitle": "Career Development Centre, SNIST",
+    "isFeatured": true,
+    "tagColor": "#A78BFA",
+    "tagBg": "rgba(124, 92, 252, 0.18)",
+    "tagLine": "#2C2A52",
+    "sections": [
+        {
+            "id": "snist-0",
+            "label": "A National-Level Tech Fest Across 7 Verticals",
+            "content": [
+                "Sreenidhi Institute of Science and Technology (SNIST) in collaboration with StudentAlumni.ai presents HackWave 3.0 on September 4\u20135, 2026.",
+                "HackWave 3.0 is structured across 7 flagship verticals: Build by Sunset (24-hour hackathon), Codethon, Voices That Build, Meet the People Who Hire, Cyber Security Conclave, International Panel, and Build by Fireside."
+            ]
+        },
+        {
+            "id": "snist-1",
+            "label": "International Cyber Security Conclave",
+            "content": [
+                "On Friday, Sep 4 at 6:00 PM IST, the Cyber Security Conclave features a live virtual panel with top US experts:",
+                "Dr. Stan Mierzwa (Director, Center for Cybersecurity, Kean University, USA), Ken Fishkin (President, ISC2 New Jersey Chapter), Sharon Kelley (Board Member, ISC2 NJ), Jeremy Livingston (CISO & Deputy CIO, Stevens Institute of Technology), and Dr. Suman Kalia (Chair CS, Saint Peter's University)."
+            ]
+        },
+        {
+            "id": "snist-2",
+            "label": "Recruiter Room & On-The-Spot Offers",
+            "content": [
+                "Recruiters from Deloitte and leading tech firms will be physically present in the hall, reviewing live code and issuing on-the-spot internship and job offers."
+            ]
+        },
+        {
+            "id": "snist-3",
+            "label": "\u20b92,00,000 Mega Grand Pool & Participant Perks",
+            "content": [
+                "Every \u20b9599 ticket includes entry to all 7 verticals, 4 meal coupons (lunch, dinner, midnight snack, breakfast), verifiable digital certificates, $29 Featherless AI accounts, $50 SetupMark AI credits, and CodeSpectra assessments."
+            ]
+        }
+    ]
+},
+  "inside-the-corporate-ecosystem-powering-echo-2026": {
+    "id": "inside-the-corporate-ecosystem-powering-echo-2026",
+    "slug": "inside-the-corporate-ecosystem-powering-echo-2026",
+    "title": "Inside the Ecosystem: How Tech Giants and AI Startups Partnered with StudentAlumni for ECHO 2026",
+    "category": "PARTNERSHIPS",
+    "subcategory": "INDUSTRY SPOTLIGHT",
+    "description": "How Google, Microsoft, Deloitte, Featherless AI, SetupMark, CodeSpectra, and ISC2 New Jersey Chapter partnered with StudentAlumni to empower campus builders.",
+    "date": "Aug 25, 2026",
+    "readTime": "8 min read",
+    "author": "SA Partnerships Desk",
+    "authorInitials": "SP",
+    "authorTitle": "Corporate Relations & Strategic Ecosystems",
+    "isFeatured": false,
+    "tagColor": "#34D399",
+    "tagBg": "rgba(16, 185, 129, 0.13)",
+    "tagLine": "#17503E",
+    "sections": [
+        {
+            "id": "corp-0",
+            "label": "Why Global Tech Giants Back Campus Build Sprints",
+            "content": [
+                "Traditional campus placement drives often rely on resume filtering. By partnering with ECHO, companies like Deloitte, Google, and Microsoft evaluate students on live execution, problem-solving, and team collaboration."
+            ]
+        },
+        {
+            "id": "corp-1",
+            "label": "Free AI Tools & Tool Grants for Every Builder",
+            "content": [
+                "Every participant receives over $100 in production tool grants: Featherless AI full accounts for LLM API access, SetupMark AI 50 credits for automated testing, and CodeSpectra automated skill evaluations."
+            ]
+        },
+        {
+            "id": "corp-2",
+            "label": "Global Academic & Professional Alliances",
+            "content": [
+                "Through alliances with ISC2 New Jersey Chapter, Kean University, Stevens Institute of Technology, and Saint Peter's University, students connect directly with global cybersecurity leaders."
+            ]
+        }
+    ]
+},
   'what-12400-student-profiles-tell-us-about-the-first-job': {
     title: 'What 12,400 student profiles tell us about the first job',
     category: 'PLACEMENTS',
