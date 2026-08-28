@@ -1424,6 +1424,47 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
             )}
           </div>
 
+          {/* Official Event Videos & Teaser Clips */}
+          {activeEvent.videos && activeEvent.videos.length > 0 && (
+            <div style={{ marginBottom: '32px' }}>
+              <div style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-.4px', marginBottom: '16px', color: '#FFFFFF', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--violet-lt)" strokeWidth="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                Official Event Teasers & Videos
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '18px' }}>
+                {activeEvent.videos.map((vid: any, vidx: number) => {
+                  const isYt = vid.video_url?.includes('youtube.com') || vid.video_url?.includes('youtu.be');
+                  const ytId = isYt ? (vid.video_url.includes('v=') ? vid.video_url.split('v=')[1]?.split('&')[0] : vid.video_url.split('/').pop()) : null;
+
+                  return (
+                    <div key={vidx} style={{ border: '1px solid var(--line2)', borderRadius: '16px', overflow: 'hidden', background: '#070913', padding: '12px' }}>
+                      <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', aspectRatio: '16/9', background: '#000' }}>
+                        {isYt && ytId ? (
+                          <iframe
+                            src={`https://www.youtube.com/embed/${ytId}`}
+                            title={vid.title || 'Event Video'}
+                            style={{ width: '100%', height: '100%', border: 'none' }}
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        ) : (
+                          <video
+                            controls
+                            poster={vid.thumbnail_url || activeEvent.poster_banner}
+                            src={vid.video_url}
+                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                          />
+                        )}
+                      </div>
+                      <div style={{ fontSize: '15px', fontWeight: 700, color: '#FFF', marginTop: '12px' }}>{vid.title || `Promo Clip ${vidx + 1}`}</div>
+                      {vid.description && <div style={{ fontSize: '13px', color: 'var(--muted)', marginTop: '4px' }}>{vid.description}</div>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* ────────────────────────────────────────────────────────── */}
           {/* A NATIONAL-LEVEL TECH FEST — 7 VERTICALS (BANNER 4)       */}
           {/* ────────────────────────────────────────────────────────── */}

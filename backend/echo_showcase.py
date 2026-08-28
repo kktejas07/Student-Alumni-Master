@@ -2694,7 +2694,22 @@ DEFAULT_SHOWCASE_SEED = {
     "downloads": [
         { "title": "VNR ECHO 2026 Brochure", "description": "Official event guide & schedule", "file_url": "", "file_size": "2.4 MB", "category": "Brochure" }
     ],
-    "videos": [],
+    "videos": [
+        {
+            "title": "HackWave 3.0 SNIST Official Teaser",
+            "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            "thumbnail_url": "/images/hackwave/hackwave_main_poster.png",
+            "description": "Watch the official teaser for HackWave 3.0 at SNIST — 7 Verticals, ₹2,00,000 Grand Pool.",
+            "platform": "youtube"
+        },
+        {
+            "title": "Cyber Security with AI Conclave Teaser",
+            "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            "thumbnail_url": "/images/hackwave/hackwave_cybersecurity_conclave.jpg",
+            "description": "Keynote highlights featuring ISC2 New Jersey Chapter and international cyber security experts.",
+            "platform": "youtube"
+        }
+    ],
     "gallery": [
         { "url": "https://picsum.photos/seed/echo2026-1/800/600", "caption": "Keynote session", "alt": "Keynote session at VNR ECHO 2026", "featured": True, "order": 0, "hero": True },
         { "url": "https://picsum.photos/seed/echo2026-2/800/600", "caption": "Audience & panels", "alt": "Panel discussion", "order": 1 },

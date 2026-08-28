@@ -16,7 +16,74 @@ from services.agents.autopilot import autopilot_engine, AutoPilotTaskResult
 from services.agents.qa_agent import qa_agent, QASimulationReport
 from services.agents.specialized import specialized_agents, AgentReport
 
+from pydantic import BaseModel, Field
+
+# ─── Pydantic Request Models ───────────────────────────────────────────
+class SwarmRunRequest(BaseModel):
+    project_title: str
+    user_prompt: str
+    domain: Optional[str] = "edtech"
+
+class AutoPilotRunRequest(BaseModel):
+    goal: str
+    context: Optional[Dict[str, Any]] = None
+
+class QASimulateRequest(BaseModel):
+    persona: Optional[str] = "student"
+
+class TeamRunRequest(BaseModel):
+    task_prompt: str
+
+class ConvertProfileRequest(BaseModel):
+    community_id: str
+    role_type: Optional[str] = "community_partner"
+
+class SchedulerIntervalRequest(BaseModel):
+    hours: int
+
+class UpdateStageRequest(BaseModel):
+    stage: str
+
+class DispatchCampaignRequest(BaseModel):
+    community_id: str
+    channel: Optional[str] = "email"
+    subject: Optional[str] = ""
+    message: Optional[str] = ""
+
+class MatchEventRequest(BaseModel):
+    event_id: Optional[str] = "echo-2026-hackathon"
+    event_title: Optional[str] = "ECHO 2026 Hackathon"
+
+class GenerateMouRequest(BaseModel):
+    community_id: str
+    custom_terms: Optional[str] = None
+
+class DispatchBroadcastRequest(BaseModel):
+    community_ids: List[str]
+    channel: Optional[str] = "telegram"
+    content_title: Optional[str] = "ECHO 2026 Hackathon Announcement"
+    message: Optional[str] = "🚀 Registrations now open for Student Alumni Hackathon 2026!"
+
+class MatchAmbassadorRequest(BaseModel):
+    community_id: str
+
+class GenerateBlogRequest(BaseModel):
+    community_id: Optional[str] = None
+    event_title: Optional[str] = None
+
+class MatchSpeakerRequest(BaseModel):
+    topic: Optional[str] = "AI & Machine Learning"
+    location: Optional[str] = "Bengaluru"
+
+class MediaKitRequest(BaseModel):
+    community_id: str
+
+class SocialSpotlightRequest(BaseModel):
+    community_id: str
+
+
 router = APIRouter(prefix="/admin/agents", tags=["Autonomous Agents"])
+
 
 @router.get("/overview")
 async def get_agent_ecosystem_overview(user=Depends(require_role("admin", "superadmin", "college"))):
@@ -71,30 +138,27 @@ async def get_agent_ecosystem_overview(user=Depends(require_role("admin", "super
 
 @router.post("/swarm/run", response_model=SwarmProjectResult)
 async def run_multi_agent_swarm(
-    project_title: str = Body(..., embed=True),
-    user_prompt: str = Body(..., embed=True),
-    domain: str = Body("edtech", embed=True),
+    req: SwarmRunRequest,
     user=Depends(require_role("admin", "superadmin", "college"))
 ):
     """Triggers the MetaGPT/ChatDev multi-agent swarm to design, architect, code, and review a project."""
-    return await swarm_engine.run_swarm_pipeline(project_title, user_prompt, domain)
+    return await swarm_engine.run_swarm_pipeline(req.project_title, req.user_prompt, req.domain or "edtech")
 
 @router.post("/autopilot/run", response_model=AutoPilotTaskResult)
 async def run_autopilot_task(
-    goal: str = Body(..., embed=True),
-    context: Optional[Dict[str, Any]] = Body(None, embed=True),
+    req: AutoPilotRunRequest,
     user=Depends(require_role("admin", "superadmin", "college"))
 ):
     """Triggers the AutoGPT goal-driven autonomous loop to execute an administrative or career campaign goal."""
-    return await autopilot_engine.execute_goal(goal, context)
+    return await autopilot_engine.execute_goal(req.goal, req.context)
 
 @router.post("/qa/simulate", response_model=QASimulationReport)
 async def run_qa_persona_simulation(
-    persona: str = Body("student", embed=True),
+    req: QASimulateRequest = Body(default_factory=QASimulateRequest),
     user=Depends(require_role("admin", "superadmin", "college"))
 ):
     """Executes synthetic user journey testing across full-stack endpoints."""
-    return await qa_agent.run_persona_simulation(persona)
+    return await qa_agent.run_persona_simulation(req.persona or "student")
 
 @router.post("/specialized/{agent_type}", response_model=AgentReport)
 async def run_specialized_agent(
@@ -206,13 +270,13 @@ async def delete_custom_agent_team(
 @router.post("/teams/{team_id}/run", response_model=CustomTeamRunResult)
 async def run_custom_agent_team(
     team_id: str,
-    task_prompt: str = Body(..., embed=True),
+    req: TeamRunRequest,
     user=Depends(require_role("admin", "superadmin", "college"))
 ):
     """Executes a collaborative task across all agents in the selected AI team."""
     from db import db
     try:
-        return await custom_teams_engine.run_team_pipeline(db, team_id, task_prompt)
+        return await custom_teams_engine.run_team_pipeline(db, team_id, req.task_prompt)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
@@ -243,60 +307,55 @@ async def trigger_outreach_scout(user=Depends(require_role("admin", "superadmin"
 
 @router.post("/outreach/communities/convert-profile")
 async def convert_community_to_user_profile(
-    community_id: str = Body(..., embed=True),
-    role_type: str = Body("community_partner", embed=True),
+    req: ConvertProfileRequest,
     user=Depends(require_role("admin", "superadmin", "college"))
 ):
     """Converts/Registers a scouted community lead into a Super Admin user profile (community_partner, mentor, or student)."""
     from db import db
     try:
-        return await outreach_scout_service.convert_to_admin_profile(db, community_id, role_type)
+        return await outreach_scout_service.convert_to_admin_profile(db, req.community_id, req.role_type or "community_partner")
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
 @router.put("/outreach/scheduler/interval")
 async def update_scheduler_interval(
-    hours: int = Body(..., embed=True),
+    req: SchedulerIntervalRequest,
     user=Depends(require_role("admin", "superadmin", "college"))
 ):
     """Dynamically updates the scouting cadence interval."""
-    return outreach_scout_service.set_interval_hours(hours)
+    return outreach_scout_service.set_interval_hours(req.hours)
 
 @router.put("/outreach/communities/{community_id}/stage")
 async def update_community_crm_stage(
     community_id: str,
-    stage: str = Body(..., embed=True),
+    req: UpdateStageRequest,
     user=Depends(require_role("admin", "superadmin", "college"))
 ):
     """Updates community stage in the CRM Kanban pipeline."""
     from db import db
-    return await outreach_scout_service.update_stage(db, community_id, stage)
+    return await outreach_scout_service.update_stage(db, community_id, req.stage)
 
 @router.post("/outreach/campaign/dispatch")
 async def dispatch_outreach_campaign(
-    community_id: str = Body(..., embed=True),
-    channel: str = Body("email", embed=True),
-    subject: str = Body("", embed=True),
-    message: str = Body("", embed=True),
+    req: DispatchCampaignRequest,
     user=Depends(require_role("admin", "superadmin", "college"))
 ):
     """Dispatches automated email/WhatsApp outreach campaign to community lead."""
     from db import db
     try:
-        return await outreach_scout_service.dispatch_campaign(db, community_id, channel, subject, message)
+        return await outreach_scout_service.dispatch_campaign(db, req.community_id, req.channel or "email", req.subject or "", req.message or "")
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
 @router.post("/outreach/communities/{community_id}/match-event")
 async def match_community_event_cohost(
     community_id: str,
-    event_id: str = Body("echo-2026-hackathon", embed=True),
-    event_title: str = Body("ECHO 2026 Hackathon", embed=True),
+    req: MatchEventRequest = Body(default_factory=MatchEventRequest),
     user=Depends(require_role("admin", "superadmin", "college"))
 ):
     """Matches a community as official co-host / sponsor for an ECHO event."""
     from db import db
-    return await outreach_scout_service.match_community_to_event(db, community_id, event_id, event_title)
+    return await outreach_scout_service.match_community_to_event(db, community_id, req.event_id or "echo-2026-hackathon", req.event_title or "ECHO 2026 Hackathon")
 
 
 # ─── Phase 3 Extensions: MoU Generator, Broadcasts, Impact Analytics ─
@@ -311,38 +370,34 @@ async def get_outreach_impact_analytics(user=Depends(require_role("admin", "supe
 
 @router.post("/outreach/mou/generate")
 async def generate_partnership_mou(
-    community_id: str = Body(..., embed=True),
-    custom_terms: Optional[str] = Body(None, embed=True),
+    req: GenerateMouRequest,
     user=Depends(require_role("admin", "superadmin", "college"))
 ):
     """Generates official MoU contract document for partner community."""
     from db import db
     try:
-        return await mou_generator_service.generate_mou(db, community_id, custom_terms)
+        return await mou_generator_service.generate_mou(db, req.community_id, req.custom_terms)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
 @router.post("/outreach/broadcast")
 async def dispatch_community_broadcast(
-    community_ids: List[str] = Body(..., embed=True),
-    channel: str = Body("telegram", embed=True),
-    content_title: str = Body("ECHO 2026 Hackathon Announcement", embed=True),
-    message: str = Body("🚀 Registrations now open for Student Alumni Hackathon 2026!", embed=True),
+    req: DispatchBroadcastRequest,
     user=Depends(require_role("admin", "superadmin", "college"))
 ):
     """Dispatches event announcements and job openings to community Telegram & WhatsApp groups."""
     from db import db
-    return await community_broadcast_service.dispatch_broadcast(db, community_ids, channel, content_title, message)
+    return await community_broadcast_service.dispatch_broadcast(db, req.community_ids, req.channel or "telegram", req.content_title or "ECHO 2026 Hackathon Announcement", req.message or "")
 
 @router.post("/outreach/ambassadors/match")
 async def match_alumni_regional_ambassador(
-    community_id: str = Body(..., embed=True),
+    req: MatchAmbassadorRequest,
     user=Depends(require_role("admin", "superadmin", "college"))
 ):
     """Matches a verified alumni in the region to serve as Ambassador for student community."""
     from db import db
     try:
-        return await outreach_scout_service.match_alumni_ambassador(db, community_id)
+        return await outreach_scout_service.match_alumni_ambassador(db, req.community_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
@@ -353,17 +408,16 @@ from services.agents.campus_venue_speaker_service import campus_venue_speaker_se
 
 @router.post("/outreach/blogs/generate")
 async def generate_community_or_event_blog(
-    community_id: Optional[str] = Body(None, embed=True),
-    event_title: Optional[str] = Body(None, embed=True),
+    req: GenerateBlogRequest = Body(default_factory=GenerateBlogRequest),
     user=Depends(require_role("admin", "superadmin", "college"))
 ):
     """Auto-generates structured blog posts for student communities or events and syncs to db.blogs."""
     from db import db
     try:
-        if community_id:
-            return await community_blog_agent.generate_community_blog(db, community_id)
-        elif event_title:
-            return await community_blog_agent.generate_event_blog(db, event_title)
+        if req.community_id:
+            return await community_blog_agent.generate_community_blog(db, req.community_id)
+        elif req.event_title:
+            return await community_blog_agent.generate_event_blog(db, req.event_title)
         else:
             raise HTTPException(status_code=400, detail="Must provide community_id or event_title")
     except ValueError as e:
@@ -381,31 +435,30 @@ async def scout_campus_venues(
 
 @router.post("/outreach/speakers/match")
 async def match_alumni_guest_speaker(
-    topic: str = Body("AI & Machine Learning", embed=True),
-    location: str = Body("Bengaluru", embed=True),
+    req: MatchSpeakerRequest = Body(default_factory=MatchSpeakerRequest),
     user=Depends(require_role("admin", "superadmin", "college"))
 ):
     """Matches domain expert alumni as guest speaker and drafts invitation."""
     from db import db
-    return await campus_venue_speaker_service.match_alumni_speaker(db, topic, location)
+    return await campus_venue_speaker_service.match_alumni_speaker(db, req.topic or "AI & Machine Learning", req.location or "Bengaluru")
 
 @router.post("/outreach/media-kit/generate")
 async def generate_community_media_kit(
-    community_id: str = Body(..., embed=True),
+    req: MediaKitRequest,
     user=Depends(require_role("admin", "superadmin", "college"))
 ):
     """Builds digital media kit & bi-weekly newsletter payload."""
     from db import db
-    return await campus_venue_speaker_service.build_media_kit(db, community_id)
+    return await campus_venue_speaker_service.build_media_kit(db, req.community_id)
 
 @router.post("/outreach/social-spotlight")
 async def generate_social_media_spotlight(
-    community_id: str = Body(..., embed=True),
+    req: SocialSpotlightRequest,
     user=Depends(require_role("admin", "superadmin", "college"))
 ):
     """Generates formatted LinkedIn & Twitter/X spotlight posts."""
     from db import db
-    return await campus_venue_speaker_service.publish_social_spotlight(db, community_id)
+    return await campus_venue_speaker_service.publish_social_spotlight(db, req.community_id)
 
 
 
