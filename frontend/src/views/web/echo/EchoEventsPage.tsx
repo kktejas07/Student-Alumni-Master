@@ -1110,19 +1110,12 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
           <div style={{ border: '1px solid var(--line2)', borderRadius: '22px', overflow: 'hidden', background: 'var(--panel)', marginBottom: '22px', width: '100%' }}>
             
             {/* Banner Top Graphic */}
-            <div style={{ position: 'relative', minHeight: '300px', background: 'linear-gradient(135deg, #1C1236 0%, #2A1758 50%, #160D30 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '36px', overflow: 'hidden' }}>
+            <div style={{ position: 'relative', minHeight: '360px', background: 'linear-gradient(135deg, #1C1236 0%, #2A1758 50%, #160D30 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', overflow: 'hidden' }}>
               {activeEvent.poster_banner && (
-                <img src={activeEvent.poster_banner} alt={activeEvent.title} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.35, filter: 'blur(3px)' }} />
+                <img src={activeEvent.poster_banner} alt={activeEvent.title} style={{ width: '100%', maxHeight: '480px', objectFit: 'contain', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.12)', boxShadow: '0 20px 50px rgba(0,0,0,0.5)', margin: '0 auto' }} />
               )}
-              <div style={{ position: 'absolute', width: '420px', height: '260px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(147, 51, 234, 0.45) 0%, transparent 70%)', filter: 'blur(50px)', pointerEvents: 'none' }} />
-              <div style={{ position: 'relative', zIndex: 2, textAlign: 'center' }}>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.22)', borderRadius: '100px', padding: '6px 18px', marginBottom: '16px' }}>
-                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--ok)', animation: 'ev-dot 2s ease-in-out infinite' }} />
-                  <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.5px', color: '#FFFFFF' }}>FLAGSHIP NATIONAL EVENT</span>
-                </div>
-                <div style={{ fontSize: '42px', fontWeight: 800, letterSpacing: '-1.4px', color: '#FFFFFF', lineHeight: 1.2 }}>{activeEvent.title}</div>
-                <div style={{ fontSize: '16px', color: '#DCCEF7', marginTop: '8px' }}>{activeEvent.college_full}</div>
-              </div>
+              <div style={{ position: 'absolute', width: '420px', height: '260px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(147, 51, 234, 0.35) 0%, transparent 70%)', filter: 'blur(50px)', pointerEvents: 'none' }} />
+            </div>
             </div>
 
             {/* Banner Bottom Info */}
@@ -1269,14 +1262,14 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
 
           </div>
 
-          {/* Moments from the Event */}
+          {/* Official Event Posters & Gallery */}
           <div style={{ marginBottom: '30px' }}>
-            <div style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-.4px', marginBottom: '16px', color: '#FFFFFF' }}>Moments from the Event</div>
+            <div style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-.4px', marginBottom: '16px', color: '#FFFFFF' }}>Official Event Posters & Gallery</div>
             {activeEvent.gallery_images && activeEvent.gallery_images.length > 0 ? (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '18px' }}>
                 {activeEvent.gallery_images.map((img: string, gidx: number) => (
-                  <div key={gidx} style={{ position: 'relative', borderRadius: '14px', overflow: 'hidden', height: '200px', border: '1px solid var(--line2)' }}>
-                    <img src={img} alt={`Event Moment ${gidx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <div key={gidx} className="ev-mini" style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--line2)', background: '#0D0B18', padding: '12px', textAlign: 'center' }}>
+                    <img src={img} alt={`Event Poster ${gidx + 1}`} style={{ width: '100%', maxHeight: '420px', objectFit: 'contain', borderRadius: '10px' }} />
                   </div>
                 ))}
               </div>
