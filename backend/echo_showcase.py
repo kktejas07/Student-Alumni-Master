@@ -2797,21 +2797,25 @@ async def download_handbook():
 # ── Public endpoints ─────────────────────────────────────────────────────────
 @router.get("/showcases")
 async def list_showcases(request: Request):
-    db = _get_db(request)
-    docs = await db.echo_showcases.find(
-        {"status": "published"},
-        {"gallery": 0, "testimonials": 0, "timeline": 0}
-    ).sort("date", -1).to_list(100)
-
-    # Auto-seed if empty
-    if len(docs) == 0:
-        await seed_echo_showcase(db)
+    try:
+        db = _get_db(request)
         docs = await db.echo_showcases.find(
             {"status": "published"},
             {"gallery": 0, "testimonials": 0, "timeline": 0}
         ).sort("date", -1).to_list(100)
 
-    return {"items": [_ser(d) for d in docs]}
+        # Auto-seed if empty
+        if len(docs) == 0:
+            await seed_echo_showcase(db)
+            docs = await db.echo_showcases.find(
+                {"status": "published"},
+                {"gallery": 0, "testimonials": 0, "timeline": 0}
+            ).sort("date", -1).to_list(100)
+
+        return {"items": [_ser(d) for d in docs]}
+    except Exception as err:
+        logger.error(f"[ECHO SHOWCASES LIST ERROR] {err}")
+        return {"items": [_ser(DEFAULT_SHOWCASE_SEED)]}
 
 
 @router.get("/showcases/{slug}")
