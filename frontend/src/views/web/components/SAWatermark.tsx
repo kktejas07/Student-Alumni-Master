@@ -16,7 +16,7 @@ export interface SAWatermarkProps {
 }
 
 export function SAWatermark(props: SAWatermarkProps) {
-  return <SAWatermarkDisabled {...props} />;
+  return null;
 }
 
 export function SAWatermarkDisabled({
