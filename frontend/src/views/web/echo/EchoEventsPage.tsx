@@ -354,10 +354,13 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
     }
   };
 
+  const [toast, setToast] = useState<string | null>(null);
+  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 2500); };
+
   const handleShare = () => {
     if (Platform.OS === 'web' && navigator.clipboard) {
       navigator.clipboard.writeText(window.location.href);
-      alert('Event link copied to clipboard!');
+      showToast('Event link copied to clipboard!');
     }
   };
 
@@ -747,6 +750,61 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                   display: none !important;
                 }
               }
+              /* ── Hero Card Responsive ── */
+              @media (max-width: 820px) {
+                .ev-hero-grid {
+                  grid-template-columns: 1fr !important;
+                  gap: 28px !important;
+                }
+                .ev-hero-title {
+                  font-size: 28px !important;
+                  letter-spacing: -1.2px !important;
+                }
+                .ev-hero-mosaic {
+                  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                  grid-template-rows: 80px 80px !important;
+                }
+                .ev-hero-mosaic .ev-mosaic-keynote {
+                  grid-column: span 2 !important;
+                  grid-row: span 1 !important;
+                }
+                .ev-hero-hosts {
+                  flex-direction: column !important;
+                  align-items: flex-start !important;
+                  gap: 10px !important;
+                }
+                .ev-echo-header-title {
+                  font-size: 24px !important;
+                }
+                .ev-echo-header-desc {
+                  font-size: 14px !important;
+                }
+              }
+              @media (max-width: 480px) {
+                .ev-hero-grid {
+                  gap: 20px !important;
+                }
+                .ev-hero-title {
+                  font-size: 24px !important;
+                }
+                .ev-hero-stats {
+                  gap: 20px !important;
+                }
+                .ev-hero-mosaic {
+                  grid-template-columns: 1fr 1fr !important;
+                  grid-template-rows: 60px 60px !important;
+                }
+                .ev-hero-mosaic .ev-mosaic-keynote {
+                  grid-column: span 2 !important;
+                }
+                .ev-hero-card {
+                  padding: 24px 20px !important;
+                  border-radius: 18px !important;
+                }
+                .ev-main-container {
+                  padding: 20px 16px 60px !important;
+                }
+              }
             `,
           }}
         />
@@ -976,22 +1034,22 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
       {/* VIEW 1: EVENTS LIST VIEW                                  */}
       {/* ────────────────────────────────────────────────────────── */}
       {view === 'list' && (
-        <div className="ev-anim-in" style={{ position: 'relative', zIndex: 1, maxWidth: '1400px', width: '100%', margin: '0 auto', padding: '32px 28px 90px' }}>
+        <div className="ev-anim-in ev-main-container" style={{ position: 'relative', zIndex: 1, maxWidth: '1400px', width: '100%', margin: '0 auto', padding: '32px 28px 90px' }}>
 
           {/* ── ON THE GROUND Hero Card ── */}
-          <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '24px', background: 'linear-gradient(150deg, #FFFFFF 0%, #F4F2FF 42%, #EAF7FA 100%)', boxShadow: '0 1px 2px rgba(16,18,32,.06), 0 26px 64px rgba(16,18,32,.24)', padding: '34px 36px 36px', marginBottom: '20px', width: '100%' }}>
+          <div className="ev-hero-card" style={{ position: 'relative', overflow: 'hidden', borderRadius: '24px', background: 'linear-gradient(150deg, #FFFFFF 0%, #F4F2FF 42%, #EAF7FA 100%)', boxShadow: '0 1px 2px rgba(16,18,32,.06), 0 26px 64px rgba(16,18,32,.24)', padding: '34px 36px 36px', marginBottom: '20px', width: '100%' }}>
             {/* Decorative gradient orbs */}
             <div style={{ position: 'absolute', right: '-6%', top: '-48%', width: '480px', height: '480px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,92,252,.20), transparent 66%)', pointerEvents: 'none' }} />
             <div style={{ position: 'absolute', left: '24%', bottom: '-62%', width: '440px', height: '440px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(47,184,198,.16), transparent 68%)', pointerEvents: 'none' }} />
 
-            <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 420px)', gap: '40px', alignItems: 'center' }}>
+            <div className="ev-hero-grid" style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 420px)', gap: '40px', alignItems: 'center' }}>
               {/* Left column: text + stats + CTAs */}
               <div style={{ minWidth: 0 }}>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 700, letterSpacing: '1.6px', color: '#2E2091', background: 'rgba(46,32,145,.10)', borderRadius: '100px', padding: '7px 14px' }}>
                   <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#2E2091' }} />
                   ON THE GROUND
                 </div>
-                <div style={{ fontSize: '36px', fontWeight: 700, letterSpacing: '-1.6px', lineHeight: 1.1, color: '#141726', margin: '18px 0 12px' }}>
+                <div className="ev-hero-title" style={{ fontSize: '36px', fontWeight: 700, letterSpacing: '-1.6px', lineHeight: 1.1, color: '#141726', margin: '18px 0 12px' }}>
                   The network is a feed until it meets in person.
                 </div>
                 <div style={{ fontSize: '16px', lineHeight: 1.65, color: '#4A4F63', maxWidth: '480px' }}>
@@ -999,7 +1057,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 </div>
 
                 {/* Stats Row */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, max-content)', gap: '34px', margin: '26px 0 24px' }}>
+                <div className="ev-hero-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, max-content)', gap: '34px', margin: '26px 0 24px' }}>
                   <div>
                     <div style={{ fontSize: '28px', fontWeight: 700, letterSpacing: '-1.1px', color: '#4B3FD6' }}>86</div>
                     <div style={{ fontSize: '12.5px', color: '#5F6474', marginTop: '4px' }}>events run</div>
@@ -1037,8 +1095,8 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
               </div>
 
               {/* Right column: Mosaic grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gridTemplateRows: '96px 96px', gap: '10px' }}>
-                <div style={{ gridColumn: 'span 2', gridRow: 'span 2', borderRadius: '14px', background: 'linear-gradient(135deg, #1B1838, #2E2091)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.7)', fontSize: '13px', fontWeight: 600 }}>
+              <div className="ev-hero-mosaic" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gridTemplateRows: '96px 96px', gap: '10px' }}>
+                <div className="ev-mosaic-keynote" style={{ gridColumn: 'span 2', gridRow: 'span 2', borderRadius: '14px', background: 'linear-gradient(135deg, #1B1838, #2E2091)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.7)', fontSize: '13px', fontWeight: 600 }}>
                   Keynote — Main Stage
                 </div>
                 <div style={{ borderRadius: '14px', background: '#241A52', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.6)', fontSize: '11px', fontWeight: 600 }}>
@@ -1051,7 +1109,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
             </div>
 
             {/* Recent Hosts Row */}
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap', borderTop: '1px solid rgba(20,23,38,.10)', marginTop: '30px', paddingTop: '22px' }}>
+            <div className="ev-hero-hosts" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap', borderTop: '1px solid rgba(20,23,38,.10)', marginTop: '30px', paddingTop: '22px' }}>
               <span style={{ fontSize: '10.5px', fontWeight: 700, letterSpacing: '1.6px', color: '#5F6474' }}>RECENT HOSTS</span>
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                 {['Sreenidhi Institute', 'VNR VJIET', 'Khammam Institute', 'CBIT Hyderabad'].map((h, idx) => (
@@ -1069,10 +1127,10 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
               <svg width="13" height="13" viewBox="0 0 24 24" style={{ fill: 'currentColor' }}><path d="M12 2l1.9 5.1L19 9l-5.1 1.9L12 16l-1.9-5.1L5 9l5.1-1.9Z" /></svg>
               ECHO EVENTS
             </span>
-            <div style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.2px', margin: '18px 0 10px', color: '#FFFFFF' }}>
+            <div className="ev-echo-header-title" style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.2px', margin: '18px 0 10px', color: '#FFFFFF' }}>
               Explore ECHO Events by College
             </div>
-            <div style={{ fontSize: '15px', lineHeight: 1.6, color: '#BEB6E8', maxWidth: '620px' }}>
+            <div className="ev-echo-header-desc" style={{ fontSize: '15px', lineHeight: 1.6, color: '#BEB6E8', maxWidth: '620px' }}>
               Image galleries, partners, sponsors, speakers, testimonials and registration for every ECHO event we've conducted.
             </div>
           </div>
@@ -2146,6 +2204,14 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
             </div>
 
           </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <div style={{ position: 'fixed', bottom: '28px', left: '50%', transform: 'translateX(-50%)', zIndex: 9999, background: '#1A1A2E', border: '1px solid #4B3FA8', borderRadius: '12px', padding: '14px 24px', display: 'flex', alignItems: 'center', gap: '10px', boxShadow: '0 8px 32px rgba(0,0,0,0.5)', animation: 'ev-in .3s ease' }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5"><path d="M20 6L9 17l-5-5" /></svg>
+          <span style={{ fontSize: '14px', fontWeight: 600, color: '#FFFFFF', whiteSpace: 'nowrap' }}>{toast}</span>
         </div>
       )}
 
