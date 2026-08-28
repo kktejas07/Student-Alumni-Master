@@ -21,8 +21,22 @@ import Svg, { Path, Rect, Circle, G, Text as SvgText, Defs, LinearGradient as Sv
 import { useRouter } from 'expo-router';
 import { NX, NX_MOTION } from '@/src/theme/nexus';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { DashboardView } from './portals/student/views/DashboardView';
+import { CareerAIView } from './portals/student/views/CareerAIView';
+import { InternshipsView } from './portals/student/views/InternshipsView';
+import { EchoShowcaseView } from './portals/student/views/EchoShowcaseView';
+import { NetworkView } from './portals/student/views/NetworkView';
+import { MyBookingsView } from './portals/student/views/MyBookingsView';
+import { MyTicketsView } from './portals/student/views/MyTicketsView';
+import { EventsView } from './portals/student/views/EventsView';
+import { MyWorkshopsView } from './portals/student/views/MyWorkshopsView';
+import CoursesPage from '@/app/courses';
+import FinancialPage from '@/app/financial';
+import DealsPage from '@/app/deals';
+import WalletPage from '@/app/wallet';
+import HigherEducationPage from '@/app/higher-education';
 
-export function NexusOSModernDashboardRN({ initialView = 'dash' }: { initialView?: 'dash' | 'profile' | 'rentals' | 'setup' | 'login' }) {
+export function NexusOSModernDashboardRN({ initialView = 'dash' }: { initialView?: string }) {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
@@ -30,10 +44,29 @@ export function NexusOSModernDashboardRN({ initialView = 'dash' }: { initialView
   const isTight = width < 900;
 
   // View & Nav State
-  const [currentView, setCurrentView] = useState<'dash' | 'profile' | 'rentals'>(initialView === 'profile' || initialView === 'rentals' ? initialView : 'dash');
+  const [currentView, setCurrentView] = useState<string>(initialView || 'dash');
   const [activeTab, setActiveTab] = useState<0 | 1>(0);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const VIEW_TITLES: Record<string, [string, string]> = {
+    dash: ['Good morning, Devender 👋', "Here's your personalised dashboard for today"],
+    ai: ['Career AI', 'Your roadmap, rebuilt weekly by Agent K'],
+    internships: ['Internships & Jobs', '267 roles matched to your profile'],
+    echo: ['ECHO Showcase', 'Galleries, partners and speakers from every event'],
+    net: ['Network', 'Alumni and students from your branch'],
+    bookings: ['My Bookings', 'Sessions, stays and workshop seats'],
+    tickets: ['My Tickets', 'Entry passes and invoices on your SA ID'],
+    events: ['My Events', 'Eight registered this term'],
+    workshops: ['My Workshops', 'Hands-on sessions and free passes'],
+    courses: ['Courses', 'Structured learning mapped to your target role'],
+    financial: ['Financial', 'Scholarships, aid and receipts'],
+    deals: ['Deals & Offers', 'Student pricing unlocked by your college email'],
+    wallet: ['SA Wallet', 'One balance across every module'],
+    higher: ['Higher Education', 'Programme shortlists, deadlines and funding'],
+    rentals: ['Rentals', 'Verified stays, vehicles and coworking with SA discounts'],
+    profile: ['Profile & Digital Identity', 'Manage your credentials, academic details, and skills'],
+  };
 
   // Modals & Overlays
   const [showLogin, setShowLogin] = useState(initialView === 'login');
@@ -312,25 +345,27 @@ export function NexusOSModernDashboardRN({ initialView = 'dash' }: { initialView
           <ScrollView style={{ flex: 1, paddingHorizontal: 6 }} showsVerticalScrollIndicator={false}>
             {[
               { id: 'dash', label: 'Dashboard', icon: '🎛️' },
-              { id: 'profile', label: 'Profile', icon: '👤' },
-              { id: 'rentals', label: 'Rentals', icon: '🏠' },
+              { id: 'ai', label: 'Career AI', icon: '✨' },
               { id: 'internships', label: 'Internships & Jobs', icon: '💼' },
               { id: 'echo', label: 'ECHO Showcase', icon: '⚡' },
               { id: 'net', label: 'Network', icon: '👥' },
+              { id: 'bookings', label: 'My Bookings', icon: '🔖' },
+              { id: 'tickets', label: 'My Tickets', icon: '🎟️' },
               { id: 'events', label: 'My Events', icon: '📅' },
+              { id: 'workshops', label: 'My Workshops', icon: '🛠️' },
               { id: 'courses', label: 'Courses', icon: '🎓' },
+              { id: 'financial', label: 'Financial', icon: '💰' },
               { id: 'deals', label: 'Deals & Offers', icon: '🏷️' },
               { id: 'wallet', label: 'SA Wallet', icon: '💳' },
+              { id: 'higher', label: 'Higher Education', icon: '🏫' },
+              { id: 'rentals', label: 'Rentals', icon: '🏠' },
+              { id: 'profile', label: 'Profile', icon: '👤' },
             ].map((nav) => {
               const isActive = currentView === nav.id;
               return (
                 <Pressable
                   key={nav.id}
-                  onPress={() => {
-                    if (nav.id === 'dash' || nav.id === 'profile' || nav.id === 'rentals') {
-                      setCurrentView(nav.id as any);
-                    }
-                  }}
+                  onPress={() => setCurrentView(nav.id)}
                   style={[s.navItem, isActive && s.navItemActive]}
                 >
                   <Text style={s.navIcon}>{nav.icon}</Text>
@@ -348,10 +383,10 @@ export function NexusOSModernDashboardRN({ initialView = 'dash' }: { initialView
           <View style={s.topBar}>
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={s.greetingTitle}>
-                {currentView === 'dash' ? 'Good morning, Devender 👋' : currentView === 'profile' ? 'Profile & Digital Identity' : 'SA Stay Rentals Marketplace'}
+                {(VIEW_TITLES[currentView] || VIEW_TITLES.dash)[0]}
               </Text>
               <Text style={s.greetingSub}>
-                {currentView === 'dash' ? "Here's your personalised dashboard for today" : currentView === 'profile' ? 'Manage your credentials, academic details, and skills' : 'Verified student housing, vehicles & coworking with SA discounts'}
+                {(VIEW_TITLES[currentView] || VIEW_TITLES.dash)[1]}
               </Text>
             </View>
 
@@ -819,6 +854,21 @@ export function NexusOSModernDashboardRN({ initialView = 'dash' }: { initialView
                 </View>
               </View>
             )}
+
+            {/* ── ADDITIONAL MODULE VIEWS ─────────────────────────────────── */}
+            {currentView === 'ai' && <CareerAIView />}
+            {currentView === 'internships' && <InternshipsView />}
+            {currentView === 'echo' && <EchoShowcaseView />}
+            {currentView === 'net' && <NetworkView />}
+            {currentView === 'bookings' && <MyBookingsView />}
+            {currentView === 'tickets' && <MyTicketsView />}
+            {currentView === 'events' && <EventsView />}
+            {currentView === 'workshops' && <MyWorkshopsView />}
+            {currentView === 'courses' && <CoursesPage />}
+            {currentView === 'financial' && <FinancialPage />}
+            {currentView === 'deals' && <DealsPage />}
+            {currentView === 'wallet' && <WalletPage />}
+            {currentView === 'higher' && <HigherEducationPage />}
           </ScrollView>
         </View>
       </View>
