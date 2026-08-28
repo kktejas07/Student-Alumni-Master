@@ -141,6 +141,23 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
   const [showTermsErr, setShowTermsErr] = useState(false);
   const [whatsappOptIn, setWhatsappOptIn] = useState(true);
   
+  // Registration page poster carousel state
+  const [regPosterIdx, setRegPosterIdx] = useState(0);
+  const regPosters = [
+    '/images/hackwave/hackwave_main_poster.png',
+    '/images/hackwave/hackwave_cybersecurity_conclave.jpg',
+    '/images/hackwave/hackwave_techfest_verticals.jpg',
+    '/images/hackwave/hackwave_perks_pool.jpg'
+  ];
+
+  useEffect(() => {
+    if (view !== 'reg') return;
+    const timer = setInterval(() => {
+      setRegPosterIdx((prev) => (prev + 1) % regPosters.length);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [view, regPosters.length]);
+  
   // Form fields
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -1539,26 +1556,63 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
           {/* 2-Column Grid: Poster & Registration Form */}
           <div className="ev-rgrid" style={{ display: 'grid', gap: '24px', alignItems: 'start', width: '100%' }}>
             
-            {/* Left Column: Event Poster */}
+            {/* Left Column: Interactive Auto-Rotating Event Poster Slider */}
             <div style={{ border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '16px', overflow: 'hidden' }}>
-              <div style={{ position: 'relative', borderRadius: '14px', overflow: 'hidden', background: 'var(--panel2)', aspectRatio: '3/4', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--line2)' }}>
-                {activeEvent.poster_banner ? (
-                  <img src={activeEvent.poster_banner} alt={activeEvent.title} style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#070913' }} />
-                ) : (
-                  <div style={{ textAlign: 'center', padding: '28px' }}>
-                    <div style={{ width: '84px', height: '84px', borderRadius: '22px', background: 'rgba(124,92,252,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-                      <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="var(--violet-lt)" strokeWidth="1.8"><path d="M12 2l1.9 5.1L19 9l-5.1 1.9L12 16l-1.9-5.1L5 9l5.1-1.9Z" /><circle cx="12" cy="12" r="9" /></svg>
-                    </div>
-                    <div style={{ fontSize: '24px', fontWeight: 800, color: '#FFFFFF', textAlign: 'center', letterSpacing: '-0.8px', marginBottom: '8px' }}>{activeEvent.title}</div>
-                    <div style={{ fontSize: '14px', color: 'var(--violet-lt)', textAlign: 'center', marginBottom: '14px' }}>{activeEvent.college_full}</div>
-                    <div style={{ fontSize: '13px', color: 'var(--muted)', textAlign: 'center', lineHeight: 1.5 }}>
-                      Join top coders, innovators, and future founders in India's leading flagship event.
-                    </div>
-                    <div style={{ marginTop: '20px', display: 'inline-block', padding: '8px 16px', background: 'rgba(245,179,66,0.14)', border: '1px solid #4A3410', borderRadius: '100px', color: 'var(--amber)', fontSize: '12px', fontWeight: 700 }}>
-                      {activeEvent.prize_pool || 'PRIZE POOL: ₹2,00,000'}
-                    </div>
-                  </div>
-                )}
+              <div
+                style={{
+                  position: 'relative',
+                  borderRadius: '14px',
+                  overflow: 'hidden',
+                  background: '#070913',
+                  aspectRatio: '3/4',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '1px solid var(--line2)'
+                }}
+              >
+                <img
+                  src={regPosters[regPosterIdx]}
+                  alt={`HackWave Poster ${regPosterIdx + 1}`}
+                  onClick={() => openLightbox(regPosters[regPosterIdx])}
+                  style={{ width: '100%', height: '100%', objectFit: 'contain', cursor: 'zoom-in', transition: 'all .4s ease' }}
+                />
+
+                {/* Left / Right Arrow Navigation */}
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setRegPosterIdx((prev) => (prev - 1 + regPosters.length) % regPosters.length); }}
+                  style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(10,10,20,0.85)', border: '1px solid rgba(255,255,255,0.25)', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10, outline: 'none', fontSize: '18px', fontWeight: 700 }}
+                >
+                  ‹
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setRegPosterIdx((prev) => (prev + 1) % regPosters.length); }}
+                  style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(10,10,20,0.85)', border: '1px solid rgba(255,255,255,0.25)', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10, outline: 'none', fontSize: '18px', fontWeight: 700 }}
+                >
+                  ›
+                </button>
+
+                {/* Badge Tag Overlay */}
+                <div style={{ position: 'absolute', top: '12px', left: '12px', background: 'rgba(124,92,252,0.85)', backdropFilter: 'blur(8px)', borderRadius: '100px', padding: '4px 12px', fontSize: '11px', fontWeight: 700, color: '#FFF', letterSpacing: '0.8px' }}>
+                  POSTER {regPosterIdx + 1} OF {regPosters.length}
+                </div>
+
+                {/* Dot Indicator Row */}
+                <div style={{ position: 'absolute', bottom: '12px', left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: '8px', zIndex: 10 }}>
+                  {regPosters.map((_, pIdx) => (
+                    <button
+                      key={pIdx}
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setRegPosterIdx(pIdx); }}
+                      style={{ width: pIdx === regPosterIdx ? '24px' : '8px', height: '8px', borderRadius: '100px', background: pIdx === regPosterIdx ? '#8B5CF6' : 'rgba(255,255,255,0.4)', border: 'none', cursor: 'pointer', transition: 'all .3s ease' }}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div style={{ textAlign: 'center', marginTop: '12px', fontSize: '12px', color: 'var(--muted)' }}>
+                🔍 Click poster image to view full high-resolution
               </div>
             </div>
 
