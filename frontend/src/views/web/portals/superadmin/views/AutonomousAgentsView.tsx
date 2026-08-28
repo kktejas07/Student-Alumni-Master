@@ -9,6 +9,41 @@ import { useToast, Toast } from '../applekit';
 
 export function AutonomousAgentsView() {
   const { toast, flash, hide } = useToast();
+
+  // Autonomous Goodies Harvester & Multi-Spec Outreach State
+  const [selectedSpecType, setSelectedSpecType] = useState('goodies_partnership');
+  const [harvesterLoading, setHarvesterLoading] = useState(false);
+  const [harvesterResult, setHarvesterResult] = useState<any>(null);
+  const [specDispatchLoading, setSpecDispatchLoading] = useState(false);
+  const [specDispatchResult, setSpecDispatchResult] = useState<any>(null);
+
+  const runHarvesterLoop = async () => {
+    setHarvesterLoading(true);
+    try {
+      const res = await postPortal('/admin/agents/outreach/goodies-harvester/run', {});
+      setHarvesterResult(res);
+      flash?.(res?.message || 'Goodies Harvester loop completed!');
+      fetchOutreachDirectory();
+    } catch (e: any) {
+      flash?.(e?.message || 'Harvester loop failed', 'error');
+    } finally {
+      setHarvesterLoading(false);
+    }
+  };
+
+  const runSpecDispatcherLoop = async () => {
+    setSpecDispatchLoading(true);
+    try {
+      const res = await postPortal('/admin/agents/outreach/specs-dispatcher/run', { spec_type: selectedSpecType });
+      setSpecDispatchResult(res);
+      flash?.(res?.message || 'Multi-Spec outreach loop completed!');
+    } catch (e: any) {
+      flash?.(e?.message || 'Spec dispatcher loop failed', 'error');
+    } finally {
+      setSpecDispatchLoading(false);
+    }
+  };
+
   const [activeTab, setActiveTab] = useState<'custom_teams' | 'outreach_directory' | 'swarm' | 'autopilot' | 'qa' | 'specialized' | 'observability' | 'daily_audit'>('custom_teams');
 
   // Custom Teams State
@@ -816,9 +851,9 @@ const FALLBACK_PRESET_TEAMS = [
                   <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#FFF' }}>{harvesterLoading ? 'Scouting Goodies...' : 'Run Goodies Harvester Loop'}</Text>
                 </Pressable>
 
-                <Pressable onPress={runSpecDispatcherLoop} disabled={specLoading} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#3B82F6', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, opacity: specLoading ? 0.7 : 1 }}>
+                <Pressable onPress={runSpecDispatcherLoop} disabled={specDispatchLoading} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#3B82F6', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, opacity: specLoading ? 0.7 : 1 }}>
                   <Send size={16} color="#FFF" />
-                  <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#FFF' }}>{specLoading ? 'Dispatching...' : 'Dispatch Multi-Spec Loop'}</Text>
+                  <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#FFF' }}>{specDispatchLoading ? 'Dispatching...' : 'Dispatch Multi-Spec Loop'}</Text>
                 </Pressable>
               </View>
             </View>
@@ -849,10 +884,10 @@ const FALLBACK_PRESET_TEAMS = [
               </View>
             )}
 
-            {specResult && (
+            {specDispatchResult && (
               <View style={{ border: '1px solid #3B82F6', borderRadius: 10, padding: 14, backgroundColor: 'rgba(59,130,246,0.1)', gap: 6 }}>
-                <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#60A5FA' }}>🚀 Dispatched Specs ({specResult.dispatched_count} Sent)</Text>
-                <Text style={{ fontFamily: FONTS.medium, fontSize: 13, color: '#DBEAFE' }}>{specResult.message}</Text>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#60A5FA' }}>🚀 Dispatched Specs ({specDispatchResult.dispatched_count} Sent)</Text>
+                <Text style={{ fontFamily: FONTS.medium, fontSize: 13, color: '#DBEAFE' }}>{specDispatchResult.message}</Text>
               </View>
             )}
           </View>
@@ -1606,15 +1641,15 @@ const FALLBACK_PRESET_TEAMS = [
           <Text style={s.cardSub}>Run targeted background scans for Security (BOLA), Data Hygiene, and Content Moderation.</Text>
 
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
-            <Pressable style={s.specBtn} onPress={() => runSpecialized('security')} disabled={specLoading}>
+            <Pressable style={s.specBtn} onPress={() => runSpecialized('security')} disabled={specDispatchLoading}>
               <ShieldCheck size={14} color="#fff" />
               <Text style={s.specBtnText}>Run Security Audit</Text>
             </Pressable>
-            <Pressable style={s.specBtn} onPress={() => runSpecialized('data_hygiene')} disabled={specLoading}>
+            <Pressable style={s.specBtn} onPress={() => runSpecialized('data_hygiene')} disabled={specDispatchLoading}>
               <Database size={14} color="#fff" />
               <Text style={s.specBtnText}>Run Data Hygiene Scan</Text>
             </Pressable>
-            <Pressable style={s.specBtn} onPress={() => runSpecialized('moderation')} disabled={specLoading}>
+            <Pressable style={s.specBtn} onPress={() => runSpecialized('moderation')} disabled={specDispatchLoading}>
               <Sparkles size={14} color="#fff" />
               <Text style={s.specBtnText}>Run Content Moderation</Text>
             </Pressable>
@@ -1622,7 +1657,7 @@ const FALLBACK_PRESET_TEAMS = [
 
           {specLoading && <ActivityIndicator size="small" color={SAC.accent} style={{ marginTop: 14 }} />}
 
-          {specResult && (
+          {specDispatchResult && (
             <View style={{ marginTop: 20, gap: 12 }}>
               <Text style={s.sectionHeader}>Scan Results ({specResult.agent_name})</Text>
               <View style={s.artifactCard}>
