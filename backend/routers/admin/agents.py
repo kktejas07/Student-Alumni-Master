@@ -412,3 +412,11 @@ async def generate_social_media_spotlight(
 
 
 
+
+
+@router.get("/observability")
+async def get_agent_observability_alias(user=Depends(require_role("admin", "superadmin", "college"))):
+    """Returns AI LLM & RAG observability telemetry."""
+    from services.agents.ai_observability import ai_observability
+    from db import db
+    return ai_observability.get_system_telemetry(db=db)
