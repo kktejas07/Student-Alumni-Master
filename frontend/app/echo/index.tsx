@@ -11,7 +11,7 @@ import EchoEventsPage from '@/src/views/web/echo/EchoEventsPage';
 export default function EchoIndexPage() {
   return (
     <View style={s.root}>
-      <EchoEventsPage initialView="list" />
+      <EchoEventsPage initialView="detail" initialSlug="snist" />
     </View>
   );
 }

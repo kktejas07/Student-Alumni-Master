@@ -134,7 +134,7 @@ const SAMPLE_EVENTS = [
   },
 ];
 
-export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: EchoEventsPageProps) {
+export function EchoEventsPage({ initialView = 'detail', initialSlug = 'snist' }: EchoEventsPageProps) {
   const router = useRouter();
   const searchParams = useLocalSearchParams();
   
@@ -151,6 +151,9 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
       } else if (path.startsWith('/echo/') && path !== '/echo') {
         const parts = path.split('/').filter(Boolean);
         if (parts[1]) setSelectedSlug(parts[1]);
+        setView('detail');
+      } else if (path === '/echo') {
+        setSelectedSlug('snist');
         setView('detail');
       }
     } else if (searchParams?.view) {
