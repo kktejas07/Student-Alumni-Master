@@ -91,17 +91,17 @@ const SAMPLE_EVENTS = [
   {
     id: 'vnr',
     slug: 'vnr',
-    title: 'VNR ECHO 2026',
+    title: 'BUILD BY SUNSET ECHO SERIES',
     college: 'VNR VJIET',
     college_name: 'VNR Vignana Jyothi Institute of Engineering and Technology',
     college_full: 'VNR Vignana Jyothi Institute of Engineering & Technology, Hyderabad',
     status: 'COMPLETED',
     organizer: 'VNR Student Council in collaboration with StudentAlumni.ai',
-    description: "Empowering Tomorrow's Leaders — Innovation, Career Tracks and AI Engineering.",
+    description: '9 AM → 9 PM · Walk in with an idea, walk out with a product · July 31, 2026.',
     dates: 'July 31, 2026',
     date_short: 'July 31, 2026',
     date_pill: 'Jul 31, 2026',
-    time: '09:30 AM — 04:30 PM',
+    time: '09:00 AM — 09:00 PM',
     venue: 'Main Auditorium, VNR VJIET, Hyderabad',
     location_short: 'VNR VJIET Campus, Hyderabad',
     prize_pool: '₹35,000 prize pool',
@@ -874,7 +874,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
       )}
 
       {/* Top Continuous Ticker Bar */}
-      <div id="ev-tickwrap" style={{ position: 'sticky', top: 0, zIndex: 62, overflow: 'hidden', borderBottom: '1px solid var(--line)', background: 'linear-gradient(90deg, rgba(124,92,252,.12), rgba(240,166,232,.08) 52%, rgba(111,168,245,.10))' }}>
+      <div id="ev-tickwrap" style={{ position: 'sticky', top: 0, zIndex: 62, overflow: 'hidden', borderBottom: '1px solid var(--line)', background: '#090B18' }}>
         <div id="ev-ticker" style={{ display: 'flex', width: 'max-content', padding: '9px 0', animation: 'ev-tick 46s linear infinite' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 0, flex: 'none' }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
@@ -933,7 +933,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
       </div>
 
       {/* ── Fixed Sticky Navigation Header ── */}
-      <div style={{ position: 'sticky', top: '36px', zIndex: 40, background: 'rgba(10,10,20,.84)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderBottom: '1px solid var(--line)', width: '100%' }}>
+      <div style={{ position: 'sticky', top: '36px', zIndex: 60, background: '#0A0A14', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderBottom: '1px solid var(--line)', width: '100%' }}>
         <div style={{ maxWidth: '1400px', width: '100%', margin: '0 auto', padding: '14px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap', rowGap: '14px' }}>
           
           {/* SA Brand Badge */}
@@ -1048,7 +1048,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 {/* Event Poster Card Banner */}
                 <div style={{ position: 'relative', height: '210px', background: 'var(--panel2)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderBottom: '1px solid var(--line)' }}>
                   {ev.poster_banner ? (
-                    <img src={ev.poster_banner} alt={ev.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={ev.poster_banner} alt={ev.title} style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#070913' }} />
                   ) : (
                     <div style={{ textAlign: 'center', padding: '20px', zIndex: 2 }}>
                       <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: 'rgba(124,92,252,0.18)', border: '1px solid rgba(167,139,250,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
@@ -1571,7 +1571,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
             <div style={{ border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '16px', overflow: 'hidden' }}>
               <div style={{ position: 'relative', borderRadius: '14px', overflow: 'hidden', background: 'var(--panel2)', aspectRatio: '3/4', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--line2)' }}>
                 {activeEvent.poster_banner ? (
-                  <img src={activeEvent.poster_banner} alt={activeEvent.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <img src={activeEvent.poster_banner} alt={activeEvent.title} style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#070913' }} />
                 ) : (
                   <div style={{ textAlign: 'center', padding: '28px' }}>
                     <div style={{ width: '84px', height: '84px', borderRadius: '22px', background: 'rgba(124,92,252,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>

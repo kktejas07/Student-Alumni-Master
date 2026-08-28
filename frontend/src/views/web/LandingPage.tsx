@@ -32,6 +32,7 @@ import Svg, {
 import CommonFooter from '@/src/views/components/CommonFooter';
 import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
 import { SAWatermark } from '@/src/views/web/components/SAWatermark';
+import EchoEventsPage from '@/src/views/web/echo/EchoEventsPage';
 
 /* ── Brand Color Palette ── */
 const T = {
@@ -936,7 +937,15 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
       >
 
         {/* ══════════════════════════════════════════════════════════════════
-<<<<<<< Updated upstream
+            TAB: ECHO EVENTS SHOWCASE (UNIFIED CANONICAL ECHO PORTAL)
+        ══════════════════════════════════════════════════════════════════ */}
+        {activeTab === 'echo' && (
+          <View style={{ width: '100%', minHeight: 800 }}>
+            <EchoEventsPage initialView="list" />
+          </View>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════════
 
             TAB: VERIFY CREDENTIALS & BGV DESK
         ══════════════════════════════════════════════════════════════════ */}
