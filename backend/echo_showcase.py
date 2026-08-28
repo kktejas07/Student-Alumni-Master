@@ -344,14 +344,23 @@ async def _razorpay_verify_webhook_signature(db, body: bytes, signature: str) ->
     """
     cfg = await _razorpay_config(db)
     if not cfg:
+        print("[ECHO-WEBHOOK-SIG] No Razorpay config found")
         return False
     secret = cfg.get("webhook_secret") or cfg.get("key_secret")
     if not secret:
+        print("[ECHO-WEBHOOK-SIG] No webhook_secret or key_secret available")
         return False
+    if not cfg.get("webhook_secret"):
+        print("[ECHO-WEBHOOK-SIG] WARNING: webhook_secret is empty — falling back to key_secret. "
+              "This WILL fail if Razorpay webhook secret differs from API key secret. "
+              "Set the webhook_secret in Settings → Razorpay.")
     import hashlib
     import hmac
     expected = hmac.new(secret.encode("utf-8"), body, hashlib.sha256).hexdigest()
-    return hmac.compare_digest(expected, (signature or ""))
+    match = hmac.compare_digest(expected, (signature or ""))
+    if not match:
+        print(f"[ECHO-WEBHOOK-SIG] Signature mismatch — expected={expected[:16]}... got={(signature or '')[:16]}...")
+    return match
 
 
 # Payment-session default from Razorpay checkout (no payment, page left open).
@@ -376,13 +385,14 @@ async def sweep_expired_echo_payments(db) -> dict:
 
     Idempotent & safe to run every minute. Returns a small summary for logs.
     """
-    result = {"checked": 0, "failed": 0, "reminded": 0}
+    result = {"checked": 0, "failed": 0, "reminded": 0, "rescued": 0}
     try:
         now = datetime.now(timezone.utc)
         cutoff_fail = now.timestamp() - ECHO_PAYMENT_SESSION_TTL_SECONDS
         cutoff_remind = now.timestamp() - ECHO_PAYMENT_REMINDER_SECONDS
 
         pending = await db.echo_registrations.find({"payment.status": "pending"}).to_list(500)
+        cfg = await _razorpay_config(db)
         for reg in pending:
             result["checked"] += 1
             created_raw = (reg.get("payment_order") or {}).get("created_at") or reg.get("created_at")
@@ -394,19 +404,56 @@ async def sweep_expired_echo_payments(db) -> dict:
 
             # Mark abandoned sessions as failed.
             if age_seconds > ECHO_PAYMENT_SESSION_TTL_SECONDS:
-                showcase = await db.echo_showcases.find_one(_slug_query(reg.get("slug") or ""))
-                await db.echo_registrations.update_one(
-                    {"_id": reg["_id"]},
-                    {"$set": {
-                        "payment.status": "failed",
-                        "payment.failed_at": _now(),
-                        "payment.failed_reason": "payment session expired",
-                        "status": "failed",
-                    }},
-                )
-                await _send_payment_failed_email(db, {**reg, "payment": {**reg.get("payment", {}), "status": "failed"}}, showcase,
-                                                 reason="session expired before you completed it")
-                result["failed"] += 1
+                # Before marking failed, check if Razorpay actually captured
+                # the payment — if so, finalize instead of failing. This
+                # prevents the race where the webhook arrives late (or was
+                # missed) but the payment succeeded.
+                order_id = (reg.get("payment_order") or {}).get("order_id")
+                rescued = False
+                if cfg and order_id:
+                    try:
+                        import httpx
+                        async with httpx.AsyncClient(timeout=10) as http:
+                            resp = await http.get(
+                                f"https://api.razorpay.com/v1/orders/{order_id}",
+                                auth=(cfg["key_id"], cfg["key_secret"]),
+                            )
+                            if resp.status_code == 200:
+                                order_data = resp.json()
+                                if order_data.get("status") == "paid":
+                                    # Order is paid on Razorpay — rescue it!
+                                    payment_id = ""
+                                    for p in (order_data.get("payments") or []):
+                                        if p.get("status") == "captured":
+                                            payment_id = p.get("id") or ""
+                                            break
+                                    if not payment_id:
+                                        # Fallback: any payment id from the order
+                                        payments = order_data.get("payments") or []
+                                        if payments:
+                                            payment_id = payments[-1].get("id") or ""
+                                    showcase = await db.echo_showcases.find_one(_slug_query(reg.get("slug") or ""))
+                                    await _finalize_paid_registration(db, reg, showcase, payment_id)
+                                    result["rescued"] += 1
+                                    rescued = True
+                                    print(f"[ECHO-SWEEP] Rescued order {order_id} — Razorpay shows paid")
+                    except Exception as sweep_err:
+                        print(f"[ECHO-SWEEP] Razorpay check failed for {order_id}: {sweep_err}")
+
+                if not rescued:
+                    showcase = await db.echo_showcases.find_one(_slug_query(reg.get("slug") or ""))
+                    await db.echo_registrations.update_one(
+                        {"_id": reg["_id"]},
+                        {"$set": {
+                            "payment.status": "failed",
+                            "payment.failed_at": _now(),
+                            "payment.failed_reason": "payment session expired",
+                            "status": "failed",
+                        }},
+                    )
+                    await _send_payment_failed_email(db, {**reg, "payment": {**reg.get("payment", {}), "status": "failed"}}, showcase,
+                                                     reason="session expired before you completed it")
+                    result["failed"] += 1
                 continue
 
             # Fresh pending (past 5 minutes) → one reminder email.
@@ -3705,8 +3752,11 @@ async def razorpay_webhook(request: Request):
         print("[ECHO-WEBHOOK] Razorpay webhook received but gateway not configured")
         return {"received": True, "processed": False, "reason": "gateway_not_configured"}
 
-    if not signature or not await _razorpay_verify_webhook_signature(db, body, signature):
-        print("[ECHO-WEBHOOK] Razorpay webhook signature verification failed")
+    if not signature:
+        print("[ECHO-WEBHOOK] No x-razorpay-signature header — Razorpay may not be configured to send webhooks")
+        return {"received": True, "processed": False, "reason": "missing_signature"}
+    if not await _razorpay_verify_webhook_signature(db, body, signature):
+        print("[ECHO-WEBHOOK] Razorpay webhook signature verification failed — check webhook_secret in Settings → Razorpay matches the one in Razorpay Dashboard → Settings → Webhooks")
         return {"received": True, "processed": False, "reason": "signature_failed"}
 
     try:
@@ -3723,7 +3773,10 @@ async def razorpay_webhook(request: Request):
 
     print(f"[ECHO-WEBHOOK] event={event_name} order={order_id} payment={payment_id}")
 
-    if event_name != "payment.captured":
+    # Accept both payment.captured (final) and payment.authorized (pre-capture).
+    # Some Razorpay integrations fire authorized first; we finalize on either
+    # so the registration doesn't go stale while waiting for a second webhook.
+    if event_name not in ("payment.captured", "payment.authorized"):
         return {"received": True, "processed": False, "reason": "ignored_event"}
 
     if not order_id:
@@ -3734,7 +3787,11 @@ async def razorpay_webhook(request: Request):
     reg = await db.echo_registrations.find_one({"payment_order.order_id": order_id})
     if not reg:
         # Also try receipt fallback (Razorpay puts our reg_id in receipt).
-        for r in await db.echo_registrations.find({"payment.status": "pending"}).to_list(200):
+        # Search BOTH pending AND failed — the sweep job may have already
+        # marked the registration "failed" before the webhook arrived.
+        for r in await db.echo_registrations.find({
+            "payment.status": {"$in": ["pending", "failed"]}
+        }).to_list(500):
             if r.get("id") == order_id or (r.get("payment_order") or {}).get("order_id") == order_id:
                 reg = r
                 break
@@ -3920,18 +3977,8 @@ async def get_ticket(reg_id: str, request: Request, email: Optional[str] = Query
             or user_email in allowed_emails
         )
         # Also allow access if email query param matches (guest registrations)
-        req_email = (email or "").strip().lower()
-        email_match = bool(req_email and req_email == allowed_email)
-
-        # Team member access check
-        team_match = False
-        if reg.get("team_members"):
-            team_match = any(
-                (m.get("email") or "").strip().lower() in (allowed_email, req_email, (user.get("email") or "").strip().lower() if user else "")
-                for m in reg.get("team_members")
-            )
-
-        if not owner_match and not email_match and not team_match:
+        email_match = email and email.strip().lower() in allowed_emails
+        if not owner_match and not email_match:
             raise HTTPException(status_code=403, detail="You do not have access to this ticket")
     
     html_content = _build_ticket_html(reg_ser, showcase or {}, reg.get("ticket_template"))
@@ -4484,6 +4531,54 @@ async def admin_mark_registration_failed(reg_id: str, request: Request, _=Depend
     return {"ok": True, "message": "Registration marked as failed", "failed_at": now_iso}
 
 
+class AdminMarkPaidSchema(BaseModel):
+    payment_id: Optional[str] = None  # Razorpay payment id if known, else auto-generated
+    reason: Optional[str] = None      # admin note for audit trail
+
+
+@router.post("/admin/registrations/{reg_id}/mark-paid")
+async def admin_mark_registration_paid(reg_id: str, payload: AdminMarkPaidSchema, request: Request, _=Depends(_require_admin)):
+    """Super-admin: manually mark a failed/pending registration as paid.
+
+    Use when Razorpay captured the payment but the webhook/verify-payment
+    path missed it (e.g. webhook secret misconfigured, session expired
+    before verify was called, or Razorpay dashboard shows the payment
+    succeeded).  The registration is fully fulfilled: QR ticket, invoice,
+    SA account provisioning, and confirmation emails are all issued.
+    """
+    db = _get_db(request)
+    from bson import ObjectId
+    q: Dict[str, Any] = {"id": reg_id}
+    if ObjectId.is_valid(reg_id):
+        q = {"$or": [{"id": reg_id}, {"_id": ObjectId(reg_id)}]}
+    reg = await db.echo_registrations.find_one(q)
+    if not reg:
+        raise HTTPException(status_code=404, detail="Registration not found")
+
+    payment = reg.get("payment") or {}
+    if payment.get("status") == "paid":
+        raise HTTPException(status_code=400, detail="Registration is already marked as paid")
+
+    showcase = await db.echo_showcases.find_one(_slug_query(reg.get("slug") or ""))
+
+    # Use the provided payment_id or generate a marker so downstream
+    # logic (invoice, QR) has something to record.
+    payment_id = (payload.payment_id or "").strip() or f"ADMIN_PAY_{secrets.token_hex(8).upper()}"
+
+    finalized = await _finalize_paid_registration(db, reg, showcase, payment_id)
+    if not finalized:
+        raise HTTPException(status_code=500, detail="Failed to finalize registration")
+
+    # Append an admin note so the override is traceable.
+    note = (payload.reason or "Payment confirmed manually by admin").strip()
+    await db.echo_registrations.update_one(
+        {"_id": reg["_id"]},
+        {"$set": {"admin_payment_note": note, "admin_payment_at": _now()}},
+    )
+
+    return {"ok": True, "message": "Registration marked as paid", "payment_id": payment_id}
+
+
 # ── Ticket verification / check-in (venue staff) ─────────────────────────────
 class AdminUpdateTeamSchema(BaseModel):
     team_members: List[dict] = []
@@ -4744,40 +4839,61 @@ async def delete_registration(reg_id: str, request: Request, _=Depends(_require_
 
 @router.get("/admin/revenue")
 async def admin_echo_revenue(request: Request, _=Depends(_require_admin)):
-    """Per-event revenue aggregates from real ECHO registrations."""
+    """Per-event revenue aggregates from real ECHO registrations.
+
+    Only counts registrations that actually went through Razorpay
+    (fee > 0, payment.status == paid, and a real payment_id exists —
+    not admin overrides like ADMIN_PAY_xxx).
+
+    Deduplicates team payments: a team of 5 creates 5 registration docs
+    each with the full team fee, but Razorpay only captures once.
+    We group by payment_id to count each payment exactly once.
+    """
     db = _get_db(request)
-    pipeline = [
-        {"$match": {}},
-        {"$group": {
-            "_id": "$slug",
-            "title": {"$first": "$showcase_title"},
-            "total": {"$sum": 1},
-            "paid": {"$sum": {"$cond": [{"$eq": ["$payment.status", "paid"]}, 1, 0]}},
-            "pending": {"$sum": {"$cond": [{"$eq": ["$payment.status", "pending"]}, 1, 0]}},
-            "free": {"$sum": {"$cond": [{"$and": [{"$eq": ["$payment.status", "paid"]}, {"$eq": ["$fee", 0]}]}, 1, 0]}},
-            "revenue": {"$sum": {"$cond": [{"$eq": ["$payment.status", "paid"]}, "$fee", 0]}},
-            "currency": {"$first": "$currency"},
-        }},
-        {"$sort": {"revenue": -1}},
-    ]
-    events = []
-    totals = {"total": 0, "paid": 0, "pending": 0, "revenue": 0.0, "free": 0}
-    for row in await db.echo_registrations.aggregate(pipeline).to_list(200):
-        events.append({
-            "slug": row["_id"],
-            "title": row.get("title") or row["_id"],
-            "total": row["total"],
-            "paid": row["paid"],
-            "pending": row["pending"],
-            "free": row.get("free", 0),
-            "revenue": round(float(row.get("revenue") or 0), 2),
-            "currency": row.get("currency") or "INR",
-        })
-        totals["total"] += row["total"]
-        totals["paid"] += row["paid"]
-        totals["pending"] += row["pending"]
-        totals["revenue"] += float(row.get("revenue") or 0)
-        totals["free"] += row.get("free", 0)
+    all_paid = await db.echo_registrations.find({
+        "payment.status": "paid",
+        "fee": {"$gt": 0},
+    }).to_list(5000)
+
+    # Group by (slug, payment_id) to deduplicate team payments
+    seen: Dict[str, dict] = {}
+    for r in all_paid:
+        pid = (r.get("payment") or {}).get("payment_id") or ""
+        if pid.startswith("ADMIN_PAY_"):
+            continue
+        slug = r.get("slug") or "unknown"
+        key = f"{slug}||{pid}"
+        if key not in seen:
+            seen[key] = {
+                "slug": slug,
+                "title": r.get("showcase_title") or slug,
+                "fee": float(r.get("fee") or 0),
+                "currency": r.get("currency") or "INR",
+            }
+
+    # Aggregate per-event
+    events_map: Dict[str, dict] = {}
+    for entry in seen.values():
+        slug = entry["slug"]
+        if slug not in events_map:
+            events_map[slug] = {
+                "slug": slug,
+                "title": entry["title"],
+                "paid": 0,
+                "revenue": 0.0,
+                "currency": entry["currency"],
+            }
+        events_map[slug]["paid"] += 1
+        events_map[slug]["revenue"] += entry["fee"]
+
+    events = sorted(events_map.values(), key=lambda e: e["revenue"], reverse=True)
+    totals = {
+        "total": len(all_paid),
+        "paid": len(seen),
+        "pending": 0,
+        "revenue": sum(e["revenue"] for e in events),
+        "free": 0,
+    }
     return {"events": events, "totals": totals}
 
 

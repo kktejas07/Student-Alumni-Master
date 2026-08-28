@@ -158,9 +158,20 @@ export function PaymentsView() {
   const [payoutLoading, setPayoutLoading] = useState(false);
   const [payoutDone, setPayoutDone] = useState(false);
   const [tiersEditorOpen, setTiersEditorOpen] = useState(false);
+  const [showSettlements, setShowSettlements] = useState(false);
+  const [settlements, setSettlements] = useState<any>({ available: false, settlements: [], totals: {} });
+  const [settlementsLoading, setSettlementsLoading] = useState(false);
   const { data, refresh } = usePortalData<typeof FALLBACK>('/admin/super/payments', FALLBACK);
   const { width } = useWindowDimensions();
   const stack = width < 1100;
+
+  const loadSettlements = async () => {
+    setSettlementsLoading(true);
+    try {
+      const r = await request<any>('/admin/super/razorpay-settlements');
+      if (r) setSettlements(r);
+    } catch {} finally { setSettlementsLoading(false); }
+  };
 
   const doExport = async () => {
     setExporting(true);
@@ -216,7 +227,9 @@ export function PaymentsView() {
 
       {/* KPIs */}
       <View style={st.kpiRow}>
-        <KpiTile Icon={TrendingUp}     label="GROSS REVENUE"   value={data.kpi.gross}   delta={`${data.echo?.paid_count || 0} paid registrations`} deltaKind="success" />
+        <Pressable onPress={() => { setShowSettlements(true); loadSettlements(); }} style={[st.kpiPressable]}>
+          <KpiTile Icon={TrendingUp}     label="GROSS REVENUE"   value={data.kpi.gross}   delta={`${data.echo?.paid_count || 0} paid registrations · tap for settlements`} deltaKind="success" />
+        </Pressable>
         <KpiTile Icon={ArrowUp}        label="PAYOUTS (EST)"    value={data.kpi.payouts} delta="10% platform fee" deltaKind="info" />
         <KpiTile Icon={AlertTriangle}  label="PENDING PAYMENTS" value={data.kpi.pending} delta={`${data.echo?.pending_count || 0} awaiting payment`} deltaKind="warn" />
         <KpiTile Icon={IndianRupee}    label="NET REVENUE"     value={data.kpi.net}     delta={`${data.bookings_count || 0} bookings`} deltaKind="success" />
@@ -333,6 +346,80 @@ export function PaymentsView() {
           </Card>
         </View>
       </View>
+
+      {/* Razorpay Settlement Breakdown Modal */}
+      <Modal visible={showSettlements} transparent animationType="fade" onRequestClose={() => setShowSettlements(false)}>
+        <View style={setSt.overlay}>
+          <View style={setSt.modal}>
+            <View style={setSt.head}>
+              <Text style={setSt.title}>Razorpay Settlements</Text>
+              <Pressable onPress={() => setShowSettlements(false)} style={setSt.xBtn}><X size={16} color="#fff" /></Pressable>
+            </View>
+            {settlements.available === false ? (
+              <View style={{ paddingVertical: 30, alignItems: 'center' }}>
+                {settlementsLoading ? (
+                  <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 13 }}>Loading settlements...</Text>
+                ) : (
+                  <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 13 }}>
+                    {settlements.error || 'Razorpay not connected. Connect via Integrations to view settlements.'}
+                  </Text>
+                )}
+              </View>
+            ) : (
+              <>
+                {/* Summary tiles */}
+                <View style={setSt.sumRow}>
+                  <View style={setSt.sumTile}>
+                    <Text style={setSt.sumLabel}>Total Collected</Text>
+                    <Text style={[setSt.sumVal, { color: '#86EFAC' }]}>₹{(settlements?.totals?.gross || 0).toLocaleString('en-IN')}</Text>
+                  </View>
+                  <View style={setSt.sumTile}>
+                    <Text style={setSt.sumLabel}>Razorpay Fees</Text>
+                    <Text style={[setSt.sumVal, { color: '#FCA5A5' }]}>-₹{(settlements?.totals?.fees || 0).toLocaleString('en-IN')}</Text>
+                  </View>
+                  <View style={setSt.sumTile}>
+                    <Text style={setSt.sumLabel}>GST (18%)</Text>
+                    <Text style={[setSt.sumVal, { color: '#FCA5A5' }]}>-₹{(settlements?.totals?.tax || 0).toLocaleString('en-IN')}</Text>
+                  </View>
+                  <View style={setSt.sumTile}>
+                    <Text style={setSt.sumLabel}>Net Settled</Text>
+                    <Text style={[setSt.sumVal, { color: '#93C5FD' }]}>₹{(settlements?.totals?.settled || 0).toLocaleString('en-IN')}</Text>
+                  </View>
+                </View>
+
+                {/* Settlement list */}
+                <ScrollView style={{ maxHeight: 340 }}>
+                  {(settlements?.settlements || []).length === 0 ? (
+                    <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, textAlign: 'center', paddingVertical: 24 }}>
+                      No settlements found.
+                    </Text>
+                  ) : (
+                    (settlements?.settlements || []).map((s: any, i: number) => (
+                      <View key={s.id + i} style={setSt.row}>
+                        <View style={{ flex: 1, minWidth: 0 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            <View style={[setSt.statusDot, { backgroundColor: s.status === 'settled' ? '#34D399' : s.status === 'pending' ? '#FBBF24' : '#F87171' }]} />
+                            <Text style={setSt.rowTitle}>{s.date}</Text>
+                          </View>
+                          {s.utr ? <Text style={setSt.rowMeta}>UTR: {s.utr}</Text> : null}
+                          <Text style={setSt.rowMeta}>ID: {s.id}</Text>
+                        </View>
+                        <View style={{ alignItems: 'flex-end', gap: 2 }}>
+                          <Text style={setSt.rowAmtGreen}>₹{s.amount.toLocaleString('en-IN')}</Text>
+                          <Text style={setSt.rowAmtRed}>fees: ₹{s.fees.toLocaleString('en-IN')}</Text>
+                          <Text style={setSt.rowAmtRed}>tax: ₹{s.tax.toLocaleString('en-IN')}</Text>
+                          <Text style={setSt.rowStatus}>{s.status.toUpperCase()}</Text>
+                        </View>
+                      </View>
+                    ))
+                  )}
+                </ScrollView>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
+
       <Toast text={toast.text} visible={toast.visible} kind={toast.kind} onDismiss={hide} />
     </View>
   );
@@ -347,6 +434,7 @@ const st = StyleSheet.create({
   iconBox: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
 
   kpiRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
+  kpiPressable: { cursor: 'pointer' },
   cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   cardTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 15 },
 
@@ -389,4 +477,26 @@ const st = StyleSheet.create({
   evAmt: { color: '#86EFAC', fontFamily: FONTS.xbold, fontSize: 12.5 },
   editBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, backgroundColor: 'rgba(245,158,11,0.10)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.30)' },
   editBtnText: { color: GRAD.to, fontFamily: FONTS.bold, fontSize: 10.5 },
+});
+
+const setSt = StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', padding: 20 },
+  modal: { backgroundColor: '#1a1a2e', borderRadius: 16, padding: 18, maxWidth: 560, width: '100%', alignSelf: 'center' },
+  head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
+  xBtn: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.08)' },
+  sumRow: { flexDirection: 'row', gap: 10, marginBottom: 16, flexWrap: 'wrap' },
+  sumTile: { flex: 1, minWidth: 110, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: SAC.border },
+  sumLabel: { color: SAC.muted, fontFamily: FONTS.semi, fontSize: 10, letterSpacing: 0.4 },
+  sumVal: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 16, marginTop: 4 },
+  row: {
+    flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12,
+    paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: SAC.border,
+  },
+  rowTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
+  rowMeta: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 10, marginTop: 2 },
+  rowAmtGreen: { color: '#86EFAC', fontFamily: FONTS.xbold, fontSize: 13 },
+  rowAmtRed: { color: '#FCA5A5', fontFamily: FONTS.med, fontSize: 10.5 },
+  rowStatus: { color: '#93C5FD', fontFamily: FONTS.xbold, fontSize: 9.5, letterSpacing: 0.4, marginTop: 2 },
+  statusDot: { width: 7, height: 7, borderRadius: 4 },
 });
