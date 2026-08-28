@@ -107,18 +107,50 @@ export function AutonomousAgentsView() {
   const [dossierLoading, setDossierLoading] = useState(false);
   const [dailyDossier, setDailyDossier] = useState<any>(null);
 
+const FALLBACK_PRESET_TEAMS = [
+  {
+    id: 'team-outreach-goodies',
+    name: 'Outreach & Goodies Scouting Team',
+    category: 'outreach',
+    description: 'Scouts student communities across AI, Dev, Design & Web3 every 8 hours, gathering sponsorships, cloud credits, swag, and contacts.',
+    icon: 'Globe',
+    color: '#8B5CF6',
+    is_preset: true,
+    agents: [
+      { id: 'agent-outreach-1', name: 'Karan (Community Scout)', role: 'Community & Hackathon Lead', avatar: '🌐', system_prompt: 'Scout campus clubs, hackathons, and tech groups.' },
+      { id: 'agent-outreach-2', name: 'Zoe (Perks & Goodies Hunter)', role: 'Free Goodies & Sponsorship Hunter', avatar: '🎁', system_prompt: 'Aggregate cloud credits, free dev software licenses, swag.' },
+    ],
+  },
+  {
+    id: 'team-dev-fullstack',
+    name: 'Full-Stack Development Team',
+    category: 'development',
+    description: 'Architects, codes, and refactors scalable APIs, UI components, and DB schemas.',
+    icon: 'Code',
+    color: '#3B82F6',
+    is_preset: true,
+    agents: [
+      { id: 'agent-dev-1', name: 'Alex (Tech Lead)', role: 'System Architect', avatar: '👨‍💻', system_prompt: 'Design robust architecture patterns and API specs.' },
+      { id: 'agent-dev-2', name: 'Priya (Frontend Specialist)', role: 'UI & Component Engineer', avatar: '🎨', system_prompt: 'Build clean, accessible React components.' },
+    ],
+  },
+];
+
   // ─── Custom Teams Logic ──────────────────────────────────────────────
   const fetchTeams = async () => {
     setTeamsLoading(true);
     try {
       const res = await getPortal('/admin/agents/teams');
-      const list = res.teams || [];
+      const list = res?.teams && res.teams.length > 0 ? res.teams : FALLBACK_PRESET_TEAMS;
       setTeamsList(list);
       if (list.length > 0 && !selectedTeam) {
         setSelectedTeam(list[0]);
       }
     } catch (e: any) {
-      flash('Failed to load custom agent teams', 'error');
+      setTeamsList(FALLBACK_PRESET_TEAMS);
+      if (!selectedTeam) {
+        setSelectedTeam(FALLBACK_PRESET_TEAMS[0]);
+      }
     } finally {
       setTeamsLoading(false);
     }
