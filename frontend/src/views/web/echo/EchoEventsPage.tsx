@@ -293,7 +293,9 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
 
   const go = (targetView: 'list' | 'detail' | 'reg', targetSlug?: string) => {
     const nextSlug = targetSlug || selectedSlug || 'snist';
-    if (targetSlug) setSelectedSlug(targetSlug);
+    if (targetSlug && targetSlug !== selectedSlug) {
+      setSelectedSlug(targetSlug);
+    }
     setView(targetView);
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       let targetUrl = '/echo';
@@ -305,9 +307,9 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
         targetUrl = '/echo';
       }
       if (window.location.pathname !== targetUrl) {
-        router.push(targetUrl as any);
+        window.history.pushState({ view: targetView, slug: nextSlug }, '', targetUrl);
       }
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: 'instant' as any });
     }
   };
 
@@ -1148,30 +1150,36 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 </div>
 
                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                  <span
-                    onClick={() => go('reg', activeEvent.slug)}
+                  <button
+                    type="button"
+                    onClick={(e) => { e.preventDefault(); go('reg', activeEvent.slug); }}
+                    onTouchEnd={(e) => { e.preventDefault(); go('reg', activeEvent.slug); }}
                     className="ev-btn"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14px', fontWeight: 700, background: '#0E9F6E', color: '#FFFFFF', borderRadius: '10px', padding: '12px 22px', cursor: 'pointer', transition: 'all .2s ease', boxShadow: '0 4px 16px rgba(14, 159, 110, 0.35)' }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14px', fontWeight: 700, background: '#0E9F6E', color: '#FFFFFF', borderRadius: '10px', padding: '12px 22px', cursor: 'pointer', transition: 'all .2s ease', boxShadow: '0 4px 16px rgba(14, 159, 110, 0.35)', border: 'none', outline: 'none', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
                   >
                     <svg width="15" height="15" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 1.9 }}><path d="M3 8.5A2.5 2.5 0 015.5 6h13A2.5 2.5 0 0121 8.5v.5a2 2 0 000 6v.5A2.5 2.5 0 0118.5 18h-13A2.5 2.5 0 013 15.5V15a2 2 0 000-6Z"></path></svg>
                     Register
-                  </span>
-                  <span
-                    onClick={handleDownloadHandbook}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.preventDefault(); handleDownloadHandbook(); }}
+                    onTouchEnd={(e) => { e.preventDefault(); handleDownloadHandbook(); }}
                     className="ev-btn"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14px', fontWeight: 600, background: 'var(--violet)', color: '#FFFFFF', borderRadius: '10px', padding: '12px 20px', cursor: 'pointer', transition: 'all .2s ease' }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14px', fontWeight: 600, background: 'var(--violet)', color: '#FFFFFF', borderRadius: '10px', padding: '12px 20px', cursor: 'pointer', transition: 'all .2s ease', border: 'none', outline: 'none', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
                   >
                     <svg width="15" height="15" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 1.8 }}><path d="M6 3h8l4 4v14H6Z"></path><path d="M14 3v4h4"></path></svg>
                     Event Handbook (PDF)
-                  </span>
-                  <span
-                    onClick={handleShare}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.preventDefault(); handleShare(); }}
+                    onTouchEnd={(e) => { e.preventDefault(); handleShare(); }}
                     className="ev-btn"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14px', fontWeight: 600, border: '1px solid var(--line2)', borderRadius: '10px', padding: '12px 20px', color: 'var(--text)', cursor: 'pointer', transition: 'all .2s ease' }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14px', fontWeight: 600, border: '1px solid var(--line2)', borderRadius: '10px', padding: '12px 20px', color: 'var(--text)', cursor: 'pointer', transition: 'all .2s ease', background: 'transparent', outline: 'none', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
                   >
                     <svg width="15" height="15" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 1.8 }}><circle cx="18" cy="5.5" r="2.6"></circle><circle cx="6" cy="12" r="2.6"></circle><circle cx="18" cy="18.5" r="2.6"></circle><path d="M8.4 10.7l7.2-3.9M8.4 13.3l7.2 3.9"></path></svg>
                     Share
-                  </span>
+                  </button>
                 </div>
               </div>
 
@@ -1467,13 +1475,15 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 <div style={{ fontSize: '14.5px', color: '#C9BFF2', marginTop: '4px' }}>Join our community and never miss an opportunity to learn, connect, and grow.</div>
               </div>
             </div>
-            <span
-              onClick={() => go('list')}
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); go('list'); }}
+              onTouchEnd={(e) => { e.preventDefault(); go('list'); }}
               className="ev-btn"
-              style={{ fontSize: '14.5px', fontWeight: 700, background: '#8B5CF6', color: '#FFFFFF', borderRadius: '10px', padding: '14px 24px', cursor: 'pointer', transition: 'all .2s ease', flex: 'none', boxShadow: '0 4px 18px rgba(139, 92, 246, 0.35)' }}
+              style={{ fontSize: '14.5px', fontWeight: 700, background: '#8B5CF6', color: '#FFFFFF', borderRadius: '10px', padding: '14px 24px', cursor: 'pointer', transition: 'all .2s ease', flex: 'none', boxShadow: '0 4px 18px rgba(139, 92, 246, 0.35)', border: 'none', outline: 'none', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
             >
               View Upcoming Events
-            </span>
+            </button>
           </div>
 
         </div>
@@ -1486,14 +1496,16 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
         <div className="ev-anim-in" style={{ position: 'relative', zIndex: 1, maxWidth: '1400px', width: '100%', margin: '0 auto', padding: '26px 28px 90px' }}>
           
           {/* Back to Event Button */}
-          <span
-            onClick={() => go('detail', activeEvent.slug)}
+          <button
+            type="button"
+            onClick={(e) => { e.preventDefault(); go('detail', activeEvent.slug); }}
+            onTouchEnd={(e) => { e.preventDefault(); go('detail', activeEvent.slug); }}
             className="ev-btn"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14px', fontWeight: 600, border: '1px solid var(--line2)', borderRadius: '100px', padding: '10px 18px', background: 'var(--panel)', color: 'var(--text)', cursor: 'pointer', marginBottom: '20px' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14px', fontWeight: 600, border: '1px solid var(--line2)', borderRadius: '100px', padding: '10px 18px', background: 'var(--panel)', color: 'var(--text)', cursor: 'pointer', marginBottom: '20px', outline: 'none', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
           >
             <svg width="15" height="15" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 2 }}><path d="M20 12H5M11 6l-6 6 6 6"></path></svg>
             Back to event
-          </span>
+          </button>
 
           {/* Registration Header Banner */}
           <div style={{ position: 'relative', overflow: 'hidden', border: '1px solid var(--line2)', borderRadius: '18px', background: 'linear-gradient(115deg, #1B1836, #12121F 68%)', padding: '24px 28px 26px', marginBottom: '22px', width: '100%' }}>
