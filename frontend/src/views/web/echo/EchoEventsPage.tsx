@@ -187,10 +187,13 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [dob, setDob] = useState('');
-  const [branch, setBranch] = useState('CSE');
-  const [year, setYear] = useState('3rd Year');
-  const [track, setTrack] = useState('Generative AI & Agentic Systems');
-  const [college, setCollege] = useState('SNIST');
+  const [branch, setBranch] = useState('');
+  const [year, setYear] = useState('');
+  const [dob, setDob] = useState('');
+  const [track, setTrack] = useState('');
+  const [college, setCollege] = useState('');
+  const [collegeQuery, setCollegeQuery] = useState('');
+  const [showCollegeDropdown, setShowCollegeDropdown] = useState(false);
   const [teamName, setTeamName] = useState('');
   const [teamMembers, setTeamMembers] = useState<Array<{ name: string; email: string; phone: string }>>([
     { name: '', email: '', phone: '' },
@@ -2118,8 +2121,9 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                         <select
                           value={branch}
                           onChange={(e) => setBranch(e.target.value)}
-                          style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', color: '#FFFFFF', fontSize: '14.5px', fontFamily: 'inherit', cursor: 'pointer' }}
+                          style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', color: branch ? '#FFFFFF' : 'var(--muted)', fontSize: '14.5px', fontFamily: 'inherit', cursor: 'pointer' }}
                         >
+                          <option value="" disabled style={{ background: '#161622', color: 'var(--muted)' }}>-- Select Branch --</option>
                           <option value="CSE" style={{ background: '#161622', color: '#FFF' }}>Computer Science & Eng (CSE)</option>
                           <option value="IT" style={{ background: '#161622', color: '#FFF' }}>Information Technology (IT)</option>
                           <option value="AI_DS" style={{ background: '#161622', color: '#FFF' }}>AI & Data Science (AI/DS)</option>
@@ -2127,6 +2131,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                           <option value="EEE" style={{ background: '#161622', color: '#FFF' }}>Electrical & Electronics (EEE)</option>
                           <option value="MECH" style={{ background: '#161622', color: '#FFF' }}>Mechanical Eng (MECH)</option>
                           <option value="CIVIL" style={{ background: '#161622', color: '#FFF' }}>Civil Eng</option>
+                          <option value="OTHER" style={{ background: '#161622', color: '#FFF' }}>Other</option>
                         </select>
                       </div>
                     </div>
@@ -2137,12 +2142,14 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                         <select
                           value={year}
                           onChange={(e) => setYear(e.target.value)}
-                          style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', color: '#FFFFFF', fontSize: '14.5px', fontFamily: 'inherit', cursor: 'pointer' }}
+                          style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', color: year ? '#FFFFFF' : 'var(--muted)', fontSize: '14.5px', fontFamily: 'inherit', cursor: 'pointer' }}
                         >
+                          <option value="" disabled style={{ background: '#161622', color: 'var(--muted)' }}>-- Select Year --</option>
                           <option value="1st Year" style={{ background: '#161622', color: '#FFF' }}>1st Year</option>
                           <option value="2nd Year" style={{ background: '#161622', color: '#FFF' }}>2nd Year</option>
                           <option value="3rd Year" style={{ background: '#161622', color: '#FFF' }}>3rd Year</option>
                           <option value="4th Year" style={{ background: '#161622', color: '#FFF' }}>4th Year</option>
+                          <option value="Alumni" style={{ background: '#161622', color: '#FFF' }}>Alumni / Passed Out</option>
                         </select>
                       </div>
                     </div>
@@ -2174,18 +2181,82 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                     </div>
                   </div>
 
-                  {/* College */}
-                  <div>
+                  {/* College — searchable dropdown */}
+                  <div style={{ position: 'relative' }}>
                     <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: 'var(--muted)', marginBottom: '9px' }}>COLLEGE</div>
                     <div className="ev-field" style={{ display: 'flex', alignItems: 'center', gap: '11px', border: '1px solid var(--line2)', borderRadius: '11px', background: 'var(--panel2)', padding: '14px 15px' }}>
                       <svg width="15" height="15" viewBox="0 0 16 16" style={{ fill: 'none', stroke: 'var(--muted)', strokeWidth: 1.7, flex: 'none' }}><circle cx="7" cy="7" r="4.6"></circle><path d="M10.5 10.5L14 14"></path></svg>
                       <input
                         type="text"
-                        value={college}
-                        onChange={(e) => setCollege(e.target.value)}
+                        value={collegeQuery || college}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setCollegeQuery(val);
+                          setCollege(val);
+                          setShowCollegeDropdown(val.length > 0);
+                        }}
+                        onFocus={() => { if (collegeQuery.length > 0) setShowCollegeDropdown(true); }}
+                        onBlur={() => setTimeout(() => setShowCollegeDropdown(false), 200)}
+                        placeholder="Search or type your college name"
                         style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', color: '#FFFFFF', fontSize: '14.5px', fontFamily: 'inherit' }}
                       />
                     </div>
+                    {showCollegeDropdown && (
+                      <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50, marginTop: '4px', background: 'var(--panel)', border: '1px solid var(--line2)', borderRadius: '10px', maxHeight: '200px', overflowY: 'auto', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
+                        {(() => {
+                          const KNOWN_COLLEGES = [
+                            'Sreenidhi Institute of Science & Technology (SNIST)',
+                            'VNR Vignana Jyothi Institute of Engineering & Technology (VNR VJIET)',
+                            'Chaitanya Bharathi Institute of Technology (CBIT)',
+                            'Malla Reddy Institute of Technology',
+                            'JNTU Hyderabad',
+                            'IIIT Hyderabad',
+                            'Osmania University',
+                            'JNTU Kakinada',
+                            'KL University',
+                            'VIT Vellore',
+                            'SRM Chennai',
+                            'Manipal Institute of Technology',
+                            'BITS Pilabi',
+                            'NIT Warangal',
+                            'IIT Hyderabad',
+                          ];
+                          const filtered = KNOWN_COLLEGES.filter((c) =>
+                            c.toLowerCase().includes(collectQuery.toLowerCase())
+                          );
+                          return (
+                            <>
+                              {filtered.map((c, i) => (
+                                <div
+                                  key={i}
+                                  onMouseDown={() => {
+                                    setCollege(c);
+                                    setCollegeQuery(c);
+                                    setShowCollegeDropdown(false);
+                                  }}
+                                  style={{ padding: '10px 14px', fontSize: '13.5px', color: '#FFF', cursor: 'pointer', borderBottom: '1px solid var(--line2)' }}
+                                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--panel2)')}
+                                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                                >
+                                  {c}
+                                </div>
+                              ))}
+                              {filtered.length === 0 && (
+                                <div
+                                  onMouseDown={() => {
+                                    setCollege(collegeQuery);
+                                    setShowCollegeDropdown(false);
+                                  }}
+                                  style={{ padding: '10px 14px', fontSize: '13.5px', color: 'var(--violet-lt)', cursor: 'pointer' }}
+                                >
+                                  Add "{collegeQuery}"
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()}
+                      </div>
+                    )}
                   </div>
 
                 </div>
