@@ -25,9 +25,9 @@ function WebOnboardingEngine({ router }: { router: any }) {
   const [stepIdx, setStepIdx] = useState(0);
 
   // Real-Time Auth & OTP State
-  const [userEmail, setUserEmail] = useState('aisha.k@mrit.edu');
-  const [userName, setUserName] = useState('Aisha Khan');
-  const [userPassword, setUserPassword] = useState('SAOnboarded2026!');
+  const [userEmail, setUserEmail] = useState('');
+  const [userName, setUserName] = useState('');
+  const [userPassword, setUserPassword] = useState('');
   const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [realtimeOtpCode, setRealtimeOtpCode] = useState<string | null>(null);
   const [isSendingOtp, setIsSendingOtp] = useState(false);
