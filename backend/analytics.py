@@ -386,18 +386,27 @@ async def super_admin_full_analytics(db) -> Dict[str, Any]:
     except Exception:
         total_events_v2 = 0
     total_echo_regs = await db.echo_registrations.count_documents({})
-    revenue_mtd_pipeline = [
-        {"$match": {"payment.status": "paid", "created_at": {"$gte": current_month_start}}},
-        {"$group": {"_id": None, "total": {"$sum": "$fee"}}},
-    ]
-    revenue_result = await db.echo_registrations.aggregate(revenue_mtd_pipeline).to_list(1)
-    revenue_mtd = int(revenue_result[0]["total"]) if revenue_result else 0
-    revenue_ytd_pipeline = [
-        {"$match": {"payment.status": "paid", "created_at": {"$gte": now.replace(month=1, day=1)}}},
-        {"$group": {"_id": None, "total": {"$sum": "$fee"}}},
-    ]
-    revenue_ytd_result = await db.echo_registrations.aggregate(revenue_ytd_pipeline).to_list(1)
-    revenue_ytd = int(revenue_ytd_result[0]["total"]) if revenue_ytd_result else 0
+    # Revenue — deduplicate team payments by payment_id
+    all_paid = await db.echo_registrations.find({
+        "payment.status": "paid", "fee": {"$gt": 0},
+    }).to_list(5000)
+    seen_pids_mtd: set = set()
+    seen_pids_ytd: set = set()
+    revenue_mtd = 0
+    revenue_ytd = 0
+    ytd_start = now.replace(month=1, day=1)
+    for r in all_paid:
+        pid = (r.get("payment") or {}).get("payment_id") or ""
+        if pid.startswith("ADMIN_PAY_"):
+            continue
+        fee = float(r.get("fee") or 0)
+        created = r.get("created_at")
+        if created and created >= current_month_start and pid not in seen_pids_mtd:
+            seen_pids_mtd.add(pid)
+            revenue_mtd += int(fee)
+        if created and created >= ytd_start and pid not in seen_pids_ytd:
+            seen_pids_ytd.add(pid)
+            revenue_ytd += int(fee)
 
     # === Real-time & Guest Visitor Intelligence ===
     five_min_ago = now - timedelta(minutes=5)

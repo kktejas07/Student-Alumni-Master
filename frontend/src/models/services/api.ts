@@ -475,12 +475,18 @@ export const api = {
     request<any>('/echo/admin/broadcast/send', { method: 'POST', body: payload }),
   adminEchoMarkRegistrationFailed: (regId: string) =>
     request<any>(`/echo/admin/registrations/${regId}/mark-failed`, { method: 'POST' }),
+  adminEchoMarkRegistrationPaid: (regId: string, paymentId?: string, reason?: string) =>
+    request<any>(`/echo/admin/registrations/${regId}/mark-paid`, { method: 'POST', body: { payment_id: paymentId || undefined, reason: reason || undefined } }),
   adminEchoUpdateTeam: (regId: string, teamMembers: any[], teamName?: string) =>
     request<any>(`/echo/admin/registrations/${regId}/team`, { method: 'PUT', body: { team_members: teamMembers, team_name: teamName } }),
   adminEchoResendTickets: (regId: string) =>
     request<any>(`/echo/admin/registrations/${regId}/resend-tickets`, { method: 'POST' }),
   adminEchoRevenue: () =>
     request<any>('/echo/admin/revenue'),
+  adminRevenueAudit: () =>
+    request<any>('/admin/super/revenue-audit'),
+  adminRazorpayPaymentFees: (payment_ids: string[]) =>
+    request<any>('/admin/super/razorpay-payment-fees', { method: 'POST', body: { payment_ids } }),
   myEchoInvoices: () =>
     request<any>('/echo/my-invoices'),
   myEchoRegistrations: () =>

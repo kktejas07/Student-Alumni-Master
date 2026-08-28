@@ -448,7 +448,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
         {/* Revenue Breakdown */}
         <View style={[s.card, { flex: stack ? undefined : 1 }]}>
           <Text style={s.cardTitle}>Revenue Breakdown</Text>
-          <Text style={s.cardSub}>This month · ₹28.4L total</Text>
+          <Text style={s.cardSub}>Revenue by event · {REVENUE_BREAKDOWN.length} sources</Text>
           <View style={{ gap: 12, marginTop: 16 }}>
             {REVENUE_BREAKDOWN.map((r) => (
               <View key={r.source}>
