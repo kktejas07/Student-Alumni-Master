@@ -2167,7 +2167,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
             </div>
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
               <span
-                onClick={() => router.replace('/student-portal/dashboard')}
+                onClick={handleFinishOnboarding}
                 className="ob-cta"
                 style={{ fontSize: '15px', fontWeight: 600, padding: '15px 26px', borderRadius: '10px', background: 'var(--ind)', color: '#FFFFFF', cursor: 'pointer', transition: 'background .2s ease' }}
               >
