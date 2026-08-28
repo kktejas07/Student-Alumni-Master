@@ -691,10 +691,10 @@ function StatsEditor({ stats, onChange }: any) {
   };
   return (
     <View style={{ gap: 8 }}>
-      {stats.map((s: any, i: number) => (
+      {stats.map((statItem: any, i: number) => (
         <View key={i} style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-          <TextInput value={s.value || ''} onChangeText={(v) => update(i, 'value', v)} placeholder="Value" placeholderTextColor={SAC.dim} style={[fi.input, { flex: 0.4 }]} />
-          <TextInput value={s.label || ''} onChangeText={(v) => update(i, 'label', v)} placeholder="Label" placeholderTextColor={SAC.dim} style={[fi.input, { flex: 1 }]} />
+          <TextInput value={statItem.value || ''} onChangeText={(v) => update(i, 'value', v)} placeholder="Value" placeholderTextColor={SAC.dim} style={[fi.input, { flex: 0.4 }]} />
+          <TextInput value={statItem.label || ''} onChangeText={(v) => update(i, 'label', v)} placeholder="Label" placeholderTextColor={SAC.dim} style={[fi.input, { flex: 1 }]} />
           <View style={{ flexDirection: 'row', gap: 4 }}>
             <Tip label="Move up"><Pressable onPress={() => move(i, i - 1)} style={[cs.iconBtn, { width: 26, height: 26 }]}><MoveUp size={11} color={SAC.muted} /></Pressable></Tip>
             <Tip label="Move down"><Pressable onPress={() => move(i, i + 1)} style={[cs.iconBtn, { width: 26, height: 26 }]}><MoveDown size={11} color={SAC.muted} /></Pressable></Tip>
@@ -2486,7 +2486,7 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                       style={[fi.input, { flex: 1, minWidth: 100 }]} />
                   </View>
                   <TextInput value={((form.prize_pool || {}).other_prizes || []).join(', ')}
-                    onChangeText={(v: string) => set('prize_pool', { ...(form.prize_pool || {}), other_prizes: v.split(',').map((s: string) => s.trim()).filter(Boolean) })}
+                    onChangeText={(v: string) => set('prize_pool', { ...(form.prize_pool || {}), other_prizes: v.split(',').map((strItem: string) => strItem.trim()).filter(Boolean) })}
                     placeholder="Other prizes (comma-separated)" placeholderTextColor={SAC.dim}
                     style={fi.input} />
                 </View>
@@ -2722,7 +2722,7 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                   { key: 'dinner', label: 'Dinner', Icon: UtensilsCrossed },
                   { key: 'tiffin', label: 'Tiffin', Icon: Sandwich },
                   { key: 'coffee', label: 'Coffee & Tea', Icon: Coffee },
-                ].map((s) => {
+                ].map((sessKeyObj) => {
                   const sessions = (form.sessions || []);
                   const existing = sessions.find((x: any) => x.key === s.key);
                   const enabled = existing?.enabled ?? false;
@@ -2731,7 +2731,7 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                   const maxDay = Math.max(1, Math.min(7, parseInt(form.end_date && form.date ? '2' : '1', 10) || 1));
                   const dayOptions = Array.from({ length: Math.max(2, maxDay) }, (_, i) => String(i + 1));
                   return (
-                    <View key={s.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' }}>
+                    <View key={sessKeyObj.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' }}>
                       <View style={{ width: 28, alignItems: 'center', justifyContent: 'center' }}>
                         <s.Icon size={18} color={enabled ? GRAD.from : SAC.dim} />
                       </View>
@@ -2958,18 +2958,18 @@ function SessionPassesOverview({ events, onRefresh }: { events: any[]; onRefresh
                           return (
                             <View key={day} style={{ gap: 4 }}>
                               <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: SAC.muted, marginBottom: 2 }}>{dayLabel}</Text>
-                              {daySessions.map((s: any) => {
-                                const locked = s.locked ?? false;
-                                const enabled = s.enabled ?? false;
-                                const SessionIcon = SESSION_PASS_ICONS[s.key] || Ticket;
+                              {daySessions.map((sessItem: any) => {
+                                const locked = sessItem.locked ?? false;
+                                const enabled = sessItem.enabled ?? false;
+                                const SessionIcon = SESSION_PASS_ICONS[sessItem.key] || Ticket;
                                 return (
-                                  <View key={`${s.key}-${day}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6, paddingHorizontal: 10, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
+                                  <View key={`${sessItem.key}-${day}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6, paddingHorizontal: 10, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
                                     <SessionIcon size={16} color={enabled ? '#A78BFA' : SAC.dim} />
-                                    <Text style={{ flex: 1, fontFamily: FONTS.med, fontSize: 12, color: SAC.text }}>{s.label}</Text>
+                                    <Text style={{ flex: 1, fontFamily: FONTS.med, fontSize: 12, color: SAC.text }}>{sessItem.label}</Text>
                                     {enabled && (
                                       <>
                                         <StatusPill kind={locked ? 'warn' : 'success'} label={locked ? 'Locked' : 'Active'} />
-                                        <Pressable onPress={() => toggleLock(ev.slug, s.key, locked)} disabled={toggling === `${ev.slug}:${s.key}`} style={{
+                                        <Pressable onPress={() => toggleLock(ev.slug, sessItem.key, locked)} disabled={toggling === `${ev.slug}:${s.key}`} style={{
                                           width: 32, height: 18, borderRadius: 9, padding: 2,
                                           backgroundColor: locked ? '#F59E0B' : '#334155', cursor: 'pointer',
                                         }}>
@@ -4319,9 +4319,9 @@ function RegistrationsPanel() {
                       <Pressable onPress={() => setAuditEventFilter('all')} style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 5, backgroundColor: auditEventFilter === 'all' ? '#3B82F6' : 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: auditEventFilter === 'all' ? '#3B82F6' : 'rgba(255,255,255,0.1)' }}>
                         <Text style={{ color: auditEventFilter === 'all' ? '#fff' : SAC.muted, fontFamily: FONTS.semi, fontSize: 8.5 }}>All</Text>
                       </Pressable>
-                      {slugs.map((s) => (
-                        <Pressable key={s} onPress={() => setAuditEventFilter(s)} style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 5, backgroundColor: auditEventFilter === s ? '#3B82F6' : 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: auditEventFilter === s ? '#3B82F6' : 'rgba(255,255,255,0.1)' }}>
-                          <Text style={{ color: auditEventFilter === s ? '#fff' : SAC.muted, fontFamily: FONTS.semi, fontSize: 8.5 }}>{s}</Text>
+                      {slugs.map((slugItem) => (
+                        <Pressable key={slugItem} onPress={() => setAuditEventFilter(slugItem)} style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 5, backgroundColor: auditEventFilter === slugItem ? '#3B82F6' : 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: auditEventFilter === slugItem ? '#3B82F6' : 'rgba(255,255,255,0.1)' }}>
+                          <Text style={{ color: auditEventFilter === slugItem ? '#fff' : SAC.muted, fontFamily: FONTS.semi, fontSize: 8.5 }}>{slugItem}</Text>
                         </Pressable>
                       ))}
                     </View>
@@ -4444,7 +4444,7 @@ function VolunteersPanel() {
       if (showResp.ok) {
         const data = await showResp.json();
         const list = Array.isArray(data) ? data : (data.items || data.showcases || []);
-        setShowcases(list.map((s: any) => ({ slug: s.slug, title: s.title || s.slug })));
+        setShowcases(list.map((scItem: any) => ({ slug: scItem.slug, title: scItem.title || scItem.slug })));
       }
     } catch { /* ignore */ }
     setLoading(false);
@@ -4547,17 +4547,17 @@ function VolunteersPanel() {
                   {showcases.length === 0 && (
                     <Text style={{ fontFamily: FONTS.med, fontSize: 11.5, color: SAC.dim }}>No showcases found. Create an event first.</Text>
                   )}
-                  {showcases.map((s) => (
+                  {showcases.map((scItem) => (
                     <Pressable
-                      key={s.slug}
-                      onPress={() => setAddSlug(s.slug)}
+                      key={scItem?.slug || Math.random()}
+                      onPress={() => scItem?.slug && setAddSlug(scItem.slug)}
                       style={{
                         paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9,
                         backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: SAC.border,
                       }}
                     >
-                      <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>{s.title}</Text>
-                      <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>{s.slug}</Text>
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>{scItem?.title || scItem?.slug}</Text>
+                      <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>{scItem?.slug}</Text>
                     </Pressable>
                   ))}
                 </View>
