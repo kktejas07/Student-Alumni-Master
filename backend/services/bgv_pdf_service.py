@@ -177,7 +177,8 @@ def generate_bgv_report_pdf(record_data: Dict[str, Any]) -> bytes:
     story = []
 
     # 1. Header Banner Table: Logo + Title + Stamp Seal
-    candidate_name = record_data.get("name") or record_data.get("candidate_info", {}).get("name") or "Candidate Name"
+    candidate_info = record_data.get("candidate_info") or record_data
+    candidate_name = record_data.get("name") or candidate_info.get("name") or "Candidate Name"
     bgv_id = record_data.get("bgv_id") or record_data.get("identifiers", {}).get("bgv_id") or "BGV-2026-PENDING"
     sa_id = record_data.get("sa_id") or record_data.get("identifiers", {}).get("sa_id") or "SA-STU-PENDING"
     cert_series_id = record_data.get("primary_certificate_series_id") or record_data.get("identifiers", {}).get("primary_certificate_series_id") or "CERT-SERIES-UNIVERSAL"
