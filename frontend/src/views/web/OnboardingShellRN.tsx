@@ -267,6 +267,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
 
   const prevStep = () => {
     if (stepIdx > 0) setStepIdx(stepIdx - 1);
+    else router.replace('/');
   };
 
   const toggleInterest = (item: string) => {
@@ -468,7 +469,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
           />
         </div>
         <div style={{ maxWidth: '1180px', margin: '0 auto', padding: '16px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div onClick={() => router.replace('/')} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
             <svg width="26" height="30" viewBox="0 0 300 350" style={{ flex: 'none' }}>
               <defs>
                 <linearGradient id="obBadge" x1="0" y1="0" x2="1" y2="1">
@@ -2025,8 +2026,6 @@ function WebOnboardingEngine({ router }: { router: any }) {
                 color: 'var(--muted)',
                 cursor: 'pointer',
                 padding: '12px 0',
-                opacity: stepIdx === 0 ? 0.35 : 1,
-                pointerEvents: stepIdx === 0 ? 'none' : 'auto',
               }}
             >
               Back
