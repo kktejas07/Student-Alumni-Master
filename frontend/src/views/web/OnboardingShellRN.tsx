@@ -30,6 +30,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
   const [userEmail, setUserEmail] = useState('');
   const [userName, setUserName] = useState('');
   const [userPassword, setUserPassword] = useState('');
+  const [showPwd, setShowPwd] = useState(false);
   const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [realtimeOtpCode, setRealtimeOtpCode] = useState<string | null>(null);
   const [isSendingOtp, setIsSendingOtp] = useState(false);
@@ -666,13 +667,21 @@ function WebOnboardingEngine({ router }: { router: any }) {
                   </div>
                   <div>
                     <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '7px' }}>Password</div>
-                    <input
-                      type="password"
-                      value={userPassword}
-                      onChange={(e) => setUserPassword(e.target.value)}
-                      placeholder="••••••••••"
-                      style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px', color: 'var(--text)', width: '100%', outline: 'none' }}
-                    />
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        type={showPwd ? 'text' : 'password'}
+                        value={userPassword}
+                        onChange={(e) => setUserPassword(e.target.value)}
+                        placeholder="••••••••••"
+                        style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', paddingRight: '55px', fontSize: '15px', color: 'var(--text)', width: '100%', outline: 'none' }}
+                      />
+                      <div
+                        onClick={() => setShowPwd(!showPwd)}
+                        style={{ position: 'absolute', right: '15px', top: '15px', fontSize: '13px', fontWeight: '600', color: 'var(--muted)', cursor: 'pointer' }}
+                      >
+                        {showPwd ? 'Hide' : 'Show'}
+                      </div>
+                    </div>
                     <div style={{ display: 'flex', gap: '6px', marginTop: '10px' }}>
                       <span style={{ flex: 1, height: '3px', borderRadius: '2px', background: 'var(--ind)' }} />
                       <span style={{ flex: 1, height: '3px', borderRadius: '2px', background: 'var(--ind)' }} />
