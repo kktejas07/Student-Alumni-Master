@@ -1,3 +1,24 @@
+
+if (typeof document !== 'undefined' && !document.getElementById('sa-nav-ticker-styles')) {
+  const styleEl = document.createElement('style');
+  styleEl.id = 'sa-nav-ticker-styles';
+  styleEl.innerHTML = `
+    @keyframes saNavTickerAnim {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+    .sa-nav-ticker-track {
+      display: flex !important;
+      width: max-content !important;
+      animation: saNavTickerAnim 30s linear infinite !important;
+    }
+    .sa-nav-ticker-track:hover {
+      animation-play-state: paused !important;
+    }
+  `;
+  document.head.appendChild(styleEl);
+}
+
 import React, { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
@@ -46,24 +67,43 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
     }
   };
 
+  const tickerItems = [
+    "HackWave 3.0 · Sep 4–5 · Sreenidhi (SNIST) · ₹2,00,000 Mega Grand Pool (₹50,000 Track Pool)",
+    "86 ECHO events across 31 campuses",
+    "Verified by your college email — free forever for students",
+    "267 roles matched, 41 with a warm referral path",
+    "The network is a feed until it meets in person",
+    "Built with love for students across all campuses"
+  ];
+
   return (
-    <header
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 1000,
-        backgroundColor: 'rgba(10, 10, 20, 0.94)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
-        borderBottom: '1px solid #1F1F30',
-        height: '64px',
-        display: 'flex',
-        alignItems: 'center',
-        width: '100%',
-      }}
-    >
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000 }}>
+      {/* ── Top Announcement Marquee Ticker Strip ── */}
+      <div style={{ background: '#090B18', borderBottom: '1px solid rgba(255,255,255,0.08)', height: '36px', overflow: 'hidden', display: 'flex', alignItems: 'center', width: '100%' }}>
+        <div className="sa-nav-ticker-track">
+          {tickerItems.concat(tickerItems).map((item, idx) => (
+            <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '13px', color: '#94A3B8', fontWeight: 500, fontFamily: "'Outfit', 'Manrope', sans-serif" }}>{item}</span>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#8B5CF6', flex: 'none' }} />
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Main Sticky Navbar ── */}
+      <header
+        style={{
+          position: 'relative',
+          backgroundColor: 'rgba(10, 10, 20, 0.94)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          borderBottom: '1px solid #1F1F30',
+          height: '64px',
+          display: 'flex',
+          alignItems: 'center',
+          width: '100%',
+        }}
+      >
       <div
         style={{
           maxWidth: '1400px',
@@ -237,6 +277,7 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
         </div>
       </div>
     </header>
+    </div>
   );
 }
 

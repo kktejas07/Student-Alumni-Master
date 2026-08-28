@@ -49,8 +49,12 @@ const SAMPLE_EVENTS = [
     poster_banner: '/images/hackwave/hackwave_main_poster.png',
     gallery_images: [
       '/images/hackwave/hackwave_main_poster.png',
+      '/images/hackwave/stan_mierzwa_poster.png',
+      '/images/hackwave/ken_fishkin_poster.png',
+      '/images/hackwave/sharon_kelley_poster.png',
+      '/images/hackwave/jeremy_livingston_poster.png',
+      '/images/hackwave/suman_kalia_poster.png',
       '/images/hackwave/hackwave_cybersecurity_conclave.jpg',
-      '/images/hackwave/hackwave_speakers.jpg',
       '/images/hackwave/hackwave_techfest_verticals.jpg',
       '/images/hackwave/hackwave_perks_pool.jpg'
     ],
@@ -136,6 +140,23 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [showTermsErr, setShowTermsErr] = useState(false);
   const [whatsappOptIn, setWhatsappOptIn] = useState(true);
+  
+  // Registration page poster carousel state
+  const [regPosterIdx, setRegPosterIdx] = useState(0);
+  const regPosters = [
+    '/images/hackwave/hackwave_main_poster.png',
+    '/images/hackwave/hackwave_cybersecurity_conclave.jpg',
+    '/images/hackwave/hackwave_techfest_verticals.jpg',
+    '/images/hackwave/hackwave_perks_pool.jpg'
+  ];
+
+  useEffect(() => {
+    if (view !== 'reg') return;
+    const timer = setInterval(() => {
+      setRegPosterIdx((prev) => (prev + 1) % regPosters.length);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [view, regPosters.length]);
   
   // Form fields
   const [fullName, setFullName] = useState('');
@@ -293,7 +314,9 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
 
   const go = (targetView: 'list' | 'detail' | 'reg', targetSlug?: string) => {
     const nextSlug = targetSlug || selectedSlug || 'snist';
-    if (targetSlug) setSelectedSlug(targetSlug);
+    if (targetSlug && targetSlug !== selectedSlug) {
+      setSelectedSlug(targetSlug);
+    }
     setView(targetView);
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       let targetUrl = '/echo';
@@ -305,9 +328,9 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
         targetUrl = '/echo';
       }
       if (window.location.pathname !== targetUrl) {
-        window.history.pushState(null, '', targetUrl);
+        window.history.pushState({ view: targetView, slug: nextSlug }, '', targetUrl);
       }
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: 'instant' as any });
     }
   };
 
@@ -1284,30 +1307,36 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 </div>
 
                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                  <span
-                    onClick={() => go('reg', activeEvent.slug)}
+                  <button
+                    type="button"
+                    onClick={(e) => { e.preventDefault(); go('reg', activeEvent.slug); }}
+                    onTouchEnd={(e) => { e.preventDefault(); go('reg', activeEvent.slug); }}
                     className="ev-btn"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14px', fontWeight: 700, background: '#0E9F6E', color: '#FFFFFF', borderRadius: '10px', padding: '12px 22px', cursor: 'pointer', transition: 'all .2s ease', boxShadow: '0 4px 16px rgba(14, 159, 110, 0.35)' }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14px', fontWeight: 700, background: '#0E9F6E', color: '#FFFFFF', borderRadius: '10px', padding: '12px 22px', cursor: 'pointer', transition: 'all .2s ease', boxShadow: '0 4px 16px rgba(14, 159, 110, 0.35)', border: 'none', outline: 'none', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
                   >
                     <svg width="15" height="15" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 1.9 }}><path d="M3 8.5A2.5 2.5 0 015.5 6h13A2.5 2.5 0 0121 8.5v.5a2 2 0 000 6v.5A2.5 2.5 0 0118.5 18h-13A2.5 2.5 0 013 15.5V15a2 2 0 000-6Z"></path></svg>
                     Register
-                  </span>
-                  <span
-                    onClick={handleDownloadHandbook}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.preventDefault(); handleDownloadHandbook(); }}
+                    onTouchEnd={(e) => { e.preventDefault(); handleDownloadHandbook(); }}
                     className="ev-btn"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14px', fontWeight: 600, background: 'var(--violet)', color: '#FFFFFF', borderRadius: '10px', padding: '12px 20px', cursor: 'pointer', transition: 'all .2s ease' }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14px', fontWeight: 600, background: 'var(--violet)', color: '#FFFFFF', borderRadius: '10px', padding: '12px 20px', cursor: 'pointer', transition: 'all .2s ease', border: 'none', outline: 'none', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
                   >
                     <svg width="15" height="15" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 1.8 }}><path d="M6 3h8l4 4v14H6Z"></path><path d="M14 3v4h4"></path></svg>
                     Event Handbook (PDF)
-                  </span>
-                  <span
-                    onClick={handleShare}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.preventDefault(); handleShare(); }}
+                    onTouchEnd={(e) => { e.preventDefault(); handleShare(); }}
                     className="ev-btn"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14px', fontWeight: 600, border: '1px solid var(--line2)', borderRadius: '10px', padding: '12px 20px', color: 'var(--text)', cursor: 'pointer', transition: 'all .2s ease' }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14px', fontWeight: 600, border: '1px solid var(--line2)', borderRadius: '10px', padding: '12px 20px', color: 'var(--text)', cursor: 'pointer', transition: 'all .2s ease', background: 'transparent', outline: 'none', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
                   >
                     <svg width="15" height="15" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 1.8 }}><circle cx="18" cy="5.5" r="2.6"></circle><circle cx="6" cy="12" r="2.6"></circle><circle cx="18" cy="18.5" r="2.6"></circle><path d="M8.4 10.7l7.2-3.9M8.4 13.3l7.2 3.9"></path></svg>
                     Share
-                  </span>
+                  </button>
                 </div>
               </div>
 
@@ -1489,15 +1518,15 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
                 {[
-                  { name: 'Stan Mierzwa, Ph.D.', role: 'Director, Center for Cybersecurity', org: 'Kean University', loc: 'Union, New Jersey, USA', li: 'in/stanmierzwa' },
-                  { name: 'Ken Fishkin', role: 'President, ISC2 New Jersey Chapter', org: 'ISC2 New Jersey Chapter', loc: 'New Jersey, USA', li: 'in/kfishkin' },
-                  { name: 'Sharon Kelley', role: 'Board Member, ISC2 New Jersey Chapter', org: 'MS, MBA, CISSP, CCSP', loc: 'Hoboken, New Jersey, USA', li: 'in/sharon-kelley-0292181' },
-                  { name: 'Jeremy Livingston', role: 'CISO & Deputy CIO', org: 'Stevens Institute of Technology', loc: 'Effort, Pennsylvania, USA', li: 'in/jeremylivin' },
-                  { name: 'Suman Kalia', role: 'Associate Professor & Chair, Computer Science', org: "Saint Peter's University", loc: 'Jersey City, New Jersey, USA', li: 'in/suman-kalia-300b521' }
+                  { name: 'Stan Mierzwa, Ph.D.', role: 'Director, Center for Cybersecurity', org: 'Kean University', loc: 'Union, New Jersey, USA', li: 'in/stanmierzwa', poster: '/images/hackwave/stan_mierzwa_poster.png' },
+                  { name: 'Ken Fishkin', role: 'President, ISC2 New Jersey Chapter', org: 'ISC2 New Jersey Chapter', loc: 'New Jersey, USA', li: 'in/kfishkin', poster: '/images/hackwave/ken_fishkin_poster.png' },
+                  { name: 'Sharon Kelley', role: 'Board Member, ISC2 New Jersey Chapter', org: 'MS, MBA, CISSP, CCSP', loc: 'Hoboken, New Jersey, USA', li: 'in/sharon-kelley-0292181', poster: '/images/hackwave/sharon_kelley_poster.png' },
+                  { name: 'Jeremy Livingston', role: 'CISO & Deputy CIO', org: 'Stevens Institute of Technology', loc: 'Effort, Pennsylvania, USA', li: 'in/jeremylivin', poster: '/images/hackwave/jeremy_livingston_poster.png' },
+                  { name: 'Suman Kalia', role: 'Associate Professor & Chair, Computer Science', org: "Saint Peter's University", loc: 'Jersey City, New Jersey, USA', li: 'in/suman-kalia-300b521', poster: '/images/hackwave/suman_kalia_poster.png' }
                 ].map((spk, idx) => (
-                  <div key={idx} className="ev-mini" style={{ padding: '20px 18px', background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: '16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #7C5CFC, #38BDF8)', margin: '0 auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF', fontWeight: 800, fontSize: '20px' }}>
-                      {spk.name.replace(', Ph.D.', '').split(' ').map((n) => n[0]).join('')}
+                  <div key={idx} className="ev-mini" style={{ padding: '16px', background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: '18px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div style={{ width: '100%', aspectRatio: '4/5', borderRadius: '14px', overflow: 'hidden', marginBottom: '14px', border: '1px solid var(--line2)', background: '#090B18' }}>
+                      <img src={spk.poster} alt={spk.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     </div>
                     <div style={{ fontSize: '16px', fontWeight: 700, color: '#FFFFFF' }}>{spk.name}</div>
                     <div style={{ fontSize: '12.5px', color: 'var(--violet-lt)', fontWeight: 600, marginTop: '3px' }}>{spk.role}</div>
@@ -1603,13 +1632,15 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 <div style={{ fontSize: '14.5px', color: '#C9BFF2', marginTop: '4px' }}>Join our community and never miss an opportunity to learn, connect, and grow.</div>
               </div>
             </div>
-            <span
-              onClick={() => go('list')}
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); go('list'); }}
+              onTouchEnd={(e) => { e.preventDefault(); go('list'); }}
               className="ev-btn"
-              style={{ fontSize: '14.5px', fontWeight: 700, background: '#8B5CF6', color: '#FFFFFF', borderRadius: '10px', padding: '14px 24px', cursor: 'pointer', transition: 'all .2s ease', flex: 'none', boxShadow: '0 4px 18px rgba(139, 92, 246, 0.35)' }}
+              style={{ fontSize: '14.5px', fontWeight: 700, background: '#8B5CF6', color: '#FFFFFF', borderRadius: '10px', padding: '14px 24px', cursor: 'pointer', transition: 'all .2s ease', flex: 'none', boxShadow: '0 4px 18px rgba(139, 92, 246, 0.35)', border: 'none', outline: 'none', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
             >
               View Upcoming Events
-            </span>
+            </button>
           </div>
 
         </div>
@@ -1622,14 +1653,16 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
         <div className="ev-anim-in" style={{ position: 'relative', zIndex: 1, maxWidth: '1400px', width: '100%', margin: '0 auto', padding: '26px 28px 90px' }}>
           
           {/* Back to Event Button */}
-          <span
-            onClick={() => go('detail', activeEvent.slug)}
+          <button
+            type="button"
+            onClick={(e) => { e.preventDefault(); go('detail', activeEvent.slug); }}
+            onTouchEnd={(e) => { e.preventDefault(); go('detail', activeEvent.slug); }}
             className="ev-btn"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14px', fontWeight: 600, border: '1px solid var(--line2)', borderRadius: '100px', padding: '10px 18px', background: 'var(--panel)', color: 'var(--text)', cursor: 'pointer', marginBottom: '20px' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14px', fontWeight: 600, border: '1px solid var(--line2)', borderRadius: '100px', padding: '10px 18px', background: 'var(--panel)', color: 'var(--text)', cursor: 'pointer', marginBottom: '20px', outline: 'none', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
           >
             <svg width="15" height="15" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 2 }}><path d="M20 12H5M11 6l-6 6 6 6"></path></svg>
             Back to event
-          </span>
+          </button>
 
           {/* Registration Header Banner */}
           <div style={{ position: 'relative', overflow: 'hidden', border: '1px solid var(--line2)', borderRadius: '18px', background: 'linear-gradient(115deg, #1B1836, #12121F 68%)', padding: '24px 28px 26px', marginBottom: '22px', width: '100%' }}>
@@ -1659,26 +1692,63 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
           {/* 2-Column Grid: Poster & Registration Form */}
           <div className="ev-rgrid" style={{ display: 'grid', gap: '24px', alignItems: 'start', width: '100%' }}>
             
-            {/* Left Column: Event Poster */}
+            {/* Left Column: Interactive Auto-Rotating Event Poster Slider */}
             <div style={{ border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '16px', overflow: 'hidden' }}>
-              <div style={{ position: 'relative', borderRadius: '14px', overflow: 'hidden', background: 'var(--panel2)', aspectRatio: '3/4', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--line2)' }}>
-                {activeEvent.poster_banner ? (
-                  <img src={activeEvent.poster_banner} alt={activeEvent.title} style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#070913' }} />
-                ) : (
-                  <div style={{ textAlign: 'center', padding: '28px' }}>
-                    <div style={{ width: '84px', height: '84px', borderRadius: '22px', background: 'rgba(124,92,252,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-                      <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="var(--violet-lt)" strokeWidth="1.8"><path d="M12 2l1.9 5.1L19 9l-5.1 1.9L12 16l-1.9-5.1L5 9l5.1-1.9Z" /><circle cx="12" cy="12" r="9" /></svg>
-                    </div>
-                    <div style={{ fontSize: '24px', fontWeight: 800, color: '#FFFFFF', textAlign: 'center', letterSpacing: '-0.8px', marginBottom: '8px' }}>{activeEvent.title}</div>
-                    <div style={{ fontSize: '14px', color: 'var(--violet-lt)', textAlign: 'center', marginBottom: '14px' }}>{activeEvent.college_full}</div>
-                    <div style={{ fontSize: '13px', color: 'var(--muted)', textAlign: 'center', lineHeight: 1.5 }}>
-                      Join top coders, innovators, and future founders in India's leading flagship event.
-                    </div>
-                    <div style={{ marginTop: '20px', display: 'inline-block', padding: '8px 16px', background: 'rgba(245,179,66,0.14)', border: '1px solid #4A3410', borderRadius: '100px', color: 'var(--amber)', fontSize: '12px', fontWeight: 700 }}>
-                      {activeEvent.prize_pool || 'PRIZE POOL: ₹2,00,000'}
-                    </div>
-                  </div>
-                )}
+              <div
+                style={{
+                  position: 'relative',
+                  borderRadius: '14px',
+                  overflow: 'hidden',
+                  background: '#070913',
+                  aspectRatio: '3/4',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '1px solid var(--line2)'
+                }}
+              >
+                <img
+                  src={regPosters[regPosterIdx]}
+                  alt={`HackWave Poster ${regPosterIdx + 1}`}
+                  onClick={() => openLightbox(regPosters[regPosterIdx])}
+                  style={{ width: '100%', height: '100%', objectFit: 'contain', cursor: 'zoom-in', transition: 'all .4s ease' }}
+                />
+
+                {/* Left / Right Arrow Navigation */}
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setRegPosterIdx((prev) => (prev - 1 + regPosters.length) % regPosters.length); }}
+                  style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(10,10,20,0.85)', border: '1px solid rgba(255,255,255,0.25)', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10, outline: 'none', fontSize: '18px', fontWeight: 700 }}
+                >
+                  ‹
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setRegPosterIdx((prev) => (prev + 1) % regPosters.length); }}
+                  style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(10,10,20,0.85)', border: '1px solid rgba(255,255,255,0.25)', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10, outline: 'none', fontSize: '18px', fontWeight: 700 }}
+                >
+                  ›
+                </button>
+
+                {/* Badge Tag Overlay */}
+                <div style={{ position: 'absolute', top: '12px', left: '12px', background: 'rgba(124,92,252,0.85)', backdropFilter: 'blur(8px)', borderRadius: '100px', padding: '4px 12px', fontSize: '11px', fontWeight: 700, color: '#FFF', letterSpacing: '0.8px' }}>
+                  POSTER {regPosterIdx + 1} OF {regPosters.length}
+                </div>
+
+                {/* Dot Indicator Row */}
+                <div style={{ position: 'absolute', bottom: '12px', left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: '8px', zIndex: 10 }}>
+                  {regPosters.map((_, pIdx) => (
+                    <button
+                      key={pIdx}
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setRegPosterIdx(pIdx); }}
+                      style={{ width: pIdx === regPosterIdx ? '24px' : '8px', height: '8px', borderRadius: '100px', background: pIdx === regPosterIdx ? '#8B5CF6' : 'rgba(255,255,255,0.4)', border: 'none', cursor: 'pointer', transition: 'all .3s ease' }}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div style={{ textAlign: 'center', marginTop: '12px', fontSize: '12px', color: 'var(--muted)' }}>
+                🔍 Click poster image to view full high-resolution
               </div>
             </div>
 
