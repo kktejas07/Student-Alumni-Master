@@ -134,7 +134,7 @@ const SAMPLE_EVENTS = [
   },
 ];
 
-export function EchoEventsPage({ initialView = 'detail', initialSlug = 'snist' }: EchoEventsPageProps) {
+export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: EchoEventsPageProps) {
   const router = useRouter();
   const searchParams = useLocalSearchParams();
   
@@ -159,9 +159,11 @@ export function EchoEventsPage({ initialView = 'detail', initialSlug = 'snist' }
         const slugFromUrl = eventParam || path.split('/').filter(Boolean)[1] || initialSlug || 'snist';
         setSelectedSlug(slugFromUrl);
         setView('detail');
+      } else if (path === '/echo') {
+        setView(initialView || 'list');
       } else {
         setSelectedSlug(initialSlug || 'snist');
-        setView(initialView || 'detail');
+        setView(initialView || 'list');
       }
     } else if (searchParams?.view) {
       setView(searchParams.view as any);
@@ -340,13 +342,13 @@ export function EchoEventsPage({ initialView = 'detail', initialSlug = 'snist' }
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       let targetUrl = '/echo';
       if (targetView === 'detail') {
-        targetUrl = nextSlug === 'snist' ? '/echo' : `/echo?event=${nextSlug}`;
+        targetUrl = `/echo/${nextSlug}`;
       } else if (targetView === 'reg') {
-        targetUrl = `/echo?event=${nextSlug}&view=register`;
+        targetUrl = `/echo/${nextSlug}/register`;
       } else if (targetView === 'list') {
-        targetUrl = '/echo?view=catalog';
+        targetUrl = '/echo';
       }
-      if (window.location.pathname + window.location.search !== targetUrl) {
+      if (window.location.pathname !== targetUrl) {
         window.history.pushState(null, '', targetUrl);
       }
       window.scrollTo({ top: 0, behavior: 'smooth' });
