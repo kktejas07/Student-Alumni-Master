@@ -87,51 +87,7 @@ const SAMPLE_EVENTS = [
       { name: 'On-the-spot offers', desc: 'Internship and placement offers, in the room', value: 'Live', icon: 'check' },
       { name: 'Surprise goodies', desc: 'Extra prizes and drops announced on the day', value: 'Surprise', icon: 'gift' }
     ]
-  },
-  {
-    id: 'vnr',
-    slug: 'vnr',
-    title: 'BUILD BY SUNSET ECHO SERIES',
-    college: 'VNR VJIET',
-    college_name: 'VNR Vignana Jyothi Institute of Engineering and Technology',
-    college_full: 'VNR Vignana Jyothi Institute of Engineering & Technology, Hyderabad',
-    status: 'COMPLETED',
-    organizer: 'VNR Student Council in collaboration with StudentAlumni.ai',
-    description: '9 AM → 9 PM · Walk in with an idea, walk out with a product · July 31, 2026.',
-    dates: 'July 31, 2026',
-    date_short: 'July 31, 2026',
-    date_pill: 'Jul 31, 2026',
-    time: '09:00 AM — 09:00 PM',
-    venue: 'Main Auditorium, VNR VJIET, Hyderabad',
-    location_short: 'VNR VJIET Campus, Hyderabad',
-    prize_pool: '₹35,000 prize pool',
-    reg_closes: '2026-07-28',
-    individual_fee: 499,
-    team_fee: 1999,
-    individual_seats: '320 attended',
-    team_slots: '64 teams',
-    partners: ['Deloitte', 'Featherless', 'Atlast', 'Microsoft', 'Google'],
-    poster_banner: '/images/hackwave/hackwave_techfest_verticals.jpg',
-    gallery_images: [
-      '/images/hackwave/hackwave_techfest_verticals.jpg',
-      '/images/hackwave/hackwave_speakers.jpg',
-      '/images/hackwave/hackwave_main_poster.png',
-      '/images/hackwave/hackwave_cybersecurity_conclave.jpg',
-      '/images/hackwave/hackwave_perks_pool.jpg'
-    ],
-    speakers: [
-      { name: 'Vijay Raghavan', position: 'Chief AI Architect', company: 'Google', category: 'Keynote Speaker', is_panel_member: true },
-      { name: 'Sneha Reddy', position: 'VP Engineering', company: 'Microsoft', category: 'Panelist', is_panel_member: true },
-      { name: 'Dr. Kavitha Nair', position: 'Professor & NLP Researcher', company: 'VNR VJIET', category: 'Academic Mentor', is_panel_member: true },
-      { name: 'Arjun Mehta', position: 'Founder', company: 'BrightFuture Labs', category: 'Industry Speaker', is_panel_member: false }
-    ],
-    highlights: [
-      { title: 'AI at Scale Keynote', desc: 'Vijay Raghavan on large-scale production ML architectures' },
-      { title: 'Careers in AI Panel', desc: 'Industry veterans answer student questions on emerging roles' },
-      { title: 'Hands-on Hackathon', desc: 'Sprint across MedTech, FinTech, and Smart Mobility' },
-      { title: 'Networking Hub', desc: 'Connect directly with alumni from leading global tech companies' }
-    ]
-  },
+  }
 ];
 
 export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: EchoEventsPageProps) {
