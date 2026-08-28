@@ -336,6 +336,15 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
     };
   }, [selectedSlug]);
 
+  // Fetch hero config from ECHO settings
+  useEffect(() => {
+    let mounted = true;
+    api.getEchoHeroConfig()
+      .then((hc) => { if (mounted && hc) setHeroConfig(hc); })
+      .catch(() => {});
+    return () => { mounted = false; };
+  }, []);
+
   const go = (targetView: 'list' | 'detail' | 'reg', targetSlug?: string) => {
     const nextSlug = targetSlug || selectedSlug || 'snist';
     if (targetSlug) setSelectedSlug(targetSlug);
@@ -1278,29 +1287,27 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
               <div style={{ minWidth: 0 }}>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 700, letterSpacing: '1.6px', color: '#2E2091', background: 'rgba(46,32,145,.10)', borderRadius: '100px', padding: '7px 14px' }}>
                   <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#2E2091' }} />
-                  ON THE GROUND
+                  {heroConfig?.badge || 'ON THE GROUND'}
                 </div>
                 <div className="ev-hero-title" style={{ fontSize: '36px', fontWeight: 700, letterSpacing: '-1.6px', lineHeight: 1.1, color: '#141726', margin: '18px 0 12px' }}>
-                  The network is a feed until it meets in person.
+                  {heroConfig?.title || 'The network is a feed until it meets in person.'}
                 </div>
                 <div style={{ fontSize: '16px', lineHeight: 1.65, color: '#4A4F63', maxWidth: '480px' }}>
-                  Eighty-six ECHO events across thirty-one campuses. Alumni in the room, recruiters at the table, and a build sprint that runs overnight.
+                  {heroConfig?.description || 'Eighty-six ECHO events across thirty-one campuses. Alumni in the room, recruiters at the table, and a build sprint that runs overnight.'}
                 </div>
 
                 {/* Stats Row */}
-                <div className="ev-hero-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, max-content)', gap: '34px', margin: '26px 0 24px' }}>
-                  <div>
-                    <div style={{ fontSize: '28px', fontWeight: 700, letterSpacing: '-1.1px', color: '#4B3FD6' }}>86</div>
-                    <div style={{ fontSize: '12.5px', color: '#5F6474', marginTop: '4px' }}>events run</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '28px', fontWeight: 700, letterSpacing: '-1.1px', color: '#0E6E8C' }}>31</div>
-                    <div style={{ fontSize: '12.5px', color: '#5F6474', marginTop: '4px' }}>cities</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '28px', fontWeight: 700, letterSpacing: '-1.1px', color: '#A21C63' }}>4.8</div>
-                    <div style={{ fontSize: '12.5px', color: '#5F6474', marginTop: '4px' }}>average rating</div>
-                  </div>
+                <div className="ev-hero-stats" style={{ display: 'grid', gridTemplateColumns: `repeat(${(heroConfig?.stats || [{value:'86',label:'events run',color:'#4B3FD6'},{value:'31',label:'cities',color:'#0E6E8C'},{value:'4.8',label:'average rating',color:'#A21C63'}]).length}, max-content)`, gap: '34px', margin: '26px 0 24px' }}>
+                  {(heroConfig?.stats || [
+                    { value: '86', label: 'events run', color: '#4B3FD6' },
+                    { value: '31', label: 'cities', color: '#0E6E8C' },
+                    { value: '4.8', label: 'average rating', color: '#A21C63' },
+                  ]).map((stat: any, si: number) => (
+                    <div key={si}>
+                      <div style={{ fontSize: '28px', fontWeight: 700, letterSpacing: '-1.1px', color: stat.color || '#4B3FD6' }}>{stat.value}</div>
+                      <div style={{ fontSize: '12.5px', color: '#5F6474', marginTop: '4px' }}>{stat.label}</div>
+                    </div>
+                  ))}
                 </div>
 
                 {/* CTA Buttons */}
@@ -1313,14 +1320,14 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                     className="ev-btn"
                     style={{ fontSize: '14.5px', fontWeight: 700, background: '#4B3FD6', color: '#FFFFFF', borderRadius: '11px', padding: '14px 24px', cursor: 'pointer' }}
                   >
-                    Browse all events
+                    {heroConfig?.cta_primary || 'Browse all events'}
                   </span>
                   <span
                     onClick={() => router.push('/contact')}
                     className="ev-btn"
                     style={{ fontSize: '14.5px', fontWeight: 600, color: '#2E2A55', border: '1px solid #CFC9F3', borderRadius: '11px', padding: '14px 24px', cursor: 'pointer' }}
                   >
-                    Host on your campus
+                    {heroConfig?.cta_secondary || 'Host on your campus'}
                   </span>
                 </div>
               </div>
@@ -1343,7 +1350,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
             <div className="ev-hero-hosts" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap', borderTop: '1px solid rgba(20,23,38,.10)', marginTop: '30px', paddingTop: '22px' }}>
               <span style={{ fontSize: '10.5px', fontWeight: 700, letterSpacing: '1.6px', color: '#5F6474' }}>RECENT HOSTS</span>
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                {['Sreenidhi Institute', 'VNR VJIET', 'Khammam Institute', 'CBIT Hyderabad'].map((h, idx) => (
+                {(heroConfig?.recent_hosts || ['Sreenidhi Institute', 'VNR VJIET', 'Khammam Institute', 'CBIT Hyderabad']).map((h: string, idx: number) => (
                   <span key={idx} style={{ fontSize: '12.5px', fontWeight: 600, color: '#2E2A55', background: 'rgba(20,23,38,.05)', borderRadius: '100px', padding: '7px 14px' }}>
                     {h}
                   </span>
@@ -1356,13 +1363,13 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
           <div id="ev-events-section" style={{ position: 'relative', overflow: 'hidden', border: '1px solid #3A2E72', borderRadius: '20px', background: 'linear-gradient(120deg, #241A52, #14122E 62%)', padding: '30px 32px 34px', marginBottom: '0' }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.4px', color: 'var(--violet-lt)', background: 'rgba(124,92,252,.18)', borderRadius: '100px', padding: '7px 14px' }}>
               <svg width="13" height="13" viewBox="0 0 24 24" style={{ fill: 'currentColor' }}><path d="M12 2l1.9 5.1L19 9l-5.1 1.9L12 16l-1.9-5.1L5 9l5.1-1.9Z" /></svg>
-              ECHO EVENTS
+              {heroConfig?.section_badge || 'ECHO EVENTS'}
             </span>
             <div className="ev-echo-header-title" style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.2px', margin: '18px 0 10px', color: '#FFFFFF' }}>
-              Explore ECHO Events by College
+              {heroConfig?.section_title || 'Explore ECHO Events by College'}
             </div>
             <div className="ev-echo-header-desc" style={{ fontSize: '15px', lineHeight: 1.6, color: '#BEB6E8', maxWidth: '620px' }}>
-              Image galleries, partners, sponsors, speakers, testimonials and registration for every ECHO event we've conducted.
+              {heroConfig?.section_description || "Image galleries, partners, sponsors, speakers, testimonials and registration for every ECHO event we've conducted."}
             </div>
           </div>
 
@@ -2183,6 +2190,102 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
 
                 </div>
 
+                {/* Team Members Section (Person 2 to 5) — after COLLEGE */}
+                {isTeam && (
+                  <div style={{ margin: '8px 0', padding: '18px', background: 'rgba(124, 92, 252, 0.06)', border: '1px solid rgba(124, 92, 252, 0.25)', borderRadius: '14px' }}>
+                    <div className="ev-reg-team-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+                      <div style={{ fontSize: '14px', fontWeight: 700, color: '#A78BFA', letterSpacing: '.4px' }}>
+                        TEAM MEMBERS ({currentTeamSize} Total Attendees)
+                      </div>
+                      <span style={{ fontSize: '11px', padding: '4px 9px', background: 'rgba(52, 211, 153, 0.15)', color: '#34D399', borderRadius: '6px', fontWeight: 600 }}>
+                        INR {perPersonFee}/person × {currentTeamSize} = INR {calculatedTotalFee.toLocaleString()}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: '12px', color: '#9CA3AF', marginBottom: '16px', lineHeight: 1.5 }}>
+                      Add your teammates below. The registration amount updates dynamically based on the number of members added ({currentTeamSize} of 5 max).
+                    </p>
+
+                    <div style={{ display: 'grid', gap: '14px' }}>
+                      {teamMembers.map((member, idx) => (
+                        <div key={idx} style={{ padding: '14px', background: 'var(--panel2)', border: '1px solid var(--line2)', borderRadius: '11px' }}>
+                          <div style={{ fontSize: '11px', fontWeight: 700, color: '#DDD6FE', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span>MEMBER {idx + 2} {idx === 0 ? '(REQUIRED)' : '(OPTIONAL)'}</span>
+                            {teamMembers.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => setTeamMembers(teamMembers.filter((_, i) => i !== idx))}
+                                style={{ background: 'transparent', border: 'none', color: '#F87171', fontSize: '11.5px', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                              >
+                                ✕ Remove
+                              </button>
+                            )}
+                          </div>
+                          <div style={{ display: 'grid', gap: '10px' }}>
+                            <input
+                              type="text"
+                              placeholder={`Member ${idx + 2} Full Name`}
+                              value={member.name}
+                              onChange={(e) => {
+                                const updated = [...teamMembers];
+                                updated[idx] = { ...updated[idx], name: e.target.value };
+                                setTeamMembers(updated);
+                              }}
+                              style={{ width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.25)', border: '1px solid var(--line)', borderRadius: '8px', color: '#FFF', fontSize: '13.5px', fontFamily: 'inherit', outline: 'none' }}
+                            />
+                            <input
+                              type="email"
+                              placeholder={`Member ${idx + 2} Email (for login & ticket)`}
+                              value={member.email}
+                              onChange={(e) => {
+                                const updated = [...teamMembers];
+                                updated[idx] = { ...updated[idx], email: e.target.value };
+                                setTeamMembers(updated);
+                              }}
+                              style={{ width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.25)', border: '1px solid var(--line)', borderRadius: '8px', color: '#FFF', fontSize: '13.5px', fontFamily: 'inherit', outline: 'none' }}
+                            />
+                            <input
+                              type="tel"
+                              placeholder={`Member ${idx + 2} Phone (optional)`}
+                              value={member.phone}
+                              onChange={(e) => {
+                                const updated = [...teamMembers];
+                                updated[idx] = { ...updated[idx], phone: e.target.value };
+                                setTeamMembers(updated);
+                              }}
+                              style={{ width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.25)', border: '1px solid var(--line)', borderRadius: '8px', color: '#FFF', fontSize: '13.5px', fontFamily: 'inherit', outline: 'none' }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {teamMembers.length < 4 && (
+                      <button
+                        type="button"
+                        onClick={() => setTeamMembers([...teamMembers, { name: '', email: '', phone: '' }])}
+                        style={{
+                          marginTop: '14px',
+                          width: '100%',
+                          padding: '11px',
+                          borderRadius: '10px',
+                          background: 'rgba(124, 92, 252, 0.14)',
+                          border: '1px dashed #7C5CFC',
+                          color: '#DDD6FE',
+                          fontSize: '13px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                        }}
+                      >
+                        + Add Another Team Member ({teamMembers.length + 1}/5)
+                      </button>
+                    )}
+                  </div>
+                )}
+
                 {/* Terms and WhatsApp Opt-in */}
                 <div style={{ display: 'grid', gap: '10px', marginTop: '24px' }}>
                   
@@ -2268,103 +2371,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                   By registering you agree to receive event updates. Payment is processed securely via Razorpay.
                   </div>
 
-                  {/* Team Members Section (Person 2 to 5) — after COLLEGE */}
-                  {isTeam && (
-                    <div style={{ margin: '8px 0', padding: '18px', background: 'rgba(124, 92, 252, 0.06)', border: '1px solid rgba(124, 92, 252, 0.25)', borderRadius: '14px' }}>
-                      <div className="ev-reg-team-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
-                        <div style={{ fontSize: '14px', fontWeight: 700, color: '#A78BFA', letterSpacing: '.4px' }}>
-                          TEAM MEMBERS ({currentTeamSize} Total Attendees)
-                        </div>
-                        <span style={{ fontSize: '11px', padding: '4px 9px', background: 'rgba(52, 211, 153, 0.15)', color: '#34D399', borderRadius: '6px', fontWeight: 600 }}>
-                          INR {perPersonFee}/person × {currentTeamSize} = INR {calculatedTotalFee.toLocaleString()}
-                        </span>
-                      </div>
-                      <p style={{ fontSize: '12px', color: '#9CA3AF', marginBottom: '16px', lineHeight: 1.5 }}>
-                        Add your teammates below. The registration amount updates dynamically based on the number of members added ({currentTeamSize} of 5 max).
-                      </p>
-
-                      <div style={{ display: 'grid', gap: '14px' }}>
-                        {teamMembers.map((member, idx) => (
-                          <div key={idx} style={{ padding: '14px', background: 'var(--panel2)', border: '1px solid var(--line2)', borderRadius: '11px' }}>
-                            <div style={{ fontSize: '11px', fontWeight: 700, color: '#DDD6FE', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span>MEMBER {idx + 2} {idx === 0 ? '(REQUIRED)' : '(OPTIONAL)'}</span>
-                              {teamMembers.length > 1 && (
-                                <button
-                                  type="button"
-                                  onClick={() => setTeamMembers(teamMembers.filter((_, i) => i !== idx))}
-                                  style={{ background: 'transparent', border: 'none', color: '#F87171', fontSize: '11.5px', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                                >
-                                  ✕ Remove
-                                </button>
-                              )}
-                            </div>
-                            <div style={{ display: 'grid', gap: '10px' }}>
-                              <input
-                                type="text"
-                                placeholder={`Member ${idx + 2} Full Name`}
-                                value={member.name}
-                                onChange={(e) => {
-                                  const updated = [...teamMembers];
-                                  updated[idx] = { ...updated[idx], name: e.target.value };
-                                  setTeamMembers(updated);
-                                }}
-                                style={{ width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.25)', border: '1px solid var(--line)', borderRadius: '8px', color: '#FFF', fontSize: '13.5px', fontFamily: 'inherit', outline: 'none' }}
-                              />
-                              <input
-                                type="email"
-                                placeholder={`Member ${idx + 2} Email (for login & ticket)`}
-                                value={member.email}
-                                onChange={(e) => {
-                                  const updated = [...teamMembers];
-                                  updated[idx] = { ...updated[idx], email: e.target.value };
-                                  setTeamMembers(updated);
-                                }}
-                                style={{ width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.25)', border: '1px solid var(--line)', borderRadius: '8px', color: '#FFF', fontSize: '13.5px', fontFamily: 'inherit', outline: 'none' }}
-                              />
-                              <input
-                                type="tel"
-                                placeholder={`Member ${idx + 2} Phone (optional)`}
-                                value={member.phone}
-                                onChange={(e) => {
-                                  const updated = [...teamMembers];
-                                  updated[idx] = { ...updated[idx], phone: e.target.value };
-                                  setTeamMembers(updated);
-                                }}
-                                style={{ width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.25)', border: '1px solid var(--line)', borderRadius: '8px', color: '#FFF', fontSize: '13.5px', fontFamily: 'inherit', outline: 'none' }}
-                              />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      {teamMembers.length < 4 && (
-                        <button
-                          type="button"
-                          onClick={() => setTeamMembers([...teamMembers, { name: '', email: '', phone: '' }])}
-                          style={{
-                            marginTop: '14px',
-                            width: '100%',
-                            padding: '11px',
-                            borderRadius: '10px',
-                            background: 'rgba(124, 92, 252, 0.14)',
-                            border: '1px dashed #7C5CFC',
-                            color: '#DDD6FE',
-                            fontSize: '13px',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '6px',
-                          }}
-                        >
-                          + Add Another Team Member ({teamMembers.length + 1}/5)
-                        </button>
-                      )}
-                    </div>
-                  )}
-
-                </div>
+              </div>
 
               {/* Important Information Box */}
               <div style={{ border: '1px solid #3A2E72', borderRadius: '18px', background: 'linear-gradient(155deg, #1B1838, var(--panel) 62%)', padding: '24px 26px 26px' }}>
