@@ -4,6 +4,17 @@ function CustomVideosEditor({ videos, onChange }: { videos: any[]; onChange: (v:
   const { flash } = useToast();
   const [uploadingIdx, setUploadingIdx] = useState<number | null>(null);
 
+  const inputStyle = {
+    borderWidth: 1,
+    borderColor: SAC.border,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 13,
+    color: SAC.text,
+    backgroundColor: SAC.bg,
+  };
+
   const updateItem = (index: number, key: string, val: any) => {
     const list = [...(videos || [])];
     list[index] = { ...list[index], [key]: val };
@@ -66,13 +77,13 @@ function CustomVideosEditor({ videos, onChange }: { videos: any[]; onChange: (v:
 
             <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
               <TextInput
-                style={[s.input, { flex: 1, minWidth: 200 }]}
+                style={[inputStyle, { flex: 1, minWidth: 200 }]}
                 placeholder="Video Title (e.g. SNIST HackWave Teaser)"
                 value={vid.title || ''}
                 onChangeText={(t) => updateItem(idx, 'title', t)}
               />
               <TextInput
-                style={[s.input, { flex: 1.5, minWidth: 260 }]}
+                style={[inputStyle, { flex: 1.5, minWidth: 260 }]}
                 placeholder="Video URL (YouTube / Vimeo / MP4 File)"
                 value={vid.video_url || ''}
                 onChangeText={(t) => updateItem(idx, 'video_url', t)}
@@ -87,13 +98,13 @@ function CustomVideosEditor({ videos, onChange }: { videos: any[]; onChange: (v:
 
             <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
               <TextInput
-                style={[s.input, { flex: 1, minWidth: 200 }]}
+                style={[inputStyle, { flex: 1, minWidth: 200 }]}
                 placeholder="Thumbnail Image URL (optional)"
                 value={vid.thumbnail_url || ''}
                 onChangeText={(t) => updateItem(idx, 'thumbnail_url', t)}
               />
               <TextInput
-                style={[s.input, { flex: 1.5, minWidth: 260 }]}
+                style={[inputStyle, { flex: 1.5, minWidth: 260 }]}
                 placeholder="Short Description / Caption (optional)"
                 value={vid.description || ''}
                 onChangeText={(t) => updateItem(idx, 'description', t)}
