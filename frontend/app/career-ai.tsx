@@ -57,9 +57,9 @@ import { COLORS as DT_COLORS, FONT_FAMILIES, FONT_SIZES, RADIUS, SPACING } from 
 
 /* ────────── Design tokens ────────── */
 const C = {
-  bg: '#0B0D1A',
-  bgCard: '#F5F7FA',
-  bgCardH: '#FFFFFF',
+  bg: '#08080F',
+  bgCard: '#101019',
+  bgCardH: '#14141F',
   border: 'rgba(255, 255, 255, 0.08)',
   border2: 'rgba(255, 255, 255, 0.14)',
   text: '#FFFFFF',

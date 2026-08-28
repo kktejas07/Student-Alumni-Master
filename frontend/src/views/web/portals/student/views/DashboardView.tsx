@@ -252,14 +252,14 @@ export function DashboardView() {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '8px',
-                  background: '#FFFFFF',
-                  color: '#4A1F9E',
+                  background: '#7C5CFC',
+                  color: '#FFFFFF',
                   padding: '12px 24px',
                   borderRadius: '10px',
                   fontSize: '14.5px',
                   fontWeight: 700,
                   textDecoration: 'none',
-                  boxShadow: '0 6px 20px rgba(0,0,0,0.25)',
+                  boxShadow: '0 8px 22px rgba(124,92,252,.28)',
                 }}
               >
                 {HERO_SLIDES[heroSlide].cta}
