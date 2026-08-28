@@ -153,7 +153,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import {
   Pencil, Trash2, Eye, Globe, Archive, Send, X, Zap,
   Star, BookOpen, Upload, MoveUp, MoveDown, Images, FolderOpen,
-  Copy, Check, Search, RefreshCw, PlusCircle, FileText, Link2,
+  Copy, Check, Search, RefreshCw, Plus, PlusCircle, FileText, Link2,
   Image as ImageIcon, HardDrive, Calendar, Layout, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Users,
   Ticket, Mail, ScanLine, Phone,
   CupSoda, UtensilsCrossed, Cookie, Sandwich, Coffee, Lock, XCircle, Clock, CheckCircle,
