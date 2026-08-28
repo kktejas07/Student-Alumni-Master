@@ -2602,20 +2602,29 @@ class ShowcaseUpdateSchema(BaseModel):
 DEFAULT_SHOWCASE_SEED = {
     "title": "VNR ECHO 2026",
     "slug": "vnrvjit",
-    "aliases": ["vnr-echo-2026"],
+    "aliases": ["vnr-echo-2026", "vnr"],
     "subtitle": "Empowering Tomorrow's Leaders",
     "description": "A day of inspiration, learning, and networking as industry leaders, alumni, and students came together to explore opportunities and shape the future of technology.",
-    "date": "August 15, 2026",
-    "time": "10:00 AM – 4:30 PM",
-    "venue": "Main Auditorium, VNR VJIET",
+    "date": "July 31, 2026",
+    "time": "09:30 AM – 04:30 PM",
+    "venue": "Main Auditorium, VNR VJIET, Hyderabad",
     "college": "VNR VJIET",
     "category": "college-event",
     "status": "published",
-    "event_status_badge": "Upcoming",
-    "hero_image_url": "https://picsum.photos/seed/echo2026-hero/1200/700",
-    "hero_cover_url": "https://picsum.photos/seed/echo2026-hero/1200/700",
-    "hero_thumbnail_url": "https://picsum.photos/seed/echo2026-hero/800/500",
-    "hero_bg_url": "https://picsum.photos/seed/echo2026-bg/1600/900",
+    "event_status_badge": "Completed",
+    "hero_image_url": "/images/hackwave/hackwave_techfest_verticals.jpg",
+    "hero_cover_url": "/images/hackwave/hackwave_techfest_verticals.jpg",
+    "hero_thumbnail_url": "/images/hackwave/hackwave_techfest_verticals.jpg",
+    "hero_bg_url": "/images/hackwave/hackwave_techfest_verticals.jpg",
+    "banner_url": "/images/hackwave/hackwave_techfest_verticals.jpg",
+    "poster_url": "/images/hackwave/hackwave_techfest_verticals.jpg",
+    "gallery_images": [
+        "/images/hackwave/hackwave_techfest_verticals.jpg",
+        "/images/hackwave/hackwave_speakers.jpg",
+        "/images/hackwave/hackwave_main_poster.png",
+        "/images/hackwave/hackwave_cybersecurity_conclave.jpg",
+        "/images/hackwave/hackwave_perks_pool.jpg"
+    ],
     "organizer_name": "Student Alumni Cell",
     "organizer_logo_url": None,
     "stats": [
@@ -2754,7 +2763,18 @@ async def seed_echo_showcase(db: AsyncIOMotorDatabase):
             await db.echo_showcases.insert_one(doc)
             print("[ECHO CMS] Seeded default vnr-echo-2026 showcase")
         else:
-            await db.echo_showcases.update_many({"gallery_layout": {"$exists": False}}, {"$set": {"gallery_layout": "grid"}})
+            await db.echo_showcases.update_many(
+                {"slug": {"$in": ["vnrvjit", "vnr-echo-2026", "vnr"]}},
+                {
+                    "$set": {
+                        "event_status_badge": "Completed",
+                        "hero_image_url": "/images/hackwave/hackwave_techfest_verticals.jpg",
+                        "banner_url": "/images/hackwave/hackwave_techfest_verticals.jpg",
+                        "poster_url": "/images/hackwave/hackwave_techfest_verticals.jpg",
+                        "gallery_layout": "grid"
+                    }
+                }
+            )
     except Exception as e:
         print(f"[ECHO CMS] Seed warning: {e}")
 
