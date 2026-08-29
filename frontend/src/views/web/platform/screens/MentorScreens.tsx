@@ -44,7 +44,7 @@ export function MentorStudents() {
   const cols = width >= 1300 ? 3 : width >= 900 ? 2 : 1;
   const list = [
     { av: 'RS', name: 'Rahul Sharma', batch: '2022', goal: 'Product Design', sessions: 4, status: 'On Track', progress: 68 },
-    { av: 'DM', name: 'Divya Mehta', batch: '2022', goal: 'Business Analyst', sessions: 6, status: 'Placed ✓', progress: 100 },
+    { av: 'DM', name: 'Divya Mehta', batch: '2022', goal: 'Business Analyst', sessions: 6, status: 'Placed', progress: 100 },
     { av: 'AK', name: 'Ankit Kumar', batch: '2023', goal: 'Software Eng', sessions: 2, status: 'In Progress', progress: 35 },
     { av: 'NM', name: 'Neha Mehta', batch: '2022', goal: 'Product Manager', sessions: 5, status: 'On Track', progress: 72 },
     { av: 'SK', name: 'Suraj Kumar', batch: '2023', goal: 'Data Science', sessions: 3, status: 'In Progress', progress: 45 },
@@ -52,7 +52,7 @@ export function MentorStudents() {
   ];
   return (
     <>
-      <PageHeader title="My Students 🎓" subtitle="12 active mentees across batches 2021–2023." />
+      <PageHeader title="My Students " subtitle="12 active mentees across batches 2021–2023." />
       <View style={styles.grid}>
         {list.map((s, i) => {
           const placed = s.status.includes('Placed');
@@ -112,7 +112,7 @@ export function MentorSessions() {
 
   return (
     <>
-      <PageHeader title="Sessions 📅" subtitle="Manage your upcoming and past mentoring sessions." />
+      <PageHeader title="Sessions " subtitle="Manage your upcoming and past mentoring sessions." />
       <View style={[styles.split, !isWide && { flexDirection: 'column' }]}>
         <GlassCard pad={24} style={{ flex: 1 }}>
           <SectionLabel>UPCOMING SESSIONS</SectionLabel>
@@ -142,7 +142,7 @@ export function MentorSessions() {
             {[
               { l: 'Total sessions', v: String(bookings.length || 42) },
               { l: 'Hours mentored', v: '38 hrs' },
-              { l: 'Avg rating', v: '⭐ 4.9' },
+              { l: 'Avg rating', v: ' 4.9' },
               { l: 'No-shows', v: '2' },
             ].map((s) => (
               <View key={s.l} style={styles.statRow}>
@@ -179,7 +179,7 @@ export function MentorPostJobs() {
   ];
   return (
     <>
-      <PageHeader title="Post Opportunities 💼" subtitle="Share job and internship opportunities from your network." />
+      <PageHeader title="Post Opportunities " subtitle="Share job and internship opportunities from your network." />
       <View style={styles.grid}>
         {jobs.map((j, i) => (
           <View key={i} style={{ width: `${100 / cols}%` as any, padding: 7 }}>
@@ -196,7 +196,7 @@ export function MentorPostJobs() {
                 </View>
               </View>
               <Text style={{ color: SA.textMuted, fontSize: 13, marginBottom: 12 }}>
-                💰 {j.stipend || j.salary} · 👥 {j.applicants} applicants · {j.posted}
+                 {j.stipend || j.salary} ·  {j.applicants} applicants · {j.posted}
               </Text>
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 <GhostPill label="View Applicants" full />
@@ -232,12 +232,12 @@ export function MentorAnalyticsScreen() {
   const isWide = width >= 1100;
   return (
     <>
-      <PageHeader title="Analytics 📊" subtitle="Your impact as a mentor, measured." />
+      <PageHeader title="Analytics " subtitle="Your impact as a mentor, measured." />
       <View style={[styles.kpiRow, !isWide && { flexDirection: 'column' }]}>
-        <KpiTile emoji="🎓" label="Students Mentored" value="12" note="Total lifetime" noteColor={SA.purplePale} />
-        <KpiTile emoji="✅" label="Placement Rate" value="67%" note="8 of 12 placed" />
-        <KpiTile emoji="⭐" label="Avg Rating" value="4.9" note="From 38 reviews" noteColor={SA.warn} />
-        <KpiTile emoji="⏱" label="Hours Mentored" value="38h" note="Across 42 sessions" noteColor={SA.purplePale} />
+        <KpiTile emoji="" label="Students Mentored" value="12" note="Total lifetime" noteColor={SA.purplePale} />
+        <KpiTile emoji="" label="Placement Rate" value="67%" note="8 of 12 placed" />
+        <KpiTile emoji="" label="Avg Rating" value="4.9" note="From 38 reviews" noteColor={SA.warn} />
+        <KpiTile emoji="" label="Hours Mentored" value="38h" note="Across 42 sessions" noteColor={SA.purplePale} />
       </View>
       <View style={[styles.split, !isWide && { flexDirection: 'column' }]}>
         <GlassCard pad={24} style={{ flex: 1 }}>
@@ -269,7 +269,7 @@ export function MentorAnalyticsScreen() {
                   <Avatar initials={r.av} size={32} gradient={SAGradients.green} />
                   <View>
                     <Text style={{ color: SA.white, fontFamily: SA.fontBold, fontSize: 12 }}>{r.name}</Text>
-                    <Text style={{ color: SA.warn, fontSize: 11 }}>{'⭐'.repeat(r.rating)}</Text>
+                    <Text style={{ color: SA.warn, fontSize: 11 }}>{''.repeat(r.rating)}</Text>
                   </View>
                 </View>
                 <Text style={{ color: SA.textMuted, fontSize: 12, lineHeight: 17 }}>{r.text}</Text>

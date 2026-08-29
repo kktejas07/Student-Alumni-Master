@@ -151,7 +151,7 @@ export default function HelpCenterPage() {
     </div>
 
     <div className="rs-r">
-      <div id="catpanel-account" className="rs-catpanel" data-cat="account" style={{ display: activeCat === 'account' ? 'block' : 'none', border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '22px 26px 10px', marginTop: '18px' }} style={{"display":"none","border":"1px solid var(--line)","borderRadius":"18px","background":"var(--panel)","padding":"22px 26px 10px","marginTop":"18px"}}>
+      <div id="catpanel-account" className="rs-catpanel" data-cat="account" style={{ display: activeCat === 'account' ? 'block' : 'none', border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '22px 26px 10px', marginTop: '18px' }}>
         <div style={{"display":"flex","alignItems":"center","justifyContent":"space-between","gap":"16px","marginBottom":"6px","flexWrap":"wrap"}}>
           <div>
             <div style={{"fontSize":"11px","fontWeight":"700","letterSpacing":"1.3px","color":"var(--violet-lt)","marginBottom":"6px"}}>8 ARTICLES</div>
@@ -218,7 +218,7 @@ export default function HelpCenterPage() {
               <svg width="15" height="15" viewBox="0 0 24 24" style={{"fill":"none","stroke":"var(--dim)","strokeWidth":"2","flex":"none"}}><path d="M9 6l6 6-6 6"></path></svg>
             </div>
       </div>
-      <div id="catpanel-payments" className="rs-catpanel" data-cat="payments" style={{ display: activeCat === 'payments' ? 'block' : 'none', border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '22px 26px 10px', marginTop: '18px' }} style={{"display":"none","border":"1px solid var(--line)","borderRadius":"18px","background":"var(--panel)","padding":"22px 26px 10px","marginTop":"18px"}}>
+      <div id="catpanel-payments" className="rs-catpanel" data-cat="payments" style={{ display: activeCat === 'payments' ? 'block' : 'none', border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '22px 26px 10px', marginTop: '18px' }}>
         <div style={{"display":"flex","alignItems":"center","justifyContent":"space-between","gap":"16px","marginBottom":"6px","flexWrap":"wrap"}}>
           <div>
             <div style={{"fontSize":"11px","fontWeight":"700","letterSpacing":"1.3px","color":"var(--sky)","marginBottom":"6px"}}>7 ARTICLES</div>
@@ -278,7 +278,7 @@ export default function HelpCenterPage() {
               <svg width="15" height="15" viewBox="0 0 24 24" style={{"fill":"none","stroke":"var(--dim)","strokeWidth":"2","flex":"none"}}><path d="M9 6l6 6-6 6"></path></svg>
             </div>
       </div>
-      <div id="catpanel-mentors" className="rs-catpanel" data-cat="mentors" style={{ display: activeCat === 'mentors' ? 'block' : 'none', border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '22px 26px 10px', marginTop: '18px' }} style={{"display":"none","border":"1px solid var(--line)","borderRadius":"18px","background":"var(--panel)","padding":"22px 26px 10px","marginTop":"18px"}}>
+      <div id="catpanel-mentors" className="rs-catpanel" data-cat="mentors" style={{ display: activeCat === 'mentors' ? 'block' : 'none', border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '22px 26px 10px', marginTop: '18px' }}>
         <div style={{"display":"flex","alignItems":"center","justifyContent":"space-between","gap":"16px","marginBottom":"6px","flexWrap":"wrap"}}>
           <div>
             <div style={{"fontSize":"11px","fontWeight":"700","letterSpacing":"1.3px","color":"var(--ok)","marginBottom":"6px"}}>7 ARTICLES</div>
@@ -338,7 +338,7 @@ export default function HelpCenterPage() {
               <svg width="15" height="15" viewBox="0 0 24 24" style={{"fill":"none","stroke":"var(--dim)","strokeWidth":"2","flex":"none"}}><path d="M9 6l6 6-6 6"></path></svg>
             </div>
       </div>
-      <div id="catpanel-events" className="rs-catpanel" data-cat="events" style={{ display: activeCat === 'events' ? 'block' : 'none', border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '22px 26px 10px', marginTop: '18px' }} style={{"display":"none","border":"1px solid var(--line)","borderRadius":"18px","background":"var(--panel)","padding":"22px 26px 10px","marginTop":"18px"}}>
+      <div id="catpanel-events" className="rs-catpanel" data-cat="events" style={{ display: activeCat === 'events' ? 'block' : 'none', border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '22px 26px 10px', marginTop: '18px' }}>
         <div style={{"display":"flex","alignItems":"center","justifyContent":"space-between","gap":"16px","marginBottom":"6px","flexWrap":"wrap"}}>
           <div>
             <div style={{"fontSize":"11px","fontWeight":"700","letterSpacing":"1.3px","color":"var(--amber)","marginBottom":"6px"}}>8 ARTICLES</div>
@@ -405,7 +405,7 @@ export default function HelpCenterPage() {
               <svg width="15" height="15" viewBox="0 0 24 24" style={{"fill":"none","stroke":"var(--dim)","strokeWidth":"2","flex":"none"}}><path d="M9 6l6 6-6 6"></path></svg>
             </div>
       </div>
-      <div id="catpanel-rentals" className="rs-catpanel" data-cat="rentals" style={{ display: activeCat === 'rentals' ? 'block' : 'none', border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '22px 26px 10px', marginTop: '18px' }} style={{"display":"none","border":"1px solid var(--line)","borderRadius":"18px","background":"var(--panel)","padding":"22px 26px 10px","marginTop":"18px"}}>
+      <div id="catpanel-rentals" className="rs-catpanel" data-cat="rentals" style={{ display: activeCat === 'rentals' ? 'block' : 'none', border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '22px 26px 10px', marginTop: '18px' }}>
         <div style={{"display":"flex","alignItems":"center","justifyContent":"space-between","gap":"16px","marginBottom":"6px","flexWrap":"wrap"}}>
           <div>
             <div style={{"fontSize":"11px","fontWeight":"700","letterSpacing":"1.3px","color":"var(--violet-lt)","marginBottom":"6px"}}>6 ARTICLES</div>
@@ -458,7 +458,7 @@ export default function HelpCenterPage() {
               <svg width="15" height="15" viewBox="0 0 24 24" style={{"fill":"none","stroke":"var(--dim)","strokeWidth":"2","flex":"none"}}><path d="M9 6l6 6-6 6"></path></svg>
             </div>
       </div>
-      <div id="catpanel-privacy" className="rs-catpanel" data-cat="privacy" style={{ display: activeCat === 'privacy' ? 'block' : 'none', border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '22px 26px 10px', marginTop: '18px' }} style={{"display":"none","border":"1px solid var(--line)","borderRadius":"18px","background":"var(--panel)","padding":"22px 26px 10px","marginTop":"18px"}}>
+      <div id="catpanel-privacy" className="rs-catpanel" data-cat="privacy" style={{ display: activeCat === 'privacy' ? 'block' : 'none', border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '22px 26px 10px', marginTop: '18px' }}>
         <div style={{"display":"flex","alignItems":"center","justifyContent":"space-between","gap":"16px","marginBottom":"6px","flexWrap":"wrap"}}>
           <div>
             <div style={{"fontSize":"11px","fontWeight":"700","letterSpacing":"1.3px","color":"var(--tag-danger)","marginBottom":"6px"}}>7 ARTICLES</div>

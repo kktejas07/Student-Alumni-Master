@@ -26,7 +26,7 @@ import {
   Layers, MapPin, Hash, MousePointer, X, CheckCircle2, Server, HelpCircle
 } from 'lucide-react-native';
 
-import { SAC, FONTS } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import { Card, GRAD, SecondaryButton, GradientButton, StatusPill, TopTabs } from '../applekit';
 import { getBaseUrl } from '@/src/lib/env';
 import { request } from '@/src/models/services/api';
@@ -36,6 +36,8 @@ const BASE_URL = getBaseUrl();
 type TabId = 'live' | 'modules' | 'hardware' | 'geo' | 'acquisition';
 
 export function VisitorIntelligenceView() {
+  const T = useSAC();
+  Object.assign(s, resolveColors(s, T));
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
   const isTablet = width < 1100;
@@ -239,14 +241,14 @@ export function VisitorIntelligenceView() {
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <RefreshCw size={13} color="#C4B5FD" />
-              <Text style={{ color: '#fff', fontSize: 13, fontFamily: FONTS.med }}>Refresh</Text>
+              <Text style={{ color: SAC.text, fontSize: 13, fontFamily: FONTS.med }}>Refresh</Text>
             </View>
           </SecondaryButton>
 
           <GradientButton size="sm" onPress={handleExportCSV} loading={exporting}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Download size={14} color="#fff" />
-              <Text style={{ color: '#fff', fontSize: 13, fontFamily: FONTS.bold }}>Export CSV</Text>
+              <Text style={{ color: SAC.text, fontSize: 13, fontFamily: FONTS.bold }}>Export CSV</Text>
             </View>
           </GradientButton>
         </View>
@@ -514,7 +516,7 @@ export function VisitorIntelligenceView() {
                         <SecondaryButton size="sm" onPress={() => openDossier(v.session_id)}>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                             <Eye size={13} color="#fff" />
-                            <Text style={{ color: '#fff', fontSize: 12.5, fontFamily: FONTS.semi }}>Dossier</Text>
+                            <Text style={{ color: SAC.text, fontSize: 12.5, fontFamily: FONTS.semi }}>Dossier</Text>
                             <ChevronRight size={13} color={SAC.muted} />
                           </View>
                         </SecondaryButton>
@@ -536,14 +538,14 @@ export function VisitorIntelligenceView() {
                       disabled={pagination.page <= 1}
                       onPress={() => fetchVisitorsList(pagination.page - 1)}
                     >
-                      <Text style={{ color: '#fff', fontSize: 12 }}>← Previous</Text>
+                      <Text style={{ color: SAC.text, fontSize: 12 }}>← Previous</Text>
                     </SecondaryButton>
                     <SecondaryButton
                       size="sm"
                       disabled={pagination.page >= pagination.total_pages}
                       onPress={() => fetchVisitorsList(pagination.page + 1)}
                     >
-                      <Text style={{ color: '#fff', fontSize: 12 }}>Next →</Text>
+                      <Text style={{ color: SAC.text, fontSize: 12 }}>Next →</Text>
                     </SecondaryButton>
                   </View>
                 </View>
@@ -612,7 +614,7 @@ export function VisitorIntelligenceView() {
 
                   <View style={s.moduleFooter}>
                     <Text style={s.moduleDwellText}>
-                      ⏱️ Avg Dwell: <Text style={{ color: '#fff', fontFamily: FONTS.bold }}>{fmtDuration(m.avg_duration_sec)}</Text>
+                      ⏱️ Avg Dwell: <Text style={{ color: SAC.text, fontFamily: FONTS.bold }}>{fmtDuration(m.avg_duration_sec)}</Text>
                     </Text>
                     <Text style={s.moduleDwellText}>
                       📄 {m.total_pageviews || 0} page impressions
@@ -734,7 +736,7 @@ export function VisitorIntelligenceView() {
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                         <Text style={{ fontSize: 20 }}>{getCountryFlag(geo.country_code)}</Text>
                         <View>
-                          <Text style={{ color: '#fff', fontSize: 13.5, fontFamily: FONTS.med }}>
+                          <Text style={{ color: SAC.text, fontSize: 13.5, fontFamily: FONTS.med }}>
                             {geo.country || 'Global Visitor'}
                           </Text>
                           <Text style={{ color: SAC.muted, fontSize: 12 }}>
@@ -954,7 +956,7 @@ export function VisitorIntelligenceView() {
                             </View>
 
                             <Text style={s.timelinePath}>
-                              Path: <Text style={{ color: '#fff' }}>{ev.path}</Text>
+                              Path: <Text style={{ color: SAC.text }}>{ev.path}</Text>
                               {ev.element_text ? ` • Element: "${ev.element_text}"` : ''}
                               {ev.element_id ? ` (#${ev.element_id})` : ''}
                             </Text>
@@ -1141,7 +1143,7 @@ const s = StyleSheet.create({
     color: SAC.muted,
   },
   selectPillTextActive: {
-    color: '#fff',
+    color: SAC.text,
     fontFamily: FONTS.bold,
   },
   visitorCard: {
@@ -1294,7 +1296,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
   },
   moduleMetricVal: {
-    color: '#fff',
+    color: SAC.text,
     fontSize: 16,
     fontFamily: FONTS.bold,
   },
@@ -1409,7 +1411,7 @@ const s = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.75)',
+    backgroundColor: SAC.panel2,
   },
   modalContent: {
     width: '100%',

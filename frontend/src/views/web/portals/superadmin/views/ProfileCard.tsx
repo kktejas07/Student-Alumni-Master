@@ -19,7 +19,7 @@ import {
   Eye, ChevronRight, Calendar, Check, Play, Code, Sparkles,
   ShieldCheck, Trash2,
 } from 'lucide-react-native';
-import { SAC, FONTS } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import { GRAD } from '../applekit';
 
 /** LinkedIn 'in' glyph — `lucide-react-native` doesn't ship the Linkedin icon
@@ -120,6 +120,8 @@ function fmtNextSession(iso: string) {
 
 /* ─── Component ──────────────────────────────────────────────────── */
 export function ProfileCard(props: ProfileCardProps) {
+  const T = useSAC();
+  Object.assign(s, resolveColors(s, T));
   const { user, goals, progress, tags, nextSession, socials, onViewProfile, onApprove, onRemove } = props;
   const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown user';
   const cat = CAT_DOT[user.category] || CAT_DOT.student;
@@ -401,7 +403,7 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, zIndex: 5,
   },
-  newPillText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 9, letterSpacing: 0.8 },
+  newPillText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 9, letterSpacing: 0.8 },
 
   header: { flexDirection: 'row', alignItems: 'flex-start', gap: 14 },
   avatar: {
@@ -409,7 +411,7 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(249,115,22,0.18)',
     alignItems: 'center', justifyContent: 'center',
   },
-  avatarText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 19 },
+  avatarText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 19 },
   statusDot: {
     position: 'absolute', right: -2, bottom: -2,
     width: 14, height: 14, borderRadius: 999,
@@ -482,7 +484,7 @@ const s = StyleSheet.create({
       ? ({ boxShadow: '0 8px 24px rgba(249,115,22,0.35)', transitionDuration: '160ms' } as any)
       : { shadowColor: PC.accent, shadowOpacity: 0.4, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } }),
   },
-  viewBtnText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 13.5, letterSpacing: 0.1 },
+  viewBtnText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 13.5, letterSpacing: 0.1 },
   socialBtn: {
     width: 44, height: 44, borderRadius: 10,
     alignItems: 'center', justifyContent: 'center',

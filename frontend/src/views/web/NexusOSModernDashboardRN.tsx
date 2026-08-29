@@ -13,6 +13,7 @@
  */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Check, X, Star } from 'lucide-react';
 import {
   View, Text, StyleSheet, Pressable, Platform, useWindowDimensions, ScrollView,
   TextInput, Modal, Animated as RNAnimated, Easing,
@@ -327,7 +328,7 @@ export function NexusOSModernDashboardRN({ initialView = 'dash' }: { initialView
             <View style={s.agentCard}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                 <View style={s.agentBadgeIco}>
-                  <Text style={{ color: '#fff', fontSize: 12 }}>🤖</Text>
+                  <Text style={{ color: '#fff', fontSize: 12 }}></Text>
                 </View>
                 <Text style={s.agentTitle}>AGENT K</Text>
                 <View style={s.betaPill}><Text style={s.betaText}>BETA</Text></View>
@@ -345,22 +346,22 @@ export function NexusOSModernDashboardRN({ initialView = 'dash' }: { initialView
           {/* Navigation Items */}
           <ScrollView style={{ flex: 1, paddingHorizontal: 6 }} showsVerticalScrollIndicator={false}>
             {[
-              { id: 'dash', label: 'Dashboard', icon: '🎛️' },
-              { id: 'ai', label: 'Career AI', icon: '✨' },
-              { id: 'internships', label: 'Internships & Jobs', icon: '💼' },
-              { id: 'echo', label: 'ECHO Showcase', icon: '⚡' },
-              { id: 'net', label: 'Network', icon: '👥' },
-              { id: 'bookings', label: 'My Bookings', icon: '🔖' },
-              { id: 'tickets', label: 'My Tickets', icon: '🎟️' },
-              { id: 'events', label: 'My Events', icon: '📅' },
-              { id: 'workshops', label: 'My Workshops', icon: '🛠️' },
-              { id: 'courses', label: 'Courses', icon: '🎓' },
-              { id: 'financial', label: 'Financial', icon: '💰' },
-              { id: 'deals', label: 'Deals & Offers', icon: '🏷️' },
-              { id: 'wallet', label: 'SA Wallet', icon: '💳' },
-              { id: 'higher', label: 'Higher Education', icon: '🏫' },
-              { id: 'rentals', label: 'Rentals', icon: '🏠' },
-              { id: 'profile', label: 'Profile', icon: '👤' },
+              { id: 'dash', label: 'Dashboard', icon: '' },
+              { id: 'ai', label: 'Career AI', icon: '' },
+              { id: 'internships', label: 'Internships & Jobs', icon: '' },
+              { id: 'echo', label: 'ECHO Showcase', icon: '' },
+              { id: 'net', label: 'Network', icon: '' },
+              { id: 'bookings', label: 'My Bookings', icon: '' },
+              { id: 'tickets', label: 'My Tickets', icon: '' },
+              { id: 'events', label: 'My Events', icon: '' },
+              { id: 'workshops', label: 'My Workshops', icon: '' },
+              { id: 'courses', label: 'Courses', icon: '' },
+              { id: 'financial', label: 'Financial', icon: '' },
+              { id: 'deals', label: 'Deals & Offers', icon: '' },
+              { id: 'wallet', label: 'SA Wallet', icon: '' },
+              { id: 'higher', label: 'Higher Education', icon: '' },
+              { id: 'rentals', label: 'Rentals', icon: '' },
+              { id: 'profile', label: 'Profile', icon: '' },
             ].map((nav) => {
               const isActive = currentView === nav.id;
               return (
@@ -393,7 +394,7 @@ export function NexusOSModernDashboardRN({ initialView = 'dash' }: { initialView
 
             <View style={s.topActions}>
               <View style={s.searchWrap}>
-                <Text style={{ color: '#8A8A9E', fontSize: 13 }}>🔍</Text>
+                <Text style={{ color: '#8A8A9E', fontSize: 13 }}></Text>
                 <TextInput
                   style={s.searchInput}
                   placeholder="Search anything..."
@@ -404,7 +405,7 @@ export function NexusOSModernDashboardRN({ initialView = 'dash' }: { initialView
               </View>
 
               <Pressable onPress={() => setShowIDModal(true)} style={s.idTopBtn}>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: '#A78BFA' }}>💳 Digital ID</Text>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#A78BFA' }}> Digital ID</Text>
               </Pressable>
 
               <View style={s.userAvatar}>
@@ -487,12 +488,12 @@ export function NexusOSModernDashboardRN({ initialView = 'dash' }: { initialView
 
                 {/* 2. Collab Exclusive Locked Coupons */}
                 <View>
-                  <Text style={s.sectionHeader}>🏷️ COLLAB EXCLUSIVE COUPONS</Text>
+                  <Text style={s.sectionHeader}> COLLAB EXCLUSIVE COUPONS</Text>
                   <View style={s.couponRow}>
                     {[1, 2, 3, 4, 5].map((item) => (
                       <View key={item} style={s.couponCard}>
                         <View style={s.couponTop}>
-                          <Text style={{ fontSize: 24 }}>🔒</Text>
+                          <Text style={{ fontSize: 24 }}></Text>
                         </View>
                         <View style={s.couponBottom}>
                           <Text style={s.couponH1}>Coming soon</Text>
@@ -526,7 +527,7 @@ export function NexusOSModernDashboardRN({ initialView = 'dash' }: { initialView
                       <Text style={s.kpiBig}>0</Text>
                       <Text style={s.kpiSub}>0 applied</Text>
                     </View>
-                    <View style={s.kpiIconBox}><Text style={{ fontSize: 18 }}>💼</Text></View>
+                    <View style={s.kpiIconBox}><Text style={{ fontSize: 18 }}></Text></View>
                   </View>
 
                   {/* Network */}
@@ -537,7 +538,7 @@ export function NexusOSModernDashboardRN({ initialView = 'dash' }: { initialView
                       <Text style={s.kpiSub}>Connections</Text>
                     </View>
                     <View style={[s.kpiIconBox, { backgroundColor: 'rgba(52,211,153,0.12)' }]}>
-                      <Text style={{ fontSize: 18 }}>👥</Text>
+                      <Text style={{ fontSize: 18 }}></Text>
                     </View>
                   </View>
 
@@ -549,7 +550,7 @@ export function NexusOSModernDashboardRN({ initialView = 'dash' }: { initialView
                       <Text style={s.kpiSub}>Registered</Text>
                     </View>
                     <View style={[s.kpiIconBox, { backgroundColor: 'rgba(240,97,107,0.12)' }]}>
-                      <Text style={{ fontSize: 18 }}>📅</Text>
+                      <Text style={{ fontSize: 18 }}></Text>
                     </View>
                   </View>
                 </View>
@@ -560,13 +561,13 @@ export function NexusOSModernDashboardRN({ initialView = 'dash' }: { initialView
                     onPress={() => setActiveTab(0)}
                     style={[s.tabBtn, activeTab === 0 && s.tabBtnActive]}
                   >
-                    <Text style={[s.tabBtnText, activeTab === 0 && s.tabBtnTextActive]}>💼 Opportunities</Text>
+                    <Text style={[s.tabBtnText, activeTab === 0 && s.tabBtnTextActive]}> Opportunities</Text>
                   </Pressable>
                   <Pressable
                     onPress={() => setActiveTab(1)}
                     style={[s.tabBtn, activeTab === 1 && s.tabBtnActive]}
                   >
-                    <Text style={[s.tabBtnText, activeTab === 1 && s.tabBtnTextActive]}>📈 Intelligence Center</Text>
+                    <Text style={[s.tabBtnText, activeTab === 1 && s.tabBtnTextActive]}> Intelligence Center</Text>
                   </Pressable>
                 </View>
 
@@ -584,7 +585,7 @@ export function NexusOSModernDashboardRN({ initialView = 'dash' }: { initialView
                         </Svg>
                         <View>
                           <Text style={s.tierTitle}>Builder</Text>
-                          <Text style={s.tierSub}>Target: Industry Ready</Text>
+                          <Text style={s.tierSub}> Industry Ready</Text>
                           <View style={s.gainPill}><Text style={s.gainText}>↗ +8% this week</Text></View>
                         </View>
                       </View>
@@ -617,7 +618,7 @@ export function NexusOSModernDashboardRN({ initialView = 'dash' }: { initialView
                               style={[s.taskRow, done && { opacity: 0.6 }]}
                             >
                               <View style={[s.checkbox, done && s.checkboxChecked]}>
-                                {done && <Text style={{ color: '#fff', fontSize: 11 }}>✓</Text>}
+                                {done && <Check size={12} color="#fff" />}
                               </View>
                               <View style={{ flex: 1 }}>
                                 <Text style={[s.taskTitle, done && { textDecorationLine: 'line-through' }]}>{t.title}</Text>
@@ -641,7 +642,7 @@ export function NexusOSModernDashboardRN({ initialView = 'dash' }: { initialView
                       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8, marginVertical: 10 }}>
                         <Text style={s.bigNum}>0</Text>
                         <Text style={{ color: '#8A8A9E', fontSize: 14 }}>days</Text>
-                        <Text style={{ fontSize: 22, marginLeft: 'auto' }}>🔥</Text>
+                        <Text style={{ fontSize: 22, marginLeft: 'auto' }}></Text>
                       </View>
                       <View style={{ flexDirection: 'row', gap: 4 }}>
                         {[0, 1, 2, 3, 4, 5, 6].map((day) => (
@@ -800,13 +801,13 @@ export function NexusOSModernDashboardRN({ initialView = 'dash' }: { initialView
                     >
                       <View style={[s.listingHero, { backgroundColor: `${item.col}22` }]}>
                         <View style={s.discountBadge}><Text style={s.discountText}>{item.off}</Text></View>
-                        <Text style={{ fontSize: 32 }}>🏢</Text>
+                        <Text style={{ fontSize: 32 }}></Text>
                       </View>
                       <View style={{ padding: 14, gap: 8 }}>
                         <Text style={s.listingTitle}>{item.name}</Text>
                         <Text style={s.listingLoc}>{item.loc}</Text>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 }}>
-                          <Text style={s.listingRate}>★ {item.rate} ({item.revs})</Text>
+                          <Text style={s.listingRate}> {item.rate} ({item.revs})</Text>
                           <Text style={s.listingLeft}>{item.left} left</Text>
                         </View>
                         <View style={s.perkBox}><Text style={s.perkText}>✦ {item.perk}</Text></View>
@@ -881,7 +882,7 @@ export function NexusOSModernDashboardRN({ initialView = 'dash' }: { initialView
           <View style={s.idModalSheet}>
             <View style={s.idModalHead}>
               <Text style={{ color: '#fff', fontSize: 17, fontWeight: '700' }}>Digital Student ID</Text>
-              <Pressable onPress={() => setShowIDModal(false)}><Text style={{ color: '#fff', fontSize: 18 }}>✕</Text></Pressable>
+              <Pressable onPress={() => setShowIDModal(false)}><X size={18} color="#fff" /></Pressable>
             </View>
 
             <View style={s.idCardPerspective}>
@@ -905,7 +906,7 @@ export function NexusOSModernDashboardRN({ initialView = 'dash' }: { initialView
                         <Text style={s.idMetaVal}>SA-{String(user?.graduation_year || 2027).slice(-2)}-STU-{user?.id?.substring(0,6).toUpperCase() || 'RNWJMD'}</Text>
                         <Text style={s.idValid}>Valid until June {user?.graduation_year || 2027}</Text>
                       </View>
-                      <View style={s.qrBox}><Text style={{ fontSize: 24 }}>📱</Text></View>
+                      <View style={s.qrBox}><Text style={{ fontSize: 24 }}></Text></View>
                     </View>
                   </View>
                 ) : (
@@ -935,7 +936,7 @@ export function NexusOSModernDashboardRN({ initialView = 'dash' }: { initialView
 
       {/* ── FLOATING AGENT K LAUNCHER ──────────────────────────────────────── */}
       <Pressable onPress={() => router.push('/agent-k')} style={s.agentFab}>
-        <Text style={{ color: '#fff', fontSize: 16 }}>⚡</Text>
+        <Text style={{ color: '#fff', fontSize: 16 }}></Text>
         <Text style={s.agentFabText}>Agent K</Text>
       </Pressable>
     </View>

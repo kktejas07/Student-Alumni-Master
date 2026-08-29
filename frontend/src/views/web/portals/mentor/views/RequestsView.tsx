@@ -202,9 +202,9 @@ export function RequestsView({ decisions, onSetDecision, demoMode = false }: Req
                   <Badge 
                     label={
                       req.status === 'confirmed' || req.status === 'accepted'
-                        ? 'Accepted ✓'
+                        ? 'Accepted'
                         : req.status === 'completed'
-                        ? 'Completed ✓'
+                        ? 'Completed'
                         : req.status === 'expired'
                         ? 'Expired'
                         : 'Declined'

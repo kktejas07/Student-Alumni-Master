@@ -12,17 +12,17 @@ export function initGlobalErrorLogger(): void {
     window.addEventListener('error', (event) => {
       // eslint-disable-next-line no-console
       console.error(
-        `💥 [UNCAUGHT GLOBAL ERROR] ${event.message} (${event.filename}:${event.lineno}:${event.colno})`,
+        `[UNCAUGHT GLOBAL ERROR] ${event.message} (${event.filename}:${event.lineno}:${event.colno})`,
         event.error
       );
     });
 
     window.addEventListener('unhandledrejection', (event) => {
       // eslint-disable-next-line no-console
-      console.error('💥 [UNHANDLED PROMISE REJECTION]', event.reason);
+      console.error('[UNHANDLED PROMISE REJECTION]', event.reason);
     });
 
     // eslint-disable-next-line no-console
-    debugLog('🛡️ [DEBUG] Global uncaught error & promise rejection listeners activated.');
+    debugLog('[DEBUG] Global uncaught error & promise rejection listeners activated.');
   }
 }

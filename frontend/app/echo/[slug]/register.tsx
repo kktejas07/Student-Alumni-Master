@@ -2,7 +2,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { EchoEventsPage } from '@/src/views/web/echo/EchoEventsPage';
+import EchoEventsPage from '@/src/views/web/echo/EchoEventsPage';
 
 export default function EchoRegisterSlugPage() {
   const { slug } = useLocalSearchParams<{ slug: string }>();

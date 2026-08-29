@@ -55,7 +55,7 @@ export function ForAlumni() {
               <div className="text-sm font-bold text-[#8B84FF] pt-0.5">{item.num}</div>
               <div>
                 <h4 className="text-base font-bold text-white mb-1">{item.title}</h4>
-                <p className="text-sm text-gray-400 leading-relaxed">{item.desc}</p>
+                <p className="text-sm text-[#94A3B8] font-medium leading-relaxed">{item.desc}</p>
               </div>
             </motion.div>
           ))}

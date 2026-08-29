@@ -173,7 +173,7 @@ export function AnalyticsView() {
             <RefreshCw size={14} color={SAC.muted} />
           </Pressable>
           {Platform.OS === 'web' && (
-            <SecondaryButton onPress={handleExport}><Download size={12} color="#fff" /><Text style={{ color: '#fff', fontFamily: FONTS.med, fontSize: 11 }}>Export</Text></SecondaryButton>
+            <SecondaryButton onPress={handleExport}><Download size={12} color="#fff" /><Text style={{ color: SAC.text, fontFamily: FONTS.med, fontSize: 11 }}>Export</Text></SecondaryButton>
           )}
         </View>
       </Card>

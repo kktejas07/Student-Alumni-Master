@@ -82,9 +82,7 @@ export function AnnouncementPopup() {
 
     (async () => {
       try {
-        const r = await fetch('/api/promotions/popup');
-        if (!r.ok) return;
-        const data = await r.json();
+        const data = await api.getPromotionsPopup();
         if (cancelled) return;
 
         const promosData = data.promos || [];

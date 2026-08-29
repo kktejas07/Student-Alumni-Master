@@ -48,7 +48,7 @@ export default function AICourseAdvisor({
     if (open && messages.length === 0) {
       setMessages([{
         role: 'assistant',
-        text: "Hi! I'm your Course Advisor 👋 Ask me anything — try /path ML Engineer, /free Python, or /budget 5000.",
+        text: "Hi! I'm your Course Advisor  Ask me anything — try /path ML Engineer, /free Python, or /budget 5000.",
       }]);
     }
   }, [open]);

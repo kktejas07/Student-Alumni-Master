@@ -510,7 +510,7 @@ function SpeakerCard({ sp, panel = false }: { sp: any; panel?: boolean }) {
             {[sp.position, sp.company].filter(Boolean).join(' · ')}
           </Text>
           {sp.session_title ? (
-            <Text style={spk.session} numberOfLines={1}>🎙 {sp.session_title}</Text>
+            <Text style={spk.session} numberOfLines={1}> {sp.session_title}</Text>
           ) : null}
         </View>
       </View>
@@ -1224,9 +1224,9 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
                 </View>
                 {data.prize_pool.total ? <Text style={[s.infoTitle, { color: '#FBBF24', marginBottom: 6 }]}>{data.prize_pool.total}</Text> : null}
                 <View style={{ gap: 3 }}>
-                  {data.prize_pool.first ? <Text style={s.infoText}>🥇 {data.prize_pool.first}</Text> : null}
-                  {data.prize_pool.second ? <Text style={s.infoText}>🥈 {data.prize_pool.second}</Text> : null}
-                  {data.prize_pool.third ? <Text style={s.infoText}>🥉 {data.prize_pool.third}</Text> : null}
+                  {data.prize_pool.first ? <Text style={s.infoText}> {data.prize_pool.first}</Text> : null}
+                  {data.prize_pool.second ? <Text style={s.infoText}> {data.prize_pool.second}</Text> : null}
+                  {data.prize_pool.third ? <Text style={s.infoText}> {data.prize_pool.third}</Text> : null}
                 </View>
                 {(data.prize_pool.other_prizes || []).filter(Boolean).length > 0 && (
                   <Text style={[s.infoText, { marginTop: 6 }]}>+ {data.prize_pool.other_prizes.join(', ')}</Text>
@@ -1376,7 +1376,7 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
                 <Pressable
                   onPress={() => {
                     const url = typeof window !== 'undefined' ? window.location.href : 'http://localhost:8081/echo/snist';
-                    const text = encodeURIComponent(`🚀 Join ${data?.title || 'SNIST Hackwave 3.0'} — National Level AI Hackathon!\n\nRegister now: ${url}`);
+                    const text = encodeURIComponent(` Join ${data?.title || 'SNIST Hackwave 3.0'} — National Level AI Hackathon!\n\nRegister now: ${url}`);
                     const waUrl = `https://api.whatsapp.com/send?text=${text}`;
                     if (Platform.OS === 'web' && typeof window !== 'undefined') window.open(waUrl, '_blank');
                     else Linking.openURL(waUrl);
@@ -1384,7 +1384,7 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
                   }}
                   style={[s.shareOptionBtn, { backgroundColor: 'rgba(37,211,102,0.15)', borderColor: 'rgba(37,211,102,0.4)' }]}
                 >
-                  <Text style={{ fontSize: 18 }}>🟢</Text>
+                  <Text style={{ fontSize: 18 }}></Text>
                   <Text style={[s.shareOptionText, { color: '#25D366' }]}>Share on WhatsApp</Text>
                 </Pressable>
 
@@ -1392,7 +1392,7 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
                 <Pressable
                   onPress={() => {
                     const url = typeof window !== 'undefined' ? window.location.href : 'http://localhost:8081/echo/snist';
-                    const text = encodeURIComponent(`🚀 Join ${data?.title || 'SNIST Hackwave 3.0'} — National Level AI Hackathon!`);
+                    const text = encodeURIComponent(` Join ${data?.title || 'SNIST Hackwave 3.0'} — National Level AI Hackathon!`);
                     const tgUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${text}`;
                     if (Platform.OS === 'web' && typeof window !== 'undefined') window.open(tgUrl, '_blank');
                     else Linking.openURL(tgUrl);
@@ -1400,7 +1400,7 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
                   }}
                   style={[s.shareOptionBtn, { backgroundColor: 'rgba(0,136,204,0.15)', borderColor: 'rgba(0,136,204,0.4)' }]}
                 >
-                  <Text style={{ fontSize: 18 }}>✈️</Text>
+                  <Text style={{ fontSize: 18 }}></Text>
                   <Text style={[s.shareOptionText, { color: '#38BDF8' }]}>Share on Telegram</Text>
                 </Pressable>
 

@@ -50,7 +50,7 @@ const RAW_STUDENTS = [
     goals:['FAANG internship 2025'], sessionsTotal:5, sessionsCompleted:5, nextSession:null,
     lastSession:{date:'Apr 1, 2026',notes:'Final session. Placed at Google SWE Internship! Outstanding improvement.'},
     progress:100, cgpa:9.1, linkedin:'linkedin.com/in/rohanbhat', github:'github.com/rohanbhat',
-    joinedOn:'Jan 15, 2026', tags:['Placed 🎉','Google Intern'], messages:0 },
+    joinedOn:'Jan 15, 2026', tags:['Placed ','Google Intern'], messages:0 },
   { id:6, name:'Meera Pillai',   avatar:'MP', color:'#F59E0B', college:'IIT Madras',  branch:'B.Tech CS',  year:2026, saId:'SA-26-558820', status:'active',
     interests:['Product Management','Entrepreneurship'], skills:['SQL','Product Thinking','Analytics'],
     goals:['APM role at a top startup','Build product intuition'], sessionsTotal:4, sessionsCompleted:2,

@@ -50,9 +50,9 @@ export function AuthWebShell({
               AI career guidance, internships, mentorship, and alumni networking.
             </Text>
             {[
-              { emoji: '🤖', t: 'AI Career Guidance', s: 'Personalised roadmap based on your goals' },
-              { emoji: '🌍', t: '10,000+ Internships', s: 'Global opportunities matched to you' },
-              { emoji: '🤝', t: '500+ Mentors', s: 'Alumni who want to help you grow' },
+              { emoji: '', t: 'AI Career Guidance', s: 'Personalised roadmap based on your goals' },
+              { emoji: '', t: '10,000+ Internships', s: 'Global opportunities matched to you' },
+              { emoji: '', t: '500+ Mentors', s: 'Alumni who want to help you grow' },
             ].map((f) => (
               <View key={f.t} style={styles.featRow}>
                 <View style={styles.featIcon}>

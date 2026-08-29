@@ -6,10 +6,11 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, QrCode, Check, Clock, Ticket, Lock, CupSoda, UtensilsCrossed, Cookie, Sandwich, Coffee, CalendarDays } from 'lucide-react-native';
+import { ArrowLeft, QrCode, Check, Clock, Ticket, Lock, CupSoda, UtensilsCrossed, Cookie, Sandwich, Coffee, CalendarDays, Home, Sparkles } from 'lucide-react-native';
 import { EchoHeader, EchoFooter, ECHO_TOP_PADDING } from '@/src/views/web/components/EchoChrome';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { api, resolveImageUrl } from '@/src/models/services/api';
+import { SALogo } from '@/src/views/components';
 
 const SESSION_ICONS: Record<string, any> = {
   breakfast: CupSoda,
@@ -87,14 +88,67 @@ export default function EchoCouponsPage() {
   const usedCount = coupons.filter((c) => c.used).length;
   const totalCount = coupons.length;
 
+  // ── Auth guard: show 404 for unauthenticated users ──────────────
+  if (!loading && !user) {
+    return (
+      <View style={n404.shell}>
+        <LinearGradient
+          colors={['#0F0C20', '#151030', '#0B0717']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+        <View pointerEvents="none" style={[n404.glow, { top: -100, right: -100, backgroundColor: 'rgba(139,92,246,0.25)' }]} />
+        <View pointerEvents="none" style={[n404.glow, { bottom: -100, left: -100, backgroundColor: 'rgba(59,130,246,0.20)' }]} />
+        <View style={n404.content}>
+          <SALogo size={64} variant="glass" />
+          <View style={n404.badge}>
+            <Sparkles size={12} color="#60A5FA" />
+            <Text style={n404.badgeText}>ERROR 404</Text>
+          </View>
+          <Text style={n404.title}>Page Not Found</Text>
+          <Text style={n404.subtitle}>
+            The session coupons page is only available to registered users. Please sign in to continue.
+          </Text>
+          <View style={n404.actionRow}>
+            <Pressable
+              style={n404.primaryBtn}
+              onPress={() => router.replace('/(auth)/login')}
+            >
+              <LinearGradient
+                colors={['#8B5CF6', '#1D4ED8']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={n404.btnGradient}
+              >
+                <Home size={16} color="#FFF" />
+                <Text style={n404.primaryBtnText}>Sign In</Text>
+              </LinearGradient>
+            </Pressable>
+            <Pressable
+              style={n404.secondaryBtn}
+              onPress={() => {
+                if (router.canGoBack()) router.back();
+                else router.replace('/welcome');
+              }}
+            >
+              <ArrowLeft size={16} color="rgba(255,255,255,0.8)" />
+              <Text style={n404.secondaryBtnText}>Go Back</Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={s.root}>
       <EchoHeader />
       <ScrollView contentContainerStyle={{ paddingTop: ECHO_TOP_PADDING }}>
         <View style={s.content}>
-          <Pressable onPress={() => router.push(`/echo/${slug}`)} style={s.backBtn}>
+          <Pressable onPress={() => router.push('/platform?role=student&tab=my-tickets')} style={s.backBtn}>
             <ArrowLeft size={14} color="#fff" />
-            <Text style={s.backText}>Back to event</Text>
+            <Text style={s.backText}>Back to tickets</Text>
           </Pressable>
 
           <LinearGradient colors={['rgba(124,58,237,0.30)', 'rgba(30,10,80,0.5)']} style={s.header}>
@@ -259,6 +313,111 @@ export default function EchoCouponsPage() {
     </View>
   );
 }
+
+const n404 = StyleSheet.create({
+  shell: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+    backgroundColor: '#0F0C20',
+  },
+  glow: {
+    position: 'absolute',
+    width: 380,
+    height: 380,
+    borderRadius: 190,
+    ...({ filter: 'blur(100px)' } as any),
+  },
+  content: {
+    alignItems: 'center',
+    maxWidth: 480,
+    width: '100%',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.10)',
+    borderRadius: 24,
+    padding: 40,
+    ...({
+      backdropFilter: 'blur(20px)',
+      boxShadow: '0 20px 50px rgba(0, 0, 0, 0.5)',
+    } as any),
+  },
+  badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 9999,
+    backgroundColor: 'rgba(139, 92, 246, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.3)',
+    marginTop: 24,
+    marginBottom: 16,
+  },
+  badgeText: {
+    color: '#60A5FA',
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 11,
+    letterSpacing: 1.5,
+  },
+  title: {
+    color: '#FFFFFF',
+    fontFamily: 'Outfit_700Bold',
+    fontSize: 32,
+    textAlign: 'center',
+    marginBottom: 12,
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    color: 'rgba(255, 255, 255, 0.65)',
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 15,
+    lineHeight: 22,
+    textAlign: 'center',
+    marginBottom: 32,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: 12,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    width: '100%',
+  },
+  primaryBtn: {
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  btnGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  primaryBtnText: {
+    color: '#FFFFFF',
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 14,
+  },
+  secondaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  secondaryBtnText: {
+    color: 'rgba(255, 255, 255, 0.85)',
+    fontFamily: 'DMSans_600SemiBold',
+    fontSize: 14,
+  },
+});
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#0a0f1e' },

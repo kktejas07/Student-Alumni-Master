@@ -167,7 +167,7 @@ export function DigiLockerOAuthModal({
             </View>
             <View style={[s.stepLine, (step === 'syncing' || step === 'complete') && s.stepLineActive]} />
             <View style={[s.stepDot, step === 'complete' && s.stepDotActive]}>
-              <Text style={s.stepNum}>✓</Text>
+              <Check size={16} color="#fff" />
             </View>
           </View>
 

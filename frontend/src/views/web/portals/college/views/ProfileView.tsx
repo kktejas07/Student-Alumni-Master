@@ -29,7 +29,7 @@ export function ProfileView() {
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={s.name}>{collegeName}</Text>
               <View style={{ flexDirection: 'row', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
-                <Badge label="Verified ✓" color="green" />
+                <Badge label="Verified" color="green" />
               </View>
             </View>
             <Pressable style={s.editBtn}><Text style={{ color: CC.accentBright, fontFamily: FONTS.bold, fontSize: 12 }}>Edit</Text></Pressable>
