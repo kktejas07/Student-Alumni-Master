@@ -1884,8 +1884,6 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                   </div>
                 )}
               </div>
-            </div>
-          </div>
             );
           })()}
 
