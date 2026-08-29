@@ -2969,7 +2969,7 @@ function SessionPassesOverview({ events, onRefresh }: { events: any[]; onRefresh
                                     {enabled && (
                                       <>
                                         <StatusPill kind={locked ? 'warn' : 'success'} label={locked ? 'Locked' : 'Active'} />
-                                        <Pressable onPress={() => toggleLock(ev.slug, sessItem.key, locked)} disabled={toggling === `${ev.slug}:${s.key}`} style={{
+                                        <Pressable onPress={() => toggleLock(ev.slug, sessItem.key, locked)} disabled={toggling === `${ev.slug}:${sessItem.key}`} style={{
                                           width: 32, height: 18, borderRadius: 9, padding: 2,
                                           backgroundColor: locked ? '#F59E0B' : '#334155', cursor: 'pointer',
                                         }}>
@@ -4872,7 +4872,7 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
               <SearchField value={search} onChange={setSearch} placeholder="Search showcases…" />
             </View>
             {pageTab === 'all' && (
-              <TopTabs tabs={FILTER_TABS} active={statusFilter} onChange={setStatusFilter} />
+              <TopTabs tabs={FILTER_TABS} active={statusFilter} onChange={(val) => setStatusFilter(val as StatusFilter)} />
             )}
           </View>
 
