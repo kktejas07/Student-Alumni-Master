@@ -115,7 +115,7 @@ export function TopBar({
         <FadeInView delay={20} style={{ flex: 1, minWidth: 0 }}>
           <Text style={{ fontFamily: TYPO.display700, fontSize: bp.isPhone ? 16 : 18, color: PALETTE.text, letterSpacing: -0.5 }}>
             {activeView === 'dashboard'
-              ? `${greeting()}, ${firstName} 👋`
+              ? `${greeting()}, ${firstName} `
               : (NAV.find((n) => n.id === activeView)?.label || activeView)}
           </Text>
           {!bp.isPhone && activeView === 'dashboard' && (

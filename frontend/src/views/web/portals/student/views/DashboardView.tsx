@@ -27,10 +27,12 @@
  */
 
 import React, { useState, useEffect, useContext } from 'react';
+import { Check, X, Star } from 'lucide-react';
 import { View, Text, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StudentPortalNavContext } from '../StudentPortalNavContext';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { AdBanner } from '@/src/views/web/components/AdBanner';
 
 export function DashboardView() {
   const router = useRouter();
@@ -46,9 +48,6 @@ export function DashboardView() {
     { id: 2, text: 'Prep 3 questions for the mentor call', sub: '2 min · tomorrow 6pm', done: true },
     { id: 3, text: 'Apply to 2 matched roles closing this week', sub: '6 min · 2 of 267 matches', done: false },
   ]);
-
-  // Carousel Slide
-  const [heroSlide, setHeroSlide] = useState(0);
 
   // Coupon Copy Feedback
   const [copiedCoupon, setCopiedCoupon] = useState<string | null>(null);
@@ -74,14 +73,6 @@ export function DashboardView() {
     return () => clearInterval(timer);
   }, []);
 
-  // Automatic Hero Carousel Transition
-  useEffect(() => {
-    const slideTimer = setInterval(() => {
-      setHeroSlide((prev) => (prev + 1) % 3);
-    }, 6000);
-    return () => clearInterval(slideTimer);
-  }, []);
-
   const toggleTask = (id: number) => {
     setTasks((prev) =>
       prev.map((t) => (t.id === id ? { ...t, done: !t.done } : t))
@@ -99,33 +90,6 @@ export function DashboardView() {
     { code: 'SNEHA50', name: 'Sneha Iyer AMA', off: 'Free Entry', desc: 'This coupon will be available shortly' },
     { code: 'INTERNPRO', name: 'Resume Pro', off: '6 Mos Free', desc: 'This coupon will be available shortly' },
     { code: 'AWSCLOUD', name: 'Cloud Boot', off: '₹200 Off', desc: 'This coupon will be available shortly' },
-  ];
-
-  const HERO_SLIDES = [
-    {
-      tag: 'COLLAB EXCLUSIVE',
-      title: 'HackWave 3.0 — 2026',
-      sub: 'SEP 04 — 05 2026 · Sreenidhi Institute of Science and Technology, Hyderabad',
-      desc: 'In strategic collaboration with CDC & Student Alumni. ₹100 Off with code SAHW100.',
-      link: 'http://localhost:8081/echo/snist/register',
-      cta: 'Register on Unstop →',
-    },
-    {
-      tag: 'VOICE OF GENERATIONS · VNRVJIT',
-      title: 'Alumni took the stage, students took notes.',
-      sub: '26 photos, 3 workshops and 5 testimonials from the last showcase.',
-      desc: 'Annual flagship networking conference at VNR Vignana Jyothi.',
-      link: 'http://localhost:8081/echo/vnrvjit/register',
-      cta: 'Open ECHO Showcase →',
-    },
-    {
-      tag: 'CAREER AI · NEW',
-      title: 'Your readiness is up 8% this week.',
-      sub: 'Agent K rebuilt your roadmap. Next milestone: build your professional resume.',
-      desc: 'AI projected career readiness trajectory based on your completed milestones.',
-      link: '/agent-k',
-      cta: 'Continue now →',
-    },
   ];
 
   const MARQUEE_EVENTS = [
@@ -209,89 +173,9 @@ export function DashboardView() {
         }}
       />
 
-      {/* ── 1. Hero Event Carousel Banner (HackWave 3.0 & Voice of Generations) ── */}
-      <div
-        id="db-banner"
-        className="db-card"
-        style={{
-          position: 'relative',
-          borderRadius: '20px',
-          overflow: 'hidden',
-          border: '1px solid #3B2B7A',
-          minHeight: '300px',
-          background:
-            heroSlide === 0
-              ? 'linear-gradient(115deg, #5A2DBE 0%, #6B34D6 42%, #4A1F9E 100%)'
-              : heroSlide === 1
-              ? 'linear-gradient(115deg, #14324D 0%, #0E5548 60%, #103F3A 100%)'
-              : 'linear-gradient(115deg, #3A2352 0%, #5B2E5F 55%, #2C1B3F 100%)',
-          color: '#FFFFFF',
-          transition: 'background 0.7s ease',
-        }}
-      >
-        <div style={{ padding: '34px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '300px', boxSizing: 'border-box' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '24px' }}>
-            <div style={{ maxWidth: '680px' }}>
-              <div style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '3px', color: '#E9DDFF', marginBottom: '12px' }}>
-                {HERO_SLIDES[heroSlide].tag}
-              </div>
-              <h1 style={{ fontSize: '38px', fontWeight: 700, letterSpacing: '-1.4px', lineHeight: 1.1, margin: '0 0 10px' }}>
-                {HERO_SLIDES[heroSlide].title}
-              </h1>
-              <div style={{ fontSize: '15px', color: '#DCCEF7', marginBottom: '12px', fontWeight: 500 }}>
-                {HERO_SLIDES[heroSlide].sub}
-              </div>
-              <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.85)', lineHeight: 1.6, margin: '0 0 24px' }}>
-                {HERO_SLIDES[heroSlide].desc}
-              </p>
-              <a
-                href={HERO_SLIDES[heroSlide].link}
-                target={HERO_SLIDES[heroSlide].link.startsWith('http') ? '_blank' : '_self'}
-                rel="noreferrer"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  background: '#7C5CFC',
-                  color: '#FFFFFF',
-                  padding: '12px 24px',
-                  borderRadius: '10px',
-                  fontSize: '14.5px',
-                  fontWeight: 700,
-                  textDecoration: 'none',
-                  boxShadow: '0 8px 22px rgba(124,92,252,.28)',
-                }}
-              >
-                {HERO_SLIDES[heroSlide].cta}
-              </a>
-            </div>
-
-            {/* Badge & Promo Block */}
-            <div style={{ background: 'rgba(255, 255, 255, 0.12)', border: '1px solid rgba(255, 255, 255, 0.25)', borderRadius: '16px', padding: '20px 24px', textAlign: 'center', minWidth: '200px' }}>
-              <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.4px', color: '#F6C86B' }}>SA COLLAB SPECIAL</div>
-              <div style={{ fontFamily: 'ui-monospace, monospace', fontSize: '24px', fontWeight: 800, color: '#FFFFFF', margin: '6px 0' }}>SAHW100</div>
-              <div style={{ fontSize: '12px', color: '#DCCEF7' }}>₹100 Off per team</div>
-            </div>
-          </div>
-
-          {/* Slide Indicator Dots */}
-          <div style={{ display: 'flex', gap: '8px', marginTop: '20px' }}>
-            {HERO_SLIDES.map((_, i) => (
-              <span
-                key={i}
-                onClick={() => setHeroSlide(i)}
-                style={{
-                  width: heroSlide === i ? '26px' : '8px',
-                  height: '6px',
-                  borderRadius: '3px',
-                  background: heroSlide === i ? '#FFFFFF' : 'rgba(255, 255, 255, 0.4)',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                }}
-              />
-            ))}
-          </div>
-        </div>
+      {/* ── 1. Hero Event Carousel Banner ── */}
+      <div id="db-banner">
+        <AdBanner />
       </div>
 
       {/* ── 2. Collab Exclusive Coupons ── */}
@@ -305,7 +189,7 @@ export function DashboardView() {
           {COUPONS.map((c) => (
             <div key={c.code} className="db-coupon">
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1px solid #1F1F30', minHeight: '90px' }}>
-                <span style={{ fontSize: '26px' }}>🔒</span>
+                <span style={{ fontSize: '26px' }}></span>
               </div>
               <div style={{ padding: '13px 14px 15px' }}>
                 <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#F59E0B', marginBottom: '5px' }}>{c.name}</div>
@@ -374,7 +258,7 @@ export function DashboardView() {
               <div style={{ fontSize: '12.5px', color: '#8A8A9E', marginTop: '8px' }}>0 applied</div>
             </div>
             <span style={{ width: '38px', height: '38px', borderRadius: '11px', background: 'rgba(124,92,252,.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', color: '#A78BFA' }}>
-              💼
+              
             </span>
           </div>
         </div>
@@ -388,7 +272,7 @@ export function DashboardView() {
               <div style={{ fontSize: '12.5px', color: '#8A8A9E', marginTop: '8px' }}>Connections</div>
             </div>
             <span style={{ width: '38px', height: '38px', borderRadius: '11px', background: 'rgba(16, 185, 129, 0.13)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', color: '#34D399' }}>
-              👥
+              
             </span>
           </div>
         </div>
@@ -402,7 +286,7 @@ export function DashboardView() {
               <div style={{ fontSize: '12.5px', color: '#8A8A9E', marginTop: '8px' }}>Registered</div>
             </div>
             <span style={{ width: '38px', height: '38px', borderRadius: '11px', background: 'rgba(240, 97, 107, 0.13)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', color: '#F0616B' }}>
-              📅
+              
             </span>
           </div>
         </div>
@@ -427,7 +311,7 @@ export function DashboardView() {
             border: activeTab === 'opportunities' ? '1px solid #3A2E72' : '1px solid transparent',
           }}
         >
-          💼 Opportunities
+           Opportunities
         </span>
         <span
           onClick={() => setActiveTab('intelligence')}
@@ -446,7 +330,7 @@ export function DashboardView() {
             border: activeTab === 'intelligence' ? '1px solid #3A2E72' : '1px solid transparent',
           }}
         >
-          📈 Intelligence Center
+           Intelligence Center
         </span>
       </div>
 
@@ -474,7 +358,7 @@ export function DashboardView() {
               </svg>
               <div>
                 <div style={{ fontSize: '22px', fontWeight: 700, letterSpacing: '-.6px' }}>Builder</div>
-                <div style={{ fontSize: '13px', color: '#8A8A9E', marginTop: '3px' }}>Target: Industry Ready</div>
+                <div style={{ fontSize: '13px', color: '#8A8A9E', marginTop: '3px' }}> Industry Ready</div>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '12px', fontSize: '12px', fontWeight: 600, color: '#34D399', background: 'rgba(16, 185, 129, 0.13)', borderRadius: '7px', padding: '5px 9px' }}>
                   ↗ +8% this week
                 </div>
@@ -521,7 +405,7 @@ export function DashboardView() {
                   }}
                 >
                   <span style={{ width: '18px', height: '18px', borderRadius: '6px', border: `1.5px solid ${t.done ? '#7C5CFC' : '#262638'}`, background: t.done ? '#7C5CFC' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '1px' }}>
-                    {t.done && <span style={{ color: '#FFFFFF', fontSize: '11px', fontWeight: 800 }}>✓</span>}
+                    {t.done && <Check size={12} color='#FFFFFF' />}
                   </span>
                   <div>
                     <div style={{ fontSize: '14px', fontWeight: 500, lineHeight: 1.4, textDecoration: t.done ? 'line-through' : 'none', color: t.done ? '#8A8A9E' : '#FFFFFF' }}>
@@ -545,7 +429,7 @@ export function DashboardView() {
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '9px' }}>
               <span style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.2px' }}>0</span>
               <span style={{ fontSize: '14px', color: '#8A8A9E' }}>days</span>
-              <span style={{ fontSize: '20px', marginLeft: 'auto', animation: 'db-flame 2.2s ease-in-out infinite', display: 'inline-block' }}>🔥</span>
+              <span style={{ fontSize: '20px', marginLeft: 'auto', animation: 'db-flame 2.2s ease-in-out infinite', display: 'inline-block' }}></span>
             </div>
             <div style={{ display: 'flex', gap: '5px', marginTop: '16px' }}>
               {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, idx) => (
@@ -684,9 +568,9 @@ export function DashboardView() {
             </div>
             <div style={{ display: 'grid', gap: '8px' }}>
               {[
-                { initial: 'PM', color: '#DB2777', name: 'Priya Mehta', role: 'PM @ Microsoft · ★ 4.8' },
-                { initial: 'AV', color: '#10B981', name: 'Arjun Verma', role: 'Data Scientist @ Amazon · ★ 4.7' },
-                { initial: 'VS', color: '#2563EB', name: 'Vikram Singh', role: 'Cloud Architect @ AWS · ★ 4.9' },
+                { initial: 'PM', color: '#DB2777', name: 'Priya Mehta', role: 'PM @ Microsoft · 4.8' },
+                { initial: 'AV', color: '#10B981', name: 'Arjun Verma', role: 'Data Scientist @ Amazon · 4.7' },
+                { initial: 'VS', color: '#2563EB', name: 'Vikram Singh', role: 'Cloud Architect @ AWS · 4.9' },
               ].map((men) => (
                 <div key={men.name} style={{ display: 'grid', gridTemplateColumns: '36px minmax(0, 1fr) max-content', gap: '12px', alignItems: 'center', borderRadius: '11px', padding: '9px 11px', background: 'rgba(255,255,255,0.02)' }}>
                   <span style={{ width: '36px', height: '36px', borderRadius: '50%', background: men.color, color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 700 }}>

@@ -606,7 +606,7 @@ export function SessionsView({ demoMode = false, setDemoMode }: { demoMode?: boo
       setAiSummaryStates((prev) => ({
         ...prev,
         [idx]: {
-          text: `✨ AI Notes Digest: The student demonstrates high structural logic. Focus area for next session is optimization of performance parameters. Key milestones: draft submission before June.`,
+          text: ` AI Notes Digest: The student demonstrates high structural logic. Focus area for next session is optimization of performance parameters. Key milestones: draft submission before June.`,
           loading: false
         }
       }));

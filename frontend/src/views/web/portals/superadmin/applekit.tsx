@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Check, Search, AlertTriangle, Info, Loader, X } from 'lucide-react-native';
-import { SAC, FONTS } from './tokens';
+import { SAC, useSAC, FONTS, resolveColors } from './tokens';
 
 /* ─────────────────────────────────────────────────────────────────
  * Gradient palette (warm orange → amber, matches Settings spec)
@@ -40,6 +40,8 @@ export function GradientButton({
   onPress?: () => void; loading?: boolean; disabled?: boolean;
   children: React.ReactNode; size?: 'sm' | 'md' | 'lg'; style?: any;
 }) {
+  const T = useSAC();
+  Object.assign(k, resolveColors(k, T));
   const pad = size === 'sm'
     ? { paddingHorizontal: 11, paddingVertical: 7 }
     : size === 'lg'
@@ -488,14 +490,14 @@ const k = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, alignSelf: 'flex-start',
   },
-  pillGradText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 0.4 },
+  pillGradText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 0.4 },
 
   tabsOuter: { backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 14 },
   tabActive: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 13, paddingVertical: 8, borderRadius: 10,
   },
-  tabActiveText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12.5 },
+  tabActiveText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 12.5 },
   tabInactive: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 13, paddingVertical: 8, borderRadius: 10,
@@ -511,7 +513,7 @@ const k = StyleSheet.create({
     paddingHorizontal: 6, paddingVertical: 1, borderRadius: 999,
     backgroundColor: 'rgba(255,255,255,0.22)', minWidth: 20, alignItems: 'center',
   },
-  tabCountActiveText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 10 },
+  tabCountActiveText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 10 },
 
   searchBox: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
@@ -519,7 +521,7 @@ const k = StyleSheet.create({
     borderRadius: 10, backgroundColor: SAC.cardSolid, borderColor: SAC.border, borderWidth: 1,
   },
   searchInput: {
-    flex: 1, color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 12,
+    flex: 1, color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 12,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
   },
 
@@ -574,7 +576,7 @@ const k = StyleSheet.create({
   },
   toastText: {
     flex: 1,
-    color: '#fff',
+    color: SAC.text,
     fontFamily: FONTS.semi,
     fontSize: 13,
     lineHeight: 18,

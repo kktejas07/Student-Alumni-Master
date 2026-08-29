@@ -310,7 +310,7 @@ export function DashboardView({ onNav, demoMode = false, setDemoMode }: Props) {
           </View>
           {RATING_DIST.slice(0, 3).map((d) => (
             <View key={d.stars} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 5 }}>
-              <Text style={{ color: MC.dim, fontFamily: FONTS.med, fontSize: 10, width: 18 }}>{d.stars}★</Text>
+              <Text style={{ color: MC.dim, fontFamily: FONTS.med, fontSize: 10, width: 18 }}>{d.stars}</Text>
               <View style={{ flex: 1, height: 5, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.07)', overflow: 'hidden' }}>
                 <LinearGradient colors={[MC.teal, MC.tealD] as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
                   style={{ height: '100%', width: `${d.pct}%`, borderRadius: 3 }} />
@@ -389,7 +389,7 @@ function AIDailyBriefing({ onNav, demoMode = false }: { onNav: (id: string) => v
         </View>
       </View>
       <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 16, lineHeight: 22, marginBottom: 8 }}>
-        {briefText ? 'Today\'s briefing' : (demoMode ? `Good morning, ${firstName} ✨` : 'AI Morning Summary')}
+        {briefText ? 'Today\'s briefing' : (demoMode ? `Good morning, ${firstName} ` : 'AI Morning Summary')}
       </Text>
       <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 18, marginBottom: 12 }}>
         {demoMode ? (

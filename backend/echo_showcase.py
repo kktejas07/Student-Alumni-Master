@@ -2417,6 +2417,8 @@ class SpeakerItem(BaseModel):
     linkedin_url: Optional[str] = None
     twitter_url: Optional[str] = None
     website_url: Optional[str] = None
+    location: Optional[str] = ""         # e.g. "Union, New Jersey, USA"
+    category: Optional[str] = ""          # e.g. "International Panel", "Voices That Build"
     is_panel_member: Optional[bool] = False   # True → shows under "Panel Members"
     session_title: Optional[str] = ""        # keynote/panel/talk this speaker is part of
     visible: Optional[bool] = True
@@ -2448,6 +2450,34 @@ class PanelItem(BaseModel):
 class FaqItem(BaseModel):
     question: str
     answer: str
+
+class PerkItem(BaseModel):
+    """A perk/benefit card shown on the event detail page."""
+    name: str
+    description: Optional[str] = ""
+    value: Optional[str] = ""           # e.g. "$29 value", "Coupon", "Included"
+    icon: Optional[str] = None           # lucide icon key
+    display_order: Optional[int] = 0
+
+class CyberConclaveSession(BaseModel):
+    """One session card inside the Cyber Security Conclave section."""
+    title: str
+    description: Optional[str] = ""
+
+class CyberConclaveConfig(BaseModel):
+    """Configuration for the Cyber Security Conclave section."""
+    enabled: Optional[bool] = True
+    badge: Optional[str] = "INTERNATIONAL VIRTUAL CONCLAVE"
+    title: Optional[str] = "Cyber Security with AI"
+    subtitle: Optional[str] = ""
+    date_label: Optional[str] = ""
+    time_label: Optional[str] = ""
+    sessions: Optional[List[CyberConclaveSession]] = []
+
+class TickerMessage(BaseModel):
+    """A single message in the top scrolling ticker bar."""
+    text: str
+    display_order: Optional[int] = 0
 
 class PrizePoolItem(BaseModel):
     total: Optional[str] = ""
@@ -2482,6 +2512,9 @@ DEFAULT_SECTIONS = {
     "timeline": True,
     "speakers": True,
     "categories": True,
+    "perks": True,
+    "ticker": True,
+    "conclave": True,
     "schedule": True,
     "panels": True,
     "faqs": True,
@@ -2544,6 +2577,9 @@ class ShowcaseCreateSchema(BaseModel):
     og_image_url: Optional[str] = None
     sections: Optional[Dict[str, bool]] = None
     registration: Optional[RegistrationConfig] = None
+    perks: Optional[List[PerkItem]] = []
+    ticker_messages: Optional[List[TickerMessage]] = []
+    cyber_conclave: Optional[CyberConclaveConfig] = None
 
 # ShowcaseUpdateSchema makes every field optional (for partial PATCH-style updates).
 # Defined as a standalone model (not inheriting ShowcaseCreateSchema) to avoid
@@ -2599,6 +2635,9 @@ class ShowcaseUpdateSchema(BaseModel):
     sections: Optional[Dict[str, bool]] = None
     registration: Optional[RegistrationConfig] = None
     sessions: Optional[List[Dict[str, Any]]] = None
+    perks: Optional[List[PerkItem]] = None
+    ticker_messages: Optional[List[TickerMessage]] = None
+    cyber_conclave: Optional[CyberConclaveConfig] = None
 
 
 # ── Seed Default Data ────────────────────────────────────────────────────────
@@ -2650,10 +2689,10 @@ DEFAULT_SHOWCASE_SEED = {
         { "icon": "network", "title": "Networking Sessions", "description": "Students connected with experts and alumni" }
     ],
     "speakers": [
-        { "name": "Vijay Raghavan", "position": "Chief AI Architect", "company": "Google", "bio": "Leads large-scale ML systems and has mentored 100+ student teams.", "is_panel_member": True, "session_title": "AI at Scale — Keynote", "sort_order": 0, "visible": True },
-        { "name": "Sneha Reddy", "position": "VP Engineering", "company": "Microsoft", "bio": "Product leader behind developer tooling at Microsoft. Passionate about D&I in tech.", "is_panel_member": True, "session_title": "Careers in AI — Panel", "sort_order": 1, "visible": True },
-        { "name": "Arjun Mehta", "position": "Founder", "company": "BrightFuture Labs", "bio": "Serial entrepreneur building edtech for rural India.", "is_panel_member": False, "session_title": "Entrepreneurship 101", "sort_order": 2, "visible": True },
-        { "name": "Dr. Kavitha Nair", "position": "Professor", "company": "VNR VJIET", "bio": "Researcher in NLP and student mentor for AI-DS program.", "is_panel_member": False, "session_title": "Careers in AI — Panel", "sort_order": 3, "visible": True }
+        { "name": "Vijay Raghavan", "position": "Chief AI Architect", "company": "Google", "location": "Bangalore, India", "bio": "Leads large-scale ML systems and has mentored 100+ student teams.", "is_panel_member": True, "category": "Keynote Speaker", "session_title": "AI at Scale — Keynote", "sort_order": 0, "visible": True },
+        { "name": "Sneha Reddy", "position": "VP Engineering", "company": "Microsoft", "location": "Hyderabad, India", "bio": "Product leader behind developer tooling at Microsoft. Passionate about D&I in tech.", "is_panel_member": True, "category": "Panelist", "session_title": "Careers in AI — Panel", "sort_order": 1, "visible": True },
+        { "name": "Dr. Kavitha Nair", "position": "Professor & NLP Researcher", "company": "VNR VJIET", "location": "Hyderabad, India", "bio": "Researcher in NLP and student mentor for AI-DS program.", "is_panel_member": True, "category": "Academic Mentor", "session_title": "Careers in AI — Panel", "sort_order": 2, "visible": True },
+        { "name": "Arjun Mehta", "position": "Founder", "company": "BrightFuture Labs", "location": "Hyderabad, India", "bio": "Serial entrepreneur building edtech for rural India.", "is_panel_member": False, "category": "Industry Speaker", "session_title": "Entrepreneurship 101", "sort_order": 3, "visible": True }
     ],
     "categories": [
         { "name": "Healthcare & MedTech", "description": "Build AI solutions for diagnosis, telemedicine and wellness.", "icon": "heartpulse", "color": "#F43F5E" },
@@ -2691,6 +2730,29 @@ DEFAULT_SHOWCASE_SEED = {
         { "name": "InnoLabs", "tier": "Gold Sponsor", "website_url": "https://example.com", "logo_url": None, "priority": 1 },
         { "name": "BrightFuture", "tier": "Silver Sponsor", "website_url": "https://example.com", "logo_url": None, "priority": 2 }
     ],
+    "perks": [
+        { "name": "Networking with Industry Leaders", "description": "Direct access to professionals from Google, Microsoft, and startups", "value": "Live", "icon": "users" },
+        { "name": "Hackathon Prizes", "description": "₹30,000 prize pool across 5 categories", "value": "₹30,000", "icon": "trophy" },
+        { "name": "Certificates for all", "description": "Participation and winner certificates with QR verification", "value": "Verifiable", "icon": "award" },
+        { "name": "Free Food & Refreshments", "description": "Lunch, snacks, and beverages throughout the event", "value": "Included", "icon": "coffee" },
+        { "name": "Internship Opportunities", "description": "On-the-spot internship offers from partner companies", "value": "Live", "icon": "briefcase" }
+    ],
+    "ticker_messages": [
+        { "text": "VNR ECHO 2026 — Empowering Tomorrow's Leaders" },
+        { "text": "320+ students · 12 speakers · 5 hackathon tracks" },
+        { "text": "Free entry for all VNR VJIET students" },
+        { "text": "Certificates, networking, and internship opportunities" },
+        { "text": "August 15, 2026 · Main Auditorium, VNR VJIET" }
+    ],
+    "cyber_conclave": {
+        "enabled": False,
+        "badge": "",
+        "title": "",
+        "subtitle": "",
+        "date_label": "",
+        "time_label": "",
+        "sessions": []
+    },
     "downloads": [
         { "title": "VNR ECHO 2026 Brochure", "description": "Official event guide & schedule", "file_url": "", "file_size": "2.4 MB", "category": "Brochure" }
     ],
@@ -2902,14 +2964,15 @@ async def get_showcase(slug: str, request: Request):
                         ]
                     },
                     "speakers": [
-                        {"name": "Jeremy Livingston", "position": "CISO & Deputy CIO", "company": "Stevens Institute of Technology", "bio": "Leading cybersecurity and higher ed IT infrastructure.", "is_panel_member": True, "category": "International Panel", "sort_order": 0, "visible": True},
-                        {"name": "Sharon Kelley", "position": "Board Member", "company": "ISC2 New Jersey Chapter (MS, MBA, CISSP, CCSP)", "bio": "Security leader, educator, and governance mentor.", "is_panel_member": True, "category": "International Panel", "sort_order": 1, "visible": True},
-                        {"name": "Suman Kalia", "position": "Associate Professor & Chair, Computer Science", "company": "Saint Peter's University", "bio": "Academic leader in algorithms and security engineering.", "is_panel_member": True, "category": "International Panel", "sort_order": 2, "visible": True},
-                        {"name": "Ken Fishkin", "position": "President", "company": "ISC2 New Jersey Chapter", "bio": "Champion for cybersecurity career entry from university campus.", "is_panel_member": True, "category": "International Panel", "sort_order": 3, "visible": True},
-                        {"name": "Jonna Dheeraj", "position": "Account Delivery & Program Management", "company": "Embedded SW · AI · VLSI · 5G · IoT", "bio": "Building high-performance embedded systems and VLSI architectures.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 4, "visible": True},
-                        {"name": "Harish Kotra", "position": "DevX Lead", "company": "Quirq", "bio": "Developer relations leader and community builder.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 5, "visible": True},
-                        {"name": "M Avinash Rao", "position": "Client Account Manager", "company": "Deloitte", "bio": "Enterprise tech consulting and digital delivery expert.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 6, "visible": True},
-                        {"name": "Gopichand Anumolu", "position": "Founder", "company": "ATLAST", "bio": "Startup founder engineering developer tools and student platforms.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 7, "visible": True}
+                        {"name": "Stan Mierzwa, Ph.D.", "position": "Director, Center for Cybersecurity", "company": "Kean University", "location": "Union, New Jersey, USA", "linkedin_url": "https://linkedin.com/in/stanmierzwa", "bio": "Leading cybersecurity education and research.", "is_panel_member": True, "category": "International Panel", "sort_order": 0, "visible": True},
+                        {"name": "Ken Fishkin", "position": "President", "company": "ISC2 New Jersey Chapter", "location": "New Jersey, USA", "linkedin_url": "https://linkedin.com/in/kfishkin", "bio": "Champion for cybersecurity career entry from university campus.", "is_panel_member": True, "category": "International Panel", "sort_order": 1, "visible": True},
+                        {"name": "Sharon Kelley", "position": "Board Member", "company": "ISC2 New Jersey Chapter (MS, MBA, CISSP, CCSP)", "location": "Hoboken, New Jersey, USA", "linkedin_url": "https://linkedin.com/in/sharon-kelley-0292181", "bio": "Security leader, educator, and governance mentor.", "is_panel_member": True, "category": "International Panel", "sort_order": 2, "visible": True},
+                        {"name": "Jeremy Livingston", "position": "CISO & Deputy CIO", "company": "Stevens Institute of Technology", "location": "Effort, Pennsylvania, USA", "linkedin_url": "https://linkedin.com/in/jeremylivin", "bio": "Leading cybersecurity and higher ed IT infrastructure.", "is_panel_member": True, "category": "International Panel", "sort_order": 3, "visible": True},
+                        {"name": "Suman Kalia", "position": "Associate Professor & Chair, Computer Science", "company": "Saint Peter's University", "location": "Jersey City, New Jersey, USA", "linkedin_url": "https://linkedin.com/in/suman-kalia-300b521", "bio": "Academic leader in algorithms and security engineering.", "is_panel_member": True, "category": "International Panel", "sort_order": 4, "visible": True},
+                        {"name": "Jonna Dheeraj", "position": "Account Delivery & Program Management", "company": "Embedded SW · AI · VLSI · 5G · IoT", "location": "Hyderabad, India", "bio": "Building high-performance embedded systems and VLSI architectures.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 5, "visible": True},
+                        {"name": "Harish Kotra", "position": "DevX Lead", "company": "Quirq", "location": "Hyderabad, India", "bio": "Developer relations leader and community builder.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 6, "visible": True},
+                        {"name": "M Avinash Rao", "position": "Client Account Manager", "company": "Deloitte", "location": "Hyderabad, India", "bio": "Enterprise tech consulting and digital delivery expert.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 7, "visible": True},
+                        {"name": "Gopichand Anumolu", "position": "Founder", "company": "ATLAST", "location": "Hyderabad, India", "bio": "Startup founder engineering developer tools and student platforms.", "is_panel_member": False, "category": "Voices That Build", "sort_order": 8, "visible": True}
                     ],
                     "verticals": [
                         {"title": "Build by Sunset", "description": "Ship something real between morning and dusk. Teams of 2–5, 5 AI tracks, ₹50,000 prize pool.", "icon": "rocket"},
@@ -2952,6 +3015,28 @@ async def get_showcase(slug: str, request: Request):
                         "external_url": None,
                         "payment_url": None
                     },
+                    "ticker_messages": [
+                        {"text": "The network is a feed until it meets in person."},
+                        {"text": "86 ECHO events across 31 campuses."},
+                        {"text": "267 roles matched, 41 with a warm referral path."},
+                        {"text": "Verified by your college email — free forever for students."},
+                        {"text": "HackWave 3.0 · Sep 4–5 · Sreenidhi (SNIST) · ₹2,00,000 Mega Grand Pool (₹50,000 Track Pool)"},
+                        {"text": "Built with love for students across all campuses"}
+                    ],
+                    "cyber_conclave": {
+                        "enabled": True,
+                        "badge": "INTERNATIONAL VIRTUAL CONCLAVE",
+                        "title": "Cyber Security with AI",
+                        "subtitle": "Global insights for students building a career in security · Presented by ISC2 New Jersey Chapter (USA) × StudentAlumni.ai",
+                        "date_label": "FRIDAY, SEPTEMBER 4, 2026",
+                        "time_label": "6:00 PM IST · 8:30 AM ET",
+                        "sessions": [
+                            {"title": "Global security trends", "description": "Where the threat landscape is moving."},
+                            {"title": "AI on both sides", "description": "How AI is reshaping defence and attack."},
+                            {"title": "Certifications that matter", "description": "CISSP, CC and the paths worth it."},
+                            {"title": "Career pathways", "description": "How to enter the field from campus."}
+                        ]
+                    },
                     "partners": [
                         {"name": "CodeSpectra", "kind": "association", "logo_url": None},
                         {"name": "Featherless", "kind": "association", "logo_url": None},
@@ -2965,6 +3050,103 @@ async def get_showcase(slug: str, request: Request):
                 }
                 await db.echo_showcases.insert_one(hw_doc)
                 doc = await db.echo_showcases.find_one(_slug_query(slug))
+
+        # CBIT inline seed
+        if not doc and slug == "cbit":
+            cbit_doc = {
+                "_id": ObjectId(),
+                "title": "CBIT ECHO 2026",
+                "slug": "cbit",
+                "aliases": ["cbit-echo-2026", "cbit"],
+                "subtitle": "Innovation, Careers & AI Engineering",
+                "description": "Empowering Tomorrow's Leaders — a day of keynotes, hackathons, career tracks and AI workshops at CBIT Hyderabad.",
+                "date": "July 31, 2026",
+                "time": "09:30 AM — 04:30 PM",
+                "venue": "Main Auditorium, CBIT Hyderabad",
+                "college": "CBIT",
+                "college_name": "Chaitanya Bharathi Institute of Technology",
+                "college_full": "Chaitanya Bharathi Institute of Technology, Hyderabad",
+                "organizer_name": "CBIT Student Council in collaboration with StudentAlumni.ai",
+                "status": "published",
+                "event_status_badge": "Upcoming",
+                "fee": 499,
+                "individual_fee": 499,
+                "team_fee": 1999,
+                "available_seats": 350,
+                "team_slots_available": 70,
+                "prize_pool": "₹35,000 prize pool",
+                "reg_closes": "2026-07-28",
+                "hero_image_url": "/images/hackwave/hackwave_techfest_verticals.jpg",
+                "banner_url": "/images/hackwave/hackwave_techfest_verticals.jpg",
+                "poster_url": "/images/hackwave/hackwave_techfest_verticals.jpg",
+                "gallery_images": [],
+                "speakers": [
+                    {"name": "Vijay Raghavan", "position": "Chief AI Architect", "company": "Google", "location": "Bangalore, India", "bio": "Leads large-scale ML systems.", "is_panel_member": True, "category": "Keynote Speaker", "session_title": "AI at Scale", "sort_order": 0, "visible": True},
+                    {"name": "Sneha Reddy", "position": "VP Engineering", "company": "Microsoft", "location": "Hyderabad, India", "bio": "Product leader behind developer tooling.", "is_panel_member": True, "category": "Panelist", "sort_order": 1, "visible": True},
+                    {"name": "Dr. Kavitha Nair", "position": "Professor & NLP Researcher", "company": "VNR VJIET", "location": "Hyderabad, India", "bio": "Researcher in NLP and student mentor.", "is_panel_member": True, "category": "Academic Mentor", "sort_order": 2, "visible": True},
+                    {"name": "Arjun Mehta", "position": "Founder", "company": "BrightFuture Labs", "location": "Hyderabad, India", "bio": "Serial entrepreneur building edtech.", "is_panel_member": False, "category": "Industry Speaker", "sort_order": 3, "visible": True}
+                ],
+                "categories": [
+                    {"name": "Healthcare & MedTech", "description": "Build AI solutions for diagnosis and telemedicine.", "icon": "heartpulse", "color": "#F43F5E"},
+                    {"name": "EdTech & Learning", "description": "Personalised learning and exam-prep tools.", "icon": "graduation-cap", "color": "#8B5CF6"},
+                    {"name": "FinTech & Inclusion", "description": "Financial literacy and UPI innovation.", "icon": "landmark", "color": "#F59E0B"}
+                ],
+                "partners": [
+                    {"name": "Deloitte", "kind": "association", "logo_url": None},
+                    {"name": "Featherless", "kind": "association", "logo_url": None},
+                    {"name": "Atlast", "kind": "association", "logo_url": None}
+                ],
+                "perks": [
+                    {"name": "Networking with Industry Leaders", "description": "Direct access to professionals from top companies", "value": "Live", "icon": "users"},
+                    {"name": "Hackathon Prizes", "description": "₹35,000 prize pool", "value": "₹35,000", "icon": "trophy"},
+                    {"name": "Certificates for all", "description": "Participation and winner certificates", "value": "Verifiable", "icon": "award"},
+                    {"name": "Free Food", "description": "Lunch and refreshments included", "value": "Included", "icon": "coffee"},
+                    {"name": "Internship Opportunities", "description": "On-the-spot offers from partner companies", "value": "Live", "icon": "briefcase"}
+                ],
+                "ticker_messages": [
+                    {"text": "CBIT ECHO 2026 — Empowering Tomorrow's Leaders"},
+                    {"text": "320+ students · 12 speakers · 3 hackathon tracks"},
+                    {"text": "Free entry for all CBIT students"},
+                    {"text": "Certificates, networking, and internship opportunities"},
+                    {"text": "July 31, 2026 · Main Auditorium, CBIT Hyderabad"}
+                ],
+                "cyber_conclave": {
+                    "enabled": False,
+                    "badge": "",
+                    "title": "",
+                    "subtitle": "",
+                    "date_label": "",
+                    "time_label": "",
+                    "sessions": []
+                },
+                "schedule": [],
+                "panels": [],
+                "faqs": [],
+                "highlights": [],
+                "testimonials": [],
+                "timeline": [],
+                "downloads": [],
+                "videos": [],
+                "gallery": [],
+                "sponsors": [],
+                "sections": dict(DEFAULT_SECTIONS),
+                "registration": {
+                    "enabled": True,
+                    "fee": 499,
+                    "individual_fee": 499,
+                    "team_fee": 1999,
+                    "currency": "INR",
+                    "max_seats": 350,
+                    "deadline": "2026-07-28T23:59:59Z",
+                    "payment_url": None,
+                    "contact_phones": []
+                },
+                "handbook_url": None,
+                "created_at": _now(),
+                "updated_at": _now()
+            }
+            await db.echo_showcases.insert_one(cbit_doc)
+            doc = await db.echo_showcases.find_one(_slug_query(slug))
 
     if not doc:
         raise HTTPException(status_code=404, detail="Showcase not found")
@@ -3013,13 +3195,17 @@ BRANCH_CANONICAL_MAP = {
     "Computer Science and Engineering (CSE)": "CSE",
     "Computer Science and Engineering (AI & ML)": "CSE-AIML",
     "Artificial Intelligence and Data Science": "AI-DS",
+    "AI_DS": "AI-DS",
     "Information Technology": "IT",
     "Electronics and Communication Engineering": "ECE",
     "Electrical and Electronics Engineering": "EEE",
     "Mechanical Engineering": "ME",
+    "MECH": "ME",
     "Civil Engineering": "CE",
+    "CIVIL": "CE",
     "Chemical Engineering": "CHE",
     "Biotechnology": "BT",
+    "OTHER": "Other",
 }
 
 YEAR_CANONICAL_MAP = {
@@ -3027,6 +3213,9 @@ YEAR_CANONICAL_MAP = {
     "2nd Year": "2",
     "3rd Year": "3",
     "4th Year": "4",
+    "Alumni": "Alumni",
+    "Alumni / Passed Out": "Alumni",
+    "Passed Out": "Alumni",
     "Final": "4",
     "Final Year": "4",
     "1": "1",
@@ -3142,8 +3331,8 @@ class RegisterSchema(BaseModel):
             return ""
         val = v.strip()
         norm = YEAR_CANONICAL_MAP.get(val, val)
-        if norm not in ("1", "2", "3", "4"):
-            raise ValueError("Academic year must be 1, 2, 3, or 4")
+        if norm not in ("1", "2", "3", "4", "Alumni", "Passed Out", "Graduated", "5"):
+            raise ValueError("Academic year must be 1, 2, 3, 4, or Alumni")
         return norm
 
     @field_validator("registration_type")
@@ -3564,8 +3753,8 @@ class PaymentOrderSchema(BaseModel):
             return ""
         val = v.strip()
         norm = YEAR_CANONICAL_MAP.get(val, val)
-        if norm not in ("1", "2", "3", "4"):
-            raise ValueError("Academic year must be 1, 2, 3, or 4")
+        if norm not in ("1", "2", "3", "4", "Alumni", "Passed Out", "Graduated", "5"):
+            raise ValueError("Academic year must be 1, 2, 3, 4, or Alumni")
         return norm
 
 
@@ -5006,6 +5195,7 @@ async def get_echo_settings(request: Request):
     """Read-only: fetch current Echo settings. No auth required (template prefs are not sensitive)."""
     db = _get_db(request)
     settings = await db.echo_settings.find_one({"_id": "global"}) or {}
+    hero = settings.get("hero_config") or {}
     return {
         "default_ticket_template": settings.get("default_ticket_template", "aurora"),
         "default_invoice_template": settings.get("default_invoice_template", "modern"),
@@ -5013,6 +5203,22 @@ async def get_echo_settings(request: Request):
         "email_brand_color": settings.get("email_brand_color", "#7C3AED"),
         "brand_name": settings.get("brand_name", "Student Alumni"),
         "email_footer": settings.get("email_footer", "Student Alumni Cell — Empowering the next generation of leaders."),
+        "hero_config": {
+            "badge": hero.get("badge", "ON THE GROUND"),
+            "title": hero.get("title", "The network is a feed until it meets in person."),
+            "description": hero.get("description", "Eighty-six ECHO events across thirty-one campuses. Alumni in the room, recruiters at the table, and a build sprint that runs overnight."),
+            "stats": hero.get("stats", [
+                {"value": "86", "label": "events run", "color": "#4B3FD6"},
+                {"value": "31", "label": "cities", "color": "#0E6E8C"},
+                {"value": "4.8", "label": "average rating", "color": "#A21C63"},
+            ]),
+            "recent_hosts": hero.get("recent_hosts", ["Sreenidhi Institute", "VNR VJIET", "Khammam Institute", "CBIT Hyderabad"]),
+            "cta_primary": hero.get("cta_primary", "Browse all events"),
+            "cta_secondary": hero.get("cta_secondary", "Host on your campus"),
+            "section_badge": hero.get("section_badge", "ECHO EVENTS"),
+            "section_title": hero.get("section_title", "Explore ECHO Events by College"),
+            "section_description": hero.get("section_description", "Image galleries, partners, sponsors, speakers, testimonials and registration for every ECHO event we've conducted."),
+        },
     }
 
 
@@ -5040,6 +5246,13 @@ async def update_echo_settings(request: Request, admin=Depends(_require_admin)):
         update["brand_name"] = str(body["brand_name"])[:60]
     if "email_footer" in body:
         update["email_footer"] = str(body["email_footer"])[:300]
+    if "hero_config" in body:
+        hc = body["hero_config"]
+        if isinstance(hc, dict):
+            # Merge with existing hero_config to preserve unset fields
+            existing = (await db.echo_settings.find_one({"_id": "global"}) or {}).get("hero_config") or {}
+            merged = {**existing, **{k: v for k, v in hc.items() if v is not None}}
+            update["hero_config"] = merged
     if update:
         await db.echo_settings.update_one(
             {"_id": "global"}, {"$set": update}, upsert=True

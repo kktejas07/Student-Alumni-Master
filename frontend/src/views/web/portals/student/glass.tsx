@@ -569,7 +569,7 @@ export function AiCopilotFab({
               } as any),
             ]}
           >
-            <Text style={fab.spark}>✦</Text>
+            <Text style={fab.spark}>·</Text>
             <Text style={fab.label}>{label}</Text>
           </LinearGradient>
         </View>

@@ -22,7 +22,7 @@ import {
   Sparkles, Link2, X, AlertTriangle, CheckCircle2, User, FileUp, FileText,
   FolderOpen, RefreshCw, Copy, Trash2,
 } from 'lucide-react-native';
-import { SAC, FONTS } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import {
   GRAD, GradientButton, Card, IconBox, SectionLabel,
   TopTabs, Toast, useToast,
@@ -37,6 +37,8 @@ type TabId = 'templates' | 'issue' | 'bulk' | 'external' | 'verify' | 'files' | 
 const TAB_IDS: TabId[] = ['templates', 'registry', 'issue', 'bulk', 'files', 'external', 'verify'];
 
 export function CertificatesView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
+  const T = useSAC();
+  Object.assign(s, resolveColors(s, T));
   const [tab, setTab] = useSubTab<TabId>(TAB_IDS, 'templates', { sub, onSub });
   const { toast, flash, hide } = useToast();
 
@@ -1019,7 +1021,7 @@ function InfoRow({ label, value, mono }: { label: string; value?: string; mono?:
 
 const s = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 19 },
+  title: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 19 },
   sub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 6, lineHeight: 19, maxWidth: 620 },
   hint: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, lineHeight: 18, marginBottom: 14 },
   field: { marginBottom: 12 },
@@ -1063,10 +1065,10 @@ const s = StyleSheet.create({
   fileName: { flex: 1, color: '#cbd5e1', fontFamily: FONTS.med, fontSize: 12 },
   fileSize: { color: '#64748b', fontFamily: FONTS.med, fontSize: 11 },
   btnInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  btnText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
-  btnTextSm: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
+  btnText: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 13 },
+  btnTextSm: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 12 },
   regHead: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 14 },
-  regTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
+  regTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 15 },
   regSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, lineHeight: 18, marginTop: 4 },
   countPill: { backgroundColor: 'rgba(167,139,250,0.12)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.28)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
   countText: { color: '#c4b5fd', fontFamily: FONTS.xbold, fontSize: 11.5 },
@@ -1091,6 +1093,6 @@ const s = StyleSheet.create({
   regCopyText: { color: '#64748b', fontFamily: FONTS.bold, fontSize: 10.5 },
   pagination: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 16, gap: 14 },
   pageBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: '#0f172a', borderRadius: 8, borderWidth: 1, borderColor: '#1e293b', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  pageBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
+  pageBtnText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
   pageInfo: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
 });

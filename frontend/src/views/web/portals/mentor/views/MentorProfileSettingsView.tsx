@@ -680,7 +680,7 @@ export function MentorProfileSettingsView({
   };
 
   const handleShareProfile = async () => {
-    const text = `Connect with me on Student Alumni! 🎓\nProfile: studentalumni.in/mentor/SM-8-687562`;
+    const text = `Connect with me on Student Alumni! \nProfile: studentalumni.in/mentor/SM-8-687562`;
     try {
       if (Platform.OS === 'web' && (navigator as any).share) {
         await (navigator as any).share({ title: 'My SA Mentor Profile', text });
@@ -1346,7 +1346,7 @@ export function MentorProfileSettingsView({
                   <View style={st.themeSelectorRow}>
                     {(['Dark', 'Light', 'System'] as const).map((t) => {
                       const isSelected = theme === t;
-                      const emoji = t === 'Dark' ? '🌙' : t === 'Light' ? '☀️' : '💻';
+                      const emoji = t === 'Dark' ? '' : t === 'Light' ? '' : '';
                       return (
                         <Pressable
                           key={t}
@@ -1963,7 +1963,7 @@ export function MentorProfileSettingsView({
               <SidebarStatRow Icon={CalendarCheck} label="Sessions Hosted" value="142 completed" color="#10B981" />
               <SidebarStatRow Icon={UsersRound} label="Active Mentees" value="18" color="#3B82F6" />
               <SidebarStatRow Icon={Eye} label="Profile Views" value="1,248" color={MC.tealP} />
-              <SidebarStatRow Icon={Star} label="Avg Rating" value="4.9★" color="#F59E0B" />
+              <SidebarStatRow Icon={Star} label="Avg Rating" value="4.9" color="#F59E0B" />
               <SidebarStatRow Icon={IndianRupee} label="Earnings (Month)" value="₹500" color="#22C55E" isLast />
             </View>
           </View>

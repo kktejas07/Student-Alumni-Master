@@ -374,7 +374,7 @@ export async function generateCareerReportPdf(data: CareerReportData): Promise<v
   doc.circle(marginX + 10, cy + 14, 6, 'F');
   setTxt(doc, PDF_COLORS.white);
   setFont(doc, 9, 'bold');
-  doc.text('⬡', marginX + 7, cy + 16);  // briefcase placeholder
+  doc.text('●', marginX + 7, cy + 16);  // briefcase placeholder
   setTxt(doc, PDF_COLORS.purpleXL);
   setFont(doc, 7, 'bold');
   doc.text('CURRENT GOAL', marginX + 22, cy + 9);

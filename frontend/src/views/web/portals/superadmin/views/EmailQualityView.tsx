@@ -17,7 +17,7 @@ import {
   XCircle, Search, Users, TrendingUp, TrendingDown, Eye, Trash2,
   CheckCircle2, Clock, FileText, Download, Filter,
 } from 'lucide-react-native';
-import { SAC, FONTS } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import {
   GRAD, SecondaryButton, Card, IconBox, SectionLabel,
   StatusPill, Toast, useToast, KpiTile, SearchField,
@@ -66,6 +66,8 @@ function kindColor(kind?: string): string {
 }
 
 export function EmailQualityView() {
+  const T = useSAC();
+  Object.assign(st, resolveColors(st, T));
   const { toast, flash, hide } = useToast();
   const { confirm } = useConfirm();
   const [q, setQ] = useState('');
@@ -507,7 +509,7 @@ export function EmailQualityView() {
 
 const st = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 },
+  title: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 16 },
   sub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 720 },
   secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
   muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
@@ -520,7 +522,7 @@ const st = StyleSheet.create({
     padding: 12,
   },
   statIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  statValue: { fontFamily: FONTS.xbold, fontSize: 18, color: '#fff' },
+  statValue: { fontFamily: FONTS.xbold, fontSize: 18, color: SAC.text },
   statLabel: { fontFamily: FONTS.med, fontSize: 11, color: SAC.muted, marginTop: 2 },
   
   // Health bar
@@ -543,7 +545,7 @@ const st = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
   },
   rowIcon: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  emailText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13 },
+  emailText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 13 },
   rowMeta: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2, lineHeight: 15 },
   restoreBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
@@ -572,14 +574,14 @@ const st = StyleSheet.create({
   auditScoreRow: { flexDirection: 'row', alignItems: 'center', gap: 16, padding: 16, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.03)' },
   auditScoreCircle: { width: 64, height: 64, borderRadius: 32, borderWidth: 3, alignItems: 'center', justifyContent: 'center' },
   auditScoreValue: { fontFamily: FONTS.xbold, fontSize: 18 },
-  auditScoreLabel: { fontFamily: FONTS.bold, fontSize: 14, color: '#fff' },
+  auditScoreLabel: { fontFamily: FONTS.bold, fontSize: 14, color: SAC.text },
   auditStatsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   auditStatItem: {
     flex: 1, minWidth: 80, flexDirection: 'row', alignItems: 'center', gap: 6,
     padding: 10, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.03)',
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
   },
-  auditStatValue: { fontFamily: FONTS.bold, fontSize: 14, color: '#fff' },
+  auditStatValue: { fontFamily: FONTS.bold, fontSize: 14, color: SAC.text },
   auditStatLabel: { fontFamily: FONTS.med, fontSize: 10, color: SAC.muted },
   auditIssueRow: {
     flexDirection: 'row', alignItems: 'center', gap: 8, padding: 8,
@@ -588,7 +590,7 @@ const st = StyleSheet.create({
   },
   issueBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
   issueBadgeText: { fontFamily: FONTS.bold, fontSize: 9 },
-  issueEmail: { flex: 1, fontFamily: FONTS.med, fontSize: 11, color: '#fff' },
+  issueEmail: { flex: 1, fontFamily: FONTS.med, fontSize: 11, color: SAC.text },
   issueSource: { fontFamily: FONTS.med, fontSize: 10, color: SAC.dim },
 
   // Tips

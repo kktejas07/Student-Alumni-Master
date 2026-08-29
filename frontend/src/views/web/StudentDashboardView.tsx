@@ -272,7 +272,7 @@ export function StudentDashboardView({ showTopBar = true, onOpenNotifications, o
       {showTopBar && (
         <View style={[s.topBar, !isWide && s.topBarNarrow]}>
           <View style={{ flex: 1 }}>
-            <Text style={s.greeting}>Good morning, {userName} 👋</Text>
+            <Text style={s.greeting}>Good morning, {userName} </Text>
             <Text style={s.greetingSub}>
               {loading ? 'Loading your Career AI data…' : `Readiness: ${readiness}% · ${level}`}
             </Text>
@@ -477,7 +477,7 @@ export function StudentDashboardView({ showTopBar = true, onOpenNotifications, o
 
           <View style={[s.heroBody, !isWide && { flexDirection: 'column', gap: 20 }]}>
             <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={s.heroEyebrow}>🤖 CAREER AI · JOB READINESS COMMAND CENTER</Text>
+              <Text style={s.heroEyebrow}> CAREER AI · JOB READINESS COMMAND CENTER</Text>
               <Text style={[s.heroTitle, !isWide && { fontSize: 20, lineHeight: 26 }]}>
                 {'You\'re '}<Text style={{ color: readinessColor }}>{readiness}% Career Ready</Text>
                 {(roadmap?.target_role || data.user.career_goal) ? (<>{'\ntargeting '}<Text style={{ color: C.purpleXL }}>{roadmap?.target_role || data.user.career_goal}</Text></>) : null}
@@ -491,7 +491,7 @@ export function StudentDashboardView({ showTopBar = true, onOpenNotifications, o
                   <View style={[s.heroPFill, { width: `${readiness}%`, backgroundColor: readinessColor }]} />
                 </View>
                 <Text style={[s.dimText, { fontSize: 11, marginTop: 4, textAlign: 'left' }]}>
-                  {ptsToNext > 0 ? `+${ptsToNext}% to reach ${nextLevel}` : 'At maximum level ✓'}
+                  {ptsToNext > 0 ? `+${ptsToNext}% to reach ${nextLevel}` : 'At maximum level'}
                 </Text>
               </View>
               {(roadmap?.progress_pct ?? 0) > 0 && (
@@ -547,7 +547,7 @@ export function StudentDashboardView({ showTopBar = true, onOpenNotifications, o
             { label: 'CONNECTIONS',  value: stats?.connections ?? 0,  note: 'Professional network', color: C.teal,    Icon: Users },
             { label: 'SESSIONS',     value: stats?.sessions ?? 0,     note: 'Mentor sessions done',  color: C.purpleL, Icon: Award },
             { label: 'APPLICATIONS', value: stats?.applications ?? 0, note: 'Jobs applied',          color: C.blue,    Icon: Briefcase },
-            { label: 'SKILL STREAK', value: stats?.streak ?? 0,       note: (stats?.streak ?? 0) === 0 ? 'Start your streak' : `${stats?.streak} day streak 🔥`, color: C.amber, Icon: Flame },
+            { label: 'SKILL STREAK', value: stats?.streak ?? 0,       note: (stats?.streak ?? 0) === 0 ? 'Start your streak' : `${stats?.streak} day streak `, color: C.amber, Icon: Flame },
           ].map((k) => (
             <Pressable key={k.label} style={({ hovered }: any) => [s.kpiCard, !isWide && { flexBasis: '47%', flexGrow: 1 }, hovered && { backgroundColor: C.cardH, transform: [{ translateY: -2 }] }]}>
               <View style={[s.kpiIconWrap, { backgroundColor: k.color + '22', borderColor: k.color + '44', borderWidth: 1 }]}>
@@ -761,7 +761,7 @@ export function StudentDashboardView({ showTopBar = true, onOpenNotifications, o
                         </LinearGradient>
                         <View style={{ flex: 1, minWidth: 0 }}>
                           <Text style={s.mentorName} numberOfLines={1}>{m.full_name}</Text>
-                          <Text style={s.mentorRole} numberOfLines={1}>{[m.designation, m.organization].filter(Boolean).join(' · ')}{m.rating > 0 ? ` · ⭐ ${m.rating.toFixed(1)}` : ''}</Text>
+                          <Text style={s.mentorRole} numberOfLines={1}>{[m.designation, m.organization].filter(Boolean).join(' · ')}{m.rating > 0 ? ` ·  ${m.rating.toFixed(1)}` : ''}</Text>
                         </View>
                         <Pressable onPress={() => handleNav('mentors')} style={({ hovered }: any) => [s.connectBtn, hovered && { backgroundColor: C.purpleL + '33' }]}>
                           <Text style={s.connectBtnText}>Connect</Text>

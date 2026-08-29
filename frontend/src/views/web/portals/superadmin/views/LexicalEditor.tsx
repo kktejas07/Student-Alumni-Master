@@ -5,7 +5,7 @@ import {
   Bold, Italic, Underline, Strikethrough, List, ListOrdered,
   Heading1, Heading2, Quote, Undo, Redo, Sparkles, X, Send,
 } from 'lucide-react-native';
-import { SAC, FONTS } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import { request } from '@/src/models/services/api';
 import { useToast } from '@/src/views/components';
 
@@ -304,7 +304,7 @@ const fallbackStyle = StyleSheet.create({
 
 const aim = StyleSheet.create({
   backdrop: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.65)',
+    flex: 1, backgroundColor: SAC.panel2,
     alignItems: 'center', justifyContent: 'center', padding: 20,
     ...(Platform.OS === 'web' ? { backdropFilter: 'blur(8px)' } : {}),
   },
@@ -318,7 +318,7 @@ const aim = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     padding: 16, borderBottomWidth: 1, borderBottomColor: '#334155',
   },
-  title: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 15 },
+  title: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15 },
   closeBtn: {
     width: 28, height: 28, borderRadius: 7,
     alignItems: 'center', justifyContent: 'center',
@@ -349,5 +349,5 @@ const aim = StyleSheet.create({
     backgroundColor: '#F59E0B',
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {}),
   },
-  sendText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12 },
+  sendText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 12 },
 });

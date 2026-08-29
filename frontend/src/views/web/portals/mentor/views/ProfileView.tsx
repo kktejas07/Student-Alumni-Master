@@ -98,7 +98,7 @@ export function ProfileView() {
           <View style={s.idStats}>
             <Stat label="Sessions" value={String(sessions)} />
             <View style={s.idDivider} />
-            <Stat label="Rating" value={`${rating}★`} />
+            <Stat label="Rating" value={`${rating}`} />
             <View style={s.idDivider} />
             <Stat label="Batch" value={String(batch)} />
           </View>

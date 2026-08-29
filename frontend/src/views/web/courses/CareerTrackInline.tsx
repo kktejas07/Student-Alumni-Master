@@ -165,7 +165,7 @@ export default function CareerTrackInline({
           style={StyleSheet.absoluteFill}
         />
         <View style={s.heroBlur} />
-        <Text style={s.heroEmoji}>🎁</Text>
+        <Text style={s.heroEmoji}></Text>
         <Text style={s.heroTitle}>{track.title}</Text>
         <Text style={s.heroSub}>
           {track.duration_weeks}-week roadmap · {track.weekly_commitment} weekly · {track.enrolled_count.toLocaleString()} learners
@@ -205,7 +205,7 @@ export default function CareerTrackInline({
             <MaterialCommunityIcons name="check-circle-outline" size={15} color="#2563EB" />
             <Text style={s.enrollCtaText}>
               {currentWeek >= track.duration_weeks
-                ? 'Track complete 🎉'
+                ? 'Track complete '
                 : `Mark Week ${currentWeek} complete`}
             </Text>
           </Pressable>
@@ -271,13 +271,13 @@ export default function CareerTrackInline({
                     </Text>
                     <View style={{ flexDirection: 'row', gap: 8, marginTop: 2 }}>
                       {m.courses?.length ? (
-                        <Text style={s.weekMeta}>📚 {m.courses.length} course{m.courses.length === 1 ? '' : 's'}</Text>
+                        <Text style={s.weekMeta}> {m.courses.length} course{m.courses.length === 1 ? '' : 's'}</Text>
                       ) : null}
                       {m.live_session ? (
-                        <Text style={s.weekMeta}>🎙 Live · {m.live_session.mentor}</Text>
+                        <Text style={s.weekMeta}> Live · {m.live_session.mentor}</Text>
                       ) : null}
                       {m.project ? (
-                        <Text style={s.weekMeta}>🚀 Project</Text>
+                        <Text style={s.weekMeta}> Project</Text>
                       ) : null}
                     </View>
                   </View>
@@ -315,7 +315,7 @@ export default function CareerTrackInline({
                       <View style={s.weekExtra}>
                         <MaterialCommunityIcons name="microphone-outline" size={14} color="#22D3EE" />
                         <Text style={s.weekExtraText}>
-                          🎙 {m.live_session.topic} — with {m.live_session.mentor}
+                           {m.live_session.topic} — with {m.live_session.mentor}
                         </Text>
                       </View>
                     )}
@@ -323,7 +323,7 @@ export default function CareerTrackInline({
                       <View style={s.weekExtra}>
                         <MaterialCommunityIcons name="rocket-launch" size={14} color="#F59E0B" />
                         <Text style={s.weekExtraText}>
-                          🚀 Project: {m.project.title} · due Week {m.project.due_by_week}
+                           Project: {m.project.title} · due Week {m.project.due_by_week}
                         </Text>
                       </View>
                     )}
@@ -338,7 +338,7 @@ export default function CareerTrackInline({
       {/* Capstone */}
       <View style={[s.card, { borderColor: accent + '66', backgroundColor: accent + '0A' }]}>
         <View style={s.capHeader}>
-          <Text style={{ fontSize: 22 }}>🏆</Text>
+          <Text style={{ fontSize: 22 }}></Text>
           <View style={{ flex: 1 }}>
             <Text style={s.kicker}>CAPSTONE PROJECT</Text>
             <Text style={s.capTitle}>{track.capstone.title}</Text>

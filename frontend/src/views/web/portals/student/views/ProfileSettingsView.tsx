@@ -86,7 +86,7 @@ const ROLE_CFG: Record<RoleKey, {
       { Icon: CalendarCheck, label: 'Sessions Hosted',  value: s.sessions_completed ?? 0,                     tint: '#10B981' },
       { Icon: UsersRound,    label: 'Active Mentees',   value: s.connections_made ?? 0,                       tint: '#60A5FA' },
       { Icon: Eye,           label: 'Profile Views',    value: s.profile_views ?? 0,                          tint: '#60A5FA' },
-      { Icon: Star,          label: 'Avg Rating',       value: s.avg_rating ? `${s.avg_rating}★` : '—',       tint: '#F59E0B' },
+      { Icon: Star,          label: 'Avg Rating',       value: s.avg_rating ? `${s.avg_rating}` : '—',       tint: '#F59E0B' },
       { Icon: IndianRupee,   label: 'Earnings (Month)', value: s.earnings_this_month ? `₹${s.earnings_this_month}` : '₹0', tint: '#22C55E' },
     ],
   },
