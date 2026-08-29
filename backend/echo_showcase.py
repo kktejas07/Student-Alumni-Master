@@ -2642,15 +2642,15 @@ class ShowcaseUpdateSchema(BaseModel):
 
 # ── Seed Default Data ────────────────────────────────────────────────────────
 DEFAULT_SHOWCASE_SEED = {
-    "title": "VNR ECHO 2026",
-    "slug": "vnrvjit",
-    "aliases": ["vnr-echo-2026"],
-    "subtitle": "Empowering Tomorrow's Leaders",
-    "description": "A day of inspiration, learning, and networking as industry leaders, alumni, and students came together to explore opportunities and shape the future of technology.",
-    "date": "August 15, 2026",
-    "time": "10:00 AM – 4:30 PM",
-    "venue": "Main Auditorium, VNR VJIET",
-    "college": "VNR VJIET",
+    "title": "HackWave 3.0 (2026)",
+    "slug": "snist",
+    "aliases": ["hackwave-3.0", "hackwave-3", "hackwave", "snist"],
+    "subtitle": "Career Development Center · SNIST in collaboration with StudentAlumni.ai",
+    "description": "Build something real. In one overnight sprint. National-Level 24-Hour Tech Fest with 7 Verticals across AI, Security, Hiring and Firesides.",
+    "date": "September 04 – 05, 2026",
+    "time": "Sep 4th, 08:00 AM — Sep 5th, 01:00 PM",
+    "venue": "Sreenidhi Institute of Science and Technology (SNIST), Hyderabad",
+    "college": "SNIST",
     "category": "college-event",
     "status": "published",
     "event_status_badge": "Upcoming",
@@ -2756,7 +2756,22 @@ DEFAULT_SHOWCASE_SEED = {
     "downloads": [
         { "title": "VNR ECHO 2026 Brochure", "description": "Official event guide & schedule", "file_url": "", "file_size": "2.4 MB", "category": "Brochure" }
     ],
-    "videos": [],
+    "videos": [
+        {
+            "title": "HackWave 3.0 SNIST Official Teaser",
+            "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            "thumbnail_url": "/images/hackwave/hackwave_main_poster.png",
+            "description": "Watch the official teaser for HackWave 3.0 at SNIST — 7 Verticals, ₹2,00,000 Grand Pool.",
+            "platform": "youtube"
+        },
+        {
+            "title": "Cyber Security with AI Conclave Teaser",
+            "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            "thumbnail_url": "/images/hackwave/hackwave_cybersecurity_conclave.jpg",
+            "description": "Keynote highlights featuring ISC2 New Jersey Chapter and international cyber security experts.",
+            "platform": "youtube"
+        }
+    ],
     "gallery": [
         { "url": "https://picsum.photos/seed/echo2026-1/800/600", "caption": "Keynote session", "alt": "Keynote session at VNR ECHO 2026", "featured": True, "order": 0, "hero": True },
         { "url": "https://picsum.photos/seed/echo2026-2/800/600", "caption": "Audience & panels", "alt": "Panel discussion", "order": 1 },

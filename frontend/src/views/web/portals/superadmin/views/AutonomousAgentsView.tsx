@@ -11,6 +11,41 @@ export function AutonomousAgentsView() {
   const T = useSAC();
   Object.assign(s, resolveColors(s, T));
   const { toast, flash, hide } = useToast();
+
+  // Autonomous Goodies Harvester & Multi-Spec Outreach State
+  const [selectedSpecType, setSelectedSpecType] = useState('goodies_partnership');
+  const [harvesterLoading, setHarvesterLoading] = useState(false);
+  const [harvesterResult, setHarvesterResult] = useState<any>(null);
+  const [specDispatchLoading, setSpecDispatchLoading] = useState(false);
+  const [specDispatchResult, setSpecDispatchResult] = useState<any>(null);
+
+  const runHarvesterLoop = async () => {
+    setHarvesterLoading(true);
+    try {
+      const res = await postPortal('/admin/agents/outreach/goodies-harvester/run', {});
+      setHarvesterResult(res);
+      flash?.(res?.message || 'Goodies Harvester loop completed!');
+      fetchOutreachDirectory();
+    } catch (e: any) {
+      flash?.(e?.message || 'Harvester loop failed', 'error');
+    } finally {
+      setHarvesterLoading(false);
+    }
+  };
+
+  const runSpecDispatcherLoop = async () => {
+    setSpecDispatchLoading(true);
+    try {
+      const res = await postPortal('/admin/agents/outreach/specs-dispatcher/run', { spec_type: selectedSpecType });
+      setSpecDispatchResult(res);
+      flash?.(res?.message || 'Multi-Spec outreach loop completed!');
+    } catch (e: any) {
+      flash?.(e?.message || 'Spec dispatcher loop failed', 'error');
+    } finally {
+      setSpecDispatchLoading(false);
+    }
+  };
+
   const [activeTab, setActiveTab] = useState<'custom_teams' | 'outreach_directory' | 'swarm' | 'autopilot' | 'qa' | 'specialized' | 'observability' | 'daily_audit'>('custom_teams');
 
   // Custom Teams State
@@ -109,18 +144,50 @@ export function AutonomousAgentsView() {
   const [dossierLoading, setDossierLoading] = useState(false);
   const [dailyDossier, setDailyDossier] = useState<any>(null);
 
+const FALLBACK_PRESET_TEAMS = [
+  {
+    id: 'team-outreach-goodies',
+    name: 'Outreach & Goodies Scouting Team',
+    category: 'outreach',
+    description: 'Scouts student communities across AI, Dev, Design & Web3 every 8 hours, gathering sponsorships, cloud credits, swag, and contacts.',
+    icon: 'Globe',
+    color: '#8B5CF6',
+    is_preset: true,
+    agents: [
+      { id: 'agent-outreach-1', name: 'Karan (Community Scout)', role: 'Community & Hackathon Lead', avatar: '🌐', system_prompt: 'Scout campus clubs, hackathons, and tech groups.' },
+      { id: 'agent-outreach-2', name: 'Zoe (Perks & Goodies Hunter)', role: 'Free Goodies & Sponsorship Hunter', avatar: '🎁', system_prompt: 'Aggregate cloud credits, free dev software licenses, swag.' },
+    ],
+  },
+  {
+    id: 'team-dev-fullstack',
+    name: 'Full-Stack Development Team',
+    category: 'development',
+    description: 'Architects, codes, and refactors scalable APIs, UI components, and DB schemas.',
+    icon: 'Code',
+    color: '#3B82F6',
+    is_preset: true,
+    agents: [
+      { id: 'agent-dev-1', name: 'Alex (Tech Lead)', role: 'System Architect', avatar: '👨‍💻', system_prompt: 'Design robust architecture patterns and API specs.' },
+      { id: 'agent-dev-2', name: 'Priya (Frontend Specialist)', role: 'UI & Component Engineer', avatar: '🎨', system_prompt: 'Build clean, accessible React components.' },
+    ],
+  },
+];
+
   // ─── Custom Teams Logic ──────────────────────────────────────────────
   const fetchTeams = async () => {
     setTeamsLoading(true);
     try {
       const res = await getPortal('/admin/agents/teams');
-      const list = res.teams || [];
+      const list = res?.teams && res.teams.length > 0 ? res.teams : FALLBACK_PRESET_TEAMS;
       setTeamsList(list);
       if (list.length > 0 && !selectedTeam) {
         setSelectedTeam(list[0]);
       }
     } catch (e: any) {
-      flash('Failed to load custom agent teams', 'error');
+      setTeamsList(FALLBACK_PRESET_TEAMS);
+      if (!selectedTeam) {
+        setSelectedTeam(FALLBACK_PRESET_TEAMS[0]);
+      }
     } finally {
       setTeamsLoading(false);
     }
@@ -520,7 +587,7 @@ export function AutonomousAgentsView() {
   const fetchObservability = async () => {
     setObsLoading(true);
     try {
-      const res = await getPortal('/api/ai/observability');
+      const res = await getPortal('/ai/observability');
       setObsData(res);
     } catch (e: any) {
       flash('Failed to load AI telemetry', 'error');
@@ -771,6 +838,61 @@ export function AutonomousAgentsView() {
       {/* TAB 1: OUTREACH & GOODIES DIRECTORY */}
       {activeTab === 'outreach_directory' && (
         <View style={{ gap: 16 }}>
+
+          {/* ── Autonomous Goodies Harvester & Multi-Spec Outreach Swarm ── */}
+          <View style={{ border: '1px solid #3A2E72', borderRadius: 16, padding: 20, backgroundColor: 'rgba(27,20,58,0.85)', gap: 16 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+              <View style={{ gap: 4, flex: 1 }}>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: '#FFF' }}>🤖 Autonomous Goodies Harvester & Multi-Spec Outreach Swarm</Text>
+                <Text style={{ fontFamily: FONTS.medium, fontSize: 13, color: SAC.muted }}>Scouts platforms for free student goodies/coupons and dispatches multi-spec partnership contracts in an automated loop.</Text>
+              </View>
+
+              <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
+                <Pressable onPress={runHarvesterLoop} disabled={harvesterLoading} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#8B5CF6', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, opacity: harvesterLoading ? 0.7 : 1 }}>
+                  <Gift size={16} color="#FFF" />
+                  <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#FFF' }}>{harvesterLoading ? 'Scouting Goodies...' : 'Run Goodies Harvester Loop'}</Text>
+                </Pressable>
+
+                <Pressable onPress={runSpecDispatcherLoop} disabled={specDispatchLoading} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#3B82F6', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, opacity: specLoading ? 0.7 : 1 }}>
+                  <Send size={16} color="#FFF" />
+                  <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#FFF' }}>{specDispatchLoading ? 'Dispatching...' : 'Dispatch Multi-Spec Loop'}</Text>
+                </Pressable>
+              </View>
+            </View>
+
+            {/* Spec Template Selector */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#A78BFA' }}>Select Spec Template:</Text>
+              {[
+                { id: 'goodies_partnership', label: '🎁 Goodies & Perks Spec' },
+                { id: 'event_sponsorship', label: '⚡ ECHO Event Sponsorship Spec' },
+                { id: 'alumni_mentorship', label: '🎓 Alumni Mentorship Spec' }
+              ].map((st) => (
+                <Pressable
+                  key={st.id}
+                  onPress={() => setSelectedSpecType(st.id)}
+                  style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: selectedSpecType === st.id ? '#7C3AED' : 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: selectedSpecType === st.id ? '#A78BFA' : SAC.border }}
+                >
+                  <Text style={{ fontFamily: FONTS.semibold, fontSize: 12, color: selectedSpecType === st.id ? '#FFF' : SAC.muted }}>{st.label}</Text>
+                </Pressable>
+              ))}
+            </View>
+
+            {/* Harvester / Spec Results Display */}
+            {harvesterResult && (
+              <View style={{ border: '1px solid #10B981', borderRadius: 10, padding: 14, backgroundColor: 'rgba(16,185,129,0.1)', gap: 6 }}>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#10B981' }}>✅ Goodies Harvester Output ({harvesterResult.offers_harvested} Platforms Discovered)</Text>
+                <Text style={{ fontFamily: FONTS.medium, fontSize: 13, color: '#D1FAE5' }}>{harvesterResult.message}</Text>
+              </View>
+            )}
+
+            {specDispatchResult && (
+              <View style={{ border: '1px solid #3B82F6', borderRadius: 10, padding: 14, backgroundColor: 'rgba(59,130,246,0.1)', gap: 6 }}>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#60A5FA' }}>🚀 Dispatched Specs ({specDispatchResult.dispatched_count} Sent)</Text>
+                <Text style={{ fontFamily: FONTS.medium, fontSize: 13, color: '#DBEAFE' }}>{specDispatchResult.message}</Text>
+              </View>
+            )}
+          </View>
           {/* Live Impact ROI Analytics KPI Tiles Bar */}
           {impactAnalytics && (
             <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
@@ -1521,15 +1643,15 @@ export function AutonomousAgentsView() {
           <Text style={s.cardSub}>Run targeted background scans for Security (BOLA), Data Hygiene, and Content Moderation.</Text>
 
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
-            <Pressable style={s.specBtn} onPress={() => runSpecialized('security')} disabled={specLoading}>
+            <Pressable style={s.specBtn} onPress={() => runSpecialized('security')} disabled={specDispatchLoading}>
               <ShieldCheck size={14} color="#fff" />
               <Text style={s.specBtnText}>Run Security Audit</Text>
             </Pressable>
-            <Pressable style={s.specBtn} onPress={() => runSpecialized('data_hygiene')} disabled={specLoading}>
+            <Pressable style={s.specBtn} onPress={() => runSpecialized('data_hygiene')} disabled={specDispatchLoading}>
               <Database size={14} color="#fff" />
               <Text style={s.specBtnText}>Run Data Hygiene Scan</Text>
             </Pressable>
-            <Pressable style={s.specBtn} onPress={() => runSpecialized('moderation')} disabled={specLoading}>
+            <Pressable style={s.specBtn} onPress={() => runSpecialized('moderation')} disabled={specDispatchLoading}>
               <Sparkles size={14} color="#fff" />
               <Text style={s.specBtnText}>Run Content Moderation</Text>
             </Pressable>
@@ -1537,7 +1659,7 @@ export function AutonomousAgentsView() {
 
           {specLoading && <ActivityIndicator size="small" color={SAC.accent} style={{ marginTop: 14 }} />}
 
-          {specResult && (
+          {specDispatchResult && (
             <View style={{ marginTop: 20, gap: 12 }}>
               <Text style={s.sectionHeader}>Scan Results ({specResult.agent_name})</Text>
               <View style={s.artifactCard}>

@@ -1,3 +1,142 @@
+
+// ── VIDEOS & REELS UPLOAD MANAGER ─────────────────────────────────────────────
+function CustomVideosEditor({ videos, onChange }: { videos: any[]; onChange: (v: any[]) => void }) {
+  const { flash } = useToast();
+  const [uploadingIdx, setUploadingIdx] = useState<number | null>(null);
+
+  const inputStyle = {
+    borderWidth: 1,
+    borderColor: SAC.border,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 13,
+    color: SAC.text,
+    backgroundColor: SAC.bg,
+  };
+
+  const updateItem = (index: number, key: string, val: any) => {
+    const list = [...(videos || [])];
+    list[index] = { ...list[index], [key]: val };
+    onChange(list);
+  };
+
+  const addItem = () => {
+    onChange([
+      ...(videos || []),
+      {
+        title: 'New Video Clip / Reel',
+        video_url: '',
+        thumbnail_url: '',
+        description: '',
+        platform: 'youtube',
+      },
+    ]);
+  };
+
+  const removeItem = (index: number) => {
+    const list = (videos || []).filter((_, i) => i !== index);
+    onChange(list);
+  };
+
+  const handleFileUpload = async (index: number, e: any) => {
+    const file = e?.target?.files?.[0];
+    if (!file) return;
+    setUploadingIdx(index);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await api.uploadEchoMedia(fd);
+      const fileUrl = res?.url || res?.file_url;
+      if (fileUrl) {
+        updateItem(index, 'video_url', fileUrl);
+        updateItem(index, 'platform', 'mp4');
+        flash?.('Video file uploaded successfully!');
+      }
+    } catch (err: any) {
+      flash?.('Failed to upload video file', 'error');
+    } finally {
+      setUploadingIdx(null);
+    }
+  };
+
+  return (
+    <View style={{ gap: 16 }}>
+      {(videos || []).map((vid: any, idx: number) => {
+        const isYt = vid.video_url?.includes('youtube.com') || vid.video_url?.includes('youtu.be');
+        const ytId = isYt ? (vid.video_url.includes('v=') ? vid.video_url.split('v=')[1]?.split('&')[0] : vid.video_url.split('/').pop()) : null;
+
+        return (
+          <View key={idx} style={{ border: '1px solid ' + SAC.border, borderRadius: 14, padding: 18, backgroundColor: SAC.panelBg, gap: 14 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: SAC.text }}>Video / Clip #{idx + 1}</Text>
+              <Pressable onPress={() => removeItem(idx)} style={{ padding: 4 }}>
+                <Trash2 size={16} color="#EF4444" />
+              </Pressable>
+            </View>
+
+            <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
+              <TextInput
+                style={[inputStyle, { flex: 1, minWidth: 200 }]}
+                placeholder="Video Title (e.g. SNIST HackWave Teaser)"
+                value={vid.title || ''}
+                onChangeText={(t) => updateItem(idx, 'title', t)}
+              />
+              <TextInput
+                style={[inputStyle, { flex: 1.5, minWidth: 260 }]}
+                placeholder="Video URL (YouTube / Vimeo / MP4 File)"
+                value={vid.video_url || ''}
+                onChangeText={(t) => updateItem(idx, 'video_url', t)}
+              />
+              {Platform.OS === 'web' && (
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 8, background: '#7C3AED', color: '#FFF', fontSize: 13, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>
+                  {uploadingIdx === idx ? 'Uploading...' : '🎥 Upload Video File'}
+                  <input type="file" accept="video/mp4,video/webm,video/quicktime" onChange={(e) => handleFileUpload(idx, e)} style={{ display: 'none' }} />
+                </label>
+              )}
+            </View>
+
+            <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
+              <TextInput
+                style={[inputStyle, { flex: 1, minWidth: 200 }]}
+                placeholder="Thumbnail Image URL (optional)"
+                value={vid.thumbnail_url || ''}
+                onChangeText={(t) => updateItem(idx, 'thumbnail_url', t)}
+              />
+              <TextInput
+                style={[inputStyle, { flex: 1.5, minWidth: 260 }]}
+                placeholder="Short Description / Caption (optional)"
+                value={vid.description || ''}
+                onChangeText={(t) => updateItem(idx, 'description', t)}
+              />
+            </View>
+
+            {/* Live Video Preview Box */}
+            {vid.video_url ? (
+              <View style={{ marginTop: 6, borderRadius: 10, overflow: 'hidden', backgroundColor: '#000', maxHeight: 200, alignItems: 'center', justifyContent: 'center' }}>
+                {isYt && ytId ? (
+                  <iframe
+                    src={`https://www.youtube.com/embed/${ytId}`}
+                    title="Preview"
+                    style={{ width: '100%', height: '200px', border: 'none' }}
+                  />
+                ) : (
+                  <video controls src={vid.video_url} style={{ width: '100%', maxHeight: '200px' }} />
+                )}
+              </View>
+            ) : null}
+          </View>
+        );
+      })}
+
+      <Pressable onPress={addItem} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, backgroundColor: 'rgba(124,92,252,0.15)', borderWidth: 1, borderColor: '#7C3AED' }}>
+        <Plus size={16} color="#A78BFA" />
+        <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#A78BFA' }}>Add Video Option</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 // @ts-nocheck
 /**
  * Super Admin — ECHO Showcase CMS View.
@@ -25,7 +164,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import {
   Pencil, Trash2, Eye, Globe, Archive, Send, X, Zap,
   Star, BookOpen, Upload, MoveUp, MoveDown, Images, FolderOpen,
-  Copy, Check, Search, RefreshCw, PlusCircle, FileText, Link2,
+  Copy, Check, Search, RefreshCw, Plus, PlusCircle, FileText, Link2,
   Image as ImageIcon, HardDrive, Calendar, Layout, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Users,
   Ticket, Mail, ScanLine, Phone,
   CupSoda, UtensilsCrossed, Cookie, Sandwich, Coffee, Lock, XCircle, Clock, CheckCircle,
@@ -552,10 +691,10 @@ function StatsEditor({ stats, onChange }: any) {
   };
   return (
     <View style={{ gap: 8 }}>
-      {stats.map((s: any, i: number) => (
+      {stats.map((statItem: any, i: number) => (
         <View key={i} style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-          <TextInput value={s.value || ''} onChangeText={(v) => update(i, 'value', v)} placeholder="Value" placeholderTextColor={SAC.dim} style={[fi.input, { flex: 0.4 }]} />
-          <TextInput value={s.label || ''} onChangeText={(v) => update(i, 'label', v)} placeholder="Label" placeholderTextColor={SAC.dim} style={[fi.input, { flex: 1 }]} />
+          <TextInput value={statItem.value || ''} onChangeText={(v) => update(i, 'value', v)} placeholder="Value" placeholderTextColor={SAC.dim} style={[fi.input, { flex: 0.4 }]} />
+          <TextInput value={statItem.label || ''} onChangeText={(v) => update(i, 'label', v)} placeholder="Label" placeholderTextColor={SAC.dim} style={[fi.input, { flex: 1 }]} />
           <View style={{ flexDirection: 'row', gap: 4 }}>
             <Tip label="Move up"><Pressable onPress={() => move(i, i - 1)} style={[cs.iconBtn, { width: 26, height: 26 }]}><MoveUp size={11} color={SAC.muted} /></Pressable></Tip>
             <Tip label="Move down"><Pressable onPress={() => move(i, i + 1)} style={[cs.iconBtn, { width: 26, height: 26 }]}><MoveDown size={11} color={SAC.muted} /></Pressable></Tip>
@@ -2347,7 +2486,7 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                       style={[fi.input, { flex: 1, minWidth: 100 }]} />
                   </View>
                   <TextInput value={((form.prize_pool || {}).other_prizes || []).join(', ')}
-                    onChangeText={(v: string) => set('prize_pool', { ...(form.prize_pool || {}), other_prizes: v.split(',').map((s: string) => s.trim()).filter(Boolean) })}
+                    onChangeText={(v: string) => set('prize_pool', { ...(form.prize_pool || {}), other_prizes: v.split(',').map((strItem: string) => strItem.trim()).filter(Boolean) })}
                     placeholder="Other prizes (comma-separated)" placeholderTextColor={SAC.dim}
                     style={fi.input} />
                 </View>
@@ -2403,16 +2542,10 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
 
             {/* ── VIDEOS TAB ── */}
             {tab === 'videos' && (
-              <FieldRow label="Event Videos" hint="Paste YouTube/Vimeo URLs or upload MP4 files.">
-                <ListEditor
-                  items={form.videos || []}
-                  fields={[
-                    { key: 'title', placeholder: 'Video Title', flex: 0.7 },
-                    { key: 'video_url', placeholder: 'YouTube / Vimeo / MP4 URL', flex: 1 },
-                    { key: 'thumbnail_url', placeholder: 'Thumbnail URL (optional)', flex: 0.8 },
-                  ]}
+              <FieldRow label="Event Videos & Promo Reels" hint="Paste YouTube/Vimeo URLs or upload MP4 video files directly to feature on the event page.">
+                <CustomVideosEditor
+                  videos={form.videos || []}
                   onChange={(v: any) => set('videos', v)}
-                  addLabel="Add Video"
                 />
               </FieldRow>
             )}
@@ -2589,7 +2722,7 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                   { key: 'dinner', label: 'Dinner', Icon: UtensilsCrossed },
                   { key: 'tiffin', label: 'Tiffin', Icon: Sandwich },
                   { key: 'coffee', label: 'Coffee & Tea', Icon: Coffee },
-                ].map((s) => {
+                ].map((sessKeyObj) => {
                   const sessions = (form.sessions || []);
                   const existing = sessions.find((x: any) => x.key === s.key);
                   const enabled = existing?.enabled ?? false;
@@ -2598,7 +2731,7 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                   const maxDay = Math.max(1, Math.min(7, parseInt(form.end_date && form.date ? '2' : '1', 10) || 1));
                   const dayOptions = Array.from({ length: Math.max(2, maxDay) }, (_, i) => String(i + 1));
                   return (
-                    <View key={s.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' }}>
+                    <View key={sessKeyObj.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' }}>
                       <View style={{ width: 28, alignItems: 'center', justifyContent: 'center' }}>
                         <s.Icon size={18} color={enabled ? GRAD.from : SAC.dim} />
                       </View>
@@ -2825,18 +2958,18 @@ function SessionPassesOverview({ events, onRefresh }: { events: any[]; onRefresh
                           return (
                             <View key={day} style={{ gap: 4 }}>
                               <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: SAC.muted, marginBottom: 2 }}>{dayLabel}</Text>
-                              {daySessions.map((s: any) => {
-                                const locked = s.locked ?? false;
-                                const enabled = s.enabled ?? false;
-                                const SessionIcon = SESSION_PASS_ICONS[s.key] || Ticket;
+                              {daySessions.map((sessItem: any) => {
+                                const locked = sessItem.locked ?? false;
+                                const enabled = sessItem.enabled ?? false;
+                                const SessionIcon = SESSION_PASS_ICONS[sessItem.key] || Ticket;
                                 return (
-                                  <View key={`${s.key}-${day}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6, paddingHorizontal: 10, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
+                                  <View key={`${sessItem.key}-${day}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6, paddingHorizontal: 10, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
                                     <SessionIcon size={16} color={enabled ? '#A78BFA' : SAC.dim} />
-                                    <Text style={{ flex: 1, fontFamily: FONTS.med, fontSize: 12, color: SAC.text }}>{s.label}</Text>
+                                    <Text style={{ flex: 1, fontFamily: FONTS.med, fontSize: 12, color: SAC.text }}>{sessItem.label}</Text>
                                     {enabled && (
                                       <>
                                         <StatusPill kind={locked ? 'warn' : 'success'} label={locked ? 'Locked' : 'Active'} />
-                                        <Pressable onPress={() => toggleLock(ev.slug, s.key, locked)} disabled={toggling === `${ev.slug}:${s.key}`} style={{
+                                        <Pressable onPress={() => toggleLock(ev.slug, sessItem.key, locked)} disabled={toggling === `${ev.slug}:${s.key}`} style={{
                                           width: 32, height: 18, borderRadius: 9, padding: 2,
                                           backgroundColor: locked ? '#F59E0B' : '#334155', cursor: 'pointer',
                                         }}>
@@ -4186,9 +4319,9 @@ function RegistrationsPanel() {
                       <Pressable onPress={() => setAuditEventFilter('all')} style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 5, backgroundColor: auditEventFilter === 'all' ? '#3B82F6' : 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: auditEventFilter === 'all' ? '#3B82F6' : 'rgba(255,255,255,0.1)' }}>
                         <Text style={{ color: auditEventFilter === 'all' ? '#fff' : SAC.muted, fontFamily: FONTS.semi, fontSize: 8.5 }}>All</Text>
                       </Pressable>
-                      {slugs.map((s) => (
-                        <Pressable key={s} onPress={() => setAuditEventFilter(s)} style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 5, backgroundColor: auditEventFilter === s ? '#3B82F6' : 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: auditEventFilter === s ? '#3B82F6' : 'rgba(255,255,255,0.1)' }}>
-                          <Text style={{ color: auditEventFilter === s ? '#fff' : SAC.muted, fontFamily: FONTS.semi, fontSize: 8.5 }}>{s}</Text>
+                      {slugs.map((slugItem) => (
+                        <Pressable key={slugItem} onPress={() => setAuditEventFilter(slugItem)} style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 5, backgroundColor: auditEventFilter === slugItem ? '#3B82F6' : 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: auditEventFilter === slugItem ? '#3B82F6' : 'rgba(255,255,255,0.1)' }}>
+                          <Text style={{ color: auditEventFilter === slugItem ? '#fff' : SAC.muted, fontFamily: FONTS.semi, fontSize: 8.5 }}>{slugItem}</Text>
                         </Pressable>
                       ))}
                     </View>
@@ -4311,7 +4444,7 @@ function VolunteersPanel() {
       if (showResp.ok) {
         const data = await showResp.json();
         const list = Array.isArray(data) ? data : (data.items || data.showcases || []);
-        setShowcases(list.map((s: any) => ({ slug: s.slug, title: s.title || s.slug })));
+        setShowcases(list.map((scItem: any) => ({ slug: scItem.slug, title: scItem.title || scItem.slug })));
       }
     } catch { /* ignore */ }
     setLoading(false);
@@ -4414,17 +4547,17 @@ function VolunteersPanel() {
                   {showcases.length === 0 && (
                     <Text style={{ fontFamily: FONTS.med, fontSize: 11.5, color: SAC.dim }}>No showcases found. Create an event first.</Text>
                   )}
-                  {showcases.map((s) => (
+                  {showcases.map((scItem) => (
                     <Pressable
-                      key={s.slug}
-                      onPress={() => setAddSlug(s.slug)}
+                      key={scItem?.slug || Math.random()}
+                      onPress={() => scItem?.slug && setAddSlug(scItem.slug)}
                       style={{
                         paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9,
                         backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: SAC.border,
                       }}
                     >
-                      <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>{s.title}</Text>
-                      <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>{s.slug}</Text>
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>{scItem?.title || scItem?.slug}</Text>
+                      <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>{scItem?.slug}</Text>
                     </Pressable>
                   ))}
                 </View>
