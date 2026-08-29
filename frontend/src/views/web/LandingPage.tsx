@@ -1,3 +1,5 @@
+import { useTheme } from "@/src/theme/ThemeContext";
+
 /**
  * LandingPage — StudentAlumni AI Career Platform
  * High-Performance Vector SVGs, Real-Time Radar Hover Scan, Scroll-Linked S-Curve & 3D Interactive Motion
