@@ -3165,13 +3165,17 @@ BRANCH_CANONICAL_MAP = {
     "Computer Science and Engineering (CSE)": "CSE",
     "Computer Science and Engineering (AI & ML)": "CSE-AIML",
     "Artificial Intelligence and Data Science": "AI-DS",
+    "AI_DS": "AI-DS",
     "Information Technology": "IT",
     "Electronics and Communication Engineering": "ECE",
     "Electrical and Electronics Engineering": "EEE",
     "Mechanical Engineering": "ME",
+    "MECH": "ME",
     "Civil Engineering": "CE",
+    "CIVIL": "CE",
     "Chemical Engineering": "CHE",
     "Biotechnology": "BT",
+    "OTHER": "Other",
 }
 
 YEAR_CANONICAL_MAP = {
