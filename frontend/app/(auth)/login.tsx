@@ -95,7 +95,9 @@ export default function LoginScreen() {
   }, []);
 
   // Real-time Email Validation & Account Check
-  const handleEmailChange = async (val: string) => {
+  const emailTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleEmailChange = (val: string) => {
     setEmail(val);
     setErrorMsg('');
     const clean = val.trim().toLowerCase();
@@ -107,26 +109,31 @@ export default function LoginScreen() {
 
     const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean);
     if (!isValid) {
-      setEmailStatus('invalid');
+      setEmailStatus('idle');
       return;
     }
 
-    try {
-      const data = await api.checkEmail(clean);
-      if (data && data.exists) {
-        setEmailStatus('registered');
-      } else if (REGISTERED_EMAILS.includes(clean)) {
-        setEmailStatus('registered');
-      } else {
-        setEmailStatus('new');
+    setEmailStatus('idle');
+
+    if (emailTimerRef.current) clearTimeout(emailTimerRef.current);
+    emailTimerRef.current = setTimeout(async () => {
+      try {
+        const data = await api.checkEmail(clean);
+        if (data && data.exists) {
+          setEmailStatus('registered');
+        } else if (REGISTERED_EMAILS.includes(clean)) {
+          setEmailStatus('registered');
+        } else {
+          setEmailStatus('new');
+        }
+      } catch {
+        if (REGISTERED_EMAILS.includes(clean)) {
+          setEmailStatus('registered');
+        } else {
+          setEmailStatus('new');
+        }
       }
-    } catch {
-      if (REGISTERED_EMAILS.includes(clean)) {
-        setEmailStatus('registered');
-      } else {
-        setEmailStatus('new');
-      }
-    }
+    }, 400);
   };
 
   const [showGoogleModal, setShowGoogleModal] = useState(false);
@@ -477,11 +484,6 @@ export default function LoginScreen() {
               {emailStatus === 'new' && (
                 <div style={{ fontSize: 13, color: '#A78BFA', marginTop: 8 }}>
                   No account on this email yet — we'll help you create one.
-                </div>
-              )}
-              {emailStatus === 'invalid' && (
-                <div style={{ fontSize: 13, color: '#F59E0B', marginTop: 8 }}>
-                  That doesn't look like a valid email address yet.
                 </div>
               )}
 
