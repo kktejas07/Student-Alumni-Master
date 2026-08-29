@@ -4420,6 +4420,113 @@ async def admin_echo_registrations(
     return {"items": items, "total": len(items)}
 
 
+@router.get("/admin/export-csv")
+@router.get("/export-csv")
+async def export_echo_registrations_csv(
+    request: Request,
+    slug: Optional[str] = None,
+    status: Optional[str] = None,
+):
+    """
+    Generate and stream CSV of student event & hackathon registrations (Hackwave 3.0 / ECHO 2026).
+    Includes name, email, phone, campus, payment status (paid/unpaid), fee, team or individual details.
+    """
+    import csv
+    import io
+    from fastapi.responses import Response
+
+    db = _get_db(request)
+    query: Dict[str, Any] = {}
+    if slug:
+        query["slug"] = slug
+    if status:
+        query["payment.status"] = status
+
+    docs = await db.echo_registrations.find(query).sort("created_at", -1).to_list(5000)
+
+    output = io.StringIO()
+    headers = [
+        "Registration ID",
+        "Event Title",
+        "Event Slug",
+        "Full Name",
+        "Email",
+        "Phone Number",
+        "Campus / College",
+        "Branch",
+        "Year",
+        "Registration Type",
+        "Team Name",
+        "Is Team Member",
+        "Team Leader Name",
+        "Team Leader Email",
+        "Payment Status",
+        "Payment Category",
+        "Fee Amount (INR)",
+        "Payment Gateway",
+        "Payment ID",
+        "Paid At",
+        "Registration Date"
+    ]
+    
+    writer = csv.DictWriter(output, fieldnames=headers)
+    writer.writeheader()
+
+    for d in docs:
+        pay_info = d.get('payment') or {}
+        raw_status = (pay_info.get('status') or d.get('payment_status') or 'unpaid').lower()
+        fee = float(d.get('fee') or pay_info.get('amount') or 0.0)
+
+        if raw_status == 'paid':
+            payment_status = 'PAID'
+            paid_category = 'Paid (Free)' if fee == 0 else 'Paid'
+        elif raw_status == 'failed':
+            payment_status = 'FAILED'
+            paid_category = 'Failed / Unpaid'
+        elif raw_status == 'pending':
+            payment_status = 'PENDING'
+            paid_category = 'Unpaid (Pending)'
+        else:
+            payment_status = 'UNPAID'
+            paid_category = 'Unpaid'
+
+        reg_type = d.get('registration_type') or ('Team' if d.get('team_name') or d.get('is_team_member') else 'Individual')
+
+        writer.writerow({
+            "Registration ID": d.get('id') or str(d.get('_id')),
+            "Event Title": d.get('showcase_title') or d.get('event_title') or d.get('slug') or '',
+            "Event Slug": d.get('slug') or '',
+            "Full Name": d.get('full_name') or '',
+            "Email": d.get('email') or d.get('user_key') or '',
+            "Phone Number": d.get('phone') or '',
+            "Campus / College": d.get('college') or d.get('showcase_college') or '',
+            "Branch": d.get('branch') or '',
+            "Year": d.get('year') or '',
+            "Registration Type": str(reg_type).title(),
+            "Team Name": d.get('team_name') or '',
+            "Is Team Member": 'Yes' if d.get('is_team_member') else 'No',
+            "Team Leader Name": d.get('team_leader_name') or '',
+            "Team Leader Email": d.get('team_leader_email') or '',
+            "Payment Status": payment_status,
+            "Payment Category": paid_category,
+            "Fee Amount (INR)": fee,
+            "Payment Gateway": pay_info.get('gateway') or '',
+            "Payment ID": pay_info.get('payment_id') or '',
+            "Paid At": pay_info.get('paid_at') or '',
+            "Registration Date": d.get('registered_at') or d.get('created_at') or ''
+        })
+
+    csv_data = output.getvalue()
+    filename = f"hackwave_registrations_export_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.csv"
+
+    return Response(
+        content=csv_data,
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
+
 @router.post("/admin/registrations/sync-teams")
 async def admin_sync_teams(request: Request, _=Depends(_require_admin)):
     """Super-admin: backfill/sync all team registrations to ensure every team member has an SA account, entry pass, and confirmation email."""
