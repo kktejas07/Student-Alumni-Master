@@ -3574,6 +3574,43 @@ function RegistrationsPanel() {
           onChange={setStatus}
         />
         <SecondaryButton onPress={load}><RefreshCw size={12} color={SAC.muted} /><Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12, marginLeft: 6 }}>Refresh</Text></SecondaryButton>
+        <Pressable
+          onPress={() => {
+            const apiBase = (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_API_URL) || 'http://localhost:8000';
+            const exportUrl = `${apiBase}/api/echo/admin/export-csv`;
+            if (typeof window !== 'undefined') {
+              window.open(exportUrl, '_blank');
+            }
+          }}
+          style={{
+            flexDirection: 'row', alignItems: 'center', gap: 6,
+            backgroundColor: '#059669',
+            borderRadius: 8, paddingHorizontal: 13, paddingVertical: 8, cursor: 'pointer',
+          }}
+        >
+          <Download size={13} color="#fff" />
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Export All Events (CSV)</Text>
+        </Pressable>
+        {eventSlug && eventSlug !== 'all' && (
+          <Pressable
+            onPress={() => {
+              const apiBase = (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_API_URL) || 'http://localhost:8000';
+              const statusParam = (status && status !== 'all') ? `&status=${status}` : '';
+              const exportUrl = `${apiBase}/api/echo/admin/export-csv?slug=${eventSlug}${statusParam}`;
+              if (typeof window !== 'undefined') {
+                window.open(exportUrl, '_blank');
+              }
+            }}
+            style={{
+              flexDirection: 'row', alignItems: 'center', gap: 6,
+              backgroundColor: '#4F46E5',
+              borderRadius: 8, paddingHorizontal: 13, paddingVertical: 8, cursor: 'pointer',
+            }}
+          >
+            <Download size={13} color="#fff" />
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Export Selected Event (CSV)</Text>
+          </Pressable>
+        )}
       </View>
 
       {/* Registrations table */}
