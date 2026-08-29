@@ -2956,7 +2956,7 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
             "color": _color_for(a.get("full_name", "")),
             "kind": "alumni",
             "connection_state": rel_map.get(other_id, "none"),
-            "photo_data": a.get("photo_data"),
+            "photo_data": a.get("face_image_base64") or a.get("photo_data"),
         })
     # Fetch Students (ensuring connected ones are included first)
     connected_students = [u for u in connected_users if u.get("role") == "student"]
@@ -3014,7 +3014,7 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
             "branch": si.get("branch_or_stream") or "CSE",
             "year": si.get("class_or_year") or "Y3",
             "looking": s.get("bio") or "Looking for career guidance.",
-            "photo_data": s.get("photo_data"),
+            "photo_data": s.get("face_image_base64") or s.get("photo_data"),
         })
 
     # Fetch Mentors (ensuring connected ones are included first)
@@ -3066,7 +3066,7 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
             "job_title": mi.get("job_title") or "Mentor",
             "rating": mi.get("rating") or 5.0,
             "sessions": mi.get("sessions") or 0,
-            "photo_data": m.get("photo_data"),
+            "photo_data": m.get("face_image_base64") or m.get("photo_data"),
         })
 
     return {"items": out}

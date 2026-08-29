@@ -379,7 +379,7 @@ async def get_public_profile(user_id: str):
         "last_name": target.get("last_name"),
         "headline": target.get("headline"),
         "bio": target.get("bio"),
-        "photo_data": target.get("photo_data") or target.get("face_image_base64"),
+        "photo_data": target.get("face_image_base64") or target.get("photo_data"),
         "is_online": target.get("is_online", True),
         "is_verified": target.get("is_verified", False),
         # Identity meta
@@ -3045,7 +3045,7 @@ def _user_card(u: dict) -> dict:
         "expected_rate_inr": mp.get("expected_rate_inr"),
         "linkedin_url": u.get("linkedin_url") or mp.get("linkedin_url") or ai.get("alumni_linkedin_url"),
         "github_url": mp.get("github_url") or u.get("github_url"),
-        "photo_data": u.get("face_image_base64"),
+        "photo_data": u.get("face_image_base64") or u.get("photo_data") or u.get("photo"),
         "wants_to_mentor": ai.get("wants_to_mentor") or ai.get("alumni_wants_to_mentor") or u.get("role") == "mentor",
         "is_online": is_online,
         "mutual_connections": _fake_mutual(u),  # deterministic placeholder

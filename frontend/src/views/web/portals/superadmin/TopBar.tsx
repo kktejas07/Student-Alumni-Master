@@ -146,7 +146,7 @@ export function TopBar({ title = 'Overview', onAvatarPress }: { title?: string; 
 
       {/* Avatar */}
       <Pressable onPress={onAvatarPress} style={Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}}>
-        <Av initials={displayInitials(user)} size={38} color={T.violet} />
+        <Av initials={displayInitials(user)} size={38} color={T.violet} photo={useAuthStore((s) => s.photoOverride) || user?.photo_data || user?.face_image_base64} />
       </Pressable>
     </View>
   );

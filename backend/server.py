@@ -1052,7 +1052,7 @@ def serialize_user(user: dict) -> dict | None:
         "first_name":     user.get("first_name"),
         "last_name":      user.get("last_name"),
         "headline":       user.get("headline"),
-        "photo_data":     user.get("photo_data") or user.get("face_image_base64") or user.get("oauth_picture"),
+        "photo_data":     user.get("face_image_base64") or user.get("photo_data") or user.get("oauth_picture"),
         "banner_data":    user.get("banner_data"),
         "college_logo_data": user.get("college_logo_data"),
         "institution":    user.get("institution") or (user.get("school_info") or {}).get("institution_name") or (user.get("alumni_info") or {}).get("institution_name") or (user.get("college_info") or {}).get("institution_name"),
