@@ -2255,8 +2255,26 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                     </div>
                   </div>
 
-                  {/* Branch & Year */}
+                  {/* Year & Branch */}
                   <div className="ev-fgrid ev-reg-select-grid" style={{ display: 'grid', gap: '16px' }}>
+                    <div>
+                      <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: 'var(--muted)', marginBottom: '9px' }}>CURRENT YEAR / STATUS</div>
+                      <div className="ev-field" style={{ border: '1px solid var(--line2)', borderRadius: '11px', background: 'var(--panel2)', padding: '11px 14px' }}>
+                        <select
+                          value={year}
+                          onChange={(e) => setYear(e.target.value)}
+                          style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', color: year ? '#FFFFFF' : 'var(--muted)', fontSize: '14.5px', fontFamily: 'inherit', cursor: 'pointer' }}
+                        >
+                          <option value="" disabled style={{ background: '#161622', color: 'var(--muted)' }}>-- Select Year --</option>
+                          <option value="1st Year" style={{ background: 'var(--panel2)', color: 'var(--text)' }}>1st Year</option>
+                          <option value="2nd Year" style={{ background: 'var(--panel2)', color: 'var(--text)' }}>2nd Year</option>
+                          <option value="3rd Year" style={{ background: 'var(--panel2)', color: 'var(--text)' }}>3rd Year</option>
+                          <option value="4th Year" style={{ background: 'var(--panel2)', color: 'var(--text)' }}>4th Year</option>
+                          <option value="Alumni" style={{ background: 'var(--panel2)', color: 'var(--text)' }}>Alumni / Passed Out</option>
+                        </select>
+                      </div>
+                    </div>
+
                     <div>
                       <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: 'var(--muted)', marginBottom: '9px' }}>BRANCH</div>
                       <div className="ev-field" style={{ border: '1px solid var(--line2)', borderRadius: '11px', background: 'var(--panel2)', padding: '11px 14px' }}>
@@ -2274,24 +2292,6 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                           <option value="MECH" style={{ background: 'var(--panel2)', color: 'var(--text)' }}>Mechanical Eng (MECH)</option>
                           <option value="CIVIL" style={{ background: 'var(--panel2)', color: 'var(--text)' }}>Civil Eng</option>
                           <option value="OTHER" style={{ background: 'var(--panel2)', color: 'var(--text)' }}>Other</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div>
-                      <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: 'var(--muted)', marginBottom: '9px' }}>CURRENT B.TECH YEAR</div>
-                      <div className="ev-field" style={{ border: '1px solid var(--line2)', borderRadius: '11px', background: 'var(--panel2)', padding: '11px 14px' }}>
-                        <select
-                          value={year}
-                          onChange={(e) => setYear(e.target.value)}
-                          style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', color: year ? '#FFFFFF' : 'var(--muted)', fontSize: '14.5px', fontFamily: 'inherit', cursor: 'pointer' }}
-                        >
-                          <option value="" disabled style={{ background: '#161622', color: 'var(--muted)' }}>-- Select Year --</option>
-                          <option value="1st Year" style={{ background: 'var(--panel2)', color: 'var(--text)' }}>1st Year</option>
-                          <option value="2nd Year" style={{ background: 'var(--panel2)', color: 'var(--text)' }}>2nd Year</option>
-                          <option value="3rd Year" style={{ background: 'var(--panel2)', color: 'var(--text)' }}>3rd Year</option>
-                          <option value="4th Year" style={{ background: 'var(--panel2)', color: 'var(--text)' }}>4th Year</option>
-                          <option value="Alumni" style={{ background: 'var(--panel2)', color: 'var(--text)' }}>Alumni / Passed Out</option>
                         </select>
                       </div>
                     </div>

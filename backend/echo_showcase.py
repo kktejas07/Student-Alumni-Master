@@ -3294,8 +3294,8 @@ class RegisterSchema(BaseModel):
             return ""
         val = v.strip()
         norm = YEAR_CANONICAL_MAP.get(val, val)
-        if norm not in ("1", "2", "3", "4"):
-            raise ValueError("Academic year must be 1, 2, 3, or 4")
+        if norm not in ("1", "2", "3", "4", "Alumni", "Passed Out", "Graduated", "5"):
+            raise ValueError("Academic year must be 1, 2, 3, 4, or Alumni")
         return norm
 
     @field_validator("registration_type")
