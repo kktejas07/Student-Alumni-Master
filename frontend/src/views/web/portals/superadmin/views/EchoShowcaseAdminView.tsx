@@ -171,7 +171,7 @@ import {
   Copy, Check, Search, RefreshCw, Plus, PlusCircle, FileText, Link2,
   Image as ImageIcon, HardDrive, Calendar, Layout, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Users,
   Ticket, Mail, ScanLine, Phone,
-  CupSoda, UtensilsCrossed, Cookie, Sandwich, Coffee, Lock, XCircle, Clock, CheckCircle,
+  CupSoda, UtensilsCrossed, Cookie, Sandwich, Coffee, Lock, XCircle, Clock, CheckCircle, Download, FileSpreadsheet,
 } from 'lucide-react-native';
 import {
   GRAD, GradientButton, SecondaryButton, Card,
@@ -3382,6 +3382,23 @@ function RegistrationsPanel() {
           <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#34D399' }}>
             {syncingTeams ? 'Syncing...' : 'Sync & Resend Team Passes'}
           </Text>
+        </Pressable>
+        <Pressable
+          onPress={() => {
+            const apiBase = (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_API_URL) || 'http://localhost:8000';
+            const exportUrl = `${apiBase}/api/echo/admin/export-csv${eventFilter !== 'all' ? `?slug=${eventFilter}` : ''}`;
+            if (typeof window !== 'undefined') {
+              window.open(exportUrl, '_blank');
+            }
+          }}
+          style={{
+            flexDirection: 'row', alignItems: 'center', gap: 6,
+            backgroundColor: '#059669',
+            borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, cursor: 'pointer',
+          }}
+        >
+          <Download size={14} color="#fff" />
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Export CSV (Registrations)</Text>
         </Pressable>
       </View>
 
