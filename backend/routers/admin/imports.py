@@ -1334,100 +1334,197 @@ async def list_users(
     category: Optional[str] = None,
     account_filter: Optional[str] = None,
     q: Optional[str] = None,
-    limit: int = 200,
+    page: int = Query(1, ge=1),
+    limit: int = 24,
     offset: int = 0,
     authorization: Optional[str] = Header(None),
 ):
-    """Return users matching category/search, enriched with completeness & account stats."""
+    """Return users matching category/search, enriched with completeness & account stats,
+    pulling seamlessly from both `users` and `contacts` collections."""
     await _require_admin(authorization)
-    match: Dict[str, Any] = {"archived": {"$ne": True}}
-    if category and category != "all":
-        match["category"] = category
-    if q:
-        match["$or"] = [
-            {"name":           {"$regex": re.escape(q), "$options": "i"}},
-            {"full_name":      {"$regex": re.escape(q), "$options": "i"}},
-            {"first_name":     {"$regex": re.escape(q), "$options": "i"}},
-            {"last_name":      {"$regex": re.escape(q), "$options": "i"}},
-            {"email":          {"$regex": re.escape(q), "$options": "i"}},
-            {"college":        {"$regex": re.escape(q), "$options": "i"}},
-            {"company":        {"$regex": re.escape(q), "$options": "i"}},
-            {"sa_id":          {"$regex": re.escape(q), "$options": "i"}},
+    
+    # Handle page vs offset
+    if offset > 0 and page == 1:
+        skip = offset
+    else:
+        skip = (page - 1) * limit
+
+    cat = (category or "all").lower()
+    
+    # 1. Fetch from db.users
+    user_query: Dict[str, Any] = {"archived": {"$ne": True}}
+    if cat != "all":
+        user_query["$or"] = [
+            {"category": cat},
+            {"role": cat},
+            {"tags": cat}
         ]
-    total = await _db.users.count_documents(match)
-    cur = _db.users.find(match).sort([("created_at", -1), ("_id", -1)]).skip(offset).limit(limit * 2 if limit < 500 else limit)
-    items = []
-    async for u in cur:
-        # Derive tags from category + degree/headline keywords
+        if cat == "masters":
+            user_query["$or"].extend([
+                {"school_info.current_degree": {"$in": ["Masters", "M.Tech", "MBA", "MS", "PhD"]}},
+                {"degree": {"$in": ["Masters", "M.Tech", "MBA", "MS", "PhD"]}}
+            ])
+            
+    if q:
+        rx = {"$regex": re.escape(q), "$options": "i"}
+        user_query["$and"] = [
+            {"$or": [
+                {"name": rx}, {"full_name": rx}, {"first_name": rx}, {"last_name": rx},
+                {"email": rx}, {"college": rx}, {"company": rx}, {"sa_id": rx},
+                {"phone": rx}, {"current_title": rx}, {"designation": rx}
+            ]}
+        ]
+
+    # 2. Fetch from db.contacts
+    contact_query: Dict[str, Any] = {}
+    if cat != "all":
+        contact_query["$or"] = [
+            {"role": cat},
+            {"tags": cat},
+            {"category": cat}
+        ]
+        if cat == "masters":
+            contact_query["$or"].append({"education_degree": {"$in": ["Masters", "M.Tech", "MBA", "MS", "PhD"]}})
+    if q:
+        rx = {"$regex": re.escape(q), "$options": "i"}
+        contact_query["$and"] = [
+            {"$or": [
+                {"name": rx}, {"email": rx}, {"phone": rx},
+                {"current_company": rx}, {"current_title": rx},
+                {"education_institution": rx}, {"location": rx}
+            ]}
+        ]
+
+    # Combine docs by lowercased email
+    by_email: Dict[str, dict] = {}
+    
+    async for u in _db.users.find(user_query).sort([("created_at", -1)]):
+        em = (u.get("email") or "").strip().lower()
+        key = em if em else str(u["_id"])
+        by_email[key] = {
+            "source": "users",
+            "raw": u,
+            "email": em or u.get("email"),
+            "name": u.get("full_name") or u.get("name") or em,
+            "role": u.get("role") or u.get("category") or "student",
+            "created_at": u.get("created_at")
+        }
+
+    async for c in _db.contacts.find(contact_query).sort([("created_at", -1)]):
+        em = (c.get("email") or "").strip().lower()
+        key = em if em else str(c["_id"])
+        if key not in by_email:
+            by_email[key] = {
+                "source": "contacts",
+                "raw": c,
+                "email": em or c.get("email"),
+                "name": c.get("name") or c.get("full_name") or em,
+                "role": c.get("role") or (c.get("tags")[0] if c.get("tags") else "student"),
+                "created_at": c.get("created_at")
+            }
+        else:
+            # Merge fields into existing user
+            raw_u = by_email[key]["raw"]
+            for f in ["phone", "current_company", "current_title", "education_institution", "location", "linkedin_url"]:
+                if not raw_u.get(f) and c.get(f):
+                    raw_u[f] = c[f]
+
+    # Transform items
+    combined_items = []
+    for key, entry in by_email.items():
+        u = entry["raw"]
+        src = entry["source"]
+        oid_str = str(u.get("_id", ""))
+        
         tags: List[str] = list(u.get("tags") or [])
-        cat = u.get("category") or u.get("role") or "student"
+        item_cat = u.get("category") or u.get("role") or "student"
         if not tags:
-            if cat == "mentor":  tags.append("Mentor")
-            elif cat == "alumni": tags.append("Alumni")
-            deg = u.get("degree") or ""
+            if item_cat == "mentor": tags.append("Mentor")
+            elif item_cat == "alumni": tags.append("Alumni")
+            elif item_cat == "student": tags.append("Student")
+            deg = u.get("degree") or u.get("education_degree") or ""
             if "B.Tech" in deg: tags.append("B.Tech")
             elif "CSE" in deg: tags.append("CSE")
             elif "ECE" in deg: tags.append("ECE")
             elif "MBA" in deg: tags.append("MBA")
-            elif "MECH" in deg: tags.append("Mech")
-        oid_str = str(u["_id"])
-        is_reg = bool(u.get("password") or u.get("hashed_password") or u.get("password_hash") or u.get("auth_provider") or (u.get("profile_status") == "active" and u.get("created_by") not in ("import", "manual")))
-        
-        # Calculate Data Completeness Score (0 - 100%)
-        # Complete profiles have Name, Email, Phone, College/Company, Degree/Role, Location, LinkedIn/Skills
+
+        is_reg = bool(
+            u.get("password") or u.get("hashed_password") or u.get("password_hash") or 
+            u.get("auth_provider") or u.get("is_registered_user") or 
+            (u.get("profile_status") == "active" and u.get("created_by") not in ("import", "manual"))
+        )
+
+        name = u.get("full_name") or u.get("name") or u.get("email") or "—"
+        institution = u.get("college") or u.get("education_institution") or (u.get("school_info") or {}).get("institution_name") or ""
+        company = u.get("company") or u.get("current_company") or (u.get("alumni_info") or {}).get("alumni_employer") or ""
+        title = u.get("designation") or u.get("current_title") or u.get("headline") or (u.get("mentor_profile") or {}).get("job_title") or ""
+        location = u.get("location") or u.get("city") or ""
+        phone = u.get("phone") or ""
+
         c_points = 0
         max_points = 8
-        if u.get("full_name") and u.get("full_name") != "—": c_points += 1
+        if name and name != "—": c_points += 1
         if u.get("email"): c_points += 1
-        if u.get("phone"): c_points += 1
-        if u.get("college") or (u.get("school_info") or {}).get("institution_name"): c_points += 1
-        if u.get("degree") or u.get("designation") or u.get("current_role"): c_points += 1
-        if u.get("company"): c_points += 1
-        if u.get("location"): c_points += 1
+        if phone: c_points += 1
+        if institution: c_points += 1
+        if title or u.get("degree"): c_points += 1
+        if company: c_points += 1
+        if location: c_points += 1
         if is_reg: c_points += 1
         completeness = int((c_points / max_points) * 100)
 
-        # Filter by account_filter if requested
-        if account_filter == "registered" and not is_reg:
-            continue
-        if account_filter == "unregistered" and is_reg:
-            continue
-        if account_filter == "complete" and completeness < 60:
-            continue
+        if account_filter == "registered" and not is_reg: continue
+        if account_filter == "unregistered" and is_reg: continue
+        if account_filter == "complete" and completeness < 60: continue
 
-        items.append({
-            "id":         oid_str,
-            "sa_id":      u.get("sa_id") or f"SA-{oid_str[-6:].upper()}",
-            "first_name": u.get("first_name") or "",
-            "last_name":  u.get("last_name") or "",
-            "name":       u.get("full_name") or "—",
-            "email":      u.get("email"),
-            "phone":      u.get("phone"),
-            "linkedin_url": u.get("linkedin_url"),
-            "category":   cat,
-            "college":    u.get("college") or (u.get("school_info") or {}).get("institution_name") or "",
-            "degree":     u.get("degree"),
+        created_val = u.get("created_at")
+        if isinstance(created_val, datetime):
+            created_str = created_val.isoformat()
+        else:
+            created_str = str(created_val) if created_val else datetime.now(timezone.utc).isoformat()
+
+        approved = u.get("approved", True) if src == "contacts" else not (
+            (u.get("role") == "mentor" and u.get("mentor_status") != "approved") or
+            (u.get("role") == "college" and u.get("college_status") != "approved")
+        )
+
+        combined_items.append({
+            "id": oid_str,
+            "sa_id": u.get("sa_id") or f"SA-{oid_str[-6:].upper()}",
+            "first_name": u.get("first_name") or (name.split()[0] if name and name != "—" else ""),
+            "last_name": u.get("last_name") or (" ".join(name.split()[1:]) if name and len(name.split()) > 1 else ""),
+            "name": name,
+            "full_name": name,
+            "email": u.get("email"),
+            "phone": phone,
+            "role": item_cat,
+            "category": item_cat,
+            "institution": institution,
+            "college": institution,
+            "degree": u.get("degree") or u.get("education_degree"),
             "graduation_year": u.get("graduation_year"),
-            "designation": u.get("designation"),
-            "company":     u.get("company"),
-            "location":   u.get("location"),
-            "experience_years": u.get("experience_years"),
+            "designation": title,
+            "company": company,
+            "location": location,
+            "mentor_title": title,
+            "mentor_org": company,
+            "mentor_category": u.get("category"),
+            "alumni_employer": company,
+            "alumni_role": title,
             "profile_status": u.get("profile_status") or "complete",
             "is_registered": is_reg,
             "account_status": "registered" if is_reg else "unregistered",
-            "certificate_id": u.get("certificate_id") or (f"CERT-{oid_str[-6:].upper()}" if u.get("certificates") or u.get("certified") else None),
-            "bgv_id": u.get("bgv_id") or (f"BGV-{oid_str[-6:].upper()}" if u.get("bgv_verified") else None),
             "completeness_score": completeness,
-            "approved":   bool(u.get("approved", False)),
-            "tags":       tags[:4],
-            "is_new":     bool(u.get("created_by") in ("import", "manual")) and not u.get("approved"),
-            "invite_sent_at": (u.get("invite_sent_at").isoformat() if isinstance(u.get("invite_sent_at"), datetime) else None),
-            "invite_status": u.get("invite_status"),
-            "created_at": (u.get("created_at").isoformat() if isinstance(u.get("created_at"), datetime) else None),
+            "approved": approved,
+            "tags": tags[:4],
+            "badges": tags[:4],
+            "is_new": bool(u.get("created_by") in ("import", "manual")) and not u.get("approved"),
+            "created_at": created_str,
+            "linkedin_url": u.get("linkedin_url") or u.get("profile_url"),
         })
 
-    # Sort so complete profiles & registered users appear FIRST, minimal data records LAST
-    items.sort(key=lambda x: (
+    # Sort so complete profiles & registered users appear FIRST
+    combined_items.sort(key=lambda x: (
         1 if x["is_registered"] else 0,
         x["completeness_score"],
         1 if x["email"] else 0,
@@ -1435,14 +1532,40 @@ async def list_users(
         x["created_at"] or ""
     ), reverse=True)
 
-    items = items[:limit]
+    # Global Total
+    total_count = len(combined_items)
+    
+    # Calculate counts for KPI tiles
+    all_users_docs = await _db.users.find({"archived": {"$ne": True}}).to_list(10000)
+    all_contacts_docs = await _db.contacts.find().to_list(10000)
+    
+    cat_tally = {"student": 0, "alumni": 0, "mentor": 0, "masters": 0, "all": 0, "pending_approval": 0}
+    seen_kpi_emails = set()
+    for d in (all_users_docs + all_contacts_docs):
+        e = (d.get("email") or "").strip().lower()
+        if e:
+            if e in seen_kpi_emails: continue
+            seen_kpi_emails.add(e)
+        r = (d.get("role") or d.get("category") or "").lower()
+        if not r and d.get("tags"):
+            r = str(d.get("tags")[0]).lower()
+        if r in cat_tally:
+            cat_tally[r] += 1
+        else:
+            cat_tally["student"] += 1
+        cat_tally["all"] += 1
+        if d.get("degree") in ["Masters", "M.Tech", "MBA", "MS", "PhD"] or (d.get("education_degree") in ["Masters", "M.Tech", "MBA", "MS", "PhD"]):
+            cat_tally["masters"] += 1
 
-    counts = {
-        "all":     await _db.users.count_documents({"archived": {"$ne": True}}),
-        "student": await _db.users.count_documents({"category": "student", "archived": {"$ne": True}}),
-        "masters": await _db.users.count_documents({"category": "masters", "archived": {"$ne": True}}),
-        "alumni":  await _db.users.count_documents({"category": "alumni", "archived": {"$ne": True}}),
-        "mentor":  await _db.users.count_documents({"category": "mentor", "archived": {"$ne": True}}),
-        "pending_approval": await _db.users.count_documents({"approved": False, "created_by": {"$in": ["import", "manual"]}, "archived": {"$ne": True}}),
-        "registered": await _db.users.count_documents({"$or": [{"password_hash": {"$exists": True, "$ne": None}}, {"auth_provider": {"$exists": True, "$ne": None}}], "archived": {"$ne": True}}),
+    # Slice page
+    paginated_items = combined_items[skip : skip + limit]
+    total_pages = max(1, (total_count + limit - 1) // limit)
+
+    return {
+        "items": paginated_items,
+        "total": total_count,
+        "page": page,
+        "limit": limit,
+        "pages": total_pages,
+        "counts": cat_tally,
     }

@@ -48,7 +48,7 @@ const TEMPLATES: TemplateDef[] = [
     defaultInst: 'Sreenidhi Institute of Science and Technology',
     defaultProg: 'ECHO 2026 × HackWave 3.0',
     defaultTerm: '2026–27',
-    defaultCite: 'for leading the StudentAlumni.ai presence on campus — mobilising peers, running programme activities and representing the student body with initiative, reliability and genuine care for the community.',
+    defaultCite: 'for leading the StudentAlumni presence on campus — mobilising peers, running programme activities and representing the student body with initiative, reliability and genuine care for the community.',
     defaultIssueDate: '10 August 2026',
     colorScheme: 'purple'
   },
@@ -65,7 +65,7 @@ const TEMPLATES: TemplateDef[] = [
     defaultInst: 'Sreenidhi Institute of Science and Technology',
     defaultProg: 'ECHO 2026 × HackWave 3.0',
     defaultTerm: '2026–27',
-    defaultCite: 'is appointed a Campus Ambassador of StudentAlumni.ai for the term 2026–27, in recognition of student leadership shown through ECHO 2026 × HackWave 3.0.',
+    defaultCite: 'is appointed a Campus Ambassador of StudentAlumni for the term 2026–27, in recognition of student leadership shown through ECHO 2026 × HackWave 3.0.',
     defaultIssueDate: '10 August 2026',
     colorScheme: 'purple'
   },
@@ -82,7 +82,7 @@ const TEMPLATES: TemplateDef[] = [
     defaultInst: 'Sreenidhi Institute of Science and Technology',
     defaultProg: 'ECHO 2026 × HackWave 3.0',
     defaultTerm: '2026–27',
-    defaultCite: 'for leading the StudentAlumni.ai presence on campus with dedication and peer community engagement.',
+    defaultCite: 'for leading the StudentAlumni presence on campus with dedication and peer community engagement.',
     defaultIssueDate: '10 August 2026',
     colorScheme: 'purple'
   },
@@ -235,7 +235,7 @@ const TEMPLATES: TemplateDef[] = [
     defaultInst: 'VNR Vignana Jyothi Institute of Engineering & Technology',
     defaultProg: 'ECHO 2026 × HackWave 3.0',
     defaultTerm: '2026–27',
-    defaultCite: 'named a Partner Campus of Excellence by StudentAlumni.ai following ECHO 2026 for hosting the programme with exceptional commitment.',
+    defaultCite: 'named a Partner Campus of Excellence by StudentAlumni following ECHO 2026 for hosting the programme with exceptional commitment.',
     defaultIssueDate: '10 August 2026',
     colorScheme: 'dark'
   },
@@ -276,38 +276,38 @@ const TEMPLATES: TemplateDef[] = [
     colorScheme: 'ember'
   },
 
-  // ── StudentAlumni.ai Platform Series ──
+  // ── StudentAlumni Platform Series ──
   {
     id: 'cert3',
     name: 'StudentAlumni Internship (Medallion)',
-    category: 'StudentAlumni.ai 2026 Series',
+    category: 'StudentAlumni 2026 Series',
     seriesPrefix: 'SA-INT-2026',
     defaultId: 'SA-INT-2026-0119',
     defaultTitle: 'Certificate of Internship Completion',
     defaultRecipient: 'Yerraguntla Harsha Vardhan',
     defaultRole: 'Product Engineering Intern',
     defaultDept: 'Platform & Engagement Team',
-    defaultInst: 'StudentAlumni.ai Platform',
+    defaultInst: 'StudentAlumni Platform',
     defaultProg: 'Core Platform Engineering',
     defaultTerm: '6 Months',
-    defaultCite: 'worked across the StudentAlumni.ai platform — supporting the student, alumni and college portals through build, review and release — and brought steady initiative, care for detail and a collaborative way of working to the team.',
+    defaultCite: 'worked across the StudentAlumni platform — supporting the student, alumni and college portals through build, review and release — and brought steady initiative, care for detail and a collaborative way of working to the team.',
     defaultIssueDate: '10 August 2026',
     colorScheme: 'purple'
   },
   {
     id: 'cert4',
     name: 'StudentAlumni Project Completion (Panel)',
-    category: 'StudentAlumni.ai 2026 Series',
+    category: 'StudentAlumni 2026 Series',
     seriesPrefix: 'SA-PRJ-2026',
     defaultId: 'SA-PRJ-2026-0120',
     defaultTitle: 'Certificate of Project Completion',
     defaultRecipient: 'Yerraguntla Harsha Vardhan',
     defaultRole: 'Lead Platform Developer',
     defaultDept: 'Engineering & Innovation',
-    defaultInst: 'StudentAlumni.ai Platform',
+    defaultInst: 'StudentAlumni Platform',
     defaultProg: 'NexusOS Architecture',
     defaultTerm: 'Project Delivery 2026',
-    defaultCite: 'designed, built and delivered the project end to end — from requirements through implementation, testing and handover — meeting the scope and quality standards set by the StudentAlumni.ai product team.',
+    defaultCite: 'designed, built and delivered the project end to end — from requirements through implementation, testing and handover — meeting the scope and quality standards set by the StudentAlumni product team.',
     defaultIssueDate: '10 August 2026',
     colorScheme: 'purple'
   }
@@ -391,7 +391,7 @@ export function EchoCertificateStudio({ onSaved }: { onSaved?: (msg: string) => 
           certificate_id: certId,
           recipient_name: recipientName,
           issue_date: issueDate,
-          issuer: 'StudentAlumni.ai & Institutional Network'
+          issuer: 'StudentAlumni & Institutional Network'
         }
       });
       setAuditResult(res);
@@ -511,7 +511,7 @@ export function EchoCertificateStudio({ onSaved }: { onSaved?: (msg: string) => 
           { id: 'ALL', label: 'All Series' },
           { id: 'ECHO', label: 'ECHO 2026 × HackWave 3.0' },
           { id: 'AXISS', label: 'AXISS Group 2026' },
-          { id: 'StudentAlumni', label: 'StudentAlumni.ai 2026' }
+          { id: 'StudentAlumni', label: 'StudentAlumni 2026' }
         ].map((f) => (
           <Pressable
             key={f.id}
@@ -751,7 +751,7 @@ export function EchoCertificateStudio({ onSaved }: { onSaved?: (msg: string) => 
                       <Text style={{ color: SAC.text, fontFamily: FONTS.xbold, fontSize: 13 }}>SA</Text>
                     </View>
                     <View>
-                      <Text style={s.certBrandText}>StudentAlumni.ai</Text>
+                      <Text style={s.certBrandText}>StudentAlumni</Text>
                       <Text style={s.certBrandSub}>National Accreditation & Industry Network</Text>
                     </View>
                   </View>
