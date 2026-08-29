@@ -444,7 +444,7 @@ export function RentalsView() {
                 whiteSpace: 'nowrap',
               }}
             >
-              📍 {city}
+               {city}
             </span>
           ))}
         </div>
@@ -525,7 +525,7 @@ export function RentalsView() {
 
               {/* Rating & Availability */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12.5px' }}>
-                <span>⭐ <strong>{item.rate}</strong> ({item.revs})</span>
+                <span> <strong>{item.rate}</strong> ({item.revs})</span>
                 <span style={{ color: '#34D399', fontWeight: 600 }}>{item.left} left</span>
               </div>
 
@@ -560,7 +560,7 @@ export function RentalsView() {
                 <h2 style={{ fontSize: '24px', fontWeight: 700, margin: '0 0 4px' }}>{selectedListing.name}</h2>
                 <div style={{ fontSize: '14px', color: '#8A8A9E' }}>{selectedListing.loc} · <strong style={{ color: selectedListing.col }}>{selectedListing.cat}</strong></div>
               </div>
-              <span onClick={() => setSelectedListing(null)} style={{ fontSize: '20px', color: '#8A8A9E', cursor: 'pointer' }}>✕</span>
+              <span onClick={() => setSelectedListing(null)} style={{ color: '#8A8A9E', cursor: 'pointer' }}><X size={20} color='#8A8A9E' /></span>
             </div>
 
             <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.8)', lineHeight: 1.6, margin: '0 0 20px' }}>
@@ -609,7 +609,7 @@ export function RentalsView() {
                 <h2 style={{ fontSize: '20px', fontWeight: 700, margin: '0 0 4px' }}>Book {bookingListing.name}</h2>
                 <div style={{ fontSize: '13px', color: '#8A8A9E' }}>{bookingListing.loc}</div>
               </div>
-              <span onClick={() => setBookingListing(null)} style={{ fontSize: '20px', color: '#8A8A9E', cursor: 'pointer' }}>✕</span>
+              <span onClick={() => setBookingListing(null)} style={{ color: '#8A8A9E', cursor: 'pointer' }}><X size={20} color='#8A8A9E' /></span>
             </div>
 
             {/* Guest Counter */}
@@ -660,7 +660,7 @@ export function RentalsView() {
           <div style={{ width: '100%', maxWidth: '620px', maxHeight: '90vh', overflowY: 'auto', background: '#101019', border: '1px solid #1F1F30', borderRadius: '22px', padding: '28px', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h2 style={{ fontSize: '20px', fontWeight: 700, margin: 0 }}>My Active Bookings</h2>
-              <span onClick={() => setShowMyBookings(false)} style={{ fontSize: '20px', color: '#8A8A9E', cursor: 'pointer' }}>✕</span>
+              <span onClick={() => setShowMyBookings(false)} style={{ color: '#8A8A9E', cursor: 'pointer' }}><X size={20} color='#8A8A9E' /></span>
             </div>
 
             {activeBookings.length > 0 ? (
@@ -676,8 +676,8 @@ export function RentalsView() {
                     </span>
                   </div>
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', fontSize: '12.5px', color: '#8A8A9E', marginBottom: '16px' }}>
-                    <span>📅 {b.checkIn} — {b.checkOut}</span>
-                    <span>👤 {b.guests}</span>
+                    <span> {b.checkIn} — {b.checkOut}</span>
+                    <span> {b.guests}</span>
                     <span style={{ color: '#F59E0B', fontWeight: 700 }}>{b.amt}</span>
                   </div>
                   {b.status.includes('CONFIRMED') && (
@@ -694,7 +694,7 @@ export function RentalsView() {
                         cursor: 'pointer',
                       }}
                     >
-                      ✕ Cancel Booking
+                      Cancel Booking
                     </button>
                   )}
                 </div>

@@ -172,7 +172,7 @@ export async function request<T>(
             ? detail.map((d: any) => d?.msg || JSON.stringify(d)).join(' ')
             : detail?.msg || `Request failed (${res.status})`;
       // eslint-disable-next-line no-console
-      console.warn(`⚠️ [API WARN] ${res.status} (${duration}ms) ${method} ${fullUrl} - ${msg}`);
+      console.warn(`[API WARN] ${res.status} (${duration}ms) ${method} ${fullUrl} - ${msg}`);
       throw new Error(msg);
     }
 
@@ -182,7 +182,7 @@ export async function request<T>(
   } catch (err: any) {
     const duration = t0 ? Date.now() - t0 : 0;
     // eslint-disable-next-line no-console
-    console.error(`💥 [API ERR] (${duration}ms) ${method} ${fullUrl}`, err?.message || err);
+    console.error(`[API ERR] (${duration}ms) ${method} ${fullUrl}`, err?.message || err);
     throw err;
   }
 }
@@ -435,6 +435,9 @@ export const api = {
   verifyEchoPayment: (slug: string, payload: any) =>
     request<any>(`/echo/showcases/${slug}/verify-payment`, { method: 'POST', body: payload }),
 
+  // Promotions
+  getPromotionsPopup: () => request<any>('/promotions/popup', { auth: false }),
+
   // Public college autocomplete (registration / onboarding forms)
   searchColleges: (q: string, limit = 8) =>
     request<any>(`/colleges/search?q=${encodeURIComponent(q)}&limit=${limit}`, { auth: false }),
@@ -506,6 +509,93 @@ export const api = {
     request<any>('/echo/my-invoices'),
   myEchoRegistrations: () =>
     request<any>('/echo/my-registrations'),
+
+  // ── Echo Settings & Branding ──────────────────────────────────────────────
+  getEchoSettings: () => request<any>('/echo/admin/settings'),
+  getEchoHeroConfig: () => request<any>('/echo/admin/settings').then((s: any) => s?.hero_config || null),
+  updateEchoSettings: (payload: any) =>
+    request<any>('/echo/admin/settings', { method: 'PUT', body: payload }),
+  getEchoBranding: () => request<any>('/echo/admin/branding'),
+  updateEchoBranding: (payload: any) =>
+    request<any>('/echo/admin/branding', { method: 'PUT', body: payload }),
+  getEchoTicketPreview: (tplId: string) =>
+    request<any>(`/echo/tickets/preview/${tplId}`),
+  getEchoInvoicePreview: (tplId: string) =>
+    request<any>(`/echo/admin/settings/preview/invoice/${tplId}`),
+  getEchoTicket: (regId: string) =>
+    request<any>(`/echo/tickets/${regId}?format=json`),
+  getEchoInvoice: (invoiceNo: string) =>
+    request<any>(`/echo/invoices/${invoiceNo}`),
+
+  // ── Echo Admin Sessions & Volunteers ──────────────────────────────────────
+  getEchoSessions: (slug: string) =>
+    request<any>(`/echo/admin/${slug}/sessions`),
+  updateEchoSessions: (slug: string, payload: any) =>
+    request<any>(`/echo/admin/${slug}/sessions`, { method: 'PUT', body: payload }),
+  lockEchoSession: (slug: string, sessionKey: string) =>
+    request<any>(`/echo/admin/${slug}/sessions/${sessionKey}/lock`, { method: 'POST' }),
+  listEchoVolunteers: (slug: string) =>
+    request<any>(`/echo/admin/${slug}/volunteers`),
+  addEchoVolunteer: (slug: string, payload: any) =>
+    request<any>(`/echo/admin/${slug}/volunteers`, { method: 'POST', body: payload }),
+  deleteEchoVolunteer: (slug: string, volunteerId: string) =>
+    request<any>(`/echo/admin/${slug}/volunteers/${volunteerId}`, { method: 'DELETE' }),
+
+  // ── Admin Contacts ────────────────────────────────────────────────────────
+  listContacts: (params: { page?: number; per_page?: number; q?: string; source?: string; include_registered?: boolean }) => {
+    const qs = new URLSearchParams();
+    if (params.page) qs.set('page', String(params.page));
+    if (params.per_page) qs.set('per_page', String(params.per_page));
+    if (params.q) qs.set('q', params.q);
+    if (params.source) qs.set('source', params.source);
+    if (params.include_registered) qs.set('include_registered', 'true');
+    return request<any>(`/admin/contacts?${qs}`);
+  },
+  listContactLists: () => request<any>('/admin/contact-lists'),
+  getContactStats: () => request<any>('/admin/contacts/stats'),
+  deleteContact: (id: string) =>
+    request<any>(`/admin/contacts/${id}`, { method: 'DELETE' }),
+  bulkDeleteContacts: (ids: string[]) =>
+    request<any>('/admin/contacts/bulk', { method: 'DELETE', body: { ids } }),
+  importContacts: (formData: FormData) =>
+    request<any>('/admin/contacts/import', { method: 'POST', body: formData }),
+  createContact: (payload: any) =>
+    request<any>('/admin/contacts', { method: 'POST', body: payload }),
+  updateContact: (id: string, payload: any) =>
+    request<any>(`/admin/contacts/${id}`, { method: 'PUT', body: payload }),
+
+  // ── Admin Imports ─────────────────────────────────────────────────────────
+  uploadImportFile: (formData: FormData) =>
+    request<any>('/admin/imports/upload', { method: 'POST', body: formData }),
+  commitImport: (payload: { cache_id: string; mapping: any; skip_invalid: boolean }) =>
+    request<any>('/admin/imports/commit', { method: 'POST', body: payload }),
+
+  // ── Admin Email Quality ───────────────────────────────────────────────────
+  emailQualityAudit: () => request<any>('/admin/email-quality/audit'),
+  bulkRestoreEmails: (emails: string[]) => {
+    const qs = new URLSearchParams();
+    emails.forEach((e) => qs.append('emails', e));
+    return request<any>(`/admin/email-quality/suppressions/bulk?${qs}`, { method: 'DELETE' });
+  },
+  restoreAllSuppressions: () => request<any>('/admin/email-quality/suppressions/all', { method: 'DELETE' }),
+
+  // ── Admin Exports ─────────────────────────────────────────────────────────
+  exportPayments: () => request<any>('/admin/export/payments'),
+
+  // ── College Students ──────────────────────────────────────────────────────
+  exportCollegeStudents: (params: { format?: string; department?: string; year?: string }) => {
+    const qs = new URLSearchParams();
+    if (params.format) qs.set('format', params.format);
+    if (params.department) qs.set('department', params.department);
+    if (params.year) qs.set('year', params.year);
+    return request<any>(`/college/students/export?${qs}`);
+  },
+  clearCollegeStudents: () =>
+    request<any>('/college/students/clear', { method: 'POST' }),
+  bulkDeleteCollegeStudents: (ids: string[]) =>
+    request<any>('/college/students/bulk-delete', { method: 'POST', body: { ids } }),
+  uploadCollegeStudents: (formData: FormData) =>
+    request<any>('/college/students/upload', { method: 'POST', body: formData }),
 
   // ── Newsletter ────────────────────────────────────────────────────────────
   sendNewsletter: (payload: any) =>

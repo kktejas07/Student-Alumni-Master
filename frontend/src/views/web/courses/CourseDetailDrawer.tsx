@@ -216,8 +216,8 @@ export default function CourseDetailDrawer({
                       <MaterialCommunityIcons name="certificate" size={13} color="#6EE7B7" />
                       <Text style={s.certText}>
                         {cert.free
-                          ? '✨ Free industry-recognised certificate'
-                          : `🎖 Certificate · ₹${cert.cost_inr?.toLocaleString() || '—'}`}
+                          ? ' Free industry-recognised certificate'
+                          : ` Certificate · ₹${cert.cost_inr?.toLocaleString() || '—'}`}
                       </Text>
                     </View>
                   )}

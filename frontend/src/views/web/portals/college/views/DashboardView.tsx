@@ -88,7 +88,7 @@ export function DashboardView({
       {/* Hero */}
       <View style={{ flexDirection: stack ? 'column' : 'row', alignItems: stack ? 'flex-start' : 'center', gap: 16 }}>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={s.heroTitle}>Good morning, {(user?.full_name || 'Admin').split(' ')[0]} 👋</Text>
+          <Text style={s.heroTitle}>Good morning, {(user?.full_name || 'Admin').split(' ')[0]} </Text>
           <Text style={s.heroSub}>{COLLEGE.placementRate}% placement rate · {COLLEGE.upcomingHighlight}</Text>
         </View>
         {/* TIER BANNER */}

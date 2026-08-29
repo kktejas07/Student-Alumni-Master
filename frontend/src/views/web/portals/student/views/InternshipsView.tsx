@@ -335,7 +335,7 @@ export function InternshipsView() {
       try {
         const r: any = await request('/jobs/new-since-last-visit');
         if (!cancelled && r?.new_count > 0) {
-          toast.success(`🎉 ${r.new_count} new job${r.new_count === 1 ? '' : 's'} since your last visit`,
+          toast.success(` ${r.new_count} new job${r.new_count === 1 ? '' : 's'} since your last visit`,
             'Pulled fresh from RemoteOK · ArbeitNow · The Muse · Remotive · Jobicy · Himalayas · HackerNews · WeWorkRemotely · etc.');
         }
       } catch { }
@@ -622,7 +622,7 @@ ${email}`;
                       }
                     });
                     toast.success(
-                      'Application Tracked! 🎉',
+                      'Application Tracked! ',
                       `Successfully added ${job.title} at ${job.company} to your My Applications dashboard.`
                     );
 
@@ -713,7 +713,7 @@ ${email}`;
                   <Pressable
                     onPress={() => {
                       Clipboard.setString(coverLetterText);
-                      toast.success('Copied! 📋', 'Cover letter copied to clipboard.');
+                      toast.success('Copied! ', 'Cover letter copied to clipboard.');
                     }}
                     style={{
                       backgroundColor: '#1E40AF',
@@ -846,7 +846,7 @@ function JobCard({
             alignItems: 'center',
             gap: 4
           }}>
-            <Text style={{ fontSize: 10 }}>🔥</Text>
+            <Text style={{ fontSize: 10 }}></Text>
             <Text style={{ color: '#2563EB', fontFamily: FONTS.bold, fontSize: 10 }}>Recommended</Text>
           </View>
         )}

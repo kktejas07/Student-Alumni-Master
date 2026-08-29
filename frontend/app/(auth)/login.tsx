@@ -15,7 +15,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, ScrollView, useWindowDimensions, Linking } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
-import { Footer } from '@/src/views/web/nexus-glow-landing/Footer';
 import { SAWatermark } from '@/src/views/web/components/SAWatermark';
 import { Mail, Lock, Eye, EyeOff, CheckCircle2, AlertCircle, ArrowRight, Sparkles, Heart } from 'lucide-react-native';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
@@ -30,7 +29,8 @@ const REGISTERED_EMAILS = [
   'aisha@iitb.ac.in',
   'arjun@vnrvjiet.in',
   'demo@studentalumni.ai',
-  'student@snist.ac.in'
+  'student@snist.ac.in',
+  'admin@careerpath.app',
 ];
 
 const SLIDES = [
@@ -95,7 +95,9 @@ export default function LoginScreen() {
   }, []);
 
   // Real-time Email Validation & Account Check
-  const handleEmailChange = async (val: string) => {
+  const emailTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleEmailChange = (val: string) => {
     setEmail(val);
     setErrorMsg('');
     const clean = val.trim().toLowerCase();
@@ -107,33 +109,36 @@ export default function LoginScreen() {
 
     const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean);
     if (!isValid) {
-      setEmailStatus('invalid');
+      setEmailStatus('idle');
       return;
     }
 
-    try {
-      const data = await api.checkEmail(clean);
-      if (data && data.exists) {
-        setEmailStatus('registered');
-      } else if (REGISTERED_EMAILS.includes(clean)) {
-        setEmailStatus('registered');
-      } else {
-        setEmailStatus('new');
+    setEmailStatus('idle');
+
+    if (emailTimerRef.current) clearTimeout(emailTimerRef.current);
+    emailTimerRef.current = setTimeout(async () => {
+      try {
+        const data = await api.checkEmail(clean);
+        if (data && data.exists) {
+          setEmailStatus('registered');
+        } else if (REGISTERED_EMAILS.includes(clean)) {
+          setEmailStatus('registered');
+        } else {
+          setEmailStatus('new');
+        }
+      } catch {
+        if (REGISTERED_EMAILS.includes(clean)) {
+          setEmailStatus('registered');
+        } else {
+          setEmailStatus('new');
+        }
       }
-    } catch {
-      if (REGISTERED_EMAILS.includes(clean)) {
-        setEmailStatus('registered');
-      } else {
-        setEmailStatus('new');
-      }
-    }
+    }, 400);
   };
 
   const [showGoogleModal, setShowGoogleModal] = useState(false);
   const [googleEmailInput, setGoogleEmailInput] = useState('');
   const [googleClientId, setGoogleClientId] = useState('');
-
-  const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
   // Fetch OAuth Config on mount and initialize Firebase Auth
   useEffect(() => {
@@ -191,7 +196,6 @@ export default function LoginScreen() {
 
     setLoading(true);
     setErrorMsg('');
-    const startTime = Date.now();
     try {
       const rawName = emailToUse.split('@')[0].replace(/[\._-]/g, ' ');
       const formattedName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
@@ -205,11 +209,6 @@ export default function LoginScreen() {
         picture: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
         role: 'student'
       });
-
-      const elapsed = Date.now() - startTime;
-      if (elapsed < 6000) {
-        await delay(6000 - elapsed);
-      }
 
       if (res && res.user && res.access_token) {
         setUser(res.user);
@@ -231,10 +230,6 @@ export default function LoginScreen() {
         setLoading(false);
       }
     } catch (err: any) {
-      const elapsed = Date.now() - startTime;
-      if (elapsed < 6000) {
-        await delay(6000 - elapsed);
-      }
       setErrorMsg(err?.message || 'Google Sign-In failed. Please check connection.');
       setLoading(false);
     }
@@ -262,7 +257,6 @@ export default function LoginScreen() {
     }
 
     setLoading(true);
-    const startTime = Date.now();
 
     try {
       const res = await fetch(`${BASE}/api/auth/login`, {
@@ -270,11 +264,6 @@ export default function LoginScreen() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: cleanEmail, password: cleanPwd }),
       });
-
-      const elapsed = Date.now() - startTime;
-      if (elapsed < 6000) {
-        await delay(6000 - elapsed);
-      }
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -297,10 +286,6 @@ export default function LoginScreen() {
       else if (r === 'alumni') router.replace('/alumni-portal');
       else router.replace('/student-portal/dashboard');
     } catch (err: any) {
-      const elapsed = Date.now() - startTime;
-      if (elapsed < 6000) {
-        await delay(6000 - elapsed);
-      }
       setErrorMsg(err?.message || 'Network error — please check connection or credentials.');
       setLoading(false);
     }
@@ -483,11 +468,6 @@ export default function LoginScreen() {
                   No account on this email yet — we'll help you create one.
                 </div>
               )}
-              {emailStatus === 'invalid' && (
-                <div style={{ fontSize: 13, color: '#F59E0B', marginTop: 8 }}>
-                  That doesn't look like a valid email address yet.
-                </div>
-              )}
 
               {/* Password Input Block */}
               {(emailStatus === 'registered' || password.length > 0) && (
@@ -547,7 +527,7 @@ export default function LoginScreen() {
                 <span>
                   {loading
                     ? 'Signing in…'
-                    : emailStatus === 'new'
+                    : emailStatus === 'new' && password.length === 0
                     ? 'Create an account'
                     : 'Sign in'}
                 </span>
@@ -569,7 +549,6 @@ export default function LoginScreen() {
 
         </div>
 
-        <Footer />
       </ScrollView>
 
       {/* Google Sign-In Account Selector Modal */}

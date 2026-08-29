@@ -5,7 +5,7 @@ import {
   Bold, Italic, Underline, Strikethrough, List, ListOrdered,
   Heading1, Heading2, Quote, Undo, Redo, Sparkles, X, Send,
 } from 'lucide-react-native';
-import { SAC, FONTS } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import { request } from '@/src/models/services/api';
 import { useToast } from '@/src/views/components';
 
@@ -304,7 +304,7 @@ const fallbackStyle = StyleSheet.create({
 
 const aim = StyleSheet.create({
   backdrop: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.65)',
+    flex: 1, backgroundColor: SAC.panel2,
     alignItems: 'center', justifyContent: 'center', padding: 20,
     ...(Platform.OS === 'web' ? { backdropFilter: 'blur(8px)' } : {}),
   },

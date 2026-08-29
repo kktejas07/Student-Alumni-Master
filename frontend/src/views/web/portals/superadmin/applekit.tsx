@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Check, Search, AlertTriangle, Info, Loader, X } from 'lucide-react-native';
-import { SAC, FONTS } from './tokens';
+import { SAC, useSAC, FONTS, resolveColors } from './tokens';
 
 /* ─────────────────────────────────────────────────────────────────
  * Gradient palette (warm orange → amber, matches Settings spec)
@@ -40,6 +40,8 @@ export function GradientButton({
   onPress?: () => void; loading?: boolean; disabled?: boolean;
   children: React.ReactNode; size?: 'sm' | 'md' | 'lg'; style?: any;
 }) {
+  const T = useSAC();
+  Object.assign(k, resolveColors(k, T));
   const pad = size === 'sm'
     ? { paddingHorizontal: 11, paddingVertical: 7 }
     : size === 'lg'
@@ -574,7 +576,7 @@ const k = StyleSheet.create({
   },
   toastText: {
     flex: 1,
-    color: '#fff',
+    color: SAC.text,
     fontFamily: FONTS.semi,
     fontSize: 13,
     lineHeight: 18,

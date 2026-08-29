@@ -212,7 +212,7 @@ export function NetworkView() {
           duration_minutes: 45
         }
       });
-      toast.success('Session Booked! 🎉', `Your session with ${bookingMentor.name} is confirmed.`);
+      toast.success('Session Booked! ', `Your session with ${bookingMentor.name} is confirmed.`);
       setBookingMentor(null);
       setBookingSlot(null);
       setBookingTopic('');
@@ -385,7 +385,7 @@ export function NetworkView() {
   const handleAcceptRequest = async (id: string, name: string) => {
     try {
       await api.acceptConnection(id);
-      toast.success('Connection Accepted! 🎉', `${name} is now connected with you.`);
+      toast.success('Connection Accepted! ', `${name} is now connected with you.`);
       setDiscoverSections(prev => prev.map(section => ({
         ...section,
         items: (section.items || []).map((item: any) =>
@@ -511,7 +511,7 @@ export function NetworkView() {
     setPending((p) => [...p, id]);
     try {
       await api.sendConnectionRequest(id);
-      toast.success('Connection Sent! ✉️', `Your connection invite to ${name} has been sent.`);
+      toast.success('Connection Sent! ', `Your connection invite to ${name} has been sent.`);
       setPending((p) => p.filter(x => x !== id));
       // update state locally
       setLocalSent((s) => [...s, id]);
@@ -1254,7 +1254,7 @@ export function NetworkView() {
                       <Text style={{ color: '#F97316', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.6 }}>MENTOR STATS</Text>
                       <View style={{ flexDirection: 'row', gap: 8 }}>
                         <GlassCard radius={10} padding={12} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)', borderWidth: 1 }}>
-                          <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 15 }}>{pickedPerson.rating}★</Text>
+                          <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 15 }}>{pickedPerson.rating}</Text>
                           <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 10, marginTop: 4 }}>Rating</Text>
                         </GlassCard>
                         <GlassCard radius={10} padding={12} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)', borderWidth: 1 }}>

@@ -138,7 +138,7 @@ export function GraphRagVisualizer() {
                   ?.filter((e: any) => e.source === selectedNode.id || e.target === selectedNode.id)
                   .map((e: any, i: number) => (
                     <View key={i} style={s.edgeRow}>
-                      <Text style={s.edgeRel}>— [{e.relation}] ➔</Text>
+                      <Text style={s.edgeRel}>— [{e.relation}] →</Text>
                       <Text style={s.edgeTarget}>
                         {e.source === selectedNode.id ? e.target : e.source}
                       </Text>

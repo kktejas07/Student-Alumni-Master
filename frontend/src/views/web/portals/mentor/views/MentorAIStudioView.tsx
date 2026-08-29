@@ -207,7 +207,7 @@ export function MentorAIStudioView() {
                     <View key={m.user_id} style={s.tableRow}>
                       <View style={{ flex: 2 }}>
                         <Text style={s.menteeName}>{m.name}</Text>
-                        {m.stuck && <Text style={s.flagText}>⚠️ Stuck on roadmap</Text>}
+                        {m.stuck && <Text style={s.flagText}>Stuck on roadmap</Text>}
                       </View>
                       <Text style={[s.menteeName, { flex: 1 }]}>{m.progress_pct}%</Text>
                       <View style={{ flex: 1, flexDirection: 'row' }}>
@@ -253,7 +253,7 @@ export function MentorAIStudioView() {
             
             {/* AI Recommendations */}
             <View style={s.sectionCard}>
-              {renderSectionHeader('💡 AI Recommendations', 'lightbulb-on', '#FCD34D')}
+              {renderSectionHeader(' AI Recommendations', 'lightbulb-on', '#FCD34D')}
               <View style={{ gap: 10, marginTop: 12 }}>
                 {AI_INSIGHTS.map((ins, i) => (
                   <View key={i} style={s.insightCard}>
@@ -266,7 +266,7 @@ export function MentorAIStudioView() {
 
             {/* Student Leaderboard (Synced with Pulse) */}
             <View style={s.sectionCard}>
-              {renderSectionHeader('🏆 Top Performers', 'trophy', '#F59E0B')}
+              {renderSectionHeader(' Top Performers', 'trophy', '#F59E0B')}
               <View style={{ gap: 12, marginTop: 12 }}>
                 {topPerformers.length === 0 && !loading && <Text style={{color: MC.dim}}>No data.</Text>}
                 {topPerformers.map((l, i) => (
@@ -305,7 +305,7 @@ export function MentorAIStudioView() {
             </View>
 
             <View style={s.sectionCard}>
-              {renderSectionHeader('📚 Recommended Resources', 'book-open-variant', '#10B981')}
+              {renderSectionHeader(' Recommended Resources', 'book-open-variant', '#10B981')}
               <View style={{ gap: 8, marginTop: 12 }}>
                 {RESOURCES.map((r, i) => (
                   <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>

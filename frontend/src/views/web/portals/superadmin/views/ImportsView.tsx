@@ -22,7 +22,7 @@ import {
   Pencil, Eye, EyeOff, RefreshCw, Filter, Download, FileText, Globe,
   Square, SquareCheck, CheckSquare, ShieldCheck, LayoutGrid, Send, Tag, FileDown,
 } from 'lucide-react-native';
-import { SAC, FONTS } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import {
   GRAD, GradientButton, SecondaryButton, Card, IconBox, SectionLabel,
   TopTabs, SearchField, StatusPill, GradientPill, Toast, useToast, EmptyState,
@@ -64,6 +64,8 @@ function CategoryBadge({ cat, small }: { cat: CatKey; small?: boolean }) {
 type TabId = 'upload' | 'manual' | 'history' | 'browse';
 
 export function ImportsView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
+  const T = useSAC();
+  Object.assign(s, resolveColors(s, T));
   const [tab, setTab] = useSubTab<TabId>(['browse', 'upload', 'manual', 'history'], 'browse', { sub, onSub });
   const { toast, flash, hide } = useToast();
   const [refreshKey, setRefreshKey] = useState(0);
@@ -443,7 +445,7 @@ function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => vo
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <ShieldCheck size={14} color="#22C55E" />
-                    <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.5 }}>PRE-FLIGHT INGESTION IMPACT</Text>
+                    <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.5 }}>PRE-FLIGHT INGESTION IMPACT</Text>
                   </View>
                   <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 5, backgroundColor: 'rgba(34,197,94,0.14)', borderWidth: 1, borderColor: 'rgba(34,197,94,0.3)' }}>
                     <Text style={{ color: '#86EFAC', fontFamily: FONTS.bold, fontSize: 10 }}>Ready to Commit</Text>
@@ -1032,7 +1034,7 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
       {/* Metric Summary KPI Tiles */}
       <View style={s.summaryStats}>
         <View style={s.sumStat}>
-          <Text style={[s.sumVal, { color: '#fff' }]}>{totalDisplay.toLocaleString()}</Text>
+          <Text style={[s.sumVal, { color: SAC.text }]}>{totalDisplay.toLocaleString()}</Text>
           <Text style={s.sumLabel}>TOTAL CONTACTS</Text>
         </View>
         <View style={s.sumStat}>
@@ -1071,14 +1073,14 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
                 style={[s.viewModeBtn, viewMode === 'spreadsheet' && { backgroundColor: GRAD.to }]}
               >
                 <FileSpreadsheet size={13} color={viewMode === 'spreadsheet' ? '#fff' : SAC.muted} />
-                <Text style={[s.viewModeBtnText, viewMode === 'spreadsheet' && { color: '#fff' }]}>Grid</Text>
+                <Text style={[s.viewModeBtnText, viewMode === 'spreadsheet' && { color: SAC.text }]}>Grid</Text>
               </Pressable>
               <Pressable
                 onPress={() => setViewMode('grid')}
                 style={[s.viewModeBtn, viewMode === 'grid' && { backgroundColor: GRAD.to }]}
               >
                 <LayoutGrid size={13} color={viewMode === 'grid' ? '#fff' : SAC.muted} />
-                <Text style={[s.viewModeBtnText, viewMode === 'grid' && { color: '#fff' }]}>Cards</Text>
+                <Text style={[s.viewModeBtnText, viewMode === 'grid' && { color: SAC.text }]}>Cards</Text>
               </Pressable>
             </View>
 
@@ -1088,7 +1090,7 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
               style={[s.toggleBtn, { backgroundColor: 'rgba(255,255,255,0.06)' }]}
             >
               <FileDown size={12} color="#fff" />
-              <Text style={[s.toggleBtnText, { color: '#fff' }]}>Export</Text>
+              <Text style={[s.toggleBtnText, { color: SAC.text }]}>Export</Text>
             </Pressable>
 
             <Pressable
@@ -1111,7 +1113,7 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
             onPress={() => setAccountFilter('all')}
             style={[s.toggleBtn, accountFilter === 'all' && { borderColor: '#fff', backgroundColor: 'rgba(255,255,255,0.12)' }]}
           >
-            <Text style={[s.toggleBtnText, accountFilter === 'all' && { color: '#fff', fontFamily: FONTS.bold }]}>
+            <Text style={[s.toggleBtnText, accountFilter === 'all' && { color: SAC.text, fontFamily: FONTS.bold }]}>
               All Contacts ({totalDisplay})
             </Text>
           </Pressable>
@@ -1275,12 +1277,12 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
                         colors={[GRAD.from, GRAD.to]}
                         style={{ width: 26, height: 26, borderRadius: 6, alignItems: 'center', justifyContent: 'center' }}
                       >
-                        <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 10 }}>
+                        <Text style={{ color: SAC.text, fontFamily: FONTS.xbold, fontSize: 10 }}>
                           {(u.first_name?.[0] || u.name?.[0] || 'U').toUpperCase()}
                         </Text>
                       </LinearGradient>
                       <View style={{ flex: 1, minWidth: 0 }}>
-                        <Text numberOfLines={1} style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 11.5 }}>
+                        <Text numberOfLines={1} style={{ color: SAC.text, fontFamily: FONTS.xbold, fontSize: 11.5 }}>
                           {u.name || `${u.first_name || ''} ${u.last_name || ''}`.trim() || '—'}
                         </Text>
                         <Text numberOfLines={1} style={{ color: SAC.dim, fontFamily: FONTS.med, fontSize: 10 }}>
@@ -1403,7 +1405,7 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
 
                     {/* College & Degree */}
                     <View style={{ width: 170 }}>
-                      <Text numberOfLines={1} style={[s.td, { width: 170, color: '#fff', fontSize: 10.5 }]}>
+                      <Text numberOfLines={1} style={[s.td, { width: 170, color: SAC.text, fontSize: 10.5 }]}>
                         {u.college || '—'}
                       </Text>
                       {u.degree && (
@@ -1429,7 +1431,7 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
                         onPress={(e) => { e.stopPropagation(); onOpen(u.id); }}
                         style={{ paddingHorizontal: 5, paddingVertical: 2.5, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.06)' }}
                       >
-                        <Text style={{ color: '#fff', fontSize: 10, fontFamily: FONTS.bold }}>View</Text>
+                        <Text style={{ color: SAC.text, fontSize: 10, fontFamily: FONTS.bold }}>View</Text>
                       </Pressable>
                       {!u.approved ? (
                         <Pressable
@@ -1960,7 +1962,7 @@ const s = StyleSheet.create({
   statIcon: {
     width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center',
   },
-  statValue: { fontFamily: FONTS.xbold, fontSize: 18, color: '#fff' },
+  statValue: { fontFamily: FONTS.xbold, fontSize: 18, color: SAC.text },
   statLabel: { fontFamily: FONTS.med, fontSize: 11, color: SAC.muted, marginTop: 2 },
 
   catBadge: {
@@ -2092,13 +2094,13 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
   },
   pageBtnDisabled: { opacity: 0.4 },
-  pageBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
+  pageBtnText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
 
   /* selection mode */
   selectBox: {
     position: 'absolute', top: 14, left: 14, width: 28, height: 28, borderRadius: 8,
     alignItems: 'center', justifyContent: 'center', zIndex: 12,
-    backgroundColor: 'rgba(0,0,0,0.55)', borderColor: 'rgba(251,146,60,0.25)', borderWidth: 1,
+    backgroundColor: SAC.panel2, borderColor: 'rgba(251,146,60,0.25)', borderWidth: 1,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   selectedHalo: {
@@ -2151,7 +2153,7 @@ const s = StyleSheet.create({
 
   // Modal
   modalBg: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.65)',
+    flex: 1, backgroundColor: SAC.panel2,
     alignItems: 'center', justifyContent: 'center', padding: 20,
     ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(8px)' } as any) : {}),
   },
@@ -2173,7 +2175,7 @@ const s = StyleSheet.create({
   skipRow: { flexDirection: 'row', gap: 10, paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: SAC.border },
 
   // Profile panel
-  avatarLg: { width: 56, height: 56, borderRadius: 14, borderWidth: 1.5, backgroundColor: 'rgba(0,0,0,0.25)', alignItems: 'center', justifyContent: 'center' },
+  avatarLg: { width: 56, height: 56, borderRadius: 14, borderWidth: 1.5, backgroundColor: SAC.panel2, alignItems: 'center', justifyContent: 'center' },
   avatarLgText: { fontFamily: FONTS.xbold, fontSize: 18 },
 
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -2187,13 +2189,13 @@ const s = StyleSheet.create({
   btnText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12 },
   secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
   inlineInput: {
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: SAC.panel2,
     borderColor: GRAD.to,
     borderWidth: 1,
     borderRadius: 5,
     paddingHorizontal: 6,
     paddingVertical: 3,
-    color: '#fff',
+    color: SAC.text,
     fontSize: 11,
     fontFamily: FONTS.med,
   },
@@ -2204,7 +2206,7 @@ const s = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    color: '#fff',
+    color: SAC.text,
     fontSize: 13,
     fontFamily: FONTS.med,
     marginTop: 6,

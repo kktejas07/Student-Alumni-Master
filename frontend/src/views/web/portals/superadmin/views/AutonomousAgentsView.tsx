@@ -2,12 +2,14 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, ActivityIndicator, Modal } from 'react-native';
 import { Bot, Sparkles, Play, ShieldCheck, Database, CheckCircle, Code, Layers, FileText, Zap, RefreshCw, Users, Plus, Trash2, Pencil, X, Megaphone, Target, ArrowRight, Globe, Mail, Phone, ExternalLink, Gift, UserCheck, Building2, Search, Send, Clock, LayoutGrid, Columns, Award, DollarSign, Radio, FileCheck, Share2, PenTool, MapPin, Mic } from 'lucide-react-native';
-import { SAC, FONTS } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import { Badge } from '../atoms';
 import { postPortal, getPortal, putPortal, deletePortal } from '@/src/lib/portalApi';
 import { useToast, Toast } from '../applekit';
 
 export function AutonomousAgentsView() {
+  const T = useSAC();
+  Object.assign(s, resolveColors(s, T));
   const { toast, flash, hide } = useToast();
 
   // Autonomous Goodies Harvester & Multi-Spec Outreach State
@@ -97,7 +99,7 @@ export function AutonomousAgentsView() {
   const [broadcastModalVisible, setBroadcastModalVisible] = useState(false);
   const [broadcastChannel, setBroadcastChannel] = useState<'telegram' | 'whatsapp' | 'discord'>('telegram');
   const [broadcastTitle, setBroadcastTitle] = useState('ECHO 2026 Hackathon Registrations Open!');
-  const [broadcastMsg, setBroadcastMsg] = useState('🚀 Registrations are officially open for Student Alumni Hackathon 2026! Over $15,000 in prizes & free cloud credits.');
+  const [broadcastMsg, setBroadcastMsg] = useState('→ Registrations are officially open for Student Alumni Hackathon 2026! Over $15,000 in prizes & free cloud credits.');
   const [broadcastLoading, setBroadcastLoading] = useState(false);
 
   // Profile Conversion Modal State
@@ -115,7 +117,7 @@ export function AutonomousAgentsView() {
   const [formIcon, setFormIcon] = useState('Megaphone');
   const [formColor, setFormColor] = useState('#EC4899');
   const [formAgents, setFormAgents] = useState<any[]>([
-    { id: '1', name: 'Growth Strategist', role: 'Campaign Strategist', avatar: '🎯', system_prompt: 'Define growth strategy and target channels.' },
+    { id: '1', name: 'Growth Strategist', role: 'Campaign Strategist', avatar: '●', system_prompt: 'Define growth strategy and target channels.' },
     { id: '2', name: 'Lead Copywriter', role: 'Ad Copywriter', avatar: '✍️', system_prompt: 'Write high converting email and ad copies.' },
   ]);
 
@@ -458,7 +460,7 @@ const FALLBACK_PRESET_TEAMS = [
     setFormColor('#F59E0B');
     setFormAgents([
       { id: '1', name: 'Team Strategist', role: 'Lead Planner', avatar: '🧠', system_prompt: 'Formulate overarching execution roadmap.' },
-      { id: '2', name: 'Execution Specialist', role: 'Lead Developer / Specialist', avatar: '⚡', system_prompt: 'Execute task deliverables and technical requirements.' },
+      { id: '2', name: 'Execution Specialist', role: 'Lead Developer / Specialist', avatar: '◆', system_prompt: 'Execute task deliverables and technical requirements.' },
     ]);
     setModalVisible(true);
   };
@@ -764,7 +766,7 @@ const FALLBACK_PRESET_TEAMS = [
                       style={[s.selectBtn, isSelected && s.selectBtnActive]}
                       onPress={() => setSelectedTeam(team)}
                     >
-                      <Text style={[s.selectBtnText, isSelected && { color: '#fff' }]}>
+                      <Text style={[s.selectBtnText, isSelected && { color: SAC.text }]}>
                         {isSelected ? '✓ Selected Team' : 'Select Team'}
                       </Text>
                     </Pressable>
@@ -923,7 +925,7 @@ const FALLBACK_PRESET_TEAMS = [
               <View style={s.scoutIconBox}><Globe size={20} color="#8B5CF6" /></View>
               <View style={{ flex: 1 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 }}>Autonomous Community Scouting Worker</Text>
+                  <Text style={{ color: SAC.text, fontFamily: FONTS.xbold, fontSize: 14 }}>Autonomous Community Scouting Worker</Text>
                   <Badge label={`CADENCE: EVERY ${selectedInterval}H`} color="purple" />
                 </View>
                 <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 }}>
@@ -961,7 +963,7 @@ const FALLBACK_PRESET_TEAMS = [
                   onPress={() => changeSchedulerInterval(hrs)}
                   style={[s.cadenceChip, selectedInterval === hrs && s.cadenceChipActive]}
                 >
-                  <Text style={[s.cadenceChipText, selectedInterval === hrs && { color: '#fff' }]}>{hrs} Hours</Text>
+                  <Text style={[s.cadenceChipText, selectedInterval === hrs && { color: SAC.text }]}>{hrs} Hours</Text>
                 </Pressable>
               ))}
             </View>
@@ -978,7 +980,7 @@ const FALLBACK_PRESET_TEAMS = [
                   onPress={() => setOutreachDomainFilter(dom)}
                   style={[s.catChip, outreachDomainFilter === dom && s.catChipActive]}
                 >
-                  <Text style={[s.catChipText, outreachDomainFilter === dom && { color: '#fff' }]}>{dom.toUpperCase()}</Text>
+                  <Text style={[s.catChipText, outreachDomainFilter === dom && { color: SAC.text }]}>{dom.toUpperCase()}</Text>
                 </Pressable>
               ))}
             </View>
@@ -990,14 +992,14 @@ const FALLBACK_PRESET_TEAMS = [
                 style={[s.viewModeBtn, outreachViewMode === 'list' && s.viewModeBtnActive]}
               >
                 <LayoutGrid size={13} color={outreachViewMode === 'list' ? '#fff' : SAC.muted} />
-                <Text style={[s.viewModeText, outreachViewMode === 'list' && { color: '#fff' }]}>List View</Text>
+                <Text style={[s.viewModeText, outreachViewMode === 'list' && { color: SAC.text }]}>List View</Text>
               </Pressable>
               <Pressable
                 onPress={() => setOutreachViewMode('kanban')}
                 style={[s.viewModeBtn, outreachViewMode === 'kanban' && s.viewModeBtnActive]}
               >
                 <Columns size={13} color={outreachViewMode === 'kanban' ? '#fff' : SAC.muted} />
-                <Text style={[s.viewModeText, outreachViewMode === 'kanban' && { color: '#fff' }]}>CRM Kanban</Text>
+                <Text style={[s.viewModeText, outreachViewMode === 'kanban' && { color: SAC.text }]}>CRM Kanban</Text>
               </Pressable>
             </View>
           </View>
@@ -1081,7 +1083,7 @@ const FALLBACK_PRESET_TEAMS = [
                       <View style={s.organizerRow}>
                         <Building2 size={13} color={SAC.muted} />
                         <Text style={{ color: '#ddd', fontFamily: FONTS.bold, fontSize: 12 }}>
-                          Lead Organizer: <Text style={{ color: '#fff' }}>{comm.organizer_name}</Text> ({comm.organizer_role}) • Contact: <Text style={{ color: SAC.accentBright }}>{comm.organizer_email}</Text>
+                          Lead Organizer: <Text style={{ color: SAC.text }}>{comm.organizer_name}</Text> ({comm.organizer_role}) • Contact: <Text style={{ color: SAC.accentBright }}>{comm.organizer_email}</Text>
                         </Text>
                       </View>
 
@@ -1151,7 +1153,7 @@ const FALLBACK_PRESET_TEAMS = [
                             )}
                             {column.id !== 'active_partner' && (
                               <Pressable style={[s.kanbanActionBtn, { backgroundColor: '#10B981' }]} onPress={() => updateCrmStage(comm.id, 'active_partner')}>
-                                <Text style={{ color: '#fff', fontSize: 10, fontFamily: FONTS.bold }}>Partner</Text>
+                                <Text style={{ color: SAC.text, fontSize: 10, fontFamily: FONTS.bold }}>Partner</Text>
                               </Pressable>
                             )}
                           </View>
@@ -1183,10 +1185,10 @@ const FALLBACK_PRESET_TEAMS = [
                       <Badge label="LIVE ON BLOG" color="green" />
                     </View>
 
-                    <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 }}>{generatedBlog.title}</Text>
+                    <Text style={{ color: SAC.text, fontFamily: FONTS.xbold, fontSize: 16 }}>{generatedBlog.title}</Text>
                     <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 }}>By {generatedBlog.author} • Published on {generatedBlog.date}</Text>
 
-                    <View style={{ padding: 12, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.3)', borderColor: SAC.border, borderWidth: 1 }}>
+                    <View style={{ padding: 12, borderRadius: 10, backgroundColor: SAC.panel2, borderColor: SAC.border, borderWidth: 1 }}>
                       <Text style={{ color: '#93c5fd', fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 18 }}>{generatedBlog.description}</Text>
                     </View>
 
@@ -1237,7 +1239,7 @@ const FALLBACK_PRESET_TEAMS = [
 
                 <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 16 }}>
                   <Pressable style={s.saveBtn} onPress={() => { setSocialModalVisible(false); flash('Posts copied to clipboard!'); }}>
-                    <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>Copy & Publish Posts</Text>
+                    <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 }}>Copy & Publish Posts</Text>
                   </Pressable>
                 </View>
               </View>
@@ -1259,7 +1261,7 @@ const FALLBACK_PRESET_TEAMS = [
                   {scoutedVenues.map((v) => (
                     <View key={v.id} style={s.artifactCard}>
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 14 }}>{v.name}</Text>
+                        <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 14 }}>{v.name}</Text>
                         <Badge label={v.capacity} color="green" />
                       </View>
                       <Text style={{ color: SAC.accent, fontFamily: FONTS.med, fontSize: 12 }}>{v.venue_type} • {v.city}</Text>
@@ -1298,7 +1300,7 @@ const FALLBACK_PRESET_TEAMS = [
                 {mouComm && (
                   <ScrollView style={{ maxHeight: 460 }} contentContainerStyle={{ gap: 12 }} showsVerticalScrollIndicator={false}>
                     <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5 }}>
-                      Generating official digital Memorandum of Understanding (MoU) contract for <Text style={{ color: '#fff', fontFamily: FONTS.bold }}>{mouComm.name}</Text>.
+                      Generating official digital Memorandum of Understanding (MoU) contract for <Text style={{ color: SAC.text, fontFamily: FONTS.bold }}>{mouComm.name}</Text>.
                     </Text>
 
                     <Text style={s.label}>Custom Terms & Special Clauses</Text>
@@ -1353,7 +1355,7 @@ const FALLBACK_PRESET_TEAMS = [
                         onPress={() => setBroadcastChannel(ch as any)}
                         style={[s.roleChip, broadcastChannel === ch && s.roleChipActive]}
                       >
-                        <Text style={[s.roleChipText, broadcastChannel === ch && { color: '#fff' }]}>{ch.toUpperCase()}</Text>
+                        <Text style={[s.roleChipText, broadcastChannel === ch && { color: SAC.text }]}>{ch.toUpperCase()}</Text>
                       </Pressable>
                     ))}
                   </View>
@@ -1373,7 +1375,7 @@ const FALLBACK_PRESET_TEAMS = [
                     {broadcastLoading ? <ActivityIndicator size="small" color="#fff" /> : (
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                         <Radio size={13} color="#fff" />
-                        <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>Broadcast to Groups</Text>
+                        <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 }}>Broadcast to Groups</Text>
                       </View>
                     )}
                   </Pressable>
@@ -1396,7 +1398,7 @@ const FALLBACK_PRESET_TEAMS = [
                 {campaignComm && (
                   <View style={{ gap: 12 }}>
                     <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5 }}>
-                      Recipient: <Text style={{ color: '#fff', fontFamily: FONTS.bold }}>{campaignComm.organizer_name}</Text> ({campaignComm.organizer_email || campaignComm.email})
+                      Recipient: <Text style={{ color: SAC.text, fontFamily: FONTS.bold }}>{campaignComm.organizer_name}</Text> ({campaignComm.organizer_email || campaignComm.email})
                     </Text>
 
                     <Text style={s.label}>Select Delivery Channel</Text>
@@ -1405,13 +1407,13 @@ const FALLBACK_PRESET_TEAMS = [
                         onPress={() => setCampaignChannel('email')}
                         style={[s.roleChip, campaignChannel === 'email' && s.roleChipActive]}
                       >
-                        <Text style={[s.roleChipText, campaignChannel === 'email' && { color: '#fff' }]}>📧 Email Outreach</Text>
+                        <Text style={[s.roleChipText, campaignChannel === 'email' && { color: SAC.text }]}>✉ Email Outreach</Text>
                       </Pressable>
                       <Pressable
                         onPress={() => setCampaignChannel('whatsapp')}
                         style={[s.roleChip, campaignChannel === 'whatsapp' && s.roleChipActive]}
                       >
-                        <Text style={[s.roleChipText, campaignChannel === 'whatsapp' && { color: '#fff' }]}>💬 WhatsApp Direct</Text>
+                        <Text style={[s.roleChipText, campaignChannel === 'whatsapp' && { color: SAC.text }]}>◆ WhatsApp Direct</Text>
                       </Pressable>
                     </View>
 
@@ -1431,7 +1433,7 @@ const FALLBACK_PRESET_TEAMS = [
                     {campaignLoading ? <ActivityIndicator size="small" color="#fff" /> : (
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                         <Send size={13} color="#fff" />
-                        <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>Dispatch Now</Text>
+                        <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 }}>Dispatch Now</Text>
                       </View>
                     )}
                   </Pressable>
@@ -1454,7 +1456,7 @@ const FALLBACK_PRESET_TEAMS = [
                 {convertCommunity && (
                   <View style={{ gap: 12 }}>
                     <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5 }}>
-                      Create a managed platform user profile for <Text style={{ color: '#fff', fontFamily: FONTS.bold }}>{convertCommunity.organizer_name}</Text> from <Text style={{ color: '#fff', fontFamily: FONTS.bold }}>{convertCommunity.name}</Text>.
+                      Create a managed platform user profile for <Text style={{ color: SAC.text, fontFamily: FONTS.bold }}>{convertCommunity.organizer_name}</Text> from <Text style={{ color: SAC.text, fontFamily: FONTS.bold }}>{convertCommunity.name}</Text>.
                     </Text>
 
                     <Text style={s.label}>Select Target Role Type</Text>
@@ -1469,13 +1471,13 @@ const FALLBACK_PRESET_TEAMS = [
                           onPress={() => setConvertRole(r.id)}
                           style={[s.roleChip, convertRole === r.id && s.roleChipActive]}
                         >
-                          <Text style={[s.roleChipText, convertRole === r.id && { color: '#fff' }]}>{r.label}</Text>
+                          <Text style={[s.roleChipText, convertRole === r.id && { color: SAC.text }]}>{r.label}</Text>
                         </Pressable>
                       ))}
                     </View>
 
-                    <View style={{ padding: 12, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.3)', borderColor: SAC.border, borderWidth: 1, gap: 4 }}>
-                      <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>Profile Metadata to be Created:</Text>
+                    <View style={{ padding: 12, borderRadius: 10, backgroundColor: SAC.panel2, borderColor: SAC.border, borderWidth: 1, gap: 4 }}>
+                      <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 }}>Profile Metadata to be Created:</Text>
                       <Text style={{ color: SAC.muted, fontSize: 11 }}>• Email: {convertCommunity.organizer_email || convertCommunity.email}</Text>
                       <Text style={{ color: SAC.muted, fontSize: 11 }}>• Phone: {convertCommunity.phone}</Text>
                       <Text style={{ color: SAC.muted, fontSize: 11 }}>• Organization: {convertCommunity.name}</Text>
@@ -1490,7 +1492,7 @@ const FALLBACK_PRESET_TEAMS = [
                   </Pressable>
                   <Pressable style={s.saveBtn} onPress={handleConvertProfile} disabled={convertLoading}>
                     {convertLoading ? <ActivityIndicator size="small" color="#fff" /> : (
-                      <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>Create Profile</Text>
+                      <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 }}>Create Profile</Text>
                     )}
                   </Pressable>
                 </View>
@@ -1597,7 +1599,7 @@ const FALLBACK_PRESET_TEAMS = [
             <View style={{ flexDirection: 'row', gap: 10 }}>
               {(['student', 'mentor', 'college'] as const).map((p) => (
                 <Pressable key={p} onPress={() => setQaPersona(p)} style={[s.personaBtn, qaPersona === p && s.personaBtnActive]}>
-                  <Text style={[s.personaBtnText, qaPersona === p && { color: '#fff' }]}>{p.toUpperCase()}</Text>
+                  <Text style={[s.personaBtnText, qaPersona === p && { color: SAC.text }]}>{p.toUpperCase()}</Text>
                 </Pressable>
               ))}
             </View>
@@ -1755,7 +1757,7 @@ const FALLBACK_PRESET_TEAMS = [
                     onPress={() => setFormCategory(cat)}
                     style={[s.catChip, formCategory === cat && s.catChipActive]}
                   >
-                    <Text style={[s.catChipText, formCategory === cat && { color: '#fff' }]}>{cat.toUpperCase()}</Text>
+                    <Text style={[s.catChipText, formCategory === cat && { color: SAC.text }]}>{cat.toUpperCase()}</Text>
                   </Pressable>
                 ))}
               </View>
@@ -1767,7 +1769,7 @@ const FALLBACK_PRESET_TEAMS = [
                 <Text style={s.sectionHeader}>Team Agents ({formAgents.length})</Text>
                 <Pressable style={s.addAgentBtn} onPress={addAgentToForm}>
                   <Plus size={12} color="#fff" />
-                  <Text style={{ color: '#fff', fontSize: 11, fontFamily: FONTS.bold }}>Add Agent</Text>
+                  <Text style={{ color: SAC.text, fontSize: 11, fontFamily: FONTS.bold }}>Add Agent</Text>
                 </Pressable>
               </View>
 
@@ -1791,7 +1793,7 @@ const FALLBACK_PRESET_TEAMS = [
                 <Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>Cancel</Text>
               </Pressable>
               <Pressable style={s.saveBtn} onPress={saveTeam}>
-                <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>Save Team</Text>
+                <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 }}>Save Team</Text>
               </Pressable>
             </View>
           </View>
@@ -1807,45 +1809,45 @@ const s = StyleSheet.create({
   container: { gap: 16 },
   header: { flexDirection: 'row', gap: 12, padding: 16, borderRadius: 14, backgroundColor: 'rgba(99,102,241,0.08)', borderColor: SAC.border2, borderWidth: 1, alignItems: 'center' },
   hIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(99,102,241,0.18)', alignItems: 'center', justifyContent: 'center' },
-  hTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 },
+  hTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 16 },
   hSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 18 },
   tabsRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   tabBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1 },
   tabActive: { backgroundColor: SAC.primary, borderColor: SAC.accent },
   tabText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
-  tabTextActive: { color: '#fff' },
+  tabTextActive: { color: SAC.text },
   card: { backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 16, padding: 20 },
-  cardTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
+  cardTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 15 },
   cardSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4 },
   label: { color: '#ddd', fontFamily: FONTS.bold, fontSize: 12 },
-  input: { backgroundColor: 'rgba(0,0,0,0.3)', borderColor: SAC.border, borderWidth: 1, borderRadius: 10, padding: 12, color: '#fff', fontFamily: FONTS.med, fontSize: 13 },
+  input: { backgroundColor: SAC.panel2, borderColor: SAC.border, borderWidth: 1, borderRadius: 10, padding: 12, color: SAC.text, fontFamily: FONTS.med, fontSize: 13 },
   primaryBtn: { height: 42, borderRadius: 10, backgroundColor: SAC.primary, alignItems: 'center', justifyContent: 'center', marginTop: 6 },
-  btnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13 },
-  sectionHeader: { color: '#fff', fontFamily: FONTS.bold, fontSize: 14, marginTop: 10 },
+  btnText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 13 },
+  sectionHeader: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 14, marginTop: 10 },
   dialogueBubble: { padding: 12, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.03)', borderColor: SAC.border, borderWidth: 1, gap: 4 },
   agentTag: { color: SAC.accent, fontFamily: FONTS.bold, fontSize: 12 },
   dialogueText: { color: '#eee', fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 18 },
-  artifactCard: { padding: 14, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.4)', borderColor: SAC.border, borderWidth: 1 },
-  artifactHeader: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13, marginBottom: 8 },
+  artifactCard: { padding: 14, borderRadius: 12, backgroundColor: SAC.panel2, borderColor: SAC.border, borderWidth: 1 },
+  artifactHeader: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 13, marginBottom: 8 },
   codeBlock: { color: '#93c5fd', fontFamily: FONTS.med, fontSize: 11.5, lineHeight: 17 },
   stepCard: { padding: 12, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.03)', borderColor: SAC.border, borderWidth: 1, gap: 6 },
-  stepTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13 },
+  stepTitle: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 13 },
   stepThought: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
   stepResult: { color: '#a7f3d0', fontFamily: FONTS.med, fontSize: 12 },
   personaBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, alignItems: 'center' },
   personaBtnActive: { backgroundColor: SAC.primary, borderColor: SAC.accent },
   personaBtnText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
   assertionCard: { padding: 12, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.03)', borderColor: SAC.border, borderWidth: 1, gap: 4 },
-  assertionName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13 },
+  assertionName: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 13 },
   assertionEndpoint: { color: SAC.accent, fontFamily: FONTS.med, fontSize: 11.5 },
   assertionMsg: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
   latencyTag: { color: '#4ade80', fontFamily: FONTS.bold, fontSize: 11.5 },
   specBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, backgroundColor: SAC.primary },
-  specBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
+  specBtnText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
 
   // KPI Tile Styles
   kpiTile: { flex: 1, minWidth: 140, padding: 14, borderRadius: 12, backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, gap: 4 },
-  kpiVal: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 17 },
+  kpiVal: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 17 },
   kpiLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 9.5, letterSpacing: 0.5 },
 
   // Custom Teams Styles
@@ -1853,7 +1855,7 @@ const s = StyleSheet.create({
   teamCard: { flex: 1, minWidth: 280, backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 14, padding: 16, gap: 8 },
   teamCardSelected: { borderColor: SAC.accent, backgroundColor: 'rgba(245,158,11,0.06)' },
   teamBadgeIcon: { width: 34, height: 34, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  teamName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 14 },
+  teamName: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 14 },
   teamCat: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 0.5 },
   teamDesc: { color: '#cbd5e1', fontFamily: FONTS.med, fontSize: 12, lineHeight: 16 },
   agentPill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.06)', borderColor: SAC.border, borderWidth: 1 },
@@ -1879,21 +1881,21 @@ const s = StyleSheet.create({
   viewModeText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11 },
 
   communityCard: { backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 14, padding: 16, gap: 10 },
-  commTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
+  commTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 15 },
   commDesc: { color: '#cbd5e1', fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 17 },
-  contactGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, padding: 10, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.35)', borderColor: SAC.border, borderWidth: 1 },
+  contactGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, padding: 10, borderRadius: 10, backgroundColor: SAC.panel2, borderColor: SAC.border, borderWidth: 1 },
   contactItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   contactText: { color: '#ddd', fontFamily: FONTS.med, fontSize: 11.5 },
   organizerRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 4 },
   goodieCard: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: 'rgba(245,158,11,0.08)', borderColor: 'rgba(245,158,11,0.3)', borderWidth: 1 },
-  goodieTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
+  goodieTitle: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
   goodieSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 },
   
   mouBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, backgroundColor: '#8B5CF6' },
   ambassadorBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, backgroundColor: '#10B981' },
   campaignBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, backgroundColor: '#6366F1' },
   convertBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, backgroundColor: '#374151' },
-  convertBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 11.5 },
+  convertBtnText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 11.5 },
   roleChip: { flex: 1, paddingVertical: 10, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.06)', borderColor: SAC.border, borderWidth: 1, alignItems: 'center' },
   roleChipActive: { backgroundColor: SAC.primary, borderColor: SAC.accent },
   roleChipText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
@@ -1901,20 +1903,20 @@ const s = StyleSheet.create({
   // Kanban Styles
   kanbanColumn: { width: 280, backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 14, padding: 14, minHeight: 300 },
   kanbanColumnTitle: { fontFamily: FONTS.bold, fontSize: 13 },
-  kanbanCard: { padding: 12, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.35)', borderColor: SAC.border, borderWidth: 1, gap: 6 },
+  kanbanCard: { padding: 12, borderRadius: 10, backgroundColor: SAC.panel2, borderColor: SAC.border, borderWidth: 1, gap: 6 },
   kanbanActionBtn: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.08)' },
   kanbanActionText: { color: SAC.muted, fontSize: 10, fontFamily: FONTS.bold },
 
   // Modal Styles
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', alignItems: 'center', justifyContent: 'center', padding: 16 },
+  modalOverlay: { flex: 1, backgroundColor: SAC.panel2, alignItems: 'center', justifyContent: 'center', padding: 16 },
   modalContent: { width: '100%', maxWidth: 600, backgroundColor: SAC.bg2, borderColor: SAC.border, borderWidth: 1, borderRadius: 16, padding: 20 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
-  modalTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 },
+  modalTitle: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 16 },
   catChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.06)', borderColor: SAC.border, borderWidth: 1 },
   catChipActive: { backgroundColor: SAC.primary, borderColor: SAC.accent },
   catChipText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 10 },
   addAgentBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, backgroundColor: SAC.primary },
-  agentFormCard: { padding: 12, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.3)', borderColor: SAC.border, borderWidth: 1, gap: 8 },
+  agentFormCard: { padding: 12, borderRadius: 10, backgroundColor: SAC.panel2, borderColor: SAC.border, borderWidth: 1, gap: 8 },
   cancelBtn: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.06)' },
   saveBtn: { paddingHorizontal: 18, paddingVertical: 10, borderRadius: 8, backgroundColor: SAC.primary },
 });

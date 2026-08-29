@@ -150,6 +150,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
         flow,
         email: userEmail,
         name: userName,
+        full_name: capitalizeName(userName || userEmail.split('@')[0]),
         course: selectedCourse,
         year: selectedYear,
         goal: selectedGoal,
@@ -157,6 +158,16 @@ function WebOnboardingEngine({ router }: { router: any }) {
         avatar_uri: avatarUri,
         interests,
         institution: instName,
+        // Alumni-specific fields
+        company: alumCompany,
+        role: alumRole,
+        capacity: alumCap,
+        expertise: alumExpertise,
+        mentor_format: mentorFmt,
+        mentor_frequency: mentorFreq,
+        mentor_audience: mentorWho,
+        // Generated SA ID
+        sa_id: generatedSaId,
       }).catch(() => null);
     } catch (e) {
       // Best effort completed
@@ -192,10 +203,27 @@ function WebOnboardingEngine({ router }: { router: any }) {
   const [followedMentors, setFollowedMentors] = useState<Record<string, boolean>>({});
 
   // Alumnus Form State
-  const [alumCompany, setAlumCompany] = useState('Deloitte');
-  const [alumRole, setAlumRole] = useState('Senior Consultant');
+  const [alumCompany, setAlumCompany] = useState('');
+  const [alumRole, setAlumRole] = useState('');
   const [alumCap, setAlumCap] = useState('2');
   const [alumExpertise, setAlumExpertise] = useState<string[]>(['Resume review', 'Interview prep', 'Career switching']);
+
+  // Name capitalization helper — capitalize first letter of each word
+  const capitalizeName = (name: string) => {
+    if (!name) return '';
+    return name.replace(/\b\w/g, (c) => c.toUpperCase());
+  };
+
+  // Dynamic SA ID generation
+  const generateSaId = () => {
+    const prefix = flow === 'alumnus' ? 'AL' : 'ST';
+    const year = flow === 'alumnus' ? (selectedYear || '26').slice(-2) : new Date().getFullYear().toString().slice(-2);
+    const collegeShort = (instName || 'MRIT').replace(/[^A-Z]/gi, '').substring(0, 4).toUpperCase();
+    const seq = String(Math.floor(10000 + Math.random() * 90000));
+    return `SA-${prefix}-${year}-${collegeShort}-${seq}`;
+  };
+
+  const [generatedSaId, setGeneratedSaId] = useState('');
 
   // College Form State
   const [instName, setInstName] = useState('Malla Reddy Institute of Technology');
@@ -253,6 +281,13 @@ function WebOnboardingEngine({ router }: { router: any }) {
   const currentSeq = FLOW_SEQS[flow];
   const currentKey = currentSeq[stepIdx] || 'who';
   const progressPct = ((stepIdx / (currentSeq.length - 1)) * 100).toFixed(1);
+
+  // Generate SA ID once when card step is reached
+  useEffect(() => {
+    if (currentKey === 'card' && !generatedSaId) {
+      setGeneratedSaId(generateSaId());
+    }
+  }, [currentKey]);
 
   const nextStep = async () => {
     if (currentKey === 'account') {
@@ -1480,20 +1515,28 @@ function WebOnboardingEngine({ router }: { router: any }) {
             <div style={{ display: 'grid', gap: '22px' }}>
               <div>
                 <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '8px' }}>Company</div>
-                <div style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px' }}>
-                  {alumCompany}
-                </div>
+                <input
+                  type="text"
+                  value={alumCompany}
+                  onChange={(e) => setAlumCompany(e.target.value)}
+                  placeholder="e.g. Google, Deloitte, Microsoft"
+                  style={{ width: '100%', border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px', color: 'var(--text)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                />
               </div>
               <div>
                 <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '8px' }}>Role</div>
-                <div style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px' }}>
-                  {alumRole}
-                </div>
+                <input
+                  type="text"
+                  value={alumRole}
+                  onChange={(e) => setAlumRole(e.target.value)}
+                  placeholder="e.g. Software Engineer, Senior Consultant"
+                  style={{ width: '100%', border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px', color: 'var(--text)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                />
               </div>
               <div>
                 <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '8px' }}>Graduated from</div>
                 <div style={{ border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--card)', padding: '14px 15px', fontSize: '15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span>MRIT · Class of 2019</span>
+                  <span>{instName || 'College'} · Class of {selectedYear}</span>
                   <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--ind-lt)' }}>VERIFIED</span>
                 </div>
               </div>
@@ -1811,13 +1854,13 @@ function WebOnboardingEngine({ router }: { router: any }) {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 0', borderBottom: '1px solid var(--line)' }}>
                     <span style={{ fontSize: '13.5px', color: 'var(--muted)' }}>SA ID</span>
                     <span id="ob-said" style={{ fontFamily: 'ui-monospace, monospace', fontSize: '14px', fontWeight: 600 }}>
-                      {flow === 'alumnus' ? 'SA-19-MRIT-00874' : 'SA-26-MRIT-04193'}
+                      {generatedSaId || 'Generating...'}
                     </span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 0', borderBottom: '1px solid var(--line)' }}>
                     <span style={{ fontSize: '13.5px', color: 'var(--muted)' }}>Status</span>
                     <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--ind-lt)' }}>
-                      {flow === 'alumnus' ? 'Verified Mentor' : 'Verified Student'}
+                      {flow === 'alumnus' ? (alumRole ? `Verified ${alumRole}` : 'Verified Mentor') : 'Verified Student'}
                     </span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 0' }}>
@@ -1913,17 +1956,17 @@ function WebOnboardingEngine({ router }: { router: any }) {
                         </div>
                         <div>
                           <div id="ob-card-name" style={{ fontSize: '27px', fontWeight: 700, letterSpacing: '-1px', marginBottom: '4px' }}>
-                            {flow === 'alumnus' ? 'Arjun Mehta' : 'Aisha Kapoor'}
+                            {capitalizeName(userName || userEmail.split('@')[0] || 'Student')}
                           </div>
                           <div id="ob-card-sub" style={{ fontSize: '13.5px', opacity: 0.82 }}>
-                            {flow === 'alumnus' ? 'Senior Consultant, Deloitte · Class of 2019' : `${selectedCourse} · Class of ${selectedYear}`}
+                            {flow === 'alumnus' ? `${alumRole || 'Professional'}, ${alumCompany || 'Company'} · Class of ${selectedYear}` : `${selectedCourse} · Class of ${selectedYear}`}
                           </div>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
                           <div>
                             <div style={{ fontSize: '9.5px', fontWeight: 700, letterSpacing: '1.6px', opacity: 0.7, marginBottom: '5px' }}>SA ID</div>
                             <div id="ob-card-id" style={{ fontFamily: 'ui-monospace, monospace', fontSize: '15px', fontWeight: 600, letterSpacing: '.5px' }}>
-                              {flow === 'alumnus' ? 'SA-19-MRIT-00874' : 'SA-26-MRIT-04193'}
+                              {generatedSaId || 'Generating...'}
                             </div>
                           </div>
                           <div style={{ width: '46px', height: '46px', borderRadius: '6px', background: 'rgba(255,255,255,.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFFFFF', fontWeight: 800, fontSize: '18px' }}>
@@ -1963,7 +2006,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontFamily: 'ui-monospace, monospace', fontSize: '12px', opacity: 0.75 }}>
                           <span>studentalumni.ai/verify</span>
-                          <span id="ob-card-back-id">{flow === 'alumnus' ? 'SA-19-MRIT-00874' : 'SA-26-MRIT-04193'}</span>
+                          <span id="ob-card-back-id">{generatedSaId || 'Generating...'}</span>
                         </div>
                       </div>
                     </div>
@@ -1981,7 +2024,7 @@ function WebOnboardingEngine({ router }: { router: any }) {
               <span style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '1px solid var(--ind)', animation: 'ob-ring 2.6s ease-out infinite' }} />
               <span style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '1px solid var(--ind)', animation: 'ob-ring 2.6s ease-out infinite 1.3s' }} />
               <span style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'linear-gradient(135deg, var(--ind), #2FB8C6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '30px' }}>
-                🎉
+                
               </span>
             </div>
             <h1 style={{ fontSize: '42px', fontWeight: 700, lineHeight: 1.1, letterSpacing: -1.7, margin: '0 0 14px' }}>

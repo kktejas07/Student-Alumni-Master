@@ -376,7 +376,7 @@ export function FeedbackView({ demoMode = false, setDemoMode }: { demoMode?: boo
               const pct = demoMode ? Math.round((count / total) * 100) : 0;
               return (
                 <View key={star} style={s.breakdownRow}>
-                  <Text style={s.starText}>{star} ★</Text>
+                  <Text style={s.starText}>{star}</Text>
                   <View style={s.progressBarTrack}>
                     <View style={[s.progressBarFill, { width: `${pct}%` as any }]} />
                   </View>
@@ -450,9 +450,9 @@ export function FeedbackView({ demoMode = false, setDemoMode }: { demoMode?: boo
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filterScroll}>
           {[
             { id: 'all', label: `All (${displayReviews.length})` },
-            { id: '5', label: '5 ★' },
-            { id: '4', label: '4 ★' },
-            { id: '3_below', label: '3 ★ & below' },
+            { id: '5', label: '5' },
+            { id: '4', label: '4' },
+            { id: '3_below', label: '3 & below' },
             { id: 'unread', label: `Unread (${unreadCount})` },
             { id: 'unanswered', label: `Unanswered (${unansweredCount})` },
           ].map((item) => {

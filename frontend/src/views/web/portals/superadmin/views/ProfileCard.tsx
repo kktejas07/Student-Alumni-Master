@@ -19,7 +19,7 @@ import {
   Eye, ChevronRight, Calendar, Check, Play, Code, Sparkles,
   ShieldCheck, Trash2,
 } from 'lucide-react-native';
-import { SAC, FONTS } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import { GRAD } from '../applekit';
 
 /** LinkedIn 'in' glyph — `lucide-react-native` doesn't ship the Linkedin icon
@@ -120,6 +120,8 @@ function fmtNextSession(iso: string) {
 
 /* ─── Component ──────────────────────────────────────────────────── */
 export function ProfileCard(props: ProfileCardProps) {
+  const T = useSAC();
+  Object.assign(s, resolveColors(s, T));
   const { user, goals, progress, tags, nextSession, socials, onViewProfile, onApprove, onRemove } = props;
   const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown user';
   const cat = CAT_DOT[user.category] || CAT_DOT.student;

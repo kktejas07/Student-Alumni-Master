@@ -173,7 +173,7 @@ import {
   GRAD, GradientButton, SecondaryButton, Card,
   StatusPill, SearchField, KpiTile, useToast, Toast, TopTabs, IconBox,
 } from '../applekit';
-import { SAC, FONTS } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import { api, resolveImageUrl } from '@/src/models/services/api';
 import { useConfirm } from '@/src/views/components';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
@@ -580,11 +580,11 @@ function ImageUploadWidget({
             style={{ width: '100%', height: 140 }}
             resizeMode="cover"
           />
-          <View style={{ flexDirection: 'row', gap: 8, padding: 8, backgroundColor: 'rgba(0,0,0,0.4)' }}>
+          <View style={{ flexDirection: 'row', gap: 8, padding: 8, backgroundColor: SAC.panel2 }}>
             {Platform.OS === 'web' && (
               <label style={{ cursor: 'pointer' }}>
                 <span style={{
-                  backgroundColor: 'rgba(123,61,191,0.30)', color: '#fff',
+                  backgroundColor: 'rgba(123,61,191,0.30)', color: SAC.text,
                   padding: '5px 10px', borderRadius: '6px',
                   fontFamily: FONTS.semi, fontSize: '11px',
                 }}>
@@ -632,7 +632,7 @@ function ImageUploadWidget({
                 {Platform.OS === 'web' && (
                   <label style={{ cursor: 'pointer' }}>
                     <span style={{
-                      backgroundColor: 'rgba(123,61,191,0.30)', color: '#fff',
+                      backgroundColor: 'rgba(123,61,191,0.30)', color: SAC.text,
                       padding: '6px 14px', borderRadius: '8px',
                       fontFamily: FONTS.semi, fontSize: '12px',
                     }}>
@@ -1074,7 +1074,7 @@ function PosterEditor({ posters, onChange }: { posters: string[]; onChange: (p: 
             {Platform.OS === 'web' && (
               <label style={{ marginTop: 4, cursor: 'pointer' }}>
                 <span style={{
-                  backgroundColor: 'rgba(123,61,191,0.25)', color: '#fff',
+                  backgroundColor: 'rgba(123,61,191,0.25)', color: SAC.text,
                   padding: '5px 12px', borderRadius: '7px',
                   fontFamily: FONTS.semi, fontSize: '11px',
                 }}>
@@ -1517,7 +1517,7 @@ function BannerCarouselEditor({ banners, onChange }: { banners: string[]; onChan
             {Platform.OS === 'web' && (
               <label style={{ marginTop: 4, cursor: 'pointer' }}>
                 <span style={{
-                  backgroundColor: 'rgba(123,61,191,0.25)', color: '#fff',
+                  backgroundColor: 'rgba(123,61,191,0.25)', color: SAC.text,
                   padding: '5px 12px', borderRadius: '7px',
                   fontFamily: FONTS.semi, fontSize: '11px',
                 }}>
@@ -1660,7 +1660,7 @@ function GalleryDropzone({ gallery, onChange }: { gallery: any[]; onChange: (g: 
         {Platform.OS === 'web' && (
           <label style={{ marginTop: 12, cursor: 'pointer' }}>
             <span style={{
-              backgroundColor: 'rgba(123,61,191,0.30)', color: '#fff',
+              backgroundColor: 'rgba(123,61,191,0.30)', color: SAC.text,
               padding: '7px 14px', borderRadius: '8px',
               fontFamily: FONTS.semi, fontSize: '12px',
             }}>
@@ -1849,7 +1849,7 @@ function MediaLibraryPanel() {
               <View>
                 <GradientButton size="md">
                   <Upload size={13} color="#fff" />
-                  <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13, marginLeft: 6 }}>
+                  <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 13, marginLeft: 6 }}>
                     {uploading ? uploadProgress : 'Bulk Upload'}
                   </Text>
                 </GradientButton>
@@ -1943,7 +1943,7 @@ function MediaLibraryPanel() {
 
       {/* Image preview modal */}
       <Modal visible={!!preview} transparent animationType="fade" onRequestClose={() => setPreview(null)}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.88)', alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ flex: 1, backgroundColor: SAC.panel2, alignItems: 'center', justifyContent: 'center' }}>
           <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setPreview(null)} />
           {preview && (
             <View style={{ width: '90%', maxWidth: 700, backgroundColor: '#0d1326',
@@ -2596,7 +2596,7 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                         }} />
                       </View>
                       <View style={{ flex: 1 }}>
-                        <Text style={{ color: '#fff', fontFamily: FONTS.semi, fontSize: 13 }}>{sec.label}</Text>
+                        <Text style={{ color: SAC.text, fontFamily: FONTS.semi, fontSize: 13 }}>{sec.label}</Text>
                         <Text style={{ color: SAC.dim, fontFamily: FONTS.med, fontSize: 11 }}>{sec.hint}</Text>
                       </View>
                       <Text style={{ color: on ? '#34D399' : '#F87171', fontFamily: FONTS.bold, fontSize: 11 }}>{on ? 'Visible' : 'Hidden'}</Text>
@@ -2853,7 +2853,7 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
               <Text style={{ fontFamily: FONTS.semi, fontSize: 13, color: SAC.muted }}>Cancel</Text>
             </SecondaryButton>
             <GradientButton onPress={() => onSave(form)} loading={saving || activeUploads > 0} disabled={saving || activeUploads > 0} size="md">
-              <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13 }}>
+              <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 13 }}>
                 {activeUploads > 0 ? 'Uploading…' : editing ? 'Save Changes' : 'Create Showcase'}
               </Text>
             </GradientButton>
@@ -2866,7 +2866,7 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
 
 const ml = StyleSheet.create({
   overlay: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.70)' },
+  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: SAC.panel2 },
   box: {
     width: '96%', maxWidth: 900, maxHeight: '95%',
     backgroundColor: '#0d1326', borderRadius: 18,
@@ -2875,7 +2875,7 @@ const ml = StyleSheet.create({
     ...(Platform.OS === 'web' ? { boxShadow: '0 24px 80px rgba(0,0,0,0.60)' } as any : {}),
   },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14 },
-  headerTitle: { fontFamily: FONTS.bold, fontSize: 16, color: '#fff' },
+  headerTitle: { fontFamily: FONTS.bold, fontSize: 16, color: SAC.text },
   footer: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, padding: 16, borderTopWidth: 1, borderTopColor: SAC.border },
 });
 
@@ -3277,7 +3277,7 @@ function RegistrationsPanel() {
     } else if (targetGroup === 'confirmed_paid') {
       defaultSubj = `Important Event Notice & Schedule Updates — ${eventName}`;
     } else {
-      defaultSubj = `🚀 Invitation: Register your team for ${eventName}`;
+      defaultSubj = `→ Invitation: Register your team for ${eventName}`;
     }
     setBroadcastModal({
       target_group: targetGroup,
@@ -3355,14 +3355,14 @@ function RegistrationsPanel() {
           opacity: auditLoading ? 0.6 : 1,
         }}>
           {auditLoading ? <ActivityIndicator size="small" color="#fff" /> : <Search size={14} color="#fff" />}
-          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>{auditLoading ? 'Loading…' : 'Revenue Audit'}</Text>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>{auditLoading ? 'Loading…' : 'Revenue Audit'}</Text>
         </Pressable>
         <Pressable onPress={() => window.open('/echo/admin/scan', '_blank')} style={{
           flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#7C3AED',
           borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, cursor: 'pointer',
         }}>
           <ScanLine size={14} color="#fff" />
-          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Scan Coupons</Text>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>Scan Coupons</Text>
         </Pressable>
         <Pressable
           onPress={syncAllTeams}
@@ -3385,7 +3385,7 @@ function RegistrationsPanel() {
       <Card style={{ marginBottom: 18, backgroundColor: 'rgba(15,23,42,0.65)', borderColor: 'rgba(255,255,255,0.08)' }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
           <View>
-            <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: '#fff' }}>Targeted Broadcasts &amp; Notices</Text>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>Targeted Broadcasts &amp; Notices</Text>
             <Text style={{ fontFamily: FONTS.reg, fontSize: 12, color: SAC.muted, marginTop: 2 }}>
               Differentiate communication between unpaid cart registrants, confirmed attendees, and platform students
             </Text>
@@ -3422,7 +3422,7 @@ function RegistrationsPanel() {
               }}
             >
               <Send size={13} color="#fff" />
-              <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Send Payment Recovery Notice</Text>
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>Send Payment Recovery Notice</Text>
             </Pressable>
           </View>
 
@@ -3454,7 +3454,7 @@ function RegistrationsPanel() {
               }}
             >
               <Mail size={13} color="#fff" />
-              <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Send Event Notice &amp; Updates</Text>
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>Send Event Notice &amp; Updates</Text>
             </Pressable>
           </View>
 
@@ -3486,7 +3486,7 @@ function RegistrationsPanel() {
               }}
             >
               <Zap size={13} color="#fff" />
-              <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Send Event Invitation</Text>
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>Send Event Invitation</Text>
             </Pressable>
           </View>
         </View>
@@ -3504,7 +3504,7 @@ function RegistrationsPanel() {
               <View key={ev.slug + i} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                 <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: GRAD.to }} />
                 <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 12.5, color: '#fff' }}>{ev.title}</Text>
+                  <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 12.5, color: SAC.text }}>{ev.title}</Text>
                   <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10.5, color: SAC.dim }}>
                     {ev.paid} paid · {ev.pending} pending · {ev.free} free
                   </Text>
@@ -3532,13 +3532,13 @@ function RegistrationsPanel() {
             onChange={(e: any) => setEventSlug(e.target.value)}
             style={{
               backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
-              borderRadius: 8, padding: '8px 12px', color: '#fff', fontSize: 12, fontFamily: 'Inter',
+              borderRadius: 8, padding: '8px 12px', color: SAC.text, fontSize: 12, fontFamily: 'Inter',
               outline: 'none', cursor: 'pointer', minWidth: 140,
             }}
           >
-            <option value="all" style={{ background: '#1e1b4b', color: '#fff' }}>All Events</option>
+            <option value="all" style={{ background: '#1e1b4b', color: SAC.text }}>All Events</option>
             {uniqueEvents.map((ev: any) => (
-              <option key={ev.slug} value={ev.slug} style={{ background: '#1e1b4b', color: '#fff' }}>{ev.title}</option>
+              <option key={ev.slug} value={ev.slug} style={{ background: '#1e1b4b', color: SAC.text }}>{ev.title}</option>
             ))}
           </select>
         )}
@@ -3589,7 +3589,7 @@ function RegistrationsPanel() {
                 return (
                 <View key={r.id || i} style={{ flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 11, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' }}>
                   <View style={{ flex: 1.5, minWidth: 180 }}>
-                    <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 12.5, color: '#fff' }}>{r.full_name || '—'}</Text>
+                    <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 12.5, color: SAC.text }}>{r.full_name || '—'}</Text>
                     <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10.5, color: SAC.dim }}>{r.email || r.phone || ''}</Text>
                     {isTeam && (
                       <View style={{ marginTop: 6, gap: 4 }}>
@@ -3649,7 +3649,7 @@ function RegistrationsPanel() {
                       </View>
                     ) : (
                       <View>
-                        <Text style={{ fontFamily: FONTS.xbold, fontSize: 12, color: '#fff' }}>
+                        <Text style={{ fontFamily: FONTS.xbold, fontSize: 12, color: SAC.text }}>
                           {Number(r.fee || 0) > 0 ? `₹${Number(r.fee).toLocaleString('en-IN')}` : 'FREE'}
                         </Text>
                         {isTeam && (r.team_size > 1 || (r.team_members?.length || 0) > 0) && (
@@ -3808,7 +3808,7 @@ function RegistrationsPanel() {
       {/* Detail Modal */}
       {detailRow && (
         <Modal visible={true} transparent animationType="fade" onRequestClose={() => setDetailRow(null)}>
-          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.72)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <View style={{ flex: 1, backgroundColor: SAC.panel2, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
             <View style={{
               width: '100%', maxWidth: 680,
               backgroundColor: '#141A2D',
@@ -3875,7 +3875,7 @@ function RegistrationsPanel() {
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                     <View>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                        <Text style={{ fontFamily: FONTS.bold, fontSize: 13.5, color: '#fff' }}>
+                        <Text style={{ fontFamily: FONTS.bold, fontSize: 13.5, color: SAC.text }}>
                           Team: {detailRow.team_name || 'Team Registration'}
                         </Text>
                         <View style={{ backgroundColor: 'rgba(124,58,237,0.3)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
@@ -3908,7 +3908,7 @@ function RegistrationsPanel() {
                             </View>
                             <View style={{ flex: 1, minWidth: 0 }}>
                               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
-                                <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#fff' }} numberOfLines={1}>
+                                <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: SAC.text }} numberOfLines={1}>
                                   {member.name || `Team Member ${idx + 2}`}
                                 </Text>
                                 <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
@@ -4004,7 +4004,7 @@ function RegistrationsPanel() {
                           {actioning === editingTeamReg?.id ? (
                             <ActivityIndicator size="small" color="#fff" />
                           ) : (
-                            <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Save</Text>
+                            <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>Save</Text>
                           )}
                         </Pressable>
                       </View>
@@ -4072,7 +4072,7 @@ function RegistrationsPanel() {
                   </Pressable>
                 ) : <View />}
                 <GradientButton onPress={() => setDetailRow(null)} size="sm">
-                  <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>Close</Text>
+                  <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 }}>Close</Text>
                 </GradientButton>
               </View>
             </View>
@@ -4083,7 +4083,7 @@ function RegistrationsPanel() {
       {/* Broadcast / Notice Modal */}
       {broadcastModal && (
         <Modal visible={true} transparent animationType="fade" onRequestClose={() => setBroadcastModal(null)}>
-          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <View style={{ flex: 1, backgroundColor: SAC.panel2, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
             <View style={{
               width: '100%', maxWidth: 620,
               backgroundColor: '#141A2D',
@@ -4095,7 +4095,7 @@ function RegistrationsPanel() {
               {/* Header */}
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 18, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)' }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: '#fff' }}>
+                  <Text style={{ fontFamily: FONTS.bold, fontSize: 16, color: SAC.text }}>
                     {broadcastModal.target_group === 'pending_unpaid' && 'Send Payment Recovery Notice'}
                     {broadcastModal.target_group === 'confirmed_paid' && 'Send Attendee Notice & Handbook'}
                     {broadcastModal.target_group === 'unregistered_students' && 'Send Event Invitation Newsletter'}
@@ -4128,7 +4128,7 @@ function RegistrationsPanel() {
                       backgroundColor: 'rgba(255,255,255,0.06)',
                       borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
                       borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10,
-                      color: '#fff', fontSize: 13.5, fontFamily: FONTS.reg,
+                      color: SAC.text, fontSize: 13.5, fontFamily: FONTS.reg,
                     }}
                   />
                 </View>
@@ -4149,7 +4149,7 @@ function RegistrationsPanel() {
                       backgroundColor: 'rgba(255,255,255,0.06)',
                       borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
                       borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10,
-                      color: '#fff', fontSize: 13, fontFamily: FONTS.reg, minHeight: 90, textAlignVertical: 'top',
+                      color: SAC.text, fontSize: 13, fontFamily: FONTS.reg, minHeight: 90, textAlignVertical: 'top',
                     }}
                   />
                 </View>
@@ -4158,7 +4158,7 @@ function RegistrationsPanel() {
                 <View style={{ padding: 12, backgroundColor: 'rgba(124,58,237,0.08)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(124,58,237,0.2)' }}>
                   <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#C4B5FD' }}>✓ Automatic Attachments &amp; Links Included:</Text>
                   <Text style={{ fontFamily: FONTS.reg, fontSize: 11.5, color: '#DDD6FE', marginTop: 4, lineHeight: 16 }}>
-                    • Attached PDF: <strong style={{ color: '#fff' }}>HackWave_3.0_Event_Handbook.pdf</strong><br/>
+                    • Attached PDF: <strong style={{ color: SAC.text }}>HackWave_3.0_Event_Handbook.pdf</strong><br/>
                     • Personalized pass registration / checkout / ticket links<br/>
                     • Real-time payment verification and QR entry credentials
                   </Text>
@@ -4177,7 +4177,7 @@ function RegistrationsPanel() {
                 >
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <Send size={13} color="#fff" />
-                    <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>
+                    <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 }}>
                       {broadcasting ? 'Sending Broadcast...' : 'Send Broadcast'}
                     </Text>
                   </View>
@@ -4190,10 +4190,10 @@ function RegistrationsPanel() {
 
       {/* Revenue Audit Modal */}
       <Modal visible={showAudit} transparent animationType="fade" onRequestClose={() => setShowAudit(false)}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', padding: 20 }}>
+        <View style={{ flex: 1, backgroundColor: SAC.panel2, justifyContent: 'center', padding: 20 }}>
           <View style={{ backgroundColor: '#1a1a2e', borderRadius: 16, padding: 18, maxWidth: 960, width: '100%', alignSelf: 'center', maxHeight: '90vh' }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <Text style={{ fontFamily: FONTS.xbold, fontSize: 16, color: '#fff' }}>Revenue Audit — DB vs Razorpay</Text>
+              <Text style={{ fontFamily: FONTS.xbold, fontSize: 16, color: SAC.text }}>Revenue Audit — DB vs Razorpay</Text>
               <Pressable onPress={() => setShowAudit(false)} style={{ width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.08)' }}>
                 <X size={16} color="#fff" />
               </Pressable>
@@ -4203,7 +4203,7 @@ function RegistrationsPanel() {
                 {/* Summary */}
                 <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
                   {[
-                    { label: 'Total Registrations', value: String(auditData.summary?.total_registrations || 0), color: '#fff', filter: 'all' as const },
+                    { label: 'Total Registrations', value: String(auditData.summary?.total_registrations || 0), color: SAC.text, filter: 'all' as const },
                     { label: 'DB Razorpay Total', value: fmtAmt(auditData.summary?.db_total_razorpay || 0), color: '#86EFAC', filter: 'paid' as const },
                     { label: 'Admin Overrides', value: fmtAmt(auditData.summary?.db_total_admin_override || 0), color: '#FBBF24', filter: 'admin' as const },
                     { label: 'Free Accounts', value: String(auditData.summary?.db_total_free || 0), color: '#C4B5FD', filter: 'free' as const },
@@ -4228,11 +4228,11 @@ function RegistrationsPanel() {
                     <View style={{ flexDirection: 'row', gap: 16, marginTop: 6 }}>
                       <View>
                         <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 9 }}>Registrations</Text>
-                        <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 18 }}>{auditData.summary?.teams?.count || 0}</Text>
+                        <Text style={{ color: SAC.text, fontFamily: FONTS.xbold, fontSize: 18 }}>{auditData.summary?.teams?.count || 0}</Text>
                       </View>
                       <View>
                         <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 9 }}>Members</Text>
-                        <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 18 }}>{auditData.summary?.teams?.members_total || 0}</Text>
+                        <Text style={{ color: SAC.text, fontFamily: FONTS.xbold, fontSize: 18 }}>{auditData.summary?.teams?.members_total || 0}</Text>
                       </View>
                       <View>
                         <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 9 }}>Revenue</Text>
@@ -4245,7 +4245,7 @@ function RegistrationsPanel() {
                     <View style={{ flexDirection: 'row', gap: 16, marginTop: 6 }}>
                       <View>
                         <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 9 }}>Registrations</Text>
-                        <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 18 }}>{auditData.summary?.individuals?.count || 0}</Text>
+                        <Text style={{ color: SAC.text, fontFamily: FONTS.xbold, fontSize: 18 }}>{auditData.summary?.individuals?.count || 0}</Text>
                       </View>
                       <View>
                         <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 9 }}>Revenue</Text>
@@ -4377,7 +4377,7 @@ function RegistrationsPanel() {
                     <View key={i} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)', gap: 6, backgroundColor: hasDiscrepancy ? 'rgba(239,68,68,0.08)' : undefined }}>
                       <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: r.is_free ? '#C4B5FD' : r.is_admin_pay ? '#FBBF24' : r.status === 'paid' ? '#34D399' : r.status === 'pending' ? '#F59E0B' : '#EF4444' }} />
                       <View style={{ flex: 2, minWidth: 0 }}>
-                        <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 10.5 }} numberOfLines={1}>{r.name}</Text>
+                        <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 10.5 }} numberOfLines={1}>{r.name}</Text>
                         <Text style={{ color: SAC.dim, fontFamily: FONTS.med, fontSize: 8 }} numberOfLines={1}>{r.email}</Text>
                       </View>
                       <Text style={{ width: 45, color: SAC.muted, fontFamily: FONTS.med, fontSize: 9 }} numberOfLines={1}>{r.reg_type}{r.team_size > 1 ? `(${r.team_size})` : ''}</Text>
@@ -4526,7 +4526,7 @@ function VolunteersPanel() {
           </View>
           <GradientButton onPress={openAdd} size="sm">
             <PlusCircle size={13} color="#fff" />
-            <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12, marginLeft: 6 }}>Add Volunteer</Text>
+            <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 12, marginLeft: 6 }}>Add Volunteer</Text>
           </GradientButton>
         </View>
 
@@ -4578,14 +4578,14 @@ function VolunteersPanel() {
                     <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: SAC.muted, marginBottom: 4 }}>Email</Text>
                     <TextInput value={email} onChangeText={setEmail} placeholder="volunteer@email.com"
                       placeholderTextColor="#475569" keyboardType="email-address" autoCapitalize="none"
-                      style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 10, color: '#fff', fontSize: 13 }} />
+                      style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 10, color: SAC.text, fontSize: 13 }} />
                   </View>
                   <View style={{ width: 140 }}>
                     <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: SAC.muted, marginBottom: 4 }}>Role</Text>
                     <SelectNative value={role} onChange={setRole} options={['volunteer', 'ambassador']} />
                   </View>
                   <GradientButton onPress={addVolunteer} loading={saving} disabled={saving || !email.trim()} size="sm">
-                    <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>Add</Text>
+                    <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 }}>Add</Text>
                   </GradientButton>
                 </View>
               </>
@@ -4601,13 +4601,13 @@ function VolunteersPanel() {
             onChange={(e: any) => setFilterEvent(e.target.value)}
             style={{
               backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
-              borderRadius: 8, padding: '8px 12px', color: '#fff', fontSize: 12, fontFamily: 'Inter',
+              borderRadius: 8, padding: '8px 12px', color: SAC.text, fontSize: 12, fontFamily: 'Inter',
               outline: 'none', cursor: 'pointer', minWidth: 150,
             }}
           >
-            <option value="all" style={{ background: '#1e1b4b', color: '#fff' }}>All Events</option>
+            <option value="all" style={{ background: '#1e1b4b', color: SAC.text }}>All Events</option>
             {uniqueEvents.map((slug) => (
-              <option key={slug} value={slug} style={{ background: '#1e1b4b', color: '#fff' }}>
+              <option key={slug} value={slug} style={{ background: '#1e1b4b', color: SAC.text }}>
                 {items.find((v) => v.slug === slug)?.event_title || slug}
               </option>
             ))}
@@ -4655,7 +4655,7 @@ function VolunteersPanel() {
               {filtered.map((v) => (
                 <View key={v._id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' }}>
                   <View style={{ flex: 1.5, minWidth: 200 }}>
-                    <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 12.5, color: '#fff' }}>{v.email}</Text>
+                    <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 12.5, color: SAC.text }}>{v.email}</Text>
                     <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10.5, color: SAC.dim }}>{v.user_name || '—'}</Text>
                   </View>
                   <View style={{ flex: 1.5, minWidth: 180 }}>
@@ -4693,6 +4693,8 @@ function VolunteersPanel() {
 
 // ── Main View ─────────────────────────────────────────────────────────────────
 export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
+  const T = useSAC();
+  Object.assign(fi, resolveColors(fi, T));
   const [pageTab, setPageTab] = useSubTab<PageTab>(['all', 'create', 'drafts', 'registrations', 'volunteers', 'media'], 'all', { sub, onSub });
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -4835,7 +4837,7 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
         </View>
         <GradientButton onPress={onCreate} size="md">
           <PlusCircle size={14} color="#fff" />
-          <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13, marginLeft: 6 }}>New Showcase</Text>
+          <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 13, marginLeft: 6 }}>New Showcase</Text>
         </GradientButton>
       </View>
 
@@ -4891,7 +4893,7 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
                   : 'Create your first ECHO Showcase to let students explore memorable campus events.'}
               </Text>
               <GradientButton onPress={onCreate} size="md">
-                <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13 }}>+ New Showcase</Text>
+                <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 13 }}>+ New Showcase</Text>
               </GradientButton>
             </Card>
           ) : (
@@ -4963,10 +4965,10 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
 
       {/* Ticket Preview Modal */}
       <Modal visible={!!previewHtml} transparent animationType="fade" onRequestClose={() => setPreviewHtml(null)}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+        <View style={{ flex: 1, backgroundColor: SAC.panel2, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
           <View style={{ backgroundColor: '#1e1b4b', borderRadius: 16, overflow: 'hidden', width: '100%', maxWidth: 800, maxHeight: '90vh', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)' }}>
-              <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#fff' }}>Ticket Preview</Text>
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: SAC.text }}>Ticket Preview</Text>
               <Pressable onPress={() => setPreviewHtml(null)} style={{ padding: 6 }}>
                 <X size={18} color="#94a3b8" />
               </Pressable>

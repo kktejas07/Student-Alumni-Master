@@ -56,7 +56,7 @@ export function MentorsView() {
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text numberOfLines={1} style={s.name}>{m.name}</Text>
               <Text numberOfLines={1} style={s.meta}>{m.role} at {m.company}</Text>
-              {tab === 'active' && <Text style={s.stats}>{m.sessions} sessions · {m.rating}★</Text>}
+              {tab === 'active' && <Text style={s.stats}>{m.sessions} sessions · {m.rating}</Text>}
             </View>
             {tab === 'pending' ? (
               <View style={{ flexDirection: 'row', gap: 6 }}>

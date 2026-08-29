@@ -537,7 +537,7 @@ export function NetworkView() {
   const handleAcceptRequest = async (id: string, name: string) => {
     try {
       await api.acceptConnection(id);
-      toast.success('Connection Accepted! 🎉', `${name} is now connected with you.`);
+      toast.success('Connection Accepted! ', `${name} is now connected with you.`);
       setDiscoverSections(prev => prev.map(section => ({
         ...section,
         items: (section.items || []).map((item: any) =>
@@ -1462,7 +1462,7 @@ export function NetworkView() {
                       <Text style={{ color: '#F97316', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.6 }}>MENTOR STATS</Text>
                       <View style={{ flexDirection: 'row', gap: 8 }}>
                         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderRadius: 10, padding: 12 }}>
-                          <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 15 }}>{pickedPerson.rating || 5.0}★</Text>
+                          <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 15 }}>{pickedPerson.rating || 5.0}</Text>
                           <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 10, marginTop: 4 }}>Rating</Text>
                         </View>
                         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderRadius: 10, padding: 12 }}>

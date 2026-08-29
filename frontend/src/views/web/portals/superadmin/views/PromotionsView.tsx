@@ -24,7 +24,7 @@ import {
   Megaphone, Plus, Pencil, Trash2, X, Check, AlertTriangle, Eye, EyeOff,
   RefreshCw, ImagePlus, Upload, ArrowRight, Sparkles,
 } from 'lucide-react-native';
-import { SAC, FONTS } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import {
   GRAD, GradientButton, SecondaryButton, Card, IconBox, SectionLabel,
   SearchField, StatusPill, Toast, useToast, EmptyState, LoadingBox,
@@ -80,6 +80,8 @@ const AUDIENCE_OPTIONS: Array<{ id: Audience; label: string }> = [
  * Root
  * ────────────────────────────────────────────────────────────────── */
 export function PromotionsView() {
+  const T = useSAC();
+  Object.assign(s, resolveColors(s, T));
   const { toast, flash, hide } = useToast();
   const [items, setItems] = useState<Promotion[] | null>(null);
   const [busy, setBusy] = useState(false);
@@ -749,7 +751,7 @@ const s = StyleSheet.create({
 
   /* modal */
   modalBg: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.65)',
+    flex: 1, backgroundColor: SAC.panel2,
     alignItems: 'center', justifyContent: 'center', padding: 20,
     ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(8px)' } as any) : {}),
   },

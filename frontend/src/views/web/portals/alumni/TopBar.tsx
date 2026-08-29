@@ -48,7 +48,7 @@ export function TopBar({
   return (
     <View style={s.bar}>
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={s.greet}>{greeting()}, {firstName} 👋</Text>
+        <Text style={s.greet}>{greeting()}, {firstName} </Text>
         <Text style={s.sub}>Here’s your personalised dashboard for today</Text>
       </View>
 

@@ -4,9 +4,11 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import type { LucideIcon } from 'lucide-react-native';
-import { SAC, FONTS } from './tokens';
+import { SAC, useSAC, FONTS, resolveColors } from './tokens';
 
 export function Av({ initials, size = 38, color }: { initials: string; size?: number; color?: string }) {
+  const T = useSAC();
+  Object.assign(styles, resolveColors(styles, T));
   return (
     <View style={{ width: size, height: size, borderRadius: 10, backgroundColor: color || SAC.primary, alignItems: 'center', justifyContent: 'center' }}>
       <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: size * 0.36 }}>{initials}</Text>

@@ -96,7 +96,7 @@ export function AnalyticsView() {
 
       {/* Placement trend */}
       <View style={s.card}>
-        <Text style={s.cardLabel}>📈 PLACEMENT TREND (5Y)</Text>
+        <Text style={s.cardLabel}> PLACEMENT TREND (5Y)</Text>
         {TREND.length === 0 ? (
           <View style={{ height: H, justifyContent: 'center', alignItems: 'center' }}>
             <Text style={{ color: CC.dim, fontFamily: FONTS.med, fontSize: 13 }}>
@@ -309,7 +309,7 @@ export function AnalyticsView() {
       {/* Hiring funnel + Salary distribution */}
       <View style={[s.gridRow, isWide ? null : { flexDirection: 'column' }]}>
         <View style={[s.card, { flex: 1 }]}>
-          <Text style={s.cardLabel}>🎯 HIRING FUNNEL</Text>
+          <Text style={s.cardLabel}> HIRING FUNNEL</Text>
           <View style={{ gap: 8 }}>
             {(data?.funnel || []).map((f, i) => (
               <View key={f.stage} style={{ gap: 5 }}>
@@ -329,7 +329,7 @@ export function AnalyticsView() {
           </View>
         </View>
         <View style={[s.card, { flex: 1 }]}>
-          <Text style={s.cardLabel}>💰 SALARY DISTRIBUTION</Text>
+          <Text style={s.cardLabel}> SALARY DISTRIBUTION</Text>
           <View style={{ gap: 8 }}>
             {(data?.salary_dist || []).map((b) => (
               <View key={b.band} style={s.row}>
@@ -350,7 +350,7 @@ export function AnalyticsView() {
       {/* Top recruiters + Dept placement */}
       <View style={[s.gridRow, isWide ? null : { flexDirection: 'column' }]}>
         <View style={[s.card, { flex: 1 }]}>
-          <Text style={s.cardLabel}>🏢 TOP RECRUITERS</Text>
+          <Text style={s.cardLabel}> TOP RECRUITERS</Text>
           <View style={{ gap: 6 }}>
             {(data?.top_recruiters || []).slice(0, 8).map((r, i) => (
               <View key={r.name} style={s.recRow}>
@@ -370,7 +370,7 @@ export function AnalyticsView() {
           </View>
         </View>
         <View style={[s.card, { flex: 1 }]}>
-          <Text style={s.cardLabel}>🎓 DEPT-WISE PLACEMENT</Text>
+          <Text style={s.cardLabel}> DEPT-WISE PLACEMENT</Text>
           <View style={{ gap: 8 }}>
             {(data?.dept_placement || []).map((d) => (
               <View key={d.dept} style={{ gap: 4 }}>
@@ -396,7 +396,7 @@ export function AnalyticsView() {
       {/* Sectors + Attrition */}
       <View style={[s.gridRow, isWide ? null : { flexDirection: 'column' }]}>
         <View style={[s.card, { flex: 1 }]}>
-          <Text style={s.cardLabel}>🌐 SECTOR BREAKDOWN</Text>
+          <Text style={s.cardLabel}> SECTOR BREAKDOWN</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
             {(data?.sectors || []).map((sec) => (
               <View key={sec.name} style={[s.sectorChip,
@@ -412,7 +412,7 @@ export function AnalyticsView() {
           </View>
         </View>
         <View style={[s.card, { flex: 1 }]}>
-          <Text style={s.cardLabel}>📊 ROSTER HEALTH</Text>
+          <Text style={s.cardLabel}> ROSTER HEALTH</Text>
           <View style={{ gap: 8 }}>
             {(data?.attrition || []).map((a) => (
               <View key={a.label} style={s.row}>

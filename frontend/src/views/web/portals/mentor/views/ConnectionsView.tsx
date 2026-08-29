@@ -308,7 +308,7 @@ export function ConnectionsView() {
                   {/* Next Session Box */}
                   {st.nextSession ? (
                     <View style={s.nextBox}>
-                      <Text style={s.nextLabel}>📅 Next Session</Text>
+                      <Text style={s.nextLabel}> Next Session</Text>
                       <Text style={s.nextDateTime}>{st.nextSession.date} · {st.nextSession.time}</Text>
                       <Text numberOfLines={1} style={s.nextTopic}>{st.nextSession.topic}</Text>
                     </View>
@@ -589,7 +589,7 @@ function DrawerInner({ st, onClose, onUpdateStudent, onRefresh }: { st: Student;
     setTimeout(() => {
       setIsAnalyzing(false);
       setAiAnalysis(
-        `✨ AI STRENGTH ASSESSMENT:\n• Exceptional analytical abilities and strong system design foundation.\n• Arjun demonstrates deep understanding of horizontal scaling, caching strategies (Redis), and load balancers.\n\n📈 DEVELOPMENT AREAS:\n• Concurrency models in Python (asyncio) need more hands-on practice.\n• Focus on database sharding and CAP theorem trade-offs in the next mock interview.\n\n🎯 NEXT ACTION MILESTONES:\n• Mock Session on May 7th focusing entirely on high-throughput system bottlenecks.`
+        ` AI STRENGTH ASSESSMENT:\n• Exceptional analytical abilities and strong system design foundation.\n• Arjun demonstrates deep understanding of horizontal scaling, caching strategies (Redis), and load balancers.\n\n DEVELOPMENT AREAS:\n• Concurrency models in Python (asyncio) need more hands-on practice.\n• Focus on database sharding and CAP theorem trade-offs in the next mock interview.\n\n NEXT ACTION MILESTONES:\n• Mock Session on May 7th focusing entirely on high-throughput system bottlenecks.`
       );
     }, 1800);
   };
@@ -743,7 +743,7 @@ function DrawerInner({ st, onClose, onUpdateStudent, onRefresh }: { st: Student;
                 
                 {/* Meet Launch Section */}
                 <View style={{ marginTop: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)', paddingTop: 12 }}>
-                  <Text style={d.sessionStartLabel}>🟢 START SESSION VIA</Text>
+                  <Text style={d.sessionStartLabel}> START SESSION VIA</Text>
                   <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
                     <Pressable style={d.meetBtn} onPress={() => Platform.OS === 'web' ? window.open('https://meet.google.com', '_blank') : toast.info('Opening Meet')}>
                       <MaterialCommunityIcons name="video-outline" size={14} color="#fff" />
@@ -778,7 +778,7 @@ function DrawerInner({ st, onClose, onUpdateStudent, onRefresh }: { st: Student;
 
             {/* AI Progress Analysis */}
             <View style={{ gap: 8, marginTop: 4 }}>
-              <Text style={d.kicker}>✨ AI PROGRESS ANALYSIS</Text>
+              <Text style={d.kicker}> AI PROGRESS ANALYSIS</Text>
               {isAnalyzing ? (
                 <View style={d.aiAnalysisBox}>
                   <MaterialCommunityIcons name="loading" size={16} color={MC.tealP} style={d.loadingSpin} />

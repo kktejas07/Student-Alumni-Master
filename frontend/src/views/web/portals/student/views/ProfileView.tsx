@@ -26,7 +26,7 @@ export function ProfileView() {
               <Text style={s.name}>{STUDENT.name}</Text>
               <Text style={s.meta}>{STUDENT.year} · B.Tech CSE</Text>
               <View style={{ flexDirection: 'row', gap: 6, marginTop: 6 }}>
-                <Badge label="Verified ✓" color="green" />
+                <Badge label="Verified" color="green" />
                 <Badge label={STUDENT.saId} color="purple" />
               </View>
             </View>

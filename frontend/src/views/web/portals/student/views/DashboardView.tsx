@@ -27,6 +27,7 @@
  */
 
 import React, { useState, useEffect, useContext } from 'react';
+import { Check, X, Star } from 'lucide-react';
 import { View, Text, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StudentPortalNavContext } from '../StudentPortalNavContext';
@@ -305,7 +306,7 @@ export function DashboardView() {
           {COUPONS.map((c) => (
             <div key={c.code} className="db-coupon">
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1px solid #1F1F30', minHeight: '90px' }}>
-                <span style={{ fontSize: '26px' }}>🔒</span>
+                <span style={{ fontSize: '26px' }}></span>
               </div>
               <div style={{ padding: '13px 14px 15px' }}>
                 <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#F59E0B', marginBottom: '5px' }}>{c.name}</div>
@@ -374,7 +375,7 @@ export function DashboardView() {
               <div style={{ fontSize: '12.5px', color: '#8A8A9E', marginTop: '8px' }}>0 applied</div>
             </div>
             <span style={{ width: '38px', height: '38px', borderRadius: '11px', background: 'rgba(124,92,252,.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', color: '#A78BFA' }}>
-              💼
+              
             </span>
           </div>
         </div>
@@ -388,7 +389,7 @@ export function DashboardView() {
               <div style={{ fontSize: '12.5px', color: '#8A8A9E', marginTop: '8px' }}>Connections</div>
             </div>
             <span style={{ width: '38px', height: '38px', borderRadius: '11px', background: 'rgba(16, 185, 129, 0.13)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', color: '#34D399' }}>
-              👥
+              
             </span>
           </div>
         </div>
@@ -402,7 +403,7 @@ export function DashboardView() {
               <div style={{ fontSize: '12.5px', color: '#8A8A9E', marginTop: '8px' }}>Registered</div>
             </div>
             <span style={{ width: '38px', height: '38px', borderRadius: '11px', background: 'rgba(240, 97, 107, 0.13)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', color: '#F0616B' }}>
-              📅
+              
             </span>
           </div>
         </div>
@@ -427,7 +428,7 @@ export function DashboardView() {
             border: activeTab === 'opportunities' ? '1px solid #3A2E72' : '1px solid transparent',
           }}
         >
-          💼 Opportunities
+           Opportunities
         </span>
         <span
           onClick={() => setActiveTab('intelligence')}
@@ -446,7 +447,7 @@ export function DashboardView() {
             border: activeTab === 'intelligence' ? '1px solid #3A2E72' : '1px solid transparent',
           }}
         >
-          📈 Intelligence Center
+           Intelligence Center
         </span>
       </div>
 
@@ -474,7 +475,7 @@ export function DashboardView() {
               </svg>
               <div>
                 <div style={{ fontSize: '22px', fontWeight: 700, letterSpacing: '-.6px' }}>Builder</div>
-                <div style={{ fontSize: '13px', color: '#8A8A9E', marginTop: '3px' }}>Target: Industry Ready</div>
+                <div style={{ fontSize: '13px', color: '#8A8A9E', marginTop: '3px' }}> Industry Ready</div>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '12px', fontSize: '12px', fontWeight: 600, color: '#34D399', background: 'rgba(16, 185, 129, 0.13)', borderRadius: '7px', padding: '5px 9px' }}>
                   ↗ +8% this week
                 </div>
@@ -521,7 +522,7 @@ export function DashboardView() {
                   }}
                 >
                   <span style={{ width: '18px', height: '18px', borderRadius: '6px', border: `1.5px solid ${t.done ? '#7C5CFC' : '#262638'}`, background: t.done ? '#7C5CFC' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '1px' }}>
-                    {t.done && <span style={{ color: '#FFFFFF', fontSize: '11px', fontWeight: 800 }}>✓</span>}
+                    {t.done && <Check size={12} color='#FFFFFF' />}
                   </span>
                   <div>
                     <div style={{ fontSize: '14px', fontWeight: 500, lineHeight: 1.4, textDecoration: t.done ? 'line-through' : 'none', color: t.done ? '#8A8A9E' : '#FFFFFF' }}>
@@ -545,7 +546,7 @@ export function DashboardView() {
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '9px' }}>
               <span style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.2px' }}>0</span>
               <span style={{ fontSize: '14px', color: '#8A8A9E' }}>days</span>
-              <span style={{ fontSize: '20px', marginLeft: 'auto', animation: 'db-flame 2.2s ease-in-out infinite', display: 'inline-block' }}>🔥</span>
+              <span style={{ fontSize: '20px', marginLeft: 'auto', animation: 'db-flame 2.2s ease-in-out infinite', display: 'inline-block' }}></span>
             </div>
             <div style={{ display: 'flex', gap: '5px', marginTop: '16px' }}>
               {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, idx) => (
@@ -684,9 +685,9 @@ export function DashboardView() {
             </div>
             <div style={{ display: 'grid', gap: '8px' }}>
               {[
-                { initial: 'PM', color: '#DB2777', name: 'Priya Mehta', role: 'PM @ Microsoft · ★ 4.8' },
-                { initial: 'AV', color: '#10B981', name: 'Arjun Verma', role: 'Data Scientist @ Amazon · ★ 4.7' },
-                { initial: 'VS', color: '#2563EB', name: 'Vikram Singh', role: 'Cloud Architect @ AWS · ★ 4.9' },
+                { initial: 'PM', color: '#DB2777', name: 'Priya Mehta', role: 'PM @ Microsoft · 4.8' },
+                { initial: 'AV', color: '#10B981', name: 'Arjun Verma', role: 'Data Scientist @ Amazon · 4.7' },
+                { initial: 'VS', color: '#2563EB', name: 'Vikram Singh', role: 'Cloud Architect @ AWS · 4.9' },
               ].map((men) => (
                 <div key={men.name} style={{ display: 'grid', gridTemplateColumns: '36px minmax(0, 1fr) max-content', gap: '12px', alignItems: 'center', borderRadius: '11px', padding: '9px 11px', background: 'rgba(255,255,255,0.02)' }}>
                   <span style={{ width: '36px', height: '36px', borderRadius: '50%', background: men.color, color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 700 }}>

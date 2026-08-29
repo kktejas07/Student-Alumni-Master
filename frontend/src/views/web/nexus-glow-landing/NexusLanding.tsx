@@ -513,7 +513,7 @@ export default function NexusLanding() {
     const cLabel = document.getElementById("sa-csendlabel");
     if (cSend && cLabel) {
       cSend.addEventListener("click", () => {
-        cLabel.textContent = "Message sent ✓";
+        cLabel.textContent = "Message sent";
         cSend.style.background = "#047857";
         setTimeout(() => {
           cLabel.textContent = "Transmit Message";
@@ -526,7 +526,7 @@ export default function NexusLanding() {
     const sub = document.getElementById("sa-sub");
     if (sub) {
       sub.addEventListener("click", () => {
-        sub.textContent = "Subscribed ✓";
+        sub.textContent = "Subscribed";
         setTimeout(() => { sub.textContent = "Subscribe"; }, 2200);
       });
     }

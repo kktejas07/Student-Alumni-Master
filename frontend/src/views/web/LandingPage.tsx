@@ -35,7 +35,7 @@ import { SAWatermark } from '@/src/views/web/components/SAWatermark';
 import EchoEventsPage from '@/src/views/web/echo/EchoEventsPage';
 
 /* ── Brand Color Palette ── */
-const T = {
+const DARK_T = {
   bg: '#05060F',
   bg2: '#05060D',
   surface: '#0A0C18',
@@ -63,6 +63,35 @@ const T = {
   tint2: 'rgba(91,79,233,0.18)',
   shadow: 'rgba(0,0,0,0.5)',
 };
+const LIGHT_T = {
+  bg: '#FFFFFF',
+  bg2: '#F5F5F7',
+  surface: '#F0F0F5',
+  card: '#FFFFFF',
+  card2: '#FFFFFF',
+  cardHi: '#F0F0F5',
+  well: '#F5F5F7',
+  line: '#E5E5EA',
+  line2: '#E8E8ED',
+  lineHi: '#D1D1D6',
+  dot: '#C7C7CC',
+  text: '#1D1D1F',
+  text2: '#3A3A3C',
+  muted: '#6E6E73',
+  muted2: '#8E8E93',
+  dim: '#AEAEB2',
+  ind: '#5B4FE9',
+  indLt: '#7C5CFC',
+  indGlow: '#5B4FE9',
+  cyan: '#3478F6',
+  pink: '#D63384',
+  green: '#30B650',
+  amber: '#E8A000',
+  tint: 'rgba(91,79,233,0.10)',
+  tint2: 'rgba(91,79,233,0.12)',
+  shadow: 'rgba(0,0,0,0.08)',
+};
+const T = DARK_T;
 
 /* ── Global Styles Injection for Web ── */
 const STYLES_KEY = 'sa-interactive-motion-css';
@@ -73,7 +102,7 @@ function injectGlobalStyles() {
   s.textContent = `
     @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
     * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; background: #05060F; font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif; color: #F4F5FB; overflow-x: hidden; }
+    html, body { margin: 0; padding: 0; font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif; overflow-x: hidden; }
     
     @keyframes sa-twinkle {
       0%, 100% { opacity: 0.25; transform: scale(0.85); }
@@ -239,6 +268,10 @@ function Marquee({
   duration?: number;
   reverse?: boolean;
 }) {
+  const { isDark } = useTheme();
+  const mqCard = isDark ? '#0C0E1B' : '#FFFFFF';
+  const mqBorder = isDark ? '#1B1E33' : '#E5E5EA';
+  const mqText = isDark ? '#F4F5FB' : '#1D1D1F';
   return (
     <View style={{ overflow: 'hidden', flex: 1 }}>
       <div
@@ -255,8 +288,8 @@ function Marquee({
             <div
               key={`set1-${idx}`}
               style={{
-                backgroundColor: '#0C0E1B',
-                border: '1px solid #1B1E33',
+                backgroundColor: mqCard,
+                border: `1px solid ${mqBorder}`,
                 borderRadius: '12px',
                 padding: '12px 18px',
                 marginRight: '14px',
@@ -267,7 +300,7 @@ function Marquee({
                 flexShrink: 0,
                 fontSize: '11.5px',
                 fontWeight: 700,
-                color: '#F4F5FB',
+                color: mqText,
                 letterSpacing: '0.2px',
               }}
             >
@@ -280,8 +313,8 @@ function Marquee({
             <div
               key={`set2-${idx}`}
               style={{
-                backgroundColor: '#0C0E1B',
-                border: '1px solid #1B1E33',
+                backgroundColor: mqCard,
+                border: `1px solid ${mqBorder}`,
                 borderRadius: '12px',
                 padding: '12px 18px',
                 marginRight: '14px',
@@ -292,7 +325,7 @@ function Marquee({
                 flexShrink: 0,
                 fontSize: '11.5px',
                 fontWeight: 700,
-                color: '#F4F5FB',
+                color: mqText,
                 letterSpacing: '0.2px',
               }}
             >
@@ -417,6 +450,9 @@ function GlowButton({
 
 export default function LandingPage({ initialTab, initialEchoSlug }: { initialTab?: 'home' | 'echo' | 'verify' | 'contact', initialEchoSlug?: string } = {}) {
   const router = useRouter();
+  const { isDark } = useTheme();
+  const T = isDark ? DARK_T : LIGHT_T;
+  const styles = themedStyles(T);
   const { width } = useWindowDimensions();
   const isNarrow = width < 960;
   const isMobile = width < 640;
@@ -471,6 +507,14 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
+
+  // Update body background on theme change
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.body.style.background = T.bg;
+      document.body.style.color = T.text;
+    }
+  }, [isDark]);
 
   // Scroll position & sticky bar
   const [scrollY, setScrollY] = useState(0);
@@ -776,7 +820,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
             position: 'fixed',
             inset: 0,
             zIndex: 99999,
-            backgroundColor: '#07070E',
+            backgroundColor: isDark ? '#07070E' : '#FFFFFF',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'flex-end',
@@ -863,10 +907,10 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                 gap: '10px',
                 fontSize: '15px',
                 fontWeight: 600,
-                color: 'rgba(244,245,251,0.9)',
+                color: isDark ? 'rgba(244,245,251,0.9)' : 'rgba(20,23,38,0.9)',
                 marginTop: '14px',
                 whiteSpace: 'nowrap',
-                background: 'linear-gradient(90deg, rgba(244,245,251,0.7) 0%, #FFFFFF 50%, rgba(244,245,251,0.7) 100%)',
+                background: isDark ? 'linear-gradient(90deg, rgba(244,245,251,0.7) 0%, #FFFFFF 50%, rgba(244,245,251,0.7) 100%)' : 'linear-gradient(90deg, rgba(20,23,38,0.7) 0%, #141726 50%, rgba(20,23,38,0.7) 100%)',
                 backgroundSize: '200% auto',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
@@ -893,7 +937,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
               margin: '0 auto',
             }}
           >
-            <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '3.4px', color: 'rgba(244,245,251,0.62)' }}>
+            <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '3.4px', color: isDark ? 'rgba(244,245,251,0.62)' : 'rgba(20,23,38,0.55)' }}>
               {curtainLabel}
             </div>
             <div
@@ -903,13 +947,13 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                 letterSpacing: '-3.2px',
                 lineHeight: 0.85,
                 fontVariantNumeric: 'tabular-nums',
-                color: '#F4F5FB',
+                color: T.text,
               }}
             >
               {String(curtainCount).padStart(2, '0')}
             </div>
           </div>
-          <div style={{ maxWidth: '1360px', width: '100%', margin: '16px auto 0', height: '2px', background: 'rgba(244,245,251,0.14)' }}>
+          <div style={{ maxWidth: '1360px', width: '100%', margin: '16px auto 0', height: '2px', background: isDark ? 'rgba(244,245,251,0.14)' : 'rgba(20,23,38,0.1)' }}>
             <div
               style={{
                 height: '100%',
@@ -1028,8 +1072,8 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
               <View style={styles.verifyInputRow}>
                 <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
                   <Svg width="18" height="18" viewBox="0 0 16 16" style={{ marginRight: 12 }}>
-                    <Circle cx="7" cy="7" r="4.6" stroke="#5C6273" strokeWidth="1.8" fill="none" />
-                    <Path d="M10.5 10.5L14 14" stroke="#5C6273" strokeWidth="1.8" />
+                    <Circle cx="7" cy="7" r="4.6" stroke={T.dim} strokeWidth="1.8" fill="none" />
+                    <Path d="M10.5 10.5L14 14" stroke={T.dim} strokeWidth="1.8" />
                   </Svg>
                   <TextInput
                     style={styles.verifySearchInput}
@@ -1380,7 +1424,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                     <Text style={styles.hubDetailVal}>+91 7569665077</Text>
                     <Pressable onPress={() => handleCopy('+91 7569665077', 'india-phone')} style={styles.copyChip}>
-                      <Text style={styles.copyChipText}>{copiedKey === 'india-phone' ? 'Copied ✓' : 'Copy'}</Text>
+                      <Text style={styles.copyChipText}>{copiedKey === 'india-phone' ? 'Copied' : 'Copy'}</Text>
                     </Pressable>
                   </View>
                 </View>
@@ -1390,7 +1434,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                     <Text style={styles.hubDetailVal}>hr@studentalumni.ai</Text>
                     <Pressable onPress={() => handleCopy('hr@studentalumni.ai', 'india-email')} style={styles.copyChip}>
-                      <Text style={styles.copyChipText}>{copiedKey === 'india-email' ? 'Copied ✓' : 'Copy'}</Text>
+                      <Text style={styles.copyChipText}>{copiedKey === 'india-email' ? 'Copied' : 'Copy'}</Text>
                     </Pressable>
                   </View>
                 </View>
@@ -1426,7 +1470,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                     <Text style={styles.hubDetailVal}>+91 7569665077</Text>
                     <Pressable onPress={() => handleCopy('+91 7569665077', 'usa-phone')} style={styles.copyChip}>
-                      <Text style={styles.copyChipText}>{copiedKey === 'usa-phone' ? 'Copied ✓' : 'Copy'}</Text>
+                      <Text style={styles.copyChipText}>{copiedKey === 'usa-phone' ? 'Copied' : 'Copy'}</Text>
                     </Pressable>
                   </View>
                 </View>
@@ -1436,7 +1480,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                     <Text style={styles.hubDetailVal}>hr@studentalumni.ai</Text>
                     <Pressable onPress={() => handleCopy('hr@studentalumni.ai', 'usa-email')} style={styles.copyChip}>
-                      <Text style={styles.copyChipText}>{copiedKey === 'usa-email' ? 'Copied ✓' : 'Copy'}</Text>
+                      <Text style={styles.copyChipText}>{copiedKey === 'usa-email' ? 'Copied' : 'Copy'}</Text>
                     </Pressable>
                   </View>
                 </View>
@@ -1534,7 +1578,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                 style={styles.inquirySubmitBtn}
                 textStyle={styles.inquirySubmitBtnText}
               >
-                {contactSent ? 'Message Transmitted Successfully ✓' : 'Transmit Message →'}
+                {contactSent ? 'Message Transmitted Successfully' : 'Transmit Message →'}
               </GlowButton>
             </View>
 
@@ -1573,35 +1617,35 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
         {activeTab === 'home' && (
           <>
             {/* ── 01. HERO SECTION ── */}
-            <View style={[styles.heroSection, { paddingHorizontal: containerPadding }]}>
-              <View style={styles.heroLeftCol}>
+            <View style={[styles.heroSection, { paddingHorizontal: containerPadding, flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 24 : 50, paddingTop: isMobile ? 80 : 90 }]}>
+              <View style={[styles.heroLeftCol, { minWidth: isMobile ? 0 : 320, maxWidth: '100%' as any }]}>
                 <View style={[styles.heroChip, { className: 'sa-float-slow' } as any]}>
                   <Svg width="14" height="14" viewBox="0 0 16 16" style={{ marginRight: 6 }}>
                     <Path d="M8 0 l1.8 4.6 L14.5 6 l-3.6 3.1 1 4.9 L8 11.6 4.1 14 l1-4.9 L1.5 6 l4.7 -1.4 Z" fill="#8B84FF" />
                   </Svg>
                   <Text style={styles.heroChipText}>AI CAREER PLATFORM FOR STUDENTS</Text>
                 </View>
-                <Text style={styles.heroHeadline}>Your Intelligent Companion for a Modern Career</Text>
-                <Text style={styles.heroSubhead}>
+                <Text style={[styles.heroHeadline, { fontSize: isMobile ? 34 : 58, lineHeight: isMobile ? 40 : 64, letterSpacing: isMobile ? -1.2 : -2, marginBottom: isMobile ? 18 : 26 }]}>Your Intelligent Companion for a Modern Career</Text>
+                <Text style={[styles.heroSubhead, { maxWidth: isMobile ? '100%' : 480, fontSize: isMobile ? 15 : 17, lineHeight: isMobile ? 24 : 28, marginBottom: isMobile ? 28 : 38 }]}>
                   Meet Agent K your always-on career copilot. Connect with mentors, discover events and career opportunities, polish your resume, and follow a personalized roadmap built for the way students actually work today.
                 </Text>
 
                 <View style={styles.heroCtaRow}>
-                  <GlowButton onPress={() => router.push('/register')} style={styles.heroBtnStudent} textStyle={styles.heroBtnStudentText}>
+                  <GlowButton onPress={() => router.push('/register')} style={[styles.heroBtnStudent, isMobile && { paddingVertical: 14, paddingHorizontal: 22 }]} textStyle={styles.heroBtnStudentText}>
                     I'm a student  ↗
                   </GlowButton>
-                  <GlowButton onPress={() => setActiveTab('contact')} style={styles.heroBtnCollege} textStyle={styles.heroBtnCollegeText}>
+                  <GlowButton onPress={() => setActiveTab('contact')} style={[styles.heroBtnCollege, isMobile && { paddingVertical: 14, paddingHorizontal: 22 }]} textStyle={styles.heroBtnCollegeText}>
                     I'm a college
                   </GlowButton>
                 </View>
 
-                <Text style={styles.heroTrustLine}>
+                <Text style={[styles.heroTrustLine, { fontSize: isMobile ? 12 : 13 }]}>
                   Free for students · No credit card · Your profile stays private until you reach out
                 </Text>
               </View>
 
               {/* 3D Swaying SA Shield Emblem with Pure Shine Effect */}
-              <View style={styles.heroRightCol}>
+              {!isMobile && <View style={styles.heroRightCol}>
                 <div
                   className="sa-shield-glow"
                   style={{
@@ -1680,6 +1724,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                   </svg>
                 </div>
               </View>
+              }
             </View>
 
             {/* ── DUAL-ROW CONTINUOUS PARTNER MARQUEES ── */}
@@ -1701,14 +1746,14 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
               <View style={styles.sectionPill}>
                 <Text style={styles.sectionPillText}>• EVERYTHING YOU NEED</Text>
               </View>
-              <Text style={styles.sectionHeadingH2}>A complete career OS,<br /><Text style={{ color: T.indLt }}>built for students.</Text></Text>
+              <Text style={[styles.sectionHeadingH2, { fontSize: isMobile ? 30 : 48, lineHeight: isMobile ? 36 : 52, letterSpacing: isMobile ? -1.2 : -1.8, marginBottom: isMobile ? 16 : 22 }]}>A complete career OS,<br /><Text style={{ color: T.indLt }}>built for students.</Text></Text>
               <Text style={styles.sectionDesc}>Everything from your first job match to your full-time offer in one intelligent platform.</Text>
 
               <View style={styles.bentoGridContainer}>
                 {/* ROW 1: 01 Agent K (Large) + 02 Mentors */}
                 <View style={[styles.bentoRow, isNarrow && { flexDirection: 'column' }]}>
                   {/* 01 Agent K */}
-                  <HoverLiftCard style={[styles.bentoCard, { flex: 1.68, minWidth: 320 }]}>
+                  <HoverLiftCard style={[styles.bentoCard, { flex: isMobile ? 'none' : 1.68, flexBasis: isMobile ? '100%' : undefined, minWidth: 0, padding: isMobile ? 20 : 30 }]}>
                     <Text style={styles.bentoNumber}>01</Text>
                     <View style={styles.bentoIconBadge}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
@@ -1723,7 +1768,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                   </HoverLiftCard>
 
                   {/* 02 Mentors */}
-                  <HoverLiftCard style={[styles.bentoCard, { flex: 1, minWidth: 260 }]}>
+                  <HoverLiftCard style={[styles.bentoCard, { flex: isMobile ? 'none' : 1, flexBasis: isMobile ? '100%' : undefined, minWidth: 0, padding: isMobile ? 20 : 30 }]}>
                     <Text style={styles.bentoNumber}>02</Text>
                     <View style={styles.bentoIconBadge}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
@@ -1739,7 +1784,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                 {/* ROW 2: 03 Events + 04 Student Perks + 05 Career Opportunities */}
                 <View style={[styles.bentoRow, isNarrow && { flexDirection: 'column' }]}>
                   {/* 03 Events */}
-                  <HoverLiftCard style={[styles.bentoCard, { flex: 1, minWidth: 220 }]}>
+                  <HoverLiftCard style={[styles.bentoCard, { flex: isMobile ? 'none' : 1, flexBasis: isMobile ? '100%' : undefined, minWidth: 0, padding: isMobile ? 20 : 30 }]}>
                     <Text style={styles.bentoNumber}>03</Text>
                     <View style={styles.bentoIconBadge}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
@@ -1752,7 +1797,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                   </HoverLiftCard>
 
                   {/* 04 Student Perks */}
-                  <HoverLiftCard style={[styles.bentoCard, { flex: 1, minWidth: 220 }]}>
+                  <HoverLiftCard style={[styles.bentoCard, { flex: isMobile ? 'none' : 1, flexBasis: isMobile ? '100%' : undefined, minWidth: 0, padding: isMobile ? 20 : 30 }]}>
                     <Text style={styles.bentoNumber}>04</Text>
                     <View style={styles.bentoIconBadge}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
@@ -1765,7 +1810,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                   </HoverLiftCard>
 
                   {/* 05 Career Opportunities */}
-                  <HoverLiftCard style={[styles.bentoCard, { flex: 1.45, minWidth: 280, borderColor: '#5B4FE9', backgroundColor: 'rgba(91,79,233,0.08)' }]} hoverBorderColor="#8B84FF">
+                  <HoverLiftCard style={[styles.bentoCard, { flex: isMobile ? 'none' : 1.45, flexBasis: isMobile ? '100%' : undefined, minWidth: 0, padding: isMobile ? 20 : 30, borderColor: '#5B4FE9', backgroundColor: 'rgba(91,79,233,0.08)' }]} hoverBorderColor="#8B84FF">
                     <Text style={[styles.bentoNumber, { color: '#8B84FF' }]}>05</Text>
                     <View style={[styles.bentoIconBadge, { backgroundColor: '#5B4FE9', borderColor: '#8B84FF' }]}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
@@ -1781,7 +1826,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                 {/* ROW 3: 06 Resume Polish + 07 Career Roadmap */}
                 <View style={[styles.bentoRow, isNarrow && { flexDirection: 'column' }]}>
                   {/* 06 Resume Polish */}
-                  <HoverLiftCard style={[styles.bentoCard, { flex: 1, minWidth: 260 }]}>
+                  <HoverLiftCard style={[styles.bentoCard, { flex: isMobile ? 'none' : 1, flexBasis: isMobile ? '100%' : undefined, minWidth: 0, padding: isMobile ? 20 : 30 }]}>
                     <Text style={styles.bentoNumber}>06</Text>
                     <View style={styles.bentoIconBadge}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
@@ -1793,7 +1838,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                   </HoverLiftCard>
 
                   {/* 07 Career Roadmap */}
-                  <HoverLiftCard style={[styles.bentoCard, { flex: 1.68, minWidth: 320 }]}>
+                  <HoverLiftCard style={[styles.bentoCard, { flex: isMobile ? 'none' : 1.68, flexBasis: isMobile ? '100%' : undefined, minWidth: 0, padding: isMobile ? 20 : 30 }]}>
                     <Text style={styles.bentoNumber}>07</Text>
                     <View style={styles.bentoIconBadge}>
                       <Svg width="22" height="22" viewBox="0 0 24 24">
@@ -1812,7 +1857,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
               <View style={styles.sectionPill}>
                 <Text style={styles.sectionPillText}>▲ YOUR COMMAND CENTER</Text>
               </View>
-              <Text style={styles.sectionHeadingH2}>One dashboard,<br /><Text style={{ color: T.indLt }}>infinite momentum.</Text></Text>
+              <Text style={[styles.sectionHeadingH2, { fontSize: isMobile ? 30 : 48, lineHeight: isMobile ? 36 : 52, letterSpacing: isMobile ? -1.2 : -1.8, marginBottom: isMobile ? 16 : 22 }]}>One dashboard,<br /><Text style={{ color: T.indLt }}>infinite momentum.</Text></Text>
               <Text style={styles.sectionDesc}>Track every application, mentor session, and milestone in a beautifully quiet, deeply intelligent interface.</Text>
 
               {/* Browser Shell Frame */}
@@ -1986,10 +2031,10 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                 >
                   <HoverLiftCard
                     style={[
-                      styles.audienceCard,
+                      styles.audienceCard, { flexDirection: isMobile ? 'column' : 'row', paddingVertical: isMobile ? 24 : 38, paddingHorizontal: isMobile ? 20 : 44, gap: isMobile ? 20 : 34, minHeight: isMobile ? "auto" : 230 },
                       {
-                        backgroundColor: '#0A0C18',
-                        borderColor: '#1B1E33',
+                        backgroundColor: T.surface,
+                        borderColor: T.line,
                         boxShadow: '0 24px 60px rgba(0,0,0,0.65)',
                       },
                     ]}
@@ -2022,10 +2067,10 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                 >
                   <HoverLiftCard
                     style={[
-                      styles.audienceCard,
+                      styles.audienceCard, { flexDirection: isMobile ? 'column' : 'row', paddingVertical: isMobile ? 24 : 38, paddingHorizontal: isMobile ? 20 : 44, gap: isMobile ? 20 : 34, minHeight: isMobile ? "auto" : 230 },
                       {
-                        backgroundColor: '#0A0C18',
-                        borderColor: '#1B1E33',
+                        backgroundColor: T.surface,
+                        borderColor: T.line,
                         boxShadow: '0 26px 65px rgba(0,0,0,0.7)',
                       },
                     ]}
@@ -2038,7 +2083,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                     </View>
                     <View style={styles.audienceSvgBox}>
                       <svg width="220" height="144" viewBox="0 0 300 190" style={{ width: '100%', height: 'auto', display: 'block' }}>
-                        <circle cx="150" cy="80" r="38" fill="#2A2E45" />
+                        <circle cx="150" cy="80" r="38" fill={T.dot} />
                         <circle cx="150" cy="80" r="24" fill="#5B4FE9" opacity="0.5" />
                         <path d="M124 128 l-14 44 26 -12 M176 128 l14 44 -26 -12" fill="#5B4FE9" />
                       </svg>
@@ -2056,10 +2101,10 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                 >
                   <HoverLiftCard
                     style={[
-                      styles.audienceCard,
+                      styles.audienceCard, { flexDirection: isMobile ? 'column' : 'row', paddingVertical: isMobile ? 24 : 38, paddingHorizontal: isMobile ? 20 : 44, gap: isMobile ? 20 : 34, minHeight: isMobile ? "auto" : 230 },
                       {
-                        backgroundColor: '#0A0C18',
-                        borderColor: '#1B1E33',
+                        backgroundColor: T.surface,
+                        borderColor: T.line,
                         boxShadow: '0 28px 70px rgba(0,0,0,0.75)',
                       },
                     ]}
@@ -2089,10 +2134,10 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                 >
                   <HoverLiftCard
                     style={[
-                      styles.audienceCard,
+                      styles.audienceCard, { flexDirection: isMobile ? 'column' : 'row', paddingVertical: isMobile ? 24 : 38, paddingHorizontal: isMobile ? 20 : 44, gap: isMobile ? 20 : 34, minHeight: isMobile ? "auto" : 230 },
                       {
-                        backgroundColor: '#0A0C18',
-                        borderColor: '#1B1E33',
+                        backgroundColor: T.surface,
+                        borderColor: T.line,
                         boxShadow: '0 30px 75px rgba(0,0,0,0.8)',
                       },
                     ]}
@@ -2251,7 +2296,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                           <circle cx="30" cy="230" r="3" fill="#4B4E65" />
                         </>
                       )}
-                      <text x="30" y="278" textAnchor="middle" fill={roadmapProgress >= 0.05 ? '#F4F5FB' : '#5C6273'} fontSize="17" fontWeight="700" fontFamily="'Manrope', sans-serif">01 Foundations</text>
+                      <text x="30" y="278" textAnchor="middle" fill={roadmapProgress >= 0.05 ? T.text : T.dim} fontSize="17" fontWeight="700" fontFamily="'Manrope', sans-serif">01 Foundations</text>
                     </g>
 
                     {/* Milestone 02: Skill plan */}
@@ -2268,7 +2313,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                           <circle cx="360" cy="70" r="3" fill="#4B4E65" />
                         </>
                       )}
-                      <text x="360" y="32" textAnchor="middle" fill={roadmapProgress >= 0.30 ? '#F4F5FB' : '#5C6273'} fontSize="18" fontWeight="700" fontFamily="'Manrope', sans-serif">02 Skill plan</text>
+                      <text x="360" y="32" textAnchor="middle" fill={roadmapProgress >= 0.30 ? T.text : T.dim} fontSize="18" fontWeight="700" fontFamily="'Manrope', sans-serif">02 Skill plan</text>
                     </g>
 
                     {/* Milestone 03: Opportunities */}
@@ -2285,7 +2330,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                           <circle cx="700" cy="230" r="3" fill="#4B4E65" />
                         </>
                       )}
-                      <text x="700" y="278" textAnchor="middle" fill={roadmapProgress >= 0.56 ? '#F4F5FB' : '#5C6273'} fontSize="18" fontWeight="700" fontFamily="'Manrope', sans-serif">03 Opportunities</text>
+                      <text x="700" y="278" textAnchor="middle" fill={roadmapProgress >= 0.56 ? T.text : T.dim} fontSize="18" fontWeight="700" fontFamily="'Manrope', sans-serif">03 Opportunities</text>
                     </g>
 
                     {/* Milestone 04: Full-time */}
@@ -2302,7 +2347,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                           <circle cx="1010" cy="60" r="3" fill="#4B4E65" />
                         </>
                       )}
-                      <text x="1010" y="22" textAnchor="middle" fill={roadmapProgress >= 0.82 ? '#F4F5FB' : '#5C6273'} fontSize="18" fontWeight="700" fontFamily="'Manrope', sans-serif">04 Full-time</text>
+                      <text x="1010" y="22" textAnchor="middle" fill={roadmapProgress >= 0.82 ? T.text : T.dim} fontSize="18" fontWeight="700" fontFamily="'Manrope', sans-serif">04 Full-time</text>
                     </g>
                   </svg>
                 </View>
@@ -2365,14 +2410,14 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                       {/* SVG 0: Alumni Career Fair */}
                       {deckIdx === 0 && (
                         <Svg width="100%" height="240" viewBox="0 0 320 260">
-                          <Circle cx="252" cy="60" r="46" fill="#2A2E45" />
+                          <Circle cx="252" cy="60" r="46" fill={T.dot} />
                           <Path d="M40 96 h240" stroke="#8B84FF" strokeWidth="3" />
                           <Path d="M56 96 v-22 h208 v22" fill="none" stroke="#5B4FE9" strokeWidth="3" />
                           <Rect x="92" y="46" width="136" height="30" rx="6" fill="#5B4FE9" />
-                          <Circle cx="96" cy="150" r="14" fill="#D5D8E4" />
+                          <Circle cx="96" cy="150" r="14" fill={T.text2} />
                           <Path d="M76 208 q0 -34 20 -34 q20 0 20 34 Z" fill="#5B4FE9" />
                           <Circle cx="160" cy="142" r="16" fill="#8B84FF" />
-                          <Path d="M137 209 q0 -39 23 -39 q23 0 23 39 Z" fill="#2A2E45" />
+                          <Path d="M137 209 q0 -39 23 -39 q23 0 23 39 Z" fill={T.dot} />
                           <Circle cx="226" cy="152" r="13" fill="#A78BFA" />
                           <Path d="M207 207 q0 -32 19 -32 q19 0 19 32 Z" fill="#5B4FE9" />
                         </Svg>
@@ -2380,11 +2425,11 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                       {/* SVG 1: One to One Mentoring */}
                       {deckIdx === 1 && (
                         <Svg width="100%" height="240" viewBox="0 0 320 260">
-                          <Circle cx="70" cy="66" r="40" fill="#2A2E45" />
-                          <Circle cx="96" cy="120" r="15" fill="#D5D8E4" />
+                          <Circle cx="70" cy="66" r="40" fill={T.dot} />
+                          <Circle cx="96" cy="120" r="15" fill={T.text2} />
                           <Path d="M74 184 q0 -37 22 -37 q22 0 22 37 Z" fill="#5B4FE9" />
                           <Circle cx="224" cy="120" r="15" fill="#8B84FF" />
-                          <Path d="M202 184 q0 -37 22 -37 q22 0 22 37 Z" fill="#2A2E45" />
+                          <Path d="M202 184 q0 -37 22 -37 q22 0 22 37 Z" fill={T.dot} />
                           <Rect x="52" y="186" width="216" height="12" rx="6" fill="#8B84FF" />
                           <Path d="M146 54 h74 q10 0 10 10 v30 q0 10 -10 10 h-46 l-18 16 v-16 q-10 0 -10 -10 v-30 q0 -10 10 -10 Z" fill="#5B4FE9" />
                         </Svg>
@@ -2394,7 +2439,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                         <Svg width="100%" height="240" viewBox="0 0 320 260">
                           <Circle cx="88" cy="74" r="12" fill="#8B84FF" />
                           <Circle cx="232" cy="74" r="12" fill="#A78BFA" />
-                          <Rect x="66" y="128" width="188" height="112" rx="8" fill="#2A2E45" />
+                          <Rect x="66" y="128" width="188" height="112" rx="8" fill={T.dot} />
                           <Rect x="80" y="142" width="160" height="82" rx="4" fill="#090B16" />
                           <Path d="M94 162 h48 M94 178 h72 M94 194 h36 M94 210 h60" stroke="#5B4FE9" strokeWidth="4" />
                         </Svg>
@@ -2402,8 +2447,8 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                       {/* SVG 3: Graduation */}
                       {deckIdx === 3 && (
                         <Svg width="100%" height="240" viewBox="0 0 320 260">
-                          <Circle cx="160" cy="130" r="86" fill="#2A2E45" />
-                          <Circle cx="160" cy="128" r="21" fill="#D5D8E4" />
+                          <Circle cx="160" cy="130" r="86" fill={T.dot} />
+                          <Circle cx="160" cy="128" r="21" fill={T.text2} />
                           <Path d="M130 214 q0 -51 30 -51 q30 0 30 51 Z" fill="#5B4FE9" />
                           <Path d="M112 92 L160 68 L208 92 L160 116 Z" fill="#8B84FF" />
                           <Path d="M208 92 v26" stroke="#8B84FF" strokeWidth="4" />
@@ -2413,9 +2458,9 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                       {deckIdx === 4 && (
                         <Svg width="100%" height="240" viewBox="0 0 320 260">
                           <Rect x="44" y="176" width="232" height="12" rx="6" fill="#8B84FF" />
-                          <Rect x="118" y="96" width="120" height="72" rx="6" fill="#2A2E45" />
+                          <Rect x="118" y="96" width="120" height="72" rx="6" fill={T.dot} />
                           <Rect x="130" y="108" width="96" height="48" rx="3" fill="#3B82F6" opacity="0.45" />
-                          <Circle cx="88" cy="118" r="14" fill="#D5D8E4" />
+                          <Circle cx="88" cy="118" r="14" fill={T.text2} />
                           <Path d="M68 176 q0 -34 20 -34 q20 0 20 34 Z" fill="#5B4FE9" />
                         </Svg>
                       )}
@@ -2487,8 +2532,8 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
                     
                     {/* Center User Hub */}
                     <circle cx="310" cy="270" r="52" fill="#0C0E1B" stroke="#5B4FE9" strokeWidth="2.4" />
-                    <text x="310" y="266" textAnchor="middle" fill="#F4F5FB" fontSize="16" fontWeight="800" fontFamily="'Manrope', sans-serif">YOU</text>
-                    <text x="310" y="286" textAnchor="middle" fill="#9AA0B4" fontSize="9.5" fontWeight="700" letterSpacing="1.4" fontFamily="'Manrope', sans-serif">YEAR 3</text>
+                    <text x="310" y="266" textAnchor="middle" fill={T.text} fontSize="16" fontWeight="800" fontFamily="'Manrope', sans-serif">YOU</text>
+                    <text x="310" y="286" textAnchor="middle" fill={T.muted} fontSize="9.5" fontWeight="700" letterSpacing="1.4" fontFamily="'Manrope', sans-serif">YEAR 3</text>
 
                     {[
                       { x: 310, y: 132, score: '98', name: 'Priya R. — Product, Bengaluru', why: 'Same course, four years ahead. Mentors three students each term.' },
@@ -2570,15 +2615,15 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
 
             {/* ── 12. FINAL CALL TO ACTION ── */}
             <View style={[styles.sectionContainer, { paddingHorizontal: containerPadding }]}>
-              <View style={styles.ctaCardBanner}>
+              <View style={[styles.ctaCardBanner, { padding: isMobile ? 32 : 80 }]}>
                 <View style={styles.sectionPill}>
                   <Svg width="12" height="12" viewBox="0 0 24 24" style={{ marginRight: 6 }}>
                     <Path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="#8B84FF" strokeWidth="2" fill="#5B4FE9" />
                   </Svg>
                   <Text style={styles.sectionPillText}>START YOUR JOURNEY</Text>
                 </View>
-                <Text style={styles.ctaTitleH2}>Your career, quietly<br /><Text style={{ color: T.indLt }}>upgraded.</Text></Text>
-                <Text style={styles.ctaSubtitle}>Join 50,000+ students already using StudentAlumni to land career opportunities, find mentors, and build their future. No credit card required.</Text>
+                <Text style={[styles.ctaTitleH2, { fontSize: isMobile ? 28 : 58, lineHeight: isMobile ? 34 : 64, letterSpacing: isMobile ? -1 : -2.2, marginVertical: isMobile ? 16 : 26 }]}>Your career, quietly<br /><Text style={{ color: T.indLt }}>upgraded.</Text></Text>
+                <Text style={[styles.ctaSubtitle, { fontSize: isMobile ? 14 : 16.5, marginBottom: isMobile ? 20 : 32 }]}>Join 50,000+ students already using StudentAlumni to land career opportunities, find mentors, and build their future. No credit card required.</Text>
                 <GlowButton onPress={() => router.push('/register')} style={styles.ctaActionButton} textStyle={styles.ctaActionButtonText}>
                   Create your free account ↗
                 </GlowButton>
@@ -2629,7 +2674,8 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
 }
 
 /* ── StyleSheet Styles ── */
-const styles = StyleSheet.create({
+function themedStyles(T: typeof DARK_T) {
+  return StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: T.bg,
@@ -2932,12 +2978,12 @@ const styles = StyleSheet.create({
     letterSpacing: 1.6,
   },
   sectionHeadingH2: {
-    fontSize: 48,
+    fontSize: 36,
     fontWeight: '700',
     color: T.text,
-    letterSpacing: -1.8,
-    lineHeight: 52,
-    marginBottom: 22,
+    letterSpacing: -1.4,
+    lineHeight: 42,
+    marginBottom: 18,
   },
   sectionDesc: {
     fontSize: 16.5,
@@ -3294,12 +3340,12 @@ const styles = StyleSheet.create({
   },
   numberItem: {
     flex: 1,
-    minWidth: 200,
+    minWidth: 140,
     backgroundColor: T.card,
     borderWidth: 1,
     borderColor: T.line2,
     borderRadius: 16,
-    padding: 30,
+    padding: 22,
     alignItems: 'center',
   },
   numberIconBox: {
@@ -3389,15 +3435,15 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     opacity: 0.35,
-    backgroundColor: '#090B16',
-    borderColor: '#171A2C',
+    backgroundColor: T.well,
+    borderColor: T.line2,
     zIndex: 1,
   },
   stackedCardMid: {
     position: 'absolute',
     top: 0,
     opacity: 0.65,
-    backgroundColor: '#0A0C18',
+    backgroundColor: T.surface,
     borderColor: '#1E2238',
     zIndex: 2,
   },
@@ -4364,3 +4410,4 @@ const styles = StyleSheet.create({
     borderColor: '#5B4FE9',
   },
 });
+}

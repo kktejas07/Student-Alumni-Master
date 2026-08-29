@@ -22,6 +22,7 @@ if (typeof document !== 'undefined' && !document.getElementById('sa-nav-ticker-s
 import React, { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { useTheme } from '@/src/theme/ThemeContext';
 
 interface NavbarProps {
   activeTab?: 'home' | 'echo' | 'verify' | 'contact';
@@ -33,8 +34,24 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
   const pathname = usePathname();
   const user = useAuthStore((s) => s.user);
   const isLoggedIn = !!user;
+  const { theme, isDark, setMode } = useTheme();
 
-  // Track active tab state so it stays highlighted until user clicks another menu item
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  // Close menu on route change
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
+
+  // Track active tab state
   const [selectedTab, setSelectedTab] = useState<'home' | 'echo' | 'verify' | 'contact'>(() => {
     if (propActiveTab) return propActiveTab;
     if (pathname?.includes('/echo')) return 'echo';
@@ -56,6 +73,7 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
 
   const handleTabClick = (tabKey: 'home' | 'echo' | 'verify' | 'contact') => {
     setSelectedTab(tabKey);
+    setMenuOpen(false);
     if (typeof onTabChange === 'function') {
       onTabChange(tabKey);
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -106,27 +124,31 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
       >
       <div
         style={{
-          maxWidth: '1400px',
-          width: '100%',
-          margin: '0 auto',
-          padding: '0 28px',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 1000,
+          backgroundColor: isDark ? 'rgba(10, 10, 20, 0.94)' : 'rgba(255, 255, 255, 0.94)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          borderBottom: `1px solid ${isDark ? '#1F1F30' : '#E5E5EA'}`,
+          height: '64px',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
+          width: '100%',
+          transition: 'background-color 0.3s ease, border-color 0.3s ease',
         }}
       >
-        {/* Brand Logo */}
-        <button
-          onClick={() => handleTabClick('home')}
+        <div
           style={{
+            maxWidth: '1400px',
+            width: '100%',
+            margin: '0 auto',
+            padding: isMobile ? '0 16px' : '0 28px',
             display: 'flex',
             alignItems: 'center',
-            gap: '11px',
-            cursor: 'pointer',
-            background: 'transparent',
-            border: 'none',
-            padding: 0,
-            textAlign: 'left',
+            justifyContent: 'space-between',
           }}
         >
           {/* Unified High-Res SA Shield Badge Logo */}
@@ -154,125 +176,115 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
         {/* Center Desktop Navigation Tabs */}
         <nav
           style={{
+            position: 'fixed',
+            top: '64px',
+            left: 0,
+            right: 0,
+            zIndex: 999,
+            backgroundColor: isDark ? 'rgba(10, 10, 20, 0.98)' : 'rgba(255, 255, 255, 0.98)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            borderBottom: `1px solid ${isDark ? '#1F1F30' : '#E5E5EA'}`,
+            padding: '16px',
             display: 'flex',
-            alignItems: 'center',
-            gap: '36px',
+            flexDirection: 'column',
+            gap: '4px',
           }}
         >
-          {(
-            [
-              { key: 'home', label: 'Home' },
-              { key: 'echo', label: 'ECHO' },
-              { key: 'verify', label: 'Verify' },
-              { key: 'contact', label: 'Contact Us' },
-            ] as const
-          ).map((tab) => {
+          {tabs.map((tab) => {
             const isSelected = selectedTab === tab.key;
             return (
               <button
                 key={tab.key}
                 onClick={() => handleTabClick(tab.key)}
                 style={{
-                  position: 'relative',
-                  fontSize: '14.5px',
+                  display: 'block',
+                  width: '100%',
+                  textAlign: 'left',
+                  fontSize: '14px',
                   fontWeight: isSelected ? 700 : 500,
-                  color: isSelected ? '#FFFFFF' : '#8A8A9E',
-                  background: 'transparent',
+                  color: isSelected ? '#7C5CFC' : theme.text,
+                  background: isSelected ? (isDark ? 'rgba(124,92,252,0.1)' : 'rgba(124,92,252,0.06)') : 'transparent',
                   border: 'none',
-                  padding: '6px 2px',
+                  borderRadius: '10px',
+                  padding: '10px 14px',
                   cursor: 'pointer',
-                  transition: 'color 0.2s ease',
                   fontFamily: "'Outfit', 'Manrope', sans-serif",
                 }}
               >
-                <span>{tab.label}</span>
-                {isSelected && (
-                  <span
-                    style={{
-                      position: 'absolute',
-                      left: 0,
-                      right: 0,
-                      bottom: '-18px',
-                      height: '3px',
-                      borderRadius: '2px',
-                      backgroundColor: '#7C5CFC',
-                    }}
-                  />
-                )}
+                {tab.label}
               </button>
             );
           })}
-        </nav>
-
-        {/* Right Action Buttons */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-          {isLoggedIn ? (
-            <button
-              onClick={() => {
-                const role = user?.role || 'student';
-                const portal =
-                  role === 'super_admin' ? '/super-admin' :
-                  role === 'mentor' ? '/mentor-portal' :
-                  role === 'alumni' ? '/alumni-portal' :
-                  role === 'college' ? '/college-portal' :
-                  '/student-portal';
-                router.push(portal);
-              }}
-              style={{
-                backgroundColor: '#5B4FE9',
-                color: '#FFFFFF',
-                fontSize: '14px',
-                fontWeight: 700,
-                borderRadius: '100px',
-                padding: '9px 24px',
-                border: 'none',
-                cursor: 'pointer',
-                fontFamily: "'Outfit', 'Manrope', sans-serif",
-                boxShadow: '0 4px 14px rgba(91,79,233,0.35)',
-                transition: 'transform 0.2s ease, filter 0.2s ease',
-              }}
-            >
-              Dashboard
-            </button>
-          ) : (
-            <>
+          {/* Mobile auth buttons */}
+          <div style={{ borderTop: `1px solid ${isDark ? '#1F1F30' : '#E5E5EA'}`, marginTop: '8px', paddingTop: '12px', display: 'flex', gap: '10px' }}>
+            {isLoggedIn ? (
               <button
-                onClick={() => router.push('/(auth)/login')}
-                style={{
-                  fontSize: '14px',
-                  fontWeight: 500,
-                  color: '#8A8A9E',
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: '6px 4px',
-                  transition: 'color 0.2s ease',
-                  fontFamily: "'Outfit', 'Manrope', sans-serif",
+                onClick={() => {
+                  setMenuOpen(false);
+                  const role = user?.role || 'student';
+                  const portal =
+                    role === 'super_admin' ? '/super-admin' :
+                    role === 'mentor' ? '/mentor-portal' :
+                    role === 'alumni' ? '/alumni-portal' :
+                    role === 'college' ? '/college-portal' :
+                    '/student-portal';
+                  router.push(portal);
                 }}
-              >
-                Sign in
-              </button>
-              <button
-                onClick={() => router.push('/get-started')}
                 style={{
+                  flex: 1,
                   backgroundColor: '#5B4FE9',
                   color: '#FFFFFF',
-                  fontSize: '14px',
+                  fontSize: '13px',
                   fontWeight: 700,
                   borderRadius: '100px',
-                  padding: '9px 24px',
+                  padding: '10px 20px',
                   border: 'none',
                   cursor: 'pointer',
-                  whiteSpace: 'nowrap',
                   fontFamily: "'Outfit', 'Manrope', sans-serif",
-                  boxShadow: '0 4px 14px rgba(91,79,233,0.35)',
-                  transition: 'transform 0.2s ease, filter 0.2s ease',
                 }}
               >
-                Get Started
+                Dashboard
               </button>
-            </>
-          )}
+            ) : (
+              <>
+                <button
+                  onClick={() => { setMenuOpen(false); router.push('/(auth)/login'); }}
+                  style={{
+                    flex: 1,
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    color: theme.text,
+                    background: 'transparent',
+                    border: `1px solid ${isDark ? '#1F1F30' : '#E5E5EA'}`,
+                    borderRadius: '100px',
+                    padding: '10px 16px',
+                    cursor: 'pointer',
+                    fontFamily: "'Outfit', 'Manrope', sans-serif",
+                  }}
+                >
+                  Sign in
+                </button>
+                <button
+                  onClick={() => { setMenuOpen(false); router.push('/get-started'); }}
+                  style={{
+                    flex: 1,
+                    backgroundColor: '#5B4FE9',
+                    color: '#FFFFFF',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    borderRadius: '100px',
+                    padding: '10px 16px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontFamily: "'Outfit', 'Manrope', sans-serif",
+                  }}
+                >
+                  Get Started
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </header>

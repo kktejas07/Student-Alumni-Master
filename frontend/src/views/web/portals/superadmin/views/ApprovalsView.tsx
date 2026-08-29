@@ -13,7 +13,7 @@ import {
   Clock, AlertTriangle, ExternalLink,
 } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { SAC, FONTS } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import { Av } from '../atoms';
 import {
   GRAD, GradientButton, SecondaryButton, TopTabs, SearchField,
@@ -143,7 +143,7 @@ function ReviewPanel({ item, onClose, onApprove, onReject }: {
 
 const rpst = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'flex-end' },
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' },
+  backdrop: { flex: 1, backgroundColor: SAC.panel2 },
   panel: {
     backgroundColor: SAC.bg2, borderTopLeftRadius: 20, borderTopRightRadius: 20,
     padding: 20, maxHeight: '80%', minHeight: 340,
@@ -168,7 +168,7 @@ const rpst = StyleSheet.create({
   },
   rejectTitle: { color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 12.5 },
   rejectInput: {
-    height: 80, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.25)',
+    height: 80, borderRadius: 10, backgroundColor: SAC.panel2,
     color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 12.5,
     padding: 12, textAlignVertical: 'top',
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
@@ -179,6 +179,8 @@ const rpst = StyleSheet.create({
 });
 
 export function ApprovalsView() {
+  const T = useSAC();
+  Object.assign(rpst, resolveColors(rpst, T));
   const { data, refresh } = usePortalData<typeof FALLBACK>('/admin/super/approvals', FALLBACK);
   const [tab, setTab] = useState<'all' | 'college' | 'mentor' | 'event'>('all');
   const [actioned, setActioned] = useState<Record<string, 'approved' | 'rejected'>>({});
