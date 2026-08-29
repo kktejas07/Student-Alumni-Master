@@ -14,7 +14,7 @@ import {
   Linking,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { api } from '@/src/models/services/api';
+import { api, resolveImageUrl } from '@/src/models/services/api';
 import { SAWatermark } from '@/src/views/web/components/SAWatermark';
 import CommonFooter from '@/src/views/components/CommonFooter';
 import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
@@ -61,6 +61,7 @@ const SAMPLE_EVENTS = [
       '/images/hackwave/hackwave_techfest_verticals.jpg',
       '/images/hackwave/hackwave_perks_pool.jpg'
     ],
+    gallery_layout: 'carousel',
     speakers: [
       { name: 'Stan Mierzwa, Ph.D.', position: 'Director, Center for Cybersecurity', company: 'Kean University', location: 'Union, New Jersey, USA', linkedin: 'in/stanmierzwa', category: 'International Panel', is_panel_member: true },
       { name: 'Ken Fishkin', position: 'President', company: 'ISC2 New Jersey Chapter', location: 'New Jersey, USA', linkedin: 'in/kfishkin', category: 'International Panel', is_panel_member: true },
@@ -147,6 +148,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
   const [events, setEvents] = useState<any[]>(SAMPLE_EVENTS);
   const [loading, setLoading] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [galleryIdx, setGalleryIdx] = useState(0);
   const [heroConfig, setHeroConfig] = useState<any>(null);
 
   // Registration states
@@ -288,6 +290,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 categories: item.categories || existing.categories || [],
                 speakers: item.speakers || existing.speakers || [],
                 gallery_images: item.gallery_images || item.gallery || existing.gallery_images || [],
+                gallery_layout: item.gallery_layout || existing.gallery_layout || 'carousel',
                 highlights: item.highlights || existing.highlights || [],
                 handbook_url: item.handbook_url || existing.handbook_url || '/HackWave_3.0_Event_Handbook.pdf',
               });
@@ -339,6 +342,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                   categories: item.categories || e.categories,
                   speakers: item.speakers || e.speakers,
                   gallery_images: item.gallery_images || item.gallery || e.gallery_images,
+                  gallery_layout: item.gallery_layout || e.gallery_layout || 'carousel',
                   highlights: item.highlights || e.highlights,
                   handbook_url: item.handbook_url || e.handbook_url,
                 };
@@ -543,7 +547,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
             currency: orderRes.currency || 'INR',
             name: activeEvent.title || 'Student Alumni ECHO',
             description: isTeam ? `Team Registration: ${teamName} (${currentTeamSize} Members)` : `Individual Pass: ${activeEvent.title}`,
-            image: activeEvent.poster_banner || '/images/hackwave/hackwave_main_poster.png',
+            image: resolveImageUrl(activeEvent.poster_banner) || '/images/hackwave/hackwave_main_poster.png',
             order_id: orderRes.order_id,
             prefill: {
               name: fullName,
@@ -1439,7 +1443,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 {/* Event Poster Card Banner */}
                 <div style={{ position: 'relative', height: '188px', background: ev.poster_banner ? 'var(--panel2)' : (isDark ? 'linear-gradient(135deg, #2E2091, #14122E)' : 'linear-gradient(135deg, #E8E4FF, #D5E8F0)'), display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                   {ev.poster_banner ? (
-                    <img src={ev.poster_banner} alt={ev.title} style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#070913' }} />
+                    <img src={resolveImageUrl(ev.poster_banner)} alt={ev.title} style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#070913' }} />
                   ) : (
                     <div style={{ color: '#FFFFFF', fontSize: '22px', fontWeight: 800, letterSpacing: '-0.5px', textAlign: 'center', padding: '20px' }}>
                       {ev.title}
@@ -1517,7 +1521,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
             {/* Banner Top Graphic */}
             <div className="ev-detail-poster" style={{ position: 'relative', minHeight: '360px', background: isDark ? 'linear-gradient(135deg, #1C1236 0%, #2A1758 50%, #160D30 100%)' : 'linear-gradient(135deg, #F0EFFF 0%, #E8F4F8 50%, #F0F5F8 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', overflow: 'hidden' }}>
               {activeEvent.poster_banner && (
-                <img src={activeEvent.poster_banner} alt={activeEvent.title} style={{ width: '100%', maxHeight: '480px', objectFit: 'contain', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.12)', boxShadow: '0 20px 50px rgba(0,0,0,0.5)', margin: '0 auto' }} />
+                <img src={resolveImageUrl(activeEvent.poster_banner)} alt={activeEvent.title} style={{ width: '100%', maxHeight: '480px', objectFit: 'contain', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.12)', boxShadow: '0 20px 50px rgba(0,0,0,0.5)', margin: '0 auto' }} />
               )}
               <div style={{ position: 'absolute', width: '420px', height: '260px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(147, 51, 234, 0.35) 0%, transparent 70%)', filter: 'blur(50px)', pointerEvents: 'none' }} />
             </div>
@@ -1673,23 +1677,140 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
           </div>
 
           {/* Official Event Posters & Gallery */}
-          <div style={{ marginBottom: '30px' }}>
-            <div className="ev-detail-section-title" style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-.4px', marginBottom: '16px', color: '#FFFFFF' }}>Official Event Posters & Gallery</div>
-            {activeEvent.gallery_images && activeEvent.gallery_images.length > 0 ? (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '18px' }}>
-                {activeEvent.gallery_images.map((img: string, gidx: number) => (
-                  <div key={gidx} className="ev-mini" style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--line2)', background: isDark ? '#0D0B18' : '#F0F0F5', padding: '12px', textAlign: 'center' }}>
-                    <img src={img} alt={`Event Poster ${gidx + 1}`} style={{ width: '100%', maxHeight: '420px', objectFit: 'contain', borderRadius: '10px' }} />
+          {(() => {
+            const galleryLayout = activeEvent.gallery_layout || 'carousel';
+            const galleryImgs = (activeEvent.gallery_images || []).filter(Boolean);
+            if (galleryImgs.length === 0) {
+              return (
+                <div style={{ marginBottom: '30px' }}>
+                  <div className="ev-detail-section-title" style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-.4px', marginBottom: '16px', color: '#FFFFFF' }}>Official Event Posters & Gallery</div>
+                  <div style={{ border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '60px 24px', textAlign: 'center' }}>
+                    <svg width="32" height="32" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'var(--dim)', strokeWidth: 1.6, margin: '0 auto 12px' }}><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="M15.5 15.5L21 21M10.5 7.5v6M7.5 10.5h6"></path></svg>
+                    <div style={{ fontSize: '14.5px', color: 'var(--muted)' }}>No photos yet. Upload gallery photos via Admin CMS.</div>
                   </div>
-                ))}
+                </div>
+              );
+            }
+
+            const renderGalleryCard = (img: string, gidx: number, extraStyle: any = {}) => (
+              <div key={gidx} className="ev-mini" style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--line2)', background: isDark ? '#0D0B18' : '#F0F0F5', padding: '12px', textAlign: 'center', cursor: 'pointer', ...extraStyle }} onClick={() => setGalleryIdx(gidx)}>
+                <img src={resolveImageUrl(img)} alt={`Event Poster ${gidx + 1}`} style={{ width: '100%', maxHeight: galleryLayout === 'carousel' ? '520px' : '420px', objectFit: 'contain', borderRadius: '10px' }} />
               </div>
-            ) : (
-              <div style={{ border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '60px 24px', textAlign: 'center' }}>
-                <svg width="32" height="32" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'var(--dim)', strokeWidth: 1.6, margin: '0 auto 12px' }}><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="M15.5 15.5L21 21M10.5 7.5v6M7.5 10.5h6"></path></svg>
-                <div style={{ fontSize: '14.5px', color: 'var(--muted)' }}>No photos yet. Upload gallery photos via Admin CMS.</div>
+            );
+
+            // ── Carousel Layout ──
+            if (galleryLayout === 'carousel') {
+              return (
+                <div style={{ marginBottom: '30px' }}>
+                  <div className="ev-detail-section-title" style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-.4px', marginBottom: '16px', color: '#FFFFFF' }}>Official Event Posters & Gallery</div>
+                  {/* Main carousel image */}
+                  <div style={{ position: 'relative', borderRadius: '18px', overflow: 'hidden', border: '1px solid var(--line2)', background: isDark ? '#070913' : '#F0F0F5', padding: '16px', marginBottom: '14px' }}>
+                    <div style={{ borderRadius: '14px', overflow: 'hidden', position: 'relative' }}>
+                      <img src={resolveImageUrl(galleryImgs[galleryIdx])} alt={`Poster ${galleryIdx + 1}`} style={{ width: '100%', maxHeight: '560px', objectFit: 'contain', borderRadius: '14px', transition: 'opacity .3s ease' }} />
+                      {/* Nav arrows */}
+                      <button type="button" onClick={() => setGalleryIdx((galleryIdx - 1 + galleryImgs.length) % galleryImgs.length)} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 40, height: 40, borderRadius: 20, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', color: '#fff', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2 }} aria-label="Previous">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6"/></svg>
+                      </button>
+                      <button type="button" onClick={() => setGalleryIdx((galleryIdx + 1) % galleryImgs.length)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', width: 40, height: 40, borderRadius: 20, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', color: '#fff', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2 }} aria-label="Next">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6"/></svg>
+                      </button>
+                      {/* Counter badge */}
+                      <div style={{ position: 'absolute', bottom: 12, right: 12, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(8px)', borderRadius: 8, padding: '5px 12px', fontSize: 12, fontWeight: 600, color: '#fff', letterSpacing: 0.5 }}>
+                        {galleryIdx + 1} / {galleryImgs.length}
+                      </div>
+                    </div>
+                  </div>
+                  {/* Thumbnail strip */}
+                  <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: 4 }}>
+                    {galleryImgs.map((img: string, gidx: number) => (
+                      <div key={gidx} onClick={() => setGalleryIdx(gidx)} style={{ flex: '0 0 auto', width: 80, height: 60, borderRadius: 10, overflow: 'hidden', border: gidx === galleryIdx ? '2px solid #7C5CFC' : '1px solid var(--line2)', cursor: 'pointer', opacity: gidx === galleryIdx ? 1 : 0.6, transition: 'all .2s ease' }}>
+                        <img src={resolveImageUrl(img)} alt={`Thumb ${gidx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            }
+
+            // ── Featured Grid: first image large, rest in grid ──
+            if (galleryLayout === 'featured-grid') {
+              return (
+                <div style={{ marginBottom: '30px' }}>
+                  <div className="ev-detail-section-title" style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-.4px', marginBottom: '16px', color: '#FFFFFF' }}>Official Event Posters & Gallery</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
+                    <div style={{ gridColumn: 'span 2' }}>
+                      {renderGalleryCard(galleryImgs[0], 0, { maxHeight: '480px' })}
+                    </div>
+                    {galleryImgs.slice(1, 5).map((img: string, gidx: number) => (
+                      <div key={gidx + 1}>
+                        {renderGalleryCard(img, gidx + 1)}
+                      </div>
+                    ))}
+                  </div>
+                  {galleryImgs.length > 5 && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', marginTop: '14px' }}>
+                      {galleryImgs.slice(5).map((img: string, gidx: number) => (
+                        <div key={gidx + 5}>
+                          {renderGalleryCard(img, gidx + 5)}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            // ── Masonry: CSS columns for Pinterest-style layout ──
+            if (galleryLayout === 'masonry') {
+              return (
+                <div style={{ marginBottom: '30px' }}>
+                  <div className="ev-detail-section-title" style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-.4px', marginBottom: '16px', color: '#FFFFFF' }}>Official Event Posters & Gallery</div>
+                  <div style={{ columnCount: 3, columnGap: '16px' }}>
+                    {galleryImgs.map((img: string, gidx: number) => (
+                      <div key={gidx} style={{ breakInside: 'avoid', marginBottom: '16px' }}>
+                        {renderGalleryCard(img, gidx, { padding: '8px' })}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            }
+
+            // ── Mixed: carousel for first 3, then grid ──
+            if (galleryLayout === 'mixed') {
+              return (
+                <div style={{ marginBottom: '30px' }}>
+                  <div className="ev-detail-section-title" style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-.4px', marginBottom: '16px', color: '#FFFFFF' }}>Official Event Posters & Gallery</div>
+                  <div style={{ display: 'flex', gap: '14px', overflowX: 'auto', paddingBottom: 6, marginBottom: '14px' }}>
+                    {galleryImgs.slice(0, 3).map((img: string, gidx: number) => (
+                      <div key={gidx} style={{ flex: '0 0 75vw', maxWidth: '600px' }}>
+                        {renderGalleryCard(img, gidx)}
+                      </div>
+                    ))}
+                  </div>
+                  {galleryImgs.length > 3 && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+                      {galleryImgs.slice(3).map((img: string, gidx: number) => (
+                        <div key={gidx + 3}>
+                          {renderGalleryCard(img, gidx + 3)}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            // ── Default: Grid ──
+            return (
+              <div style={{ marginBottom: '30px' }}>
+                <div className="ev-detail-section-title" style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-.4px', marginBottom: '16px', color: '#FFFFFF' }}>Official Event Posters & Gallery</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '18px' }}>
+                  {galleryImgs.map((img: string, gidx: number) => renderGalleryCard(img, gidx))}
+                </div>
               </div>
-            )}
-          </div>
+            );
+          })()}
 
           {/* Official Event Videos & Teaser Clips */}
           {activeEvent.videos && activeEvent.videos.length > 0 && (
@@ -1717,7 +1838,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                         ) : (
                           <video
                             controls
-                            poster={vid.thumbnail_url || activeEvent.poster_banner}
+                            poster={resolveImageUrl(vid.thumbnail_url) || resolveImageUrl(activeEvent.poster_banner)}
                             src={vid.video_url}
                             style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                           />
@@ -1867,7 +1988,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 ].map((spk, idx) => (
                   <div key={idx} className="ev-mini" style={{ padding: '16px', background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: '18px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                     <div style={{ width: '100%', aspectRatio: '4/5', borderRadius: '14px', overflow: 'hidden', marginBottom: '14px', border: '1px solid var(--line2)', background: '#090B18' }}>
-                      <img src={spk.poster} alt={spk.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <img src={resolveImageUrl(spk.poster)} alt={spk.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     </div>
                     <div className="ev-detail-speaker-name" style={{ fontSize: '16px', fontWeight: 700, color: '#FFFFFF' }}>{spk.name}</div>
                     <div className="ev-detail-speaker-role" style={{ fontSize: '12.5px', color: 'var(--violet-lt)', fontWeight: 600, marginTop: '3px' }}>{[spk.role, spk.org].filter(Boolean).join(', ')}</div>
@@ -1892,7 +2013,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                   {catGroups[catName].map((spk: any, idx: number) => (
                     <div key={idx} className="ev-mini ev-detail-speaker-card" style={{ padding: '20px 18px', background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: '16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                       {spk.photo_url ? (
-                        <img src={spk.photo_url} alt={spk.name} style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', margin: '0 auto 12px' }} />
+                        <img src={resolveImageUrl(spk.photo_url)} alt={spk.name} style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', margin: '0 auto 12px' }} />
                       ) : (
                         <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: `linear-gradient(135deg, ${catColors[catName] || '#7C5CFC'}, #38BDF8)`, margin: '0 auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF', fontWeight: 800, fontSize: '20px' }}>
                           {spk.name.split(' ').map((n: string) => n[0]).join('')}
@@ -1928,7 +2049,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                       {ungrouped.map((spk: any, idx: number) => (
                         <div key={idx} className="ev-mini ev-detail-speaker-card" style={{ padding: '20px 18px', background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: '16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                           {spk.photo_url ? (
-                            <img src={spk.photo_url} alt={spk.name} style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', margin: '0 auto 12px' }} />
+                            <img src={resolveImageUrl(spk.photo_url)} alt={spk.name} style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', margin: '0 auto 12px' }} />
                           ) : (
                             <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #7C5CFC, #38BDF8)', margin: '0 auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF', fontWeight: 800, fontSize: '20px' }}>
                               {spk.name.split(' ').map((n: string) => n[0]).join('')}
@@ -2088,9 +2209,9 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 }}
               >
                 <img
-                  src={regPosters[regPosterIdx]}
+                  src={resolveImageUrl(regPosters[regPosterIdx])}
                   alt={`HackWave Poster ${regPosterIdx + 1}`}
-                  onClick={() => openLightbox(regPosters[regPosterIdx])}
+                  onClick={() => openLightbox(resolveImageUrl(regPosters[regPosterIdx]))}
                   style={{ width: '100%', height: '100%', objectFit: 'contain', cursor: 'zoom-in', transition: 'all .4s ease' }}
                 />
 
