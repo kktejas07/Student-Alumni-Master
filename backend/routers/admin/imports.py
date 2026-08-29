@@ -1370,7 +1370,7 @@ async def list_users(
     authorization: Optional[str] = Header(None),
 ):
     """Return users matching category/search, enriched with completeness & account stats,
-    pulling seamlessly from both `users` and `contacts` collections."""
+    pulling seamlessly from `users`, `contacts`, and `college_students` collections."""
     await _require_admin(authorization)
     
     # Handle page vs offset
@@ -1381,19 +1381,33 @@ async def list_users(
 
     cat = (category or "all").lower()
     
+    rx_cat = {"$regex": f"^{cat}$", "$options": "i"} if cat != "all" else None
+    rx_tag = {"$regex": cat, "$options": "i"} if cat != "all" else None
+
     # 1. Fetch from db.users
     user_query: Dict[str, Any] = {"archived": {"$ne": True}}
     if cat != "all":
-        user_query["$or"] = [
-            {"category": cat},
-            {"role": cat},
-            {"tags": cat}
-        ]
-        if cat == "masters":
-            user_query["$or"].extend([
+        if cat == "student":
+            user_query["$or"] = [
+                {"category": rx_cat},
+                {"role": rx_cat},
+                {"tags": rx_tag},
+                {"role": {"$nin": ["mentor", "alumni", "college", "admin", "superadmin"]}},
+                {"category": None},
+                {"role": None}
+            ]
+        elif cat == "masters":
+            user_query["$or"] = [
                 {"school_info.current_degree": {"$in": ["Masters", "M.Tech", "MBA", "MS", "PhD"]}},
-                {"degree": {"$in": ["Masters", "M.Tech", "MBA", "MS", "PhD"]}}
-            ])
+                {"degree": {"$in": ["Masters", "M.Tech", "MBA", "MS", "PhD"]}},
+                {"education_degree": {"$in": ["Masters", "M.Tech", "MBA", "MS", "PhD"]}}
+            ]
+        else:
+            user_query["$or"] = [
+                {"category": rx_cat},
+                {"role": rx_cat},
+                {"tags": rx_tag}
+            ]
             
     if q:
         rx = {"$regex": re.escape(q), "$options": "i"}
@@ -1408,13 +1422,27 @@ async def list_users(
     # 2. Fetch from db.contacts
     contact_query: Dict[str, Any] = {}
     if cat != "all":
-        contact_query["$or"] = [
-            {"role": cat},
-            {"tags": cat},
-            {"category": cat}
-        ]
-        if cat == "masters":
-            contact_query["$or"].append({"education_degree": {"$in": ["Masters", "M.Tech", "MBA", "MS", "PhD"]}})
+        if cat == "student":
+            contact_query["$or"] = [
+                {"role": rx_cat},
+                {"category": rx_cat},
+                {"tags": rx_tag},
+                {"role": {"$nin": ["mentor", "alumni", "college", "admin", "superadmin"]}},
+                {"role": ""},
+                {"role": None}
+            ]
+        elif cat == "masters":
+            contact_query["$or"] = [
+                {"education_degree": {"$in": ["Masters", "M.Tech", "MBA", "MS", "PhD"]}},
+                {"degree": {"$in": ["Masters", "M.Tech", "MBA", "MS", "PhD"]}}
+            ]
+        else:
+            contact_query["$or"] = [
+                {"role": rx_cat},
+                {"category": rx_cat},
+                {"tags": rx_tag}
+            ]
+
     if q:
         rx = {"$regex": re.escape(q), "$options": "i"}
         contact_query["$and"] = [
@@ -1425,7 +1453,15 @@ async def list_users(
             ]}
         ]
 
-    # Combine docs by lowercased email
+    # 3. Fetch from db.college_students (if student or all)
+    college_student_query: Dict[str, Any] = {}
+    if q:
+        rx = {"$regex": re.escape(q), "$options": "i"}
+        college_student_query["$or"] = [
+            {"name": rx}, {"email": rx}, {"dept": rx}, {"college": rx}
+        ]
+
+    # Combine docs by lowercased email or ID
     by_email: Dict[str, dict] = {}
     
     async for u in _db.users.find(user_query).sort([("created_at", -1)]):
@@ -1453,11 +1489,24 @@ async def list_users(
                 "created_at": c.get("created_at")
             }
         else:
-            # Merge fields into existing user
             raw_u = by_email[key]["raw"]
             for f in ["phone", "current_company", "current_title", "education_institution", "location", "linkedin_url"]:
                 if not raw_u.get(f) and c.get(f):
                     raw_u[f] = c[f]
+
+    if cat in ("all", "student"):
+        async for cs in _db.college_students.find(college_student_query):
+            em = (cs.get("email") or "").strip().lower()
+            key = em if em else str(cs["_id"])
+            if key not in by_email:
+                by_email[key] = {
+                    "source": "college_students",
+                    "raw": cs,
+                    "email": em or cs.get("email"),
+                    "name": cs.get("name") or em,
+                    "role": "student",
+                    "created_at": cs.get("created_at")
+                }
 
     # Transform items
     combined_items = []
@@ -1467,12 +1516,15 @@ async def list_users(
         oid_str = str(u.get("_id", ""))
         
         tags: List[str] = list(u.get("tags") or [])
-        item_cat = u.get("category") or u.get("role") or "student"
+        item_cat = (u.get("category") or u.get("role") or "student").lower()
+        if item_cat not in ("student", "alumni", "mentor"):
+            item_cat = "student"
+
         if not tags:
             if item_cat == "mentor": tags.append("Mentor")
             elif item_cat == "alumni": tags.append("Alumni")
             elif item_cat == "student": tags.append("Student")
-            deg = u.get("degree") or u.get("education_degree") or ""
+            deg = u.get("degree") or u.get("education_degree") or u.get("dept") or ""
             if "B.Tech" in deg: tags.append("B.Tech")
             elif "CSE" in deg: tags.append("CSE")
             elif "ECE" in deg: tags.append("ECE")
@@ -1485,7 +1537,7 @@ async def list_users(
         )
 
         name = u.get("full_name") or u.get("name") or u.get("email") or "—"
-        institution = u.get("college") or u.get("education_institution") or (u.get("school_info") or {}).get("institution_name") or ""
+        institution = u.get("college") or u.get("education_institution") or (u.get("school_info") or {}).get("institution_name") or u.get("dept") or ""
         company = u.get("company") or u.get("current_company") or (u.get("alumni_info") or {}).get("alumni_employer") or ""
         title = u.get("designation") or u.get("current_title") or u.get("headline") or (u.get("mentor_profile") or {}).get("job_title") or ""
         location = u.get("location") or u.get("city") or ""
@@ -1514,7 +1566,7 @@ async def list_users(
         else:
             created_str = str(created_val) if created_val else datetime.now(timezone.utc).isoformat()
 
-        approved = u.get("approved", True) if src == "contacts" else not (
+        approved = u.get("approved", True) if src in ("contacts", "college_students") else not (
             (u.get("role") == "mentor" and u.get("mentor_status") != "approved") or
             (u.get("role") == "college" and u.get("college_status") != "approved")
         )
@@ -1532,8 +1584,8 @@ async def list_users(
             "category": item_cat,
             "institution": institution,
             "college": institution,
-            "degree": u.get("degree") or u.get("education_degree"),
-            "graduation_year": u.get("graduation_year"),
+            "degree": u.get("degree") or u.get("education_degree") or u.get("dept"),
+            "graduation_year": u.get("graduation_year") or u.get("year"),
             "designation": title,
             "company": company,
             "location": location,
@@ -1563,10 +1615,11 @@ async def list_users(
     # Calculate counts for KPI tiles
     all_users_docs = await _db.users.find({"archived": {"$ne": True}}).to_list(100000)
     all_contacts_docs = await _db.contacts.find().to_list(100000)
+    all_college_students_docs = await _db.college_students.find().to_list(100000)
     
     cat_tally = {"student": 0, "alumni": 0, "mentor": 0, "masters": 0, "all": 0, "pending_approval": 0}
     seen_kpi_emails = set()
-    for d in (all_users_docs + all_contacts_docs):
+    for d in (all_users_docs + all_contacts_docs + all_college_students_docs):
         e = (d.get("email") or "").strip().lower()
         if e:
             if e in seen_kpi_emails: continue
