@@ -1845,8 +1845,13 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '18px' }}>
                 {activeEvent.videos.map((vid: any, vidx: number) => {
                   let url = typeof vid === 'string' ? vid : (vid?.video_url || vid?.url || '');
-                  if (!url || !url.trim()) {
-                    url = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+                  const fallbackVideoUrls = [
+                    'https://www.youtube.com/watch?v=M576WGiDBdQ',
+                    'https://www.youtube.com/watch?v=aircAruvnKk',
+                    'https://www.youtube.com/watch?v=9bZkp7q19f0'
+                  ];
+                  if (!url || !url.trim() || url.includes('dQw4w9WgXcQ')) {
+                    url = fallbackVideoUrls[vidx % fallbackVideoUrls.length];
                   }
                   const isYt = url.includes('youtube.com') || url.includes('youtu.be');
                   const ytId = isYt ? (url.includes('v=') ? url.split('v=')[1]?.split('&')[0] : url.split('/').pop()) : null;
