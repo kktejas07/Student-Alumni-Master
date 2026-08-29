@@ -183,10 +183,37 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
   const [college, setCollege] = useState('');
   const [collegeQuery, setCollegeQuery] = useState('');
   const [showCollegeDropdown, setShowCollegeDropdown] = useState(false);
+  const [collegeResults, setCollegeResults] = useState<any[]>([]);
+  const [isSearchingColleges, setIsSearchingColleges] = useState(false);
   const [teamName, setTeamName] = useState('');
   const [teamMembers, setTeamMembers] = useState<Array<{ name: string; email: string; phone: string }>>([
     { name: '', email: '', phone: '' },
+    { name: '', email: '', phone: '' },
+    { name: '', email: '', phone: '' },
   ]);
+
+  useEffect(() => {
+    if (!collegeQuery) {
+      setCollegeResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setIsSearchingColleges(true);
+      try {
+        const resp = await api.searchColleges(collegeQuery);
+        if (resp && resp.results) {
+          setCollegeResults(resp.results);
+        } else {
+          setCollegeResults([]);
+        }
+      } catch (err) {
+        console.error('Failed to search colleges:', err);
+      } finally {
+        setIsSearchingColleges(false);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [collegeQuery]);
 
   // Active event resolution
   const activeEvent = events.find((e) => e.slug === selectedSlug) || events[0] || SAMPLE_EVENTS[0];
@@ -2363,12 +2390,25 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                             'NIT Warangal',
                             'IIT Hyderabad',
                           ];
-                          const filtered = KNOWN_COLLEGES.filter((c) =>
-                            c.toLowerCase().includes(collegeQuery.toLowerCase())
-                          );
+                          
+                          // Use API results if we have them, otherwise fall back to local filtering
+                          let displayList = [];
+                          if (collegeResults.length > 0) {
+                            displayList = collegeResults.map(c => c.name);
+                          } else {
+                            displayList = KNOWN_COLLEGES.filter((c) =>
+                              c.toLowerCase().includes(collegeQuery.toLowerCase())
+                            );
+                          }
+
                           return (
                             <>
-                              {filtered.map((c, i) => (
+                              {isSearchingColleges && (
+                                <div style={{ padding: '10px 14px', fontSize: '13.5px', color: 'var(--muted)' }}>
+                                  Searching...
+                                </div>
+                              )}
+                              {!isSearchingColleges && displayList.map((c, i) => (
                                 <div
                                   key={i}
                                   onMouseDown={() => {
@@ -2383,7 +2423,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                                   {c}
                                 </div>
                               ))}
-                              {filtered.length === 0 && (
+                              {!isSearchingColleges && displayList.length === 0 && (
                                 <div
                                   onMouseDown={() => {
                                     setCollege(collegeQuery);
