@@ -1810,96 +1810,9 @@ async def admin_users_directory_list(
     limit: int = 24,
     user: dict = Depends(get_current_user),
 ):
-    """User directory list — supports 'all', 'student', 'masters', 'alumni', 'mentor' categories.
-    Also computes per-category counts for the directory KPIs."""
-    _require_admin(user)
-    # Map frontend category → backend role + filter
-    cat_map: Dict[str, Optional[str]] = {
-        "all":     None,        # all roles
-        "student": "student",
-        "masters": "student",
-        "alumni":  "alumni",
-        "mentor":  "mentor",
-    }
-    target_role = cat_map.get(category, None)
-    role_filter: dict = {}
-    if target_role:
-        role_filter["role"] = target_role
-        if target_role == "mentor":
-            role_filter["mentor_status"] = "approved"
-
-    # Counts for KPI strip
-    counts: Dict[str, int] = {}
-    role_keys = ["student", "alumni", "mentor"]
-    for k in role_keys:
-        f = {"role": k}
-        if k == "mentor":
-            f["mentor_status"] = "approved"
-        counts[k] = await db.users.count_documents(f)
-    counts["all"] = sum(counts.values())
-    counts["masters"] = counts.get("student", 0)  # masters shown as student subset
-    counts["pending_approval"] = await db.users.count_documents({
-        "role": "mentor", "mentor_status": {"$ne": "approved"}
-    }) + await db.users.count_documents({
-        "role": "college", "college_status": {"$ne": "approved"}
-    })
-
-    # Build query for items
-    query: dict = dict(role_filter)
-    if category == "masters":
-        query["school_info.current_degree"] = {"$in": ["Masters", "M.Tech", "MBA", "MS", "PhD"]}
-    if q:
-        rx = {"$regex": re.escape(q), "$options": "i"}
-        query["$or"] = [
-            {"full_name": rx}, {"email": rx},
-            {"school_info.institution_name": rx},
-            {"mentor_profile.organization": rx},
-            {"alumni_info.alumni_employer": rx},
-        ]
-    skip = (page - 1) * limit
-    total = await db.users.count_documents(query)
-    items = await db.users.find(
-        query, {"password_hash": 0},
-    ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
-    out = []
-    for u in items:
-        mp = u.get("mentor_profile") or {}
-        si = u.get("school_info") or {}
-        ai = u.get("alumni_info") or {}
-        cp = u.get("college_profile") or {}
-        approved = not (
-            (u.get("role") == "mentor" and u.get("mentor_status") != "approved") or
-            (u.get("role") == "college" and u.get("college_status") != "approved")
-        )
-        out.append({
-            "id": str(u["_id"]),
-            "name": u.get("full_name") or u.get("email"),
-            "email": u.get("email"),
-            "phone": u.get("phone"),
-            "role": u.get("role"),
-            "approved": approved,
-            "is_new": u.get("is_new") or False,
-            "disabled": u.get("disabled") or False,
-            "career_path": u.get("career_path"),
-            "institution": si.get("institution_name") or u.get("full_name"),
-            "city": si.get("city") or cp.get("city"),
-            "state": si.get("state") or cp.get("state"),
-            "stream": si.get("branch_or_stream"),
-            "course": si.get("current_course") or si.get("class_or_year"),
-            "graduation_year": si.get("graduation_year"),
-            "mentor_title": mp.get("job_title"),
-            "mentor_org": mp.get("organization"),
-            "mentor_category": mp.get("category") or u.get("mentor_category"),
-            "mentor_rating": mp.get("rating"),
-            "mentor_sessions": mp.get("sessions"),
-            "alumni_employer": ai.get("alumni_employer"),
-            "alumni_role": ai.get("alumni_role"),
-            "badges": u.get("badges") or [],
-            "created_at": (u.get("created_at") or datetime.utcnow()).isoformat()
-                if isinstance(u.get("created_at"), datetime) else str(u.get("created_at", "")),
-            "linkedin_url": u.get("linkedin_url") or mp.get("linkedin_url") or ai.get("alumni_linkedin_url"),
-        })
-    return {"items": out, "total": total, "page": page, "limit": limit, "pages": max(1, (total + limit - 1) // limit), "counts": counts}
+    """User directory list — unified reader from `imports.py` list_users."""
+    from routers.admin.imports import list_users
+    return await list_users(category=category, q=q, page=page, limit=limit)
 
 
 @router.post("/admin/users/profile/{user_id}/approve")

@@ -98,21 +98,21 @@ const SAMPLE_EVENTS = [
     videos: [
       {
         title: 'HackWave 3.0 SNIST Official Teaser',
-        video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        video_url: 'https://www.youtube.com/watch?v=M576WGiDBdQ',
         thumbnail_url: '/images/hackwave/hackwave_main_poster.png',
         description: 'Watch the official teaser for HackWave 3.0 at SNIST — 7 Verticals, ₹2,00,000 Grand Pool.',
         platform: 'youtube'
       },
       {
         title: 'Cyber Security with AI Conclave Teaser',
-        video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        video_url: 'https://www.youtube.com/watch?v=aircAruvnKk',
         thumbnail_url: '/images/hackwave/hackwave_cybersecurity_conclave.jpg',
         description: 'Keynote highlights featuring ISC2 New Jersey Chapter and international cyber security experts.',
         platform: 'youtube'
       },
       {
         title: 'Build by Sunset — 24-Hour Hackathon Sprint Highlights',
-        video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        video_url: 'https://www.youtube.com/watch?v=9bZkp7q19f0',
         thumbnail_url: '/images/hackwave/hackwave_techfest_verticals.jpg',
         description: 'Overnight build sprint, tech mentorship, and product showcases live from SNIST campus.',
         platform: 'youtube'
@@ -1291,7 +1291,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
               <text x="150" y="218" textAnchor="middle" fill="#FFFFFF" fontWeight="900" fontSize="128" fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">SA</text>
             </svg>
             <span style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-0.5px', color: '#FFFFFF', fontFamily: "'Outfit', 'Manrope', -apple-system, sans-serif" }}>
-              StudentAlumni<span style={{ color: '#8B5CF6' }}>.ai</span>
+              Student Alumni
             </span>
           </div>
 
@@ -1991,53 +1991,46 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
           })()}
 
           {/* ────────────────────────────────────────────────────────── */}
-          {/* MEET THE SPEAKERS (BANNER 3) — from CMS speakers          */}
+          {/* MEET THE SPEAKERS (BANNER 3)                               */}
           {/* ────────────────────────────────────────────────────────── */}
-          {(() => {
-            const allSpeakers = activeEvent.speakers || [];
-            if (allSpeakers.length === 0) return null;
-            // Group speakers by category
-            const catGroups: Record<string, any[]> = {};
-            const ungrouped: any[] = [];
-            allSpeakers.filter((s: any) => s.visible !== false).forEach((spk: any) => {
-              const cat = spk.category || spk.session_title || '';
-              if (cat) {
-                if (!catGroups[cat]) catGroups[cat] = [];
-                catGroups[cat].push(spk);
-              } else {
-                ungrouped.push(spk);
-              }
-            });
-            const catColors: Record<string, string> = {};
-            const palette = ['#C4B5FD', '#38BDF8', '#34D399', '#FBBF24', '#F87171'];
-            let ci = 0;
-            Object.keys(catGroups).forEach((k) => { catColors[k] = palette[ci % palette.length]; ci++; });
+          <div style={{ marginBottom: '32px' }}>
+            <div style={{ textAlign: 'center', marginBottom: '22px' }}>
+              <div className="ev-detail-speakers-header" style={{ fontSize: '30px', fontWeight: 800, letterSpacing: '-1px', color: '#FFFFFF' }}>Meet the Speakers</div>
+              <div style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '1.4px', color: 'var(--violet-lt)', marginTop: '4px' }}>
+                HACKWAVE 3.0 · SEPTEMBER 4 – 5, 2026 · SNIST CAMPUS
+              </div>
+            </div>
 
-            return (
-              <div style={{ marginBottom: '32px' }}>
-                <div style={{ textAlign: 'center', marginBottom: '22px' }}>
-                  <div className="ev-detail-speakers-header" style={{ fontSize: '30px', fontWeight: 800, letterSpacing: '-1px', color: '#FFFFFF' }}>Meet the Speakers</div>
-                  <div style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '1.4px', color: 'var(--violet-lt)', marginTop: '4px' }}>
-                    {(activeEvent.title || '').toUpperCase()} · {(activeEvent.dates || '').toUpperCase()} · {(activeEvent.college || '').toUpperCase()} CAMPUS
-                  </div>
-                </div>
-
-            {/* International Panel Pictures with LinkedIn Links */}
+            {/* International Panel Pictures with Details & LinkedIn Links */}
             <div style={{ marginBottom: '28px' }}>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 700, letterSpacing: '1.3px', color: '#C4B5FD', background: 'rgba(124,92,252,0.25)', borderRadius: '100px', padding: '6px 14px', marginBottom: '14px' }}>
                 INTERNATIONAL PANEL · CYBER SECURITY CONCLAVE
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
                 {[
-                  { poster: '/images/hackwave/stan_mierzwa_poster.png', name: 'Stan Mierzwa, Ph.D.', li: 'in/stanmierzwa' },
-                  { poster: '/images/hackwave/ken_fishkin_poster.png', name: 'Ken Fishkin', li: 'in/kfishkin' },
-                  { poster: '/images/hackwave/sharon_kelley_poster.png', name: 'Sharon Kelley', li: 'in/sharon-kelley-0292181' },
-                  { poster: '/images/hackwave/jeremy_livingston_poster.png', name: 'Jeremy Livingston', li: 'in/jeremylivin' },
-                  { poster: '/images/hackwave/suman_kalia_poster.png', name: 'Suman Kalia', li: 'in/suman-kalia-300b521' }
+                  { poster: '/images/hackwave/stan_mierzwa_poster.png', name: 'Stan Mierzwa, Ph.D.', title: 'Director, Center for Cybersecurity', org: 'Kean University', location: 'Union, New Jersey', country: 'USA', takeaway: 'Students doing real threat intelligence, not simulations.', highlights: ['Running a university cyber centre', 'Non-profit incident research', 'From coursework to casework'], li: 'in/stanmierzwa' },
+                  { poster: '/images/hackwave/ken_fishkin_poster.png', name: 'Ken Fishkin', title: 'President', org: 'ISC2 New Jersey Chapter', location: 'New Jersey', country: 'USA', takeaway: 'A chapter is only as strong as the people who show up.', highlights: ['Global cybersecurity trends', 'Certification pathways that hold up', 'Building a security community'], li: 'in/kfishkin' },
+                  { poster: '/images/hackwave/sharon_kelley_poster.png', name: 'Sharon Kelley', title: 'Board Member', org: 'ISC2 New Jersey Chapter (MS, MBA, CISSP, CCSP)', location: 'Hoboken, New Jersey', country: 'USA', takeaway: 'The certifications that open doors — and the ones that don\'t.', highlights: ['CISSP and CCSP, honestly assessed', 'Building a chapter that shows up', 'Getting hired without experience'], li: 'in/sharon-kelley-0292181' },
+                  { poster: '/images/hackwave/jeremy_livingston_poster.png', name: 'Jeremy Livingston', title: 'CISO & Deputy CIO', org: 'Stevens Institute of Technology', location: 'Effort, Pennsylvania', country: 'USA', takeaway: 'Securing a university is not the same as securing a company.', highlights: ['Security leadership in higher education', 'Risk, budget and the board', 'Where student data actually sits'], li: 'in/jeremylivin' },
+                  { poster: '/images/hackwave/suman_kalia_poster.png', name: 'Suman Kalia', title: 'Associate Professor & Chair, Computer Science', org: "Saint Peter's University", location: 'Jersey City, New Jersey', country: 'USA', takeaway: 'What a computer science department owes the students it graduates.', highlights: ['Curriculum against industry reality', 'Research paths for undergraduates', 'Advising that goes beyond grades'], li: 'in/suman-kalia-300b521' }
                 ].map((spk, idx) => (
-                  <div key={idx} className="ev-mini" style={{ border: '1px solid var(--line2)', borderRadius: '18px', overflow: 'hidden', background: '#090B18', padding: '10px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div key={idx} className="ev-mini" style={{ border: '1px solid var(--line2)', borderRadius: '18px', overflow: 'hidden', background: '#090B18', padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     <div style={{ width: '100%', aspectRatio: '4/5', borderRadius: '14px', overflow: 'hidden', background: '#000' }}>
                       <img src={spk.poster} alt={spk.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    </div>
+                    <div style={{ marginTop: '2px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div style={{ fontSize: '16.5px', fontWeight: 800, color: '#FFFFFF' }}>{spk.name}</div>
+                      {spk.title && <div style={{ fontSize: '12.5px', color: '#38BDF8', fontWeight: 700 }}>{spk.title}</div>}
+                      {spk.org && <div style={{ fontSize: '12px', color: '#C4B5FD', fontWeight: 600 }}>{spk.org}</div>}
+                      <div style={{ fontSize: '11px', color: '#9CA3AF', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                        {spk.location}, <strong>{spk.country}</strong>
+                      </div>
+                      {spk.takeaway && (
+                        <div style={{ fontSize: '12px', fontStyle: 'italic', color: '#FDE68A', background: 'rgba(251, 191, 36, 0.08)', borderLeft: '3px solid #F59E0B', padding: '6px 10px', borderRadius: '4px', marginTop: '6px' }}>
+                          "{spk.takeaway}"
+                        </div>
+                      )}
                     </div>
                     {spk.li && (
                       <a
@@ -2049,7 +2042,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                           alignItems: 'center',
                           justifyContent: 'center',
                           gap: '6px',
-                          padding: '8px 12px',
+                          padding: '9px 12px',
                           background: 'rgba(56, 189, 248, 0.12)',
                           border: '1px solid rgba(56, 189, 248, 0.3)',
                           borderRadius: '10px',
@@ -2057,6 +2050,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                           fontSize: '12px',
                           fontWeight: 700,
                           textDecoration: 'none',
+                          marginTop: 'auto',
                         }}
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
@@ -2075,18 +2069,32 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 700, letterSpacing: '1.3px', color: '#38BDF8', background: 'rgba(56,189,248,0.18)', borderRadius: '100px', padding: '6px 14px', marginBottom: '14px' }}>
                 VOICES THAT BUILD · LEADERSHIP & INDUSTRY PANEL
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
                 {[
-                  { poster: '/images/hackwave/m_avinash_rao_poster.png', name: 'M Avinash Rao, PMP®', li: 'in/avi-thestoryteller' },
-                  { poster: '/images/hackwave/gopichand_anumolu_poster.png', name: 'Gopichand Anumolu', li: 'in/gopichand-anumolu-83b3801a4' },
-                  { poster: '/images/hackwave/harish_kotra_poster.png', name: 'Harish Kotra', li: 'in/harishkotra' },
-                  { poster: '/images/hackwave/jonna_dheeraj_poster.png', name: 'Jonna Dheeraj', li: 'in/jonna-dheeraj-9a91ab34' },
-                  { poster: '/images/hackwave/venkatesh_hanmantraya_poster.png', name: 'Venkatesh Hanmantraya', li: 'in/venkatesh-hanmantraya-9b9a42101' },
-                  { poster: '/images/hackwave/mohit_bhalla_poster.png', name: 'Mohit Bhalla', li: 'in/mohit-bhalla-9028671a' }
+                  { poster: '/images/hackwave/m_avinash_rao_poster.png', name: 'M Avinash Rao, PMP®', title: 'Client Account Manager', org: 'Deloitte', location: 'Hyderabad, Telangana', country: 'India', takeaway: 'Managing the account is really managing the relationship.', highlights: ['Client delivery at scale', 'Project management, practically', 'PMP® in the real world'], li: 'in/avi-thestoryteller' },
+                  { poster: '/images/hackwave/gopichand_anumolu_poster.png', name: 'Gopichand Anumolu', title: 'Founder', org: 'ATLAST', location: 'Hyderabad, Telangana', country: 'India', takeaway: 'Founding is mostly the unglamorous part.', highlights: ['Building ATLAST from zero', 'Finding the first customers', 'What nobody tells founders'], li: 'in/gopichand-anumolu-83b3801a4' },
+                  { poster: '/images/hackwave/harish_kotra_poster.png', name: 'Harish Kotra', title: 'DevX Lead', org: 'Quirq', location: 'New York', country: 'USA', takeaway: 'Beyond Benchmarks: Building an Intelligent AI Router for Production', highlights: ['200+ hackathons run', '13+ years in DevRel', '95K+ devs in community'], li: 'in/harishkotra' },
+                  { poster: '/images/hackwave/jonna_dheeraj_poster.png', name: 'Jonna Dheeraj', title: 'Account Delivery & Program Management', org: 'Embedded SW · AI · VLSI · 5G · IoT', location: 'Hyderabad, Telangana', country: 'India', takeaway: 'Delivery is where good engineering meets a hard deadline.', highlights: ['Programme and account delivery', 'Embedded, AI, VLSI and 5G', 'Shipping across time zones'], li: 'in/jonna-dheeraj-9a91ab34' },
+                  { poster: '/images/hackwave/venkatesh_hanmantraya_poster.png', name: 'Venkatesh Hanmantraya', title: 'Speaker', org: 'Voices That Build', location: 'Telangana', country: 'India', takeaway: 'Bringing industry practice into the classroom.', highlights: ['Industry-to-campus perspective', 'Practical engineering habits', 'Session detail to be confirmed'], li: 'in/venkatesh-hanmantraya-9b9a42101' },
+                  { poster: '/images/hackwave/mohit_bhalla_poster.png', name: 'Mohit Bhalla', title: 'Leadership Address', org: 'StudentAlumni', location: 'Delhi', country: 'India', takeaway: 'Leadership is deciding what not to build.', highlights: ['Leading engineering organisations', 'Judgement over process', 'Session detail to be confirmed'], li: 'in/mohit-bhalla-9028671a' }
                 ].map((spk, idx) => (
-                  <div key={idx} className="ev-mini" style={{ border: '1px solid var(--line2)', borderRadius: '18px', overflow: 'hidden', background: '#090B18', padding: '10px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div key={idx} className="ev-mini" style={{ border: '1px solid var(--line2)', borderRadius: '18px', overflow: 'hidden', background: '#090B18', padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     <div style={{ width: '100%', aspectRatio: '4/5', borderRadius: '14px', overflow: 'hidden', background: '#000' }}>
                       <img src={spk.poster} alt={spk.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    </div>
+                    <div style={{ marginTop: '2px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div style={{ fontSize: '16.5px', fontWeight: 800, color: '#FFFFFF' }}>{spk.name}</div>
+                      {spk.title && <div style={{ fontSize: '12.5px', color: '#38BDF8', fontWeight: 700 }}>{spk.title}</div>}
+                      {spk.org && <div style={{ fontSize: '12px', color: '#C4B5FD', fontWeight: 600 }}>{spk.org}</div>}
+                      <div style={{ fontSize: '11px', color: '#9CA3AF', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                        {spk.location}, <strong>{spk.country}</strong>
+                      </div>
+                      {spk.takeaway && (
+                        <div style={{ fontSize: '12px', fontStyle: 'italic', color: '#FDE68A', background: 'rgba(251, 191, 36, 0.08)', borderLeft: '3px solid #F59E0B', padding: '6px 10px', borderRadius: '4px', marginTop: '6px' }}>
+                          "{spk.takeaway}"
+                        </div>
+                      )}
                     </div>
                     {spk.li && (
                       <a
@@ -2098,7 +2106,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                           alignItems: 'center',
                           justifyContent: 'center',
                           gap: '6px',
-                          padding: '8px 12px',
+                          padding: '9px 12px',
                           background: 'rgba(56, 189, 248, 0.12)',
                           border: '1px solid rgba(56, 189, 248, 0.3)',
                           borderRadius: '10px',
@@ -2106,6 +2114,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                           fontSize: '12px',
                           fontWeight: 700,
                           textDecoration: 'none',
+                          marginTop: 'auto',
                         }}
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
@@ -2118,75 +2127,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 ))}
               </div>
             </div>
-
-            {/* CMS Grouped Speakers */}
-            {Object.keys(catGroups).map((catName) => (
-              <div key={catName} style={{ marginBottom: '22px' }}>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 700, letterSpacing: '1.3px', color: catColors[catName] || '#C4B5FD', background: 'rgba(255,255,255,0.06)', borderRadius: '100px', padding: '6px 14px', marginBottom: '14px' }}>
-                  {catName.toUpperCase()}
-                </div>
-                <div className="ev-detail-speakers-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
-                  {catGroups[catName].map((spk: any, idx: number) => (
-                    <div key={idx} className="ev-mini ev-detail-speaker-card" style={{ padding: '20px 18px', background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: '16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                      {spk.photo_url ? (
-                        <img src={resolveImageUrl(spk.photo_url)} alt={spk.name} style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', margin: '0 auto 12px' }} />
-                      ) : (
-                        <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: `linear-gradient(135deg, ${catColors[catName] || '#7C5CFC'}, #38BDF8)`, margin: '0 auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF', fontWeight: 800, fontSize: '20px' }}>
-                          {spk.name.split(' ').map((n: string) => n[0]).join('')}
-                        </div>
-                      )}
-                      <div className="ev-detail-speaker-name" style={{ fontSize: '16px', fontWeight: 700, color: '#FFFFFF' }}>{spk.name}</div>
-                      <div className="ev-detail-speaker-role" style={{ fontSize: '12.5px', color: catColors[catName] || 'var(--violet-lt)', fontWeight: 600, marginTop: '3px' }}>{[spk.position, spk.company].filter(Boolean).join(', ')}</div>
-                      {spk.location && (
-                        <div style={{ fontSize: '11px', color: '#6B7280', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
-                          {spk.location}
-                        </div>
-                      )}
-                      {spk.linkedin_url && (
-                        <a href={spk.linkedin_url.startsWith('http') ? spk.linkedin_url : `https://linkedin.com/${spk.linkedin_url}`} target="_blank" rel="noreferrer" style={{ fontSize: '11px', color: '#38BDF8', fontWeight: 600, marginTop: '8px', display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}>
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
-                          LinkedIn
-                        </a>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-
-                {/* Ungrouped speakers */}
-                {ungrouped.length > 0 && (
-                  <div style={{ marginBottom: '22px' }}>
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 700, letterSpacing: '1.3px', color: '#C4B5FD', background: 'rgba(124,92,252,0.25)', borderRadius: '100px', padding: '6px 14px', marginBottom: '14px' }}>
-                      SPEAKERS
-                    </div>
-                    <div className="ev-detail-speakers-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
-                      {ungrouped.map((spk: any, idx: number) => (
-                        <div key={idx} className="ev-mini ev-detail-speaker-card" style={{ padding: '20px 18px', background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: '16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                          {spk.photo_url ? (
-                            <img src={resolveImageUrl(spk.photo_url)} alt={spk.name} style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', margin: '0 auto 12px' }} />
-                          ) : (
-                            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #7C5CFC, #38BDF8)', margin: '0 auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF', fontWeight: 800, fontSize: '20px' }}>
-                              {spk.name.split(' ').map((n: string) => n[0]).join('')}
-                            </div>
-                          )}
-                          <div className="ev-detail-speaker-name" style={{ fontSize: '16px', fontWeight: 700, color: '#FFFFFF' }}>{spk.name}</div>
-                          <div className="ev-detail-speaker-role" style={{ fontSize: '12.5px', color: 'var(--violet-lt)', fontWeight: 600, marginTop: '3px' }}>{[spk.position, spk.company].filter(Boolean).join(', ')}</div>
-                          {spk.location && (
-                            <div style={{ fontSize: '11px', color: '#6B7280', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
-                              {spk.location}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })()}
+          </div>
 
           {/* ────────────────────────────────────────────────────────── */}
           {/* ONE TICKET. ₹599. MEGA GRAND POOL & ALL PERKS (BANNER 5)   */}
