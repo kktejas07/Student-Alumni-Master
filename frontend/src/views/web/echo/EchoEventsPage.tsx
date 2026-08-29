@@ -477,6 +477,12 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
         orderRes = await api.createEchoPaymentOrder(targetSlug, payload);
       } catch (err: any) {
         console.log('[EchoEventsPage] Payment order response notice:', err);
+        // Fail-closed for paid events if order creation fails (e.g. 503 from backend)
+        if (calculatedTotalFee > 0) {
+          setIsPaying(false);
+          alert(err?.message || err?.detail || 'Online payments are temporarily unavailable — please try again later');
+          return;
+        }
       }
 
       // If user already paid or completed
@@ -586,19 +592,31 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
           });
           rzp.open();
           return;
+        } else {
+          // If SDK fails to load, fail-closed for paid events
+          setIsPaying(false);
+          alert('Could not load payment gateway. Please check your connection and try again.');
+          return;
         }
       }
 
-      // Step 3: Direct registration path (free event / demo / direct fallback)
+      // If it's a paid event and we reached here (no order_id or not web), fail closed
+      if (calculatedTotalFee > 0) {
+        setIsPaying(false);
+        alert('Payment cannot be processed at this time.');
+        return;
+      }
+
+      // Step 3: Direct registration path (free event)
       let regRes: any = null;
       try {
         regRes = await api.registerEchoShowcase(targetSlug, {
           ...payload,
-          fee: calculatedTotalFee,
+          fee: 0, // Enforce 0 fee for direct registration path
           payment: {
-            status: 'paid',
-            amount: calculatedTotalFee,
-            payment_id: `PAY_RAZOR_${Math.floor(100000 + Math.random() * 900000)}`,
+            status: 'free',
+            amount: 0,
+            payment_id: '',
           },
         });
       } catch (regErr) {
@@ -611,7 +629,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
         eventName: activeEvent.title,
         attendeeName: fullName || 'Student Attendee',
         type: isTeam ? `Team Pass (${currentTeamSize} Members)` : 'Individual Pass',
-        amount: calculatedTotalFee,
+        amount: 0,
         date: activeEvent.dates,
         venue: activeEvent.venue,
         email: email || 'student@example.com',
