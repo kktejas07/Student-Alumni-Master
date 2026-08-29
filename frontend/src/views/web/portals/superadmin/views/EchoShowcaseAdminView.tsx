@@ -25,11 +25,11 @@ function CustomVideosEditor({ videos, onChange }: { videos: any[]; onChange: (v:
     onChange([
       ...(videos || []),
       {
-        title: 'SNIST HackWave Official Teaser',
-        video_url: 'https://www.youtube.com/watch?v=M576WGiDBdQ',
+        title: 'New Event Video / Clip',
+        video_url: '',
         thumbnail_url: '/images/hackwave/hackwave_main_poster.png',
-        description: 'Watch the official teaser video for HackWave 3.0 at SNIST campus.',
-        platform: 'youtube',
+        description: 'Uploaded event teaser video clip.',
+        platform: 'native',
       },
     ]);
   };
@@ -64,7 +64,6 @@ function CustomVideosEditor({ videos, onChange }: { videos: any[]; onChange: (v:
     <View style={{ gap: 16 }}>
       {(videos || []).map((vid: any, idx: number) => {
         const isYt = vid.video_url?.includes('youtube.com') || vid.video_url?.includes('youtu.be');
-        const ytId = isYt ? (vid.video_url.includes('v=') ? vid.video_url.split('v=')[1]?.split('&')[0] : vid.video_url.split('/').pop()) : null;
 
         return (
           <View key={idx} style={{ border: '1px solid ' + SAC.border, borderRadius: 14, padding: 18, backgroundColor: SAC.panelBg, gap: 14 }}>
@@ -84,14 +83,14 @@ function CustomVideosEditor({ videos, onChange }: { videos: any[]; onChange: (v:
               />
               <TextInput
                 style={[inputStyle, { flex: 1.5, minWidth: 260 }]}
-                placeholder="Video URL (YouTube / Vimeo / MP4 File)"
-                value={vid.video_url || ''}
+                placeholder="Direct Video URL (.mp4, .webm) or Upload Local File"
+                value={isYt ? '' : (vid.video_url || '')}
                 onChangeText={(t) => updateItem(idx, 'video_url', t)}
               />
               {Platform.OS === 'web' && (
                 <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 8, background: '#7C3AED', color: '#FFF', fontSize: 13, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>
-                  {uploadingIdx === idx ? 'Uploading...' : '🎥 Upload Video File'}
-                  <input type="file" accept="video/mp4,video/webm,video/quicktime" onChange={(e) => handleFileUpload(idx, e)} style={{ display: 'none' }} />
+                  {uploadingIdx === idx ? 'Uploading Video...' : '🎥 Upload Local Video File'}
+                  <input type="file" accept="video/mp4,video/webm,video/quicktime,video/x-matroska,video/*" onChange={(e) => handleFileUpload(idx, e)} style={{ display: 'none' }} />
                 </label>
               )}
             </View>
@@ -111,18 +110,23 @@ function CustomVideosEditor({ videos, onChange }: { videos: any[]; onChange: (v:
               />
             </View>
 
-            {/* Live Video Preview Box */}
-            {vid.video_url ? (
-              <View style={{ marginTop: 6, borderRadius: 10, overflow: 'hidden', backgroundColor: '#000', maxHeight: 200, alignItems: 'center', justifyContent: 'center' }}>
-                {isYt && ytId ? (
-                  <iframe
-                    src={`https://www.youtube.com/embed/${ytId}`}
-                    title="Preview"
-                    style={{ width: '100%', height: '200px', border: 'none' }}
-                  />
-                ) : (
-                  <video controls src={vid.video_url} style={{ width: '100%', maxHeight: '200px' }} />
-                )}
+            {/* Native HTML5 Video Preview Box */}
+            {vid.video_url && !isYt ? (
+              <View style={{ marginTop: 6, borderRadius: 10, overflow: 'hidden', backgroundColor: '#000', maxHeight: 220, alignItems: 'center', justifyContent: 'center' }}>
+                <video
+                  controls
+                  playsInline
+                  preload="metadata"
+                  poster={vid.thumbnail_url}
+                  src={vid.video_url}
+                  style={{ width: '100%', maxHeight: '220px', objectFit: 'contain' }}
+                />
+              </View>
+            ) : isYt ? (
+              <View style={{ marginTop: 6, padding: 12, borderRadius: 8, backgroundColor: 'rgba(239, 68, 68, 0.1)', borderWidth: 1, borderColor: '#EF4444' }}>
+                <Text style={{ fontSize: 12, color: '#FCA5A5', fontFamily: FONTS.med }}>
+                  Legacy YouTube URL detected. Please click <strong>🎥 Upload Local Video File</strong> above to upload your local MP4 video.
+                </Text>
               </View>
             ) : null}
           </View>
