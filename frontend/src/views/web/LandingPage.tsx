@@ -32,7 +32,7 @@ import Svg, {
 import CommonFooter from '@/src/views/components/CommonFooter';
 import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
 import { SAWatermark } from '@/src/views/web/components/SAWatermark';
-import { useTheme } from '@/src/theme/ThemeContext';
+import EchoEventsPage from '@/src/views/web/echo/EchoEventsPage';
 
 /* ── Brand Color Palette ── */
 const DARK_T = {
@@ -981,7 +981,15 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
       >
 
         {/* ══════════════════════════════════════════════════════════════════
-<<<<<<< Updated upstream
+            TAB: ECHO EVENTS SHOWCASE (UNIFIED CANONICAL ECHO PORTAL)
+        ══════════════════════════════════════════════════════════════════ */}
+        {activeTab === 'echo' && (
+          <View style={{ width: '100%', minHeight: 800 }}>
+            <EchoEventsPage initialView="list" />
+          </View>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════════
 
             TAB: VERIFY CREDENTIALS & BGV DESK
         ══════════════════════════════════════════════════════════════════ */}
@@ -3256,6 +3264,8 @@ function themedStyles(T: typeof DARK_T) {
   },
   alumniPillarSub: {
     fontSize: 14,
+    color: '#94A3B8',
+    lineHeight: 20,
   },
 
   /* ── 07 Audiences ── */

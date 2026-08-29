@@ -1,3 +1,24 @@
+
+if (typeof document !== 'undefined' && !document.getElementById('sa-nav-ticker-styles')) {
+  const styleEl = document.createElement('style');
+  styleEl.id = 'sa-nav-ticker-styles';
+  styleEl.innerHTML = `
+    @keyframes saNavTickerAnim {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+    .sa-nav-ticker-track {
+      display: flex !important;
+      width: max-content !important;
+      animation: saNavTickerAnim 30s linear infinite !important;
+    }
+    .sa-nav-ticker-track:hover {
+      animation-play-state: paused !important;
+    }
+  `;
+  document.head.appendChild(styleEl);
+}
+
 import React, { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
@@ -64,20 +85,44 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
     }
   };
 
-  const toggleTheme = () => {
-    setMode(isDark ? 'light' : 'dark');
-  };
-
-  const tabs = [
-    { key: 'home' as const, label: 'Home' },
-    { key: 'echo' as const, label: 'ECHO' },
-    { key: 'verify' as const, label: 'Verify' },
-    { key: 'contact' as const, label: 'Contact Us' },
+  const tickerItems = [
+    "HackWave 3.0 · Sep 4–5 · Sreenidhi (SNIST) · ₹2,00,000 Mega Grand Pool (₹50,000 Track Pool)",
+    "86 ECHO events across 31 campuses",
+    "Verified by your college email — free forever for students",
+    "267 roles matched, 41 with a warm referral path",
+    "The network is a feed until it meets in person",
+    "Built with love for students across all campuses"
   ];
 
   return (
-    <>
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000 }}>
+      {/* ── Top Announcement Marquee Ticker Strip ── */}
+      <div style={{ background: '#090B18', borderBottom: '1px solid rgba(255,255,255,0.08)', height: '36px', overflow: 'hidden', display: 'flex', alignItems: 'center', width: '100%' }}>
+        <div className="sa-nav-ticker-track">
+          {tickerItems.concat(tickerItems).map((item, idx) => (
+            <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '13px', color: '#94A3B8', fontWeight: 500, fontFamily: "'Outfit', 'Manrope', sans-serif" }}>{item}</span>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#8B5CF6', flex: 'none' }} />
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Main Sticky Navbar ── */}
       <header
+        style={{
+          position: 'relative',
+          backgroundColor: 'rgba(10, 10, 20, 0.94)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          borderBottom: '1px solid #1F1F30',
+          height: '64px',
+          display: 'flex',
+          alignItems: 'center',
+          width: '100%',
+        }}
+      >
+      <div
         style={{
           position: 'fixed',
           top: 0,
@@ -106,242 +151,30 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
             justifyContent: 'space-between',
           }}
         >
-          {/* Brand Logo */}
-          <button
-            onClick={() => handleTabClick('home')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '11px',
-              cursor: 'pointer',
-              background: 'transparent',
-              border: 'none',
-              padding: 0,
-              textAlign: 'left',
-            }}
-          >
-            <svg width="28" height="33" viewBox="0 0 300 350" style={{ flexShrink: 0, display: 'block' }}>
-              <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="#8B84FF" />
-              <path d="M150 28 L268 64 v112 c0 72 -58 110 -118 132 C90 288 32 250 32 178 V64 Z" fill="#5B4FE9" />
-              <text
-                x="150"
-                y="214"
-                textAnchor="middle"
-                style={{
-                  fontFamily: "'Outfit', 'Manrope', -apple-system, sans-serif",
-                  fontSize: '124px',
-                  fontWeight: 800,
-                  fill: '#FFFFFF',
-                }}
-              >
-                SA
-              </text>
-            </svg>
-            {!isMobile && (
-              <span style={{ fontSize: '17px', fontWeight: 700, letterSpacing: '-0.3px', color: theme.text, fontFamily: "'Outfit', 'Manrope', sans-serif", transition: 'color 0.3s ease' }}>
-                StudentAlumni
-              </span>
-            )}
-          </button>
+          {/* Unified High-Res SA Shield Badge Logo */}
+          <svg width="32" height="38" viewBox="0 0 300 350" style={{ flexShrink: 0, display: 'block', filter: 'drop-shadow(0 2px 8px rgba(139,92,246,0.35))' }}>
+            <defs>
+              <linearGradient id="saNavGrad1" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#C9A7FF" />
+                <stop offset="48%" stopColor="#8B5CF6" />
+                <stop offset="100%" stopColor="#5B2FD0" />
+              </linearGradient>
+              <linearGradient id="saNavGrad2" x1="0" y1="0" x2="0.3" y2="1">
+                <stop offset="0%" stopColor="#B683F5" />
+                <stop offset="100%" stopColor="#7331C9" />
+              </linearGradient>
+            </defs>
+            <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#saNavGrad1)" />
+            <path d="M150 28 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="url(#saNavGrad2)" />
+            <text x="150" y="218" textAnchor="middle" fill="#FFFFFF" fontWeight="900" fontSize="128" fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">SA</text>
+          </svg>
+          <span style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-0.5px', color: '#FFFFFF', fontFamily: "'Outfit', 'Manrope', -apple-system, sans-serif" }}>
+            StudentAlumni<span style={{ color: '#8B5CF6' }}>.ai</span>
+          </span>
+        </button>
 
-          {/* Desktop Navigation Tabs — hidden on mobile */}
-          {!isMobile && (
-            <nav
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '36px',
-              }}
-            >
-              {tabs.map((tab) => {
-                const isSelected = selectedTab === tab.key;
-                return (
-                  <button
-                    key={tab.key}
-                    onClick={() => handleTabClick(tab.key)}
-                    style={{
-                      position: 'relative',
-                      fontSize: '14.5px',
-                      fontWeight: isSelected ? 700 : 500,
-                      color: isSelected ? theme.text : theme.textSec,
-                      background: 'transparent',
-                      border: 'none',
-                      padding: '6px 2px',
-                      cursor: 'pointer',
-                      transition: 'color 0.2s ease',
-                      fontFamily: "'Outfit', 'Manrope', sans-serif",
-                    }}
-                  >
-                    <span>{tab.label}</span>
-                    {isSelected && (
-                      <span
-                        style={{
-                          position: 'absolute',
-                          left: 0,
-                          right: 0,
-                          bottom: '-18px',
-                          height: '3px',
-                          borderRadius: '2px',
-                          backgroundColor: '#7C5CFC',
-                        }}
-                      />
-                    )}
-                  </button>
-                );
-              })}
-            </nav>
-          )}
-
-          {/* Right Action Buttons */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '10px' : '16px' }}>
-            {/* Theme Toggle */}
-            <button
-              onClick={toggleTheme}
-              title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-              style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '10px',
-                backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
-                border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                flexShrink: 0,
-              }}
-            >
-              {isDark ? (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={theme.textSec} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="5" />
-                  <line x1="12" y1="1" x2="12" y2="3" />
-                  <line x1="12" y1="21" x2="12" y2="23" />
-                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-                  <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-                  <line x1="1" y1="12" x2="3" y2="12" />
-                  <line x1="21" y1="12" x2="23" y2="12" />
-                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-                  <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-                </svg>
-              ) : (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={theme.textSec} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-                </svg>
-              )}
-            </button>
-
-            {/* Desktop auth buttons — hidden on mobile */}
-            {!isMobile && (
-              isLoggedIn ? (
-                <button
-                  onClick={() => {
-                    const role = user?.role || 'student';
-                    const portal =
-                      role === 'super_admin' ? '/super-admin' :
-                      role === 'mentor' ? '/mentor-portal' :
-                      role === 'alumni' ? '/alumni-portal' :
-                      role === 'college' ? '/college-portal' :
-                      '/student-portal';
-                    router.push(portal);
-                  }}
-                  style={{
-                    backgroundColor: '#5B4FE9',
-                    color: '#FFFFFF',
-                    fontSize: '14px',
-                    fontWeight: 700,
-                    borderRadius: '100px',
-                    padding: '9px 24px',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontFamily: "'Outfit', 'Manrope', sans-serif",
-                    boxShadow: '0 4px 14px rgba(91,79,233,0.35)',
-                    transition: 'transform 0.2s ease, filter 0.2s ease',
-                  }}
-                >
-                  Dashboard
-                </button>
-              ) : (
-                <>
-                  <button
-                    onClick={() => router.push('/(auth)/login')}
-                    style={{
-                      fontSize: '14px',
-                      fontWeight: 500,
-                      color: theme.textSec,
-                      background: 'transparent',
-                      border: 'none',
-                      cursor: 'pointer',
-                      padding: '6px 4px',
-                      transition: 'color 0.2s ease',
-                      fontFamily: "'Outfit', 'Manrope', sans-serif",
-                    }}
-                  >
-                    Sign in
-                  </button>
-                  <button
-                    onClick={() => router.push('/get-started')}
-                    style={{
-                      backgroundColor: '#5B4FE9',
-                      color: '#FFFFFF',
-                      fontSize: '14px',
-                      fontWeight: 700,
-                      borderRadius: '100px',
-                      padding: '9px 24px',
-                      border: 'none',
-                      cursor: 'pointer',
-                      whiteSpace: 'nowrap',
-                      fontFamily: "'Outfit', 'Manrope', sans-serif",
-                      boxShadow: '0 4px 14px rgba(91,79,233,0.35)',
-                      transition: 'transform 0.2s ease, filter 0.2s ease',
-                    }}
-                  >
-                    Get Started
-                  </button>
-                </>
-              )
-            )}
-
-            {/* Hamburger menu button — visible on mobile only */}
-            {isMobile && (
-              <button
-                onClick={() => setMenuOpen(!menuOpen)}
-                aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-                style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '10px',
-                  backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
-                  border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  flexShrink: 0,
-                  padding: 0,
-                }}
-              >
-                {menuOpen ? (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={theme.text} strokeWidth="2" strokeLinecap="round">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                ) : (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={theme.text} strokeWidth="2" strokeLinecap="round">
-                    <line x1="3" y1="6" x2="21" y2="6" />
-                    <line x1="3" y1="12" x2="21" y2="12" />
-                    <line x1="3" y1="18" x2="21" y2="18" />
-                  </svg>
-                )}
-              </button>
-            )}
-          </div>
-        </div>
-      </header>
-
-      {/* Mobile dropdown menu */}
-      {isMobile && menuOpen && (
-        <div
+        {/* Center Desktop Navigation Tabs */}
+        <nav
           style={{
             position: 'fixed',
             top: '64px',
@@ -453,8 +286,9 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
             )}
           </div>
         </div>
-      )}
-    </>
+      </div>
+    </header>
+    </div>
   );
 }
 

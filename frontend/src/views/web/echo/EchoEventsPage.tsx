@@ -52,8 +52,12 @@ const SAMPLE_EVENTS = [
     poster_banner: '/images/hackwave/hackwave_main_poster.png',
     gallery_images: [
       '/images/hackwave/hackwave_main_poster.png',
+      '/images/hackwave/stan_mierzwa_poster.png',
+      '/images/hackwave/ken_fishkin_poster.png',
+      '/images/hackwave/sharon_kelley_poster.png',
+      '/images/hackwave/jeremy_livingston_poster.png',
+      '/images/hackwave/suman_kalia_poster.png',
       '/images/hackwave/hackwave_cybersecurity_conclave.jpg',
-      '/images/hackwave/hackwave_speakers.jpg',
       '/images/hackwave/hackwave_techfest_verticals.jpg',
       '/images/hackwave/hackwave_perks_pool.jpg'
     ],
@@ -90,51 +94,7 @@ const SAMPLE_EVENTS = [
       { name: 'On-the-spot offers', desc: 'Internship and placement offers, in the room', value: 'Live', icon: 'check' },
       { name: 'Surprise goodies', desc: 'Extra prizes and drops announced on the day', value: 'Surprise', icon: 'gift' }
     ]
-  },
-  {
-    id: 'vnr',
-    slug: 'vnr',
-    title: 'VNR ECHO 2026',
-    college: 'VNR VJIET',
-    college_name: 'VNR Vignana Jyothi Institute of Engineering and Technology',
-    college_full: 'VNR Vignana Jyothi Institute of Engineering & Technology, Hyderabad',
-    status: 'COMPLETED',
-    organizer: 'VNR Student Council in collaboration with StudentAlumni.ai',
-    description: "Empowering Tomorrow's Leaders — Innovation, Career Tracks and AI Engineering.",
-    dates: 'July 31, 2026',
-    date_short: 'July 31, 2026',
-    date_pill: 'Jul 31, 2026',
-    time: '09:30 AM — 04:30 PM',
-    venue: 'Main Auditorium, VNR VJIET, Hyderabad',
-    location_short: 'VNR VJIET Campus, Hyderabad',
-    prize_pool: '₹35,000 prize pool',
-    reg_closes: '2026-07-28',
-    individual_fee: 499,
-    team_fee: 1999,
-    individual_seats: '320 attended',
-    team_slots: '64 teams',
-    partners: ['Deloitte', 'Featherless', 'Atlast', 'Microsoft', 'Google'],
-    poster_banner: '/images/hackwave/hackwave_techfest_verticals.jpg',
-    gallery_images: [
-      '/images/hackwave/hackwave_techfest_verticals.jpg',
-      '/images/hackwave/hackwave_speakers.jpg',
-      '/images/hackwave/hackwave_main_poster.png',
-      '/images/hackwave/hackwave_cybersecurity_conclave.jpg',
-      '/images/hackwave/hackwave_perks_pool.jpg'
-    ],
-    speakers: [
-      { name: 'Vijay Raghavan', position: 'Chief AI Architect', company: 'Google', category: 'Keynote Speaker', is_panel_member: true },
-      { name: 'Sneha Reddy', position: 'VP Engineering', company: 'Microsoft', category: 'Panelist', is_panel_member: true },
-      { name: 'Dr. Kavitha Nair', position: 'Professor & NLP Researcher', company: 'VNR VJIET', category: 'Academic Mentor', is_panel_member: true },
-      { name: 'Arjun Mehta', position: 'Founder', company: 'BrightFuture Labs', category: 'Industry Speaker', is_panel_member: false }
-    ],
-    highlights: [
-      { title: 'AI at Scale Keynote', desc: 'Vijay Raghavan on large-scale production ML architectures' },
-      { title: 'Careers in AI Panel', desc: 'Industry veterans answer student questions on emerging roles' },
-      { title: 'Hands-on Hackathon', desc: 'Sprint across MedTech, FinTech, and Smart Mobility' },
-      { title: 'Networking Hub', desc: 'Connect directly with alumni from leading global tech companies' }
-    ]
-  },
+  }
 ];
 
 export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: EchoEventsPageProps) {
@@ -194,6 +154,23 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [showTermsErr, setShowTermsErr] = useState(false);
   const [whatsappOptIn, setWhatsappOptIn] = useState(true);
+  
+  // Registration page poster carousel state
+  const [regPosterIdx, setRegPosterIdx] = useState(0);
+  const regPosters = [
+    '/images/hackwave/hackwave_main_poster.png',
+    '/images/hackwave/hackwave_cybersecurity_conclave.jpg',
+    '/images/hackwave/hackwave_techfest_verticals.jpg',
+    '/images/hackwave/hackwave_perks_pool.jpg'
+  ];
+
+  useEffect(() => {
+    if (view !== 'reg') return;
+    const timer = setInterval(() => {
+      setRegPosterIdx((prev) => (prev + 1) % regPosters.length);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [view, regPosters.length]);
   
   // Form fields
   const [fullName, setFullName] = useState('');
@@ -362,7 +339,9 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
 
   const go = (targetView: 'list' | 'detail' | 'reg', targetSlug?: string) => {
     const nextSlug = targetSlug || selectedSlug || 'snist';
-    if (targetSlug) setSelectedSlug(targetSlug);
+    if (targetSlug && targetSlug !== selectedSlug) {
+      setSelectedSlug(targetSlug);
+    }
     setView(targetView);
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       let targetUrl = '/echo';
@@ -374,9 +353,9 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
         targetUrl = '/echo';
       }
       if (window.location.pathname !== targetUrl) {
-        window.history.pushState(null, '', targetUrl);
+        window.history.pushState({ view: targetView, slug: nextSlug }, '', targetUrl);
       }
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: 'instant' as any });
     }
   };
 
@@ -1155,13 +1134,150 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
         </div>
       )}
 
-      {/* ── Shared Navigation Header ── */}
-      <Navbar activeTab="echo" onTabChange={(tab) => {
-        if (tab === 'home') router.push('/');
-        else if (tab === 'echo') go('list');
-        else if (tab === 'verify') router.push('/verify');
-        else if (tab === 'contact') router.push('/contact');
-      }} />
+      {/* Top Continuous Ticker Bar */}
+      <div id="ev-tickwrap" style={{ position: 'sticky', top: 0, zIndex: 62, overflow: 'hidden', borderBottom: '1px solid var(--line)', background: '#090B18' }}>
+        <div id="ev-ticker" style={{ display: 'flex', width: 'max-content', padding: '9px 0', animation: 'ev-tick 46s linear infinite' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 0, flex: 'none' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>The network is a feed until it meets in person.</span>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>86 ECHO events across 31 campuses.</span>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>267 roles matched, 41 with a warm referral path.</span>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>Verified by your college email — free forever for students.</span>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>HackWave 3.0 · Sep 4–5 · Sreenidhi (SNIST) · ₹2,00,000 Mega Grand Pool (₹50,000 Track Pool)</span>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>Built with love for students across all campuses</span>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+            </span>
+          </div>
+          {/* Duplicate set for seamless infinite loop */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 0, flex: 'none' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>The network is a feed until it meets in person.</span>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>86 ECHO events across 31 campuses.</span>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>267 roles matched, 41 with a warm referral path.</span>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>Verified by your college email — free forever for students.</span>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>HackWave 3.0 · Sep 4–5 · Sreenidhi (SNIST) · ₹2,00,000 Mega Grand Pool (₹50,000 Track Pool)</span>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>Built with love for students across all campuses</span>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Fixed Sticky Navigation Header ── */}
+      <div style={{ position: 'sticky', top: '36px', zIndex: 60, background: '#0A0A14', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderBottom: '1px solid var(--line)', width: '100%' }}>
+        <div style={{ maxWidth: '1400px', width: '100%', margin: '0 auto', padding: '14px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap', rowGap: '14px' }}>
+          
+          {/* SA Brand Badge */}
+          <div
+            onClick={() => router.push('/')}
+            style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 'none', cursor: 'pointer' }}
+          >
+            <svg width="32" height="38" viewBox="0 0 300 350" style={{ display: 'block', flexShrink: 0, filter: 'drop-shadow(0 2px 8px rgba(139,92,246,0.35))' }}>
+              <defs>
+                <linearGradient id="ev-badge-grad2" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#C9A7FF" />
+                  <stop offset="48%" stopColor="#8B5CF6" />
+                  <stop offset="100%" stopColor="#5B2FD0" />
+                </linearGradient>
+                <linearGradient id="ev-badge-grad2-in" x1="0" y1="0" x2="0.4" y2="1">
+                  <stop offset="0%" stopColor="#B683F5" />
+                  <stop offset="100%" stopColor="#7331C9" />
+                </linearGradient>
+              </defs>
+              <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#ev-badge-grad2)" />
+              <path d="M150 28 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="url(#ev-badge-grad2-in)" />
+              <text x="150" y="218" textAnchor="middle" fill="#FFFFFF" fontWeight="900" fontSize="128" fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">SA</text>
+            </svg>
+            <span style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-0.5px', color: '#FFFFFF', fontFamily: "'Outfit', 'Manrope', -apple-system, sans-serif" }}>
+              StudentAlumni<span style={{ color: '#8B5CF6' }}>.ai</span>
+            </span>
+          </div>
+
+          {/* Centered Navigation Tabs */}
+          <div id="ev-tabs" style={{ display: 'flex', alignItems: 'center', gap: '30px', flex: '0 1 auto', flexShrink: 0, justifyContent: 'center', paddingTop: '2px' }}>
+            <a
+              className="ev-tab"
+              onClick={() => router.push('/')}
+              style={{ position: 'relative', fontSize: '15px', fontWeight: 500, color: 'var(--muted)', padding: '6px 2px 10px', cursor: 'pointer', whiteSpace: 'nowrap', textDecoration: 'none', transition: 'color .2s ease' }}
+            >
+              Home
+              <span style={{ position: 'absolute', left: 0, right: 0, bottom: '4px', height: '3px', borderRadius: '2px', background: 'var(--violet-lt)', opacity: 0 }} />
+            </a>
+            <a
+              className="ev-tab"
+              onClick={() => go('list')}
+              style={{ position: 'relative', fontSize: '15px', fontWeight: 700, color: 'var(--text)', padding: '6px 2px 10px', cursor: 'pointer', whiteSpace: 'nowrap', textDecoration: 'none', transition: 'color .2s ease' }}
+            >
+              ECHO
+              <span style={{ position: 'absolute', left: 0, right: 0, bottom: '4px', height: '3px', borderRadius: '2px', background: 'var(--violet-lt)', opacity: 1 }} />
+            </a>
+            <a
+              className="ev-tab"
+              onClick={() => router.push('/verify')}
+              style={{ position: 'relative', fontSize: '15px', fontWeight: 500, color: 'var(--muted)', padding: '6px 2px 10px', cursor: 'pointer', whiteSpace: 'nowrap', textDecoration: 'none', transition: 'color .2s ease' }}
+            >
+              Verify
+              <span style={{ position: 'absolute', left: 0, right: 0, bottom: '4px', height: '3px', borderRadius: '2px', background: 'var(--violet-lt)', opacity: 0 }} />
+            </a>
+            <a
+              className="ev-tab"
+              onClick={() => router.push('/contact')}
+              style={{ position: 'relative', fontSize: '15px', fontWeight: 500, color: 'var(--muted)', padding: '6px 2px 10px', cursor: 'pointer', whiteSpace: 'nowrap', textDecoration: 'none', transition: 'color .2s ease' }}
+            >
+              Contact Us
+              <span style={{ position: 'absolute', left: 0, right: 0, bottom: '4px', height: '3px', borderRadius: '2px', background: 'var(--violet-lt)', opacity: 0 }} />
+            </a>
+          </div>
+
+          {/* Right Action Buttons */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 'none' }}>
+            <span
+              onClick={() => router.push('/login')}
+              className="ev-ghost"
+              style={{ fontSize: '14px', fontWeight: 500, color: 'var(--muted)', cursor: 'pointer', transition: 'color .2s ease' }}
+            >
+              Sign in
+            </span>
+            <span
+              onClick={() => router.push('/register')}
+              className="ev-btn"
+              style={{ fontSize: '14px', fontWeight: 600, background: 'var(--violet)', color: '#FFFFFF', borderRadius: '100px', padding: '10px 20px', cursor: 'pointer', transition: 'all .2s ease' }}
+            >
+              Get Started
+            </span>
+          </div>
+        </div>
+      </div>
 
       {/* ────────────────────────────────────────────────────────── */}
       {/* VIEW 1: EVENTS LIST VIEW                                  */}
@@ -1278,7 +1394,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 {/* Event Poster Card Banner */}
                 <div style={{ position: 'relative', height: '188px', background: ev.poster_banner ? 'var(--panel2)' : (isDark ? 'linear-gradient(135deg, #2E2091, #14122E)' : 'linear-gradient(135deg, #E8E4FF, #D5E8F0)'), display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                   {ev.poster_banner ? (
-                    <img src={ev.poster_banner} alt={ev.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={ev.poster_banner} alt={ev.title} style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#070913' }} />
                   ) : (
                     <div style={{ color: '#FFFFFF', fontSize: '22px', fontWeight: 800, letterSpacing: '-0.5px', textAlign: 'center', padding: '20px' }}>
                       {ev.title}
@@ -1414,31 +1530,37 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                   </span>
                 </div>
 
-                <div className="ev-detail-actions" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                  <span
-                    onClick={() => go('reg', activeEvent.slug)}
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.preventDefault(); go('reg', activeEvent.slug); }}
+                    onTouchEnd={(e) => { e.preventDefault(); go('reg', activeEvent.slug); }}
                     className="ev-btn"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14px', fontWeight: 700, background: '#0E9F6E', color: '#FFFFFF', borderRadius: '10px', padding: '12px 22px', cursor: 'pointer', transition: 'all .2s ease', boxShadow: '0 4px 16px rgba(14, 159, 110, 0.35)' }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14px', fontWeight: 700, background: '#0E9F6E', color: '#FFFFFF', borderRadius: '10px', padding: '12px 22px', cursor: 'pointer', transition: 'all .2s ease', boxShadow: '0 4px 16px rgba(14, 159, 110, 0.35)', border: 'none', outline: 'none', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
                   >
                     <svg width="15" height="15" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 1.9 }}><path d="M3 8.5A2.5 2.5 0 015.5 6h13A2.5 2.5 0 0121 8.5v.5a2 2 0 000 6v.5A2.5 2.5 0 0118.5 18h-13A2.5 2.5 0 013 15.5V15a2 2 0 000-6Z"></path></svg>
                     Register
-                  </span>
-                  <span
-                    onClick={handleDownloadHandbook}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.preventDefault(); handleDownloadHandbook(); }}
+                    onTouchEnd={(e) => { e.preventDefault(); handleDownloadHandbook(); }}
                     className="ev-btn"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14px', fontWeight: 600, background: 'var(--violet)', color: '#FFFFFF', borderRadius: '10px', padding: '12px 20px', cursor: 'pointer', transition: 'all .2s ease' }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14px', fontWeight: 600, background: 'var(--violet)', color: '#FFFFFF', borderRadius: '10px', padding: '12px 20px', cursor: 'pointer', transition: 'all .2s ease', border: 'none', outline: 'none', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
                   >
                     <svg width="15" height="15" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 1.8 }}><path d="M6 3h8l4 4v14H6Z"></path><path d="M14 3v4h4"></path></svg>
                     Event Handbook (PDF)
-                  </span>
-                  <span
-                    onClick={handleShare}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.preventDefault(); handleShare(); }}
+                    onTouchEnd={(e) => { e.preventDefault(); handleShare(); }}
                     className="ev-btn"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14px', fontWeight: 600, border: '1px solid var(--line2)', borderRadius: '10px', padding: '12px 20px', color: 'var(--text)', cursor: 'pointer', transition: 'all .2s ease' }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14px', fontWeight: 600, border: '1px solid var(--line2)', borderRadius: '10px', padding: '12px 20px', color: 'var(--text)', cursor: 'pointer', transition: 'all .2s ease', background: 'transparent', outline: 'none', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
                   >
                     <svg width="15" height="15" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 1.8 }}><circle cx="18" cy="5.5" r="2.6"></circle><circle cx="6" cy="12" r="2.6"></circle><circle cx="18" cy="18.5" r="2.6"></circle><path d="M8.4 10.7l7.2-3.9M8.4 13.3l7.2 3.9"></path></svg>
                     Share
-                  </span>
+                  </button>
                 </div>
               </div>
 
@@ -1523,6 +1645,47 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
               </div>
             )}
           </div>
+
+          {/* Official Event Videos & Teaser Clips */}
+          {activeEvent.videos && activeEvent.videos.length > 0 && (
+            <div style={{ marginBottom: '32px' }}>
+              <div style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-.4px', marginBottom: '16px', color: '#FFFFFF', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--violet-lt)" strokeWidth="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                Official Event Teasers & Videos
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '18px' }}>
+                {activeEvent.videos.map((vid: any, vidx: number) => {
+                  const isYt = vid.video_url?.includes('youtube.com') || vid.video_url?.includes('youtu.be');
+                  const ytId = isYt ? (vid.video_url.includes('v=') ? vid.video_url.split('v=')[1]?.split('&')[0] : vid.video_url.split('/').pop()) : null;
+
+                  return (
+                    <div key={vidx} style={{ border: '1px solid var(--line2)', borderRadius: '16px', overflow: 'hidden', background: '#070913', padding: '12px' }}>
+                      <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', aspectRatio: '16/9', background: '#000' }}>
+                        {isYt && ytId ? (
+                          <iframe
+                            src={`https://www.youtube.com/embed/${ytId}`}
+                            title={vid.title || 'Event Video'}
+                            style={{ width: '100%', height: '100%', border: 'none' }}
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        ) : (
+                          <video
+                            controls
+                            poster={vid.thumbnail_url || activeEvent.poster_banner}
+                            src={vid.video_url}
+                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                          />
+                        )}
+                      </div>
+                      <div style={{ fontSize: '15px', fontWeight: 700, color: '#FFF', marginTop: '12px' }}>{vid.title || `Promo Clip ${vidx + 1}`}</div>
+                      {vid.description && <div style={{ fontSize: '13px', color: 'var(--muted)', marginTop: '4px' }}>{vid.description}</div>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* ────────────────────────────────────────────────────────── */}
           {/* A NATIONAL-LEVEL TECH FEST — 7 VERTICALS (BANNER 4)       */}
@@ -1644,11 +1807,22 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                   </div>
                 </div>
 
-                {/* Render each category group */}
-                {Object.entries(catGroups).map(([catName, speakers]) => (
-                  <div key={catName} style={{ marginBottom: '22px' }}>
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 700, letterSpacing: '1.3px', color: catColors[catName] || '#C4B5FD', background: `${catColors[catName] || '#C4B5FD'}22`, borderRadius: '100px', padding: '6px 14px', marginBottom: '14px' }}>
-                      {catName.toUpperCase()}
+            {/* International Panel */}
+            <div style={{ marginBottom: '22px' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 700, letterSpacing: '1.3px', color: '#C4B5FD', background: 'rgba(124,92,252,0.25)', borderRadius: '100px', padding: '6px 14px', marginBottom: '14px' }}>
+                INTERNATIONAL PANEL · CYBER SECURITY CONCLAVE
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
+                {[
+                  { name: 'Stan Mierzwa, Ph.D.', role: 'Director, Center for Cybersecurity', org: 'Kean University', loc: 'Union, New Jersey, USA', li: 'in/stanmierzwa', poster: '/images/hackwave/stan_mierzwa_poster.png' },
+                  { name: 'Ken Fishkin', role: 'President, ISC2 New Jersey Chapter', org: 'ISC2 New Jersey Chapter', loc: 'New Jersey, USA', li: 'in/kfishkin', poster: '/images/hackwave/ken_fishkin_poster.png' },
+                  { name: 'Sharon Kelley', role: 'Board Member, ISC2 New Jersey Chapter', org: 'MS, MBA, CISSP, CCSP', loc: 'Hoboken, New Jersey, USA', li: 'in/sharon-kelley-0292181', poster: '/images/hackwave/sharon_kelley_poster.png' },
+                  { name: 'Jeremy Livingston', role: 'CISO & Deputy CIO', org: 'Stevens Institute of Technology', loc: 'Effort, Pennsylvania, USA', li: 'in/jeremylivin', poster: '/images/hackwave/jeremy_livingston_poster.png' },
+                  { name: 'Suman Kalia', role: 'Associate Professor & Chair, Computer Science', org: "Saint Peter's University", loc: 'Jersey City, New Jersey, USA', li: 'in/suman-kalia-300b521', poster: '/images/hackwave/suman_kalia_poster.png' }
+                ].map((spk, idx) => (
+                  <div key={idx} className="ev-mini" style={{ padding: '16px', background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: '18px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div style={{ width: '100%', aspectRatio: '4/5', borderRadius: '14px', overflow: 'hidden', marginBottom: '14px', border: '1px solid var(--line2)', background: '#090B18' }}>
+                      <img src={spk.poster} alt={spk.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     </div>
                     <div className="ev-detail-speakers-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
                       {speakers.map((spk: any, idx: number) => (
@@ -1774,13 +1948,15 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 <div style={{ fontSize: '14.5px', color: '#C9BFF2', marginTop: '4px' }}>Join our community and never miss an opportunity to learn, connect, and grow.</div>
               </div>
             </div>
-            <span
-              onClick={() => go('list')}
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); go('list'); }}
+              onTouchEnd={(e) => { e.preventDefault(); go('list'); }}
               className="ev-btn"
-              style={{ fontSize: '14.5px', fontWeight: 700, background: '#8B5CF6', color: '#FFFFFF', borderRadius: '10px', padding: '14px 24px', cursor: 'pointer', transition: 'all .2s ease', flex: 'none', boxShadow: '0 4px 18px rgba(139, 92, 246, 0.35)' }}
+              style={{ fontSize: '14.5px', fontWeight: 700, background: '#8B5CF6', color: '#FFFFFF', borderRadius: '10px', padding: '14px 24px', cursor: 'pointer', transition: 'all .2s ease', flex: 'none', boxShadow: '0 4px 18px rgba(139, 92, 246, 0.35)', border: 'none', outline: 'none', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
             >
               View Upcoming Events
-            </span>
+            </button>
           </div>
 
         </div>
@@ -1793,14 +1969,16 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
         <div className="ev-anim-in ev-reg-container" style={{ position: 'relative', zIndex: 1, maxWidth: '1400px', width: '100%', margin: '0 auto', padding: '90px 28px 90px' }}>
           
           {/* Back to Event Button */}
-          <span
-            onClick={() => go('detail', activeEvent.slug)}
+          <button
+            type="button"
+            onClick={(e) => { e.preventDefault(); go('detail', activeEvent.slug); }}
+            onTouchEnd={(e) => { e.preventDefault(); go('detail', activeEvent.slug); }}
             className="ev-btn"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14px', fontWeight: 600, border: '1px solid var(--line2)', borderRadius: '100px', padding: '10px 18px', background: 'var(--panel)', color: 'var(--text)', cursor: 'pointer', marginBottom: '20px' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14px', fontWeight: 600, border: '1px solid var(--line2)', borderRadius: '100px', padding: '10px 18px', background: 'var(--panel)', color: 'var(--text)', cursor: 'pointer', marginBottom: '20px', outline: 'none', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
           >
             <svg width="15" height="15" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 2 }}><path d="M20 12H5M11 6l-6 6 6 6"></path></svg>
             Back to event
-          </span>
+          </button>
 
           {/* Registration Header Banner */}
           <div className="ev-reg-header" style={{ position: 'relative', overflow: 'hidden', border: '1px solid var(--line2)', borderRadius: '18px', background: isDark ? 'linear-gradient(115deg, #1B1836, #12121F 68%)' : 'linear-gradient(115deg, #F0EFFF, #F5F5F7 68%)', padding: '24px 28px 26px', marginBottom: '22px', width: '100%' }}>
@@ -1830,26 +2008,63 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
           {/* 2-Column Grid: Poster & Registration Form */}
           <div className="ev-rgrid ev-reg-grid" style={{ display: 'grid', gap: '24px', alignItems: 'start', width: '100%' }}>
             
-            {/* Left Column: Event Poster */}
-            <div className="ev-reg-poster" style={{ border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '16px', overflow: 'hidden' }}>
-              <div style={{ position: 'relative', borderRadius: '14px', overflow: 'hidden', background: 'var(--panel2)', aspectRatio: '3/4', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--line2)' }}>
-                {activeEvent.poster_banner ? (
-                  <img src={activeEvent.poster_banner} alt={activeEvent.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                ) : (
-                  <div style={{ textAlign: 'center', padding: '28px' }}>
-                    <div style={{ width: '84px', height: '84px', borderRadius: '22px', background: 'rgba(124,92,252,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-                      <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="var(--violet-lt)" strokeWidth="1.8"><path d="M12 2l1.9 5.1L19 9l-5.1 1.9L12 16l-1.9-5.1L5 9l5.1-1.9Z" /><circle cx="12" cy="12" r="9" /></svg>
-                    </div>
-                    <div style={{ fontSize: '24px', fontWeight: 800, color: '#FFFFFF', textAlign: 'center', letterSpacing: '-0.8px', marginBottom: '8px' }}>{activeEvent.title}</div>
-                    <div style={{ fontSize: '14px', color: 'var(--violet-lt)', textAlign: 'center', marginBottom: '14px' }}>{activeEvent.college_full}</div>
-                    <div style={{ fontSize: '13px', color: 'var(--muted)', textAlign: 'center', lineHeight: 1.5 }}>
-                      Join top coders, innovators, and future founders in India's leading flagship event.
-                    </div>
-                    <div style={{ marginTop: '20px', display: 'inline-block', padding: '8px 16px', background: 'rgba(245,179,66,0.14)', border: '1px solid #4A3410', borderRadius: '100px', color: 'var(--amber)', fontSize: '12px', fontWeight: 700 }}>
-                      {activeEvent.prize_pool || 'PRIZE POOL: ₹2,00,000'}
-                    </div>
-                  </div>
-                )}
+            {/* Left Column: Interactive Auto-Rotating Event Poster Slider */}
+            <div style={{ border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '16px', overflow: 'hidden' }}>
+              <div
+                style={{
+                  position: 'relative',
+                  borderRadius: '14px',
+                  overflow: 'hidden',
+                  background: '#070913',
+                  aspectRatio: '3/4',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '1px solid var(--line2)'
+                }}
+              >
+                <img
+                  src={regPosters[regPosterIdx]}
+                  alt={`HackWave Poster ${regPosterIdx + 1}`}
+                  onClick={() => openLightbox(regPosters[regPosterIdx])}
+                  style={{ width: '100%', height: '100%', objectFit: 'contain', cursor: 'zoom-in', transition: 'all .4s ease' }}
+                />
+
+                {/* Left / Right Arrow Navigation */}
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setRegPosterIdx((prev) => (prev - 1 + regPosters.length) % regPosters.length); }}
+                  style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(10,10,20,0.85)', border: '1px solid rgba(255,255,255,0.25)', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10, outline: 'none', fontSize: '18px', fontWeight: 700 }}
+                >
+                  ‹
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setRegPosterIdx((prev) => (prev + 1) % regPosters.length); }}
+                  style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(10,10,20,0.85)', border: '1px solid rgba(255,255,255,0.25)', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10, outline: 'none', fontSize: '18px', fontWeight: 700 }}
+                >
+                  ›
+                </button>
+
+                {/* Badge Tag Overlay */}
+                <div style={{ position: 'absolute', top: '12px', left: '12px', background: 'rgba(124,92,252,0.85)', backdropFilter: 'blur(8px)', borderRadius: '100px', padding: '4px 12px', fontSize: '11px', fontWeight: 700, color: '#FFF', letterSpacing: '0.8px' }}>
+                  POSTER {regPosterIdx + 1} OF {regPosters.length}
+                </div>
+
+                {/* Dot Indicator Row */}
+                <div style={{ position: 'absolute', bottom: '12px', left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: '8px', zIndex: 10 }}>
+                  {regPosters.map((_, pIdx) => (
+                    <button
+                      key={pIdx}
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setRegPosterIdx(pIdx); }}
+                      style={{ width: pIdx === regPosterIdx ? '24px' : '8px', height: '8px', borderRadius: '100px', background: pIdx === regPosterIdx ? '#8B5CF6' : 'rgba(255,255,255,0.4)', border: 'none', cursor: 'pointer', transition: 'all .3s ease' }}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div style={{ textAlign: 'center', marginTop: '12px', fontSize: '12px', color: 'var(--muted)' }}>
+                🔍 Click poster image to view full high-resolution
               </div>
             </div>
 
