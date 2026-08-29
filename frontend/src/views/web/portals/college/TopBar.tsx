@@ -33,10 +33,15 @@ export function TopBar({
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    api.notifications().then((r) => {
-      const items = r.notifications || r.items || [];
-      setUnreadCount(items.filter((n: any) => !n.read).length);
-    }).catch(() => {});
+    const fetchNotifs = () => {
+      api.notifications().then((r) => {
+        const items = r.notifications || r.items || [];
+        setUnreadCount(items.filter((n: any) => !n.read).length);
+      }).catch(() => {});
+    };
+    fetchNotifs();
+    const interval = setInterval(fetchNotifs, 5000);
+    return () => clearInterval(interval);
   }, []);
   return (
     <View style={s.bar}>

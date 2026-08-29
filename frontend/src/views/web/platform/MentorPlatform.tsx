@@ -44,6 +44,20 @@ export default function MentorPlatform() {
   const { width } = useWindowDimensions();
   const isWide = width >= 768;
 
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchNotifs = () => {
+      api.notifications()
+        .then(res => setUnreadCount(res.unread || 0))
+        .catch(console.error);
+    };
+    fetchNotifs();
+    const interval = setInterval(fetchNotifs, 5000);
+    return () => clearInterval(interval);
+  }, [user]);
+
   const initials = (user?.full_name || 'SA').split(' ').slice(0, 2).map((p) => p[0] || '').join('').toUpperCase();
   const onLogout = async () => { await logout(); router.replace('/welcome'); };
 
@@ -77,7 +91,7 @@ export default function MentorPlatform() {
         {screen === 'home' && (
           <MentorDashboardView
             userName={(user?.full_name || 'Mentor').split(' ')[0]}
-            notifCount={2}
+            notifCount={unreadCount}
             onOpenNotifications={() => router.push('/notifications')}
             onOpenProfile={() => setScreen('profile')}
             onActionPress={(id) => {

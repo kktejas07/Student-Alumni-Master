@@ -93,9 +93,14 @@ export function TopBar({
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    api.notifications()
-      .then(res => setUnreadCount(res.unread || 0))
-      .catch(console.error);
+    const fetchNotifs = () => {
+      api.notifications()
+        .then(res => setUnreadCount(res.unread || 0))
+        .catch(console.error);
+    };
+    fetchNotifs();
+    const interval = setInterval(fetchNotifs, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   // Hide search box on tablets to save space; phones already hide sidebar
