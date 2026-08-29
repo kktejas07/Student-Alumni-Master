@@ -375,7 +375,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
       <View style={s.adManagerWrap}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <ImageIcon size={14} color={SAC.accentBright} />
+            <ImageIcon size={14} color={T.accentBright} />
             <Text style={s.adManagerTitle}>Advertisement Board ({ads.length})</Text>
           </View>
           <Pressable onPress={() => openEditor(null)} style={s.adEditBtn}>
@@ -390,7 +390,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
           >
             <View style={{ gap: 8 }}>
               {ads.map((ad, i) => (
-                <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 8 }}>
+                <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: T.panel2, borderRadius: 8, padding: 8 }}>
                   <Image
                     source={{ uri: resolveImageUrl(ad.image_url) }}
                     style={{ width: 50, height: 34, borderRadius: 4 }}
@@ -405,7 +405,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
                     </Text>
                   </View>
                   <Pressable onPress={() => openEditor(i)} style={{ paddingHorizontal: 8, paddingVertical: 4 }}>
-                    <Text style={{ color: SAC.accentBright, fontSize: 11, fontFamily: FONTS.bold }}>Edit</Text>
+                    <Text style={{ color: T.accentBright, fontSize: 11, fontFamily: FONTS.bold }}>Edit</Text>
                   </Pressable>
                   <Pressable onPress={() => deleteAd(i)} style={{ paddingHorizontal: 8, paddingVertical: 4 }}>
                     <Text style={{ color: '#EF4444', fontSize: 11, fontFamily: FONTS.bold }}>Del</Text>
@@ -415,7 +415,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
             </View>
           </ScrollView>
         ) : (
-          <Text style={{ color: SAC.dim, fontSize: 11, marginTop: 6 }}>
+          <Text style={{ color: T.dim, fontSize: 11, marginTop: 6 }}>
             No advertisements set yet. Click "+ Add Ad" to add one.
           </Text>
         )}
@@ -430,7 +430,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
           <View style={s.adEditorModal}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
               <Text style={s.adEditorTitle}>{editingAdIdx !== null ? 'Edit Advertisement' : 'New Advertisements'}</Text>
-              <Pressable onPress={() => { setShowAdEditor(false); setEditingAdIdx(null); setEditorItems([]); }}><X size={18} color={SAC.muted} /></Pressable>
+              <Pressable onPress={() => { setShowAdEditor(false); setEditingAdIdx(null); setEditorItems([]); }}><X size={18} color={T.muted} /></Pressable>
             </View>
 
             {Platform.OS === 'web' && (
@@ -448,8 +448,8 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
               <View style={{ gap: 12 }}>
                 {editorItems.length === 0 ? (
                   <View style={s.adEmptyDrop}>
-                    <ImageIcon size={20} color={SAC.accentBright} />
-                    <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, textAlign: 'center' }}>
+                    <ImageIcon size={20} color={T.accentBright} />
+                    <Text style={{ color: T.muted, fontFamily: FONTS.med, fontSize: 11.5, textAlign: 'center' }}>
                       No banners added yet. Select one or more banner images below.
                     </Text>
                   </View>
@@ -459,8 +459,8 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
                       {it.image_url ? (
                         <Image source={{ uri: resolveImageUrl(it.image_url) }} style={{ width: 64, height: 42, borderRadius: 6 }} resizeMode="cover" />
                       ) : (
-                        <View style={{ width: 64, height: 42, borderRadius: 6, backgroundColor: SAC.bg2, borderColor: SAC.border, borderWidth: 1, alignItems: 'center', justifyContent: 'center' }}>
-                          <ImageIcon size={14} color={SAC.dim} />
+                        <View style={{ width: 64, height: 42, borderRadius: 6, backgroundColor: T.bg2, borderColor: T.border, borderWidth: 1, alignItems: 'center', justifyContent: 'center' }}>
+                          <ImageIcon size={14} color={T.dim} />
                         </View>
                       )}
                       <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
@@ -469,14 +469,14 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
                           value={it.label}
                           onChangeText={(v) => updateDraft(it.key, { label: v })}
                           placeholder="Label / Title (e.g. EBS 2026)"
-                          placeholderTextColor={SAC.dim}
+                          placeholderTextColor={T.dim}
                         />
                         <TextInput
                           style={[s.adFieldInput, { paddingVertical: 7 }]}
                           value={it.redirect_url}
                           onChangeText={(v) => updateDraft(it.key, { redirect_url: v })}
                           placeholder="Redirect URL (optional)"
-                          placeholderTextColor={SAC.dim}
+                          placeholderTextColor={T.dim}
                           autoCapitalize="none"
                         />
                         {Platform.OS !== 'web' && (
@@ -485,7 +485,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
                             value={it.image_url}
                             onChangeText={(v) => updateDraft(it.key, { image_url: v })}
                             placeholder="Paste image URL"
-                            placeholderTextColor={SAC.dim}
+                            placeholderTextColor={T.dim}
                           />
                         )}
                       </View>
@@ -503,8 +503,8 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
                 onPress={() => fileInputRef.current?.click()}
                 style={[s.adFilePicker, { marginTop: 12 }]}
               >
-                <Upload size={14} color={SAC.accentBright} />
-                <Text style={{ color: SAC.accentBright, fontFamily: FONTS.bold, fontSize: 12 }}>
+                <Upload size={14} color={T.accentBright} />
+                <Text style={{ color: T.accentBright, fontFamily: FONTS.bold, fontSize: 12 }}>
                   {editorItems.length ? 'Add More Banner Images' : 'Select Banner Image(s)'}
                 </Text>
               </Pressable>
@@ -622,9 +622,9 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
               const h = Math.round((m.value / maxEnroll) * 110);
               return (
                 <View key={m.month} style={{ flex: 1, alignItems: 'center', gap: 4 }}>
-                  <Text style={[s.barValue, { color: isLast ? SAC.accentBright : SAC.dim }]}>{(m.value / 1000).toFixed(1)}k</Text>
+                  <Text style={[s.barValue, { color: isLast ? T.accentBright : T.dim }]}>{(m.value / 1000).toFixed(1)}k</Text>
                   <LinearGradient
-                    colors={[isLast ? SAC.accentBright : SAC.primary, isLast ? SAC.accent : SAC.primaryD] as any}
+                    colors={[isLast ? T.accentBright : T.primary, isLast ? T.accent : T.primaryD] as any}
                     start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
                     style={{ width: '100%', height: h, borderTopLeftRadius: 5, borderTopRightRadius: 5, opacity: isLast ? 1 : 0.7 }}
                   />
@@ -670,7 +670,7 @@ const s = StyleSheet.create({
   heroTitle:  { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 19, letterSpacing: -0.4 },
   heroPrimary: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 36, borderRadius: 10, backgroundColor: SAC.primary, ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
   heroPrimaryText: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 12 },
-  heroSec: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 36, borderRadius: 10, backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
+  heroSec: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 36, borderRadius: 10,    backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
   heroSecText: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12 },
 
   card: { backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 14, padding: 18 },
@@ -687,7 +687,7 @@ const s = StyleSheet.create({
   activityTime: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11 },
 
   distLabel: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12.5 },
-  distPct:   { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 12.5 }},
+  distPct:   { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 12.5 },
   distCount: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 5 },
   distTrack: { height: 5, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.04)', overflow: 'hidden' },
   distFill:  { height: '100%', borderRadius: 3 },
@@ -706,7 +706,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8,
     backgroundColor: SAC.primary,
   },
-  adEditBtnText: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 11 }},
+  adEditBtnText: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 11 },
 
   adEditorOverlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
@@ -720,7 +720,7 @@ const s = StyleSheet.create({
     gap: 8,
     ...(Platform.OS === 'web' ? { boxShadow: '0 24px 80px rgba(0,0,0,0.60)' } as any : {}),
   },
-  adEditorTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15 }},
+  adEditorTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15 },
   adFieldLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11, marginTop: 6 },
   adFieldInput: {
     backgroundColor: SAC.bg2, borderColor: SAC.border, borderWidth: 1,
