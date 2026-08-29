@@ -20,7 +20,7 @@ import {
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Linking from 'expo-linking';
-import { SAC, FONTS } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import {
   GRAD, GradientButton, SecondaryButton, Card, IconBox, SectionLabel,
   TopTabs, SearchField, StatusPill, Toast, useToast, EmptyState, LoadingBox, KpiTile,
@@ -46,6 +46,8 @@ const PC_AMBER = {
 type Status = 'all' | 'pending' | 'active' | 'paused';
 
 export function CollegesView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
+  const T = useSAC();
+  Object.assign(s, resolveColors(s, T));
   const [tab, setTab] = useSubTab<Status>(['all', 'pending', 'active', 'paused'], 'all', { sub, onSub });
   const [q, setQ] = useState('');
   const [data, setData] = useState<any>(null);
@@ -662,7 +664,7 @@ const s = StyleSheet.create({
 
   menuTrigger: {
     width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.45)', borderColor: 'rgba(251,146,60,0.25)', borderWidth: 1,
+    backgroundColor: SAC.panel2, borderColor: 'rgba(251,146,60,0.25)', borderWidth: 1,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   menu: {
@@ -680,7 +682,7 @@ const s = StyleSheet.create({
 
   /* modal */
   modalBg: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', alignItems: 'center', justifyContent: 'center', padding: 20,
+    flex: 1, backgroundColor: SAC.panel2, alignItems: 'center', justifyContent: 'center', padding: 20,
     ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(8px)' } as any) : {}),
   },
   modalCard: {

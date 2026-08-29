@@ -20,6 +20,7 @@ import { api } from '@/src/models/services/api';
 import {
   StudentInternships, StudentCourses, StudentResources, StudentNetwork,
 } from './screens/StudentScreens';
+import { Check } from 'lucide-react';
 import { StudentDashboardView } from '@/src/views/web/StudentDashboardView';
 
 const NAV: NavItem[] = [
@@ -144,7 +145,7 @@ function Home({ onNav }: { onNav: (id: string) => void }) {
   return (
     <>
       <PageHeader
-        title={`Good morning, ${firstName} 👋`}
+        title={`Good morning, ${firstName} `}
         subtitle={`Your AI career assistant has ${dashboard?.ai_suggestion_count || 3} new suggestions for you.`}
         rightSlot={
           <>
@@ -156,10 +157,10 @@ function Home({ onNav }: { onNav: (id: string) => void }) {
 
       {/* KPI strip */}
       <View style={[styles.kpiRow, !isWide && { flexDirection: 'column' }]}>
-        <KpiTile emoji="💼" label="Career Matches" value={String(internships.length || 48)} note={`↑ ${Math.min(12, internships.length)} new today`} />
-        <KpiTile emoji="📚" label="Courses In Progress" value={String((courses.filter((c: any) => c.status === 'in_progress') || []).length || 3)} note="68% avg completion" noteColor={SA.purplePale} />
-        <KpiTile emoji="👥" label="Mentor Connections" value={String(mentors.length || 5)} note={`${bookings.length} sessions logged`} />
-        <KpiTile emoji="🏆" label="Career Score" value={`${dashboard?.career_score || 74}%`} note="↑ 8pts this month" noteColor={SA.warn} />
+        <KpiTile emoji="" label="Career Matches" value={String(internships.length || 48)} note={`↑ ${Math.min(12, internships.length)} new today`} />
+        <KpiTile emoji="" label="Courses In Progress" value={String((courses.filter((c: any) => c.status === 'in_progress') || []).length || 3)} note="68% avg completion" noteColor={SA.purplePale} />
+        <KpiTile emoji="" label="Mentor Connections" value={String(mentors.length || 5)} note={`${bookings.length} sessions logged`} />
+        <KpiTile emoji="" label="Career Score" value={`${dashboard?.career_score || 74}%`} note="↑ 8pts this month" noteColor={SA.warn} />
       </View>
 
       {/* 2-col layout */}
@@ -170,7 +171,7 @@ function Home({ onNav }: { onNav: (id: string) => void }) {
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
               <View>
                 <Text style={{ color: SA.purplePale, fontFamily: SA.fontBold, fontSize: 11, letterSpacing: 1, marginBottom: 4 }}>
-                  🤖 AI CAREER ASSISTANT
+                   AI CAREER ASSISTANT
                 </Text>
                 <Text style={{ color: SA.white, fontFamily: SA.fontBold, fontSize: 18 }}>Your personalised roadmap</Text>
               </View>
@@ -192,7 +193,7 @@ function Home({ onNav }: { onNav: (id: string) => void }) {
                     : { backgroundColor: 'rgba(255,255,255,0.07)', borderColor: 'rgba(255,255,255,0.1)' },
                 ]}>
                   <Text style={{ color: s.done ? SA.success : SA.purplePale, fontFamily: SA.fontBold, fontSize: 11 }}>
-                    {s.done ? '✓' : i + 1}
+                    {s.done ? <Check size={14} color='#10B981' /> : i + 1}
                   </Text>
                 </View>
                 <Text style={[
@@ -211,7 +212,7 @@ function Home({ onNav }: { onNav: (id: string) => void }) {
           {/* Top opportunity matches */}
           <GlassCard pad={22}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <SectionLabel>🌍 TOP OPPORTUNITY MATCHES</SectionLabel>
+              <SectionLabel> TOP OPPORTUNITY MATCHES</SectionLabel>
               <Pressable onPress={() => onNav('internships')}>
                 <Text style={{ color: SA.purplePale, fontFamily: SA.fontSemi, fontSize: 12 }}>
                   See all {internships.length || 48} →
@@ -221,7 +222,7 @@ function Home({ onNav }: { onNav: (id: string) => void }) {
             {(internships.length > 0 ? internships.slice(0, 3) : DEFAULT_INTERNSHIPS).map((j: any, i: number) => (
               <View key={i} style={styles.listRow}>
                 <View style={styles.listRowIcon}>
-                  <Text style={{ fontSize: 18 }}>🏢</Text>
+                  <Text style={{ fontSize: 18 }}></Text>
                 </View>
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Text style={{ color: SA.white, fontFamily: SA.fontBold, fontSize: 14 }} numberOfLines={1}>
@@ -246,7 +247,7 @@ function Home({ onNav }: { onNav: (id: string) => void }) {
         <View style={{ width: isWide ? 320 : '100%', gap: 16 }}>
           {/* Course progress */}
           <GlassCard pad={20}>
-            <SectionLabel>📚 COURSE PROGRESS</SectionLabel>
+            <SectionLabel> COURSE PROGRESS</SectionLabel>
             {[
               { title: 'Python Bootcamp', platform: 'Udemy', pct: 68, gradient: SAGradients.purple },
               { title: 'Product Management', platform: 'Coursera', pct: 34, gradient: SAGradients.blue },
@@ -277,7 +278,7 @@ function Home({ onNav }: { onNav: (id: string) => void }) {
 
           {/* Suggested mentors */}
           <GlassCard pad={20}>
-            <SectionLabel>🤝 SUGGESTED MENTORS</SectionLabel>
+            <SectionLabel> SUGGESTED MENTORS</SectionLabel>
             {(mentors.length > 0 ? mentors.slice(0, 2) : DEFAULT_MENTORS).map((m: any, i: number) => {
               const name = m.full_name || m.name;
               const inits = (name || 'M').split(' ').slice(0, 2).map((p: string) => p[0]).join('').toUpperCase();
@@ -287,7 +288,7 @@ function Home({ onNav }: { onNav: (id: string) => void }) {
                   <View style={{ flex: 1 }}>
                     <Text style={{ color: SA.white, fontFamily: SA.fontBold, fontSize: 13 }}>{name}</Text>
                     <Text style={{ color: SA.textFaint, fontSize: 11, marginTop: 1 }}>
-                      {m.title || m.role || 'Senior Mentor'} · ⭐ {m.rating || m.rate || '4.8'}
+                      {m.title || m.role || 'Senior Mentor'} ·  {m.rating || m.rate || '4.8'}
                     </Text>
                   </View>
                   <Pressable
@@ -303,11 +304,11 @@ function Home({ onNav }: { onNav: (id: string) => void }) {
 
           {/* Quick resources */}
           <GlassCard pad={18}>
-            <SectionLabel>🛡️ QUICK RESOURCES</SectionLabel>
+            <SectionLabel> QUICK RESOURCES</SectionLabel>
             {[
-              { emoji: '🛡️', label: 'Student Insurance', sub: '3 plans available', route: '/insurance' as const },
-              { emoji: '🏠', label: 'Housing Near Campus', sub: '24 listings', route: '/housing' as const },
-              { emoji: '💰', label: 'Loan Calculator', sub: 'Compare 20+ banks', route: '/financial' as const },
+              { emoji: '', label: 'Student Insurance', sub: '3 plans available', route: '/insurance' as const },
+              { emoji: '', label: 'Housing Near Campus', sub: '24 listings', route: '/housing' as const },
+              { emoji: '', label: 'Loan Calculator', sub: 'Compare 20+ banks', route: '/financial' as const },
             ].map((r, i, arr) => (
               <Pressable
                 key={i}
@@ -332,7 +333,7 @@ function Home({ onNav }: { onNav: (id: string) => void }) {
 function Career() {
   return (
     <>
-      <PageHeader title="AI Career Path 🤖" subtitle="Personalised roadmap based on your profile, skills, and goals." />
+      <PageHeader title="AI Career Path " subtitle="Personalised roadmap based on your profile, skills, and goals." />
       <GlassCard pad={24} style={{ marginBottom: 18, backgroundColor: 'rgba(95,37,159,0.25)', borderColor: 'rgba(176,127,223,0.25)' }}>
         <Text style={{ color: SA.purplePale, fontFamily: SA.fontBold, fontSize: 11, letterSpacing: 1, marginBottom: 6 }}>
           YOUR GOAL
@@ -371,7 +372,7 @@ function Career() {
               p.active && { backgroundColor: SA.purple, borderColor: SA.purpleMid },
             ]}>
               <Text style={{ color: SA.white, fontFamily: SA.fontBold, fontSize: 13 }}>
-                {p.done ? '✓' : i + 1}
+                {p.done ? <Check size={14} color='#10B981' /> : i + 1}
               </Text>
             </View>
             <View style={{ flex: 1 }}>

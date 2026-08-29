@@ -70,13 +70,7 @@ export function MyTicketsView() {
     if (Platform.OS !== 'web' || typeof window === 'undefined') return;
     setDownloading(invoiceNo);
     try {
-      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
-      const token = await tokenStore.getAccess();
-      const resp = await fetch(`${base}/api/echo/invoices/${invoiceNo}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (!resp.ok) throw new Error('not available');
-      const data = await resp.json();
+      const data = await api.getEchoInvoice(invoiceNo);
       const w = window.open('', '_blank');
       if (w) {
         w.document.open();
@@ -95,13 +89,7 @@ export function MyTicketsView() {
   const openTicket = async (regId: string) => {
     if (Platform.OS !== 'web' || typeof window === 'undefined') return;
     try {
-      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
-      const token = await tokenStore.getAccess();
-      const resp = await fetch(`${base}/api/echo/tickets/${regId}?format=json`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (!resp.ok) throw new Error('not available');
-      const data = await resp.json();
+      const data = await api.getEchoTicket(regId);
       const w = window.open('', '_blank');
       if (w) {
         w.document.open();

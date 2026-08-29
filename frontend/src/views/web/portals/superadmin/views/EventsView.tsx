@@ -15,7 +15,7 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, Platform, useWindowDimensions, Modal, TextInput, ScrollView } from 'react-native';
 import { Calendar as CalIcon, MapPin, Users as UsersIcon, ShieldCheck, AlertTriangle, IndianRupee, Sparkles, Plus, X, Trash2 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SAC, FONTS } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import { GRAD, Card, IconBox, KpiTile, StatusPill, GradientButton, SecondaryButton, SearchField, TopTabs, EmptyState, useToast, Toast } from '../applekit';
 import { usePortalData } from '@/src/lib/portalApi';
 import { request } from '@/src/models/services/api';
@@ -264,6 +264,8 @@ function Segmented({ value, onChange, options }: { value: string; onChange: (v: 
 /* ─── Main view ─────────────────────────────────────────────────────── */
 
 export function EventsView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
+  const T = useSAC();
+  Object.assign(st, resolveColors(st, T));
   const { data, refresh } = usePortalData<typeof FALLBACK>('/admin/super/events', FALLBACK);
   const EVENTS = data?.items || [];
   const { width } = useWindowDimensions();
@@ -435,7 +437,7 @@ const st = StyleSheet.create({
   barTrack: { height: 5, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.06)', overflow: 'hidden', marginTop: 2 },
   barFill: { height: '100%', borderRadius: 3 },
 
-  modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', alignItems: 'center', justifyContent: 'center', padding: 20 },
+  modalBg: { flex: 1, backgroundColor: SAC.panel2, alignItems: 'center', justifyContent: 'center', padding: 20 },
   modalCard: { width: '100%', maxWidth: 560, maxHeight: '92%', backgroundColor: SAC.bg2, borderRadius: 16, borderWidth: 1, borderColor: SAC.border2, overflow: 'hidden' },
   modalHero: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, borderBottomWidth: 1, borderBottomColor: SAC.border },
   modalTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 15 },
@@ -448,7 +450,7 @@ const st = StyleSheet.create({
 
 const mst = StyleSheet.create({
   bg: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  bgPress: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(0,0,0,0.55)' },
+  bgPress: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: SAC.panel2 },
   card: {
     width: '100%', maxWidth: 620,
     backgroundColor: '#1A0F05', borderColor: 'rgba(251,146,60,0.20)', borderWidth: 1, borderRadius: 16,
@@ -462,7 +464,7 @@ const mst = StyleSheet.create({
   label: { color: SAC.muted, fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 1.4 },
   input: {
     height: 38, paddingHorizontal: 12, color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 13,
-    backgroundColor: 'rgba(0,0,0,0.35)', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderRadius: 10,
+    backgroundColor: SAC.panel2, borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderRadius: 10,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
   },
   err: {

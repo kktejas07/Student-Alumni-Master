@@ -16,6 +16,9 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { api } from '@/src/models/services/api';
 import { SAWatermark } from '@/src/views/web/components/SAWatermark';
+import CommonFooter from '@/src/views/components/CommonFooter';
+import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
+import { useTheme } from '@/src/theme/ThemeContext';
 
 interface EchoEventsPageProps {
   initialView?: 'list' | 'detail' | 'reg';
@@ -136,6 +139,16 @@ const SAMPLE_EVENTS = [
 
 export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: EchoEventsPageProps) {
   const router = useRouter();
+  const { isDark } = useTheme();
+
+  // Update body background on theme change
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.body.style.background = isDark ? '#0A0A14' : '#F5F5F7';
+      document.body.style.color = isDark ? '#F4F4FA' : '#1D1D1F';
+    }
+  }, [isDark]);
+
   const searchParams = useLocalSearchParams();
   
   const [view, setView] = useState<'list' | 'detail' | 'reg'>(initialView);
@@ -189,7 +202,6 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
   const [dob, setDob] = useState('');
   const [branch, setBranch] = useState('');
   const [year, setYear] = useState('');
-  const [dob, setDob] = useState('');
   const [track, setTrack] = useState('');
   const [college, setCollege] = useState('');
   const [collegeQuery, setCollegeQuery] = useState('');
@@ -668,7 +680,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
   }, []);
 
   return (
-    <div id="ev-root" style={{ '--bg': '#0A0A14', '--panel': '#11111C', '--panel2': '#161622', '--line': '#1F1F30', '--line2': '#292940', '--violet': '#7C5CFC', '--violet-lt': '#A78BFA', '--ok': '#34D399', '--amber': '#F5B342', '--text': '#F4F4FA', '--muted': '#8A8A9E', '--dim': '#6A6A7E', fontFamily: "'Outfit', -apple-system, sans-serif", color: 'var(--text)', background: 'var(--bg)', minHeight: '100vh', width: '100%', position: 'relative', overflowX: 'hidden' }}>
+    <div id="ev-root" style={{ '--bg': isDark ? '#0A0A14' : '#F5F5F7', '--panel': isDark ? '#11111C' : '#FFFFFF', '--panel2': isDark ? '#161622' : '#F0F0F5', '--line': isDark ? '#1F1F30' : '#E5E5EA', '--line2': isDark ? '#292940' : '#D1D1D6', '--violet': '#7C5CFC', '--violet-lt': isDark ? '#A78BFA' : '#7C5CFC', '--ok': '#34D399', '--amber': '#F5B342', '--text': isDark ? '#F4F4FA' : '#1D1D1F', '--muted': isDark ? '#8A8A9E' : '#6E6E73', '--dim': isDark ? '#6A6A7E' : '#AEAEB2', fontFamily: "'Outfit', -apple-system, sans-serif", color: 'var(--text)', background: 'var(--bg)', minHeight: '100vh', width: '100%', position: 'relative', overflowX: 'hidden' }}>
       
       {Platform.OS === 'web' && (
         <style
@@ -677,10 +689,9 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
               html, body {
                 margin: 0;
                 padding: 0;
-                background: #0A0A14 !important;
-                color: #F4F4FA !important;
                 font-family: 'Outfit', -apple-system, sans-serif !important;
                 scroll-behavior: smooth;
+                transition: background-color 0.3s ease, color 0.3s ease;
               }
               * { box-sizing: border-box; }
               a { color: #A78BFA; text-decoration: none; }
@@ -713,9 +724,6 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 50% { box-shadow: 0 0 35px rgba(124, 92, 252, 0.45); }
               }
               
-              #ev-ticker:hover {
-                animation-play-state: paused !important;
-              }
               .ev-anim-in {
                 animation: ev-in 0.6s cubic-bezier(.2, .8, .2, 1) both;
               }
@@ -843,10 +851,15 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                   gap: 20px !important;
                 }
                 .ev-hero-title {
-                  font-size: 24px !important;
+                  font-size: 22px !important;
+                  letter-spacing: -0.8px !important;
                 }
                 .ev-hero-stats {
-                  gap: 20px !important;
+                  gap: 16px !important;
+                  grid-template-columns: repeat(3, 1fr) !important;
+                }
+                .ev-hero-stats > div {
+                  min-width: 0 !important;
                 }
                 .ev-hero-mosaic {
                   grid-template-columns: 1fr 1fr !important;
@@ -856,11 +869,29 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                   grid-column: span 2 !important;
                 }
                 .ev-hero-card {
-                  padding: 24px 20px !important;
-                  border-radius: 18px !important;
+                  padding: 20px 16px !important;
+                  border-radius: 16px !important;
                 }
                 .ev-main-container {
-                  padding: 20px 16px 60px !important;
+                  padding: 80px 12px 60px !important;
+                }
+                .ev-hero-card > div:last-child {
+                  flex-direction: column !important;
+                }
+                .ev-hero-card .ev-btn {
+                  width: 100% !important;
+                  justify-content: center !important;
+                  text-align: center !important;
+                }
+                .ev-hero-description {
+                  font-size: 14px !important;
+                  line-height: 1.5 !important;
+                }
+                .ev-echo-header-title {
+                  font-size: 20px !important;
+                }
+                .ev-echo-header-desc {
+                  font-size: 13px !important;
                 }
               }
               /* ── Registration Form Responsive ── */
@@ -1041,35 +1072,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                   font-size: 18px !important;
                 }
               }
-              /* ── Footer Responsive ── */
-              @media (max-width: 640px) {
-                .ev-footer-inner {
-                  padding: 32px 16px 24px !important;
-                }
-                .ev-footer-grid {
-                  grid-template-columns: 1fr 1fr !important;
-                  gap: 24px !important;
-                }
-                .ev-footer-brand {
-                  grid-column: span 2 !important;
-                }
-                .ev-footer-bottom {
-                  flex-direction: column !important;
-                  align-items: flex-start !important;
-                  gap: 14px !important;
-                }
-                .ev-footer-social {
-                  gap: 16px !important;
-                }
-              }
-              @media (max-width: 380px) {
-                .ev-footer-grid {
-                  grid-template-columns: 1fr !important;
-                }
-                .ev-footer-brand {
-                  grid-column: span 1 !important;
-                }
-              }
+              /* Footer is handled by shared CommonFooter component */
             `,
           }}
         />
@@ -1108,7 +1111,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
             position: 'fixed',
             inset: 0,
             zIndex: 400,
-            background: '#07070E',
+            background: isDark ? '#07070E' : '#FFFFFF',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'flex-end',
@@ -1132,7 +1135,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
             <div style={{ fontSize: '42px', fontWeight: 700, letterSpacing: '-1.9px', lineHeight: 1.1, marginTop: '30px', whiteSpace: 'nowrap', color: '#C08BFF', background: 'linear-gradient(96deg, #F0A6E8 0%, #C08BFF 32%, #8B84FF 66%, #6FA8F5 100%)', WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
               #studentalumni
             </div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '14.5px', fontWeight: 600, color: 'rgba(244,245,251,.8)', marginTop: '14px', whiteSpace: 'nowrap' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '14.5px', fontWeight: 600, color: isDark ? 'rgba(244,245,251,.8)' : 'rgba(20,23,38,.8)', marginTop: '14px', whiteSpace: 'nowrap' }}>
               Built with love for students
               <svg width="15" height="15" viewBox="0 0 24 24" style={{ fill: '#8B84FF', flex: 'none' }}>
                 <path d="M12 21s-8-4.9-8-10.4A4.6 4.6 0 0 1 12 7.6 4.6 4.6 0 0 1 20 10.6C20 16.1 12 21 12 21Z" />
@@ -1141,146 +1144,33 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '30px', maxWidth: '1400px', width: '100%', margin: '0 auto' }}>
-            <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '3.4px', color: 'rgba(244,245,251,.62)' }}>LOADING</div>
-            <div id="ev-curtain-num" style={{ fontSize: '76px', fontWeight: 700, letterSpacing: '-3.2px', lineHeight: 0.85, fontVariantNumeric: 'tabular-nums', color: '#F4F5FB' }}>
+            <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '3.4px', color: isDark ? 'rgba(244,245,251,.62)' : 'rgba(20,23,38,.5)' }}>LOADING</div>
+            <div id="ev-curtain-num" style={{ fontSize: '76px', fontWeight: 700, letterSpacing: '-3.2px', lineHeight: 0.85, fontVariantNumeric: 'tabular-nums', color: isDark ? '#F4F5FB' : '#141726' }}>
               {curtainNum}
             </div>
           </div>
-          <div style={{ maxWidth: '1400px', width: '100%', margin: '16px auto 0', height: '2px', background: 'rgba(244,245,251,.14)' }}>
+          <div style={{ maxWidth: '1400px', width: '100%', margin: '16px auto 0', height: '2px', background: isDark ? 'rgba(244,245,251,.14)' : 'rgba(20,23,38,.1)' }}>
             <div id="ev-curtain-bar" style={{ height: '100%', width: curtainBarWidth, background: 'linear-gradient(90deg, #7C5CFC, #A78BFA)', transition: 'width 0.05s linear' }} />
           </div>
         </div>
       )}
 
-      {/* Top Continuous Ticker Bar */}
-      <div id="ev-tickwrap" style={{ position: 'sticky', top: 0, zIndex: 62, overflow: 'hidden', borderBottom: '1px solid var(--line)', background: 'linear-gradient(90deg, rgba(124,92,252,.12), rgba(240,166,232,.08) 52%, rgba(111,168,245,.10))' }}>
-        <div id="ev-ticker" style={{ display: 'flex', width: 'max-content', padding: '9px 0', animation: 'ev-tick 46s linear infinite' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 0, flex: 'none' }}>
-            {(activeEvent.ticker_messages?.length ? activeEvent.ticker_messages : [
-              { text: 'The network is a feed until it meets in person.' },
-              { text: '86 ECHO events across 31 campuses.' },
-              { text: '267 roles matched, 41 with a warm referral path.' },
-              { text: 'Verified by your college email — free forever for students.' },
-              { text: `HackWave 3.0 · Sep 4–5 · Sreenidhi (SNIST) · ${(activeEvent.prize_pool || '₹2,00,000 Mega Grand Pool')}` },
-              { text: 'Built with love for students across all campuses' },
-            ]).map((msg: any, i: number) => (
-              <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
-                <span style={{ fontSize: '13px', color: 'var(--muted)' }}>{msg.text}</span>
-                <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
-              </span>
-            ))}
-          </div>
-          {/* Duplicate set for seamless infinite loop */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 0, flex: 'none' }}>
-            {(activeEvent.ticker_messages?.length ? activeEvent.ticker_messages : [
-              { text: 'The network is a feed until it meets in person.' },
-              { text: '86 ECHO events across 31 campuses.' },
-              { text: '267 roles matched, 41 with a warm referral path.' },
-              { text: 'Verified by your college email — free forever for students.' },
-              { text: `HackWave 3.0 · Sep 4–5 · Sreenidhi (SNIST) · ${(activeEvent.prize_pool || '₹2,00,000 Mega Grand Pool')}` },
-              { text: 'Built with love for students across all campuses' },
-            ]).map((msg: any, i: number) => (
-              <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
-                <span style={{ fontSize: '13px', color: 'var(--muted)' }}>{msg.text}</span>
-                <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* ── Fixed Sticky Navigation Header ── */}
-      <div style={{ position: 'sticky', top: '36px', zIndex: 40, background: 'rgba(10,10,20,.84)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderBottom: '1px solid var(--line)', width: '100%' }}>
-        <div style={{ maxWidth: '1400px', width: '100%', margin: '0 auto', padding: '14px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap', rowGap: '14px' }}>
-          
-          {/* SA Brand Badge */}
-          <div
-            onClick={() => router.push('/')}
-            style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 'none', cursor: 'pointer' }}
-          >
-            <svg width="28" height="33" viewBox="0 0 300 350" style={{ display: 'block', flexShrink: 0 }}>
-              <defs>
-                <linearGradient id="ev-badge-grad2" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="#C9A7FF" />
-                  <stop offset="48%" stopColor="#8B5CF6" />
-                  <stop offset="100%" stopColor="#5B2FD0" />
-                </linearGradient>
-                <linearGradient id="ev-badge-grad2-in" x1="0" y1="0" x2="0.4" y2="1">
-                  <stop offset="0%" stopColor="#B683F5" />
-                  <stop offset="100%" stopColor="#7331C9" />
-                </linearGradient>
-              </defs>
-              <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#ev-badge-grad2)" />
-              <path d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="url(#ev-badge-grad2-in)" />
-              <text x="150" y="214" textAnchor="middle" style={{ fontFamily: "'Manrope', -apple-system, sans-serif", fontSize: '118px', fontWeight: '800', letterSpacing: '-5px', fill: '#FFFFFF' }}>SA</text>
-            </svg>
-            <span style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-0.4px', color: '#FFFFFF', fontFamily: "'Manrope', sans-serif" }}>StudentAlumni</span>
-          </div>
-
-          {/* Centered Navigation Tabs */}
-          <div id="ev-tabs" style={{ display: 'flex', alignItems: 'center', gap: '30px', flex: '0 1 auto', flexShrink: 0, justifyContent: 'center', paddingTop: '2px' }}>
-            <a
-              className="ev-tab"
-              onClick={() => router.push('/')}
-              style={{ position: 'relative', fontSize: '15px', fontWeight: 500, color: 'var(--muted)', padding: '6px 2px 10px', cursor: 'pointer', whiteSpace: 'nowrap', textDecoration: 'none', transition: 'color .2s ease' }}
-            >
-              Home
-              <span style={{ position: 'absolute', left: 0, right: 0, bottom: '4px', height: '3px', borderRadius: '2px', background: 'var(--violet-lt)', opacity: 0 }} />
-            </a>
-            <a
-              className="ev-tab"
-              onClick={() => go('list')}
-              style={{ position: 'relative', fontSize: '15px', fontWeight: 700, color: 'var(--text)', padding: '6px 2px 10px', cursor: 'pointer', whiteSpace: 'nowrap', textDecoration: 'none', transition: 'color .2s ease' }}
-            >
-              ECHO
-              <span style={{ position: 'absolute', left: 0, right: 0, bottom: '4px', height: '3px', borderRadius: '2px', background: 'var(--violet-lt)', opacity: 1 }} />
-            </a>
-            <a
-              className="ev-tab"
-              onClick={() => router.push('/verify')}
-              style={{ position: 'relative', fontSize: '15px', fontWeight: 500, color: 'var(--muted)', padding: '6px 2px 10px', cursor: 'pointer', whiteSpace: 'nowrap', textDecoration: 'none', transition: 'color .2s ease' }}
-            >
-              Verify
-              <span style={{ position: 'absolute', left: 0, right: 0, bottom: '4px', height: '3px', borderRadius: '2px', background: 'var(--violet-lt)', opacity: 0 }} />
-            </a>
-            <a
-              className="ev-tab"
-              onClick={() => router.push('/contact')}
-              style={{ position: 'relative', fontSize: '15px', fontWeight: 500, color: 'var(--muted)', padding: '6px 2px 10px', cursor: 'pointer', whiteSpace: 'nowrap', textDecoration: 'none', transition: 'color .2s ease' }}
-            >
-              Contact Us
-              <span style={{ position: 'absolute', left: 0, right: 0, bottom: '4px', height: '3px', borderRadius: '2px', background: 'var(--violet-lt)', opacity: 0 }} />
-            </a>
-          </div>
-
-          {/* Right Action Buttons */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 'none' }}>
-            <span
-              onClick={() => router.push('/login')}
-              className="ev-ghost"
-              style={{ fontSize: '14px', fontWeight: 500, color: 'var(--muted)', cursor: 'pointer', transition: 'color .2s ease' }}
-            >
-              Sign in
-            </span>
-            <span
-              onClick={() => router.push('/register')}
-              className="ev-btn"
-              style={{ fontSize: '14px', fontWeight: 600, background: 'var(--violet)', color: '#FFFFFF', borderRadius: '100px', padding: '10px 20px', cursor: 'pointer', transition: 'all .2s ease' }}
-            >
-              Get Started
-            </span>
-          </div>
-        </div>
-      </div>
+      {/* ── Shared Navigation Header ── */}
+      <Navbar activeTab="echo" onTabChange={(tab) => {
+        if (tab === 'home') router.push('/');
+        else if (tab === 'echo') go('list');
+        else if (tab === 'verify') router.push('/verify');
+        else if (tab === 'contact') router.push('/contact');
+      }} />
 
       {/* ────────────────────────────────────────────────────────── */}
       {/* VIEW 1: EVENTS LIST VIEW                                  */}
       {/* ────────────────────────────────────────────────────────── */}
       {view === 'list' && (
-        <div className="ev-anim-in ev-main-container" style={{ position: 'relative', zIndex: 1, maxWidth: '1400px', width: '100%', margin: '0 auto', padding: '32px 28px 90px' }}>
+        <div className="ev-anim-in ev-main-container" style={{ position: 'relative', zIndex: 1, maxWidth: '1400px', width: '100%', margin: '0 auto', padding: '96px 28px 90px' }}>
 
           {/* ── ON THE GROUND Hero Card ── */}
-          <div className="ev-hero-card" style={{ position: 'relative', overflow: 'hidden', borderRadius: '24px', background: 'linear-gradient(150deg, #FFFFFF 0%, #F4F2FF 42%, #EAF7FA 100%)', boxShadow: '0 1px 2px rgba(16,18,32,.06), 0 26px 64px rgba(16,18,32,.24)', padding: '34px 36px 36px', marginBottom: '20px', width: '100%' }}>
+          <div className="ev-hero-card" style={{ position: 'relative', overflow: 'hidden', borderRadius: '24px', background: 'linear-gradient(150deg, #FFFFFF 0%, #F4F2FF 42%, #EAF7FA 100%)', boxShadow: isDark ? '0 1px 2px rgba(16,18,32,.06), 0 26px 64px rgba(16,18,32,.24)' : '0 1px 2px rgba(0,0,0,.04), 0 8px 32px rgba(0,0,0,.08)', padding: '34px 36px 36px', marginBottom: '20px', width: '100%' }}>
             {/* Decorative gradient orbs */}
             <div style={{ position: 'absolute', right: '-6%', top: '-48%', width: '480px', height: '480px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,92,252,.20), transparent 66%)', pointerEvents: 'none' }} />
             <div style={{ position: 'absolute', left: '24%', bottom: '-62%', width: '440px', height: '440px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(47,184,198,.16), transparent 68%)', pointerEvents: 'none' }} />
@@ -1337,13 +1227,13 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
 
               {/* Right column: Mosaic grid */}
               <div className="ev-hero-mosaic" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gridTemplateRows: '96px 96px', gap: '10px' }}>
-                <div className="ev-mosaic-keynote" style={{ gridColumn: 'span 2', gridRow: 'span 2', borderRadius: '14px', background: 'linear-gradient(135deg, #1B1838, #2E2091)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.7)', fontSize: '13px', fontWeight: 600 }}>
+                <div className="ev-mosaic-keynote" style={{ gridColumn: 'span 2', gridRow: 'span 2', borderRadius: '14px', background: isDark ? 'linear-gradient(135deg, #1B1838, #2E2091)' : 'linear-gradient(135deg, #E8E4FF, #D5E8F0)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(30,27,75,0.8)', fontSize: '13px', fontWeight: 600 }}>
                   Keynote — Main Stage
                 </div>
-                <div style={{ borderRadius: '14px', background: '#241A52', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.6)', fontSize: '11px', fontWeight: 600 }}>
+                <div style={{ borderRadius: '14px', background: isDark ? '#241A52' : '#E8E4FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: isDark ? 'rgba(255,255,255,0.6)' : 'rgba(30,27,75,0.7)', fontSize: '11px', fontWeight: 600 }}>
                   Crowd
                 </div>
-                <div style={{ borderRadius: '14px', background: '#1A244D', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.6)', fontSize: '11px', fontWeight: 600 }}>
+                <div style={{ borderRadius: '14px', background: isDark ? '#1A244D' : '#D5E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: isDark ? 'rgba(255,255,255,0.6)' : 'rgba(30,27,75,0.7)', fontSize: '11px', fontWeight: 600 }}>
                   Workshop
                 </div>
               </div>
@@ -1363,15 +1253,15 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
           </div>
 
           {/* ── ECHO EVENTS Section Header ── */}
-          <div id="ev-events-section" style={{ position: 'relative', overflow: 'hidden', border: '1px solid #3A2E72', borderRadius: '20px', background: 'linear-gradient(120deg, #241A52, #14122E 62%)', padding: '30px 32px 34px', marginBottom: '0' }}>
+          <div id="ev-events-section" style={{ position: 'relative', overflow: 'hidden', border: `1px solid ${isDark ? '#3A2E72' : '#E5E5EA'}`, borderRadius: '20px', background: isDark ? 'linear-gradient(120deg, #241A52, #14122E 62%)' : 'linear-gradient(120deg, #F0EFFF, #E8F4F8 62%)', padding: '30px 32px 34px', marginBottom: '0' }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.4px', color: 'var(--violet-lt)', background: 'rgba(124,92,252,.18)', borderRadius: '100px', padding: '7px 14px' }}>
               <svg width="13" height="13" viewBox="0 0 24 24" style={{ fill: 'currentColor' }}><path d="M12 2l1.9 5.1L19 9l-5.1 1.9L12 16l-1.9-5.1L5 9l5.1-1.9Z" /></svg>
               {heroConfig?.section_badge || 'ECHO EVENTS'}
             </span>
-            <div className="ev-echo-header-title" style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.2px', margin: '18px 0 10px', color: '#FFFFFF' }}>
+            <div className="ev-echo-header-title" style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.2px', margin: '18px 0 10px', color: isDark ? '#FFFFFF' : '#1D1D1F' }}>
               {heroConfig?.section_title || 'Explore ECHO Events by College'}
             </div>
-            <div className="ev-echo-header-desc" style={{ fontSize: '15px', lineHeight: 1.6, color: '#BEB6E8', maxWidth: '620px' }}>
+            <div className="ev-echo-header-desc" style={{ fontSize: '15px', lineHeight: 1.6, color: isDark ? '#BEB6E8' : '#565B70', maxWidth: '620px' }}>
               {heroConfig?.section_description || "Image galleries, partners, sponsors, speakers, testimonials and registration for every ECHO event we've conducted."}
             </div>
           </div>
@@ -1386,7 +1276,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 style={{ border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', overflow: 'hidden', cursor: 'pointer', display: 'flex', flexDirection: 'column' }}
               >
                 {/* Event Poster Card Banner */}
-                <div style={{ position: 'relative', height: '188px', background: ev.poster_banner ? 'var(--panel2)' : 'linear-gradient(135deg, #2E2091, #14122E)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                <div style={{ position: 'relative', height: '188px', background: ev.poster_banner ? 'var(--panel2)' : (isDark ? 'linear-gradient(135deg, #2E2091, #14122E)' : 'linear-gradient(135deg, #E8E4FF, #D5E8F0)'), display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                   {ev.poster_banner ? (
                     <img src={ev.poster_banner} alt={ev.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
@@ -1394,7 +1284,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                       {ev.title}
                     </div>
                   )}
-                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(17,17,28,0.85) 0%, transparent 60%)' }} />
+                  <div style={{ position: 'absolute', inset: 0, background: isDark ? 'linear-gradient(to top, rgba(17,17,28,0.85) 0%, transparent 60%)' : 'linear-gradient(to top, rgba(17,17,28,0.6) 0%, transparent 60%)' }} />
                   <div style={{ position: 'absolute', bottom: '14px', left: '18px', right: '18px', zIndex: 3 }}>
                     <div style={{ fontSize: '18px', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.4px', textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>{ev.title}</div>
                   </div>
@@ -1448,7 +1338,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
       {/* VIEW 2: EVENT DETAIL VIEW                                 */}
       {/* ────────────────────────────────────────────────────────── */}
       {view === 'detail' && (
-        <div className="ev-anim-in ev-detail-container" style={{ position: 'relative', zIndex: 1, maxWidth: '1400px', width: '100%', margin: '0 auto', padding: '26px 28px 90px' }}>
+        <div className="ev-anim-in ev-detail-container" style={{ position: 'relative', zIndex: 1, maxWidth: '1400px', width: '100%', margin: '0 auto', padding: '90px 28px 90px' }}>
           
           {/* Back to Events List Button */}
           <span
@@ -1464,7 +1354,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
           <div className="ev-detail-banner" style={{ border: '1px solid var(--line2)', borderRadius: '22px', overflow: 'hidden', background: 'var(--panel)', marginBottom: '22px', width: '100%' }}>
             
             {/* Banner Top Graphic */}
-            <div className="ev-detail-poster" style={{ position: 'relative', minHeight: '360px', background: 'linear-gradient(135deg, #1C1236 0%, #2A1758 50%, #160D30 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', overflow: 'hidden' }}>
+            <div className="ev-detail-poster" style={{ position: 'relative', minHeight: '360px', background: isDark ? 'linear-gradient(135deg, #1C1236 0%, #2A1758 50%, #160D30 100%)' : 'linear-gradient(135deg, #F0EFFF 0%, #E8F4F8 50%, #F0F5F8 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', overflow: 'hidden' }}>
               {activeEvent.poster_banner && (
                 <img src={activeEvent.poster_banner} alt={activeEvent.title} style={{ width: '100%', maxHeight: '480px', objectFit: 'contain', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.12)', boxShadow: '0 20px 50px rgba(0,0,0,0.5)', margin: '0 auto' }} />
               )}
@@ -1621,7 +1511,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
             {activeEvent.gallery_images && activeEvent.gallery_images.length > 0 ? (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '18px' }}>
                 {activeEvent.gallery_images.map((img: string, gidx: number) => (
-                  <div key={gidx} className="ev-mini" style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--line2)', background: '#0D0B18', padding: '12px', textAlign: 'center' }}>
+                  <div key={gidx} className="ev-mini" style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--line2)', background: isDark ? '#0D0B18' : '#F0F0F5', padding: '12px', textAlign: 'center' }}>
                     <img src={img} alt={`Event Poster ${gidx + 1}`} style={{ width: '100%', maxHeight: '420px', objectFit: 'contain', borderRadius: '10px' }} />
                   </div>
                 ))}
@@ -1637,7 +1527,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
           {/* ────────────────────────────────────────────────────────── */}
           {/* A NATIONAL-LEVEL TECH FEST — 7 VERTICALS (BANNER 4)       */}
           {/* ────────────────────────────────────────────────────────── */}
-          <div style={{ marginBottom: '32px', border: '1px solid #3A2E72', borderRadius: '22px', background: 'linear-gradient(135deg, #1B143A 0%, #110E24 100%)', padding: '32px 30px' }}>              <div style={{ textAlign: 'center', marginBottom: '26px' }}>
+          <div style={{ marginBottom: '32px', border: `1px solid ${isDark ? '#3A2E72' : '#E5E5EA'}`, borderRadius: '22px', background: isDark ? 'linear-gradient(135deg, #1B143A 0%, #110E24 100%)' : 'linear-gradient(135deg, #F8F6FF 0%, #F0F5F8 100%)', padding: '32px 30px' }}>              <div style={{ textAlign: 'center', marginBottom: '26px' }}>
               <span className="ev-detail-section-subtitle" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 700, letterSpacing: '1.4px', color: '#FFFFFF', background: '#EF4444', borderRadius: '100px', padding: '6px 14px', marginBottom: '12px' }}>
                 THIS IS NOT JUST A HACKATHON
               </span>
@@ -1687,7 +1577,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
               { title: 'Career pathways', description: 'How to enter the field from campus.' },
             ];
             return (
-              <div style={{ marginBottom: '32px', border: '1px solid #4338CA', borderRadius: '22px', background: 'linear-gradient(135deg, #1E1B4B 0%, #0F172A 100%)', padding: '30px 32px' }}>
+              <div style={{ marginBottom: '32px', border: `1px solid ${isDark ? '#4338CA' : '#E5E5EA'}`, borderRadius: '22px', background: isDark ? 'linear-gradient(135deg, #1E1B4B 0%, #0F172A 100%)' : 'linear-gradient(135deg, #F8F6FF 0%, #F0F5F8 100%)', padding: '30px 32px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap', marginBottom: '18px' }}>
                   <div>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 700, letterSpacing: '1.4px', color: '#818CF8', background: 'rgba(99,102,241,0.18)', borderRadius: '100px', padding: '6px 14px', marginBottom: '10px' }}>
@@ -1900,7 +1790,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
       {/* VIEW 3: EVENT REGISTRATION FORM VIEW                      */}
       {/* ────────────────────────────────────────────────────────── */}
       {view === 'reg' && (
-        <div className="ev-anim-in ev-reg-container" style={{ position: 'relative', zIndex: 1, maxWidth: '1400px', width: '100%', margin: '0 auto', padding: '26px 28px 90px' }}>
+        <div className="ev-anim-in ev-reg-container" style={{ position: 'relative', zIndex: 1, maxWidth: '1400px', width: '100%', margin: '0 auto', padding: '90px 28px 90px' }}>
           
           {/* Back to Event Button */}
           <span
@@ -1913,7 +1803,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
           </span>
 
           {/* Registration Header Banner */}
-          <div className="ev-reg-header" style={{ position: 'relative', overflow: 'hidden', border: '1px solid var(--line2)', borderRadius: '18px', background: 'linear-gradient(115deg, #1B1836, #12121F 68%)', padding: '24px 28px 26px', marginBottom: '22px', width: '100%' }}>
+          <div className="ev-reg-header" style={{ position: 'relative', overflow: 'hidden', border: '1px solid var(--line2)', borderRadius: '18px', background: isDark ? 'linear-gradient(115deg, #1B1836, #12121F 68%)' : 'linear-gradient(115deg, #F0EFFF, #F5F5F7 68%)', padding: '24px 28px 26px', marginBottom: '22px', width: '100%' }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: 'var(--violet-lt)', background: 'rgba(124,92,252,.18)', borderRadius: '8px', padding: '6px 12px' }}>
               <svg width="12" height="12" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 2 }}><path d="M3 8.5A2.5 2.5 0 015.5 6h13A2.5 2.5 0 0121 8.5v.5a2 2 0 000 6v.5A2.5 2.5 0 0118.5 18h-13A2.5 2.5 0 013 15.5V15a2 2 0 000-6Z"></path></svg>
               REGISTER
@@ -2014,7 +1904,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 <span
                   onClick={handleDownloadHandbook}
                   className="ev-btn"
-                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '9px', fontSize: '14px', fontWeight: 600, border: '1px solid #3A2E72', borderRadius: '12px', background: 'rgba(124,92,252,.14)', color: 'var(--text)', padding: '14px 18px', cursor: 'pointer' }}
+                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '9px', fontSize: '14px', fontWeight: 600, border: `1px solid ${isDark ? '#3A2E72' : '#D5D0FF'}`, borderRadius: '12px', background: isDark ? 'rgba(124,92,252,.14)' : 'rgba(91,79,233,.08)', color: 'var(--text)', padding: '14px 18px', cursor: 'pointer' }}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'var(--violet-lt)', strokeWidth: 1.8 }}><path d="M6 3h8l4 4v14H6Z"></path><path d="M14 3v4h4"></path></svg>
                   Download Event Handbook (PDF)
@@ -2124,14 +2014,14 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                           style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', color: branch ? '#FFFFFF' : 'var(--muted)', fontSize: '14.5px', fontFamily: 'inherit', cursor: 'pointer' }}
                         >
                           <option value="" disabled style={{ background: '#161622', color: 'var(--muted)' }}>-- Select Branch --</option>
-                          <option value="CSE" style={{ background: '#161622', color: '#FFF' }}>Computer Science & Eng (CSE)</option>
-                          <option value="IT" style={{ background: '#161622', color: '#FFF' }}>Information Technology (IT)</option>
-                          <option value="AI_DS" style={{ background: '#161622', color: '#FFF' }}>AI & Data Science (AI/DS)</option>
-                          <option value="ECE" style={{ background: '#161622', color: '#FFF' }}>Electronics & Comm (ECE)</option>
-                          <option value="EEE" style={{ background: '#161622', color: '#FFF' }}>Electrical & Electronics (EEE)</option>
-                          <option value="MECH" style={{ background: '#161622', color: '#FFF' }}>Mechanical Eng (MECH)</option>
-                          <option value="CIVIL" style={{ background: '#161622', color: '#FFF' }}>Civil Eng</option>
-                          <option value="OTHER" style={{ background: '#161622', color: '#FFF' }}>Other</option>
+                          <option value="CSE" style={{ background: 'var(--panel2)', color: 'var(--text)' }}>Computer Science & Eng (CSE)</option>
+                          <option value="IT" style={{ background: 'var(--panel2)', color: 'var(--text)' }}>Information Technology (IT)</option>
+                          <option value="AI_DS" style={{ background: 'var(--panel2)', color: 'var(--text)' }}>AI & Data Science (AI/DS)</option>
+                          <option value="ECE" style={{ background: 'var(--panel2)', color: 'var(--text)' }}>Electronics & Comm (ECE)</option>
+                          <option value="EEE" style={{ background: 'var(--panel2)', color: 'var(--text)' }}>Electrical & Electronics (EEE)</option>
+                          <option value="MECH" style={{ background: 'var(--panel2)', color: 'var(--text)' }}>Mechanical Eng (MECH)</option>
+                          <option value="CIVIL" style={{ background: 'var(--panel2)', color: 'var(--text)' }}>Civil Eng</option>
+                          <option value="OTHER" style={{ background: 'var(--panel2)', color: 'var(--text)' }}>Other</option>
                         </select>
                       </div>
                     </div>
@@ -2145,11 +2035,11 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                           style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', color: year ? '#FFFFFF' : 'var(--muted)', fontSize: '14.5px', fontFamily: 'inherit', cursor: 'pointer' }}
                         >
                           <option value="" disabled style={{ background: '#161622', color: 'var(--muted)' }}>-- Select Year --</option>
-                          <option value="1st Year" style={{ background: '#161622', color: '#FFF' }}>1st Year</option>
-                          <option value="2nd Year" style={{ background: '#161622', color: '#FFF' }}>2nd Year</option>
-                          <option value="3rd Year" style={{ background: '#161622', color: '#FFF' }}>3rd Year</option>
-                          <option value="4th Year" style={{ background: '#161622', color: '#FFF' }}>4th Year</option>
-                          <option value="Alumni" style={{ background: '#161622', color: '#FFF' }}>Alumni / Passed Out</option>
+                          <option value="1st Year" style={{ background: 'var(--panel2)', color: 'var(--text)' }}>1st Year</option>
+                          <option value="2nd Year" style={{ background: 'var(--panel2)', color: 'var(--text)' }}>2nd Year</option>
+                          <option value="3rd Year" style={{ background: 'var(--panel2)', color: 'var(--text)' }}>3rd Year</option>
+                          <option value="4th Year" style={{ background: 'var(--panel2)', color: 'var(--text)' }}>4th Year</option>
+                          <option value="Alumni" style={{ background: 'var(--panel2)', color: 'var(--text)' }}>Alumni / Passed Out</option>
                         </select>
                       </div>
                     </div>
@@ -2173,7 +2063,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                           { name: 'Autonomous AI Workflows' },
                           { name: 'Build the Unexpected' },
                         ]).map((cat: any, cidx: number) => (
-                          <option key={cidx} value={cat.name || cat} style={{ background: '#161622', color: '#FFF' }}>
+                          <option key={cidx} value={cat.name || cat} style={{ background: 'var(--panel2)', color: 'var(--text)' }}>
                             {cat.name || cat}
                           </option>
                         ))}
@@ -2222,7 +2112,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                             'IIT Hyderabad',
                           ];
                           const filtered = KNOWN_COLLEGES.filter((c) =>
-                            c.toLowerCase().includes(collectQuery.toLowerCase())
+                            c.toLowerCase().includes(collegeQuery.toLowerCase())
                           );
                           return (
                             <>
@@ -2287,7 +2177,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                                 onClick={() => setTeamMembers(teamMembers.filter((_, i) => i !== idx))}
                                 style={{ background: 'transparent', border: 'none', color: '#F87171', fontSize: '11.5px', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                               >
-                                ✕ Remove
+                                Remove
                               </button>
                             )}
                           </div>
@@ -2445,7 +2335,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
               </div>
 
               {/* Important Information Box */}
-              <div style={{ border: '1px solid #3A2E72', borderRadius: '18px', background: 'linear-gradient(155deg, #1B1838, var(--panel) 62%)', padding: '24px 26px 26px' }}>
+              <div style={{ border: `1px solid ${isDark ? '#3A2E72' : '#E5E5EA'}`, borderRadius: '18px', background: isDark ? 'linear-gradient(155deg, #1B1838, var(--panel) 62%)' : 'linear-gradient(155deg, #F8F6FF, var(--panel) 62%)', padding: '24px 26px 26px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '9px', marginBottom: '20px' }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'var(--violet-lt)', strokeWidth: 1.9 }}><circle cx="12" cy="12" r="9"></circle><path d="M12 8v.01M12 11v5"></path></svg>
                   <span style={{ fontSize: '12.5px', fontWeight: 700, letterSpacing: '1.4px', color: 'var(--violet-lt)' }}>IMPORTANT INFORMATION</span>
@@ -2485,7 +2375,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
               </div>
 
               {/* Free Student Alumni Account Notice */}
-              <div style={{ display: 'grid', gridTemplateColumns: '20px minmax(0, 1fr)', gap: '12px', border: '1px solid #3A2E72', borderRadius: '16px', background: 'rgba(124,92,252,.08)', padding: '18px 20px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '20px minmax(0, 1fr)', gap: '12px', border: `1px solid ${isDark ? '#3A2E72' : '#E5E5EA'}`, borderRadius: '16px', background: isDark ? 'rgba(124,92,252,.08)' : 'rgba(91,79,233,.06)', padding: '18px 20px' }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'var(--violet-lt)', strokeWidth: 1.8, marginTop: '2px' }}><path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6Z"></path></svg>
                 <div style={{ fontSize: '13.5px', lineHeight: 1.6, color: 'var(--muted)' }}>
                   A <strong style={{ color: 'var(--text)', fontWeight: 600 }}>free Student Alumni account</strong> will be created with this email — your login credentials will be emailed to you so you can view your tickets anytime under <span style={{ color: 'var(--violet-lt)', fontWeight: 600 }}>My Tickets</span>.
@@ -2503,7 +2393,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
       {/* SUCCESS CONFIRMATION MODAL */}
       {paymentSuccess && ticketData && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(5,6,15,0.85)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-          <div style={{ background: 'var(--panel)', border: '1px solid #3A2E72', borderRadius: '24px', maxWidth: '520px', width: '100%', padding: '32px', textAlign: 'center', boxShadow: '0 25px 60px rgba(0,0,0,0.6)' }}>
+          <div style={{ background: 'var(--panel)', border: '1px solid #3A2E72', borderRadius: '24px', maxWidth: '520px', width: '100%', padding: '32px', textAlign: 'center', boxShadow: isDark ? '0 25px 60px rgba(0,0,0,0.6)' : '0 10px 30px rgba(0,0,0,.1)' }}>
             
             <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(16,185,129,0.18)', border: '2px solid #10B981', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5"><path d="M20 6L9 17l-5-5" /></svg>
@@ -2565,86 +2455,13 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
         </div>
       )}
 
-      {/* ── Footer ── */}
-      <footer className="ev-footer" style={{ position: 'relative', zIndex: 1, borderTop: '1px solid var(--line)', background: 'linear-gradient(180deg, rgba(10,10,20,0) 0%, rgba(5,6,15,.95) 100%)', marginTop: '0' }}>
-        <div className="ev-footer-inner" style={{ maxWidth: '1400px', width: '100%', margin: '0 auto', padding: '48px 28px 32px' }}>
-          <div className="ev-footer-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '36px', marginBottom: '36px' }}>
-            {/* Brand */}
-            <div className="ev-footer-brand">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
-                <svg width="24" height="28" viewBox="0 0 300 350">
-                  <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="#8B84FF" />
-                  <path d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="#5B4FE9" />
-                  <text x="150" y="214" textAnchor="middle" style={{ fontFamily: "'Outfit', sans-serif", fontSize: '118px', fontWeight: 800, fill: '#FFFFFF' }}>SA</text>
-                </svg>
-                <span style={{ fontSize: '17px', fontWeight: 700, color: '#FFFFFF' }}>StudentAlumni</span>
-              </div>
-              <p style={{ fontSize: '13px', lineHeight: 1.6, color: 'var(--muted)', maxWidth: '280px' }}>
-                Verified student & alumni network across Indian campuses. Connecting students, alumni, and recruiters.
-              </p>
-            </div>
-
-            {/* Product */}
-            <div>
-              <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.4px', color: 'var(--muted)', marginBottom: '14px' }}>PRODUCT</div>
-              <div style={{ display: 'grid', gap: '10px' }}>
-                <a onClick={() => router.push('/')} style={{ fontSize: '13.5px', color: 'var(--text)', cursor: 'pointer', textDecoration: 'none' }}>Home</a>
-                <a onClick={() => go('list')} style={{ fontSize: '13.5px', color: 'var(--text)', cursor: 'pointer', textDecoration: 'none' }}>ECHO Events</a>
-                <a onClick={() => router.push('/verify')} style={{ fontSize: '13.5px', color: 'var(--text)', cursor: 'pointer', textDecoration: 'none' }}>Verify Credentials</a>
-                <a onClick={() => router.push('/contact')} style={{ fontSize: '13.5px', color: 'var(--text)', cursor: 'pointer', textDecoration: 'none' }}>Contact Us</a>
-              </div>
-            </div>
-
-            {/* Resources */}
-            <div>
-              <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.4px', color: 'var(--muted)', marginBottom: '14px' }}>RESOURCES</div>
-              <div style={{ display: 'grid', gap: '10px' }}>
-                <a onClick={() => router.push('/blog')} style={{ fontSize: '13.5px', color: 'var(--text)', cursor: 'pointer', textDecoration: 'none' }}>Blog</a>
-                <a onClick={() => router.push('/help-center')} style={{ fontSize: '13.5px', color: 'var(--text)', cursor: 'pointer', textDecoration: 'none' }}>Help Center</a>
-                <a onClick={() => router.push('/community')} style={{ fontSize: '13.5px', color: 'var(--text)', cursor: 'pointer', textDecoration: 'none' }}>Community</a>
-                <a onClick={handleDownloadHandbook} style={{ fontSize: '13.5px', color: 'var(--text)', cursor: 'pointer', textDecoration: 'none' }}>Event Handbook</a>
-              </div>
-            </div>
-
-            {/* Legal */}
-            <div>
-              <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.4px', color: 'var(--muted)', marginBottom: '14px' }}>LEGAL</div>
-              <div style={{ display: 'grid', gap: '10px' }}>
-                <a onClick={() => window.open('/policy/privacy', '_blank')} style={{ fontSize: '13.5px', color: 'var(--text)', cursor: 'pointer', textDecoration: 'none' }}>Privacy Policy</a>
-                <a onClick={() => window.open('/policy/terms', '_blank')} style={{ fontSize: '13.5px', color: 'var(--text)', cursor: 'pointer', textDecoration: 'none' }}>Terms of Service</a>
-              </div>
-            </div>
-
-            {/* Our Entities */}
-            <div>
-              <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.4px', color: 'var(--muted)', marginBottom: '14px' }}>OUR ENTITIES</div>
-              <div style={{ display: 'grid', gap: '10px' }}>
-                <a onClick={() => window.open('https://codespectra.ai', '_blank')} style={{ fontSize: '13.5px', color: 'var(--text)', cursor: 'pointer', textDecoration: 'none' }}>CodeSpectra</a>
-                <a onClick={() => window.open('https://visionaryx.ai', '_blank')} style={{ fontSize: '13.5px', color: 'var(--text)', cursor: 'pointer', textDecoration: 'none' }}>VisionaryX</a>
-                <a onClick={() => window.open('https://wehive.co.in', '_blank')} style={{ fontSize: '13.5px', color: 'var(--text)', cursor: 'pointer', textDecoration: 'none' }}>WeHive</a>
-              </div>
-            </div>
-          </div>
-
-          {/* Bottom Bar */}
-          <div className="ev-footer-bottom" style={{ borderTop: '1px solid var(--line)', paddingTop: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-            <div style={{ fontSize: '12.5px', color: 'var(--dim)' }}>
-              © {new Date().getFullYear()} StudentAlumni. All rights reserved.
-            </div>
-            <div className="ev-footer-social" style={{ display: 'flex', gap: '14px' }}>
-              <a onClick={() => window.open('https://linkedin.com/company/studentalumni', '_blank')} style={{ cursor: 'pointer' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" fill="#6A6A7E" /><rect x="2" y="9" width="4" height="12" fill="#6A6A7E" /><circle cx="4" cy="4" r="2" fill="#6A6A7E" /></svg>
-              </a>
-              <a onClick={() => window.open('https://x.com/studentalumni', '_blank')} style={{ cursor: 'pointer' }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" fill="#6A6A7E" /></svg>
-              </a>
-              <a onClick={() => window.open('https://instagram.com/studentalumni', '_blank')} style={{ cursor: 'pointer' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="2" y="2" width="20" height="20" rx="5" stroke="#6A6A7E" strokeWidth="2" /><circle cx="12" cy="12" r="5" stroke="#6A6A7E" strokeWidth="2" /><circle cx="17.5" cy="6.5" r="1.5" fill="#6A6A7E" /></svg>
-              </a>
-            </div>
-          </div>
-        </div>
-      </footer>
+      {/* ── Global Footer ── */}
+      <CommonFooter onTabChange={(tab) => {
+        if (tab === 'home') router.push('/');
+        else if (tab === 'echo') go('list');
+        else if (tab === 'verify') router.push('/verify');
+        else if (tab === 'contact') router.push('/contact');
+      }} />
 
     </div>
   );

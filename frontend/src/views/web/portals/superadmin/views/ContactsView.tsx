@@ -21,7 +21,7 @@ import {
   Building2, MapPin, Globe, Briefcase, GraduationCap, ExternalLink,
   MoreVertical, Eye,
 } from 'lucide-react-native';
-import { SAC, FONTS } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import {
   GRAD, GradientButton, SecondaryButton, Card, IconBox, SectionLabel,
   StatusPill, Toast, useToast, KpiTile, SearchField,
@@ -89,6 +89,8 @@ const SOURCE_ICONS: Record<string, any> = {
 };
 
 export function ContactsView() {
+  const T = useSAC();
+  Object.assign(st, resolveColors(st, T));
   const { toast, flash, hide } = useToast();
   const { confirm } = useConfirm();
   const [loading, setLoading] = useState(true);
@@ -256,7 +258,7 @@ export function ContactsView() {
             </SecondaryButton>
             <GradientButton onPress={() => setShowAdd(true)} size="sm">
               <Plus size={14} color="#fff" />
-              <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>Add</Text>
+              <Text style={{ color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 }}>Add</Text>
             </GradientButton>
           </View>
         </View>
@@ -851,7 +853,7 @@ function AddEditModal({ visible, contact, lists, onClose, onSave }: { visible: b
 
 const st = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 },
+  title: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 16 },
   sub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 720 },
   secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
   kpiRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
@@ -869,7 +871,7 @@ const st = StyleSheet.create({
   tableRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 11, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
   tableRowSelected: { backgroundColor: 'rgba(124,58,237,0.08)' },
   cell: { fontFamily: FONTS.med, fontSize: 12, color: '#e5e7eb' },
-  cellBold: { fontFamily: FONTS.bold, fontSize: 12.5, color: '#fff' },
+  cellBold: { fontFamily: FONTS.bold, fontSize: 12.5, color: SAC.text },
   cellDim: { fontFamily: FONTS.med, fontSize: 10.5, color: SAC.dim },
   checkbox: { width: 18, height: 18, borderRadius: 4, borderWidth: 1.5, borderColor: 'rgba(167,139,250,0.5)', alignItems: 'center', justifyContent: 'center' },
   checkboxChecked: { backgroundColor: GRAD.from, borderColor: GRAD.from },
@@ -883,7 +885,7 @@ const st = StyleSheet.create({
   pageBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: SAC.border, backgroundColor: 'rgba(255,255,255,0.04)' },
   pageBtnDisabled: { opacity: 0.4 },
   pageBtnText: { fontFamily: FONTS.bold, fontSize: 11, color: SAC.muted },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.72)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  modalOverlay: { flex: 1, backgroundColor: SAC.panel2, justifyContent: 'center', alignItems: 'center', padding: 20 },
   modalBackdrop: { ...StyleSheet.absoluteFillObject },
   importModal: { width: '100%', maxWidth: 480, backgroundColor: '#141A2D', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)', maxHeight: '80vh' },
   detailModal: { width: '100%', maxWidth: 520, backgroundColor: '#141A2D', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)', maxHeight: '80vh' },
@@ -905,7 +907,7 @@ const st = StyleSheet.create({
   textInput: { backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, color: SAC.text, fontFamily: FONTS.med, fontSize: 13 },
   importFooter: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, padding: 16, borderTopWidth: 1, borderTopColor: SAC.border },
   secondaryBtnText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
-  primaryBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
+  primaryBtnText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
   successIcon: { width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(16,185,129,0.15)', alignItems: 'center', justifyContent: 'center' },
   successTitle: { fontFamily: FONTS.bold, fontSize: 16, color: SAC.text },
   statsRow: { flexDirection: 'row', gap: 12, width: '100%' },

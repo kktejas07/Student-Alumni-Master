@@ -66,7 +66,7 @@ const STATS = [
   { id: 'sessions', Icon: Calendar, label: 'Sessions Today', value: '3', sub: 'Next at 2:00 PM', glass: T.glassStrong, border: T.glassStrongBorder, color: T.tealLight },
   { id: 'students', Icon: Users, label: 'Total Students', value: '47', sub: '↑ 4 this week', glass: T.glass, border: T.glassBorder, color: T.tealLight, positive: true },
   { id: 'month', Icon: DollarSign, label: 'This Month', value: '₹28.5K', sub: '↑ 12% vs last', glass: T.glass, border: T.glassBorder, color: T.tealLight, positive: true },
-  { id: 'rating', Icon: Trophy, label: 'Rating', value: '4.9', valueSuffix: '⭐', sub: '42 reviews', glass: T.amberGlass, border: T.amberBorder, color: T.amberLight },
+  { id: 'rating', Icon: Trophy, label: 'Rating', value: '4.9', valueSuffix: '', sub: '42 reviews', glass: T.amberGlass, border: T.amberBorder, color: T.amberLight },
 ];
 
 const SESSIONS = [
@@ -124,14 +124,14 @@ export function MentorDashboardView({
         {/* ── Top Bar ─────────────────────────────────────────────── */}
         <View style={styles.topBar}>
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={styles.greeting}>Welcome back 👋</Text>
+            <Text style={styles.greeting}>Welcome back </Text>
             <Text style={[styles.name, isTablet && { fontSize: 28 }]} numberOfLines={1}>{displayName}</Text>
             <View style={styles.badgeRow}>
               <View style={styles.approvedPill}>
                 <Text style={styles.approvedDot}>●</Text>
                 <Text style={styles.approvedText}>Approved Mentor</Text>
               </View>
-              <Text style={styles.ratingText}>⭐ 4.9 · 42 reviews</Text>
+              <Text style={styles.ratingText}> 4.9 · 42 reviews</Text>
             </View>
           </View>
           <Pressable onPress={onOpenNotifications} testID="mentor-notif-btn"
@@ -265,7 +265,7 @@ function FeaturedRatingWidget({ onPress }: { onPress?: () => void }) {
         <Sparkles size={40} color={T.tealLight} style={{ opacity: 0.5 }} />
       </View>
       <View style={{ gap: 4 }}>
-        <Text style={styles.featuredKicker}>⭐ YOUR RATING</Text>
+        <Text style={styles.featuredKicker}> YOUR RATING</Text>
         <Text style={styles.featuredTitle}>Outstanding!</Text>
         <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8, marginTop: 4 }}>
           <Text style={styles.featuredValue}>4.9</Text>
@@ -273,7 +273,7 @@ function FeaturedRatingWidget({ onPress }: { onPress?: () => void }) {
         </View>
         <View style={styles.starsRow}>
           {[...Array(5)].map((_, i) => (
-            <Text key={i} style={{ color: T.amberLight, fontSize: 14 }}>★</Text>
+            <Star key={i} size={14} color={T.amberLight} fill={T.amberLight} />
           ))}
         </View>
         <Text style={styles.featuredDesc}>Top 3% of all mentors this month. Keep up the great work!</Text>

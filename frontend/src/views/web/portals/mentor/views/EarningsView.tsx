@@ -211,7 +211,7 @@ export function EarningsView({ demoMode = false, setDemoMode }: { demoMode?: boo
                   {demoMode ? (
                     <>
                       <Text style={s.insightsDetailText}>
-                        🚀 <Text style={{ fontFamily: FONTS.bold, color: '#1C1C1E' }}>Boost your weekly conversions by 18%:</Text>
+                         <Text style={{ fontFamily: FONTS.bold, color: '#1C1C1E' }}>Boost your weekly conversions by 18%:</Text>
                       </Text>
                       <Text style={s.insightsBullets}>
                         • Add 4 evening slots on Tuesday & Thursday (6:00 PM - 8:00 PM) — your highest-converting student booking windows.{"\n"}
@@ -291,7 +291,7 @@ export function EarningsView({ demoMode = false, setDemoMode }: { demoMode?: boo
                         Based on your current 12% monthly growth rate, average conversion, and active recurring student commitments, you are projected to make <Text style={{ color: '#5EEAD4', fontFamily: FONTS.bold }}>₹33,000</Text> next month (June 2026).
                       </Text>
                       <Text style={[s.forecastText, { marginTop: 6 }]}>
-                        🚀 <Text style={{ fontFamily: FONTS.bold, color: '#1C1C1E' }}>Pro Tip:</Text> Offering a "3-session package discount" can secure up to ₹42,000 in advanced bookings.
+                         <Text style={{ fontFamily: FONTS.bold, color: '#1C1C1E' }}>Pro Tip:</Text> Offering a "3-session package discount" can secure up to ₹42,000 in advanced bookings.
                       </Text>
                     </>
                   ) : (

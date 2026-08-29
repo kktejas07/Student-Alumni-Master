@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Sparkles, AlertTriangle, TrendingUp, Lightbulb, Zap } from 'lucide-react-native';
-import { SAC, FONTS } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import { Badge } from '../atoms';
 import { usePortalData, postPortal } from '@/src/lib/portalApi';
 import { useToast, Toast } from '../applekit';
@@ -11,6 +11,8 @@ const ICON_MAP: Record<string, any> = { AlertTriangle, TrendingUp, Lightbulb, Za
 const FALLBACK = { items: [] as Insight[] };
 
 export function AIInsightsView() {
+  const T = useSAC();
+  Object.assign(s, resolveColors(s, T));
   const { toast, flash, hide } = useToast();
   const { data } = usePortalData<typeof FALLBACK>('/admin/super/ai-insights', FALLBACK);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());

@@ -6,10 +6,10 @@ import { View, Text, Pressable, StyleSheet, useWindowDimensions, Platform, Image
 import {
   Building2, GraduationCap, UserCheck, Users, CreditCard, Calendar,
   CheckCircle, BarChart3, Sparkles, AlertTriangle, FileText, Eye,
-  Image as ImageIcon, Link, Save, X, Upload, Trash2,
+  Image as ImageIcon, Link, Save, X, Upload, Trash2, Plus, Megaphone, TrendingUp
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SAC, FONTS } from '../tokens';
+import { SAC, FONTS, useSAC, resolveColors } from '../tokens';
 import { Av } from '../atoms';
 import { GRAD, GradientButton, SecondaryButton, KpiTile, IconBox, useToast, Toast } from '../applekit';
 import * as MOCK from '../data';
@@ -45,16 +45,92 @@ const SUPER_MOCK = {
 };
 
 export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void }) {
+  const T = useSAC();
+  Object.assign(s, resolveColors(s, T));
   const user = useAuthStore((s) => s.user);
   const firstName = (user?.full_name || 'ADMIN').split(' ')[0];
 
-  const { data } = usePortalData<typeof SUPER_MOCK>('/admin/super-overview', SUPER_MOCK);
-  const ADMIN = data!.admin;
-  const KPIS = data!.kpis;
-  const RECENT_ACTIVITY = data!.recentActivity;
-  const PLATFORM_USERS = data!.platformUsers;
-  const MONTHLY_ENROLLMENTS = data!.monthlyEnrollments;
-  const REVENUE_BREAKDOWN = data!.revenueBreakdown;
+  const [checkedTasks, setCheckedTasks] = useState<string[]>([]);
+
+  const { data: analytics } = usePortalData<any>('/analytics/super-admin', {}, 30_000);
+  
+  const realStudents = analytics?.kpis?.students || 0;
+  const realMentors = analytics?.kpis?.mentors || 0;
+  const realEvents = analytics?.kpis?.total_events || 0;
+  const realBookings = analytics?.kpis?.total_bookings || 0;
+  const realColleges = analytics?.kpis?.colleges || 0;
+  const realAlumni = analytics?.kpis?.alumni || 0;
+  const realPending = analytics?.kpis?.pending_mentors || 0;
+  const mtd = analytics?.revenue?.mtd || 0;
+  const revenueFormatted = mtd > 0 ? `₹${(mtd/100000).toFixed(1)}L` : '₹0';
+  
+  const KPIS_MAPPED = [
+    { id: 'colleges',    icon: 'Building2',     label: 'Total Colleges',         value: String(realColleges),    delta: '↑ verified',     color: 'amber'  as const },
+    { id: 'students',    icon: 'GraduationCap', label: 'Total Students',         value: String(realStudents),    delta: '↑ active',       color: 'amber'  as const },
+    { id: 'mentors',     icon: 'UserCheck',     label: 'Active Mentors',         value: String(realMentors),     delta: `↑ ${realPending} pending`,  color: 'amber'  as const },
+    { id: 'alumni',      icon: 'Users',         label: 'Alumni Network',         value: String(realAlumni),      delta: '↑ joined',       color: 'amber'  as const },
+    { id: 'revenue',     icon: 'CreditCard',    label: 'Revenue This Month',     value: revenueFormatted,        delta: '↑ MTD',          color: 'amber'  as const },
+    { id: 'events',      icon: 'Calendar',      label: 'Active Events',          value: String(realEvents),      delta: `↑ ${realBookings} bookings`, color: 'amber'  as const },
+    { id: 'approvals',   icon: 'CheckCircle',   label: 'Pending Approvals',      value: String(realPending),     delta: '↑ review needed',color: 'amber'  as const },
+    { id: 'engagement',  icon: 'BarChart3',     label: 'Platform Engagement',    value: '0%',                    delta: '↑ ratio',        color: 'amber'  as const },
+  ];
+
+  const recentAct = analytics?.recent_bookings?.length ? analytics.recent_bookings.map(b => ({
+    id: b.id, text: `New booking: ${b.event?.title}`, sub: b.mentor?.full_name, time: 'Just now'
+  })) : MOCK.RECENT_ACTIVITY;
+
+  const PLATFORM_USERS = analytics?.role_distribution || MOCK.PLATFORM_USERS;
+  const MONTHLY_ENROLLMENTS = analytics?.monthly_enrollments?.length ? analytics.monthly_enrollments : MOCK.MONTHLY_ENROLLMENTS;
+  const REVENUE_BREAKDOWN = analytics?.revenue?.by_source || MOCK.REVENUE_BREAKDOWN;
+
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      const applyBg = (el: HTMLElement) => {
+        const bg = el.dataset.bg;
+        if (bg && !el.style.background.includes('linear-gradient')) {
+          el.style.background = bg;
+        }
+      };
+
+      const elements = document.querySelectorAll('.db-tile, .sa-hero, .sa-banner');
+      elements.forEach((card) => {
+        applyBg(card as HTMLElement);
+        
+        if (card.classList.contains('db-tile')) {
+          const oldSpot = card.querySelector('.sa-spot');
+          if (oldSpot) card.removeChild(oldSpot);
+
+          const spot = document.createElement('span');
+          spot.className = 'sa-spot';
+          card.appendChild(spot);
+
+          const onMove = (e: MouseEvent) => {
+            const r = card.getBoundingClientRect();
+            const x = e.clientX - r.left;
+            const y = e.clientY - r.top;
+            spot.style.opacity = '1';
+            spot.style.transform = `translate(${x}px, ${y}px)`;
+          };
+          const onLeave = () => {
+            (card as HTMLElement).style.transform = '';
+            (card as HTMLElement).style.borderColor = '';
+            spot.style.opacity = '0';
+          };
+          
+          const oldMove = (card as any)._onMove;
+          const oldLeave = (card as any)._onLeave;
+          if (oldMove) card.removeEventListener('mousemove', oldMove);
+          if (oldLeave) card.removeEventListener('mouseleave', oldLeave);
+          
+          (card as any)._onMove = onMove;
+          (card as any)._onLeave = onLeave;
+          
+          card.addEventListener('mousemove', onMove as any);
+          card.addEventListener('mouseleave', onLeave);
+        }
+      });
+    }
+  });
 
   const { width } = useWindowDimensions();
   const stack = width < 1100;
@@ -338,36 +414,143 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
         </View>
       )}
 
-      {/* Hero */}
-      <View style={s.hero}>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={s.heroKicker}>GOOD MORNING, {firstName.toUpperCase()}</Text>
-          <Text style={s.heroTitle}>Platform is healthy. 12 items need your attention.</Text>
+      {/* Hero Banner from sa-dashboard-export.html */}
+      <View className="db-r sa-hero" style={{ position: 'relative', overflow: 'hidden', borderRadius: 22, padding: 30, paddingBottom: 32, paddingHorizontal: 34, marginBottom: 18, shadowColor: '#101220', shadowOffset: { width: 0, height: 24 }, shadowOpacity: 0.22, shadowRadius: 60, elevation: 10, backgroundImage: 'linear-gradient(150deg, #FFFFFF 0%, #F4F2FF 44%, #EAF6FA 100%)' } as any}>
+        {Platform.OS === 'web' && (
+          <div dangerouslySetInnerHTML={{ __html: `
+            <div style="position: absolute; right: -6%; top: -46%; width: 460px; height: 460px; border-radius: 50%; background: radial-gradient(circle, rgba(124,92,252,.20), transparent 66%); pointer-events: none;"></div>
+            <div style="position: absolute; left: 28%; bottom: -60%; width: 420px; height: 420px; border-radius: 50%; background: radial-gradient(circle, rgba(47,184,198,.16), transparent 68%); pointer-events: none;"></div>
+            <svg viewBox="0 0 220 90" style="position: absolute; right: 26px; bottom: 18px; width: 200px; height: auto; pointer-events: none; overflow: visible;">
+              <path d="M6 70 C 46 70 44 22 84 22 C 118 22 116 58 150 54 C 178 51 186 30 208 16" style="--len: 260; fill: none; stroke: #4B3FD6; stroke-width: 2.4; stroke-linecap: round; opacity: .5; stroke-dasharray: 260; animation: db-draw 1.8s cubic-bezier(.4,0,.2,1) .3s both;"></path>
+              <path d="M198 12 l12 6 -10 9" style="--len: 40; fill: none; stroke: #4B3FD6; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; opacity: .5; stroke-dasharray: 40; animation: db-draw .5s ease 2s both;"></path>
+            </svg>
+            <svg viewBox="0 0 40 40" style="position: absolute; left: 50%; top: 20px; width: 26px; height: 26px; pointer-events: none; animation: db-twinkle 4.2s ease-in-out infinite;">
+              <path d="M20 3 L23.6 15.4 L36 20 L23.6 24.6 L20 37 L16.4 24.6 L4 20 L16.4 15.4 Z" fill="#C08BFF" opacity=".55"></path>
+            </svg>
+            <svg viewBox="0 0 30 30" style="position: absolute; left: 62%; top: 54px; width: 16px; height: 16px; pointer-events: none; animation: db-twinkle 5.6s ease-in-out 1.2s infinite;">
+              <path d="M15 2 L17.6 11.4 L27 15 L17.6 18.6 L15 28 L12.4 18.6 L3 15 L12.4 11.4 Z" fill="#2FB8C6" opacity=".5"></path>
+            </svg>
+          ` }} />
+        )}
+        <View style={{ flexDirection: stack ? 'column' : 'row', gap: 30, alignItems: 'center' }}>
+          <View style={{ flex: 1 }}>
+            <View style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(75,63,168,.10)', borderRadius: 100, paddingVertical: 7, paddingHorizontal: 13 }}>
+              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#3B2FA8' }} />
+              <Text style={{ fontSize: 11, fontFamily: FONTS.bold, letterSpacing: 1.5, color: '#3B2FA8' }}>THIS WEEK</Text>
+            </View>
+            <View style={{ marginTop: 16, marginBottom: 10 }}>
+              <Text style={{ fontSize: 33, fontFamily: FONTS.bold, letterSpacing: -1.4, lineHeight: 38, color: '#141726' }}>You're 8% closer than last Monday.</Text>
+            </View>
+            <Text style={{ fontSize: 15.5, lineHeight: 24, color: '#4A4F63', maxWidth: 520 }}>Three actions left before Friday's referral window closes. Agent K has ordered them by impact.</Text>
+            <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap', marginTop: 22 }}>
+               <Pressable style={{ backgroundColor: '#4B3FD6', borderRadius: 11, paddingVertical: 13, paddingHorizontal: 22 }}>
+                  <Text style={{ fontSize: 14, fontFamily: FONTS.bold, color: '#FFFFFF' }}>Open today's plan</Text>
+               </Pressable>
+               <Pressable style={{ borderColor: '#CFC9F3', borderWidth: 1, borderRadius: 11, paddingVertical: 13, paddingHorizontal: 22 }}>
+                  <Text style={{ fontSize: 14, fontFamily: FONTS.semi, color: '#2E2A55' }}>See what changed</Text>
+               </Pressable>
+            </View>
+          </View>
+          
+          {!stack && (
+            <View style={{ flexDirection: 'row', gap: 26 }}>
+              <View>
+                <Text style={{ fontSize: 10.5, fontFamily: FONTS.bold, letterSpacing: 1.3, color: '#5F6474', marginBottom: 8 }}>READINESS</Text>
+                <Text style={{ fontSize: 30, fontFamily: FONTS.bold, letterSpacing: -1.1, color: '#4B3FD6' }}>36%</Text>
+                <Text style={{ fontSize: 12, color: '#047857', marginTop: 5 }}>↗ +8 pts</Text>
+              </View>
+              <View>
+                <Text style={{ fontSize: 10.5, fontFamily: FONTS.bold, letterSpacing: 1.3, color: '#5F6474', marginBottom: 8 }}>MATCHES</Text>
+                <Text style={{ fontSize: 30, fontFamily: FONTS.bold, letterSpacing: -1.1, color: '#0E6E8C' }}>267</Text>
+                <Text style={{ fontSize: 12, color: '#6B7080', marginTop: 5 }}>12 new</Text>
+              </View>
+              <View>
+                <Text style={{ fontSize: 10.5, fontFamily: FONTS.bold, letterSpacing: 1.3, color: '#5F6474', marginBottom: 8 }}>SESSIONS</Text>
+                <Text style={{ fontSize: 30, fontFamily: FONTS.bold, letterSpacing: -1.1, color: '#A21C63' }}>1</Text>
+                <Text style={{ fontSize: 12, color: '#6B7080', marginTop: 5 }}>Thu 6pm</Text>
+              </View>
+            </View>
+          )}
         </View>
-        <GradientButton size="md" onPress={() => onNavigate?.('approvals')}>
-          <CheckCircle size={14} color="#fff" />
-          <Text style={s.heroPrimaryText}>Review Approvals</Text>
-        </GradientButton>
-        <SecondaryButton size="md" onPress={() => onNavigate?.('analytics')}>
-          <FileText size={14} color={SAC.muted} />
-          <Text style={s.heroSecText}>Full Report</Text>
-        </SecondaryButton>
+      </View>
+
+      {/* Echo Promo Banner */}
+      <View className="sa-banner" style={{ borderRadius: 20, overflow: 'hidden', borderColor: '#3B2B7A', borderWidth: 1, minHeight: stack ? 200 : 300, marginBottom: 18, backgroundImage: 'linear-gradient(115deg, #5A2DBE 0%, #6B34D6 42%, #4A1F9E 100%)' } as any}>
+         <View style={{ flexDirection: stack ? 'column' : 'row', alignItems: 'stretch', flex: 1 }}>
+           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 24, paddingVertical: 28, paddingHorizontal: 22, paddingLeft: 30, flex: 1.35 }}>
+             <View style={{ backgroundColor: '#FFFFFF', borderRadius: 14, paddingVertical: 22, paddingHorizontal: 18, alignItems: 'center' }}>
+                <Text style={{ fontSize: 34, fontFamily: FONTS.bold, lineHeight: 34, color: '#2B6CB0', letterSpacing: -1 }}>HackWave</Text>
+                <Text style={{ fontSize: 40, fontFamily: FONTS.bold, lineHeight: 40, color: '#2B6CB0', letterSpacing: -1 }}>3.0</Text>
+                <Text style={{ fontSize: 26, fontFamily: FONTS.bold, color: '#C05621', marginTop: 4 }}>2026</Text>
+             </View>
+             <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 12, fontFamily: FONTS.semi, letterSpacing: 3, color: '#E9DDFF', marginBottom: 12 }}>HACKWAVE 3.0 · 2026</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', gap: 10, marginBottom: 10 }}>
+                   <Text style={{ fontSize: 17, fontFamily: FONTS.semi, color: '#F0E7FF' }}>SEP</Text>
+                   <Text style={{ fontSize: 52, fontFamily: FONTS.bold, lineHeight: 52, letterSpacing: -2, color: '#FFFFFF' }}>04</Text>
+                   <Text style={{ fontSize: 34, fontFamily: FONTS.med, color: '#CDB8FF' }}>—</Text>
+                   <Text style={{ fontSize: 52, fontFamily: FONTS.bold, lineHeight: 52, letterSpacing: -2, color: '#E4D6FF' }}>05</Text>
+                   <Text style={{ fontSize: 20, fontFamily: FONTS.semi, color: '#F6C86B' }}>2026</Text>
+                </View>
+                <Text style={{ fontSize: 14.5, color: '#DCCEF7' }}>Sreenidhi Institute of Science and Technology, Hyderabad</Text>
+             </View>
+           </View>
+           
+           {!stack && (
+             <View style={{ borderLeftWidth: 1, borderLeftColor: 'rgba(255,255,255,.14)', padding: 24, justifyContent: 'center', alignItems: 'center', flex: 1 }}>
+                <View style={{ flexDirection: 'row', gap: 12, alignItems: 'stretch', marginBottom: 16 }}>
+                   <View style={{ backgroundColor: '#FFFFFF', borderRadius: 10, paddingVertical: 14, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                      <View style={{ width: 26, height: 26, borderRadius: 4, backgroundColor: '#E8590C' }} />
+                      <View>
+                         <Text style={{ fontSize: 12.5, fontFamily: FONTS.bold, color: '#1A365D', lineHeight: 14 }}>SREENIDHI</Text>
+                         <Text style={{ fontSize: 9, fontFamily: FONTS.semi, color: '#4A5568', letterSpacing: 0.6 }}>EDUCATIONAL GROUP</Text>
+                      </View>
+                   </View>
+                   <View style={{ backgroundColor: '#FFFFFF', borderRadius: 10, padding: 14, alignItems: 'center', justifyContent: 'center' }}>
+                      <Text style={{ fontSize: 8, fontFamily: FONTS.semi, color: '#718096', letterSpacing: 0.8 }}>POWERED BY</Text>
+                      <Text style={{ fontSize: 11, fontFamily: FONTS.bold, color: '#B7791F', marginTop: 3 }}>CDC</Text>
+                   </View>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                   <Text style={{ fontSize: 10.5, fontFamily: FONTS.semi, letterSpacing: 1.8, color: '#C9B4F5' }}>IN COLLABORATION WITH</Text>
+                   {Platform.OS === 'web' && (
+                      <div dangerouslySetInnerHTML={{ __html: `<svg width="22" height="25" viewBox="0 0 300 350"><path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="#FFFFFF"></path><text x="150" y="210" text-anchor="middle" style="font-family: 'Outfit', sans-serif; font-size: 120px; font-weight: 700; fill: #5A2DBE;">SA</text></svg>` }} />
+                   )}
+                   <Text style={{ fontSize: 15, fontFamily: FONTS.semi, color: '#FFFFFF' }}>Student Alumni</Text>
+                   <Text style={{ fontSize: 12.5, color: '#C9B4F5' }}>studentalumni.ai</Text>
+                </View>
+             </View>
+           )}
+         </View>
       </View>
 
       {/* 8 KPI tiles in 2 rows */}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-        {KPIS.map((k) => {
+        {KPIS_MAPPED.map((k) => {
           const Icon = KPI_ICONS[k.icon] || Building2;
           const isUp = (k.delta || '').includes('↑');
           return (
-            <KpiTile
+            <View
               key={k.id}
-              Icon={Icon}
-              label={k.label}
-              value={k.value}
-              delta={k.delta}
-              deltaKind={isUp ? 'success' : 'neutral'}
-            />
+              className="db-tile sa-stat-card"
+              style={[s.card, { width: stack ? '100%' : '23.5%', minWidth: 200, padding: 18, overflow: 'hidden' }]}
+            >
+              <View style={{ position: 'relative', zIndex: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                   <Icon size={18} color={T.dim} />
+                </View>
+                <View style={{ marginTop: 14 }}>
+                   <Text style={{ fontFamily: FONTS.med, fontSize: 13, color: T.muted }}>{k.label}</Text>
+                   <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 4 }}>
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 24, letterSpacing: -0.5, color: T.text }}>{k.value}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isUp ? T.okTint : T.bg2, paddingHorizontal: 6, paddingVertical: 4, borderRadius: 6 }}>
+                         {isUp && <TrendingUp size={12} color={T.ok} style={{ marginRight: 4 }} />}
+                         <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: isUp ? T.ok : T.dim }}>{k.delta.replace('↑ ', '')}</Text>
+                      </View>
+                   </View>
+                </View>
+              </View>
+            </View>
           );
         })}
       </View>
@@ -375,33 +558,40 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
       {/* Recent Activity + Platform Users */}
       <View style={{ flexDirection: stack ? 'column' : 'row', gap: 16 }}>
         {/* Recent Activity */}
-        <View style={[s.card, { flex: stack ? undefined : 1.7 }]}>
+        <View style={[s.card, { flex: stack ? undefined : 1.7, overflow: 'hidden' }]} className="db-tile sa-stat-card">
           <View style={s.cardHead}>
             <Text style={s.cardTitle}>Recent Activity</Text>
             <Pressable onPress={() => onNavigate?.('analytics')}><Text style={s.linkRight}>View all →</Text></Pressable>
           </View>
-          <View style={{ gap: 14, marginTop: 14 }}>
-            {RECENT_ACTIVITY.map((a) => {
-              const Icon = ACT_ICONS[a.icon] || Building2;
+          <View style={{ gap: 9 }}>
+            {recentAct.slice(0, 3).map((a: any) => {
+              const isChecked = checkedTasks.includes(a.id);
               return (
-                <View key={a.id} style={s.activityRow}>
-                  <View style={s.activityIcon}><Icon size={14} color={GRAD.to} /></View>
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text numberOfLines={1} style={s.activityText}>{a.text}</Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                      <Text style={s.activitySub}>{a.sub}</Text>
-                      <Text style={s.activityDot}>·</Text>
-                      <Text style={s.activityTime}>{a.time}</Text>
-                    </View>
-                  </View>
-                </View>
+                <Pressable
+                  key={a.id}
+                  className="db-task"
+                  style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start', borderWidth: 1, borderColor: isChecked ? T.violet : T.line2, borderRadius: 12, backgroundColor: isChecked ? 'rgba(124,92,252,0.1)' : T.panel2, padding: 13 }}
+                  onPress={() => setCheckedTasks(prev => prev.includes(a.id) ? prev.filter(x => x !== a.id) : [...prev, a.id])}
+                >
+                   <View className="db-check" style={{ width: 18, height: 18, borderRadius: 6, borderWidth: 1.5, borderColor: isChecked ? T.violet : T.line2, backgroundColor: isChecked ? T.violet : 'transparent', marginTop: 1, alignItems: 'center', justifyContent: 'center' }}>
+                     {isChecked && <CheckCircle size={12} color="#FFF" strokeWidth={3} />}
+                   </View>
+                   <View style={{ flex: 1, minWidth: 0 }}>
+                     <Text style={{ fontFamily: FONTS.semi, fontSize: 14, lineHeight: 20, color: T.text }} numberOfLines={2}>{a.text}</Text>
+                     <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: T.dim, marginTop: 4 }}>{a.sub} · {a.time}</Text>
+                   </View>
+                </Pressable>
               );
             })}
           </View>
+          <Pressable onPress={() => onNavigate?.('users')} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16 }}>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 12.5, color: T.amber }}>{realPending} pending approvals</Text>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 12.5, color: T.muted }}>awaiting review</Text>
+          </Pressable>
         </View>
 
         {/* Platform Users distribution */}
-        <View style={[s.card, { flex: stack ? undefined : 1 }]}>
+        <View style={[s.card, { flex: stack ? undefined : 1, overflow: 'hidden' }]} className="db-tile sa-stat-card">
           <Text style={s.cardTitle}>Platform Users</Text>
           <View style={{ gap: 14, marginTop: 14 }}>
             {PLATFORM_USERS.map((u) => (

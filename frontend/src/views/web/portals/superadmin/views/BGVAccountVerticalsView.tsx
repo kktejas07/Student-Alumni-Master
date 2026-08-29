@@ -24,7 +24,7 @@ import {
   Printer,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SAC, FONTS } from '../tokens';
+import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import {
   GRAD, GradientButton, SecondaryButton, Card, IconBox, SectionLabel,
   SearchField, StatusPill, Toast, useToast, EmptyState, LoadingBox, KpiTile,
@@ -67,6 +67,8 @@ type VerticalType = 'all' | 'real' | 'test' | 'unregistered';
 type LinkedInFilterType = 'all' | 'yes' | 'no';
 
 export function BGVAccountVerticalsView() {
+  const T = useSAC();
+  Object.assign(st, resolveColors(st, T));
   const [bgvTab, setBgvTab] = useState<BGVMainTab>('directory');
   const [vertical, setVertical] = useState<VerticalType>('all');
   const [countryFilter, setCountryFilter] = useState<string>('all');
@@ -1814,7 +1816,7 @@ const st = StyleSheet.create({
     gap: 12,
   },
   title: {
-    color: '#FFFFFF',
+    color: SAC.text,
     fontSize: 22,
     fontWeight: '700',
     fontFamily: FONTS.semiBold,
@@ -1858,7 +1860,7 @@ const st = StyleSheet.create({
     fontWeight: '600',
   },
   mainSubNavTextActive: {
-    color: '#FFFFFF',
+    color: SAC.text,
     fontWeight: '700',
   },
   mainSubNavBadge: {
@@ -1876,7 +1878,7 @@ const st = StyleSheet.create({
     fontWeight: '700',
   },
   mainSubNavBadgeTextActive: {
-    color: '#FFFFFF',
+    color: SAC.text,
   },
   workbenchCard: {
     backgroundColor: 'rgba(15, 23, 42, 0.85)',
@@ -1904,7 +1906,7 @@ const st = StyleSheet.create({
     alignItems: 'center',
   },
   workbenchTitle: {
-    color: '#FFFFFF',
+    color: SAC.text,
     fontSize: 16,
     fontWeight: '700',
   },
@@ -1982,7 +1984,7 @@ const st = StyleSheet.create({
     fontWeight: '700',
   },
   kpiValue: {
-    color: '#FFFFFF',
+    color: SAC.text,
     fontSize: 24,
     fontWeight: '700',
     fontFamily: FONTS.bold,
@@ -2014,7 +2016,7 @@ const st = StyleSheet.create({
     marginBottom: 12,
   },
   countryDistTitle: {
-    color: '#FFFFFF',
+    color: SAC.text,
     fontSize: 14,
     fontWeight: '700',
   },
@@ -2091,7 +2093,7 @@ const st = StyleSheet.create({
     alignItems: 'center',
   },
   bgvWidgetTitle: {
-    color: '#FFFFFF',
+    color: SAC.text,
     fontSize: 16,
     fontWeight: '700',
   },
@@ -2117,7 +2119,7 @@ const st = StyleSheet.create({
     flex: 1,
     paddingVertical: 10,
     paddingHorizontal: 12,
-    color: '#FFFFFF',
+    color: SAC.text,
     fontSize: 13,
   },
   bgvSearchBtn: {
@@ -2130,7 +2132,7 @@ const st = StyleSheet.create({
     borderRadius: 8,
   },
   bgvSearchBtnText: {
-    color: '#FFFFFF',
+    color: SAC.text,
     fontSize: 13,
     fontWeight: '700',
   },
@@ -2169,7 +2171,7 @@ const st = StyleSheet.create({
     fontWeight: '600',
   },
   tabBtnTextActive: {
-    color: '#FFFFFF',
+    color: SAC.text,
     fontWeight: '700',
   },
   liFilterGroup: {
@@ -2216,7 +2218,7 @@ const st = StyleSheet.create({
   tableSearchInput: {
     paddingVertical: 7,
     paddingHorizontal: 10,
-    color: '#FFFFFF',
+    color: SAC.text,
     fontSize: 12,
     flex: 1,
   },
@@ -2251,7 +2253,7 @@ const st = StyleSheet.create({
     alignItems: 'center',
   },
   tdName: {
-    color: '#FFFFFF',
+    color: SAC.text,
     fontSize: 13,
     fontWeight: '700',
   },
@@ -2504,12 +2506,12 @@ const st = StyleSheet.create({
     borderRadius: 6,
   },
   tierBadgeText: {
-    color: '#FFFFFF',
+    color: SAC.text,
     fontSize: 11,
     fontWeight: '800',
   },
   tierTitle: {
-    color: '#FFFFFF',
+    color: SAC.text,
     fontSize: 14,
     fontWeight: '700',
   },
@@ -2533,7 +2535,7 @@ const st = StyleSheet.create({
     alignItems: 'center',
   },
   providerName: {
-    color: '#FFFFFF',
+    color: SAC.text,
     fontSize: 12,
     fontWeight: '700',
   },
@@ -2590,7 +2592,7 @@ const st = StyleSheet.create({
     alignItems: 'center',
   },
   fakeUniName: {
-    color: '#FFFFFF',
+    color: SAC.text,
     fontSize: 13,
     fontWeight: '700',
   },
@@ -2630,7 +2632,7 @@ const st = StyleSheet.create({
     marginVertical: 12,
   },
   runScanBtnText: {
-    color: '#FFFFFF',
+    color: SAC.text,
     fontSize: 13,
     fontWeight: '700',
   },
@@ -2644,7 +2646,7 @@ const st = StyleSheet.create({
     marginBottom: 12,
   },
   scanResultDossierId: {
-    color: '#FFFFFF',
+    color: SAC.text,
     fontSize: 12,
     fontWeight: '800',
     fontFamily: 'monospace',
@@ -2656,12 +2658,12 @@ const st = StyleSheet.create({
     borderRadius: 6,
   },
   scanRiskPillText: {
-    color: '#FFFFFF',
+    color: SAC.text,
     fontSize: 11,
     fontWeight: '700',
   },
   scanResultRec: {
-    color: '#FFFFFF',
+    color: SAC.text,
     fontSize: 12,
     fontWeight: '600',
     marginTop: 6,
@@ -2677,7 +2679,7 @@ const st = StyleSheet.create({
     marginTop: 10,
   },
   downloadPdfBannerBtnText: {
-    color: '#FFFFFF',
+    color: SAC.text,
     fontSize: 12,
     fontWeight: '700',
   },
@@ -2698,7 +2700,7 @@ const st = StyleSheet.create({
     alignItems: 'center',
   },
   checkTitle: {
-    color: '#FFFFFF',
+    color: SAC.text,
     fontSize: 12,
     fontWeight: '700',
   },
@@ -2727,7 +2729,7 @@ const st = StyleSheet.create({
     borderBottomColor: 'rgba(148, 163, 184, 0.15)',
   },
   bgvModalHeaderTitle: {
-    color: '#FFFFFF',
+    color: SAC.text,
     fontSize: 16,
     fontWeight: '700',
   },
@@ -2793,12 +2795,12 @@ const st = StyleSheet.create({
     alignItems: 'center',
   },
   holoAvatarText: {
-    color: '#FFFFFF',
+    color: SAC.text,
     fontSize: 20,
     fontWeight: '800',
   },
   holoCandidateName: {
-    color: '#FFFFFF',
+    color: SAC.text,
     fontSize: 17,
     fontWeight: '700',
   },
@@ -2904,7 +2906,7 @@ const st = StyleSheet.create({
     marginTop: 10,
   },
   modalCertsSectionTitle: {
-    color: '#FFFFFF',
+    color: SAC.text,
     fontSize: 13,
     fontWeight: '700',
     marginBottom: 8,
@@ -2919,7 +2921,7 @@ const st = StyleSheet.create({
     marginBottom: 6,
   },
   modalCertTitle: {
-    color: '#FFFFFF',
+    color: SAC.text,
     fontSize: 12,
     fontWeight: '600',
   },
@@ -2952,7 +2954,7 @@ const st = StyleSheet.create({
     alignItems: 'center',
   },
   reminderMetricVal: {
-    color: '#FFFFFF',
+    color: SAC.text,
     fontSize: 20,
     fontWeight: '700',
   },
@@ -2975,7 +2977,7 @@ const st = StyleSheet.create({
     marginBottom: 10,
   },
   broadcastTitle: {
-    color: '#FFFFFF',
+    color: SAC.text,
     fontSize: 13,
     fontWeight: '700',
   },
@@ -2994,7 +2996,7 @@ const st = StyleSheet.create({
     borderRadius: 8,
   },
   broadcastBtnText: {
-    color: '#FFFFFF',
+    color: SAC.text,
     fontSize: 12,
     fontWeight: '700',
   },
@@ -3014,7 +3016,7 @@ const st = StyleSheet.create({
     borderColor: 'rgba(148, 163, 184, 0.2)',
     paddingHorizontal: 12,
     paddingVertical: 9,
-    color: '#FFFFFF',
+    color: SAC.text,
     fontSize: 13,
     flex: 1,
   },
@@ -3039,7 +3041,7 @@ const st = StyleSheet.create({
     borderRadius: 8,
   },
   btnSaveSettingsText: {
-    color: '#FFFFFF',
+    color: SAC.text,
     fontSize: 13,
     fontWeight: '700',
   },
@@ -3073,7 +3075,7 @@ const st = StyleSheet.create({
     marginBottom: 14,
   },
   purgeModalTitle: {
-    color: '#FFFFFF',
+    color: SAC.text,
     fontSize: 17,
     fontWeight: '700',
     textAlign: 'center',
@@ -3113,7 +3115,7 @@ const st = StyleSheet.create({
     alignItems: 'center',
   },
   purgeConfirmBtnText: {
-    color: '#FFFFFF',
+    color: SAC.text,
     fontSize: 13,
     fontWeight: '700',
   },

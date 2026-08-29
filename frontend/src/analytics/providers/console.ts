@@ -14,7 +14,7 @@ export const ConsoleProvider: AnalyticsProvider = {
   async init(): Promise<void> {
     if (CONFIG.isDev) {
       // eslint-disable-next-line no-console
-      console.info('%c✨ Analytics Core Initialized', 'background:#0d9488;color:#fff;padding:2px 6px;border-radius:3px;font-weight:bold');
+      console.info('%c Analytics Core Initialized', 'background:#0d9488;color:#fff;padding:2px 6px;border-radius:3px;font-weight:bold');
     }
   },
 
@@ -23,7 +23,7 @@ export const ConsoleProvider: AnalyticsProvider = {
 
     // eslint-disable-next-line no-console
     console.groupCollapsed(
-      `%c✨ analytics %c${event}`,
+      `%canalytics %c${event}`,
       'background:#14b8a6;color:#fff;padding:2px 6px;border-radius:3px;font-weight:bold',
       'color:#888;margin-left:6px'
     );
@@ -37,7 +37,7 @@ export const ConsoleProvider: AnalyticsProvider = {
     if (!CONFIG.isDev) return;
     // eslint-disable-next-line no-console
     console.log(
-      `%c✨ analytics identify %c${userId}`,
+      `%canalytics identify %c${userId}`,
       'background:#22c55e;color:#fff;padding:2px 6px;border-radius:3px;font-weight:bold',
       'color:#888;margin-left:6px'
     );
@@ -47,7 +47,7 @@ export const ConsoleProvider: AnalyticsProvider = {
     if (!CONFIG.isDev) return;
     // eslint-disable-next-line no-console
     console.log(
-      '%c✨ analytics user_properties',
+      '%canalytics user_properties',
       'background:#3b82f6;color:#fff;padding:2px 6px;border-radius:3px;font-weight:bold',
       props
     );
@@ -57,7 +57,7 @@ export const ConsoleProvider: AnalyticsProvider = {
     if (!CONFIG.isDev) return;
     // eslint-disable-next-line no-console
     console.log(
-      '%c✨ analytics reset',
+      '%canalytics reset',
       'background:#ef4444;color:#fff;padding:2px 6px;border-radius:3px;font-weight:bold'
     );
   },

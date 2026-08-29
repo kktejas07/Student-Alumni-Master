@@ -304,10 +304,10 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
         let msg = `+${res.skill.weight} ${catLabel} Points`;
         if (delta > 0) msg += `\nCareer Readiness: +${Math.round(delta)}%`;
         if (bLevel !== aLevel) {
-          msg += `\nLevel: ${bLevel} → ${aLevel} 🎉`;
+          msg += `\nLevel: ${bLevel} → ${aLevel} `;
         }
 
-        toast.success('✓ Skill Analyzed', msg);
+        toast.success('Skill Analyzed', msg);
       }
       
     } catch (e: any) {

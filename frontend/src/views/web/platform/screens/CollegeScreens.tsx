@@ -39,7 +39,7 @@ export function CollegeStudents() {
   ];
   return (
     <>
-      <PageHeader title="Student Management 🎓" subtitle="4,820 enrolled students across all departments." />
+      <PageHeader title="Student Management " subtitle="4,820 enrolled students across all departments." />
       <View style={styles.filterRow}>
         <SearchBar placeholder="Search by name, roll no, department…" width={280} />
         {['All Batches', '2022', '2023', '2024', '2025'].map((f, i) => (
@@ -85,12 +85,12 @@ export function CollegeAlumni() {
   const cols3 = width >= 1100 ? 3 : width >= 800 ? 2 : 1;
   return (
     <>
-      <PageHeader title="Alumni Engagement 🤝" subtitle="12,400 alumni registered. 520 active as mentors." />
+      <PageHeader title="Alumni Engagement " subtitle="12,400 alumni registered. 520 active as mentors." />
       <View style={[styles.kpiRow]}>
         {[
-          { emoji: '🌍', label: 'Countries', val: '48', sub: 'Alumni spread globally' },
-          { emoji: '🤝', label: 'Mentors', val: '520', sub: 'Actively mentoring students' },
-          { emoji: '💼', label: 'Jobs Posted', val: '1,240', sub: 'Opportunities shared' },
+          { emoji: '', label: 'Countries', val: '48', sub: 'Alumni spread globally' },
+          { emoji: '', label: 'Mentors', val: '520', sub: 'Actively mentoring students' },
+          { emoji: '', label: 'Jobs Posted', val: '1,240', sub: 'Opportunities shared' },
         ].map((c) => (
           <GlassCard key={c.label} pad={20} style={{ flex: 1, minWidth: 240, flexDirection: 'row', alignItems: 'center', gap: 16 }}>
             <Text style={{ fontSize: 32 }}>{c.emoji}</Text>
@@ -122,7 +122,7 @@ export function CollegeAlumni() {
                     <Text style={{ color: SA.textFaint, fontSize: 11 }} numberOfLines={1}>{m.role} · Batch {m.batch}</Text>
                   </View>
                 </View>
-                <Text style={{ color: SA.purpleLight, fontFamily: SA.fontSemi, fontSize: 11 }}>⭐ {m.rating} · {m.sessions} sessions</Text>
+                <Text style={{ color: SA.purpleLight, fontFamily: SA.fontSemi, fontSize: 11 }}> {m.rating} · {m.sessions} sessions</Text>
               </GlassCard>
             </View>
           ))}
@@ -146,7 +146,7 @@ export function CollegePrograms() {
   ];
   return (
     <>
-      <PageHeader title="Programs 📋" subtitle="Manage departments, courses, and academic programs." />
+      <PageHeader title="Programs " subtitle="Manage departments, courses, and academic programs." />
       <View style={styles.grid}>
         {list.map((p, i) => (
           <View key={i} style={{ width: `${100 / cols}%` as any, padding: 7 }}>
@@ -181,12 +181,12 @@ export function CollegeAnalyticsScreen() {
   const isWide = width >= 1100;
   return (
     <>
-      <PageHeader title="Analytics 📈" subtitle="Real-time data and trends for your institution." />
+      <PageHeader title="Analytics " subtitle="Real-time data and trends for your institution." />
       <View style={[styles.kpiRow]}>
-        <KpiTile emoji="📈" label="Platform Engagement" value="78%" note="↑ 12% vs last semester" />
-        <KpiTile emoji="🎯" label="Career Score (avg)" value="72/100" note="Above national avg" noteColor={SA.purplePale} />
-        <KpiTile emoji="💼" label="Internship Rate" value="89%" note="3rd year students" />
-        <KpiTile emoji="🏆" label="NPS Score" value="72" note="Student satisfaction" noteColor={SA.warn} />
+        <KpiTile emoji="" label="Platform Engagement" value="78%" note="↑ 12% vs last semester" />
+        <KpiTile emoji="" label="Career Score (avg)" value="72/100" note="Above national avg" noteColor={SA.purplePale} />
+        <KpiTile emoji="" label="Internship Rate" value="89%" note="3rd year students" />
+        <KpiTile emoji="" label="NPS Score" value="72" note="Student satisfaction" noteColor={SA.warn} />
       </View>
       <View style={[styles.split, !isWide && { flexDirection: 'column' }]}>
         <GlassCard pad={24} style={{ flex: 1 }}>
@@ -259,14 +259,14 @@ export function CollegeSettings() {
     { label: 'Student milestone alerts', on: false },
   ]);
   const integrations = [
-    { name: 'Coursera API', status: 'Connected', emoji: '✓' },
-    { name: 'LinkedIn API', status: 'Connected', emoji: '✓' },
-    { name: 'edX API', status: 'Connected', emoji: '✓' },
-    { name: 'Internshala API', status: 'Pending', emoji: '⏳' },
+    { name: 'Coursera API', status: 'Connected', emoji: '●' },
+    { name: 'LinkedIn API', status: 'Connected', emoji: '●' },
+    { name: 'edX API', status: 'Connected', emoji: '●' },
+    { name: 'Internshala API', status: 'Pending', emoji: '' },
   ];
   return (
     <>
-      <PageHeader title="Settings ⚙️" subtitle="Manage your institution's profile, integrations, and preferences." />
+      <PageHeader title="Settings " subtitle="Manage your institution's profile, integrations, and preferences." />
       <View style={[styles.split, !isWide && { flexDirection: 'column' }]}>
         <GlassCard pad={24} style={{ flex: 1 }}>
           <SectionLabel>INSTITUTION PROFILE</SectionLabel>

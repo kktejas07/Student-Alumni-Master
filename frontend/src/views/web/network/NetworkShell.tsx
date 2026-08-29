@@ -220,7 +220,7 @@ export function ChatPhonePopup({
               </View>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={s.contactLabel}>Direct Message</Text>
-                <Text style={[s.contactValue, { color: C.text3 }]}>Coming soon ✨</Text>
+                <Text style={[s.contactValue, { color: C.text3 }]}>Coming soon </Text>
               </View>
             </View>
 

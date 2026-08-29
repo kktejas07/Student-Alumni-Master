@@ -42,7 +42,7 @@ export default function FinancialCoach({ open, setOpen }: {
     if (open && messages.length === 0) {
       setMessages([{
         role: 'assistant',
-        text: "Hi! I'm your Financial AI Coach 🪙 Try /scholarships to find matches, /loans to compare rates, or ask me any question about financial services.",
+        text: "Hi! I'm your Financial AI Coach  Try /scholarships to find matches, /loans to compare rates, or ask me any question about financial services.",
       }]);
     }
   }, [open]);
