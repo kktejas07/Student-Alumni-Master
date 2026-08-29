@@ -226,7 +226,7 @@ function EventModal({
               <Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>Cancel</Text>
             </SecondaryButton>
             <GradientButton onPress={save} loading={saving}>
-              <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12 }}>
+              <Text style={{ color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 12 }}>
                 {isEdit ? 'Save changes' : 'Create event'}
               </Text>
             </GradientButton>
@@ -413,9 +413,9 @@ export function EventsView({ sub, onSub }: { sub?: string; onSub?: (s: string) =
 
 const st = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  title: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 16 },
+  title: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 16 },
   sub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 760 },
-  btnText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12 },
+  btnText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 12 },
   secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
   muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
 
@@ -431,7 +431,7 @@ const st = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ boxShadow: '0 6px 24px rgba(0,0,0,0.45)' } as any) : {}),
   },
   cover: { height: 96, borderBottomWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  cTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 14.5, lineHeight: 18 },
+  cTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 14.5, lineHeight: 18 },
   meta: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
   dot: { color: SAC.dim, fontSize: 11 },
   barTrack: { height: 5, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.06)', overflow: 'hidden', marginTop: 2 },
@@ -440,11 +440,11 @@ const st = StyleSheet.create({
   modalBg: { flex: 1, backgroundColor: SAC.panel2, alignItems: 'center', justifyContent: 'center', padding: 20 },
   modalCard: { width: '100%', maxWidth: 560, maxHeight: '92%', backgroundColor: SAC.bg2, borderRadius: 16, borderWidth: 1, borderColor: SAC.border2, overflow: 'hidden' },
   modalHero: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, borderBottomWidth: 1, borderBottomColor: SAC.border },
-  modalTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 15 },
-  input: { flex: 1, color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 13, backgroundColor: SAC.cardSolid, borderRadius: 9, borderWidth: 1, borderColor: SAC.border, paddingHorizontal: 12, paddingVertical: 10 },
+  modalTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15 },
+  input: { flex: 1, color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 13, backgroundColor: SAC.cardSolid, borderRadius: 9, borderWidth: 1, borderColor: SAC.border, paddingHorizontal: 12, paddingVertical: 10 },
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   detailLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5, width: 100 },
-  detailValue: { color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
+  detailValue: { color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
   actionsRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
 });
 
@@ -457,13 +457,13 @@ const mst = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ boxShadow: '0 24px 60px rgba(0,0,0,0.5)' } as any) : {}),
   },
   head: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
-  title: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 15 },
+  title: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15 },
   sub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
   closeBtn: { width: 30, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center',
               backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
   label: { color: SAC.muted, fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 1.4 },
   input: {
-    height: 38, paddingHorizontal: 12, color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 13,
+    height: 38, paddingHorizontal: 12, color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 13,
     backgroundColor: SAC.panel2, borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderRadius: 10,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
   },

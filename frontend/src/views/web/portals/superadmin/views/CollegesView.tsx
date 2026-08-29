@@ -291,7 +291,7 @@ function CollegeCard({ college: c, onOpen, onApprove, onDisable, onRestore, onRe
             <Image source={{ uri: resolveImageUrl(c.logo_url) }} style={s.logo} resizeMode="cover" />
           ) : (
             <View style={[s.logo, { backgroundColor: 'rgba(249,115,22,0.18)', alignItems: 'center', justifyContent: 'center' }]}>
-              <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 19 }}>{c.initials}</Text>
+              <Text style={{ color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 19 }}>{c.initials}</Text>
             </View>
           )}
           <View style={{ flex: 1, minWidth: 0 }}>
@@ -307,7 +307,7 @@ function CollegeCard({ college: c, onOpen, onApprove, onDisable, onRestore, onRe
             )}
           </View>
           <Pressable onPress={(e: any) => { e?.stopPropagation?.(); setMenuOpen((m) => !m); }} style={s.menuTrigger}>
-            <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 14, lineHeight: 14 }}>⋯</Text>
+            <Text style={{ color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 14, lineHeight: 14 }}>⋯</Text>
           </Pressable>
         </View>
 
@@ -372,7 +372,7 @@ function CollegeCard({ college: c, onOpen, onApprove, onDisable, onRestore, onRe
           ) : null}
           {c.linkedin_url ? (
             <Pressable onPress={(e: any) => { e?.stopPropagation?.(); Linking.openURL(c.linkedin_url).catch(() => {}); }} style={[s.socialBtn, { backgroundColor: '#0A66C2' }]}>
-              <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12, letterSpacing: -0.5 }}>in</Text>
+              <Text style={{ color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 12, letterSpacing: -0.5 }}>in</Text>
             </Pressable>
           ) : null}
         </View>
@@ -464,7 +464,7 @@ function CollegeDetail({ college, onClose, onSaved, onError }: any) {
               <Image source={{ uri: resolveImageUrl(c.logo_url) }} style={[s.logo, { width: 48, height: 48 }]} />
             ) : (
               <View style={[s.logo, { width: 48, height: 48, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(249,115,22,0.18)' }]}>
-                <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 15 }}>{c.initials}</Text>
+                <Text style={{ color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15 }}>{c.initials}</Text>
               </View>
             )}
             <View style={{ flex: 1, minWidth: 0 }}>
@@ -599,10 +599,10 @@ function EditRow({ label, value, onChange }: any) {
 /* ─── Styles ─────────────────────────────────────────────────────── */
 const s = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  title: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 16 },
+  title: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 16 },
   sub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 760 },
   muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
-  btnText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12 },
+  btnText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 12 },
   secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
 
   kpiRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
@@ -636,7 +636,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10,
     backgroundColor: 'rgba(249,115,22,0.08)', borderWidth: 1, borderColor: 'rgba(249,115,22,0.22)',
   },
-  statVal: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 14 },
+  statVal: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 14 },
   statLbl: { color: PC_AMBER.muted, fontFamily: FONTS.xbold, fontSize: 9, letterSpacing: 0.8 },
 
   tag: {
@@ -655,7 +655,7 @@ const s = StyleSheet.create({
 
   actionRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16 },
   viewBtn: { height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 },
-  viewBtnText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 13 },
+  viewBtnText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 13 },
   socialBtn: {
     width: 42, height: 42, borderRadius: 10, alignItems: 'center', justifyContent: 'center',
     backgroundColor: '#1F1208', borderColor: PC_AMBER.border, borderWidth: 1,
@@ -678,7 +678,7 @@ const s = StyleSheet.create({
     paddingVertical: 7, paddingHorizontal: 10, borderRadius: 7,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  menuLabel: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12 },
+  menuLabel: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12 },
 
   /* modal */
   modalBg: {
@@ -691,13 +691,13 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ boxShadow: '0 24px 60px rgba(0,0,0,0.7)' } as any) : {}),
   },
   modalHero: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, borderBottomWidth: 1, borderBottomColor: SAC.border },
-  modalTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 15 },
+  modalTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15 },
 
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   detailLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5, width: 110 },
-  detailValue: { color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
+  detailValue: { color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
   input: {
-    flex: 1, color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 13,
+    flex: 1, color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 13,
     backgroundColor: SAC.cardSolid, borderRadius: 9, borderWidth: 1, borderColor: SAC.border,
     paddingHorizontal: 12, paddingVertical: 10,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
@@ -709,6 +709,6 @@ const s = StyleSheet.create({
   skBox: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 6 },
   pagination: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 12, gap: 14 },
   pageBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: SAC.card, borderRadius: 8, borderWidth: 1, borderColor: SAC.border, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  pageBtnText: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12 },
+  pageBtnText: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12 },
   pageInfo: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
 });

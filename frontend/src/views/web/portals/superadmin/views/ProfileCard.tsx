@@ -403,7 +403,7 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, zIndex: 5,
   },
-  newPillText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 9, letterSpacing: 0.8 },
+  newPillText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 9, letterSpacing: 0.8 },
 
   header: { flexDirection: 'row', alignItems: 'flex-start', gap: 14 },
   avatar: {
@@ -411,7 +411,7 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(249,115,22,0.18)',
     alignItems: 'center', justifyContent: 'center',
   },
-  avatarText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 19 },
+  avatarText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 19 },
   statusDot: {
     position: 'absolute', right: -2, bottom: -2,
     width: 14, height: 14, borderRadius: 999,
@@ -484,7 +484,7 @@ const s = StyleSheet.create({
       ? ({ boxShadow: '0 8px 24px rgba(249,115,22,0.35)', transitionDuration: '160ms' } as any)
       : { shadowColor: PC.accent, shadowOpacity: 0.4, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } }),
   },
-  viewBtnText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 13.5, letterSpacing: 0.1 },
+  viewBtnText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 13.5, letterSpacing: 0.1 },
   socialBtn: {
     width: 44, height: 44, borderRadius: 10,
     alignItems: 'center', justifyContent: 'center',
