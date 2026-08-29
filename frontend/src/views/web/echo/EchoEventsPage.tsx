@@ -1605,6 +1605,26 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
               </div>
             </div>
 
+            {/* International Panel Pictures (No Text Names) */}
+            <div style={{ marginBottom: '28px' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 700, letterSpacing: '1.3px', color: '#C4B5FD', background: 'rgba(124,92,252,0.25)', borderRadius: '100px', padding: '6px 14px', marginBottom: '14px' }}>
+                INTERNATIONAL PANEL · CYBER SECURITY CONCLAVE
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+                {[
+                  '/images/hackwave/stan_mierzwa_poster.png',
+                  '/images/hackwave/ken_fishkin_poster.png',
+                  '/images/hackwave/sharon_kelley_poster.png',
+                  '/images/hackwave/jeremy_livingston_poster.png',
+                  '/images/hackwave/suman_kalia_poster.png'
+                ].map((posterUrl, idx) => (
+                  <div key={idx} style={{ border: '1px solid var(--line2)', borderRadius: '16px', overflow: 'hidden', background: '#090B18', aspectRatio: '4/5' }}>
+                    <img src={posterUrl} alt={`International Panel ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  </div>
+                ))}
+              </div>
+            </div>
+
             {/* Voices That Build */}
             <div>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 700, letterSpacing: '1.3px', color: '#38BDF8', background: 'rgba(56,189,248,0.18)', borderRadius: '100px', padding: '6px 14px', marginBottom: '14px' }}>
