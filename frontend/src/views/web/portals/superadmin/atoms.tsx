@@ -11,7 +11,7 @@ export function Av({ initials, size = 38, color }: { initials: string; size?: nu
   Object.assign(styles, resolveColors(styles, T));
   return (
     <View style={{ width: size, height: size, borderRadius: 10, backgroundColor: color || SAC.primary, alignItems: 'center', justifyContent: 'center' }}>
-      <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: size * 0.36 }}>{initials}</Text>
+      <Text style={{ color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: size * 0.36 }}>{initials}</Text>
     </View>
   );
 }
@@ -54,7 +54,7 @@ export function KpiCard({
         {IconComp && <IconComp size={14} color={p.ic} />}
         <Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5, letterSpacing: 0.4 }}>{label}</Text>
       </View>
-      <Text style={{ color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 30, letterSpacing: -0.5 }}>{value}</Text>
+      <Text style={{ color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 30, letterSpacing: -0.5 }}>{value}</Text>
       <Text style={{ color: p.ic, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 }}>{delta}</Text>
     </View>
   );
@@ -72,6 +72,6 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   kpiLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5, letterSpacing: 0.3, marginBottom: 4 },
-  kpiValue: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 26, letterSpacing: -0.5 },
+  kpiValue: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 26, letterSpacing: -0.5 },
   kpiDelta: { fontFamily: FONTS.med, fontSize: 11, marginTop: 4 },
 });

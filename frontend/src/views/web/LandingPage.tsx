@@ -615,7 +615,7 @@ export default function LandingPage({ initialTab, initialEchoSlug }: { initialTa
     
     // Sync browser URL in address bar as /verify, /contact, / without full page reload
     if (typeof window !== 'undefined' && window.history) {
-      const newUrl = newTab === 'home' ? '/' : `/${newTab}`;
+      const newUrl = `/${newTab}`;
       window.history.pushState({ tab: newTab }, '', newUrl);
     }
     

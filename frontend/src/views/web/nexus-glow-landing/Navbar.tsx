@@ -94,6 +94,13 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
     "Built with love for students across all campuses"
   ];
 
+  const tabs = [
+    { key: 'home', label: 'Platform' },
+    { key: 'echo', label: 'Echo Events' },
+    { key: 'verify', label: 'Credential Verification' },
+    { key: 'contact', label: 'Campus Relations' }
+  ] as const;
+
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000 }}>
       {/* ── Top Announcement Marquee Ticker Strip ── */}
