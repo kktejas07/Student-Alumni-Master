@@ -121,38 +121,22 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
           alignItems: 'center',
           width: '100%',
         }}
-      >
-      <div
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 1000,
-          backgroundColor: isDark ? 'rgba(10, 10, 20, 0.94)' : 'rgba(255, 255, 255, 0.94)',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
-          borderBottom: `1px solid ${isDark ? '#1F1F30' : '#E5E5EA'}`,
-          height: '64px',
-          display: 'flex',
-          alignItems: 'center',
-          width: '100%',
-          transition: 'background-color 0.3s ease, border-color 0.3s ease',
-        }}
-      >
-        <div
-          style={{
-            maxWidth: '1400px',
-            width: '100%',
-            margin: '0 auto',
-            padding: isMobile ? '0 16px' : '0 28px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
         >
-          {/* Unified High-Res SA Shield Badge Logo */}
-          <svg width="32" height="38" viewBox="0 0 300 350" style={{ flexShrink: 0, display: 'block', filter: 'drop-shadow(0 2px 8px rgba(139,92,246,0.35))' }}>
+          <button
+            onClick={() => handleTabClick('home')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '11px',
+              cursor: 'pointer',
+              background: 'transparent',
+              border: 'none',
+              padding: 0,
+              textAlign: 'left',
+            }}
+          >
+            {/* Unified High-Res SA Shield Badge Logo */}
+            <svg width="32" height="38" viewBox="0 0 300 350" style={{ flexShrink: 0, display: 'block', filter: 'drop-shadow(0 2px 8px rgba(139,92,246,0.35))' }}>
             <defs>
               <linearGradient id="saNavGrad1" x1="0" y1="0" x2="1" y2="1">
                 <stop offset="0%" stopColor="#C9A7FF" />
@@ -285,9 +269,8 @@ export function Navbar({ activeTab: propActiveTab, onTabChange }: NavbarProps) {
               </>
             )}
           </div>
-        </div>
-      </div>
-    </header>
+        </nav>
+      </header>
     </div>
   );
 }
