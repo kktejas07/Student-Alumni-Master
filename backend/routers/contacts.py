@@ -180,7 +180,11 @@ async def list_contacts(
     imported_cursor = db.contacts.find(contact_query).sort("created_at", -1)
     imported_items = []
     async for doc in imported_cursor:
-        imported_items.append(_ser(doc))
+        item = _ser(doc)
+        if item.get("phone"):
+            from routers.admin.imports import format_e164_phone
+            item["phone"] = format_e164_phone(item["phone"], item.get("location", ""))
+        imported_items.append(item)
         
     # Also fetch registered users if requested
     registered_users = []
@@ -202,11 +206,15 @@ async def list_contacts(
             email = (doc.get("email") or "").strip().lower()
             if not email:
                 continue
+            loc = doc.get("location") or doc.get("city") or ""
+            raw_p = doc.get("phone") or ""
+            from routers.admin.imports import format_e164_phone
+            formatted_p = format_e164_phone(raw_p, loc)
             registered_users.append({
                 "_id": str(doc.get("_id", "")),
                 "name": doc.get("full_name") or email.split("@")[0].title(),
                 "email": email,
-                "phone": doc.get("phone") or "",
+                "phone": formatted_p,
                 "source": "registered",
                 "tags": [doc.get("role", "student")],
                 "role": doc.get("role", "student"),
@@ -217,7 +225,7 @@ async def list_contacts(
                 "updated_at": doc.get("last_login") or doc.get("created_at", ""),
                 "current_company": doc.get("company") or doc.get("current_company") or "",
                 "current_title": doc.get("designation") or doc.get("title") or "",
-                "location": doc.get("location") or doc.get("city") or "",
+                "location": loc,
                 "education_institution": doc.get("college_name") or doc.get("college") or "",
                 "is_registered_user": True,
             })

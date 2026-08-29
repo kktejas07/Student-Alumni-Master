@@ -2759,21 +2759,21 @@ DEFAULT_SHOWCASE_SEED = {
     "videos": [
         {
             "title": "HackWave 3.0 SNIST Official Teaser",
-            "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            "video_url": "https://www.youtube.com/watch?v=M576WGiDBdQ",
             "thumbnail_url": "/images/hackwave/hackwave_main_poster.png",
             "description": "Watch the official teaser for HackWave 3.0 at SNIST — 7 Verticals, ₹2,00,000 Grand Pool.",
             "platform": "youtube"
         },
         {
             "title": "Cyber Security with AI Conclave Teaser",
-            "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            "video_url": "https://www.youtube.com/watch?v=aircAruvnKk",
             "thumbnail_url": "/images/hackwave/hackwave_cybersecurity_conclave.jpg",
             "description": "Keynote highlights featuring ISC2 New Jersey Chapter and international cyber security experts.",
             "platform": "youtube"
         },
         {
             "title": "Build by Sunset — 24-Hour Hackathon Sprint Highlights",
-            "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            "video_url": "https://www.youtube.com/watch?v=9bZkp7q19f0",
             "thumbnail_url": "/images/hackwave/hackwave_techfest_verticals.jpg",
             "description": "Overnight build sprint, tech mentorship, and product showcases live from SNIST campus.",
             "platform": "youtube"
@@ -2931,21 +2931,21 @@ async def get_showcase(slug: str, request: Request):
                     "videos": [
                         {
                             "title": "HackWave 3.0 SNIST Official Teaser",
-                            "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                            "video_url": "https://www.youtube.com/watch?v=M576WGiDBdQ",
                             "thumbnail_url": "/images/hackwave/hackwave_main_poster.png",
                             "description": "Watch the official teaser for HackWave 3.0 at SNIST — 7 Verticals, ₹2,00,000 Grand Pool.",
                             "platform": "youtube"
                         },
                         {
                             "title": "Cyber Security with AI Conclave Teaser",
-                            "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                            "video_url": "https://www.youtube.com/watch?v=aircAruvnKk",
                             "thumbnail_url": "/images/hackwave/hackwave_cybersecurity_conclave.jpg",
                             "description": "Keynote highlights featuring ISC2 New Jersey Chapter and international cyber security experts.",
                             "platform": "youtube"
                         },
                         {
                             "title": "Build by Sunset — 24-Hour Hackathon Sprint Highlights",
-                            "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                            "video_url": "https://www.youtube.com/watch?v=9bZkp7q19f0",
                             "thumbnail_url": "/images/hackwave/hackwave_techfest_verticals.jpg",
                             "description": "Overnight build sprint, tech mentorship, and product showcases live from SNIST campus.",
                             "platform": "youtube"

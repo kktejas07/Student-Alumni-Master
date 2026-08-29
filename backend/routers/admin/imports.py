@@ -1329,6 +1329,36 @@ async def bulk_push_to_talent_pool(body: BulkPushToTalentBody, authorization: Op
 
 
 # ─── Filtered user list (for dashboard tabs / search / spreadsheet grid) ──────────────
+def format_e164_phone(phone: str, location: str = "") -> str:
+    """Format phone number with country code prefix (+91 for India, +1 for US/Canada, etc.)."""
+    if not phone:
+        return ""
+    p = str(phone).strip()
+    if p.startswith("+"):
+        return "+" + "".join(c for c in p[1:] if c.isdigit())
+
+    digits = "".join(c for c in p if c.isdigit())
+    if not digits:
+        return ""
+
+    loc_upper = (location or "").upper()
+    is_us = any(k in loc_upper for k in ["USA", "UNITED STATES", "NEW JERSEY", "NJ", "CALIFORNIA", "CA", "NEW YORK", "NY", "CANADA"])
+
+    if len(digits) == 10:
+        if is_us:
+            return f"+1{digits}"
+        else:
+            return f"+91{digits}"
+    elif len(digits) == 11 and digits.startswith("0"):
+        return f"+91{digits[1:]}"
+    elif len(digits) == 11 and digits.startswith("1"):
+        return f"+{digits}"
+    elif len(digits) == 12 and digits.startswith("91"):
+        return f"+{digits}"
+
+    return f"+{digits}"
+
+
 @router.get("/admin/users/list")
 async def list_users(
     category: Optional[str] = None,
@@ -1459,7 +1489,8 @@ async def list_users(
         company = u.get("company") or u.get("current_company") or (u.get("alumni_info") or {}).get("alumni_employer") or ""
         title = u.get("designation") or u.get("current_title") or u.get("headline") or (u.get("mentor_profile") or {}).get("job_title") or ""
         location = u.get("location") or u.get("city") or ""
-        phone = u.get("phone") or ""
+        raw_phone = u.get("phone") or ""
+        phone = format_e164_phone(raw_phone, location)
 
         c_points = 0
         max_points = 8
@@ -1523,21 +1554,15 @@ async def list_users(
             "linkedin_url": u.get("linkedin_url") or u.get("profile_url"),
         })
 
-    # Sort so complete profiles & registered users appear FIRST
-    combined_items.sort(key=lambda x: (
-        1 if x["is_registered"] else 0,
-        x["completeness_score"],
-        1 if x["email"] else 0,
-        1 if x["name"] and x["name"] != "—" else 0,
-        x["created_at"] or ""
-    ), reverse=True)
+    # Sort strictly by created_at DESC (newest uploaded contacts shown FIRST in the top row)
+    combined_items.sort(key=lambda x: str(x.get("created_at") or ""), reverse=True)
 
     # Global Total
     total_count = len(combined_items)
     
     # Calculate counts for KPI tiles
-    all_users_docs = await _db.users.find({"archived": {"$ne": True}}).to_list(10000)
-    all_contacts_docs = await _db.contacts.find().to_list(10000)
+    all_users_docs = await _db.users.find({"archived": {"$ne": True}}).to_list(100000)
+    all_contacts_docs = await _db.contacts.find().to_list(100000)
     
     cat_tally = {"student": 0, "alumni": 0, "mentor": 0, "masters": 0, "all": 0, "pending_approval": 0}
     seen_kpi_emails = set()
