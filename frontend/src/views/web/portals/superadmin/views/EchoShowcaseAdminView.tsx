@@ -25,10 +25,10 @@ function CustomVideosEditor({ videos, onChange }: { videos: any[]; onChange: (v:
     onChange([
       ...(videos || []),
       {
-        title: 'New Video Clip / Reel',
-        video_url: '',
-        thumbnail_url: '',
-        description: '',
+        title: 'SNIST HackWave Official Teaser',
+        video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        thumbnail_url: '/images/hackwave/hackwave_main_poster.png',
+        description: 'Watch the official teaser video for HackWave 3.0 at SNIST campus.',
         platform: 'youtube',
       },
     ]);
