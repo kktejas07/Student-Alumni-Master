@@ -181,8 +181,36 @@ import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import { api, resolveImageUrl } from '@/src/models/services/api';
 import { useConfirm } from '@/src/views/components';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
-import { useSubTab } from '@/src/views/web/portals/portalUrl';
 import { DarkDropdown } from '@/src/views/web/components/DarkDropdown';
+import { getBaseUrl } from '@/src/lib/env';
+
+export const triggerExportCsv = (slugVal?: string, statusVal?: string) => {
+  let base = '';
+  try {
+    base = getBaseUrl();
+  } catch {}
+  if (!base || base === '') {
+    if (typeof window !== 'undefined') {
+      const hn = window.location.hostname;
+      if (hn === 'localhost' || hn === '127.0.0.1') {
+        base = `${window.location.protocol}//${hn}:8000`;
+      } else {
+        base = window.location.origin;
+      }
+    }
+  }
+  if (!base) base = 'http://localhost:8000';
+
+  const params: string[] = [];
+  if (slugVal && slugVal !== 'all') params.push(`slug=${encodeURIComponent(slugVal)}`);
+  if (statusVal && statusVal !== 'all') params.push(`status=${encodeURIComponent(statusVal)}`);
+  const queryStr = params.length > 0 ? `?${params.join('&')}` : '';
+
+  const exportUrl = `${base}/api/echo/admin/export-csv${queryStr}`;
+  if (typeof window !== 'undefined') {
+    window.open(exportUrl, '_blank');
+  }
+};
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const STATUS_PILL_MAP: Record<string, any> = {
@@ -3575,13 +3603,7 @@ function RegistrationsPanel() {
         />
         <SecondaryButton onPress={load}><RefreshCw size={12} color={SAC.muted} /><Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12, marginLeft: 6 }}>Refresh</Text></SecondaryButton>
         <Pressable
-          onPress={() => {
-            const apiBase = (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_API_URL) || 'http://localhost:8000';
-            const exportUrl = `${apiBase}/api/echo/admin/export-csv`;
-            if (typeof window !== 'undefined') {
-              window.open(exportUrl, '_blank');
-            }
-          }}
+          onPress={() => triggerExportCsv()}
           style={{
             flexDirection: 'row', alignItems: 'center', gap: 6,
             backgroundColor: '#059669',
@@ -3593,14 +3615,7 @@ function RegistrationsPanel() {
         </Pressable>
         {eventSlug && eventSlug !== 'all' && (
           <Pressable
-            onPress={() => {
-              const apiBase = (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_API_URL) || 'http://localhost:8000';
-              const statusParam = (status && status !== 'all') ? `&status=${status}` : '';
-              const exportUrl = `${apiBase}/api/echo/admin/export-csv?slug=${eventSlug}${statusParam}`;
-              if (typeof window !== 'undefined') {
-                window.open(exportUrl, '_blank');
-              }
-            }}
+            onPress={() => triggerExportCsv(eventSlug, status)}
             style={{
               flexDirection: 'row', alignItems: 'center', gap: 6,
               backgroundColor: '#4F46E5',

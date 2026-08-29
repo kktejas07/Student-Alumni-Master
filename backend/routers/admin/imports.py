@@ -32,7 +32,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from bson import ObjectId
 from dotenv import load_dotenv
-from fastapi import APIRouter, File, Header, HTTPException, UploadFile
+from fastapi import APIRouter, File, Header, HTTPException, UploadFile, Query
 
 load_dotenv()
 
