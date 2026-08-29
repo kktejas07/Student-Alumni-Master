@@ -25,7 +25,7 @@ function today(): string {
   return new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-export function TopBar({ title = 'Overview' }: { title?: string }) {
+export function TopBar({ title = 'Overview', onAvatarPress }: { title?: string; onAvatarPress?: () => void }) {
   const T = useSAC();
   Object.assign(s, resolveColors(s, T));
   const toast = useToast();
@@ -145,7 +145,9 @@ export function TopBar({ title = 'Overview' }: { title?: string }) {
       <HelpMenu portal="super_admin" />
 
       {/* Avatar */}
-      <Av initials={displayInitials(user)} size={38} color={T.violet} />
+      <Pressable onPress={onAvatarPress} style={Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}}>
+        <Av initials={displayInitials(user)} size={38} color={T.violet} />
+      </Pressable>
     </View>
   );
 }
