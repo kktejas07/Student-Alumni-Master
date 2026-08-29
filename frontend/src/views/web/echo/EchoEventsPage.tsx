@@ -2070,6 +2070,55 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
               </div>
             </div>
 
+            {/* Voices That Build & Leadership Panel */}
+            <div style={{ marginBottom: '28px' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 700, letterSpacing: '1.3px', color: '#38BDF8', background: 'rgba(56,189,248,0.18)', borderRadius: '100px', padding: '6px 14px', marginBottom: '14px' }}>
+                VOICES THAT BUILD · LEADERSHIP & INDUSTRY PANEL
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+                {[
+                  { poster: '/images/hackwave/m_avinash_rao_poster.png', name: 'M Avinash Rao, PMP®', li: 'in/avi-thestoryteller' },
+                  { poster: '/images/hackwave/gopichand_anumolu_poster.png', name: 'Gopichand Anumolu', li: 'in/gopichand-anumolu-83b3801a4' },
+                  { poster: '/images/hackwave/harish_kotra_poster.png', name: 'Harish Kotra', li: 'in/harishkotra' },
+                  { poster: '/images/hackwave/jonna_dheeraj_poster.png', name: 'Jonna Dheeraj', li: 'in/jonna-dheeraj-9a91ab34' },
+                  { poster: '/images/hackwave/venkatesh_hanmantraya_poster.png', name: 'Venkatesh Hanmantraya', li: 'in/venkatesh-hanmantraya-9b9a42101' },
+                  { poster: '/images/hackwave/mohit_bhalla_poster.png', name: 'Mohit Bhalla', li: 'in/mohit-bhalla-9028671a' }
+                ].map((spk, idx) => (
+                  <div key={idx} className="ev-mini" style={{ border: '1px solid var(--line2)', borderRadius: '18px', overflow: 'hidden', background: '#090B18', padding: '10px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div style={{ width: '100%', aspectRatio: '4/5', borderRadius: '14px', overflow: 'hidden', background: '#000' }}>
+                      <img src={spk.poster} alt={spk.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    </div>
+                    {spk.li && (
+                      <a
+                        href={`https://linkedin.com/${spk.li}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          padding: '8px 12px',
+                          background: 'rgba(56, 189, 248, 0.12)',
+                          border: '1px solid rgba(56, 189, 248, 0.3)',
+                          borderRadius: '10px',
+                          color: '#38BDF8',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          textDecoration: 'none',
+                        }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/>
+                        </svg>
+                        Connect on LinkedIn
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
             {/* CMS Grouped Speakers */}
             {Object.keys(catGroups).map((catName) => (
               <div key={catName} style={{ marginBottom: '22px' }}>
