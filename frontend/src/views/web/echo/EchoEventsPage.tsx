@@ -436,11 +436,11 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
       return;
     }
     if (!fullName.trim() || !email.trim()) {
-      alert('Please enter your full name and email to proceed.');
+      showToast('Please enter your full name and email to proceed.');
       return;
     }
     if (isTeam && !teamName.trim()) {
-      alert('Please enter a team name to proceed.');
+      showToast('Please enter a team name to proceed.');
       return;
     }
     setShowTermsErr(false);
@@ -480,7 +480,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
         // Fail-closed for paid events if order creation fails (e.g. 503 from backend)
         if (calculatedTotalFee > 0) {
           setIsPaying(false);
-          alert(err?.message || err?.detail || 'Online payments are temporarily unavailable — please try again later');
+          showToast(err?.message || err?.detail || 'Online payments are temporarily unavailable — please try again later');
           return;
         }
       }
@@ -588,14 +588,14 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
           const rzp = new (window as any).Razorpay(options);
           rzp.on('payment.failed', function (failResp: any) {
             setIsPaying(false);
-            alert(failResp?.error?.description || 'Payment was cancelled or failed. Please try again.');
+            showToast(failResp?.error?.description || 'Payment was cancelled or failed. Please try again.');
           });
           rzp.open();
           return;
         } else {
           // If SDK fails to load, fail-closed for paid events
           setIsPaying(false);
-          alert('Could not load payment gateway. Please check your connection and try again.');
+          showToast('Could not load payment gateway. Please check your connection and try again.');
           return;
         }
       }
@@ -603,7 +603,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
       // If it's a paid event and we reached here (no order_id or not web), fail closed
       if (calculatedTotalFee > 0) {
         setIsPaying(false);
-        alert('Payment cannot be processed at this time.');
+        showToast('Payment cannot be processed at this time.');
         return;
       }
 
