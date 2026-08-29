@@ -181,6 +181,7 @@ import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
 import { api, resolveImageUrl } from '@/src/models/services/api';
 import { useConfirm } from '@/src/views/components';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { useSubTab } from '@/src/views/web/portals/portalUrl';
 import { DarkDropdown } from '@/src/views/web/components/DarkDropdown';
 import { getBaseUrl } from '@/src/lib/env';
 
