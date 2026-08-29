@@ -1824,7 +1824,6 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
               );
             }
 
-            // ── Default: Grid ──
             return (
               <div style={{ marginBottom: '30px' }}>
                 <div className="ev-detail-section-title" style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-.4px', marginBottom: '16px', color: '#FFFFFF' }}>Official Event Posters & Gallery</div>
@@ -1842,18 +1841,20 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--violet-lt)" strokeWidth="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
                 Official Event Teasers & Videos
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '18px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 360px))', gap: '16px', justifyContent: 'flex-start' }}>
                 {activeEvent.videos.map((vid: any, vidx: number) => {
                   let url = typeof vid === 'string' ? vid : (vid?.video_url || vid?.url || '');
-                  // If url is empty or is a legacy YouTube URL, convert to native video clip source
-                  if (!url || !url.trim() || url.includes('youtube.com') || url.includes('youtu.be') || url.includes('dQw4w9WgXcQ')) {
-                    const nativeFallbacks = [
-                      '/videos/hackwave_teaser.mp4',
-                      '/videos/cybersecurity_conclave.mp4',
-                      '/videos/build_by_sunset.mp4'
-                    ];
-                    url = nativeFallbacks[vidx % nativeFallbacks.length];
+                  const fallbackVideoUrls = [
+                    'https://www.youtube.com/watch?v=M576WGiDBdQ',
+                    'https://www.youtube.com/watch?v=aircAruvnKk',
+                    'https://www.youtube.com/watch?v=9bZkp7q19f0'
+                  ];
+                  if (!url || !url.trim() || url.includes('dQw4w9WgXcQ')) {
+                    url = fallbackVideoUrls[vidx % fallbackVideoUrls.length];
                   }
+
+                  const isYt = url.includes('youtube.com') || url.includes('youtu.be');
+                  const ytId = isYt ? (url.includes('v=') ? url.split('v=')[1]?.split('&')[0] : url.split('/').pop()) : null;
 
                   let rawTitle = typeof vid === 'object' ? (vid?.title || vid?.name) : '';
                   if (!rawTitle || rawTitle === 'New Video Clip / Reel') {
@@ -1864,7 +1865,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                     ];
                     rawTitle = fallbackTitles[vidx % fallbackTitles.length];
                   }
-                  
+
                   let desc = typeof vid === 'object' ? (vid?.description || '') : '';
                   if (!desc) {
                     const fallbackDescs = [
@@ -1878,19 +1879,29 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                   const thumb = (typeof vid === 'object' ? (vid?.thumbnail_url || vid?.poster) : null) || activeEvent.poster_banner;
 
                   return (
-                    <div key={vidx} style={{ border: '1px solid var(--line2)', borderRadius: '16px', overflow: 'hidden', background: '#070913', padding: '12px' }}>
-                      <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', aspectRatio: '16/9', background: '#000' }}>
-                        <video
-                          controls
-                          playsInline
-                          preload="metadata"
-                          poster={thumb}
-                          src={url}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                        />
+                    <div key={vidx} style={{ border: '1px solid var(--line2)', borderRadius: '14px', overflow: 'hidden', background: '#070913', padding: '10px', maxWidth: '360px', width: '100%' }}>
+                      <div style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', aspectRatio: '16/9', background: '#000' }}>
+                        {isYt && ytId ? (
+                          <iframe
+                            src={`https://www.youtube.com/embed/${ytId}?rel=0`}
+                            title={rawTitle}
+                            style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        ) : (
+                          <video
+                            controls
+                            playsInline
+                            preload="metadata"
+                            poster={thumb}
+                            src={url}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                          />
+                        )}
                       </div>
-                      <div style={{ fontSize: '15px', fontWeight: 700, color: '#FFF', marginTop: '12px' }}>{rawTitle}</div>
-                      {desc ? <div style={{ fontSize: '13px', color: 'var(--muted)', marginTop: '4px' }}>{desc}</div> : null}
+                      <div style={{ fontSize: '14px', fontWeight: 700, color: '#FFF', marginTop: '10px', lineHeight: '1.3' }}>{rawTitle}</div>
+                      {desc ? <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '4px', lineHeight: '1.4' }}>{desc}</div> : null}
                     </div>
                   );
                 })}
