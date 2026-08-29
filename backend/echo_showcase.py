@@ -2759,24 +2759,24 @@ DEFAULT_SHOWCASE_SEED = {
     "videos": [
         {
             "title": "HackWave 3.0 SNIST Official Teaser",
-            "video_url": "https://www.youtube.com/watch?v=M576WGiDBdQ",
+            "video_url": "/videos/hackwave_teaser.mp4",
             "thumbnail_url": "/images/hackwave/hackwave_main_poster.png",
             "description": "Watch the official teaser for HackWave 3.0 at SNIST — 7 Verticals, ₹2,00,000 Grand Pool.",
-            "platform": "youtube"
+            "platform": "mp4"
         },
         {
             "title": "Cyber Security with AI Conclave Teaser",
-            "video_url": "https://www.youtube.com/watch?v=aircAruvnKk",
+            "video_url": "/videos/cybersecurity_conclave.mp4",
             "thumbnail_url": "/images/hackwave/hackwave_cybersecurity_conclave.jpg",
             "description": "Keynote highlights featuring ISC2 New Jersey Chapter and international cyber security experts.",
-            "platform": "youtube"
+            "platform": "mp4"
         },
         {
             "title": "Build by Sunset — 24-Hour Hackathon Sprint Highlights",
-            "video_url": "https://www.youtube.com/watch?v=9bZkp7q19f0",
+            "video_url": "/videos/build_by_sunset.mp4",
             "thumbnail_url": "/images/hackwave/hackwave_techfest_verticals.jpg",
             "description": "Overnight build sprint, tech mentorship, and product showcases live from SNIST campus.",
-            "platform": "youtube"
+            "platform": "mp4"
         }
     ],
     "gallery": [
