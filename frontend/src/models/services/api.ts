@@ -696,8 +696,8 @@ export const api = {
 };
 
 
-export function resolveImageUrl(url?: string | null): string {
-  if (!url) return '';
+export function resolveImageUrl(url?: any): string {
+  if (!url || typeof url !== 'string') return '';
   if (
     url.startsWith('http://') ||
     url.startsWith('https://') ||
