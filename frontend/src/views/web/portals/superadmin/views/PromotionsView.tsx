@@ -667,10 +667,10 @@ function PromoEditor({
  * ────────────────────────────────────────────────────────────────── */
 const s = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  title: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 16 },
+  title: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 16 },
   sub:   { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 720 },
   muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
-  btnText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12 },
+  btnText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 12 },
   secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
 
   filtersRow: { flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' as any },
@@ -709,7 +709,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 7, paddingVertical: 2.5, borderRadius: 999, borderWidth: 1, alignSelf: 'flex-start',
   },
   badgeText: { fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 0.6 },
-  name: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 13.5, flexShrink: 1 },
+  name: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 13.5, flexShrink: 1 },
   bodyText: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, lineHeight: 17 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' as any, marginTop: 2 },
   toneChip: { paddingHorizontal: 8, paddingVertical: 2.5, borderRadius: 999, borderWidth: 1 },
@@ -765,10 +765,10 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 12,
     padding: 18, borderBottomWidth: 1, borderBottomColor: SAC.border,
   },
-  modalTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 15 },
+  modalTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15 },
 
   input: {
-    color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 13,
+    color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 13,
     backgroundColor: SAC.cardSolid, borderRadius: 9, borderWidth: 1, borderColor: SAC.border,
     paddingHorizontal: 12, paddingVertical: 10,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
@@ -833,11 +833,11 @@ const s = StyleSheet.create({
   previewStripe: { position: 'absolute' as any, left: 0, top: 0, bottom: 0, width: 4 },
   previewIcon: { width: 38, height: 38, borderRadius: 11, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   previewImg: { width: 56, height: 40, borderRadius: 8 },
-  previewTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 13 },
+  previewTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 13 },
   previewBody:  { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, lineHeight: 16 },
   previewCta: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8,
   },
-  previewCtaText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 11.5 },
+  previewCtaText: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 11.5 },
 });

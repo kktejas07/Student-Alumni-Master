@@ -261,6 +261,116 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
       {/* Live counters */}
       <LiveStrip accent={GRAD.to} keys={['users', 'students', 'mentors', 'colleges', 'bookings']} />
 
+      {/* Hero Banner from sa-dashboard-export.html */}
+      <View className="db-r sa-hero" style={{ position: 'relative', overflow: 'hidden', borderRadius: 22, padding: 30, paddingBottom: 32, paddingHorizontal: 34, marginBottom: 18, shadowColor: '#101220', shadowOffset: { width: 0, height: 24 }, shadowOpacity: 0.22, shadowRadius: 60, elevation: 10, backgroundImage: 'linear-gradient(150deg, #FFFFFF 0%, #F4F2FF 44%, #EAF6FA 100%)' } as any}>
+        {Platform.OS === 'web' && (
+          <div dangerouslySetInnerHTML={{ __html: `
+            <div style="position: absolute; right: -6%; top: -46%; width: 460px; height: 460px; border-radius: 50%; background: radial-gradient(circle, rgba(124,92,252,.20), transparent 66%); pointer-events: none;"></div>
+            <div style="position: absolute; left: 28%; bottom: -60%; width: 420px; height: 420px; border-radius: 50%; background: radial-gradient(circle, rgba(47,184,198,.16), transparent 68%); pointer-events: none;"></div>
+            <svg viewBox="0 0 220 90" style="position: absolute; right: 26px; bottom: 18px; width: 200px; height: auto; pointer-events: none; overflow: visible;">
+              <path d="M6 70 C 46 70 44 22 84 22 C 118 22 116 58 150 54 C 178 51 186 30 208 16" style="--len: 260; fill: none; stroke: #4B3FD6; stroke-width: 2.4; stroke-linecap: round; opacity: .5; stroke-dasharray: 260; animation: db-draw 1.8s cubic-bezier(.4,0,.2,1) .3s both;"></path>
+              <path d="M198 12 l12 6 -10 9" style="--len: 40; fill: none; stroke: #4B3FD6; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; opacity: .5; stroke-dasharray: 40; animation: db-draw .5s ease 2s both;"></path>
+            </svg>
+            <svg viewBox="0 0 40 40" style="position: absolute; left: 50%; top: 20px; width: 26px; height: 26px; pointer-events: none; animation: db-twinkle 4.2s ease-in-out infinite;">
+              <path d="M20 3 L23.6 15.4 L36 20 L23.6 24.6 L20 37 L16.4 24.6 L4 20 L16.4 15.4 Z" fill="#C08BFF" opacity=".55"></path>
+            </svg>
+            <svg viewBox="0 0 30 30" style="position: absolute; left: 62%; top: 54px; width: 16px; height: 16px; pointer-events: none; animation: db-twinkle 5.6s ease-in-out 1.2s infinite;">
+              <path d="M15 2 L17.6 11.4 L27 15 L17.6 18.6 L15 28 L12.4 18.6 L3 15 L12.4 11.4 Z" fill="#2FB8C6" opacity=".5"></path>
+            </svg>
+          ` }} />
+        )}
+        <View style={{ flexDirection: stack ? 'column' : 'row', gap: 30, alignItems: 'center' }}>
+          <View style={{ flex: 1 }}>
+            <View style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(75,63,168,.10)', borderRadius: 100, paddingVertical: 7, paddingHorizontal: 13 }}>
+              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#3B2FA8' }} />
+              <Text style={{ fontSize: 11, fontFamily: FONTS.bold, letterSpacing: 1.5, color: '#3B2FA8' }}>THIS WEEK</Text>
+            </View>
+            <View style={{ marginTop: 16, marginBottom: 10 }}>
+              <Text style={{ fontSize: 33, fontFamily: FONTS.bold, letterSpacing: -1.4, lineHeight: 38, color: '#141726' }}>You're 8% closer than last Monday.</Text>
+            </View>
+            <Text style={{ fontSize: 15.5, lineHeight: 24, color: '#4A4F63', maxWidth: 520 }}>Three actions left before Friday's referral window closes. Agent K has ordered them by impact.</Text>
+            <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap', marginTop: 22 }}>
+               <Pressable style={{ backgroundColor: '#4B3FD6', borderRadius: 11, paddingVertical: 13, paddingHorizontal: 22 }}>
+                  <Text style={{ fontSize: 14, fontFamily: FONTS.bold, color: '#FFFFFF' }}>Open today's plan</Text>
+               </Pressable>
+               <Pressable style={{ borderColor: '#CFC9F3', borderWidth: 1, borderRadius: 11, paddingVertical: 13, paddingHorizontal: 22 }}>
+                  <Text style={{ fontSize: 14, fontFamily: FONTS.semi, color: '#2E2A55' }}>See what changed</Text>
+               </Pressable>
+            </View>
+          </View>
+          
+          {!stack && (
+            <View style={{ flexDirection: 'row', gap: 26 }}>
+              <View>
+                <Text style={{ fontSize: 10.5, fontFamily: FONTS.bold, letterSpacing: 1.3, color: '#5F6474', marginBottom: 8 }}>READINESS</Text>
+                <Text style={{ fontSize: 30, fontFamily: FONTS.bold, letterSpacing: -1.1, color: '#4B3FD6' }}>36%</Text>
+                <Text style={{ fontSize: 12, color: '#047857', marginTop: 5 }}>↗ +8 pts</Text>
+              </View>
+              <View>
+                <Text style={{ fontSize: 10.5, fontFamily: FONTS.bold, letterSpacing: 1.3, color: '#5F6474', marginBottom: 8 }}>MATCHES</Text>
+                <Text style={{ fontSize: 30, fontFamily: FONTS.bold, letterSpacing: -1.1, color: '#0E6E8C' }}>267</Text>
+                <Text style={{ fontSize: 12, color: '#6B7080', marginTop: 5 }}>12 new</Text>
+              </View>
+              <View>
+                <Text style={{ fontSize: 10.5, fontFamily: FONTS.bold, letterSpacing: 1.3, color: '#5F6474', marginBottom: 8 }}>SESSIONS</Text>
+                <Text style={{ fontSize: 30, fontFamily: FONTS.bold, letterSpacing: -1.1, color: '#A21C63' }}>1</Text>
+                <Text style={{ fontSize: 12, color: '#6B7080', marginTop: 5 }}>Thu 6pm</Text>
+              </View>
+            </View>
+          )}
+        </View>
+      </View>
+
+      {/* Echo Promo Banner */}
+      <View className="sa-banner" style={{ borderRadius: 20, overflow: 'hidden', borderColor: '#3B2B7A', borderWidth: 1, minHeight: stack ? 200 : 300, marginBottom: 18, backgroundImage: 'linear-gradient(115deg, #5A2DBE 0%, #6B34D6 42%, #4A1F9E 100%)' } as any}>
+         <View style={{ flexDirection: stack ? 'column' : 'row', alignItems: 'stretch', flex: 1 }}>
+           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 24, paddingVertical: 28, paddingHorizontal: 22, paddingLeft: 30, flex: 1.35 }}>
+             <View style={{ backgroundColor: '#FFFFFF', borderRadius: 14, paddingVertical: 22, paddingHorizontal: 18, alignItems: 'center' }}>
+                <Text style={{ fontSize: 34, fontFamily: FONTS.bold, lineHeight: 34, color: '#2B6CB0', letterSpacing: -1 }}>HackWave</Text>
+                <Text style={{ fontSize: 40, fontFamily: FONTS.bold, lineHeight: 40, color: '#2B6CB0', letterSpacing: -1 }}>3.0</Text>
+                <Text style={{ fontSize: 26, fontFamily: FONTS.bold, color: '#C05621', marginTop: 4 }}>2026</Text>
+             </View>
+             <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 12, fontFamily: FONTS.semi, letterSpacing: 3, color: '#E9DDFF', marginBottom: 12 }}>HACKWAVE 3.0 · 2026</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', gap: 10, marginBottom: 10 }}>
+                   <Text style={{ fontSize: 17, fontFamily: FONTS.semi, color: '#F0E7FF' }}>SEP</Text>
+                   <Text style={{ fontSize: 52, fontFamily: FONTS.bold, lineHeight: 52, letterSpacing: -2, color: '#FFFFFF' }}>04</Text>
+                   <Text style={{ fontSize: 34, fontFamily: FONTS.med, color: '#CDB8FF' }}>—</Text>
+                   <Text style={{ fontSize: 52, fontFamily: FONTS.bold, lineHeight: 52, letterSpacing: -2, color: '#E4D6FF' }}>05</Text>
+                   <Text style={{ fontSize: 20, fontFamily: FONTS.semi, color: '#F6C86B' }}>2026</Text>
+                </View>
+                <Text style={{ fontSize: 14.5, color: '#DCCEF7' }}>Sreenidhi Institute of Science and Technology, Hyderabad</Text>
+             </View>
+           </View>
+           
+           {!stack && (
+             <View style={{ borderLeftWidth: 1, borderLeftColor: 'rgba(255,255,255,.14)', padding: 24, justifyContent: 'center', alignItems: 'center', flex: 1 }}>
+                <View style={{ flexDirection: 'row', gap: 12, alignItems: 'stretch', marginBottom: 16 }}>
+                   <View style={{ backgroundColor: '#FFFFFF', borderRadius: 10, paddingVertical: 14, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                      <View style={{ width: 26, height: 26, borderRadius: 4, backgroundColor: '#E8590C' }} />
+                      <View>
+                         <Text style={{ fontSize: 12.5, fontFamily: FONTS.bold, color: '#1A365D', lineHeight: 14 }}>SREENIDHI</Text>
+                         <Text style={{ fontSize: 9, fontFamily: FONTS.semi, color: '#4A5568', letterSpacing: 0.6 }}>EDUCATIONAL GROUP</Text>
+                      </View>
+                   </View>
+                   <View style={{ backgroundColor: '#FFFFFF', borderRadius: 10, padding: 14, alignItems: 'center', justifyContent: 'center' }}>
+                      <Text style={{ fontSize: 8, fontFamily: FONTS.semi, color: '#718096', letterSpacing: 0.8 }}>POWERED BY</Text>
+                      <Text style={{ fontSize: 11, fontFamily: FONTS.bold, color: '#B7791F', marginTop: 3 }}>CDC</Text>
+                   </View>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                   <Text style={{ fontSize: 10.5, fontFamily: FONTS.semi, letterSpacing: 1.8, color: '#C9B4F5' }}>IN COLLABORATION WITH</Text>
+                   {Platform.OS === 'web' && (
+                      <div dangerouslySetInnerHTML={{ __html: `<svg width="22" height="25" viewBox="0 0 300 350"><path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="#FFFFFF"></path><text x="150" y="210" text-anchor="middle" style="font-family: 'Outfit', sans-serif; font-size: 120px; font-weight: 700; fill: #5A2DBE;">SA</text></svg>` }} />
+                   )}
+                   <Text style={{ fontSize: 15, fontFamily: FONTS.semi, color: '#FFFFFF' }}>Student Alumni</Text>
+                   <Text style={{ fontSize: 12.5, color: '#C9B4F5' }}>studentalumni.ai</Text>
+                </View>
+             </View>
+           )}
+         </View>
+      </View>
+
       {/* Ad Manager — multi-ad management */}
       <View style={s.adManagerWrap}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -287,10 +397,10 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
                     resizeMode="cover"
                   />
                   <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={{ color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 11 }} numberOfLines={1}>
+                    <Text style={{ color: T.text, fontFamily: FONTS.bold, fontSize: 11 }} numberOfLines={1}>
                       {ad.label}
                     </Text>
-                    <Text style={{ color: SAC.muted, fontSize: 9 }} numberOfLines={1}>
+                    <Text style={{ color: T.muted, fontSize: 9 }} numberOfLines={1}>
                       {ad.redirect_url}
                     </Text>
                   </View>
@@ -406,123 +516,13 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
               style={[s.adSaveBtn, (adSaving || !hasSavableItems) && { opacity: 0.5 }]}
             >
               <Save size={14} color="#fff" />
-              <Text style={{ color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12 }}>
+              <Text style={{ color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 12 }}>
                 {adSaving ? 'Saving...' : editingAdIdx !== null ? 'Save Advertisement' : `Save Advertisement${editorItems.length > 1 ? 's' : ''}`}
               </Text>
             </Pressable>
           </View>
         </View>
       )}
-
-      {/* Hero Banner from sa-dashboard-export.html */}
-      <View className="db-r sa-hero" style={{ position: 'relative', overflow: 'hidden', borderRadius: 22, padding: 30, paddingBottom: 32, paddingHorizontal: 34, marginBottom: 18, shadowColor: '#101220', shadowOffset: { width: 0, height: 24 }, shadowOpacity: 0.22, shadowRadius: 60, elevation: 10, backgroundImage: 'linear-gradient(150deg, #FFFFFF 0%, #F4F2FF 44%, #EAF6FA 100%)' } as any}>
-        {Platform.OS === 'web' && (
-          <div dangerouslySetInnerHTML={{ __html: `
-            <div style="position: absolute; right: -6%; top: -46%; width: 460px; height: 460px; border-radius: 50%; background: radial-gradient(circle, rgba(124,92,252,.20), transparent 66%); pointer-events: none;"></div>
-            <div style="position: absolute; left: 28%; bottom: -60%; width: 420px; height: 420px; border-radius: 50%; background: radial-gradient(circle, rgba(47,184,198,.16), transparent 68%); pointer-events: none;"></div>
-            <svg viewBox="0 0 220 90" style="position: absolute; right: 26px; bottom: 18px; width: 200px; height: auto; pointer-events: none; overflow: visible;">
-              <path d="M6 70 C 46 70 44 22 84 22 C 118 22 116 58 150 54 C 178 51 186 30 208 16" style="--len: 260; fill: none; stroke: #4B3FD6; stroke-width: 2.4; stroke-linecap: round; opacity: .5; stroke-dasharray: 260; animation: db-draw 1.8s cubic-bezier(.4,0,.2,1) .3s both;"></path>
-              <path d="M198 12 l12 6 -10 9" style="--len: 40; fill: none; stroke: #4B3FD6; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; opacity: .5; stroke-dasharray: 40; animation: db-draw .5s ease 2s both;"></path>
-            </svg>
-            <svg viewBox="0 0 40 40" style="position: absolute; left: 50%; top: 20px; width: 26px; height: 26px; pointer-events: none; animation: db-twinkle 4.2s ease-in-out infinite;">
-              <path d="M20 3 L23.6 15.4 L36 20 L23.6 24.6 L20 37 L16.4 24.6 L4 20 L16.4 15.4 Z" fill="#C08BFF" opacity=".55"></path>
-            </svg>
-            <svg viewBox="0 0 30 30" style="position: absolute; left: 62%; top: 54px; width: 16px; height: 16px; pointer-events: none; animation: db-twinkle 5.6s ease-in-out 1.2s infinite;">
-              <path d="M15 2 L17.6 11.4 L27 15 L17.6 18.6 L15 28 L12.4 18.6 L3 15 L12.4 11.4 Z" fill="#2FB8C6" opacity=".5"></path>
-            </svg>
-          ` }} />
-        )}
-        <View style={{ flexDirection: stack ? 'column' : 'row', gap: 30, alignItems: 'center' }}>
-          <View style={{ flex: 1 }}>
-            <View style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(75,63,168,.10)', borderRadius: 100, paddingVertical: 7, paddingHorizontal: 13 }}>
-              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#3B2FA8' }} />
-              <Text style={{ fontSize: 11, fontFamily: FONTS.bold, letterSpacing: 1.5, color: '#3B2FA8' }}>THIS WEEK</Text>
-            </View>
-            <View style={{ marginTop: 16, marginBottom: 10 }}>
-              <Text style={{ fontSize: 33, fontFamily: FONTS.bold, letterSpacing: -1.4, lineHeight: 38, color: '#141726' }}>You're 8% closer than last Monday.</Text>
-            </View>
-            <Text style={{ fontSize: 15.5, lineHeight: 24, color: '#4A4F63', maxWidth: 520 }}>Three actions left before Friday's referral window closes. Agent K has ordered them by impact.</Text>
-            <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap', marginTop: 22 }}>
-               <Pressable style={{ backgroundColor: '#4B3FD6', borderRadius: 11, paddingVertical: 13, paddingHorizontal: 22 }}>
-                  <Text style={{ fontSize: 14, fontFamily: FONTS.bold, color: '#FFFFFF' }}>Open today's plan</Text>
-               </Pressable>
-               <Pressable style={{ borderColor: '#CFC9F3', borderWidth: 1, borderRadius: 11, paddingVertical: 13, paddingHorizontal: 22 }}>
-                  <Text style={{ fontSize: 14, fontFamily: FONTS.semi, color: '#2E2A55' }}>See what changed</Text>
-               </Pressable>
-            </View>
-          </View>
-          
-          {!stack && (
-            <View style={{ flexDirection: 'row', gap: 26 }}>
-              <View>
-                <Text style={{ fontSize: 10.5, fontFamily: FONTS.bold, letterSpacing: 1.3, color: '#5F6474', marginBottom: 8 }}>READINESS</Text>
-                <Text style={{ fontSize: 30, fontFamily: FONTS.bold, letterSpacing: -1.1, color: '#4B3FD6' }}>36%</Text>
-                <Text style={{ fontSize: 12, color: '#047857', marginTop: 5 }}>↗ +8 pts</Text>
-              </View>
-              <View>
-                <Text style={{ fontSize: 10.5, fontFamily: FONTS.bold, letterSpacing: 1.3, color: '#5F6474', marginBottom: 8 }}>MATCHES</Text>
-                <Text style={{ fontSize: 30, fontFamily: FONTS.bold, letterSpacing: -1.1, color: '#0E6E8C' }}>267</Text>
-                <Text style={{ fontSize: 12, color: '#6B7080', marginTop: 5 }}>12 new</Text>
-              </View>
-              <View>
-                <Text style={{ fontSize: 10.5, fontFamily: FONTS.bold, letterSpacing: 1.3, color: '#5F6474', marginBottom: 8 }}>SESSIONS</Text>
-                <Text style={{ fontSize: 30, fontFamily: FONTS.bold, letterSpacing: -1.1, color: '#A21C63' }}>1</Text>
-                <Text style={{ fontSize: 12, color: '#6B7080', marginTop: 5 }}>Thu 6pm</Text>
-              </View>
-            </View>
-          )}
-        </View>
-      </View>
-
-      {/* Echo Promo Banner */}
-      <View className="sa-banner" style={{ borderRadius: 20, overflow: 'hidden', borderColor: '#3B2B7A', borderWidth: 1, minHeight: stack ? 200 : 300, marginBottom: 18, backgroundImage: 'linear-gradient(115deg, #5A2DBE 0%, #6B34D6 42%, #4A1F9E 100%)' } as any}>
-         <View style={{ flexDirection: stack ? 'column' : 'row', alignItems: 'stretch', flex: 1 }}>
-           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 24, paddingVertical: 28, paddingHorizontal: 22, paddingLeft: 30, flex: 1.35 }}>
-             <View style={{ backgroundColor: '#FFFFFF', borderRadius: 14, paddingVertical: 22, paddingHorizontal: 18, alignItems: 'center' }}>
-                <Text style={{ fontSize: 34, fontFamily: FONTS.bold, lineHeight: 34, color: '#2B6CB0', letterSpacing: -1 }}>HackWave</Text>
-                <Text style={{ fontSize: 40, fontFamily: FONTS.bold, lineHeight: 40, color: '#2B6CB0', letterSpacing: -1 }}>3.0</Text>
-                <Text style={{ fontSize: 26, fontFamily: FONTS.bold, color: '#C05621', marginTop: 4 }}>2026</Text>
-             </View>
-             <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 12, fontFamily: FONTS.semi, letterSpacing: 3, color: '#E9DDFF', marginBottom: 12 }}>HACKWAVE 3.0 · 2026</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', gap: 10, marginBottom: 10 }}>
-                   <Text style={{ fontSize: 17, fontFamily: FONTS.semi, color: '#F0E7FF' }}>SEP</Text>
-                   <Text style={{ fontSize: 52, fontFamily: FONTS.bold, lineHeight: 52, letterSpacing: -2, color: '#FFFFFF' }}>04</Text>
-                   <Text style={{ fontSize: 34, fontFamily: FONTS.med, color: '#CDB8FF' }}>—</Text>
-                   <Text style={{ fontSize: 52, fontFamily: FONTS.bold, lineHeight: 52, letterSpacing: -2, color: '#E4D6FF' }}>05</Text>
-                   <Text style={{ fontSize: 20, fontFamily: FONTS.semi, color: '#F6C86B' }}>2026</Text>
-                </View>
-                <Text style={{ fontSize: 14.5, color: '#DCCEF7' }}>Sreenidhi Institute of Science and Technology, Hyderabad</Text>
-             </View>
-           </View>
-           
-           {!stack && (
-             <View style={{ borderLeftWidth: 1, borderLeftColor: 'rgba(255,255,255,.14)', padding: 24, justifyContent: 'center', alignItems: 'center', flex: 1 }}>
-                <View style={{ flexDirection: 'row', gap: 12, alignItems: 'stretch', marginBottom: 16 }}>
-                   <View style={{ backgroundColor: '#FFFFFF', borderRadius: 10, paddingVertical: 14, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                      <View style={{ width: 26, height: 26, borderRadius: 4, backgroundColor: '#E8590C' }} />
-                      <View>
-                         <Text style={{ fontSize: 12.5, fontFamily: FONTS.bold, color: '#1A365D', lineHeight: 14 }}>SREENIDHI</Text>
-                         <Text style={{ fontSize: 9, fontFamily: FONTS.semi, color: '#4A5568', letterSpacing: 0.6 }}>EDUCATIONAL GROUP</Text>
-                      </View>
-                   </View>
-                   <View style={{ backgroundColor: '#FFFFFF', borderRadius: 10, padding: 14, alignItems: 'center', justifyContent: 'center' }}>
-                      <Text style={{ fontSize: 8, fontFamily: FONTS.semi, color: '#718096', letterSpacing: 0.8 }}>POWERED BY</Text>
-                      <Text style={{ fontSize: 11, fontFamily: FONTS.bold, color: '#B7791F', marginTop: 3 }}>CDC</Text>
-                   </View>
-                </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                   <Text style={{ fontSize: 10.5, fontFamily: FONTS.semi, letterSpacing: 1.8, color: '#C9B4F5' }}>IN COLLABORATION WITH</Text>
-                   {Platform.OS === 'web' && (
-                      <div dangerouslySetInnerHTML={{ __html: `<svg width="22" height="25" viewBox="0 0 300 350"><path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="#FFFFFF"></path><text x="150" y="210" text-anchor="middle" style="font-family: 'Outfit', sans-serif; font-size: 120px; font-weight: 700; fill: #5A2DBE;">SA</text></svg>` }} />
-                   )}
-                   <Text style={{ fontSize: 15, fontFamily: FONTS.semi, color: '#FFFFFF' }}>Student Alumni</Text>
-                   <Text style={{ fontSize: 12.5, color: '#C9B4F5' }}>studentalumni.ai</Text>
-                </View>
-             </View>
-           )}
-         </View>
-      </View>
 
       {/* 8 KPI tiles in 2 rows */}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
@@ -628,7 +628,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
                     start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
                     style={{ width: '100%', height: h, borderTopLeftRadius: 5, borderTopRightRadius: 5, opacity: isLast ? 1 : 0.7 }}
                   />
-                  <Text style={[s.barMonth, isLast && { color: '#1C1C1E', fontFamily: FONTS.bold }]}>{m.month}</Text>
+                  <Text style={[s.barMonth, isLast && { color: '#F4F4FA', fontFamily: FONTS.bold }]}>{m.month}</Text>
                 </View>
               );
             })}
@@ -667,27 +667,27 @@ const s = StyleSheet.create({
     paddingHorizontal: 22, paddingVertical: 18,
   },
   heroKicker: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 1.2, marginBottom: 6 },
-  heroTitle:  { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 19, letterSpacing: -0.4 },
+  heroTitle:  { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 19, letterSpacing: -0.4 },
   heroPrimary: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 36, borderRadius: 10, backgroundColor: SAC.primary, ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
-  heroPrimaryText: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12 },
+  heroPrimaryText: { color: '#FFFFFF', fontFamily: FONTS.xbold, fontSize: 12 },
   heroSec: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 36, borderRadius: 10, backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
-  heroSecText: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12 },
+  heroSecText: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12 },
 
   card: { backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 14, padding: 18 },
   cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  cardTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 15, letterSpacing: -0.2 },
+  cardTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15, letterSpacing: -0.2 },
   cardSub:   { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 3 },
   linkRight: { color: SAC.accentBright, fontFamily: FONTS.bold, fontSize: 11.5 },
 
   activityRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   activityIcon: { width: 34, height: 34, borderRadius: 9, backgroundColor: 'rgba(245,158,11,0.10)', borderColor: 'rgba(245,158,11,0.30)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  activityText: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 13 },
+  activityText: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 13 },
   activitySub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 },
   activityDot: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11 },
   activityTime: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11 },
 
-  distLabel: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 12.5 },
-  distPct:   { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 12.5 },
+  distLabel: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 12.5 },
+  distPct:   { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 12.5 }},
   distCount: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 5 },
   distTrack: { height: 5, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.04)', overflow: 'hidden' },
   distFill:  { height: '100%', borderRadius: 3 },
@@ -701,12 +701,12 @@ const s = StyleSheet.create({
     backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1,
     borderRadius: 14, padding: 14,
   },
-  adManagerTitle: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 13 },
+  adManagerTitle: { color: '#F4F4FA', fontFamily: FONTS.bold, fontSize: 13 },
   adEditBtn: {
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8,
     backgroundColor: SAC.primary,
   },
-  adEditBtnText: { color: '#1C1C1E', fontFamily: FONTS.bold, fontSize: 11 },
+  adEditBtnText: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 11 }},
 
   adEditorOverlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
@@ -715,17 +715,17 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? { position: 'fixed' } as any : {}),
   },
   adEditorModal: {
-    backgroundColor: '#0E1428', borderColor: SAC.border, borderWidth: 1,
+    backgroundColor: '#101019', borderColor: SAC.border, borderWidth: 1,
     borderRadius: 16, padding: 20, width: '90%', maxWidth: 440,
     gap: 8,
     ...(Platform.OS === 'web' ? { boxShadow: '0 24px 80px rgba(0,0,0,0.60)' } as any : {}),
   },
-  adEditorTitle: { color: '#1C1C1E', fontFamily: FONTS.xbold, fontSize: 15 },
+  adEditorTitle: { color: '#F4F4FA', fontFamily: FONTS.xbold, fontSize: 15 }},
   adFieldLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11, marginTop: 6 },
   adFieldInput: {
     backgroundColor: SAC.bg2, borderColor: SAC.border, borderWidth: 1,
     borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10,
-    color: '#1C1C1E', fontFamily: FONTS.med, fontSize: 13,
+    color: '#F4F4FA', fontFamily: FONTS.med, fontSize: 13,
   },
   adEmptyDrop: {
     alignItems: 'center', gap: 8, paddingVertical: 22, paddingHorizontal: 12,
