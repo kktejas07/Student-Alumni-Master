@@ -2770,6 +2770,13 @@ DEFAULT_SHOWCASE_SEED = {
             "thumbnail_url": "/images/hackwave/hackwave_cybersecurity_conclave.jpg",
             "description": "Keynote highlights featuring ISC2 New Jersey Chapter and international cyber security experts.",
             "platform": "youtube"
+        },
+        {
+            "title": "Build by Sunset — 24-Hour Hackathon Sprint Highlights",
+            "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            "thumbnail_url": "/images/hackwave/hackwave_techfest_verticals.jpg",
+            "description": "Overnight build sprint, tech mentorship, and product showcases live from SNIST campus.",
+            "platform": "youtube"
         }
     ],
     "gallery": [
