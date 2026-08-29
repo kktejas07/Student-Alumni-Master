@@ -2006,26 +2006,29 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 700, letterSpacing: '1.3px', color: '#C4B5FD', background: 'rgba(124,92,252,0.25)', borderRadius: '100px', padding: '6px 14px', marginBottom: '14px' }}>
                 INTERNATIONAL PANEL · CYBER SECURITY CONCLAVE
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
                 {[
-                  { poster: '/images/hackwave/stan_mierzwa_poster.png', name: 'Stan Mierzwa, Ph.D.', title: 'Director, Center for Cybersecurity', org: 'Kean University', location: 'Union, New Jersey, USA', li: 'in/stanmierzwa' },
-                  { poster: '/images/hackwave/ken_fishkin_poster.png', name: 'Ken Fishkin', title: 'President', org: 'ISC2 New Jersey Chapter', location: 'New Jersey, USA', li: 'in/kfishkin' },
-                  { poster: '/images/hackwave/sharon_kelley_poster.png', name: 'Sharon Kelley', title: 'Board Member', org: 'ISC2 New Jersey Chapter (MS, MBA, CISSP, CCSP)', location: 'Hoboken, New Jersey, USA', li: 'in/sharon-kelley-0292181' },
-                  { poster: '/images/hackwave/jeremy_livingston_poster.png', name: 'Jeremy Livingston', title: 'CISO & Deputy CIO', org: 'Stevens Institute of Technology', location: 'Effort, Pennsylvania, USA', li: 'in/jeremylivin' },
-                  { poster: '/images/hackwave/suman_kalia_poster.png', name: 'Suman Kalia', title: 'Associate Professor & Chair, CS', org: "Saint Peter's University", location: 'Jersey City, New Jersey, USA', li: 'in/suman-kalia-300b521' }
+                  { poster: '/images/hackwave/stan_mierzwa_poster.png', name: 'Stan Mierzwa, Ph.D.', title: 'Director, Center for Cybersecurity', org: 'Kean University', location: 'Union, New Jersey', country: 'USA', takeaway: 'Students doing real threat intelligence, not simulations.', highlights: ['Running a university cyber centre', 'Non-profit incident research', 'From coursework to casework'], li: 'in/stanmierzwa' },
+                  { poster: '/images/hackwave/ken_fishkin_poster.png', name: 'Ken Fishkin', title: 'President', org: 'ISC2 New Jersey Chapter', location: 'New Jersey', country: 'USA', takeaway: 'A chapter is only as strong as the people who show up.', highlights: ['Global cybersecurity trends', 'Certification pathways that hold up', 'Building a security community'], li: 'in/kfishkin' },
+                  { poster: '/images/hackwave/sharon_kelley_poster.png', name: 'Sharon Kelley', title: 'Board Member', org: 'ISC2 New Jersey Chapter (MS, MBA, CISSP, CCSP)', location: 'Hoboken, New Jersey', country: 'USA', takeaway: 'The certifications that open doors — and the ones that don\'t.', highlights: ['CISSP and CCSP, honestly assessed', 'Building a chapter that shows up', 'Getting hired without experience'], li: 'in/sharon-kelley-0292181' },
+                  { poster: '/images/hackwave/jeremy_livingston_poster.png', name: 'Jeremy Livingston', title: 'CISO & Deputy CIO', org: 'Stevens Institute of Technology', location: 'Effort, Pennsylvania', country: 'USA', takeaway: 'Securing a university is not the same as securing a company.', highlights: ['Security leadership in higher education', 'Risk, budget and the board', 'Where student data actually sits'], li: 'in/jeremylivin' },
+                  { poster: '/images/hackwave/suman_kalia_poster.png', name: 'Suman Kalia', title: 'Associate Professor & Chair, Computer Science', org: "Saint Peter's University", location: 'Jersey City, New Jersey', country: 'USA', takeaway: 'What a computer science department owes the students it graduates.', highlights: ['Curriculum against industry reality', 'Research paths for undergraduates', 'Advising that goes beyond grades'], li: 'in/suman-kalia-300b521' }
                 ].map((spk, idx) => (
                   <div key={idx} className="ev-mini" style={{ border: '1px solid var(--line2)', borderRadius: '18px', overflow: 'hidden', background: '#090B18', padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     <div style={{ width: '100%', aspectRatio: '4/5', borderRadius: '14px', overflow: 'hidden', background: '#000' }}>
                       <img src={spk.poster} alt={spk.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                     </div>
-                    <div style={{ textAlign: 'center', marginTop: '2px' }}>
-                      <div style={{ fontSize: '16px', fontWeight: 800, color: '#FFFFFF' }}>{spk.name}</div>
-                      {spk.title && <div style={{ fontSize: '12.5px', color: '#38BDF8', fontWeight: 700, marginTop: '3px' }}>{spk.title}</div>}
-                      {spk.org && <div style={{ fontSize: '12px', color: '#C4B5FD', fontWeight: 600, marginTop: '2px' }}>{spk.org}</div>}
-                      {spk.location && (
-                        <div style={{ fontSize: '11px', color: '#9CA3AF', marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
-                          {spk.location}
+                    <div style={{ marginTop: '2px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div style={{ fontSize: '16.5px', fontWeight: 800, color: '#FFFFFF' }}>{spk.name}</div>
+                      {spk.title && <div style={{ fontSize: '12.5px', color: '#38BDF8', fontWeight: 700 }}>{spk.title}</div>}
+                      {spk.org && <div style={{ fontSize: '12px', color: '#C4B5FD', fontWeight: 600 }}>{spk.org}</div>}
+                      <div style={{ fontSize: '11px', color: '#9CA3AF', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                        {spk.location}, <strong>{spk.country}</strong>
+                      </div>
+                      {spk.takeaway && (
+                        <div style={{ fontSize: '12px', fontStyle: 'italic', color: '#FDE68A', background: 'rgba(251, 191, 36, 0.08)', borderLeft: '3px solid #F59E0B', padding: '6px 10px', borderRadius: '4px', marginTop: '6px' }}>
+                          "{spk.takeaway}"
                         </div>
                       )}
                     </div>
@@ -2066,27 +2069,30 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 700, letterSpacing: '1.3px', color: '#38BDF8', background: 'rgba(56,189,248,0.18)', borderRadius: '100px', padding: '6px 14px', marginBottom: '14px' }}>
                 VOICES THAT BUILD · LEADERSHIP & INDUSTRY PANEL
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
                 {[
-                  { poster: '/images/hackwave/m_avinash_rao_poster.png', name: 'M Avinash Rao, PMP®', title: 'Client Account Manager', org: 'Deloitte', location: 'Hyderabad, Telangana, India', li: 'in/avi-thestoryteller' },
-                  { poster: '/images/hackwave/gopichand_anumolu_poster.png', name: 'Gopichand Anumolu', title: 'Founder', org: 'ATLAST', location: 'Hyderabad, Telangana, India', li: 'in/gopichand-anumolu-83b3801a4' },
-                  { poster: '/images/hackwave/harish_kotra_poster.png', name: 'Harish Kotra', title: 'DevX Lead', org: 'Quirq', location: 'New York, USA', li: 'in/harishkotra' },
-                  { poster: '/images/hackwave/jonna_dheeraj_poster.png', name: 'Jonna Dheeraj', title: 'Account Delivery & Program Mgmt', org: 'Embedded SW · AI · VLSI · 5G · IoT', location: 'Hyderabad, Telangana, India', li: 'in/jonna-dheeraj-9a91ab34' },
-                  { poster: '/images/hackwave/venkatesh_hanmantraya_poster.png', name: 'Venkatesh Hanmantraya', title: 'Speaker', org: 'Voices That Build', location: 'India', li: 'in/venkatesh-hanmantraya-9b9a42101' },
-                  { poster: '/images/hackwave/mohit_bhalla_poster.png', name: 'Mohit Bhalla', title: 'Leadership Address', org: 'StudentAlumni', location: 'India', li: 'in/mohit-bhalla-9028671a' }
+                  { poster: '/images/hackwave/m_avinash_rao_poster.png', name: 'M Avinash Rao, PMP®', title: 'Client Account Manager', org: 'Deloitte', location: 'Hyderabad, Telangana', country: 'India', takeaway: 'Managing the account is really managing the relationship.', highlights: ['Client delivery at scale', 'Project management, practically', 'PMP® in the real world'], li: 'in/avi-thestoryteller' },
+                  { poster: '/images/hackwave/gopichand_anumolu_poster.png', name: 'Gopichand Anumolu', title: 'Founder', org: 'ATLAST', location: 'Hyderabad, Telangana', country: 'India', takeaway: 'Founding is mostly the unglamorous part.', highlights: ['Building ATLAST from zero', 'Finding the first customers', 'What nobody tells founders'], li: 'in/gopichand-anumolu-83b3801a4' },
+                  { poster: '/images/hackwave/harish_kotra_poster.png', name: 'Harish Kotra', title: 'DevX Lead', org: 'Quirq', location: 'New York', country: 'USA', takeaway: 'Beyond Benchmarks: Building an Intelligent AI Router for Production', highlights: ['200+ hackathons run', '13+ years in DevRel', '95K+ devs in community'], li: 'in/harishkotra' },
+                  { poster: '/images/hackwave/jonna_dheeraj_poster.png', name: 'Jonna Dheeraj', title: 'Account Delivery & Program Management', org: 'Embedded SW · AI · VLSI · 5G · IoT', location: 'Hyderabad, Telangana', country: 'India', takeaway: 'Delivery is where good engineering meets a hard deadline.', highlights: ['Programme and account delivery', 'Embedded, AI, VLSI and 5G', 'Shipping across time zones'], li: 'in/jonna-dheeraj-9a91ab34' },
+                  { poster: '/images/hackwave/venkatesh_hanmantraya_poster.png', name: 'Venkatesh Hanmantraya', title: 'Speaker', org: 'Voices That Build', location: 'Telangana', country: 'India', takeaway: 'Bringing industry practice into the classroom.', highlights: ['Industry-to-campus perspective', 'Practical engineering habits', 'Session detail to be confirmed'], li: 'in/venkatesh-hanmantraya-9b9a42101' },
+                  { poster: '/images/hackwave/mohit_bhalla_poster.png', name: 'Mohit Bhalla', title: 'Leadership Address', org: 'StudentAlumni', location: 'Delhi', country: 'India', takeaway: 'Leadership is deciding what not to build.', highlights: ['Leading engineering organisations', 'Judgement over process', 'Session detail to be confirmed'], li: 'in/mohit-bhalla-9028671a' }
                 ].map((spk, idx) => (
                   <div key={idx} className="ev-mini" style={{ border: '1px solid var(--line2)', borderRadius: '18px', overflow: 'hidden', background: '#090B18', padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     <div style={{ width: '100%', aspectRatio: '4/5', borderRadius: '14px', overflow: 'hidden', background: '#000' }}>
                       <img src={spk.poster} alt={spk.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                     </div>
-                    <div style={{ textAlign: 'center', marginTop: '2px' }}>
-                      <div style={{ fontSize: '16px', fontWeight: 800, color: '#FFFFFF' }}>{spk.name}</div>
-                      {spk.title && <div style={{ fontSize: '12.5px', color: '#38BDF8', fontWeight: 700, marginTop: '3px' }}>{spk.title}</div>}
-                      {spk.org && <div style={{ fontSize: '12px', color: '#C4B5FD', fontWeight: 600, marginTop: '2px' }}>{spk.org}</div>}
-                      {spk.location && (
-                        <div style={{ fontSize: '11px', color: '#9CA3AF', marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
-                          {spk.location}
+                    <div style={{ marginTop: '2px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div style={{ fontSize: '16.5px', fontWeight: 800, color: '#FFFFFF' }}>{spk.name}</div>
+                      {spk.title && <div style={{ fontSize: '12.5px', color: '#38BDF8', fontWeight: 700 }}>{spk.title}</div>}
+                      {spk.org && <div style={{ fontSize: '12px', color: '#C4B5FD', fontWeight: 600 }}>{spk.org}</div>}
+                      <div style={{ fontSize: '11px', color: '#9CA3AF', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                        {spk.location}, <strong>{spk.country}</strong>
+                      </div>
+                      {spk.takeaway && (
+                        <div style={{ fontSize: '12px', fontStyle: 'italic', color: '#FDE68A', background: 'rgba(251, 191, 36, 0.08)', borderLeft: '3px solid #F59E0B', padding: '6px 10px', borderRadius: '4px', marginTop: '6px' }}>
+                          "{spk.takeaway}"
                         </div>
                       )}
                     </div>
