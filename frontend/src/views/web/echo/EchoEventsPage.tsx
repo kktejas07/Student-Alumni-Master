@@ -1605,21 +1605,49 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
               </div>
             </div>
 
-            {/* International Panel Pictures (No Text Names) */}
+            {/* International Panel Pictures with LinkedIn Links */}
             <div style={{ marginBottom: '28px' }}>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 700, letterSpacing: '1.3px', color: '#C4B5FD', background: 'rgba(124,92,252,0.25)', borderRadius: '100px', padding: '6px 14px', marginBottom: '14px' }}>
                 INTERNATIONAL PANEL · CYBER SECURITY CONCLAVE
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
                 {[
-                  '/images/hackwave/stan_mierzwa_poster.png',
-                  '/images/hackwave/ken_fishkin_poster.png',
-                  '/images/hackwave/sharon_kelley_poster.png',
-                  '/images/hackwave/jeremy_livingston_poster.png',
-                  '/images/hackwave/suman_kalia_poster.png'
-                ].map((posterUrl, idx) => (
-                  <div key={idx} style={{ border: '1px solid var(--line2)', borderRadius: '16px', overflow: 'hidden', background: '#090B18', aspectRatio: '4/5' }}>
-                    <img src={posterUrl} alt={`International Panel ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  { poster: '/images/hackwave/stan_mierzwa_poster.png', name: 'Stan Mierzwa, Ph.D.', li: 'in/stanmierzwa' },
+                  { poster: '/images/hackwave/ken_fishkin_poster.png', name: 'Ken Fishkin', li: 'in/kfishkin' },
+                  { poster: '/images/hackwave/sharon_kelley_poster.png', name: 'Sharon Kelley', li: 'in/sharon-kelley-0292181' },
+                  { poster: '/images/hackwave/jeremy_livingston_poster.png', name: 'Jeremy Livingston', li: 'in/jeremylivin' },
+                  { poster: '/images/hackwave/suman_kalia_poster.png', name: 'Suman Kalia', li: 'in/suman-kalia-300b521' }
+                ].map((spk, idx) => (
+                  <div key={idx} className="ev-mini" style={{ border: '1px solid var(--line2)', borderRadius: '18px', overflow: 'hidden', background: '#090B18', padding: '10px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div style={{ width: '100%', aspectRatio: '4/5', borderRadius: '14px', overflow: 'hidden', background: '#000' }}>
+                      <img src={spk.poster} alt={spk.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    </div>
+                    {spk.li && (
+                      <a
+                        href={`https://linkedin.com/${spk.li}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          padding: '8px 12px',
+                          background: 'rgba(56, 189, 248, 0.12)',
+                          border: '1px solid rgba(56, 189, 248, 0.3)',
+                          borderRadius: '10px',
+                          color: '#38BDF8',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          textDecoration: 'none',
+                        }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/>
+                        </svg>
+                        Connect on LinkedIn
+                      </a>
+                    )}
                   </div>
                 ))}
               </div>
