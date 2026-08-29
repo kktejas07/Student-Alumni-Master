@@ -93,6 +93,29 @@ const SAMPLE_EVENTS = [
       { name: 'Certificates for all', desc: 'Participation and winner certificates', value: 'Verifiable', icon: 'award' },
       { name: 'On-the-spot offers', desc: 'Internship and placement offers, in the room', value: 'Live', icon: 'check' },
       { name: 'Surprise goodies', desc: 'Extra prizes and drops announced on the day', value: 'Surprise', icon: 'gift' }
+    ],
+    videos: [
+      {
+        title: 'HackWave 3.0 SNIST Official Teaser',
+        video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        thumbnail_url: '/images/hackwave/hackwave_main_poster.png',
+        description: 'Watch the official teaser for HackWave 3.0 at SNIST — 7 Verticals, ₹2,00,000 Grand Pool.',
+        platform: 'youtube'
+      },
+      {
+        title: 'Cyber Security with AI Conclave Teaser',
+        video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        thumbnail_url: '/images/hackwave/hackwave_cybersecurity_conclave.jpg',
+        description: 'Keynote highlights featuring ISC2 New Jersey Chapter and international cyber security experts.',
+        platform: 'youtube'
+      },
+      {
+        title: 'Build by Sunset — 24-Hour Hackathon Sprint Highlights',
+        video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        thumbnail_url: '/images/hackwave/hackwave_techfest_verticals.jpg',
+        description: 'Overnight build sprint, tech mentorship, and product showcases live from SNIST campus.',
+        platform: 'youtube'
+      }
     ]
   }
 ];
@@ -288,6 +311,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 categories: item.categories || existing.categories || [],
                 speakers: item.speakers || existing.speakers || [],
                 gallery_images: item.gallery_images || item.gallery || existing.gallery_images || [],
+                videos: (item.videos && item.videos.length > 0) ? item.videos : ((item.gallery_videos && item.gallery_videos.length > 0) ? item.gallery_videos : (existing.videos || [])),
                 highlights: item.highlights || existing.highlights || [],
                 handbook_url: item.handbook_url || existing.handbook_url || '/HackWave_3.0_Event_Handbook.pdf',
               });
@@ -339,6 +363,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                   categories: item.categories || e.categories,
                   speakers: item.speakers || e.speakers,
                   gallery_images: item.gallery_images || item.gallery || e.gallery_images,
+                  videos: (item.videos && item.videos.length > 0) ? item.videos : ((item.gallery_videos && item.gallery_videos.length > 0) ? item.gallery_videos : (e.videos || [])),
                   highlights: item.highlights || e.highlights,
                   handbook_url: item.handbook_url || e.handbook_url,
                 };
@@ -1700,8 +1725,12 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '18px' }}>
                 {activeEvent.videos.map((vid: any, vidx: number) => {
-                  const isYt = vid.video_url?.includes('youtube.com') || vid.video_url?.includes('youtu.be');
-                  const ytId = isYt ? (vid.video_url.includes('v=') ? vid.video_url.split('v=')[1]?.split('&')[0] : vid.video_url.split('/').pop()) : null;
+                  const url = typeof vid === 'string' ? vid : (vid.video_url || vid.url || '');
+                  const isYt = url.includes('youtube.com') || url.includes('youtu.be');
+                  const ytId = isYt ? (url.includes('v=') ? url.split('v=')[1]?.split('&')[0] : url.split('/').pop()) : null;
+                  const title = (typeof vid === 'object' ? (vid.title || vid.name) : '') || `Official Event Video ${vidx + 1}`;
+                  const desc = typeof vid === 'object' ? (vid.description || '') : '';
+                  const thumb = (typeof vid === 'object' ? (vid.thumbnail_url || vid.poster) : null) || activeEvent.poster_banner;
 
                   return (
                     <div key={vidx} style={{ border: '1px solid var(--line2)', borderRadius: '16px', overflow: 'hidden', background: '#070913', padding: '12px' }}>
@@ -1709,7 +1738,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                         {isYt && ytId ? (
                           <iframe
                             src={`https://www.youtube.com/embed/${ytId}`}
-                            title={vid.title || 'Event Video'}
+                            title={title}
                             style={{ width: '100%', height: '100%', border: 'none' }}
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                             allowFullScreen
@@ -1717,14 +1746,14 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                         ) : (
                           <video
                             controls
-                            poster={vid.thumbnail_url || activeEvent.poster_banner}
-                            src={vid.video_url}
+                            poster={thumb}
+                            src={url}
                             style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                           />
                         )}
                       </div>
-                      <div style={{ fontSize: '15px', fontWeight: 700, color: '#FFF', marginTop: '12px' }}>{vid.title || `Promo Clip ${vidx + 1}`}</div>
-                      {vid.description && <div style={{ fontSize: '13px', color: 'var(--muted)', marginTop: '4px' }}>{vid.description}</div>}
+                      <div style={{ fontSize: '15px', fontWeight: 700, color: '#FFF', marginTop: '12px' }}>{title}</div>
+                      {desc ? <div style={{ fontSize: '13px', color: 'var(--muted)', marginTop: '4px' }}>{desc}</div> : null}
                     </div>
                   );
                 })}
