@@ -347,7 +347,7 @@ function FieldDate({ value, onChangeText, placeholder }: { value: string; onChan
         placeholder={placeholder}
         onChange={(e: any) => onChangeText(e.target.value ? isoToHuman(e.target.value) : '')}
         style={{
-          backgroundColor: '#0d1326', border: `1px solid ${SAC.border}`,
+          backgroundColor: '#101019', border: `1px solid ${SAC.border}`,
           borderRadius: 8, padding: '9px 12px',
           fontFamily: FONTS.med, fontSize: 13, color: SAC.text, width: '100%',
           colorScheme: 'dark',
@@ -369,7 +369,7 @@ function FieldTime({ value, onChangeText, placeholder }: { value: string; onChan
         placeholder={placeholder}
         onChange={(e: any) => onChangeText(e.target.value ? nativeToHumanTime(e.target.value) : '')}
         style={{
-          backgroundColor: '#0d1326', border: `1px solid ${SAC.border}`,
+          backgroundColor: '#101019', border: `1px solid ${SAC.border}`,
           borderRadius: 8, padding: '9px 12px',
           fontFamily: FONTS.med, fontSize: 13, color: SAC.text, width: '100%',
           colorScheme: 'dark',
@@ -392,7 +392,7 @@ function IsoDateField({ value, onChangeText, placeholder }: { value: string; onC
         placeholder={placeholder}
         onChange={(e: any) => onChangeText(e.target.value ? e.target.value.slice(0, 10) : '')}
         style={{
-          backgroundColor: '#0d1326', border: `1px solid ${SAC.border}`,
+          backgroundColor: '#101019', border: `1px solid ${SAC.border}`,
           borderRadius: 8, padding: '9px 12px',
           fontFamily: FONTS.med, fontSize: 13, color: SAC.text, width: '100%',
           colorScheme: 'dark',
@@ -435,7 +435,7 @@ function SelectNative({ value, onChange, options }: any) {
         value={value}
         onChange={(e: any) => onChange(e.target.value)}
         style={{
-          backgroundColor: '#0d1326',
+          backgroundColor: '#101019',
           border: `1px solid ${SAC.border}`,
           borderRadius: 8, padding: '9px 12px',
           fontFamily: FONTS.med, fontSize: 13, color: SAC.text,
@@ -443,7 +443,7 @@ function SelectNative({ value, onChange, options }: any) {
         } as any}
       >
         {options.map((o: string) => (
-          <option key={o} value={o} style={{ backgroundColor: '#0d1326' }}>{o}</option>
+          <option key={o} value={o} style={{ backgroundColor: '#101019' }}>{o}</option>
         ))}
       </select>
     );
@@ -1126,7 +1126,7 @@ function PosterEditor({ posters, onChange }: { posters: string[]; onChange: (p: 
         <View key={i} style={{ backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: SAC.border, gap: 8 }}>
           <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
             {url ? (
-              <Image source={{ uri: resolveImageUrl(url) }} style={{ width: 44, height: 56, borderRadius: 6, backgroundColor: '#0d1326' }} resizeMode="cover" />
+              <Image source={{ uri: resolveImageUrl(url) }} style={{ width: 44, height: 56, borderRadius: 6, backgroundColor: '#101019' }} resizeMode="cover" />
             ) : (
               <View style={{ width: 44, height: 56, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center', justifyContent: 'center' }}>
                 <ImageIcon size={14} color={SAC.dim} />
@@ -1570,7 +1570,7 @@ function BannerCarouselEditor({ banners, onChange }: { banners: string[]; onChan
           <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
             {url ? (
               <Image source={{ uri: resolveImageUrl(url) }}
-                style={{ width: 80, height: 40, borderRadius: 6, backgroundColor: '#0d1326' }} resizeMode="cover" />
+                style={{ width: 80, height: 40, borderRadius: 6, backgroundColor: '#101019' }} resizeMode="cover" />
             ) : (
               <View style={{ width: 80, height: 40, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center', justifyContent: 'center' }}>
                 <ImageIcon size={14} color={SAC.dim} />
@@ -1979,7 +1979,7 @@ function MediaLibraryPanel() {
         <View style={{ flex: 1, backgroundColor: SAC.panel2, alignItems: 'center', justifyContent: 'center' }}>
           <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setPreview(null)} />
           {preview && (
-            <View style={{ width: '90%', maxWidth: 700, backgroundColor: '#0d1326',
+            <View style={{ width: '90%', maxWidth: 700, backgroundColor: '#101019',
               borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: SAC.border, zIndex: 2 }}>
               <Image
                 source={{ uri: resolveImageUrl(preview.url) }}
@@ -2783,9 +2783,9 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                                   set('sessions', current);
                                 }
                               }}
-                              style={{ backgroundColor: '#0d1326', border: `1px solid ${SAC.border}`, borderRadius: 6, padding: '3px 6px', fontFamily: FONTS.med, fontSize: 11, color: SAC.text, appearance: 'none' } as any}
+                              style={{ backgroundColor: '#101019', border: `1px solid ${SAC.border}`, borderRadius: 6, padding: '3px 6px', fontFamily: FONTS.med, fontSize: 11, color: SAC.text, appearance: 'none' } as any}
                             >
-                              {dayOptions.map((d) => <option key={d} value={d} style={{ backgroundColor: '#0d1326' }}>{d}</option>)}
+                              {dayOptions.map((d) => <option key={d} value={d} style={{ backgroundColor: '#101019' }}>{d}</option>)}
                             </select>
                           </View>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -2902,7 +2902,7 @@ const ml = StyleSheet.create({
   backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: SAC.panel2 },
   box: {
     width: '96%', maxWidth: 900, maxHeight: '95%',
-    backgroundColor: '#0d1326', borderRadius: 18,
+    backgroundColor: '#101019', borderRadius: 18,
     borderWidth: 1, borderColor: SAC.border,
     overflow: 'hidden', zIndex: 2,
     ...(Platform.OS === 'web' ? { boxShadow: '0 24px 80px rgba(0,0,0,0.60)' } as any : {}),
@@ -5051,7 +5051,7 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
               {previewHtml ? (
                 <iframe
                   srcDoc={previewHtml}
-                  style={{ width: '100%', height: 600, border: 'none', background: '#0f172a' }}
+                  style={{ width: '100%', height: 600, border: 'none', background: '#101019' }}
                   title="Ticket Preview"
                 />
               ) : null}

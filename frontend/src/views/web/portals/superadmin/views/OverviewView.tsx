@@ -29,19 +29,10 @@ const ACT_ICONS: Record<string, any> = {
 };
 
 type AdDraft = {
-  key: string;
-  type?: 'image' | 'rich';
   label: string;
   image_url: string;
   redirect_url: string;
-  title?: string;
-  sub?: string;
-  tag?: string;
-  tagColor?: string;
-  bg?: string;
-  cta?: string;
-  ctaStyle?: 'filled' | 'ghost';
-  visual?: 'none' | 'photo_grid' | 'trend_chart';
+  key: string;
 };
 
 const SUPER_MOCK = {
@@ -192,10 +183,10 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
     setEditorItems((prev) => prev.filter((it) => it.key !== key));
   };
 
-  const hasSavableItems = editorItems.some((it) => it.type === 'rich' ? !!(it.title || it.label) : (it.image_url || (it.label.trim() && it.redirect_url.trim())));
+  const hasSavableItems = editorItems.some((it) => it.image_url || (it.label.trim() && it.redirect_url.trim()));
 
   const handleSaveAd = async () => {
-    const validItems = editorItems.filter((it) => it.type === 'rich' ? !!(it.title || it.label) : (it.image_url || (it.label.trim() && it.redirect_url.trim())));
+    const validItems = editorItems.filter((it) => it.image_url || (it.label.trim() && it.redirect_url.trim()));
     if (!validItems.length || adSaving) return;
     setAdSaving(true);
     const prevAds = [...ads];
@@ -465,68 +456,39 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
                 ) : editorItems.map((it) => (
                   <View key={it.key} style={s.adDraftCard}>
                     <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
-                      {it.type === 'rich' ? (
-                        <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
-                          <TextInput style={[s.adFieldInput, { paddingVertical: 7 }]} value={it.title || ''} onChangeText={(v) => updateDraft(it.key, { title: v, label: v })} placeholder="Title" placeholderTextColor={T.dim} />
-                          <TextInput style={[s.adFieldInput, { paddingVertical: 7 }]} value={it.sub || ''} onChangeText={(v) => updateDraft(it.key, { sub: v })} placeholder="Subtitle / Description" placeholderTextColor={T.dim} />
-                          <View style={{ flexDirection: 'row', gap: 6 }}>
-                            <TextInput style={[s.adFieldInput, { flex: 1, paddingVertical: 7 }]} value={it.tag || ''} onChangeText={(v) => updateDraft(it.key, { tag: v })} placeholder="Tag text (e.g. NEW)" placeholderTextColor={T.dim} />
-                            <TextInput style={[s.adFieldInput, { flex: 1, paddingVertical: 7 }]} value={it.tagColor || ''} onChangeText={(v) => updateDraft(it.key, { tagColor: v })} placeholder="Tag color (Hex)" placeholderTextColor={T.dim} />
-                          </View>
-                          <View style={{ flexDirection: 'row', gap: 6 }}>
-                            <TextInput style={[s.adFieldInput, { flex: 1, paddingVertical: 7 }]} value={it.cta || ''} onChangeText={(v) => updateDraft(it.key, { cta: v })} placeholder="CTA Button Text" placeholderTextColor={T.dim} />
-                            <TextInput style={[s.adFieldInput, { flex: 1, paddingVertical: 7 }]} value={it.bg || ''} onChangeText={(v) => updateDraft(it.key, { bg: v })} placeholder="Background Color (Hex/Gradient)" placeholderTextColor={T.dim} />
-                          </View>
-                          <TextInput style={[s.adFieldInput, { paddingVertical: 7 }]} value={it.redirect_url || ''} onChangeText={(v) => updateDraft(it.key, { redirect_url: v })} placeholder="Redirect URL" placeholderTextColor={T.dim} autoCapitalize="none" />
-                          <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-                            <select style={{ padding: '6px', borderRadius: '6px', background: T.bg2, color: T.text, border: `1px solid ${T.border}` }} value={it.visual || 'none'} onChange={(e) => updateDraft(it.key, { visual: e.target.value as any })}>
-                              <option value="none">No Visual Element</option>
-                              <option value="photo_grid">Photo Grid (ECHO)</option>
-                              <option value="trend_chart">Trend Chart (Career AI)</option>
-                            </select>
-                            <select style={{ padding: '6px', borderRadius: '6px', background: T.bg2, color: T.text, border: `1px solid ${T.border}` }} value={it.ctaStyle || 'filled'} onChange={(e) => updateDraft(it.key, { ctaStyle: e.target.value as any })}>
-                              <option value="filled">Solid Button</option>
-                              <option value="ghost">Ghost Button</option>
-                            </select>
-                          </div>
-                        </View>
+                      {it.image_url ? (
+                        <Image source={{ uri: resolveImageUrl(it.image_url) }} style={{ width: 64, height: 42, borderRadius: 6 }} resizeMode="cover" />
                       ) : (
-                        <>
-                          {it.image_url ? (
-                            <Image source={{ uri: resolveImageUrl(it.image_url) }} style={{ width: 64, height: 42, borderRadius: 6 }} resizeMode="cover" />
-                          ) : (
-                            <View style={{ width: 64, height: 42, borderRadius: 6, backgroundColor: T.bg2, borderColor: T.border, borderWidth: 1, alignItems: 'center', justifyContent: 'center' }}>
-                              <ImageIcon size={14} color={T.dim} />
-                            </View>
-                          )}
-                          <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
-                            <TextInput
-                              style={[s.adFieldInput, { paddingVertical: 7 }]}
-                              value={it.label}
-                              onChangeText={(v) => updateDraft(it.key, { label: v })}
-                              placeholder="Label / Title (e.g. EBS 2026)"
-                              placeholderTextColor={T.dim}
-                            />
-                            <TextInput
-                              style={[s.adFieldInput, { paddingVertical: 7 }]}
-                              value={it.redirect_url}
-                              onChangeText={(v) => updateDraft(it.key, { redirect_url: v })}
-                              placeholder="Redirect URL (optional)"
-                              placeholderTextColor={T.dim}
-                              autoCapitalize="none"
-                            />
-                            {Platform.OS !== 'web' && (
-                              <TextInput
-                                style={[s.adFieldInput, { paddingVertical: 7, fontSize: 10 }]}
-                                value={it.image_url}
-                                onChangeText={(v) => updateDraft(it.key, { image_url: v })}
-                                placeholder="Paste image URL"
-                                placeholderTextColor={T.dim}
-                              />
-                            )}
-                          </View>
-                        </>
+                        <View style={{ width: 64, height: 42, borderRadius: 6, backgroundColor: T.bg2, borderColor: T.border, borderWidth: 1, alignItems: 'center', justifyContent: 'center' }}>
+                          <ImageIcon size={14} color={T.dim} />
+                        </View>
                       )}
+                      <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
+                        <TextInput
+                          style={[s.adFieldInput, { paddingVertical: 7 }]}
+                          value={it.label}
+                          onChangeText={(v) => updateDraft(it.key, { label: v })}
+                          placeholder="Label / Title (e.g. EBS 2026)"
+                          placeholderTextColor={T.dim}
+                        />
+                        <TextInput
+                          style={[s.adFieldInput, { paddingVertical: 7 }]}
+                          value={it.redirect_url}
+                          onChangeText={(v) => updateDraft(it.key, { redirect_url: v })}
+                          placeholder="Redirect URL (optional)"
+                          placeholderTextColor={T.dim}
+                          autoCapitalize="none"
+                        />
+                        {Platform.OS !== 'web' && (
+                          <TextInput
+                            style={[s.adFieldInput, { paddingVertical: 7, fontSize: 10 }]}
+                            value={it.image_url}
+                            onChangeText={(v) => updateDraft(it.key, { image_url: v })}
+                            placeholder="Paste image URL"
+                            placeholderTextColor={T.dim}
+                          />
+                        )}
+                      </View>
                       <Pressable onPress={() => removeDraft(it.key)} hitSlop={6} style={{ padding: 4, marginTop: 2 }}>
                         <Trash2 size={14} color="#EF4444" />
                       </Pressable>
@@ -536,27 +498,17 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
               </View>
             </ScrollView>
 
-            <View style={{ flexDirection: 'row', gap: 8, marginTop: 12, marginBottom: 12 }}>
-              {Platform.OS === 'web' && (
-                <Pressable
-                  onPress={() => fileInputRef.current?.click()}
-                  style={[s.adFilePicker, { flex: 1, marginTop: 0 }]}
-                >
-                  <Upload size={14} color={T.accentBright} />
-                  <Text style={{ color: T.accentBright, fontFamily: FONTS.bold, fontSize: 12 }}>
-                    {editorItems.length ? '+ Add Image Ad' : 'Select Image Ad'}
-                  </Text>
-                </Pressable>
-              )}
+            {Platform.OS === 'web' ? (
               <Pressable
-                onPress={() => setEditorItems((prev) => [...prev, { key: Math.random().toString(36).slice(2), type: 'rich', label: '', title: '', image_url: '', redirect_url: '', bg: '#3A2352', tagColor: '#F1B8D9', ctaStyle: 'ghost', cta: 'Continue now', visual: 'none' }])}
-                style={[s.adFilePicker, { flex: 1, marginTop: 0, borderColor: '#34D399', backgroundColor: 'rgba(52, 211, 153, 0.05)' }]}
+                onPress={() => fileInputRef.current?.click()}
+                style={[s.adFilePicker, { marginTop: 12 }]}
               >
-                <Text style={{ color: '#34D399', fontFamily: FONTS.bold, fontSize: 12 }}>
-                  + Add Rich Promo
+                <Upload size={14} color={T.accentBright} />
+                <Text style={{ color: T.accentBright, fontFamily: FONTS.bold, fontSize: 12 }}>
+                  {editorItems.length ? 'Add More Banner Images' : 'Select Banner Image(s)'}
                 </Text>
               </Pressable>
-            </View>
+            ) : null}
 
             <Pressable
               onPress={handleSaveAd}
