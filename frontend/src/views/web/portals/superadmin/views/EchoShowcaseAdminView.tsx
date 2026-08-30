@@ -2757,7 +2757,7 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                   { key: 'coffee', label: 'Coffee & Tea', Icon: Coffee },
                 ].map((sessKeyObj) => {
                   const sessions = (form.sessions || []);
-                  const existing = sessions.find((x: any) => x.key === s.key);
+                  const existing = sessions.find((x: any) => x.key === sessKeyObj.key);
                   const enabled = existing?.enabled ?? false;
                   const locked = existing?.locked ?? false;
                   const day = existing?.day ?? 1;
@@ -2766,9 +2766,9 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                   return (
                     <View key={sessKeyObj.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' }}>
                       <View style={{ width: 28, alignItems: 'center', justifyContent: 'center' }}>
-                        <s.Icon size={18} color={enabled ? GRAD.from : SAC.dim} />
+                        <sessKeyObj.Icon size={18} color={enabled ? GRAD.from : SAC.dim} />
                       </View>
-                      <Text style={{ flex: 1, fontFamily: FONTS.med, fontSize: 13, color: SAC.text }}>{s.label}</Text>
+                      <Text style={{ flex: 1, fontFamily: FONTS.med, fontSize: 13, color: SAC.text }}>{sessKeyObj.label}</Text>
                       {enabled && (
                         <>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -2777,7 +2777,7 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                               value={String(day)}
                               onChange={(e: any) => {
                                 const current = [...(form.sessions || [])];
-                                const idx = current.findIndex((x: any) => x.key === s.key);
+                                const idx = current.findIndex((x: any) => x.key === sessKeyObj.key);
                                 if (idx >= 0) {
                                   current[idx] = { ...current[idx], day: Number(e.target.value) || 1 };
                                   set('sessions', current);
@@ -2794,7 +2794,7 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                             </Text>
                             <Pressable onPress={() => {
                               const current = [...(form.sessions || [])];
-                              const idx = current.findIndex((x: any) => x.key === s.key);
+                              const idx = current.findIndex((x: any) => x.key === sessKeyObj.key);
                               if (idx >= 0) {
                                 current[idx] = { ...current[idx], locked: !locked };
                               }
@@ -2810,11 +2810,11 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                       )}
                       <Pressable onPress={() => {
                         const current = [...(form.sessions || [])];
-                        const idx = current.findIndex((x: any) => x.key === s.key);
+                        const idx = current.findIndex((x: any) => x.key === sessKeyObj.key);
                         if (idx >= 0) {
                           current[idx] = { ...current[idx], enabled: !enabled, locked: false };
                         } else {
-                          current.push({ key: s.key, label: s.label, day: 1, enabled: true, locked: false });
+                          current.push({ key: sessKeyObj.key, label: sessKeyObj.label, day: 1, enabled: true, locked: false });
                         }
                         set('sessions', current);
                       }} style={{
