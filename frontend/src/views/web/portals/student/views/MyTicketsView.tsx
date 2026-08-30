@@ -86,19 +86,9 @@ export function MyTicketsView() {
     }
   };
 
-  const openTicket = async (regId: string) => {
-    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
-    try {
-      const data = await api.getEchoTicket(regId);
-      const w = window.open('', '_blank');
-      if (w) {
-        w.document.open();
-        w.document.write(data.html);
-        w.document.close();
-        w.focus();
-      }
-    } catch {
-      /* ignore */
+  const openTicket = async (regId: string, eventTitle?: string) => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      router.push(`/echo/tickets?tab=tickets${regId ? `&ticketId=${regId}` : ''}${eventTitle ? `&eventName=${encodeURIComponent(eventTitle)}` : ''}`);
     }
   };
 
@@ -112,6 +102,14 @@ export function MyTicketsView() {
           {items.length} event{items.length === 1 ? '' : 's'} · {items.reduce((a, i) => a + i.coupons.length, 0)} coupon{items.reduce((a, i) => a + i.coupons.length, 0) === 1 ? '' : 's'} · total paid ₹{totalPaid.toLocaleString('en-IN')}
         </Text>
       </View>
+
+      <Pressable
+        onPress={() => router.push('/echo/tickets')}
+        style={{ backgroundColor: '#7C5CFC', paddingVertical: 12, paddingHorizontal: 20, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+      >
+        <Ticket size={16} color="#fff" />
+        <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Open Interactive Tickets Console →</Text>
+      </Pressable>
 
       {loading ? (
         <View style={{ paddingVertical: 40, alignItems: 'center' }}>

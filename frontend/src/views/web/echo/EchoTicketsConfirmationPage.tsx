@@ -61,7 +61,46 @@ export function EchoTicketsConfirmationPage({
     setAnimKey((prev) => prev + 1);
   };
 
-  // Invoice download simulated progress
+  // Calendar (.ics) export action
+  const [addedCal, setAddedCal] = useState(false);
+  const handleAddToCalendar = () => {
+    setAddedCal(true);
+    addToast('Added to your calendar', 'Sep 04, 08:00 AM · reminder set for the night before.', 'ok');
+    
+    // Generate and download real .ics iCalendar file
+    const icsContent = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//StudentAlumni//ECHO Events//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+BEGIN:VEVENT
+SUMMARY:Hack Wave 3.0 (SNIST)
+DESCRIPTION:Entry pass issued via StudentAlumni.ai. Ticket ID: ${ticketInfo?.ticketId || 'SA-TKT-448120'}
+LOCATION:${ticketInfo?.venue || 'Sreenidhi Institute of Science & Technology, Hyderabad'}
+DTSTART:20260904T023000Z
+DTEND:20260905T123000Z
+STATUS:CONFIRMED
+END:VEVENT
+END:VCALENDAR`;
+
+    try {
+      const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `HackWave_3.0_Event.ics`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.log('Calendar export notice:', e);
+    }
+
+    setTimeout(() => setAddedCal(false), 3000);
+  };
+
+  // Tax Invoice download handler
   const [invState, setInvState] = useState<'idle' | 'downloading' | 'ready'>('idle');
   const [invProgress, setInvProgress] = useState(0);
 
@@ -72,50 +111,90 @@ export function EchoTicketsConfirmationPage({
 
     let prg = 0;
     const interval = setInterval(() => {
-      prg += 20;
+      prg += 25;
       setInvProgress(prg);
       if (prg >= 100) {
         clearInterval(interval);
         setInvState('ready');
-        addToast('Invoice ready', 'SA-INV-22981.pdf · ₹599 · Razorpay', 'ok');
+        addToast('Invoice downloaded', 'SA-INV-22981.html saved to downloads', 'ok');
+        
+        // Generate and trigger download of tax invoice HTML file
+        const tIdVal = ticketInfo?.ticketId || 'SA-TKT-448120';
+        const invHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Tax Invoice - ${tIdVal}</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Outfit', sans-serif; background: #08080F; color: #F4F4FA; padding: 40px; }
+    .box { max-width: 600px; margin: 0 auto; background: #101019; border: 1px solid #3A2E72; border-radius: 20px; padding: 32px; box-shadow: 0 20px 50px rgba(0,0,0,0.6); }
+    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1F1F30; padding-bottom: 20px; }
+    .title { font-size: 24px; font-weight: 800; color: #7C5CFC; }
+    .row { display: flex; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid #14141F; font-size: 14px; }
+    .label { color: #9095A8; }
+    .val { font-weight: 700; color: #FFF; }
+    .total { font-size: 18px; color: #34D399; font-weight: 800; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <div class="header">
+      <div class="title">StudentAlumni</div>
+      <div style="color: #9095A8; font-size: 13px; font-weight: 700;">OFFICIAL TAX INVOICE</div>
+    </div>
+    <div style="margin: 20px 0;">
+      <div class="row"><span class="label">Invoice No:</span><span class="val">SA-INV-22981</span></div>
+      <div class="row"><span class="label">Ticket ID:</span><span class="val">${tIdVal}</span></div>
+      <div class="row"><span class="label">Event:</span><span class="val">${ticketInfo?.eventName || 'Hack Wave 3.0'}</span></div>
+      <div class="row"><span class="label">Attendee:</span><span class="val">${ticketInfo?.attendeeName || 'Devender Vutukuru'}</span></div>
+      <div class="row"><span class="label">Email:</span><span class="val">${ticketInfo?.email || 'devender@snist.edu.in'}</span></div>
+      <div class="row"><span class="label">Date:</span><span class="val">September 04–05, 2026</span></div>
+      <div class="row"><span class="label">Payment Gateway:</span><span class="val">Razorpay (Online Payment)</span></div>
+      <div class="row" style="border: none; margin-top: 16px;">
+        <span class="label" style="font-size: 16px;">Total Amount Paid:</span>
+        <span class="val total">INR ${(ticketInfo?.amount ?? 599).toLocaleString()}</span>
+      </div>
+    </div>
+    <div style="text-align: center; color: #7E7E92; font-size: 12.5px; margin-top: 30px; border-top: 1px solid #1F1F30; padding-top: 20px;">
+      Verified transaction by StudentAlumni.ai · Entry pass issued to SA ID
+    </div>
+  </div>
+</body>
+</html>`;
+        try {
+          const blob = new Blob([invHtml], { type: 'text/html;charset=utf-8' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `SA-INV-22981.html`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        } catch (err) {
+          console.log('Invoice download notice:', err);
+        }
+
         setTimeout(() => setInvState('idle'), 3000);
       }
-    }, 250);
+    }, 200);
   };
 
-  // Mentor question checklist state
-  const [showQuestions, setShowQuestions] = useState(false);
-  const [pickedQuestions, setPickedQuestions] = useState<Record<number, boolean>>({});
+  // QR Pass Modal state for ticket details
+  const [qrModalData, setQrModalData] = useState<{
+    tId: string;
+    eName: string;
+    aName: string;
+    venue: string;
+    date: string;
+    status: string;
+  } | null>(null);
 
-  const toggleQuestion = (idx: number) => {
-    setPickedQuestions((prev) => {
-      const next = { ...prev, [idx]: !prev[idx] };
-      const count = Object.values(next).filter(Boolean).length;
-      if (count === 3 && !prev[idx]) {
-        addToast('Questions sent to Rahul', 'He sees them before the call starts.', 'ok');
-      }
-      return next;
-    });
-  };
-
-  // Coupons savings breakdown toggle
-  const [showSavings, setShowSavings] = useState(false);
-  const [saveBarWidth, setSaveBarWidth] = useState(0);
-
-  useEffect(() => {
-    if (showSavings) {
-      setTimeout(() => setSaveBarWidth(68), 100);
-    } else {
-      setSaveBarWidth(0);
-    }
-  }, [showSavings]);
-
-  // Calendar action
-  const [addedCal, setAddedCal] = useState(false);
-  const handleAddToCalendar = () => {
-    setAddedCal(true);
-    addToast('Added to your calendar', 'Sep 04, 08:00 AM · reminder set for the night before.', 'ok');
-    setTimeout(() => setAddedCal(false), 3000);
+  // Waitlist state in Failure view
+  const [joinedWaitlist, setJoinedWaitlist] = useState(false);
+  const handleJoinWaitlist = () => {
+    setJoinedWaitlist(true);
+    addToast('Joined Waitlist #42', 'You will receive an instant WhatsApp alert if a seat opens up.', 'ok');
   };
 
   // Countdown timer for seat hold in Failure view
@@ -703,7 +782,20 @@ export function EchoTicketsConfirmationPage({
 
               {/* Secondary Passes */}
               <div style={{ display: 'grid', gap: '16px', alignContent: 'start' }}>
-                <div className="tk-hover-card" style={{ position: 'relative', overflow: 'hidden', border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)' }}>
+                <div
+                  className="tk-hover-card"
+                  onClick={() =>
+                    setQrModalData({
+                      tId: 'SA-TKT-448902',
+                      eName: 'Voice of Generations',
+                      aName: aName,
+                      venue: 'VNR VJIET, Hyderabad',
+                      date: 'Sep 12, 2026 · 06:00 PM',
+                      status: 'READY (GATE A)',
+                    })
+                  }
+                  style={{ position: 'relative', overflow: 'hidden', border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', cursor: 'pointer' }}
+                >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '18px 20px' }}>
                     <span style={{ width: '46px', height: '46px', borderRadius: '12px', background: 'var(--ok-tint)', border: '1px solid var(--ok-line)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" strokeWidth="2"><rect x="3.5" y="5" width="17" height="15" rx="2.5" /><path d="M3.5 10h17M9 15l2 2 4-4" /></svg>
@@ -720,11 +812,24 @@ export function EchoTicketsConfirmationPage({
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px', padding: '4px 20px 18px' }}>
                     <span style={{ fontSize: '13px', fontWeight: 600, letterSpacing: '.4px' }}>SA-TKT-448902</span>
-                    <span onClick={() => addToast('QR Code Ready', 'Show this pass at VNRVJIT gate.', 'ok')} style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--violet-lt)', cursor: 'pointer' }}>Show QR →</span>
+                    <span style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--violet-lt)', cursor: 'pointer' }}>Show QR →</span>
                   </div>
                 </div>
 
-                <div className="tk-hover-card" style={{ position: 'relative', overflow: 'hidden', border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', opacity: 0.68 }}>
+                <div
+                  className="tk-hover-card"
+                  onClick={() =>
+                    setQrModalData({
+                      tId: 'SA-TKT-441077',
+                      eName: 'VNR ECHO 2026',
+                      aName: aName,
+                      venue: 'Main Auditorium, VNR VJIET',
+                      date: 'Jul 31, 2026 · 09:14 AM',
+                      status: 'USED (COMPLETED)',
+                    })
+                  }
+                  style={{ position: 'relative', overflow: 'hidden', border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', opacity: 0.68, cursor: 'pointer' }}
+                >
                   <div style={{ position: 'absolute', right: '-34px', top: '22px', transform: 'rotate(38deg)', background: 'var(--line2)', color: 'var(--dim)', fontSize: '10.5px', fontWeight: 700, letterSpacing: '1.6px', padding: '6px 46px' }}>USED</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '18px 20px' }}>
                     <span style={{ width: '46px', height: '46px', borderRadius: '12px', background: 'var(--panel2)', border: '1px solid var(--line2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>
@@ -741,12 +846,15 @@ export function EchoTicketsConfirmationPage({
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px', padding: '4px 20px 18px' }}>
                     <span style={{ fontSize: '13px', fontWeight: 600, letterSpacing: '.4px', color: 'var(--muted)' }}>SA-TKT-441077</span>
-                    <span onClick={() => addToast('Receipt Archival', 'Receipt SA-INV-19022 is archived.', 'ok')} style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--muted)', cursor: 'pointer' }}>View receipt →</span>
+                    <span style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--muted)', cursor: 'pointer' }}>View receipt →</span>
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', border: '1px solid var(--line)', borderRadius: '16px', background: 'var(--panel2)', padding: '16px 18px' }}>
                   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--violet-lt)" strokeWidth="1.9" style={{ flex: 'none' }}><path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6Z" /><path d="M9 12l2 2 4-4" /></svg>
+                  <div style={{ fontSize: '12.5px', lineHeight: 1.55, color: 'var(--muted)' }}>Passes are bound to your SA ID and cannot be transferred. Screenshots will not scan.</div>
+                </div>
+              </div>ox="0 0 24 24" fill="none" stroke="var(--violet-lt)" strokeWidth="1.9" style={{ flex: 'none' }}><path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6Z" /><path d="M9 12l2 2 4-4" /></svg>
                   <div style={{ fontSize: '12.5px', lineHeight: 1.55, color: 'var(--muted)' }}>Passes are bound to your SA ID and cannot be transferred. Screenshots will not scan.</div>
                 </div>
               </div>
@@ -1029,8 +1137,72 @@ export function EchoTicketsConfirmationPage({
             <span>© 2026 StudentAlumni.ai · Built for students across all campuses.</span>
             <span>Free for students · Instant setup</span>
           </div>
+      {/* QR PASS MODAL */}
+      {qrModalData && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(4,4,10,0.85)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div style={{ background: 'var(--panel)', border: '1px solid #3A2E72', borderRadius: '24px', maxWidth: '440px', width: '100%', padding: '28px', textAlign: 'center', position: 'relative', boxShadow: '0 25px 60px rgba(0,0,0,0.7)' }}>
+            <span
+              onClick={() => setQrModalData(null)}
+              style={{ position: 'absolute', top: 18, right: 20, width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255,255,255,0.08)', color: '#FFF', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '14px', fontWeight: 700 }}
+            >
+              ✕
+            </span>
+
+            <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.6px', color: 'var(--ok)', marginBottom: '8px' }}>GATE SCANNER PASS</div>
+            <h3 style={{ fontSize: '22px', fontWeight: 800, color: '#FFF', margin: '0 0 4px' }}>{qrModalData.eName}</h3>
+            <div style={{ fontSize: '13px', color: 'var(--muted)', margin: '0 0 20px' }}>{qrModalData.venue}</div>
+
+            {/* QR Code Container */}
+            <div style={{ background: '#FFFFFF', padding: '20px', borderRadius: '16px', display: 'inline-block', marginBottom: '20px', boxShadow: '0 8px 30px rgba(124,92,252,0.25)' }}>
+              <svg width="180" height="180" viewBox="0 0 46 46">
+                <rect x="0" y="0" width="46" height="46" fill="#FFFFFF" />
+                <g fill="#101019">
+                  <rect x="3" y="3" width="14" height="14" rx="3" /><rect x="6" y="6" width="8" height="8" fill="#FFFFFF" />
+                  <rect x="29" y="3" width="14" height="14" rx="3" /><rect x="32" y="6" width="8" height="8" fill="#FFFFFF" />
+                  <rect x="3" y="29" width="14" height="14" rx="3" /><rect x="6" y="32" width="8" height="8" fill="#FFFFFF" />
+                  <rect x="21" y="21" width="5" height="5" /><rect x="29" y="21" width="5" height="5" /><rect x="37" y="25" width="5" height="5" />
+                  <rect x="25" y="29" width="5" height="5" /><rect x="33" y="33" width="9" height="9" /><rect x="21" y="37" width="5" height="5" />
+                  <rect x="21" y="29" width="5" height="5" /><rect x="29" y="37" width="5" height="5" />
+                </g>
+              </svg>
+            </div>
+
+            <div style={{ background: 'var(--panel2)', border: '1px solid var(--line2)', borderRadius: '14px', padding: '14px 18px', textAlign: 'left', marginBottom: '20px', display: 'grid', gap: '8px', fontSize: '13px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--muted)' }}>Pass Status:</span>
+                <span style={{ color: 'var(--ok)', fontWeight: 700 }}>{qrModalData.status}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--muted)' }}>Ticket No:</span>
+                <span style={{ color: 'var(--violet-lt)', fontWeight: 700, fontFamily: 'monospace' }}>{qrModalData.tId}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--muted)' }}>Attendee:</span>
+                <span style={{ color: '#FFF', fontWeight: 600 }}>{qrModalData.aName}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--muted)' }}>Time & Date:</span>
+                <span style={{ color: '#FFF', fontWeight: 600 }}>{qrModalData.date}</span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => addToast('Pass Saved', 'Saved ticket pass to device.', 'ok')}
+                style={{ flex: 1, padding: '12px', background: 'var(--violet)', color: '#FFF', border: 'none', borderRadius: '10px', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}
+              >
+                Save to Device
+              </button>
+              <button
+                onClick={() => setQrModalData(null)}
+                style={{ padding: '12px 18px', background: 'var(--line2)', color: '#FFF', border: 'none', borderRadius: '10px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer' }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
 
     </div>
   );
