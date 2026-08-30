@@ -1375,7 +1375,7 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
                 {/* WhatsApp */}
                 <Pressable
                   onPress={() => {
-                    const url = typeof window !== 'undefined' ? window.location.href : 'http://localhost:8081/echo/snist';
+                    const url = typeof window !== 'undefined' ? window.location.href : 'https://studentalumni.ai/echo/snist';
                     const text = encodeURIComponent(` Join ${data?.title || 'SNIST Hackwave 3.0'} — National Level AI Hackathon!\n\nRegister now: ${url}`);
                     const waUrl = `https://api.whatsapp.com/send?text=${text}`;
                     if (Platform.OS === 'web' && typeof window !== 'undefined') window.open(waUrl, '_blank');
@@ -1391,7 +1391,7 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
                 {/* Telegram */}
                 <Pressable
                   onPress={() => {
-                    const url = typeof window !== 'undefined' ? window.location.href : 'http://localhost:8081/echo/snist';
+                    const url = typeof window !== 'undefined' ? window.location.href : 'https://studentalumni.ai/echo/snist';
                     const text = encodeURIComponent(` Join ${data?.title || 'SNIST Hackwave 3.0'} — National Level AI Hackathon!`);
                     const tgUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${text}`;
                     if (Platform.OS === 'web' && typeof window !== 'undefined') window.open(tgUrl, '_blank');
@@ -1407,7 +1407,7 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
                 {/* Copy Link */}
                 <Pressable
                   onPress={() => {
-                    const url = typeof window !== 'undefined' ? window.location.href : 'http://localhost:8081/echo/snist';
+                    const url = typeof window !== 'undefined' ? window.location.href : 'https://studentalumni.ai/echo/snist';
                     if (typeof window !== 'undefined' && navigator.clipboard) {
                       navigator.clipboard.writeText(url);
                       toast.success('Event link copied to clipboard!');

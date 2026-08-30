@@ -3,7 +3,9 @@
  * clickable carousel above the AI Daily Brief section on user dashboards.
  */
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { View, Image, Pressable, StyleSheet, Platform, Linking, Dimensions } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Platform, Linking, Image } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Megaphone } from 'lucide-react-native';
 import { fetchPortal } from '@/src/lib/portalApi';
 import { resolveImageUrl } from '@/src/models/services/api';
 
@@ -13,8 +15,15 @@ type AdItem = {
   redirect_url: string;
 };
 
+const DEFAULT_PROMO_SLIDES: AdItem[] = [
+  { key: 'p1', type: 'rich', tag: 'COLLAB EXCLUSIVE', title: 'HackWave 3.0 — 2026', sub: 'SEP 04—05 · Sreenidhi Institute of Science and Technology', cta: 'Register on Unstop', redirect_url: '/echo/snist/register', bg: '#5A2DBE', tagColor: '#E9DDFF', ctaStyle: 'filled', visual: 'none' },
+  { key: 'p2', type: 'rich', tag: 'VOICE OF GENERATIONS · VNRVJIT', title: 'Alumni took the stage, students took notes.', sub: '26 photos, 3 workshops and 5 testimonials from the last showcase.', cta: 'Open ECHO Showcase', redirect_url: '/echo/vnrvjit/register', bg: '#14324D', tagColor: '#34D399', ctaStyle: 'ghost', visual: 'photo_grid' },
+  { key: 'p3', type: 'rich', tag: 'CAREER AI · NEW', title: 'Your readiness is up 8% this week.', sub: 'Agent K rebuilt your roadmap. Next milestone: build your professional resume.', cta: 'Continue now', redirect_url: '/agent-k', bg: '#3A2352', tagColor: '#F1B8D9', ctaStyle: 'ghost', visual: 'trend_chart' },
+];
+
 export function AdBanner() {
-  const [ads, setAds] = useState<AdItem[]>([]);
+  const router = useRouter();
+  const [ads, setAds] = useState<AdItem[]>(DEFAULT_PROMO_SLIDES);
   const [current, setCurrent] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -42,6 +51,51 @@ export function AdBanner() {
 
   const ad = ads[current];
   const goTo = (i: number) => { setCurrent(i); startTimer(); };
+
+  const handleCtaPress = () => {
+    if (!ad.redirect_url) return;
+    let url = ad.redirect_url;
+    // Strip hardcoded localhost origins to preserve host domain
+    if (url.includes('localhost:8081') || url.includes('localhost:8000') || url.includes('127.0.0.1')) {
+      try {
+        const parsed = new URL(url);
+        url = parsed.pathname + parsed.search + parsed.hash;
+      } catch {
+        url = url.replace(/^https?:\/\/[^\/]+/, '');
+      }
+    }
+
+    if (url.startsWith('/')) {
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.location.href = url;
+      } else {
+        router.push(url as any);
+      }
+    } else {
+      Platform.OS === 'web' ? window.open(url, '_blank') : Linking.openURL(url);
+    }
+  };
+
+  // If it's an old image ad (or explicitly marked as image)
+  if (ad.type !== 'rich' && !ad.title) {
+    return (
+      <View style={s.imageRoot}>
+        <Pressable onPress={handleCtaPress} style={s.imageWrap}>
+          <Image source={{ uri: resolveImageUrl(ad.image_url || '') }} style={s.imageImg} resizeMode="cover" />
+        </Pressable>
+        {ads.length > 1 && (
+          <View style={s.imageDots}>
+            {ads.map((_, i) => (
+              <Pressable key={i} onPress={() => goTo(i)} style={[s.imageDot, i === current && s.imageDotActive]} />
+            ))}
+          </View>
+        )}
+      </View>
+    );
+  }
+
+  // Render Rich Promo Banner
+  const visualElement = ad.visual === 'photo_grid' ? <PhotoGrid /> : ad.visual === 'trend_chart' ? <TrendChart /> : null;
 
   return (
     <View style={s.root}>
