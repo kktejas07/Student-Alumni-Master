@@ -607,7 +607,7 @@ async def _send_registration_confirmation(db, reg: dict, showcase: dict, team_na
         reg_id = reg.get("id") or ""
         import urllib.parse
         ticket_url = f"https://studentalumni.ai/api/echo/tickets/{reg_id}?email={urllib.parse.quote(email)}"
-        handbook_url = f"http://localhost:8002/api/echo/handbook/download"
+        handbook_url = f"https://studentalumni.ai/api/echo/handbook/download"
         ticket_block = _ticket_email_block(reg, showcase, ticket_url)
         
         # Team info block
@@ -748,7 +748,7 @@ async def _send_team_member_confirmation(db, member_reg: dict, showcase: dict, p
         
         import urllib.parse
         ticket_url = f"https://studentalumni.ai/api/echo/tickets/{reg_id}?email={urllib.parse.quote(email)}"
-        handbook_url = f"http://localhost:8002/api/echo/handbook/download"
+        handbook_url = f"https://studentalumni.ai/api/echo/handbook/download"
         ticket_block = _ticket_email_block(member_reg, showcase or {}, ticket_url)
         
         # Attach Handbook PDF if present
