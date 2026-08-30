@@ -19,6 +19,7 @@ import { SAWatermark } from '@/src/views/web/components/SAWatermark';
 import CommonFooter from '@/src/views/components/CommonFooter';
 import { Navbar } from '@/src/views/web/nexus-glow-landing/Navbar';
 import { useTheme } from '@/src/theme/ThemeContext';
+import { EchoTicketsConfirmationPage } from './EchoTicketsConfirmationPage';
 
 interface EchoEventsPageProps {
   initialView?: 'list' | 'detail' | 'reg';
@@ -2735,60 +2736,33 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
       )}
 
       {/* ────────────────────────────────────────────────────────── */}
-      {/* SUCCESS CONFIRMATION MODAL */}
+      {/* SUCCESS CONFIRMATION FULLSCREEN PAGE */}
       {paymentSuccess && ticketData && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(5,6,15,0.85)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-          <div style={{ background: 'var(--panel)', border: '1px solid #3A2E72', borderRadius: '24px', maxWidth: '520px', width: '100%', padding: '32px', textAlign: 'center', boxShadow: isDark ? '0 25px 60px rgba(0,0,0,0.6)' : '0 10px 30px rgba(0,0,0,.1)' }}>
-            
-            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(16,185,129,0.18)', border: '2px solid #10B981', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5"><path d="M20 6L9 17l-5-5" /></svg>
-            </div>
-
-            <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#FFFFFF', margin: '0 0 8px' }}>Registration Confirmed!</h2>
-            <p style={{ fontSize: '14.5px', color: '#9AA0B4', margin: '0 0 24px', lineHeight: 1.5 }}>
-              Your pass for <strong style={{ color: '#FFF' }}>{ticketData.eventName}</strong> has been issued and sent to <strong style={{ color: 'var(--violet-lt)' }}>{ticketData.email}</strong>.
-            </p>
-
-            <div style={{ background: 'var(--panel2)', border: '1px solid var(--line2)', borderRadius: '16px', padding: '18px 20px', textAlign: 'left', marginBottom: '24px', display: 'grid', gap: '10px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                <span style={{ color: 'var(--muted)' }}>Ticket ID:</span>
-                <span style={{ color: 'var(--violet-lt)', fontWeight: 700, fontFamily: 'monospace' }}>{ticketData.ticketId}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                <span style={{ color: 'var(--muted)' }}>Attendee:</span>
-                <span style={{ color: '#FFFFFF', fontWeight: 600 }}>{ticketData.attendeeName}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                <span style={{ color: 'var(--muted)' }}>Pass Type:</span>
-                <span style={{ color: 'var(--ok)', fontWeight: 600 }}>{ticketData.type}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                <span style={{ color: 'var(--muted)' }}>Total Paid:</span>
-                <span style={{ color: '#FFFFFF', fontWeight: 700 }}>INR {ticketData.amount.toLocaleString()}</span>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <button
-                onClick={() => router.push('/platform?role=student&tab=my-tickets')}
-                className="ev-btn"
-                style={{ flex: 1, padding: '14px', background: 'var(--violet)', color: '#FFF', border: 'none', borderRadius: '12px', fontSize: '14.5px', fontWeight: 700, cursor: 'pointer' }}
-              >
-                View in My Tickets
-              </button>
-              <button
-                onClick={() => {
-                  setPaymentSuccess(false);
-                  go('list');
-                }}
-                className="ev-btn"
-                style={{ padding: '14px 20px', background: 'var(--line)', color: '#FFF', border: 'none', borderRadius: '12px', fontSize: '14.5px', fontWeight: 600, cursor: 'pointer' }}
-              >
-                Close
-              </button>
-            </div>
-
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, overflowY: 'auto', background: '#08080F' }}>
+          <div style={{ position: 'absolute', top: 16, right: 24, zIndex: 1001 }}>
+            <button
+              onClick={() => {
+                setPaymentSuccess(false);
+                go('list');
+              }}
+              style={{ background: 'rgba(255,255,255,0.1)', color: '#FFF', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '100px', padding: '10px 20px', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer', backdropFilter: 'blur(10px)' }}
+            >
+              ✕ Close Confirmation
+            </button>
           </div>
+          <EchoTicketsConfirmationPage
+            initialTab="success"
+            ticketInfo={{
+              ticketId: ticketData.ticketId,
+              eventName: ticketData.eventName,
+              attendeeName: ticketData.attendeeName,
+              email: ticketData.email,
+              type: ticketData.type,
+              amount: ticketData.amount,
+              date: ticketData.date,
+              venue: ticketData.venue,
+            }}
+          />
         </div>
       )}
 

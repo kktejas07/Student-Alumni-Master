@@ -1,0 +1,1039 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'expo-router';
+
+type ViewTab = 'success' | 'failure' | 'tickets' | 'coupons';
+
+interface ToastItem {
+  id: number;
+  title: string;
+  body?: string;
+  kind: 'ok' | 'warn' | 'bad';
+}
+
+interface EchoTicketsConfirmationPageProps {
+  initialTab?: ViewTab;
+  ticketInfo?: {
+    ticketId?: string;
+    eventName?: string;
+    attendeeName?: string;
+    email?: string;
+    type?: string;
+    amount?: number;
+    date?: string;
+    venue?: string;
+  };
+}
+
+export function EchoTicketsConfirmationPage({
+  initialTab = 'success',
+  ticketInfo,
+}: EchoTicketsConfirmationPageProps) {
+  const router = useRouter();
+
+  // Active view tab state
+  const [activeTab, setActiveTab] = useState<ViewTab>(initialTab);
+  const [animKey, setAnimKey] = useState<number>(0);
+
+  // Toast system
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const toastIdRef = useRef(0);
+
+  const addToast = (title: string, body?: string, kind: 'ok' | 'warn' | 'bad' = 'ok') => {
+    const id = ++toastIdRef.current;
+    setToasts((prev) => [...prev.slice(-2), { id, title, body, kind }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 4200);
+  };
+
+  const removeToast = (id: number) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  // Replay animations
+  const replayAnimations = () => {
+    setAnimKey((prev) => prev + 1);
+  };
+
+  // Switch tab & trigger animation replay
+  const handleTabChange = (tab: ViewTab) => {
+    setActiveTab(tab);
+    setAnimKey((prev) => prev + 1);
+  };
+
+  // Invoice download simulated progress
+  const [invState, setInvState] = useState<'idle' | 'downloading' | 'ready'>('idle');
+  const [invProgress, setInvProgress] = useState(0);
+
+  const handleDownloadInvoice = () => {
+    if (invState === 'downloading') return;
+    setInvState('downloading');
+    setInvProgress(0);
+
+    let prg = 0;
+    const interval = setInterval(() => {
+      prg += 20;
+      setInvProgress(prg);
+      if (prg >= 100) {
+        clearInterval(interval);
+        setInvState('ready');
+        addToast('Invoice ready', 'SA-INV-22981.pdf · ₹599 · Razorpay', 'ok');
+        setTimeout(() => setInvState('idle'), 3000);
+      }
+    }, 250);
+  };
+
+  // Mentor question checklist state
+  const [showQuestions, setShowQuestions] = useState(false);
+  const [pickedQuestions, setPickedQuestions] = useState<Record<number, boolean>>({});
+
+  const toggleQuestion = (idx: number) => {
+    setPickedQuestions((prev) => {
+      const next = { ...prev, [idx]: !prev[idx] };
+      const count = Object.values(next).filter(Boolean).length;
+      if (count === 3 && !prev[idx]) {
+        addToast('Questions sent to Rahul', 'He sees them before the call starts.', 'ok');
+      }
+      return next;
+    });
+  };
+
+  // Coupons savings breakdown toggle
+  const [showSavings, setShowSavings] = useState(false);
+  const [saveBarWidth, setSaveBarWidth] = useState(0);
+
+  useEffect(() => {
+    if (showSavings) {
+      setTimeout(() => setSaveBarWidth(68), 100);
+    } else {
+      setSaveBarWidth(0);
+    }
+  }, [showSavings]);
+
+  // Calendar action
+  const [addedCal, setAddedCal] = useState(false);
+  const handleAddToCalendar = () => {
+    setAddedCal(true);
+    addToast('Added to your calendar', 'Sep 04, 08:00 AM · reminder set for the night before.', 'ok');
+    setTimeout(() => setAddedCal(false), 3000);
+  };
+
+  // Countdown timer for seat hold in Failure view
+  const [secondsLeft, setSecondsLeft] = useState(19 * 60 + 47);
+  useEffect(() => {
+    if (activeTab !== 'failure') return;
+    const timer = setInterval(() => {
+      setSecondsLeft((prev) => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [activeTab]);
+
+  const formatTime = (totalSec: number) => {
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
+
+  // Payment retry action
+  const [isRetrying, setIsRetrying] = useState(false);
+  const handleRetryPayment = () => {
+    if (isRetrying) return;
+    setIsRetrying(true);
+    setTimeout(() => {
+      setIsRetrying(false);
+      addToast('Still declined', 'Same response from the issuer. UPI usually clears.', 'bad');
+    }, 1800);
+  };
+
+  // Coupon copy interactions
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [floatingSavings, setFloatingSavings] = useState<{ code: string; id: number }[]>([]);
+
+  const handleCopyCoupon = (code: string, savingsStr: string) => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(code);
+    }
+    setCopiedCode(code);
+    addToast('Code copied', `${code} is on your clipboard.`, 'ok');
+
+    const floatId = Date.now();
+    setFloatingSavings((prev) => [...prev, { code, id: floatId }]);
+    setTimeout(() => {
+      setFloatingSavings((prev) => prev.filter((f) => f.id !== floatId));
+    }, 1600);
+
+    setTimeout(() => {
+      setCopiedCode(null);
+    }, 2000);
+  };
+
+  // Newsletter subscribe
+  const [subscribed, setSubscribed] = useState(false);
+  const handleSubscribe = () => {
+    setSubscribed(true);
+    addToast('You’re on the list', 'One email a month, first Tuesday.', 'ok');
+    setTimeout(() => setSubscribed(false), 3000);
+  };
+
+  // Dynamic ticket details fallback
+  const tId = ticketInfo?.ticketId || 'SA-TKT-448120';
+  const eName = ticketInfo?.eventName || 'Hack Wave 3.0';
+  const aName = ticketInfo?.attendeeName || 'Devender Vutukuru';
+  const uEmail = ticketInfo?.email || 'devender@snist.edu.in';
+  const pType = ticketInfo?.type || 'Individual Pass (GA)';
+  const pAmount = ticketInfo?.amount ?? 599;
+  const pVenue = ticketInfo?.venue || 'Sreenidhi Institute of Science & Technology, Hyderabad';
+
+  return (
+    <div
+      id="tk-root"
+      style={{
+        '--bg': '#08080F',
+        '--panel': '#101019',
+        '--panel2': '#14141F',
+        '--line': '#1F1F30',
+        '--line2': '#292940',
+        '--violet': '#7C5CFC',
+        '--violet-lt': '#A78BFA',
+        '--ok': '#34D399',
+        '--ok-line': '#17503E',
+        '--ok-tint': 'rgba(52,211,153,.13)',
+        '--warn': '#F5B342',
+        '--warn-line': '#4A3410',
+        '--warn-tint': 'rgba(245,179,66,.13)',
+        '--danger': '#F87186',
+        '--danger-line': '#5A1E2B',
+        '--danger-tint': 'rgba(248,113,134,.12)',
+        '--text': '#F4F4FA',
+        '--muted': '#9095A8',
+        '--dim': '#7E7E92',
+        fontFamily: "'Outfit', -apple-system, sans-serif",
+        color: 'var(--text)',
+        background: 'var(--bg)',
+        minHeight: '100vh',
+        position: 'relative',
+      } as React.CSSProperties}
+    >
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+            @keyframes tk-in { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+            @keyframes tk-draw { from { stroke-dashoffset: var(--len); } to { stroke-dashoffset: 0; } }
+            @keyframes tk-ring { 0% { transform: scale(.5); opacity: 0; } 18% { opacity: .7; } 100% { transform: scale(2.1); opacity: 0; } }
+            @keyframes tk-shake { 0%, 100% { transform: translateX(0); } 18%, 58% { transform: translateX(-6px); } 38%, 78% { transform: translateX(6px); } }
+            @keyframes tk-ribbon { from { transform: translateY(-104%); } to { transform: translateY(0); } }
+            @keyframes tk-unfurlL { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+            @keyframes tk-sheen { 0% { transform: translateX(-130%) skewX(-18deg); } 58%, 100% { transform: translateX(250%) skewX(-18deg); } }
+            @keyframes tk-drift { 0%, 100% { transform: translate3d(0,0,0); } 50% { transform: translate3d(-4%, 3%, 0); } }
+            @keyframes tk-rise { 0% { transform: translateY(0) scale(.4); opacity: 0; } 22% { opacity: 1; } 100% { transform: translateY(-92px) scale(1); opacity: 0; } }
+            @keyframes tk-spin { to { transform: rotate(360deg); } }
+            @keyframes tk-bar { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+            
+            .tk-anim { animation: tk-in 0.55s cubic-bezier(.2,.8,.2,1) both; }
+            .tk-hover-card { transition: transform .25s cubic-bezier(.2,.8,.2,1), border-color .25s ease, box-shadow .25s ease !important; }
+            .tk-hover-card:hover { transform: translateY(-4px) !important; border-color: #4B3FA8 !important; }
+            .tk-btn-hover { transition: all .2s ease !important; }
+            .tk-btn-hover:hover { filter: brightness(1.14) !important; transform: translateY(-1px) !important; }
+          `,
+        }}
+      />
+
+      {/* Ambient background glows */}
+      <div style={{ position: 'fixed', inset: 0, zIndex: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+        <div style={{ position: 'absolute', left: '-12%', top: '-22%', width: '760px', height: '620px', background: 'radial-gradient(circle, rgba(124,92,252,.18), transparent 68%)', filter: 'blur(70px)', animation: 'tk-drift 42s ease-in-out infinite' }} />
+        <div style={{ position: 'absolute', right: '-16%', bottom: '-18%', width: '700px', height: '580px', background: 'radial-gradient(circle, rgba(240,166,232,.08), transparent 70%)', filter: 'blur(80px)', animation: 'tk-drift 58s ease-in-out infinite reverse' }} />
+      </div>
+
+      {/* SVG Definitions */}
+      <svg width="0" height="0" style={{ position: 'absolute' }}>
+        <defs>
+          <linearGradient id="tk-badge-o" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#C9A7FF" />
+            <stop offset=".5" stopColor="#8B5CF6" />
+            <stop offset="1" stopColor="#5B3FD9" />
+          </linearGradient>
+          <linearGradient id="tk-badge-i" x1="0" y1="0" x2=".4" y2="1">
+            <stop offset="0" stopColor="#B683F5" />
+            <stop offset="1" stopColor="#7331C9" />
+          </linearGradient>
+        </defs>
+      </svg>
+
+      {/* Header Navbar */}
+      <div style={{ position: 'sticky', top: 0, zIndex: 90, background: 'rgba(8,8,15,.9)', backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)', borderBottom: '1px solid var(--line)' }}>
+        <div style={{ maxWidth: '1360px', margin: '0 auto', padding: '16px 40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '24px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '11px', flex: '0 0 auto', cursor: 'pointer' }} onClick={() => router.push('/')}>
+            <svg width="30" height="34" viewBox="0 0 300 350" style={{ flex: 'none' }}>
+              <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#tk-badge-o)" />
+              <path d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="url(#tk-badge-i)" />
+              <text x="150" y="214" textAnchor="middle" style={{ fontFamily: "'Outfit', sans-serif", fontSize: '118px', fontWeight: 800, letterSpacing: '-5px', fill: '#FFFFFF' }}>SA</text>
+            </svg>
+            <span style={{ fontSize: '19px', fontWeight: 700, letterSpacing: '-.4px', whiteSpace: 'nowrap' }}>StudentAlumni</span>
+          </div>
+
+          <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: '28px' }}>
+            <span onClick={() => router.push('/')} style={{ fontSize: '15px', fontWeight: 500, color: 'var(--muted)', cursor: 'pointer' }}>Home</span>
+            <span onClick={() => router.push('/echo')} style={{ fontSize: '15px', fontWeight: 500, color: 'var(--muted)', cursor: 'pointer' }}>ECHO</span>
+            <span onClick={() => router.push('/verify')} style={{ fontSize: '15px', fontWeight: 500, color: 'var(--muted)', cursor: 'pointer' }}>Verify</span>
+            <span onClick={() => router.push('/contact')} style={{ fontSize: '15px', fontWeight: 500, color: 'var(--muted)', cursor: 'pointer' }}>Contact Us</span>
+          </div>
+
+          <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <span onClick={() => router.push('/login')} style={{ fontSize: '15px', fontWeight: 500, color: 'var(--muted)', cursor: 'pointer' }}>Sign in</span>
+            <span onClick={() => router.push('/dashboard')} style={{ fontSize: '15px', fontWeight: 700, color: '#FFFFFF', background: 'var(--violet)', borderRadius: '100px', padding: '12px 24px', cursor: 'pointer', whiteSpace: 'nowrap' }}>Get Started</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Sub-bar View Mode Picker */}
+      <div style={{ position: 'sticky', top: '73px', zIndex: 80, background: 'rgba(8,8,15,.86)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', borderBottom: '1px solid var(--line)' }}>
+        <div style={{ maxWidth: '1360px', margin: '0 auto', padding: '10px 40px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.5px', color: 'var(--dim)', flex: 'none' }}>SHOW VIEW</span>
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', gap: '8px', overflowX: 'auto' }}>
+            {[
+              { id: 'success', label: 'Success' },
+              { id: 'failure', label: 'Failure' },
+              { id: 'tickets', label: 'Tickets' },
+              { id: 'coupons', label: 'Coupons' },
+            ].map((t) => {
+              const active = activeTab === t.id;
+              return (
+                <span
+                  key={t.id}
+                  onClick={() => handleTabChange(t.id as ViewTab)}
+                  style={{
+                    flex: 'none',
+                    fontSize: '12.5px',
+                    fontWeight: 600,
+                    color: active ? '#F4F4FA' : 'var(--muted)',
+                    background: active ? 'rgba(124,92,252,.2)' : 'transparent',
+                    border: active ? '1px solid #4B3FA8' : '1px solid var(--line)',
+                    borderRadius: '100px',
+                    padding: '8px 16px',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    transition: 'all .2s ease',
+                  }}
+                >
+                  {t.label}
+                </span>
+              );
+            })}
+          </div>
+          <span
+            onClick={replayAnimations}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '12.5px',
+              fontWeight: 600,
+              color: 'var(--violet-lt)',
+              border: '1px solid #2E2A55',
+              borderRadius: '100px',
+              padding: '8px 14px',
+              cursor: 'pointer',
+              flex: 'none',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M20 12a8 8 0 11-2.3-5.7M20 4v4h-4" />
+            </svg>
+            Replay Animations
+          </span>
+        </div>
+      </div>
+
+      {/* Main Stage */}
+      <div key={animKey} style={{ position: 'relative', zIndex: 1, maxWidth: '1360px', margin: '0 auto', padding: '40px 40px 90px' }}>
+        
+        {/* ────────────────────────────────────────────────────────── */}
+        {/* SUCCESS SCREEN */}
+        {activeTab === 'success' && (
+          <div className="tk-anim">
+            <div style={{ maxWidth: '620px', marginBottom: '30px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.6px', color: 'var(--ok)', marginBottom: '14px' }}>SUCCESS CONFIRMATION</div>
+              <div style={{ fontSize: '31px', fontWeight: 700, letterSpacing: '-1.3px', lineHeight: 1.14 }}>Registration confirmed, at full weight</div>
+              <div style={{ fontSize: '15.5px', lineHeight: 1.65, color: 'var(--muted)', marginTop: '10px' }}>
+                A ribbon for page-level wins, a card for transactions, a toast for small ones. Each states what happened and what it unlocked.
+              </div>
+            </div>
+
+            {/* Main Success Card */}
+            <div style={{ position: 'relative', overflow: 'hidden', border: '1px solid var(--ok-line)', borderRadius: '20px', background: 'linear-gradient(150deg, rgba(52,211,153,.11), var(--panel) 62%)', marginBottom: '20px' }}>
+              <div style={{ position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', gap: '14px', background: 'linear-gradient(96deg, #0E9F6E, #34D399 62%, #2FB8C6)', padding: '15px 26px' }}>
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#04291D" strokeWidth="2.6" strokeLinecap="round" style={{ flex: 'none' }}>
+                  <path d="M5 12.5l4.5 4.5L19 7" />
+                </svg>
+                <span style={{ position: 'relative', fontSize: '14.5px', fontWeight: 700, letterSpacing: '.2px', color: '#04291D' }}>
+                  Registration confirmed — you're on the {eName} list
+                </span>
+                <span style={{ position: 'relative', marginLeft: 'auto', fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.2px', color: '#04291D', whiteSpace: 'nowrap' }}>SEP 04</span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '128px minmax(0, 1fr)', gap: '28px', alignItems: 'center', padding: '32px 30px 34px' }}>
+                <div style={{ position: 'relative', width: '128px', height: '128px' }}>
+                  <svg viewBox="0 0 128 128" style={{ width: '128px', height: '128px' }}>
+                    <circle cx="64" cy="64" r="52" style={{ fill: 'rgba(52,211,153,.09)', stroke: 'var(--ok-line)', strokeWidth: 2 }} />
+                    <circle cx="64" cy="64" r="52" style={{ '--len': 327, fill: 'none', stroke: 'var(--ok)', strokeWidth: 3, strokeLinecap: 'round', strokeDasharray: 327, strokeDashoffset: 0, transform: 'rotate(-90deg)', transformOrigin: '64px 64px', animation: 'tk-draw 1.1s cubic-bezier(.4,0,.2,1) both' } as any} />
+                    <path d="M44 66 L58 80 L86 50" style={{ '--len': 76, fill: 'none', stroke: 'var(--ok)', strokeWidth: 5.5, strokeLinecap: 'round', strokeLinejoin: 'round', strokeDasharray: 76, strokeDashoffset: 0, animation: 'tk-draw .5s cubic-bezier(.4,0,.2,1) .75s both' } as any} />
+                  </svg>
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: '25px', fontWeight: 700, letterSpacing: '-.9px' }}>You're going to {eName}.</div>
+                  <div style={{ fontSize: '14.5px', lineHeight: 1.65, color: 'var(--muted)', margin: '9px 0 20px' }}>
+                    Ticket <strong style={{ color: 'var(--text)', fontWeight: 600 }}>{tId}</strong> is issued against your SA ID and sent to <strong style={{ color: 'var(--violet-lt)' }}>{uEmail}</strong>. Free cancellation until Sep 1.
+                  </div>
+                  <div style={{ display: 'flex', gap: '9px', flexWrap: 'wrap' }}>
+                    <span onClick={() => handleTabChange('tickets')} className="tk-btn-hover" style={{ fontSize: '13.5px', fontWeight: 700, background: 'var(--ok)', color: '#04291D', borderRadius: '11px', padding: '12px 20px', cursor: 'pointer' }}>View my ticket</span>
+                    <span onClick={handleAddToCalendar} className="tk-btn-hover" style={{ fontSize: '13.5px', fontWeight: 600, color: addedCal ? 'var(--ok)' : 'var(--muted)', border: '1px solid var(--line2)', borderRadius: '11px', padding: '12px 20px', cursor: 'pointer' }}>
+                      {addedCal ? 'Added to calendar ✓' : 'Add to calendar'}
+                    </span>
+                    <span onClick={() => addToast('Invite link copied', 'Share it with your batchmates.', 'ok')} className="tk-btn-hover" style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--muted)', border: '1px solid var(--line2)', borderRadius: '11px', padding: '12px 20px', cursor: 'pointer' }}>Invite a friend</span>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', borderTop: '1px solid var(--line)', background: 'rgba(8,8,15,.4)', padding: '15px 30px' }}>
+                <span style={{ fontSize: '10.5px', fontWeight: 700, letterSpacing: '1.5px', color: 'var(--dim)', flex: 'none' }}>THIS UNLOCKED</span>
+                <div style={{ display: 'flex', gap: '9px', flexWrap: 'wrap' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', fontSize: '12.5px', fontWeight: 600, color: 'var(--ok)', background: 'var(--ok-tint)', border: '1px solid var(--ok-line)', borderRadius: '100px', padding: '7px 13px' }}>+2 workshop passes</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', fontSize: '12.5px', fontWeight: 600, color: 'var(--violet-lt)', background: 'rgba(124,92,252,.14)', border: '1px solid #2E2A55', borderRadius: '100px', padding: '7px 13px' }}>Recruiter access on campus</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', fontSize: '12.5px', fontWeight: 600, color: 'var(--warn)', background: 'var(--warn-tint)', border: '1px solid var(--warn-line)', borderRadius: '100px', padding: '7px 13px' }}>₹50,000 prize pool entry</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 3 Sub-Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
+              {/* Payment Received */}
+              <div className="tk-hover-card" style={{ position: 'relative', overflow: 'hidden', border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '22px 24px 24px' }}>
+                <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: '4px', background: 'linear-gradient(90deg, #0E9F6E, #34D399)' }} />
+                <span style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'var(--ok-tint)', border: '1px solid var(--ok-line)', display: 'flex', alignItems: 'center', justifyCenter: 'center', marginBottom: '16px', justifyContent: 'center' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" strokeWidth="2.4" strokeLinecap="round">
+                    <path d="M5 12.5l4 4 10-10.5" />
+                  </svg>
+                </span>
+                <div style={{ fontSize: '16.5px', fontWeight: 700, letterSpacing: '-.3px' }}>Payment received</div>
+                <div style={{ fontSize: '13.5px', lineHeight: 1.6, color: 'var(--muted)', margin: '7px 0 14px' }}>INR {pAmount.toLocaleString()} via Razorpay. Invoice SA-INV-22981 is ready.</div>
+                
+                <span onClick={handleDownloadInvoice} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 700, color: 'var(--ok)', cursor: 'pointer' }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M4 19.5h16" /></svg>
+                  {invState === 'downloading' ? 'Preparing PDF...' : invState === 'ready' ? 'Downloaded ✓' : 'Download invoice'}
+                </span>
+
+                {invState === 'downloading' && (
+                  <div style={{ height: '4px', borderRadius: '2px', background: 'var(--line2)', overflow: 'hidden', marginTop: '12px' }}>
+                    <div style={{ height: '100%', width: `${invProgress}%`, borderRadius: '2px', background: 'linear-gradient(90deg, #0E9F6E, var(--ok))', transition: 'width 0.2s linear' }} />
+                  </div>
+                )}
+              </div>
+
+              {/* Mentor Accepted */}
+              <div className="tk-hover-card" style={{ position: 'relative', overflow: 'hidden', border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '22px 24px 24px' }}>
+                <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: '4px', background: 'linear-gradient(90deg, #4F46C7, #A78BFA)' }} />
+                <span style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(124,92,252,.14)', border: '1px solid #2E2A55', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--violet-lt)" strokeWidth="1.9">
+                    <circle cx="9" cy="9" r="3.2" /><path d="M3 19q6-6 12 0M18 8v6M15 11h6" />
+                  </svg>
+                </span>
+                <div style={{ fontSize: '16.5px', fontWeight: 700, letterSpacing: '-.3px' }}>Mentor accepted</div>
+                <div style={{ fontSize: '13.5px', lineHeight: 1.6, color: 'var(--muted)', margin: '7px 0 14px' }}>Rahul Sharma confirmed Thursday, 6:00 pm IST. Room link sent.</div>
+                
+                <span onClick={() => setShowQuestions(!showQuestions)} style={{ fontSize: '13px', fontWeight: 700, color: 'var(--violet-lt)', cursor: 'pointer' }}>
+                  {showQuestions ? 'Hide questions ↑' : 'Prepare questions →'}
+                </span>
+
+                {showQuestions && (
+                  <div style={{ marginTop: '14px', display: 'grid', gap: '8px' }}>
+                    {[
+                      'How did you move from SNIST into a Google SWE loop?',
+                      'Which of my three projects is worth putting first?',
+                      'Would you refer me for the window closing Friday?',
+                    ].map((qText, idx) => {
+                      const isPicked = pickedQuestions[idx];
+                      return (
+                        <div
+                          key={idx}
+                          onClick={() => toggleQuestion(idx)}
+                          style={{ display: 'grid', gridTemplateColumns: '18px minmax(0, 1fr)', gap: '10px', alignItems: 'start', cursor: 'pointer', opacity: isPicked ? 0.65 : 1 }}
+                        >
+                          <span style={{ width: '18px', height: '18px', borderRadius: '6px', border: isPicked ? '1.5px solid var(--violet)' : '1.5px solid var(--line2)', background: isPicked ? 'var(--violet)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '1px' }}>
+                            {isPicked && <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#FFF" strokeWidth="2.2"><path d="M2 6.4l2.6 2.6L10 3.4" /></svg>}
+                          </span>
+                          <span style={{ fontSize: '12.5px', lineHeight: 1.5, color: 'var(--muted)' }}>{qText}</span>
+                        </div>
+                      );
+                    })}
+                    <div style={{ fontSize: '11.5px', color: 'var(--dim)', marginTop: '4px' }}>
+                      {Object.values(pickedQuestions).filter(Boolean).length} of 3 picked
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Coupon Claimed */}
+              <div className="tk-hover-card" style={{ position: 'relative', overflow: 'hidden', border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '22px 24px 24px' }}>
+                <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: '4px', background: 'linear-gradient(90deg, #B45309, #F5B342)' }} />
+                <span style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'var(--warn-tint)', border: '1px solid var(--warn-line)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--warn)" strokeWidth="1.9"><path d="M20.5 12.5l-8 8-9-9V4h7.5ZM7.5 8h.01" /></svg>
+                </span>
+                <div style={{ fontSize: '16.5px', fontWeight: 700, letterSpacing: '-.3px' }}>Coupon claimed</div>
+                <div style={{ fontSize: '13.5px', lineHeight: 1.6, color: 'var(--muted)', margin: '7px 0 14px' }}>MRIT-MENTOR-40 applied. You saved ₹899 on this booking.</div>
+                
+                <span onClick={() => setShowSavings(!showSavings)} style={{ fontSize: '13px', fontWeight: 700, color: 'var(--warn)', cursor: 'pointer' }}>
+                  {showSavings ? 'Hide breakdown ↑' : 'See all offers →'}
+                </span>
+
+                {showSavings && (
+                  <div style={{ marginTop: '14px' }}>
+                    <div style={{ display: 'grid', gap: '7px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12.5px', color: 'var(--muted)' }}>
+                        <span>Mentor session (40% off)</span><span style={{ fontWeight: 700, color: 'var(--ok)' }}>− ₹899</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12.5px', color: 'var(--muted)' }}>
+                        <span>Resume Pro (6 months)</span><span style={{ fontWeight: 700, color: 'var(--ok)' }}>− ₹2,994</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12.5px', color: 'var(--muted)' }}>
+                        <span>Self-drive rentals (30%)</span><span style={{ fontWeight: 700, color: 'var(--ok)' }}>− ₹900</span>
+                      </div>
+                    </div>
+                    <div style={{ height: '5px', borderRadius: '3px', background: 'var(--line2)', overflow: 'hidden', margin: '14px 0 10px' }}>
+                      <div style={{ height: '100%', width: `${saveBarWidth}%`, borderRadius: '3px', background: 'linear-gradient(90deg, #B45309, var(--warn))', transition: 'width 1.1s cubic-bezier(.2,.8,.2,1)' }} />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--line)', paddingTop: '11px' }}>
+                      <span style={{ fontSize: '12.5px', fontWeight: 700 }}>Total saved</span>
+                      <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--warn)' }}>₹4,280</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ────────────────────────────────────────────────────────── */}
+        {/* FAILURE SCREEN */}
+        {activeTab === 'failure' && (
+          <div className="tk-anim">
+            <div style={{ maxWidth: '620px', marginBottom: '30px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.6px', color: 'var(--danger)', marginBottom: '14px' }}>FAILURE STATES</div>
+              <div style={{ fontSize: '31px', fontWeight: 700, letterSpacing: '-1.3px', lineHeight: 1.14 }}>Say what broke, and the way out</div>
+              <div style={{ fontSize: '15.5px', lineHeight: 1.65, color: 'var(--muted)', marginTop: '10px' }}>
+                Never a bare code. Every failure names the cause, says whether money moved, and gives one clear next action.
+              </div>
+            </div>
+
+            {/* Main Failure Card */}
+            <div style={{ position: 'relative', overflow: 'hidden', border: '1px solid var(--danger-line)', borderRadius: '20px', background: 'linear-gradient(150deg, rgba(248,113,134,.09), var(--panel) 62%)', marginBottom: '20px' }}>
+              <div style={{ position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', gap: '14px', background: 'linear-gradient(96deg, #B31B38, #F87186 66%, #F0A6E8)', padding: '15px 26px' }}>
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#2A0710" strokeWidth="2.6" strokeLinecap="round" style={{ flex: 'none' }}>
+                  <path d="M12 7v7M12 17.5v.01" /><circle cx="12" cy="12" r="9.5" />
+                </svg>
+                <span style={{ position: 'relative', fontSize: '14.5px', fontWeight: 700, letterSpacing: '.2px', color: '#2A0710' }}>
+                  Payment declined — no money left your account
+                </span>
+                <span style={{ position: 'relative', marginLeft: 'auto', fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.2px', color: '#2A0710', whiteSpace: 'nowrap' }}>SA-ERR-7F31C9</span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '128px minmax(0, 1fr)', gap: '28px', alignItems: 'center', padding: '32px 30px 34px' }}>
+                <div style={{ position: 'relative', width: '128px', height: '128px' }}>
+                  <svg viewBox="0 0 128 128" style={{ width: '128px', height: '128px' }}>
+                    <circle cx="64" cy="64" r="52" style={{ fill: 'rgba(248,113,134,.08)', stroke: 'var(--danger-line)', strokeWidth: 2 }} />
+                    <circle cx="64" cy="64" r="52" style={{ '--len': 327, fill: 'none', stroke: 'var(--danger)', strokeWidth: 3, strokeLinecap: 'round', strokeDasharray: 327, strokeDashoffset: 0, transform: 'rotate(-90deg)', transformOrigin: '64px 64px', animation: 'tk-draw 1.1s cubic-bezier(.4,0,.2,1) both' } as any} />
+                    <path d="M50 50 L78 78" style={{ '--len': 40, fill: 'none', stroke: 'var(--danger)', strokeWidth: 5.5, strokeLinecap: 'round', strokeDasharray: 40, strokeDashoffset: 0, animation: 'tk-draw .34s cubic-bezier(.4,0,.2,1) .72s both' } as any} />
+                    <path d="M78 50 L50 78" style={{ '--len': 40, fill: 'none', stroke: 'var(--danger)', strokeWidth: 5.5, strokeLinecap: 'round', strokeDasharray: 40, strokeDashoffset: 0, animation: 'tk-draw .34s cubic-bezier(.4,0,.2,1) .92s both' } as any} />
+                  </svg>
+                </div>
+
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: '25px', fontWeight: 700, letterSpacing: '-.9px' }}>Your bank refused the charge.</div>
+                  <div style={{ fontSize: '14.5px', lineHeight: 1.65, color: 'var(--muted)', margin: '9px 0 18px' }}>
+                    Razorpay reported <strong style={{ color: 'var(--text)', fontWeight: 600 }}>insufficient funds</strong> on the card ending 4291. Your seat is held for 20 minutes while you retry.
+                  </div>
+
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '12.5px', fontWeight: 600, color: 'var(--warn)', border: '1px solid var(--warn-line)', background: 'var(--warn-tint)', borderRadius: '100px', padding: '9px 15px', marginBottom: '20px' }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9" /><path d="M12 8v4.5l3 1.8" /></svg>
+                    Seat released in <span style={{ color: 'var(--text)', fontWeight: 700, marginLeft: '4px' }}>{secondsLeft > 0 ? formatTime(secondsLeft) : 'released'}</span>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '9px', flexWrap: 'wrap' }}>
+                    <span onClick={handleRetryPayment} className="tk-btn-hover" style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '13.5px', fontWeight: 700, background: 'var(--violet)', color: '#FFFFFF', borderRadius: '11px', padding: '12px 20px', cursor: 'pointer' }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: isRetrying ? 'tk-spin .8s linear infinite' : 'none' }}>
+                        <path d="M20 12a8 8 0 11-2.3-5.7M20 4v4h-4" />
+                      </svg>
+                      {isRetrying ? 'Reaching your bank...' : 'Try another card'}
+                    </span>
+                    <span onClick={() => addToast('Opening UPI', 'Redirecting to UPI payment app...', 'ok')} className="tk-btn-hover" style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--muted)', border: '1px solid var(--line2)', borderRadius: '11px', padding: '12px 20px', cursor: 'pointer' }}>Pay with UPI</span>
+                    <span onClick={() => router.push('/contact')} className="tk-btn-hover" style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--muted)', border: '1px solid var(--line2)', borderRadius: '11px', padding: '12px 20px', cursor: 'pointer' }}>Contact support</span>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', borderTop: '1px solid var(--line)', background: 'rgba(8,8,15,.4)', padding: '15px 30px' }}>
+                <span style={{ fontSize: '10.5px', fontWeight: 700, letterSpacing: '1.5px', color: 'var(--dim)', flex: 'none' }}>NOTHING WAS LOST</span>
+                <div style={{ display: 'flex', gap: '9px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '12.5px', color: 'var(--muted)' }}>Form answers saved</span>
+                  <span style={{ color: 'var(--dim)' }}>·</span>
+                  <span style={{ fontSize: '12.5px', color: 'var(--muted)' }}>Coupon still valid</span>
+                  <span style={{ color: 'var(--dim)' }}>·</span>
+                  <span style={{ fontSize: '12.5px', color: 'var(--muted)' }}>No charge on your statement</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 3 Failure Sub-Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
+              <div className="tk-hover-card" style={{ position: 'relative', overflow: 'hidden', border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '22px 24px 24px' }}>
+                <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: '4px', background: 'linear-gradient(90deg, #B31B38, #F87186)' }} />
+                <span style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'var(--danger-tint)', border: '1px solid var(--danger-line)', display: 'flex', alignItems: 'center', justifyCenter: 'center', marginBottom: '16px', justifyContent: 'center' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" strokeWidth="2"><path d="M4 4l16 16M20 4L4 20" /></svg>
+                </span>
+                <div style={{ fontSize: '16.5px', fontWeight: 700, letterSpacing: '-.3px' }}>Event is full</div>
+                <div style={{ fontSize: '13.5px', lineHeight: 1.6, color: 'var(--muted)', margin: '7px 0 14px' }}>All 985 seats are taken. 41 people are on the waitlist ahead of you.</div>
+                <span onClick={() => addToast('Joined Waitlist', 'You will be notified if a seat opens.', 'ok')} style={{ fontSize: '13px', fontWeight: 700, color: 'var(--danger)', cursor: 'pointer' }}>Join the waitlist →</span>
+              </div>
+
+              <div className="tk-hover-card" style={{ position: 'relative', overflow: 'hidden', border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '22px 24px 24px' }}>
+                <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: '4px', background: 'linear-gradient(90deg, #B45309, #F5B342)' }} />
+                <span style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'var(--warn-tint)', border: '1px solid var(--warn-line)', display: 'flex', alignItems: 'center', justifyCenter: 'center', marginBottom: '16px', justifyContent: 'center' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--warn)" strokeWidth="2"><path d="M12 4l9 16H3Z" /><path d="M12 10v4M12 17v.01" /></svg>
+                </span>
+                <div style={{ fontSize: '16.5px', fontWeight: 700, letterSpacing: '-.3px' }}>Coupon expired</div>
+                <div style={{ fontSize: '13.5px', lineHeight: 1.6, color: 'var(--muted)', margin: '7px 0 14px' }}>SA-LEARN-40 ended on Jul 11. Two similar offers are live now.</div>
+                <span onClick={() => handleTabChange('coupons')} style={{ fontSize: '13px', fontWeight: 700, color: 'var(--warn)', cursor: 'pointer' }}>Show live offers →</span>
+              </div>
+
+              <div className="tk-hover-card" style={{ position: 'relative', overflow: 'hidden', border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '22px 24px 24px' }}>
+                <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: '4px', background: 'linear-gradient(90deg, #4F46C7, #A78BFA)' }} />
+                <span style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(124,92,252,.14)', border: '1px solid #2E2A55', display: 'flex', alignItems: 'center', justifyCenter: 'center', marginBottom: '16px', justifyContent: 'center' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--violet-lt)" strokeWidth="1.9"><path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6Z" /><path d="M12 9v3.5M12 15.5v.01" /></svg>
+                </span>
+                <div style={{ fontSize: '16.5px', fontWeight: 700, letterSpacing: '-.3px' }}>Verification pending</div>
+                <div style={{ fontSize: '13.5px', lineHeight: 1.6, color: 'var(--muted)', margin: '7px 0 14px' }}>Your college email is unconfirmed, so student pricing is not applied yet.</div>
+                <span onClick={() => addToast('Verification Email Sent', 'Check your college inbox.', 'ok')} style={{ fontSize: '13px', fontWeight: 700, color: 'var(--violet-lt)', cursor: 'pointer' }}>Resend the link →</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ────────────────────────────────────────────────────────── */}
+        {/* TICKETS SCREEN */}
+        {activeTab === 'tickets' && (
+          <div className="tk-anim">
+            <div style={{ maxWidth: '620px', marginBottom: '30px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.6px', color: 'var(--violet-lt)', marginBottom: '14px' }}>EVENT TICKETS</div>
+              <div style={{ fontSize: '31px', fontWeight: 700, letterSpacing: '-1.3px', lineHeight: 1.14 }}>One pass, tied to your SA ID</div>
+              <div style={{ fontSize: '15.5px', lineHeight: 1.65, color: 'var(--muted)', marginTop: '10px' }}>
+                A torn stub, a scannable block and the details a gate volunteer actually reads. Non-transferable by design.
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+              {/* Primary Ticket */}
+              <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '20px', background: 'linear-gradient(150deg, #5B2DBE 0%, #4B3FD6 46%, #2FB8C6 100%)', boxShadow: '0 26px 60px rgba(0,0,0,.45)' }}>
+                <div style={{ position: 'relative', padding: '24px 26px 20px', color: '#FFFFFF' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <svg width="26" height="30" viewBox="0 0 300 350" style={{ flex: 'none' }}>
+                        <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="rgba(255,255,255,.22)" stroke="#FFFFFF" strokeWidth="12" />
+                        <text x="150" y="214" textAnchor="middle" style={{ fontFamily: "'Outfit', sans-serif", fontSize: '120px', fontWeight: 700, fill: '#FFFFFF' }}>SA</text>
+                      </svg>
+                      <div>
+                        <div style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.4px' }}>ENTRY PASS</div>
+                        <div style={{ fontSize: '10.5px', opacity: 0.78, marginTop: '2px' }}>studentalumni.ai/verify</div>
+                      </div>
+                    </div>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '10px', fontWeight: 700, letterSpacing: '1.1px', background: 'rgba(255,255,255,.2)', borderRadius: '100px', padding: '6px 11px', whiteSpace: 'nowrap' }}>
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#7BFFC4' }} /> VALID
+                    </span>
+                  </div>
+
+                  <div style={{ fontSize: '27px', fontWeight: 700, letterSpacing: '-1px', margin: '22px 0 4px' }}>{eName}</div>
+                  <div style={{ fontSize: '13px', opacity: 0.85 }}>{pVenue}</div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '16px', marginTop: '22px' }}>
+                    <div>
+                      <div style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '1.5px', opacity: 0.7, marginBottom: '5px' }}>DATE</div>
+                      <div style={{ fontSize: '14px', fontWeight: 700 }}>Sep 04–05</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '1.5px', opacity: 0.7, marginBottom: '5px' }}>GATES OPEN</div>
+                      <div style={{ fontSize: '14px', fontWeight: 700 }}>08:00 AM</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '1.5px', opacity: 0.7, marginBottom: '5px' }}>SEAT</div>
+                      <div style={{ fontSize: '14px', fontWeight: 700 }}>GA · Block C</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Torn Stub Divider */}
+                <div style={{ position: 'relative', height: '24px' }}>
+                  <span style={{ position: 'absolute', left: '-12px', top: 0, width: '24px', height: '24px', borderRadius: '50%', background: 'var(--bg)' }} />
+                  <span style={{ position: 'absolute', right: '-12px', top: 0, width: '24px', height: '24px', borderRadius: '50%', background: 'var(--bg)' }} />
+                  <span style={{ position: 'absolute', left: '18px', right: '18px', top: '11px', height: '2px', background: 'repeating-linear-gradient(90deg, rgba(255,255,255,.55) 0 7px, transparent 7px 14px)' }} />
+                </div>
+
+                {/* QR Code & Attendee Info */}
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '18px', padding: '18px 26px 24px', color: '#FFFFFF', flexWrap: 'wrap' }}>
+                  <svg width="76" height="76" viewBox="0 0 46 46" style={{ flex: 'none', borderRadius: '8px' }}>
+                    <rect x="0" y="0" width="46" height="46" rx="6" fill="#FFFFFF" />
+                    <g fill="#2B1E6E">
+                      <rect x="5" y="5" width="12" height="12" rx="2" /><rect x="8" y="8" width="6" height="6" fill="#FFFFFF" />
+                      <rect x="29" y="5" width="12" height="12" rx="2" /><rect x="32" y="8" width="6" height="6" fill="#FFFFFF" />
+                      <rect x="5" y="29" width="12" height="12" rx="2" /><rect x="8" y="32" width="6" height="6" fill="#FFFFFF" />
+                      <rect x="21" y="21" width="4" height="4" /><rect x="29" y="21" width="4" height="4" /><rect x="37" y="25" width="4" height="4" />
+                      <rect x="25" y="29" width="4" height="4" /><rect x="33" y="33" width="8" height="8" /><rect x="21" y="37" width="4" height="4" />
+                      <rect x="21" y="29" width="4" height="4" /><rect x="29" y="37" width="4" height="4" />
+                    </g>
+                  </svg>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '1.5px', opacity: 0.7, marginBottom: '5px' }}>TICKET NUMBER</div>
+                    <div style={{ fontSize: '16px', fontWeight: 700, letterSpacing: '.6px' }}>{tId}</div>
+                    <div style={{ fontSize: '11.5px', opacity: 0.78, marginTop: '6px' }}>{aName} · SA-2026-STU-RNWJMD</div>
+                  </div>
+                  <div style={{ textAlign: 'right', flex: 'none' }}>
+                    <div style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '1.5px', opacity: 0.7, marginBottom: '5px' }}>PAID</div>
+                    <div style={{ fontSize: '16px', fontWeight: 700 }}>₹{pAmount}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Secondary Passes */}
+              <div style={{ display: 'grid', gap: '16px', alignContent: 'start' }}>
+                <div className="tk-hover-card" style={{ position: 'relative', overflow: 'hidden', border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '18px 20px' }}>
+                    <span style={{ width: '46px', height: '46px', borderRadius: '12px', background: 'var(--ok-tint)', border: '1px solid var(--ok-line)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" strokeWidth="2"><rect x="3.5" y="5" width="17" height="15" rx="2.5" /><path d="M3.5 10h17M9 15l2 2 4-4" /></svg>
+                    </span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '15.5px', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Voice of Generations</div>
+                      <div style={{ fontSize: '12.5px', color: 'var(--muted)', marginTop: '3px' }}>Sep 12 · VNRVJIT · 06:00 PM</div>
+                    </div>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--ok)', border: '1px solid var(--ok-line)', borderRadius: '7px', padding: '5px 9px', flex: 'none' }}>READY</span>
+                  </div>
+                  <div style={{ position: 'relative', height: '18px', borderTop: '1px dashed var(--line2)' }}>
+                    <span style={{ position: 'absolute', left: '-9px', top: '-9px', width: '18px', height: '18px', borderRadius: '50%', background: 'var(--bg)' }} />
+                    <span style={{ position: 'absolute', right: '-9px', top: '-9px', width: '18px', height: '18px', borderRadius: '50%', background: 'var(--bg)' }} />
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px', padding: '4px 20px 18px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 600, letterSpacing: '.4px' }}>SA-TKT-448902</span>
+                    <span onClick={() => addToast('QR Code Ready', 'Show this pass at VNRVJIT gate.', 'ok')} style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--violet-lt)', cursor: 'pointer' }}>Show QR →</span>
+                  </div>
+                </div>
+
+                <div className="tk-hover-card" style={{ position: 'relative', overflow: 'hidden', border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', opacity: 0.68 }}>
+                  <div style={{ position: 'absolute', right: '-34px', top: '22px', transform: 'rotate(38deg)', background: 'var(--line2)', color: 'var(--dim)', fontSize: '10.5px', fontWeight: 700, letterSpacing: '1.6px', padding: '6px 46px' }}>USED</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '18px 20px' }}>
+                    <span style={{ width: '46px', height: '46px', borderRadius: '12px', background: 'var(--panel2)', border: '1px solid var(--line2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--dim)" strokeWidth="2"><rect x="3.5" y="5" width="17" height="15" rx="2.5" /><path d="M3.5 10h17" /></svg>
+                    </span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '15.5px', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>VNR ECHO 2026</div>
+                      <div style={{ fontSize: '12.5px', color: 'var(--muted)', marginTop: '3px' }}>Jul 31 · Scanned at 09:14 AM</div>
+                    </div>
+                  </div>
+                  <div style={{ position: 'relative', height: '18px', borderTop: '1px dashed var(--line2)' }}>
+                    <span style={{ position: 'absolute', left: '-9px', top: '-9px', width: '18px', height: '18px', borderRadius: '50%', background: 'var(--bg)' }} />
+                    <span style={{ position: 'absolute', right: '-9px', top: '-9px', width: '18px', height: '18px', borderRadius: '50%', background: 'var(--bg)' }} />
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px', padding: '4px 20px 18px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 600, letterSpacing: '.4px', color: 'var(--muted)' }}>SA-TKT-441077</span>
+                    <span onClick={() => addToast('Receipt Archival', 'Receipt SA-INV-19022 is archived.', 'ok')} style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--muted)', cursor: 'pointer' }}>View receipt →</span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', border: '1px solid var(--line)', borderRadius: '16px', background: 'var(--panel2)', padding: '16px 18px' }}>
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--violet-lt)" strokeWidth="1.9" style={{ flex: 'none' }}><path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6Z" /><path d="M9 12l2 2 4-4" /></svg>
+                  <div style={{ fontSize: '12.5px', lineHeight: 1.55, color: 'var(--muted)' }}>Passes are bound to your SA ID and cannot be transferred. Screenshots will not scan.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ────────────────────────────────────────────────────────── */}
+        {/* COUPONS SCREEN */}
+        {activeTab === 'coupons' && (
+          <div className="tk-anim">
+            <div style={{ maxWidth: '620px', marginBottom: '30px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.6px', color: 'var(--warn)', marginBottom: '14px' }}>COUPONS & OFFERS</div>
+              <div style={{ fontSize: '31px', fontWeight: 700, letterSpacing: '-1.3px', lineHeight: 1.14 }}>Unlocked by your college email</div>
+              <div style={{ fontSize: '15.5px', lineHeight: 1.65, color: 'var(--muted)', marginTop: '10px' }}>
+                Every code shows what it saves, when it dies and who it came from. Copy pulls it straight to your clipboard.
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '18px' }}>
+              {/* Coupon 1 */}
+              <div
+                className="tk-hover-card"
+                onClick={() => handleCopyCoupon('MRIT-MENTOR-40', 'saved ₹899')}
+                style={{ position: 'relative', overflow: 'hidden', borderRadius: '18px', background: 'linear-gradient(152deg, rgba(124,92,252,.2), var(--panel) 66%)', border: '1px solid #3A2E72', cursor: 'pointer' }}
+              >
+                <div style={{ position: 'relative', padding: '22px 22px 18px' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '18px' }}>
+                    <span style={{ fontSize: '10.5px', fontWeight: 700, letterSpacing: '1.4px', color: 'var(--violet-lt)' }}>MENTOR SESSIONS</span>
+                    <span style={{ fontSize: '10.5px', fontWeight: 700, color: '#FFFFFF', background: 'var(--violet)', borderRadius: '7px', padding: '5px 9px', whiteSpace: 'nowrap' }}>BEST VALUE</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '9px' }}>
+                    <span style={{ fontSize: '46px', fontWeight: 800, letterSpacing: '-2.4px', background: 'linear-gradient(100deg, #C9A7FF, #6FA8F5)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>40%</span>
+                    <span style={{ fontSize: '14px', color: 'var(--muted)' }}>off first three</span>
+                  </div>
+                  <div style={{ fontSize: '13.5px', lineHeight: 1.55, color: 'var(--muted)', marginTop: '12px' }}>Any paid one-to-one booking. Saves about ₹899 per session.</div>
+                </div>
+
+                <div style={{ position: 'relative', height: '20px' }}>
+                  <span style={{ position: 'absolute', left: '-10px', top: 0, width: '20px', height: '20px', borderRadius: '50%', background: 'var(--bg)' }} />
+                  <span style={{ position: 'absolute', right: '-10px', top: 0, width: '20px', height: '20px', borderRadius: '50%', background: 'var(--bg)' }} />
+                  <span style={{ position: 'absolute', left: '16px', right: '16px', top: '9px', height: '1px', background: 'repeating-linear-gradient(90deg, var(--line2) 0 6px, transparent 6px 12px)' }} />
+                </div>
+
+                <div style={{ position: 'relative', padding: '4px 22px 22px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', border: '1px dashed #3A2E72', borderRadius: '11px', padding: '13px 14px', background: copiedCode === 'MRIT-MENTOR-40' ? 'rgba(255,255,255,.04)' : 'transparent', transition: 'all .2s ease' }}>
+                    <span style={{ fontSize: '13.5px', fontWeight: 600, letterSpacing: '.8px' }}>MRIT-MENTOR-40</span>
+                    <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--violet-lt)', whiteSpace: 'nowrap' }}>
+                      {copiedCode === 'MRIT-MENTOR-40' ? 'COPIED ✓' : 'COPY'}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--dim)', marginTop: '12px' }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9" /><path d="M12 8v4.5l3 1.8" /></svg>
+                    Expires Sep 30 · from CDC SNIST
+                  </div>
+                </div>
+              </div>
+
+              {/* Coupon 2 */}
+              <div
+                className="tk-hover-card"
+                onClick={() => handleCopyCoupon('SA-RESUME-6M', 'saved ₹2,994')}
+                style={{ position: 'relative', overflow: 'hidden', borderRadius: '18px', background: 'linear-gradient(152deg, rgba(52,211,153,.16), var(--panel) 66%)', border: '1px solid var(--ok-line)', cursor: 'pointer' }}
+              >
+                <div style={{ position: 'relative', padding: '22px 22px 18px' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '18px' }}>
+                    <span style={{ fontSize: '10.5px', fontWeight: 700, letterSpacing: '1.4px', color: 'var(--ok)' }}>RESUME PRO</span>
+                    <span style={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--ok)', border: '1px solid var(--ok-line)', background: 'var(--ok-tint)', borderRadius: '7px', padding: '5px 9px', whiteSpace: 'nowrap' }}>CLAIMED</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '9px' }}>
+                    <span style={{ fontSize: '46px', fontWeight: 800, letterSpacing: '-2.4px', color: 'var(--ok)' }}>₹0</span>
+                    <span style={{ fontSize: '14px', color: 'var(--muted)' }}>for 6 months</span>
+                  </div>
+                  <div style={{ fontSize: '13.5px', lineHeight: 1.55, color: 'var(--muted)', marginTop: '12px' }}>Unlimited ATS rewrites and role-matched keywords. Worth ₹2,994.</div>
+                </div>
+
+                <div style={{ position: 'relative', height: '20px' }}>
+                  <span style={{ position: 'absolute', left: '-10px', top: 0, width: '20px', height: '20px', borderRadius: '50%', background: 'var(--bg)' }} />
+                  <span style={{ position: 'absolute', right: '-10px', top: 0, width: '20px', height: '20px', borderRadius: '50%', background: 'var(--bg)' }} />
+                  <span style={{ position: 'absolute', left: '16px', right: '16px', top: '9px', height: '1px', background: 'repeating-linear-gradient(90deg, var(--line2) 0 6px, transparent 6px 12px)' }} />
+                </div>
+
+                <div style={{ position: 'relative', padding: '4px 22px 22px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', border: '1px dashed var(--ok-line)', borderRadius: '11px', padding: '13px 14px', background: copiedCode === 'SA-RESUME-6M' ? 'rgba(255,255,255,.04)' : 'transparent', transition: 'all .2s ease' }}>
+                    <span style={{ fontSize: '13.5px', fontWeight: 600, letterSpacing: '.8px' }}>SA-RESUME-6M</span>
+                    <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--ok)', whiteSpace: 'nowrap' }}>
+                      {copiedCode === 'SA-RESUME-6M' ? 'COPIED ✓' : 'COPY'}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--dim)', marginTop: '12px' }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12.5l4 4 10-10.5" /></svg>
+                    Active until Feb 18 · applied to your account
+                  </div>
+                </div>
+              </div>
+
+              {/* Coupon 3 */}
+              <div
+                className="tk-hover-card"
+                onClick={() => handleCopyCoupon('SA-WORKSHOP-2X', 'saved 2 passes')}
+                style={{ position: 'relative', overflow: 'hidden', borderRadius: '18px', background: 'linear-gradient(152deg, rgba(245,179,66,.16), var(--panel) 66%)', border: '1px solid var(--warn-line)', cursor: 'pointer' }}
+              >
+                <div style={{ position: 'relative', padding: '22px 22px 18px' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '18px' }}>
+                    <span style={{ fontSize: '10.5px', fontWeight: 700, letterSpacing: '1.4px', color: 'var(--warn)' }}>PARTNER WORKSHOPS</span>
+                    <span style={{ fontSize: '10.5px', fontWeight: 700, color: '#201200', background: 'var(--warn)', borderRadius: '7px', padding: '5px 9px', whiteSpace: 'nowrap' }}>6 DAYS LEFT</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '9px' }}>
+                    <span style={{ fontSize: '46px', fontWeight: 800, letterSpacing: '-2.4px', color: 'var(--warn)' }}>2</span>
+                    <span style={{ fontSize: '14px', color: 'var(--muted)' }}>free passes</span>
+                  </div>
+                  <div style={{ fontSize: '13.5px', lineHeight: 1.55, color: 'var(--muted)', marginTop: '12px' }}>Any paid workshop from a partner company this term.</div>
+                </div>
+
+                <div style={{ position: 'relative', height: '20px' }}>
+                  <span style={{ position: 'absolute', left: '-10px', top: 0, width: '20px', height: '20px', borderRadius: '50%', background: 'var(--bg)' }} />
+                  <span style={{ position: 'absolute', right: '-10px', top: 0, width: '20px', height: '20px', borderRadius: '50%', background: 'var(--bg)' }} />
+                  <span style={{ position: 'absolute', left: '16px', right: '16px', top: '9px', height: '1px', background: 'repeating-linear-gradient(90deg, var(--line2) 0 6px, transparent 6px 12px)' }} />
+                </div>
+
+                <div style={{ position: 'relative', padding: '4px 22px 22px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', border: '1px dashed var(--warn-line)', borderRadius: '11px', padding: '13px 14px', background: copiedCode === 'SA-WORKSHOP-2X' ? 'rgba(255,255,255,.04)' : 'transparent', transition: 'all .2s ease' }}>
+                    <span style={{ fontSize: '13.5px', fontWeight: 600, letterSpacing: '.8px' }}>SA-WORKSHOP-2X</span>
+                    <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--warn)', whiteSpace: 'nowrap' }}>
+                      {copiedCode === 'SA-WORKSHOP-2X' ? 'COPIED ✓' : 'COPY'}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--dim)', marginTop: '12px' }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9" /><path d="M12 8v4.5l3 1.8" /></svg>
+                    Expires Sep 06 · referral adds one more
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Savings Banner */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px', border: '1px solid var(--line)', borderRadius: '18px', background: 'var(--panel)', padding: '20px 24px', marginTop: '18px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0 }}>
+                <span style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'var(--warn-tint)', border: '1px solid var(--warn-line)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--warn)" strokeWidth="1.9"><path d="M20.5 12.5l-8 8-9-9V4h7.5ZM7.5 8h.01" /></svg>
+                </span>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: '16px', fontWeight: 700, letterSpacing: '-.3px' }}>You have saved ₹4,280 this year</div>
+                  <div style={{ fontSize: '13px', color: 'var(--muted)', marginTop: '3px' }}>Across 5 claimed offers · 24 more are live right now</div>
+                </div>
+              </div>
+              <span onClick={() => router.push('/deals')} className="tk-btn-hover" style={{ fontSize: '13.5px', fontWeight: 700, background: 'var(--violet)', color: '#FFFFFF', borderRadius: '11px', padding: '12px 20px', cursor: 'pointer', flex: 'none' }}>Open Deals & Offers</span>
+            </div>
+          </div>
+        )}
+
+      </div>
+
+      {/* Floating Savings Pop Animation */}
+      {floatingSavings.map((item) => (
+        <span
+          key={item.id}
+          style={{
+            position: 'fixed',
+            left: '50%',
+            bottom: '80px',
+            transform: 'translateX(-50%)',
+            fontSize: '14px',
+            fontWeight: 700,
+            color: 'var(--ok)',
+            pointerEvents: 'none',
+            zIndex: 9999,
+            animation: 'tk-rise 1.5s cubic-bezier(.2,.7,.3,1) both',
+          }}
+        >
+          saved ₹899 ✓
+        </span>
+      ))}
+
+      {/* Floating Toasts List */}
+      <div style={{ position: 'fixed', right: '24px', top: '128px', zIndex: 120, display: 'flex', flexDirection: 'column', gap: '10px', width: '330px', maxWidth: 'calc(100vw - 40px)', pointerEvents: 'none' }}>
+        {toasts.map((t) => {
+          const isOk = t.kind === 'ok';
+          const isWarn = t.kind === 'warn';
+          const strokeCol = isOk ? 'var(--ok)' : isWarn ? 'var(--warn)' : 'var(--danger)';
+          const bgTint = isOk ? 'var(--ok-tint)' : isWarn ? 'var(--warn-tint)' : 'var(--danger-tint)';
+
+          return (
+            <div
+              key={t.id}
+              style={{
+                position: 'relative',
+                overflow: 'hidden',
+                pointerEvents: 'auto',
+                display: 'grid',
+                gridTemplateColumns: '32px minmax(0, 1fr) max-content',
+                gap: '12px',
+                alignItems: 'start',
+                border: '1px solid var(--line2)',
+                borderRadius: '14px',
+                background: 'rgba(16,16,25,.94)',
+                backdropFilter: 'blur(16px)',
+                WebkitBackdropFilter: 'blur(16px)',
+                boxShadow: '0 18px 44px rgba(0,0,0,.34)',
+                padding: '13px 14px',
+                animation: 'tk-in .38s cubic-bezier(.2,.9,.3,1) both',
+              }}
+            >
+              <span style={{ width: '32px', height: '32px', borderRadius: '10px', background: bgTint, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={strokeCol} strokeWidth="2.2" strokeLinecap="round">
+                  {isOk && <path d="M5 12.5l4 4 10-10.5" />}
+                  {isWarn && <path d="M12 4l9 16H3Z M12 10v4M12 17v.01" />}
+                  {!isOk && !isWarn && <path d="M12 8v4M12 16v.01 M12 21a9 9 0 100-18 9 9 0 000 18z" />}
+                </svg>
+              </span>
+              <div style={{ minWidth: 0, paddingTop: '1px' }}>
+                <div style={{ fontSize: '13.5px', fontWeight: 600, lineHeight: 1.4 }}>{t.title}</div>
+                {t.body && <div style={{ fontSize: '12.5px', color: 'var(--muted)', lineHeight: 1.5, marginTop: '3px' }}>{t.body}</div>}
+              </div>
+              <span onClick={() => removeToast(t.id)} style={{ width: '22px', height: '22px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flex: 'none', opacity: 0.55 }}>
+                <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="var(--muted)" strokeWidth="2"><path d="M4 4l8 8M12 4l-8 8" /></svg>
+              </span>
+              <span style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '2px', background: strokeCol, transformOrigin: 'left', opacity: 0.5, animation: 'tk-bar 4.2s linear both' }} />
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Footer */}
+      <div style={{ borderTop: '1px solid var(--line)', padding: '48px 40px 40px', background: 'rgba(5,5,10,.6)' }}>
+        <div style={{ maxWidth: '1360px', margin: '0 auto' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '34px' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '11px', marginBottom: '16px' }}>
+                <svg width="28" height="33" viewBox="0 0 300 350" style={{ flex: 'none' }}>
+                  <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#tk-badge-o)" />
+                  <text x="150" y="214" textAnchor="middle" style={{ fontFamily: "'Outfit', sans-serif", fontSize: '118px', fontWeight: 800, fill: '#FFFFFF' }}>SA</text>
+                </svg>
+                <span style={{ fontSize: '17px', fontWeight: 700 }}>StudentAlumni</span>
+              </div>
+              <div style={{ fontSize: '14.5px', lineHeight: 1.65, color: 'var(--muted)', maxWidth: '320px' }}>
+                The intelligent career companion built for the <strong style={{ color: 'var(--text)' }}>next generation</strong> of students.
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.6px', color: 'var(--dim)', marginBottom: '20px' }}>RESOURCES</div>
+              <div style={{ display: 'grid', gap: '14px', fontSize: '14.5px', color: 'var(--muted)' }}>
+                <span onClick={() => router.push('/verify')} style={{ cursor: 'pointer' }}>Verify Certificate</span>
+                <span onClick={() => router.push('/blog')} style={{ cursor: 'pointer' }}>Blog</span>
+                <span onClick={() => router.push('/help-center')} style={{ cursor: 'pointer' }}>Help center</span>
+                <span onClick={() => router.push('/community')} style={{ cursor: 'pointer' }}>Community</span>
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.6px', color: 'var(--dim)', marginBottom: '20px' }}>LEGAL & COMPLIANCE</div>
+              <div style={{ display: 'grid', gap: '14px', fontSize: '14.5px', color: 'var(--muted)' }}>
+                <span>DPDP Act 2023 Compliant</span>
+                <span>GDPR & SOC 2 Type II</span>
+                <span onClick={() => router.push('/policy')} style={{ cursor: 'pointer' }}>Privacy Policy & Terms</span>
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.6px', color: 'var(--dim)', marginBottom: '20px' }}>NEWSLETTER</div>
+              <div style={{ fontSize: '13.5px', color: 'var(--muted)', marginBottom: '12px' }}>One email a month. New openings & mentor drops.</div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  type="email"
+                  placeholder="you@college.edu"
+                  style={{ flex: 1, minWidth: 0, border: '1px solid var(--line)', borderRadius: '11px', background: 'rgba(0,0,0,.25)', padding: '10px 14px', fontSize: '13.5px', color: '#FFF', outline: 'none' }}
+                />
+                <button
+                  onClick={handleSubscribe}
+                  style={{ background: 'var(--violet)', color: '#FFF', border: 'none', borderRadius: '11px', padding: '10px 16px', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                >
+                  {subscribed ? 'Subscribed ✓' : 'Subscribe'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--line)', marginTop: '36px', paddingTop: '20px', fontSize: '13.5px', color: 'var(--muted)', flexWrap: 'wrap', gap: '16px' }}>
+            <span>© 2026 StudentAlumni.ai · Built for students across all campuses.</span>
+            <span>Free for students · Instant setup</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  );
+}
+
+export default EchoTicketsConfirmationPage;
