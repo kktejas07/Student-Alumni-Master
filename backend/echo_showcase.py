@@ -2756,7 +2756,29 @@ DEFAULT_SHOWCASE_SEED = {
     "downloads": [
         { "title": "VNR ECHO 2026 Brochure", "description": "Official event guide & schedule", "file_url": "", "file_size": "2.4 MB", "category": "Brochure" }
     ],
-    "videos": [],
+    "videos": [
+        {
+            "title": "HackWave 3.0 SNIST Official Teaser",
+            "video_url": "/videos/hackwave_teaser.mp4",
+            "thumbnail_url": "/images/hackwave/hackwave_main_poster.png",
+            "description": "Watch the official teaser for HackWave 3.0 at SNIST — 7 Verticals, ₹2,00,000 Grand Pool.",
+            "platform": "mp4"
+        },
+        {
+            "title": "Cyber Security with AI Conclave Teaser",
+            "video_url": "/videos/cybersecurity_conclave.mp4",
+            "thumbnail_url": "/images/hackwave/hackwave_cybersecurity_conclave.jpg",
+            "description": "Keynote highlights featuring ISC2 New Jersey Chapter and international cyber security experts.",
+            "platform": "mp4"
+        },
+        {
+            "title": "Build by Sunset — 24-Hour Hackathon Sprint Highlights",
+            "video_url": "/videos/build_by_sunset.mp4",
+            "thumbnail_url": "/images/hackwave/hackwave_techfest_verticals.jpg",
+            "description": "Overnight build sprint, tech mentorship, and product showcases live from SNIST campus.",
+            "platform": "mp4"
+        }
+    ],
     "gallery": [
         { "url": "https://picsum.photos/seed/echo2026-1/800/600", "caption": "Keynote session", "alt": "Keynote session at VNR ECHO 2026", "featured": True, "order": 0, "hero": True },
         { "url": "https://picsum.photos/seed/echo2026-2/800/600", "caption": "Audience & panels", "alt": "Panel discussion", "order": 1 },
@@ -2905,6 +2927,29 @@ async def get_showcase(slug: str, request: Request):
                         "/images/hackwave/hackwave_speakers.jpg",
                         "/images/hackwave/hackwave_techfest_verticals.jpg",
                         "/images/hackwave/hackwave_perks_pool.jpg"
+                    ],
+                    "videos": [
+                        {
+                            "title": "HackWave 3.0 SNIST Official Teaser",
+                            "video_url": "https://www.youtube.com/watch?v=M576WGiDBdQ",
+                            "thumbnail_url": "/images/hackwave/hackwave_main_poster.png",
+                            "description": "Watch the official teaser for HackWave 3.0 at SNIST — 7 Verticals, ₹2,00,000 Grand Pool.",
+                            "platform": "youtube"
+                        },
+                        {
+                            "title": "Cyber Security with AI Conclave Teaser",
+                            "video_url": "https://www.youtube.com/watch?v=aircAruvnKk",
+                            "thumbnail_url": "/images/hackwave/hackwave_cybersecurity_conclave.jpg",
+                            "description": "Keynote highlights featuring ISC2 New Jersey Chapter and international cyber security experts.",
+                            "platform": "youtube"
+                        },
+                        {
+                            "title": "Build by Sunset — 24-Hour Hackathon Sprint Highlights",
+                            "video_url": "https://www.youtube.com/watch?v=9bZkp7q19f0",
+                            "thumbnail_url": "/images/hackwave/hackwave_techfest_verticals.jpg",
+                            "description": "Overnight build sprint, tech mentorship, and product showcases live from SNIST campus.",
+                            "platform": "youtube"
+                        }
                     ],
                     "cyber_security_conclave": {
                         "title": "Cyber Security with AI",
@@ -4373,6 +4418,113 @@ async def admin_echo_registrations(
             "team_leader_email": s.get("team_leader_email"),
         })
     return {"items": items, "total": len(items)}
+
+
+@router.get("/admin/export-csv")
+@router.get("/export-csv")
+async def export_echo_registrations_csv(
+    request: Request,
+    slug: Optional[str] = None,
+    status: Optional[str] = None,
+):
+    """
+    Generate and stream CSV of student event & hackathon registrations (Hackwave 3.0 / ECHO 2026).
+    Includes name, email, phone, campus, payment status (paid/unpaid), fee, team or individual details.
+    """
+    import csv
+    import io
+    from fastapi.responses import Response
+
+    db = _get_db(request)
+    query: Dict[str, Any] = {}
+    if slug:
+        query["slug"] = slug
+    if status:
+        query["payment.status"] = status
+
+    docs = await db.echo_registrations.find(query).sort("created_at", -1).to_list(5000)
+
+    output = io.StringIO()
+    headers = [
+        "Registration ID",
+        "Event Title",
+        "Event Slug",
+        "Full Name",
+        "Email",
+        "Phone Number",
+        "Campus / College",
+        "Branch",
+        "Year",
+        "Registration Type",
+        "Team Name",
+        "Is Team Member",
+        "Team Leader Name",
+        "Team Leader Email",
+        "Payment Status",
+        "Payment Category",
+        "Fee Amount (INR)",
+        "Payment Gateway",
+        "Payment ID",
+        "Paid At",
+        "Registration Date"
+    ]
+    
+    writer = csv.DictWriter(output, fieldnames=headers)
+    writer.writeheader()
+
+    for d in docs:
+        pay_info = d.get('payment') or {}
+        raw_status = (pay_info.get('status') or d.get('payment_status') or 'unpaid').lower()
+        fee = float(d.get('fee') or pay_info.get('amount') or 0.0)
+
+        if raw_status == 'paid':
+            payment_status = 'PAID'
+            paid_category = 'Paid (Free)' if fee == 0 else 'Paid'
+        elif raw_status == 'failed':
+            payment_status = 'FAILED'
+            paid_category = 'Failed / Unpaid'
+        elif raw_status == 'pending':
+            payment_status = 'PENDING'
+            paid_category = 'Unpaid (Pending)'
+        else:
+            payment_status = 'UNPAID'
+            paid_category = 'Unpaid'
+
+        reg_type = d.get('registration_type') or ('Team' if d.get('team_name') or d.get('is_team_member') else 'Individual')
+
+        writer.writerow({
+            "Registration ID": d.get('id') or str(d.get('_id')),
+            "Event Title": d.get('showcase_title') or d.get('event_title') or d.get('slug') or '',
+            "Event Slug": d.get('slug') or '',
+            "Full Name": d.get('full_name') or '',
+            "Email": d.get('email') or d.get('user_key') or '',
+            "Phone Number": d.get('phone') or '',
+            "Campus / College": d.get('college') or d.get('showcase_college') or '',
+            "Branch": d.get('branch') or '',
+            "Year": d.get('year') or '',
+            "Registration Type": str(reg_type).title(),
+            "Team Name": d.get('team_name') or '',
+            "Is Team Member": 'Yes' if d.get('is_team_member') else 'No',
+            "Team Leader Name": d.get('team_leader_name') or '',
+            "Team Leader Email": d.get('team_leader_email') or '',
+            "Payment Status": payment_status,
+            "Payment Category": paid_category,
+            "Fee Amount (INR)": fee,
+            "Payment Gateway": pay_info.get('gateway') or '',
+            "Payment ID": pay_info.get('payment_id') or '',
+            "Paid At": pay_info.get('paid_at') or '',
+            "Registration Date": d.get('registered_at') or d.get('created_at') or ''
+        })
+
+    csv_data = output.getvalue()
+    filename = f"hackwave_registrations_export_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.csv"
+
+    return Response(
+        content=csv_data,
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
 
 
 @router.post("/admin/registrations/sync-teams")

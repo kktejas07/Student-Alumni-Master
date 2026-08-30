@@ -25,11 +25,11 @@ function CustomVideosEditor({ videos, onChange }: { videos: any[]; onChange: (v:
     onChange([
       ...(videos || []),
       {
-        title: 'New Video Clip / Reel',
+        title: 'New Event Video / Clip',
         video_url: '',
-        thumbnail_url: '',
-        description: '',
-        platform: 'youtube',
+        thumbnail_url: '/images/hackwave/hackwave_main_poster.png',
+        description: 'Uploaded event teaser video clip.',
+        platform: 'native',
       },
     ]);
   };
@@ -64,7 +64,6 @@ function CustomVideosEditor({ videos, onChange }: { videos: any[]; onChange: (v:
     <View style={{ gap: 16 }}>
       {(videos || []).map((vid: any, idx: number) => {
         const isYt = vid.video_url?.includes('youtube.com') || vid.video_url?.includes('youtu.be');
-        const ytId = isYt ? (vid.video_url.includes('v=') ? vid.video_url.split('v=')[1]?.split('&')[0] : vid.video_url.split('/').pop()) : null;
 
         return (
           <View key={idx} style={{ border: '1px solid ' + SAC.border, borderRadius: 14, padding: 18, backgroundColor: SAC.panelBg, gap: 14 }}>
@@ -84,14 +83,14 @@ function CustomVideosEditor({ videos, onChange }: { videos: any[]; onChange: (v:
               />
               <TextInput
                 style={[inputStyle, { flex: 1.5, minWidth: 260 }]}
-                placeholder="Video URL (YouTube / Vimeo / MP4 File)"
-                value={vid.video_url || ''}
+                placeholder="Direct Video URL (.mp4, .webm) or Upload Local File"
+                value={isYt ? '' : (vid.video_url || '')}
                 onChangeText={(t) => updateItem(idx, 'video_url', t)}
               />
               {Platform.OS === 'web' && (
                 <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 8, background: '#7C3AED', color: '#FFF', fontSize: 13, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>
-                  {uploadingIdx === idx ? 'Uploading...' : '🎥 Upload Video File'}
-                  <input type="file" accept="video/mp4,video/webm,video/quicktime" onChange={(e) => handleFileUpload(idx, e)} style={{ display: 'none' }} />
+                  {uploadingIdx === idx ? 'Uploading Video...' : '🎥 Upload Local Video File'}
+                  <input type="file" accept="video/mp4,video/webm,video/quicktime,video/x-matroska,video/*" onChange={(e) => handleFileUpload(idx, e)} style={{ display: 'none' }} />
                 </label>
               )}
             </View>
@@ -111,18 +110,23 @@ function CustomVideosEditor({ videos, onChange }: { videos: any[]; onChange: (v:
               />
             </View>
 
-            {/* Live Video Preview Box */}
-            {vid.video_url ? (
-              <View style={{ marginTop: 6, borderRadius: 10, overflow: 'hidden', backgroundColor: '#000', maxHeight: 200, alignItems: 'center', justifyContent: 'center' }}>
-                {isYt && ytId ? (
-                  <iframe
-                    src={`https://www.youtube.com/embed/${ytId}`}
-                    title="Preview"
-                    style={{ width: '100%', height: '200px', border: 'none' }}
-                  />
-                ) : (
-                  <video controls src={vid.video_url} style={{ width: '100%', maxHeight: '200px' }} />
-                )}
+            {/* Native HTML5 Video Preview Box */}
+            {vid.video_url && !isYt ? (
+              <View style={{ marginTop: 6, borderRadius: 10, overflow: 'hidden', backgroundColor: '#000', maxHeight: 220, alignItems: 'center', justifyContent: 'center' }}>
+                <video
+                  controls
+                  playsInline
+                  preload="metadata"
+                  poster={vid.thumbnail_url}
+                  src={vid.video_url}
+                  style={{ width: '100%', maxHeight: '220px', objectFit: 'contain' }}
+                />
+              </View>
+            ) : isYt ? (
+              <View style={{ marginTop: 6, padding: 12, borderRadius: 8, backgroundColor: 'rgba(239, 68, 68, 0.1)', borderWidth: 1, borderColor: '#EF4444' }}>
+                <Text style={{ fontSize: 12, color: '#FCA5A5', fontFamily: FONTS.med }}>
+                  Legacy YouTube URL detected. Please click <strong>🎥 Upload Local Video File</strong> above to upload your local MP4 video.
+                </Text>
               </View>
             ) : null}
           </View>
@@ -167,7 +171,7 @@ import {
   Copy, Check, Search, RefreshCw, Plus, PlusCircle, FileText, Link2,
   Image as ImageIcon, HardDrive, Calendar, Layout, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Users,
   Ticket, Mail, ScanLine, Phone,
-  CupSoda, UtensilsCrossed, Cookie, Sandwich, Coffee, Lock, XCircle, Clock, CheckCircle,
+  CupSoda, UtensilsCrossed, Cookie, Sandwich, Coffee, Lock, XCircle, Clock, CheckCircle, Download, FileSpreadsheet,
 } from 'lucide-react-native';
 import {
   GRAD, GradientButton, SecondaryButton, Card,
@@ -179,6 +183,35 @@ import { useConfirm } from '@/src/views/components';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useSubTab } from '@/src/views/web/portals/portalUrl';
 import { DarkDropdown } from '@/src/views/web/components/DarkDropdown';
+import { getBaseUrl } from '@/src/lib/env';
+
+export const triggerExportCsv = (slugVal?: string, statusVal?: string) => {
+  let base = '';
+  try {
+    base = getBaseUrl();
+  } catch {}
+  if (!base || base === '') {
+    if (typeof window !== 'undefined') {
+      const hn = window.location.hostname;
+      if (hn === 'localhost' || hn === '127.0.0.1') {
+        base = `${window.location.protocol}//${hn}:8000`;
+      } else {
+        base = window.location.origin;
+      }
+    }
+  }
+  if (!base) base = 'http://localhost:8000';
+
+  const params: string[] = [];
+  if (slugVal && slugVal !== 'all') params.push(`slug=${encodeURIComponent(slugVal)}`);
+  if (statusVal && statusVal !== 'all') params.push(`status=${encodeURIComponent(statusVal)}`);
+  const queryStr = params.length > 0 ? `?${params.join('&')}` : '';
+
+  const exportUrl = `${base}/api/echo/admin/export-csv${queryStr}`;
+  if (typeof window !== 'undefined') {
+    window.open(exportUrl, '_blank');
+  }
+};
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const STATUS_PILL_MAP: Record<string, any> = {
@@ -3379,6 +3412,23 @@ function RegistrationsPanel() {
             {syncingTeams ? 'Syncing...' : 'Sync & Resend Team Passes'}
           </Text>
         </Pressable>
+        <Pressable
+          onPress={() => {
+            const apiBase = (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_API_URL) || 'http://localhost:8000';
+            const exportUrl = `${apiBase}/api/echo/admin/export-csv${eventFilter !== 'all' ? `?slug=${eventFilter}` : ''}`;
+            if (typeof window !== 'undefined') {
+              window.open(exportUrl, '_blank');
+            }
+          }}
+          style={{
+            flexDirection: 'row', alignItems: 'center', gap: 6,
+            backgroundColor: '#059669',
+            borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, cursor: 'pointer',
+          }}
+        >
+          <Download size={14} color="#fff" />
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Export CSV (Registrations)</Text>
+        </Pressable>
       </View>
 
       {/* Segmented Audience Broadcasts & Notices */}
@@ -3553,6 +3603,30 @@ function RegistrationsPanel() {
           onChange={setStatus}
         />
         <SecondaryButton onPress={load}><RefreshCw size={12} color={SAC.muted} /><Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12, marginLeft: 6 }}>Refresh</Text></SecondaryButton>
+        <Pressable
+          onPress={() => triggerExportCsv()}
+          style={{
+            flexDirection: 'row', alignItems: 'center', gap: 6,
+            backgroundColor: '#059669',
+            borderRadius: 8, paddingHorizontal: 13, paddingVertical: 8, cursor: 'pointer',
+          }}
+        >
+          <Download size={13} color="#fff" />
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Export All Events (CSV)</Text>
+        </Pressable>
+        {eventSlug && eventSlug !== 'all' && (
+          <Pressable
+            onPress={() => triggerExportCsv(eventSlug, status)}
+            style={{
+              flexDirection: 'row', alignItems: 'center', gap: 6,
+              backgroundColor: '#4F46E5',
+              borderRadius: 8, paddingHorizontal: 13, paddingVertical: 8, cursor: 'pointer',
+            }}
+          >
+            <Download size={13} color="#fff" />
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Export Selected Event (CSV)</Text>
+          </Pressable>
+        )}
       </View>
 
       {/* Registrations table */}
