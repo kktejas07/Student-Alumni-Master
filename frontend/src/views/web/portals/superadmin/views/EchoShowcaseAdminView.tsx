@@ -2810,11 +2810,11 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                       )}
                       <Pressable onPress={() => {
                         const current = [...(form.sessions || [])];
-                        const idx = current.findIndex((x: any) => x.key === s.key);
+                        const idx = current.findIndex((x: any) => x.key === sessKeyObj.key);
                         if (idx >= 0) {
                           current[idx] = { ...current[idx], enabled: !enabled, locked: false };
                         } else {
-                          current.push({ key: s.key, label: s.label, day: 1, enabled: true, locked: false });
+                          current.push({ key: sessKeyObj.key, label: sessKeyObj.label, day: 1, enabled: true, locked: false });
                         }
                         set('sessions', current);
                       }} style={{
