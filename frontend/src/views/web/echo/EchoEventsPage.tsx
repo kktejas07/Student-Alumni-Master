@@ -1793,7 +1793,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '14px' }}>
-              {(activeEvent.categories || activeEvent.verticals || [
+              {((activeEvent.categories && activeEvent.categories.length > 0) ? activeEvent.categories : (activeEvent.verticals && activeEvent.verticals.length > 0) ? activeEvent.verticals : [
                 { name: 'Build by Sunset', description: 'Ship something real between morning and dusk. Teams of 2–5, 5 AI tracks, ₹50,000 prize pool.', icon: 'rocket' },
                 { name: 'Codethon', description: 'Pre-event coding ladder: L1 to L2 to L3. Individual, scored, closes before Sep 4.', icon: 'code' },
                 { name: 'Voices That Build', description: 'A panel of people who have actually shipped — not people talking about shipping.', icon: 'mic' },
@@ -2030,7 +2030,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
 
             {/* Perks Cards List */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '10px' }}>
-              {(activeEvent.perks || [
+              {((activeEvent.perks && activeEvent.perks.length > 0) ? activeEvent.perks : [
                 { name: 'Featherless AI', description: 'A full account, free', value: '$29 value' },
                 { name: 'SetupMark AI', description: '50 credits, 2 months free', value: '$50 value' },
                 { name: 'CodeSpectra AI', description: '3 months completely free', value: 'Assessments' },
