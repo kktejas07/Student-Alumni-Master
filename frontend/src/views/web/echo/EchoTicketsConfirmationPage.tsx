@@ -854,9 +854,6 @@ END:VCALENDAR`;
                   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--violet-lt)" strokeWidth="1.9" style={{ flex: 'none' }}><path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6Z" /><path d="M9 12l2 2 4-4" /></svg>
                   <div style={{ fontSize: '12.5px', lineHeight: 1.55, color: 'var(--muted)' }}>Passes are bound to your SA ID and cannot be transferred. Screenshots will not scan.</div>
                 </div>
-              </div>ox="0 0 24 24" fill="none" stroke="var(--violet-lt)" strokeWidth="1.9" style={{ flex: 'none' }}><path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6Z" /><path d="M9 12l2 2 4-4" /></svg>
-                  <div style={{ fontSize: '12.5px', lineHeight: 1.55, color: 'var(--muted)' }}>Passes are bound to your SA ID and cannot be transferred. Screenshots will not scan.</div>
-                </div>
               </div>
             </div>
           </div>
