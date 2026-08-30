@@ -215,7 +215,7 @@ export default function CommonFooter({ onTabChange, maxWidth = 1360 }: CommonFoo
       </View>
 
       {/* Newsletter Box */}
-      <View style={[S.newsletterRow, { maxWidth, marginHorizontal: 'auto' as any, width: '100%', paddingHorizontal: isMobile ? 16 : 28, paddingVertical: isMobile ? 20 : 28 }]}>
+      <View style={[S.newsletterRow, { flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', maxWidth, marginHorizontal: 'auto' as any, width: '100%', paddingHorizontal: isMobile ? 16 : 28, paddingVertical: isMobile ? 20 : 28 }]}>
         <View style={{ marginBottom: isMobile ? 8 : 0 }}>
           <Text style={[S.newsletterTitle, isMobile && { fontSize: 17 }]}>One email a month. Nothing else.</Text>
           <Text style={[S.newsletterSub, isMobile && { fontSize: 13 }]}>New openings, mentor drops and campus events — no noise.</Text>

@@ -1710,80 +1710,73 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
           </div>
 
           {/* Official Event Videos & Teaser Clips */}
-          {activeEvent.videos && activeEvent.videos.length > 0 && (
-            <div style={{ marginBottom: '32px' }}>
-              <div style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-.4px', marginBottom: '16px', color: '#FFFFFF', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--violet-lt)" strokeWidth="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
-                Official Event Teasers & Videos
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 360px))', gap: '16px', justifyContent: 'flex-start' }}>
-                {activeEvent.videos.map((vid: any, vidx: number) => {
-                  let url = typeof vid === 'string' ? vid : (vid?.video_url || vid?.url || '');
-                  const fallbackVideoUrls = [
-                    'https://www.youtube.com/watch?v=M576WGiDBdQ',
-                    'https://www.youtube.com/watch?v=aircAruvnKk',
-                    'https://www.youtube.com/watch?v=9bZkp7q19f0'
-                  ];
-                  if (!url || !url.trim() || url.includes('dQw4w9WgXcQ')) {
-                    url = fallbackVideoUrls[vidx % fallbackVideoUrls.length];
-                  }
+          {(() => {
+            const MOCK_YOUTUBE_IDS = ["dQw4w9WgXcQ", "wjZofJX0v4M", "9bZkp7q19f0", "M576WGiDBdQ", "aircAruvnKk"];
+            const validVideos = (activeEvent.videos || []).filter((vid: any) => {
+              let url = typeof vid === "string" ? vid : (vid?.video_url || vid?.url || "");
+              if (!url || !url.trim()) return false;
+              const isYt = url.includes("youtube.com") || url.includes("youtu.be");
+              if (isYt) {
+                const ytId = url.includes("v=") ? url.split("v=")[1]?.split("&")[0] : url.split("/").pop();
+                if (MOCK_YOUTUBE_IDS.includes(ytId || "")) return false;
+              }
+              return true;
+            });
 
-                  const isYt = url.includes('youtube.com') || url.includes('youtu.be');
-                  const ytId = isYt ? (url.includes('v=') ? url.split('v=')[1]?.split('&')[0] : url.split('/').pop()) : null;
+            if (validVideos.length === 0) return null;
 
-                  let rawTitle = typeof vid === 'object' ? (vid?.title || vid?.name) : '';
-                  if (!rawTitle || rawTitle === 'New Video Clip / Reel') {
-                    const fallbackTitles = [
-                      'HackWave 3.0 SNIST Official Teaser',
-                      'Cyber Security with AI Conclave Teaser',
-                      'Build by Sunset — 24-Hour Sprint Highlights'
-                    ];
-                    rawTitle = fallbackTitles[vidx % fallbackTitles.length];
-                  }
+            return (
+              <div style={{ marginBottom: '32px' }}>
+                <div style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-.4px', marginBottom: '16px', color: '#FFFFFF', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--violet-lt)" strokeWidth="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                  Official Event Teasers & Videos
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 360px))', gap: '16px', justifyContent: 'flex-start' }}>
+                  {validVideos.map((vid: any, vidx: number) => {
+                    let url = typeof vid === 'string' ? vid : (vid?.video_url || vid?.url || '');
+                    const isYt = url.includes('youtube.com') || url.includes('youtu.be');
+                    const ytId = isYt ? (url.includes('v=') ? url.split('v=')[1]?.split('&')[0] : url.split('/').pop()) : null;
 
-                  let desc = typeof vid === 'object' ? (vid?.description || '') : '';
-                  if (!desc) {
-                    const fallbackDescs = [
-                      'Watch the official teaser for HackWave 3.0 at SNIST campus — 7 Verticals & ₹2,00,000 Grand Pool.',
-                      'Keynote highlights featuring ISC2 New Jersey Chapter and international cybersecurity mentors.',
-                      'Overnight product building, tech mentorship, and live project demos from SNIST students.'
-                    ];
-                    desc = fallbackDescs[vidx % fallbackDescs.length];
-                  }
-                  
-                  const thumb = (typeof vid === 'object' ? (vid?.thumbnail_url || vid?.poster) : null) || activeEvent.poster_banner;
+                    let rawTitle = typeof vid === 'object' ? (vid?.title || vid?.name) : '';
+                    if (!rawTitle || rawTitle === 'New Video Clip / Reel') {
+                      rawTitle = `Event Video ${vidx + 1}`;
+                    }
 
-                  return (
-                    <div key={vidx} style={{ border: '1px solid var(--line2)', borderRadius: '14px', overflow: 'hidden', background: '#070913', padding: '10px', maxWidth: '360px', width: '100%' }}>
-                      <div style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', aspectRatio: '16/9', background: '#000' }}>
-                        {isYt && ytId ? (
-                          <iframe
-                            src={`https://www.youtube.com/embed/${ytId}?rel=0`}
-                            title={rawTitle}
-                            style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                          />
-                        ) : (
-                          <video
-                            controls
-                            playsInline
-                            preload="metadata"
-                            poster={thumb}
-                            src={url}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                          />
-                        )}
+                    let desc = typeof vid === 'object' ? (vid?.description || '') : '';
+                    
+                    const thumb = (typeof vid === 'object' ? (vid?.thumbnail_url || vid?.poster) : null) || activeEvent.poster_banner;
+
+                    return (
+                      <div key={vidx} style={{ border: '1px solid var(--line2)', borderRadius: '14px', overflow: 'hidden', background: '#070913', padding: '10px', maxWidth: '360px', width: '100%' }}>
+                        <div style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', aspectRatio: '16/9', background: '#000' }}>
+                          {isYt && ytId ? (
+                            <iframe
+                              src={`https://www.youtube.com/embed/${ytId}?rel=0`}
+                              title={rawTitle}
+                              style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                            />
+                          ) : (
+                            <video
+                              controls
+                              playsInline
+                              preload="metadata"
+                              poster={thumb}
+                              src={url}
+                              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                            />
+                          )}
+                        </div>
+                        <div style={{ fontSize: '14px', fontWeight: 700, color: '#FFF', marginTop: '10px', lineHeight: '1.3' }}>{rawTitle}</div>
+                        {desc ? <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '4px', lineHeight: '1.4' }}>{desc}</div> : null}
                       </div>
-                      <div style={{ fontSize: '14px', fontWeight: 700, color: '#FFF', marginTop: '10px', lineHeight: '1.3' }}>{rawTitle}</div>
-                      {desc ? <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '4px', lineHeight: '1.4' }}>{desc}</div> : null}
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          )}
-
+            );
+          })()}
           {/* ────────────────────────────────────────────────────────── */}
           {/* A NATIONAL-LEVEL TECH FEST — 7 VERTICALS (BANNER 4)       */}
           {/* ────────────────────────────────────────────────────────── */}
@@ -1800,7 +1793,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '14px' }}>
-              {(activeEvent.categories || activeEvent.verticals || [
+              {((activeEvent.categories && activeEvent.categories.length > 0) ? activeEvent.categories : (activeEvent.verticals && activeEvent.verticals.length > 0) ? activeEvent.verticals : [
                 { name: 'Build by Sunset', description: 'Ship something real between morning and dusk. Teams of 2–5, 5 AI tracks, ₹50,000 prize pool.', icon: 'rocket' },
                 { name: 'Codethon', description: 'Pre-event coding ladder: L1 to L2 to L3. Individual, scored, closes before Sep 4.', icon: 'code' },
                 { name: 'Voices That Build', description: 'A panel of people who have actually shipped — not people talking about shipping.', icon: 'mic' },
@@ -2037,7 +2030,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
 
             {/* Perks Cards List */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '10px' }}>
-              {(activeEvent.perks || [
+              {((activeEvent.perks && activeEvent.perks.length > 0) ? activeEvent.perks : [
                 { name: 'Featherless AI', description: 'A full account, free', value: '$29 value' },
                 { name: 'SetupMark AI', description: '50 credits, 2 months free', value: '$50 value' },
                 { name: 'CodeSpectra AI', description: '3 months completely free', value: 'Assessments' },
