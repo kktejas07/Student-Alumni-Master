@@ -198,15 +198,29 @@ async def create_teams_meeting(
                     json=body,
                 )
             if r.is_success:
-                resp = r.json()
+                resp = r.json() or {}
+                online = resp.get("onlineMeeting") or {}
+                join_url = online.get("joinUrl") or resp.get("onlineMeetingUrl")
+                if not join_url:
+                    # Event was created but no Teams online-meeting join link was
+                    # materialized (usually the app lacks OnlineMeetings permission
+                    # or the organizer mailbox isn't Teams-enabled). Don't return a
+                    # broken "meeting" — surface it clearly.
+                    logger.error(f"[teams] Meeting created for '{org}' but no onlineMeeting joinUrl returned; full: {str(resp)[:400]}")
+                    last_error = (
+                        f"Graph created the calendar event for '{org}' but returned no Teams "
+                        "join link (onlineMeeting was empty). The app is missing a Teams "
+                        "OnlineMeeting permission or the organizer mailbox is not Teams-enabled."
+                    )
+                    continue
                 return {
                     "success": True,
                     "meeting_id": resp.get("id"),
-                    "join_url": resp.get("onlineMeeting", {}).get("joinUrl") or resp.get("onlineMeetingUrl"),
+                    "join_url": join_url,
                     "subject": resp.get("subject"),
-                    "start": resp.get("start", {}).get("dateTime"),
-                    "end": resp.get("end", {}).get("dateTime"),
-                    "attendees": [a.get("emailAddress", {}).get("address") for a in resp.get("attendees", [])],
+                    "start": (resp.get("start") or {}).get("dateTime"),
+                    "end": (resp.get("end") or {}).get("dateTime"),
+                    "attendees": [a.get("emailAddress", {}).get("address") for a in (resp.get("attendees") or [])],
                     "seat_limit": seat_limit,
                     "registrations": [],
                 }
