@@ -11,7 +11,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, ActivityIndicator, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Video, Calendar, Users, CheckCircle, Copy, Share2, Trash2, Clock, Plus, Save, ChevronDown } from 'lucide-react-native';
+import { Video, Calendar, Users, CheckCircle, Copy, Share2, Trash2, Clock, Plus, Save, ChevronDown, Pencil } from 'lucide-react-native';
 import { SAC, useSAC, FONTS } from '../tokens';
 import { request } from '@/src/models/services/api';
 
@@ -24,6 +24,8 @@ type Meeting = {
   duration_minutes: number;
   seat_limit: number | null;
   attendees: string[];
+  attendee_emails?: string[];
+  description?: string;
   registrations: Array<{
     reg_id: string;
     full_name: string;
@@ -43,6 +45,10 @@ export function TeamsMeetingsView() {
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
+  const [editForm, setEditForm] = useState({
+    title: '', date: '', time: '', duration: 60, seat_limit: '', description: '', attendee_emails: '',
+  });
   const [regOpen, setRegOpen] = useState<Meeting | null>(null);
 
   const fetchMeetings = useCallback(async () => {
@@ -97,34 +103,53 @@ export function TeamsMeetingsView() {
   const [timeOpen, setTimeOpen] = useState(false);
   const [durationOpen, setDurationOpen] = useState(false);
 
+  const activeForm = editingMeeting ? editForm : form;
+  const setActiveForm = editingMeeting ? setEditForm : setForm;
+
   const handleCreate = async () => {
-    if (!form.title || !form.date || !form.time) {
+    const activeForm = editingMeeting ? editForm : form;
+    if (!activeForm.title || !activeForm.date || !activeForm.time) {
       alert('Please fill in title, date, and time.');
       return;
     }
     setCreating(true);
     try {
-      const start_time = `${form.date}T${form.time}:00Z`;
-      const res = await request<any>('/integrations/teams/meetings', {
-        method: 'POST',
-        body: {
-          title: form.title,
-          start_time,
-          duration_minutes: Number(form.duration) || 60,
-          attendee_emails: form.attendee_emails ? form.attendee_emails.split(',').map(e => e.trim()).filter(Boolean) : [],
-          seat_limit: form.seat_limit ? Number(form.seat_limit) : null,
-          description: form.description,
-        },
-      });
-      if (res?.meeting_id) {
-        setMeetings([res, ...meetings]);
-        setShowCreate(false);
-        setForm({ title: '', date: '', time: '', duration: 60, seat_limit: '', description: '', attendee_emails: '' });
+      const start_time = `${activeForm.date}T${activeForm.time}:00Z`;
+      const payload = {
+        title: activeForm.title,
+        start_time,
+        duration_minutes: Number(activeForm.duration) || 60,
+        attendee_emails: activeForm.attendee_emails ? activeForm.attendee_emails.split(',').map(e => e.trim()).filter(Boolean) : [],
+        seat_limit: activeForm.seat_limit ? Number(activeForm.seat_limit) : null,
+        description: activeForm.description,
+      };
+
+      let res;
+      if (editingMeeting) {
+        // Edit existing meeting
+        res = await request<any>(`/integrations/teams/meetings/${editingMeeting.meeting_id}`, {
+          method: 'PATCH', body: payload,
+        });
+        setMeetings(meetings.map(m => m.meeting_id === editingMeeting.meeting_id ? res : m));
+        setEditingMeeting(null);
       } else {
-        alert('Failed to create meeting.');
+        // Create new meeting
+        res = await request<any>('/integrations/teams/meetings', {
+          method: 'POST', body: payload,
+        });
+        if (res?.meeting_id) {
+          setMeetings([res, ...meetings]);
+        } else {
+          alert('Failed to create meeting.');
+          setCreating(false);
+          return;
+        }
       }
+      setShowCreate(false);
+      setEditingMeeting(null);
+      setForm({ title: '', date: dateOptions[0]?.value || '', time: timeOptions[8]?.value || '09:00', duration: 60, seat_limit: '', description: '', attendee_emails: '' });
     } catch (e: any) {
-      alert(e?.message || 'Failed to create meeting.');
+      alert(e?.message || 'Failed to save meeting.');
     } finally {
       setCreating(false);
     }
@@ -259,10 +284,26 @@ export function TeamsMeetingsView() {
                 </Pressable>
               )}
 
-              <View style={s.cardActions}>
+<View style={s.cardActions}>
                 <Pressable onPress={() => setRegOpen(m)} style={s.actionBtn}>
                   <Users size={12} color="#C4B5FD" />
                   <Text style={s.actionBtnText}>Registration form</Text>
+                </Pressable>
+                <Pressable onPress={() => {
+                  setEditForm({
+                    title: m.subject,
+                    date: m.start_time ? new Date(m.start_time).toISOString().split('T')[0] : form.date,
+                    time: m.start_time ? new Date(m.start_time).toISOString().split('T')[1].slice(0, 5) : form.time,
+                    duration: m.duration_minutes || 60,
+                    seat_limit: m.seat_limit ? String(m.seat_limit) : '',
+                    description: m.description || '',
+                    attendee_emails: (m.attendee_emails || []).join(', '),
+                  });
+                  setEditingMeeting(m);
+                  setShowCreate(true);
+                }} style={s.actionBtn}>
+                  <Pencil size={12} color="#C4B5FD" />
+                  <Text style={s.actionBtnText}>Edit</Text>
                 </Pressable>
                 <Pressable onPress={() => {
                   if (typeof window !== 'undefined') {
@@ -284,21 +325,23 @@ export function TeamsMeetingsView() {
         </View>
       )}
 
-      {/* Create Meeting Modal */}
+      {/* Create/Edit Meeting Modal */}
       {showCreate && (
-        <Modal transparent visible={showCreate} animationType="fade" onRequestClose={() => setShowCreate(false)}>
+        <Modal transparent visible={showCreate} animationType="fade" onRequestClose={() => { setShowCreate(false); setEditingMeeting(null); }}>
           <View style={s.modalOverlay}>
             <View style={s.modalContent}>
-              <Text style={s.modalTitle}>Create Teams Meeting</Text>
+              <Text style={s.modalTitle}>{editingMeeting ? 'Edit Teams Meeting' : 'Create Teams Meeting'}</Text>
 
               <Text style={s.inputLabel}>Title</Text>
               <TextInput placeholder="e.g. Career Workshop: Startups 101" placeholderTextColor={SAC.muted}
-                style={s.input} value={form.title} onChangeText={(t) => setForm({ ...form, title: t })} />
+                style={s.input} value={editingMeeting ? editForm.title : form.title} onChangeText={(t) => {
+                  if (editingMeeting) setEditForm({ ...editForm, title: t }); else setForm({ ...form, title: t });
+                }} />
 
               <Text style={s.inputLabel}>Date</Text>
               <Pressable onPress={() => setDateOpen(true)} style={s.dropdown}>
                 <Text style={s.dropdownText}>
-                  {dateOptions.find(d => d.value === form.date)?.label || 'Select date'}
+                  {dateOptions.find(d => d.value === activeForm.date)?.label || 'Select date'}
                 </Text>
                 <ChevronDown size={14} color={SAC.muted} />
               </Pressable>
@@ -311,10 +354,10 @@ export function TeamsMeetingsView() {
                         {dateOptions.map((d) => (
                           <Pressable
                             key={d.value}
-                            onPress={() => { setForm({ ...form, date: d.value }); setDateOpen(false); }}
-                            style={[s.dropdownOption, form.date === d.value && s.dropdownOptionSelected]}
+                            onPress={() => { setActiveForm({ ...activeForm, date: d.value }); setDateOpen(false); }}
+                            style={[s.dropdownOption, activeForm.date === d.value && s.dropdownOptionSelected]}
                           >
-                            <Text style={[s.dropdownOptionText, form.date === d.value && s.dropdownOptionTextSelected]}>{d.label}</Text>
+                            <Text style={[s.dropdownOptionText, activeForm.date === d.value && s.dropdownOptionTextSelected]}>{d.label}</Text>
                           </Pressable>
                         ))}
                       </ScrollView>
@@ -326,7 +369,7 @@ export function TeamsMeetingsView() {
               <Text style={s.inputLabel}>Time (UTC)</Text>
               <Pressable onPress={() => setTimeOpen(true)} style={s.dropdown}>
                 <Text style={s.dropdownText}>
-                  {timeOptions.find(t => t.value === form.time)?.label || 'Select time'}
+                  {timeOptions.find(t => t.value === activeForm.time)?.label || 'Select time'}
                 </Text>
                 <ChevronDown size={14} color={SAC.muted} />
               </Pressable>
@@ -339,10 +382,10 @@ export function TeamsMeetingsView() {
                         {timeOptions.map((t) => (
                           <Pressable
                             key={t.value}
-                            onPress={() => { setForm({ ...form, time: t.value }); setTimeOpen(false); }}
-                            style={[s.dropdownOption, form.time === t.value && s.dropdownOptionSelected]}
+                            onPress={() => { setActiveForm({ ...activeForm, time: t.value }); setTimeOpen(false); }}
+                            style={[s.dropdownOption, activeForm.time === t.value && s.dropdownOptionSelected]}
                           >
-                            <Text style={[s.dropdownOptionText, form.time === t.value && s.dropdownOptionTextSelected]}>{t.label}</Text>
+                            <Text style={[s.dropdownOptionText, activeForm.time === t.value && s.dropdownOptionTextSelected]}>{t.label}</Text>
                           </Pressable>
                         ))}
                       </ScrollView>
@@ -353,7 +396,7 @@ export function TeamsMeetingsView() {
 
               <Text style={s.inputLabel}>Duration</Text>
               <Pressable onPress={() => setDurationOpen(true)} style={s.dropdown}>
-                <Text style={s.dropdownText}>{durationOptions.find(d => d === form.duration)?.toString() || '60'} minutes</Text>
+                <Text style={s.dropdownText}>{durationOptions.find(d => d === activeForm.duration)?.toString() || '60'} minutes</Text>
                 <ChevronDown size={14} color={SAC.muted} />
               </Pressable>
               {durationOpen && (
@@ -364,10 +407,10 @@ export function TeamsMeetingsView() {
                       {durationOptions.map((d) => (
                         <Pressable
                           key={d}
-                          onPress={() => { setForm({ ...form, duration: d }); setDurationOpen(false); }}
-                          style={[s.dropdownOption, form.duration === d && s.dropdownOptionSelected]}
+                          onPress={() => { setActiveForm({ ...activeForm, duration: d }); setDurationOpen(false); }}
+                          style={[s.dropdownOption, activeForm.duration === d && s.dropdownOptionSelected]}
                         >
-                          <Text style={[s.dropdownOptionText, form.duration === d && s.dropdownOptionTextSelected]}>{d} minutes</Text>
+                          <Text style={[s.dropdownOptionText, activeForm.duration === d && s.dropdownOptionTextSelected]}>{d} minutes</Text>
                         </Pressable>
                       ))}
                     </View>
@@ -377,19 +420,25 @@ export function TeamsMeetingsView() {
 
               <Text style={s.inputLabel}>Seat Limit (leave blank for unlimited)</Text>
               <TextInput placeholder="e.g. 50" placeholderTextColor={SAC.muted}
-                style={s.input} value={form.seat_limit} onChangeText={(t) => setForm({ ...form, seat_limit: t })} keyboardType="numeric" />
+                style={s.input} value={editingMeeting ? editForm.seat_limit : form.seat_limit} onChangeText={(t) => {
+                  if (editingMeeting) setEditForm({ ...editForm, seat_limit: t }); else setForm({ ...form, seat_limit: t });
+                }} keyboardType="numeric" />
 
               <Text style={s.inputLabel}>Attendee Emails (comma-separated)</Text>
               <TextInput placeholder="attendee1@college.edu, attendee2@college.edu" placeholderTextColor={SAC.muted}
-                style={s.input} value={form.attendee_emails} onChangeText={(t) => setForm({ ...form, attendee_emails: t })} />
+                style={s.input} value={editingMeeting ? editForm.attendee_emails : form.attendee_emails} onChangeText={(t) => {
+                  if (editingMeeting) setEditForm({ ...editForm, attendee_emails: t }); else setForm({ ...form, attendee_emails: t });
+                }} />
 
               <Text style={s.inputLabel}>Description (optional)</Text>
               <TextInput placeholder="Meeting description or agenda" placeholderTextColor={SAC.muted}
                 style={[s.input, { height: 80, textAlignVertical: 'top' }]}
-                value={form.description} onChangeText={(t) => setForm({ ...form, description: t })} multiline />
+                value={editingMeeting ? editForm.description : form.description} onChangeText={(t) => {
+                  if (editingMeeting) setEditForm({ ...editForm, description: t }); else setForm({ ...form, description: t });
+                }} multiline />
 
               <View style={s.modalActions}>
-                <Pressable onPress={() => setShowCreate(false)} style={s.modalCancelBtn}>
+                <Pressable onPress={() => { setShowCreate(false); setEditingMeeting(null); }} style={s.modalCancelBtn}>
                   <Text style={s.modalCancelText}>Cancel</Text>
                 </Pressable>
                 <Pressable onPress={handleCreate} disabled={creating} style={[s.modalSaveBtn, creating && { opacity: 0.6 }]}>

@@ -8,10 +8,9 @@ Creates Teams meetings with:
 - Attendance tracking via Microsoft Graph API
 - Webhook support for recording attendance
 
-Environment variables required:
-- MS_TEAMS_TENANT_ID
-- MS_TEAMS_CLIENT_ID
-- MS_TEAMS_CLIENT_SECRET
+Credentials can be provided via:
+1. Environment variables (MS_TEAMS_TENANT_ID, MS_TEAMS_CLIENT_ID, MS_TEAMS_CLIENT_SECRET)
+2. Installed tool settings (via admin marketplace UI → installed_tools collection)
 
 OAuth2 flow (client credentials): service-to-service
 """
@@ -32,24 +31,52 @@ CLIENT_ID = os.environ.get("MS_TEAMS_CLIENT_ID", "")
 CLIENT_SECRET = os.environ.get("MS_TEAMS_CLIENT_SECRET", "")
 
 
+async def _get_creds() -> Dict[str, str]:
+    """Get Teams credentials from env vars or the installed_tools collection."""
+    # Check env vars first (highest priority)
+    if TENANT_ID and CLIENT_ID and CLIENT_SECRET:
+        return {"tenant_id": TENANT_ID, "client_id": CLIENT_ID, "client_secret": CLIENT_SECRET}
+
+    # Fall back to installed_tools collection
+    try:
+        from core.db import db
+        tool = await db.installed_tools.find_one({"tool_id": "ms-teams", "status": "connected"})
+        if tool and tool.get("credentials"):
+            creds = tool["credentials"]
+            return {
+                "tenant_id": creds.get("tenant_id", ""),
+                "client_id": creds.get("client_id", ""),
+                "client_secret": creds.get("client_secret", ""),
+            }
+    except Exception as e:
+        logger.debug(f"[teams] Could not fetch creds from installed_tools: {e}")
+    return {}
+
+
 def teams_status() -> Dict[str, Any]:
+    has_env = bool(TENANT_ID and CLIENT_ID and CLIENT_SECRET)
     return {
-        "ms_teams": "live" if (TENANT_ID and CLIENT_ID and CLIENT_SECRET) else "mock",
+        "ms_teams": "live" if has_env else "mock",
         "tenant_id": bool(TENANT_ID),
         "client_id": bool(CLIENT_ID),
         "client_secret": bool(CLIENT_SECRET),
+        "source": "env" if has_env else "none",
     }
 
 
-async def _get_app_token() -> Optional[str]:
+async def _get_app_token(creds: Optional[Dict[str, str]] = None) -> Optional[str]:
     """Get an app-only access token using client credentials flow."""
-    if not (TENANT_ID and CLIENT_ID and CLIENT_SECRET):
+    c = creds or await _get_creds()
+    tid = c.get("tenant_id", "")
+    cid = c.get("client_id", "")
+    secret = c.get("client_secret", "")
+    if not (tid and cid and secret):
         return None
 
-    token_url = f"https://login.microsoftonline.com/{TENANT_ID}/oauth2/v2.0/token"
+    token_url = f"https://login.microsoftonline.com/{tid}/oauth2/v2.0/token"
     data = {
-        "client_id": CLIENT_ID,
-        "client_secret": CLIENT_SECRET,
+        "client_id": cid,
+        "client_secret": secret,
         "scope": "https://graph.microsoft.com/.default",
         "grant_type": "client_credentials",
     }
@@ -296,26 +323,32 @@ async def create_meeting_registration(
     }
 
 
-def build_oauth_url(redirect_uri: str, state: str) -> str:
+async def build_oauth_url(redirect_uri: str, state: str) -> str:
     """Build the Microsoft OAuth2 authorization URL."""
+    c = await _get_creds()
+    cid = c.get("client_id", "")
+    tid = c.get("tenant_id", "")
     params = {
-        "client_id": CLIENT_ID,
+        "client_id": cid,
         "response_type": "code",
         "redirect_uri": redirect_uri,
         "response_mode": "query",
         "scope": "OnlineMeetings.ReadWrite AllUser.Read",
         "state": state,
     }
-    auth_url = f"https://login.microsoftonline.com/{TENANT_ID}/oauth2/v2.0/authorize?{urlencode(params)}"
-    return auth_url
+    return f"https://login.microsoftonline.com/{tid}/oauth2/v2.0/authorize?{urlencode(params)}"
 
 
 async def exchange_code_for_token(code: str, redirect_uri: str) -> Optional[str]:
     """Exchange OAuth2 authorization code for access token."""
-    token_url = f"https://login.microsoftonline.com/{TENANT_ID}/oauth2/v2.0/token"
+    c = await _get_creds()
+    client_id = c.get("client_id", "")
+    client_secret = c.get("client_secret", "")
+    tid = c.get("tenant_id", "")
+    token_url = f"https://login.microsoftonline.com/{tid}/oauth2/v2.0/token"
     data = {
-        "client_id": CLIENT_ID,
-        "client_secret": CLIENT_SECRET,
+        "client_id": client_id,
+        "client_secret": client_secret,
         "code": code,
         "redirect_uri": redirect_uri,
         "grant_type": "authorization_code",

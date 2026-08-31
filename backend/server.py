@@ -2219,6 +2219,7 @@ from integrations.teams import (
     teams_status as _teams_status, create_teams_meeting as _create_teams_meeting,
     get_meeting_attendance as _get_attendance, create_meeting_registration as _register,
     build_oauth_url as _oauth_url, exchange_code_for_token as _exchange_code,
+    _get_app_token as _get_teams_token, _get_creds as _get_teams_creds,
 )
 
 class TeamsMeetingCreate(BaseModel):
@@ -2240,13 +2241,12 @@ class TeamsMeetingRegister(BaseModel):
 async def teams_oauth_url():
     """Get OAuth URL + state for Microsoft OAuth2 flow."""
     import secrets as _secrets
-    tenant_id = os.environ.get("MS_TEAMS_TENANT_ID", "")
-    client_id = os.environ.get("MS_TEAMS_CLIENT_ID", "")
-    if not (tenant_id and client_id):
-        raise HTTPException(400, "Microsoft Teams integration not configured.")
+    creds = await _get_teams_creds()
+    if not (creds.get("tenant_id") and creds.get("client_id")):
+        raise HTTPException(400, "Microsoft Teams integration not configured. Install it from the marketplace first.")
     state = _secrets.token_urlsafe(32)
     redirect_uri = os.environ.get("MS_TEAMS_REDIRECT_URI", "https://studentalumni.ai/api/integrations/teams/callback")
-    auth_url = _oauth_url(redirect_uri, state)
+    auth_url = await _oauth_url(redirect_uri, state)
     return {"auth_url": auth_url, "state": state, "redirect_uri": redirect_uri}
 
 
@@ -2321,6 +2321,63 @@ async def delete_teams_meeting(meeting_id: str, user: dict = Depends(get_current
     if result.deleted_count == 0:
         raise HTTPException(404, "Meeting not found")
     return {"ok": True, "message": "Meeting deleted"}
+
+
+@api_router.patch("/integrations/teams/meetings/{meeting_id}")
+async def update_teams_meeting(meeting_id: str, payload: TeamsMeetingCreate, user: dict = Depends(get_current_user)):
+    """Update a Teams meeting (admin only). Only updates DB metadata — the Teams
+    meeting itself is not synced to Microsoft unless a live token is available."""
+    if user.get("role") not in ("admin", "super_admin", "organizer"):
+        raise HTTPException(403, "Admin access required")
+    meeting = await db.teams_meetings.find_one({"meeting_id": meeting_id})
+    if not meeting:
+        raise HTTPException(404, "Meeting not found")
+
+    try:
+        from datetime import datetime as _dt
+        start_dt = _dt.fromisoformat(payload.start_time.replace("Z", "+00:00"))
+    except (ValueError, AttributeError):
+        start_dt = _dt.now(timezone.utc)
+
+    update_data = {
+        "subject": payload.title,
+        "start_time": start_dt.isoformat(),
+        "duration_minutes": payload.duration_minutes,
+        "seat_limit": payload.seat_limit,
+        "attendee_emails": payload.attendee_emails or [],
+        "description": payload.description,
+        "updated_at": _dt.now(timezone.utc).isoformat(),
+        "updated_by": str(user.get("_id", "")),
+    }
+
+    # If Teams API is live, also update the meeting in Microsoft
+    creds = await _get_teams_creds()
+    if creds.get("tenant_id") and creds.get("client_id") and creds.get("client_secret") and meeting.get("meeting_id") and not meeting.get("is_mock"):
+        try:
+            async with httpx.AsyncClient(timeout=15) as c:
+                token = await _get_teams_token(creds)
+                if token:
+                    await c.patch(
+                        f"https://graph.microsoft.com/v1.0/me/events/{meeting['meeting_id']}",
+                        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+                        json={
+                            "subject": payload.title,
+                            "body": {"contentType": "HTML", "content": payload.description or ""},
+                            "start": {"dateTime": start_dt.strftime("%Y-%m-%dT%H:%M:%S"), "timeZone": "UTC"},
+                            "end": {"dateTime": (start_dt + timedelta(minutes=payload.duration_minutes)).strftime("%Y-%m-%dT%H:%M:%S"), "timeZone": "UTC"},
+                        },
+                    )
+        except Exception:
+            pass  # Don't fail the local update if Graph API call fails
+
+    await db.teams_meetings.update_one(
+        {"meeting_id": meeting_id},
+        {"$set": update_data},
+    )
+
+    updated = await db.teams_meetings.find_one({"meeting_id": meeting_id})
+    updated["_id"] = str(updated["_id"])
+    return updated
 
 
 @api_router.post("/integrations/teams/meetings/{meeting_id}/register", include_in_schema=False)
