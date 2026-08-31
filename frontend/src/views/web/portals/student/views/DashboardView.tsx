@@ -291,6 +291,81 @@ export function DashboardView() {
                 }}
               />
             ))}
+      {/* ── Official Student Alumni Community Channels Banner ── */}
+      <div style={{ marginTop: '16px', background: 'linear-gradient(135deg, rgba(124,92,252,0.12) 0%, rgba(16,185,129,0.1) 100%)', border: '1px solid rgba(124,92,252,0.3)', borderRadius: '16px', padding: '18px 24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
+          <div>
+            <div style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '1.4px', color: '#38BDF8', marginBottom: '4px' }}>
+              JOIN OFFICIAL STUDENT ALUMNI COMMUNITY CHANNELS
+            </div>
+            <div style={{ fontSize: '15px', fontWeight: 700, color: '#FFFFFF' }}>
+              Connect with 95,000+ verified students & alumni across India
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <a
+              href="https://chat.whatsapp.com/G2kc2u0gzh68DKSjlOyCxu"
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                textDecoration: 'none',
+                padding: '9px 16px',
+                borderRadius: '10px',
+                background: 'rgba(16,185,129,0.18)',
+                border: '1px solid rgba(16,185,129,0.4)',
+                color: '#34D399',
+                fontSize: '13px',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <span>💬</span> WhatsApp Community
+            </a>
+
+            <a
+              href="https://www.instagram.com/studentalumni.ai/"
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                textDecoration: 'none',
+                padding: '9px 16px',
+                borderRadius: '10px',
+                background: 'rgba(236,72,153,0.18)',
+                border: '1px solid rgba(236,72,153,0.4)',
+                color: '#F472B6',
+                fontSize: '13px',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <span>📸</span> Instagram (@studentalumni.ai)
+            </a>
+
+            <a
+              href="https://linkedin.com/company/student-alumni"
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                textDecoration: 'none',
+                padding: '9px 16px',
+                borderRadius: '10px',
+                background: 'rgba(56,189,248,0.18)',
+                border: '1px solid rgba(56,189,248,0.4)',
+                color: '#38BDF8',
+                fontSize: '13px',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <span>💼</span> LinkedIn Page
+            </a>
           </div>
         </div>
       </div>

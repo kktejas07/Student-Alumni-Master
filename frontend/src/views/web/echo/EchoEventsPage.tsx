@@ -2153,6 +2153,38 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 <li>Full terms are published at studentalumni.ai/echo/snist and prevail over this summary.</li>
               </ol>
             </div>
+
+            {/* Official Community Channels */}
+            <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '1.4px', color: '#38BDF8' }}>
+                JOIN OFFICIAL STUDENT ALUMNI COMMUNITY CHANNELS
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+                <a href="https://chat.whatsapp.com/G2kc2u0gzh68DKSjlOyCxu" target="_blank" rel="noreferrer" style={{ textDecoration: 'none', background: 'rgba(16, 185, 129, 0.14)', border: '1px solid rgba(16, 185, 129, 0.35)', borderRadius: '14px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontSize: '24px' }}>💬</span>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 800, color: '#FFFFFF' }}>WhatsApp Community</div>
+                    <div style={{ fontSize: '11.5px', color: '#34D399' }}>Instant campus & event alerts</div>
+                  </div>
+                </a>
+
+                <a href="https://www.instagram.com/studentalumni.ai/" target="_blank" rel="noreferrer" style={{ textDecoration: 'none', background: 'rgba(236, 72, 153, 0.14)', border: '1px solid rgba(236, 72, 153, 0.35)', borderRadius: '14px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontSize: '24px' }}>📸</span>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 800, color: '#FFFFFF' }}>Instagram Channel</div>
+                    <div style={{ fontSize: '11.5px', color: '#F472B6' }}>@studentalumni.ai</div>
+                  </div>
+                </a>
+
+                <a href="https://linkedin.com/company/student-alumni" target="_blank" rel="noreferrer" style={{ textDecoration: 'none', background: 'rgba(56, 189, 248, 0.14)', border: '1px solid rgba(56, 189, 248, 0.35)', borderRadius: '14px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontSize: '24px' }}>💼</span>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 800, color: '#FFFFFF' }}>LinkedIn Page</div>
+                    <div style={{ fontSize: '11.5px', color: '#38BDF8' }}>Student Alumni Official</div>
+                  </div>
+                </a>
+              </div>
+            </div>
           </div>
 
           {/* ────────────────────────────────────────────────────────── */}
