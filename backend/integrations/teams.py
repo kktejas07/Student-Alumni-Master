@@ -53,14 +53,23 @@ async def _get_creds() -> Dict[str, str]:
     return {}
 
 
-def teams_status() -> Dict[str, Any]:
+async def teams_status() -> Dict[str, Any]:
     has_env = bool(TENANT_ID and CLIENT_ID and CLIENT_SECRET)
+    has_tool = False
+    if not has_env:
+        try:
+            from core.db import db
+            tool = await db.installed_tools.find_one({"tool_id": "ms-teams", "status": "connected"})
+            has_tool = bool(tool and tool.get("credentials"))
+        except Exception:
+            pass
     return {
-        "ms_teams": "live" if has_env else "mock",
+        "ms_teams": "live" if (has_env or has_tool) else "mock",
         "tenant_id": bool(TENANT_ID),
         "client_id": bool(CLIENT_ID),
         "client_secret": bool(CLIENT_SECRET),
-        "source": "env" if has_env else "none",
+        "has_installed_tool": has_tool,
+        "source": "env" if has_env else ("installed_tools" if has_tool else "none"),
     }
 
 

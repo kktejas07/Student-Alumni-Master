@@ -269,6 +269,9 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [paymentFailure, setPaymentFailure] = useState<PaymentResult | null>(null);
   const [ticketData, setTicketData] = useState<any>(null);
+  const [teamsMeeting, setTeamsMeeting] = useState<any>(null);
+  const [showTeamsJoin, setShowTeamsJoin] = useState(false);
+  const [teamsJoinForm, setTeamsJoinForm] = useState({ full_name: '', email: '', phone: '' });
 
   // Scroll listener for top progress bar & parallax
   useEffect(() => {
@@ -343,6 +346,23 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
       mounted = false;
     };
   }, []);
+
+  // Fetch Teams meetings for the currently selected event
+  useEffect(() => {
+    let mounted = true;
+    const slug = activeEvent?.slug;
+    if (!slug) return;
+    fetch(`/api/integrations/teams/meetings/event/${slug}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (!mounted) return;
+        const meetings = data.meetings || [];
+        const upcoming = meetings.find((m: any) => new Date(m.start_time) > new Date());
+        setTeamsMeeting(upcoming || meetings[0] || null);
+      })
+      .catch(() => {});
+    return () => { mounted = false; };
+  }, [activeEvent?.slug]);
 
   // Fetch detailed showcase document when selectedSlug changes
   useEffect(() => {
@@ -2810,9 +2830,114 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 </div>
               </div>
 
-            </div>
+              {/* Teams Meeting Join Button (if available) */}
+              {teamsMeeting && (
+                <div style={{ marginTop: '18px', textAlign: 'center' }}>
+                  <button
+                    onClick={() => setShowTeamsJoin(true)}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '9px',
+                      fontSize: '14px', fontWeight: 600, border: '1px solid var(--line2)',
+                      borderRadius: '100px', padding: '11px 20px', background: 'var(--panel)',
+                      color: 'var(--text)', cursor: 'pointer',
+                    }}
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 2 }}><polygon points="10 4 4 8 4 16 10 20 16 16 16 8z"></polygon><line x1="10" y1="4" x2="22" y2="12"></line><path d="M10 12l0 6"></path></svg>
+                    Join Teams Meeting
+                  </button>
+                </div>
+              )}
 
-          </div>
+              {/* Teams Join Modal */}
+              {showTeamsJoin && teamsMeeting && (
+                <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+                  <div style={{ backgroundColor: 'var(--panel)', borderRadius: '18px', padding: '28px', width: '90%', maxWidth: '420px', border: '1px solid var(--line2)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" style={{ fill: 'none', stroke: '#8B5CF6', strokeWidth: 2 }}><polygon points="10 4 4 8 4 16 10 20 16 16 16 8z"></polygon><line x1="10" y1="4" x2="22" y2="12"></line><path d="M10 12l0 6"></path></svg>
+                      <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: 0 }}>Join Teams Meeting</h3>
+                    </div>
+                    <p style={{ fontSize: '13.5px', color: 'var(--muted)', marginBottom: '20px', lineHeight: 1.5 }}>
+                      Enter your details to receive the Teams meeting link for:
+                      <strong style={{ color: 'var(--text)', display: 'block', marginTop: '4px' }}>{teamsMeeting.subject}</strong>
+                    </p>
+
+                    <div style={{ display: 'grid', gap: '14px', marginBottom: '20px' }}>
+                      <div>
+                        <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', marginBottom: '5px', display: 'block' }}>Full Name *</label>
+                        <input
+                          type="text"
+                          placeholder="Your full name"
+                          value={teamsJoinForm.full_name}
+                          onChange={(e) => setTeamsJoinForm({ ...teamsJoinForm, full_name: e.target.value })}
+                          style={{ width: '100%', padding: '11px 14px', background: 'rgba(0,0,0,0.25)', border: '1px solid var(--line)', borderRadius: '10px', color: '#FFF', fontSize: '14px', fontFamily: 'inherit', outline: 'none' }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', marginBottom: '5px', display: 'block' }}>Email Address *</label>
+                        <input
+                          type="email"
+                          placeholder="you@college.edu"
+                          value={teamsJoinForm.email}
+                          onChange={(e) => setTeamsJoinForm({ ...teamsJoinForm, email: e.target.value })}
+                          style={{ width: '100%', padding: '11px 14px', background: 'rgba(0,0,0,0.25)', border: '1px solid var(--line)', borderRadius: '10px', color: '#FFF', fontSize: '14px', fontFamily: 'inherit', outline: 'none' }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', marginBottom: '5px', display: 'block' }}>Phone Number</label>
+                        <input
+                          type="tel"
+                          placeholder="+91 98765 43210"
+                          value={teamsJoinForm.phone}
+                          onChange={(e) => setTeamsJoinForm({ ...teamsJoinForm, phone: e.target.value })}
+                          style={{ width: '100%', padding: '11px 14px', background: 'rgba(0,0,0,0.25)', border: '1px solid var(--line)', borderRadius: '10px', color: '#FFF', fontSize: '14px', fontFamily: 'inherit', outline: 'none' }}
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                      <button
+                        onClick={() => setShowTeamsJoin(false)}
+                        style={{ flex: 1, padding: '12px', background: 'transparent', border: '1px solid var(--line2)', borderRadius: '10px', color: 'var(--muted)', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={async () => {
+                          if (!teamsJoinForm.full_name || !teamsJoinForm.email) {
+                            alert('Name and email are required.');
+                            return;
+                          }
+                          try {
+                            const res = await fetch(`/api/integrations/teams/meetings/${teamsMeeting.meeting_id}/register`, {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify(teamsJoinForm),
+                            });
+                            const json = await res.json();
+                            if (json.success && json.join_url) {
+                              setShowTeamsJoin(false);
+                              if (typeof window !== 'undefined') {
+                                window.open(json.join_url, '_blank');
+                              }
+                            } else {
+                              alert(json.error || 'Registration failed.');
+                            }
+                          } catch (e: any) {
+                            alert('Failed to register for meeting.');
+                          }
+                        }}
+                        style={{ flex: 1, padding: '12px', background: 'linear-gradient(100deg, var(--violet), #6246E8)', border: 'none', borderRadius: '10px', color: '#FFF', fontSize: '14px', fontWeight: 700, cursor: 'pointer', boxShadow: '0 8px 22px rgba(124,92,252,.35)' }}
+                      >
+                        Join Meeting
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+             </div>
+
+           </div>
 
         </div>
       )}

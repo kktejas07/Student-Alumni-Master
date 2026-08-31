@@ -4229,6 +4229,29 @@ async def my_registrations(request: Request):
         reg_ser = _ser(reg)
         slug = reg.get("showcase_slug") or reg.get("slug", "")
 
+        # Build nested payment object for frontend compatibility
+        payment = {}
+        if "payment_status" in reg:
+            payment["status"] = reg["payment_status"]
+        if reg.get("failed_reason"):
+            payment["failed_reason"] = reg["failed_reason"]
+        if reg.get("failed_reason_code"):
+            payment["failed_reason_code"] = reg["failed_reason_code"]
+        if reg.get("paid_at"):
+            payment["paid_at"] = reg["paid_at"]
+        if reg.get("failed_at"):
+            payment["failed_at"] = reg["failed_at"]
+        if reg.get("amount"):
+            payment["amount"] = reg["amount"]
+        if reg.get("currency"):
+            payment["currency"] = reg["currency"]
+        if reg.get("razorpay_payment_id"):
+            payment["payment_id"] = reg["razorpay_payment_id"]
+        if reg.get("payment_provider"):
+            payment["gateway"] = reg["payment_provider"]
+        payment["method"] = reg.get("payment_provider") or "online"
+        reg_ser["payment"] = payment
+
         # Fetch coupons for this registration
         coupons = []
         try:
