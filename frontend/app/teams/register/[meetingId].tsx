@@ -187,7 +187,7 @@ export default function TeamsMeetingRegisterPage() {
     <View style={s.root}>
       <EchoHeader />
       <ScrollView contentContainerStyle={{ paddingTop: ECHO_TOP_PADDING }}>
-        <View style={[s.content, isDesktop && { maxWidth: 1000, flexDirection: 'row', alignItems: 'flex-start', gap: 24 }]}>
+        <View style={[s.content, isDesktop && { maxWidth: 1400, flexDirection: 'row', alignItems: 'flex-start', gap: 24 }]}>
           {/* Meeting Header */}
           <View style={isDesktop ? { flex: 1.2 } : { width: '100%' }}>
             <LinearGradient
