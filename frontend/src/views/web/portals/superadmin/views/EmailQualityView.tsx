@@ -447,8 +447,8 @@ export function EmailQualityView() {
                 <Text style={[st.muted, { marginBottom: 8 }]}>
                   {auditResults.issues.length} issues found that may affect deliverability:
                 </Text>
-                <View style={{ maxHeight: 200, overflow: 'hidden' }}>
-                  {auditResults.issues.slice(0, 20).map((issue: any, i: number) => (
+                <ScrollView style={{ maxHeight: 300 }}>
+                  {auditResults.issues.slice(0, 200).map((issue: any, i: number) => (
                     <View key={i} style={st.auditIssueRow}>
                       <View style={[st.issueBadge, { backgroundColor: `${kindColor(issue.reason)}20` }]}>
                         <Text style={[st.issueBadgeText, { color: kindColor(issue.reason) }]}>
@@ -465,10 +465,10 @@ export function EmailQualityView() {
                       </Pressable>
                     </View>
                   ))}
-                  {auditResults.issues.length > 20 && (
-                    <Text style={st.muted}>...and {auditResults.issues.length - 20} more</Text>
+                  {auditResults.issues.length > 200 && (
+                    <Text style={[st.muted, { marginTop: 8, textAlign: 'center' }]}>...and {auditResults.issues.length - 200} more</Text>
                   )}
-                </View>
+                </ScrollView>
               </View>
             )}
           </View>
