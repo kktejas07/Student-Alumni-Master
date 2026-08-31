@@ -5233,7 +5233,7 @@ async def check_in_attendee(payload: TicketVerifySchema, request: Request, _=Dep
     now_iso = _now()
     first_checkin = not bool(reg.get("checked_in_at"))
     
-    update_data = {"checked_in_at": now_iso}
+    update_data: dict[str, Any] = {"checked_in_at": now_iso}
     if payload.lat is not None and payload.lng is not None:
         update_data["scanned_lat"] = payload.lat
         update_data["scanned_lng"] = payload.lng

@@ -277,11 +277,15 @@ export default function EchoScanPage() {
       <EchoHeader current="echo" />
       <ScrollView contentContainerStyle={{ paddingTop: ECHO_TOP_PADDING }}>
         <View style={s.content}>
-          <Pressable onPress={() => router.push('/echo')} style={s.backBtn}>
-            <ArrowLeft size={14} color="#fff" />
-            <Text style={s.backText}>Back to ECHO</Text>
-          </Pressable>
-
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, width: '100%', maxWidth: 600, alignSelf: 'center' }}>
+            <Pressable onPress={() => router.push('/echo')} style={[s.backBtn, { marginBottom: 0 }]}>
+              <ArrowLeft size={14} color="#fff" />
+              <Text style={s.backText}>Back to ECHO</Text>
+            </Pressable>
+            <Pressable onPress={() => router.push('/admin/echo')} style={[s.backBtn, { marginBottom: 0 }]}>
+              <Text style={s.backText}>Superadmin Dashboard</Text>
+            </Pressable>
+          </View>
           <LinearGradient colors={['rgba(124,58,237,0.30)', 'rgba(30,10,80,0.5)']} style={s.header}>
             <View style={s.headerIcon}><ScanLine size={24} color="#C4B5FD" /></View>
             <Text style={s.headerTitle}>Coupon Scanner</Text>

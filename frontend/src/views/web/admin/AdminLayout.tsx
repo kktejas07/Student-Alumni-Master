@@ -26,6 +26,7 @@ const NAV: NavItem[] = [
   { key: 'payments',  label: 'Payments',   route: '/admin/payments',  icon: Wallet },
   { key: 'analytics', label: 'Analytics',  route: '/admin/analytics', icon: BarChart3 },
   { key: 'approvals', label: 'Approvals',  route: '/admin/approvals', icon: ShieldCheck },
+  { key: 'echo',      label: 'Echo Event', route: '/admin/echo',      icon: CalendarDays },
   { key: 'settings',  label: 'Settings',   route: '/admin/settings',  icon: Settings },
 ];
 
