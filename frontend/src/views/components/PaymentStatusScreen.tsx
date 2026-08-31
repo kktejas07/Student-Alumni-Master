@@ -14,6 +14,9 @@ const DANGER_LINE = '#5A1E2B';
 const VIOLET_LT = '#A78BFA';
 const VIOLET = '#7C5CFC';
 
+const AnimatedCircle = Animated.createAnimatedComponent('circle');
+const AnimatedPath = Animated.createAnimatedComponent('path');
+
 export type PaymentResult = {
   mode: 'success' | 'failure';
   ticketId: string;
@@ -158,7 +161,7 @@ export default function PaymentStatusScreen({ result, onPrimaryAction, onSeconda
             <div style={{ position: 'relative', width: 128, height: 128 }}>
               <svg width="128" height="128" viewBox="0 0 128 128">
                 <circle cx="64" cy="64" r="52" style={{ fill: accentTint, stroke: accentLine, strokeWidth: 2 }} />
-                <Animated.circle
+                <AnimatedCircle
                   cx="64"
                   cy="64"
                   r="52"
@@ -174,7 +177,7 @@ export default function PaymentStatusScreen({ result, onPrimaryAction, onSeconda
                   }}
                 />
                 {ok ? (
-                  <Animated.path
+                  <AnimatedPath
                     d="M44 66 L58 80 L86 50"
                     style={{
                       fill: 'none',
@@ -188,7 +191,7 @@ export default function PaymentStatusScreen({ result, onPrimaryAction, onSeconda
                   />
                 ) : (
                   <>
-                    <Animated.path
+                    <AnimatedPath
                       d="M50 50 L78 78"
                       style={{
                         fill: 'none',
@@ -199,7 +202,7 @@ export default function PaymentStatusScreen({ result, onPrimaryAction, onSeconda
                         strokeDashoffset: markDashoffset,
                       }}
                     />
-                    <Animated.path
+                    <AnimatedPath
                       d="M78 50 L50 78"
                       style={{
                         fill: 'none',
