@@ -37,7 +37,7 @@ class TeamsMeetingRegister(BaseModel):
 @router.get("/integrations/status")
 async def get_integrations_status():
     """Returns which integrations are running in 'live' vs 'mock' mode."""
-    return {**integrations_status(), **teams_status()}
+    return {**integrations_status(), **(await teams_status())}
 
 
 @router.get("/integrations/courses")
@@ -129,7 +129,7 @@ async def list_teams_meetings(user: dict = Depends(get_current_user)):
     async for m in cursor:
         m["_id"] = str(m["_id"])
         meetings.append(m)
-    return {"meetings": meetings, "status": teams_status()}
+    return {"meetings": meetings, "status": await teams_status()}
 
 
 @router.get("/integrations/teams/meetings/{meeting_id}")
@@ -218,4 +218,4 @@ async def delete_teams_meeting(meeting_id: str, user: dict = Depends(get_current
 @router.get("/integrations/teams/status")
 async def teams_integration_status():
     """Check if Microsoft Teams integration is configured."""
-    return teams_status()
+    return await teams_status()

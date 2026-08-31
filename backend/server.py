@@ -2280,6 +2280,7 @@ async def create_teams_meeting_endpoint(payload: TeamsMeetingCreate, user: dict 
         "duration_minutes": payload.duration_minutes,
         "seat_limit": payload.seat_limit,
         "attendee_emails": payload.attendee_emails or [],
+        "event_slug": payload.event_slug if hasattr(payload, 'event_slug') else None,
         "created_by": str(user.get("_id", "")),
         "created_at": _dt.now(timezone.utc).isoformat(),
         "is_mock": meeting.get("mock", False),
@@ -2290,16 +2291,58 @@ async def create_teams_meeting_endpoint(payload: TeamsMeetingCreate, user: dict 
 
 
 @api_router.get("/integrations/teams/meetings")
-async def list_teams_meetings(user: dict = Depends(get_current_user)):
-    """List all Teams meetings (admin only)."""
+async def list_teams_meetings(user: dict = Depends(get_current_user), event_slug: str = None):
+    """List all Teams meetings (admin only). Optionally filter by event_slug."""
     if user.get("role") not in ("admin", "super_admin", "organizer"):
         raise HTTPException(403, "Access required")
-    cursor = db.teams_meetings.find({}).sort("created_at", -1)
+    query = {}
+    if event_slug:
+        query["event_slug"] = event_slug
+    cursor = db.teams_meetings.find(query).sort("created_at", -1)
     meetings = []
     async for m in cursor:
         m["_id"] = str(m["_id"])
         meetings.append(m)
-    return {"meetings": meetings, "status": _teams_status()}
+    return {"meetings": meetings, "status": await _teams_status()}
+
+
+@api_router.get("/integrations/teams/meetings/event/{event_slug}")
+async def get_teams_meetings_for_event(event_slug: str):
+    """Get Teams meetings associated with a specific event (public)."""
+    cursor = db.teams_meetings.find({"event_slug": event_slug}).sort("start_time", 1)
+    meetings = []
+    async for m in cursor:
+        m["_id"] = str(m["_id"])
+        meetings.append(m)
+    return {"meetings": meetings}
+
+
+@api_router.post("/integrations/teams/meetings/{meeting_id}/register")
+async def register_for_teams_meeting(meeting_id: str, payload: dict):
+    """Register a user for a Teams meeting and return the join URL."""
+    meeting = await db.teams_meetings.find_one({"meeting_id": meeting_id})
+    if not meeting:
+        raise HTTPException(404, "Meeting not found")
+    full_name = payload.get("full_name", "")
+    email = payload.get("email", "")
+    phone = payload.get("phone", "")
+    if not full_name or not email:
+        raise HTTPException(400, "Full name and email are required")
+    registrations = meeting.get("registrations", [])
+    existing = next((r for r in registrations if r.get("email") == email), None)
+    if existing:
+        return {"success": True, "join_url": meeting.get("join_url"), "already_registered": True}
+    seat_limit = meeting.get("seat_limit", 0)
+    if seat_limit and len(registrations) >= seat_limit:
+        raise HTTPException(400, "Meeting is full")
+    registrations.append({
+        "full_name": full_name,
+        "email": email,
+        "phone": phone,
+        "registered_at": _dt.now(timezone.utc).isoformat(),
+    })
+    await db.teams_meetings.update_one({"meeting_id": meeting_id}, {"$set": {"registrations": registrations}})
+    return {"success": True, "join_url": meeting.get("join_url")}
 
 
 @api_router.get("/integrations/teams/meetings/{meeting_id}")
@@ -2409,7 +2452,7 @@ async def get_teams_attendance(meeting_id: str, email: Optional[str] = None):
 @api_router.get("/integrations/teams/status")
 async def teams_integration_status():
     """Check if Microsoft Teams integration is configured."""
-    return _teams_status()
+    return await _teams_status()
 
 
 # ----------------------------------------------------------------------------

@@ -8,7 +8,7 @@
  * - Public registration endpoint (no auth required)
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, ActivityIndicator, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, ActivityIndicator, Modal, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Video, Calendar, Users, CheckCircle, Copy, Share2, Trash2, Clock, Plus, Save, ChevronDown, Pencil } from 'lucide-react-native';
@@ -338,61 +338,47 @@ export function TeamsMeetingsView() {
                   if (editingMeeting) setEditForm({ ...editForm, title: t }); else setForm({ ...form, title: t });
                 }} />
 
-              <Text style={s.inputLabel}>Date</Text>
-              <Pressable onPress={() => setDateOpen(true)} style={s.dropdown}>
-                <Text style={s.dropdownText}>
-                  {dateOptions.find(d => d.value === activeForm.date)?.label || 'Select date'}
-                </Text>
-                <ChevronDown size={14} color={SAC.muted} />
-              </Pressable>
-              {dateOpen && (
-                <Modal transparent visible={dateOpen} animationType="fade" onRequestClose={() => setDateOpen(false)}>
-                  <View style={s.modalOverlay}>
-                    <View style={[s.modalContent, { maxHeight: 400, padding: 16 }]}>
-                      <Text style={s.modalTitle}>Select Date</Text>
-                      <ScrollView style={{ maxHeight: 300 }}>
-                        {dateOptions.map((d) => (
-                          <Pressable
-                            key={d.value}
-                            onPress={() => { setActiveForm({ ...activeForm, date: d.value }); setDateOpen(false); }}
-                            style={[s.dropdownOption, activeForm.date === d.value && s.dropdownOptionSelected]}
-                          >
-                            <Text style={[s.dropdownOptionText, activeForm.date === d.value && s.dropdownOptionTextSelected]}>{d.label}</Text>
-                          </Pressable>
-                        ))}
-                      </ScrollView>
-                    </View>
-                  </View>
-                </Modal>
-              )}
+               <Text style={s.inputLabel}>Date</Text>
+               {Platform.OS === 'web' ? (
+                 <input
+                   type="date"
+                   value={activeForm.date || ''}
+                   onChange={(e: any) => setActiveForm({ ...activeForm, date: e.target.value })}
+                   style={{
+                     width: '100%', backgroundColor: '#101019', border: `1px solid ${SAC.border}`,
+                     borderRadius: 8, padding: '9px 12px', fontFamily: FONTS.med, fontSize: 13,
+                     color: SAC.text, colorScheme: 'dark',
+                   }}
+                 />
+               ) : (
+                 <Pressable onPress={() => setDateOpen(true)} style={s.dropdown}>
+                   <Text style={s.dropdownText}>
+                     {dateOptions.find(d => d.value === activeForm.date)?.label || 'Select date'}
+                   </Text>
+                   <ChevronDown size={14} color={SAC.muted} />
+                 </Pressable>
+               )}
 
-              <Text style={s.inputLabel}>Time (UTC)</Text>
-              <Pressable onPress={() => setTimeOpen(true)} style={s.dropdown}>
-                <Text style={s.dropdownText}>
-                  {timeOptions.find(t => t.value === activeForm.time)?.label || 'Select time'}
-                </Text>
-                <ChevronDown size={14} color={SAC.muted} />
-              </Pressable>
-              {timeOpen && (
-                <Modal transparent visible={timeOpen} animationType="fade" onRequestClose={() => setTimeOpen(false)}>
-                  <View style={s.modalOverlay}>
-                    <View style={[s.modalContent, { maxHeight: 400, padding: 16 }]}>
-                      <Text style={s.modalTitle}>Select Time (UTC)</Text>
-                      <ScrollView style={{ maxHeight: 300 }}>
-                        {timeOptions.map((t) => (
-                          <Pressable
-                            key={t.value}
-                            onPress={() => { setActiveForm({ ...activeForm, time: t.value }); setTimeOpen(false); }}
-                            style={[s.dropdownOption, activeForm.time === t.value && s.dropdownOptionSelected]}
-                          >
-                            <Text style={[s.dropdownOptionText, activeForm.time === t.value && s.dropdownOptionTextSelected]}>{t.label}</Text>
-                          </Pressable>
-                        ))}
-                      </ScrollView>
-                    </View>
-                  </View>
-                </Modal>
-              )}
+               <Text style={s.inputLabel}>Time (UTC)</Text>
+               {Platform.OS === 'web' ? (
+                 <input
+                   type="time"
+                   value={activeForm.time || ''}
+                   onChange={(e: any) => setActiveForm({ ...activeForm, time: e.target.value })}
+                   style={{
+                     width: '100%', backgroundColor: '#101019', border: `1px solid ${SAC.border}`,
+                     borderRadius: 8, padding: '9px 12px', fontFamily: FONTS.med, fontSize: 13,
+                     color: SAC.text, colorScheme: 'dark',
+                   }}
+                 />
+               ) : (
+                 <Pressable onPress={() => setTimeOpen(true)} style={s.dropdown}>
+                   <Text style={s.dropdownText}>
+                     {timeOptions.find(t => t.value === activeForm.time)?.label || 'Select time'}
+                   </Text>
+                   <ChevronDown size={14} color={SAC.muted} />
+                 </Pressable>
+               )}
 
               <Text style={s.inputLabel}>Duration</Text>
               <Pressable onPress={() => setDurationOpen(true)} style={s.dropdown}>
