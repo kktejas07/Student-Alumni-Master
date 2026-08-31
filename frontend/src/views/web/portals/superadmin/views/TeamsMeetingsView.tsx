@@ -230,6 +230,22 @@ export function TeamsMeetingsView() {
     }
   };
 
+  const toISTDate = (iso: string) => {
+    try {
+      const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date(iso));
+      const p = (t: string) => parts.find(x => x.type === t)?.value || '';
+      return `${p('year')}-${p('month')}-${p('day')}`;
+    } catch { return ''; }
+  };
+
+  const toISTTime = (iso: string) => {
+    try {
+      const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(new Date(iso));
+      const p = (t: string) => parts.find(x => x.type === t)?.value || '';
+      return `${p('hour')}:${p('minute')}`;
+    } catch { return ''; }
+  };
+
   const formatDate = (iso: string) => {
     return new Date(iso).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' });
   };
@@ -315,8 +331,8 @@ export function TeamsMeetingsView() {
                 <Pressable onPress={() => {
                   setEditForm({
                     title: m.subject,
-                    date: m.start_time ? new Date(m.start_time).toLocaleString('en-CA', { timeZone: 'Asia/Kolkata' }).split('T')[0] : form.date,
-                    time: m.start_time ? new Date(m.start_time).toLocaleString('en-GB', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false }).slice(0, 5) : form.time,
+                    date: m.start_time ? (toISTDate(m.start_time) || form.date) : form.date,
+                    time: m.start_time ? (toISTTime(m.start_time) || form.time) : form.time,
                     duration: m.duration_minutes || 60,
                     seat_limit: m.seat_limit ? String(m.seat_limit) : '',
                     description: m.description || '',

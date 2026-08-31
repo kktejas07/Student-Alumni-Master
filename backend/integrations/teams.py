@@ -176,19 +176,27 @@ async def create_teams_meeting(
         "onlineMeetingProvider": "teamsForBusiness",
     }
 
-    try:
-        async with httpx.AsyncClient(timeout=15) as c:
-            # App-only auth has no "me" calendar. When an organizer mailbox is
-            # provided, target that user's calendar explicitly.
-            if organizer_email:
-                events_url = f"{GRAPH_BASE}/users/{organizer_email}/events"
-            else:
-                events_url = f"{GRAPH_BASE}/me/events"
-            r = await c.post(
-                events_url,
-                headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
-                json=body,
-            )
+    # App-only auth has no "me" calendar. Resolve the target user whose calendar
+    # the event lands in: the requested organizer, else a default tenant admin.
+    default_organizer = os.environ.get("MS_TEAMS_ORGANIZER_EMAIL", "admin@NETORGFT20701098.onmicrosoft.com")
+    candidate_organizers = []
+    if organizer_email:
+        candidate_organizers.append(organizer_email)
+    if not candidate_organizers or organizer_email != default_organizer:
+        candidate_organizers.append(default_organizer)
+
+    last_error: Optional[str] = None
+    for org in candidate_organizers:
+        if org == "me" or not org:
+            continue
+        events_url = f"{GRAPH_BASE}/users/{org}/events"
+        try:
+            async with httpx.AsyncClient(timeout=15) as c:
+                r = await c.post(
+                    events_url,
+                    headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+                    json=body,
+                )
             if r.is_success:
                 resp = r.json()
                 return {
@@ -202,15 +210,18 @@ async def create_teams_meeting(
                     "seat_limit": seat_limit,
                     "registrations": [],
                 }
-            logger.error(f"[teams] Meeting creation failed: {r.status_code} {r.text}")
-            raise RuntimeError(
-                f"[teams] Microsoft Graph rejected meeting creation ({r.status_code}): {r.text[:500]}"
-            )
-    except RuntimeError:
-        raise
-    except Exception as e:
-        logger.error(f"[teams] Meeting creation error: {e}")
-        raise RuntimeError(f"[teams] Meeting creation error: {e}") from e
+            logger.error(f"[teams] Meeting creation failed ({org}): {r.status_code} {r.text[:400]}")
+            last_error = f"[teams] Graph rejected meeting creation for organizer '{org}' ({r.status_code}): {r.text[:300]}"
+        except Exception as e:
+            logger.error(f"[teams] Meeting creation error ({org}): {e}")
+            last_error = f"[teams] Meeting creation error for organizer '{org}': {e}"
+
+    # If the organizer email is invalid, surface a clear message with valid options.
+    raise RuntimeError(
+        f"Microsoft Teams could not create the meeting. {last_error or 'Unknown error.'} "
+        "Make sure the Organizer email is a valid user on the studentalumni.ai tenant "
+        "(e.g. hr@studentalumni.ai, admin@studentalumni.ai), not an external Gmail."
+    )
 
 
 def _mock_meeting(**kwargs: Any) -> Dict[str, Any]:
