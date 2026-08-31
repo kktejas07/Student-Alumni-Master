@@ -111,6 +111,7 @@ async def create_teams_meeting(
     lobby_bypass: str = "everyone",
     allow_external: bool = True,
     who_can_meeting: str = "everyone",
+    organizer_email: str | None = None,
 ) -> Dict[str, Any]:
     """Create a Microsoft Teams meeting via Graph API.
 
@@ -124,9 +125,19 @@ async def create_teams_meeting(
         lobby_bypass: 'everyone' or 'organizer'
         allow_external: Whether external participants can join
         who_can_meeting: Who can bypass lobby
+        organizer_email: The mailbox owner whose calendar the meeting is created in.
+            Required when using app-only (client credentials) auth, because app-only
+            tokens have no "me" calendar. Falls back to ``me/events`` when omitted.
     """
-    token = await _get_app_token()
+    creds = await _get_creds()
+    token = await _get_app_token(creds)
     if not token:
+        if creds.get("tenant_id") and creds.get("client_id") and creds.get("client_secret"):
+            raise RuntimeError(
+                "[teams] Credentials are configured but Microsoft rejected the token request. "
+                "Check that the client secret is valid and Application API permissions "
+                "include Calendars.ReadWrite + OnlineMeetings.ReadWrite with admin consent."
+            )
         return _mock_meeting(
             title=title,
             start_time=start_time,
@@ -138,16 +149,20 @@ async def create_teams_meeting(
 
     end_time = start_time + timedelta(minutes=duration_minutes)
 
+    # Display in IST (Asia/Kolkata) regardless of how start_time was tz-aware.
+    ist = start_time.astimezone(timezone(timedelta(hours=5, minutes=30)))
+    ist_end = end_time.astimezone(timezone(timedelta(hours=5, minutes=30)))
+
     body: Dict[str, Any] = {
         "subject": title,
         "body": {"contentType": "HTML", "content": description or title},
         "start": {
-            "dateTime": start_time.strftime("%Y-%m-%dT%H:%M:%S"),
-            "timeZone": "UTC",
+            "dateTime": ist.strftime("%Y-%m-%dT%H:%M:%S"),
+            "timeZone": "Asia/Kolkata",
         },
         "end": {
-            "dateTime": end_time.strftime("%Y-%m-%dT%H:%M:%S"),
-            "timeZone": "UTC",
+            "dateTime": ist_end.strftime("%Y-%m-%dT%H:%M:%S"),
+            "timeZone": "Asia/Kolkata",
         },
         "location": {"displayName": "Microsoft Teams Meeting"},
         "attendees": [
@@ -163,8 +178,14 @@ async def create_teams_meeting(
 
     try:
         async with httpx.AsyncClient(timeout=15) as c:
+            # App-only auth has no "me" calendar. When an organizer mailbox is
+            # provided, target that user's calendar explicitly.
+            if organizer_email:
+                events_url = f"{GRAPH_BASE}/users/{organizer_email}/events"
+            else:
+                events_url = f"{GRAPH_BASE}/me/events"
             r = await c.post(
-                f"{GRAPH_BASE}/me/events",
+                events_url,
                 headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
                 json=body,
             )
@@ -182,17 +203,14 @@ async def create_teams_meeting(
                     "registrations": [],
                 }
             logger.error(f"[teams] Meeting creation failed: {r.status_code} {r.text}")
+            raise RuntimeError(
+                f"[teams] Microsoft Graph rejected meeting creation ({r.status_code}): {r.text[:500]}"
+            )
+    except RuntimeError:
+        raise
     except Exception as e:
         logger.error(f"[teams] Meeting creation error: {e}")
-
-    return _mock_meeting(
-        title=title,
-        start_time=start_time,
-        duration_minutes=duration_minutes,
-        attendee_emails=attendee_emails or [],
-        seat_limit=seat_limit,
-        description=description,
-    )
+        raise RuntimeError(f"[teams] Meeting creation error: {e}") from e
 
 
 def _mock_meeting(**kwargs: Any) -> Dict[str, Any]:
