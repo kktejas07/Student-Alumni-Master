@@ -2357,9 +2357,105 @@ async def get_teams_meetings_for_event(event_slug: str):
     return {"meetings": meetings}
 
 
+async def _add_teams_attendee(meeting: dict, attendee_email: str, display_name: str = ""):
+    """Best-effort add of an attendee to the real Teams meeting via Graph.
+
+    App-only tokens have no "me" calendar, so if an organizer email is known the
+    attendee is added against that user's event. Failures are logged, never thrown.
+    """
+    if not attendee_email or meeting.get("is_mock"):
+        return
+    org = (meeting.get("organizer_email") or "").strip()
+    if not org:
+        return
+    try:
+        creds = await _get_teams_creds()
+        token = await _get_teams_token(creds)
+        if not token:
+            return
+        event_id = meeting.get("meeting_id") or ""
+        url = f"https://graph.microsoft.com/v1.0/users/{org}/events/{event_id}"
+        existing = meeting.get("attendee_emails") or []
+        payload = {
+            "attendees": [
+                {"emailAddress": {"address": a, "name": a}, "type": "required"}
+                for a in list(existing) + [attendee_email]
+            ]
+        }
+        async with httpx.AsyncClient(timeout=15) as c:
+            r = await c.patch(url, headers={"Authorization": f"Bearer {token}"}, json=payload)
+            if not r.is_success:
+                logger.warning(f"[teams] add attendee failed {r.status_code}: {r.text[:300]}")
+    except Exception as e:
+        logger.warning(f"[teams] add attendee error for {attendee_email}: {e}")
+
+
+def _format_ics_datetime(dt_str: str) -> str:
+    """Format an ISO datetime for an .ics file as a UTC (Z) timestamp."""
+    try:
+        from datetime import datetime as _pdt
+        dt = _pdt.fromisoformat(dt_str.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            from zoneinfo import ZoneInfo
+            dt = dt.replace(tzinfo=ZoneInfo("Asia/Kolkata"))
+        dt_utc = dt.astimezone(timezone.utc)
+        return dt_utc.strftime("%Y%m%dT%H%M%SZ")
+    except (ValueError, TypeError):
+        return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+
+def _build_meeting_ics(meeting: dict) -> str:
+    """Build an RFC-5545 .ics calendar invitation for a Teams meeting."""
+    subject = (meeting.get("subject") or "Teams Meeting").replace("\\", "\\\\").replace("\n", "\\n")
+    desc = (meeting.get("description") or "").replace("\\", "\\\\").replace("\n", "\\n")
+    start = _format_ics_datetime(meeting.get("start_time", ""))
+    end = _format_ics_datetime(meeting.get("_ics_end", "")) or _format_ics_datetime(meeting.get("start_time", ""))
+    join_url = meeting.get("join_url") or ""
+    meeting_id = meeting.get("meeting_id") or "teams-meeting"
+    now = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    organizer = meeting.get("organizer_email") or "meetings@studentalumni.ai"
+    body = desc
+    if join_url:
+        body = (body + ("\n\n" if body else "") + f"Join the meeting: {join_url}")
+    _escaped_body = body.replace("\r\n", "\\n").replace("\n", "\\n")
+    _escaped_desc = _escaped_body
+    lines = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//Student Alumni//Teams Meeting//EN",
+        "CALSCALE:GREGORIAN",
+        "METHOD:REQUEST",
+        "BEGIN:VEVENT",
+        f"UID:{meeting_id}@studentalumni.ai",
+        f"DTSTAMP:{now}",
+        f"DTSTART:{start}",
+        f"DTEND:{end}",
+        f"SUMMARY:{subject}",
+        f"DESCRIPTION:{_escaped_desc}",
+        "LOCATION:Microsoft Teams",
+        f"ORGANIZER;CN={organizer}:mailto:{organizer}",
+        "ATTENDEE;CN=Participant;RSVP=TRUE:mailto:",
+        "STATUS:CONFIRMED",
+        "SEQUENCE:0",
+        "BEGIN:VALARM",
+        "TRIGGER:-PT15M",
+        "ACTION:DISPLAY",
+        f"DESCRIPTION:Reminder: {subject}",
+        "END:VALARM",
+        "END:VEVENT",
+        "END:VCALENDAR",
+    ]
+    return "\r\n".join(lines) + "\r\n"
+
+
 @api_router.post("/integrations/teams/meetings/{meeting_id}/register")
 async def register_for_teams_meeting(meeting_id: str, payload: dict):
-    """Register a user for a Teams meeting and return the join URL."""
+    """Register a user for a Teams meeting and return the join URL.
+
+    On successful registration the attendee is added to the meeting's attendee
+    list in Microsoft and emailed an .ics calendar invitation so the meeting
+    appears in their calendar with the join link.
+    """
     meeting = await db.teams_meetings.find_one({"meeting_id": meeting_id})
     if not meeting:
         raise HTTPException(404, "Meeting not found")
@@ -2371,7 +2467,7 @@ async def register_for_teams_meeting(meeting_id: str, payload: dict):
     registrations = meeting.get("registrations", [])
     existing = next((r for r in registrations if r.get("email") == email), None)
     if existing:
-        return {"success": True, "join_url": meeting.get("join_url"), "already_registered": True}
+        return {"success": True, "join_url": meeting.get("join_url"), "already_registered": True, "ics_url": meeting.get("ics_url")}
     seat_limit = meeting.get("seat_limit", 0)
     if seat_limit and len(registrations) >= seat_limit:
         raise HTTPException(400, "Meeting is full")
@@ -2382,7 +2478,80 @@ async def register_for_teams_meeting(meeting_id: str, payload: dict):
         "registered_at": datetime.now(timezone.utc).isoformat(),
     })
     await db.teams_meetings.update_one({"meeting_id": meeting_id}, {"$set": {"registrations": registrations}})
-    return {"success": True, "join_url": meeting.get("join_url")}
+
+    # 1. Add attendee to the real Teams meeting (best-effort, non-blocking)
+    await _add_teams_attendee(meeting, email, full_name)
+
+    # 2. Build + serve an .ics invite and email it to the attendee
+    try:
+        from datetime import datetime as _edt
+        _st = _edt.fromisoformat(meeting.get("start_time", "").replace("Z", "+00:00"))
+        if _st.tzinfo is None:
+            from zoneinfo import ZoneInfo as _ZI
+            _st = _st.replace(tzinfo=_ZI("Asia/Kolkata"))
+        _end = _st + timedelta(minutes=int(meeting.get("duration_minutes") or 60))
+        meeting = dict(meeting, _ics_end=_end.isoformat())
+    except (ValueError, TypeError, AttributeError):
+        pass
+    ics = _build_meeting_ics(meeting)
+    ics_filename = f"teams-meeting-{meeting_id}.ics"
+    ics_content = base64.b64encode(ics.encode("utf-8")).decode("utf-8")
+
+    # Email the .ics to the attendee (best-effort)
+    email_sent = False
+    try:
+        subject_line = f"Meeting Invitation: {meeting.get('subject') or 'Teams Meeting'}"
+        join_line = f'<a href="{meeting.get("join_url")}">Join the meeting</a>' if meeting.get("join_url") else ""
+        body_html = (
+            f"<p>Hi {full_name},</p>"
+            f"<p>You are registered for <b>{meeting.get('subject') or 'this Teams meeting'}</b>.</p>"
+            f"<p>The calendar invitation is attached. Add it to your calendar to see the event and join link.</p>"
+            f"{join_line and ('<p>' + join_line + '</p>') or ''}"
+        )
+        email_sent = await send_email(
+            to_email=email,
+            subject=subject_line,
+            body_html=body_html,
+            attachments=[{"filename": ics_filename, "content": ics.encode("utf-8")}],
+        )
+    except Exception as e:
+        logger.warning(f"[teams] Could not email calendar invite to {email}: {e}")
+
+    ics_url = f"/api/integrations/teams/meetings/{meeting_id}/calendar.ics?u={secrets.token_urlsafe(6)}"
+    return {
+        "success": True,
+        "join_url": meeting.get("join_url"),
+        "ics": ics_content,
+        "ics_filename": ics_filename,
+        "ics_url": ics_url,
+        "email_sent": email_sent,
+    }
+
+
+@api_router.get("/integrations/teams/meetings/{meeting_id}/calendar.ics")
+async def get_teams_meeting_ics(meeting_id: str):
+    """Return the .ics calendar invite for a Teams meeting (for adding to a calendar)."""
+    meeting = await db.teams_meetings.find_one({"meeting_id": meeting_id})
+    if not meeting:
+        raise HTTPException(404, "Meeting not found")
+    try:
+        from datetime import datetime as _edt
+        _st = _edt.fromisoformat(meeting.get("start_time", "").replace("Z", "+00:00"))
+        if _st.tzinfo is None:
+            from zoneinfo import ZoneInfo as _ZI
+            _st = _st.replace(tzinfo=_ZI("Asia/Kolkata"))
+        _end = _st + timedelta(minutes=int(meeting.get("duration_minutes") or 60))
+        meeting = dict(meeting, _ics_end=_end.isoformat())
+    except (ValueError, TypeError, AttributeError):
+        pass
+    ics = _build_meeting_ics(meeting)
+    return Response(
+        content=ics,
+        media_type="text/calendar",
+        headers={
+            "Content-Disposition": f'attachment; filename="teams-meeting-{meeting_id}.ics"',
+        },
+    )
 
 
 @api_router.get("/integrations/teams/meetings/{meeting_id}")

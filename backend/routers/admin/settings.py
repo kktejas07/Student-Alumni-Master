@@ -436,11 +436,14 @@ async def list_tools(authorization: Optional[str] = Header(None)):
         # mask any password-type fields
         pwd_keys = {f["key"] for f in t.get("auth_fields", []) if f.get("type") == "password"}
         masked = {k: ("••••" + str(v)[-4:] if v and k in pwd_keys else v) for k, v in creds.items()}
+        # expose full values for non-password fields so the UI can pre-fill the edit form
+        plain = {k: v for k, v in creds.items() if k not in pwd_keys}
         item = {
             **t,
             "installed":   bool(i),
             "status":      i.get("status") if i else None,
             "credentials_masked": masked,
+            "credentials_plain": plain,
             "installed_at": (i.get("installed_at").isoformat() if i and i.get("installed_at") else None),
         }
         if t["id"] == "postal" and i:
@@ -475,6 +478,13 @@ async def install_tool(body: InstallBody, authorization: Optional[str] = Header(
 
     # Validate required credential fields if auth_fields declared
     creds = dict(body.credentials or {})
+    existing_row = await _db.installed_tools.find_one({"user_id": str(user["_id"]), "tool_id": body.tool_id})
+    existing_creds = (existing_row or {}).get("credentials") or {}
+    # When a password-type field is left blank on an update, keep the previously
+    # saved secret so an "Edit" without re-entering the secret doesn't wipe it.
+    for f in tool.get("auth_fields", []):
+        if f.get("type") == "password" and f["key"] in existing_creds and not (creds.get(f["key"]) or "").strip():
+            creds[f["key"]] = existing_creds[f["key"]]
     if body.tool_id == "postal" and not (creds.get("webhook_secret") or "").strip():
         creds["webhook_secret"] = await ensure_postal_webhook_secret()
     elif body.tool_id == "postal":
