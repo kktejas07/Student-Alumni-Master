@@ -4611,7 +4611,51 @@ async def export_echo_registrations_csv(
 
 
 
+@router.post("/admin/coupons/dedup")
+async def admin_dedup_coupons(request: Request, _=Depends(_require_admin)):
+    """Super-admin: remove duplicate coupons — keeps the oldest coupon per (reg_id, session_key) pair.
+    Safe: skips any coupon that is already marked used=True to preserve redemption history.
+    """
+    db = _get_db(request)
+    pipeline = [
+        {"$group": {
+            "_id": {"reg_id": "$reg_id", "session_key": "$session_key"},
+            "count": {"$sum": 1},
+            "docs": {"$push": {"_id": "$_id", "used": "$used", "created_at": "$created_at"}}
+        }},
+        {"$match": {"count": {"$gt": 1}}}
+    ]
+    dupes = await db.echo_coupons.aggregate(pipeline).to_list(5000)
+    total_deleted = 0
+    skipped_used = 0
+    details = []
+    for group in dupes:
+        docs = group["docs"]
+        docs.sort(key=lambda d: str(d.get("created_at") or ""))
+        to_delete = docs[1:]
+        for doc in to_delete:
+            if doc.get("used"):
+                skipped_used += 1
+                continue
+            result = await db.echo_coupons.delete_one({"_id": doc["_id"]})
+            if result.deleted_count:
+                total_deleted += 1
+                details.append({
+                    "reg_id": group["_id"]["reg_id"],
+                    "session_key": group["_id"]["session_key"],
+                    "deleted_id": str(doc["_id"]),
+                })
+    return {
+        "ok": True,
+        "duplicate_groups_found": len(dupes),
+        "deleted": total_deleted,
+        "skipped_used": skipped_used,
+        "details": details[:100],  # cap to 100 for response size
+    }
+
+
 @router.post("/admin/registrations/sync-teams")
+
 async def admin_sync_teams(request: Request, _=Depends(_require_admin)):
     """Super-admin: backfill/sync all team registrations to ensure every team member has an SA account, entry pass, and confirmation email."""
     db = _get_db(request)

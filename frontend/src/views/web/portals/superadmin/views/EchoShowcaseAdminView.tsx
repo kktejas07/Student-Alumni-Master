@@ -3312,6 +3312,25 @@ function RegistrationsPanel() {
     }
   };
 
+  const [dedupingCoupons, setDedupingCoupons] = useState(false);
+  const dedupCoupons = async () => {
+    const ok = await confirm({
+      title: 'Remove Duplicate Coupons?',
+      message: 'This will scan all echo_coupons and delete duplicates, keeping only the oldest coupon per (registrant, session) pair. Used coupons are never deleted.',
+      confirmText: 'Run Dedup',
+    });
+    if (!ok) return;
+    setDedupingCoupons(true);
+    try {
+      const res = await api.adminEchoDedupCoupons();
+      flash(`Dedup complete! ${res?.deleted || 0} duplicate coupons removed across ${res?.duplicate_groups_found || 0} groups. ${res?.skipped_used || 0} skipped (already used).`);
+    } catch (err: any) {
+      flash(err?.message || 'Dedup failed');
+    } finally {
+      setDedupingCoupons(false);
+    }
+  };
+
   const [broadcastSummary, setBroadcastSummary] = useState<any>(null);
   const [broadcastModal, setBroadcastModal] = useState<any>(null);
   const [broadcasting, setBroadcasting] = useState(false);
@@ -3439,6 +3458,21 @@ function RegistrationsPanel() {
           </Text>
         </Pressable>
         <Pressable
+          onPress={dedupCoupons}
+          disabled={dedupingCoupons}
+          style={{
+            flexDirection: 'row', alignItems: 'center', gap: 6,
+            backgroundColor: dedupingCoupons ? 'rgba(251,146,60,0.2)' : 'rgba(251,146,60,0.1)',
+            borderWidth: 1, borderColor: 'rgba(251,146,60,0.3)',
+            borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, cursor: 'pointer',
+          }}
+        >
+          <Trash2 size={14} color="#FB923C" />
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#FB923C' }}>
+            {dedupingCoupons ? 'Removing dupes...' : 'Dedup Coupons'}
+          </Text>
+        </Pressable>
+        <Pressable
           onPress={() => {
             const apiBase = (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_API_URL) || 'http://localhost:8000';
             const exportUrl = `${apiBase}/api/echo/admin/export-csv${eventSlug !== 'all' ? `?slug=${eventSlug}` : ''}`;
@@ -3452,6 +3486,7 @@ function RegistrationsPanel() {
             borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, cursor: 'pointer',
           }}
         >
+
           <Download size={14} color="#fff" />
           <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Export CSV (Registrations)</Text>
         </Pressable>
