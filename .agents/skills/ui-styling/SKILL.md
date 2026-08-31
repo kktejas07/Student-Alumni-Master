@@ -59,14 +59,14 @@ Use when:
 
 **Install shadcn/ui with Tailwind:**
 ```bash
-npx shadcn@latest init
+npx shadcn@2.3.0 init
 ```
 
 CLI prompts for framework, TypeScript, paths, and theme preferences. This configures both shadcn/ui and Tailwind CSS.
 
 **Add components:**
 ```bash
-npx shadcn@latest add button card dialog form
+npx shadcn@2.3.0 add button card dialog form
 ```
 
 **Use components with utility styling:**

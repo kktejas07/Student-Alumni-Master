@@ -27,7 +27,7 @@ def main():
     else:
         cmd = [sys.executable, str(UNIFIED_VALIDATOR)] + args
 
-    result = subprocess.run(cmd)
+    result = subprocess.run(cmd, shell=False)
     sys.exit(result.returncode)
 
 

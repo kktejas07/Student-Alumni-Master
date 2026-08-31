@@ -591,7 +591,7 @@ async def _assert_registration_open(db, showcase: dict) -> None:
             raise HTTPException(status_code=400, detail="Sorry — this event has reached full capacity")
 
 
-async def _send_registration_confirmation(db, reg: dict, showcase: dict, team_name: str = None) -> None:
+async def _send_registration_confirmation(db, reg: dict, showcase: dict | None, team_name: str | None = None) -> None:
     """Email a confirmation (with QR) for FREE or confirmed registrations.
 
     Paid registrations get a payment invoice via _store_invoice_and_email; this
@@ -603,12 +603,12 @@ async def _send_registration_confirmation(db, reg: dict, showcase: dict, team_na
         email = (reg.get("email") or "").strip()
         if not email:
             return
-        title = reg.get("showcase_title") or showcase.get("title") or "Event Registration"
+        title = reg.get("showcase_title") or (showcase or {}).get("title") or "Event Registration"
         reg_id = reg.get("id") or ""
         import urllib.parse
         ticket_url = f"https://studentalumni.ai/api/echo/tickets/{reg_id}?email={urllib.parse.quote(email)}"
         handbook_url = f"https://studentalumni.ai/api/echo/handbook/download"
-        ticket_block = _ticket_email_block(reg, showcase, ticket_url)
+        ticket_block = _ticket_email_block(reg, showcase or {}, ticket_url)
         
         # Team info block
         team_info_block = ""
@@ -2131,12 +2131,12 @@ async def _fulfill_team_members(db, reg: dict, showcase: Optional[dict]) -> List
             coupons = await _generate_coupons_for_registration(db, canonical_slug, member_reg_id, sessions)
             
         # 3) Send confirmation email with entry pass & QR code
-        await _send_team_member_confirmation(db, member_reg_ser, showcase, reg, reg.get("team_name") or "Your Team", coupons=coupons)
+        await _send_team_member_confirmation(db, member_reg_ser, showcase or {}, reg, reg.get("team_name") or "Your Team", coupons=coupons)
         
         # 4) Optional WhatsApp notification
         try:
             if member_phone and _wa_opt_in(reg):
-                await _send_wa_confirmation(db, member_reg_ser, showcase, coupons)
+                await _send_wa_confirmation(db, member_reg_ser, showcase or {}, coupons)
         except Exception as _wa_err:
             print(f"[ECHO] Team member WA error: {_wa_err}")
             
@@ -3638,8 +3638,8 @@ async def register_for_showcase(
         coupons = await _generate_coupons_for_registration(db, canonical_slug, reg_id, sessions)
         
         # Send confirmation to primary registrant (with team info if applicable)
-        await _send_registration_confirmation(db, reg, showcase, team_name if registration_type == "team" else None)
-        await _send_wa_confirmation(db, reg, showcase, coupons)
+        await _send_registration_confirmation(db, reg, showcase or {}, team_name if registration_type == "team" else None)
+        await _send_wa_confirmation(db, reg, showcase or {}, coupons)
         confirmation_sent = True
 
     result = _ser(reg)
@@ -4598,9 +4598,9 @@ async def admin_resend_account_tickets(reg_id: str, request: Request, _=Depends(
         coupon_list = await _generate_coupons_for_registration(db, str(canonical_slug), str(reg.get("id")), sessions)
 
     # Re-send confirmation and invoice email
-    await _send_registration_confirmation(db, reg_ser, showcase, reg.get("team_name") if reg.get("registration_type") == "team" else None)
+    await _send_registration_confirmation(db, reg_ser, showcase or {}, reg.get("team_name") if reg.get("registration_type") == "team" else None)
     try:
-        await _send_wa_confirmation(db, reg_ser, showcase, coupon_list)
+        await _send_wa_confirmation(db, reg_ser, showcase or {}, coupon_list)
     except Exception as _wa_e:
         print(f"[ECHO] Resend WA notice error: {_wa_e}")
         
@@ -4797,6 +4797,7 @@ async def admin_broadcast_send(
                 continue
             name = r.get("full_name") or "Attendee"
             reg_id = r.get("id") or ""
+            import urllib.parse
             ticket_url = f"{frontend_url}/api/echo/tickets/{reg_id}?email={urllib.parse.quote(email)}"
 
             body = render_html_email(
@@ -5027,7 +5028,8 @@ async def admin_update_team_members(reg_id: str, request: Request, payload: Admi
     if not reg:
         raise HTTPException(404, "Registration not found")
         
-    update_data = {"team_members": team_members}
+    update_data = {}
+    update_data["team_members"] = team_members
     if team_name is not None:
         update_data["team_name"] = team_name
         
@@ -5102,7 +5104,8 @@ async def admin_resend_tickets(reg_id: str, request: Request, _=Depends(_require
                 rno = f"{raw_pid[:4]}-{raw_pid[-4:]}" if len(raw_pid) >= 8 else raw_pid
                 attachments.append({"filename": f"Receipt-{rno}.pdf", "content": receipt_pdf})
                 
-            ticket_pdf = await generate_ticket_pdf(inv_ser, showcase or {})
+            ticket_html = _build_ticket_html(_ser(reg), showcase or {})
+            ticket_pdf = await generate_pdf_from_html(ticket_html)
             if ticket_pdf:
                 attachments.append({"filename": f"EntryPass-{reg_id}.pdf", "content": ticket_pdf})
                 
