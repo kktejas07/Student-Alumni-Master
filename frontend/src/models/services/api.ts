@@ -485,6 +485,10 @@ export const api = {
     request<any>(`/echo/admin/registrations/${regId}/remind`, { method: 'POST' }),
   adminEchoResendAccountTickets: (regId: string) =>
     request<any>(`/echo/admin/registrations/${regId}/resend-account-tickets`, { method: 'POST' }),
+  adminEchoRescuePayment: (regId: string, paymentId?: string) =>
+    request<any>(`/echo/admin/registrations/${regId}/rescue-payment${paymentId ? '?payment_id=' + paymentId : ''}`, { method: 'POST' }),
+  adminEchoDedupCoupons: () =>
+    request<any>('/echo/admin/coupons/dedup', { method: 'POST' }),
   adminEchoSyncTeams: () =>
     request<any>('/echo/admin/registrations/sync-teams', { method: 'POST' }),
   adminEchoBroadcastSummary: (slug?: string) =>

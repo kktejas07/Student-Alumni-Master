@@ -110,9 +110,12 @@ def _generate_coupon_code(session_key: str, reg_id: str) -> str:
 async def _generate_coupons_for_registration(db, slug: str, reg_id: str, sessions: list):
     """Generate coupon records for all enabled sessions."""
     from datetime import timezone
+    existing = await db.echo_coupons.find({"reg_id": reg_id}).to_list(500)
+    existing_keys = {c.get("session_key") for c in existing}
+
     coupons = []
     for s in sessions:
-        if s.get("enabled") is False:
+        if s.get("enabled") is False or s["key"] in existing_keys:
             continue
         code = _generate_coupon_code(s["key"], reg_id)
         day = int(s.get("day") or 1)
@@ -1586,45 +1589,68 @@ def _build_ticket_html(reg: dict, showcase: dict, template_id: Optional[str] = N
         {sponsors_html}
       </div>"""
     else:  # aurora (default)
+        checkin_banner = ''
+        if is_checked_in:
+            checkin_at = reg.get('checked_in_at') or ''
+            checkin_banner = f'<div class="aur-checkin-banner"><span class="aur-checkin-icon">✓</span> Checked In{" · " + checkin_at[:16].replace("T"," ") if checkin_at else ""}</div>'
+        reg_id_short = reg_id[:24] + ('…' if len(reg_id) > 24 else '')
         inner = f"""
       <div class="sheet aurora">
         <div class="aur-glow aur-glow-a"></div>
         <div class="aur-glow aur-glow-b"></div>
+        <div class="aur-glow aur-glow-c"></div>
         <div class="aur-main">
+
+          <!-- Header -->
           <div class="aur-header">
-            <div class="aur-brand">{brand}</div>
-            <div class="aur-org">{organizer}</div>
+            <div class="aur-toprow">
+              <div>
+                <div class="aur-brand">{brand}</div>
+                <div class="aur-org">{organizer}</div>
+              </div>
+              <div class="aur-badge-pill">{badge_label}</div>
+            </div>
             <h1 class="aur-title">{title}</h1>
             <div class="aur-pills">
-              <span class="aur-pill">{event_date or 'TBA'}</span>
-              <span class="aur-pill">{event_time}</span>
-              <span class="aur-pill">{venue}</span>
+              {'<span class="aur-pill">📅 ' + event_date + '</span>' if event_date else '<span class="aur-pill">📅 TBA</span>'}
+              {'<span class="aur-pill">🕐 ' + event_time + '</span>' if event_time else ''}
+              {'<span class="aur-pill">📍 ' + venue + '</span>' if venue else ''}
             </div>
           </div>
+
+          {checkin_banner}
+
+          <!-- Body -->
           <div class="aur-body">
             <div class="aur-info">
-              <div class="aur-col">
-                <div class="dl-label">ATTENDEE</div>
+              <div class="aur-field">
+                <div class="dl-label">Attendee</div>
                 <div class="dl-val">{name}</div>
                 <div class="aur-sub">{email}</div>
                 {f'<div class="aur-sub">{attendee_line}</div>' if attendee_line else ''}
               </div>
-              <div class="aur-col">
-                <div class="dl-label">REG ID</div>
-                <div class="dl-val" style="letter-spacing:1px;">{reg_id}</div>
+              <div class="aur-field">
+                <div class="dl-label">Reg ID</div>
+                <div class="aur-reg-id">{reg_id_short}</div>
               </div>
             </div>
-            <div class="aur-qr">{qr_img}</div>
-          </div>
-          <div class="aur-badge-row">{badge_html}</div>
-          <div class="aur-stub">
-            <div class="aur-stub-left">
-              <div class="aur-stub-event">{title}</div>
-              <div class="aur-stub-detail">{event_date} · {name}</div>
-              <div class="aur-stub-id">REG: {reg_id}</div>
+            <div class="aur-qr-wrap">
+              <div class="aur-qr">{qr_img}</div>
+              <div class="aur-qr-hint">Scan at venue</div>
             </div>
-            {qr_img_sm}
-            <div class="aur-stub-tear">|</div>
+          </div>
+
+          <!-- Stub -->
+          <div class="aur-stub">
+            <div class="aur-stub-dots"></div>
+            <div class="aur-stub-inner">
+              <div class="aur-stub-left">
+                <div class="aur-stub-event">{title}</div>
+                <div class="aur-stub-detail">{event_date or 'TBA'} · {name}</div>
+                <div class="aur-stub-id">REG: {reg_id_short}</div>
+              </div>
+              {qr_img_sm}
+            </div>
           </div>
         </div>
         {sponsors_html}
@@ -1656,35 +1682,44 @@ def _build_ticket_html(reg: dict, showcase: dict, template_id: Optional[str] = N
   .sp-name {{ font-size:11px; font-weight:600; color:#94a3b8; white-space:nowrap; }}
 
   /* ── AURORA (default) ────────────────────────────────────────────────── */
-  .aurora {{ background:linear-gradient(160deg,#0f0a2e 0%,#1a1145 30%,#2d1b69 60%,#1a0e3e 100%); color:#fff; }}
-  .aurora .dl-label {{ color:#a5b4fc; }}
-  .aurora .dl-val {{ color:#fff; }}
-  .aurora .badge {{ background:rgba(52,211,153,0.15); color:#6ee7b7; }}
-  .aurora .sponsors {{ border-top-color:rgba(255,255,255,0.08); }}
-  .aurora .sp-label {{ color:rgba(255,255,255,0.35); }}
-  .aur-glow {{ position:absolute; width:350px; height:350px; border-radius:50%; filter:blur(100px); opacity:.30; pointer-events:none; }}
-  .aur-glow-a {{ top:-140px; right:-100px; background:#a855f7; }}
-  .aur-glow-b {{ bottom:-160px; left:-100px; background:#6366f1; }}
-  .aur-main {{ position:relative; }}
-  .aur-header {{ padding:36px 36px 20px; }}
-  .aur-brand {{ font-size:10px; font-weight:800; letter-spacing:3px; opacity:.6; }}
-  .aur-org {{ font-size:13px; font-weight:600; margin-top:8px; opacity:.7; }}
-  .aur-title {{ margin:12px 0 16px; font-size:32px; font-weight:900; line-height:1.1; letter-spacing:-0.5px; }}
+  .aurora {{ background:linear-gradient(160deg,#09071f 0%,#130d3b 35%,#1e1050 65%,#0d0825 100%); color:#fff; }}
+  .aurora .dl-label {{ color:rgba(165,180,252,0.7); font-size:9px; letter-spacing:1.5px; }}
+  .aurora .dl-val {{ color:#fff; font-size:22px; }}
+  .aurora .sponsors {{ border-top-color:rgba(255,255,255,0.07); }}
+  .aurora .sp-label {{ color:rgba(255,255,255,0.3); }}
+  .aur-glow {{ position:absolute; border-radius:50%; filter:blur(90px); opacity:.22; pointer-events:none; }}
+  .aur-glow-a {{ width:420px; height:420px; top:-160px; right:-80px; background:#a855f7; }}
+  .aur-glow-b {{ width:320px; height:320px; bottom:-120px; left:-60px; background:#6366f1; }}
+  .aur-glow-c {{ width:200px; height:200px; top:50%; left:50%; transform:translate(-50%,-50%); background:#8b5cf6; opacity:.12; }}
+  .aur-main {{ position:relative; z-index:1; }}
+  .aur-header {{ padding:40px 40px 24px; border-bottom:1px solid rgba(255,255,255,0.06); }}
+  .aur-toprow {{ display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:16px; }}
+  .aur-brand {{ font-size:9px; font-weight:800; letter-spacing:3px; color:rgba(255,255,255,0.4); text-transform:uppercase; }}
+  .aur-org {{ font-size:13px; font-weight:600; margin-top:6px; color:rgba(255,255,255,0.6); }}
+  .aur-badge-pill {{ background:rgba(52,211,153,0.15); border:1px solid rgba(52,211,153,0.3); color:#6ee7b7; font-size:10px; font-weight:800; letter-spacing:.5px; padding:6px 14px; border-radius:999px; white-space:nowrap; text-transform:uppercase; }}
+  .aur-title {{ font-size:38px; font-weight:900; line-height:1.05; letter-spacing:-1px; margin-bottom:18px; }}
   .aur-pills {{ display:flex; gap:8px; flex-wrap:wrap; }}
-  .aur-pill {{ background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.85); font-size:12px; font-weight:600; padding:6px 14px; border-radius:999px; white-space:nowrap; }}
-  .aur-body {{ display:flex; justify-content:space-between; align-items:flex-start; gap:28px; padding:20px 36px 28px; }}
-  .aur-info {{ flex:1; display:grid; grid-template-columns:1fr 1fr; gap:18px; }}
-  .aur-col {{ min-width:0; }}
-  .aur-sub {{ font-size:12px; color:rgba(255,255,255,0.55); margin-top:3px; line-height:1.4; }}
-  .aur-qr {{ background:#fff; padding:12px; border-radius:16px; flex-shrink:0; box-shadow:0 8px 30px rgba(0,0,0,0.25); }}
-  .aur-qr .qr {{ width:150px; height:150px; }}
-  .aur-badge-row {{ padding:0 36px 16px; }}
-  .aur-stub {{ display:flex; align-items:center; gap:20px; padding:18px 36px; background:rgba(255,255,255,0.04); border-top:2px dashed rgba(255,255,255,0.15); position:relative; }}
+  .aur-pill {{ background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.8); font-size:12px; font-weight:600; padding:6px 14px; border-radius:999px; white-space:nowrap; }}
+  .aur-checkin-banner {{ background:rgba(16,185,129,0.12); border-top:1px solid rgba(16,185,129,0.2); border-bottom:1px solid rgba(16,185,129,0.2); padding:10px 40px; display:flex; align-items:center; gap:10px; }}
+  .aur-checkin-icon {{ font-size:14px; color:#34d399; }}
+  .aur-checkin-banner {{ font-size:12px; font-weight:700; color:#6ee7b7; letter-spacing:.3px; }}
+  .aur-body {{ display:flex; justify-content:space-between; align-items:center; gap:32px; padding:32px 40px; }}
+  .aur-info {{ flex:1; display:flex; flex-direction:column; gap:24px; }}
+  .aur-field {{ min-width:0; }}
+  .aur-sub {{ font-size:12px; color:rgba(255,255,255,0.45); margin-top:3px; line-height:1.5; }}
+  .aur-reg-id {{ font-size:13px; font-weight:700; color:rgba(255,255,255,0.7); letter-spacing:1px; margin-top:4px; font-family:monospace; }}
+  .aur-qr-wrap {{ display:flex; flex-direction:column; align-items:center; gap:8px; flex-shrink:0; }}
+  .aur-qr {{ background:#fff; padding:14px; border-radius:20px; box-shadow:0 8px 40px rgba(0,0,0,0.4); }}
+  .aur-qr .qr {{ width:180px; height:180px; border-radius:8px; }}
+  .aur-qr-hint {{ font-size:10px; color:rgba(255,255,255,0.35); font-weight:600; letter-spacing:.5px; text-transform:uppercase; }}
+  .aur-stub {{ border-top:2px dashed rgba(255,255,255,0.12); position:relative; overflow:hidden; }}
+  .aur-stub-inner {{ display:flex; align-items:center; gap:20px; padding:20px 40px; }}
   .aur-stub-left {{ flex:1; min-width:0; }}
-  .aur-stub-event {{ font-size:14px; font-weight:700; opacity:.9; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
-  .aur-stub-detail {{ font-size:11px; opacity:.5; margin-top:3px; }}
-  .aur-stub-id {{ font-size:10px; font-weight:800; letter-spacing:1.5px; opacity:.45; margin-top:4px; }}
-  .aur-stub-tear {{ position:absolute; right:20px; top:-10px; font-size:11px; opacity:.3; letter-spacing:1px; font-weight:600; }}
+  .aur-stub-event {{ font-size:14px; font-weight:700; opacity:.85; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
+  .aur-stub-detail {{ font-size:11px; opacity:.45; margin-top:4px; }}
+  .aur-stub-id {{ font-size:10px; font-weight:800; letter-spacing:1.5px; opacity:.35; margin-top:5px; font-family:monospace; }}
+  .aur-stub .qr-sm {{ width:68px; height:68px; border-radius:8px; opacity:.8; }}
+  .aur-stub-dots {{ position:absolute; top:-9px; left:0; right:0; height:18px; background:repeating-linear-gradient(90deg, transparent, transparent 8px, rgba(255,255,255,0.08) 8px, rgba(255,255,255,0.08) 10px); }}
 
   /* ── CLASSIC ─────────────────────────────────────────────────────────── */
   .classic {{ background:#fff; }}
@@ -4576,7 +4611,51 @@ async def export_echo_registrations_csv(
 
 
 
+@router.post("/admin/coupons/dedup")
+async def admin_dedup_coupons(request: Request, _=Depends(_require_admin)):
+    """Super-admin: remove duplicate coupons — keeps the oldest coupon per (reg_id, session_key) pair.
+    Safe: skips any coupon that is already marked used=True to preserve redemption history.
+    """
+    db = _get_db(request)
+    pipeline = [
+        {"$group": {
+            "_id": {"reg_id": "$reg_id", "session_key": "$session_key"},
+            "count": {"$sum": 1},
+            "docs": {"$push": {"_id": "$_id", "used": "$used", "created_at": "$created_at"}}
+        }},
+        {"$match": {"count": {"$gt": 1}}}
+    ]
+    dupes = await db.echo_coupons.aggregate(pipeline).to_list(5000)
+    total_deleted = 0
+    skipped_used = 0
+    details = []
+    for group in dupes:
+        docs = group["docs"]
+        docs.sort(key=lambda d: str(d.get("created_at") or ""))
+        to_delete = docs[1:]
+        for doc in to_delete:
+            if doc.get("used"):
+                skipped_used += 1
+                continue
+            result = await db.echo_coupons.delete_one({"_id": doc["_id"]})
+            if result.deleted_count:
+                total_deleted += 1
+                details.append({
+                    "reg_id": group["_id"]["reg_id"],
+                    "session_key": group["_id"]["session_key"],
+                    "deleted_id": str(doc["_id"]),
+                })
+    return {
+        "ok": True,
+        "duplicate_groups_found": len(dupes),
+        "deleted": total_deleted,
+        "skipped_used": skipped_used,
+        "details": details[:100],  # cap to 100 for response size
+    }
+
+
 @router.post("/admin/registrations/sync-teams")
+
 async def admin_sync_teams(request: Request, _=Depends(_require_admin)):
     """Super-admin: backfill/sync all team registrations to ensure every team member has an SA account, entry pass, and confirmation email."""
     db = _get_db(request)
@@ -4672,9 +4751,92 @@ async def admin_resend_account_tickets(reg_id: str, request: Request, _=Depends(
     }
 
 
+@router.post("/admin/registrations/{reg_id}/rescue-payment")
+async def admin_rescue_payment(reg_id: str, request: Request, _=Depends(_require_admin)):
+    """Super-admin: manually rescue a 'failed' or 'pending' registration where Razorpay
+    actually captured the payment but the webhook was missed or arrived after the sweep timer.
+
+    1. Looks up the registration by reg_id.
+    2. If already 'registered' (paid), returns early — idempotent.
+    3. Fetches the Razorpay order and checks its status.
+    4. If 'paid' on Razorpay side, calls _finalize_paid_registration to complete the flow.
+    5. Optionally the admin can pass ?payment_id=pay_xxx to force-finalize without Razorpay check.
+    """
+    from bson import ObjectId
+    db = _get_db(request)
+    payment_id_override = request.query_params.get("payment_id") or ""
+
+    reg = await db.echo_registrations.find_one({"id": reg_id})
+    if not reg:
+        raise HTTPException(status_code=404, detail="Registration not found")
+
+    if reg.get("status") == "registered" and (reg.get("payment") or {}).get("status") == "paid":
+        return {"ok": True, "message": "Registration is already finalized (paid).", "already_paid": True}
+
+    showcase = await db.echo_showcases.find_one(_slug_query(reg.get("slug") or ""))
+
+    # If admin explicitly provided a payment_id, force-finalize
+    if payment_id_override:
+        finalized = await _finalize_paid_registration(db, reg, showcase, payment_id_override)
+        return {
+            "ok": True,
+            "message": f"Force-finalized registration {reg_id} with payment {payment_id_override}.",
+            "registration": _ser(finalized) if finalized else None,
+        }
+
+    # Otherwise check Razorpay for captured payment
+    order_id = (reg.get("payment_order") or {}).get("order_id") or reg.get("payment", {}).get("order_id")
+    if not order_id:
+        raise HTTPException(status_code=400, detail="No Razorpay order_id on this registration. Provide ?payment_id=pay_xxx to force-finalize.")
+
+    cfg = await _razorpay_config(db)
+    if not cfg:
+        raise HTTPException(status_code=503, detail="Razorpay not configured.")
+
+    import httpx
+    async with httpx.AsyncClient(timeout=15) as http:
+        resp = await http.get(
+            f"https://api.razorpay.com/v1/orders/{order_id}",
+            auth=(cfg["key_id"], cfg["key_secret"]),
+        )
+    if resp.status_code != 200:
+        raise HTTPException(status_code=502, detail=f"Razorpay API error: HTTP {resp.status_code} — {resp.text[:200]}")
+
+    order_data = resp.json()
+    rp_status = order_data.get("status")
+
+    if rp_status != "paid":
+        return {
+            "ok": False,
+            "message": f"Razorpay order {order_id} status is '{rp_status}' (not paid). Cannot rescue.",
+            "razorpay_status": rp_status,
+        }
+
+    # Find the captured payment_id
+    payment_id = ""
+    for p in (order_data.get("payments") or []):
+        if p.get("status") == "captured":
+            payment_id = p.get("id") or ""
+            break
+    if not payment_id:
+        payments = order_data.get("payments") or []
+        if payments:
+            payment_id = payments[-1].get("id") or ""
+
+    finalized = await _finalize_paid_registration(db, reg, showcase, payment_id)
+    return {
+        "ok": True,
+        "message": f"Successfully rescued registration {reg_id}. Payment {payment_id} confirmed on Razorpay.",
+        "razorpay_status": rp_status,
+        "payment_id": payment_id,
+        "registration": _ser(finalized) if finalized else None,
+    }
+
+
 class EchoBroadcastSchema(BaseModel):
     slug: Optional[str] = None
     target_group: str  # "pending_unpaid" | "confirmed_paid" | "unregistered_students"
+
     subject: Optional[str] = None
     custom_message: Optional[str] = None
 

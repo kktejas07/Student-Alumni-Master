@@ -3268,6 +3268,31 @@ function RegistrationsPanel() {
     }
   };
 
+  const rescuePayment = async (r: any) => {
+    const regId = r.id || r._id;
+    if (!regId) return;
+    const ok = await confirm({
+      title: 'Rescue Payment?',
+      message: `This will contact Razorpay to verify if payment was captured for ${r.full_name}. If confirmed paid, the registration will be fully activated (QR, coupons, email sent).`,
+      confirmText: 'Rescue Payment',
+    });
+    if (!ok) return;
+    setActioning(regId);
+    try {
+      const res = await api.adminEchoRescuePayment(regId);
+      if (res?.ok) {
+        flash(res.message || 'Payment rescued and registration finalized!');
+        await load();
+      } else {
+        flash(res?.message || 'Could not rescue — payment not confirmed on Razorpay.');
+      }
+    } catch (err: any) {
+      flash(err?.message || 'Rescue failed. Try providing ?payment_id=pay_xxx manually.');
+    } finally {
+      setActioning(null);
+    }
+  };
+
   const syncAllTeams = async () => {
     const ok = await confirm({
       title: 'Sync & Resend All Team Accounts & Passes?',
@@ -3284,6 +3309,25 @@ function RegistrationsPanel() {
       flash(err?.message || 'Failed to sync teams');
     } finally {
       setSyncingTeams(false);
+    }
+  };
+
+  const [dedupingCoupons, setDedupingCoupons] = useState(false);
+  const dedupCoupons = async () => {
+    const ok = await confirm({
+      title: 'Remove Duplicate Coupons?',
+      message: 'This will scan all echo_coupons and delete duplicates, keeping only the oldest coupon per (registrant, session) pair. Used coupons are never deleted.',
+      confirmText: 'Run Dedup',
+    });
+    if (!ok) return;
+    setDedupingCoupons(true);
+    try {
+      const res = await api.adminEchoDedupCoupons();
+      flash(`Dedup complete! ${res?.deleted || 0} duplicate coupons removed across ${res?.duplicate_groups_found || 0} groups. ${res?.skipped_used || 0} skipped (already used).`);
+    } catch (err: any) {
+      flash(err?.message || 'Dedup failed');
+    } finally {
+      setDedupingCoupons(false);
     }
   };
 
@@ -3414,6 +3458,21 @@ function RegistrationsPanel() {
           </Text>
         </Pressable>
         <Pressable
+          onPress={dedupCoupons}
+          disabled={dedupingCoupons}
+          style={{
+            flexDirection: 'row', alignItems: 'center', gap: 6,
+            backgroundColor: dedupingCoupons ? 'rgba(251,146,60,0.2)' : 'rgba(251,146,60,0.1)',
+            borderWidth: 1, borderColor: 'rgba(251,146,60,0.3)',
+            borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, cursor: 'pointer',
+          }}
+        >
+          <Trash2 size={14} color="#FB923C" />
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#FB923C' }}>
+            {dedupingCoupons ? 'Removing dupes...' : 'Dedup Coupons'}
+          </Text>
+        </Pressable>
+        <Pressable
           onPress={() => {
             const apiBase = (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_API_URL) || 'http://localhost:8000';
             const exportUrl = `${apiBase}/api/echo/admin/export-csv${eventSlug !== 'all' ? `?slug=${eventSlug}` : ''}`;
@@ -3427,6 +3486,7 @@ function RegistrationsPanel() {
             borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, cursor: 'pointer',
           }}
         >
+
           <Download size={14} color="#fff" />
           <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Export CSV (Registrations)</Text>
         </Pressable>
@@ -3799,14 +3859,14 @@ function RegistrationsPanel() {
                         />
                       </>
                     )}
-                    {r.payment_status === 'failed' && (
+                    {(r.payment_status === 'failed' || r.payment_status === 'pending') && (
                       <IconAction
-                        icon={<CheckCircle size={14} color="#86EFAC" />}
-                        label="Mark paid"
-                        color="#86EFAC"
-                        bg="rgba(34,197,94,0.15)"
-                        onPress={() => markPaid(r)}
-                        disabled={actioning === r.id}
+                        icon={<CheckCircle size={14} color="#34D399" />}
+                        label="Rescue Payment"
+                        color="#34D399"
+                        bg="rgba(16,185,129,0.15)"
+                        onPress={() => rescuePayment(r)}
+                        disabled={actioning === (r.id || r._id)}
                       />
                     )}
                     <IconAction
@@ -4790,6 +4850,8 @@ function LiveScanMonitorPanel() {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
+  const [page, setPage] = useState(0);
+  const PER_PAGE = 20;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -4809,9 +4871,39 @@ function LiveScanMonitorPanel() {
     return () => clearInterval(interval);
   }, [load]);
 
+  useEffect(() => { setPage(0); }, [q]);
+
+  const stats = useMemo(() => {
+    let checkedIn = 0;
+    let couponsUsed = 0;
+    let lunch = 0;
+    let swag = 0;
+    let others = 0;
+
+    data.forEach(reg => {
+      if (reg.checked_in_at) checkedIn++;
+      if (reg.coupons) {
+        reg.coupons.forEach((c: any) => {
+          if (c.used) {
+            couponsUsed++;
+            const name = c.session_name?.toLowerCase() || '';
+            if (name.includes('lunch')) lunch++;
+            else if (name.includes('swag') || name.includes('tshirt') || name.includes('t-shirt')) swag++;
+            else others++;
+          }
+        });
+      }
+    });
+
+    return { checkedIn, couponsUsed, lunch, swag, others };
+  }, [data]);
+
   const filtered = data.filter(d => 
     !q || d.full_name?.toLowerCase().includes(q.toLowerCase()) || d.email?.toLowerCase().includes(q.toLowerCase()) || d.id?.toLowerCase().includes(q.toLowerCase())
   );
+  
+  const paginated = filtered.slice(page * PER_PAGE, (page + 1) * PER_PAGE);
+  const totalPages = Math.ceil(filtered.length / PER_PAGE);
 
   return (
     <View style={{ flex: 1, gap: 20 }}>
@@ -4828,6 +4920,14 @@ function LiveScanMonitorPanel() {
         </View>
       </View>
 
+      {/* KPI tiles */}
+      <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
+        <KpiTile Icon={CheckCircle} label="Event Check-Ins" value={String(stats.checkedIn)} />
+        <KpiTile Icon={Ticket} label="Coupons Scanned" value={String(stats.couponsUsed)} />
+        <KpiTile Icon={Ticket} label="Lunch Scanned" value={String(stats.lunch)} />
+        <KpiTile Icon={Ticket} label="Other Scanned" value={String(stats.swag + stats.others)} />
+      </View>
+
       <Card style={{ padding: 0, overflow: 'hidden' }}>
         <View style={{ flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.02)', padding: 16, borderBottomWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
           <Text style={{ flex: 2, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase' }}>Attendee</Text>
@@ -4841,7 +4941,7 @@ function LiveScanMonitorPanel() {
         ) : filtered.length === 0 ? (
           <View style={{ padding: 40, alignItems: 'center' }}><Text style={{ color: SAC.muted, fontFamily: FONTS.med }}>No registrations found.</Text></View>
         ) : (
-          filtered.map(reg => (
+          paginated.map(reg => (
             <View key={reg.id} style={{ flexDirection: 'row', padding: 16, borderBottomWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
               <View style={{ flex: 2, justifyContent: 'center', paddingRight: 10 }}>
                 <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: SAC.text, marginBottom: 2 }}>{reg.full_name || 'Unknown'}</Text>
@@ -4907,6 +5007,22 @@ function LiveScanMonitorPanel() {
               </View>
             </View>
           ))
+        )}
+
+        {totalPages > 1 && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderTopWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 13, color: SAC.muted }}>
+              Showing {page * PER_PAGE + 1} - {Math.min((page + 1) * PER_PAGE, filtered.length)} of {filtered.length}
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <SecondaryButton onPress={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>
+                <ArrowLeft size={14} color={page === 0 ? 'rgba(255,255,255,0.2)' : SAC.muted} />
+              </SecondaryButton>
+              <SecondaryButton onPress={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page === totalPages - 1}>
+                <ArrowRight size={14} color={page === totalPages - 1 ? 'rgba(255,255,255,0.2)' : SAC.muted} />
+              </SecondaryButton>
+            </View>
+          </View>
         )}
       </Card>
     </View>
