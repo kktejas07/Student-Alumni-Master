@@ -52,6 +52,8 @@ const SAMPLE_EVENTS = [
     poster_banner: '/images/hackwave/hackwave_main_poster.png',
     gallery_images: [
       '/images/hackwave/hackwave_main_poster.png',
+      '/images/hackwave/hackwave_full_programme.png',
+      '/images/hackwave/wehive_sponsor_spotlight.jpg',
       '/images/hackwave/hackwave_speakers.jpg',
       '/images/hackwave/hackwave_cybersecurity_conclave.jpg',
       '/images/hackwave/hackwave_techfest_verticals.jpg',
@@ -188,6 +190,8 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
   const [regPosterIdx, setRegPosterIdx] = useState(0);
   const regPosters = [
     '/images/hackwave/hackwave_main_poster.png',
+    '/images/hackwave/hackwave_full_programme.png',
+    '/images/hackwave/wehive_sponsor_spotlight.jpg',
     '/images/hackwave/hackwave_speakers.jpg',
     '/images/hackwave/hackwave_cybersecurity_conclave.jpg',
     '/images/hackwave/hackwave_techfest_verticals.jpg',
