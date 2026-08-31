@@ -20,30 +20,34 @@ import Svg, {
 } from 'react-native-svg';
 
 const DARK_T = {
-  bg2: '#05060D',
-  surface: '#0A0C18',
-  card2: '#0E1020',
-  line: '#1B1E33',
-  lineHi: '#2A2A55',
-  text: '#F4F5FB',
-  text2: '#D5D8E4',
-  muted2: '#B6BACB',
-  dim: '#5C6273',
+  bg: '#08080F',
+  bg2: '#08080F',
+  panel: '#101019',
+  card2: '#14141F',
+  line: '#1F1F30',
+  lineHi: '#262638',
+  text: '#F4F4FA',
+  text2: '#9095A8',
+  muted2: '#9095A8',
+  dim: '#7E7E92',
+  surface: 'rgba(0,0,0,0.25)',
   ind: '#5B4FE9',
-  indLt: '#8B84FF',
+  indLt: '#A78BFA',
 };
 const LIGHT_T = {
-  bg2: '#F5F5F7',
-  surface: '#FFFFFF',
-  card2: '#FFFFFF',
-  line: '#E5E5EA',
-  lineHi: '#D1D1D6',
-  text: '#1D1D1F',
-  text2: '#3A3A3C',
-  muted2: '#6E6E73',
-  dim: '#8E8E93',
+  bg: '#F4F5FA',
+  bg2: '#F4F5FA',
+  panel: '#FFFFFF',
+  card2: '#F3F4FA',
+  line: '#E4E6F0',
+  lineHi: '#D9DCEA',
+  text: '#141726',
+  text2: '#565B70',
+  muted2: '#565B70',
+  dim: '#6B7080',
+  surface: 'rgba(0,0,0,0.06)',
   ind: '#5B4FE9',
-  indLt: '#7C5CFC',
+  indLt: '#5B4FE9',
 };
 
 interface CommonFooterProps {
@@ -237,7 +241,7 @@ export default function CommonFooter({ onTabChange, maxWidth = 1360 }: CommonFoo
             }}
             style={[S.subscribeBtn, isMobile && { width: '100%' as any, alignItems: 'center' as any} ]}
           >
-            <Text style={{ fontSize: 14, fontWeight: '600' as const, color: '#FFFFFF' }}>{subscribed ? 'Subscribed' : 'Subscribe'}</Text>
+            <Text style={{ fontSize: 14.5, fontWeight: '700' as const, color: '#FFFFFF' }}>{subscribed ? 'Subscribed' : 'Subscribe'}</Text>
           </Pressable>
         </View>
       </View>
@@ -394,13 +398,13 @@ function themedStyles(T: typeof DARK_T) {
       borderRadius: 11,
       backgroundColor: T.surface,
       paddingHorizontal: 16,
-      paddingVertical: 12,
-      fontSize: 14,
-      color: T.text,
+      paddingVertical: 14,
+      fontSize: 14.5,
+      color: T.dim,
     },
     subscribeBtn: {
       backgroundColor: T.ind,
-      paddingVertical: 12,
+      paddingVertical: 14,
       paddingHorizontal: 24,
       borderRadius: 11,
       alignItems: 'center' as const,

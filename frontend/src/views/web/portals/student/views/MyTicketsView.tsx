@@ -5,7 +5,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Platform, ActivityIndicator, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Ticket, CheckCircle, Download, ShieldCheck, QrCode, X, Lock, Calendar, MapPin, User, ArrowRight } from '../iconShims';
+import { Ticket, CheckCircle, Download, ShieldCheck, QrCode, X, Lock, Calendar, MapPin, User, ArrowRight, AlertCircle, Clock } from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { EmptyState } from '../EmptyState';
 import { api } from '@/src/models/services/api';
@@ -35,6 +35,18 @@ type Registration = {
   registered_at?: string;
   registration_type?: string;
   team_name?: string;
+  payment?: {
+    status?: string;
+    amount?: number;
+    payment_id?: string;
+    gateway?: string;
+    method?: string;
+    failed_reason?: string;
+    failed_reason_code?: string;
+    paid_at?: string;
+    failed_at?: string;
+    currency?: string;
+  };
 };
 
 type Invoice = {
@@ -149,13 +161,17 @@ export function MyTicketsView() {
           const inv = item.invoice;
           const slug = reg.slug || '';
           const title = reg.event_title || reg.showcase_title || 'Event';
-          const paid = reg.payment_status === 'paid';
+          const payment = reg.payment || {};
+          const paymentStatus = payment.status || reg.payment_status || 'pending';
+          const paid = paymentStatus === 'paid';
+          const paymentFailed = paymentStatus === 'failed' || paymentStatus === 'expired';
+          const paymentPending = paymentStatus === 'pending';
           const checkedIn = !!reg.checked_in_at;
 
           return (
             <View key={reg.id || idx} style={s.ticketCard}>
               {/* Accent bar */}
-              <View style={[s.accentBar, { backgroundColor: checkedIn ? '#10B981' : paid ? '#6366F1' : '#F59E0B' }]} />
+              <View style={[s.accentBar, { backgroundColor: checkedIn ? '#10B981' : paid ? '#6366F1' : paymentFailed ? '#F87186' : '#F59E0B' }]} />
 
               <View style={s.ticketBody}>
                 {/* Left / main section */}
@@ -169,20 +185,35 @@ export function MyTicketsView() {
                         ? { backgroundColor: 'rgba(16,185,129,0.12)', borderColor: 'rgba(16,185,129,0.3)' }
                         : paid
                           ? { backgroundColor: 'rgba(99,102,241,0.12)', borderColor: 'rgba(99,102,241,0.3)' }
-                          : { backgroundColor: 'rgba(245,158,11,0.12)', borderColor: 'rgba(245,158,11,0.3)' }
+                          : paymentFailed
+                            ? { backgroundColor: 'rgba(248,113,134,0.12)', borderColor: 'rgba(248,113,134,0.3)' }
+                            : { backgroundColor: 'rgba(245,158,11,0.12)', borderColor: 'rgba(245,158,11,0.3)' }
                     ]}>
                       {checkedIn
                         ? <CheckCircle size={10} color="#34D399" />
                         : paid
                           ? <Ticket size={10} color="#818CF8" />
-                          : null}
-                      <Text style={[s.statusText, { color: checkedIn ? '#34D399' : paid ? '#818CF8' : '#F59E0B' }]}>
-                        {checkedIn ? 'CHECKED IN' : paid ? 'CONFIRMED' : 'PENDING'}
+                          : paymentFailed
+                            ? <AlertCircle size={10} color="#F87186" />
+                            : <Clock size={10} color="#F59E0B" />}
+                      <Text style={[s.statusText, { color: checkedIn ? '#34D399' : paid ? '#818CF8' : paymentFailed ? '#F87186' : '#F59E0B' }]}>
+                        {checkedIn ? 'CHECKED IN' : paid ? 'CONFIRMED' : paymentFailed ? 'PAYMENT FAILED' : 'PENDING'}
                       </Text>
                     </View>
                   </View>
 
                   <Text style={s.eventTitle}>{title}</Text>
+
+                  {/* Failure reason display */}
+                  {paymentFailed && payment.failed_reason && (
+                    <View style={s.failureReason}>
+                      <AlertCircle size={10} color="#F87186" />
+                      <Text style={s.failureReasonText}>
+                        {payment.failed_reason}
+                        {payment.failed_reason_code && ` (${payment.failed_reason_code})`}
+                      </Text>
+                    </View>
+                  )}
 
                   <View style={s.metaRow}>
                     {reg.registered_at && (
@@ -214,15 +245,29 @@ export function MyTicketsView() {
                   )}
 
                   <View style={s.actionRow}>
-                    <Pressable
-                      onPress={() => openTicket(reg.id || '')}
-                      style={({ hovered }: any) => [s.primaryBtn, hovered && { opacity: 0.85 }]}
-                    >
-                      <Ticket size={12} color="#fff" />
-                      <Text style={s.btnText}>View Pass</Text>
-                      <ArrowRight size={12} color="rgba(255,255,255,0.5)" />
-                    </Pressable>
-                    {inv?.invoice_no && (
+                    {paymentFailed ? (
+                      <Pressable
+                        onPress={() => {
+                          if (Platform.OS === 'web') window.location.href = `/echo/${slug}/register?view=reg&event=${slug}`;
+                          else router.push(`/echo/${slug}/register` as any);
+                        }}
+                        style={({ hovered }: any) => [s.primaryBtn, hovered && { opacity: 0.85 }]}
+                      >
+                        <AlertCircle size={12} color="#fff" />
+                        <Text style={s.btnText}>Retry payment</Text>
+                        <ArrowRight size={12} color="rgba(255,255,255,0.5)" />
+                      </Pressable>
+                    ) : (
+                      <Pressable
+                        onPress={() => openTicket(reg.id || '')}
+                        style={({ hovered }: any) => [s.primaryBtn, hovered && { opacity: 0.85 }]}
+                      >
+                        <Ticket size={12} color="#fff" />
+                        <Text style={s.btnText}>View Pass</Text>
+                        <ArrowRight size={12} color="rgba(255,255,255,0.5)" />
+                      </Pressable>
+                    )}
+                    {paid && inv?.invoice_no && (
                       <Pressable
                         onPress={() => openInvoice(inv.invoice_no)}
                         style={({ hovered }: any) => [s.ghostBtn, hovered && { opacity: 0.85 }]}
@@ -402,6 +447,8 @@ const s = StyleSheet.create({
   statusText: { fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 0.6 },
 
   eventTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 18, letterSpacing: -0.3, marginBottom: 8 },
+  failureReason: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
+  failureReasonText: { color: '#F87186', fontFamily: FONTS.med, fontSize: 12.5 },
   metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 10 },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   metaText: { color: SC.muted, fontFamily: FONTS.med, fontSize: 12 },

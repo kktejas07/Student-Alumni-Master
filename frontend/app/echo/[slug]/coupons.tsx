@@ -35,7 +35,6 @@ export default function EchoCouponsPage() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const [coupons, setCoupons] = useState<any[]>([]);
-  const [regName, setRegName] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notRegistered, setNotRegistered] = useState(false);
@@ -75,7 +74,6 @@ export default function EchoCouponsPage() {
         const data = await resp.json();
         if (mounted) {
           setCoupons(data.coupons || []);
-          setRegName(data.registration?.name || '');
           setLoading(false);
         }
       } catch (err: any) {
@@ -151,10 +149,10 @@ export default function EchoCouponsPage() {
             <Text style={s.backText}>Back to tickets</Text>
           </Pressable>
 
-          <LinearGradient colors={['rgba(124,58,237,0.30)', 'rgba(30,10,80,0.5)']} style={s.header}>
-            <View style={s.headerIcon}><Ticket size={20} color="#C4B5FD" /></View>
-            <Text style={s.headerTitle}>My Session Coupons</Text>
-            <Text style={s.headerSub}>{regName ? `Registered as ${regName}` : 'Your event coupons'}</Text>
+          <LinearGradient colors={['rgba(20,23,38,.12)', 'rgba(20,23,38,.06)']} style={s.header}>
+            <View style={s.headerIcon}><Ticket size={20} color="#A78BFA" /></View>
+            <Text style={s.headerTitle}>Unlocked by your college email</Text>
+            <Text style={s.headerSub}>Every code shows what it saves, when it dies and who it came from. Copy pulls it straight to your clipboard.</Text>
             {totalCount > 0 && (
               <View style={s.badgeRow}>
                 <View style={[s.badge, { backgroundColor: 'rgba(16,185,129,0.15)', borderColor: 'rgba(16,185,129,0.3)' }]}>
@@ -225,11 +223,28 @@ export default function EchoCouponsPage() {
                 const Icon = SESSION_ICONS[c.session_key] || Ticket;
                 const color = SESSION_COLORS[c.session_key] || '#A78BFA';
                 const isExpanded = expandedCoupon === c.coupon_code;
+                const isUsed = !!c.used;
+                const isLocked = !!c.session_locked && !isUsed;
+
+                const gradientColors: [string, string] = isUsed
+                  ? ['rgba(16,185,129,0.15)', 'rgba(16,185,129,0.06)']
+                  : isLocked
+                  ? ['rgba(139,92,246,0.15)', 'rgba(139,92,246,0.06)']
+                  : c.session_key === 'workshop'
+                  ? ['rgba(245,158,11,0.15)', 'rgba(245,158,11,0.06)']
+                  : ['rgba(124,58,237,0.15)', 'rgba(124,58,237,0.06)'];
 
                 return (
-                  <View key={c._id || i} style={[s.couponCard, c.used && s.couponUsed, c.session_locked && !c.used && s.couponLocked]}>
+                  <LinearGradient key={c._id || i} colors={gradientColors} style={[s.couponCard, isUsed && s.couponUsed, isLocked && s.couponLocked]}>
+                    {!isUsed && !isLocked && (
+                      <LinearGradient
+                        colors={['rgba(255,255,255,0.12)', 'rgba(255,255,255,0)']}
+                        style={s.couponSheen}
+                        pointerEvents="none"
+                      />
+                    )}
                     <Pressable
-                      onPress={() => !c.used && !c.session_locked && setExpandedCoupon(isExpanded ? null : c.coupon_code)}
+                      onPress={() => (!isUsed && !isLocked) && setExpandedCoupon(isExpanded ? null : c.coupon_code)}
                       style={s.couponHeader}
                     >
                       <View style={[s.iconWrap, { backgroundColor: `${color}20`, borderColor: `${color}40` }]}>
@@ -237,16 +252,16 @@ export default function EchoCouponsPage() {
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={s.couponName}>{c.session_name}</Text>
-                        <Text style={[s.couponCode, c.session_locked && { color: 'rgba(255,255,255,0.25)', letterSpacing: 3 }]}>
-                          {c.session_locked ? '****-****-****' : c.coupon_code}
+                        <Text style={[s.couponCode, isLocked && { color: 'rgba(255,255,255,0.25)', letterSpacing: 3 }]}>
+                          {isLocked ? '****-****-****' : c.coupon_code}
                         </Text>
                       </View>
-                      {c.used ? (
+                      {isUsed ? (
                         <View style={[s.statusBadge, { backgroundColor: 'rgba(16,185,129,0.15)' }]}>
                           <Check size={12} color="#10B981" />
                           <Text style={[s.statusText, { color: '#34D399' }]}>Used</Text>
                         </View>
-                      ) : c.session_locked ? (
+                      ) : isLocked ? (
                         <View style={[s.statusBadge, { backgroundColor: 'rgba(139,92,246,0.15)' }]}>
                           <Lock size={12} color="#8B5CF6" />
                           <Text style={[s.statusText, { color: '#A78BFA' }]}>Locked</Text>
@@ -260,7 +275,7 @@ export default function EchoCouponsPage() {
                     </Pressable>
 
                     {/* Locked state */}
-                    {!c.used && c.session_locked && (
+                    {!isUsed && isLocked && (
                       <View style={s.lockedSection}>
                         <View style={s.lockedPlaceholder}>
                           <Lock size={32} color="#8B5CF6" />
@@ -271,7 +286,7 @@ export default function EchoCouponsPage() {
                     )}
 
                     {/* Used state */}
-                    {c.used && (
+                    {isUsed && (
                       <View style={s.usedSection}>
                         <View style={s.usedPlaceholder}>
                           <Check size={32} color="#10B981" />
@@ -282,7 +297,7 @@ export default function EchoCouponsPage() {
                     )}
 
                     {/* Expanded QR code */}
-                    {!c.used && !c.session_locked && isExpanded && (
+                    {!isUsed && !isLocked && isExpanded && (
                       <View style={s.qrSection}>
                         <View style={s.qrCard}>
                           <img
@@ -297,7 +312,7 @@ export default function EchoCouponsPage() {
                         </View>
                       </View>
                     )}
-                  </View>
+                  </LinearGradient>
                 );
               })}
                       </View>
@@ -306,6 +321,27 @@ export default function EchoCouponsPage() {
                 });
               })()}
             </View>
+          )}
+
+          {/* Savings Summary Card */}
+          {totalCount > 0 && (
+            <LinearGradient
+              colors={['rgba(91,79,233,0.30)', 'rgba(91,79,233,0.08)']}
+              style={s.savingsCard}
+            >
+              <View style={s.savingsGradient}>
+                <Text style={s.savingsTitle}>Total Value</Text>
+                <Text style={s.savingsAmount}>
+                  {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(
+                    (coupons as any[]).reduce((acc, c) => acc + (Number(c.session_fee) || 0), 0)
+                  )}
+                </Text>
+                <Text style={s.savingsLabel}>Unlocked savings across all session passes</Text>
+                <Pressable style={s.savingsBtn} onPress={() => router.push('/platform?role=student&tab=my-tickets')}>
+                  <Text style={s.savingsBtnText}>Open Deals & Offers</Text>
+                </Pressable>
+              </View>
+            </LinearGradient>
           )}
         </View>
         <EchoFooter />
@@ -478,6 +514,36 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(16,185,129,0.08)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.2)',
     alignItems: 'center', justifyContent: 'center', gap: 8,
   },
-  usedTitle: { fontFamily: 'DMSans_800ExtraBold', fontSize: 14, color: '#34D399' },
-  usedHint: { fontFamily: 'DMSans_500Medium', fontSize: 10, color: 'rgba(255,255,255,0.4)', textAlign: 'center', paddingHorizontal: 12 },
+   usedTitle: { fontFamily: 'DMSans_800ExtraBold', fontSize: 14, color: '#34D399' },
+   usedHint: { fontFamily: 'DMSans_500Medium', fontSize: 10, color: 'rgba(255,255,255,0.4)', textAlign: 'center', paddingHorizontal: 12 },
+   savingsCard: {
+     borderRadius: 18,
+     padding: 20,
+     borderWidth: 1,
+     borderColor: 'rgba(167,139,250,0.3)',
+     overflow: 'hidden',
+     marginTop: 8,
+   },
+   savingsGradient: {
+     padding: 20,
+     borderRadius: 18,
+     gap: 12,
+   },
+   savingsTitle: { fontFamily: 'DMSans_700Bold', fontSize: 13, color: 'rgba(255,255,255,0.6)' },
+    savingsAmount: { fontFamily: 'DMSans_800ExtraBold', fontSize: 32, color: '#fff', letterSpacing: -0.5 },
+   savingsLabel: { fontFamily: 'DMSans_500Medium', fontSize: 12, color: 'rgba(255,255,255,0.4)' },
+   savingsBtn: {
+     backgroundColor: '#5B4FE9', borderRadius: 12, paddingVertical: 12,
+     alignItems: 'center', marginTop: 8,
+   },
+    savingsBtnText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13 },
+    couponSheen: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      height: 60,
+      borderBottomWidth: 1,
+      borderBottomColor: 'rgba(255,255,255,0.08)',
+    },
 });
