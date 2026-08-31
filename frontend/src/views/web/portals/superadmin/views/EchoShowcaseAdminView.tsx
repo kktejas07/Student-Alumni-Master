@@ -4110,6 +4110,25 @@ function RegistrationsPanel() {
                           <Text style={{ fontFamily: FONTS.med, fontSize: 9, color: SAC.dim }}>
                             {c.session_day > 1 ? `Day ${c.session_day} · ` : ''}{c.coupon_code || ''}
                           </Text>
+                          {c.used && (
+                            <View style={{ marginTop: 4, gap: 2 }}>
+                              {c.used_at && (
+                                <Text style={{ fontFamily: FONTS.med, fontSize: 8.5, color: '#A78BFA' }}>
+                                  Scanned: {new Date(c.used_at).toLocaleString()}
+                                </Text>
+                              )}
+                              {c.scanned_location && (
+                                <Text style={{ fontFamily: FONTS.med, fontSize: 8.5, color: '#A78BFA' }}>
+                                  Location: {c.scanned_location}
+                                </Text>
+                              )}
+                              {(c.scanned_lat || c.scanned_lng) && (
+                                <Text style={{ fontFamily: FONTS.med, fontSize: 8, color: '#6B7280' }}>
+                                  Geo: {c.scanned_lat?.toFixed(4) || '—'}, {c.scanned_lng?.toFixed(4) || '—'}
+                                </Text>
+                              )}
+                            </View>
+                          )}
                         </View>
                         <View style={{
                           borderRadius: 5, paddingHorizontal: 7, paddingVertical: 3,
