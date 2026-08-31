@@ -20,6 +20,7 @@ import re
 import hashlib
 import hmac
 import secrets
+import uuid
 from datetime import datetime, timezone, date, timedelta
 from typing import Any, Dict, Optional
 
@@ -766,6 +767,95 @@ class TestWhatsAppSchema(BaseModel):
     body: Optional[str] = ""
     cta_url: Optional[str] = ""
     test_phone: str
+
+
+class BroadcastCommunityInvitesSchema(BaseModel):
+    audience: Optional[str] = "all"  # "all" | "students" | "alumni" | "echo_registrations" | "candidates"
+    whatsapp_url: Optional[str] = "https://chat.whatsapp.com/G2kc2u0gzh68DKSjlOyCxu"
+    instagram_url: Optional[str] = "https://www.instagram.com/studentalumni.ai/"
+    linkedin_url: Optional[str] = "https://linkedin.com/company/student-alumni"
+    custom_note: Optional[str] = ""
+
+
+@router.post("/admin/broadcast-community-invites")
+async def broadcast_community_invites(payload: BroadcastCommunityInvitesSchema, request: Request, _=Depends(require_role("admin", "super_admin"))):
+    """1-Click Super Admin endpoint to broadcast Student Alumni community join links across Email, WhatsApp, Push & In-App."""
+    db = _get_db(request)
+    now_dt = datetime.now(timezone.utc)
+    now_iso = now_dt.isoformat()
+    cid = f"comm_inv_{uuid.uuid4().hex[:12]}"
+
+    wa_url = payload.whatsapp_url or "https://chat.whatsapp.com/G2kc2u0gzh68DKSjlOyCxu"
+    ig_url = payload.instagram_url or "https://www.instagram.com/studentalumni.ai/"
+    li_url = payload.linkedin_url or "https://linkedin.com/company/student-alumni"
+
+    subject = "💬 Join Official Student Alumni Community Groups!"
+    intro = "Connect with 95,000+ verified students, alumni, and recruiters across India."
+    
+    note_html = f"<p style='color:#FDE68A;background:rgba(251,191,36,0.1);padding:10px 14px;border-radius:8px;'>{payload.custom_note}</p>" if payload.custom_note else ""
+
+    body_html = f"""
+    <div style="background:#0F172A;padding:24px;border-radius:16px;color:#FFFFFF;font-family:sans-serif;">
+      <h2 style="color:#38BDF8;margin-top:0;">Welcome to Student Alumni Official Channels 🚀</h2>
+      <p style="color:#94A3B8;line-height:1.6;">
+        Stay updated with real-time campus events, HackWave 3.0 updates, Germany WeHive sponsorship alerts, and direct recruiter referrals.
+      </p>
+      {note_html}
+
+      <div style="display:grid;gap:12px;margin-top:20px;">
+        <a href="{wa_url}" target="_blank" style="display:block;background:#059669;color:#FFF;padding:14px;border-radius:10px;text-decoration:none;font-weight:bold;text-align:center;">
+          💬 Join Official WhatsApp Community
+        </a>
+        <a href="{ig_url}" target="_blank" style="display:block;background:#DB2777;color:#FFF;padding:14px;border-radius:10px;text-decoration:none;font-weight:bold;text-align:center;">
+          📸 Follow Instagram (@studentalumni.ai)
+        </a>
+        <a href="{li_url}" target="_blank" style="display:block;background:#0284C7;color:#FFF;padding:14px;border-radius:10px;text-decoration:none;font-weight:bold;text-align:center;">
+          💼 Connect on LinkedIn
+        </a>
+      </div>
+    </div>
+    """
+
+    doc = {
+        "campaign_id": cid,
+        "subject": subject,
+        "audience": payload.audience or "all",
+        "hero_image": "https://studentalumni.ai/images/hackwave/hackwave_hero_banner.png",
+        "intro": intro,
+        "body": body_html,
+        "cta_text": "Join WhatsApp Community",
+        "cta_url": wa_url,
+        "include_upcoming": True,
+        "channels": {
+            "email": True,
+            "push": True,
+            "in_app": True,
+            "whatsapp": True
+        },
+        "send_at": now_iso,
+        "status": "scheduled",
+        "sent": False,
+        "created_at": now_iso,
+        "updated_at": now_iso,
+        "type": "community_broadcast"
+    }
+
+    await db.email_campaigns.insert_one(doc)
+    
+    # Trigger non-blocking execution in background
+    import asyncio
+    asyncio.create_task(process_scheduled_campaigns(db))
+
+    return {
+        "ok": True,
+        "campaign_id": cid,
+        "message": f"Community broadcast campaign '{subject}' queued and delivering to '{payload.audience}' audience across Email, WhatsApp, Push & In-App!",
+        "community_links": {
+            "whatsapp": wa_url,
+            "instagram": ig_url,
+            "linkedin": li_url
+        }
+    }
 
 
 @router.post("/admin/preview")
