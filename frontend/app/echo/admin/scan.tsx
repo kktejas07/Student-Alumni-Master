@@ -110,6 +110,7 @@ export default function EchoScanPage() {
   const [cameraOpen, setCameraOpen] = useState(false);
   const [accessCheck, setAccessCheck] = useState<'loading' | 'ok' | 'denied'>('loading');
   const inputRef = useRef<any>(null);
+  const locationRef = useRef<{ lat: number; lng: number } | null>(null);
 
   // Access guard — check if user is super_admin or volunteer
   useEffect(() => {
@@ -137,6 +138,18 @@ export default function EchoScanPage() {
     return () => { mounted = false; };
   }, []);
 
+  // Request geolocation on mount
+  useEffect(() => {
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          locationRef.current = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        },
+        (err) => console.warn('Geolocation error:', err)
+      );
+    }
+  }, []);
+
   const submitCode = async (c: string) => {
     const original = (c || '').trim();
     const isTicketPayload = original.startsWith('ECHO:') || original.includes('%3A');
@@ -154,11 +167,13 @@ export default function EchoScanPage() {
     try {
       // Entry-pass / ticket payload (ECHO:... or URL-wrapped or bare reg id)
       const isTicketPayload2 = isTicketPayload || raw.startsWith('ECHO:') || /^[a-f0-9]{12}$/i.test(raw);
+      const loc = locationRef.current;
+      
       if (isTicketPayload) {
-        const resp = await fetch(`${base}/api/echo/admin/registrations/verify`, {
+        const resp = await fetch(`${base}/api/echo/admin/registrations/check-in`, {
           method: 'POST',
           headers,
-          body: JSON.stringify({ ticket: original }),
+          body: JSON.stringify({ ticket: original, ...(loc ? { lat: loc.lat, lng: loc.lng } : {}) }),
         });
         const data = await resp.json();
         if (!resp.ok) {
@@ -169,16 +184,16 @@ export default function EchoScanPage() {
           const result = {
             ok: true,
             type: 'ticket',
-            status: data.valid ? (data.checked_in ? 'checked_in' : 'valid') : 'unconfirmed',
-            message: data.message || (data.valid ? 'Valid ticket' : 'Ticket not confirmed'),
+            status: data.first_checkin ? 'valid' : 'checked_in',
+            message: data.message || 'Checked in successfully',
             coupon: {
               session_name: reg.event_title || 'Event pass',
               attendee_name: reg.full_name || 'Unknown',
               attendee_email: reg.email || '',
               code: reg.id || codeUpper,
-              used_at: data.checked_in_at || null,
-              verified: data.valid,
-              checked_in: data.checked_in,
+              used_at: reg.checked_in_at || null,
+              verified: true,
+              checked_in: true,
             },
           };
           setResult(result);
@@ -191,7 +206,7 @@ export default function EchoScanPage() {
       const resp = await fetch(`${base}/api/echo/admin/scan-coupon`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ code: codeUpper }),
+        body: JSON.stringify({ code: codeUpper, ...(loc ? { lat: loc.lat, lng: loc.lng } : {}) }),
       });
       const data = await resp.json();
       setResult(data);
