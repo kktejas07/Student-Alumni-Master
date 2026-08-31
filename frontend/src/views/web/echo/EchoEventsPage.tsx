@@ -1730,15 +1730,6 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
                   </button>
                 </div>
-
-                {teamsMeeting.description && (
-                  <div style={{ 
-                    fontSize: '14px', lineHeight: 1.65, color: 'rgba(255,255,255,0.6)',
-                    display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden'
-                  }}>
-                    {teamsMeeting.description}
-                  </div>
-                )}
               </div>
             </div>
           )}
