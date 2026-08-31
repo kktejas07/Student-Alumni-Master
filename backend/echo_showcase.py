@@ -232,6 +232,35 @@ async def _require_admin(request: Request):
     return payload
 
 
+async def _require_scan_access(request: Request):
+    """Allow scan access to super_admins, admins, AND authorized volunteers."""
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing token")
+    token = auth.split(" ", 1)[1]
+    import jwt as _jwt
+    JWT_SECRET = os.environ.get("JWT_SECRET", "dev-only-insecure-secret-change-me")
+    try:
+        payload = _jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    role = (payload.get("role") or "").lower()
+    if role in ("super_admin", "admin"):
+        return payload
+        
+    db = _get_db(request)
+    email = (payload.get("email") or "").strip().lower()
+    vol = await db.echo_volunteers.find_one({"email": email})
+    if vol:
+        # Volunteer is authorized. Attach their identity for audit.
+        payload["scanned_by"] = vol.get("name") or email
+        payload["role"] = "volunteer"
+        return payload
+        
+    raise HTTPException(status_code=403, detail="Scanner access denied")
+
+
 def _get_current_user_dependency():
     from core.deps import get_current_user  # noqa
     return get_current_user
@@ -5199,7 +5228,7 @@ async def verify_ticket(payload: TicketVerifySchema, request: Request, _=Depends
 
 
 @router.post("/admin/registrations/check-in")
-async def check_in_attendee(payload: TicketVerifySchema, request: Request, _=Depends(_require_admin)):
+async def check_in_attendee(payload: TicketVerifySchema, request: Request, _=Depends(_require_scan_access)):
     """Check an attendee in at the venue (idempotent).
 
     Only confirmed (paid or free) registrations can be checked in. Returns the
@@ -5864,7 +5893,7 @@ async def scan_coupon_get(code: str, request: Request):
 
 
 @router.post("/admin/scan-coupon")
-async def scan_coupon(request: Request, admin=Depends(_require_admin)):
+async def scan_coupon(request: Request, admin=Depends(_require_scan_access)):
     """Scan a coupon QR code."""
     db = _get_db(request)
     body = await request.json()
