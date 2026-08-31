@@ -1695,33 +1695,51 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
 
           {/* Virtual Meeting Section */}
           {teamsMeeting && (
-            <div style={{ border: '1px solid var(--line)', borderRadius: '18px', background: 'linear-gradient(135deg, rgba(59,130,246,0.1), var(--panel))', padding: '26px 28px', marginBottom: '28px', width: '100%' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
-                <span style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#3B82F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg width="22" height="22" viewBox="0 0 24 24" style={{ fill: 'none', stroke: '#FFF', strokeWidth: 2 }}><polygon points="10 4 4 8 4 16 10 20 16 16 16 8z"></polygon><line x1="10" y1="4" x2="22" y2="12"></line><path d="M10 12l0 6"></path></svg>
-                </span>
-                <div>
-                  <div style={{ fontSize: '18px', fontWeight: 700, letterSpacing: '-.4px', color: '#FFFFFF' }}>Virtual Meeting</div>
-                  <div style={{ fontSize: '13.5px', color: '#3B82F6', fontWeight: 600, marginTop: '2px' }}>{teamsMeeting.subject}</div>
+            <div style={{ 
+              position: 'relative', overflow: 'hidden', border: '1px solid rgba(99, 102, 241, 0.2)', 
+              borderRadius: '20px', background: 'linear-gradient(160deg, rgba(30,27,75,0.6) 0%, rgba(17,24,39,0.8) 100%)', 
+              padding: '28px', marginBottom: '32px', width: '100%',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.2)'
+            }}>
+              {/* Decorative Blur */}
+              <div style={{ position: 'absolute', top: '-40px', right: '-40px', width: '160px', height: '160px', background: 'radial-gradient(circle, rgba(99, 102, 241, 0.25) 0%, rgba(0,0,0,0) 70%)', filter: 'blur(20px)', pointerEvents: 'none' }} />
+              
+              <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <div style={{ width: '46px', height: '46px', borderRadius: '14px', background: 'linear-gradient(135deg, #4F46E5, #3B82F6)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(79, 70, 229, 0.4)' }}>
+                      <svg width="22" height="22" viewBox="0 0 24 24" style={{ fill: 'none', stroke: '#FFF', strokeWidth: 2 }}><polygon points="10 4 4 8 4 16 10 20 16 16 16 8z"></polygon><line x1="10" y1="4" x2="22" y2="12"></line><path d="M10 12l0 6"></path></svg>
+                    </div>
+                    <div>
+                      <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#FFFFFF', margin: 0, letterSpacing: '-0.3px' }}>Virtual Meeting</h3>
+                      <p style={{ fontSize: '13.5px', color: '#818CF8', fontWeight: 600, margin: '2px 0 0 0' }}>{teamsMeeting.subject}</p>
+                    </div>
+                  </div>
+                  
+                  <button
+                    type="button"
+                    onClick={(e) => { 
+                      e.preventDefault(); 
+                      window.open(`/teams/register/${teamsMeeting.meeting_id}`, '_blank');
+                    }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '13.5px', fontWeight: 700, background: 'rgba(99, 102, 241, 0.1)', color: '#818CF8', border: '1px solid rgba(99, 102, 241, 0.25)', borderRadius: '10px', padding: '10px 18px', cursor: 'pointer', transition: 'all .2s ease' }}
+                    onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(99, 102, 241, 0.2)'; e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.4)'; }}
+                    onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(99, 102, 241, 0.1)'; e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.25)'; }}
+                  >
+                    View Details & Join
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+                  </button>
                 </div>
+
+                {teamsMeeting.description && (
+                  <div style={{ 
+                    fontSize: '14px', lineHeight: 1.65, color: 'rgba(255,255,255,0.6)',
+                    display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden'
+                  }}>
+                    {teamsMeeting.description}
+                  </div>
+                )}
               </div>
-              
-              {teamsMeeting.description && (
-                <div style={{ fontSize: '14.5px', lineHeight: 1.6, color: 'var(--muted)', marginBottom: '22px' }}>
-                  {teamsMeeting.description}
-                </div>
-              )}
-              
-              <button
-                type="button"
-                onClick={(e) => { 
-                  e.preventDefault(); 
-                  window.open(`/teams/register/${teamsMeeting.meeting_id}`, '_blank');
-                }}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14.5px', fontWeight: 700, background: '#3B82F6', color: '#FFFFFF', borderRadius: '10px', padding: '14px 28px', cursor: 'pointer', transition: 'all .2s ease', border: 'none', outline: 'none', boxShadow: '0 4px 16px rgba(59, 130, 246, 0.35)' }}
-              >
-                Join Meeting Now
-              </button>
             </div>
           )}
 
