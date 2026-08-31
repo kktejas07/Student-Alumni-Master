@@ -43,7 +43,7 @@ const SAMPLE_EVENTS = [
     time: 'Sep 4th, 08:00 AM — Sep 5th, 01:00 PM',
     venue: 'Sreenidhi Institute of Science & Technology (SNIST), Hyderabad',
     location_short: 'SNIST Campus, Hyderabad',
-    prize_pool: '₹2,00,000 Mega Grand Pool (₹50,000 Track Pool)',
+    prize_pool: '₹17,50,000+ Total Pool (₹2,00,000 Mega Grand Pool · ₹50,000 Track Pool · WeHive Visas & Germany Study Abroad)',
     reg_closes: '2026-09-01',
     individual_fee: 599,
     team_fee: 2495,
@@ -1259,7 +1259,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
               <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
             </span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
-              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>HackWave 3.0 · Sep 4–5 · Sreenidhi (SNIST) · ₹2,00,000 Mega Grand Pool (₹50,000 Track Pool)</span>
+              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>HackWave 3.0 · Sep 4–5 · Sreenidhi (SNIST) · ₹17,50,000+ Total Prize & Sponsorship Pool (WeHive 2 Business Visas & Germany Study Abroad)</span>
               <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
             </span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
@@ -1286,7 +1286,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
               <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
             </span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
-              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>HackWave 3.0 · Sep 4–5 · Sreenidhi (SNIST) · ₹2,00,000 Mega Grand Pool (₹50,000 Track Pool)</span>
+              <span style={{ fontSize: '13px', color: 'var(--muted)' }}>HackWave 3.0 · Sep 4–5 · Sreenidhi (SNIST) · ₹17,50,000+ Total Prize & Sponsorship Pool (WeHive 2 Business Visas & Germany Study Abroad)</span>
               <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#A78BFA', flex: 'none' }} />
             </span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '26px', padding: '0 26px', whiteSpace: 'nowrap' }}>
@@ -2027,7 +2027,62 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
           </div>
 
           {/* ────────────────────────────────────────────────────────── */}
-          {/* ONE TICKET. ₹599. MEGA GRAND POOL & ALL PERKS (BANNER 5)   */}
+          {/* ────────────────────────────────────────────────────────── */}
+          {/* WEHIVE SPONSOR SPOTLIGHT — TWO REWARDS BEYOND PRIZE POOL  */}
+          {/* ────────────────────────────────────────────────────────── */}
+          <div style={{ marginBottom: '32px', border: '1px solid #7C5CFC', borderRadius: '22px', background: 'linear-gradient(135deg, #1C1236 0%, #0D091F 100%)', padding: '32px 30px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '1.4px', color: '#A78BFA', background: 'rgba(124,92,252,0.2)', border: '1px solid rgba(124,92,252,0.4)', borderRadius: '100px', padding: '5px 14px' }}>
+                  SPONSOR SPOTLIGHT · WE HIRE
+                </span>
+                <span style={{ fontSize: '12px', color: '#9CA3AF' }}>Official Visa & Study-Abroad Partner</span>
+              </div>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#38BDF8', background: 'rgba(56,189,248,0.12)', border: '1px solid rgba(56,189,248,0.3)', borderRadius: '100px', padding: '4px 12px' }}>
+                Awarded on Merit
+              </span>
+            </div>
+
+            <div style={{ fontSize: '28px', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.8px', marginBottom: '20px' }}>
+              Two rewards, beyond the prize pool
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+              <div style={{ background: 'rgba(56, 189, 248, 0.08)', border: '1px solid rgba(56, 189, 248, 0.3)', borderRadius: '18px', padding: '22px' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(56, 189, 248, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" strokeWidth="2"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2.5"/><path d="M15 8h2M15 12h2M7 16h10"/></svg>
+                </div>
+                <div style={{ fontSize: '20px', fontWeight: 800, color: '#FFFFFF' }}>2 Business Visas</div>
+                <div style={{ fontSize: '13px', color: '#94A3B8', marginTop: '4px' }}>Sponsored in full, for two winners by WeHive</div>
+              </div>
+
+              <div style={{ background: 'rgba(251, 191, 36, 0.08)', border: '1px solid rgba(251, 191, 36, 0.3)', borderRadius: '18px', padding: '22px' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(251, 191, 36, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FCD34D" strokeWidth="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+                </div>
+                <div style={{ fontSize: '20px', fontWeight: 800, color: '#FFFFFF' }}>Up to ₹15,00,000</div>
+                <div style={{ fontSize: '13px', color: '#FDE68A', marginTop: '4px' }}>Toward a Master's programme in Germany</div>
+              </div>
+            </div>
+
+            {/* Terms & Conditions */}
+            <div style={{ background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', padding: '18px 22px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '1.2px', color: '#9CA3AF', marginBottom: '10px' }}>WEHIVE PERKS — TERMS & CONDITIONS</div>
+              <ol style={{ margin: 0, paddingLeft: '18px', color: '#CBD5E1', fontSize: '12.5px', lineHeight: 1.6, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <li>Awarded at the sole discretion of WeHive and the organisers.</li>
+                <li>Winners must be registered HackWave 3.0 participants.</li>
+                <li>Awards are non-transferable and cannot be exchanged for cash.</li>
+                <li>Visa award covers processing and service fees only; travel, insurance and consular fees are excluded.</li>
+                <li>The Germany sponsorship is subject to the recipient securing admission to an eligible programme.</li>
+                <li>Sponsorship is disbursed directly to the institution, not to the individual.</li>
+                <li>Applicants must meet WeHive's eligibility, documentation and verification requirements.</li>
+                <li>Full terms are published at studentalumni.ai/echo/snist and prevail over this summary.</li>
+              </ol>
+            </div>
+          </div>
+
+          {/* ────────────────────────────────────────────────────────── */}
+          {/* ONE TICKET. ₹599. TOTAL PRIZE & SPONSORSHIP POOL           */}
           {/* ────────────────────────────────────────────────────────── */}
           <div style={{ marginBottom: '32px', border: '1px solid #F59E0B', borderRadius: '22px', background: 'linear-gradient(135deg, #2D1A04 0%, #1A130B 100%)', padding: '32px 30px' }}>
             <div style={{ textAlign: 'center', marginBottom: '24px' }}>
@@ -2037,31 +2092,37 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
               </div>
             </div>
 
-            {/* Prize Pools */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 220px', gap: '16px', padding: '20px 24px', background: 'rgba(245,158,11,0.12)', border: '1px solid #78350F', borderRadius: '16px', marginBottom: '22px' }}>
+            {/* Total Prize & Sponsorship Pool */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) 1fr 1fr', gap: '14px', padding: '20px 24px', background: 'rgba(245,158,11,0.12)', border: '1px solid #78350F', borderRadius: '16px', marginBottom: '22px' }}>
               <div>
-                <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.3px', color: '#FCD34D' }}>MEGA GRAND POOL</div>
-                <div style={{ fontSize: '34px', fontWeight: 900, color: '#FFFFFF', letterSpacing: '-1px' }}>₹2,00,000</div>
-                <div style={{ fontSize: '12.5px', color: '#FDE68A', marginTop: '2px' }}>Open to every hackathon participant, not only winners</div>
+                <div style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '1.3px', color: '#FCD34D' }}>TOTAL PRIZE & SPONSORSHIP POOL</div>
+                <div style={{ fontSize: '32px', fontWeight: 900, color: '#FFFFFF', letterSpacing: '-1px' }}>₹17,50,000+</div>
+                <div style={{ fontSize: '12px', color: '#FDE68A', marginTop: '2px' }}>Including 2 fully sponsored business visas</div>
               </div>
-              <div style={{ textAlign: 'right', borderLeft: '1px solid rgba(245,158,11,0.3)', paddingLeft: '18px' }}>
-                <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.3px', color: '#FCD34D' }}>TRACK PRIZE POOL</div>
-                <div style={{ fontSize: '26px', fontWeight: 800, color: '#34D399', marginTop: '2px' }}>₹50,000</div>
+              <div style={{ borderLeft: '1px solid rgba(245,158,11,0.3)', paddingLeft: '16px' }}>
+                <div style={{ fontSize: '10.5px', fontWeight: 700, letterSpacing: '1.2px', color: '#FCD34D' }}>MEGA GRAND POOL</div>
+                <div style={{ fontSize: '24px', fontWeight: 800, color: '#FFFFFF', marginTop: '2px' }}>₹2,00,000</div>
+                <div style={{ fontSize: '11px', color: '#9CA3AF' }}>Open to every participant</div>
+              </div>
+              <div style={{ borderLeft: '1px solid rgba(245,158,11,0.3)', paddingLeft: '16px' }}>
+                <div style={{ fontSize: '10.5px', fontWeight: 700, letterSpacing: '1.2px', color: '#FCD34D' }}>HACKATHON TRACKS</div>
+                <div style={{ fontSize: '24px', fontWeight: 800, color: '#34D399', marginTop: '2px' }}>₹50,000</div>
+                <div style={{ fontSize: '11px', color: '#9CA3AF' }}>5 AI Tracks</div>
               </div>
             </div>
 
             {/* Perks Cards List */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '10px' }}>
               {((activeEvent.perks && activeEvent.perks.length > 0) ? activeEvent.perks : [
+                { name: '2 Business Visas', description: 'Sponsored in full by WeHive', value: 'Visa Perk' },
+                { name: 'Germany Study Abroad', description: 'Up to ₹15,00,000 Master\'s sponsorship', value: '₹15,00,000' },
                 { name: 'Featherless AI', description: 'A full account, free', value: '$29 value' },
                 { name: 'SetupMark AI', description: '50 credits, 2 months free', value: '$50 value' },
                 { name: 'CodeSpectra AI', description: '3 months completely free', value: 'Assessments' },
                 { name: 'Bandiwala', description: '15% off food', value: 'Coupon' },
-                { name: 'WeHive Consulting', description: '15% off services', value: 'Coupon' },
                 { name: 'Four meal coupons', description: 'Lunch, dinner, midnight, breakfast', value: 'Included' },
                 { name: 'Certificates for all', description: 'Participation and winner certificates', value: 'Verifiable' },
-                { name: 'On-the-spot offers', description: 'Internship and placement offers, in the room', value: 'Live' },
-                { name: 'Surprise goodies', description: 'Extra prizes and drops announced on the day', value: 'Surprise' }
+                { name: 'On-the-spot offers', description: 'Internship and placement offers, in the room', value: 'Live' }
               ]).map((perk: any, pidx: number) => (
                 <div key={pidx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '11px' }}>
                   <div>
