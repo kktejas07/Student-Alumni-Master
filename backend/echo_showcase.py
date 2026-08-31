@@ -1589,45 +1589,68 @@ def _build_ticket_html(reg: dict, showcase: dict, template_id: Optional[str] = N
         {sponsors_html}
       </div>"""
     else:  # aurora (default)
+        checkin_banner = ''
+        if is_checked_in:
+            checkin_at = reg.get('checked_in_at') or ''
+            checkin_banner = f'<div class="aur-checkin-banner"><span class="aur-checkin-icon">✓</span> Checked In{" · " + checkin_at[:16].replace("T"," ") if checkin_at else ""}</div>'
+        reg_id_short = reg_id[:24] + ('…' if len(reg_id) > 24 else '')
         inner = f"""
       <div class="sheet aurora">
         <div class="aur-glow aur-glow-a"></div>
         <div class="aur-glow aur-glow-b"></div>
+        <div class="aur-glow aur-glow-c"></div>
         <div class="aur-main">
+
+          <!-- Header -->
           <div class="aur-header">
-            <div class="aur-brand">{brand}</div>
-            <div class="aur-org">{organizer}</div>
+            <div class="aur-toprow">
+              <div>
+                <div class="aur-brand">{brand}</div>
+                <div class="aur-org">{organizer}</div>
+              </div>
+              <div class="aur-badge-pill">{badge_label}</div>
+            </div>
             <h1 class="aur-title">{title}</h1>
             <div class="aur-pills">
-              <span class="aur-pill">{event_date or 'TBA'}</span>
-              <span class="aur-pill">{event_time}</span>
-              <span class="aur-pill">{venue}</span>
+              {'<span class="aur-pill">📅 ' + event_date + '</span>' if event_date else '<span class="aur-pill">📅 TBA</span>'}
+              {'<span class="aur-pill">🕐 ' + event_time + '</span>' if event_time else ''}
+              {'<span class="aur-pill">📍 ' + venue + '</span>' if venue else ''}
             </div>
           </div>
+
+          {checkin_banner}
+
+          <!-- Body -->
           <div class="aur-body">
             <div class="aur-info">
-              <div class="aur-col">
-                <div class="dl-label">ATTENDEE</div>
+              <div class="aur-field">
+                <div class="dl-label">Attendee</div>
                 <div class="dl-val">{name}</div>
                 <div class="aur-sub">{email}</div>
                 {f'<div class="aur-sub">{attendee_line}</div>' if attendee_line else ''}
               </div>
-              <div class="aur-col">
-                <div class="dl-label">REG ID</div>
-                <div class="dl-val" style="letter-spacing:1px;">{reg_id}</div>
+              <div class="aur-field">
+                <div class="dl-label">Reg ID</div>
+                <div class="aur-reg-id">{reg_id_short}</div>
               </div>
             </div>
-            <div class="aur-qr">{qr_img}</div>
-          </div>
-          <div class="aur-badge-row">{badge_html}</div>
-          <div class="aur-stub">
-            <div class="aur-stub-left">
-              <div class="aur-stub-event">{title}</div>
-              <div class="aur-stub-detail">{event_date} · {name}</div>
-              <div class="aur-stub-id">REG: {reg_id}</div>
+            <div class="aur-qr-wrap">
+              <div class="aur-qr">{qr_img}</div>
+              <div class="aur-qr-hint">Scan at venue</div>
             </div>
-            {qr_img_sm}
-            <div class="aur-stub-tear">|</div>
+          </div>
+
+          <!-- Stub -->
+          <div class="aur-stub">
+            <div class="aur-stub-dots"></div>
+            <div class="aur-stub-inner">
+              <div class="aur-stub-left">
+                <div class="aur-stub-event">{title}</div>
+                <div class="aur-stub-detail">{event_date or 'TBA'} · {name}</div>
+                <div class="aur-stub-id">REG: {reg_id_short}</div>
+              </div>
+              {qr_img_sm}
+            </div>
           </div>
         </div>
         {sponsors_html}
@@ -1659,35 +1682,44 @@ def _build_ticket_html(reg: dict, showcase: dict, template_id: Optional[str] = N
   .sp-name {{ font-size:11px; font-weight:600; color:#94a3b8; white-space:nowrap; }}
 
   /* ── AURORA (default) ────────────────────────────────────────────────── */
-  .aurora {{ background:linear-gradient(160deg,#0f0a2e 0%,#1a1145 30%,#2d1b69 60%,#1a0e3e 100%); color:#fff; }}
-  .aurora .dl-label {{ color:#a5b4fc; }}
-  .aurora .dl-val {{ color:#fff; }}
-  .aurora .badge {{ background:rgba(52,211,153,0.15); color:#6ee7b7; }}
-  .aurora .sponsors {{ border-top-color:rgba(255,255,255,0.08); }}
-  .aurora .sp-label {{ color:rgba(255,255,255,0.35); }}
-  .aur-glow {{ position:absolute; width:350px; height:350px; border-radius:50%; filter:blur(100px); opacity:.30; pointer-events:none; }}
-  .aur-glow-a {{ top:-140px; right:-100px; background:#a855f7; }}
-  .aur-glow-b {{ bottom:-160px; left:-100px; background:#6366f1; }}
-  .aur-main {{ position:relative; }}
-  .aur-header {{ padding:36px 36px 20px; }}
-  .aur-brand {{ font-size:10px; font-weight:800; letter-spacing:3px; opacity:.6; }}
-  .aur-org {{ font-size:13px; font-weight:600; margin-top:8px; opacity:.7; }}
-  .aur-title {{ margin:12px 0 16px; font-size:32px; font-weight:900; line-height:1.1; letter-spacing:-0.5px; }}
+  .aurora {{ background:linear-gradient(160deg,#09071f 0%,#130d3b 35%,#1e1050 65%,#0d0825 100%); color:#fff; }}
+  .aurora .dl-label {{ color:rgba(165,180,252,0.7); font-size:9px; letter-spacing:1.5px; }}
+  .aurora .dl-val {{ color:#fff; font-size:22px; }}
+  .aurora .sponsors {{ border-top-color:rgba(255,255,255,0.07); }}
+  .aurora .sp-label {{ color:rgba(255,255,255,0.3); }}
+  .aur-glow {{ position:absolute; border-radius:50%; filter:blur(90px); opacity:.22; pointer-events:none; }}
+  .aur-glow-a {{ width:420px; height:420px; top:-160px; right:-80px; background:#a855f7; }}
+  .aur-glow-b {{ width:320px; height:320px; bottom:-120px; left:-60px; background:#6366f1; }}
+  .aur-glow-c {{ width:200px; height:200px; top:50%; left:50%; transform:translate(-50%,-50%); background:#8b5cf6; opacity:.12; }}
+  .aur-main {{ position:relative; z-index:1; }}
+  .aur-header {{ padding:40px 40px 24px; border-bottom:1px solid rgba(255,255,255,0.06); }}
+  .aur-toprow {{ display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:16px; }}
+  .aur-brand {{ font-size:9px; font-weight:800; letter-spacing:3px; color:rgba(255,255,255,0.4); text-transform:uppercase; }}
+  .aur-org {{ font-size:13px; font-weight:600; margin-top:6px; color:rgba(255,255,255,0.6); }}
+  .aur-badge-pill {{ background:rgba(52,211,153,0.15); border:1px solid rgba(52,211,153,0.3); color:#6ee7b7; font-size:10px; font-weight:800; letter-spacing:.5px; padding:6px 14px; border-radius:999px; white-space:nowrap; text-transform:uppercase; }}
+  .aur-title {{ font-size:38px; font-weight:900; line-height:1.05; letter-spacing:-1px; margin-bottom:18px; }}
   .aur-pills {{ display:flex; gap:8px; flex-wrap:wrap; }}
-  .aur-pill {{ background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.85); font-size:12px; font-weight:600; padding:6px 14px; border-radius:999px; white-space:nowrap; }}
-  .aur-body {{ display:flex; justify-content:space-between; align-items:flex-start; gap:28px; padding:20px 36px 28px; }}
-  .aur-info {{ flex:1; display:grid; grid-template-columns:1fr 1fr; gap:18px; }}
-  .aur-col {{ min-width:0; }}
-  .aur-sub {{ font-size:12px; color:rgba(255,255,255,0.55); margin-top:3px; line-height:1.4; }}
-  .aur-qr {{ background:#fff; padding:12px; border-radius:16px; flex-shrink:0; box-shadow:0 8px 30px rgba(0,0,0,0.25); }}
-  .aur-qr .qr {{ width:150px; height:150px; }}
-  .aur-badge-row {{ padding:0 36px 16px; }}
-  .aur-stub {{ display:flex; align-items:center; gap:20px; padding:18px 36px; background:rgba(255,255,255,0.04); border-top:2px dashed rgba(255,255,255,0.15); position:relative; }}
+  .aur-pill {{ background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.8); font-size:12px; font-weight:600; padding:6px 14px; border-radius:999px; white-space:nowrap; }}
+  .aur-checkin-banner {{ background:rgba(16,185,129,0.12); border-top:1px solid rgba(16,185,129,0.2); border-bottom:1px solid rgba(16,185,129,0.2); padding:10px 40px; display:flex; align-items:center; gap:10px; }}
+  .aur-checkin-icon {{ font-size:14px; color:#34d399; }}
+  .aur-checkin-banner {{ font-size:12px; font-weight:700; color:#6ee7b7; letter-spacing:.3px; }}
+  .aur-body {{ display:flex; justify-content:space-between; align-items:center; gap:32px; padding:32px 40px; }}
+  .aur-info {{ flex:1; display:flex; flex-direction:column; gap:24px; }}
+  .aur-field {{ min-width:0; }}
+  .aur-sub {{ font-size:12px; color:rgba(255,255,255,0.45); margin-top:3px; line-height:1.5; }}
+  .aur-reg-id {{ font-size:13px; font-weight:700; color:rgba(255,255,255,0.7); letter-spacing:1px; margin-top:4px; font-family:monospace; }}
+  .aur-qr-wrap {{ display:flex; flex-direction:column; align-items:center; gap:8px; flex-shrink:0; }}
+  .aur-qr {{ background:#fff; padding:14px; border-radius:20px; box-shadow:0 8px 40px rgba(0,0,0,0.4); }}
+  .aur-qr .qr {{ width:180px; height:180px; border-radius:8px; }}
+  .aur-qr-hint {{ font-size:10px; color:rgba(255,255,255,0.35); font-weight:600; letter-spacing:.5px; text-transform:uppercase; }}
+  .aur-stub {{ border-top:2px dashed rgba(255,255,255,0.12); position:relative; overflow:hidden; }}
+  .aur-stub-inner {{ display:flex; align-items:center; gap:20px; padding:20px 40px; }}
   .aur-stub-left {{ flex:1; min-width:0; }}
-  .aur-stub-event {{ font-size:14px; font-weight:700; opacity:.9; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
-  .aur-stub-detail {{ font-size:11px; opacity:.5; margin-top:3px; }}
-  .aur-stub-id {{ font-size:10px; font-weight:800; letter-spacing:1.5px; opacity:.45; margin-top:4px; }}
-  .aur-stub-tear {{ position:absolute; right:20px; top:-10px; font-size:11px; opacity:.3; letter-spacing:1px; font-weight:600; }}
+  .aur-stub-event {{ font-size:14px; font-weight:700; opacity:.85; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
+  .aur-stub-detail {{ font-size:11px; opacity:.45; margin-top:4px; }}
+  .aur-stub-id {{ font-size:10px; font-weight:800; letter-spacing:1.5px; opacity:.35; margin-top:5px; font-family:monospace; }}
+  .aur-stub .qr-sm {{ width:68px; height:68px; border-radius:8px; opacity:.8; }}
+  .aur-stub-dots {{ position:absolute; top:-9px; left:0; right:0; height:18px; background:repeating-linear-gradient(90deg, transparent, transparent 8px, rgba(255,255,255,0.08) 8px, rgba(255,255,255,0.08) 10px); }}
 
   /* ── CLASSIC ─────────────────────────────────────────────────────────── */
   .classic {{ background:#fff; }}
