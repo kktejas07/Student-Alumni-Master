@@ -2214,6 +2214,147 @@ async def sync_internships(user: dict = Depends(get_current_user)):
     return {"synced": res, "status": integrations_status()}
 
 
+# ── Microsoft Teams Meeting Endpoints ─────────────────────────────────────────
+from integrations.teams import (
+    teams_status as _teams_status, create_teams_meeting as _create_teams_meeting,
+    get_meeting_attendance as _get_attendance, create_meeting_registration as _register,
+    build_oauth_url as _oauth_url, exchange_code_for_token as _exchange_code,
+)
+
+class TeamsMeetingCreate(BaseModel):
+    title: str
+    start_time: str
+    duration_minutes: int = 60
+    attendee_emails: Optional[List[str]] = None
+    seat_limit: Optional[int] = None
+    description: Optional[str] = ""
+    lobby_bypass: str = "everyone"
+    allow_external: bool = True
+
+class TeamsMeetingRegister(BaseModel):
+    full_name: str
+    email: str
+    phone: Optional[str] = None
+
+@api_router.post("/integrations/teams/oauth-url")
+async def teams_oauth_url():
+    """Get OAuth URL + state for Microsoft OAuth2 flow."""
+    import secrets as _secrets
+    tenant_id = os.environ.get("MS_TEAMS_TENANT_ID", "")
+    client_id = os.environ.get("MS_TEAMS_CLIENT_ID", "")
+    if not (tenant_id and client_id):
+        raise HTTPException(400, "Microsoft Teams integration not configured.")
+    state = _secrets.token_urlsafe(32)
+    redirect_uri = os.environ.get("MS_TEAMS_REDIRECT_URI", "https://studentalumni.ai/api/integrations/teams/callback")
+    auth_url = _oauth_url(redirect_uri, state)
+    return {"auth_url": auth_url, "state": state, "redirect_uri": redirect_uri}
+
+
+@api_router.post("/integrations/teams/meetings")
+async def create_teams_meeting_endpoint(payload: TeamsMeetingCreate, user: dict = Depends(get_current_user)):
+    """Create a Microsoft Teams meeting with seat limits and registration support."""
+    if user.get("role") not in ("admin", "super_admin", "organizer"):
+        raise HTTPException(403, "Access required")
+    try:
+        from datetime import datetime as _dt
+        start_dt = _dt.fromisoformat(payload.start_time.replace("Z", "+00:00"))
+    except (ValueError, AttributeError):
+        start_dt = _dt.now(timezone.utc)
+
+    meeting = await _create_teams_meeting(
+        title=payload.title,
+        start_time=start_dt,
+        duration_minutes=payload.duration_minutes,
+        attendee_emails=payload.attendee_emails or [],
+        seat_limit=payload.seat_limit,
+        description=payload.description or "",
+        lobby_bypass=payload.lobby_bypass,
+        allow_external=payload.allow_external,
+    )
+
+    meeting_doc = {
+        "meeting_id": meeting["meeting_id"],
+        "subject": meeting["subject"],
+        "join_url": meeting.get("join_url"),
+        "start_time": start_dt.isoformat(),
+        "duration_minutes": payload.duration_minutes,
+        "seat_limit": payload.seat_limit,
+        "attendee_emails": payload.attendee_emails or [],
+        "created_by": str(user.get("_id", "")),
+        "created_at": _dt.now(timezone.utc).isoformat(),
+        "is_mock": meeting.get("mock", False),
+        "registrations": [],
+    }
+    await db.teams_meetings.insert_one(meeting_doc)
+    return meeting
+
+
+@api_router.get("/integrations/teams/meetings")
+async def list_teams_meetings(user: dict = Depends(get_current_user)):
+    """List all Teams meetings (admin only)."""
+    if user.get("role") not in ("admin", "super_admin", "organizer"):
+        raise HTTPException(403, "Access required")
+    cursor = db.teams_meetings.find({}).sort("created_at", -1)
+    meetings = []
+    async for m in cursor:
+        m["_id"] = str(m["_id"])
+        meetings.append(m)
+    return {"meetings": meetings, "status": _teams_status()}
+
+
+@api_router.get("/integrations/teams/meetings/{meeting_id}")
+async def get_teams_meeting(meeting_id: str):
+    """Get a Teams meeting by ID."""
+    meeting = await db.teams_meetings.find_one({"meeting_id": meeting_id})
+    if not meeting:
+        raise HTTPException(404, "Meeting not found")
+    meeting["_id"] = str(meeting["_id"])
+    return meeting
+
+
+@api_router.delete("/integrations/teams/meetings/{meeting_id}")
+async def delete_teams_meeting(meeting_id: str, user: dict = Depends(get_current_user)):
+    """Delete a Teams meeting (admin only)."""
+    if user.get("role") not in ("admin", "super_admin"):
+        raise HTTPException(403, "Admin access required")
+    result = await db.teams_meetings.delete_one({"meeting_id": meeting_id})
+    if result.deleted_count == 0:
+        raise HTTPException(404, "Meeting not found")
+    return {"ok": True, "message": "Meeting deleted"}
+
+
+@api_router.post("/integrations/teams/meetings/{meeting_id}/register", include_in_schema=False)
+async def register_for_teams_meeting(meeting_id: str, payload: TeamsMeetingRegister):
+    """Public registration endpoint for non-logged-in users."""
+    result = await _register(
+        meeting_id=meeting_id,
+        db=db,
+        full_name=payload.full_name,
+        email=payload.email,
+        phone=payload.phone,
+        seat_limit=None,
+    )
+    if not result["success"]:
+        raise HTTPException(400, result["error"])
+    return result
+
+
+@api_router.get("/integrations/teams/meetings/{meeting_id}/attendance")
+async def get_teams_attendance(meeting_id: str, email: Optional[str] = None):
+    """Get attendance for a Teams meeting."""
+    meeting = await db.teams_meetings.find_one({"meeting_id": meeting_id})
+    if not meeting:
+        raise HTTPException(404, "Meeting not found")
+    records = await _get_attendance(meeting_id, email)
+    return {"meeting_id": meeting_id, "attendance": records}
+
+
+@api_router.get("/integrations/teams/status")
+async def teams_integration_status():
+    """Check if Microsoft Teams integration is configured."""
+    return _teams_status()
+
+
 # ----------------------------------------------------------------------------
 # Mentor Reviews — students rate completed sessions
 # ----------------------------------------------------------------------------
