@@ -19,6 +19,14 @@ export default function EchoTicketsPage() {
     venue: params.venue as string,
   } : undefined;
 
+  if (Platform.OS === 'web' && typeof document !== 'undefined') {
+    return (
+      <div style={{ width: '100%', minHeight: '100vh', background: '#08080F' }}>
+        <EchoTicketsConfirmationPage initialTab={initialTab} ticketInfo={ticketInfo} />
+      </div>
+    );
+  }
+
   return (
     <View style={s.root}>
       <EchoTicketsConfirmationPage initialTab={initialTab} ticketInfo={ticketInfo} />

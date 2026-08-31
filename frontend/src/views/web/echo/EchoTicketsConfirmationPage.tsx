@@ -12,6 +12,10 @@ interface ToastItem {
 
 interface EchoTicketsConfirmationPageProps {
   initialTab?: ViewTab;
+  hideHeaderNav?: boolean;
+  onViewTicket?: () => void;
+  onShowCoupons?: () => void;
+  onCloseModal?: () => void;
   ticketInfo?: {
     ticketId?: string;
     eventName?: string;
@@ -26,6 +30,10 @@ interface EchoTicketsConfirmationPageProps {
 
 export function EchoTicketsConfirmationPage({
   initialTab = 'success',
+  hideHeaderNav = false,
+  onViewTicket,
+  onShowCoupons,
+  onCloseModal,
   ticketInfo,
 }: EchoTicketsConfirmationPageProps) {
   const router = useRouter();
@@ -338,94 +346,8 @@ END:VCALENDAR`;
         </defs>
       </svg>
 
-      {/* Header Navbar */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 90, background: 'rgba(8,8,15,.9)', backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)', borderBottom: '1px solid var(--line)' }}>
-        <div style={{ maxWidth: '1360px', margin: '0 auto', padding: '16px 40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '24px', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '11px', flex: '0 0 auto', cursor: 'pointer' }} onClick={() => router.push('/')}>
-            <svg width="30" height="34" viewBox="0 0 300 350" style={{ flex: 'none' }}>
-              <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#tk-badge-o)" />
-              <path d="M150 30 L266 66 v112 c0 72 -58 110 -116 132 C92 288 34 250 34 178 V66 Z" fill="url(#tk-badge-i)" />
-              <text x="150" y="214" textAnchor="middle" style={{ fontFamily: "'Outfit', sans-serif", fontSize: '118px', fontWeight: 800, letterSpacing: '-5px', fill: '#FFFFFF' }}>SA</text>
-            </svg>
-            <span style={{ fontSize: '19px', fontWeight: 700, letterSpacing: '-.4px', whiteSpace: 'nowrap' }}>StudentAlumni</span>
-          </div>
-
-          <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: '28px' }}>
-            <span onClick={() => router.push('/')} style={{ fontSize: '15px', fontWeight: 500, color: 'var(--muted)', cursor: 'pointer' }}>Home</span>
-            <span onClick={() => router.push('/echo')} style={{ fontSize: '15px', fontWeight: 500, color: 'var(--muted)', cursor: 'pointer' }}>ECHO</span>
-            <span onClick={() => router.push('/verify')} style={{ fontSize: '15px', fontWeight: 500, color: 'var(--muted)', cursor: 'pointer' }}>Verify</span>
-            <span onClick={() => router.push('/contact')} style={{ fontSize: '15px', fontWeight: 500, color: 'var(--muted)', cursor: 'pointer' }}>Contact Us</span>
-          </div>
-
-          <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <span onClick={() => router.push('/login')} style={{ fontSize: '15px', fontWeight: 500, color: 'var(--muted)', cursor: 'pointer' }}>Sign in</span>
-            <span onClick={() => router.push('/dashboard')} style={{ fontSize: '15px', fontWeight: 700, color: '#FFFFFF', background: 'var(--violet)', borderRadius: '100px', padding: '12px 24px', cursor: 'pointer', whiteSpace: 'nowrap' }}>Get Started</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Sub-bar View Mode Picker */}
-      <div style={{ position: 'sticky', top: '73px', zIndex: 80, background: 'rgba(8,8,15,.86)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', borderBottom: '1px solid var(--line)' }}>
-        <div style={{ maxWidth: '1360px', margin: '0 auto', padding: '10px 40px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.5px', color: 'var(--dim)', flex: 'none' }}>SHOW VIEW</span>
-          <div style={{ flex: 1, minWidth: 0, display: 'flex', gap: '8px', overflowX: 'auto' }}>
-            {[
-              { id: 'success', label: 'Success' },
-              { id: 'failure', label: 'Failure' },
-              { id: 'tickets', label: 'Tickets' },
-              { id: 'coupons', label: 'Coupons' },
-            ].map((t) => {
-              const active = activeTab === t.id;
-              return (
-                <span
-                  key={t.id}
-                  onClick={() => handleTabChange(t.id as ViewTab)}
-                  style={{
-                    flex: 'none',
-                    fontSize: '12.5px',
-                    fontWeight: 600,
-                    color: active ? '#F4F4FA' : 'var(--muted)',
-                    background: active ? 'rgba(124,92,252,.2)' : 'transparent',
-                    border: active ? '1px solid #4B3FA8' : '1px solid var(--line)',
-                    borderRadius: '100px',
-                    padding: '8px 16px',
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                    transition: 'all .2s ease',
-                  }}
-                >
-                  {t.label}
-                </span>
-              );
-            })}
-          </div>
-          <span
-            onClick={replayAnimations}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              fontSize: '12.5px',
-              fontWeight: 600,
-              color: 'var(--violet-lt)',
-              border: '1px solid #2E2A55',
-              borderRadius: '100px',
-              padding: '8px 14px',
-              cursor: 'pointer',
-              flex: 'none',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M20 12a8 8 0 11-2.3-5.7M20 4v4h-4" />
-            </svg>
-            Replay Animations
-          </span>
-        </div>
-      </div>
-
       {/* Main Stage */}
-      <div key={animKey} style={{ position: 'relative', zIndex: 1, maxWidth: '1360px', margin: '0 auto', padding: '40px 40px 90px' }}>
+      <div key={animKey} style={{ position: 'relative', zIndex: 1, maxWidth: '1360px', margin: '0 auto', padding: '24px 20px 60px' }}>
         
         {/* ────────────────────────────────────────────────────────── */}
         {/* SUCCESS SCREEN */}
@@ -435,17 +357,15 @@ END:VCALENDAR`;
               <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.6px', color: 'var(--ok)', marginBottom: '14px' }}>SUCCESS CONFIRMATION</div>
               <div style={{ fontSize: '31px', fontWeight: 700, letterSpacing: '-1.3px', lineHeight: 1.14 }}>Registration confirmed, at full weight</div>
               <div style={{ fontSize: '15.5px', lineHeight: 1.65, color: 'var(--muted)', marginTop: '10px' }}>
-                A ribbon for page-level wins, a card for transactions, a toast for small ones. Each states what happened and what it unlocked.
+                Every perk, link, and next action delivered immediately upon registration.
               </div>
             </div>
 
-            {/* Main Success Card */}
-            <div style={{ position: 'relative', overflow: 'hidden', border: '1px solid var(--ok-line)', borderRadius: '20px', background: 'linear-gradient(150deg, rgba(52,211,153,.11), var(--panel) 62%)', marginBottom: '20px' }}>
-              <div style={{ position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', gap: '14px', background: 'linear-gradient(96deg, #0E9F6E, #34D399 62%, #2FB8C6)', padding: '15px 26px' }}>
-                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#04291D" strokeWidth="2.6" strokeLinecap="round" style={{ flex: 'none' }}>
-                  <path d="M5 12.5l4.5 4.5L19 7" />
-                </svg>
-                <span style={{ position: 'relative', fontSize: '14.5px', fontWeight: 700, letterSpacing: '.2px', color: '#04291D' }}>
+            {/* Success Card */}
+            <div style={{ position: 'relative', overflow: 'hidden', border: '1px solid var(--ok-line)', borderRadius: '24px', background: 'linear-gradient(145deg, rgba(16,185,129,.14) 0%, var(--panel) 50%)', boxShadow: '0 20px 50px rgba(0,0,0,.5)', marginBottom: '24px' }}>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '14px', borderBottom: '1px solid var(--ok-line)', background: 'var(--ok-tint)', padding: '14px 26px' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--ok)', boxShadow: '0 0 12px var(--ok)', flex: 'none' }} />
+                <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#FFFFFF', letterSpacing: '-.2px' }}>
                   Registration confirmed — you're on the {eName} list
                 </span>
                 <span style={{ position: 'relative', marginLeft: 'auto', fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.2px', color: '#04291D', whiteSpace: 'nowrap' }}>SEP 04</span>
@@ -465,7 +385,7 @@ END:VCALENDAR`;
                     Ticket <strong style={{ color: 'var(--text)', fontWeight: 600 }}>{tId}</strong> is issued against your SA ID and sent to <strong style={{ color: 'var(--violet-lt)' }}>{uEmail}</strong>. Free cancellation until Sep 1.
                   </div>
                   <div style={{ display: 'flex', gap: '9px', flexWrap: 'wrap' }}>
-                    <span onClick={() => handleTabChange('tickets')} className="tk-btn-hover" style={{ fontSize: '13.5px', fontWeight: 700, background: 'var(--ok)', color: '#04291D', borderRadius: '11px', padding: '12px 20px', cursor: 'pointer' }}>View my ticket</span>
+                    <span onClick={() => { if (onViewTicket) onViewTicket(); else handleTabChange('tickets'); }} className="tk-btn-hover" style={{ fontSize: '13.5px', fontWeight: 700, background: 'var(--ok)', color: '#04291D', borderRadius: '11px', padding: '12px 20px', cursor: 'pointer' }}>View my ticket</span>
                     <span onClick={handleAddToCalendar} className="tk-btn-hover" style={{ fontSize: '13.5px', fontWeight: 600, color: addedCal ? 'var(--ok)' : 'var(--muted)', border: '1px solid var(--line2)', borderRadius: '11px', padding: '12px 20px', cursor: 'pointer' }}>
                       {addedCal ? 'Added to calendar ✓' : 'Add to calendar'}
                     </span>
@@ -856,6 +776,93 @@ END:VCALENDAR`;
                 </div>
               </div>
             </div>
+
+            {/* Event Food & Beverage Coupons Section */}
+            <div style={{ marginTop: '32px', borderTop: '1px solid var(--line)', paddingTop: '28px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', flexWrap: 'wrap', gap: '12px' }}>
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.5px', color: 'var(--ok)', marginBottom: '4px' }}>EVENT FOOD & REFRESHMENT COUPONS</div>
+                  <div style={{ fontSize: '22px', fontWeight: 800, color: '#FFF' }}>Included Meal & Beverage Passes</div>
+                </div>
+                <span style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--ok)', background: 'var(--ok-tint)', border: '1px solid var(--ok-line)', borderRadius: '100px', padding: '6px 16px' }}>
+                  2 Food Passes Ready to Scan
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px' }}>
+                {/* Lunch Combo Food Pass */}
+                <div
+                  className="tk-hover-card"
+                  onClick={() =>
+                    setQrModalData({
+                      tId: 'FOOD-LUNCH-8841',
+                      eName: 'Complimentary Lunch Combo Pass',
+                      aName: aName,
+                      venue: 'SNIST Food Court (Counter 2)',
+                      date: 'Sep 04, 2026 · 01:00 PM – 03:00 PM',
+                      status: 'READY TO REDEEM',
+                    })
+                  }
+                  style={{ position: 'relative', overflow: 'hidden', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '20px', background: 'linear-gradient(135deg, rgba(16,185,129,0.09) 0%, var(--panel) 100%)', padding: '20px', cursor: 'pointer' }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '14px' }}>
+                    <span style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#34D399" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8h1a4 4 0 010 8h-1M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8zM6 1v3M10 1v3M14 1v3" /></svg>
+                    </span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '16px', fontWeight: 700, color: '#FFF' }}>Complimentary Lunch Combo Pass</div>
+                      <div style={{ fontSize: '13px', color: 'var(--muted)', marginTop: '3px' }}>Counter 2 · SNIST Main Food Court</div>
+                    </div>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#34D399', background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.35)', borderRadius: '8px', padding: '5px 10px', flex: 'none' }}>
+                      ACTIVE
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '12.5px', color: 'var(--muted)', marginBottom: '14px', lineHeight: 1.5 }}>
+                    Includes 1 Veg/Non-Veg Meal Combo + Soft Drink. Show QR code at food counter to claim.
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px dashed var(--line2)', paddingTop: '12px', fontSize: '13px' }}>
+                    <span style={{ fontFamily: 'monospace', color: '#A78BFA', fontWeight: 700 }}>FOOD-LUNCH-8841</span>
+                    <span style={{ color: 'var(--ok)', fontWeight: 700 }}>Show Food QR →</span>
+                  </div>
+                </div>
+
+                {/* Overnight Snack & Coffee Coupon */}
+                <div
+                  className="tk-hover-card"
+                  onClick={() =>
+                    setQrModalData({
+                      tId: 'FOOD-SNACK-9923',
+                      eName: 'Midnight Coffee & Energy Snacks',
+                      aName: aName,
+                      venue: 'Auditorium Lounge Counter',
+                      date: 'Sep 04, 2026 · 11:30 PM – 02:00 AM',
+                      status: 'UNLIMITED REFILLS',
+                    })
+                  }
+                  style={{ position: 'relative', overflow: 'hidden', border: '1px solid rgba(124,92,252,0.3)', borderRadius: '20px', background: 'linear-gradient(135deg, rgba(124,92,252,0.09) 0%, var(--panel) 100%)', padding: '20px', cursor: 'pointer' }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '14px' }}>
+                    <span style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'rgba(124,92,252,0.15)', border: '1px solid rgba(124,92,252,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 8h1a4 4 0 010 8h-1M2 8h15v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8zM6 1v3M10 1v3M14 1v3" /></svg>
+                    </span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '16px', fontWeight: 700, color: '#FFF' }}>Midnight Coffee & Energy Snacks</div>
+                      <div style={{ fontSize: '13px', color: 'var(--muted)', marginTop: '3px' }}>Unlimited Refills · Auditorium Lounge</div>
+                    </div>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#A78BFA', background: 'rgba(167,139,250,0.15)', border: '1px solid rgba(167,139,250,0.35)', borderRadius: '8px', padding: '5px 10px', flex: 'none' }}>
+                      UNLIMITED
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '12.5px', color: 'var(--muted)', marginBottom: '14px', lineHeight: 1.5 }}>
+                    Unlimited brewed coffee, Red Bull / energy drinks, and cookies during overnight sprint.
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px dashed var(--line2)', paddingTop: '12px', fontSize: '13px' }}>
+                    <span style={{ fontFamily: 'monospace', color: '#A78BFA', fontWeight: 700 }}>FOOD-SNACK-9923</span>
+                    <span style={{ color: 'var(--violet-lt)', fontWeight: 700 }}>Show Food QR →</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
@@ -1000,6 +1007,149 @@ END:VCALENDAR`;
               </div>
               <span onClick={() => router.push('/deals')} className="tk-btn-hover" style={{ fontSize: '13.5px', fontWeight: 700, background: 'var(--violet)', color: '#FFFFFF', borderRadius: '11px', padding: '12px 20px', cursor: 'pointer', flex: 'none' }}>Open Deals & Offers</span>
             </div>
+
+            {/* Verticals Tips, Coupons & Offers Board */}
+            <div style={{ marginTop: '40px', borderTop: '1px solid var(--line)', paddingTop: '32px' }}>
+              <div style={{ marginBottom: '24px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.6px', color: 'var(--violet-lt)', marginBottom: '6px' }}>PLATFORM VERTICAL PERKS & PRO TIPS</div>
+                <div style={{ fontSize: '24px', fontWeight: 800, color: '#FFF' }}>Tips, Coupons & Offers across all StudentAlumni Verticals</div>
+                <div style={{ fontSize: '14px', color: 'var(--muted)', marginTop: '6px' }}>
+                  Curated guidance, verified promo codes, and special benefits for Career, ECHO Events, Mentorship, Startups, and Health.
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '18px' }}>
+                {/* Vertical 1: Career & Placement */}
+                <div style={{ border: '1px solid #3A2E72', borderRadius: '20px', background: 'linear-gradient(145deg, rgba(124,92,252,0.08) 0%, var(--panel) 100%)', padding: '22px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: '#A78BFA' }}>CAREER & PLACEMENT</span>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#34D399', background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.3)', borderRadius: '6px', padding: '4px 8px' }}>FEATURED VERTICAL</span>
+                  </div>
+                  <div style={{ fontSize: '17px', fontWeight: 700, color: '#FFF' }}>Resume & Mock Interview Pass</div>
+                  
+                  <div style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--line2)', borderRadius: '12px', padding: '12px 14px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--dim)', marginBottom: '4px' }}>PRO TIP</div>
+                    <div style={{ fontSize: '13px', color: 'var(--muted)', lineHeight: 1.5 }}>
+                      Upload your ATS resume 48h before campus CDC drives for 3.2x higher interview callback rates.
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px dashed #4B3FA8', borderRadius: '12px', padding: '12px 14px', background: 'rgba(124,92,252,0.06)' }}>
+                    <div>
+                      <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#FFF', fontFamily: 'monospace' }}>SA-CAREER-PRO</div>
+                      <div style={{ fontSize: '11.5px', color: 'var(--muted)' }}>100% Free Unlimited ATS Scans</div>
+                    </div>
+                    <span onClick={() => handleCopyCoupon('SA-CAREER-PRO', 'saved ₹1,499')} style={{ fontSize: '12px', fontWeight: 700, color: '#A78BFA', cursor: 'pointer', background: 'rgba(124,92,252,0.18)', borderRadius: '6px', padding: '6px 12px' }}>
+                      {copiedCode === 'SA-CAREER-PRO' ? 'COPIED ✓' : 'COPY'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Vertical 2: ECHO Hackathons & Events */}
+                <div style={{ border: '1px solid rgba(52,211,153,0.3)', borderRadius: '20px', background: 'linear-gradient(145deg, rgba(52,211,153,0.08) 0%, var(--panel) 100%)', padding: '22px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: '#34D399' }}>ECHO EVENTS & HACKATHONS</span>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#34D399', background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.3)', borderRadius: '6px', padding: '4px 8px' }}>LIVE OFFER</span>
+                  </div>
+                  <div style={{ fontSize: '17px', fontWeight: 700, color: '#FFF' }}>VIP Gate Pass & Meal Voucher</div>
+                  
+                  <div style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--line2)', borderRadius: '12px', padding: '12px 14px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--dim)', marginBottom: '4px' }}>PRO TIP</div>
+                    <div style={{ fontSize: '13.5px', color: 'var(--muted)', lineHeight: 1.5 }}>
+                      Check in early at Gate 2 with your SA ID to receive VIP front-row seating & complimentary breakfast combos.
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px dashed rgba(52,211,153,0.4)', borderRadius: '12px', padding: '12px 14px', background: 'rgba(52,211,153,0.06)' }}>
+                    <div>
+                      <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#FFF', fontFamily: 'monospace' }}>ECHO-VIP-500</div>
+                      <div style={{ fontSize: '11.5px', color: 'var(--muted)' }}>₹500 OFF Premium Pass</div>
+                    </div>
+                    <span onClick={() => handleCopyCoupon('ECHO-VIP-500', 'saved ₹500')} style={{ fontSize: '12px', fontWeight: 700, color: '#34D399', cursor: 'pointer', background: 'rgba(52,211,153,0.18)', borderRadius: '6px', padding: '6px 12px' }}>
+                      {copiedCode === 'ECHO-VIP-500' ? 'COPIED ✓' : 'COPY'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Vertical 3: Alumni Mentorship */}
+                <div style={{ border: '1px solid rgba(245,179,66,0.3)', borderRadius: '20px', background: 'linear-gradient(145deg, rgba(245,179,66,0.08) 0%, var(--panel) 100%)', padding: '22px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: 'var(--warn)' }}>ALUMNI MENTORSHIP</span>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--warn)', background: 'var(--warn-tint)', border: '1px solid var(--warn-line)', borderRadius: '6px', padding: '4px 8px' }}>POPULAR</span>
+                  </div>
+                  <div style={{ fontSize: '17px', fontWeight: 700, color: '#FFF' }}>1-on-1 Mentor Session Credit</div>
+                  
+                  <div style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--line2)', borderRadius: '12px', padding: '12px 14px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--dim)', marginBottom: '4px' }}>PRO TIP</div>
+                    <div style={{ fontSize: '13.5px', color: 'var(--muted)', lineHeight: 1.5 }}>
+                      Prepare 3 specific domain questions before booking a 1-on-1 session to receive direct referral recommendations.
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px dashed var(--warn-line)', borderRadius: '12px', padding: '12px 14px', background: 'rgba(245,179,66,0.06)' }}>
+                    <div>
+                      <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#FFF', fontFamily: 'monospace' }}>MENTOR-100-FREE</div>
+                      <div style={{ fontSize: '11.5px', color: 'var(--muted)' }}>100% OFF First 1-on-1 Booking</div>
+                    </div>
+                    <span onClick={() => handleCopyCoupon('MENTOR-100-FREE', 'saved ₹1,200')} style={{ fontSize: '12px', fontWeight: 700, color: 'var(--warn)', cursor: 'pointer', background: 'var(--warn-tint)', borderRadius: '6px', padding: '6px 12px' }}>
+                      {copiedCode === 'MENTOR-100-FREE' ? 'COPIED ✓' : 'COPY'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Vertical 4: Startups & Incubator */}
+                <div style={{ border: '1px solid #3A2E72', borderRadius: '20px', background: 'linear-gradient(145deg, rgba(124,92,252,0.08) 0%, var(--panel) 100%)', padding: '22px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: '#A78BFA' }}>STARTUPS & INCUBATOR</span>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#A78BFA', background: 'rgba(124,92,252,0.15)', border: '1px solid rgba(124,92,252,0.3)', borderRadius: '6px', padding: '4px 8px' }}>GRANT PERK</span>
+                  </div>
+                  <div style={{ fontSize: '17px', fontWeight: 700, color: '#FFF' }}>$1,000 Cloud Credits & Legal Support</div>
+                  
+                  <div style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--line2)', borderRadius: '12px', padding: '12px 14px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--dim)', marginBottom: '4px' }}>PRO TIP</div>
+                    <div style={{ fontSize: '13.5px', color: 'var(--muted)', lineHeight: 1.5 }}>
+                      Submit your prototype pitch deck before Friday to qualify for the $5,000 SA Innovation Seed Grant.
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px dashed #4B3FA8', borderRadius: '12px', padding: '12px 14px', background: 'rgba(124,92,252,0.06)' }}>
+                    <div>
+                      <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#FFF', fontFamily: 'monospace' }}>AWS-CLOUD-1000</div>
+                      <div style={{ fontSize: '11.5px', color: 'var(--muted)' }}>$1,000 AWS & Cloud Vouchers</div>
+                    </div>
+                    <span onClick={() => handleCopyCoupon('AWS-CLOUD-1000', 'saved $1,000 credits')} style={{ fontSize: '12px', fontWeight: 700, color: '#A78BFA', cursor: 'pointer', background: 'rgba(124,92,252,0.18)', borderRadius: '6px', padding: '6px 12px' }}>
+                      {copiedCode === 'AWS-CLOUD-1000' ? 'COPIED ✓' : 'COPY'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Vertical 5: Student Health & SA Care */}
+                <div style={{ border: '1px solid rgba(52,211,153,0.3)', borderRadius: '20px', background: 'linear-gradient(145deg, rgba(52,211,153,0.08) 0%, var(--panel) 100%)', padding: '22px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.2px', color: '#34D399' }}>STUDENT HEALTH & CARE</span>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#34D399', background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.3)', borderRadius: '6px', padding: '4px 8px' }}>WELLNESS PERK</span>
+                  </div>
+                  <div style={{ fontSize: '17px', fontWeight: 700, color: '#FFF' }}>Annual Health & Telehealth Pass</div>
+                  
+                  <div style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--line2)', borderRadius: '12px', padding: '12px 14px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--dim)', marginBottom: '4px' }}>PRO TIP</div>
+                    <div style={{ fontSize: '13.5px', color: 'var(--muted)', lineHeight: 1.5 }}>
+                      Schedule your annual preventive health checkup on campus to claim your free fitness & wellness passes.
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px dashed rgba(52,211,153,0.4)', borderRadius: '12px', padding: '12px 14px', background: 'rgba(52,211,153,0.06)' }}>
+                    <div>
+                      <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#FFF', fontFamily: 'monospace' }}>CARE-CHECKUP-FREE</div>
+                      <div style={{ fontSize: '11.5px', color: 'var(--muted)' }}>100% Covered Dental & Health Scan</div>
+                    </div>
+                    <span onClick={() => handleCopyCoupon('CARE-CHECKUP-FREE', 'saved ₹1,999')} style={{ fontSize: '12px', fontWeight: 700, color: '#34D399', cursor: 'pointer', background: 'rgba(52,211,153,0.18)', borderRadius: '6px', padding: '6px 12px' }}>
+                      {copiedCode === 'CARE-CHECKUP-FREE' ? 'COPIED ✓' : 'COPY'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
@@ -1075,65 +1225,6 @@ END:VCALENDAR`;
         })}
       </div>
 
-      {/* Footer */}
-      <div style={{ borderTop: '1px solid var(--line)', padding: '48px 40px 40px', background: 'rgba(5,5,10,.6)' }}>
-        <div style={{ maxWidth: '1360px', margin: '0 auto' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '34px' }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '11px', marginBottom: '16px' }}>
-                <svg width="28" height="33" viewBox="0 0 300 350" style={{ flex: 'none' }}>
-                  <path d="M150 8 L288 52 v128 c0 84 -70 128 -138 154 C82 308 12 264 12 180 V52 Z" fill="url(#tk-badge-o)" />
-                  <text x="150" y="214" textAnchor="middle" style={{ fontFamily: "'Outfit', sans-serif", fontSize: '118px', fontWeight: 800, fill: '#FFFFFF' }}>SA</text>
-                </svg>
-                <span style={{ fontSize: '17px', fontWeight: 700 }}>StudentAlumni</span>
-              </div>
-              <div style={{ fontSize: '14.5px', lineHeight: 1.65, color: 'var(--muted)', maxWidth: '320px' }}>
-                The intelligent career companion built for the <strong style={{ color: 'var(--text)' }}>next generation</strong> of students.
-              </div>
-            </div>
-
-            <div>
-              <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.6px', color: 'var(--dim)', marginBottom: '20px' }}>RESOURCES</div>
-              <div style={{ display: 'grid', gap: '14px', fontSize: '14.5px', color: 'var(--muted)' }}>
-                <span onClick={() => router.push('/verify')} style={{ cursor: 'pointer' }}>Verify Certificate</span>
-                <span onClick={() => router.push('/blog')} style={{ cursor: 'pointer' }}>Blog</span>
-                <span onClick={() => router.push('/help-center')} style={{ cursor: 'pointer' }}>Help center</span>
-                <span onClick={() => router.push('/community')} style={{ cursor: 'pointer' }}>Community</span>
-              </div>
-            </div>
-
-            <div>
-              <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.6px', color: 'var(--dim)', marginBottom: '20px' }}>LEGAL & COMPLIANCE</div>
-              <div style={{ display: 'grid', gap: '14px', fontSize: '14.5px', color: 'var(--muted)' }}>
-                <span>DPDP Act 2023 Compliant</span>
-                <span>GDPR & SOC 2 Type II</span>
-                <span onClick={() => router.push('/policy')} style={{ cursor: 'pointer' }}>Privacy Policy & Terms</span>
-              </div>
-            </div>
-
-            <div>
-              <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1.6px', color: 'var(--dim)', marginBottom: '20px' }}>NEWSLETTER</div>
-              <div style={{ fontSize: '13.5px', color: 'var(--muted)', marginBottom: '12px' }}>One email a month. New openings & mentor drops.</div>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <input
-                  type="email"
-                  placeholder="you@college.edu"
-                  style={{ flex: 1, minWidth: 0, border: '1px solid var(--line)', borderRadius: '11px', background: 'rgba(0,0,0,.25)', padding: '10px 14px', fontSize: '13.5px', color: '#FFF', outline: 'none' }}
-                />
-                <button
-                  onClick={handleSubscribe}
-                  style={{ background: 'var(--violet)', color: '#FFF', border: 'none', borderRadius: '11px', padding: '10px 16px', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
-                >
-                  {subscribed ? 'Subscribed ✓' : 'Subscribe'}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--line)', marginTop: '36px', paddingTop: '20px', fontSize: '13.5px', color: 'var(--muted)', flexWrap: 'wrap', gap: '16px' }}>
-            <span>© 2026 StudentAlumni.ai · Built for students across all campuses.</span>
-            <span>Free for students · Instant setup</span>
-          </div>
       {/* QR PASS MODAL */}
       {qrModalData && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(4,4,10,0.85)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>

@@ -296,7 +296,7 @@ function EmptyConnectAI({ gradient, textColor, subColor, borderColor }: {
         Agent K runs every action with the AI provider YOU connect.
       </Text>
 
-      <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}>
+      <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16, flexWrap: 'wrap', justifyContent: 'center' }}>
         <Pressable
           onPress={() => setMode('your')}
           style={[
@@ -307,13 +307,22 @@ function EmptyConnectAI({ gradient, textColor, subColor, borderColor }: {
           <Text style={[s.chipText, { color: mode === 'your' ? gradient[0] : subColor }]}>Your API Key</Text>
         </Pressable>
         <Pressable
-          onPress={() => setMode('featherless')}
+          onPress={() => setMode('ox-reasoning')}
           style={[
             s.chip,
-            { borderColor: mode === 'featherless' ? gradient[0] : borderColor, backgroundColor: mode === 'featherless' ? gradient[0] + '14' : 'transparent' }
+            { borderColor: mode === 'ox-reasoning' ? '#A78BFA' : borderColor, backgroundColor: mode === 'ox-reasoning' ? 'rgba(167,139,250,0.15)' : 'transparent' }
           ]}
         >
-          <Text style={[s.chipText, { color: mode === 'featherless' ? gradient[0] : subColor }]}>Featherless API Key</Text>
+          <Text style={[s.chipText, { color: mode === 'ox-reasoning' ? '#A78BFA' : subColor }]}>⚡ OX-Reasoning Engine (o3-mini)</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => setMode('arc-agi')}
+          style={[
+            s.chip,
+            { borderColor: mode === 'arc-agi' ? '#34D399' : borderColor, backgroundColor: mode === 'arc-agi' ? 'rgba(52,211,153,0.15)' : 'transparent' }
+          ]}
+        >
+          <Text style={[s.chipText, { color: mode === 'arc-agi' ? '#34D399' : subColor }]}>🧩 ARC-AGI Solver</Text>
         </Pressable>
       </View>
 

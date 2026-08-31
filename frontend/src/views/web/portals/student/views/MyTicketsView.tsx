@@ -10,6 +10,7 @@ import { GlassCard } from '../glass';
 import { EmptyState } from '../EmptyState';
 import { api, tokenStore } from '@/src/models/services/api';
 import { resolveImageUrl } from '@/src/models/services/api';
+import { EchoTicketsConfirmationPage } from '../../../echo/EchoTicketsConfirmationPage';
 
 type Coupon = {
   coupon_code: string;
@@ -93,6 +94,15 @@ export function MyTicketsView() {
   };
 
   const totalPaid = items.reduce((a, i) => a + Number(i.invoice?.amount || 0), 0);
+
+  if (Platform.OS === 'web' && typeof document !== 'undefined') {
+    return (
+      <View style={{ gap: 24 }}>
+        <EchoTicketsConfirmationPage initialTab="tickets" hideHeaderNav />
+        <EchoTicketsConfirmationPage initialTab="coupons" hideHeaderNav />
+      </View>
+    );
+  }
 
   return (
     <View style={{ gap: 20 }}>
