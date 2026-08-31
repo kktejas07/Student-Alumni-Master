@@ -159,7 +159,7 @@ function CustomVideosEditor({ videos, onChange }: { videos: any[]; onChange: (v:
  *   - Autosave to sessionStorage + unsaved changes warning.
  *   - Full shared Media Library panel.
  */
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View, Text, StyleSheet, Pressable, Platform, ActivityIndicator,
   TextInput, Modal, ScrollView, Image,
