@@ -1428,7 +1428,12 @@ def _build_ticket_html(reg: dict, showcase: dict, template_id: Optional[str] = N
     if template_id not in TICKET_TEMPLATES:
         template_id = DEFAULT_TICKET_TEMPLATE
 
-    qr = reg.get("qr_code_base64") or ""
+    qr = reg.get("qr_code_base64")
+    if not qr and reg.get("id"):
+        frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+        qr = generate_qr_code(f"{frontend_url}/echo/scan/{reg.get('id')}")
+    elif not qr:
+        qr = ""
     brand = "STUDENT ALUMNI · ECHO"
     organizer = esc(showcase.get("organizer_name") or "Student Alumni Cell")
     title = esc(reg.get("showcase_title") or showcase.get("title") or "Event")
@@ -1718,7 +1723,12 @@ def _ticket_email_block(reg: dict, showcase: dict, ticket_url: str) -> str:
     Professional design matching the downloadable pass. Includes sponsor logos
     when available. Email-safe HTML (inline styles, table layout).
     """
-    qr = reg.get("qr_code_base64") or ""
+    qr = reg.get("qr_code_base64")
+    if not qr and reg.get("id"):
+        frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+        qr = generate_qr_code(f"{frontend_url}/echo/scan/{reg.get('id')}")
+    elif not qr:
+        qr = ""
     title = reg.get("showcase_title") or showcase.get("title") or "Event"
     reg_id = reg.get("id") or ""
     event_date = _event_date_label(showcase)
@@ -5223,7 +5233,7 @@ async def check_in_attendee(payload: TicketVerifySchema, request: Request, _=Dep
     now_iso = _now()
     first_checkin = not bool(reg.get("checked_in_at"))
     
-    update_data = {"checked_in_at": now_iso}
+    update_data: dict[str, Any] = {"checked_in_at": now_iso}
     if payload.lat is not None and payload.lng is not None:
         update_data["scanned_lat"] = payload.lat
         update_data["scanned_lng"] = payload.lng
