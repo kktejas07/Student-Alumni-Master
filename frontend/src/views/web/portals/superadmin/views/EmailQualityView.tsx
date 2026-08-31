@@ -206,7 +206,17 @@ export function EmailQualityView() {
       });
       flash(`Suppressed ${emails.length} emails`);
       load();
-      if (auditResults) runAudit();
+      if (auditResults) {
+        // Optimistically remove the suppressed emails from the audit list instead of re-running it
+        const emailSet = new Set(emails);
+        setAuditResults((prev: any) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            issues: prev.issues.filter((issue: any) => !emailSet.has(issue.email))
+          };
+        });
+      }
     } catch (e: any) {
       flash(e?.message || 'Could not suppress', 'error');
     }
