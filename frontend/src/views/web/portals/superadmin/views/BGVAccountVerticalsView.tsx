@@ -147,7 +147,6 @@ export function BGVAccountVerticalsView() {
   // 5 BGV Enhancements State
   const [purgeModalOpen, setPurgeModalOpen] = useState(false);
   const [purgePreview, setPurgePreview] = useState<any>(null);
-  const [purgeBusy, setPurgeBusy] = useState(false);
   const [visaReadiness, setVisaReadiness] = useState<any>(null);
   const [visaBusy, setVisaBusy] = useState(false);
   const [claimCampaignBusy, setClaimCampaignBusy] = useState(false);
@@ -1455,6 +1454,9 @@ export function BGVAccountVerticalsView() {
               ))}
             </View>
           </Card>
+        </Animated.View>
+      )}
+
       {/* ================================================================= */}
       {/* TAB: Enterprise BGV API Keys & Webhooks                           */}
       {/* ================================================================= */}

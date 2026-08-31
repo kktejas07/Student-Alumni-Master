@@ -415,6 +415,8 @@ export function TalentPoolView() {
                     </Pressable>
 
                     {/* SA-ID (Unique Candidate Identifier) */}
+                    <View style={{ width: 110, justifyContent: 'center' }}>
+                      <View style={{ paddingHorizontal: 7, paddingVertical: 2.5, borderRadius: 6, backgroundColor: 'rgba(245,158,11,0.12)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.3)', alignSelf: 'flex-start' }}>
                         <Text style={{ color: '#FBBF24', fontFamily: FONTS.bold, fontSize: 10.5, letterSpacing: 0.3 }}>
                           {saId}
                         </Text>

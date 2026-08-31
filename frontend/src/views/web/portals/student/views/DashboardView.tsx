@@ -291,6 +291,10 @@ export function DashboardView() {
                 }}
               />
             ))}
+          </div>
+        </div>
+      </div>
+
       {/* ── Official Student Alumni Community Channels Banner ── */}
       <div style={{ marginTop: '16px', background: 'linear-gradient(135deg, rgba(124,92,252,0.12) 0%, rgba(16,185,129,0.1) 100%)', border: '1px solid rgba(124,92,252,0.3)', borderRadius: '16px', padding: '18px 24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
