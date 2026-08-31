@@ -11,7 +11,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, ActivityIndicator, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Video, Calendar, Users, CheckCircle, Copy, Share2, Trash2, Clock, Plus, Save } from 'lucide-react-native';
+import { Video, Calendar, Users, CheckCircle, Copy, Share2, Trash2, Clock, Plus, Save, ChevronDown } from 'lucide-react-native';
 import { SAC, useSAC, FONTS } from '../tokens';
 import { request } from '@/src/models/services/api';
 
@@ -60,16 +60,42 @@ export function TeamsMeetingsView() {
 
   useEffect(() => { fetchMeetings(); }, [fetchMeetings]);
 
+  // ─── Generate date/time options for dropdowns ─────────────────────────
+  const today = new Date();
+  const dateOptions = [];
+  for (let i = 0; i < 31; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    const dateStr = d.toISOString().split('T')[0];
+    const label = d.toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' });
+    dateOptions.push({ value: dateStr, label });
+  }
+
+  const timeOptions = [];
+  for (let h = 0; h < 24; h++) {
+    for (let m = 0; m < 60; m += 30) {
+      const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      const label = new Date(2000, 0, 1, h, m).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+      timeOptions.push({ value: timeStr, label });
+    }
+  }
+
+  const durationOptions = [30, 45, 60, 90, 120, 180];
+
   // ─── Create Meeting ──────────────────────────────────────────────────
   const [form, setForm] = useState({
     title: '',
-    date: '',
-    time: '',
+    date: dateOptions[0]?.value || '',
+    time: timeOptions.find(t => t.label.includes('9:00 AM'))?.value || timeOptions[8]?.value || '09:00',
     duration: 60,
     seat_limit: '',
     description: '',
     attendee_emails: '',
   });
+
+  const [dateOpen, setDateOpen] = useState(false);
+  const [timeOpen, setTimeOpen] = useState(false);
+  const [durationOpen, setDurationOpen] = useState(false);
 
   const handleCreate = async () => {
     if (!form.title || !form.date || !form.time) {
@@ -238,7 +264,7 @@ export function TeamsMeetingsView() {
                   <Users size={12} color="#C4B5FD" />
                   <Text style={s.actionBtnText}>Registration form</Text>
                 </Pressable>
-                  <Pressable onPress={() => {
+                <Pressable onPress={() => {
                   if (typeof window !== 'undefined') {
                     const regUrl = `${window.location.origin}/teams/register/${m.meeting_id}`;
                     navigator.clipboard.writeText(regUrl);
@@ -246,7 +272,7 @@ export function TeamsMeetingsView() {
                   }
                 }} style={s.actionBtn}>
                   <Share2 size={12} color="#C4B5FD" />
-                  <Text style={s.actionBtnText}>Copy reg link</Text>
+                  <Text style={s.actionBtnText}>Invite</Text>
                 </Pressable>
                 <Pressable onPress={() => deleteMeeting(m.meeting_id)} style={[s.actionBtn, { borderColor: 'rgba(248,113,134,0.3)' }]}>
                   <Trash2 size={12} color="#F87171" />
@@ -270,16 +296,84 @@ export function TeamsMeetingsView() {
                 style={s.input} value={form.title} onChangeText={(t) => setForm({ ...form, title: t })} />
 
               <Text style={s.inputLabel}>Date</Text>
-              <TextInput placeholder="2026-09-15" placeholderTextColor={SAC.muted}
-                style={s.input} value={form.date} onChangeText={(t) => setForm({ ...form, date: t })} />
+              <Pressable onPress={() => setDateOpen(true)} style={s.dropdown}>
+                <Text style={s.dropdownText}>
+                  {dateOptions.find(d => d.value === form.date)?.label || 'Select date'}
+                </Text>
+                <ChevronDown size={14} color={SAC.muted} />
+              </Pressable>
+              {dateOpen && (
+                <Modal transparent visible={dateOpen} animationType="fade" onRequestClose={() => setDateOpen(false)}>
+                  <View style={s.modalOverlay}>
+                    <View style={[s.modalContent, { maxHeight: 400, padding: 16 }]}>
+                      <Text style={s.modalTitle}>Select Date</Text>
+                      <ScrollView style={{ maxHeight: 300 }}>
+                        {dateOptions.map((d) => (
+                          <Pressable
+                            key={d.value}
+                            onPress={() => { setForm({ ...form, date: d.value }); setDateOpen(false); }}
+                            style={[s.dropdownOption, form.date === d.value && s.dropdownOptionSelected]}
+                          >
+                            <Text style={[s.dropdownOptionText, form.date === d.value && s.dropdownOptionTextSelected]}>{d.label}</Text>
+                          </Pressable>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  </View>
+                </Modal>
+              )}
 
               <Text style={s.inputLabel}>Time (UTC)</Text>
-              <TextInput placeholder="14:00" placeholderTextColor={SAC.muted}
-                style={s.input} value={form.time} onChangeText={(t) => setForm({ ...form, time: t })} />
+              <Pressable onPress={() => setTimeOpen(true)} style={s.dropdown}>
+                <Text style={s.dropdownText}>
+                  {timeOptions.find(t => t.value === form.time)?.label || 'Select time'}
+                </Text>
+                <ChevronDown size={14} color={SAC.muted} />
+              </Pressable>
+              {timeOpen && (
+                <Modal transparent visible={timeOpen} animationType="fade" onRequestClose={() => setTimeOpen(false)}>
+                  <View style={s.modalOverlay}>
+                    <View style={[s.modalContent, { maxHeight: 400, padding: 16 }]}>
+                      <Text style={s.modalTitle}>Select Time (UTC)</Text>
+                      <ScrollView style={{ maxHeight: 300 }}>
+                        {timeOptions.map((t) => (
+                          <Pressable
+                            key={t.value}
+                            onPress={() => { setForm({ ...form, time: t.value }); setTimeOpen(false); }}
+                            style={[s.dropdownOption, form.time === t.value && s.dropdownOptionSelected]}
+                          >
+                            <Text style={[s.dropdownOptionText, form.time === t.value && s.dropdownOptionTextSelected]}>{t.label}</Text>
+                          </Pressable>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  </View>
+                </Modal>
+              )}
 
-              <Text style={s.inputLabel}>Duration (minutes)</Text>
-              <TextInput placeholder="60" placeholderTextColor={SAC.muted}
-                style={s.input} value={String(form.duration)} onChangeText={(t) => setForm({ ...form, duration: Number(t) || 60 })} keyboardType="numeric" />
+              <Text style={s.inputLabel}>Duration</Text>
+              <Pressable onPress={() => setDurationOpen(true)} style={s.dropdown}>
+                <Text style={s.dropdownText}>{durationOptions.find(d => d === form.duration)?.toString() || '60'} minutes</Text>
+                <ChevronDown size={14} color={SAC.muted} />
+              </Pressable>
+              {durationOpen && (
+                <Modal transparent visible={durationOpen} animationType="fade" onRequestClose={() => setDurationOpen(false)}>
+                  <View style={s.modalOverlay}>
+                    <View style={[s.modalContent, { maxHeight: 300, padding: 16 }]}>
+                      <Text style={s.modalTitle}>Select Duration</Text>
+                      {durationOptions.map((d) => (
+                        <Pressable
+                          key={d}
+                          onPress={() => { setForm({ ...form, duration: d }); setDurationOpen(false); }}
+                          style={[s.dropdownOption, form.duration === d && s.dropdownOptionSelected]}
+                        >
+                          <Text style={[s.dropdownOptionText, form.duration === d && s.dropdownOptionTextSelected]}>{d} minutes</Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  </View>
+                </Modal>
+              )}
 
               <Text style={s.inputLabel}>Seat Limit (leave blank for unlimited)</Text>
               <TextInput placeholder="e.g. 50" placeholderTextColor={SAC.muted}
@@ -342,6 +436,40 @@ export function TeamsMeetingsView() {
                   ))}
                 </ScrollView>
               )}
+
+              {/* Invite via Email */}
+              <View style={s.inviteSection}>
+                <Text style={s.inviteLabel}>Registration link</Text>
+                <View style={s.inviteUrlRow}>
+                  <Text style={s.inviteUrl} numberOfLines={1}>
+                    {typeof window !== 'undefined' ? `${window.location.origin}/teams/register/${regOpen.meeting_id}` : `/teams/register/${regOpen.meeting_id}`}
+                  </Text>
+                  <Pressable
+                    onPress={() => {
+                      const url = `${window.location.origin}/teams/register/${regOpen.meeting_id}`;
+                      navigator.clipboard.writeText(url);
+                      alert('Registration link copied!');
+                    }}
+                    style={s.inviteCopyBtn}
+                  >
+                    <Copy size={12} color="#fff" />
+                  </Pressable>
+                </View>
+                <Pressable
+                  onPress={() => {
+                    const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/teams/register/${regOpen.meeting_id}`;
+                    const subject = encodeURIComponent(`Invitation: ${regOpen.subject}`);
+                    const body = encodeURIComponent(`You're invited to: ${regOpen.subject}\n\nPlease register here: ${url}\n\nDuration: ${regOpen.duration_minutes} minutes`);
+                    if (typeof window !== 'undefined') {
+                      window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
+                    }
+                  }}
+                  style={s.inviteEmailBtn}
+                >
+                  <Share2 size={14} color="#fff" />
+                  <Text style={s.inviteEmailBtnText}>Invite via Email</Text>
+                </Pressable>
+              </View>
 
               <Pressable onPress={() => {
                 setRegOpen(null);
@@ -407,6 +535,16 @@ const s = StyleSheet.create({
     borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, color: SAC.text,
     fontFamily: FONTS.med, fontSize: 14, marginBottom: 14,
   },
+  dropdown: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: SAC.line,
+    borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, marginBottom: 14,
+  },
+  dropdownText: { color: SAC.text, fontFamily: FONTS.med, fontSize: 14 },
+  dropdownOption: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: 6 },
+  dropdownOptionSelected: { backgroundColor: 'rgba(139,92,246,0.15)' },
+  dropdownOptionText: { color: SAC.text, fontFamily: FONTS.med, fontSize: 13 },
+  dropdownOptionTextSelected: { color: '#8B5CF6', fontFamily: FONTS.bold, fontSize: 13 },
   modalActions: { flexDirection: 'row', gap: 12, marginTop: 8 },
   modalCancelBtn: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: SAC.line },
   modalCancelText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 14 },
@@ -420,4 +558,18 @@ const s = StyleSheet.create({
   regName: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 13 },
   regEmail: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 },
   regDate: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 },
+  inviteSection: { marginTop: 8, gap: 8 },
+  inviteLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
+  inviteUrlRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: 10, padding: 10,
+  },
+  inviteUrl: { color: SAC.text, fontFamily: FONTS.med, fontSize: 12, flex: 1 },
+  inviteCopyBtn: { backgroundColor: SAC.violet, borderRadius: 8, padding: 6 },
+  inviteEmailBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: SAC.violet, borderRadius: 10, paddingVertical: 10,
+    justifyContent: 'center',
+  },
+  inviteEmailBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13 },
 });

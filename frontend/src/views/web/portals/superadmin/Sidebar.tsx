@@ -10,7 +10,7 @@ import {
   LayoutDashboard, Building2, GraduationCap, UserCheck, Users, Calendar, CreditCard,
   BarChart3, CheckCircle, Sparkles, Settings, Workflow, LogOut,
   Upload, Handshake, Megaphone, UserPlus, Mail, Award, ShieldOff, ShieldCheck, Bot, Radar,
-  MicrosoftTeams,
+  Video,
 } from 'lucide-react-native';
 import { SAC, useSAC, FONTS, resolveColors } from './tokens';
 import { Badge } from './atoms';
@@ -77,8 +77,8 @@ export const NAV: Array<{ id: SuperAdminNavId; label: string; Icon: any; count?:
   { id: 'approvals',       label: 'Approvals',           Icon: CheckCircle,      count: 12 },
   { id: 'ai-insights',     label: 'AI Insights',         Icon: Sparkles,         count: 6 },
   { id: 'workflows',       label: 'Workflows',           Icon: Workflow,         tag: 'NEW' },
+  { id: 'teams',           label: 'Teams Meetings',      Icon: Video,             tag: 'NEW' },
   { id: 'settings',        label: 'Settings',            Icon: Settings },
-  { id: 'teams',           label: 'Teams Meetings',      Icon: MicrosoftTeams,  tag: 'NEW' },
 ];
 
 /* ─── Component ───────────────────────────────────────────────────────── */
