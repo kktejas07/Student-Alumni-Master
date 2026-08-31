@@ -6003,6 +6003,14 @@ async def scan_coupon_get(code: str, request: Request):
     # 1) Coupon lookup (case-insensitive)
     coupon = await db.echo_coupons.find_one({"coupon_code": raw.upper()})
     if coupon:
+        slug = coupon.get("slug")
+        session_locked = False
+        showcase = await db.echo_showcases.find_one({"slug": slug}) if slug else None
+        if showcase:
+            sessions = showcase.get("sessions") or []
+            locked_keys = {s["key"] for s in sessions if s.get("locked")}
+            if coupon.get("session_key") in locked_keys:
+                session_locked = True
         return {
             "ok": True,
             "type": "coupon",
@@ -6012,7 +6020,9 @@ async def scan_coupon_get(code: str, request: Request):
             "session_day": coupon.get("session_day") or 1,
             "used": coupon.get("used", False),
             "used_at": coupon.get("used_at"),
-            "slug": coupon.get("slug"),
+            "slug": slug,
+            "session_locked": session_locked,
+            "event_name": showcase.get("showcase_title") if showcase else "",
         }
 
     # 2) Ticket / entry-pass lookup
@@ -6052,6 +6062,96 @@ async def scan_coupon_get(code: str, request: Request):
         "checked_in": bool(reg.get("checked_in_at")),
         "checked_in_at": reg.get("checked_in_at"),
     }
+
+
+@router.get("/ics/{slug}")
+async def echo_ics(slug: str, request: Request):
+    """Generate an iCalendar (.ics) file for an ECHO showcase event.
+
+    Used for 'Add to calendar' flows from the payment success screen.
+    """
+    from fastapi.responses import Response
+    from datetime import datetime as _dt
+
+    db = _get_db(request)
+    showcase = await db.echo_showcases.find_one(_slug_query(slug))
+    if not showcase:
+        raise HTTPException(status_code=404, detail="Showcase not found")
+
+    def _esc(s: str) -> str:
+        return (s or "").replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,").replace("\n", "\\n")
+
+    def _dt(v) -> str:
+        try:
+            if isinstance(v, str):
+                v = _dt.strptime(v, "%Y-%m-%d")
+            if isinstance(v, _dt):
+                v = v
+            else:
+                from datetime import date as _d
+                if isinstance(v, _d):
+                    v = _dt.combine(v, _dt.min.time())
+            return v.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        except Exception:
+            return _dt.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+    title = _esc(showcase.get("title") or showcase.get("showcase_title") or "ECHO Event")
+    desc = _esc((showcase.get("description") or showcase.get("subtitle") or "")[:600])
+    venue = _esc(showcase.get("venue") or showcase.get("location") or "Online")
+    dates_raw = showcase.get("dates") or showcase.get("date") or showcase.get("date_pill") or ""
+    time_str = showcase.get("time") or "09:00 AM"
+
+    start_date = _dt(datetime.now(timezone.utc))
+    end_date = _dt(datetime.now(timezone.utc))
+
+    if dates_raw:
+        try:
+            parts = dates_raw.replace("–", "-").replace(" - ", " to ").split(" to ")
+            start_part = parts[0].strip()
+            end_part = parts[1].strip() if len(parts) > 1 else start_part
+            for fmt in ["%B %d, %Y", "%b %d, %Y", "%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y"]:
+                try:
+                    start_date = _dt(datetime.strptime(start_part, fmt))
+                    break
+                except ValueError:
+                    continue
+            for fmt in ["%B %d, %Y", "%b %d, %Y", "%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y"]:
+                try:
+                    end_date = _dt(datetime.strptime(end_part, fmt))
+                    break
+                except ValueError:
+                    end_date = start_date
+        except Exception:
+            pass
+
+    uid = f"{slug}@studentalumni.in"
+    now = _dt(datetime.now(timezone.utc))
+    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+
+    ics = "\r\n".join([
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//StudentAlumni//ECHO//EN",
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH",
+        "BEGIN:VEVENT",
+        f"UID:{uid}",
+        f"DTSTAMP:{now}",
+        f"DTSTART:{start_date}",
+        f"DTEND:{end_date}",
+        f"SUMMARY:{title}",
+        f"DESCRIPTION:{desc}",
+        f"LOCATION:{venue}",
+        f"URL:{_esc(frontend_url + '/echo/' + slug)}",
+        "END:VEVENT",
+        "END:VCALENDAR",
+    ])
+
+    return Response(
+        content=ics,
+        media_type="text/calendar",
+        headers={"Content-Disposition": f'attachment; filename="{slug}.ics"'},
+    )
 
 
 @router.post("/admin/scan-coupon")

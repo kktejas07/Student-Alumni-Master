@@ -36,6 +36,7 @@ import { TalentPoolView } from './views/TalentPoolView';
 import { NewsletterView } from './views/NewsletterView';
 import { EchoShowcaseAdminView } from './views/EchoShowcaseAdminView';
 import { CertificatesView } from './views/CertificatesView';
+import { TeamsMeetingsView } from './views/TeamsMeetingsView';
 import { EmailQualityView } from './views/EmailQualityView';
 import { BGVAccountVerticalsView } from './views/BGVAccountVerticalsView';
 import { VisitorIntelligenceView } from './views/VisitorIntelligenceView';
@@ -145,6 +146,7 @@ export function SuperAdminPortalRN() {
           {active === 'talent-pool' && <TalentPoolView />}
           {active === 'echo-showcase' && <EchoShowcaseAdminView {...subFor('echo-showcase')} />}
           {active === 'certificates' && <CertificatesView {...subFor('certificates')} />}
+          {active === 'teams'        && <TeamsMeetingsView />}
           <DashboardFooter portal="super_admin" />
         </ScrollView>
       </View>

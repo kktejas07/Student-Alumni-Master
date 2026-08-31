@@ -10,6 +10,7 @@ import {
   LayoutDashboard, Building2, GraduationCap, UserCheck, Users, Calendar, CreditCard,
   BarChart3, CheckCircle, Sparkles, Settings, Workflow, LogOut,
   Upload, Handshake, Megaphone, UserPlus, Mail, Award, ShieldOff, ShieldCheck, Bot, Radar,
+  MicrosoftTeams,
 } from 'lucide-react-native';
 import { SAC, useSAC, FONTS, resolveColors } from './tokens';
 import { Badge } from './atoms';
@@ -51,7 +52,7 @@ export type SuperAdminNavId =
   | 'overview' | 'agents' | 'visitor-radar' | 'bgv' | 'colleges' | 'students' | 'mentors' | 'alumni' | 'events'
   | 'payments' | 'analytics' | 'approvals' | 'ai-insights' | 'settings'
   | 'workflows' | 'imports' | 'partners' | 'promotions' | 'talent-pool' | 'echo-showcase'
-  | 'newsletter' | 'certificates' | 'email-health';
+  | 'newsletter' | 'certificates' | 'email-health' | 'teams';
 
 export const NAV: Array<{ id: SuperAdminNavId; label: string; Icon: any; count?: number; tag?: string }> = [
   { id: 'overview',        label: 'Overview',            Icon: LayoutDashboard,  count: 0 },
@@ -77,6 +78,7 @@ export const NAV: Array<{ id: SuperAdminNavId; label: string; Icon: any; count?:
   { id: 'ai-insights',     label: 'AI Insights',         Icon: Sparkles,         count: 6 },
   { id: 'workflows',       label: 'Workflows',           Icon: Workflow,         tag: 'NEW' },
   { id: 'settings',        label: 'Settings',            Icon: Settings },
+  { id: 'teams',           label: 'Teams Meetings',      Icon: MicrosoftTeams,  tag: 'NEW' },
 ];
 
 /* ─── Component ───────────────────────────────────────────────────────── */

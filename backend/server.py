@@ -88,7 +88,7 @@ from badges import (
 
 # Role-based analytics + external API integrations
 from analytics import get_analytics_for, super_admin_analytics, college_analytics, mentor_analytics
-from integrations import (
+from integrations_base import (
     fetch_coursera_courses, fetch_udemy_courses, fetch_adzuna_internships,
     sync_courses_to_db, sync_internships_to_db, integrations_status,
 )
