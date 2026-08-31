@@ -6,7 +6,7 @@
  * Seat limits are enforced server-side.
  */
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, TextInput, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Video, Clock, Users, Check, AlertCircle } from 'lucide-react-native';
@@ -23,6 +23,8 @@ export default function TeamsMeetingRegisterPage() {
   const [success, setSuccess] = useState(false);
   const [icsText, setIcsText] = useState('');
   const [icsFilename, setIcsFilename] = useState('teams-meeting.ics');
+  const { width } = useWindowDimensions();
+  const isDesktop = width >= 768;
 
   const [form, setForm] = useState({
     full_name: '',
@@ -185,38 +187,40 @@ export default function TeamsMeetingRegisterPage() {
     <View style={s.root}>
       <EchoHeader />
       <ScrollView contentContainerStyle={{ paddingTop: ECHO_TOP_PADDING }}>
-        <View style={s.content}>
+        <View style={[s.content, isDesktop && { maxWidth: 1000, flexDirection: 'row', alignItems: 'flex-start', gap: 24 }]}>
           {/* Meeting Header */}
-          <LinearGradient
-            colors={['rgba(124,58,237,0.2)', 'rgba(30,10,80,0.3)']}
-            style={s.meetingCard}
-          >
-            <View style={s.meetingHeader}>
-            <Video size={28} color="#A78BFA" />
-            <Text style={s.meetingTitle}>{meeting?.subject || 'Teams Meeting'}</Text>
-            </View>
-            {meeting?.description && (
-              <Text style={s.meetingDesc}>{meeting.description}</Text>
-            )}
-            <View style={s.metaRow}>
-              <Clock size={14} color="rgba(255,255,255,0.6)" />
-              <Text style={s.metaText}>{formatDate(meeting?.start_time || new Date().toISOString())}</Text>
-            </View>
-            <View style={s.metaRow}>
-              <Text style={s.metaText}>{meeting?.duration_minutes || 60} min · Microsoft Teams</Text>
-            </View>
-            {meeting?.seat_limit && (
-              <View style={s.metaRow}>
-                <Users size={14} color="rgba(255,255,255,0.6)" />
-                <Text style={s.metaText}>
-                  {meeting.registrations?.length || 0}/{meeting.seat_limit} registered
-                </Text>
+          <View style={isDesktop ? { flex: 1.2 } : { width: '100%' }}>
+            <LinearGradient
+              colors={['rgba(124,58,237,0.2)', 'rgba(30,10,80,0.3)']}
+              style={s.meetingCard}
+            >
+              <View style={s.meetingHeader}>
+              <Video size={28} color="#A78BFA" />
+              <Text style={s.meetingTitle}>{meeting?.subject || 'Teams Meeting'}</Text>
               </View>
-            )}
-          </LinearGradient>
+              {meeting?.description && (
+                <Text style={s.meetingDesc}>{meeting.description}</Text>
+              )}
+              <View style={s.metaRow}>
+                <Clock size={14} color="rgba(255,255,255,0.6)" />
+                <Text style={s.metaText}>{formatDate(meeting?.start_time || new Date().toISOString())}</Text>
+              </View>
+              <View style={s.metaRow}>
+                <Text style={s.metaText}>{meeting?.duration_minutes || 60} min · Microsoft Teams</Text>
+              </View>
+              {meeting?.seat_limit && (
+                <View style={s.metaRow}>
+                  <Users size={14} color="rgba(255,255,255,0.6)" />
+                  <Text style={s.metaText}>
+                    {meeting.registrations?.length || 0}/{meeting.seat_limit} registered
+                  </Text>
+                </View>
+              )}
+            </LinearGradient>
+          </View>
 
           {/* Registration Form */}
-          <View style={s.formCard}>
+          <View style={[s.formCard, isDesktop ? { flex: 0.8 } : { width: '100%' }]}>
             <Text style={s.formTitle}>Register to join</Text>
             <Text style={s.formSub}>Enter your details to receive the meeting link and secure your seat.</Text>
 
@@ -256,17 +260,17 @@ export default function TeamsMeetingRegisterPage() {
               />
             </View>
 
-            {error && (
+            {error ? (
               <View style={s.errorRow}>
                 <AlertCircle size={12} color="#F87186" />
                 <Text style={s.errorText}>{error}</Text>
               </View>
-            )}
+            ) : null}
 
             <Pressable
               onPress={handleSubmit}
               disabled={registering || !form.full_name || !form.email}
-              style={[s.submitBtn, registering && { opacity: 0.6 }]}
+              style={[s.submitBtn, (registering || !form.full_name || !form.email) && { opacity: 0.6 }]}
             >
               {registering ? (
                 <ActivityIndicator size="small" color="#fff" />
