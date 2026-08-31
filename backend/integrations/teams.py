@@ -365,13 +365,80 @@ async def create_meeting_registration(
         {"$push": {"registrations": reg}},
     )
 
+    import base64
+    from datetime import timedelta
+    
+    # Generate ICS
+    start_time_str = meeting.get("start_time")
+    if start_time_str:
+        start_dt = datetime.fromisoformat(start_time_str.replace("Z", "+00:00"))
+    else:
+        start_dt = datetime.now(timezone.utc)
+        
+    duration = int(meeting.get("duration_minutes", 60))
+    end_dt = start_dt + timedelta(minutes=duration)
+    
+    dtstart = start_dt.strftime("%Y%m%dT%H%M%SZ")
+    dtend = end_dt.strftime("%Y%m%dT%H%M%SZ")
+    dtstamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    
+    subject = meeting.get("subject", "Teams Meeting")
+    join_url = meeting.get("join_url", "")
+    
+    ics_text = f"""BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//StudentAlumni//TeamsMeeting//EN
+BEGIN:VEVENT
+UID:{reg_id}@studentalumni.ai
+DTSTAMP:{dtstamp}
+DTSTART:{dtstart}
+DTEND:{dtend}
+SUMMARY:{subject}
+DESCRIPTION:Join URL: {join_url}
+URL:{join_url}
+END:VEVENT
+END:VCALENDAR
+"""
+    ics_b64 = base64.b64encode(ics_text.encode('utf-8')).decode('utf-8')
+
+    # Send Email
+    body_html = f"""
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+        <h2 style="color: #4F46E5;">Registration Confirmed</h2>
+        <p>Hi {full_name},</p>
+        <p>Your registration for <strong>{subject}</strong> is confirmed and your seat is reserved.</p>
+        <p>Please find the meeting join link below, and the calendar invite attached to this email.</p>
+        <br/>
+        <p>
+            <a href="{join_url}" style="padding: 12px 24px; background-color: #4F46E5; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">
+                Join on Microsoft Teams
+            </a>
+        </p>
+        <br/>
+        <p style="font-size: 13px; color: #888;">If you cannot click the button, use this URL: {join_url}</p>
+    </div>
+    """
+    
+    from core.email import send_email
+    try:
+        await send_email(
+            email,
+            f"Registration Confirmed: {subject}",
+            body_html,
+            attachments=[{"filename": "teams-meeting.ics", "content": ics_text.encode('utf-8')}]
+        )
+    except Exception as e:
+        logger.error(f"[teams] Failed to send registration email to {email}: {e}")
+
     return {
         "success": True,
         "reg_id": reg_id,
         "meeting_id": meeting_id,
-        "join_url": meeting.get("join_url"),
+        "join_url": join_url,
         "full_name": full_name,
         "email": email,
+        "ics": ics_b64,
+        "ics_filename": "teams-meeting.ics"
     }
 
 
