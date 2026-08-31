@@ -3268,6 +3268,31 @@ function RegistrationsPanel() {
     }
   };
 
+  const rescuePayment = async (r: any) => {
+    const regId = r.id || r._id;
+    if (!regId) return;
+    const ok = await confirm({
+      title: 'Rescue Payment?',
+      message: `This will contact Razorpay to verify if payment was captured for ${r.full_name}. If confirmed paid, the registration will be fully activated (QR, coupons, email sent).`,
+      confirmText: 'Rescue Payment',
+    });
+    if (!ok) return;
+    setActioning(regId);
+    try {
+      const res = await api.adminEchoRescuePayment(regId);
+      if (res?.ok) {
+        flash(res.message || 'Payment rescued and registration finalized!');
+        await load();
+      } else {
+        flash(res?.message || 'Could not rescue — payment not confirmed on Razorpay.');
+      }
+    } catch (err: any) {
+      flash(err?.message || 'Rescue failed. Try providing ?payment_id=pay_xxx manually.');
+    } finally {
+      setActioning(null);
+    }
+  };
+
   const syncAllTeams = async () => {
     const ok = await confirm({
       title: 'Sync & Resend All Team Accounts & Passes?',
@@ -3799,14 +3824,14 @@ function RegistrationsPanel() {
                         />
                       </>
                     )}
-                    {r.payment_status === 'failed' && (
+                    {(r.payment_status === 'failed' || r.payment_status === 'pending') && (
                       <IconAction
-                        icon={<CheckCircle size={14} color="#86EFAC" />}
-                        label="Mark paid"
-                        color="#86EFAC"
-                        bg="rgba(34,197,94,0.15)"
-                        onPress={() => markPaid(r)}
-                        disabled={actioning === r.id}
+                        icon={<CheckCircle size={14} color="#34D399" />}
+                        label="Rescue Payment"
+                        color="#34D399"
+                        bg="rgba(16,185,129,0.15)"
+                        onPress={() => rescuePayment(r)}
+                        disabled={actioning === (r.id || r._id)}
                       />
                     )}
                     <IconAction

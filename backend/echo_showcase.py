@@ -110,9 +110,12 @@ def _generate_coupon_code(session_key: str, reg_id: str) -> str:
 async def _generate_coupons_for_registration(db, slug: str, reg_id: str, sessions: list):
     """Generate coupon records for all enabled sessions."""
     from datetime import timezone
+    existing = await db.echo_coupons.find({"reg_id": reg_id}).to_list(500)
+    existing_keys = {c.get("session_key") for c in existing}
+
     coupons = []
     for s in sessions:
-        if s.get("enabled") is False:
+        if s.get("enabled") is False or s["key"] in existing_keys:
             continue
         code = _generate_coupon_code(s["key"], reg_id)
         day = int(s.get("day") or 1)
@@ -4672,9 +4675,92 @@ async def admin_resend_account_tickets(reg_id: str, request: Request, _=Depends(
     }
 
 
+@router.post("/admin/registrations/{reg_id}/rescue-payment")
+async def admin_rescue_payment(reg_id: str, request: Request, _=Depends(_require_admin)):
+    """Super-admin: manually rescue a 'failed' or 'pending' registration where Razorpay
+    actually captured the payment but the webhook was missed or arrived after the sweep timer.
+
+    1. Looks up the registration by reg_id.
+    2. If already 'registered' (paid), returns early — idempotent.
+    3. Fetches the Razorpay order and checks its status.
+    4. If 'paid' on Razorpay side, calls _finalize_paid_registration to complete the flow.
+    5. Optionally the admin can pass ?payment_id=pay_xxx to force-finalize without Razorpay check.
+    """
+    from bson import ObjectId
+    db = _get_db(request)
+    payment_id_override = request.query_params.get("payment_id") or ""
+
+    reg = await db.echo_registrations.find_one({"id": reg_id})
+    if not reg:
+        raise HTTPException(status_code=404, detail="Registration not found")
+
+    if reg.get("status") == "registered" and (reg.get("payment") or {}).get("status") == "paid":
+        return {"ok": True, "message": "Registration is already finalized (paid).", "already_paid": True}
+
+    showcase = await db.echo_showcases.find_one(_slug_query(reg.get("slug") or ""))
+
+    # If admin explicitly provided a payment_id, force-finalize
+    if payment_id_override:
+        finalized = await _finalize_paid_registration(db, reg, showcase, payment_id_override)
+        return {
+            "ok": True,
+            "message": f"Force-finalized registration {reg_id} with payment {payment_id_override}.",
+            "registration": _ser(finalized) if finalized else None,
+        }
+
+    # Otherwise check Razorpay for captured payment
+    order_id = (reg.get("payment_order") or {}).get("order_id") or reg.get("payment", {}).get("order_id")
+    if not order_id:
+        raise HTTPException(status_code=400, detail="No Razorpay order_id on this registration. Provide ?payment_id=pay_xxx to force-finalize.")
+
+    cfg = await _razorpay_config(db)
+    if not cfg:
+        raise HTTPException(status_code=503, detail="Razorpay not configured.")
+
+    import httpx
+    async with httpx.AsyncClient(timeout=15) as http:
+        resp = await http.get(
+            f"https://api.razorpay.com/v1/orders/{order_id}",
+            auth=(cfg["key_id"], cfg["key_secret"]),
+        )
+    if resp.status_code != 200:
+        raise HTTPException(status_code=502, detail=f"Razorpay API error: HTTP {resp.status_code} — {resp.text[:200]}")
+
+    order_data = resp.json()
+    rp_status = order_data.get("status")
+
+    if rp_status != "paid":
+        return {
+            "ok": False,
+            "message": f"Razorpay order {order_id} status is '{rp_status}' (not paid). Cannot rescue.",
+            "razorpay_status": rp_status,
+        }
+
+    # Find the captured payment_id
+    payment_id = ""
+    for p in (order_data.get("payments") or []):
+        if p.get("status") == "captured":
+            payment_id = p.get("id") or ""
+            break
+    if not payment_id:
+        payments = order_data.get("payments") or []
+        if payments:
+            payment_id = payments[-1].get("id") or ""
+
+    finalized = await _finalize_paid_registration(db, reg, showcase, payment_id)
+    return {
+        "ok": True,
+        "message": f"Successfully rescued registration {reg_id}. Payment {payment_id} confirmed on Razorpay.",
+        "razorpay_status": rp_status,
+        "payment_id": payment_id,
+        "registration": _ser(finalized) if finalized else None,
+    }
+
+
 class EchoBroadcastSchema(BaseModel):
     slug: Optional[str] = None
     target_group: str  # "pending_unpaid" | "confirmed_paid" | "unregistered_students"
+
     subject: Optional[str] = None
     custom_message: Optional[str] = None
 
