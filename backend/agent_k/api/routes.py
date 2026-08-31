@@ -325,3 +325,122 @@ async def run_ox_reasoning(body: OxReasoningRequest, authorization: Optional[str
         "tokens_reasoning": 1840,
         "tokens_output": 420
     }
+
+
+# ── HackWave 3.0 Agent K Event Co-Pilot ─────────────────────────────────────
+@router.get("/agent-k/hackwave")
+async def get_hackwave_copilot_info(authorization: Optional[str] = Header(None)):
+    """Returns structured HackWave 3.0 event info, WeHive perks, terms, and suggestion chips."""
+    user = await resolve_user(authorization)
+    user_id = str(user["_id"]) if user else None
+    
+    # Check if user has an active ticket
+    user_tickets = []
+    if user_id:
+        regs = await _db.echo_registrations.find({"$or": [{"user_id": user_id}, {"email": user.get("email")}]}).to_list(10)
+        for r in regs:
+            user_tickets.append({
+                "registration_id": str(r.get("_id")),
+                "event_title": r.get("event_title") or "HackWave 3.0",
+                "ticket_id": r.get("registration_no") or str(r.get("_id"))[:8],
+                "status": r.get("status", "confirmed"),
+                "amount": r.get("amount", 599),
+                "created_at": str(r.get("created_at", ""))
+            })
+            
+    return {
+        "event_title": "HackWave 3.0 (2026)",
+        "slug": "snist",
+        "dates": "September 04 – 05, 2026",
+        "time": "Sep 4th, 08:00 AM — Sep 5th, 01:00 PM",
+        "venue": "Sreenidhi Institute of Science and Technology (SNIST), Hyderabad",
+        "ticket_price": "₹599 (covers all 7 verticals, 4 meals, and Codethon)",
+        "prize_pool": {
+            "total": "₹17,50,000+",
+            "mega_grand_pool": "₹2,00,000",
+            "track_pool": "₹50,000 (5 AI Tracks)",
+            "wehive_germany_sponsorship": "Up to ₹15,00,000",
+            "visas": "2 Business Visas sponsored in full by WeHive"
+        },
+        "wehive_spotlight": {
+            "partner": "WeHive (WE HIRE - Official Visa & Study-Abroad Partner)",
+            "rewards": [
+                "2 Business Visas sponsored in full for 2 winners",
+                "Up to ₹15,00,000 toward Master's programme in Germany"
+            ],
+            "terms": [
+                "Awarded at sole discretion of WeHive and organisers.",
+                "Winners must be registered HackWave 3.0 participants.",
+                "Awards are non-transferable and cannot be exchanged for cash.",
+                "Visa award covers processing and service fees only.",
+                "Germany sponsorship requires securing admission to eligible programme.",
+                "Sponsorship disbursed directly to the institution.",
+                "Applicants must meet WeHive verification requirements.",
+                "Full terms published at studentalumni.ai/echo/snist."
+            ]
+        },
+        "verticals": [
+            "Build by Sunset (24-Hour Build Sprint)",
+            "Codethon (Pre-event L1-L3 coding ladder)",
+            "Voices That Build (Builders Panel)",
+            "Meet the People Who Hire (Recruiters in the room)",
+            "Virtual Cyber Security Conclave (ISC2 New Jersey Chapter)",
+            "Between the Builds (24-Hour Networking)",
+            "Play After Dark (Live Music)",
+            "Build by Fireside (Unpublished Pitch Session)"
+        ],
+        "suggestion_prompts": [
+            "What is the total prize pool for HackWave 3.0?",
+            "How do I qualify for the WeHive Germany Master's Scholarship?",
+            "Show my registered HackWave tickets & QR pass",
+            "What is included in the ₹599 ticket?",
+            "Tell me about the Cyber Security Conclave with ISC2"
+        ],
+        "user_tickets": user_tickets
+    }
+
+
+class HackWaveQueryRequest(BaseModel):
+    query: str
+
+@router.post("/agent-k/hackwave/query")
+async def query_hackwave_copilot(body: HackWaveQueryRequest, authorization: Optional[str] = Header(None)):
+    """Handles HackWave 3.0 natural-language queries for Agent K."""
+    user = await resolve_user(authorization)
+    q = (body.query or "").lower().trim()
+    
+    if "prize" in q or "pool" in q or "money" in q:
+        return {
+            "answer": "🏆 **HackWave 3.0 Total Prize & Sponsorship Pool**: **₹17,50,000+**\n\n• **₹2,00,000**: Mega Grand Pool (open to every participant)\n• **₹50,000**: 5 AI Track Prize Pool\n• **Up to ₹15,00,000**: WeHive Germany Master's Sponsorship\n• **2 Business Visas**: Sponsored in full by WeHive for 2 top performers.",
+            "topic": "prize_pool"
+        }
+        
+    if "wehive" in q or "visa" in q or "germany" in q or "study abroad" in q:
+        return {
+            "answer": "✈️ **WeHive Sponsor Spotlight & Visa Perks**:\n\n1. **2 Business Visas**: Sponsored in full for two winners by WeHive.\n2. **Up to ₹15,00,000**: Toward a Master's programme in Germany.\n\n📌 **Key Rules**: Open to all registered HackWave 3.0 participants. Awarded on merit. Visa covers processing & service fees. Sponsorship is disbursed directly to the Germany institution upon admission.",
+            "topic": "wehive_perks"
+        }
+        
+    if "vertical" in q or "schedule" in q or "program" in q or "codethon" in q or "conclave" in q:
+        return {
+            "answer": "⚡ **HackWave 3.0 — 7 Full Verticals**:\n\n1. **Codethon**: L1 -> L2 -> L3 Pre-event ladder (Closes Sep 4)\n2. **Build by Sunset**: 24-Hour Hackathon Sprint\n3. **Voices That Build**: Panel of real shipping founders\n4. **Meet the People Who Hire**: Recruiters offering on-the-spot internships\n5. **Virtual Cyber Security Conclave**: ISC2 New Jersey Chapter experts\n6. **Between the Builds**: 24-Hour food, nap & networking lounge\n7. **Play After Dark**: Live music after laptops close!",
+            "topic": "schedule"
+        }
+        
+    if "ticket" in q or "qr" in q or "pass" in q or "price" in q:
+        user_id = str(user["_id"]) if user else None
+        ticket_str = ""
+        if user_id:
+            regs = await _db.echo_registrations.find({"$or": [{"user_id": user_id}, {"email": user.get("email")}]}).to_list(5)
+            if regs:
+                t = regs[0]
+                ticket_str = f"\n\n🎫 **Your Confirmed Ticket**: `{t.get('registration_no') or str(t.get('_id'))[:8]}` for {t.get('event_title', 'HackWave 3.0')}."
+        return {
+            "answer": f"🎟️ **HackWave 3.0 Ticket Fee**: **₹599**\n\nOne ₹599 ticket includes:\n• Full access to all 7 verticals\n• 4 free meal coupons (lunch, dinner, midnight snack, breakfast)\n• Featherless AI ($29 value) & SetupMark AI credits\n• Bandiwala & WeHive discount coupons\n• QR-verified certificates for all participants{ticket_str}",
+            "topic": "tickets"
+        }
+        
+    return {
+        "answer": f"🎯 **HackWave 3.0 at SNIST (Sep 4–5, 2026)**\n\nTotal Prize & Sponsorship Pool: **₹17,50,000+** including **2 WeHive Business Visas** & **₹15,00,000 Germany Study Abroad Sponsorship**.\n\nYou can ask me about:\n• Prize pool breakdown\n• WeHive Germany Visa terms\n• 7 Verticals & Codethon schedule\n• Ticket status & QR pass",
+        "topic": "general"
+    }

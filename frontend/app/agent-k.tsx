@@ -316,6 +316,15 @@ function EmptyConnectAI({ gradient, textColor, subColor, borderColor }: {
           <Text style={[s.chipText, { color: mode === 'ox-reasoning' ? '#A78BFA' : subColor }]}>⚡ OX-Reasoning Engine (o3-mini)</Text>
         </Pressable>
         <Pressable
+          onPress={() => setMode('hackwave')}
+          style={[
+            s.chip,
+            { borderColor: mode === 'hackwave' ? '#F59E0B' : borderColor, backgroundColor: mode === 'hackwave' ? 'rgba(245,158,11,0.15)' : 'transparent' }
+          ]}
+        >
+          <Text style={[s.chipText, { color: mode === 'hackwave' ? '#F59E0B' : subColor }]}>🎯 HackWave 3.0 Co-Pilot</Text>
+        </Pressable>
+        <Pressable
           onPress={() => setMode('arc-agi')}
           style={[
             s.chip,
@@ -325,6 +334,29 @@ function EmptyConnectAI({ gradient, textColor, subColor, borderColor }: {
           <Text style={[s.chipText, { color: mode === 'arc-agi' ? '#34D399' : subColor }]}>🧩 ARC-AGI Solver</Text>
         </Pressable>
       </View>
+
+      {mode === 'hackwave' ? (
+        <View style={{ width: '100%', maxWidth: 460, gap: 8, marginBottom: 16 }}>
+          <Text style={{ fontSize: 12, fontWeight: '700', color: '#F59E0B', textAlign: 'center', marginBottom: 4 }}>
+            HACKWAVE 3.0 AI CO-PILOT (SNIST · SEP 4–5, 2026)
+          </Text>
+          {[
+            { label: '🏆 What is the total prize pool for HackWave 3.0?', prompt: 'What is the total prize pool for HackWave 3.0?' },
+            { label: '✈️ How do I qualify for WeHive Germany Visa & Scholarship?', prompt: 'How do I qualify for the WeHive Germany Master\'s Scholarship?' },
+            { label: '🎟️ What is included in the ₹599 ticket?', prompt: 'What is included in the ₹599 ticket?' },
+            { label: '🎫 Show my registered HackWave tickets & QR pass', prompt: 'Show my registered HackWave tickets & QR pass' }
+          ].map((item, idx) => (
+            <Pressable
+              key={idx}
+              onPress={() => router.push({ pathname: '/chat', params: { prompt: item.prompt } })}
+              style={{ padding: 12, borderRadius: 10, background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+            >
+              <Text style={{ fontSize: 12.5, fontWeight: '600', color: '#FFF' }}>{item.label}</Text>
+              <MaterialCommunityIcons name="chevron-right" size={16} color="#F59E0B" />
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
 
       <TextInput
         style={{
