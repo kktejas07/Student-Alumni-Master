@@ -1679,6 +1679,18 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                     <svg width="15" height="15" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 1.8 }}><path d="M6 3h8l4 4v14H6Z"></path><path d="M14 3v4h4"></path></svg>
                     Event Handbook (PDF)
                   </button>
+                  {teamsMeeting && (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.preventDefault(); setShowTeamsJoin(true); }}
+                      onTouchEnd={(e) => { e.preventDefault(); setShowTeamsJoin(true); }}
+                      className="ev-btn"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14px', fontWeight: 700, background: '#3B82F6', color: '#FFFFFF', borderRadius: '10px', padding: '12px 22px', cursor: 'pointer', transition: 'all .2s ease', boxShadow: '0 4px 16px rgba(59, 130, 246, 0.35)', border: 'none', outline: 'none', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 1.9 }}><polygon points="10 4 4 8 4 16 10 20 16 16 16 8z"></polygon><line x1="10" y1="4" x2="22" y2="12"></line><path d="M10 12l0 6"></path></svg>
+                      Join Teams Meeting
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={(e) => { e.preventDefault(); handleShare(); }}
@@ -2833,24 +2845,6 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                   A <strong style={{ color: 'var(--text)', fontWeight: 600 }}>free Student Alumni account</strong> will be created with this email — your login credentials will be emailed to you so you can view your tickets anytime under <span style={{ color: 'var(--violet-lt)', fontWeight: 600 }}>My Tickets</span>.
                 </div>
               </div>
-
-              {/* Teams Meeting Join Button (if available) */}
-              {teamsMeeting && (
-                <div style={{ marginTop: '18px', textAlign: 'center' }}>
-                  <button
-                    onClick={() => setShowTeamsJoin(true)}
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: '9px',
-                      fontSize: '14px', fontWeight: 600, border: '1px solid var(--line2)',
-                      borderRadius: '100px', padding: '11px 20px', background: 'var(--panel)',
-                      color: 'var(--text)', cursor: 'pointer',
-                    }}
-                  >
-                    <svg width="15" height="15" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 2 }}><polygon points="10 4 4 8 4 16 10 20 16 16 16 8z"></polygon><line x1="10" y1="4" x2="22" y2="12"></line><path d="M10 12l0 6"></path></svg>
-                    Join Teams Meeting
-                  </button>
-                </div>
-              )}
 
               {/* Teams Join Modal */}
               {showTeamsJoin && teamsMeeting && (
