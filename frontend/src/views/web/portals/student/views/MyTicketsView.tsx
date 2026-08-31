@@ -16,6 +16,9 @@ type Coupon = {
   session_name?: string;
   session_key?: string;
   used?: boolean;
+  used_at?: string;
+  scanned_lat?: number;
+  scanned_lng?: number;
   qr_url?: string;
   session_locked?: boolean;
 };
@@ -23,12 +26,14 @@ type Coupon = {
 type Registration = {
   id?: string;
   slug?: string;
-  full_name?: string;
+  status?: string;
+  checked_in_at?: string;
+  scanned_lat?: number;
+  scanned_lng?: number;
   email?: string;
   event_title?: string;
   showcase_title?: string;
   payment_status?: string;
-  status?: string;
   registered_at?: string;
 };
 
@@ -274,7 +279,7 @@ export function MyTicketsView() {
                   {previewCoupon.session_locked ? 'This session is currently locked' : previewCoupon.used ? 'Already used' : 'Show this code at the venue'}
                 </Text>
                 {/* QR Code image — only when unlocked */}
-                {!previewCoupon.session_locked && previewCoupon.coupon_code && (
+                {!previewCoupon.session_locked && previewCoupon.coupon_code && !previewCoupon.used && (
                   <View style={{ marginTop: 8, padding: 12, backgroundColor: '#fff', borderRadius: 12 }}>
                     <img
                       src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`${typeof window !== 'undefined' ? window.location.origin : 'https://studentalumni.ai'}/echo/scan/${previewCoupon.coupon_code}`)}`}
@@ -283,8 +288,27 @@ export function MyTicketsView() {
                     />
                   </View>
                 )}
+                {/* Details if used */}
+                {previewCoupon.used && (
+                  <View style={{ marginTop: 8, padding: 20, backgroundColor: 'rgba(16,185,129,0.08)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(16,185,129,0.2)', alignItems: 'center', gap: 8, width: '100%' }}>
+                    <CheckCircle size={28} color="#10B981" />
+                    <Text style={{ color: '#34D399', fontFamily: FONTS.bold, fontSize: 14 }}>Coupon Availed</Text>
+                    {previewCoupon.used_at && (
+                      <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 12, textAlign: 'center' }}>
+                        At: {new Date(previewCoupon.used_at).toLocaleString()}
+                      </Text>
+                    )}
+                    {previewCoupon.scanned_lat && previewCoupon.scanned_lng && (
+                      <a href={`https://www.google.com/maps/search/?api=1&query=${previewCoupon.scanned_lat},${previewCoupon.scanned_lng}`} target="_blank" rel="noopener noreferrer" style={{ marginTop: 4, textDecoration: 'none' }}>
+                        <Text style={{ color: '#A78BFA', fontFamily: FONTS.bold, fontSize: 12, textAlign: 'center' }}>
+                          View Check-in Location
+                        </Text>
+                      </a>
+                    )}
+                  </View>
+                )}
                 {previewCoupon.session_locked && (
-                  <View style={{ marginTop: 8, padding: 20, backgroundColor: 'rgba(245,158,11,0.08)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(245,158,11,0.2)', alignItems: 'center', gap: 8 }}>
+                  <View style={{ marginTop: 8, padding: 20, backgroundColor: 'rgba(245,158,11,0.08)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(245,158,11,0.2)', alignItems: 'center', gap: 8, width: '100%' }}>
                     <Lock size={28} color="#F59E0B" />
                     <Text style={{ color: '#FCD34D', fontFamily: FONTS.bold, fontSize: 14 }}>Not yet released</Text>
                     <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 12, textAlign: 'center' }}>

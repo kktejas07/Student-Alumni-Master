@@ -1445,6 +1445,10 @@ def _build_ticket_html(reg: dict, showcase: dict, template_id: Optional[str] = N
     meta = [v for v in (branch, year, college) if v]
     attendee_line = " · ".join(meta) if meta else (phone or "Student")
 
+    is_checked_in = bool(reg.get("checked_in_at"))
+    badge_label = "CHECKED IN" if is_checked_in else "CONFIRMED PASS"
+    badge_html = f'<span class="badge">{badge_label}</span>'
+
     # Sponsor logos strip
     sponsors = showcase.get("sponsors") or []
     sponsor_logos = []
@@ -1499,7 +1503,7 @@ def _build_ticket_html(reg: dict, showcase: dict, template_id: Optional[str] = N
               <div class="c-col" style="text-align:right;">
                 <div class="dl-label">REG ID</div>
                 <div class="dl-val" style="font-size:14px;letter-spacing:1px;">{reg_id}</div>
-                <div class="c-sub" style="margin-top:8px;"><span class="badge">CONFIRMED</span></div>
+                <div class="c-sub" style="margin-top:8px;">{badge_html}</div>
               </div>
             </div>
             <div class="c-qr">{qr_img}</div>
@@ -1542,7 +1546,7 @@ def _build_ticket_html(reg: dict, showcase: dict, template_id: Optional[str] = N
           <div class="m-qr">{qr_img_sm}</div>
         </div>
         <div class="m-footer">
-          <span class="badge">CONFIRMED</span>
+          {badge_html}
           <span class="m-note">Scan the QR at check-in · Keep this pass handy</span>
         </div>
         {sponsors_html}
@@ -1578,7 +1582,7 @@ def _build_ticket_html(reg: dict, showcase: dict, template_id: Optional[str] = N
             </div>
             <div class="aur-qr">{qr_img}</div>
           </div>
-          <div class="aur-badge-row"><span class="badge">CONFIRMED PASS</span></div>
+          <div class="aur-badge-row">{badge_html}</div>
           <div class="aur-stub">
             <div class="aur-stub-left">
               <div class="aur-stub-event">{title}</div>
@@ -4987,7 +4991,9 @@ class AdminUpdateTeamSchema(BaseModel):
     team_name: Optional[str] = None
 
 class TicketVerifySchema(BaseModel):
-    ticket: str  # raw QR scan payload or a bare registration id
+    ticket: str
+    lat: Optional[float] = None
+    lng: Optional[float] = None  # raw QR scan payload or a bare registration id
 
 
 def _parse_ticket(ticket: str) -> dict:
@@ -5142,7 +5148,13 @@ async def verify_ticket(payload: TicketVerifySchema, request: Request, _=Depends
 
     payment = reg.get("payment") or {}
     ser = _ser(reg)
-    verified = payment.get("status") == "paid" and reg.get("status") == "registered"
+    payment_status = payment.get("status") or reg.get("payment_status") or "pending"
+    reg_status = reg.get("status") or "pending"
+    fee = float(reg.get("fee") or 0)
+    
+    is_free = fee <= 0 and (payment_status == "paid" or reg_status in ("registered", "confirmed"))
+    is_paid = payment_status == "paid" and reg_status in ("registered", "confirmed")
+    verified = is_free or is_paid
     checked_in = bool(reg.get("checked_in_at"))
 
     return {
@@ -5197,14 +5209,28 @@ async def check_in_attendee(payload: TicketVerifySchema, request: Request, _=Dep
         raise HTTPException(status_code=404, detail="Ticket not found")
 
     payment = reg.get("payment") or {}
-    if payment.get("status") != "paid" or reg.get("status") != "registered":
+    payment_status = payment.get("status") or reg.get("payment_status") or "pending"
+    reg_status = reg.get("status") or "pending"
+    fee = float(reg.get("fee") or 0)
+    
+    is_free = fee <= 0 and (payment_status == "paid" or reg_status in ("registered", "confirmed"))
+    is_paid = payment_status == "paid" and reg_status in ("registered", "confirmed")
+    verified = is_free or is_paid
+    
+    if not verified:
         raise HTTPException(status_code=400, detail="Ticket not confirmed — attendee cannot be checked in")
 
     now_iso = _now()
     first_checkin = not bool(reg.get("checked_in_at"))
+    
+    update_data = {"checked_in_at": now_iso}
+    if payload.lat is not None and payload.lng is not None:
+        update_data["scanned_lat"] = payload.lat
+        update_data["scanned_lng"] = payload.lng
+
     await db.echo_registrations.update_one(
         {"_id": reg["_id"]},
-        {"$set": {"checked_in_at": now_iso}, "$setOnInsert": {"checked_in_count": 1}},
+        {"$set": update_data, "$setOnInsert": {"checked_in_count": 1}},
     )
     if first_checkin:
         await db.echo_registrations.update_one(
@@ -5851,11 +5877,24 @@ async def scan_coupon(request: Request, admin=Depends(_require_admin)):
             "coupon": {k: v for k, v in coupon.items() if k != "_id"},
         }
 
+    lat = body.get("lat")
+    lng = body.get("lng")
+
     from datetime import datetime, timezone
     now = datetime.now(timezone.utc)
+    
+    update_data = {
+        "used": True, 
+        "used_at": now, 
+        "scanned_by": admin.get("email", "admin")
+    }
+    if lat is not None and lng is not None:
+        update_data["scanned_lat"] = lat
+        update_data["scanned_lng"] = lng
+        
     await db.echo_coupons.update_one(
         {"_id": coupon["_id"]},
-        {"$set": {"used": True, "used_at": now, "scanned_by": admin.get("email", "admin")}}
+        {"$set": update_data}
     )
 
     # Get attendee info
