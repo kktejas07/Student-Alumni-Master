@@ -2233,6 +2233,7 @@ class TeamsMeetingCreate(BaseModel):
     allow_external: bool = True
     event_slug: Optional[str] = None
     organizer_email: Optional[str] = None
+    manual_join_url: Optional[str] = None
 
 class TeamsMeetingRegister(BaseModel):
     full_name: str
@@ -2295,21 +2296,40 @@ async def create_teams_meeting_endpoint(payload: TeamsMeetingCreate, user: dict 
     except (ValueError, AttributeError):
         start_dt = _dt.now(IST)
 
-    try:
-        meeting = await _create_teams_meeting(
-            title=payload.title,
-            start_time=start_dt,
-            duration_minutes=payload.duration_minutes,
-            attendee_emails=payload.attendee_emails or [],
-            seat_limit=payload.seat_limit,
-            description=payload.description or "",
-            lobby_bypass=payload.lobby_bypass,
-            allow_external=payload.allow_external,
-            organizer_email=(payload.organizer_email or "").strip() or None,
-        )
-    except RuntimeError as e:
-        logger.error(f"[teams] create endpoint: {e}")
-        raise HTTPException(502, f"Could not create Teams meeting: {str(e)}")
+    manual_join_url = (payload.manual_join_url or "").strip()
+
+    if manual_join_url:
+        # Admin supplies a pre-created Teams/Skype join link manually, so no
+        # Microsoft Graph call is needed (avoids the OnlineMeeting application
+        # access policy requirement). Store the meeting directly with that link.
+        meeting = {
+            "success": True,
+            "meeting_id": f"teams-manual-{secrets.token_hex(6)}",
+            "subject": payload.title,
+            "join_url": manual_join_url,
+            "start": start_dt.isoformat(),
+            "end": (start_dt + timedelta(minutes=payload.duration_minutes)).isoformat(),
+            "attendees": payload.attendee_emails or [],
+            "seat_limit": payload.seat_limit,
+            "registrations": [],
+            "manual": True,
+        }
+    else:
+        try:
+            meeting = await _create_teams_meeting(
+                title=payload.title,
+                start_time=start_dt,
+                duration_minutes=payload.duration_minutes,
+                attendee_emails=payload.attendee_emails or [],
+                seat_limit=payload.seat_limit,
+                description=payload.description or "",
+                lobby_bypass=payload.lobby_bypass,
+                allow_external=payload.allow_external,
+                organizer_email=(payload.organizer_email or "").strip() or None,
+            )
+        except RuntimeError as e:
+            logger.error(f"[teams] create endpoint: {e}")
+            raise HTTPException(502, f"Could not create Teams meeting: {str(e)}")
 
     meeting_doc = {
         "meeting_id": meeting["meeting_id"],
@@ -2323,7 +2343,8 @@ async def create_teams_meeting_endpoint(payload: TeamsMeetingCreate, user: dict 
         "organizer_email": (payload.organizer_email or "").strip() or None,
         "created_by": str(user.get("_id", "")),
         "created_at": _dt.now(timezone.utc).isoformat(),
-        "is_mock": meeting.get("mock", False),
+        "is_mock": meeting.get("mock", False) or meeting.get("manual", False),
+        "manual": meeting.get("manual", False),
         "registrations": [],
     }
     await db.teams_meetings.insert_one(meeting_doc)
@@ -2611,6 +2632,12 @@ async def update_teams_meeting(meeting_id: str, payload: TeamsMeetingCreate, use
         "updated_at": _dt.now(timezone.utc).isoformat(),
         "updated_by": str(user.get("_id", "")),
     }
+
+    manual_join_url = (payload.manual_join_url or "").strip()
+    if manual_join_url:
+        update_data["join_url"] = manual_join_url
+        update_data["manual"] = True
+        update_data["is_mock"] = True
 
     # If Teams API is live, also update the meeting in Microsoft
     creds = await _get_teams_creds()
