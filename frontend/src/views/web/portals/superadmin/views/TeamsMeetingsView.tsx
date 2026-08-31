@@ -49,7 +49,7 @@ export function TeamsMeetingsView() {
   const [creating, setCreating] = useState(false);
   const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
   const [editForm, setEditForm] = useState({
-    title: '', date: '', time: '', duration: 60, seat_limit: '', description: '', attendee_emails: '', event_slug: '', organizer_email: '',
+    title: '', date: '', time: '', duration: 60, seat_limit: '', description: '', attendee_emails: '', event_slug: '', organizer_email: '', manual_join_url: '',
   });
   const [regOpen, setRegOpen] = useState<Meeting | null>(null);
   const [events, setEvents] = useState<Array<{ slug: string; title: string }>>([]);
@@ -118,6 +118,7 @@ export function TeamsMeetingsView() {
     attendee_emails: '',
     event_slug: '',
     organizer_email: '',
+    manual_join_url: '',
   });
 
   const [dateOpen, setDateOpen] = useState(false);
@@ -145,6 +146,7 @@ export function TeamsMeetingsView() {
         description: activeForm.description,
         event_slug: activeForm.event_slug || null,
         organizer_email: activeForm.organizer_email || null,
+        manual_join_url: activeForm.manual_join_url || null,
       };
 
       let res;
@@ -170,7 +172,7 @@ export function TeamsMeetingsView() {
       }
       setShowCreate(false);
       setEditingMeeting(null);
-      setForm({ title: '', date: dateOptions[0]?.value || '', time: timeOptions[8]?.value || '09:00', duration: 60, seat_limit: '', description: '', attendee_emails: '', event_slug: '', organizer_email: '' });
+      setForm({ title: '', date: dateOptions[0]?.value || '', time: timeOptions[8]?.value || '09:00', duration: 60, seat_limit: '', description: '', attendee_emails: '', event_slug: '', organizer_email: '', manual_join_url: '' });
     } catch (e: any) {
       alert(e?.message || 'Failed to save meeting.');
     } finally {
@@ -339,6 +341,7 @@ export function TeamsMeetingsView() {
                     attendee_emails: (m.attendee_emails || []).join(', '),
                     event_slug: m.event_slug || '',
                     organizer_email: m.organizer_email || '',
+                    manual_join_url: m.join_url || '',
                   });
                   setEditingMeeting(m);
                   setShowCreate(true);
@@ -498,6 +501,12 @@ export function TeamsMeetingsView() {
               <TextInput placeholder="organizer@college.edu" placeholderTextColor={SAC.muted} autoCapitalize="none"
                 style={s.input} value={editingMeeting ? editForm.organizer_email : form.organizer_email} onChangeText={(t) => {
                   if (editingMeeting) setEditForm({ ...editForm, organizer_email: t }); else setForm({ ...form, organizer_email: t });
+                }} />
+
+              <Text style={s.inputLabel}>Teams Join Link (optional — paste a link you created manually in Teams)</Text>
+              <TextInput placeholder="https://teams.microsoft.com/l/meetup-join/..." placeholderTextColor={SAC.muted} autoCapitalize="none"
+                style={s.input} value={editingMeeting ? editForm.manual_join_url || '' : form.manual_join_url || ''} onChangeText={(t) => {
+                  if (editingMeeting) setEditForm({ ...editForm, manual_join_url: t }); else setForm({ ...form, manual_join_url: t });
                 }} />
 
               <Text style={s.inputLabel}>Description (optional)</Text>
