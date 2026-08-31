@@ -26,7 +26,6 @@ const NAV: NavItem[] = [
   { key: 'payments',  label: 'Payments',   route: '/admin/payments',  icon: Wallet },
   { key: 'analytics', label: 'Analytics',  route: '/admin/analytics', icon: BarChart3 },
   { key: 'approvals', label: 'Approvals',  route: '/admin/approvals', icon: ShieldCheck },
-  { key: 'echo',      label: 'Echo Event', route: '/admin/echo',      icon: CalendarDays },
   { key: 'settings',  label: 'Settings',   route: '/admin/settings',  icon: Settings },
 ];
 
@@ -45,7 +44,7 @@ export function AdminLayout({ title, subtitle, pendingCount = 0, children, right
 
   // Gate — non-admins redirected to platform
   useEffect(() => {
-    if (user.role !== 'admin') router.replace('/welcome' as any);
+    if (!user || user.role !== 'admin') router.replace('/welcome' as any);
   }, [user]);
 
   const isActive = (route: string) =>

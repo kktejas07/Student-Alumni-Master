@@ -4385,6 +4385,10 @@ async def admin_echo_registrations(
                 "session_day": c.get("session_day") or 1,
                 "coupon_code": c.get("coupon_code"),
                 "used": bool(c.get("used")),
+                "used_at": c.get("used_at"),
+                "scanned_location": c.get("scanned_location"),
+                "scanned_lat": c.get("scanned_lat"),
+                "scanned_lng": c.get("scanned_lng")
             })
         for inv in await db.invoices.find({"reg_id": {"$in": reg_ids}}).to_list(2000):
             invoice_map[inv.get("reg_id")] = {"invoice_no": inv.get("invoice_no"), "issued": True}
