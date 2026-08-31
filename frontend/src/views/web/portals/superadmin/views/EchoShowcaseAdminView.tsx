@@ -5016,10 +5016,10 @@ function LiveScanMonitorPanel() {
             </Text>
             <View style={{ flexDirection: 'row', gap: 8 }}>
               <SecondaryButton onPress={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>
-                <ArrowLeft size={14} color={page === 0 ? 'rgba(255,255,255,0.2)' : SAC.muted} />
+                <ChevronLeft size={14} color={page === 0 ? 'rgba(255,255,255,0.2)' : SAC.muted} />
               </SecondaryButton>
               <SecondaryButton onPress={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page === totalPages - 1}>
-                <ArrowRight size={14} color={page === totalPages - 1 ? 'rgba(255,255,255,0.2)' : SAC.muted} />
+                <ChevronRight size={14} color={page === totalPages - 1 ? 'rgba(255,255,255,0.2)' : SAC.muted} />
               </SecondaryButton>
             </View>
           </View>
