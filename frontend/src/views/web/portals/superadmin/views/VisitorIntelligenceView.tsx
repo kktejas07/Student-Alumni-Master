@@ -401,7 +401,7 @@ export function VisitorIntelligenceView() {
 
               {/* Module Filter */}
               <View style={s.selectPillGroup}>
-                {['all', 'landing', 'courses', 'events', 'deals', 'auth'].map((m) => (
+                {['all', 'echo', 'tickets', 'workshops', 'coupons', 'teams', 'events', 'courses', 'deals', 'bgv', 'auth'].map((m) => (
                   <Pressable
                     key={m}
                     onPress={() => { setModuleFilter(m); fetchVisitorsList(1); }}
