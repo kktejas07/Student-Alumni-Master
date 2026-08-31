@@ -1711,8 +1711,18 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                       <svg width="22" height="22" viewBox="0 0 24 24" style={{ fill: 'none', stroke: '#FFF', strokeWidth: 2 }}><polygon points="10 4 4 8 4 16 10 20 16 16 16 8z"></polygon><line x1="10" y1="4" x2="22" y2="12"></line><path d="M10 12l0 6"></path></svg>
                     </div>
                     <div>
-                      <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#FFFFFF', margin: 0, letterSpacing: '-0.3px' }}>Virtual Meeting</h3>
-                      <p style={{ fontSize: '13.5px', color: '#818CF8', fontWeight: 600, margin: '2px 0 0 0' }}>{teamsMeeting.subject}</p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                        <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#FFFFFF', margin: 0, letterSpacing: '-0.3px' }}>Virtual Meeting</h3>
+                        {teamsMeeting.seat_limit && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(239, 68, 68, 0.15)', padding: '4px 10px', borderRadius: '20px', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
+                            <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#EF4444' }} />
+                            <span style={{ fontSize: '11px', fontWeight: 700, color: '#FCA5A5', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+                              Hurry! {(teamsMeeting.registrations?.length || 0)}/{teamsMeeting.seat_limit} seats occupied
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <p style={{ fontSize: '13.5px', color: '#818CF8', fontWeight: 600, margin: '4px 0 0 0' }}>{teamsMeeting.subject}</p>
                     </div>
                   </div>
                   
