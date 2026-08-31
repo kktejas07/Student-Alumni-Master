@@ -171,7 +171,7 @@ import {
   Copy, Check, Search, RefreshCw, Plus, PlusCircle, FileText, Link2,
   Image as ImageIcon, HardDrive, Calendar, Layout, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Users,
   Ticket, Mail, ScanLine, Phone,
-  CupSoda, UtensilsCrossed, Cookie, Sandwich, Coffee, Lock, XCircle, Clock, CheckCircle, Download, FileSpreadsheet,
+  CupSoda, UtensilsCrossed, Cookie, Sandwich, Coffee, Lock, XCircle, Clock, CheckCircle, Download, FileSpreadsheet, MapPin,
 } from 'lucide-react-native';
 import {
   GRAD, GradientButton, SecondaryButton, Card,
@@ -238,7 +238,7 @@ const GALLERY_LAYOUT_OPTIONS = ['grid', 'masonry', 'mixed', 'featured-grid', 'ca
 const VIDEO_PLATFORM_OPTIONS = ['youtube', 'vimeo', 'mp4'];
 const DOWNLOAD_CATEGORY_OPTIONS = ['Brochure', 'Schedule', 'Certificate', 'Presentation', 'Report', 'Document'];
 
-type PageTab = 'all' | 'create' | 'drafts' | 'media' | 'registrations' | 'volunteers';
+type PageTab = 'all' | 'create' | 'drafts' | 'media' | 'registrations' | 'volunteers' | 'scan-monitor';
 type StatusFilter = 'all' | 'published' | 'draft' | 'archived';
 type FormTab =
   | 'general' | 'hero' | 'statistics' | 'about' | 'gallery'
@@ -252,6 +252,7 @@ const PAGE_TABS: Array<{ id: PageTab; label: string; icon?: any }> = [
   { id: 'drafts', label: 'Drafts', icon: FileText },
   { id: 'registrations', label: 'Registrations & Payments', icon: Users },
   { id: 'volunteers', label: 'Volunteers', icon: Users },
+  { id: 'scan-monitor', label: 'Live Scan Monitor', icon: ScanLine },
   { id: 'media', label: 'Media Library', icon: Images },
 ];
 
@@ -4784,11 +4785,139 @@ function VolunteersPanel() {
 }
 
 
+// ── Live Scan Monitor Panel ───────────────────────────────────────────────────
+function LiveScanMonitorPanel() {
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [q, setQ] = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.adminEchoRegistrations();
+      setData(res?.items || []);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+    const interval = setInterval(load, 30000);
+    return () => clearInterval(interval);
+  }, [load]);
+
+  const filtered = data.filter(d => 
+    !q || d.full_name?.toLowerCase().includes(q.toLowerCase()) || d.email?.toLowerCase().includes(q.toLowerCase()) || d.id?.toLowerCase().includes(q.toLowerCase())
+  );
+
+  return (
+    <View style={{ flex: 1, gap: 20 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+        <View>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 20, color: SAC.text }}>Live Scan Monitor</Text>
+          <Text style={{ fontFamily: FONTS.med, fontSize: 13, color: SAC.muted }}>Real-time check-in and coupon scan activity</Text>
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <View style={{ width: 250 }}>
+            <SearchField value={q} onChange={setQ} placeholder="Search by name, email, ID..." />
+          </View>
+          <SecondaryButton onPress={load}><RefreshCw size={14} color={SAC.muted} /><Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 13, marginLeft: 6 }}>Refresh</Text></SecondaryButton>
+        </View>
+      </View>
+
+      <Card style={{ padding: 0, overflow: 'hidden' }}>
+        <View style={{ flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.02)', padding: 16, borderBottomWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
+          <Text style={{ flex: 2, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase' }}>Attendee</Text>
+          <Text style={{ flex: 1, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase' }}>Status</Text>
+          <Text style={{ flex: 1.5, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase' }}>Event Check-In</Text>
+          <Text style={{ flex: 2, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase' }}>Session Coupons</Text>
+        </View>
+        
+        {loading && data.length === 0 ? (
+          <View style={{ padding: 40, alignItems: 'center' }}><ActivityIndicator size="large" color={GRAD.to} /></View>
+        ) : filtered.length === 0 ? (
+          <View style={{ padding: 40, alignItems: 'center' }}><Text style={{ color: SAC.muted, fontFamily: FONTS.med }}>No registrations found.</Text></View>
+        ) : (
+          filtered.map(reg => (
+            <View key={reg.id} style={{ flexDirection: 'row', padding: 16, borderBottomWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
+              <View style={{ flex: 2, justifyContent: 'center', paddingRight: 10 }}>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: SAC.text, marginBottom: 2 }}>{reg.full_name || 'Unknown'}</Text>
+                <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted, marginBottom: 4 }}>{reg.email}</Text>
+                <Text style={{ fontFamily: 'monospace', fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>ID: {reg.id}</Text>
+              </View>
+              
+              <View style={{ flex: 1, justifyContent: 'center' }}>
+                <StatusPill kind={reg.ticket_issued ? 'success' : 'warning'} label={reg.ticket_issued ? 'Issued' : 'Pending'} />
+              </View>
+
+              <View style={{ flex: 1.5, justifyContent: 'center', paddingRight: 10 }}>
+                {reg.checked_in_at ? (
+                  <View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <CheckCircle size={14} color="#34D399" />
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#34D399' }}>
+                        {new Date(reg.checked_in_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </Text>
+                    </View>
+                  </View>
+                ) : (
+                  <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Not Checked In</Text>
+                )}
+              </View>
+
+              <View style={{ flex: 2, justifyContent: 'center' }}>
+                {reg.coupons && reg.coupons.length > 0 ? (
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                    {reg.coupons.map((c: any, idx: number) => (
+                      <View key={idx} style={{
+                        flexDirection: 'row', alignItems: 'center', gap: 4,
+                        backgroundColor: c.used ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.05)',
+                        borderWidth: 1, borderColor: c.used ? 'rgba(52,211,153,0.3)' : 'rgba(255,255,255,0.05)',
+                        borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4
+                      }}>
+                        <Ticket size={12} color={c.used ? '#34D399' : SAC.muted} />
+                        <View>
+                          <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: c.used ? '#34D399' : SAC.muted }} numberOfLines={1}>
+                            {c.session_name}
+                          </Text>
+                          {c.used_at && (
+                            <Text style={{ fontFamily: FONTS.med, fontSize: 8.5, color: c.used ? '#6EE7B7' : SAC.muted, marginTop: 1 }}>
+                              {new Date(c.used_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              {c.scanned_location ? ` • ${c.scanned_location}` : ''}
+                            </Text>
+                          )}
+                          {(c.scanned_lat || c.scanned_lng) && (
+                            <Text
+                              style={{ fontFamily: FONTS.med, fontSize: 8.5, color: '#A78BFA', marginTop: 1, textDecorationLine: 'underline', cursor: 'pointer' } as any}
+                              onPress={() => window.open(`https://www.google.com/maps/search/?api=1&query=${c.scanned_lat},${c.scanned_lng}`, '_blank')}
+                            >
+                              Map <MapPin size={8} color="#A78BFA" style={{ display: 'inline' }} />
+                            </Text>
+                          )}
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>No Coupons</Text>
+                )}
+              </View>
+            </View>
+          ))
+        )}
+      </Card>
+    </View>
+  );
+}
+
 // ── Main View ─────────────────────────────────────────────────────────────────
 export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
   const T = useSAC();
   Object.assign(fi, resolveColors(fi, T));
-  const [pageTab, setPageTab] = useSubTab<PageTab>(['all', 'create', 'drafts', 'registrations', 'volunteers', 'media'], 'all', { sub, onSub });
+  const [pageTab, setPageTab] = useSubTab<PageTab>(['all', 'create', 'drafts', 'registrations', 'volunteers', 'media', 'scan-monitor'], 'all', { sub, onSub });
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -4941,6 +5070,7 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
 
       {/* ── MEDIA LIBRARY ── */}
       {pageTab === 'media' && <MediaLibraryPanel />}
+      {pageTab === 'scan-monitor' && <LiveScanMonitorPanel />}
 
       {/* ── REGISTRATIONS & PAYMENTS ── */}
       {pageTab === 'registrations' && <RegistrationsPanel />}
