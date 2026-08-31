@@ -4142,7 +4142,7 @@ async def my_registrations(request: Request):
     results = []
     for reg in regs:
         reg_ser = _ser(reg)
-        slug = reg.get("slug", "")
+        slug = reg.get("showcase_slug") or reg.get("slug", "")
 
         # Fetch coupons for this registration
         coupons = []
