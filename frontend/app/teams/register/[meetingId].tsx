@@ -21,12 +21,38 @@ export default function TeamsMeetingRegisterPage() {
   const [registering, setRegistering] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [icsText, setIcsText] = useState('');
+  const [icsFilename, setIcsFilename] = useState('teams-meeting.ics');
 
   const [form, setForm] = useState({
     full_name: '',
     email: '',
     phone: '',
   });
+
+  const addToCalendar = () => {
+    if (icsText && typeof window !== 'undefined') {
+      const blob = new Blob([icsText], { type: 'text/calendar' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = icsFilename || 'teams-meeting.ics';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  };
+
+  const decodeB64 = (b64: string) => {
+    try {
+      if (typeof window !== 'undefined' && window.atob) {
+        const bin = window.atob(b64);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        return new TextDecoder('utf-8').decode(bytes);
+      }
+    } catch {}
+    return b64;
+  };
 
   useEffect(() => {
     if (!meetingId) return;
@@ -61,6 +87,8 @@ export default function TeamsMeetingRegisterPage() {
       const json = await res.json();
       if (json.success) {
         setSuccess(true);
+        if (json.ics) setIcsText(decodeB64(json.ics));
+        setIcsFilename(json.ics_filename || 'teams-meeting.ics');
         // Open join URL in new tab
         if (json.join_url && typeof window !== 'undefined') {
           setTimeout(() => { window.open(json.join_url, '_blank'); }, 1500);
@@ -136,6 +164,15 @@ export default function TeamsMeetingRegisterPage() {
                   <Text style={s.joinBtnText}>Join on Microsoft Teams</Text>
                 </Pressable>
               )}
+              {icsText && (
+                <Pressable onPress={addToCalendar} style={s.calBtn}>
+                  <Clock size={16} color="#fff" />
+                  <Text style={s.joinBtnText}>Add to Calendar</Text>
+                </Pressable>
+              )}
+              <Text style={s.calHint}>
+                A calendar invitation has also been emailed to you. Add it to your calendar so the meeting shows up with the join link.
+              </Text>
             </LinearGradient>
           </View>
           <EchoFooter />
@@ -287,5 +324,7 @@ const s = StyleSheet.create({
   successSub: { color: 'rgba(255,255,255,0.5)', fontFamily: 'DMSans_500Medium', fontSize: 14 },
   joinBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#5B4FE9', borderRadius: 12, paddingHorizontal: 24, paddingVertical: 12, marginTop: 8 },
   joinBtnText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 14 },
+  calBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(91,79,233,0.35)', borderWidth: 1, borderColor: '#5B4FE9', borderRadius: 12, paddingHorizontal: 24, paddingVertical: 12, marginTop: 6 },
+  calHint: { color: 'rgba(255,255,255,0.45)', fontFamily: 'DMSans_500Medium', fontSize: 11.5, lineHeight: 17, textAlign: 'center', marginTop: 8, paddingHorizontal: 10 },
   centerText2: { color: 'rgba(255,255,255,0.6)', fontFamily: 'DMSans_500Medium', fontSize: 13 },
 });

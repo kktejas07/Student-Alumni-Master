@@ -141,6 +141,7 @@ type Tool = {
   installed: boolean; status?: string | null; installed_at?: string | null;
   auth_fields?: Array<{ key: string; label: string; type: string; placeholder?: string; help?: string }>;
   credentials_masked?: Record<string, string>;
+  credentials_plain?: Record<string, string>;
   webhook_url?: string;
 };
 type Role = {
@@ -868,6 +869,7 @@ function IntegrationsTab({ onSaved }: { onSaved: (s?: string) => void }) {
   const [filter, setFilter] = useState('All');
   const [busyId, setBusyId] = useState<string | null>(null);
   const [connectTool, setConnectTool] = useState<Tool | null>(null);
+  const [connectPrefill, setConnectPrefill] = useState<Record<string, string> | null>(null);
   const [stats, setStats] = useState({ installed: 0, available: 0 });
   const [query, setQuery] = useState('');
   const [popularOnly, setPopularOnly] = useState(false);
@@ -892,6 +894,7 @@ function IntegrationsTab({ onSaved }: { onSaved: (s?: string) => void }) {
 
   const onConnected = async () => {
     setConnectTool(null);
+    setConnectPrefill(null);
     onSaved('Connected');
     await load();
   };
@@ -1004,7 +1007,8 @@ function IntegrationsTab({ onSaved }: { onSaved: (s?: string) => void }) {
                     <ToolCard
                       key={t.id} tool={t}
                       busy={busyId === t.id}
-                      onConnect={() => setConnectTool(t)}
+                      onConnect={() => { setConnectPrefill(null); setConnectTool(t); }}
+                      onEdit={() => { setConnectPrefill(t.credentials_plain || null); setConnectTool(t); }}
                       onDisconnect={() => disconnect(t.id)}
                     />
                   ))}
@@ -1015,13 +1019,18 @@ function IntegrationsTab({ onSaved }: { onSaved: (s?: string) => void }) {
         )}
       </View>
 
-      <ConnectModal tool={connectTool} onClose={() => setConnectTool(null)} onConnected={onConnected} />
+      <ConnectModal
+        tool={connectTool}
+        prefill={connectPrefill}
+        onClose={() => { setConnectTool(null); setConnectPrefill(null); }}
+        onConnected={onConnected}
+      />
     </Animated.View>
   );
 }
 
-function ToolCard({ tool, busy, onConnect, onDisconnect }: {
-  tool: Tool; busy: boolean; onConnect: () => void; onDisconnect: () => void;
+function ToolCard({ tool, busy, onConnect, onEdit, onDisconnect }: {
+  tool: Tool; busy: boolean; onConnect: () => void; onEdit: () => void; onDisconnect: () => void;
 }) {
   const [copied, setCopied] = useState(false);
   const [showCreds, setShowCreds] = useState(false);
@@ -1091,11 +1100,17 @@ function ToolCard({ tool, busy, onConnect, onDisconnect }: {
       )}
       <View style={{ flex: 1 }} />
       {tool.installed ? (
-        <Pressable onPress={onDisconnect} disabled={busy} style={[s.toolBtnSec, busy && { opacity: 0.5 }]}>
-          {busy ? <ActivityIndicator size="small" color={SAC.muted} /> : (
-            <Text style={s.toolBtnSecText}>Disconnect</Text>
-          )}
-        </Pressable>
+        <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+          <Pressable onPress={onEdit} disabled={busy} style={[s.toolBtnSec, { flex: 1 }, busy && { opacity: 0.5 }]}>
+            <Pencil size={12} color={SAC.muted} />
+            <Text style={s.toolBtnSecText}>Edit</Text>
+          </Pressable>
+          <Pressable onPress={onDisconnect} disabled={busy} style={[s.toolBtnSec, { flex: 1 }, busy && { opacity: 0.5 }]}>
+            {busy ? <ActivityIndicator size="small" color={SAC.muted} /> : (
+              <Text style={s.toolBtnSecText}>Disconnect</Text>
+            )}
+          </Pressable>
+        </View>
       ) : (
         <Pressable onPress={onConnect} disabled={busy} style={[{ marginTop: 10 }, busy && { opacity: 0.5 }]}>
           <LinearGradient colors={[GRAD_FROM, GRAD_TO]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.toolBtnGrad}>
@@ -1117,8 +1132,8 @@ function ToolCard({ tool, busy, onConnect, onDisconnect }: {
   );
 }
 
-function ConnectModal({ tool, onClose, onConnected }: {
-  tool: Tool | null; onClose: () => void; onConnected: () => void;
+function ConnectModal({ tool, prefill, onClose, onConnected }: {
+  tool: Tool | null; prefill: Record<string, string> | null; onClose: () => void; onConnected: () => void;
 }) {
   const [creds, setCreds] = useState<Record<string, string>>({});
   const [showSecret, setShowSecret] = useState<Record<string, boolean>>({});
@@ -1129,10 +1144,17 @@ function ConnectModal({ tool, onClose, onConnected }: {
 
   useEffect(() => {
     if (tool) {
+      // Pre-fill the form with previously saved (non-password) credential values
+      // when editing an already-connected tool, so the admin can see/review them.
       const next: Record<string, string> = {};
+      if (prefill) {
+        for (const [k, v] of Object.entries(prefill)) {
+          if (v) next[k] = v;
+        }
+      }
       setCreds(next); setError(null); setShowSecret({}); setTest(null);
     }
-  }, [tool]);
+  }, [tool, prefill]);
 
   if (!tool) return null;
 
@@ -1173,7 +1195,7 @@ function ConnectModal({ tool, onClose, onConnected }: {
               <MaterialCommunityIcons name={tool.icon as any} size={24} color={tool.tint} />
             </View>
             <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={s.modalTitle}>Connect {tool.name}</Text>
+              <Text style={s.modalTitle}>{prefill ? `Edit ${tool.name}` : `Connect ${tool.name}`}</Text>
               <Text style={s.modalSub}>{tool.description}</Text>
             </View>
             <Pressable onPress={onClose} style={s.modalClose}><X size={16} color={SAC.muted} /></Pressable>
@@ -1195,12 +1217,21 @@ function ConnectModal({ tool, onClose, onConnected }: {
                 </Text>
               </View>
             ) : null}
+            {prefill ? (
+              <View style={s.helpBox}>
+                <Text style={s.helpText}>
+                  Reviewing the saved {tool.name} credentials. Password/secret fields are hidden —
+                  leave one blank to keep the saved value, or type a new one to replace it.
+                </Text>
+              </View>
+            ) : null}
 
             {fields.length === 0 ? (
               <Text style={s.muted}>No credentials required — click Connect to enable.</Text>
             ) : fields.map((f) => {
               const isPwd = f.type === 'password';
               const show = !!showSecret[f.key];
+              const isSavedPwd = isPwd && prefill && !creds[f.key];
               return (
                 <View key={f.key} style={{ gap: 6 }}>
                   <Text style={s.modalLabel}>{f.label}</Text>
@@ -1208,7 +1239,7 @@ function ConnectModal({ tool, onClose, onConnected }: {
                     <TextInput
                       value={creds[f.key] || ''}
                       onChangeText={(v) => setCreds({ ...creds, [f.key]: v })}
-                      placeholder={f.placeholder || ''}
+                      placeholder={isSavedPwd ? 'Saved (leave blank to keep)' : (f.placeholder || '')}
                       placeholderTextColor={SAC.dim}
                       secureTextEntry={isPwd && !show}
                       autoCapitalize="none"
@@ -1221,7 +1252,8 @@ function ConnectModal({ tool, onClose, onConnected }: {
                       </Pressable>
                     )}
                   </View>
-                  {f.help && <Text style={s.helpInline}>{f.help}</Text>}
+                  {isSavedPwd && <Text style={s.helpInline}>Currently saved — blank keeps it, or enter a new value to change.</Text>}
+                  {!isSavedPwd && f.help && <Text style={s.helpInline}>{f.help}</Text>}
                 </View>
               );
             })}
@@ -1257,7 +1289,7 @@ function ConnectModal({ tool, onClose, onConnected }: {
             </Pressable>
             <GradientButton onPress={submit} loading={busy}>
               <Plug size={13} color="#fff" />
-              <Text style={s.primaryBtnText}>Connect {tool.name}</Text>
+              <Text style={s.primaryBtnText}>{prefill ? 'Save changes' : `Connect ${tool.name}`}</Text>
             </GradientButton>
           </View>
         </Animated.View>
