@@ -2341,9 +2341,10 @@ async def create_teams_meeting_endpoint(payload: TeamsMeetingCreate, user: dict 
         "attendee_emails": payload.attendee_emails or [],
         "event_slug": (payload.event_slug or "").strip() or None,
         "organizer_email": (payload.organizer_email or "").strip() or None,
+        "description": payload.description or "",
         "created_by": str(user.get("_id", "")),
         "created_at": _dt.now(timezone.utc).isoformat(),
-        "is_mock": meeting.get("mock", False) or meeting.get("manual", False),
+        "is_mock": meeting.get("mock", False),
         "manual": meeting.get("manual", False),
         "registrations": [],
     }
@@ -2637,7 +2638,7 @@ async def update_teams_meeting(meeting_id: str, payload: TeamsMeetingCreate, use
     if manual_join_url:
         update_data["join_url"] = manual_join_url
         update_data["manual"] = True
-        update_data["is_mock"] = True
+        update_data["is_mock"] = False
 
     # If Teams API is live, also update the meeting in Microsoft
     creds = await _get_teams_creds()
