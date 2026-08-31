@@ -2796,12 +2796,12 @@ DEFAULT_SHOWCASE_SEED = {
         { "question": "Do I need to know AI/ML to attend?", "answer": "No. The keynotes and workshops are beginner-friendly. You can join a team with mixed skills." }
     ],
     "eligibility": "Open to all undergrad and postgrad students. Teams of 4–5 encouraged; individual starts welcome.",
-    "prize_pool": { "total": "₹30,000", "first": "₹15,000", "second": "₹10,000", "third": "₹5,000", "other_prizes": ["Internship offers for top 3 teams"] },
+    "prize_pool": { "total": "₹17,50,000+", "tracks": "₹50,000", "grand_pool": "₹2,00,000", "wehive_germany": "₹15,00,000", "visas": "2 Business Visas", "other_prizes": ["2 Business Visas sponsored in full", "Up to ₹15,00,000 Germany Master's Sponsorship", "₹2,00,000 Mega Grand Pool", "₹50,000 Hackathon Tracks"] },
     "team_composition": "4–5 members, at least one member from each of design, coding and presentation.",
     "partners": [
-        { "name": "Microsoft", "kind": "association", "logo_url": None },
-        { "name": "Google", "kind": "association", "logo_url": None },
-        { "name": "LinkedIn", "kind": "association", "logo_url": None }
+        { "name": "WeHive", "kind": "visa_partner", "logo_url": None },
+        { "name": "CodeSpectra", "kind": "sponsor", "logo_url": None },
+        { "name": "Featherless", "kind": "sponsor", "logo_url": None }
     ],
     "sponsors": [
         { "name": "Tech Corp", "tier": "Title Sponsor", "website_url": "https://example.com", "logo_url": None, "priority": 0 },
@@ -2994,7 +2994,14 @@ async def get_showcase(slug: str, request: Request):
                     "team_fee": 2495,
                     "available_seats": 985,
                     "team_slots_available": 197,
-                    "prize_pool": "₹2,00,000 Mega Grand Pool (₹50,000 Track Prize Pool)",
+                    "prize_pool": "₹17,50,000+ Total Prize & Sponsorship Pool (including 2 fully sponsored business visas)",
+                    "prize_pool_detail": {
+                        "total": "₹17,50,000+",
+                        "tracks": "₹50,000",
+                        "grand_pool": "₹2,00,000",
+                        "wehive_germany": "₹15,00,000",
+                        "visas": "2 Business Visas fully sponsored by WeHive"
+                    },
                     "reg_closes": "2026-09-01",
                     "hero_image_url": "/images/hackwave/hackwave_main_poster.png",
                     "banner_url": "/images/hackwave/hackwave_main_poster.png",
@@ -3011,7 +3018,7 @@ async def get_showcase(slug: str, request: Request):
                             "title": "HackWave 3.0 SNIST Official Teaser",
                             "video_url": "https://www.youtube.com/watch?v=M576WGiDBdQ",
                             "thumbnail_url": "/images/hackwave/hackwave_main_poster.png",
-                            "description": "Watch the official teaser for HackWave 3.0 at SNIST — 7 Verticals, ₹2,00,000 Grand Pool.",
+                            "description": "Watch the official teaser for HackWave 3.0 at SNIST — 7 Verticals, ₹17,50,000+ Prize & Sponsorship Pool.",
                             "platform": "youtube"
                         },
                         {
