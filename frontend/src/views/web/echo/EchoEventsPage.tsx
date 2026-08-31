@@ -1678,18 +1678,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                     <svg width="15" height="15" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 1.8 }}><path d="M6 3h8l4 4v14H6Z"></path><path d="M14 3v4h4"></path></svg>
                     Event Handbook (PDF)
                   </button>
-                  {teamsMeeting && (
-                    <button
-                      type="button"
-                      onClick={(e) => { e.preventDefault(); setShowTeamsJoin(true); }}
-                      onTouchEnd={(e) => { e.preventDefault(); setShowTeamsJoin(true); }}
-                      className="ev-btn"
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14px', fontWeight: 700, background: '#3B82F6', color: '#FFFFFF', borderRadius: '10px', padding: '12px 22px', cursor: 'pointer', transition: 'all .2s ease', boxShadow: '0 4px 16px rgba(59, 130, 246, 0.35)', border: 'none', outline: 'none', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
-                    >
-                      <svg width="15" height="15" viewBox="0 0 24 24" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 1.9 }}><polygon points="10 4 4 8 4 16 10 20 16 16 16 8z"></polygon><line x1="10" y1="4" x2="22" y2="12"></line><path d="M10 12l0 6"></path></svg>
-                      Join Teams Meeting
-                    </button>
-                  )}
+
                   <button
                     type="button"
                     onClick={(e) => { e.preventDefault(); handleShare(); }}
@@ -1705,6 +1694,35 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
 
             </div>
           </div>
+
+          {/* Virtual Meeting Section */}
+          {teamsMeeting && (
+            <div style={{ border: '1px solid var(--line)', borderRadius: '18px', background: 'linear-gradient(135deg, rgba(59,130,246,0.1), var(--panel))', padding: '26px 28px', marginBottom: '28px', width: '100%' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
+                <span style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#3B82F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" style={{ fill: 'none', stroke: '#FFF', strokeWidth: 2 }}><polygon points="10 4 4 8 4 16 10 20 16 16 16 8z"></polygon><line x1="10" y1="4" x2="22" y2="12"></line><path d="M10 12l0 6"></path></svg>
+                </span>
+                <div>
+                  <div style={{ fontSize: '18px', fontWeight: 700, letterSpacing: '-.4px', color: '#FFFFFF' }}>Virtual Meeting</div>
+                  <div style={{ fontSize: '13.5px', color: '#3B82F6', fontWeight: 600, marginTop: '2px' }}>{teamsMeeting.subject}</div>
+                </div>
+              </div>
+              
+              {teamsMeeting.description && (
+                <div style={{ fontSize: '14.5px', lineHeight: 1.6, color: 'var(--muted)', marginBottom: '22px' }}>
+                  {teamsMeeting.description}
+                </div>
+              )}
+              
+              <button
+                type="button"
+                onClick={(e) => { e.preventDefault(); setShowTeamsJoin(true); }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '14.5px', fontWeight: 700, background: '#3B82F6', color: '#FFFFFF', borderRadius: '10px', padding: '14px 28px', cursor: 'pointer', transition: 'all .2s ease', border: 'none', outline: 'none', boxShadow: '0 4px 16px rgba(59, 130, 246, 0.35)' }}
+              >
+                Join Meeting Now
+              </button>
+            </div>
+          )}
 
           {/* 2-Column: About Event & Organized By */}
           <div className="ev-dgrid" style={{ display: 'grid', gap: '22px', marginBottom: '28px', width: '100%' }}>
@@ -2784,92 +2802,7 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
                 </div>
               </div>
 
-              {/* Teams Join Modal */}
-              {showTeamsJoin && teamsMeeting && (
-                <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-                  <div style={{ backgroundColor: 'var(--panel)', borderRadius: '18px', padding: '28px', width: '90%', maxWidth: '420px', border: '1px solid var(--line2)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-                      <svg width="20" height="20" viewBox="0 0 24 24" style={{ fill: 'none', stroke: '#8B5CF6', strokeWidth: 2 }}><polygon points="10 4 4 8 4 16 10 20 16 16 16 8z"></polygon><line x1="10" y1="4" x2="22" y2="12"></line><path d="M10 12l0 6"></path></svg>
-                      <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: 0 }}>Join Teams Meeting</h3>
-                    </div>
-                    <p style={{ fontSize: '13.5px', color: 'var(--muted)', marginBottom: '20px', lineHeight: 1.5 }}>
-                      Enter your details to receive the Teams meeting link for:
-                      <strong style={{ color: 'var(--text)', display: 'block', marginTop: '4px' }}>{teamsMeeting.subject}</strong>
-                    </p>
 
-                    <div style={{ display: 'grid', gap: '14px', marginBottom: '20px' }}>
-                      <div>
-                        <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', marginBottom: '5px', display: 'block' }}>Full Name *</label>
-                        <input
-                          type="text"
-                          placeholder="Your full name"
-                          value={teamsJoinForm.full_name}
-                          onChange={(e) => setTeamsJoinForm({ ...teamsJoinForm, full_name: e.target.value })}
-                          style={{ width: '100%', padding: '11px 14px', background: 'rgba(0,0,0,0.25)', border: '1px solid var(--line)', borderRadius: '10px', color: '#FFF', fontSize: '14px', fontFamily: 'inherit', outline: 'none' }}
-                        />
-                      </div>
-                      <div>
-                        <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', marginBottom: '5px', display: 'block' }}>Email Address *</label>
-                        <input
-                          type="email"
-                          placeholder="you@college.edu"
-                          value={teamsJoinForm.email}
-                          onChange={(e) => setTeamsJoinForm({ ...teamsJoinForm, email: e.target.value })}
-                          style={{ width: '100%', padding: '11px 14px', background: 'rgba(0,0,0,0.25)', border: '1px solid var(--line)', borderRadius: '10px', color: '#FFF', fontSize: '14px', fontFamily: 'inherit', outline: 'none' }}
-                        />
-                      </div>
-                      <div>
-                        <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', marginBottom: '5px', display: 'block' }}>Phone Number</label>
-                        <input
-                          type="tel"
-                          placeholder="+91 98765 43210"
-                          value={teamsJoinForm.phone}
-                          onChange={(e) => setTeamsJoinForm({ ...teamsJoinForm, phone: e.target.value })}
-                          style={{ width: '100%', padding: '11px 14px', background: 'rgba(0,0,0,0.25)', border: '1px solid var(--line)', borderRadius: '10px', color: '#FFF', fontSize: '14px', fontFamily: 'inherit', outline: 'none' }}
-                        />
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '12px' }}>
-                      <button
-                        onClick={() => setShowTeamsJoin(false)}
-                        style={{ flex: 1, padding: '12px', background: 'transparent', border: '1px solid var(--line2)', borderRadius: '10px', color: 'var(--muted)', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={async () => {
-                          if (!teamsJoinForm.full_name || !teamsJoinForm.email) {
-                            alert('Name and email are required.');
-                            return;
-                          }
-                          try {
-                            const res = await fetch(`/api/integrations/teams/meetings/${teamsMeeting.meeting_id}/register`, {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify(teamsJoinForm),
-                            });
-                            const json = await res.json();
-                            if (json.success && json.join_url) {
-                              setShowTeamsJoin(false);
-                              if (typeof window !== 'undefined') {
-                                window.open(json.join_url, '_blank');
-                              }
-                            } else {
-                              alert(json.error || 'Registration failed.');
-                            }
-                          } catch (e: any) {
-                            alert('Failed to register for meeting.');
-                          }
-                        }}
-                        style={{ flex: 1, padding: '12px', background: 'linear-gradient(100deg, var(--violet), #6246E8)', border: 'none', borderRadius: '10px', color: '#FFF', fontSize: '14px', fontWeight: 700, cursor: 'pointer', boxShadow: '0 8px 22px rgba(124,92,252,.35)' }}
-                      >
-                        Join Meeting
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
 
              </div>
 
@@ -2934,6 +2867,93 @@ export function EchoEventsPage({ initialView = 'list', initialSlug = 'snist' }: 
         <div style={{ position: 'fixed', bottom: '28px', left: '50%', transform: 'translateX(-50%)', zIndex: 9999, background: '#1A1A2E', border: '1px solid #4B3FA8', borderRadius: '12px', padding: '14px 24px', display: 'flex', alignItems: 'center', gap: '10px', boxShadow: '0 8px 32px rgba(0,0,0,0.5)', animation: 'ev-in .3s ease' }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5"><path d="M20 6L9 17l-5-5" /></svg>
           <span style={{ fontSize: '14px', fontWeight: 600, color: '#FFFFFF', whiteSpace: 'nowrap' }}>{toast}</span>
+        </div>
+      )}
+
+      {/* Teams Join Modal */}
+      {showTeamsJoin && teamsMeeting && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ backgroundColor: 'var(--panel)', borderRadius: '18px', padding: '28px', width: '90%', maxWidth: '420px', border: '1px solid var(--line2)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" style={{ fill: 'none', stroke: '#8B5CF6', strokeWidth: 2 }}><polygon points="10 4 4 8 4 16 10 20 16 16 16 8z"></polygon><line x1="10" y1="4" x2="22" y2="12"></line><path d="M10 12l0 6"></path></svg>
+              <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: 0 }}>Join Teams Meeting</h3>
+            </div>
+            <p style={{ fontSize: '13.5px', color: 'var(--muted)', marginBottom: '20px', lineHeight: 1.5 }}>
+              Enter your details to receive the Teams meeting link for:
+              <strong style={{ color: 'var(--text)', display: 'block', marginTop: '4px' }}>{teamsMeeting.subject}</strong>
+            </p>
+
+            <div style={{ display: 'grid', gap: '14px', marginBottom: '20px' }}>
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', marginBottom: '5px', display: 'block' }}>Full Name *</label>
+                <input
+                  type="text"
+                  placeholder="Your full name"
+                  value={teamsJoinForm.full_name}
+                  onChange={(e) => setTeamsJoinForm({ ...teamsJoinForm, full_name: e.target.value })}
+                  style={{ width: '100%', padding: '11px 14px', background: 'rgba(0,0,0,0.25)', border: '1px solid var(--line)', borderRadius: '10px', color: '#FFF', fontSize: '14px', fontFamily: 'inherit', outline: 'none' }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', marginBottom: '5px', display: 'block' }}>Email Address *</label>
+                <input
+                  type="email"
+                  placeholder="you@college.edu"
+                  value={teamsJoinForm.email}
+                  onChange={(e) => setTeamsJoinForm({ ...teamsJoinForm, email: e.target.value })}
+                  style={{ width: '100%', padding: '11px 14px', background: 'rgba(0,0,0,0.25)', border: '1px solid var(--line)', borderRadius: '10px', color: '#FFF', fontSize: '14px', fontFamily: 'inherit', outline: 'none' }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', marginBottom: '5px', display: 'block' }}>Phone Number</label>
+                <input
+                  type="tel"
+                  placeholder="+91 98765 43210"
+                  value={teamsJoinForm.phone}
+                  onChange={(e) => setTeamsJoinForm({ ...teamsJoinForm, phone: e.target.value })}
+                  style={{ width: '100%', padding: '11px 14px', background: 'rgba(0,0,0,0.25)', border: '1px solid var(--line)', borderRadius: '10px', color: '#FFF', fontSize: '14px', fontFamily: 'inherit', outline: 'none' }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                onClick={() => setShowTeamsJoin(false)}
+                style={{ flex: 1, padding: '12px', background: 'transparent', border: '1px solid var(--line2)', borderRadius: '10px', color: 'var(--muted)', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  if (!teamsJoinForm.full_name || !teamsJoinForm.email) {
+                    alert('Name and email are required.');
+                    return;
+                  }
+                  try {
+                    const res = await fetch(`/api/integrations/teams/meetings/${teamsMeeting.meeting_id}/register`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(teamsJoinForm),
+                    });
+                    const json = await res.json();
+                    if (json.success && json.join_url) {
+                      setShowTeamsJoin(false);
+                      if (typeof window !== 'undefined') {
+                        window.open(json.join_url, '_blank');
+                      }
+                    } else {
+                      alert(json.error || 'Registration failed.');
+                    }
+                  } catch (e: any) {
+                    alert('Failed to register for meeting.');
+                  }
+                }}
+                style={{ flex: 1, padding: '12px', background: 'linear-gradient(100deg, var(--violet), #6246E8)', border: 'none', borderRadius: '10px', color: '#FFF', fontSize: '14px', fontWeight: 700, cursor: 'pointer', boxShadow: '0 8px 22px rgba(124,92,252,.35)' }}
+              >
+                Join Meeting
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
