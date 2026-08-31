@@ -2190,3 +2190,77 @@ async def send_claim_invites_campaign(body: SendClaimInvitesRequest):
         "message": f"Dispatched {count} personalized BGV verification & profile claim invites."
     }
 
+
+# ── Enterprise BGV Developer & Corporate Recruiter API Keys ───────────────────
+class GenerateApiKeyRequest(BaseModel):
+    org_name: str
+    tier: Optional[str] = "Enterprise Recruiter"
+    webhook_url: Optional[str] = None
+    monthly_quota: Optional[int] = 50000
+
+@router.get("/admin/api-keys")
+async def list_enterprise_bgv_api_keys():
+    """Returns active enterprise BGV API keys and webhook integrations."""
+    keys_cursor = await db.bgv_api_keys.find({}).to_list(50)
+    if not keys_cursor:
+        # Default mock enterprise keys if empty
+        return {
+            "api_keys": [
+                {
+                    "id": "key_01",
+                    "key_prefix": "sa_live_981a...",
+                    "org_name": "WeHive Germany Admissions & Visas",
+                    "tier": "Enterprise Sponsor Partner",
+                    "webhook_url": "https://api.wehive.de/v1/bgv-webhooks",
+                    "created_at": "2026-08-15T10:00:00Z",
+                    "status": "active",
+                    "monthly_quota": 100000,
+                    "usage_count": 14280
+                },
+                {
+                    "id": "key_02",
+                    "key_prefix": "sa_live_441c...",
+                    "org_name": "ISC2 Cybersecurity Registry",
+                    "tier": "Institutional Partner",
+                    "webhook_url": "https://isc2.org/api/verifications",
+                    "created_at": "2026-08-20T14:30:00Z",
+                    "status": "active",
+                    "monthly_quota": 50000,
+                    "usage_count": 8950
+                }
+            ]
+        }
+    return {"api_keys": keys_cursor}
+
+
+@router.post("/admin/api-keys/generate")
+async def generate_enterprise_bgv_api_key(body: GenerateApiKeyRequest):
+    """Generates a cryptographic live API key for background check partners."""
+    raw_key = f"sa_live_{secrets.token_hex(16)}"
+    key_doc = {
+        "org_name": body.org_name,
+        "tier": body.tier or "Enterprise Recruiter",
+        "key_prefix": f"{raw_key[:12]}...",
+        "key_hash": hashlib.sha256(raw_key.encode()).hexdigest(),
+        "webhook_url": body.webhook_url or "https://api.partner.com/bgv-webhooks",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "status": "active",
+        "monthly_quota": body.monthly_quota or 50000,
+        "usage_count": 0
+    }
+    res = await db.bgv_api_keys.insert_one(key_doc)
+    key_doc["id"] = str(res.inserted_id)
+    key_doc["live_api_key"] = raw_key
+    return {
+        "status": "created",
+        "api_key": key_doc,
+        "warning": "Copy this API key now. It will not be shown again."
+    }
+
+
+@router.post("/admin/api-keys/revoke/{key_id}")
+async def revoke_enterprise_bgv_api_key(key_id: str):
+    """Revokes an enterprise API key immediately."""
+    await db.bgv_api_keys.update_one({"_id": ObjectId(key_id)}, {"$set": {"status": "revoked"}})
+    return {"status": "revoked", "key_id": key_id}
+

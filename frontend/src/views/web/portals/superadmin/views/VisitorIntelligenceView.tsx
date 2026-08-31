@@ -65,6 +65,34 @@ export function VisitorIntelligenceView() {
   const [heatmapModule, setHeatmapModule] = useState<string>('all');
   const [heatmapLoading, setHeatmapLoading] = useState(false);
 
+  // Broadcast Center State
+  const [broadcastModalOpen, setBroadcastModalOpen] = useState(false);
+  const [bTitle, setBTitle] = useState('HackWave 3.0 Registration Announcement');
+  const [bMsg, setBMsg] = useState('₹17,50,000+ Total Prize Pool Live! WeHive 2 Business Visas & Germany Study Abroad Sponsorship active.');
+  const [bUrgency, setBUrgency] = useState<'info' | 'urgent' | 'winner'>('urgent');
+  const [bBusy, setBBusy] = useState(false);
+
+  const handlePushBroadcast = async () => {
+    if (!bTitle.trim() || !bMsg.trim()) return;
+    setBBusy(true);
+    try {
+      await request('/admin/broadcast/push', {
+        method: 'POST',
+        body: {
+          title: bTitle.trim(),
+          message: bMsg.trim(),
+          urgency: bUrgency,
+          target_module: moduleFilter || 'all'
+        }
+      });
+      setBroadcastModalOpen(false);
+    } catch (e: any) {
+      console.warn('Failed to push broadcast', e);
+    } finally {
+      setBBusy(false);
+    }
+  };
+
   // Selected Visitor for Dossier Modal
   const [selectedVisitorId, setSelectedVisitorId] = useState<string | null>(null);
   const [dossier, setDossier] = useState<any>(null);
@@ -247,6 +275,13 @@ export function VisitorIntelligenceView() {
               {autoRefresh ? 'Live Pulse (10s)' : 'Pulse Paused'}
             </Text>
           </Pressable>
+
+          <SecondaryButton size="sm" onPress={() => setBroadcastModalOpen(true)}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Radio size={13} color="#F59E0B" />
+              <Text style={{ color: '#F59E0B', fontSize: 13, fontFamily: FONTS.bold }}>Push Broadcast</Text>
+            </View>
+          </SecondaryButton>
 
           <SecondaryButton
             size="sm"

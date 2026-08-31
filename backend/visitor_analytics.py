@@ -877,3 +877,73 @@ async def get_visitor_click_heatmap(
         "total_clicks_analyzed": sum(e["click_count"] for e in elements),
         "hotspots": elements
     }
+
+
+# ── Super Admin Real-Time Announcement Broadcast Center ───────────────────────
+class BroadcastPushRequest(BaseModel):
+    title: str
+    message: str
+    target_module: Optional[str] = "all"
+    urgency: Optional[str] = "info"  # "info" | "urgent" | "winner"
+    banner_url: Optional[str] = None
+    duration_minutes: Optional[int] = 120
+
+@router.post("/admin/broadcast/push")
+async def push_announcement_broadcast(
+    body: BroadcastPushRequest,
+    user: dict = Depends(require_role("admin", "superadmin", "college"))
+):
+    """Super Admin endpoint to publish a real-time broadcast alert across web sessions."""
+    now = datetime.now(timezone.utc)
+    expires_at = now + timedelta(minutes=body.duration_minutes or 120)
+    
+    doc = {
+        "title": body.title,
+        "message": body.message,
+        "target_module": body.target_module or "all",
+        "urgency": body.urgency or "info",
+        "banner_url": body.banner_url,
+        "pushed_at": now.isoformat(),
+        "expires_at": expires_at.isoformat(),
+        "pushed_by": user.get("email") or "Super Admin",
+        "is_active": True
+    }
+    
+    # Deactivate previous broadcasts
+    await _db.announcement_broadcasts.update_many({}, {"$set": {"is_active": False}})
+    res = await _db.announcement_broadcasts.insert_one(doc)
+    doc["_id"] = str(res.inserted_id)
+    return {"status": "broadcast_active", "announcement": doc}
+
+
+@router.get("/admin/broadcast/active")
+async def get_active_announcement(module: Optional[str] = "all"):
+    """Public / Client endpoint to fetch the active broadcast banner."""
+    now_iso = datetime.now(timezone.utc).isoformat()
+    doc = await _db.announcement_broadcasts.find_one({
+        "is_active": True,
+        "expires_at": {"$gt": now_iso}
+    })
+    
+    if not doc:
+        # Default active broadcast banner for HackWave 3.0
+        return {
+            "active": True,
+            "announcement": {
+                "title": "HackWave 3.0 Registration Update",
+                "message": "₹17,50,000+ Total Prize Pool Live! WeHive 2 Business Visas & Germany Study Abroad Sponsorship active.",
+                "urgency": "urgent",
+                "target_module": "all",
+                "cta_label": "Claim Ticket",
+                "cta_url": "/echo/snist/register"
+            }
+        }
+    doc["_id"] = str(doc["_id"])
+    return {"active": True, "announcement": doc}
+
+
+@router.post("/admin/broadcast/clear")
+async def clear_active_announcement(user: dict = Depends(require_role("admin", "superadmin", "college"))):
+    """Clears the active broadcast banner."""
+    await _db.announcement_broadcasts.update_many({}, {"$set": {"is_active": False}})
+    return {"status": "cleared"}

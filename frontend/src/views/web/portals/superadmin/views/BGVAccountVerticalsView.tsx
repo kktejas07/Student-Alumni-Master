@@ -152,6 +152,51 @@ export function BGVAccountVerticalsView() {
   const [visaBusy, setVisaBusy] = useState(false);
   const [claimCampaignBusy, setClaimCampaignBusy] = useState(false);
 
+  // Enterprise API Keys State
+  const [apiKeysList, setApiKeysList] = useState<any[]>([]);
+  const [apiKeysBusy, setApiKeysBusy] = useState(false);
+  const [genKeyOrgName, setGenKeyOrgName] = useState('');
+  const [genKeyWebhook, setGenKeyWebhook] = useState('');
+  const [newKeyModal, setNewKeyModal] = useState<any>(null);
+
+  const fetchApiKeys = useCallback(async () => {
+    setApiKeysBusy(true);
+    try {
+      const res = await request<any>('/bgv/admin/api-keys');
+      if (res && res.api_keys) setApiKeysList(res.api_keys);
+    } catch (e: any) {
+      console.warn('Failed to load BGV API Keys', e);
+    } finally {
+      setApiKeysBusy(false);
+    }
+  }, []);
+
+  const handleGenerateApiKey = async () => {
+    if (!genKeyOrgName.trim()) {
+      flash('Please enter organization name', 'error');
+      return;
+    }
+    setApiKeysBusy(true);
+    try {
+      const res = await request<any>('/bgv/admin/api-keys/generate', {
+        method: 'POST',
+        body: {
+          org_name: genKeyOrgName.trim(),
+          webhook_url: genKeyWebhook.trim() || undefined
+        }
+      });
+      setNewKeyModal(res.api_key);
+      setGenKeyOrgName('');
+      setGenKeyWebhook('');
+      flash('Enterprise BGV API Key Generated!', 'success');
+      fetchApiKeys();
+    } catch (e: any) {
+      flash(e?.message || 'Failed to generate API Key', 'error');
+    } finally {
+      setApiKeysBusy(false);
+    }
+  };
+
   const { toast, flash, hide } = useToast();
 
   // Load analytics summary
@@ -285,7 +330,8 @@ export function BGVAccountVerticalsView() {
     loadProvidersRegister();
     loadFakeUniversities();
     loadVisaReadiness();
-  }, [loadAnalytics, loadRemindersStatus, loadProvidersRegister, loadFakeUniversities, loadVisaReadiness]);
+    fetchApiKeys();
+  }, [loadAnalytics, loadRemindersStatus, loadProvidersRegister, loadFakeUniversities, loadVisaReadiness, fetchApiKeys]);
 
   useEffect(() => {
     loadList(1, vertical, q, countryFilter, linkedInFilter);
@@ -613,6 +659,7 @@ export function BGVAccountVerticalsView() {
         {[
           { id: 'directory', label: 'Directory & Verticals', icon: Users, badge: `${analytics?.total_records || 0}` },
           { id: 'visa_radar', label: 'Global Visa & Study-Abroad Radar', icon: Globe, badge: 'WeHive Perks' },
+          { id: 'enterprise_keys', label: 'Enterprise API Keys & Webhooks', icon: Key, badge: 'Webhooks' },
           { id: 'scanner', label: '5-Tier BGV Scanner', icon: Zap, badge: 'Live' },
           { id: 'fake_unis', label: 'UGC Fake Uni Blacklist', icon: AlertCircle, badge: `${fakeUnisList.length || 22}` },
           { id: 'api_register', label: 'API Register & Tiers', icon: Layers, badge: 'Tier 0/1/2' },
@@ -1403,6 +1450,76 @@ export function BGVAccountVerticalsView() {
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', fontSize: 12, color: '#94A3B8' }}>
                     <Text style={{ color: '#94A3B8', fontSize: 12 }}>Verified Candidates: <Text style={{ color: '#FFFFFF', fontWeight: 'bold' }}>{c.bgv_verified_count}/{c.total_candidates}</Text></Text>
                     <Text style={{ color: '#C4B5FD', fontSize: 12 }}>Top Target: {c.top_fields?.[0]}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </Card>
+      {/* ================================================================= */}
+      {/* TAB: Enterprise BGV API Keys & Webhooks                           */}
+      {/* ================================================================= */}
+      {bgvTab === 'enterprise_keys' && (
+        <Animated.View entering={FadeIn.duration(200)} style={{ gap: 16 }}>
+          <Card style={{ padding: 22, gap: 16 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+              <View style={{ gap: 4 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Key size={20} color="#F59E0B" />
+                  <Text style={{ color: '#FFFFFF', fontSize: 18, fontFamily: FONTS.bold }}>Enterprise BGV API Keys & Webhook Integrations</Text>
+                </View>
+                <Text style={{ color: '#94A3B8', fontSize: 13 }}>
+                  Issue live cryptographic API keys to background check partners, corporate recruiters, and university admissions desks.
+                </Text>
+              </View>
+            </View>
+
+            {/* Quick Generator Box */}
+            <View style={{ padding: 16, background: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.25)', borderRadius: 12, gap: 10 }}>
+              <Text style={{ fontSize: 13, fontFamily: FONTS.bold, color: '#FDE68A' }}>🔑 GENERATE NEW ENTERPRISE RECRUITER API KEY</Text>
+              <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
+                <TextInput
+                  style={{ flex: 1, minWidth: 200, height: 38, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 12, color: '#FFF', fontSize: 13 }}
+                  placeholder="Organization Name (e.g. Acme Corp HR)"
+                  placeholderTextColor="#64748B"
+                  value={genKeyOrgName}
+                  onChangeText={setGenKeyOrgName}
+                />
+                <TextInput
+                  style={{ flex: 1, minWidth: 220, height: 38, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 12, color: '#FFF', fontSize: 13 }}
+                  placeholder="Webhook URL (https://partner.com/webhooks)"
+                  placeholderTextColor="#64748B"
+                  value={genKeyWebhook}
+                  onChangeText={setGenKeyWebhook}
+                />
+                <Pressable
+                  style={{ height: 38, paddingHorizontal: 16, borderRadius: 8, backgroundColor: '#F59E0B', justifyContent: 'center', alignItems: 'center' }}
+                  onPress={handleGenerateApiKey}
+                  disabled={apiKeysBusy}
+                >
+                  <Text style={{ fontSize: 13, fontFamily: FONTS.bold, color: '#1E1B4B' }}>
+                    {apiKeysBusy ? 'Generating...' : 'Issue API Key'}
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+
+            {/* API Keys Table */}
+            <View style={{ gap: 8, marginTop: 8 }}>
+              {apiKeysList.map((k: any, kidx: number) => (
+                <View key={kidx} style={{ padding: 14, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                  <View style={{ gap: 2 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <Text style={{ fontSize: 14, fontFamily: FONTS.bold, color: '#FFF' }}>{k.org_name}</Text>
+                      <span style={{ fontSize: '10px', fontWeight: 800, padding: '2px 8px', borderRadius: '100px', background: 'rgba(16,185,129,0.15)', color: '#10B981', border: '1px solid rgba(16,185,129,0.3)' }}>
+                        {k.status.toUpperCase()}
+                      </span>
+                    </View>
+                    <Text style={{ fontSize: 12, color: '#94A3B8' }}>
+                      Prefix: <Text style={{ fontFamily: 'monospace', color: '#FDE68A' }}>{k.key_prefix}</Text> · Quota: <Text style={{ color: '#C4B5FD' }}>{k.usage_count}/{k.monthly_quota} calls</Text>
+                    </Text>
+                    {k.webhook_url ? (
+                      <Text style={{ fontSize: 11, color: '#38BDF8', marginTop: 1 }}>Webhook: {k.webhook_url}</Text>
+                    ) : null}
                   </View>
                 </View>
               ))}

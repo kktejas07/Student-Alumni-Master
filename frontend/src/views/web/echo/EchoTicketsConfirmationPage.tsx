@@ -417,10 +417,24 @@ END:VCALENDAR`;
                 <div style={{ fontSize: '16.5px', fontWeight: 700, letterSpacing: '-.3px' }}>Payment received</div>
                 <div style={{ fontSize: '13.5px', lineHeight: 1.6, color: 'var(--muted)', margin: '7px 0 14px' }}>INR {pAmount.toLocaleString()} via Razorpay. Invoice SA-INV-22981 is ready.</div>
                 
-                <span onClick={handleDownloadInvoice} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 700, color: 'var(--ok)', cursor: 'pointer' }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M4 19.5h16" /></svg>
-                  {invState === 'downloading' ? 'Preparing PDF...' : invState === 'ready' ? 'Downloaded ✓' : 'Download invoice'}
-                </span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <span onClick={handleDownloadInvoice} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 700, color: 'var(--ok)', cursor: 'pointer' }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M4 19.5h16" /></svg>
+                    {invState === 'downloading' ? 'Preparing PDF...' : invState === 'ready' ? 'Downloaded ✓' : 'Download invoice'}
+                  </span>
+
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
+                    <a href={`/api/echo/tickets/${tNo}/apple-wallet`} download style={{ textDecoration: 'none', padding: '6px 12px', borderRadius: '8px', background: '#000', color: '#fff', fontSize: '11.5px', fontWeight: 700, border: '1px solid #333', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      🍏 Apple Wallet (.pkpass)
+                    </a>
+                    <a href={`/api/echo/tickets/${tNo}/google-wallet`} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', padding: '6px 12px', borderRadius: '8px', background: 'rgba(59,130,246,0.15)', color: '#60A5FA', fontSize: '11.5px', fontWeight: 700, border: '1px solid rgba(59,130,246,0.3)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      💳 Google Wallet
+                    </a>
+                    <button onClick={() => addToast('WhatsApp Sent', `QR Pass dispatched to WhatsApp`, 'ok')} style={{ padding: '6px 12px', borderRadius: '8px', background: 'rgba(16,185,129,0.15)', color: '#34D399', fontSize: '11.5px', fontWeight: 700, border: '1px solid rgba(16,185,129,0.3)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      📲 WhatsApp Pass
+                    </button>
+                  </div>
+                </div>
 
                 {invState === 'downloading' && (
                   <div style={{ height: '4px', borderRadius: '2px', background: 'var(--line2)', overflow: 'hidden', marginTop: '12px' }}>
