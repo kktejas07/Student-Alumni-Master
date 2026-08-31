@@ -1410,14 +1410,6 @@ export function BGVAccountVerticalsView() {
           </Card>
         </Animated.View>
       )}
-                    </View>
-                  </View>
-                ))}
-              </View>
-            )}
-          </Card>
-        </View>
-      )}
 
       {/* ================================================================= */}
       {/* TAB 4: API Register & Verifiers Matrix (Tier 0, 1, 2)             */}
