@@ -110,9 +110,12 @@ def _generate_coupon_code(session_key: str, reg_id: str) -> str:
 async def _generate_coupons_for_registration(db, slug: str, reg_id: str, sessions: list):
     """Generate coupon records for all enabled sessions."""
     from datetime import timezone
+    existing = await db.echo_coupons.find({"reg_id": reg_id}).to_list(500)
+    existing_keys = {c.get("session_key") for c in existing}
+
     coupons = []
     for s in sessions:
-        if s.get("enabled") is False:
+        if s.get("enabled") is False or s["key"] in existing_keys:
             continue
         code = _generate_coupon_code(s["key"], reg_id)
         day = int(s.get("day") or 1)
@@ -230,6 +233,35 @@ async def _require_admin(request: Request):
     if payload.get("role") not in ("admin", "super_admin"):
         raise HTTPException(status_code=403, detail="Admin only")
     return payload
+
+
+async def _require_scan_access(request: Request):
+    """Allow scan access to super_admins, admins, AND authorized volunteers."""
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing token")
+    token = auth.split(" ", 1)[1]
+    import jwt as _jwt
+    JWT_SECRET = os.environ.get("JWT_SECRET", "dev-only-insecure-secret-change-me")
+    try:
+        payload = _jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    role = (payload.get("role") or "").lower()
+    if role in ("super_admin", "admin"):
+        return payload
+        
+    db = _get_db(request)
+    email = (payload.get("email") or "").strip().lower()
+    vol = await db.echo_volunteers.find_one({"email": email})
+    if vol:
+        # Volunteer is authorized. Attach their identity for audit.
+        payload["scanned_by"] = vol.get("name") or email
+        payload["role"] = "volunteer"
+        return payload
+        
+    raise HTTPException(status_code=403, detail="Scanner access denied")
 
 
 def _get_current_user_dependency():
@@ -591,7 +623,7 @@ async def _assert_registration_open(db, showcase: dict) -> None:
             raise HTTPException(status_code=400, detail="Sorry — this event has reached full capacity")
 
 
-async def _send_registration_confirmation(db, reg: dict, showcase: dict, team_name: str = None) -> None:
+async def _send_registration_confirmation(db, reg: dict, showcase: dict | None, team_name: str | None = None) -> None:
     """Email a confirmation (with QR) for FREE or confirmed registrations.
 
     Paid registrations get a payment invoice via _store_invoice_and_email; this
@@ -603,12 +635,12 @@ async def _send_registration_confirmation(db, reg: dict, showcase: dict, team_na
         email = (reg.get("email") or "").strip()
         if not email:
             return
-        title = reg.get("showcase_title") or showcase.get("title") or "Event Registration"
+        title = reg.get("showcase_title") or (showcase or {}).get("title") or "Event Registration"
         reg_id = reg.get("id") or ""
         import urllib.parse
         ticket_url = f"https://studentalumni.ai/api/echo/tickets/{reg_id}?email={urllib.parse.quote(email)}"
         handbook_url = f"https://studentalumni.ai/api/echo/handbook/download"
-        ticket_block = _ticket_email_block(reg, showcase, ticket_url)
+        ticket_block = _ticket_email_block(reg, showcase or {}, ticket_url)
         
         # Team info block
         team_info_block = ""
@@ -1428,7 +1460,12 @@ def _build_ticket_html(reg: dict, showcase: dict, template_id: Optional[str] = N
     if template_id not in TICKET_TEMPLATES:
         template_id = DEFAULT_TICKET_TEMPLATE
 
-    qr = reg.get("qr_code_base64") or ""
+    qr = reg.get("qr_code_base64")
+    if not qr and reg.get("id"):
+        frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+        qr = generate_qr_code(f"{frontend_url}/echo/scan/{reg.get('id')}")
+    elif not qr:
+        qr = ""
     brand = "STUDENT ALUMNI · ECHO"
     organizer = esc(showcase.get("organizer_name") or "Student Alumni Cell")
     title = esc(reg.get("showcase_title") or showcase.get("title") or "Event")
@@ -1444,6 +1481,10 @@ def _build_ticket_html(reg: dict, showcase: dict, template_id: Optional[str] = N
     reg_id = esc(reg.get("id") or "")
     meta = [v for v in (branch, year, college) if v]
     attendee_line = " · ".join(meta) if meta else (phone or "Student")
+
+    is_checked_in = bool(reg.get("checked_in_at"))
+    badge_label = "CHECKED IN" if is_checked_in else "CONFIRMED PASS"
+    badge_html = f'<span class="badge">{badge_label}</span>'
 
     # Sponsor logos strip
     sponsors = showcase.get("sponsors") or []
@@ -1499,7 +1540,7 @@ def _build_ticket_html(reg: dict, showcase: dict, template_id: Optional[str] = N
               <div class="c-col" style="text-align:right;">
                 <div class="dl-label">REG ID</div>
                 <div class="dl-val" style="font-size:14px;letter-spacing:1px;">{reg_id}</div>
-                <div class="c-sub" style="margin-top:8px;"><span class="badge">CONFIRMED</span></div>
+                <div class="c-sub" style="margin-top:8px;">{badge_html}</div>
               </div>
             </div>
             <div class="c-qr">{qr_img}</div>
@@ -1542,51 +1583,74 @@ def _build_ticket_html(reg: dict, showcase: dict, template_id: Optional[str] = N
           <div class="m-qr">{qr_img_sm}</div>
         </div>
         <div class="m-footer">
-          <span class="badge">CONFIRMED</span>
+          {badge_html}
           <span class="m-note">Scan the QR at check-in · Keep this pass handy</span>
         </div>
         {sponsors_html}
       </div>"""
     else:  # aurora (default)
+        checkin_banner = ''
+        if is_checked_in:
+            checkin_at = reg.get('checked_in_at') or ''
+            checkin_banner = f'<div class="aur-checkin-banner"><span class="aur-checkin-icon">✓</span> Checked In{" · " + checkin_at[:16].replace("T"," ") if checkin_at else ""}</div>'
+        reg_id_short = reg_id[:24] + ('…' if len(reg_id) > 24 else '')
         inner = f"""
       <div class="sheet aurora">
         <div class="aur-glow aur-glow-a"></div>
         <div class="aur-glow aur-glow-b"></div>
+        <div class="aur-glow aur-glow-c"></div>
         <div class="aur-main">
+
+          <!-- Header -->
           <div class="aur-header">
-            <div class="aur-brand">{brand}</div>
-            <div class="aur-org">{organizer}</div>
+            <div class="aur-toprow">
+              <div>
+                <div class="aur-brand">{brand}</div>
+                <div class="aur-org">{organizer}</div>
+              </div>
+              <div class="aur-badge-pill">{badge_label}</div>
+            </div>
             <h1 class="aur-title">{title}</h1>
             <div class="aur-pills">
-              <span class="aur-pill">{event_date or 'TBA'}</span>
-              <span class="aur-pill">{event_time}</span>
-              <span class="aur-pill">{venue}</span>
+              {'<span class="aur-pill">📅 ' + event_date + '</span>' if event_date else '<span class="aur-pill">📅 TBA</span>'}
+              {'<span class="aur-pill">🕐 ' + event_time + '</span>' if event_time else ''}
+              {'<span class="aur-pill">📍 ' + venue + '</span>' if venue else ''}
             </div>
           </div>
+
+          {checkin_banner}
+
+          <!-- Body -->
           <div class="aur-body">
             <div class="aur-info">
-              <div class="aur-col">
-                <div class="dl-label">ATTENDEE</div>
+              <div class="aur-field">
+                <div class="dl-label">Attendee</div>
                 <div class="dl-val">{name}</div>
                 <div class="aur-sub">{email}</div>
                 {f'<div class="aur-sub">{attendee_line}</div>' if attendee_line else ''}
               </div>
-              <div class="aur-col">
-                <div class="dl-label">REG ID</div>
-                <div class="dl-val" style="letter-spacing:1px;">{reg_id}</div>
+              <div class="aur-field">
+                <div class="dl-label">Reg ID</div>
+                <div class="aur-reg-id">{reg_id_short}</div>
               </div>
             </div>
-            <div class="aur-qr">{qr_img}</div>
-          </div>
-          <div class="aur-badge-row"><span class="badge">CONFIRMED PASS</span></div>
-          <div class="aur-stub">
-            <div class="aur-stub-left">
-              <div class="aur-stub-event">{title}</div>
-              <div class="aur-stub-detail">{event_date} · {name}</div>
-              <div class="aur-stub-id">REG: {reg_id}</div>
+            <div class="aur-qr-wrap">
+              <div class="aur-qr">{qr_img}</div>
+              <div class="aur-qr-hint">Scan at venue</div>
             </div>
-            {qr_img_sm}
-            <div class="aur-stub-tear">|</div>
+          </div>
+
+          <!-- Stub -->
+          <div class="aur-stub">
+            <div class="aur-stub-dots"></div>
+            <div class="aur-stub-inner">
+              <div class="aur-stub-left">
+                <div class="aur-stub-event">{title}</div>
+                <div class="aur-stub-detail">{event_date or 'TBA'} · {name}</div>
+                <div class="aur-stub-id">REG: {reg_id_short}</div>
+              </div>
+              {qr_img_sm}
+            </div>
           </div>
         </div>
         {sponsors_html}
@@ -1618,35 +1682,44 @@ def _build_ticket_html(reg: dict, showcase: dict, template_id: Optional[str] = N
   .sp-name {{ font-size:11px; font-weight:600; color:#94a3b8; white-space:nowrap; }}
 
   /* ── AURORA (default) ────────────────────────────────────────────────── */
-  .aurora {{ background:linear-gradient(160deg,#0f0a2e 0%,#1a1145 30%,#2d1b69 60%,#1a0e3e 100%); color:#fff; }}
-  .aurora .dl-label {{ color:#a5b4fc; }}
-  .aurora .dl-val {{ color:#fff; }}
-  .aurora .badge {{ background:rgba(52,211,153,0.15); color:#6ee7b7; }}
-  .aurora .sponsors {{ border-top-color:rgba(255,255,255,0.08); }}
-  .aurora .sp-label {{ color:rgba(255,255,255,0.35); }}
-  .aur-glow {{ position:absolute; width:350px; height:350px; border-radius:50%; filter:blur(100px); opacity:.30; pointer-events:none; }}
-  .aur-glow-a {{ top:-140px; right:-100px; background:#a855f7; }}
-  .aur-glow-b {{ bottom:-160px; left:-100px; background:#6366f1; }}
-  .aur-main {{ position:relative; }}
-  .aur-header {{ padding:36px 36px 20px; }}
-  .aur-brand {{ font-size:10px; font-weight:800; letter-spacing:3px; opacity:.6; }}
-  .aur-org {{ font-size:13px; font-weight:600; margin-top:8px; opacity:.7; }}
-  .aur-title {{ margin:12px 0 16px; font-size:32px; font-weight:900; line-height:1.1; letter-spacing:-0.5px; }}
+  .aurora {{ background:linear-gradient(160deg,#09071f 0%,#130d3b 35%,#1e1050 65%,#0d0825 100%); color:#fff; }}
+  .aurora .dl-label {{ color:rgba(165,180,252,0.7); font-size:9px; letter-spacing:1.5px; }}
+  .aurora .dl-val {{ color:#fff; font-size:22px; }}
+  .aurora .sponsors {{ border-top-color:rgba(255,255,255,0.07); }}
+  .aurora .sp-label {{ color:rgba(255,255,255,0.3); }}
+  .aur-glow {{ position:absolute; border-radius:50%; filter:blur(90px); opacity:.22; pointer-events:none; }}
+  .aur-glow-a {{ width:420px; height:420px; top:-160px; right:-80px; background:#a855f7; }}
+  .aur-glow-b {{ width:320px; height:320px; bottom:-120px; left:-60px; background:#6366f1; }}
+  .aur-glow-c {{ width:200px; height:200px; top:50%; left:50%; transform:translate(-50%,-50%); background:#8b5cf6; opacity:.12; }}
+  .aur-main {{ position:relative; z-index:1; }}
+  .aur-header {{ padding:40px 40px 24px; border-bottom:1px solid rgba(255,255,255,0.06); }}
+  .aur-toprow {{ display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:16px; }}
+  .aur-brand {{ font-size:9px; font-weight:800; letter-spacing:3px; color:rgba(255,255,255,0.4); text-transform:uppercase; }}
+  .aur-org {{ font-size:13px; font-weight:600; margin-top:6px; color:rgba(255,255,255,0.6); }}
+  .aur-badge-pill {{ background:rgba(52,211,153,0.15); border:1px solid rgba(52,211,153,0.3); color:#6ee7b7; font-size:10px; font-weight:800; letter-spacing:.5px; padding:6px 14px; border-radius:999px; white-space:nowrap; text-transform:uppercase; }}
+  .aur-title {{ font-size:38px; font-weight:900; line-height:1.05; letter-spacing:-1px; margin-bottom:18px; }}
   .aur-pills {{ display:flex; gap:8px; flex-wrap:wrap; }}
-  .aur-pill {{ background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.85); font-size:12px; font-weight:600; padding:6px 14px; border-radius:999px; white-space:nowrap; }}
-  .aur-body {{ display:flex; justify-content:space-between; align-items:flex-start; gap:28px; padding:20px 36px 28px; }}
-  .aur-info {{ flex:1; display:grid; grid-template-columns:1fr 1fr; gap:18px; }}
-  .aur-col {{ min-width:0; }}
-  .aur-sub {{ font-size:12px; color:rgba(255,255,255,0.55); margin-top:3px; line-height:1.4; }}
-  .aur-qr {{ background:#fff; padding:12px; border-radius:16px; flex-shrink:0; box-shadow:0 8px 30px rgba(0,0,0,0.25); }}
-  .aur-qr .qr {{ width:150px; height:150px; }}
-  .aur-badge-row {{ padding:0 36px 16px; }}
-  .aur-stub {{ display:flex; align-items:center; gap:20px; padding:18px 36px; background:rgba(255,255,255,0.04); border-top:2px dashed rgba(255,255,255,0.15); position:relative; }}
+  .aur-pill {{ background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.8); font-size:12px; font-weight:600; padding:6px 14px; border-radius:999px; white-space:nowrap; }}
+  .aur-checkin-banner {{ background:rgba(16,185,129,0.12); border-top:1px solid rgba(16,185,129,0.2); border-bottom:1px solid rgba(16,185,129,0.2); padding:10px 40px; display:flex; align-items:center; gap:10px; }}
+  .aur-checkin-icon {{ font-size:14px; color:#34d399; }}
+  .aur-checkin-banner {{ font-size:12px; font-weight:700; color:#6ee7b7; letter-spacing:.3px; }}
+  .aur-body {{ display:flex; justify-content:space-between; align-items:center; gap:32px; padding:32px 40px; }}
+  .aur-info {{ flex:1; display:flex; flex-direction:column; gap:24px; }}
+  .aur-field {{ min-width:0; }}
+  .aur-sub {{ font-size:12px; color:rgba(255,255,255,0.45); margin-top:3px; line-height:1.5; }}
+  .aur-reg-id {{ font-size:13px; font-weight:700; color:rgba(255,255,255,0.7); letter-spacing:1px; margin-top:4px; font-family:monospace; }}
+  .aur-qr-wrap {{ display:flex; flex-direction:column; align-items:center; gap:8px; flex-shrink:0; }}
+  .aur-qr {{ background:#fff; padding:14px; border-radius:20px; box-shadow:0 8px 40px rgba(0,0,0,0.4); }}
+  .aur-qr .qr {{ width:180px; height:180px; border-radius:8px; }}
+  .aur-qr-hint {{ font-size:10px; color:rgba(255,255,255,0.35); font-weight:600; letter-spacing:.5px; text-transform:uppercase; }}
+  .aur-stub {{ border-top:2px dashed rgba(255,255,255,0.12); position:relative; overflow:hidden; }}
+  .aur-stub-inner {{ display:flex; align-items:center; gap:20px; padding:20px 40px; }}
   .aur-stub-left {{ flex:1; min-width:0; }}
-  .aur-stub-event {{ font-size:14px; font-weight:700; opacity:.9; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
-  .aur-stub-detail {{ font-size:11px; opacity:.5; margin-top:3px; }}
-  .aur-stub-id {{ font-size:10px; font-weight:800; letter-spacing:1.5px; opacity:.45; margin-top:4px; }}
-  .aur-stub-tear {{ position:absolute; right:20px; top:-10px; font-size:11px; opacity:.3; letter-spacing:1px; font-weight:600; }}
+  .aur-stub-event {{ font-size:14px; font-weight:700; opacity:.85; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
+  .aur-stub-detail {{ font-size:11px; opacity:.45; margin-top:4px; }}
+  .aur-stub-id {{ font-size:10px; font-weight:800; letter-spacing:1.5px; opacity:.35; margin-top:5px; font-family:monospace; }}
+  .aur-stub .qr-sm {{ width:68px; height:68px; border-radius:8px; opacity:.8; }}
+  .aur-stub-dots {{ position:absolute; top:-9px; left:0; right:0; height:18px; background:repeating-linear-gradient(90deg, transparent, transparent 8px, rgba(255,255,255,0.08) 8px, rgba(255,255,255,0.08) 10px); }}
 
   /* ── CLASSIC ─────────────────────────────────────────────────────────── */
   .classic {{ background:#fff; }}
@@ -1714,7 +1787,12 @@ def _ticket_email_block(reg: dict, showcase: dict, ticket_url: str) -> str:
     Professional design matching the downloadable pass. Includes sponsor logos
     when available. Email-safe HTML (inline styles, table layout).
     """
-    qr = reg.get("qr_code_base64") or ""
+    qr = reg.get("qr_code_base64")
+    if not qr and reg.get("id"):
+        frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+        qr = generate_qr_code(f"{frontend_url}/echo/scan/{reg.get('id')}")
+    elif not qr:
+        qr = ""
     title = reg.get("showcase_title") or showcase.get("title") or "Event"
     reg_id = reg.get("id") or ""
     event_date = _event_date_label(showcase)
@@ -2131,12 +2209,12 @@ async def _fulfill_team_members(db, reg: dict, showcase: Optional[dict]) -> List
             coupons = await _generate_coupons_for_registration(db, canonical_slug, member_reg_id, sessions)
             
         # 3) Send confirmation email with entry pass & QR code
-        await _send_team_member_confirmation(db, member_reg_ser, showcase, reg, reg.get("team_name") or "Your Team", coupons=coupons)
+        await _send_team_member_confirmation(db, member_reg_ser, showcase or {}, reg, reg.get("team_name") or "Your Team", coupons=coupons)
         
         # 4) Optional WhatsApp notification
         try:
             if member_phone and _wa_opt_in(reg):
-                await _send_wa_confirmation(db, member_reg_ser, showcase, coupons)
+                await _send_wa_confirmation(db, member_reg_ser, showcase or {}, coupons)
         except Exception as _wa_err:
             print(f"[ECHO] Team member WA error: {_wa_err}")
             
@@ -3638,8 +3716,8 @@ async def register_for_showcase(
         coupons = await _generate_coupons_for_registration(db, canonical_slug, reg_id, sessions)
         
         # Send confirmation to primary registrant (with team info if applicable)
-        await _send_registration_confirmation(db, reg, showcase, team_name if registration_type == "team" else None)
-        await _send_wa_confirmation(db, reg, showcase, coupons)
+        await _send_registration_confirmation(db, reg, showcase or {}, team_name if registration_type == "team" else None)
+        await _send_wa_confirmation(db, reg, showcase or {}, coupons)
         confirmation_sent = True
 
     result = _ser(reg)
@@ -4142,7 +4220,7 @@ async def my_registrations(request: Request):
     results = []
     for reg in regs:
         reg_ser = _ser(reg)
-        slug = reg.get("slug", "")
+        slug = reg.get("showcase_slug") or reg.get("slug", "")
 
         # Fetch coupons for this registration
         coupons = []
@@ -4222,15 +4300,17 @@ async def get_ticket(reg_id: str, request: Request, email: Optional[str] = Query
     if not reg:
         raise HTTPException(status_code=404, detail="Ticket not found")
     reg_ser = _ser(reg)
-    showcase = await db.echo_showcases.find_one({"slug": reg.get("slug")})
+    showcase = await db.echo_showcases.find_one({"slug": reg.get("showcase_slug") or reg.get("slug")})
 
     # Payment gate: free events (fee <= 0 registered) are pass-eligible; paid
     # events only after the payment is verified (payment.status == "paid").
     fee = float(reg.get("fee") or 0)
     payment = reg.get("payment") or {}
     reg_status = reg.get("status") or "pending"
-    is_free = fee <= 0 and payment.get("status") == "paid" and reg_status == "registered"
-    is_paid = payment.get("status") == "paid" and reg_status == "registered"
+    payment_status = payment.get("status") or reg.get("payment_status") or "pending"
+    
+    is_free = fee <= 0 and (payment_status == "paid" or reg_status in ("registered", "confirmed"))
+    is_paid = payment_status == "paid" and reg_status in ("registered", "confirmed")
     pass_eligible = is_free or is_paid
     if not pass_eligible:
         pending = payment.get("status") == "pending"
@@ -4369,6 +4449,10 @@ async def admin_echo_registrations(
                 "session_day": c.get("session_day") or 1,
                 "coupon_code": c.get("coupon_code"),
                 "used": bool(c.get("used")),
+                "used_at": c.get("used_at"),
+                "scanned_location": c.get("scanned_location"),
+                "scanned_lat": c.get("scanned_lat"),
+                "scanned_lng": c.get("scanned_lng")
             })
         for inv in await db.invoices.find({"reg_id": {"$in": reg_ids}}).to_list(2000):
             invoice_map[inv.get("reg_id")] = {"invoice_no": inv.get("invoice_no"), "issued": True}
@@ -4527,7 +4611,51 @@ async def export_echo_registrations_csv(
 
 
 
+@router.post("/admin/coupons/dedup")
+async def admin_dedup_coupons(request: Request, _=Depends(_require_admin)):
+    """Super-admin: remove duplicate coupons — keeps the oldest coupon per (reg_id, session_key) pair.
+    Safe: skips any coupon that is already marked used=True to preserve redemption history.
+    """
+    db = _get_db(request)
+    pipeline = [
+        {"$group": {
+            "_id": {"reg_id": "$reg_id", "session_key": "$session_key"},
+            "count": {"$sum": 1},
+            "docs": {"$push": {"_id": "$_id", "used": "$used", "created_at": "$created_at"}}
+        }},
+        {"$match": {"count": {"$gt": 1}}}
+    ]
+    dupes = await db.echo_coupons.aggregate(pipeline).to_list(5000)
+    total_deleted = 0
+    skipped_used = 0
+    details = []
+    for group in dupes:
+        docs = group["docs"]
+        docs.sort(key=lambda d: str(d.get("created_at") or ""))
+        to_delete = docs[1:]
+        for doc in to_delete:
+            if doc.get("used"):
+                skipped_used += 1
+                continue
+            result = await db.echo_coupons.delete_one({"_id": doc["_id"]})
+            if result.deleted_count:
+                total_deleted += 1
+                details.append({
+                    "reg_id": group["_id"]["reg_id"],
+                    "session_key": group["_id"]["session_key"],
+                    "deleted_id": str(doc["_id"]),
+                })
+    return {
+        "ok": True,
+        "duplicate_groups_found": len(dupes),
+        "deleted": total_deleted,
+        "skipped_used": skipped_used,
+        "details": details[:100],  # cap to 100 for response size
+    }
+
+
 @router.post("/admin/registrations/sync-teams")
+
 async def admin_sync_teams(request: Request, _=Depends(_require_admin)):
     """Super-admin: backfill/sync all team registrations to ensure every team member has an SA account, entry pass, and confirmation email."""
     db = _get_db(request)
@@ -4598,9 +4726,9 @@ async def admin_resend_account_tickets(reg_id: str, request: Request, _=Depends(
         coupon_list = await _generate_coupons_for_registration(db, str(canonical_slug), str(reg.get("id")), sessions)
 
     # Re-send confirmation and invoice email
-    await _send_registration_confirmation(db, reg_ser, showcase, reg.get("team_name") if reg.get("registration_type") == "team" else None)
+    await _send_registration_confirmation(db, reg_ser, showcase or {}, reg.get("team_name") if reg.get("registration_type") == "team" else None)
     try:
-        await _send_wa_confirmation(db, reg_ser, showcase, coupon_list)
+        await _send_wa_confirmation(db, reg_ser, showcase or {}, coupon_list)
     except Exception as _wa_e:
         print(f"[ECHO] Resend WA notice error: {_wa_e}")
         
@@ -4623,9 +4751,92 @@ async def admin_resend_account_tickets(reg_id: str, request: Request, _=Depends(
     }
 
 
+@router.post("/admin/registrations/{reg_id}/rescue-payment")
+async def admin_rescue_payment(reg_id: str, request: Request, _=Depends(_require_admin)):
+    """Super-admin: manually rescue a 'failed' or 'pending' registration where Razorpay
+    actually captured the payment but the webhook was missed or arrived after the sweep timer.
+
+    1. Looks up the registration by reg_id.
+    2. If already 'registered' (paid), returns early — idempotent.
+    3. Fetches the Razorpay order and checks its status.
+    4. If 'paid' on Razorpay side, calls _finalize_paid_registration to complete the flow.
+    5. Optionally the admin can pass ?payment_id=pay_xxx to force-finalize without Razorpay check.
+    """
+    from bson import ObjectId
+    db = _get_db(request)
+    payment_id_override = request.query_params.get("payment_id") or ""
+
+    reg = await db.echo_registrations.find_one({"id": reg_id})
+    if not reg:
+        raise HTTPException(status_code=404, detail="Registration not found")
+
+    if reg.get("status") == "registered" and (reg.get("payment") or {}).get("status") == "paid":
+        return {"ok": True, "message": "Registration is already finalized (paid).", "already_paid": True}
+
+    showcase = await db.echo_showcases.find_one(_slug_query(reg.get("slug") or ""))
+
+    # If admin explicitly provided a payment_id, force-finalize
+    if payment_id_override:
+        finalized = await _finalize_paid_registration(db, reg, showcase, payment_id_override)
+        return {
+            "ok": True,
+            "message": f"Force-finalized registration {reg_id} with payment {payment_id_override}.",
+            "registration": _ser(finalized) if finalized else None,
+        }
+
+    # Otherwise check Razorpay for captured payment
+    order_id = (reg.get("payment_order") or {}).get("order_id") or reg.get("payment", {}).get("order_id")
+    if not order_id:
+        raise HTTPException(status_code=400, detail="No Razorpay order_id on this registration. Provide ?payment_id=pay_xxx to force-finalize.")
+
+    cfg = await _razorpay_config(db)
+    if not cfg:
+        raise HTTPException(status_code=503, detail="Razorpay not configured.")
+
+    import httpx
+    async with httpx.AsyncClient(timeout=15) as http:
+        resp = await http.get(
+            f"https://api.razorpay.com/v1/orders/{order_id}",
+            auth=(cfg["key_id"], cfg["key_secret"]),
+        )
+    if resp.status_code != 200:
+        raise HTTPException(status_code=502, detail=f"Razorpay API error: HTTP {resp.status_code} — {resp.text[:200]}")
+
+    order_data = resp.json()
+    rp_status = order_data.get("status")
+
+    if rp_status != "paid":
+        return {
+            "ok": False,
+            "message": f"Razorpay order {order_id} status is '{rp_status}' (not paid). Cannot rescue.",
+            "razorpay_status": rp_status,
+        }
+
+    # Find the captured payment_id
+    payment_id = ""
+    for p in (order_data.get("payments") or []):
+        if p.get("status") == "captured":
+            payment_id = p.get("id") or ""
+            break
+    if not payment_id:
+        payments = order_data.get("payments") or []
+        if payments:
+            payment_id = payments[-1].get("id") or ""
+
+    finalized = await _finalize_paid_registration(db, reg, showcase, payment_id)
+    return {
+        "ok": True,
+        "message": f"Successfully rescued registration {reg_id}. Payment {payment_id} confirmed on Razorpay.",
+        "razorpay_status": rp_status,
+        "payment_id": payment_id,
+        "registration": _ser(finalized) if finalized else None,
+    }
+
+
 class EchoBroadcastSchema(BaseModel):
     slug: Optional[str] = None
     target_group: str  # "pending_unpaid" | "confirmed_paid" | "unregistered_students"
+
     subject: Optional[str] = None
     custom_message: Optional[str] = None
 
@@ -4797,6 +5008,7 @@ async def admin_broadcast_send(
                 continue
             name = r.get("full_name") or "Attendee"
             reg_id = r.get("id") or ""
+            import urllib.parse
             ticket_url = f"{frontend_url}/api/echo/tickets/{reg_id}?email={urllib.parse.quote(email)}"
 
             body = render_html_email(
@@ -4984,7 +5196,9 @@ class AdminUpdateTeamSchema(BaseModel):
     team_name: Optional[str] = None
 
 class TicketVerifySchema(BaseModel):
-    ticket: str  # raw QR scan payload or a bare registration id
+    ticket: str
+    lat: Optional[float] = None
+    lng: Optional[float] = None  # raw QR scan payload or a bare registration id
 
 
 def _parse_ticket(ticket: str) -> dict:
@@ -5027,7 +5241,8 @@ async def admin_update_team_members(reg_id: str, request: Request, payload: Admi
     if not reg:
         raise HTTPException(404, "Registration not found")
         
-    update_data = {"team_members": team_members}
+    update_data = {}
+    update_data["team_members"] = team_members
     if team_name is not None:
         update_data["team_name"] = team_name
         
@@ -5102,7 +5317,8 @@ async def admin_resend_tickets(reg_id: str, request: Request, _=Depends(_require
                 rno = f"{raw_pid[:4]}-{raw_pid[-4:]}" if len(raw_pid) >= 8 else raw_pid
                 attachments.append({"filename": f"Receipt-{rno}.pdf", "content": receipt_pdf})
                 
-            ticket_pdf = await generate_ticket_pdf(inv_ser, showcase or {})
+            ticket_html = _build_ticket_html(_ser(reg), showcase or {})
+            ticket_pdf = await generate_pdf_from_html(ticket_html)
             if ticket_pdf:
                 attachments.append({"filename": f"EntryPass-{reg_id}.pdf", "content": ticket_pdf})
                 
@@ -5137,7 +5353,13 @@ async def verify_ticket(payload: TicketVerifySchema, request: Request, _=Depends
 
     payment = reg.get("payment") or {}
     ser = _ser(reg)
-    verified = payment.get("status") == "paid" and reg.get("status") == "registered"
+    payment_status = payment.get("status") or reg.get("payment_status") or "pending"
+    reg_status = reg.get("status") or "pending"
+    fee = float(reg.get("fee") or 0)
+    
+    is_free = fee <= 0 and (payment_status == "paid" or reg_status in ("registered", "confirmed"))
+    is_paid = payment_status == "paid" and reg_status in ("registered", "confirmed")
+    verified = is_free or is_paid
     checked_in = bool(reg.get("checked_in_at"))
 
     return {
@@ -5168,7 +5390,7 @@ async def verify_ticket(payload: TicketVerifySchema, request: Request, _=Depends
 
 
 @router.post("/admin/registrations/check-in")
-async def check_in_attendee(payload: TicketVerifySchema, request: Request, _=Depends(_require_admin)):
+async def check_in_attendee(payload: TicketVerifySchema, request: Request, _=Depends(_require_scan_access)):
     """Check an attendee in at the venue (idempotent).
 
     Only confirmed (paid or free) registrations can be checked in. Returns the
@@ -5192,14 +5414,28 @@ async def check_in_attendee(payload: TicketVerifySchema, request: Request, _=Dep
         raise HTTPException(status_code=404, detail="Ticket not found")
 
     payment = reg.get("payment") or {}
-    if payment.get("status") != "paid" or reg.get("status") != "registered":
+    payment_status = payment.get("status") or reg.get("payment_status") or "pending"
+    reg_status = reg.get("status") or "pending"
+    fee = float(reg.get("fee") or 0)
+    
+    is_free = fee <= 0 and (payment_status == "paid" or reg_status in ("registered", "confirmed"))
+    is_paid = payment_status == "paid" and reg_status in ("registered", "confirmed")
+    verified = is_free or is_paid
+    
+    if not verified:
         raise HTTPException(status_code=400, detail="Ticket not confirmed — attendee cannot be checked in")
 
     now_iso = _now()
     first_checkin = not bool(reg.get("checked_in_at"))
+    
+    update_data: dict[str, Any] = {"checked_in_at": now_iso}
+    if payload.lat is not None and payload.lng is not None:
+        update_data["scanned_lat"] = payload.lat
+        update_data["scanned_lng"] = payload.lng
+
     await db.echo_registrations.update_one(
         {"_id": reg["_id"]},
-        {"$set": {"checked_in_at": now_iso}, "$setOnInsert": {"checked_in_count": 1}},
+        {"$set": update_data, "$setOnInsert": {"checked_in_count": 1}},
     )
     if first_checkin:
         await db.echo_registrations.update_one(
@@ -5767,6 +6003,14 @@ async def scan_coupon_get(code: str, request: Request):
     # 1) Coupon lookup (case-insensitive)
     coupon = await db.echo_coupons.find_one({"coupon_code": raw.upper()})
     if coupon:
+        slug = coupon.get("slug")
+        session_locked = False
+        showcase = await db.echo_showcases.find_one({"slug": slug}) if slug else None
+        if showcase:
+            sessions = showcase.get("sessions") or []
+            locked_keys = {s["key"] for s in sessions if s.get("locked")}
+            if coupon.get("session_key") in locked_keys:
+                session_locked = True
         return {
             "ok": True,
             "type": "coupon",
@@ -5776,7 +6020,9 @@ async def scan_coupon_get(code: str, request: Request):
             "session_day": coupon.get("session_day") or 1,
             "used": coupon.get("used", False),
             "used_at": coupon.get("used_at"),
-            "slug": coupon.get("slug"),
+            "slug": slug,
+            "session_locked": session_locked,
+            "event_name": showcase.get("showcase_title") if showcase else "",
         }
 
     # 2) Ticket / entry-pass lookup
@@ -5818,8 +6064,98 @@ async def scan_coupon_get(code: str, request: Request):
     }
 
 
+@router.get("/ics/{slug}")
+async def echo_ics(slug: str, request: Request):
+    """Generate an iCalendar (.ics) file for an ECHO showcase event.
+
+    Used for 'Add to calendar' flows from the payment success screen.
+    """
+    from fastapi.responses import Response
+    from datetime import datetime as _dt
+
+    db = _get_db(request)
+    showcase = await db.echo_showcases.find_one(_slug_query(slug))
+    if not showcase:
+        raise HTTPException(status_code=404, detail="Showcase not found")
+
+    def _esc(s: str) -> str:
+        return (s or "").replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,").replace("\n", "\\n")
+
+    def _dt(v) -> str:
+        try:
+            if isinstance(v, str):
+                v = _dt.strptime(v, "%Y-%m-%d")
+            if isinstance(v, _dt):
+                v = v
+            else:
+                from datetime import date as _d
+                if isinstance(v, _d):
+                    v = _dt.combine(v, _dt.min.time())
+            return v.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        except Exception:
+            return _dt.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+    title = _esc(showcase.get("title") or showcase.get("showcase_title") or "ECHO Event")
+    desc = _esc((showcase.get("description") or showcase.get("subtitle") or "")[:600])
+    venue = _esc(showcase.get("venue") or showcase.get("location") or "Online")
+    dates_raw = showcase.get("dates") or showcase.get("date") or showcase.get("date_pill") or ""
+    time_str = showcase.get("time") or "09:00 AM"
+
+    start_date = _dt(datetime.now(timezone.utc))
+    end_date = _dt(datetime.now(timezone.utc))
+
+    if dates_raw:
+        try:
+            parts = dates_raw.replace("–", "-").replace(" - ", " to ").split(" to ")
+            start_part = parts[0].strip()
+            end_part = parts[1].strip() if len(parts) > 1 else start_part
+            for fmt in ["%B %d, %Y", "%b %d, %Y", "%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y"]:
+                try:
+                    start_date = _dt(datetime.strptime(start_part, fmt))
+                    break
+                except ValueError:
+                    continue
+            for fmt in ["%B %d, %Y", "%b %d, %Y", "%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y"]:
+                try:
+                    end_date = _dt(datetime.strptime(end_part, fmt))
+                    break
+                except ValueError:
+                    end_date = start_date
+        except Exception:
+            pass
+
+    uid = f"{slug}@studentalumni.in"
+    now = _dt(datetime.now(timezone.utc))
+    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+
+    ics = "\r\n".join([
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//StudentAlumni//ECHO//EN",
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH",
+        "BEGIN:VEVENT",
+        f"UID:{uid}",
+        f"DTSTAMP:{now}",
+        f"DTSTART:{start_date}",
+        f"DTEND:{end_date}",
+        f"SUMMARY:{title}",
+        f"DESCRIPTION:{desc}",
+        f"LOCATION:{venue}",
+        f"URL:{_esc(frontend_url + '/echo/' + slug)}",
+        "END:VEVENT",
+        "END:VCALENDAR",
+    ])
+
+    return Response(
+        content=ics,
+        media_type="text/calendar",
+        headers={"Content-Disposition": f'attachment; filename="{slug}.ics"'},
+    )
+
+
 @router.post("/admin/scan-coupon")
-async def scan_coupon(request: Request, admin=Depends(_require_admin)):
+async def scan_coupon(request: Request, admin=Depends(_require_scan_access)):
     """Scan a coupon QR code."""
     db = _get_db(request)
     body = await request.json()
@@ -5846,11 +6182,24 @@ async def scan_coupon(request: Request, admin=Depends(_require_admin)):
             "coupon": {k: v for k, v in coupon.items() if k != "_id"},
         }
 
+    lat = body.get("lat")
+    lng = body.get("lng")
+
     from datetime import datetime, timezone
     now = datetime.now(timezone.utc)
+    
+    update_data = {
+        "used": True, 
+        "used_at": now, 
+        "scanned_by": admin.get("email", "admin")
+    }
+    if lat is not None and lng is not None:
+        update_data["scanned_lat"] = lat
+        update_data["scanned_lng"] = lng
+        
     await db.echo_coupons.update_one(
         {"_id": coupon["_id"]},
-        {"$set": {"used": True, "used_at": now, "scanned_by": admin.get("email", "admin")}}
+        {"$set": update_data}
     )
 
     # Get attendee info

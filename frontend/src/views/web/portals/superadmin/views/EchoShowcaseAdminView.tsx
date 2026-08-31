@@ -66,7 +66,7 @@ function CustomVideosEditor({ videos, onChange }: { videos: any[]; onChange: (v:
         const isYt = vid.video_url?.includes('youtube.com') || vid.video_url?.includes('youtu.be');
 
         return (
-          <View key={idx} style={{ border: '1px solid ' + SAC.border, borderRadius: 14, padding: 18, backgroundColor: SAC.panelBg, gap: 14 }}>
+          <View key={idx} style={{ borderWidth: 1, borderColor: SAC.border, borderRadius: 14, padding: 18, backgroundColor: SAC.panel, gap: 14 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
               <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: SAC.text }}>Video / Clip #{idx + 1}</Text>
               <Pressable onPress={() => removeItem(idx)} style={{ padding: 4 }}>
@@ -159,7 +159,7 @@ function CustomVideosEditor({ videos, onChange }: { videos: any[]; onChange: (v:
  *   - Autosave to sessionStorage + unsaved changes warning.
  *   - Full shared Media Library panel.
  */
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View, Text, StyleSheet, Pressable, Platform, ActivityIndicator,
   TextInput, Modal, ScrollView, Image,
@@ -171,7 +171,7 @@ import {
   Copy, Check, Search, RefreshCw, Plus, PlusCircle, FileText, Link2,
   Image as ImageIcon, HardDrive, Calendar, Layout, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Users,
   Ticket, Mail, ScanLine, Phone,
-  CupSoda, UtensilsCrossed, Cookie, Sandwich, Coffee, Lock, XCircle, Clock, CheckCircle, Download, FileSpreadsheet,
+  CupSoda, UtensilsCrossed, Cookie, Sandwich, Coffee, Lock, XCircle, Clock, CheckCircle, Download, FileSpreadsheet, MapPin,
 } from 'lucide-react-native';
 import {
   GRAD, GradientButton, SecondaryButton, Card,
@@ -238,7 +238,7 @@ const GALLERY_LAYOUT_OPTIONS = ['grid', 'masonry', 'mixed', 'featured-grid', 'ca
 const VIDEO_PLATFORM_OPTIONS = ['youtube', 'vimeo', 'mp4'];
 const DOWNLOAD_CATEGORY_OPTIONS = ['Brochure', 'Schedule', 'Certificate', 'Presentation', 'Report', 'Document'];
 
-type PageTab = 'all' | 'create' | 'drafts' | 'media' | 'registrations' | 'volunteers';
+type PageTab = 'all' | 'create' | 'drafts' | 'media' | 'registrations' | 'volunteers' | 'scan-monitor';
 type StatusFilter = 'all' | 'published' | 'draft' | 'archived';
 type FormTab =
   | 'general' | 'hero' | 'statistics' | 'about' | 'gallery'
@@ -252,6 +252,7 @@ const PAGE_TABS: Array<{ id: PageTab; label: string; icon?: any }> = [
   { id: 'drafts', label: 'Drafts', icon: FileText },
   { id: 'registrations', label: 'Registrations & Payments', icon: Users },
   { id: 'volunteers', label: 'Volunteers', icon: Users },
+  { id: 'scan-monitor', label: 'Live Scan Monitor', icon: ScanLine },
   { id: 'media', label: 'Media Library', icon: Images },
 ];
 
@@ -475,9 +476,9 @@ function IconAction({ icon, label, color, bg, onPress, disabled = false, danger 
   const [hover, setHover] = useState(false);
   return (
     <View
-      style={{ position: 'relative', zIndex: hover ? 50 : 1 }}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
+      style={{ position: 'relative', zIndex: hover ? 50 : 1 } as any}
+      onPointerEnter={() => setHover(true)}
+      onPointerLeave={() => setHover(false)}
     >
       <Pressable
         onPress={onPress}
@@ -486,9 +487,9 @@ function IconAction({ icon, label, color, bg, onPress, disabled = false, danger 
           width: 30, height: 30, borderRadius: 8,
           backgroundColor: bg || (danger ? 'rgba(239,68,68,0.15)' : 'rgba(99,102,241,0.15)'),
           alignItems: 'center', justifyContent: 'center',
-          cursor: disabled ? 'default' : 'pointer',
+          cursor: (disabled ? 'default' : 'pointer') as any,
           opacity: disabled ? 0.45 : 1,
-          transitionDuration: '120ms',
+          transitionDuration: '120ms' as any,
         }}
       >
         {icon}
@@ -501,7 +502,7 @@ function IconAction({ icon, label, color, bg, onPress, disabled = false, danger 
           backgroundColor: '#0B0F1E', borderRadius: 6,
           borderWidth: 1, borderColor: 'rgba(167,139,250,0.3)',
           maxWidth: 150, zIndex: 60, whiteSpace: 'nowrap' as any,
-        }}>
+        } as any}>
           <Text style={{ color: '#E9E4FF', fontFamily: FONTS.med, fontSize: 10, textAlign: 'center', lineHeight: 13 }}>{label}</Text>
         </View>
       )}
@@ -514,9 +515,9 @@ function Tip({ label, children }: { label: string; children: React.ReactNode }) 
   const [hover, setHover] = useState(false);
   return (
     <View
-      style={{ position: 'relative', zIndex: hover ? 50 : 1 }}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
+      style={{ position: 'relative', zIndex: hover ? 50 : 1 } as any}
+      onPointerEnter={() => setHover(true)}
+      onPointerLeave={() => setHover(false)}
     >
       {children}
       {hover && (
@@ -527,7 +528,7 @@ function Tip({ label, children }: { label: string; children: React.ReactNode }) 
           backgroundColor: '#0B0F1E', borderRadius: 6,
           borderWidth: 1, borderColor: 'rgba(167,139,250,0.3)',
           maxWidth: 160, zIndex: 60, whiteSpace: 'nowrap' as any,
-        }}>
+        } as any}>
           <Text style={{ color: '#E9E4FF', fontFamily: FONTS.med, fontSize: 10, textAlign: 'center', lineHeight: 13 }}>{label}</Text>
         </View>
       )}
@@ -2269,7 +2270,7 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
 
           {/* Tab bar */}
           <View style={{ borderBottomWidth: 1, borderBottomColor: SAC.border }}>
-            <TopTabs tabs={FORM_TABS} active={tab} onChange={setTab} />
+            <TopTabs tabs={FORM_TABS} active={tab} onChange={setTab as any} />
           </View>
 
           {/* Body */}
@@ -3267,6 +3268,31 @@ function RegistrationsPanel() {
     }
   };
 
+  const rescuePayment = async (r: any) => {
+    const regId = r.id || r._id;
+    if (!regId) return;
+    const ok = await confirm({
+      title: 'Rescue Payment?',
+      message: `This will contact Razorpay to verify if payment was captured for ${r.full_name}. If confirmed paid, the registration will be fully activated (QR, coupons, email sent).`,
+      confirmText: 'Rescue Payment',
+    });
+    if (!ok) return;
+    setActioning(regId);
+    try {
+      const res = await api.adminEchoRescuePayment(regId);
+      if (res?.ok) {
+        flash(res.message || 'Payment rescued and registration finalized!');
+        await load();
+      } else {
+        flash(res?.message || 'Could not rescue — payment not confirmed on Razorpay.');
+      }
+    } catch (err: any) {
+      flash(err?.message || 'Rescue failed. Try providing ?payment_id=pay_xxx manually.');
+    } finally {
+      setActioning(null);
+    }
+  };
+
   const syncAllTeams = async () => {
     const ok = await confirm({
       title: 'Sync & Resend All Team Accounts & Passes?',
@@ -3283,6 +3309,25 @@ function RegistrationsPanel() {
       flash(err?.message || 'Failed to sync teams');
     } finally {
       setSyncingTeams(false);
+    }
+  };
+
+  const [dedupingCoupons, setDedupingCoupons] = useState(false);
+  const dedupCoupons = async () => {
+    const ok = await confirm({
+      title: 'Remove Duplicate Coupons?',
+      message: 'This will scan all echo_coupons and delete duplicates, keeping only the oldest coupon per (registrant, session) pair. Used coupons are never deleted.',
+      confirmText: 'Run Dedup',
+    });
+    if (!ok) return;
+    setDedupingCoupons(true);
+    try {
+      const res = await api.adminEchoDedupCoupons();
+      flash(`Dedup complete! ${res?.deleted || 0} duplicate coupons removed across ${res?.duplicate_groups_found || 0} groups. ${res?.skipped_used || 0} skipped (already used).`);
+    } catch (err: any) {
+      flash(err?.message || 'Dedup failed');
+    } finally {
+      setDedupingCoupons(false);
     }
   };
 
@@ -3413,9 +3458,24 @@ function RegistrationsPanel() {
           </Text>
         </Pressable>
         <Pressable
+          onPress={dedupCoupons}
+          disabled={dedupingCoupons}
+          style={{
+            flexDirection: 'row', alignItems: 'center', gap: 6,
+            backgroundColor: dedupingCoupons ? 'rgba(251,146,60,0.2)' : 'rgba(251,146,60,0.1)',
+            borderWidth: 1, borderColor: 'rgba(251,146,60,0.3)',
+            borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, cursor: 'pointer',
+          }}
+        >
+          <Trash2 size={14} color="#FB923C" />
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#FB923C' }}>
+            {dedupingCoupons ? 'Removing dupes...' : 'Dedup Coupons'}
+          </Text>
+        </Pressable>
+        <Pressable
           onPress={() => {
             const apiBase = (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_API_URL) || 'http://localhost:8000';
-            const exportUrl = `${apiBase}/api/echo/admin/export-csv${eventFilter !== 'all' ? `?slug=${eventFilter}` : ''}`;
+            const exportUrl = `${apiBase}/api/echo/admin/export-csv${eventSlug !== 'all' ? `?slug=${eventSlug}` : ''}`;
             if (typeof window !== 'undefined') {
               window.open(exportUrl, '_blank');
             }
@@ -3426,6 +3486,7 @@ function RegistrationsPanel() {
             borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, cursor: 'pointer',
           }}
         >
+
           <Download size={14} color="#fff" />
           <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Export CSV (Registrations)</Text>
         </Pressable>
@@ -3436,7 +3497,7 @@ function RegistrationsPanel() {
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
           <View>
             <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>Targeted Broadcasts &amp; Notices</Text>
-            <Text style={{ fontFamily: FONTS.reg, fontSize: 12, color: SAC.muted, marginTop: 2 }}>
+            <Text style={{ fontFamily: FONTS.regular, fontSize: 12, color: SAC.muted, marginTop: 2 }}>
               Differentiate communication between unpaid cart registrants, confirmed attendees, and platform students
             </Text>
           </View>
@@ -3460,7 +3521,7 @@ function RegistrationsPanel() {
                   </Text>
                 </View>
               </View>
-              <Text style={{ fontFamily: FONTS.reg, fontSize: 11.5, color: 'rgba(255,255,255,0.65)', lineHeight: 16 }}>
+              <Text style={{ fontFamily: FONTS.regular, fontSize: 11.5, color: 'rgba(255,255,255,0.65)', lineHeight: 16 }}>
                 Users with Student Alumni accounts whose registration payment is incomplete. Sends direct payment resume link &amp; event handbook.
               </Text>
             </View>
@@ -3492,7 +3553,7 @@ function RegistrationsPanel() {
                   </Text>
                 </View>
               </View>
-              <Text style={{ fontFamily: FONTS.reg, fontSize: 11.5, color: 'rgba(255,255,255,0.65)', lineHeight: 16 }}>
+              <Text style={{ fontFamily: FONTS.regular, fontSize: 11.5, color: 'rgba(255,255,255,0.65)', lineHeight: 16 }}>
                 Attendees and teammates with active QR entry passes. Sends official timetable, track rules, meal pass guide &amp; handbook.
               </Text>
             </View>
@@ -3524,7 +3585,7 @@ function RegistrationsPanel() {
                   </Text>
                 </View>
               </View>
-              <Text style={{ fontFamily: FONTS.reg, fontSize: 11.5, color: 'rgba(255,255,255,0.65)', lineHeight: 16 }}>
+              <Text style={{ fontFamily: FONTS.regular, fontSize: 11.5, color: 'rgba(255,255,255,0.65)', lineHeight: 16 }}>
                 Active Student Alumni members who have not registered for this event yet. Sends invitation newsletter with direct register link.
               </Text>
             </View>
@@ -3798,14 +3859,14 @@ function RegistrationsPanel() {
                         />
                       </>
                     )}
-                    {r.payment_status === 'failed' && (
+                    {(r.payment_status === 'failed' || r.payment_status === 'pending') && (
                       <IconAction
-                        icon={<CheckCircle size={14} color="#86EFAC" />}
-                        label="Mark paid"
-                        color="#86EFAC"
-                        bg="rgba(34,197,94,0.15)"
-                        onPress={() => markPaid(r)}
-                        disabled={actioning === r.id}
+                        icon={<CheckCircle size={14} color="#34D399" />}
+                        label="Rescue Payment"
+                        color="#34D399"
+                        bg="rgba(16,185,129,0.15)"
+                        onPress={() => rescuePayment(r)}
+                        disabled={actioning === (r.id || r._id)}
                       />
                     )}
                     <IconAction
@@ -3890,7 +3951,7 @@ function RegistrationsPanel() {
               borderRadius: 16,
               shadowColor: '#000', shadowOffset: { width: 0, height: 18 }, shadowOpacity: 0.55, shadowRadius: 30,
               elevation: 12,
-              maxHeight: '85vh',
+              maxHeight: '85vh' as any,
             }}>
               {/* Fixed Header */}
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)' }}>
@@ -3906,7 +3967,7 @@ function RegistrationsPanel() {
               </View>
 
               {/* Scrollable Content */}
-              <ScrollView style={{ maxHeight: '60vh' }} contentContainerStyle={{ padding: 20, gap: 16 }}>
+              <ScrollView style={{ maxHeight: '60vh' as any }} contentContainerStyle={{ padding: 20, gap: 16 }}>
               {/* 2-Column Grid Layout */}
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
                 {[
@@ -4110,6 +4171,25 @@ function RegistrationsPanel() {
                           <Text style={{ fontFamily: FONTS.med, fontSize: 9, color: SAC.dim }}>
                             {c.session_day > 1 ? `Day ${c.session_day} · ` : ''}{c.coupon_code || ''}
                           </Text>
+                          {c.used && (
+                            <View style={{ marginTop: 4, gap: 2 }}>
+                              {c.used_at && (
+                                <Text style={{ fontFamily: FONTS.med, fontSize: 8.5, color: '#A78BFA' }}>
+                                  Scanned: {new Date(c.used_at).toLocaleString()}
+                                </Text>
+                              )}
+                              {c.scanned_location && (
+                                <Text style={{ fontFamily: FONTS.med, fontSize: 8.5, color: '#A78BFA' }}>
+                                  Location: {c.scanned_location}
+                                </Text>
+                              )}
+                              {(c.scanned_lat || c.scanned_lng) && (
+                                <Text style={{ fontFamily: FONTS.med, fontSize: 8, color: '#6B7280' }}>
+                                  Geo: {c.scanned_lat?.toFixed(4) || '—'}, {c.scanned_lng?.toFixed(4) || '—'}
+                                </Text>
+                              )}
+                            </View>
+                          )}
                         </View>
                         <View style={{
                           borderRadius: 5, paddingHorizontal: 7, paddingVertical: 3,
@@ -4179,7 +4259,7 @@ function RegistrationsPanel() {
               </View>
 
               {/* Body */}
-              <ScrollView style={{ padding: 20, maxHeight: '65vh' }} contentContainerStyle={{ gap: 14 }}>
+              <ScrollView style={{ padding: 20, maxHeight: '65vh' as any }} contentContainerStyle={{ gap: 14 }}>
                 {/* Target Audience Pill */}
                 <View style={{ padding: 12, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' }}>
                   <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>Target Segment</Text>
@@ -4202,7 +4282,7 @@ function RegistrationsPanel() {
                       backgroundColor: 'rgba(255,255,255,0.06)',
                       borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
                       borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10,
-                      color: SAC.text, fontSize: 13.5, fontFamily: FONTS.reg,
+                      color: SAC.text, fontSize: 13.5, fontFamily: FONTS.regular,
                     }}
                   />
                 </View>
@@ -4223,7 +4303,7 @@ function RegistrationsPanel() {
                       backgroundColor: 'rgba(255,255,255,0.06)',
                       borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
                       borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10,
-                      color: SAC.text, fontSize: 13, fontFamily: FONTS.reg, minHeight: 90, textAlignVertical: 'top',
+                      color: SAC.text, fontSize: 13, fontFamily: FONTS.regular, minHeight: 90, textAlignVertical: 'top',
                     }}
                   />
                 </View>
@@ -4231,7 +4311,7 @@ function RegistrationsPanel() {
                 {/* Included Assets info */}
                 <View style={{ padding: 12, backgroundColor: 'rgba(124,58,237,0.08)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(124,58,237,0.2)' }}>
                   <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#C4B5FD' }}>✓ Automatic Attachments &amp; Links Included:</Text>
-                  <Text style={{ fontFamily: FONTS.reg, fontSize: 11.5, color: '#DDD6FE', marginTop: 4, lineHeight: 16 }}>
+                  <Text style={{ fontFamily: FONTS.regular, fontSize: 11.5, color: '#DDD6FE', marginTop: 4, lineHeight: 16 }}>
                     • Attached PDF: <strong style={{ color: SAC.text }}>HackWave_3.0_Event_Handbook.pdf</strong><br/>
                     • Personalized pass registration / checkout / ticket links<br/>
                     • Real-time payment verification and QR entry credentials
@@ -4265,7 +4345,7 @@ function RegistrationsPanel() {
       {/* Revenue Audit Modal */}
       <Modal visible={showAudit} transparent animationType="fade" onRequestClose={() => setShowAudit(false)}>
         <View style={{ flex: 1, backgroundColor: SAC.panel2, justifyContent: 'center', padding: 20 }}>
-          <View style={{ backgroundColor: '#1a1a2e', borderRadius: 16, padding: 18, maxWidth: 960, width: '100%', alignSelf: 'center', maxHeight: '90vh' }}>
+          <View style={{ backgroundColor: '#1a1a2e', borderRadius: 16, padding: 18, maxWidth: 960, width: '100%', alignSelf: 'center', maxHeight: '90vh' as any }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <Text style={{ fontFamily: FONTS.xbold, fontSize: 16, color: SAC.text }}>Revenue Audit — DB vs Razorpay</Text>
               <Pressable onPress={() => setShowAudit(false)} style={{ width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.08)' }}>
@@ -4765,11 +4845,195 @@ function VolunteersPanel() {
 }
 
 
+// ── Live Scan Monitor Panel ───────────────────────────────────────────────────
+function LiveScanMonitorPanel() {
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [q, setQ] = useState('');
+  const [page, setPage] = useState(0);
+  const PER_PAGE = 20;
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.adminEchoRegistrations();
+      setData(res?.items || []);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+    const interval = setInterval(load, 30000);
+    return () => clearInterval(interval);
+  }, [load]);
+
+  useEffect(() => { setPage(0); }, [q]);
+
+  const stats = useMemo(() => {
+    let checkedIn = 0;
+    let couponsUsed = 0;
+    let lunch = 0;
+    let swag = 0;
+    let others = 0;
+
+    data.forEach(reg => {
+      if (reg.checked_in_at) checkedIn++;
+      if (reg.coupons) {
+        reg.coupons.forEach((c: any) => {
+          if (c.used) {
+            couponsUsed++;
+            const name = c.session_name?.toLowerCase() || '';
+            if (name.includes('lunch')) lunch++;
+            else if (name.includes('swag') || name.includes('tshirt') || name.includes('t-shirt')) swag++;
+            else others++;
+          }
+        });
+      }
+    });
+
+    return { checkedIn, couponsUsed, lunch, swag, others };
+  }, [data]);
+
+  const filtered = data.filter(d => 
+    !q || d.full_name?.toLowerCase().includes(q.toLowerCase()) || d.email?.toLowerCase().includes(q.toLowerCase()) || d.id?.toLowerCase().includes(q.toLowerCase())
+  );
+  
+  const paginated = filtered.slice(page * PER_PAGE, (page + 1) * PER_PAGE);
+  const totalPages = Math.ceil(filtered.length / PER_PAGE);
+
+  return (
+    <View style={{ flex: 1, gap: 20 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+        <View>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 20, color: SAC.text }}>Live Scan Monitor</Text>
+          <Text style={{ fontFamily: FONTS.med, fontSize: 13, color: SAC.muted }}>Real-time check-in and coupon scan activity</Text>
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <View style={{ width: 250 }}>
+            <SearchField value={q} onChange={setQ} placeholder="Search by name, email, ID..." />
+          </View>
+          <SecondaryButton onPress={load}><RefreshCw size={14} color={SAC.muted} /><Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 13, marginLeft: 6 }}>Refresh</Text></SecondaryButton>
+        </View>
+      </View>
+
+      {/* KPI tiles */}
+      <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
+        <KpiTile Icon={CheckCircle} label="Event Check-Ins" value={String(stats.checkedIn)} />
+        <KpiTile Icon={Ticket} label="Coupons Scanned" value={String(stats.couponsUsed)} />
+        <KpiTile Icon={Ticket} label="Lunch Scanned" value={String(stats.lunch)} />
+        <KpiTile Icon={Ticket} label="Other Scanned" value={String(stats.swag + stats.others)} />
+      </View>
+
+      <Card style={{ padding: 0, overflow: 'hidden' }}>
+        <View style={{ flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.02)', padding: 16, borderBottomWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
+          <Text style={{ flex: 2, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase' }}>Attendee</Text>
+          <Text style={{ flex: 1, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase' }}>Status</Text>
+          <Text style={{ flex: 1.5, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase' }}>Event Check-In</Text>
+          <Text style={{ flex: 2, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase' }}>Session Coupons</Text>
+        </View>
+        
+        {loading && data.length === 0 ? (
+          <View style={{ padding: 40, alignItems: 'center' }}><ActivityIndicator size="large" color={GRAD.to} /></View>
+        ) : filtered.length === 0 ? (
+          <View style={{ padding: 40, alignItems: 'center' }}><Text style={{ color: SAC.muted, fontFamily: FONTS.med }}>No registrations found.</Text></View>
+        ) : (
+          paginated.map(reg => (
+            <View key={reg.id} style={{ flexDirection: 'row', padding: 16, borderBottomWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
+              <View style={{ flex: 2, justifyContent: 'center', paddingRight: 10 }}>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: SAC.text, marginBottom: 2 }}>{reg.full_name || 'Unknown'}</Text>
+                <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted, marginBottom: 4 }}>{reg.email}</Text>
+                <Text style={{ fontFamily: 'monospace', fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>ID: {reg.id}</Text>
+              </View>
+              
+              <View style={{ flex: 1, justifyContent: 'center' }}>
+                <StatusPill kind={reg.ticket_issued ? 'success' : 'warning'} label={reg.ticket_issued ? 'Issued' : 'Pending'} />
+              </View>
+
+              <View style={{ flex: 1.5, justifyContent: 'center', paddingRight: 10 }}>
+                {reg.checked_in_at ? (
+                  <View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <CheckCircle size={14} color="#34D399" />
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#34D399' }}>
+                        {new Date(reg.checked_in_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </Text>
+                    </View>
+                  </View>
+                ) : (
+                  <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Not Checked In</Text>
+                )}
+              </View>
+
+              <View style={{ flex: 2, justifyContent: 'center' }}>
+                {reg.coupons && reg.coupons.length > 0 ? (
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                    {reg.coupons.map((c: any, idx: number) => (
+                      <View key={idx} style={{
+                        flexDirection: 'row', alignItems: 'center', gap: 4,
+                        backgroundColor: c.used ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.05)',
+                        borderWidth: 1, borderColor: c.used ? 'rgba(52,211,153,0.3)' : 'rgba(255,255,255,0.05)',
+                        borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4
+                      }}>
+                        <Ticket size={12} color={c.used ? '#34D399' : SAC.muted} />
+                        <View>
+                          <Text style={{ fontFamily: FONTS.bold, fontSize: 11, color: c.used ? '#34D399' : SAC.muted }} numberOfLines={1}>
+                            {c.session_name}
+                          </Text>
+                          {c.used_at && (
+                            <Text style={{ fontFamily: FONTS.med, fontSize: 8.5, color: c.used ? '#6EE7B7' : SAC.muted, marginTop: 1 }}>
+                              {new Date(c.used_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              {c.scanned_location ? ` • ${c.scanned_location}` : ''}
+                            </Text>
+                          )}
+                          {(c.scanned_lat || c.scanned_lng) && (
+                            <Text
+                              style={{ fontFamily: FONTS.med, fontSize: 8.5, color: '#A78BFA', marginTop: 1, textDecorationLine: 'underline', cursor: 'pointer' } as any}
+                              onPress={() => window.open(`https://www.google.com/maps/search/?api=1&query=${c.scanned_lat},${c.scanned_lng}`, '_blank')}
+                            >
+                              Map <MapPin size={8} color="#A78BFA" style={{ display: 'inline' }} />
+                            </Text>
+                          )}
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>No Coupons</Text>
+                )}
+              </View>
+            </View>
+          ))
+        )}
+
+        {totalPages > 1 && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderTopWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 13, color: SAC.muted }}>
+              Showing {page * PER_PAGE + 1} - {Math.min((page + 1) * PER_PAGE, filtered.length)} of {filtered.length}
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <SecondaryButton onPress={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>
+                <ChevronLeft size={14} color={page === 0 ? 'rgba(255,255,255,0.2)' : SAC.muted} />
+              </SecondaryButton>
+              <SecondaryButton onPress={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page === totalPages - 1}>
+                <ChevronRight size={14} color={page === totalPages - 1 ? 'rgba(255,255,255,0.2)' : SAC.muted} />
+              </SecondaryButton>
+            </View>
+          </View>
+        )}
+      </Card>
+    </View>
+  );
+}
+
 // ── Main View ─────────────────────────────────────────────────────────────────
 export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s: string) => void }) {
   const T = useSAC();
   Object.assign(fi, resolveColors(fi, T));
-  const [pageTab, setPageTab] = useSubTab<PageTab>(['all', 'create', 'drafts', 'registrations', 'volunteers', 'media'], 'all', { sub, onSub });
+  const [pageTab, setPageTab] = useSubTab<PageTab>(['all', 'create', 'drafts', 'registrations', 'volunteers', 'media', 'scan-monitor'], 'all', { sub, onSub });
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -4922,6 +5186,7 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
 
       {/* ── MEDIA LIBRARY ── */}
       {pageTab === 'media' && <MediaLibraryPanel />}
+      {pageTab === 'scan-monitor' && <LiveScanMonitorPanel />}
 
       {/* ── REGISTRATIONS & PAYMENTS ── */}
       {pageTab === 'registrations' && <RegistrationsPanel />}
@@ -5040,14 +5305,14 @@ export function EchoShowcaseAdminView({ sub, onSub }: { sub?: string; onSub?: (s
       {/* Ticket Preview Modal */}
       <Modal visible={!!previewHtml} transparent animationType="fade" onRequestClose={() => setPreviewHtml(null)}>
         <View style={{ flex: 1, backgroundColor: SAC.panel2, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-          <View style={{ backgroundColor: '#1e1b4b', borderRadius: 16, overflow: 'hidden', width: '100%', maxWidth: 800, maxHeight: '90vh', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)' }}>
+          <View style={{ backgroundColor: '#1e1b4b', borderRadius: 16, overflow: 'hidden', width: '100%', maxWidth: 800, maxHeight: '90vh' as any, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 18, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)' }}>
               <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: SAC.text }}>Ticket Preview</Text>
               <Pressable onPress={() => setPreviewHtml(null)} style={{ padding: 6 }}>
                 <X size={18} color="#94a3b8" />
               </Pressable>
             </View>
-            <View style={{ flex: 1, overflow: 'auto' }}>
+            <View style={{ flex: 1, overflow: 'hidden' as any }}>
               {previewHtml ? (
                 <iframe
                   srcDoc={previewHtml}

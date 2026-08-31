@@ -31,6 +31,15 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != 'utf-8':
 if sys.stderr.encoding and sys.stderr.encoding.lower() != 'utf-8':
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
+def sanitize_input(text: str) -> str:
+    """Sanitize input by removing ANSI escape sequences and non-printable characters."""
+    if not text:
+        return text
+    # Remove ANSI escape sequences
+    text = re.sub(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])', '', text)
+    # Remove other control characters except newline and tab
+    text = "".join(ch for ch in text if ch.isprintable() or ch in ('\n', '\t'))
+    return text
 
 # ============ CONFIGURATION ============
 REASONING_FILE = "ui-reasoning.csv"
@@ -798,6 +807,9 @@ def generate_design_system(query: str, project_name: str = None, output_format: 
         (raw dict, useful for --json callers), and "persistence" (result of
         persist_design_system(), or None if persist=False)
     """
+    query = sanitize_input(query) if query else query
+    project_name = sanitize_input(project_name) if project_name else project_name
+
     generator = DesignSystemGenerator()
     design_system = generator.generate(query, project_name, variance=variance, motion=motion, density=density)
 

@@ -70,8 +70,7 @@ def load_env():
     """Load environment variables from .env files"""
     env_paths = [
         Path(__file__).parent.parent.parent / ".env",
-        Path.home() / ".claude" / "skills" / ".env",
-        Path.home() / ".claude" / ".env"
+        Path.cwd() / ".env"
     ]
     for env_path in env_paths:
         if env_path.exists():
