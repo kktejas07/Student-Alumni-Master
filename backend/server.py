@@ -2231,6 +2231,8 @@ class TeamsMeetingCreate(BaseModel):
     description: Optional[str] = ""
     lobby_bypass: str = "everyone"
     allow_external: bool = True
+    event_slug: Optional[str] = None
+    organizer_email: Optional[str] = None
 
 class TeamsMeetingRegister(BaseModel):
     full_name: str
@@ -2250,27 +2252,64 @@ async def teams_oauth_url():
     return {"auth_url": auth_url, "state": state, "redirect_uri": redirect_uri}
 
 
+@api_router.get("/integrations/teams/callback")
+async def teams_oauth_callback(code: Optional[str] = None, state: Optional[str] = None, error: Optional[str] = None):
+    """Handle the Microsoft OAuth2 authorization-code callback (browser redirect).
+
+    Note: Teams meeting creation uses app-only client-credentials auth and does not
+    require this code exchange, but the URL must exist so Azure's redirect doesn't 404.
+    """
+    if error:
+        return {"error": f"OAuth error: {error}"}
+    if not code:
+        return {"error": "Missing authorization code"}
+    redirect_uri = os.environ.get("MS_TEAMS_REDIRECT_URI", "https://studentalumni.ai/api/integrations/teams/callback")
+    try:
+        token = await _exchange_code(code, redirect_uri)
+    except Exception as e:  # noqa: BLE001
+        token = None
+        logger.warning(f"[teams] OAuth token exchange failed: {e}")
+    return {"status": "connected" if token else "error", "state": state}
+
+
 @api_router.post("/integrations/teams/meetings")
 async def create_teams_meeting_endpoint(payload: TeamsMeetingCreate, user: dict = Depends(get_current_user)):
     """Create a Microsoft Teams meeting with seat limits and registration support."""
     if user.get("role") not in ("admin", "super_admin", "organizer"):
         raise HTTPException(403, "Access required")
+    from datetime import datetime as _dt
+    from zoneinfo import ZoneInfo
+    IST = ZoneInfo("Asia/Kolkata")
+    raw = (payload.start_time or "").strip()
     try:
-        from datetime import datetime as _dt
-        start_dt = _dt.fromisoformat(payload.start_time.replace("Z", "+00:00"))
+        if raw:
+            # Frontend sends a "wall clock" time in IST (e.g. "2026-09-01T09:00")
+            parsed = _dt.fromisoformat(raw.replace("Z", "+00:00"))
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=IST)
+            else:
+                parsed = parsed.astimezone(IST)
+            start_dt = parsed
+        else:
+            start_dt = _dt.now(IST)
     except (ValueError, AttributeError):
-        start_dt = _dt.now(timezone.utc)
+        start_dt = _dt.now(IST)
 
-    meeting = await _create_teams_meeting(
-        title=payload.title,
-        start_time=start_dt,
-        duration_minutes=payload.duration_minutes,
-        attendee_emails=payload.attendee_emails or [],
-        seat_limit=payload.seat_limit,
-        description=payload.description or "",
-        lobby_bypass=payload.lobby_bypass,
-        allow_external=payload.allow_external,
-    )
+    try:
+        meeting = await _create_teams_meeting(
+            title=payload.title,
+            start_time=start_dt,
+            duration_minutes=payload.duration_minutes,
+            attendee_emails=payload.attendee_emails or [],
+            seat_limit=payload.seat_limit,
+            description=payload.description or "",
+            lobby_bypass=payload.lobby_bypass,
+            allow_external=payload.allow_external,
+            organizer_email=(payload.organizer_email or "").strip() or None,
+        )
+    except RuntimeError as e:
+        logger.error(f"[teams] create endpoint: {e}")
+        raise HTTPException(502, f"Could not create Teams meeting: {str(e)}")
 
     meeting_doc = {
         "meeting_id": meeting["meeting_id"],
@@ -2280,7 +2319,8 @@ async def create_teams_meeting_endpoint(payload: TeamsMeetingCreate, user: dict 
         "duration_minutes": payload.duration_minutes,
         "seat_limit": payload.seat_limit,
         "attendee_emails": payload.attendee_emails or [],
-        "event_slug": payload.event_slug if hasattr(payload, 'event_slug') else None,
+        "event_slug": (payload.event_slug or "").strip() or None,
+        "organizer_email": (payload.organizer_email or "").strip() or None,
         "created_by": str(user.get("_id", "")),
         "created_at": _dt.now(timezone.utc).isoformat(),
         "is_mock": meeting.get("mock", False),
@@ -2339,7 +2379,7 @@ async def register_for_teams_meeting(meeting_id: str, payload: dict):
         "full_name": full_name,
         "email": email,
         "phone": phone,
-        "registered_at": _dt.now(timezone.utc).isoformat(),
+        "registered_at": datetime.now(timezone.utc).isoformat(),
     })
     await db.teams_meetings.update_one({"meeting_id": meeting_id}, {"$set": {"registrations": registrations}})
     return {"success": True, "join_url": meeting.get("join_url")}
@@ -2378,7 +2418,15 @@ async def update_teams_meeting(meeting_id: str, payload: TeamsMeetingCreate, use
 
     try:
         from datetime import datetime as _dt
-        start_dt = _dt.fromisoformat(payload.start_time.replace("Z", "+00:00"))
+        from zoneinfo import ZoneInfo
+        IST = ZoneInfo("Asia/Kolkata")
+        raw = (payload.start_time or "").strip()
+        parsed = _dt.fromisoformat(raw.replace("Z", "+00:00")) if raw else _dt.now(IST)
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=IST)
+        else:
+            parsed = parsed.astimezone(IST)
+        start_dt = parsed
     except (ValueError, AttributeError):
         start_dt = _dt.now(timezone.utc)
 
@@ -2389,6 +2437,8 @@ async def update_teams_meeting(meeting_id: str, payload: TeamsMeetingCreate, use
         "seat_limit": payload.seat_limit,
         "attendee_emails": payload.attendee_emails or [],
         "description": payload.description,
+        "event_slug": (payload.event_slug or "").strip() or None,
+        "organizer_email": (payload.organizer_email or "").strip() or None,
         "updated_at": _dt.now(timezone.utc).isoformat(),
         "updated_by": str(user.get("_id", "")),
     }
@@ -2400,14 +2450,16 @@ async def update_teams_meeting(meeting_id: str, payload: TeamsMeetingCreate, use
             async with httpx.AsyncClient(timeout=15) as c:
                 token = await _get_teams_token(creds)
                 if token:
+                    org = (payload.organizer_email or meeting.get("organizer_email") or "").strip()
+                    event_url = f"https://graph.microsoft.com/v1.0/users/{org}/events/{meeting['meeting_id']}" if org else f"https://graph.microsoft.com/v1.0/me/events/{meeting['meeting_id']}"
                     await c.patch(
-                        f"https://graph.microsoft.com/v1.0/me/events/{meeting['meeting_id']}",
+                        event_url,
                         headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
                         json={
                             "subject": payload.title,
                             "body": {"contentType": "HTML", "content": payload.description or ""},
-                            "start": {"dateTime": start_dt.strftime("%Y-%m-%dT%H:%M:%S"), "timeZone": "UTC"},
-                            "end": {"dateTime": (start_dt + timedelta(minutes=payload.duration_minutes)).strftime("%Y-%m-%dT%H:%M:%S"), "timeZone": "UTC"},
+                            "start": {"dateTime": start_dt.strftime("%Y-%m-%dT%H:%M:%S"), "timeZone": "Asia/Kolkata"},
+                            "end": {"dateTime": (start_dt + timedelta(minutes=payload.duration_minutes)).strftime("%Y-%m-%dT%H:%M:%S"), "timeZone": "Asia/Kolkata"},
                         },
                     )
         except Exception:
@@ -2447,6 +2499,34 @@ async def get_teams_attendance(meeting_id: str, email: Optional[str] = None):
         raise HTTPException(404, "Meeting not found")
     records = await _get_attendance(meeting_id, email)
     return {"meeting_id": meeting_id, "attendance": records}
+
+
+@api_router.get("/integrations/teams/webhook")
+async def teams_webhook_verify(request: Request, validationToken: Optional[str] = None):
+    """Microsoft Graph change-notification handshake verification.
+
+    When you set this URL as a Graph subscription notification endpoint, Microsoft
+    calls it with ``?validationToken=...`` first. Return the token verbatim to
+    confirm ownership of the URL.
+    """
+    if validationToken:
+        return Response(content=validationToken, media_type="text/plain")
+    return {"status": "ok"}
+
+
+@api_router.post("/integrations/teams/webhook")
+async def teams_webhook(request: Request):
+    """Receive Microsoft Graph change notifications (e.g. meeting attendance).
+
+    Graph expects a 202 response quickly. We log the notification for later
+    processing; attendee records are pulled on demand via the attendance endpoint.
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    logger.info(f"[teams] webhook notification: {body.get('value') if isinstance(body, dict) else body}")
+    return Response(status_code=202)
 
 
 @api_router.get("/integrations/teams/status")

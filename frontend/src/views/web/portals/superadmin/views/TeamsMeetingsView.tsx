@@ -36,6 +36,8 @@ type Meeting = {
   }>;
   is_mock: boolean;
   created_at: string;
+  event_slug?: string;
+  organizer_email?: string;
 };
 
 export function TeamsMeetingsView() {
@@ -47,9 +49,11 @@ export function TeamsMeetingsView() {
   const [creating, setCreating] = useState(false);
   const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
   const [editForm, setEditForm] = useState({
-    title: '', date: '', time: '', duration: 60, seat_limit: '', description: '', attendee_emails: '',
+    title: '', date: '', time: '', duration: 60, seat_limit: '', description: '', attendee_emails: '', event_slug: '', organizer_email: '',
   });
   const [regOpen, setRegOpen] = useState<Meeting | null>(null);
+  const [events, setEvents] = useState<Array<{ slug: string; title: string }>>([]);
+  const [eventOpen, setEventOpen] = useState(false);
 
   const fetchMeetings = useCallback(async () => {
     try {
@@ -65,6 +69,21 @@ export function TeamsMeetingsView() {
   }, []);
 
   useEffect(() => { fetchMeetings(); }, [fetchMeetings]);
+
+  const fetchEvents = useCallback(async () => {
+    try {
+      const res = await request<any>('/echo/showcases', { auth: false });
+      const list = Array.isArray(res) ? res : res?.showcases || res?.items || [];
+      const mapped = (list as any[])
+        .map((e: any) => ({ slug: e.slug || e.id, title: e.title || e.slug || 'Untitled' }))
+        .filter((e: any) => e.slug);
+      setEvents(mapped);
+    } catch {
+      setEvents([]);
+    }
+  }, []);
+
+  useEffect(() => { fetchEvents(); }, [fetchEvents]);
 
   // ─── Generate date/time options for dropdowns ─────────────────────────
   const today = new Date();
@@ -97,6 +116,8 @@ export function TeamsMeetingsView() {
     seat_limit: '',
     description: '',
     attendee_emails: '',
+    event_slug: '',
+    organizer_email: '',
   });
 
   const [dateOpen, setDateOpen] = useState(false);
@@ -114,7 +135,7 @@ export function TeamsMeetingsView() {
     }
     setCreating(true);
     try {
-      const start_time = `${activeForm.date}T${activeForm.time}:00Z`;
+      const start_time = `${activeForm.date}T${activeForm.time}`;
       const payload = {
         title: activeForm.title,
         start_time,
@@ -122,6 +143,8 @@ export function TeamsMeetingsView() {
         attendee_emails: activeForm.attendee_emails ? activeForm.attendee_emails.split(',').map(e => e.trim()).filter(Boolean) : [],
         seat_limit: activeForm.seat_limit ? Number(activeForm.seat_limit) : null,
         description: activeForm.description,
+        event_slug: activeForm.event_slug || null,
+        organizer_email: activeForm.organizer_email || null,
       };
 
       let res;
@@ -147,7 +170,7 @@ export function TeamsMeetingsView() {
       }
       setShowCreate(false);
       setEditingMeeting(null);
-      setForm({ title: '', date: dateOptions[0]?.value || '', time: timeOptions[8]?.value || '09:00', duration: 60, seat_limit: '', description: '', attendee_emails: '' });
+      setForm({ title: '', date: dateOptions[0]?.value || '', time: timeOptions[8]?.value || '09:00', duration: 60, seat_limit: '', description: '', attendee_emails: '', event_slug: '', organizer_email: '' });
     } catch (e: any) {
       alert(e?.message || 'Failed to save meeting.');
     } finally {
@@ -208,7 +231,7 @@ export function TeamsMeetingsView() {
   };
 
   const formatDate = (iso: string) => {
-    return new Date(iso).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+    return new Date(iso).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' });
   };
 
   if (loading) {
@@ -292,12 +315,14 @@ export function TeamsMeetingsView() {
                 <Pressable onPress={() => {
                   setEditForm({
                     title: m.subject,
-                    date: m.start_time ? new Date(m.start_time).toISOString().split('T')[0] : form.date,
-                    time: m.start_time ? new Date(m.start_time).toISOString().split('T')[1].slice(0, 5) : form.time,
+                    date: m.start_time ? new Date(m.start_time).toLocaleString('en-CA', { timeZone: 'Asia/Kolkata' }).split('T')[0] : form.date,
+                    time: m.start_time ? new Date(m.start_time).toLocaleString('en-GB', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false }).slice(0, 5) : form.time,
                     duration: m.duration_minutes || 60,
                     seat_limit: m.seat_limit ? String(m.seat_limit) : '',
                     description: m.description || '',
                     attendee_emails: (m.attendee_emails || []).join(', '),
+                    event_slug: m.event_slug || '',
+                    organizer_email: m.organizer_email || '',
                   });
                   setEditingMeeting(m);
                   setShowCreate(true);
@@ -338,6 +363,43 @@ export function TeamsMeetingsView() {
                   if (editingMeeting) setEditForm({ ...editForm, title: t }); else setForm({ ...form, title: t });
                 }} />
 
+               <Text style={s.inputLabel}>Link to Event (optional)</Text>
+               <Pressable onPress={() => setEventOpen(true)} style={s.dropdown}>
+                 <Text style={s.dropdownText} numberOfLines={1}>
+                   {events.find(e => e.slug === activeForm.event_slug)?.title || (activeForm.event_slug ? activeForm.event_slug : 'Select an event…')}
+                 </Text>
+                 <ChevronDown size={14} color={SAC.muted} />
+               </Pressable>
+               {eventOpen && (
+                 <Modal transparent visible={eventOpen} animationType="fade" onRequestClose={() => setEventOpen(false)}>
+                   <View style={s.modalOverlay}>
+                     <View style={[s.modalContent, { maxHeight: 360, padding: 16 }]}>
+                       <Text style={s.modalTitle}>Select Event</Text>
+                       <ScrollView>
+                         <Pressable
+                           onPress={() => { setActiveForm({ ...activeForm, event_slug: '' }); setEventOpen(false); }}
+                           style={[s.dropdownOption, !activeForm.event_slug && s.dropdownOptionSelected]}
+                         >
+                           <Text style={[s.dropdownOptionText, !activeForm.event_slug && s.dropdownOptionTextSelected]}>None</Text>
+                         </Pressable>
+                         {events.map((ev) => (
+                           <Pressable
+                             key={ev.slug}
+                             onPress={() => { setActiveForm({ ...activeForm, event_slug: ev.slug }); setEventOpen(false); }}
+                             style={[s.dropdownOption, activeForm.event_slug === ev.slug && s.dropdownOptionSelected]}
+                           >
+                             <Text style={[s.dropdownOptionText, activeForm.event_slug === ev.slug && s.dropdownOptionTextSelected]} numberOfLines={1}>{ev.title}</Text>
+                           </Pressable>
+                         ))}
+                         {events.length === 0 && (
+                           <Text style={s.dropdownText}>No events available</Text>
+                         )}
+                       </ScrollView>
+                     </View>
+                   </View>
+                 </Modal>
+               )}
+
                <Text style={s.inputLabel}>Date</Text>
                {Platform.OS === 'web' ? (
                  <input
@@ -359,7 +421,7 @@ export function TeamsMeetingsView() {
                  </Pressable>
                )}
 
-               <Text style={s.inputLabel}>Time (UTC)</Text>
+               <Text style={s.inputLabel}>Time (IST)</Text>
                {Platform.OS === 'web' ? (
                  <input
                    type="time"
@@ -414,6 +476,12 @@ export function TeamsMeetingsView() {
               <TextInput placeholder="attendee1@college.edu, attendee2@college.edu" placeholderTextColor={SAC.muted}
                 style={s.input} value={editingMeeting ? editForm.attendee_emails : form.attendee_emails} onChangeText={(t) => {
                   if (editingMeeting) setEditForm({ ...editForm, attendee_emails: t }); else setForm({ ...form, attendee_emails: t });
+                }} />
+
+              <Text style={s.inputLabel}>Organizer Email (required for real Teams meetings)</Text>
+              <TextInput placeholder="organizer@college.edu" placeholderTextColor={SAC.muted} autoCapitalize="none"
+                style={s.input} value={editingMeeting ? editForm.organizer_email : form.organizer_email} onChangeText={(t) => {
+                  if (editingMeeting) setEditForm({ ...editForm, organizer_email: t }); else setForm({ ...form, organizer_email: t });
                 }} />
 
               <Text style={s.inputLabel}>Description (optional)</Text>
