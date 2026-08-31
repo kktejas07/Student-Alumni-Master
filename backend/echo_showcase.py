@@ -4222,15 +4222,17 @@ async def get_ticket(reg_id: str, request: Request, email: Optional[str] = Query
     if not reg:
         raise HTTPException(status_code=404, detail="Ticket not found")
     reg_ser = _ser(reg)
-    showcase = await db.echo_showcases.find_one({"slug": reg.get("slug")})
+    showcase = await db.echo_showcases.find_one({"slug": reg.get("showcase_slug") or reg.get("slug")})
 
     # Payment gate: free events (fee <= 0 registered) are pass-eligible; paid
     # events only after the payment is verified (payment.status == "paid").
     fee = float(reg.get("fee") or 0)
     payment = reg.get("payment") or {}
     reg_status = reg.get("status") or "pending"
-    is_free = fee <= 0 and payment.get("status") == "paid" and reg_status == "registered"
-    is_paid = payment.get("status") == "paid" and reg_status == "registered"
+    payment_status = payment.get("status") or reg.get("payment_status") or "pending"
+    
+    is_free = fee <= 0 and (payment_status == "paid" or reg_status in ("registered", "confirmed"))
+    is_paid = payment_status == "paid" and reg_status in ("registered", "confirmed")
     pass_eligible = is_free or is_paid
     if not pass_eligible:
         pending = payment.get("status") == "pending"
