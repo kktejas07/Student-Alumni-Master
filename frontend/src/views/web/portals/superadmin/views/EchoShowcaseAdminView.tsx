@@ -4790,6 +4790,8 @@ function LiveScanMonitorPanel() {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
+  const [page, setPage] = useState(0);
+  const PER_PAGE = 20;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -4809,9 +4811,39 @@ function LiveScanMonitorPanel() {
     return () => clearInterval(interval);
   }, [load]);
 
+  useEffect(() => { setPage(0); }, [q]);
+
+  const stats = useMemo(() => {
+    let checkedIn = 0;
+    let couponsUsed = 0;
+    let lunch = 0;
+    let swag = 0;
+    let others = 0;
+
+    data.forEach(reg => {
+      if (reg.checked_in_at) checkedIn++;
+      if (reg.coupons) {
+        reg.coupons.forEach((c: any) => {
+          if (c.used) {
+            couponsUsed++;
+            const name = c.session_name?.toLowerCase() || '';
+            if (name.includes('lunch')) lunch++;
+            else if (name.includes('swag') || name.includes('tshirt') || name.includes('t-shirt')) swag++;
+            else others++;
+          }
+        });
+      }
+    });
+
+    return { checkedIn, couponsUsed, lunch, swag, others };
+  }, [data]);
+
   const filtered = data.filter(d => 
     !q || d.full_name?.toLowerCase().includes(q.toLowerCase()) || d.email?.toLowerCase().includes(q.toLowerCase()) || d.id?.toLowerCase().includes(q.toLowerCase())
   );
+  
+  const paginated = filtered.slice(page * PER_PAGE, (page + 1) * PER_PAGE);
+  const totalPages = Math.ceil(filtered.length / PER_PAGE);
 
   return (
     <View style={{ flex: 1, gap: 20 }}>
@@ -4828,6 +4860,14 @@ function LiveScanMonitorPanel() {
         </View>
       </View>
 
+      {/* KPI tiles */}
+      <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
+        <KpiTile Icon={CheckCircle} label="Event Check-Ins" value={String(stats.checkedIn)} />
+        <KpiTile Icon={Ticket} label="Coupons Scanned" value={String(stats.couponsUsed)} />
+        <KpiTile Icon={Ticket} label="Lunch Scanned" value={String(stats.lunch)} />
+        <KpiTile Icon={Ticket} label="Other Scanned" value={String(stats.swag + stats.others)} />
+      </View>
+
       <Card style={{ padding: 0, overflow: 'hidden' }}>
         <View style={{ flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.02)', padding: 16, borderBottomWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
           <Text style={{ flex: 2, fontFamily: FONTS.bold, fontSize: 12, color: SAC.muted, textTransform: 'uppercase' }}>Attendee</Text>
@@ -4841,7 +4881,7 @@ function LiveScanMonitorPanel() {
         ) : filtered.length === 0 ? (
           <View style={{ padding: 40, alignItems: 'center' }}><Text style={{ color: SAC.muted, fontFamily: FONTS.med }}>No registrations found.</Text></View>
         ) : (
-          filtered.map(reg => (
+          paginated.map(reg => (
             <View key={reg.id} style={{ flexDirection: 'row', padding: 16, borderBottomWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
               <View style={{ flex: 2, justifyContent: 'center', paddingRight: 10 }}>
                 <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: SAC.text, marginBottom: 2 }}>{reg.full_name || 'Unknown'}</Text>
@@ -4907,6 +4947,22 @@ function LiveScanMonitorPanel() {
               </View>
             </View>
           ))
+        )}
+
+        {totalPages > 1 && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderTopWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 13, color: SAC.muted }}>
+              Showing {page * PER_PAGE + 1} - {Math.min((page + 1) * PER_PAGE, filtered.length)} of {filtered.length}
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <SecondaryButton onPress={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>
+                <ArrowLeft size={14} color={page === 0 ? 'rgba(255,255,255,0.2)' : SAC.muted} />
+              </SecondaryButton>
+              <SecondaryButton onPress={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page === totalPages - 1}>
+                <ArrowRight size={14} color={page === totalPages - 1 ? 'rgba(255,255,255,0.2)' : SAC.muted} />
+              </SecondaryButton>
+            </View>
+          </View>
         )}
       </Card>
     </View>
