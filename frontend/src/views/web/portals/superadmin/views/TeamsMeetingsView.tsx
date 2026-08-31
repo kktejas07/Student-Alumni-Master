@@ -54,6 +54,13 @@ export function TeamsMeetingsView() {
   const [regOpen, setRegOpen] = useState<Meeting | null>(null);
   const [events, setEvents] = useState<Array<{ slug: string; title: string }>>([]);
   const [eventOpen, setEventOpen] = useState(false);
+  const [toast, setToast] = useState<{message: string, isError: boolean} | null>(null);
+
+  const showToast = (message: string, isError: boolean = false) => {
+    setToast({message, isError});
+    setTimeout(() => setToast(null), 3000);
+  };
+
 
   const fetchMeetings = useCallback(async () => {
     try {
@@ -131,7 +138,7 @@ export function TeamsMeetingsView() {
   const handleCreate = async () => {
     const activeForm = editingMeeting ? editForm : form;
     if (!activeForm.title || !activeForm.date || !activeForm.time) {
-      alert('Please fill in title, date, and time.');
+      showToast('Please fill in title, date, and time.');
       return;
     }
     setCreating(true);
@@ -165,7 +172,7 @@ export function TeamsMeetingsView() {
         if (res?.meeting_id) {
           setMeetings([res, ...meetings]);
         } else {
-          alert('Failed to create meeting.');
+          showToast('Failed to create meeting.');
           setCreating(false);
           return;
         }
@@ -174,7 +181,7 @@ export function TeamsMeetingsView() {
       setEditingMeeting(null);
       setForm({ title: '', date: dateOptions[0]?.value || '', time: timeOptions[8]?.value || '09:00', duration: 60, seat_limit: '', description: '', attendee_emails: '', event_slug: '', organizer_email: '', manual_join_url: '' });
     } catch (e: any) {
-      alert(e?.message || 'Failed to save meeting.');
+      showToast(e?.message || 'Failed to save meeting.');
     } finally {
       setCreating(false);
     }
@@ -186,7 +193,7 @@ export function TeamsMeetingsView() {
   const handleRegister = async () => {
     if (!regOpen) return;
     if (!regForm.full_name || !regForm.email) {
-      alert('Name and email are required.');
+      showToast('Name and email are required.');
       return;
     }
     try {
@@ -201,15 +208,15 @@ export function TeamsMeetingsView() {
         if (res.join_url && typeof window !== 'undefined') {
           window.open(res.join_url, '_blank');
         }
-        alert('Registered! Check your email for meeting details.');
+        showToast('Registered! Check your email for meeting details.');
         setRegOpen(null);
         setRegForm({ full_name: '', email: '', phone: '' });
         fetchMeetings();
       } else {
-        alert(res?.error || 'Registration failed.');
+        showToast(res?.error || 'Registration failed.');
       }
     } catch (e: any) {
-      alert(e?.message || 'Registration failed.');
+      showToast(e?.message || 'Registration failed.');
     }
   };
 
@@ -217,7 +224,7 @@ export function TeamsMeetingsView() {
   const copyUrl = (url: string) => {
     if (typeof window !== 'undefined') {
       navigator.clipboard.writeText(url);
-      alert('Join URL copied!');
+      showToast('Join URL copied!');
     }
   };
 
@@ -228,7 +235,7 @@ export function TeamsMeetingsView() {
       await request<any>(`/integrations/teams/meetings/${id}`, { method: 'DELETE' });
       setMeetings(meetings.filter(m => m.meeting_id !== id));
     } catch {
-      alert('Failed to delete.');
+      showToast('Failed to delete.');
     }
   };
 
@@ -353,7 +360,7 @@ export function TeamsMeetingsView() {
                   if (typeof window !== 'undefined') {
                     const regUrl = `${window.location.origin}/teams/register/${m.meeting_id}`;
                     navigator.clipboard.writeText(regUrl);
-                    alert('Registration link copied!');
+                    showToast('Registration link copied!');
                   }
                 }} style={s.actionBtn}>
                   <Share2 size={12} color="#C4B5FD" />
@@ -576,7 +583,7 @@ export function TeamsMeetingsView() {
                     onPress={() => {
                       const url = `${window.location.origin}/teams/register/${regOpen.meeting_id}`;
                       navigator.clipboard.writeText(url);
-                      alert('Registration link copied!');
+                      showToast('Registration link copied!');
                     }}
                     style={s.inviteCopyBtn}
                   >
@@ -609,9 +616,19 @@ export function TeamsMeetingsView() {
           </View>
         </Modal>
       )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <View style={{ position: 'absolute', bottom: 40, left: 0, right: 0, alignItems: 'center', pointerEvents: 'none', zIndex: 9999 }}>
+          <View style={{ backgroundColor: toast.isError ? '#F87186' : '#10B981', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 30, flexDirection: 'row', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 5 }}>
+            <Text style={{ color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 14 }}>{toast.message}</Text>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
+
 
 const s = StyleSheet.create({
   root: { flex: 1, padding: 20 },
