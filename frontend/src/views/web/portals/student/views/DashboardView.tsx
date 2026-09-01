@@ -67,18 +67,24 @@ export function DashboardView() {
   const [skillStreak, setSkillStreak] = useState(0);
 
   useEffect(() => {
-    request<any>('/users/me/stats')
-      .then((res) => {
-        if (res && typeof res.skill_streak === 'number') {
-          setSkillStreak(res.skill_streak);
-          if (res.skill_streak > 0) {
-            setActiveStreakDay(Math.min(res.skill_streak, 7) - 1);
-          } else {
-            setActiveStreakDay(-1);
+    // Ping daily_login to keep the streak alive even if they bypassed the login screen via stored token
+    request<any>('/wallet/track', {
+      method: 'POST',
+      body: JSON.stringify({ activity_type: 'daily_login' }),
+    }).finally(() => {
+      request<any>('/users/me/stats')
+        .then((res) => {
+          if (res && typeof res.skill_streak === 'number') {
+            setSkillStreak(res.skill_streak);
+            if (res.skill_streak > 0) {
+              setActiveStreakDay(Math.min(res.skill_streak, 7) - 1);
+            } else {
+              setActiveStreakDay(-1);
+            }
           }
-        }
-      })
-      .catch(() => {});
+        })
+        .catch(() => {});
+    });
   }, []);
 
   useEffect(() => {
