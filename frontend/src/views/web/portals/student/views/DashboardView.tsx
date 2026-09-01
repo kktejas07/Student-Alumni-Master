@@ -70,7 +70,7 @@ export function DashboardView() {
     // Ping daily_login to keep the streak alive even if they bypassed the login screen via stored token
     request<any>('/wallet/track', {
       method: 'POST',
-      body: JSON.stringify({ activity_type: 'daily_login' }),
+      body: { activity_type: 'daily_login' },
     }).finally(() => {
       request<any>('/users/me/stats')
         .then((res) => {
