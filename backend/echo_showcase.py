@@ -593,7 +593,11 @@ def _parse_iso(s: Optional[str]):
     if not s:
         return None
     try:
-        dt = datetime.fromisoformat(s.replace("Z", "+00:00"))
+        if len(s) == 10 and "-" in s:
+            # Date-only format e.g. "2026-09-04" -> set to 1:00 PM IST (13:00:00+05:30)
+            dt = datetime.fromisoformat(f"{s}T13:00:00+05:30")
+        else:
+            dt = datetime.fromisoformat(s.replace("Z", "+00:00"))
     except Exception:
         return None
     if dt.tzinfo is None:
@@ -609,7 +613,13 @@ async def _assert_registration_open(db, showcase: dict) -> None:
     if showcase.get("event_status_badge") == "Completed":
         raise HTTPException(status_code=400, detail="This event has ended — registrations are closed")
 
-    deadline = _parse_iso(reg_cfg.get("deadline"))
+    slug = (showcase.get("slug") or "").lower()
+    if slug in ("snist", "hackwave-3.0", "hackwave-3", "hackwave"):
+        # For HackWave 3.0 SNIST, deadline is Sep 4, 2026 1:00 PM IST
+        deadline = datetime.fromisoformat("2026-09-04T13:00:00+05:30")
+    else:
+        deadline = _parse_iso(reg_cfg.get("deadline") or showcase.get("reg_closes"))
+
     if deadline and deadline < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="Registrations have closed for this event")
 
@@ -2920,6 +2930,18 @@ async def seed_echo_showcase(db: AsyncIOMotorDatabase):
             print("[ECHO CMS] Seeded default vnr-echo-2026 showcase")
         else:
             await db.echo_showcases.update_many({"gallery_layout": {"$exists": False}}, {"$set": {"gallery_layout": "grid"}})
+        
+        # Ensure SNIST / HackWave 3.0 showcase registration is open till Sep 4, 1:00 PM IST
+        await db.echo_showcases.update_many(
+            {"slug": {"$in": ["snist", "hackwave-3.0", "hackwave-3", "hackwave"]}},
+            {"$set": {
+                "reg_closes": "Sep 04, 2026 · 1:00 PM IST",
+                "registration.deadline": "2026-09-04T13:00:00+05:30",
+                "registration.enabled": True,
+                "registration.status": "open",
+                "event_status_badge": "Upcoming"
+            }}
+        )
     except Exception as e:
         print(f"[ECHO CMS] Seed warning: {e}")
 
@@ -3002,7 +3024,7 @@ async def get_showcase(slug: str, request: Request):
                         "wehive_germany": "₹15,00,000",
                         "visas": "2 Business Visas fully sponsored by WeHive"
                     },
-                    "reg_closes": "2026-09-01",
+                    "reg_closes": "Sep 04, 2026 · 1:00 PM IST",
                     "hero_image_url": "/images/hackwave/hackwave_main_poster.png",
                     "banner_url": "/images/hackwave/hackwave_main_poster.png",
                     "poster_url": "/images/hackwave/hackwave_main_poster.png",
@@ -3096,7 +3118,7 @@ async def get_showcase(slug: str, request: Request):
                         "currency": "INR",
                         "available_seats": 985,
                         "team_slots_available": 197,
-                        "deadline": "2026-09-01T23:59:59Z",
+                        "deadline": "2026-09-04T13:00:00+05:30",
                         "external_url": None,
                         "payment_url": None
                     },
