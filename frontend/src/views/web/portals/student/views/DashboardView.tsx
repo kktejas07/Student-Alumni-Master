@@ -654,13 +654,12 @@ export function DashboardView() {
               {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, idx) => (
                 <span
                   key={idx}
-                  onClick={() => setActiveStreakDay(idx)}
                   style={{
                     flex: 1,
                     height: '26px',
                     borderRadius: '6px',
                     background: activeStreakDay !== null && idx <= activeStreakDay ? 'linear-gradient(180deg, #F59E0B, #C2410C)' : '#262638',
-                    cursor: 'pointer',
+                    cursor: 'default',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
