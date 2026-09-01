@@ -108,15 +108,15 @@ export function DashboardView() {
       title: 'HackWave 3.0 — 2026',
       sub: 'SEP 04 — 05 2026 · Sreenidhi Institute of Science and Technology, Hyderabad',
       desc: 'In strategic collaboration with CDC & Student Alumni. ₹100 Off with code SAHW100.',
-      link: 'http://localhost:8081/echo/snist/register',
-      cta: 'Register on Unstop →',
+      link: '/echo/snist/register',
+      cta: 'Register for HackWave →',
     },
     {
       tag: 'VOICE OF GENERATIONS · VNRVJIT',
       title: 'Alumni took the stage, students took notes.',
       sub: '26 photos, 3 workshops and 5 testimonials from the last showcase.',
       desc: 'Annual flagship networking conference at VNR Vignana Jyothi.',
-      link: 'http://localhost:8081/echo/vnrvjit/register',
+      link: '/echo/snist',
       cta: 'Open ECHO Showcase →',
     },
     {
