@@ -32,6 +32,7 @@ import { View, Text, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StudentPortalNavContext } from '../StudentPortalNavContext';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { request } from '@/src/models/services/api';
 
 export function DashboardView() {
   const router = useRouter();
@@ -63,6 +64,22 @@ export function DashboardView() {
 
   // Streak Days State
   const [activeStreakDay, setActiveStreakDay] = useState<number | null>(null);
+  const [skillStreak, setSkillStreak] = useState(0);
+
+  useEffect(() => {
+    request<any>('/users/me/stats')
+      .then((res) => {
+        if (res && typeof res.skill_streak === 'number') {
+          setSkillStreak(res.skill_streak);
+          if (res.skill_streak > 0) {
+            setActiveStreakDay(Math.min(res.skill_streak, 7) - 1);
+          } else {
+            setActiveStreakDay(-1);
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -623,9 +640,9 @@ export function DashboardView() {
               SKILL STREAK
             </div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '9px' }}>
-              <span style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.2px' }}>0</span>
+              <span style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-1.2px' }}>{skillStreak}</span>
               <span style={{ fontSize: '14px', color: '#8A8A9E' }}>days</span>
-              <span style={{ fontSize: '20px', marginLeft: 'auto', animation: 'db-flame 2.2s ease-in-out infinite', display: 'inline-block' }}></span>
+              <span style={{ fontSize: '20px', marginLeft: 'auto', animation: 'db-flame 2.2s ease-in-out infinite', display: 'inline-block' }}>🔥</span>
             </div>
             <div style={{ display: 'flex', gap: '5px', marginTop: '16px' }}>
               {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, idx) => (
@@ -650,7 +667,9 @@ export function DashboardView() {
                 </span>
               ))}
             </div>
-            <div style={{ fontSize: '12.5px', color: '#F0616B', marginTop: '12px' }}>Start your streak today</div>
+            <div style={{ fontSize: '12.5px', color: skillStreak > 0 ? '#10B981' : '#F0616B', marginTop: '12px' }}>
+              {skillStreak > 0 ? "You're on a streak!" : "Start your streak today"}
+            </div>
           </div>
 
           {/* Next 1:1 Session */}
