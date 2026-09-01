@@ -40,6 +40,7 @@ import HigherEducationPage from '@/app/higher-education';
 
 export function NexusOSModernDashboardRN({ initialView = 'dash' }: { initialView?: string }) {
   const router = useRouter();
+  const user = useAuthStore((s) => s.user);
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
   const isNarrow = width < 1180;
@@ -52,7 +53,7 @@ export function NexusOSModernDashboardRN({ initialView = 'dash' }: { initialView
   const [searchQuery, setSearchQuery] = useState('');
 
   const VIEW_TITLES: Record<string, [string, string]> = {
-    dash: ['Good morning, Devender ', "Here's your personalised dashboard for today"],
+    dash: [`Good morning, ${user?.full_name?.split(' ')[0] || 'Student'} 👋`, "Here's your personalised dashboard for today"],
     ai: ['Career AI', 'Your roadmap, rebuilt weekly by Agent K'],
     internships: ['Internships & Jobs', '267 roles matched to your profile'],
     echo: ['ECHO Showcase', 'Galleries, partners and speakers from every event'],
@@ -307,8 +308,8 @@ export function NexusOSModernDashboardRN({ initialView = 'dash' }: { initialView
           {/* User Profile Mini Block */}
           {!sidebarCollapsed && (
             <View style={s.userMini}>
-              <Text style={s.userName}>Devender Vutukuru</Text>
-              <Text style={s.userClass}>Class of 2018</Text>
+              <Text style={s.userName}>{user?.full_name || 'Student'}</Text>
+              <Text style={s.userClass}>Class of {user?.graduation_year || 2027}</Text>
             </View>
           )}
 
@@ -317,7 +318,7 @@ export function NexusOSModernDashboardRN({ initialView = 'dash' }: { initialView
             <Pressable onPress={() => setShowIDModal(true)} style={s.cardChip}>
               <View style={{ flex: 1 }}>
                 <Text style={s.cardChipLabel}>My Student Card</Text>
-                <Text style={s.cardChipId}>SA-2026-STU-RNWJMD</Text>
+                <Text style={s.cardChipId}>SA-{String(user?.graduation_year || 2027).slice(-2)}-STU-{user?.id?.substring(0,6).toUpperCase() || 'RNWJMD'}</Text>
               </View>
               <Text style={{ color: '#A78BFA', fontSize: 13 }}>↗</Text>
             </Pressable>
@@ -832,11 +833,11 @@ export function NexusOSModernDashboardRN({ initialView = 'dash' }: { initialView
               <View style={{ gap: 20 }}>
                 {/* Profile Completion */}
                 <View style={s.profileHeaderCard}>
-                  <View style={s.profileAvatar}><Text style={{ color: '#fff', fontSize: 26, fontWeight: '700' }}>D</Text></View>
+                  <View style={s.profileAvatar}><Text style={{ color: '#fff', fontSize: 26, fontWeight: '700' }}>{user?.full_name?.charAt(0).toUpperCase() || 'S'}</Text></View>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ color: '#fff', fontSize: 22, fontWeight: '700' }}>Devender Vutukuru</Text>
-                    <Text style={{ color: '#8A8A9E', fontSize: 13 }}>Khammam Institute of Technologies and Sciences</Text>
-                    <View style={s.verifiedBadge}><Text style={s.verifiedText}>Verified Student</Text></View>
+                    <Text style={{ color: '#fff', fontSize: 22, fontWeight: '700' }}>{user?.full_name || 'Student'}</Text>
+                    <Text style={{ color: '#8A8A9E', fontSize: 13 }}>{user?.institution || 'Malla Reddy Institute of Technology'}</Text>
+                    <View style={s.verifiedBadge}><Text style={s.verifiedText}>✓ Verified Student</Text></View>
                   </View>
                 </View>
 
@@ -897,14 +898,14 @@ export function NexusOSModernDashboardRN({ initialView = 'dash' }: { initialView
                       <View style={s.idVerifiedPill}><Text style={s.idVerifiedText}>VERIFIED</Text></View>
                     </View>
                     <View style={{ marginVertical: 14 }}>
-                      <Text style={s.idName}>Devender Vutukuru</Text>
-                      <Text style={s.idDegree}>Computer Science · Class of 2018</Text>
+                      <Text style={s.idName}>{user?.full_name || 'Student'}</Text>
+                      <Text style={s.idDegree}>Computer Science · Class of {user?.graduation_year || 2027}</Text>
                     </View>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                       <View>
                         <Text style={s.idMetaLabel}>STUDENT ID</Text>
-                        <Text style={s.idMetaVal}>SA-2026-STU-RNWJMD</Text>
-                        <Text style={s.idValid}>Valid until June 2027</Text>
+                        <Text style={s.idMetaVal}>SA-{String(user?.graduation_year || 2027).slice(-2)}-STU-{user?.id?.substring(0,6).toUpperCase() || 'RNWJMD'}</Text>
+                        <Text style={s.idValid}>Valid until June {user?.graduation_year || 2027}</Text>
                       </View>
                       <View style={s.qrBox}><Text style={{ fontSize: 24 }}></Text></View>
                     </View>

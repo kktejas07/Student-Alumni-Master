@@ -12,6 +12,7 @@ import { HelpMenu } from '@/src/views/web/help/HelpMenu';
 import { useToast } from '@/src/views/components';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { displayInitials, displayName } from '@/src/lib/portalHome';
+import { api } from '@/src/models/services/api';
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -24,13 +25,7 @@ function today(): string {
   return new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-const NOTIFICATIONS = [
-  { id: '1', kind: 'success', text: '12 mentors approved', time: '2m ago' },
-  { id: '2', kind: 'warn', text: '7 pending approvals need review', time: '15m ago' },
-  { id: '3', kind: 'info', text: 'Weekly report ready to view', time: '1h ago' },
-];
-
-export function TopBar({ title = 'Overview' }: { title?: string }) {
+export function TopBar({ title = 'Overview', onAvatarPress }: { title?: string; onAvatarPress?: () => void }) {
   const T = useSAC();
   Object.assign(s, resolveColors(s, T));
   const toast = useToast();
@@ -39,12 +34,46 @@ export function TopBar({ title = 'Overview' }: { title?: string }) {
   const [notifOpen, setNotifOpen] = React.useState(false);
   const userName = displayName(user);
 
-  const notifIcon = (kind: string) => {
-    switch (kind) {
-      case 'success': return <CheckCircle2 size={13} color={T.ok} />;
-      case 'warn': return <AlertTriangle size={13} color={T.amber} />;
-      default: return <Info size={13} color={T.sky} />;
+  const [unreadCount, setUnreadCount] = React.useState(0);
+  const [notifications, setNotifications] = React.useState<any[]>([]);
+
+  React.useEffect(() => {
+    const fetchNotifs = () => {
+      api.notifications()
+        .then(res => {
+          const items = res.notifications || res.items || [];
+          setNotifications(items.slice(0, 5));
+          setUnreadCount(res.unread || 0);
+        })
+        .catch(console.error);
+    };
+    fetchNotifs();
+    const interval = setInterval(fetchNotifs, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const toggleNotif = () => {
+    const nextOpen = !notifOpen;
+    setNotifOpen(nextOpen);
+    if (nextOpen && unreadCount > 0) {
+      const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
+      if (unreadIds.length > 0) {
+        api.markNotificationsRead(unreadIds)
+          .then(() => setUnreadCount(0))
+          .catch(console.error);
+      }
     }
+  };
+
+  const notifIcon = (type?: string) => {
+    const t = (type || '').toLowerCase();
+    if (t.includes('success') || t.includes('confirm') || t.includes('approve')) {
+      return <CheckCircle2 size={13} color={T.ok} />;
+    }
+    if (t.includes('warn') || t.includes('pending') || t.includes('request')) {
+      return <AlertTriangle size={13} color={T.amber} />;
+    }
+    return <Info size={13} color={T.sky} />;
   };
 
   return (
@@ -60,8 +89,8 @@ export function TopBar({ title = 'Overview' }: { title?: string }) {
 
       {/* Greeting */}
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text numberOfLines={1} style={s.greeting}>{greeting()}, {userName}</Text>
-        <Text numberOfLines={1} style={s.greetingSub}>Here's your personalised dashboard for today</Text>
+        <Text numberOfLines={1} style={s.greeting}>{greeting()}, {userName || 'Admin'}</Text>
+        <Text numberOfLines={1} style={s.greetingSub}>{today()}</Text>
       </View>
 
       {/* Search */}
@@ -88,23 +117,26 @@ export function TopBar({ title = 'Overview' }: { title?: string }) {
 
       {/* Bell */}
       <Pressable
-        onPress={() => setNotifOpen(!notifOpen)}
+        onPress={toggleNotif}
         style={({ hovered }: any) => [s.bell, hovered && { backgroundColor: T.panel2 }]}
       >
         <Bell size={16} color={T.muted} />
-        <View style={s.bellDot} />
+        {unreadCount > 0 && <View style={s.bellDot} />}
         {notifOpen && (
           <View style={s.notifPanel}>
             <Text style={s.notifTitle}>Notifications</Text>
-            {NOTIFICATIONS.map((n) => (
+            {notifications.map((n) => (
               <View key={n.id} style={s.notifRow}>
-                {notifIcon(n.kind)}
+                {notifIcon(n.type)}
                 <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text style={s.notifText} numberOfLines={1}>{n.text}</Text>
-                  <Text style={s.notifTime}>{n.time}</Text>
+                  <Text style={s.notifText} numberOfLines={1}>{n.title}</Text>
+                  <Text style={s.notifTime}>{n.message}</Text>
                 </View>
               </View>
             ))}
+            {notifications.length === 0 && (
+              <Text style={{ color: T.muted, fontSize: 12, textAlign: 'center', paddingVertical: 12 }}>No notifications</Text>
+            )}
           </View>
         )}
       </Pressable>
@@ -113,7 +145,9 @@ export function TopBar({ title = 'Overview' }: { title?: string }) {
       <HelpMenu portal="super_admin" />
 
       {/* Avatar */}
-      <Av initials={displayInitials(user)} size={38} color={T.violet} />
+      <Pressable onPress={onAvatarPress} style={Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}}>
+        <Av initials={displayInitials(user)} size={38} color={T.violet} photo={useAuthStore((s) => s.photoOverride) || user?.photo_data || user?.face_image_base64} />
+      </Pressable>
     </View>
   );
 }
