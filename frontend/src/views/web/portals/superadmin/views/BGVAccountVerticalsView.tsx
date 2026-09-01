@@ -21,7 +21,7 @@ import {
   Filter, Shield, UserX, UserPlus, Send, Download, Sparkle, HelpCircle,
   Globe, Link2, Edit3, Clock, BellRing, Settings2, PlayCircle, Layers,
   CheckSquare, XCircle, AlertCircle, Bookmark, Cpu, Zap, Database, CheckCircle,
-  Printer,
+  Printer, Key,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SAC, useSAC, FONTS, resolveColors } from '../tokens';
