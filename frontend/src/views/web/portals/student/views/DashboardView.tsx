@@ -792,7 +792,17 @@ export function DashboardView() {
                     </div>
                     <div style={{ fontSize: '11px', color: '#8A8A9E' }}>{matchPct}% match</div>
                   </div>
-                  <button style={{ fontSize: '12.5px', fontWeight: 600, background: '#7C5CFC', color: '#FFFFFF', borderRadius: '8px', padding: '8px 14px', border: 'none', cursor: 'pointer' }}>
+                  <button 
+                    onClick={() => {
+                      const url = m.url || (m.source_urls && m.source_urls[0]);
+                      if (url) {
+                        window.open(url, '_blank');
+                      } else {
+                        portalNav?.navigate('internships');
+                      }
+                    }}
+                    style={{ fontSize: '12.5px', fontWeight: 600, background: '#7C5CFC', color: '#FFFFFF', borderRadius: '8px', padding: '8px 14px', border: 'none', cursor: 'pointer' }}
+                  >
                     Apply
                   </button>
                 </div>
