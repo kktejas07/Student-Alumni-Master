@@ -2935,11 +2935,11 @@ async def seed_echo_showcase(db: AsyncIOMotorDatabase):
         await db.echo_showcases.update_many(
             {"slug": {"$in": ["snist", "hackwave-3.0", "hackwave-3", "hackwave"]}},
             {"$set": {
-                "reg_closes": "Sep 04, 2026 · 1:00 PM IST",
-                "registration.deadline": "2026-09-04T13:00:00+05:30",
+                "reg_closes": "Sep 02, 2026 · 7:00 PM IST (Closing in 30 mins)",
+                "registration.deadline": "2026-09-02T19:00:00+05:30",
                 "registration.enabled": True,
-                "registration.status": "open",
-                "event_status_badge": "Upcoming"
+                "registration.status": "closing_soon",
+                "event_status_badge": "Closing in 30 Mins"
             }}
         )
     except Exception as e:
@@ -3024,7 +3024,7 @@ async def get_showcase(slug: str, request: Request):
                         "wehive_germany": "₹15,00,000",
                         "visas": "2 Business Visas fully sponsored by WeHive"
                     },
-                    "reg_closes": "Sep 04, 2026 · 1:00 PM IST",
+                    "reg_closes": "Sep 02, 2026 · 7:00 PM IST (Closing in 30 mins)",
                     "hero_image_url": "/images/hackwave/hackwave_main_poster.png",
                     "banner_url": "/images/hackwave/hackwave_main_poster.png",
                     "poster_url": "/images/hackwave/hackwave_main_poster.png",
