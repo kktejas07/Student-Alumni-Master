@@ -676,8 +676,11 @@ export function DashboardView() {
                   <button 
                     onClick={async () => {
                       try {
-                        await request(`/opportunities/${applyModalJob.id}/apply`, { method: 'POST' });
-                        setTopMatches(prev => prev.map(job => job.id === applyModalJob.id ? { ...job, applied: true } : job));
+                        await request(`/student/internships/${applyModalJob.id || applyModalJob.job_id}/apply`, { 
+                          method: 'POST',
+                          body: { student_email: authUser?.email || undefined }
+                        });
+                        setTopMatches(prev => prev.map(job => (job.id === applyModalJob.id || job.job_id === applyModalJob.job_id) ? { ...job, applied: true } : job));
                         setApplyModalJob(null);
                       } catch (e) {
                         setApplyModalJob(null);
