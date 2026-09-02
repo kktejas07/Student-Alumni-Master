@@ -3,14 +3,13 @@ import { View, Text, Pressable, ScrollView, TextInput, StyleSheet } from 'react-
 import { Plus, Trash2, Edit2, Check, X, RefreshCw } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
 import { SAC, FONTS } from '../tokens';
-import { Card, Field, GradientButton, SecondaryButton, useConfirm } from '../applekit';
+import { Card, Field, GradientButton, SecondaryButton } from '../applekit';
 
 export function CatalogOrdersManager({ showcaseId, slug }: { showcaseId: string; slug: string }) {
   const [items, setItems] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [coupons, setCoupons] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const { confirm } = useConfirm();
 
   const load = async () => {
     try {
@@ -58,7 +57,7 @@ export function CatalogOrdersManager({ showcaseId, slug }: { showcaseId: string;
   };
 
   const deleteItem = async (id: string) => {
-    if (!await confirm({ title: 'Delete Item?', message: 'Are you sure you want to delete this catalog item?' })) return;
+    if (!window.confirm('Are you sure you want to delete this catalog item?')) return;
     try {
       const res = await request<any>(`/api/echo/admin/catalog/${id}`, { method: 'DELETE' });
       if (res.success) load();
