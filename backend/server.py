@@ -337,7 +337,9 @@ api_router = APIRouter(prefix="/api")  # All routes prefixed with /api (Kubernet
 
 # ECHO Showcase sub-router
 from echo_showcase import router as echo_router
+from routers.vendors import router as vendors_router
 app.include_router(echo_router)
+app.include_router(vendors_router)
 
 # Newsletter sub-router
 from newsletter import router as newsletter_router
