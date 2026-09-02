@@ -69,6 +69,7 @@ export function DashboardView() {
   // Top Matches Data
   const [topMatches, setTopMatches] = useState<any[]>([]);
   const [totalMatches, setTotalMatches] = useState(267);
+  const [applyModalJob, setApplyModalJob] = useState<any | null>(null);
 
   useEffect(() => {
     request<any>('/opportunities?limit=3')
@@ -655,6 +656,42 @@ export function DashboardView() {
             </div>
           </div>
 
+          {/* Apply Confirmation Modal */}
+          {applyModalJob && (
+            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.6)' }}>
+              <div className="db-card" style={{ background: '#13131A', padding: '24px', borderRadius: '16px', width: '90%', maxWidth: '400px', border: '1px solid #262638' }}>
+                <div style={{ fontSize: '18px', fontWeight: 600, color: '#FFFFFF', marginBottom: '12px' }}>Confirm Application</div>
+                <div style={{ fontSize: '14px', color: '#8A8A9E', marginBottom: '24px', lineHeight: '1.5' }}>
+                  We redirected you to the external application page for <span style={{ color: '#FFFFFF', fontWeight: 600 }}>{applyModalJob.title}</span> at <span style={{ color: '#FFFFFF', fontWeight: 600 }}>{applyModalJob.company}</span>. 
+                  <br /><br />
+                  Once you finish submitting your details there, confirm it here to track its progress in your dashboard.
+                </div>
+                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                  <button 
+                    onClick={() => setApplyModalJob(null)}
+                    style={{ padding: '10px 16px', borderRadius: '8px', background: 'transparent', color: '#8A8A9E', border: 'none', cursor: 'pointer', fontWeight: 600 }}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={async () => {
+                      try {
+                        await request(`/opportunities/${applyModalJob.id}/apply`, { method: 'POST' });
+                        setTopMatches(prev => prev.map(job => job.id === applyModalJob.id ? { ...job, applied: true } : job));
+                        setApplyModalJob(null);
+                      } catch (e) {
+                        setApplyModalJob(null);
+                      }
+                    }}
+                    style={{ padding: '10px 16px', borderRadius: '8px', background: '#34D399', color: '#04291D', border: 'none', cursor: 'pointer', fontWeight: 600 }}
+                  >
+                    Yes, I applied
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Skill Streak */}
           <div className="db-tile db-card" style={{ gridColumn: 'span 3', padding: '20px 22px 22px' }}>
             <div style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '1.4px', color: '#8A8A9E', marginBottom: '14px' }}>
@@ -793,17 +830,20 @@ export function DashboardView() {
                     <div style={{ fontSize: '11px', color: '#8A8A9E' }}>{matchPct}% match</div>
                   </div>
                   <button 
+                    disabled={m.applied}
                     onClick={() => {
+                      if (m.applied) return;
                       const url = m.url || (m.source_urls && m.source_urls[0]);
                       if (url) {
                         window.open(url, '_blank');
+                        setApplyModalJob(m);
                       } else {
                         portalNav?.navigate('internships');
                       }
                     }}
-                    style={{ fontSize: '12.5px', fontWeight: 600, background: '#7C5CFC', color: '#FFFFFF', borderRadius: '8px', padding: '8px 14px', border: 'none', cursor: 'pointer' }}
+                    style={{ fontSize: '12.5px', fontWeight: 600, background: m.applied ? 'rgba(255,255,255,0.05)' : '#7C5CFC', color: m.applied ? '#8A8A9E' : '#FFFFFF', borderRadius: '8px', padding: '8px 14px', border: 'none', cursor: m.applied ? 'default' : 'pointer' }}
                   >
-                    Apply
+                    {m.applied ? 'Applied' : 'Apply'}
                   </button>
                 </div>
               )}) : (
