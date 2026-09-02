@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, Pressable, ScrollView, TextInput, StyleSheet } from 'react-native';
 import { Plus, Trash2, Edit2, Check, X, RefreshCw } from 'lucide-react-native';
-import { api } from '@/src/models/services/api';
+import { request } from '@/src/models/services/api';
 import { SAC, FONTS } from '../tokens';
 import { Card, Field, GradientButton, SecondaryButton, useConfirm } from '../applekit';
 
@@ -17,9 +17,9 @@ export function CatalogOrdersManager({ showcaseId, slug }: { showcaseId: string;
       setLoading(true);
       if (!showcaseId) return;
       const [resItems, resOrders, resCoupons] = await Promise.all([
-        api.get(`/api/echo/admin/showcases/${showcaseId}/catalog`),
-        api.get(`/api/echo/admin/showcases/${showcaseId}/orders`),
-        api.get(`/api/echo/admin/coupons?event_slug=${slug}`)
+        request<any>(`/api/echo/admin/showcases/${showcaseId}/catalog`),
+        request<any>(`/api/echo/admin/showcases/${showcaseId}/orders`),
+        request<any>(`/api/echo/admin/coupons?event_slug=${slug}`)
       ]);
       if (resItems.success) setItems(resItems.data || []);
       if (resOrders.success) setOrders(resOrders.data || []);
@@ -42,9 +42,9 @@ export function CatalogOrdersManager({ showcaseId, slug }: { showcaseId: string;
     try {
       let res;
       if (item.id || item._id) {
-        res = await api.put(`/api/echo/admin/catalog/${item.id || item._id}`, item);
+        res = await request<any>(`/api/echo/admin/catalog/${item.id || item._id}`, { method: 'PUT', body: item });
       } else {
-        res = await api.post(`/api/echo/admin/showcases/${showcaseId}/catalog`, item);
+        res = await request<any>(`/api/echo/admin/showcases/${showcaseId}/catalog`, { method: 'POST', body: item });
       }
       if (res.success) {
         setEditingItem(null);
@@ -60,7 +60,7 @@ export function CatalogOrdersManager({ showcaseId, slug }: { showcaseId: string;
   const deleteItem = async (id: string) => {
     if (!await confirm({ title: 'Delete Item?', message: 'Are you sure you want to delete this catalog item?' })) return;
     try {
-      const res = await api.delete(`/api/echo/admin/catalog/${id}`);
+      const res = await request<any>(`/api/echo/admin/catalog/${id}`, { method: 'DELETE' });
       if (res.success) load();
     } catch (e: any) {
       alert(e.message);
@@ -74,7 +74,7 @@ export function CatalogOrdersManager({ showcaseId, slug }: { showcaseId: string;
     if (!coupon.code || !coupon.discount_value) return alert('Code and Discount Value are required');
     try {
       coupon.event_id = slug; // ensure it's tied to event
-      const res = await api.post(`/api/echo/admin/coupons`, coupon);
+      const res = await request<any>(`/api/echo/admin/coupons`, { method: 'POST', body: coupon });
       if (res.success) {
         setEditingCoupon(null);
         load();

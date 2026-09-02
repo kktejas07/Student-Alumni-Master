@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { ShoppingCart, Plus, Minus, Tag } from 'lucide-react-native';
-import { api } from '@/src/models/services/api';
+import { request } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolean }) {
@@ -14,7 +14,7 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
 
   useEffect(() => {
     if (slug) {
-      api.get(`/api/echo/showcases/${slug}/catalog`)
+      request<any>(`/api/echo/showcases/${slug}/catalog`)
         .then(res => {
           if (res.success) setItems(res.data || []);
         })
@@ -46,7 +46,7 @@ export function EchoMarketplace({ slug, isDark }: { slug: string; isDark: boolea
       const payload: any = { event_id: slug, user_id: user.id, items: orderItems };
       if (couponCode.trim()) payload.coupon_code = couponCode.trim();
 
-      const res = await api.post(`/api/echo/orders/checkout`, payload);
+      const res = await request<any>(`/api/echo/orders/checkout`, { method: 'POST', body: payload });
       if (!res.success) {
         alert(res.error || "Checkout failed");
         setCheckoutLoading(false);

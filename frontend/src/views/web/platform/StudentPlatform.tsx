@@ -16,7 +16,7 @@ import {
 } from './components';
 import { SA, SAGradients } from './tokens';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
-import { api } from '@/src/models/services/api';
+import { api, request } from '@/src/models/services/api';
 import {
   StudentInternships, StudentCourses, StudentResources, StudentNetwork,
 } from './screens/StudentScreens';
@@ -524,7 +524,7 @@ function MyPurchasesView() {
 
   useEffect(() => {
     if (user) {
-      api.get(`/api/echo/orders/user/${user.id}`)
+      request<any>(`/api/echo/orders/user/${user.id}`)
         .then(res => {
           if (res.success) setOrders(res.data || []);
         })
