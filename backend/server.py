@@ -65,13 +65,12 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, EmailStr, field_validator
 from fastapi.middleware.gzip import GZipMiddleware
 
-# Rate limiting — uses real client IP (proxy-aware, not raw REMOTE_ADDR)
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from core.middleware import get_real_ip, register_security_middleware
 from core.deps import get_current_user as _deps_get_current_user
 
-limiter = Limiter(key_func=get_real_ip, default_limits=["200/minute"])
+from core.config import limiter, JWT_SECRET, JWT_ALGORITHM
 
 # Content prioritization engine — implements interest + edu-level + deadline + frequency scoring
 from personalization import (
@@ -129,10 +128,7 @@ from db import client, db as _db_default, fetch_users_with_mock_limit
 db = _db_default
 
 # JWT configuration — REQUIRED from environment (never hardcode).
-JWT_SECRET = os.environ.get('JWT_SECRET')
-if not JWT_SECRET:
-    raise RuntimeError("JWT_SECRET is not set. Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\" and add it to backend/.env")
-JWT_ALGORITHM = "HS256"
+# Using JWT secrets from core.config
 ACCESS_TOKEN_EXPIRE_MINUTES = 60  # 1 hour — short-lived; use refresh token for re-auth
 REFRESH_TOKEN_EXPIRE_DAYS = 30
 

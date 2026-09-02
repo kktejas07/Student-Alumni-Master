@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, Header, Body, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 import jwt
-from server import limiter, JWT_SECRET, JWT_ALGORITHM
+from core.config import limiter, JWT_SECRET, JWT_ALGORITHM
 from core.middleware import get_real_ip
 from bson import ObjectId
 
