@@ -537,6 +537,17 @@ async def apply_internship(internship_id: str, req: ApplyRequest, request: Reque
         ],
         "student_id": str(student["_id"]),
     })
+
+    # Sync with users.applied_jobs so the feed button is marked as applied
+    updates = {"applied_jobs": internship_id_str}
+    if internship.get("id"):
+        updates["applied_opportunities"] = internship.get("id")
+
+    await _db.users.update_one(
+        {"_id": student["_id"]},
+        {"$addToSet": updates}
+    )
+
     if existing:
         return {"ok": True, "already": True, "application_id": _short_id(existing["_id"])}
 
@@ -552,12 +563,6 @@ async def apply_internship(internship_id: str, req: ApplyRequest, request: Reque
         "applied_at": _now(),
     }
     res = await _db.internship_applications.insert_one(doc)
-
-    # Sync with users.applied_jobs so the feed button is marked as applied
-    await _db.users.update_one(
-        {"_id": student["_id"]},
-        {"$addToSet": {"applied_jobs": internship_id_str}}
-    )
 
     # Write to job_apply_audit for unified tracking metrics
     try:
